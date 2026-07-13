@@ -22,9 +22,7 @@ from src.core.models.shaper_models import ShaperStepConfig
 from src.core.services.shapers.factory import ShaperFactory
 from src.core.services.shapers.impl.split_apply import SplitApply
 
-# ---------------------------------------------------------------------------
 # Fixtures
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture
@@ -128,9 +126,7 @@ def normalize_split_config() -> dict[str, Any]:
     }
 
 
-# ============================================================================
 # Parameter Validation
-# ============================================================================
 
 
 class TestSplitApplyValidation:
@@ -224,9 +220,7 @@ class TestSplitApplyValidation:
             shaper(dual_axis_data)
 
 
-# ============================================================================
 # Core Functionality: Independent Mean
-# ============================================================================
 
 
 class TestSplitApplyMean:
@@ -298,9 +292,7 @@ class TestSplitApplyMean:
         assert len(result) == 6
 
 
-# ============================================================================
 # Core Functionality: Independent Normalize
-# ============================================================================
 
 
 class TestSplitApplyNormalize:
@@ -338,9 +330,7 @@ class TestSplitApplyNormalize:
         assert len(result) == len(dual_axis_data)
 
 
-# ============================================================================
 # Combined Pipeline: Mean + Normalize
-# ============================================================================
 
 
 class TestSplitApplyCombined:
@@ -413,9 +403,7 @@ class TestSplitApplyCombined:
         assert len(mean_rows) == 2
 
 
-# ============================================================================
 # SD Columns
-# ============================================================================
 
 
 class TestSplitApplySD:
@@ -437,9 +425,7 @@ class TestSplitApplySD:
         assert "numCycles.sd" in result.columns
 
 
-# ============================================================================
 # Empty Pipeline
-# ============================================================================
 
 
 class TestSplitApplyPassthrough:
@@ -467,9 +453,7 @@ class TestSplitApplyPassthrough:
         pd.testing.assert_frame_equal(result_sorted, original_sorted)
 
 
-# ============================================================================
 # Factory Registration
-# ============================================================================
 
 
 class TestSplitApplyFactory:
@@ -497,9 +481,7 @@ class TestSplitApplyFactory:
         assert "Split" in name
 
 
-# ============================================================================
 # Sub-pipeline Error Handling
-# ============================================================================
 
 
 class TestSplitApplyErrors:
@@ -530,9 +512,7 @@ class TestSplitApplyErrors:
             shaper(dual_axis_data)
 
 
-# ============================================================================
 # Three-Group Split (Extensibility)
-# ============================================================================
 
 
 class TestSplitApplyThreeGroups:
@@ -604,9 +584,7 @@ class TestSplitApplyThreeGroups:
         assert abs(pd.Series(mean_row["v3"]).iloc[0] - 1500.0) < 1e-6
 
 
-# ============================================================================
 # Four-Group Split (Maximum)
-# ============================================================================
 
 
 class TestSplitApplyFourGroups:

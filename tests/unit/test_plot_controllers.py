@@ -16,7 +16,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-# ─── Fixtures ────────────────────────────────────────────────────────────────
+# Fixtures
 
 
 @pytest.fixture
@@ -59,7 +59,7 @@ def mock_pipeline_executor() -> MagicMock:
     return MagicMock()
 
 
-# ─── PlotCreationController Tests ────────────────────────────────────────────
+# PlotCreationController Tests
 
 
 class TestPlotCreationController:
@@ -236,7 +236,7 @@ class TestPlotCreationController:
         assert plot.name == "Renamed"
 
 
-# ─── PipelineController Tests ───────────────────────────────────────────────
+# PipelineController Tests
 
 
 class TestPipelineController:
@@ -372,7 +372,7 @@ class TestPipelineController:
         mock_pipeline_executor.apply_shapers.assert_not_called()
 
 
-# ─── Error Resilience Tests ─────────────────────────────────────────────────
+# Error Resilience Tests
 
 
 class TestPipelineControllerErrorResilience:

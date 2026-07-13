@@ -339,7 +339,7 @@ class FigureSpecToPlotly:
         if not heatmap_traces:
             return
 
-        # ── Determine z-range ─────────────────────────────────────
+        # Determine z-range
         if cbar.range_mode == "manual" and cbar.zmin is not None and cbar.zmax is not None:
             zmin, zmax = float(cbar.zmin), float(cbar.zmax)
         else:
@@ -347,7 +347,7 @@ class FigureSpecToPlotly:
             raw_min, raw_max = compute_z_extent(heatmap_traces)
             zmin, zmax, _ = compute_nice_range(raw_min, raw_max, cbar.nticks)
 
-        # ── Build colorbar dict ───────────────────────────────────
+        # Build colorbar dict
         title_text = primary.title.replace("\n", "<br>") if primary.title else ""
         title_font: dict[str, Any] = {}
         if primary.title_font_size > 0:
@@ -380,7 +380,7 @@ class FigureSpecToPlotly:
         if primary.orientation == "horizontal":
             colorbar_dict["orientation"] = "h"
 
-        # ── Apply to traces ───────────────────────────────────────
+        # Apply to traces
         if cbar.shared:
             # Shared mode: all traces get same zmin/zmax, only last shows colorbar
             for i, trace in enumerate(heatmap_traces):
@@ -477,8 +477,7 @@ class FigureSpecToPlotly:
 
         return result
 
-    # ── Palette and layout decoration helpers ──────────────────
-
+    # Palette and layout decoration helpers
     @staticmethod
     def _apply_color_palette(spec: FigureConfig, fig: go.Figure) -> None:
         """Set colorway and explicitly assign palette colors to traces.
@@ -680,7 +679,7 @@ class FigureSpecToPlotly:
         x = spec.axes.x
         y = spec.axes.y
 
-        # ── Bottom (X) axis line ─────────────────────────────────
+        # Bottom (X) axis line
         x_update: dict[str, Any] = {}
         if x.tick_font_color:
             x_update["tickfont"] = dict(color=x.tick_font_color)
@@ -710,7 +709,7 @@ class FigureSpecToPlotly:
         if x_update:
             fig.update_xaxes(**x_update)
 
-        # ── Left (Y) axis line ───────────────────────────────────
+        # Left (Y) axis line
         y_update: dict[str, Any] = {}
         if y.tick_font_color:
             y_update["tickfont"] = dict(color=y.tick_font_color)
@@ -737,7 +736,7 @@ class FigureSpecToPlotly:
         if y_update:
             fig.update_yaxes(**y_update, selector=dict(overlaying=None))
 
-        # ── Y2 axis line (when dual axis) ────────────────────────
+        # Y2 axis line (when dual axis)
         if spec.axes.y2 is not None:
             y2 = spec.axes.y2
             y2_update: dict[str, Any] = {}
@@ -780,8 +779,7 @@ class FigureSpecToPlotly:
                 line=dict(color=color, width=width),
             )
 
-    # ── Per-trace overrides and axis aliases ───────────────────
-
+    # Per-trace overrides and axis aliases
     @staticmethod
     def _apply_trace_overrides(spec: FigureConfig, fig: go.Figure) -> None:
         """Apply per-trace styling overrides keyed by trace name.

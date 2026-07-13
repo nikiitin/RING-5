@@ -7,7 +7,7 @@ import pandas as pd
 
 from src.core.models.shaper_models import ShaperStepConfig
 
-# ── Helpers ───────────────────────────────────────────────────────
+# Helpers
 
 
 def _ctx_mgr() -> MagicMock:
@@ -44,12 +44,11 @@ def _sample_data_4cols() -> pd.DataFrame:
     )
 
 
-# ── Module path for patching ─────────────────────────────────────
-
+# Module path for patching
 _MOD = "src.web.components.shapers.split_apply_config"
 
 
-# ── TestSplitApplyConfigRender (2 groups, no sub-steps) ──────────
+# TestSplitApplyConfigRender (2 groups, no sub-steps)
 
 
 class TestSplitApplyConfigRender:
@@ -139,7 +138,7 @@ class TestSplitApplyConfigRender:
         assert result.get("joinColumns") == ["benchmark"]
 
 
-# ── TestSplitApplyConfigSubStepDelegation ────────────────────────
+# TestSplitApplyConfigSubStepDelegation
 
 
 class TestSplitApplyConfigSubStepDelegation:
@@ -329,7 +328,7 @@ class TestSplitApplyConfigSubStepDelegation:
         render_fn.assert_called_once()  # type: ignore[attr-defined]
 
 
-# ── TestSplitApplyConfigWithStep ─────────────────────────────────
+# TestSplitApplyConfigWithStep
 
 
 class TestSplitApplyConfigWithStep:
@@ -402,7 +401,7 @@ class TestSplitApplyConfigWithStep:
         assert step.get("meanAlgorithm") == "arithmean"
 
 
-# ── TestSplitApplyConfigNGroups ──────────────────────────────────
+# TestSplitApplyConfigNGroups
 
 
 class TestSplitApplyConfigNGroups:
@@ -543,7 +542,7 @@ class TestSplitApplyConfigNGroups:
         assert call_kwargs[1].get("value") == 3 or call_kwargs[0][0] == "Number of groups"
 
 
-# ── TestSplitApplyConfigExistingPipeline ─────────────────────────
+# TestSplitApplyConfigExistingPipeline
 
 
 class TestSplitApplyConfigExistingPipeline:
@@ -636,7 +635,7 @@ class TestSplitApplyConfigExistingPipeline:
         assert passed_existing["meanAlgorithm"] == "geomean"
 
 
-# ── TestSplitApplyConfigKeyPrefixing ─────────────────────────────
+# TestSplitApplyConfigKeyPrefixing
 
 
 class TestSplitApplyConfigKeyPrefixing:
@@ -680,7 +679,7 @@ class TestSplitApplyConfigKeyPrefixing:
         assert call_args[0][3] == "sub0"
 
 
-# ── TestInitDispatch ─────────────────────────────────────────────
+# TestInitDispatch
 
 
 class TestInitDispatch:

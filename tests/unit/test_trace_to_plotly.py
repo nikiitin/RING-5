@@ -26,7 +26,7 @@ from src.web.rendering.trace_to_plotly import (
     traces_to_plotly,
 )
 
-# ── traces_to_plotly (main entry) ────────────────────────────────────
+# traces_to_plotly (main entry)
 
 
 class TestTracesToPlotly:
@@ -118,7 +118,7 @@ class TestTracesToPlotly:
         assert len(annotations) == 2
 
 
-# ── _convert_trace dispatch ──────────────────────────────────────────
+# _convert_trace dispatch
 
 
 class TestConvertTrace:
@@ -150,7 +150,7 @@ class TestConvertTrace:
         assert isinstance(result, go.Bar)
 
 
-# ── _bar_trace ───────────────────────────────────────────────────────
+# _bar_trace
 
 
 class TestBarTrace:
@@ -234,7 +234,7 @@ class TestBarTrace:
         assert bar.width == 0.5
 
 
-# ── _line_trace ──────────────────────────────────────────────────────
+# _line_trace
 
 
 class TestLineTrace:
@@ -277,7 +277,7 @@ class TestLineTrace:
         assert cast(Any, scatter.error_y).array == (0.2,)
 
 
-# ── _scatter_trace ───────────────────────────────────────────────────
+# _scatter_trace
 
 
 class TestScatterTrace:
@@ -325,7 +325,7 @@ class TestScatterTrace:
         assert list(cast(Any, scatter.marker).size) == [10.0, 20.0]
 
 
-# ── _histogram_trace ─────────────────────────────────────────────────
+# _histogram_trace
 
 
 class TestHistogramTrace:
@@ -353,7 +353,7 @@ class TestHistogramTrace:
         assert cast(Any, hist.cumulative).enabled is True
 
 
-# ── _bar_trace_from_base ─────────────────────────────────────────────
+# _bar_trace_from_base
 
 
 class TestBarTraceFromBase:
@@ -371,7 +371,7 @@ class TestBarTraceFromBase:
         assert cast(Any, bar.marker).color == "#123456"
 
 
-# ── _convert_annotations ────────────────────────────────────────────
+# _convert_annotations
 
 
 class TestConvertAnnotations:

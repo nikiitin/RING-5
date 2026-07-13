@@ -78,12 +78,10 @@ class TestSimpleStatsStrategy:
 class TestConfigAwareStrategy:
 
     def test_augment_results(self) -> None:
-        # Arrange
         raw_results = [{"sim_path": "/data/run1/stats.txt", "ipc": 1.5}]
 
         strategy = ConfigAwareStrategy()
 
-        # Act
         with patch.object(strategy, "_parse_config") as mock_parse_config:
             with patch("src.parsing.gem5.impl.strategies.config_aware.Path") as mock_path_cls:
                 mock_config_path = MagicMock()
@@ -94,7 +92,6 @@ class TestConfigAwareStrategy:
 
                 results = strategy.post_process(raw_results)
 
-                # Assert
                 assert len(results) == 1
                 assert results[0]["ipc"] == 1.5
                 assert results[0]["config"]["system"]["cores"] == "4"

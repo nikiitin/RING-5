@@ -1,15 +1,4 @@
-"""Visual tests for Data Source page — parser configuration widgets.
-
-Consolidated from 36 individual tests to 6 workflow-style tests using
-a class-scoped ``shared_page`` fixture.
-
-Covers:
-- File Location inputs (labels, editability, clearing)
-- Parsing Strategy selector (switching between Simple and Config-Aware)
-- Variables to Extract section (buttons, checkbox, type descriptions)
-- Configuration Preview (JSON keys, reflecting strategy/path changes)
-- Parse button visibility and validation behaviour
-"""
+"""Visual tests for Data Source parser configuration controls."""
 
 from __future__ import annotations
 
@@ -22,7 +11,7 @@ pytestmark = pytest.mark.requires_browser
 
 
 class TestParserConfig:
-    """Consolidated parser configuration tests.
+    """Ordered parser-configuration checks.
 
     Uses ``shared_page`` (class-scoped) so the browser tab is created once
     and reused across all six tests.  Tests run in definition order.
@@ -31,7 +20,6 @@ class TestParserConfig:
     def test_file_location_inputs(self, shared_page: Page, live_server_url: str) -> None:
         """File Location section renders correctly and inputs are editable.
 
-        Consolidates 8 original tests:
         - File Location header visible
         - Stats path label and input visible
         - Stats pattern label and input visible
@@ -73,7 +61,6 @@ class TestParserConfig:
     def test_parsing_strategy(self, shared_page: Page, live_server_url: str) -> None:
         """Parsing Strategy selector works correctly.
 
-        Consolidates 5 original tests:
         - Strategy header visible
         - Both Simple and Config-Aware options visible
         - Simple is default strategy
@@ -110,7 +97,6 @@ class TestParserConfig:
     def test_variables_section(self, shared_page: Page, live_server_url: str) -> None:
         """Variables to Extract section renders all expected elements.
 
-        Consolidates 10 original tests:
         - Variables header visible
         - Variable type descriptions visible (Scalar, Vector, Distribution, Config)
         - Deep Scan checkbox visible and toggleable
@@ -143,7 +129,6 @@ class TestParserConfig:
     def test_config_preview_static(self, shared_page: Page, live_server_url: str) -> None:
         """Configuration Preview shows expected JSON keys.
 
-        Consolidates 5 original tests:
         - Config Preview header visible
         - JSON contains 'parser' key
         - JSON contains 'statsPath' key
@@ -163,7 +148,6 @@ class TestParserConfig:
     def test_config_preview_dynamic(self, shared_page: Page, live_server_url: str) -> None:
         """Configuration Preview updates when strategy or path changes.
 
-        Consolidates 2 original tests:
         - Changing strategy updates JSON preview
         - Typing a stats path updates JSON preview
         """
@@ -184,7 +168,6 @@ class TestParserConfig:
     def test_parse_button_behaviour(self, shared_page: Page, live_server_url: str) -> None:
         """Parse button visibility and error validation work correctly.
 
-        Consolidates 6 original tests:
         - Parse button visible with correct text
         - Parse with empty path shows error
         - Parse with nonexistent path shows error/dialog

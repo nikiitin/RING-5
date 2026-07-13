@@ -1,4 +1,4 @@
-"""Parser, pattern-index, work-pool, and data-source edge-case tests."""
+"""Tests for parser, pattern-index, work-pool, and data-source services."""
 
 import configparser
 import os
@@ -8,13 +8,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-# ===================================================================
-# 1. ScannedVariable.to_dict — optional fields (lines 53-64)
-# ===================================================================
+# Scanned-variable serialization
 
 
 class TestScannedVariableToDict:
-    """Cover to_dict branches for minimum, maximum, pattern_indices."""
+    """Tests for optional scanned-variable fields."""
 
     def test_to_dict_with_all_optional_fields(self) -> None:
         from src.parsing.gem5.models import Gem5ScannedVariable
@@ -68,13 +66,11 @@ class TestScannedVariableToDict:
         assert sv2.pattern_indices == sv.pattern_indices
 
 
-# ===================================================================
-# 2. StrategyFactory — config_aware + ValueError (lines 37-44)
-# ===================================================================
+# Strategy creation
 
 
 class TestStrategyFactory:
-    """Cover config_aware branch and unknown strategy ValueError."""
+    """Tests for strategy selection and invalid names."""
 
     def test_create_simple(self) -> None:
         from src.parsing.gem5.impl.strategies.factory import StrategyFactory
@@ -97,13 +93,11 @@ class TestStrategyFactory:
             StrategyFactory.create("nonexistent")
 
 
-# ===================================================================
-# 4. ConfigAwareStrategy — post_process + _parse_config (lines 42-75)
-# ===================================================================
+# Configuration-aware parsing
 
 
 class TestConfigAwareStrategy:
-    """Cover post_process branches and _parse_config error handling."""
+    """Tests for configuration discovery and parsing failures."""
 
     def test_post_process_no_sim_path(self) -> None:
         """Result without sim_path key — should be appended as-is."""
@@ -186,13 +180,11 @@ class TestConfigAwareStrategy:
         assert isinstance(result, dict)
 
 
-# ===================================================================
-# 5. ParseWork — __call__ + __str__ (lines 44, 53)
-# ===================================================================
+# Parse work contract
 
 
 class TestParseWork:
-    """Cover NotImplementedError from __call__ and __str__."""
+    """Tests for the abstract parse-work contract."""
 
     def test_call_raises_not_implemented(self) -> None:
         from src.parsing.gem5.impl.pool.parse_work import ParseWork
@@ -215,13 +207,11 @@ class TestParseWork:
         assert str(work) == "MyWork"
 
 
-# ===================================================================
-# 6. WorkPool — thread executor lazy init + submit
-# ===================================================================
+# Work-pool submission
 
 
 class TestWorkPool:
-    """Cover the thread-executor lazy init and submit."""
+    """Tests for lazy executor creation and submission."""
 
     def test_thread_executor_lazy_init(self) -> None:
         from src.parsing.framework.work_pool import WorkPool
@@ -259,13 +249,11 @@ class TestWorkPool:
         WorkPool._instance = None
 
 
-# ===================================================================
-# 7. ParseService — regex expansion, keep_indices, finalize (lines 143-198, 210-212, 325)
-# ===================================================================
+# Parse-service expansion and finalization
 
 
 class TestParseServiceRegexExpansion:
-    """Cover regex expansion branches in submit_parse_async."""
+    """Tests for regex expansion during asynchronous submission."""
 
     @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
@@ -468,7 +456,7 @@ class TestParseServiceRegexExpansion:
     def test_regex_no_match_warns(
         self, mock_factory: MagicMock, mock_pool_cls: MagicMock, tmp_path: Path
     ) -> None:
-        """Cover the 'no matches found' branch."""
+        """A regex without matches still returns a valid batch."""
         from src.core.models.parsing_models import (
             ParseBatchResult,
             ScannedVariable,
@@ -507,7 +495,7 @@ class TestParseServiceRegexExpansion:
     def test_invalid_regex_warns(
         self, mock_factory: MagicMock, mock_pool_cls: MagicMock, tmp_path: Path
     ) -> None:
-        """Cover the 'invalid regex' branch."""
+        """An invalid regex still returns a valid batch."""
         from src.core.models.parsing_models import (
             ParseBatchResult,
             ScannedVariable,
@@ -543,7 +531,7 @@ class TestParseServiceRegexExpansion:
 
 
 class TestParseServiceFinalize:
-    """Cover finalize_parsing and construct_final_csv."""
+    """Tests for parse finalization and CSV construction."""
 
     def test_finalize_parsing_no_results(self) -> None:
         from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
@@ -658,13 +646,11 @@ class TestParseServiceFinalize:
         assert "benchmark_x" in content
 
 
-# ===================================================================
-# 8. PatternIndexSelector — render_selector branches (lines 70-167)
-# ===================================================================
+# Pattern-index selection
 
 
 class TestPatternIndexSelector:
-    """Cover render_selector UI logic and static helper methods."""
+    """Tests for pattern-index controls and helpers."""
 
     @patch("src.web.components.data_source.pattern_index_selector.st")
     @patch("src.web.components.data_source.pattern_index_selector.PatternIndexService")
@@ -865,13 +851,11 @@ class TestPatternIndexSelector:
             assert result == "cpu0_cntrl1"
 
 
-# ===================================================================
-# 9. DataSourceComponents — render_csv_pool, _show_parse_dialog (lines ~30-100, 400-490)
-# ===================================================================
+# Data-source components
 
 
 class TestDataSourceComponents:
-    """Cover render_csv_pool branches and parse dialog logic."""
+    """Tests for recent CSV controls and parse dialogs."""
 
     @patch("src.web.components.data_source.data_source_components.st")
     def test_render_csv_pool_empty(self, mock_st: MagicMock) -> None:
@@ -1063,13 +1047,11 @@ class TestDataSourceComponents:
         mock_st.error.assert_called()
 
 
-# ===================================================================
-# 11. Gem5Parser - regex expansion + finalize (lines 142-197)
-# ===================================================================
+# gem5 parser expansion and finalization
 
 
 class TestGem5ParserSubmitParseAsync:
-    """Cover Gem5Parser.submit_parse_async regex expansion."""
+    """Tests for gem5 regex expansion during submission."""
 
     @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
@@ -1377,13 +1359,11 @@ class TestGem5ParserSubmitParseAsync:
             Gem5Parser.submit_parse_async("/nonexistent/path", "stats.txt", [config], "/tmp/out")
 
 
-# ===================================================================
-# 12. UniDfShaper validation (lines 34-42)
-# ===================================================================
+# Dataframe shaper validation
 
 
 class TestUniDfShaper:
-    """Cover UniDfShaper.__call__ validation branches."""
+    """Tests for dataframe input validation."""
 
     def test_none_input_raises(self) -> None:
         from src.core.services.shapers.uni_df_shaper import UniDfShaper
@@ -1414,13 +1394,11 @@ class TestUniDfShaper:
             shaper(cast(Any, "not a dataframe"))
 
 
-# ===================================================================
-# 13. Selector validation branches (lines 89, 96, 101)
-# ===================================================================
+# Selector validation
 
 
 class TestSelectorValidation:
-    """Cover Selector._verify_params and _verify_preconditions."""
+    """Tests for selector parameters and preconditions."""
 
     def test_missing_column_raises(self) -> None:
         from src.core.services.shapers.impl.selector import Selector
@@ -1448,13 +1426,11 @@ class TestSelectorValidation:
             selector(pd.DataFrame({"a": [1]}))
 
 
-# ===================================================================
-# 14. DefaultShapersAPI delegation
-# ===================================================================
+# Shaper API delegation
 
 
 class TestDefaultShapersAPI:
-    """Cover DefaultShapersAPI delegation methods."""
+    """Tests for shaper API delegation."""
 
     def test_get_available_shaper_types(self) -> None:
         from src.core.services.shapers.shapers_impl import DefaultShapersAPI
@@ -1465,13 +1441,11 @@ class TestDefaultShapersAPI:
         assert len(types) > 0
 
 
-# ===================================================================
-# 15. DataSourcePage render branches (lines 43-48)
-# ===================================================================
+# Data-source page modes
 
 
 class TestDataSourcePage:
-    """Cover DataSourcePage.render branch paths."""
+    """Tests for data-source page modes."""
 
     @patch("src.web.pages.data_source.st")
     @patch("src.web.pages.data_source.DataSourceComponents")
@@ -1511,13 +1485,11 @@ class TestDataSourcePage:
         mock_st.success.assert_called()
 
 
-# ===================================================================
 # DataManager abstract contract
-# ===================================================================
 
 
 class TestDataManagerBase:
-    """Cover DataManager.get_data and set_data helper methods."""
+    """Tests for dataframe access through a data manager."""
 
     def test_get_data_delegates(self) -> None:
         import pandas as pd
@@ -1561,9 +1533,7 @@ class TestDataManagerBase:
         api.state_manager.set_data.assert_called_once_with(df)
 
 
-# ===================================================================
-# 19. More DataSourceComponents branches
-# ===================================================================
+# Additional data-source actions
 
 
 class TestDataSourceComponentsExtra:
@@ -1637,13 +1607,11 @@ class TestDataSourceComponentsExtra:
         DataSourceComponents.render_parser_config(api)
 
 
-# ===================================================================
-# 20. ScanWork + Job abstract methods
-# ===================================================================
+# Scan-work and job contracts
 
 
 class TestScanWork:
-    """Cover ScanWork abstract __call__ and __str__."""
+    """Tests for the abstract scan-work contract."""
 
     def test_call_raises_not_implemented(self) -> None:
         from src.parsing.gem5.impl.pool.scan_work import ScanWork
@@ -1667,7 +1635,7 @@ class TestScanWork:
 
 
 class TestJobBase:
-    """Cover Job.__str__ and abstract __call__."""
+    """Tests for the abstract job contract."""
 
     def test_job_str(self) -> None:
         from src.parsing.framework.job import Job
@@ -1680,13 +1648,11 @@ class TestJobBase:
         assert str(j) == "MyJob"
 
 
-# ===================================================================
-# 22. ReductionService
-# ===================================================================
+# Seed reduction
 
 
 class TestReductionService:
-    """Cover ReductionService.reduce_seeds and validate_seeds_reducer_inputs."""
+    """Tests for seed reduction and input validation."""
 
     def test_reduce_seeds_empty(self) -> None:
         import pandas as pd
@@ -1749,13 +1715,11 @@ class TestReductionService:
         assert any("numeric" in e.lower() for e in errors)
 
 
-# ===================================================================
-# 23. ArithmeticService
-# ===================================================================
+# Arithmetic operations
 
 
 class TestArithmeticService:
-    """Cover ArithmeticService.apply_operation branches."""
+    """Tests for arithmetic operation dispatch."""
 
     def test_division(self) -> None:
         import pandas as pd
@@ -1803,13 +1767,11 @@ class TestArithmeticService:
             ArithmeticService.apply_operation(df, "Modulo", "a", "b", "c")
 
 
-# ===================================================================
-# 24. Shaper base class
-# ===================================================================
+# Shaper validation
 
 
 class TestShaperBase:
-    """Cover Shaper parameter validation and precondition checks."""
+    """Tests for base shaper parameters and preconditions."""
 
     def test_non_dict_params_raises(self) -> None:
         from src.core.services.shapers.shaper import Shaper
@@ -1860,13 +1822,11 @@ class TestShaperBase:
         pd.testing.assert_frame_equal(result, df)
 
 
-# ===================================================================
-# 25. ItemSelector
-# ===================================================================
+# Item selection
 
 
 class TestItemSelectorVerify:
-    """Cover ItemSelector._verify_params branches."""
+    """Tests for item-selector parameter validation."""
 
     def test_missing_strings_raises(self) -> None:
         from src.core.services.shapers.impl.selector_algorithms.item_selector import (
@@ -1894,13 +1854,11 @@ class TestItemSelectorVerify:
         assert sel.strings == ["x", "y"]
 
 
-# ===================================================================
-# 26. RepositoryStateManager
-# ===================================================================
+# Repository state
 
 
 class TestRepositoryStateManager:
-    """Cover RepositoryStateManager set_data type enforcement and clear_data."""
+    """Tests for repository data validation and clearing."""
 
     def test_set_data_type_enforcement(self) -> None:
         """Config variable columns should be cast to str."""
@@ -1959,13 +1917,11 @@ class TestRepositoryStateManager:
         assert mgr.get_data() is None
 
 
-# ===================================================================
-# 27. DefaultShapersAPI.process_pipeline
-# ===================================================================
+# Pipeline delegation
 
 
 class TestDefaultShapersAPIProcessPipeline:
-    """Cover process_pipeline delegation."""
+    """Tests for pipeline delegation."""
 
     def test_process_pipeline_empty(self) -> None:
         import pandas as pd
@@ -1978,13 +1934,11 @@ class TestDefaultShapersAPIProcessPipeline:
         pd.testing.assert_frame_equal(result, df)
 
 
-# ===================================================================
-# 28. ConfigAwareStrategy._parse_config exception
-# ===================================================================
+# Configuration parsing failures
 
 
 class TestConfigAwareParseConfigException:
-    """Cover _parse_config exception handler branch."""
+    """Tests for configuration parsing failures."""
 
     def test_parse_config_with_exception(self, tmp_path: Path) -> None:
         from src.parsing.gem5.impl.strategies.config_aware import (

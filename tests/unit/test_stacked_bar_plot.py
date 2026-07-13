@@ -11,9 +11,7 @@ import pandas as pd
 
 from src.web.pages.ui.plotting.types.stacked_bar_plot import StackedBarPlot
 
-# ---------------------------------------------------------------------------
 # Helpers
-# ---------------------------------------------------------------------------
 
 
 def _sample_df() -> pd.DataFrame:
@@ -30,9 +28,7 @@ def _base_config() -> dict[str, Any]:
     return {"x": "benchmark", "y_columns": ["ipc", "cpi"]}
 
 
-# ===================================================================
 # _prepare_data
-# ===================================================================
 
 
 class TestPrepareData:
@@ -69,9 +65,7 @@ class TestPrepareData:
         assert len(result) == 4
 
 
-# ===================================================================
 # _get_hover_template
-# ===================================================================
 
 
 class TestGetHoverTemplate:
@@ -85,9 +79,7 @@ class TestGetHoverTemplate:
         assert "<extra></extra>" in tmpl
 
 
-# ===================================================================
 # _get_total_position
-# ===================================================================
 
 
 class TestGetTotalPosition:
@@ -124,9 +116,7 @@ class TestGetTotalPosition:
         assert anchor == "bottom"
 
 
-# ===================================================================
 # _build_totals_annotations
-# ===================================================================
 
 
 class TestBuildTotalsAnnotations:
@@ -178,9 +168,7 @@ class TestBuildTotalsAnnotations:
         assert annotations[0]["yshift"] == 5
 
 
-# ===================================================================
 # _build_bar_trace
-# ===================================================================
 
 
 class TestBuildBarTrace:
@@ -245,9 +233,7 @@ class TestBuildBarTrace:
         assert trace.bar_width == 0.4
 
 
-# ===================================================================
 # create_figure
-# ===================================================================
 
 
 class TestCreateFigure:
@@ -285,9 +271,7 @@ class TestCreateFigure:
         assert len(fig.to_plotly_json()["layout"].get("annotations", [])) == 4  # One per row
 
 
-# ===================================================================
 # get_legend_column
-# ===================================================================
 
 
 class TestGetLegendColumn:

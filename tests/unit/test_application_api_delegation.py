@@ -1,4 +1,4 @@
-"""Tests for ApplicationAPI edge cases and uncovered methods."""
+"""Tests for ApplicationAPI delegation, conversion, and error handling."""
 
 from collections.abc import Generator
 from typing import Any, cast

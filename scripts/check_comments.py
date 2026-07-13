@@ -42,6 +42,32 @@ PROHIBITED: tuple[tuple[str, re.Pattern[str]], ...] = (
         ),
     ),
     (
+        "test consolidation bookkeeping",
+        re.compile(
+            r"\b(?:consolidat(?:ed|es|ing) from|merges? \d+ original|AAA pattern)\b",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "coverage implementation detail",
+        re.compile(
+            r"\b(?:uncovered (?:lines?|branches?|methods?)|targeting uncovered|"
+            r"cover(?:s|ing)? [^.\n]* branches?|lines? \d+(?:[-–>,. ]+\d+)*)\b",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "test scaffolding narration",
+        re.compile(
+            r"^(?:Arrange|Act|Assert)(?:\s*&\s*(?:Act|Assert))?(?:\s*[-:—].*)?$",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "decorative divider",
+        re.compile(r"(?:^[=-]{5,}$|^[─━═]{2,}|[─━═]{3,}$)"),
+    ),
+    (
         "generated template marker",
         re.compile(
             r"(?:\b(?:Design Patterns|Last Modified|NEW ISSUES|YOU ARE HERE|WITH FIX)\b|"
@@ -49,6 +75,15 @@ PROHIBITED: tuple[tuple[str, re.Pattern[str]], ...] = (
             re.IGNORECASE,
         ),
     ),
+)
+
+PROHIBITED_TEST_SUFFIXES = (
+    "_branches",
+    "_comprehensive",
+    "_coverage",
+    "_enhanced",
+    "_extras",
+    "_new",
 )
 
 
@@ -83,6 +118,9 @@ def main() -> int:
     """Report prohibited comments and return a nonzero status when found."""
     failures: list[str] = []
     for path in sorted(source_files()):
+        if path.is_relative_to(ROOT / "tests") and path.stem.endswith(PROHIBITED_TEST_SUFFIXES):
+            relative = path.relative_to(ROOT)
+            failures.append(f"{relative}: behavior-neutral test filename")
         prose = (*comment_tokens(path), *docstring_tokens(path))
         for line_number, comment in prose:
             for description, pattern in PROHIBITED:

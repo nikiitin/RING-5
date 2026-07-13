@@ -30,13 +30,13 @@ class TestScannerFunctional:
         """
         facade = ApplicationAPI()
 
-        # 1. Submit Scan
+        # Submit Scan
         futures = facade.submit_scan_async(test_data_path, "stats.txt", limit=5)
 
         assert isinstance(futures, list)
         assert len(futures) > 0
 
-        # 2. Consume Futures
+        # Consume Futures
         results = []
         for future in as_completed(futures):
             res = future.result()
@@ -45,7 +45,7 @@ class TestScannerFunctional:
 
         assert len(results) > 0
 
-        # 3. Finalize/Aggregate
+        # Finalize/Aggregate
         scanned_vars = facade.finalize_scan(results).variables
 
         assert len(scanned_vars) > 0

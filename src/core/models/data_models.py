@@ -19,9 +19,7 @@ from typing import Required, TypedDict
 # ShaperStepConfig is referenced by SavedConfigData and PipelineStep below.
 from src.core.models.shaper_models import ShaperStepConfig
 
-# ──────────────────────────────────────────────────────────────────────
 # CSV Pool
-# ──────────────────────────────────────────────────────────────────────
 
 
 class CsvMetadata(TypedDict):
@@ -58,9 +56,7 @@ class CsvPoolEntry(TypedDict, total=False):
     dtypes: dict[str, str]
 
 
-# ──────────────────────────────────────────────────────────────────────
 # Configuration Persistence
-# ──────────────────────────────────────────────────────────────────────
 
 
 class SavedConfigEntry(TypedDict):
@@ -90,9 +86,7 @@ class SavedConfigData(TypedDict, total=False):
     csv_path: str | None
 
 
-# ──────────────────────────────────────────────────────────────────────
 # Parse Variable Configuration
-# ──────────────────────────────────────────────────────────────────────
 
 
 class ParseVariableConfig(TypedDict, total=False):
@@ -143,9 +137,7 @@ class ParseVariableConfig(TypedDict, total=False):
     keepIndices: bool
 
 
-# ──────────────────────────────────────────────────────────────────────
 # Scanned Variable (dict form)
-# ──────────────────────────────────────────────────────────────────────
 
 
 class ScannedVariableDict(TypedDict, total=False):
@@ -166,9 +158,7 @@ class ScannedVariableDict(TypedDict, total=False):
     count: int
 
 
-# ──────────────────────────────────────────────────────────────────────
 # Pipeline Steps (stored in plots)
-# ──────────────────────────────────────────────────────────────────────
 
 
 class PipelineStep(TypedDict):
@@ -186,9 +176,7 @@ class PipelineStep(TypedDict):
     config: ShaperStepConfig
 
 
-# ──────────────────────────────────────────────────────────────────────
 # Column Info (DataFrame summary for UI)
-# ──────────────────────────────────────────────────────────────────────
 
 
 class ColumnInfoResult(TypedDict):
@@ -205,9 +193,7 @@ class ColumnInfoResult(TypedDict):
     columns: list[str]
 
 
-# ──────────────────────────────────────────────────────────────────────
 # Cache Statistics
-# ──────────────────────────────────────────────────────────────────────
 
 
 class CacheStatsEntry(TypedDict, total=False):

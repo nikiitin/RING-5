@@ -57,12 +57,12 @@ class BarTraceConfig(TraceConfig):
 
     trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap"] = "bar"
 
-    # ── Bar positioning (pre-computed) ───────────────────────────
+    # Bar positioning (pre-computed)
     x_positions: list[float] = field(default_factory=list)  # center of each bar
     bar_width: float = 0.8  # width of each bar
     offset: float = 0.0  # horizontal offset for grouped bars
 
-    # ── Bar styling ──────────────────────────────────────────────
+    # Bar styling
     pattern: str = ""  # hatch pattern: "", "/", "\\", "x", etc.
     border_width: float = 0.0
     border_color: str = ""
@@ -71,7 +71,7 @@ class BarTraceConfig(TraceConfig):
     text_angle: float = 0.0
     text_font_size: int = 6
 
-    # ── Error bars ───────────────────────────────────────────────
+    # Error bars
     error_y: list[float] | None = None
 
 
@@ -88,7 +88,7 @@ class LineTraceConfig(TraceConfig):
     show_markers: bool = True
     fill: Literal["none", "tozeroy", "tonexty"] = "none"
 
-    # ── Error bars ───────────────────────────────────────────────
+    # Error bars
     error_y: list[float] | None = None
 
 
@@ -105,7 +105,7 @@ class ScatterTraceConfig(TraceConfig):
     colorscale: str | None = None  # for continuous color mapping
     size_values: list[float] | None = None  # bubble chart sizes
 
-    # ── Error bars ───────────────────────────────────────────────
+    # Error bars
     error_y: list[float] | None = None
 
 

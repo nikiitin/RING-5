@@ -202,7 +202,7 @@ class DataLabelsSettingsComponent:
                 help="If inside, text will be resized or hidden to fit within the bars.",
             )
 
-        # ── Heatmap Totals (heatmap only) ──────────────────────
+        # Heatmap Totals (heatmap only)
         show_totals: bool = False
         totals_position: str = "right"
         totals_aggregation: str = "mean"

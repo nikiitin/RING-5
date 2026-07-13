@@ -341,7 +341,7 @@ class TestCumulativeSum:
 
 ### Unit tests for the UI config component
 
-Follow the pattern in `tests/unit/test_sort_config_coverage.py` -- patch
+Follow the pattern in `tests/unit/test_sort_config.py` -- patch
 `streamlit` and verify the returned configuration dict:
 
 ```python

@@ -22,17 +22,13 @@ class PortfolioPage(BasePage):
     def __init__(self, page: Page) -> None:
         super().__init__(page)
 
-    # ------------------------------------------------------------------
     # Navigation
-    # ------------------------------------------------------------------
 
     def navigate(self) -> None:
         """Open the Portfolio page via sidebar."""
         self.navigate_to(self.PAGE_NAME)
 
-    # ------------------------------------------------------------------
     # Locators
-    # ------------------------------------------------------------------
 
     @property
     def page_header(self) -> Locator:
@@ -59,9 +55,7 @@ class PortfolioPage(BasePage):
         """'Load Portfolio' button."""
         return self.page.get_by_role("button", name="Load Portfolio")
 
-    # ------------------------------------------------------------------
     # Assertions
-    # ------------------------------------------------------------------
 
     def assert_page_header_visible(self) -> None:
         """Assert the portfolio heading is displayed."""

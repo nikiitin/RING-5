@@ -1,12 +1,4 @@
-"""Visual tests for cross-page navigation workflows.
-
-Consolidated from 3 individual tests to 2 tests using a class-scoped
-``shared_page`` fixture.
-
-Covers:
-- Navigate all pages and return to home
-- Generate animated GIF for documentation
-"""
+"""Visual tests for cross-page navigation and documentation capture."""
 
 from __future__ import annotations
 
@@ -21,7 +13,7 @@ pytestmark = pytest.mark.requires_browser
 
 
 class TestNavigationWorkflow:
-    """Consolidated navigation tests.
+    """Ordered navigation checks.
 
     Uses ``shared_page`` (class-scoped) so the browser tab is created once
     and reused across both tests.
@@ -30,7 +22,6 @@ class TestNavigationWorkflow:
     def test_navigate_all_pages_and_return(self, shared_page: Page, live_server_url: str) -> None:
         """Navigate to every page via sidebar and return to home.
 
-        Consolidates 2 original tests:
         - navigate_all_pages
         - return_to_home
         """

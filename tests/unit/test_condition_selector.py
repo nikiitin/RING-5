@@ -1,4 +1,4 @@
-"""Tests for condition selector branches and validation."""
+"""Tests for condition selector modes and validation."""
 
 from typing import Any, cast
 

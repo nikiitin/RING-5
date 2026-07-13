@@ -285,11 +285,9 @@ Source: `tests/performance/test_performance_regression.py`
 
 | Pattern | Purpose | Example |
 |---------|---------|---------|
-| `test_<module>.py` | Standard test file | `test_application_api.py` |
-| `test_<module>_coverage.py` | Branch coverage gaps | `test_mixer_coverage.py` |
-| `test_<module>_branches.py` | Specific branch paths | `test_normalize_branches.py` |
-| `test_<module>_comprehensive.py` | Full module coverage | `test_scanner_comprehensive.py` |
-| `test_e2e_<workflow>.py` | End-to-end flow | `test_e2e_full_chain.py` |
+| `test_<component>.py` | Component contract | `test_application_api.py` |
+| `test_<component>_<behavior>.py` | Focused behavior | `test_normalize_validation.py` |
+| `test_<workflow>_e2e.py` | End-to-end flow | `test_full_workflow_e2e.py` |
 
 ---
 

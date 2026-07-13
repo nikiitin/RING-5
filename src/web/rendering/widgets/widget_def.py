@@ -123,9 +123,7 @@ class WidgetSection:
         return None
 
 
-# ────────────────────────────────────────────────────────────────────
 # Standard sections (reusable across plot types)
-# ────────────────────────────────────────────────────────────────────
 
 LAYOUT_MARGINS = WidgetSection(
     id="margins",
@@ -585,9 +583,7 @@ STANDARD_SECTIONS: tuple[WidgetSection, ...] = (
     DATA_LABELS,
 )
 
-# ────────────────────────────────────────────────────────────────────
 # Extended sections for pills navigation (Steps 27-28)
-# ────────────────────────────────────────────────────────────────────
 
 AXIS_X = WidgetSection(
     id="axis_x",

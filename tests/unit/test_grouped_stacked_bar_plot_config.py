@@ -91,9 +91,9 @@ def test_render_config_filter_options(mock_streamlit: Any, sample_data: Any) -> 
     mock_streamlit.selectbox.side_effect = ["Benchmark", "Config"]
 
     # Multiselects:
-    # 1. Y-axis
-    # 2. X Filter
-    # 3. Group Filter
+    # Y-axis
+    # X Filter
+    # Group Filter
 
     def multiselect_side_effect(
         label: Any, options: Any, default: Any = None, key: Any = None, **kwargs: Any

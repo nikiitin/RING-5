@@ -1,15 +1,4 @@
-"""Integration tests for portfolio, CSV pool, and configuration round-trip.
-
-Covers Scenarios #9 (CSV pool full cycle), #10 (Multi-plot portfolio),
-#11 (State consistency across operations), and #12 (Plot type switch).
-
-Tests:
-    - CSV pool: add → load → verify → delete cycle
-    - Configuration: save → load → verify → delete cycle
-    - Multi-plot portfolio: create plots → save → restore
-    - Plot type switching with data preservation
-    - State consistency across multiple operations
-"""
+"""Round-trip tests for CSV pools, configurations, portfolios, and plot types."""
 
 from pathlib import Path
 from typing import Any, cast
@@ -25,9 +14,7 @@ from src.core.state.repository_state_manager import RepositoryStateManager
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.plot_service import PlotService
 
-# ===========================================================================
 # Test Class 1: CSV Pool full cycle
-# ===========================================================================
 
 
 class TestCsvPoolCycle:
@@ -49,16 +36,16 @@ class TestCsvPoolCycle:
             "src.core.services.data_services.csv_pool_service.PathService.get_data_dir",
             return_value=tmp_path / ".ring5",
         ):
-            # 1. Add to pool
+            # Add to pool
             pool_path: str = facade.add_to_csv_pool(str(source_csv))
             assert Path(pool_path).exists()
 
-            # 2. Load from pool
+            # Load from pool
             loaded_df: pd.DataFrame = facade.load_csv_file(pool_path)
             assert len(loaded_df) == len(rich_sample_data)
             assert set(loaded_df.columns) == set(rich_sample_data.columns)
 
-            # 3. Delete from pool
+            # Delete from pool
             deleted: bool = facade.delete_from_csv_pool(pool_path)
             assert deleted is True
             assert not Path(pool_path).exists()
@@ -87,9 +74,7 @@ class TestCsvPoolCycle:
             assert "size" in pool[0]
 
 
-# ===========================================================================
 # Test Class 2: Configuration save/load round-trip
-# ===========================================================================
 
 
 class TestConfigurationRoundTrip:
@@ -160,9 +145,7 @@ class TestConfigurationRoundTrip:
             assert not Path(saved_path).exists()
 
 
-# ===========================================================================
 # Test Class 3: Multi-plot state consistency
-# ===========================================================================
 
 
 class TestMultiPlotStateConsistency:
@@ -231,9 +214,7 @@ class TestMultiPlotStateConsistency:
         assert p2.plot_id not in remaining_ids
 
 
-# ===========================================================================
 # Test Class 4: Plot type switching with data
-# ===========================================================================
 
 
 class TestPlotTypeSwitchWithData:

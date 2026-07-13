@@ -69,7 +69,7 @@ class ColorsSettingsComponent:
             Configuration dict with palette, series_styles, and background
             keys.
         """
-        # ── Palette selector ────────────────────────────────────
+        # Palette selector
         st.markdown("#### :material/palette: Color Palette")
         palette_names = get_palette_names()
         current_palette = saved_config.get("color_palette", "wong")
@@ -114,13 +114,13 @@ class ColorsSettingsComponent:
 
         st.markdown("---")
 
-        # ── Heatmap colorscale (only for heatmap plots) ─────────
+        # Heatmap colorscale (only for heatmap plots)
         if self.plot_type == "heatmap":
             hm_config = self._render_heatmap_colorscale(saved_config)
             config.update(hm_config)
             st.markdown("---")
 
-        # ── Series color overrides ──────────────────────────────
+        # Series color overrides
         series_config = self._render_series_section(
             saved_config,
             data,
@@ -132,15 +132,13 @@ class ColorsSettingsComponent:
 
         st.markdown("---")
 
-        # ── Backgrounds & Grid ──────────────────────────────────
+        # Backgrounds & Grid
         bg_config = self._render_backgrounds_section(saved_config, key_prefix="theme_")
         config.update(bg_config)
 
         return config
 
-    # ------------------------------------------------------------------
     # Heatmap colorscale
-    # ------------------------------------------------------------------
 
     def _render_heatmap_colorscale(self, saved_config: PlotConfig) -> PlotConfig:
         """Render heatmap-specific reverse colorscale toggle.
@@ -159,9 +157,7 @@ class ColorsSettingsComponent:
 
         return {"reverse_colorscale": reverse_colorscale}
 
-    # ------------------------------------------------------------------
     # Series colors
-    # ------------------------------------------------------------------
 
     def _render_series_section(
         self,
@@ -304,9 +300,7 @@ class ColorsSettingsComponent:
 
         return current_style
 
-    # ------------------------------------------------------------------
     # Backgrounds & Grid
-    # ------------------------------------------------------------------
 
     def _render_backgrounds_section(self, saved_config: PlotConfig, key_prefix: str) -> PlotConfig:
         """Render backgrounds and grid section."""
@@ -399,9 +393,7 @@ class ColorsSettingsComponent:
             "enable_stripes": enable_stripes,
         }
 
-    # ------------------------------------------------------------------
     # Helpers
-    # ------------------------------------------------------------------
 
     def _get_unique_values(
         self,

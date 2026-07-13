@@ -13,9 +13,7 @@ import pytest
 from src.core.models.csv_contract import validate_parser_csv
 from src.core.services.data_services.csv_pool_service import CsvPoolService
 
-# ---------------------------------------------------------------------------
-# 1. Binary file rejection via CSV contract
-# ---------------------------------------------------------------------------
+# Binary file rejection via CSV contract
 
 
 class TestBinaryFileRejection:
@@ -65,9 +63,7 @@ class TestBinaryFileRejection:
             pass  # Expected for non-text files
 
 
-# ---------------------------------------------------------------------------
-# 2. CsvPoolService binary file handling
-# ---------------------------------------------------------------------------
+# CsvPoolService binary file handling
 
 
 class TestCsvPoolServiceBinaryRejection:
@@ -104,9 +100,7 @@ class TestCsvPoolServiceBinaryRejection:
             CsvPoolService.load_csv_file(str(tmp_path))
 
 
-# ---------------------------------------------------------------------------
-# 3. Encoding edge cases
-# ---------------------------------------------------------------------------
+# Encoding edge cases
 
 
 class TestEncodingEdgeCases:
@@ -135,9 +129,7 @@ class TestEncodingEdgeCases:
             validate_parser_csv(utf16_file)
 
 
-# ---------------------------------------------------------------------------
-# 4. Permission and path edge cases
-# ---------------------------------------------------------------------------
+# Permission and path edge cases
 
 
 class TestPathEdgeCases:

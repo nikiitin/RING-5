@@ -35,7 +35,7 @@ def sample_df() -> pd.DataFrame:
 
 
 class TestDualAxisRenderConfigUI:
-    """Cover DualAxisBarDotPlot.render_config_ui branches."""
+    """Tests for dual-axis plot configuration."""
 
     @patch(f"{_DUAL_CFG}.PlotConfigComponents")
     @patch(f"{_DUAL_CFG}.render_color_selector")
@@ -219,7 +219,7 @@ class TestDualAxisRenderConfigUI:
 
 
 class TestGroupedBarRenderConfigUI:
-    """Cover GroupedBarPlot.render_config_ui branches."""
+    """Tests for grouped-bar configuration."""
 
     @patch(f"{_GROUPED_CFG}.PlotConfigComponents")
     @patch(f"{_GROUPED_CFG}.detect_column_types")
@@ -282,7 +282,7 @@ class TestGroupedBarRenderConfigUI:
 
 
 class TestGroupedBarThemeOptions:
-    """Cover GroupedBarPlot.render_theme_options branches."""
+    """Tests for grouped-bar theme controls."""
 
     @patch("src.web.pages.ui.plotting.types.grouped_bar_plot.st")
     def test_isolate_last_disabled(self, mock_st: MagicMock) -> None:
@@ -316,7 +316,7 @@ class TestGroupedBarThemeOptions:
 
 
 class TestGroupedBarAdvancedOptions:
-    """Cover GroupedBarPlot.render_advanced_options filter branches."""
+    """Tests for grouped-bar advanced options."""
 
     @patch("src.web.pages.ui.plotting.types.grouped_bar_plot.st")
     def test_with_x_and_group_filter(self, mock_st: MagicMock, sample_df: pd.DataFrame) -> None:

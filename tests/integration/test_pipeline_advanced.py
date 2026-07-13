@@ -25,9 +25,7 @@ from src.core.services.shapers.pipeline_service import PipelineService
 # concurrent Perl pools under -n3 (matches the other pool tests' convention).
 pytestmark = pytest.mark.xdist_group("perl_pool")
 
-# ===========================================================================
 # Test Class 1: Apply a multi-step pipeline to real data
-# ===========================================================================
 
 
 class TestPipelineApply:
@@ -60,9 +58,7 @@ class TestPipelineApply:
         assert result["benchmark_name"].unique().tolist() == ["xalancbmk", "omnetpp", "mcf"]
 
 
-# ===========================================================================
 # Test Class 2: Complex multi-step pipelines
-# ===========================================================================
 
 
 class TestComplexPipelines:
@@ -233,9 +229,7 @@ class TestComplexPipelines:
         assert actual_order == expected_order
 
 
-# ===========================================================================
 # Test Class 3: Individual shaper integration
-# ===========================================================================
 
 
 class TestShaperIntegration:

@@ -22,9 +22,7 @@ from __future__ import annotations
 
 from typing import Required, TypedDict, Union
 
-# ──────────────────────────────────────────────────────────────────────
 # Base Config (shared across all shapers)
-# ──────────────────────────────────────────────────────────────────────
 
 
 class BaseShaperConfig(TypedDict, total=False):
@@ -39,9 +37,7 @@ class BaseShaperConfig(TypedDict, total=False):
     id: int
 
 
-# ──────────────────────────────────────────────────────────────────────
 # Mean
-# ──────────────────────────────────────────────────────────────────────
 
 
 class MeanShaperConfig(BaseShaperConfig, total=False):
@@ -65,9 +61,7 @@ class MeanShaperConfig(BaseShaperConfig, total=False):
     replacingColumn: Required[str]
 
 
-# ──────────────────────────────────────────────────────────────────────
 # Normalize
-# ──────────────────────────────────────────────────────────────────────
 
 
 class NormalizeShaperConfig(BaseShaperConfig, total=False):
@@ -97,9 +91,7 @@ class NormalizeShaperConfig(BaseShaperConfig, total=False):
     normalizeSd: bool
 
 
-# ──────────────────────────────────────────────────────────────────────
 # Sort
-# ──────────────────────────────────────────────────────────────────────
 
 
 class SortShaperConfig(BaseShaperConfig, total=False):
@@ -115,9 +107,7 @@ class SortShaperConfig(BaseShaperConfig, total=False):
     order_dict: Required[dict[str, list[str]]]
 
 
-# ──────────────────────────────────────────────────────────────────────
 # SplitApply
-# ──────────────────────────────────────────────────────────────────────
 
 
 class SplitApplyGroupConfig(TypedDict, total=False):
@@ -147,9 +137,7 @@ class SplitApplyShaperConfig(BaseShaperConfig, total=False):
     groups: Required[list[SplitApplyGroupConfig]]
 
 
-# ──────────────────────────────────────────────────────────────────────
 # Transformer
-# ──────────────────────────────────────────────────────────────────────
 
 
 class TransformerShaperConfig(BaseShaperConfig, total=False):
@@ -169,9 +157,7 @@ class TransformerShaperConfig(BaseShaperConfig, total=False):
     order: list[str] | None
 
 
-# ──────────────────────────────────────────────────────────────────────
 # ColumnSelector
-# ──────────────────────────────────────────────────────────────────────
 
 
 class ColumnSelectorConfig(BaseShaperConfig, total=False):
@@ -186,9 +172,7 @@ class ColumnSelectorConfig(BaseShaperConfig, total=False):
     columns: Required[list[str]]
 
 
-# ──────────────────────────────────────────────────────────────────────
 # ConditionSelector
-# ──────────────────────────────────────────────────────────────────────
 
 
 class ConditionSelectorConfig(BaseShaperConfig, total=False):
@@ -213,9 +197,7 @@ class ConditionSelectorConfig(BaseShaperConfig, total=False):
     values: list[str]
 
 
-# ──────────────────────────────────────────────────────────────────────
 # ItemSelector
-# ──────────────────────────────────────────────────────────────────────
 
 
 class ItemSelectorConfig(BaseShaperConfig, total=False):
@@ -235,9 +217,7 @@ class ItemSelectorConfig(BaseShaperConfig, total=False):
     mode: str
 
 
-# ──────────────────────────────────────────────────────────────────────
 # Pivot
-# ──────────────────────────────────────────────────────────────────────
 
 
 class PivotLongerShaperConfig(BaseShaperConfig, total=False):
@@ -281,9 +261,7 @@ class PivotWiderShaperConfig(BaseShaperConfig, total=False):
     values: Required[str]
 
 
-# ──────────────────────────────────────────────────────────────────────
 # DeriveColumn
-# ──────────────────────────────────────────────────────────────────────
 
 
 class DeriveColumnShaperConfig(BaseShaperConfig, total=False):
@@ -319,9 +297,7 @@ class DeriveColumnShaperConfig(BaseShaperConfig, total=False):
     zero_denominator: str
 
 
-# ──────────────────────────────────────────────────────────────────────
 # GroupCardinalitySelector
-# ──────────────────────────────────────────────────────────────────────
 
 
 class GroupCardinalitySelectorConfig(BaseShaperConfig, total=False):
@@ -344,9 +320,7 @@ class GroupCardinalitySelectorConfig(BaseShaperConfig, total=False):
     mode: str
 
 
-# ──────────────────────────────────────────────────────────────────────
 # GroupPredicateSelector
-# ──────────────────────────────────────────────────────────────────────
 
 
 class GroupPredicateSelectorConfig(BaseShaperConfig, total=False):
@@ -373,9 +347,7 @@ class GroupPredicateSelectorConfig(BaseShaperConfig, total=False):
     action: str
 
 
-# ──────────────────────────────────────────────────────────────────────
 # Discriminated Union Type Alias
-# ──────────────────────────────────────────────────────────────────────
 # Discriminated union of all shaper configurations.
 #
 # The ``type`` field in ``BaseShaperConfig`` acts as the discriminator.

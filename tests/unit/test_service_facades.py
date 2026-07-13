@@ -14,9 +14,7 @@ from src.core.models.data_models import ParseVariableConfig
 from src.core.services.data_services.data_services_impl import DefaultDataServicesAPI
 from src.core.services.managers.managers_impl import DefaultManagersAPI
 
-# ===================================================================
 # DefaultDataServicesAPI
-# ===================================================================
 
 
 class TestDefaultDataServicesAPI:
@@ -203,9 +201,7 @@ class TestDefaultDataServicesAPI:
         api._portfolio_service.delete_portfolio.assert_called_once_with("p1")
 
 
-# ===================================================================
 # DefaultManagersAPI
-# ===================================================================
 
 
 class TestDefaultManagersAPI:

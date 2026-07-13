@@ -47,7 +47,7 @@ def show_documentation_page() -> None:
 
     st.markdown("---")
 
-    # ── User Guide — Getting Started ─────────────────────────────
+    # User Guide — Getting Started
     st.markdown("### 🚀 Getting Started")
     st.markdown(
         "New to RING-5? Start here to install, learn key concepts, "
@@ -84,7 +84,7 @@ def show_documentation_page() -> None:
 
     st.markdown("---")
 
-    # ── User Guide — Page Guides ─────────────────────────────────
+    # User Guide — Page Guides
     st.markdown("### 🌐 Page Guides")
     st.markdown("Detailed walkthrough of every page in the RING-5 web application.")
 
@@ -118,7 +118,7 @@ def show_documentation_page() -> None:
 
     st.markdown("---")
 
-    # ── User Guide — Features ────────────────────────────────────
+    # User Guide — Features
     st.markdown("### 🔍 Features Reference")
     st.markdown(
         "In-depth reference for every feature — plot types, shapers, "
@@ -163,7 +163,7 @@ def show_documentation_page() -> None:
 
     st.markdown("---")
 
-    # ── User Guide — Tutorials ───────────────────────────────────
+    # User Guide — Tutorials
     st.markdown("### 📝 Tutorials")
     st.markdown("Hands-on, step-by-step guides that walk you through " "common analysis workflows.")
 
@@ -209,7 +209,7 @@ def show_documentation_page() -> None:
 
     st.markdown("---")
 
-    # ── Developer Guide ──────────────────────────────────────────
+    # Developer Guide
     st.markdown("### 🛠️ Developer Guide")
     st.markdown(
         "Architecture, API reference, extension guides, and "
@@ -271,7 +271,7 @@ def show_documentation_page() -> None:
 
     st.markdown("---")
 
-    # ── Quick Reference ──────────────────────────────────────────
+    # Quick Reference
     st.markdown("### 📋 Quick Reference")
 
     col1, col2 = st.columns(2)

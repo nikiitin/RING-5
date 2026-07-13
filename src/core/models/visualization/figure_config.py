@@ -23,9 +23,7 @@ if TYPE_CHECKING:
     from src.core.models.visualization.typography_config import TypographyConfig
 
 
-# ────────────────────────────────────────────────────────────────────
 # Margins
-# ────────────────────────────────────────────────────────────────────
 
 
 @dataclass(frozen=True)
@@ -53,9 +51,7 @@ class MarginsConfig:
         }
 
 
-# ────────────────────────────────────────────────────────────────────
 # Dimensions
-# ────────────────────────────────────────────────────────────────────
 
 
 @dataclass(frozen=True)
@@ -75,9 +71,7 @@ class DimensionConfig:
     bargroupgap: float = 0.1  # gap within bar groups (Plotly)
 
 
-# ────────────────────────────────────────────────────────────────────
 # FigureConfig — the top-level container
-# ────────────────────────────────────────────────────────────────────
 
 
 @dataclass(frozen=True)
@@ -93,7 +87,7 @@ class FigureConfig:
         3. Pass to a connector     (FigureSpecToPlotly / FigureSpecToMatplotlib)
     """
 
-    # ── Sub-specs (imported from sibling modules) ──────────────────
+    # Sub-specs (imported from sibling modules)
     # These are set to their default factories here; actual types are
     # imported at the class body level to avoid circular deps.
 

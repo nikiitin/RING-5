@@ -1,13 +1,4 @@
-"""Visual tests for the Data Managers page.
-
-Consolidated from 11 individual tests (8 functions + 6 parametrized) to
-3 workflow-style tests using a class-scoped ``shared_page`` fixture.
-
-Covers:
-- No-data state (header + warning)
-- All 7 tabs visible and switchable
-- Screenshot capture for documentation
-"""
+"""Visual tests for Data Managers states, tabs, and screenshots."""
 
 from __future__ import annotations
 
@@ -22,7 +13,7 @@ pytestmark = pytest.mark.requires_browser
 
 
 class TestDataManagers:
-    """Consolidated Data Managers page tests.
+    """Ordered Data Managers checks.
 
     Uses ``shared_page`` (class-scoped) so the browser tab is created once
     and reused across all three tests.
@@ -31,7 +22,6 @@ class TestDataManagers:
     def test_no_data_state(self, shared_page: Page, live_server_url: str) -> None:
         """Header renders and no-data warning is shown without loaded data.
 
-        Consolidates 2 original tests:
         - page_renders_header
         - shows_no_data_warning
         """
@@ -45,7 +35,6 @@ class TestDataManagers:
     def test_tabs_and_switching(self, shared_page: Page, live_server_url: str) -> None:
         """All 7 tabs are present and switching between them works.
 
-        Consolidates 9 original tests (2 function + 6 parametrized + 1):
         - all_tabs_present
         - summary_tab_is_default
         - switch_to_tab (Data Visualization, Seeds Reducer, Outlier Remover,
@@ -85,7 +74,6 @@ class TestDataManagers:
     ) -> None:
         """Capture Data Managers screenshots for documentation.
 
-        Consolidates 3 original tests:
         - capture_initial_state
         - capture_no_data_warning
         - capture_tabs_overview (each tab)

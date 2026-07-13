@@ -36,9 +36,7 @@ from tests.visual.pages.data_managers_page import DataManagersPage
 from tests.visual.pages.data_source_page import DataSourcePage
 from tests.visual.pages.manage_plots_page import ManagePlotsPage
 
-# ---------------------------------------------------------------------------
 # Paths
-# ---------------------------------------------------------------------------
 
 _ROOT_DIR: Path = Path(__file__).parents[2]
 _APP_PY: Path = _ROOT_DIR / "app.py"
@@ -62,9 +60,7 @@ E2E_TIMEOUT: int = 60_000
 EXPORT_TIMEOUT: int = 90_000
 
 
-# ---------------------------------------------------------------------------
 # Helpers
-# ---------------------------------------------------------------------------
 
 
 def _free_port() -> int:
@@ -86,9 +82,7 @@ def _wait_for_server(port: int, *, timeout: float = 30.0) -> None:
     raise TimeoutError(f"Streamlit server did not start within {timeout}s on port {port}")
 
 
-# ---------------------------------------------------------------------------
 # Session-scoped: server lifecycle
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -167,9 +161,7 @@ def live_server_url(_streamlit_port: int, _isolated_data_dir: None) -> Generator
             proc.wait(timeout=5)
 
 
-# ---------------------------------------------------------------------------
 # Browser / page configuration
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture(scope="session")
@@ -214,9 +206,7 @@ def shared_page(
     context.close()
 
 
-# ---------------------------------------------------------------------------
 # State isolation — clean slate per test class
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture(scope="class", autouse=True)
@@ -238,9 +228,7 @@ def _reset_app_state(shared_page: Page, live_server_url: str) -> Generator[None]
     yield
 
 
-# ---------------------------------------------------------------------------
 # Failure artifact capture
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture(autouse=True)
@@ -286,9 +274,7 @@ def pytest_runtest_makereport(item: pytest.Item) -> Generator[None]:
     setattr(item, f"rep_{rep.when}", rep)
 
 
-# ---------------------------------------------------------------------------
 # Fixture path
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture(scope="session")
@@ -298,9 +284,7 @@ def e2e_csv_path() -> Path:
     return _E2E_CSV
 
 
-# ---------------------------------------------------------------------------
 # Tier fixtures — progressive state setup
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture(scope="class")

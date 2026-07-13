@@ -24,7 +24,7 @@ from src.web.rendering.figure_export import (
 matplotlib.use("Agg")
 
 
-# ── Fixtures ─────────────────────────────────────────────────────
+# Fixtures
 
 
 @pytest.fixture(autouse=True)
@@ -62,7 +62,7 @@ def line_mpl_figure() -> Figure:
     return fig
 
 
-# ── PDF tests ────────────────────────────────────────────────────
+# PDF tests
 
 
 class TestMatplotlibPDF:
@@ -80,7 +80,7 @@ class TestMatplotlibPDF:
         assert len(data) > 100
 
 
-# ── PNG tests ────────────────────────────────────────────────────
+# PNG tests
 
 
 class TestMatplotlibPNG:
@@ -104,7 +104,7 @@ class TestMatplotlibPNG:
         assert len(high) > len(low)
 
 
-# ── SVG tests ────────────────────────────────────────────────────
+# SVG tests
 
 
 class TestMatplotlibSVG:
@@ -122,7 +122,7 @@ class TestMatplotlibSVG:
         assert len(data) > 100
 
 
-# ── PGF tests ────────────────────────────────────────────────────
+# PGF tests
 
 
 @pytest.mark.requires_latex
@@ -155,7 +155,7 @@ class TestMatplotlibPGF:
         assert b"\\begin{pgfpicture}" in data
 
 
-# ── Error handling ───────────────────────────────────────────────
+# Error handling
 
 
 class TestMatplotlibDownloadErrors:
@@ -167,7 +167,7 @@ class TestMatplotlibDownloadErrors:
             matplotlib_download_bytes(simple_mpl_figure, "tiff")  # type: ignore[arg-type]
 
 
-# ── Helper functions ─────────────────────────────────────────────
+# Helper functions
 
 
 class TestMatplotlibHelpers:
@@ -198,7 +198,7 @@ class TestMatplotlibHelpers:
         assert get_matplotlib_extension("svg") == ".svg"
 
 
-# ── Cross-figure tests ──────────────────────────────────────────
+# Cross-figure tests
 
 
 class TestMatplotlibMultipleFigures:

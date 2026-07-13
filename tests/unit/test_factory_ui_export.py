@@ -10,7 +10,7 @@ from src.core.models.visualization.trace_build_result import TraceBuildResult
 
 
 class TestPlotFactory:
-    """Cover PlotFactory branches."""
+    """Tests for plot creation and registration."""
 
     def test_create_known_types(self) -> None:
         from src.web.pages.ui.plotting.plot_factory import PlotFactory
@@ -72,7 +72,7 @@ class TestPlotFactory:
 
 
 class TestBarStyleUI:
-    """Cover BarStyleUI._render_specific_series_visuals."""
+    """Tests for series-specific bar styling controls."""
 
     @patch("src.web.pages.ui.plotting.styles.bar_ui.st")
     def test_render_with_string_pattern(self, mock_st: MagicMock) -> None:

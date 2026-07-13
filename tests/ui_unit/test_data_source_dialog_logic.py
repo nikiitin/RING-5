@@ -14,7 +14,7 @@ from tests.conftest import columns_side_effect
 def components_bundle() -> Generator[tuple[Any, type[Any]], None, None]:
     """Patch st and reload module to capture decorator."""
 
-    # 1. Patch streamlit.dialog globally so the decorator is intercepted during reload
+    # Patch streamlit.dialog globally so the decorator is intercepted during reload
     # Accept both positional and keyword arguments to handle dismissible parameter
     with patch("streamlit.dialog", side_effect=lambda title=None, **kwargs: lambda func: func):
         import src.web.components.data_source.variable_editor as ve_module
@@ -22,7 +22,7 @@ def components_bundle() -> Generator[tuple[Any, type[Any]], None, None]:
         importlib.reload(ve_module)
         importlib.reload(ds_module)
 
-    # 2. Patch the module's st attribute for runtime widget mocking
+    # Patch the module's st attribute for runtime widget mocking
     with (
         patch("src.web.components.data_source.data_source_components.st") as mock_st,
         patch("src.web.components.data_source.variable_editor.st", new=mock_st),

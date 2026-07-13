@@ -1,4 +1,4 @@
-"""Tests for gem5 parser submission and finalization branches."""
+"""Tests for gem5 parser submission, expansion, and finalization."""
 
 import os
 from dataclasses import dataclass, field

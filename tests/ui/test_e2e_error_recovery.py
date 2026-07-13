@@ -22,9 +22,7 @@ from tests.ui.helpers import (
 )
 
 
-# ---------------------------------------------------------------------------
 # Clear data recovery
-# ---------------------------------------------------------------------------
 class TestClearDataRecovery:
     """App recovers gracefully when data is cleared mid-session."""
 
@@ -82,9 +80,7 @@ class TestClearDataRecovery:
             assert len(at.error) == 0, "Should not error on config-only save"
 
 
-# ---------------------------------------------------------------------------
 # Reset all state
-# ---------------------------------------------------------------------------
 class TestResetState:
     """Complete state reset behavior."""
 
@@ -126,9 +122,7 @@ class TestResetState:
             assert not at.exception, f"Exception on page '{page}' after reset"
 
 
-# ---------------------------------------------------------------------------
 # Invalid data scenarios
-# ---------------------------------------------------------------------------
 class TestInvalidDataScenarios:
     """App handles edge cases in data gracefully."""
 
@@ -189,9 +183,7 @@ class TestInvalidDataScenarios:
         assert not at.exception
 
 
-# ---------------------------------------------------------------------------
 # Navigation edge cases
-# ---------------------------------------------------------------------------
 class TestNavigationEdgeCases:
     """Edge cases in page navigation."""
 

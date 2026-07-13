@@ -448,9 +448,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
 
         return fig
 
-    # ------------------------------------------------------------------
     # Dual-axis helpers
-    # ------------------------------------------------------------------
 
     def _apply_dual_axis_titles(self, fig: go.Figure, config: PlotConfig) -> None:
         """Apply Y-axis titles as symmetrical annotations for dual-axis mode."""

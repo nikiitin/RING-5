@@ -42,16 +42,13 @@ class TestApplicationAPI:
         1. Call data services to load file
         2. Call StateManager to save it
         """
-        # Arrange
         path = "/test/data.csv"
         df = pd.DataFrame({"col": [1, 2]})
         mock_data = cast(Any, application_api)._mock_services.data_services
         mock_data.load_csv_file.return_value = df
 
-        # Act
         application_api.load_data(path)
 
-        # Assert
         mock_data.load_csv_file.assert_called_once_with(path)
         application_api.state_manager.set_data.assert_called_once_with(df)
         application_api.state_manager.set_processed_data.assert_called_once_with(None)
@@ -59,16 +56,13 @@ class TestApplicationAPI:
 
     def test_load_from_pool(self, application_api: Any) -> None:
         """Test loading data from the CSV pool."""
-        # Arrange
         path = "/pool/data.csv"
         df = pd.DataFrame({"pool": [1]})
         mock_data = cast(Any, application_api)._mock_services.data_services
         mock_data.load_csv_file.return_value = df
 
-        # Act
         application_api.load_from_pool(path)
 
-        # Assert
         mock_data.load_csv_file.assert_called_once_with(path)
         application_api.state_manager.set_data.assert_called_once_with(df)
 
@@ -76,15 +70,12 @@ class TestApplicationAPI:
         """
         Verify that the API assembles the view state for the UI.
         """
-        # Arrange
         application_api.state_manager.get_data.return_value = "raw_df"
         application_api.state_manager.get_processed_data.return_value = "proc_df"
         application_api.state_manager.get_config.return_value = {"conf": 1}
 
-        # Act
         view = application_api.get_current_view()
 
-        # Assert
         assert view["raw_data"] == "raw_df"
         assert view["processed_data"] == "proc_df"
         assert view["config"] == {"conf": 1}

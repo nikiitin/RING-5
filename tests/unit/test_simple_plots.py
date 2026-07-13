@@ -29,7 +29,7 @@ def _make_col_mock() -> MagicMock:
 
 
 class TestBarPlotRenderConfigUI:
-    """Cover BarPlot.render_config_ui branches."""
+    """Tests for bar-plot configuration controls."""
 
     @patch("src.web.pages.ui.plotting.types.bar_plot.render_common_with_color")
     def test_config_no_saved_color(self, mock_render: MagicMock, sample_df: pd.DataFrame) -> None:
@@ -70,7 +70,7 @@ class TestBarPlotRenderConfigUI:
 
 
 class TestBarPlotCreateFigure:
-    """Cover BarPlot.create_figure branches."""
+    """Tests for bar-plot figure creation."""
 
     def test_basic(self, sample_df: pd.DataFrame) -> None:
         from src.web.pages.ui.plotting.types.bar_plot import BarPlot
@@ -133,7 +133,7 @@ class TestBarPlotCreateFigure:
 
 
 class TestLinePlotRenderConfigUI:
-    """Cover LinePlot.render_config_ui branches."""
+    """Tests for line-plot configuration controls."""
 
     @patch("src.web.pages.ui.plotting.types.line_plot.render_common_with_color")
     def test_config_no_saved_color(self, mock_render: MagicMock, sample_df: pd.DataFrame) -> None:
@@ -174,7 +174,7 @@ class TestLinePlotRenderConfigUI:
 
 
 class TestLinePlotCreateFigure:
-    """Cover LinePlot.create_figure branches."""
+    """Tests for line-plot figure creation."""
 
     def test_basic(self, sample_df: pd.DataFrame) -> None:
         from src.web.pages.ui.plotting.types.line_plot import LinePlot
@@ -228,7 +228,7 @@ class TestLinePlotCreateFigure:
 
 
 class TestLinePlotAdvancedOptions:
-    """Cover LinePlot.render_specific_advanced_options."""
+    """Tests for line-plot advanced options."""
 
     @patch("src.web.pages.ui.plotting.types.line_plot.st")
     def test_line_shape(self, mock_st: MagicMock) -> None:
@@ -241,7 +241,7 @@ class TestLinePlotAdvancedOptions:
 
 
 class TestScatterPlotRenderConfigUI:
-    """Cover ScatterPlot.render_config_ui branches."""
+    """Tests for scatter-plot configuration controls."""
 
     @patch("src.web.pages.ui.plotting.types.scatter_plot.render_common_with_color")
     def test_config_no_color(self, mock_render: MagicMock, sample_df: pd.DataFrame) -> None:
@@ -282,7 +282,7 @@ class TestScatterPlotRenderConfigUI:
 
 
 class TestScatterPlotCreateFigure:
-    """Cover ScatterPlot.create_figure branches."""
+    """Tests for scatter-plot figure creation."""
 
     def test_basic(self, sample_df: pd.DataFrame) -> None:
         from src.web.pages.ui.plotting.types.scatter_plot import ScatterPlot

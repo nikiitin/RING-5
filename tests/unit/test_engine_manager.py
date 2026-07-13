@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 import pytest
 
-# ─── Helper: Mock session_state ──────────────────────────────────────────────
+# Helper: Mock session_state
 
 
 class MockSessionState(dict):
@@ -29,7 +29,7 @@ def mock_state() -> Any:
         yield state
 
 
-# ─── get_engine ──────────────────────────────────────────────────────────────
+# get_engine
 
 
 class TestGetEngine:
@@ -56,7 +56,7 @@ class TestGetEngine:
         assert EngineManager.get_engine() == "plotly"
 
 
-# ─── set_engine ──────────────────────────────────────────────────────────────
+# set_engine
 
 
 class TestSetEngine:
@@ -90,7 +90,7 @@ class TestSetEngine:
             EngineManager.set_engine("d3js")  # type: ignore[arg-type]
 
 
-# ─── is_plotly / is_matplotlib ───────────────────────────────────────────────
+# is_plotly / is_matplotlib
 
 
 class TestConvenienceBooleans:
@@ -120,7 +120,7 @@ class TestConvenienceBooleans:
         assert EngineManager.is_plotly() is True
 
 
-# ─── STATE_KEY isolation ─────────────────────────────────────────────────────
+# STATE_KEY isolation
 
 
 class TestStateKeyIsolation:

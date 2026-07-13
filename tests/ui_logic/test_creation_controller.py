@@ -13,9 +13,7 @@ from unittest.mock import MagicMock, patch
 from tests.ui_logic.conftest import StubPlotHandle
 
 
-# ---------------------------------------------------------------------------
 # Helpers
-# ---------------------------------------------------------------------------
 def _make_controller(
     api: MagicMock | None = None,
     ui_state: MagicMock | None = None,
@@ -40,9 +38,7 @@ def _make_controller(
     return PlotCreationController(api, ui_state, lifecycle, registry)
 
 
-# ---------------------------------------------------------------------------
 # render_create_section
-# ---------------------------------------------------------------------------
 class TestRenderCreateSection:
     """Tests for the create-new-plot flow."""
 
@@ -123,9 +119,7 @@ class TestRenderCreateSection:
         mock_st.rerun.assert_not_called()
 
 
-# ---------------------------------------------------------------------------
 # render_selector
-# ---------------------------------------------------------------------------
 class TestRenderSelector:
     """Tests for plot selection logic."""
 
@@ -228,9 +222,7 @@ class TestRenderSelector:
         api.state_manager.set_current_plot_id.assert_not_called()
 
 
-# ---------------------------------------------------------------------------
 # render_controls
-# ---------------------------------------------------------------------------
 class TestRenderControls:
     """Tests for the plot controls bar (rename, delete, duplicate, dialogs)."""
 

@@ -124,7 +124,7 @@ def render(
             default_ylabel=default_ylabel,
         )
 
-    # ── Heatmap options ─────────────────────────────────────────
+    # Heatmap options
     st.markdown("**Heatmap Options**")
 
     agg_options = ["mean", "sum", "min", "max", "median", "first"]
@@ -143,7 +143,7 @@ def render(
         or "mean"
     )
 
-    # ── Filters ─────────────────────────────────────────────────
+    # Filters
     # Pass facet_col directly (None when no facet selected) so only
     # the X filter renders — avoids a confusing duplicate filter widget.
     x_filter, facet_filter = PlotConfigComponents.render_filter_multiselects(

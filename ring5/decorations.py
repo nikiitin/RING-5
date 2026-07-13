@@ -39,7 +39,7 @@ class FigureDecorations:
     mutates it in place. They are deliberately small and composable.
     """
 
-    # ── axes-level tweaks ────────────────────────────────────────────────
+    # axes-level tweaks
     @staticmethod
     def axis_below(fig: Figure) -> None:
         """Draw grid lines behind the bars.
@@ -211,7 +211,7 @@ class FigureDecorations:
                 x, y = t.get_position()
                 t.set_position((x + dx, y + dy))
 
-    # ── value labels ─────────────────────────────────────────────────────
+    # value labels
     @staticmethod
     def over_cap_labels(
         fig: Figure,

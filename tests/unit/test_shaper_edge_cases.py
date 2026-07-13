@@ -22,9 +22,7 @@ from src.core.services.shapers.impl.selector_algorithms.item_selector import (
     ItemSelector,
 )
 
-# ---------------------------------------------------------------------------
-# 1. Unicode column names
-# ---------------------------------------------------------------------------
+# Unicode column names
 
 
 class TestUnicodeColumns:
@@ -73,9 +71,7 @@ class TestUnicodeColumns:
         assert len(mean_rows) == 2
 
 
-# ---------------------------------------------------------------------------
-# 2. Numeric precision
-# ---------------------------------------------------------------------------
+# Numeric precision
 
 
 class TestNumericPrecision:
@@ -147,9 +143,7 @@ class TestNumericPrecision:
         assert mean_row["metric"].iloc[0] == pytest.approx(0.1, abs=1e-10)
 
 
-# ---------------------------------------------------------------------------
-# 3. NaN propagation through shaper chains
-# ---------------------------------------------------------------------------
+# NaN propagation through shaper chains
 
 
 class TestNaNPropagation:
@@ -219,9 +213,7 @@ class TestNaNPropagation:
         assert math.isnan(mean_row["metric"].iloc[0])
 
 
-# ---------------------------------------------------------------------------
-# 4. Large DataFrame performance smoke test
-# ---------------------------------------------------------------------------
+# Large DataFrame performance smoke test
 
 
 class TestLargeDataFrame:
@@ -254,9 +246,7 @@ class TestLargeDataFrame:
         assert all(v > 100.0 for v in result["metric"])
 
 
-# ---------------------------------------------------------------------------
-# 5. Mixed numeric types
-# ---------------------------------------------------------------------------
+# Mixed numeric types
 
 
 class TestMixedNumericTypes:

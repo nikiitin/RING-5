@@ -462,9 +462,7 @@ class TestPlotlyConnectorColorbarTitle:
         assert not hasattr(bar_trace, "colorbar") or bar_trace.colorbar is None
 
 
-# ────────────────────────────────────────────────────────────────────
 # ColorbarConfig model tests
-# ────────────────────────────────────────────────────────────────────
 
 
 class TestColorbarConfig:
@@ -569,9 +567,7 @@ class TestColorbarConfig:
         assert restored.colorbar.shared is False
 
 
-# ────────────────────────────────────────────────────────────────────
 # compute_nice_range and compute_z_extent utility tests
-# ────────────────────────────────────────────────────────────────────
 
 
 class TestComputeNiceRange:
@@ -673,9 +669,7 @@ class TestComputeZExtent:
         assert zmax == 7.0
 
 
-# ────────────────────────────────────────────────────────────────────
 # Plotly connector — colorbar config integration tests
-# ────────────────────────────────────────────────────────────────────
 
 
 class TestPlotlyConnectorColorbarConfig:
@@ -782,9 +776,7 @@ class TestPlotlyConnectorColorbarConfig:
         assert hm.zmax >= 9.7
 
 
-# ────────────────────────────────────────────────────────────────────
 # Config builder: _build_legend_from_config reads colorbar keys
-# ────────────────────────────────────────────────────────────────────
 
 
 class TestConfigBuilderColorbarKeys:
@@ -825,9 +817,7 @@ class TestConfigBuilderColorbarKeys:
         assert primary.colorbar.shared is True
 
 
-# ────────────────────────────────────────────────────────────────────
 # F1: Legend anchor tests
-# ────────────────────────────────────────────────────────────────────
 
 
 class TestPlotlyConnectorLegendAnchor:
@@ -934,9 +924,7 @@ class TestMatplotlibLegendAnchor:
         assert FigureSpecToMatplotlib._anchor_to_mpl_loc("center", "top") == "upper center"
 
 
-# ────────────────────────────────────────────────────────────────────
 # F2: Legend orientation tests
-# ────────────────────────────────────────────────────────────────────
 
 
 class TestConfigBuilderLegendOrientation:
@@ -960,9 +948,7 @@ class TestConfigBuilderLegendOrientation:
         assert primary.orientation == "vertical"
 
 
-# ────────────────────────────────────────────────────────────────────
 # F3: Tick side tests
-# ────────────────────────────────────────────────────────────────────
 
 
 class TestPlotlyConnectorTickSide:
@@ -1039,9 +1025,7 @@ class TestConfigBuilderTickSide:
         assert spec.axes.y.tick_side == ""
 
 
-# ────────────────────────────────────────────────────────────────────
 # F4: Y-axis tick rotation tests
-# ────────────────────────────────────────────────────────────────────
 
 
 class TestPlotlyConnectorYTickAngle:
@@ -1090,7 +1074,7 @@ class TestConfigBuilderYTickAngle:
         assert spec.axes.y.tick_angle == 0.0
 
 
-# ── Colorbar tick angle & tick side ───────────────────────────────
+# Colorbar tick angle & tick side
 
 
 class TestColorbarConfigTickFields:
@@ -1197,7 +1181,7 @@ class TestConfigBuilderColorbarTicks:
         assert spec.legends[0].colorbar.tick_side == "right"
 
 
-# ── Legend derive_anchors & auto-derivation ───────────────────────
+# Legend derive_anchors & auto-derivation
 
 
 class TestLegendDeriveAnchors:
@@ -1271,7 +1255,7 @@ class TestConfigBuilderAutoAnchors:
         assert legend.anchor_y == "bottom"
 
 
-# ── Colorbar position & orientation ──────────────────────────────
+# Colorbar position & orientation
 
 
 class TestPlotlyColorbarPosition:

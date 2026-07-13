@@ -12,17 +12,13 @@ from typing import Any
 
 import streamlit as st
 
-# ---------------------------------------------------------------------------
 # Thresholds — below these, the standard Streamlit widget is used as-is.
-# ---------------------------------------------------------------------------
 SELECTBOX_THRESHOLD = 200
 MULTISELECT_THRESHOLD = 100
 MAX_DISPLAYED = 50
 
 
-# ---------------------------------------------------------------------------
 # filtered_selectbox
-# ---------------------------------------------------------------------------
 def filtered_selectbox(
     label: str,
     options: list[str],
@@ -86,9 +82,7 @@ def filtered_selectbox(
     return result if result else None
 
 
-# ---------------------------------------------------------------------------
 # filtered_multiselect
-# ---------------------------------------------------------------------------
 def filtered_multiselect(
     label: str,
     options: list[str],

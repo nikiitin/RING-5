@@ -121,8 +121,7 @@ class Session:
         # Temporary parse output is removed when the session closes.
         self._owned_tmpdirs: list[str] = []
 
-    # ── lifecycle ────────────────────────────────────────────────
-
+    # lifecycle
     def __enter__(self) -> "Session":
         return self
 
@@ -136,8 +135,7 @@ class Session:
             shutil.rmtree(tmp, ignore_errors=True)
         self._owned_tmpdirs.clear()
 
-    # ── parse ────────────────────────────────────────────────────
-
+    # parse
     def parse_submit(
         self,
         stats_path: str,
@@ -261,8 +259,7 @@ class Session:
         )
         return job.finalize(strict=strict)
 
-    # ── data ─────────────────────────────────────────────────────
-
+    # data
     def load(self, csv_path: str) -> pd.DataFrame:
         """Load a CSV into the session.
 
@@ -381,8 +378,7 @@ class Session:
             raise DataValidationError(str(exc)) from exc
         return _rewrap_table(cleaned) if was_table else cleaned
 
-    # ── figures ──────────────────────────────────────────────────
-
+    # figures
     def create_plot(
         self,
         plot_type: str,
@@ -522,8 +518,7 @@ class Session:
         """
         return _export.export_bytes(fig, fmt, deterministic=deterministic, **kwargs)
 
-    # ── portfolios ───────────────────────────────────────────────
-
+    # portfolios
     @property
     def plots(self) -> list[BasePlot]:
         """The session's plots (created here or restored from a portfolio)."""

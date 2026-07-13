@@ -21,9 +21,7 @@ from tests.visual.pages.manage_plots_page import ManagePlotsPage
 pytestmark = pytest.mark.requires_browser
 
 
-# ---------------------------------------------------------------------------
 # Helpers
-# ---------------------------------------------------------------------------
 
 
 def _create_and_finalize(mp: ManagePlotsPage, name: str, plot_type: str) -> None:
@@ -58,9 +56,7 @@ def _configure_and_assert_chart(
     mp.assert_chart_visible(timeout=CHART_TIMEOUT)
 
 
-# ---------------------------------------------------------------------------
 # Tier 1 -- Plot creation & rendering
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.xdist_group("e2e_plot_types")
@@ -151,9 +147,7 @@ class TestPlotCreation:
         )
 
 
-# ---------------------------------------------------------------------------
 # Tier 2 -- Plot management controls
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.xdist_group("e2e_plot_controls")

@@ -95,22 +95,22 @@ class FigureSpec:
     the long tail of flat-config keys via :attr:`extra`.
     """
 
-    # ── Data mapping ────────────────────────────────────────────────
+    # Data mapping
     x: str | None = None  # major-group / x column
     group: str | None = None  # minor-group column (grouped / grouped_stacked)
     y_columns: list[str] = field(default_factory=list)  # series / stack segments
 
-    # ── Dimensions (px @ 96 dpi -> inches; margins in px, t/b/l/r) ───
+    # Dimensions (px @ 96 dpi -> inches; margins in px, t/b/l/r)
     width: float = 800.0
     height: float = 480.0
     margins: tuple[float, float, float, float] = (24.0, 60.0, 62.0, 18.0)
 
-    # ── Title / fonts ───────────────────────────────────────────────
+    # Title / fonts
     title: str = ""
     font_family: str = "serif"
     title_font_size: int = 13
 
-    # ── Axes ────────────────────────────────────────────────────────
+    # Axes
     xlabel: str = ""
     ylabel: str = ""
     ylabel_font_size: int = 11
@@ -120,7 +120,7 @@ class FigureSpec:
     x_order: list[str] | None = None
     group_order: list[str] | None = None
 
-    # ── Grid / tick marks ───────────────────────────────────────────
+    # Grid / tick marks
     show_y_grid: bool = True
     y_grid_dash: str = "dash"
     y_grid_alpha: float = 0.30
@@ -129,7 +129,7 @@ class FigureSpec:
     show_x_tick_marks: bool = True
     show_y_tick_marks: bool = True
 
-    # ── Bars ────────────────────────────────────────────────────────
+    # Bars
     barmode: str = "group"  # ignored by grouped_stacked (forced to "stack")
     bargap: float = 0.2
     bargroupgap: float = 0.0
@@ -137,13 +137,13 @@ class FigureSpec:
     bar_border_color: str = ""  # "" -> connector default; e.g. "white" for separators
     palette: str | list[str] | None = None  # registry name OR explicit hex list
 
-    # ── Grouped separators ──────────────────────────────────────────
+    # Grouped separators
     show_separators: bool = False
     separator_color: str = "#D9D9D9"
     isolate_last_group: bool = False  # bold divider before the last group
     isolation_gap: float = 0.5
 
-    # ── Major (category) labels ─────────────────────────────────────
+    # Major (category) labels
     major_label_size: int = 11
     major_label_offset: float = -0.12
     major_label_rotation: float = 0.0
@@ -152,8 +152,7 @@ class FigureSpec:
     group_label_alternate: bool = True  # stagger labels on two rows
     group_label_alt_spacing: float = 0.05
 
-    # ── Category super-groups: bold boundary separators + a label
-    #    centered under each run of same-group categories ────────────
+    # Category super-groups use bold boundaries and centered labels.
     category_groups: dict[str, str] | None = None  # category -> super-group label
     category_group_label_size: int = 12
     category_group_label_offset: float = -0.28  # below major_label_offset
@@ -167,16 +166,16 @@ class FigureSpec:
     category_group_rule_y: float | None = None  # default: just above the label
     category_group_rule_inset: float = 0.35  # x-units trimmed at each rule end
 
-    # ── Numbered x-axis + legends + reference line ──────────────────
+    # Numbered x-axis + legends + reference line
     numbered_xaxis_modes: list[str] | None = None
     number_legend: LegendOpts | None = None  # styles the "1. .. / 2. .." box
     legend: LegendOpts = field(default_factory=LegendOpts)
     reference_line: ReferenceLineOpts | None = None
 
-    # ── Dual axis (secondary right Y-axis overlay) ──────────────────
+    # Dual axis (secondary right Y-axis overlay)
     dual_axis: DualAxisOpts | None = None
 
-    # ── Escape hatch (merged last; can override anything above) ─────
+    # Escape hatch (merged last; can override anything above)
     extra: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:

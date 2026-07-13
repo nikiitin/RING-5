@@ -19,9 +19,7 @@ from src.core.application_api import ApplicationAPI
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
 
-# ===========================================================================
 # Helper: build figure inline using PlotFactory + StyleApplicator
-# ===========================================================================
 
 
 def _build_figure(
@@ -40,9 +38,7 @@ def _build_figure(
     return fig
 
 
-# ===========================================================================
 # Test Class 1: Render pipeline integration with all plot types
-# ===========================================================================
 
 
 class TestFigureEngineIntegration:
@@ -169,9 +165,7 @@ class TestFigureEngineIntegration:
         assert "line" in factory_types
 
 
-# ===========================================================================
 # Test Class 2: FigureConfig styling integration
-# ===========================================================================
 
 
 class TestFigureSpecStylingIntegration:
@@ -263,9 +257,7 @@ class TestFigureSpecStylingIntegration:
             assert name in {"Base", "Opt", "Agg"}, f"Unexpected trace name: {name}"
 
 
-# ===========================================================================
 # Test Class 3: Full data flow — load → transform → render
-# ===========================================================================
 
 
 class TestFullDataToRenderE2E:
@@ -283,7 +275,7 @@ class TestFullDataToRenderE2E:
         assert data_or_none is not None
         data: pd.DataFrame = data_or_none
 
-        # 1. Column select
+        # Column select
         col_shaper = ShaperFactory.create_shaper(
             "columnSelector",
             {  # type: ignore
@@ -296,7 +288,7 @@ class TestFullDataToRenderE2E:
         )
         result_data: pd.DataFrame = col_shaper(data)
 
-        # 2. Normalize IPC against baseline
+        # Normalize IPC against baseline
         norm_shaper = ShaperFactory.create_shaper(
             "normalize",
             {  # type: ignore
@@ -313,7 +305,7 @@ class TestFullDataToRenderE2E:
         for val in baseline_rows["system.cpu.ipc"]:
             assert abs(val - 1.0) < 1e-6, f"Baseline not normalized: {val}"
 
-        # 3. Render grouped bar
+        # Render grouped bar
         config: dict[str, Any] = {
             "x": "benchmark_name",
             "y": "system.cpu.ipc",
@@ -341,7 +333,7 @@ class TestFullDataToRenderE2E:
         assert data_or_none is not None
         data: pd.DataFrame = data_or_none
 
-        # 1. Column select
+        # Column select
         col_shaper = ShaperFactory.create_shaper(
             "columnSelector",
             {  # type: ignore
@@ -354,7 +346,7 @@ class TestFullDataToRenderE2E:
         )
         result_data: pd.DataFrame = col_shaper(data)
 
-        # 2. Compute mean per config
+        # Compute mean per config
         mean_shaper = ShaperFactory.create_shaper(
             "mean",
             {  # type: ignore
@@ -370,7 +362,7 @@ class TestFullDataToRenderE2E:
         mean_rows = result_data[result_data["benchmark_name"] == "arithmean"]
         assert len(mean_rows) > 0, "No mean rows added"
 
-        # 3. Render bar
+        # Render bar
         config: dict[str, Any] = {
             "x": "benchmark_name",
             "y": "system.cpu.ipc",

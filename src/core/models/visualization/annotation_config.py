@@ -30,11 +30,11 @@ class AnnotationConfig:
         ``"data"`` = data coordinates, ``"paper"`` = figure fraction (0–1).
     """
 
-    # ── Content ──────────────────────────────────────────────────
+    # Content
     text: str = ""
     annotation_type: Literal["text", "bar_value", "group_label", "boxed"] = "text"
 
-    # ── Position ─────────────────────────────────────────────────
+    # Position
     x: float | str = 0.0
     y: float | str = 0.0
     xref: Literal["data", "paper"] = "data"
@@ -43,17 +43,17 @@ class AnnotationConfig:
     yanchor: Literal["top", "middle", "bottom", "auto"] = "auto"
     text_angle: float = 0.0  # rotation in degrees
 
-    # ── Arrow ────────────────────────────────────────────────────
+    # Arrow
     show_arrow: bool = False
     arrow_head: int = 0
     arrow_color: str = "#444"
 
-    # ── Font ─────────────────────────────────────────────────────
+    # Font
     font_size: int = -1  # -1 = use element default from TypographySpec
     font_color: str = "#444"
     font_bold: bool = False
 
-    # ── Box styling (for boxed annotations) ──────────────────────
+    # Box styling (for boxed annotations)
     border_width: float = 0.0
     border_color: str = "#444"
     border_pad: float = 2.0

@@ -284,8 +284,7 @@ class Gem5ParseWork(ParseWork):
 
         return varsToParse
 
-    # ── Output processing ──────────────────────────────────────
-
+    # Output processing
     def _processOutput(self, output: str, varsToParse: VarsDictType) -> VarsDictType:
         """
         Process the complete Perl script output with optimizations.

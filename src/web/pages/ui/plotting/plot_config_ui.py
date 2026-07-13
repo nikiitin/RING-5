@@ -95,9 +95,7 @@ class PlotConfigUIMixin:
         """
         return False
 
-    # ------------------------------------------------------------------
     # Pills-driven section dispatcher
-    # ------------------------------------------------------------------
 
     def render_settings_section(
         self,

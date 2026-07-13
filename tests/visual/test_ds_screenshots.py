@@ -1,13 +1,4 @@
-"""Visual tests for Data Source page — screenshot capture.
-
-Consolidated from 10 individual tests to 3 workflow-style tests using
-a class-scoped ``shared_page`` fixture.
-
-Captures screenshots of every major Data Source state for documentation:
-- Parse mode screenshots (initial, config-aware, paths, error)
-- Other mode screenshots (CSV, Recent, segmented control)
-- Dialog screenshots (Add Variable search + manual modes)
-"""
+"""Documentation screenshots for the principal Data Source states."""
 
 from __future__ import annotations
 
@@ -22,7 +13,7 @@ pytestmark = pytest.mark.requires_browser
 
 
 class TestDataSourceScreenshots:
-    """Consolidated screenshot capture tests.
+    """Ordered screenshot-capture checks.
 
     Uses ``shared_page`` (class-scoped) so the browser tab is created once
     and reused across all three tests.
@@ -36,7 +27,6 @@ class TestDataSourceScreenshots:
     ) -> None:
         """Capture Parse mode screenshots: initial, config-aware, paths, error.
 
-        Consolidates 4 original tests:
         - capture_initial_state
         - capture_config_aware_strategy
         - capture_filled_paths
@@ -75,7 +65,6 @@ class TestDataSourceScreenshots:
     ) -> None:
         """Capture CSV, Recent, sidebar, and segmented control screenshots.
 
-        Consolidates 4 original tests:
         - capture_csv_mode
         - capture_recent_mode
         - capture_sidebar
@@ -110,7 +99,6 @@ class TestDataSourceScreenshots:
     ) -> None:
         """Capture Add Variable dialog screenshots in Search and Manual modes.
 
-        Consolidates 2 original tests:
         - capture_add_variable_dialog (search mode)
         - capture_add_variable_dialog_manual
         """

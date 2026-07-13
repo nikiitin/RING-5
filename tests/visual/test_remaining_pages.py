@@ -1,12 +1,4 @@
-"""Visual tests for Manage Plots and Portfolio pages.
-
-Consolidated from individual tests to workflow-style tests using
-a class-scoped ``shared_page`` fixture.
-
-Covers:
-- Manage Plots page (renders, no-plots warning, screenshot)
-- Portfolio page (renders, screenshot)
-"""
+"""Visual tests for the Manage Plots and Portfolio pages."""
 
 from __future__ import annotations
 
@@ -22,7 +14,7 @@ pytestmark = pytest.mark.requires_browser
 
 
 class TestRemainingPages:
-    """Consolidated tests for Manage Plots and Portfolio pages.
+    """Ordered checks for Manage Plots and Portfolio.
 
     Uses ``shared_page`` (class-scoped) so the browser tab is created once
     and reused across all tests.
@@ -33,7 +25,6 @@ class TestRemainingPages:
     ) -> None:
         """Manage Plots page renders with no-plots warning and screenshot.
 
-        Consolidates 3 original tests:
         - page_renders
         - no_plots_warning
         - capture_screenshot
@@ -51,7 +42,6 @@ class TestRemainingPages:
     ) -> None:
         """Portfolio page renders with header and screenshot.
 
-        Consolidates 2 original tests:
         - page_renders
         - capture_screenshot
         """

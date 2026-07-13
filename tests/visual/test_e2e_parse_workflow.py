@@ -1,8 +1,6 @@
-"""End-to-end tests: scan, configure variables, parse, then verify data managers.
+"""End-to-end scan, variable configuration, parsing, and data-management tests.
 
-Consolidated from 31 individual tests to 10 workflow-style tests.
-
-These tests exercise the FULL workflow of RING-5:
+The ordered tests exercise this workflow:
 1. Set a real stats directory path pointing to ``tests/data/synthetic/``
 2. Scan for variables (Quick Scan)
 3. Add variables -- from scan results and manually
@@ -36,9 +34,7 @@ from tests.visual.pages.data_source_page import DataSourcePage
 
 pytestmark = pytest.mark.requires_browser
 
-# ---------------------------------------------------------------------------
 # Paths -- resolved at import time so they work regardless of cwd
-# ---------------------------------------------------------------------------
 
 _REPO_ROOT: Path = Path(__file__).parents[2]
 _SINGLE_STATS: Path = _REPO_ROOT / "tests" / "data" / "synthetic" / "single"
@@ -50,9 +46,7 @@ _BENCHMARKS_STATS: Path = _REPO_ROOT / "tests" / "data" / "synthetic" / "benchma
 _E2E_TIMEOUT: int = 60_000
 
 
-# ---------------------------------------------------------------------------
 # Helpers
-# ---------------------------------------------------------------------------
 
 
 def _setup_data_source(page: Page, live_server_url: str) -> DataSourcePage:
@@ -84,9 +78,7 @@ def _scan_add_parse_close(
     ds.close_parse_dialog_and_reload()
 
 
-# ===================================================================
-# 1. Scanning workflow -- each test uses different data (kept separate)
-# ===================================================================
+# Scanning workflow
 
 
 class TestScanWorkflow:
@@ -144,22 +136,18 @@ class TestScanWorkflow:
         expect(error_or_exception).to_be_visible(timeout=_E2E_TIMEOUT)
 
 
-# ===================================================================
-# 2. Variable configuration + Parse -- consolidated
-# ===================================================================
+# Variable configuration and parsing
 
 
 class TestVariableAndParse:
-    """Consolidated variable configuration and parse workflow tests.
+    """Ordered variable-configuration and parsing checks.
 
-    Merges 10 original tests from TestVariableConfiguration + TestParseWorkflow.
     Uses ``shared_page`` to avoid creating a new browser context per test.
     """
 
     def test_variable_add_and_configure(self, shared_page: Page, live_server_url: str) -> None:
         """Add variables from scan and manually, verify config preview.
 
-        Consolidates 5 original tests:
         - add_variable_from_scan_results
         - add_manual_scalar_variable
         - add_manual_variable_wrong_name
@@ -195,7 +183,6 @@ class TestVariableAndParse:
     def test_parse_success_and_data_managers(self, shared_page: Page, live_server_url: str) -> None:
         """Parse with correct variables and verify Data Managers loads data.
 
-        Consolidates 7 original tests:
         - parse_with_correct_scalar_variable
         - parse_with_multiple_scalar_variables
         - parse_benchmarks_multi_seed
@@ -229,7 +216,6 @@ class TestVariableAndParse:
     def test_parse_error_scenarios(self, shared_page: Page, live_server_url: str) -> None:
         """Parse error handling (empty path, nonexistent variable).
 
-        Consolidates 2 original tests:
         - parse_empty_path_shows_error
         - parse_with_nonexistent_variable_name
         """
@@ -257,16 +243,12 @@ class TestVariableAndParse:
         expect(dialog_outcome).to_be_visible(timeout=_E2E_TIMEOUT)
 
 
-# ===================================================================
-# 3. Data Manager operations -- consolidated
-# ===================================================================
+# Data Manager operations
 
 
 class TestDataManagerOperations:
-    """Consolidated Data Manager tab operations after parsing.
+    """Ordered data-manager operations after parsing.
 
-    Merges 7 original tests from TestSeedsReducerNoSeedColumn,
-    TestOutlierRemover, TestPreprocessor, TestMixer.
     Uses ``shared_page`` to avoid redundant parse+navigate cycles.
     """
 
@@ -275,7 +257,6 @@ class TestDataManagerOperations:
     ) -> None:
         """All data manager tabs work correctly after parsing.
 
-        Consolidates 7 original tests:
         - seeds_reducer_shows_column_selector (generic reducer)
         - outlier_tab_shows_metrics
         - outlier_apply_shows_result
@@ -318,9 +299,7 @@ class TestDataManagerOperations:
         expect(dm.mixer_columns_multiselect).to_be_visible(timeout=15_000)
 
 
-# ===================================================================
-# 4. Cross-page E2E -- parse then load from Recent
-# ===================================================================
+# Cross-page E2E -- parse then load from Recent
 
 
 class TestParseAndRecentPool:
@@ -336,16 +315,11 @@ class TestParseAndRecentPool:
         expect(ds.pool_file_count_info).to_be_visible(timeout=15_000)
 
 
-# ===================================================================
-# 5. Screenshots for E2E documentation
-# ===================================================================
+# Screenshots for E2E documentation
 
 
 class TestE2EScreenshots:
-    """Capture screenshots of E2E states for documentation.
-
-    Consolidated from 4 individual tests to 2 workflow-style tests.
-    """
+    """Capture screenshots of E2E states for documentation."""
 
     def test_scan_and_variable_screenshots(
         self,
@@ -355,7 +329,6 @@ class TestE2EScreenshots:
     ) -> None:
         """Capture screenshots after scan and with variables added.
 
-        Consolidates 2 original tests:
         - capture_after_scan
         - capture_with_variables_added
         """
@@ -378,7 +351,6 @@ class TestE2EScreenshots:
     ) -> None:
         """Capture parse dialog and Data Managers with data screenshots.
 
-        Consolidates 2 original tests:
         - capture_parse_in_progress
         - capture_data_managers_with_data
         """

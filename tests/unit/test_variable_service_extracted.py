@@ -10,7 +10,7 @@ from typing import cast
 from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
 from src.core.services.data_services.variable_service import VariableService
 
-# ─── find_entries_for_variable ───────────────────────────────────────────────
+# find_entries_for_variable
 
 
 class TestFindEntriesForVariable:
@@ -77,7 +77,7 @@ class TestFindEntriesForVariable:
         assert set(result) == {"cpu0", "cpu1"}
 
 
-# ─── update_scanned_entries ──────────────────────────────────────────────────
+# update_scanned_entries
 
 
 class TestUpdateScannedEntries:
@@ -138,7 +138,7 @@ class TestUpdateScannedEntries:
         assert result[0]["name"] == "new.var"
 
 
-# ─── has_variable_with_name ──────────────────────────────────────────────────
+# has_variable_with_name
 
 
 class TestHasVariableWithName:
@@ -160,7 +160,7 @@ class TestHasVariableWithName:
         assert VariableService.has_variable_with_name(variables, "cpu.ipc") is False
 
 
-# ─── build_statistics_list ───────────────────────────────────────────────────
+# build_statistics_list
 
 
 class TestBuildStatisticsList:

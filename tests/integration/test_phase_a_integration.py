@@ -38,7 +38,7 @@ from src.web.rendering.matplotlib_trace_renderer import MatplotlibTraceRenderer
 matplotlib.use("Agg")
 
 
-# ── Palette Integration ─────────────────────────────────────────────────
+# Palette Integration
 
 
 class TestPaletteIntegration:
@@ -74,7 +74,7 @@ class TestPaletteIntegration:
             assert is_colorblind_safe(n)
 
 
-# ── Matplotlib Trace Renderer Colour Override ────────────────────────────
+# Matplotlib Trace Renderer Colour Override
 
 
 class TestTraceRendererPaletteOverride:
@@ -155,7 +155,7 @@ class TestTraceRendererPaletteOverride:
         assert _approx_hex(c) == "#ff0000"
 
 
-# ── Annotation Rendering ────────────────────────────────────────────────
+# Annotation Rendering
 
 
 class TestAnnotationRendering:
@@ -211,7 +211,7 @@ class TestAnnotationRendering:
         assert len(self.ax.texts) == 0
 
 
-# ── Enrich + Apply End-to-End ────────────────────────────────────────────
+# Enrich + Apply End-to-End
 
 
 class TestEnrichAndApply:
@@ -281,7 +281,7 @@ class TestEnrichAndApply:
         assert "Group" in text_content
 
 
-# ── Helpers ──────────────────────────────────────────────────────────────
+# Helpers
 
 
 def _approx_hex(color: Any) -> str:

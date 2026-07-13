@@ -1,13 +1,4 @@
-"""Visual tests for Data Source page — CSV mode, Recent mode, cross-mode isolation.
-
-Consolidated from 14 individual tests to 3 workflow-style tests using
-a class-scoped ``shared_page`` fixture.
-
-Covers:
-- CSV mode elements (success message, hidden parser config, hidden parse button)
-- Recent mode elements (header, content, hidden parser config)
-- Cross-mode isolation (round-trip through all modes verifying no leakage)
-"""
+"""Visual tests for CSV, Recent, and cross-mode state isolation."""
 
 from __future__ import annotations
 
@@ -20,7 +11,7 @@ pytestmark = pytest.mark.requires_browser
 
 
 class TestCSVAndRecentModes:
-    """Consolidated CSV, Recent, and cross-mode isolation tests.
+    """Ordered CSV, Recent, and cross-mode isolation checks.
 
     Uses ``shared_page`` (class-scoped) so the browser tab is created once
     and reused across all three tests.
@@ -29,7 +20,6 @@ class TestCSVAndRecentModes:
     def test_csv_mode_elements(self, shared_page: Page, live_server_url: str) -> None:
         """CSV mode renders correctly with proper element visibility.
 
-        Consolidates 5 original tests:
         - CSV mode shows success message with correct text
         - Parser config is NOT visible in CSV mode
         - Parse button is NOT visible in CSV mode
@@ -57,7 +47,6 @@ class TestCSVAndRecentModes:
     def test_recent_mode_elements(self, shared_page: Page, live_server_url: str) -> None:
         """Recent mode renders correctly with proper element visibility.
 
-        Consolidates 4 original tests:
         - Recent mode shows 'Recent CSV Files' heading
         - Recent mode shows content (empty warning or file cards)
         - Parser config is NOT visible in Recent mode
@@ -82,7 +71,6 @@ class TestCSVAndRecentModes:
     def test_cross_mode_isolation(self, shared_page: Page, live_server_url: str) -> None:
         """Full round-trip through all modes verifies no content leakage.
 
-        Consolidates 5 original tests:
         - Recent content not in Parse mode
         - Parser config not in CSV mode
         - CSV message not in Recent mode

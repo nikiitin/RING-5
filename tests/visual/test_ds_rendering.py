@@ -1,13 +1,4 @@
-"""Visual tests for Data Source page — rendering, segmented control, mode switching.
-
-Consolidated from 20 individual tests to 3 workflow-style tests using
-a class-scoped ``shared_page`` to avoid redundant browser context creation.
-
-Covers:
-- Initial rendering & state (all element visibility in one pass)
-- Segmented control cycling through all modes
-- Mode switching with content mutual exclusivity
-"""
+"""Visual tests for Data Source rendering and mode switching."""
 
 from __future__ import annotations
 
@@ -20,7 +11,7 @@ pytestmark = pytest.mark.requires_browser
 
 
 class TestDataSourceRendering:
-    """Consolidated rendering, segmented control, and mode switching tests.
+    """Ordered rendering, segmented-control, and mode-switching checks.
 
     Uses ``shared_page`` (class-scoped) so the browser tab is created once
     and reused across all three tests.  Tests run in definition order.
@@ -29,7 +20,6 @@ class TestDataSourceRendering:
     def test_initial_rendering(self, shared_page: Page, live_server_url: str) -> None:
         """Page loads and all expected elements render correctly.
 
-        Consolidates 8 original tests:
         - page loads successfully (main header visible)
         - Data Source is default page (step header visible)
         - step header contains 'Step 1' and 'Choose Data Source'
@@ -73,7 +63,6 @@ class TestDataSourceRendering:
     def test_segmented_control_cycling(self, shared_page: Page, live_server_url: str) -> None:
         """All segmented control interactions work correctly.
 
-        Consolidates 5 original tests:
         - Parse mode is default active
         - Clicking CSV activates CSV
         - Clicking Recent activates Recent
@@ -109,7 +98,6 @@ class TestDataSourceRendering:
     def test_mode_content_switching(self, shared_page: Page, live_server_url: str) -> None:
         """Switching modes shows/hides correct content sections.
 
-        Consolidates 7 original tests:
         - Parse mode shows parser config
         - CSV mode hides parser config and shows success message
         - Recent mode hides parser config and shows Recent header

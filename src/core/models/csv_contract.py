@@ -33,8 +33,7 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-# ─── Constants ────────────────────────────────────────────────────────────────
-
+# Constants
 MISSING_VALUE: str = "NaN"
 # Representation for missing/unavailable values in the CSV output (parsed as NaN by pandas).
 
@@ -45,7 +44,7 @@ CSV_DIALECT: str = "excel"
 # CSV dialect used for output files (Python csv module standard).
 
 
-# ─── Validation ───────────────────────────────────────────────────────────────
+# Validation
 
 
 def validate_parser_csv(path: Path) -> list[str]:

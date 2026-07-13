@@ -47,9 +47,7 @@ def ax():  # type: ignore[no-untyped-def]
     plt.close(fig)
 
 
-# ────────────────────────────────────────────────────────────────────
 # _apply_backgrounds
-# ────────────────────────────────────────────────────────────────────
 
 
 class TestMatplotlibBackgrounds:
@@ -76,9 +74,7 @@ class TestMatplotlibBackgrounds:
         assert ax.get_facecolor() == to_rgba("#222222")
 
 
-# ────────────────────────────────────────────────────────────────────
 # _apply_font_family
-# ────────────────────────────────────────────────────────────────────
 
 
 class TestMatplotlibFontFamily:
@@ -121,9 +117,7 @@ class TestMatplotlibFontFamily:
             plt.close(fig)
 
 
-# ────────────────────────────────────────────────────────────────────
 # _apply_color_palette
-# ────────────────────────────────────────────────────────────────────
 
 
 class TestMatplotlibColorPalette:
@@ -145,9 +139,7 @@ class TestMatplotlibColorPalette:
         FigureSpecToMatplotlib._apply_color_palette(spec, ax)
 
 
-# ────────────────────────────────────────────────────────────────────
 # _apply_reference_lines
-# ────────────────────────────────────────────────────────────────────
 
 
 class TestMatplotlibReferenceLines:
@@ -196,9 +188,7 @@ class TestMatplotlibReferenceLines:
             plt.close(fig_t)
 
 
-# ────────────────────────────────────────────────────────────────────
 # _apply_data_labels
-# ────────────────────────────────────────────────────────────────────
 
 
 class TestMatplotlibDataLabels:
@@ -228,9 +218,7 @@ class TestMatplotlibDataLabels:
         assert len(ax.texts) >= 1
 
 
-# ────────────────────────────────────────────────────────────────────
 # _apply_annotations
-# ────────────────────────────────────────────────────────────────────
 
 
 class TestMatplotlibAnnotations:
@@ -266,9 +254,7 @@ class TestMatplotlibAnnotations:
         assert to_hex(arrow.get_edgecolor()) == "#ff0000"
 
 
-# ────────────────────────────────────────────────────────────────────
 # _apply_hatching
-# ────────────────────────────────────────────────────────────────────
 
 
 class TestMatplotlibHatching:
@@ -297,9 +283,7 @@ class TestMatplotlibHatching:
         assert ax.containers[1][0].get_hatch() == "x"
 
 
-# ────────────────────────────────────────────────────────────────────
 # _apply_axis_colors
-# ────────────────────────────────────────────────────────────────────
 
 
 class TestMatplotlibAxisColors:
@@ -332,9 +316,7 @@ class TestMatplotlibAxisColors:
         FigureSpecToMatplotlib._apply_axis_colors(spec, ax)
 
 
-# ────────────────────────────────────────────────────────────────────
 # create_figure with layout='constrained'
-# ────────────────────────────────────────────────────────────────────
 
 
 class TestMatplotlibCreateFigure:

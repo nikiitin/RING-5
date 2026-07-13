@@ -1,8 +1,4 @@
-"""Tests for Normalize shaper validation and transformation branches.
-
-Focus: zero denominator, sd column normalization, fingerprint caching,
-precondition checks (ambiguous baseline, non-numeric).
-"""
+"""Tests for normalization validation, arithmetic, and fingerprints."""
 
 from typing import Any
 

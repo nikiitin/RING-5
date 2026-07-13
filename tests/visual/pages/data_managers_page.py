@@ -35,9 +35,7 @@ class DataManagersPage(BasePage):
     def __init__(self, page: Page) -> None:
         super().__init__(page)
 
-    # ------------------------------------------------------------------
     # Helpers — tab-aware locators
-    # ------------------------------------------------------------------
 
     def _by_label(self, test_id: str, label_text: str) -> Locator:
         """Return a locator for a widget with ``data-testid`` filtered by label.
@@ -51,17 +49,13 @@ class DataManagersPage(BasePage):
         """
         return self.page.locator(f"[data-testid='{test_id}']:visible").filter(has_text=label_text)
 
-    # ------------------------------------------------------------------
     # Navigation
-    # ------------------------------------------------------------------
 
     def navigate(self) -> None:
         """Open the Data Managers page via sidebar."""
         self.navigate_to(self.PAGE_NAME)
 
-    # ------------------------------------------------------------------
     # Locators
-    # ------------------------------------------------------------------
 
     @property
     def page_header(self) -> Locator:
@@ -78,9 +72,7 @@ class DataManagersPage(BasePage):
         """The tab bar container."""
         return self.page.locator("[role='tablist']")
 
-    # ------------------------------------------------------------------
     # Tab navigation
-    # ------------------------------------------------------------------
 
     def select_tab(self, tab_name: str) -> None:
         """Click a tab by its label.
@@ -96,9 +88,7 @@ class DataManagersPage(BasePage):
         """Return the tab locator by name."""
         return self.page.get_by_role("tab", name=tab_name)
 
-    # ------------------------------------------------------------------
     # Summary tab locators
-    # ------------------------------------------------------------------
 
     @property
     def summary_rows_metric(self) -> Locator:
@@ -110,9 +100,7 @@ class DataManagersPage(BasePage):
         """Columns metric in the summary tab."""
         return self.page.get_by_text("Total Columns")
 
-    # ------------------------------------------------------------------
     # Seeds Reducer tab locators
-    # ------------------------------------------------------------------
 
     @property
     def seeds_categorical_select(self) -> Locator:
@@ -129,9 +117,7 @@ class DataManagersPage(BasePage):
         """'Column to reduce over' selectbox in Seeds Reducer."""
         return self._by_label("stSelectbox", "Column to reduce over")
 
-    # ------------------------------------------------------------------
     # Data Visualization tab
-    # ------------------------------------------------------------------
 
     @property
     def search_input(self) -> Locator:
@@ -146,18 +132,14 @@ class DataManagersPage(BasePage):
         """
         return self._by_label("stDataFrame", "Data Table")
 
-    # ------------------------------------------------------------------
     # Operations History tab
-    # ------------------------------------------------------------------
 
     @property
     def history_container(self) -> Locator:
         """Container for operation history entries."""
         return self.page.get_by_text("Operations History")
 
-    # ------------------------------------------------------------------
     # Assertions
-    # ------------------------------------------------------------------
 
     def assert_page_header_visible(self) -> None:
         """Assert the main page heading is shown."""
@@ -202,9 +184,7 @@ class DataManagersPage(BasePage):
         cols_metric = self.page.locator("[data-testid='stMetric']").filter(has_text="Columns")
         expect(cols_metric.first).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
-    # ------------------------------------------------------------------
     # E2E: Seeds Reducer
-    # ------------------------------------------------------------------
 
     @property
     def seeds_no_random_seed_warning(self) -> Locator:
@@ -251,9 +231,7 @@ class DataManagersPage(BasePage):
         self.seeds_confirm_button.click()
         self.wait_for_streamlit()
 
-    # ------------------------------------------------------------------
     # E2E: Outlier Remover
-    # ------------------------------------------------------------------
 
     @property
     def outlier_column_selectbox(self) -> Locator:
@@ -291,9 +269,7 @@ class DataManagersPage(BasePage):
         self.outlier_confirm_button.click()
         self.wait_for_streamlit()
 
-    # ------------------------------------------------------------------
     # E2E: Preprocessor
-    # ------------------------------------------------------------------
 
     @property
     def preproc_src1_selectbox(self) -> Locator:
@@ -340,9 +316,7 @@ class DataManagersPage(BasePage):
         self.preproc_confirm_button.click()
         self.wait_for_streamlit()
 
-    # ------------------------------------------------------------------
     # E2E: Mixer
-    # ------------------------------------------------------------------
 
     @property
     def mixer_mode_control(self) -> Locator:
@@ -388,9 +362,7 @@ class DataManagersPage(BasePage):
         self.mixer_confirm_button.click()
         self.wait_for_streamlit()
 
-    # ------------------------------------------------------------------
     # E2E: Data Visualization tab
-    # ------------------------------------------------------------------
 
     @property
     def viz_search_column_selectbox(self) -> Locator:
@@ -412,9 +384,7 @@ class DataManagersPage(BasePage):
         heading = self.page.locator("h3").filter(has_text="Data Table")
         expect(heading).to_be_visible(timeout=30_000)
 
-    # ------------------------------------------------------------------
     # E2E: Operations History tab
-    # ------------------------------------------------------------------
 
     @property
     def history_no_ops_warning(self) -> Locator:
@@ -438,9 +408,7 @@ class DataManagersPage(BasePage):
         if count is not None:
             expect(self.page.get_by_text(str(count))).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
-    # ------------------------------------------------------------------
     # E2E: Common assertions
-    # ------------------------------------------------------------------
 
     def assert_success_message_visible(self) -> None:
         """Assert a success alert is visible somewhere on the page."""

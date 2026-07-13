@@ -19,9 +19,7 @@ import pytest
 
 from src.core.models import ScannedVariable, StatConfig
 
-# ---------------------------------------------------------------------------
 # Unit tests for StatConfig.is_regex field
-# ---------------------------------------------------------------------------
 
 
 class TestStatConfigIsRegex:
@@ -61,9 +59,7 @@ class TestStatConfigIsRegex:
         assert modified.is_regex is True
 
 
-# ---------------------------------------------------------------------------
 # Integration tests: ApplicationAPI sets is_regex automatically
-# ---------------------------------------------------------------------------
 
 
 class TestApplicationAPIIsRegex:
@@ -140,9 +136,7 @@ class TestApplicationAPIIsRegex:
         assert configs[0].is_regex is True
 
 
-# ---------------------------------------------------------------------------
 # Regex expansion: is_regex controls whether expansion runs
-# ---------------------------------------------------------------------------
 
 
 class TestRegexExpansionUsesFlag:

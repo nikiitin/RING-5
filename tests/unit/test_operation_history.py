@@ -13,9 +13,7 @@ from typing import List
 from src.core.models.history_models import OperationRecord
 from src.core.state.repositories.history_repository import HistoryRepository
 
-# =============================================================================
 # Model Layer Tests
-# =============================================================================
 
 
 class TestOperationRecord:
@@ -48,9 +46,7 @@ class TestOperationRecord:
         assert "timestamp" in record
 
 
-# =============================================================================
 # Repository Layer Tests
-# =============================================================================
 
 
 class TestHistoryRepository:
@@ -263,9 +259,7 @@ class TestHistoryRepository:
         repo.remove_portfolio_record(record)
 
 
-# =============================================================================
 # State Manager Integration Tests
-# =============================================================================
 
 
 class TestRepositoryStateManagerHistory:
@@ -335,9 +329,7 @@ class TestRepositoryStateManagerHistory:
         assert rsm.get_portfolio_history() == []
 
 
-# =============================================================================
 # Portfolio Persistence Tests
-# =============================================================================
 
 
 class TestPortfolioHistoryPersistence:

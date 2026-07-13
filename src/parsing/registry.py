@@ -183,8 +183,7 @@ class SimulatorRegistry:
         cls._instances.clear()
 
 
-# ─── Auto-register gem5 ──────────────────────────────────────────────────────
-
+# Auto-register gem5
 GEM5_INFO = SimulatorInfo(
     name="gem5",
     display_name="gem5",

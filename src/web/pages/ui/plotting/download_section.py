@@ -31,7 +31,7 @@ from src.web.rendering.figure_export import (
 logger = logging.getLogger(__name__)
 
 
-# ── UI download section ──────────────────────────────────────────
+# UI download section
 
 
 def render_download_section(

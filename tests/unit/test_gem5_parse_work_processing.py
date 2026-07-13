@@ -1,14 +1,4 @@
-"""
-Additional tests for Gem5ParseWork targeting uncovered branches.
-
-Covers:
-- __str__ (L52)
-- _processEntryType: histogram→vector, vector→histogram resolution (L138-154)
-- _processSummary: standalone summary, entry-style summary (L156-185)
-- _processLine: configuration type, unknown type (L215, L222)
-- _runPerlScript: timeout error, general error (L297-298, L313-318)
-- _processLine: unknown variable skip for entry types
-"""
+"""Tests for gem5 entry processing, summaries, and Perl failures."""
 
 from typing import cast
 from unittest.mock import MagicMock, patch

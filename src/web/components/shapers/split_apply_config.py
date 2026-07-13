@@ -1,18 +1,4 @@
-"""
-Split-Apply Config — UI for the SplitApply composite shaper.
-
-Lets the user define:
-  1. Join columns (categorical columns shared across all groups).
-  2. N column groups (2–4), each with its own numeric columns and
-     a mini sub-pipeline of shapers applied independently.
-
-Each sub-pipeline step delegates to the **exact same** UI component
-used by the main pipeline (MeanConfig, NormalizeConfig, SortConfig,
-ConditionSelectorConfig), ensuring a consistent user experience.
-
-This is the UI counterpart of
-:class:`src.core.services.shapers.impl.split_apply.SplitApply`.
-"""
+"""Streamlit controls for SplitApply column groups and sub-pipelines."""
 
 from collections.abc import Callable
 from typing import cast
@@ -22,10 +8,7 @@ import streamlit as st
 
 from src.core.models.shaper_models import ShaperStepConfig, SplitApplyGroupConfig
 
-# ── Sub-step config dispatch ──────────────────────────────────────
-# Lazily populated to avoid circular imports.
-# Maps display name → (internal_type, render_fn).
-
+# Initialized lazily to avoid circular config-component imports.
 _SUB_SHAPER_DISPATCH: dict[str, tuple[str, Callable[..., ShaperStepConfig]]] = {}
 _STATE: dict[str, bool] = {"initialized": False}
 
@@ -109,7 +92,7 @@ class SplitApplyConfig:
             "Mean / Normalize step."
         )
 
-        # ── Join Columns ──────────────────────────────────────────
+        # Join Columns
         join_default: list[str] = [
             c
             for c in cast(list[str], existing_config.get("joinColumns", categorical_cols))
@@ -126,7 +109,7 @@ class SplitApplyConfig:
             ),
         )
 
-        # ── Number of groups ──────────────────────────────────────
+        # Number of groups
         # Copy: this list is the live persisted pipeline config (passed uncopied through
         # the controller); padding it below must not mutate stored state.
         existing_groups: list[SplitApplyGroupConfig] = list(
@@ -148,7 +131,7 @@ class SplitApplyConfig:
         while len(existing_groups) < num_groups:
             existing_groups.append({})
 
-        # ── Render each group in an expander ──────────────────────
+        # Render each group in an expander
         groups: list[SplitApplyGroupConfig] = []
         for g_idx in range(num_groups):
             label: str = _GROUP_LABELS[g_idx]
@@ -173,8 +156,7 @@ class SplitApplyConfig:
             },
         )
 
-    # ── Private helpers ───────────────────────────────────────────
-
+    # Private helpers
     @staticmethod
     def _render_group(
         data: pd.DataFrame,
@@ -203,7 +185,7 @@ class SplitApplyConfig:
         """
         gk: str = f"{key_prefix}sa_g{group_index}_{shaper_id}"
 
-        # ── Column selection ──────────────────────────────────────
+        # Column selection
         col_default: list[str] = [c for c in existing_group.get("columns", []) if c in numeric_cols]
         columns: list[str] = st.multiselect(
             "Numeric columns",
@@ -213,7 +195,7 @@ class SplitApplyConfig:
             help="Numeric columns processed by this group's pipeline.",
         )
 
-        # ── Sub-pipeline ──────────────────────────────────────────
+        # Sub-pipeline
         existing_pipeline: list[ShaperStepConfig] = existing_group.get("pipeline", [])
         pipeline: list[ShaperStepConfig] = SplitApplyConfig._render_sub_pipeline(
             data=data,
@@ -330,7 +312,7 @@ class SplitApplyConfig:
         """
         st.markdown(f"**Step {step_index + 1}**")
 
-        # ── Shaper type selector ──────────────────────────────────
+        # Shaper type selector
         display_names: list[str] = list(_SUB_SHAPER_DISPATCH.keys())
         existing_type: str = existing_step.get("type", "")
         reverse_map = _get_reverse_type_map()
@@ -347,7 +329,7 @@ class SplitApplyConfig:
         )
         shaper_type, render_fn = _SUB_SHAPER_DISPATCH[selected_display]
 
-        # ── Delegate to the real config component ─────────────────
+        # Delegate to the real config component
         sub_key_prefix: str = f"{key_base}_"
         sub_shaper_id: str = f"sub{step_index}"
 

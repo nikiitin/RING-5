@@ -17,9 +17,7 @@ from src.core.services.data_services.path_service import PathService
 from src.parsing.gem5.models import Gem5ScannedVariable
 from src.parsing.gem5.types.type_mapper import TypeMapper
 
-# ===================================================================
 # TypeMapper
-# ===================================================================
 
 
 class TestTypeMapper:
@@ -111,9 +109,7 @@ class TestTypeMapper:
             TypeMapper.create_stat({"name": "x", "type": ""})
 
 
-# ===================================================================
 # ScannerService
-# ===================================================================
 
 
 class TestScannerService:
@@ -186,9 +182,7 @@ class TestScannerService:
         assert registry["ipc"].type == "scalar"
 
 
-# ===================================================================
 # PathService
-# ===================================================================
 
 
 class TestPathService:

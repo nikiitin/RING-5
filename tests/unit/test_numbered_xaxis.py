@@ -43,9 +43,7 @@ def _base_config(**overrides: Any) -> dict[str, Any]:
     return cfg
 
 
-# ---------------------------------------------------------------------------
 # _apply_numbered_xaxis — unit tests
-# ---------------------------------------------------------------------------
 class TestApplyNumberedXaxis:
     """Test the _apply_numbered_xaxis helper directly."""
 
@@ -214,9 +212,7 @@ class TestApplyNumberedXaxis:
         assert "1. only" in legend["text"]
 
 
-# ---------------------------------------------------------------------------
 # Integration: create_figure with numbered_xaxis
-# ---------------------------------------------------------------------------
 class TestCreateFigureNumberedXaxis:
     """Test full figure creation with numbered X-axis enabled."""
 
@@ -320,9 +316,7 @@ class TestCreateFigureNumberedXaxis:
         assert "<b>B</b>" in texts
 
 
-# ---------------------------------------------------------------------------
 # Pure logic: is_grouping_label detection
-# ---------------------------------------------------------------------------
 class TestGroupingLabelDetection:
     """Verify that numbered legend annotations are NOT classified as grouping labels."""
 
@@ -343,9 +337,7 @@ class TestGroupingLabelDetection:
         assert is_grouping_label
 
 
-# ---------------------------------------------------------------------------
 # Pure logic: tertiary annotation detection
-# ---------------------------------------------------------------------------
 class TestTertiaryAnnotationExport:
     """Test that tertiary annotations are detected via borderwidth."""
 

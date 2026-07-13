@@ -29,7 +29,7 @@ class TypographyConfig:
     Every other size is an independent value (no inheritance).
     """
 
-    # ── Per-element sizes (pts) ──────────────────────────────────
+    # Per-element sizes (pts)
     font_size_title: int = 10
     font_size_xlabel: int = 9
     font_size_ylabel: int = 9
@@ -40,7 +40,7 @@ class TypographyConfig:
     font_size_legend: int = 8  # primary legend text
     font_size_legend2: int = INHERIT  # -1 → follow legend
 
-    # ── Bold flags ───────────────────────────────────────────────
+    # Bold flags
     bold_title: bool = False
     bold_xlabel: bool = False
     bold_ylabel: bool = False

@@ -41,15 +41,13 @@ class _PlotUIState:
     Namespaced under ``plot.{plot_id}.*``.
     """
 
-    # ─── Key Builders ────────────────────────────────────────────────────
-
+    # Key Builders
     @staticmethod
     def _key(plot_id: int, suffix: str) -> str:
         """Build a namespaced session_state key for a plot."""
         return WidgetKeyBuilder.plot_key(plot_id, suffix)
 
-    # ─── Auto Refresh ────────────────────────────────────────────────────
-
+    # Auto Refresh
     def get_auto_refresh(self, plot_id: int) -> bool:
         """Get whether auto-refresh is enabled for a plot."""
         return bool(st.session_state.get(self._key(plot_id, "auto_refresh"), True))
@@ -58,8 +56,7 @@ class _PlotUIState:
         """Set auto-refresh state for a plot."""
         st.session_state[self._key(plot_id, "auto_refresh")] = value
 
-    # ─── Dialog Visibility ───────────────────────────────────────────────
-
+    # Dialog Visibility
     def is_dialog_visible(self, plot_id: int, dialog: str) -> bool:
         """Check if a dialog (save/load) is visible for a plot."""
         return bool(st.session_state.get(self._key(plot_id, f"dialog.{dialog}"), False))
@@ -73,8 +70,7 @@ class _PlotUIState:
         for dialog in ("save", "load"):
             self.set_dialog_visible(plot_id, dialog, False)
 
-    # ─── Ordering State ──────────────────────────────────────────────────
-
+    # Ordering State
     def get_order(self, plot_id: int, order_type: str) -> list[Any] | None:
         """Get custom ordering for a dimension (xaxis, group, legend)."""
         key: str = self._key(plot_id, f"order.{order_type}")
@@ -85,8 +81,7 @@ class _PlotUIState:
         """Set custom ordering for a dimension."""
         st.session_state[self._key(plot_id, f"order.{order_type}")] = order
 
-    # ─── Shape Editing ───────────────────────────────────────────────────
-
+    # Shape Editing
     def is_editing_shapes(self, plot_id: int) -> bool:
         """Check if shape editing mode is active for a plot."""
         return bool(st.session_state.get(self._key(plot_id, "edit_shapes"), False))
@@ -95,8 +90,7 @@ class _PlotUIState:
         """Toggle shape editing mode for a plot."""
         st.session_state[self._key(plot_id, "edit_shapes")] = editing
 
-    # ─── Pending Relayout Updates ────────────────────────────────────────
-
+    # Pending Relayout Updates
     def get_pending_updates(self) -> dict[str, Any] | None:
         """Get pending widget updates from a previous relayout event."""
         result: dict[str, Any] | None = st.session_state.get("plot.pending_updates")
@@ -111,8 +105,7 @@ class _PlotUIState:
         result: dict[str, Any] | None = st.session_state.pop("plot.pending_updates", None)
         return result
 
-    # ─── Scoped Cleanup ──────────────────────────────────────────────────
-
+    # Scoped Cleanup
     def cleanup(self, plot_id: int) -> None:
         """
         Remove ALL session_state keys associated with a plot.
@@ -150,8 +143,7 @@ class _ManagerUIState:
         """Build a namespaced key for a data manager."""
         return WidgetKeyBuilder.manager_key(manager_name, suffix)
 
-    # ─── Load Triggers ───────────────────────────────────────────────────
-
+    # Load Triggers
     def get_load_trigger(self, manager_name: str) -> dict[str, Any] | None:
         """Get a pending load-from-history trigger for a manager."""
         result: dict[str, Any] | None = st.session_state.get(
@@ -170,8 +162,7 @@ class _ManagerUIState:
         )
         return result
 
-    # ─── Form Values ─────────────────────────────────────────────────────
-
+    # Form Values
     def set_form_value(self, manager_name: str, field: str, value: Any) -> None:
         """Set a form field value for a manager."""
         st.session_state[self._key(manager_name, f"form.{field}")] = value
@@ -180,8 +171,7 @@ class _ManagerUIState:
         """Get a form field value for a manager."""
         return st.session_state.get(self._key(manager_name, f"form.{field}"))
 
-    # ─── Scoped Cleanup ──────────────────────────────────────────────────
-
+    # Scoped Cleanup
     def cleanup(self, manager_name: str) -> None:
         """Remove all session_state keys for a manager."""
         prefix: str = f"manager.{manager_name}."

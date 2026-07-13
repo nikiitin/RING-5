@@ -24,9 +24,7 @@ from src.core.services.shapers.factory import ShaperFactory
 from src.core.state.repository_state_manager import RepositoryStateManager
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
-# ===========================================================================
 # Test Class 1: Shaper pipeline error recovery
-# ===========================================================================
 
 
 class TestShaperPipelineErrors:
@@ -113,9 +111,7 @@ class TestShaperPipelineErrors:
         assert list(data.columns) == original_columns
 
 
-# ===========================================================================
 # Test Class 2: Empty DataFrame edge cases
-# ===========================================================================
 
 
 class TestEmptyDataEdgeCases:
@@ -168,9 +164,7 @@ class TestEmptyDataEdgeCases:
         assert len(info["numeric_columns"]) == 100
 
 
-# ===========================================================================
 # Test Class 3: Plot creation error cases
-# ===========================================================================
 
 
 class TestPlotCreationErrors:
@@ -195,9 +189,7 @@ class TestPlotCreationErrors:
             plot.create_figure(rich_sample_data, config)
 
 
-# ===========================================================================
 # Test Class 4: State consistency after errors
-# ===========================================================================
 
 
 class TestStateConsistencyAfterErrors:
