@@ -1,7 +1,4 @@
-"""
-Parser State Repository
-Single Responsibility: Manage simulator parser configuration and state.
-"""
+"""In-memory repository for simulator parser configuration."""
 
 import logging
 import uuid
@@ -12,17 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class ParserStateRepository:
-    """
-    Repository for managing simulator parser state and configuration.
-
-    Responsibilities:
-    - Manage parse variable configurations
-    - Store stats file path and pattern
-    - Track scanned variables from stats files
-    - Manage parser enable/disable state
-
-    Adheres to SRP: Only manages parser-related state in memory.
-    """
+    """Store parser inputs, scan results, and selected variables."""
 
     # Default variables for new sessions
     DEFAULT_PARSE_VARIABLES: list[ParseVariableConfig] = [

@@ -1,7 +1,4 @@
-"""
-History Repository
-Single Responsibility: Manage operation history state for managers and portfolios.
-"""
+"""In-memory operation history for managers and portfolios."""
 
 import logging
 
@@ -13,15 +10,7 @@ _MANAGER_HISTORY_MAX: int = 10
 
 
 class HistoryRepository:
-    """
-    In-memory repository for operation history.
-
-    Maintains two independent lists:
-    - manager_history:   Rolling window of the last 10 operations (FIFO).
-    - portfolio_history: Unbounded list of all operations performed in the portfolio.
-
-    Both lists store OperationRecord entries with identical fields.
-    """
+    """Store bounded manager history and unbounded portfolio history."""
 
     def __init__(self) -> None:
         """Initialize empty history lists."""

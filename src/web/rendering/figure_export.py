@@ -26,7 +26,7 @@ import logging
 import os
 import re
 import threading
-from typing import Literal, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import kaleido
 import matplotlib.pyplot as plt
@@ -35,6 +35,9 @@ from kaleido.errors import ChromeNotFoundError
 from matplotlib.figure import Figure as MplFigure
 
 from src.core.models.visualization.figure_config import FigureConfig
+
+if TYPE_CHECKING:
+    from matplotlib.typing import RcKeyType
 
 logger = logging.getLogger(__name__)
 
@@ -314,7 +317,9 @@ def matplotlib_download_bytes(
 
         try:
             buf = io.BytesIO()
-            det_rc = {"svg.hashsalt": DETERMINISTIC_SVG_HASHSALT} if deterministic else {}
+            det_rc: dict[RcKeyType, Any] = (
+                {"svg.hashsalt": DETERMINISTIC_SVG_HASHSALT} if deterministic else {}
+            )
 
             if fmt == "pgf":
                 preamble = spec.latex_extra_preamble if spec else ""

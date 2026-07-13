@@ -24,10 +24,23 @@ def _index(options: list[str], value: str) -> int:
 
 
 class DeriveColumnConfig:
+    """Render controls for deriving a column from existing data."""
+
     @staticmethod
     def render(
         data: pd.DataFrame, existing_config: ShaperStepConfig, key_prefix: str, shaper_id: int
     ) -> ShaperStepConfig:
+        """Render derive-column controls.
+
+        Args:
+            data: Data available to the shaper.
+            existing_config: Values from a previously configured step.
+            key_prefix: Stable prefix for Streamlit widget keys.
+            shaper_id: Identifier of the pipeline step.
+
+        Returns:
+            Updated derive-column configuration.
+        """
         cols = data.columns.tolist()
         st.markdown("Create a new column from existing ones.")
 

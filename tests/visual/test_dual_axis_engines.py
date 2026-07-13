@@ -3,9 +3,8 @@
 Loads the shared 18-row fixture CSV, builds a finalized ``dual_axis_bar_dot``
 plot, and captures a screenshot of the chart in **both** the Plotly and the
 matplotlib engine. This is the visual companion to ``tests/e2e/test_dual_axis``:
-the e2e suite asserts the chart *renders*; this one captures the pixels so
-dual-engine parity of the decomposed trace builders (Theme-B B6) can be eyeballed
-and used as a manual visual-regression reference.
+the e2e suite asserts the chart *renders*; this one captures the pixels for
+manual comparison of the two engines.
 
 Screenshots land in ``tests/visual/screenshots/<ClassName>/`` (gitignored).
 """

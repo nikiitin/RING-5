@@ -1,7 +1,4 @@
-"""
-Preview Repository
-Manages temporary preview results for data operations.
-"""
+"""In-memory data-operation previews."""
 
 import logging
 
@@ -11,19 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 class PreviewRepository:
-    """
-    Repository for managing temporary preview results.
-
-    Adheres to SRP: Only manages preview state in memory.
-    """
-
-    # We use a class variable for storage because PreviewRepository methods were static.
-    # To maintain compatibility while removing Streamlit dependency, we can use a class-level dict.
-    # If we move to instance-based, we'd need to refactor call sites.
-    # Given the new architecture (Singleton ApplicationAPI owning Repos),
-    # instance-based is better. However, existing code might call
-    # PreviewRepository.static_method(). Refactor Plan: Convert to instance
-    # methods and have it managed by SessionRepository/StateManager.
+    """Store independent preview frames by operation name."""
 
     def __init__(self) -> None:
         self._previews: dict[str, DataFrame] = {}

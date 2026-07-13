@@ -1,16 +1,4 @@
-"""
-Web Layer State Management (Layer 4).
-
-Provides centralized, typed access to Streamlit session_state,
-replacing scattered st.session_state["key"] access throughout the codebase.
-
-Architecture:
-    Page → Controller → Component
-                ↕
-          UIStateManager  ← YOU ARE HERE
-                ↕
-             Models
-"""
+"""Typed access to transient web-interface state."""
 
 from src.web.state.ui_state_manager import UIStateManager, WidgetKeyBuilder
 

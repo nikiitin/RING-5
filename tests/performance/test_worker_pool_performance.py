@@ -72,7 +72,7 @@ def test_worker_pool_performance_vs_subprocess(
         "system.cpu.dcache.overall_hits",
     ]
 
-    # Test with worker pool (the ONLY mechanism now!)
+    # Exercise the persistent worker-pool path.
     pool_with_pooling = PerlWorkerPool(pool_size=4)
 
     start = time.perf_counter()

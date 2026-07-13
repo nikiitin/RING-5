@@ -117,12 +117,10 @@ class TestArchitectureBoundary:
 
 
 class TestDependencyDirection:
-    """Verify the one-directional layer rule (Web -> Core <- Parsing) — the
-    subtler edges the simpler greps miss (audit S1/S2/S3)."""
+    """Verify dependency direction across web, core, and parsing layers."""
 
     def test_models_layer_has_no_services_imports(self) -> None:
-        """src/core/models is the shared data language and depends on nobody —
-        it must never import from src.core.services (audit S1)."""
+        """The shared model package must not depend on core services."""
         _assert_no_imports(
             MODELS_SRC_DIR,
             "src.core.services",
@@ -130,7 +128,7 @@ class TestDependencyDirection:
         )
 
     def test_parsing_layer_has_no_core_services_imports(self) -> None:
-        """Parsing (Layer A) must not import core services (Layer B) (audit S2)."""
+        """The parsing package must not import core services."""
         _assert_no_imports(
             PARSING_SRC_DIR,
             "src.core.services",
@@ -138,8 +136,7 @@ class TestDependencyDirection:
         )
 
     def test_web_layer_has_no_concrete_state_manager_imports(self) -> None:
-        """Web must depend on the StateManager protocol (via the facade), never on
-        the concrete RepositoryStateManager implementation (audit S3)."""
+        """Web code must not import the concrete repository state manager."""
         _assert_no_imports(
             WEB_SRC_DIR,
             "src.core.state.repository_state_manager",

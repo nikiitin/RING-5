@@ -85,9 +85,7 @@ system.mem.latency_dist::total               500
         assert "system.mem.latency_dist..stdev" in df.columns
         assert "system.mem.latency_dist..total" in df.columns
 
-        # Verify NO bucket columns exist (or very few)
-        # In statistics_only mode, bucket columns should not be present
-        # But the parser might still return some, so we just check the count is small
+        # Statistics-only output contains the four aggregates and parser metadata.
         assert len(df.columns) <= 7  # simpoint + 4 stats + maybe 1-2 extras
 
         # Verify values
@@ -138,10 +136,8 @@ system.mem.latency_dist::total               500
         assert "system.mem.latency_dist..samples" in df.columns
         assert "system.mem.latency_dist..mean" in df.columns
 
-        # Should ALSO have bucket columns in full mode
-        # Note: Column names vary - could be .. or _ depending on parser output
-        # Just check that we have significantly more columns than statistics_only mode
-        assert len(df.columns) > 10  # Should have many bucket columns
+        # Full mode includes the distribution buckets in addition to aggregates.
+        assert len(df.columns) > 10
 
     def test_statistics_only_reduces_column_count(self, stats_file: Path, tmp_path: Path) -> None:
         """Verify that statistics-only mode significantly reduces column count."""

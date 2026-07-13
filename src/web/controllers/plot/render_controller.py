@@ -44,20 +44,10 @@ logger = logging.getLogger(__name__)
 
 
 class PlotRenderController:
-    """
-    Orchestrates the visualization section: config → generation → display.
+    """Gather configuration, generate figures, and render the active plot.
 
-    Single Responsibility: turning plot config + data into a rendered chart.
-    Does NOT handle pipeline editing or plot lifecycle.
-
-    Architecture:
-        - Config gathered inline (type-specific + advanced + theme)
-        - Controller owns figure generation + caching
-        - ChartDisplayComponent renders engine selector, chart display, and downloads
-        - PlotLifecycleService handles plot type changes
-
-    Dependencies are injected via protocols — no concrete imports from
-    ``pages.ui.plotting.*``.
+    Pipeline editing and plot lifecycle operations are handled by their own
+    controllers. Rendering dependencies are injected through protocols.
     """
 
     def __init__(
@@ -244,7 +234,7 @@ class PlotRenderController:
         # Branch on engine mode
         try:
             if EngineManager.is_matplotlib():
-                # Use pre-computed traces when available (B7 forward path)
+                # Reuse traces computed during plot generation when available.
                 _traces_result = plot.last_traces
                 pre_traces = list(_traces_result.traces) if _traces_result is not None else None
                 sep_lines = list(_traces_result.separator_lines) if _traces_result else None

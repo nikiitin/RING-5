@@ -1,7 +1,4 @@
-"""
-Shaper Configuration Orchestrator for RING-5.
-Dispatches configuration requests to specialized shaper UI components.
-"""
+"""Dispatch shaper configuration to its Streamlit component."""
 
 import logging
 from typing import cast
@@ -65,20 +62,17 @@ def configure_shaper(
     existing_config: ShaperStepConfig | None,
     owner_id: int | None = None,
 ) -> ShaperStepConfig:
-    """
-    Orchestrate the configuration UI for a given shaper type.
-
-    Adheres to Layer C principles: Strictly Presentation, delegates logic to factory.
+    """Render the configuration UI for a shaper type.
 
     Args:
-        shaper_type: Type of shaper to configure
-        data: Current DataFrame for context
-        shaper_id: Unique ID for this shaper instance
-        existing_config: Existing configuration dict if any
-        owner_id: Optional plot/owner ID for unique keys
+        shaper_type: Type of shaper to configure.
+        data: Current dataframe used to populate controls.
+        shaper_id: Unique ID for this shaper instance.
+        existing_config: Existing configuration, if any.
+        owner_id: Optional plot or owner ID used to namespace widget keys.
 
     Returns:
-        Configuration dictionary with 'type' key set
+        Configuration dictionary with its ``type`` key set.
     """
     key_prefix = f"p{owner_id}_" if owner_id is not None else ""
     safe_config: ShaperStepConfig = cast(ShaperStepConfig, existing_config or {})
@@ -88,17 +82,14 @@ def configure_shaper(
             config: ShaperStepConfig = CONFIG_DISPATCH[shaper_type](
                 data, safe_config, key_prefix, shaper_id
             )
-            # Ensure 'type' is ALWAYS present even if component returned empty or partial
+            # Every persisted shaper configuration requires its type discriminator.
             config["type"] = shaper_type
 
             return config
         except Exception as e:
-            # UI component itself threw an error (not config validation)
             st.exception(e)
             logger.error(f"UI: Configuration UI failed for {shaper_type}: {e}", exc_info=True)
-            return cast(
-                ShaperStepConfig, {"type": shaper_type}
-            )  # Minimal config so UI doesn't break
+            return cast(ShaperStepConfig, {"type": shaper_type})
 
     logger.warning(f"UI: Unknown shaper type encountered: {shaper_type}")
     return cast(ShaperStepConfig, {"type": shaper_type})

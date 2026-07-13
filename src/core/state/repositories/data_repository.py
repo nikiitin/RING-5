@@ -1,7 +1,4 @@
-"""
-Data Repository
-Single Responsibility: Manage primary and processed datasets.
-"""
+"""In-memory repository for primary and processed datasets."""
 
 import logging
 from collections.abc import Callable
@@ -12,17 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class DataRepository:
-    """
-    Repository for managing application data (primary and processed datasets).
-
-    Responsibilities:
-    - Store and retrieve primary data
-    - Store and retrieve processed data
-    - Data existence checks
-    - Data clearing operations
-
-    Adheres to SRP: Only manages data state in memory.
-    """
+    """Store primary and processed dataframes."""
 
     def __init__(self) -> None:
         """Initialize in-memory storage."""

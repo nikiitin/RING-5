@@ -1,9 +1,4 @@
-"""
-Style UI Factory - Plot Type-Specific Style UI Selection.
-
-Factory pattern implementation for dispatching to type-specific style UI
-managers (BarStyleUI, LineStyleUI, etc.) based on plot type.
-"""
+"""Select series-style controls for a plot type."""
 
 from .bar_ui import BarStyleUI
 from .base_ui import BaseStyleUI
@@ -11,10 +6,12 @@ from .line_ui import LineStyleUI, ScatterStyleUI
 
 
 class StyleUIFactory:
+    """Create the style editor appropriate for a plot type."""
+
     @staticmethod
     def get_strategy(plot_id: int, plot_type: str) -> BaseStyleUI:
+        """Return a style editor for ``plot_type`` and ``plot_id``."""
         if plot_type == "dual_axis_bar_dot":
-            # Dual-axis combines bar + scatter; use base style
             return BaseStyleUI(plot_id, plot_type)
         elif "line" in plot_type:
             return LineStyleUI(plot_id, plot_type)

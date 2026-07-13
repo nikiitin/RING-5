@@ -1,4 +1,4 @@
-"""Tests for colorblind-safe palette defaults and selector (Step 35)."""
+"""Tests for colorblind-safe palette defaults and selection."""
 
 from __future__ import annotations
 

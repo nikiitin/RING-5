@@ -181,8 +181,7 @@ def test_render_advanced_options_shapes(concrete_plot: Any, mock_streamlit: Any)
 
     result = concrete_plot.render_advanced_options(config)
 
-    # New contract (audit M1): the added shape lands in the RETURNED config;
-    # the input saved_config is never mutated in place.
+    # Shape editing returns a new config and leaves the input unchanged.
     assert config["shapes"] == []
     assert len(result["shapes"]) == 1
     assert result["shapes"][0]["type"] == "line"

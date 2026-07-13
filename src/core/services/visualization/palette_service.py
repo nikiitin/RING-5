@@ -1,11 +1,4 @@
-"""Palette service — lookup and resolution functions for color palettes.
-
-Functions moved from ``src.core.models.visualization.palettes`` (Phase 3.5)
-to comply with P2 (models = data only, services = logic).
-
-The palette *data* (``PALETTE_REGISTRY``, ``_COLORBLIND_PALETTES``, etc.)
-stays in the models layer.  This module provides the *logic* that
-consumers need: resolving names, listing names, checking properties.
+"""Lookup and resolution functions for registered color palettes.
 
 Usage::
 
@@ -15,8 +8,8 @@ Usage::
         is_colorblind_safe,
     )
 
-    colors = resolve_palette("wong")       # List[str] of hex
-    names  = get_palette_names()           # colorblind-safe first
+    colors = resolve_palette("wong")
+    names = get_palette_names()
 """
 
 from __future__ import annotations

@@ -285,7 +285,7 @@ class TestComprehensiveE2E:
         dm.select_tab("Operations History")
         shared_page.wait_for_timeout(1000)
 
-        # History should NOT be empty anymore
+        # The completed operation must appear in history.
         dm.assert_history_has_operations()
 
     # =================================================================

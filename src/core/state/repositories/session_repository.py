@@ -1,7 +1,4 @@
-"""
-Session Repository
-Single Responsibility: Manage session lifecycle and restoration.
-"""
+"""Coordinate repository initialization, restoration, and cleanup."""
 
 from __future__ import annotations
 
@@ -24,17 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 class SessionRepository:
-    """
-    Repository for managing session lifecycle operations.
-
-    Responsibilities:
-    - Session initialization
-    - Session restoration from portfolios
-    - Widget state cleanup (conceptually, though adapter removal changes this)
-    - Complete session clearing
-
-    Adheres to SRP: Only manages session lifecycle, nothing else.
-    """
+    """Own the repositories that compose an application session."""
 
     def __init__(self, plot_deserializer: PlotDeserializer | None = None) -> None:
         """Initialize domain repositories.

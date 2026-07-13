@@ -1,9 +1,4 @@
-"""
-Line Style UI - Line and Scatter Chart Styling Configuration.
-
-Implements style UI configuration specific to line charts and scatter plots,
-including line-specific visual options and curve parameters.
-"""
+"""Line- and scatter-series styling controls."""
 
 from typing import Any
 
@@ -13,6 +8,8 @@ from .base_ui import BaseStyleUI
 
 
 class LineStyleUI(BaseStyleUI):
+    """Render marker and line controls."""
+
     def _render_specific_series_visuals(
         self, current_style: dict[str, Any], key_suffix: str, key_prefix: str = ""
     ) -> None:
@@ -50,4 +47,6 @@ class LineStyleUI(BaseStyleUI):
 
 
 class ScatterStyleUI(LineStyleUI):
+    """Use line-style controls for scatter traces."""
+
     pass

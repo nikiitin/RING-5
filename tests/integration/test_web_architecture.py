@@ -435,7 +435,7 @@ class TestProtocolCompliance:
         source: str = Path(adapter_mod.__file__).read_text()  # type: ignore[arg-type]
         # Adapters SHOULD import from pages.ui — that's their job
         assert "from src.web.pages.ui" in source
-        # But protocols should NOT be in adapters (they import from models)
+        # Protocols belong in models rather than adapters.
         assert "from src.web.models.plot_protocols" in source
 
     def test_render_controller_uses_renderable_plot(

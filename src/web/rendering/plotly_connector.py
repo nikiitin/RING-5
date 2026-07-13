@@ -477,9 +477,7 @@ class FigureSpecToPlotly:
 
         return result
 
-    # ────────────────────────────────────────────────────────────
-    # Step 10 — New feature methods
-    # ────────────────────────────────────────────────────────────
+    # ── Palette and layout decoration helpers ──────────────────
 
     @staticmethod
     def _apply_color_palette(spec: FigureConfig, fig: go.Figure) -> None:
@@ -782,9 +780,7 @@ class FigureSpecToPlotly:
                 line=dict(color=color, width=width),
             )
 
-    # ────────────────────────────────────────────────────────────
-    # Step 13 — Per-trace overrides + axis label aliases
-    # ────────────────────────────────────────────────────────────
+    # ── Per-trace overrides and axis aliases ───────────────────
 
     @staticmethod
     def _apply_trace_overrides(spec: FigureConfig, fig: go.Figure) -> None:

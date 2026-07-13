@@ -208,7 +208,7 @@ class TestSettingsReorganization:
         font_size_text = shared_page.get_by_text("Font Size")
         expect(font_size_text.first).to_be_visible(timeout=_E2E_TIMEOUT)
 
-        # Tick Marks should NOT be in Typography (moved to Axes)
+        # Tick marks belong to Axes, not Typography.
         tick_in_typo = shared_page.get_by_text("Tick Marks")
         expect(tick_in_typo).not_to_be_visible(timeout=5_000)
 

@@ -1,17 +1,4 @@
-"""
-Simple Stats Strategy - Standard Gem5 File Parser.
-
-Implements traditional line-by-line parsing for standard gem5 stats.txt output.
-Straightforward extraction without configuration awareness, suitable for
-basic statistical analysis.
-
-Responsibilities:
-1. get_work_items(): discover matching stats files and build per-file
-   ``Gem5ParseWork`` units (each with its own deep-copied variable map)
-2. post_process(): aggregate the pool's results
-
-The worker pool that runs the work units is owned by ``Gem5Parser``.
-"""
+"""Standard strategy for parsing gem5 statistics files."""
 
 from __future__ import annotations
 

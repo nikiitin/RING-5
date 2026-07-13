@@ -1,9 +1,4 @@
-"""Tests for Distribution type handling of unconfigured statistics.
-
-This module verifies that the Distribution type gracefully handles
-statistics that appear in the data but were not specifically requested
-in the configuration.
-"""
+"""Tests for distribution handling of unconfigured statistics."""
 
 from src.parsing.gem5.types import StatTypeRegistry
 
@@ -12,37 +7,23 @@ class TestDistributionUnconfiguredStats:
     """Test suite for Distribution handling of unconfigured statistics."""
 
     def test_distribution_ignores_unconfigured_stats(self) -> None:
-        """
-        Verify Distribution does not crash when receiving unconfigured stats.
+        """Ignore parsed statistics that were not requested."""
+        dist = StatTypeRegistry.create("distribution", minimum=0, maximum=10, statistics=[])
 
-        Scientific Integrity: The parser may encounter statistics in the gem5
-        output that were not requested by the user. These should be silently
-        ignored rather than causing a crash.
-        """
-        # Create distribution WITHOUT 'samples' in statistics
-        dist = StatTypeRegistry.create(
-            "distribution", minimum=0, maximum=10, statistics=[]  # No stats requested
-        )
-
-        # Input content contains 'samples' (simulating parser output)
         content = {
             "underflows": [],
             "overflows": [],
-            **{str(i): [] for i in range(11)},  # Populate 0..10
-            "samples": ["100"],  # This was causing crashes
+            **{str(i): [] for i in range(11)},
+            "samples": ["100"],
         }
 
-        # Should NOT raise TypeError - verify no exception
         dist.content = content
 
-        # Verify the expected buckets are still accessible
         assert "0" in dist.content
         assert "10" in dist.content
 
     def test_distribution_with_configured_stats(self) -> None:
-        """
-        Verify Distribution correctly processes configured statistics.
-        """
+        """Process explicitly configured distribution statistics."""
         dist = StatTypeRegistry.create(
             "distribution", minimum=0, maximum=2, statistics=["samples", "mean"]
         )

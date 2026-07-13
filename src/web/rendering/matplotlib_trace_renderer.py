@@ -75,6 +75,8 @@ class MatplotlibTraceRenderer:
             bargap: Gap between bar groups (0.0–1.0).
             bargroupgap: Gap between bars within a group (0.0–1.0).
             bar_border_width: Border width around each bar (stacked).
+            heatmap_vmin: Optional lower bound for heatmap color normalization.
+            heatmap_vmax: Optional upper bound for heatmap color normalization.
 
         Secondary-Y traces (``yaxis='y2'``) are rendered on a twin axis
         created via ``ax.twinx()``, stored as ``ax._ring5_twin``.
@@ -457,6 +459,10 @@ def _compute_categorical_positions(
     For grouped bars each trace is offset so bars sit side by side.
 
     Args:
+        spec: Bar trace whose categorical positions are required.
+        bar_idx: Index of ``spec`` within ``bar_specs``.
+        bar_specs: Bar traces participating in the layout.
+        barmode: Bar arrangement mode, ``"group"`` or ``"stack"``.
         bargap: Gap between bar groups (0.0–1.0).  A value of 0.2 means
             20% of the available space between integer ticks is empty.
         bargroupgap: Gap between bars within a group (0.0–1.0).

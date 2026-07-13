@@ -1,4 +1,4 @@
-"""Integration tests for portfolio migration (Step 34).
+"""Integration tests for portfolio migration.
 
 Tests end-to-end migration scenarios: V1 load, V2 passthrough,
 roundtrip save → load → verify.

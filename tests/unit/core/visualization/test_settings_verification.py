@@ -70,7 +70,7 @@ class TestLegendValignWiring:
         assert cast(Any, fig.layout).legend.valign == "top"
 
     def test_plotly_connector_skips_valign_middle(self) -> None:
-        """Plotly connector should NOT set valign for 'middle' (default)."""
+        """Plotly omits the default middle vertical alignment."""
         legend = LegendConfig(role="primary", valign="middle")
         spec = FigureConfig(legends=[legend])
         fig = go.Figure(data=[go.Bar(x=["A"], y=[1])])
@@ -231,7 +231,7 @@ class TestStandoffDefault:
         assert axis.label_standoff == -1
 
     def test_plotly_connector_skips_negative_standoff(self) -> None:
-        """Plotly connector should NOT apply standoff when -1."""
+        """Plotly omits the sentinel standoff value."""
         axis = AxisConfig(label_standoff=-1)
         axes = AxesConfig(x=axis)
         spec = FigureConfig(axes=axes)

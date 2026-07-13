@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools==82.0.1", "wheel==0.46.3"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,51 +8,54 @@ version = "1.0.0"
 description = "Modern gem5 Data Analysis and Visualization Tool"
 readme = "README.md"
 requires-python = ">=3.12"
-license = { text = "GPL-3.0-or-later" }
+license = "GPL-3.0-or-later"
 authors = [{ name = "RING-5 Development Team" }]
 keywords = ["gem5", "data-analysis", "visualization", "performance-analysis"]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Science/Research",
-  "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
 ]
 
 dependencies = [
-  "pandas>=3.0.3",
-  "scipy>=1.17.1",
-  "numpy>=2.4.6",
-  "matplotlib>=3.10.9",
-  "jsonschema>=4.26.0",
-  "streamlit>=1.58.0",
-  "openpyxl>=3.1.5",
-  "plotly>=6.8.0",
-  "kaleido>=1.3.0",
+  "pandas==3.0.3",
+  "scipy==1.18.0",
+  "numpy==2.5.1",
+  "matplotlib==3.11.0",
+  "streamlit==1.59.2",
+  "openpyxl==3.1.5",
+  "plotly==6.9.0",
+  "kaleido==1.3.0",
+  "choreographer==1.3.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-  "pytest>=9.0.3",
-  "pytest-cov>=7.1.0",
-  "pytest-xdist>=3.8.0",
-  "black>=26.5.1",
-  "flake8>=7.3.0",
-  "flake8-pyproject>=1.2.4",
-  "mypy>=2.1.0",
-  "pre-commit>=4.6.0",
-  "pytest-randomly>=4.1.0",
-  "pandas-stubs>=3.0.3.260530",
-  "plotly-stubs>=0.1.3",
-  "types-jsonschema>=4.26.0.20260518",
-  "scipy-stubs>=1.17.1.5",
+  "pytest==9.1.1",
+  "pytest-cov==7.1.0",
+  "pytest-xdist==3.8.0",
+  "black==26.5.1",
+  "flake8==7.3.0",
+  "flake8-pyproject==1.2.4",
+  "mypy==2.3.0",
+  "pre-commit==4.6.0",
+  "pytest-randomly==4.1.0",
+  "pytest-order==1.5.0",
+  "pandas-stubs==3.0.3.260530",
+  "plotly-stubs==0.1.3",
+  "scipy-stubs==1.18.0.1",
+  "build==1.5.1",
+  "twine==6.2.0",
 ]
-ci = ["bandit[toml]>=1.9.4", "pytest-timeout>=2.4.0", "pip-audit>=2.10.0"]
-e2e = ["pytest-playwright>=0.8.0", "pytest-base-url>=2.1.0"]
+ci = ["bandit[toml]==1.9.4", "pytest-timeout==2.4.0", "pip-audit==2.10.1"]
+e2e = ["pytest-playwright==0.8.0", "pytest-base-url==2.1.0", "playwright==1.61.0"]
 
 [project.urls]
-Homepage = "https://github.com/your-org/ring5"
-Repository = "https://github.com/your-org/ring5"
+Homepage = "https://nikiitin.github.io/RING-5/"
+Repository = "https://github.com/nikiitin/RING-5"
 
 [project.scripts]
 ring5 = "ring5.cli:main"
@@ -64,7 +67,6 @@ include = ["src*", "ring5*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 norecursedirs = [
-  "tests/tests_principle_compliance",
   "tests/manual",
   "tests/data",
   "tests/visual",
@@ -89,12 +91,6 @@ markers = [
 [tool.black]
 line-length = 100
 target-version = ['py312']
-
-[tool.coverage.run]
-omit = [
-  # WIP feature — tests are excluded via -k "not dual_axis and not dual"
-  "src/web/pages/ui/plotting/types/dual_axis_bar_dot_plot.py",
-]
 
 [tool.flake8]
 max-line-length = 100
@@ -133,8 +129,6 @@ module = [
   "matplotlib.*",
   "scipy.*",
   "numpy.*",
-  "yaml.*",
-  "jsonschema.*",
   "kaleido.*",
 ]
 ignore_missing_imports = true

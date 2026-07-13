@@ -71,7 +71,7 @@ class TestWorkerPoolIntegration:
             # Execute parsing
             result = work()
 
-            # CRITICAL: subprocess.run should NOT be called
+            # Parsing must stay on the persistent worker path.
             mock_subprocess.assert_not_called()
 
             # Verify we got results
@@ -101,7 +101,7 @@ class TestWorkerPoolIntegration:
             # Wait for results
             results = [f.result() for f in batch.futures]
 
-            # CRITICAL: subprocess.run should NOT be called
+            # Parsing must stay on the persistent worker path.
             mock_subprocess.assert_not_called()
 
             # Construct final CSV
@@ -135,7 +135,7 @@ class TestWorkerPoolIntegration:
         pool_after = get_worker_pool()
         pool_id_after = id(pool_after)
 
-        # CRITICAL: Should be same pool instance (singleton)
+        # Both callers share the singleton pool.
         assert pool_id_before == pool_id_after
 
     def test_worker_pool_delivers_performance_benefits(self, test_stats_file: str) -> None:

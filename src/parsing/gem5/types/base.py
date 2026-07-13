@@ -122,6 +122,7 @@ class StatType:
 
     @property
     def repeat(self) -> int:
+        """Return the expected number of statistic samples."""
         return int(object.__getattribute__(self, "_repeat"))
 
     @property
@@ -136,6 +137,7 @@ class StatType:
 
     @property
     def content(self) -> Any:
+        """Return validated, unreduced statistic content."""
         content = object.__getattribute__(self, "_content")
         if content is None:
             raise AttributeError(f"{self._type_name.upper()}: Content not initialized")
@@ -143,11 +145,13 @@ class StatType:
 
     @content.setter
     def content(self, value: Any) -> None:
+        """Validate and append statistic content."""
         self._validate_content(value)
         self._set_content(value)
 
     @property
     def reduced_content(self) -> Any:
+        """Return content after balancing and duplicate reduction."""
         # Guard lives in __getattribute__ (single source of truth); subclasses
         # inherit this property rather than re-implementing the same check.
         return object.__getattribute__(self, "_reduced_content")

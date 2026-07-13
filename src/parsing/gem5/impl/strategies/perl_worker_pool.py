@@ -84,10 +84,7 @@ class PerlWorker:
         self.last_used = 0.0
         self.is_busy = False
         self._lock = threading.Lock()
-        # Each worker *generation* (process) gets its OWN queue + reader thread,
-        # assigned in _start_worker. Binding per-generation prevents a dead
-        # process's trailing output (READY/GOODBYE/EOF) from leaking into a live
-        # read on a restarted worker.
+        # Per-process queues prevent output from a stopped worker reaching its replacement.
         self._line_queue: queue.Queue[str | None] | None = None
         self._reader_thread: threading.Thread | None = None
         self._stderr_thread: threading.Thread | None = None
@@ -98,10 +95,8 @@ class PerlWorker:
     def _start_worker(self) -> None:
         """Start or restart the Perl worker process.
 
-        Each generation gets its OWN line queue and a reader thread bound to that
-        specific process's stdout, so a previous (dead) process's leftover output
-        can never leak into this generation's protocol reads (the "Unexpected
-        ping response: READY" bug).
+        Each generation gets a line queue and reader bound to its own stdout,
+        preventing protocol output from crossing a restart boundary.
 
         The process swap runs under ``self._lock`` so a concurrent parse or health
         check (both take ``self._lock``) can't read the queue or write stdin
@@ -121,22 +116,17 @@ class PerlWorker:
                     bufsize=1,  # line-buffered: correct for a text line protocol
                 )
 
-                # Fresh queue + reader bound to THIS process's stdout (captured
-                # explicitly, never via self.process), so a lingering reader from
-                # a previous generation can't feed this generation's queue.
+                # Bind the reader to this process before publishing the generation.
                 line_queue: queue.Queue[str | None] = queue.Queue()
                 self._start_reader_thread(process.stdout, line_queue)
-                # CRITICAL: continuously drain stderr too. The Perl server logs a
-                # couple of lines per request to stderr; if we don't drain it the
-                # OS pipe fills, Perl blocks mid-write, and stdout (hence the whole
-                # parse) stalls — the root cause of parse hangs under load.
+                # A full stderr pipe blocks Perl and stalls stdout parsing.
                 self._start_stderr_drainer(process.stderr)
 
                 # Publish this generation.
                 self.process = process
                 self._line_queue = line_queue
 
-                # Wait for READY (30s handles slow container/host process start).
+                # Allow slow process startup on constrained hosts.
                 timeout = 30.0
                 ready_line = self._read_line_with_timeout(timeout=timeout)
                 if ready_line != "READY":
@@ -442,19 +432,10 @@ class PerlWorker:
 
 
 class PerlWorkerPool:
-    """
-    Pool of Perl worker processes with automatic health monitoring.
-
-    Provides robust connection pooling with:
-    - Automatic worker restart on failure
-    - Load balancing across workers
-    - Health monitoring
-    - Statistics tracking
-    """
+    """Balance requests across monitored, restartable Perl workers."""
 
     def __init__(self, pool_size: int | None = None):
-        """
-        Initialize worker pool - THE PRIMARY MECHANISM.
+        """Initialize the persistent worker pool.
 
         Args:
             pool_size: Number of worker processes to maintain. When ``None``,
@@ -473,7 +454,6 @@ class PerlWorkerPool:
         if not perl_exe_path:
             logger.error("Perl executable not found in PATH")
             raise RuntimeError("Perl executable not found in PATH")
-        # After validation, we know it's not None
         self.perl_exe: str = perl_exe_path
 
         # Locate Perl server script (in src/parsing/perl/)
@@ -483,10 +463,9 @@ class PerlWorkerPool:
             logger.error(f"Perl server script not found: {self.script_path}")
             raise FileNotFoundError(f"Perl server script not found: {self.script_path}")
 
-        # Initialize pool - this is the ONLY mechanism now!
         self._initialize_pool()
         self._start_health_monitor()
-        logger.info(f"Worker pool initialized as PRIMARY mechanism ({self.pool_size} workers)")
+        logger.info(f"Worker pool initialized with {self.pool_size} workers")
 
     def _initialize_pool(self) -> None:
         """Initialize worker processes."""
@@ -502,10 +481,9 @@ class PerlWorkerPool:
                 logger.info(f"Worker {i} initialized")
             except Exception as e:
                 logger.error(f"Failed to initialize worker {i}: {e}")
-                # Continue with fewer workers
 
         if not self.workers:
-            raise RuntimeError("CRITICAL: No workers could be started!")
+            raise RuntimeError("No Perl workers could be started")
 
         if len(self.workers) < self.pool_size:
             logger.warning(
@@ -536,16 +514,11 @@ class PerlWorkerPool:
                 if worker.is_busy:
                     continue
 
-                # Skip recently-used HEALTHY workers only — a proactive PING/PONG adds
-                # latency and could collide with a parse starting in the TOCTOU window. An
-                # UNHEALTHY worker (just failed) must be repaired immediately, otherwise its
-                # recent last_used strands it out of the pool for up to ~60s.
+                # Avoid probing recently used healthy workers; failed workers require repair.
                 if worker.is_healthy and time.time() - worker.last_used < 60.0:
                     continue
 
-                # Capture health state BEFORE health_check() mutates is_healthy.
-                # If was_healthy=True, the worker is currently in the queue (alive but about
-                # to fail the check). If was_healthy=False, it's already out of the queue.
+                # ``health_check`` mutates this flag; retain it to update the queue correctly.
                 was_healthy = worker.is_healthy
 
                 if not worker.health_check():
@@ -642,7 +615,7 @@ class PerlWorkerPool:
                 raise TimeoutError("No workers available within timeout") from e
 
         # All workers failed
-        logger.error("CRITICAL: All workers failed to parse file!")
+        logger.error("All workers failed to parse the file")
         raise RuntimeError("All workers failed") from last_exc
 
     def get_stats(self) -> dict[str, Any]:
@@ -692,7 +665,7 @@ _pool_lock = threading.Lock()
 
 def get_worker_pool(pool_size: int | None = None) -> PerlWorkerPool:
     """
-    Get or create the singleton worker pool - THE PRIMARY MECHANISM.
+    Return the singleton worker pool, creating it when necessary.
 
     Args:
         pool_size: Number of workers (only used on first call). ``None`` resolves

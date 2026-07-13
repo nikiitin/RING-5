@@ -47,11 +47,6 @@ def test_save_and_load_portfolio(
     config_state = {"theme": "dark"}
     parse_variables = ["var1", "var2"]
 
-    # Setup state manager mocks to return expected values for stats config
-    # Since RepositoryStateManager reads from session_state repositories,
-    # passed via mock_session_state
-    # Or we can just let it read defaults which are fine.
-
     # 2. Save Portfolio (using instance method)
     portfolio_service.save_portfolio(
         name="test_portfolio",

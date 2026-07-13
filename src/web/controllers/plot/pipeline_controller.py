@@ -38,15 +38,7 @@ logger = logging.getLogger(__name__)
 
 
 class PipelineController:
-    """
-    Orchestrates the shaper pipeline: add, remove, reorder, preview, finalize.
-
-    Single Responsibility: managing the data transformation pipeline for a plot.
-    Does NOT handle plot creation, config, or rendering.
-
-    Dependencies are injected via protocols — no concrete imports from
-    ``pages.ui.plotting.*`` or ``pages.ui.shaper_config``.
-    """
+    """Add, reorder, preview, and finalize a plot's shaper pipeline."""
 
     def __init__(
         self,

@@ -40,6 +40,7 @@ class Configuration(StatType):
 
     @property
     def onEmpty(self) -> str:
+        """Return the value used when configuration content is empty."""
         return str(object.__getattribute__(self, "_on_empty"))
 
     @override
@@ -62,7 +63,6 @@ class Configuration(StatType):
     def balance_content(self) -> None:
         """Configuration is always balanced (no padding needed)."""
         object.__setattr__(self, "_balanced", True)
-        # Always balanced - no action needed
 
     @override
     def reduce_duplicates(self) -> None:

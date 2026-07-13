@@ -222,5 +222,5 @@ class TestBatchIsolation:
         assert batch1.var_names == ["var_alpha"]
         assert batch2.var_names == ["var_beta", "var_gamma"]
 
-        # Crucially, batch1 var_names should NOT have been overwritten by batch2
+        # Each batch retains its own variable names.
         assert batch1.var_names != batch2.var_names

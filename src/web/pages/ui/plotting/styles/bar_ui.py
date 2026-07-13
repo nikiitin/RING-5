@@ -1,9 +1,4 @@
-"""
-Bar Style UI - Bar Chart Styling Configuration.
-
-Implements style UI configuration specific to bar charts, including
-bar-specific visual options and parameters.
-"""
+"""Bar-series styling controls."""
 
 from typing import Any
 
@@ -13,6 +8,8 @@ from .base_ui import BaseStyleUI
 
 
 class BarStyleUI(BaseStyleUI):
+    """Render bar-specific series controls."""
+
     def _render_specific_series_visuals(
         self, current_style: dict[str, Any], key_suffix: str, key_prefix: str = ""
     ) -> None:

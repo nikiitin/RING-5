@@ -1,31 +1,4 @@
-"""
-UI State Manager — Centralized, Typed Session State Access.
-
-Replaces all scattered ``st.session_state["key"]`` access in the web layer
-with a single, namespaced, typed manager. Every piece of transient UI state
-flows through this class.
-
-Key Design Decisions:
-    1. **Namespaced keys**: ``plot.{id}.auto_refresh`` instead of ``auto_{id}``.
-       Prevents collisions and enables scoped cleanup.
-    2. **Typed accessors**: ``get_auto_refresh(plot_id) -> bool`` instead of
-       ``st.session_state.get(f"auto_{plot_id}", True)``.
-    3. **Scoped cleanup**: ``cleanup_plot(plot_id)`` removes all keys for
-       a deleted plot, preventing state leak.
-    4. **Single source of truth**: All UI state (not domain state!) lives here.
-       Domain state stays in ApplicationAPI / RepositoryStateManager.
-
-Boundary:
-    - UIStateManager owns **transient UI state** (dialog flags, auto-refresh,
-      ordering widgets, pending relayout updates).
-    - ApplicationAPI.state_manager owns **persistent domain state** (data,
-      plots, config, history).
-
-Usage in Controllers:
-    ``ui_state = UIStateManager()``
-    ``if ui_state.plot.get_auto_refresh(plot_id): ...``
-    ``ui_state.plot.set_dialog_visible(plot_id, "save", True)``
-"""
+"""Typed access to namespaced, transient Streamlit session state."""
 
 from typing import Any
 
@@ -265,28 +238,7 @@ class _ExportUIState:
 
 
 class UIStateManager:
-    """
-    Centralized, typed access to all UI-related session state.
-
-    This is the **single entry point** for all transient UI state in the
-    web layer. It replaces scattered ``st.session_state["key"]`` accesses
-    with namespaced, typed sub-managers.
-
-    Sub-managers:
-        - ``plot``: Plot auto-refresh, dialog visibility, ordering, shapes
-        - ``manager``: Data manager load triggers, form values
-        - ``nav``: Current page, current tab
-        - ``export``: Export paths and settings
-
-    Example::
-
-        ui = UIStateManager()
-        if ui.plot.get_auto_refresh(plot_id):
-            figure = plot.generate_figure()
-
-        ui.plot.set_dialog_visible(plot_id, "save", True)
-        ui.plot.cleanup(plot_id)  # On plot deletion
-    """
+    """Expose typed sub-managers for plot, manager, navigation, and export state."""
 
     def __init__(self) -> None:
         """Initialize sub-managers."""

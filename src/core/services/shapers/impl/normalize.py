@@ -1,76 +1,4 @@
-"""
-Module: src.core.services/shapers/impl/normalize.py
-
-Purpose:
-    Implements baseline normalization for performance analysis. Scales metric values
-    relative to a designated baseline configuration, enabling fair comparison across
-    different system configurations (e.g., comparing transactional vs baseline IPC).
-
-Responsibilities:
-    - Identify baseline rows within groups based on configuration
-    - Calculate normalization factors from baseline values
-    - Apply scaling to target columns (preserving original data)
-    - Handle grouped normalization (normalize within each benchmark/workload)
-    - Cache normalized results for performance (fingerprint-based)
-
-Dependencies:
-    - pandas: For DataFrame operations and groupby
-    - SimpleCache: For caching normalized results (5min TTL)
-
-Usage Example:
-    >>> from src.core.services.shapers.impl.normalize import Normalize
-    >>> import pandas as pd
-    >>>
-    >>> # Sample data with baseline configuration
-    >>> data = pd.DataFrame({
-    ...     'benchmark': ['mcf', 'mcf', 'omnetpp', 'omnetpp'],
-    ...     'config': ['baseline', 'transactional', 'baseline', 'transactional'],
-    ...     'ipc': [1.2, 1.0, 1.5, 1.3]
-    ... })
-    >>>
-    >>> # Normalize IPC relative to baseline config
-    >>> normalizer = Normalize({
-    ...     'normalizeVars': ['ipc'],
-    ...     'normalizerColumn': 'config',
-    ...     'normalizerValue': 'baseline',
-    ...     'groupBy': ['benchmark']
-    ... })
-    >>>
-    >>> result = normalizer(data)
-    >>> print(result[['benchmark', 'config', 'ipc', 'ipc_normalized']])
-       benchmark        config  ipc  ipc_normalized
-    0  mcf         baseline    1.2            1.00
-    1  mcf         transactional 1.0          0.83
-    2  omnetpp     baseline    1.5            1.00
-    3  omnetpp     transactional 1.3          0.87
-
-Design Patterns:
-    - Strategy Pattern: One of many shaper implementations
-    - Template Method: Implements UniDfShaper interface
-    - Cache-Aside Pattern: Fingerprint-based result caching
-
-Performance Characteristics:
-    - Time Complexity: O(n log n) due to groupby operations
-    - Space Complexity: O(n) for new normalized columns
-    - Cache: 5min TTL, 32 entry LRU (based on data fingerprint)
-    - Typical: 10-50ms for 10k rows
-
-Error Handling:
-    - Raises ValueError if baseline not found in group
-    - Raises KeyError if normalizerColumn doesn't exist
-    - Logs warnings for missing columns (graceful degradation)
-
-Thread Safety:
-    - Cache is thread-safe (uses locks)
-    - DataFrame operations are not synchronized
-
-Testing:
-    - Unit tests: tests/unit/test_normalize.py
-    - Integration tests: tests/integration/test_e2e_managers_shapers.py
-
-Version: 2.0.0
-Last Modified: 2026-01-27
-"""
+"""Shaper for baseline-relative normalization within groups."""
 
 import logging
 import warnings
@@ -122,17 +50,6 @@ class Normalize(UniDfShaper):
         self._params = params
 
         super().__init__(params)
-
-        # Mandatory parameters with strict validation
-        if (
-            not self._normalize_vars
-            or not self._normalizer_column
-            or not self._normalizer_value
-            or not self._group_by
-        ):
-            # _verify_params will catch missing keys for standard usage,
-            # but we keep this for direct instantiations if any.
-            pass
 
         # Type validation
         self._validate_init_types()
@@ -310,7 +227,7 @@ class Normalize(UniDfShaper):
         self._verify_preconditions(data_frame)
 
         # Compute fingerprint for caching (only hash metadata, not entire DataFrame).
-        # ``normalizer_vars`` MUST be included: it is the denominator source (see
+        # Include ``normalizer_vars`` because it supplies the denominator (see
         # ``_normalize_group``) and can differ from ``normalize_vars``; omitting it lets a
         # different baseline value return a stale (wrong) normalized frame within the TTL.
         relevant_cols = (

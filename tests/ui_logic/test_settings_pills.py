@@ -120,10 +120,7 @@ class TestSectionDispatch:
 
 
 class TestLegendSubPills:
-    """Verify legend sub-pills use correct key prefixes (Step 25).
-
-    Now tests ``LegendSettingsComponent`` directly (component-only architecture).
-    """
+    """Verify legend sub-pills use the correct state-key prefixes."""
 
     def _make_component(self) -> Any:
         from src.web.components.plotting.settings import (
@@ -182,10 +179,7 @@ class TestLegendSubPills:
 
 
 class TestAxesSubPills:
-    """Verify axes sub-pills route to correct settings (Step 26).
-
-    Now tests ``AxesSettingsComponent`` directly (component-only architecture).
-    """
+    """Verify axis sub-pills route to the correct settings component."""
 
     def _make_component(self) -> Any:
         """Create an AxesSettingsComponent for testing."""

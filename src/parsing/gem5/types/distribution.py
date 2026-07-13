@@ -6,7 +6,7 @@ from typing import override
 from src.core.models.parsing_models import StatParamValue
 from src.parsing.gem5.types.base import StatType, register_type
 
-# Scientific Safety: Prevent memory explosion for incorrectly configured large ranges.
+# Bound allocation for malformed or unexpectedly large bucket ranges.
 SAFETY_MAX_BUCKETS = 100_000
 
 
@@ -144,7 +144,7 @@ class Distribution(StatType):
         stats_keys = set(self._statistics)
         statistics_only = object.__getattribute__(self, "_statistics_only")
 
-        # Mandatory Presence Check (Zero Hallucination) - skip if statistics_only mode
+        # Full distributions require explicit boundary buckets.
         if not statistics_only:
             if "underflows" not in keys or "overflows" not in keys:
                 raise TypeError(
@@ -158,7 +158,6 @@ class Distribution(StatType):
                     "Check for format mismatch in stats file."
                 )
 
-        # Logical Set of expected buckets
         if statistics_only:
             expected = stats_keys
         else:
@@ -169,14 +168,12 @@ class Distribution(StatType):
         for key, vals in value.items():
             str_key = str(key)
 
-            # Strict Range Validation - skip if not in expected set
+            # Reject numeric buckets outside the configured range.
             if str_key not in expected:
                 if statistics_only:
-                    # In statistics_only mode, skip any keys that aren't statistics
                     continue
                 try:
                     int(str_key)
-                    # It's a number but out of our configured [min, max] range
                     raise RuntimeError(
                         f"DISTRIBUTION: Bucket {str_key} is out of configured range "
                         f"[{self._minimum}, {self._maximum}]."
@@ -189,14 +186,12 @@ class Distribution(StatType):
             if str_key not in self._content:
                 self._content[str_key] = []
 
-            # Accumulate values with strict numerical validation
             if isinstance(vals, list):
                 val_list = vals
             else:
                 val_list = [vals]
 
             try:
-                # Scientific Integrity: Ensure all items are numeric before summing
                 float_vals = [float(v) for v in val_list]
                 aggregated_val = math.fsum(float_vals)
             except (TypeError, ValueError) as e:

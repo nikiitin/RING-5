@@ -60,11 +60,13 @@ class Vector(StatType):
 
     @property
     def entries(self) -> list[str]:
+        """Return configured vector entry names."""
         entries_list: list[str] = object.__getattribute__(self, "_entries")
         return entries_list
 
     @property
     def content(self) -> dict[str, list[float]]:
+        """Return values grouped by vector entry."""
         content_dict: dict[str, list[float]] = object.__getattribute__(self, "_content")
         return content_dict
 

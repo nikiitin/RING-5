@@ -1,63 +1,4 @@
-"""
-Module: src.core.services/csv_pool_service.py
-
-Purpose:
-    Manages CSV file storage, retrieval, and metadata caching in the data pool.
-    Provides high-performance access to CSV files with intelligent caching strategies
-    to minimize disk I/O and improve UI responsiveness.
-
-Responsibilities:
-    - Store and retrieve CSV files from the data pool directory
-    - Cache DataFrame metadata (columns, row counts, dtypes)
-    - Maintain fast lookup index for filename-based queries
-    - Generate stable file identifiers for cache invalidation
-    - Cleanup and garbage collection of unused CSV files
-
-Dependencies:
-    - PathService: For resolving data pool directory paths
-    - SimpleCache: For LRU caching with TTL support
-    - pandas: For DataFrame I/O operations
-
-Usage Example:
-    >>> from src.core.services.csv_pool_service import CsvPoolService
-    >>>
-    >>> # Add CSV to pool
-    >>> csv_id = CsvPoolService.add_to_pool("/path/to/data.csv")
-    >>>
-    >>> # Load DataFrame with caching
-    >>> df = CsvPoolService.load_csv_by_id(csv_id)
-    >>>
-    >>> # Get metadata without loading full DataFrame
-    >>> metadata = CsvPoolService._get_csv_metadata("/path/to/data.csv")
-    >>> print(f"Columns: {metadata['columns']}, Rows: {metadata['rows']}")
-
-Design Patterns:
-    - Service Layer Pattern: Separates CSV management from UI logic
-    - Cache-Aside Pattern: Lazy loading with cache fallback
-    - Singleton Pattern: Shared cache instances across all calls
-
-Performance Characteristics:
-    - Metadata Cache: 100 entries, 10min TTL (O(1) lookup)
-    - DataFrame Cache: 10 entries, 5min TTL (LRU eviction)
-    - Pool Index: In-memory dict for O(1) filename lookups
-    - Typical Latency: <1ms (cached), 50-500ms (disk read)
-
-Error Handling:
-    - Returns None on file not found (graceful degradation)
-    - Logs warnings for cache misses
-    - Raises FileNotFoundError for critical path errors
-
-Thread Safety:
-    - Cache operations are thread-safe (SimpleCache uses locks)
-    - File I/O is not synchronized (relies on Streamlit single-thread)
-
-Testing:
-    - Unit tests: tests/unit/test_csv_pool_service.py
-    - Performance tests: tests/performance/test_csv_loading_speed.py
-
-Version: 2.0.0
-Last Modified: 2026-01-27
-"""
+"""Cached storage and metadata access for the CSV data pool."""
 
 import csv
 import datetime
@@ -223,8 +164,7 @@ class CsvPoolService:
             # Copy-on-Write isolates every mutation path through the new frame.
             return cast(DataFrame, cached_df).copy(deep=False)
 
-        # Load with optimizations
-        # Note: low_memory doesn't work with python engine, so we use C engine when possible
+        # Automatic delimiter detection requires pandas' Python parser.
         result: DataFrame = pd.read_csv(
             resolved_path,
             sep=None,
@@ -273,7 +213,7 @@ class CsvPoolService:
         Returns:
             Dict with 'columns', 'rows', 'dtypes' or None if error
         """
-        # Resolve once and use the resolved path as the SINGLE canonical cache key — matches
+        # Use the resolved path as the canonical cache key, matching
         # the key load_csv_file writes under, so a load followed by a listing actually hits.
         resolved_path = str(Path(csv_path).resolve())
 

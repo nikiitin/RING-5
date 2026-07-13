@@ -252,7 +252,7 @@ class TestApplicatorLastSpec:
 
 
 # ────────────────────────────────────────────────────────────────────
-# Step 9 — New config key mappings
+# Additional configuration mappings
 # ────────────────────────────────────────────────────────────────────
 
 

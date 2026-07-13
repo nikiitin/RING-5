@@ -431,8 +431,8 @@ class TestFigureSpecScalarFields:
         assert restored.show_error_bars is True
 
 
-class TestFigureSpecStep6FullRoundTrip:
-    """Integration test: all Step 6 fields survive a complete round-trip."""
+class TestFigureSpecFullRoundTrip:
+    """Verify extended figure fields survive a complete round trip."""
 
     def test_full_round_trip_with_all_new_fields(self) -> None:
         rl = ReferenceLineConfig(enabled=True, axis="y", value=42.0, color="red", label="Threshold")

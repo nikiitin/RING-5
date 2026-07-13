@@ -208,4 +208,4 @@ class TestShowPortfolioPage:
         api.data_services.delete_portfolio.assert_called()
 
     # NOTE: test_save_pipeline and test_apply_pipeline removed —
-    # pipeline save/load was removed in Phase 4.
+    # Pipeline save/load is no longer part of the page.

@@ -156,26 +156,18 @@ def test_create_figure_major_minor_renaming(sample_data: Any, mock_streamlit: An
     annotations = layout.annotations
     labels = [a.text for a in annotations]
 
-    # Major Group Check
     assert "<b>Alpha</b>" in labels
 
-    # Bug 1 Check: Minor Group labels should NOT be numeric indices if they were strings ("Small", "Large")  # noqa: E501
+    # Preserve string-valued minor-group labels instead of replacing them with indices.
     ticktext = fig.layout.xaxis.ticktext
-    # We expect "Tiny" and "Large" in ticktext.
-    # If they turned into numbers (like 0, 1), this assertion will fail or we can assert explicitly.
     assert "Tiny" in ticktext, f"Expected 'Tiny' in ticktext, found: {ticktext}"
     assert "Large" in ticktext
 
-    # Bug 2 Check: Bars should exist (have valid X coordinates)
-    # If data mismatch occurred, X coordinates would be None (or NaNs)
-    # We check the first trace (Ticks)
+    # A failed coordinate lookup leaves a gap in the rendered trace.
     trace0 = cast(go.Bar, fig.data[0])
-    # Check if x values are valid numbers
     x_values = trace0.x
     assert x_values is not None
     assert len(list(x_values)) > 0
-    # If get_coord returned None, we might see None in x or Plotly might filter them.
-    # GroupedStackedBarPlot puts None if lookup fails.
     assert all(
         x is not None for x in x_values
     ), f"Found None in X coordinates: {x_values}. Traces lost?"
