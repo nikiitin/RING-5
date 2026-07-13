@@ -1,4 +1,4 @@
-"""Tests for SortConfig shaper UI component — branch coverage."""
+"""Tests for Sort shaper configuration controls."""
 
 from typing import Any, cast
 from unittest.mock import MagicMock, patch

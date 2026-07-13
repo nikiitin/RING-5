@@ -86,7 +86,7 @@ class TestRenderDownloadSectionPlotly:
         mock_em: MagicMock,
         mock_bytes: MagicMock,
     ) -> None:
-        """When a format is selected, a download button should appear."""
+        """The button should defer generation until it is clicked."""
         from src.web.pages.ui.plotting.download_section import render_download_section
 
         mock_em.is_matplotlib.return_value = False
@@ -100,9 +100,13 @@ class TestRenderDownloadSectionPlotly:
         mock_st.download_button.assert_called_once()
         _, kwargs = mock_st.download_button.call_args
         assert kwargs["label"] == "Download PDF"
-        assert kwargs["data"] == b"PDFDATA"
+        assert callable(kwargs["data"])
+        mock_bytes.assert_not_called()
+        assert kwargs["data"]() == b"PDFDATA"
+        mock_bytes.assert_called_once()
         assert kwargs["file_name"] == "myplot.pdf"
         assert kwargs["mime"] == "application/pdf"
+        assert kwargs["on_click"] == "ignore"
 
     @patch("src.web.pages.ui.plotting.download_section.EngineManager")
     @patch("src.web.pages.ui.plotting.download_section.st")

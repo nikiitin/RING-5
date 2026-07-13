@@ -1,4 +1,4 @@
-"""Tests for GroupedStackedBarPlot UI branch coverage.
+"""Tests for GroupedStackedBarPlot configuration controls.
 
 Covers _render_stack_total_options and render_theme_options.
 """

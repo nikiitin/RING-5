@@ -824,20 +824,15 @@ class DataSourcePage(BasePage):
         expect(self.dialog_add_button).to_be_visible(timeout=self.RENDER_TIMEOUT)
         self.dialog_add_button.click()
 
-        # Dialog auto-closes via st.rerun() on success.
-        # However, the Streamlit server uses @st.cache_resource which makes
-        # the ApplicationAPI a singleton shared across ALL browser sessions.
-        # If a previous test session already added this variable, the dialog
-        # shows a "Variable '...' already exists" warning instead of closing.
-        # In that case, we close the dialog manually — the variable IS
-        # already configured on the server.
+        # Dialog auto-closes via st.rerun() on success. If this helper is called
+        # twice in the same session, close the duplicate-variable warning.
         try:
             expect(self.dialog_overlay).not_to_be_visible(timeout=5_000)
         except (AssertionError, Exception):
             # Check if it's the "already exists" warning
             warning = self.dialog_overlay.locator("[data-testid='stAlertContentWarning']")
             if warning.count() > 0 and "already exists" in (warning.inner_text() or ""):
-                # Variable exists from a prior session — close dialog
+                # Variable already exists in this session.
                 self.close_dialog()
                 expect(self.dialog_overlay).not_to_be_visible(timeout=self.RENDER_TIMEOUT)
             else:

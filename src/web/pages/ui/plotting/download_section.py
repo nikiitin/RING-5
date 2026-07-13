@@ -64,7 +64,13 @@ def _render_plotly_download(
     plot_name: str,
     fig: go.Figure,
 ) -> None:
-    """Format pills + download button for the Plotly/Kaleido path."""
+    """Format pills + a deferred download for the Plotly/Kaleido path.
+
+    Image generation is delayed until the user clicks the download button.
+    Kaleido can take several seconds to start, so running it during every
+    Streamlit rerun would make unrelated controls, such as the engine selector,
+    appear unresponsive.
+    """
     fmt = st.pills(
         "Format",
         options=["html", "png", "svg", "pdf"],
@@ -75,32 +81,35 @@ def _render_plotly_download(
         return
 
     fmt_typed = cast(PlotlyFormat, fmt)
-    try:
-        # Honor the figure's configured size (Kaleido's defaults otherwise override
-        # fig.layout.width/height, exporting every download at 700x400).
-        width = int(fig.layout.width) if fig.layout.width else 700
-        height = int(fig.layout.height) if fig.layout.height else 400
-        data = plotly_download_bytes(fig, fmt_typed, width=width, height=height)
-    except ChromeNotFoundError as exc:
-        logger.error("Plotly %s export failed — no browser for Kaleido: %s", fmt, exc)
-        st.warning(
-            f"Could not generate the {fmt.upper()} export: no Chrome-family browser "
-            "was found for the image renderer. Install one with `kaleido_get_chrome` "
-            "(or set BROWSER_PATH), or use the HTML format."
-        )
-        return
-    except Exception as exc:  # never let a download-export failure kill the chart
-        logger.error("Plotly %s export failed: %s", fmt, exc)
-        st.warning(
-            f"Could not generate the {fmt.upper()} export (the image renderer "
-            "timed out). Please try again, or use the HTML format."
-        )
-        return
+    # Honor the figure's configured size (Kaleido's defaults otherwise override
+    # fig.layout.width/height, exporting every download at 700x400).
+    width = int(fig.layout.width) if fig.layout.width else 700
+    height = int(fig.layout.height) if fig.layout.height else 400
+
+    def generate_download() -> bytes:
+        """Generate the selected export in Streamlit's download worker."""
+        try:
+            return plotly_download_bytes(fig, fmt_typed, width=width, height=height)
+        except ChromeNotFoundError as exc:
+            logger.error("Plotly %s export failed — no browser for Kaleido: %s", fmt, exc)
+            raise RuntimeError(
+                f"Could not generate the {fmt.upper()} export because no Chrome-family "
+                "browser was found. Install one with `kaleido_get_chrome`, set "
+                "BROWSER_PATH, or use the HTML format."
+            ) from exc
+        except Exception as exc:
+            logger.error("Plotly %s export failed: %s", fmt, exc)
+            raise RuntimeError(
+                f"Could not generate the {fmt.upper()} export. Please try again or use "
+                "the HTML format."
+            ) from exc
+
     st.download_button(
         label=f"Download {fmt.upper()}",
-        data=data,
+        data=generate_download,
         file_name=f"{plot_name}{get_plotly_extension(fmt_typed)}",
         mime=get_plotly_mime(fmt_typed),
+        on_click="ignore",
         use_container_width=True,
         key=f"dl_btn_{plot_id}",
     )

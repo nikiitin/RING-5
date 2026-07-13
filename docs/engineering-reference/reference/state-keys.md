@@ -10,7 +10,7 @@ nav_order: 5
 ## Architecture Overview
 
 - **Two-tier state**: Domain state (7 in-memory repositories) + UI state (`st.session_state`)
-- **Singleton**: `ApplicationAPI` created once via `@st.cache_resource`, stored at `st.session_state.api`
+- **Workspace**: one `ApplicationAPI` per browser session under `st.session_state.api`
 - **Domain state** survives reruns without serialization (same Python objects reused)
 - **UI state** managed through `UIStateManager` (namespaced) + direct `st.session_state` access (~45 locations)
 
@@ -20,7 +20,7 @@ nav_order: 5
 
 | Key | Type | Default | Set By | Read By | Purpose |
 |-----|------|---------|--------|---------|---------|
-| `api` | `ApplicationAPI` | `get_api()` return | `app.py` | All pages/controllers | Global API singleton reference |
+| `api` | `ApplicationAPI` | New session workspace | `app.py` | All pages/controllers | Mutable state for this browser session |
 | `_nav_page` | `str` | `"Data Source"` | `app.py` | `app.py` sidebar | Current navigation page |
 
 **Source**: `app.py`
@@ -345,7 +345,8 @@ Thresholds:
 
 ## Domain Repository State (In-Memory, Not in session_state)
 
-These are **not** `st.session_state` keys. They are private attributes on singleton repository objects held via `@st.cache_resource`.
+These are **not** separate `st.session_state` keys. They are private attributes
+on repository objects owned by the session's `ApplicationAPI`.
 
 ### DataRepository (`src/core/state/repositories/data_repository.py`)
 
@@ -433,8 +434,7 @@ Direct widget keys (outside UIStateManager):
 
 ```
 Bootstrap:
-  app.py -> @st.cache_resource get_api() -> ApplicationAPI (singleton)
-         -> st.session_state.api = api
+  app.py -> st.session_state.api = ApplicationAPI(...) if absent
          -> st.session_state["_nav_page"] = "Data Source"
 
 Data loaded:

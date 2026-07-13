@@ -169,10 +169,28 @@ class TestUpdateFromRelayoutLegend:
         assert isinstance(result, bool)
 
     def test_change_invalidates_cache(self, plot: ConcretePlot) -> None:
-        """Config change should set last_generated_fig to None."""
+        """Config changes discard every derived render artifact."""
         plot.last_generated_fig = go.Figure()
+        plot.last_traces = TraceBuildResult()
+        plot.last_figure_cache_key = "old"
         plot.update_from_relayout({"legend.x": 0.5})
         assert plot.last_generated_fig is None
+        assert plot.last_traces is None
+        assert plot.last_figure_cache_key is None
+
+    def test_replacing_processed_data_invalidates_render_state(self, plot: ConcretePlot) -> None:
+        """New pipeline output cannot retain a figure built from old data."""
+        replacement = pd.DataFrame({"x": [7], "y": [8]})
+        plot.last_generated_fig = go.Figure()
+        plot.last_traces = TraceBuildResult()
+        plot.last_figure_cache_key = "old"
+
+        plot.replace_processed_data(replacement)
+
+        assert plot.processed_data is replacement
+        assert plot.last_generated_fig is None
+        assert plot.last_traces is None
+        assert plot.last_figure_cache_key is None
 
 
 class TestGenerateFigure:

@@ -207,7 +207,7 @@ def test_different_normalizer_vars() -> None:
     assert result["metric"].iloc[1] == 20.0
 
 
-# ─── Additional Coverage Tests ──────────────────────────────────────────────
+# ─── Validation and edge cases ──────────────────────────────────────────────
 
 
 class TestValidateInitTypes:

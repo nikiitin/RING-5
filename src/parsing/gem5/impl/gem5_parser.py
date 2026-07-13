@@ -76,17 +76,18 @@ class Gem5Parser(SimulationParser):
         processed_configs: list[StatConfig] = []
         for config in variables:
             expanded_config = config
+            source_name = getattr(config, "source_name", None) or config.name
             if scanned_vars and config.is_regex:
                 try:
                     logger.info(
-                        f"PARSER: Matching regex '{config.name}' "
+                        f"PARSER: Matching regex '{source_name}' "
                         f"against {len(scanned_vars)} scanned variables"
                     )
-                    pattern = re.compile(config.name)
+                    pattern = re.compile(source_name)
                     matched_ids: list[str] = []
                     for sv in scanned_vars:
                         sv_name = sv.name
-                        if config.name == sv_name or pattern.fullmatch(sv_name):
+                        if source_name == sv_name or pattern.fullmatch(sv_name):
                             # If sv is already an aggregated pattern, use its constituents
                             if sv.pattern_indices:
                                 matched_ids.extend(sv.pattern_indices)
@@ -108,7 +109,7 @@ class Gem5Parser(SimulationParser):
                                 for nid in ids_to_expand:
                                     try:
                                         cname = PatternIndexService.reconstruct_concrete_name(
-                                            config.name, nid
+                                            source_name, nid
                                         )
                                         concrete_names.append(cname)
                                     except ValueError:
@@ -116,20 +117,21 @@ class Gem5Parser(SimulationParser):
                                             "PARSER: Could not reconstruct "
                                             "name for id '%s' in '%s'",
                                             nid,
-                                            config.name,
+                                            source_name,
                                         )
 
                             if len(concrete_names) > 50:
                                 logger.warning(
                                     "PARSER: Regex '%s' expanded to %d concrete variables — "
                                     "this may increase memory usage and processing time.",
-                                    config.name,
+                                    source_name,
                                     len(concrete_names),
                                 )
                             for cname in concrete_names:
                                 individual = replace(
                                     config,
                                     name=cname,
+                                    source_name=cname,
                                     is_regex=False,
                                     keep_indices=False,
                                     params={
@@ -143,9 +145,9 @@ class Gem5Parser(SimulationParser):
                             params["parsed_ids"] = matched_ids
                             expanded_config = replace(config, params=params)
                     else:
-                        logger.warning(f"PARSER: No matches found for regex '{config.name}'")
+                        logger.warning(f"PARSER: No matches found for regex '{source_name}'")
                 except re.error:
-                    logger.warning(f"PARSER: Invalid regex in variable: {config.name}")
+                    logger.warning(f"PARSER: Invalid regex in variable: {source_name}")
 
             processed_configs.append(expanded_config)
 

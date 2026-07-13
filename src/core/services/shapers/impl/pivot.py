@@ -7,11 +7,15 @@ Provides capabilities for:
 """
 
 import logging
-import re
 from typing import Any, cast, override
 
 import pandas as pd
 
+from src.core.common.safe_regex import (
+    SafeRegexError,
+    compile_bounded_regex,
+    search_bounded_regex,
+)
 from src.core.models.shaper_models import (
     PivotLongerShaperConfig,
     PivotWiderShaperConfig,
@@ -37,7 +41,8 @@ def extract_with_pattern(
         Joined capture groups or the original value if no match.
     """
     try:
-        match = re.search(pattern, value)
+        compiled = compile_bounded_regex(pattern)
+        match = search_bounded_regex(compiled, value)
         if not match:
             return value
 
@@ -49,7 +54,7 @@ def extract_with_pattern(
                 continue
 
         return separator.join(parts) if parts else value
-    except (re.error, TypeError, IndexError) as exc:
+    except (SafeRegexError, TypeError, IndexError) as exc:
         logger.warning("extract_with_pattern failed for %r: %s", value, exc)
         return value
 
@@ -120,14 +125,15 @@ class PivotLonger(Shaper):
                 strategy = self.config.get("selection_strategy", "discard")
                 merge_label = self.config.get("merge_label", "other")
 
+                compiled = compile_bounded_regex(pattern)
+
                 if filters:
-                    compiled = re.compile(pattern)
                     # Convert filter keys to integers once
                     int_filters = {int(k): v for k, v in filters.items()}
 
                     def process_row(val: Any) -> str | None:
                         orig_str = str(val)
-                        match = compiled.search(orig_str)
+                        match = search_bounded_regex(compiled, orig_str)
                         if not match:
                             return None
 
@@ -143,8 +149,6 @@ class PivotLonger(Shaper):
                                     return None
                                 return merge_label
 
-                        # Extract using already found match groups if possible,
-                        # or fall back to extract_with_pattern
                         parts = []
                         for idx in group_indices:
                             try:
@@ -170,26 +174,25 @@ class PivotLonger(Shaper):
                             {val_name: "sum"}
                         )
                 else:
-                    # Vectorized extraction: regex matching in C via pandas
                     original_values = result[var_name].astype(str)
-                    extracted_df = original_values.str.extract(pattern, expand=True)
-                    n_groups = len(extracted_df.columns)
-                    # group_indices are 1-based (re convention); DataFrame cols are 0-based
-                    col_indices = [idx - 1 for idx in group_indices if 0 < idx <= n_groups]
-                    if col_indices:
-                        if len(col_indices) == 1:
-                            joined = extracted_df.iloc[:, col_indices[0]]
-                        else:
-                            selected = extracted_df.iloc[:, col_indices]
-                            joined = selected.apply(
-                                lambda row: separator.join(s for s in row if pd.notna(s)),
-                                axis=1,
-                            )
-                        # Keep original value where regex didn't match
-                        no_match = extracted_df.isna().all(axis=1)
-                        result[var_name] = joined.where(~no_match, original_values)
-            except Exception as e:
-                raise ValueError(f"Failed to apply extraction pattern '{pattern}': {e}") from e
+
+                    def extract_value(value: str) -> str:
+                        match = search_bounded_regex(compiled, value)
+                        if not match:
+                            return value
+                        parts = []
+                        for idx in group_indices:
+                            try:
+                                group = match.group(idx)
+                            except IndexError:
+                                continue
+                            if group is not None:
+                                parts.append(group)
+                        return separator.join(parts) if parts else value
+
+                    result[var_name] = original_values.apply(extract_value)
+            except (SafeRegexError, TypeError, ValueError) as exc:
+                raise ValueError(f"Failed to apply extraction pattern '{pattern}': {exc}") from exc
 
         return result
 

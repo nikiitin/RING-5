@@ -262,15 +262,15 @@ else:
 
 ### Current State
 
-RING-5 uses a single `@st.cache_resource` to cache the `ApplicationAPI` singleton. This is correct — the API object is an unserializable resource that manages domain state and should exist as a singleton across all reruns.
+RING-5 stores one mutable `ApplicationAPI` workspace per browser session.
+Process-global caching is reserved for immutable or explicitly thread-safe
+resources such as worker pools.
 
 ```python
-# app.py — The only place ApplicationAPI is instantiated
-@st.cache_resource(show_spinner="Initializing RING-5...")
-def get_api() -> ApplicationAPI:
-    return ApplicationAPI(plot_deserializer=BasePlot.from_dict)
-
-api = get_api()
+# app.py
+if "api" not in st.session_state:
+    st.session_state.api = ApplicationAPI(plot_deserializer=BasePlot.from_dict)
+api: ApplicationAPI = st.session_state.api
 ```
 
 ### When to Use Each Decorator
@@ -278,7 +278,7 @@ api = get_api()
 | Decorator            | Use When                                                                                                                                                                               | RING-5 Examples                                                                               |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | `@st.cache_data`     | Function returns **serializable data** (DataFrame, dict, list, str, int). Creates a copy on each access — safe from mutations.                                                         | Parsing gem5 stats, loading CSV files, computing shaper transformations, DataFrame operations |
-| `@st.cache_resource` | Function returns **unserializable resources** that should be shared as singletons (connections, models, API objects). Returns the **same object** — not thread-safe against mutations. | `ApplicationAPI` instance, potentially `WorkPool` singleton                                   |
+| `@st.cache_resource` | Function returns an **unserializable, thread-safe resource** that may be shared by every session. Returns the same object without mutation protection. | Read-only models or connection pools; not `ApplicationAPI` |
 
 ### Key Principle: `@st.cache_data` for DataFrames
 
@@ -302,15 +302,14 @@ def apply_shaper_pipeline(
 def load_csv_data(csv_path: str) -> pd.DataFrame:
     return pd.read_csv(csv_path)
 
-# ❌ WRONG — Caching a mutable resource as data
+# Wrong: caching a mutable workspace as data
 @st.cache_data
 def get_api():  # API is not serializable!
     return ApplicationAPI()
 
-# ✅ CORRECT — Use cache_resource for the API
-@st.cache_resource
-def get_api() -> ApplicationAPI:
-    return ApplicationAPI()
+# Correct: keep mutable workspaces session-owned
+if "api" not in st.session_state:
+    st.session_state.api = ApplicationAPI()
 ```
 
 ### The Manual, Hash-Based Figure Cache
@@ -333,7 +332,8 @@ The figure cache lives at the controller/component boundary (`PlotRenderControll
 
 1. **Cache all expensive computations** that return data. If a function takes more than ~100ms and returns a DataFrame/dict/list, cache it.
 2. **Use `@st.cache_data` by default.** It creates safe copies and prevents mutation bugs.
-3. **Use `@st.cache_resource` only for singletons** (the `ApplicationAPI`, connection pools, `WorkPool`).
+3. **Use `@st.cache_resource` only for thread-safe shared resources**; mutable
+   user workspaces belong in `st.session_state`.
 4. **Never mutate cached data in-place.** Always return new DataFrames (this aligns with RING-5's existing immutability rule).
 5. **Set `ttl` for external data.** If data can become stale (e.g., file system changes), set a time-to-live.
 6. **Use `show_spinner`** for user-visible cached operations: `@st.cache_data(show_spinner="Loading data...")`.
@@ -725,17 +725,17 @@ Shaper UI configs (`src/web/components/shapers/`) only collect parameters; the a
 | **State (UI)**    | `src/web/state/`                   | `streamlit.session_state`                                   |
 | **Domain/Core**   | `src/core/` (incl. `src/core/services/`, `src/core/state/`, `src/parsing/`) | **NEVER import streamlit** |
 
-### The `ApplicationAPI` Singleton
+### The Session Workspace
 
-The `ApplicationAPI` instance (`src/core/application_api.py`) is created once via `@st.cache_resource` in `app.py` and passed down through the call chain. **Never create a second instance.**
+`ApplicationAPI` (`src/core/application_api.py`) is created once for each
+browser session and passed down through the call chain. Do not construct a
+second API within the same session; a separate browser session must receive a
+separate instance.
 
 ```python
-# app.py — The only place ApplicationAPI is instantiated
-@st.cache_resource(show_spinner="Initializing RING-5...")
-def get_api() -> ApplicationAPI:
-    return ApplicationAPI(plot_deserializer=BasePlot.from_dict)
-
-api = get_api()
+if "api" not in st.session_state:
+    st.session_state.api = ApplicationAPI(plot_deserializer=BasePlot.from_dict)
+api: ApplicationAPI = st.session_state.api
 ```
 
 ---

@@ -345,3 +345,84 @@ class TestErrorResilience:
 
         assert mock_st.exception.call_count == 2
         mock_viz.assert_called_once_with(plot, False)
+
+
+class TestFigureIdentity:
+    """Figure reuse is limited to identical data, config, and engine."""
+
+    def test_middle_row_changes_data_hash(self) -> None:
+        """The fingerprint covers rows beyond the frame boundaries."""
+        from src.web.controllers.plot.render_controller import PlotRenderController
+
+        first = pd.DataFrame({"value": [1, 2, 3]})
+        second = pd.DataFrame({"value": [1, 999, 3]})
+
+        assert PlotRenderController._compute_data_hash(
+            first
+        ) != PlotRenderController._compute_data_hash(second)
+
+    def test_unhashable_object_values_are_fingerprinted(self) -> None:
+        """Container-valued cells use the deterministic serialization fallback."""
+        from src.web.controllers.plot.render_controller import PlotRenderController
+
+        data = pd.DataFrame({"value": [[1, 2], {"key": "value"}]})
+
+        assert len(PlotRenderController._compute_data_hash(data)) == 12
+
+    @patch(f"{_CTRL}.EngineManager")
+    @patch(f"{_CTRL}.ChartDisplayComponent")
+    def test_identical_render_reuses_figure(
+        self,
+        mock_chart: MagicMock,
+        mock_engine: MagicMock,
+    ) -> None:
+        """An unchanged render does not call the figure builder again."""
+        mock_engine.get_engine.return_value = "plotly"
+        mock_chart.render_engine_selector.return_value = "plotly"
+        plot = StubPlotHandle(processed_data=pd.DataFrame({"value": [1, 2, 3]}))
+        plot.create_figure = MagicMock(return_value=MagicMock())
+        ctrl = _make_render_controller()
+
+        ctrl._render_visualization(plot, should_generate=False)
+        ctrl._render_visualization(plot, should_generate=False)
+
+        plot.create_figure.assert_called_once()
+
+    @patch(f"{_CTRL}.EngineManager")
+    @patch(f"{_CTRL}.ChartDisplayComponent")
+    def test_engine_change_regenerates_figure(
+        self,
+        mock_chart: MagicMock,
+        mock_engine: MagicMock,
+    ) -> None:
+        """Switching rendering engines changes the cache identity."""
+        mock_engine.get_engine.return_value = "plotly"
+        mock_chart.render_engine_selector.side_effect = ["plotly", "matplotlib"]
+        plot = StubPlotHandle(processed_data=pd.DataFrame({"value": [1, 2, 3]}))
+        plot.create_figure = MagicMock(return_value=MagicMock())
+        ctrl = _make_render_controller()
+
+        ctrl._render_visualization(plot, should_generate=False)
+        ctrl._render_visualization(plot, should_generate=False)
+
+        assert plot.create_figure.call_count == 2
+
+    @patch(f"{_CTRL}.EngineManager")
+    @patch(f"{_CTRL}.ChartDisplayComponent")
+    def test_new_processed_data_regenerates_figure(
+        self,
+        mock_chart: MagicMock,
+        mock_engine: MagicMock,
+    ) -> None:
+        """Replacing only a middle-row value invalidates the visible figure."""
+        mock_engine.get_engine.return_value = "plotly"
+        mock_chart.render_engine_selector.return_value = "plotly"
+        plot = StubPlotHandle(processed_data=pd.DataFrame({"value": [1, 2, 3]}))
+        plot.create_figure = MagicMock(return_value=MagicMock())
+        ctrl = _make_render_controller()
+        ctrl._render_visualization(plot, should_generate=False)
+
+        plot.replace_processed_data(pd.DataFrame({"value": [1, 999, 3]}))
+        ctrl._render_visualization(plot, should_generate=False)
+
+        assert plot.create_figure.call_count == 2

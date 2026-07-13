@@ -144,7 +144,6 @@ class TestGem5Parsing:
     def test_histogram_parsing(self, tmp_path: Any) -> None:
         """Test scanning and parsing a file containing histograms."""
 
-        # Use the builtin tmp_path fixture for Rule 004 compliance
         stats_dir = tmp_path / "stats"
         output_dir = tmp_path / "output"
         os.makedirs(stats_dir, exist_ok=True)

@@ -133,7 +133,16 @@ class ApplicationAPI:
     # =========================================================================
 
     def find_stats_files(self, search_path: str, pattern: str = "stats.txt") -> list[str]:
-        """Find stats files in a directory."""
+        """Find statistics files recursively.
+
+        Args:
+            search_path: Root directory to inspect.
+            pattern: Filename glob pattern.
+
+        Returns:
+            Matching paths in discovery order, or an empty list when the root
+            is missing or contains no matches.
+        """
         return _find_stats_files(search_path, pattern)
 
     def submit_parse_async(
@@ -158,23 +167,25 @@ class ApplicationAPI:
                 v_type = str(var.get("type", "scalar")).lower()
 
                 # Aliases are part of the serialized parser-variable contract.
-                name = str(var.get("name", ""))
+                source_name = str(var.get("name", ""))
                 alias = var.get("alias")
                 params: dict[str, StatParamValue] = cast(dict[str, StatParamValue], dict(var))
+                is_regex = PatternIndexService.is_pattern_variable(source_name)
+                output_name = str(alias) if alias else source_name
 
-                if alias:
-                    params["parsed_ids"] = [name]
-                    name = alias
+                if alias and not is_regex:
+                    params["parsed_ids"] = [source_name]
 
                 config = StatConfig(
-                    name=name,
+                    name=output_name,
+                    source_name=source_name if alias else None,
                     type=v_type,
                     repeat=int(var.get("repeat", 1)),
                     statistics_only=bool(
                         var.get("statistics_only", var.get("statisticsOnly", False))
                     ),
                     params=params,
-                    is_regex=PatternIndexService.is_pattern_variable(name),
+                    is_regex=is_regex,
                     keep_indices=bool(var.get("keep_indices", var.get("keepIndices", False))),
                 )
             elif hasattr(var, "name") and hasattr(var, "type") and not hasattr(var, "params"):
@@ -407,9 +418,8 @@ class ApplicationAPI:
     def release_settled_scans(self) -> None:
         """Drop references to *completed* scan futures to free memory.
 
-        Memory-cleanup only — it never cancels a still-running future, so in the web app's
-        shared instance it cannot abort another browser session's in-flight scan. Use this
-        on the routine "tidy up after a scan finished" path; use
+        This is memory cleanup only: it never cancels a running future. Use it
+        after consuming scan results; use
         :meth:`cancel_pending_scans` only for an explicit user-initiated abort.
         """
         self._pending_scan_futures = [f for f in self._pending_scan_futures if not f.done()]
@@ -417,12 +427,10 @@ class ApplicationAPI:
     def cancel_pending_scans(self) -> None:
         """Cancel scan futures submitted through this facade.
 
-        Handle-based and instance-scoped: only futures returned by this
-        instance's ``submit_scan_async`` are cancelled. The web app shares
-        one cached instance across browser sessions, so there this spans
-        the process; scripts with one ``ApplicationAPI`` per session remain
-        isolated. Use :meth:`release_settled_scans` for routine cleanup because
-        it never cancels a live scan.
+        Cancellation is handle-based and instance-scoped: only futures
+        returned by this instance's ``submit_scan_async`` are affected. Use
+        :meth:`release_settled_scans` for routine cleanup because it never
+        cancels live work.
         """
         for future in self._pending_scan_futures:
             future.cancel()

@@ -48,8 +48,7 @@ class PlotService:
         new_plot = copy.deepcopy(plot)
         new_plot.plot_id = state_manager.start_next_plot_id()
         new_plot.name = f"{plot.name} (copy)"
-        # Clear non-serializable data
-        new_plot.last_generated_fig = None
+        new_plot.invalidate_figure()
 
         state_manager.add_plot(new_plot)
 
@@ -64,7 +63,7 @@ class PlotService:
         new_plot = PlotFactory.create_plot(new_type, plot.plot_id, plot.name)
         new_plot.pipeline = plot.pipeline
         new_plot.pipeline_counter = plot.pipeline_counter
-        new_plot.processed_data = plot.processed_data
+        new_plot.replace_processed_data(plot.processed_data)
         new_plot.config = {}  # Reset config when type changes
 
         # Replace in session state

@@ -17,7 +17,7 @@ developer guide with catalogs, lookup tables, and task recipes.
 - **Target**: ISCA, MICRO, ASPLOS publication-quality plots
 - **Stack**: Python 3.12+, Streamlit, Plotly Graph Objects, Matplotlib (PGF/PDF), Pandas
 - **Architecture**: 3-layer (Web -> Core <- Parsing), a few hundred Python modules
-- **Entry point**: `app.py` -> `ApplicationAPI` (singleton via `@st.cache_resource`)
+- **Entry point**: `app.py` -> session-owned `ApplicationAPI`
 
 ---
 

@@ -1,4 +1,4 @@
-"""Tests for SeedsReducerManager — branch coverage."""
+"""Tests for seed-reducer manager orchestration."""
 
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -40,7 +40,7 @@ def mock_api() -> MagicMock:
 
 
 class TestSeedsReducerRender:
-    """Test SeedsReducerManager.render branch coverage."""
+    """Exercise seed-reducer rendering states."""
 
     @patch("src.web.components.data_managers.seeds_reducer.HistoryComponents")
     @patch("src.web.components.data_managers.seeds_reducer.st")

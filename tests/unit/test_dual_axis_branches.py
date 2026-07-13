@@ -1,4 +1,4 @@
-"""Tests for DualAxisBarDotPlot.create_figure — additional branch coverage.
+"""Tests for DualAxisBarDotPlot figure-creation branches.
 
 Focus on: color grouping, isolate_last_group, error bars, no-lines mode,
 dot_color, and legend_order.

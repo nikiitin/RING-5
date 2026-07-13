@@ -32,12 +32,10 @@ pytestmark = pytest.mark.requires_browser
 class TestExportDownload:
     """Tier 2: Download expander and format options (ordered).
 
-    Marked ``serial`` (run via a separate ``-n 0`` pass, NOT under ``-n 3``):
-    the Plotly raster downloads (pdf/svg/png) render the figure eagerly via
-    Kaleido (a Chromium subprocess), and three of those running concurrently
-    across xdist workers deadlock/starve the machine. The class is ordered and
-    shares ``tier2_page`` state, so it must run as a whole — hence the marker is
-    on the class, not the individual raster tests.
+    Marked ``serial`` because the ordered checks intentionally share one
+    ``tier2_page`` while changing its format and rendering-engine state. The
+    byte-producing exporters are covered separately; these checks only verify
+    that each browser control is available and responsive.
 
     All tests share the same ``tier2_page`` (class-scoped) which already
     has:
@@ -78,12 +76,10 @@ class TestExportDownload:
     def _select_format_pill(mp: ManagePlotsPage, format_name: str) -> None:
         """Click a format pill inside the download expander by name.
 
-        Selecting a format reruns the script (to rebuild the download for that
-        format); the raster Kaleido export can make that rerun slow, so we allow
-        extra time for it to finish. That rerun can also re-collapse the
-        ``<details>`` expander (Streamlit doesn't always preserve the open state
-        across a rerun), which would hide the download button — so we re-open it
-        afterwards (idempotent).
+        Selecting a format reruns the script to register a deferred download
+        for that format. The rerun can also re-collapse the ``<details>``
+        expander, which would hide the download button, so this helper reopens
+        it when needed.
         """
         pill = mp.download_format_pills.get_by_role("radio", name=format_name)
         pill.click()
@@ -129,10 +125,6 @@ class TestExportDownload:
         """Selecting the PDF format pill makes the download button appear.
 
         PDF export is available for both Plotly and Matplotlib engines.
-
-        Marked ``serial``: the Plotly path renders the figure via Kaleido
-        (a Chromium subprocess), and three of those running concurrently under
-        ``-n 3`` deadlock/starve — run this in the ``-n 0`` pass.
         """
         mp = self._ensure_on_manage_plots(tier2_page)
         mp.select_plot("E2E Bar")
@@ -153,7 +145,6 @@ class TestExportDownload:
         """Selecting the SVG format pill makes the download button appear.
 
         SVG export is available for both Plotly and Matplotlib engines.
-        Marked ``serial`` (Kaleido raster export — see test_03).
         """
         mp = self._ensure_on_manage_plots(tier2_page)
         mp.select_plot("E2E Bar")
@@ -174,7 +165,6 @@ class TestExportDownload:
         """Selecting the PNG format pill makes the download button appear.
 
         PNG is a raster format available for both engine types.
-        Marked ``serial`` (Kaleido raster export — see test_03).
         """
         mp = self._ensure_on_manage_plots(tier2_page)
         mp.select_plot("E2E Bar")
@@ -218,13 +208,9 @@ class TestExportDownload:
     def test_07_download_button_label(self, tier2_page: Page) -> None:
         """The download button inside the expander has the correct role + is enabled.
 
-        Uses the **html** format deliberately: it is plotly's native, kaleido-free
-        export, so the download button renders immediately. The raster formats
-        (png/svg/pdf) require a kaleido render whose data must be ready before
-        ``st.download_button`` appears — under ``-n 3`` three concurrent kaleido
-        exports starve and the button can lag past the timeout (raster coverage
-        lives in test_03/04/05). This test only checks the button role/enabled,
-        for which html is sufficient and deterministic.
+        HTML keeps this assertion independent of the optional Chrome-backed
+        exporters; PDF, SVG, and PNG controls are covered above, and their byte
+        output is verified by the dedicated export tests.
         """
         mp = self._ensure_on_manage_plots(tier2_page)
         mp.select_plot("E2E Bar")

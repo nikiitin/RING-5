@@ -27,9 +27,11 @@ def find_stats_files(
     Args:
         search_path: Base directory to search (recursively).
         pattern: Filename glob pattern (default ``"stats.txt"``).
-        limit: Stop after this many files (``0`` = unlimited). A positive limit
-            stops iteration early, avoiding a full tree walk.
-        sort: Return the paths in sorted (deterministic) order.
+        limit: Return at most this many files (``0`` = unlimited). With
+            ``sort=False``, discovery stops at the limit. With ``sort=True``,
+            the complete tree is sorted before selecting the first N paths.
+        sort: Return paths in lexical order. Combined with ``limit``, this
+            deterministically selects the first N matching paths.
         raise_if_empty: Raise ``FileNotFoundError`` when the path is missing or no
             file matches; otherwise return an empty list.
 
@@ -38,6 +40,11 @@ def find_stats_files(
 
     Raises:
         FileNotFoundError: Only when ``raise_if_empty`` is True and nothing is found.
+        OSError: The operating system rejects traversal of the search tree.
+
+    Notes:
+        Directory symlinks are not followed by ``Path.rglob``. Matching file
+        symlinks are returned when the platform reports them as files.
     """
     base: Path = normalize_user_path(os.path.normpath(search_path) if search_path else ".")
     if not base.exists():
@@ -47,18 +54,22 @@ def find_stats_files(
 
     safe_pattern: str = sanitize_glob_pattern(pattern)
 
-    if limit > 0:
+    if limit > 0 and not sort:
         collected: list[Path] = []
         for f in base.rglob(safe_pattern):
+            if not f.is_file():
+                continue
             collected.append(f)
             if len(collected) >= limit:
                 break
         files = collected
     else:
-        files = list(base.rglob(safe_pattern))
+        files = [path for path in base.rglob(safe_pattern) if path.is_file()]
 
     if sort:
         files = sorted(files)
+        if limit > 0:
+            files = files[:limit]
 
     if not files and raise_if_empty:
         raise FileNotFoundError(f"No files matching '{pattern}' found under: {search_path}")

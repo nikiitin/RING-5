@@ -96,10 +96,6 @@ class SimpleCache:
             return stats
 
 
-# Global cache instance for plot figure generation
-_plot_cache = SimpleCache(maxsize=32, ttl=300)  # 5 min TTL
-
-
 def cached(
     ttl: float | None = None,
     maxsize: int = 128,
@@ -190,24 +186,6 @@ def timed(func: Callable[..., T]) -> Callable[..., T]:
         return result
 
     return wrapper
-
-
-def get_plot_cache() -> SimpleCache:
-    """Get global plot cache instance."""
-    return _plot_cache
-
-
-def clear_all_caches() -> None:
-    """Clear all global caches."""
-    _plot_cache.clear()
-    logger.info("All caches cleared")
-
-
-def get_cache_stats() -> dict[str, Any]:
-    """Get statistics from all caches."""
-    return {
-        "plot_cache": _plot_cache.stats(),
-    }
 
 
 def compute_data_fingerprint(

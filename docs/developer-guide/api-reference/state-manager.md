@@ -309,16 +309,14 @@ ultimately handles the call.
 All seven repositories are pure Python objects with zero Streamlit dependency. They store
 state in private instance attributes (lists, dicts, scalars) rather than in
 `st.session_state`. State survives Streamlit reruns because the entire repository tree is
-held by the `ApplicationAPI` singleton, which is created once per session via
-`@st.cache_resource` in `app.py`.
+held by the session-owned `ApplicationAPI` stored under `st.session_state.api`.
 
 ```
-@st.cache_resource
-def get_api() -> ApplicationAPI:
-    return ApplicationAPI()   # constructs RepositoryStateManager internally
+if "api" not in st.session_state:
+    st.session_state.api = ApplicationAPI()
 ```
 
-On each Streamlit rerun, `get_api()` returns the same cached Python object. Because the
+On each Streamlit rerun, session state returns the same Python object. Because the
 `RepositoryStateManager` (and therefore all repositories) live as attributes of this object,
 their in-memory state is preserved without any serialization or deserialization.
 
@@ -328,7 +326,7 @@ their in-memory state is preserved without any serialization or deserialization.
   native Python objects across reruns.
 - **No key collisions**: Repository state is namespaced by object identity, not by string
   keys in a shared dictionary.
-- **Single source of truth**: The `ApplicationAPI` singleton guarantees exactly one
+- **Single source of truth**: The session-owned `ApplicationAPI` guarantees exactly one
   repository tree per Streamlit session.
 - **Idempotent setters**: Many setters include identity/equality checks to skip redundant
   writes and reduce log noise during Streamlit reruns.

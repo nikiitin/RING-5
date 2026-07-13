@@ -29,6 +29,8 @@ from typing import Any, Callable
 
 import pandas as pd
 
+from ring5.errors import ColumnNotFoundError, DataLoadError, ExportError, PipelineError
+
 __all__ = ["Table", "read_table"]
 
 # A shaper is any callable that maps a DataFrame to a DataFrame (e.g. ``ring5.shapers.Mean``).
@@ -60,8 +62,14 @@ class Table:
 
         Returns:
             A table containing the parsed rows.
+
+        Raises:
+            DataLoadError: The file is missing, unreadable, or malformed.
         """
-        return cls(pd.read_csv(path))
+        try:
+            return cls(pd.read_csv(path))
+        except (OSError, ValueError, UnicodeError) as exc:
+            raise DataLoadError(f"Could not load CSV {path!r}: {exc}") from exc
 
     @classmethod
     def from_rows(cls, rows: list[dict[str, Any]]) -> "Table":
@@ -110,8 +118,14 @@ class Table:
 
         Returns:
             The destination path.
+
+        Raises:
+            ExportError: The destination cannot be written.
         """
-        self._df.to_csv(path, index=False)
+        try:
+            self._df.to_csv(path, index=False)
+        except OSError as exc:
+            raise ExportError(f"Could not write table to {path!r}: {exc}") from exc
         return path
 
     # ── transforms (return a new Table) ──────────────────────────────────
@@ -124,7 +138,11 @@ class Table:
 
         Returns:
             A filtered table with a fresh row index.
+
+        Raises:
+            ColumnNotFoundError: ``column`` is absent.
         """
+        self._require_columns([column])
         return Table(self._df[self._df[column] == value].reset_index(drop=True))
 
     def sort(self, by: list[str]) -> "Table":
@@ -135,7 +153,11 @@ class Table:
 
         Returns:
             A sorted table with a fresh row index.
+
+        Raises:
+            ColumnNotFoundError: A requested sort column is absent.
         """
+        self._require_columns(by)
         return Table(self._df.sort_values(by).reset_index(drop=True))
 
     def with_scalar_op(self, new_column: str, src_column: str, op: str, value: float) -> "Table":
@@ -176,8 +198,18 @@ class Table:
 
         Returns:
             A table containing the transformed data.
+
+        Raises:
+            ColumnNotFoundError: The shaper references an absent column.
+            PipelineError: The shaper rejects its configuration or data.
         """
-        return Table(shaper(self._df))
+        try:
+            return Table(shaper(self._df))
+        except KeyError as exc:
+            column = str(exc.args[0]) if exc.args else "<unknown>"
+            raise ColumnNotFoundError(column, [str(c) for c in self._df.columns]) from exc
+        except (TypeError, ValueError) as exc:
+            raise PipelineError(f"Table transformation failed: {exc}") from exc
 
     def concat(self, other: "Table") -> "Table":
         """Append another table's rows.
@@ -200,7 +232,11 @@ class Table:
 
         Returns:
             Composite keys mapped to values.
+
+        Raises:
+            ColumnNotFoundError: A key or value column is absent.
         """
+        self._require_columns(key_columns + [value_column])
         cols = self._df
         return {
             tuple(cols[c].iloc[i] for c in key_columns): float(cols[value_column].iloc[i])
@@ -218,13 +254,24 @@ class Table:
 
         Returns:
             Composite keys mapped to row totals.
+
+        Raises:
+            ColumnNotFoundError: A key or summed column is absent.
         """
+        self._require_columns(key_columns + sum_columns)
         totals = self._df[sum_columns].sum(axis=1)
         cols = self._df
         return {
             tuple(cols[c].iloc[i] for c in key_columns): float(totals.iloc[i])
             for i in range(len(cols))
         }
+
+    def _require_columns(self, columns: list[str]) -> None:
+        """Raise the public missing-column error for the first absent column."""
+        available = [str(column) for column in self._df.columns]
+        for column in columns:
+            if column not in self._df.columns:
+                raise ColumnNotFoundError(column, available)
 
 
 def read_table(path: str) -> Table:

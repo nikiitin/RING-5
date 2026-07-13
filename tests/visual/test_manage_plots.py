@@ -101,13 +101,7 @@ def _create_and_finalize_bar(
 
 @pytest.mark.order("first")
 class TestManagePlotsNoData:
-    """Verify the page works when no data has been loaded.
-
-    Must run first: ``PlotRepository`` stores plots in instance
-    attributes (not ``session_state``), so once any class creates
-    plots they persist for all subsequent sessions via the
-    ``@st.cache_resource`` singleton.
-    """
+    """Verify the page works when no data has been loaded."""
 
     def test_empty_state(self, shared_page: Page, live_server_url: str) -> None:
         """Page shows create form and 'no plots' warning without data.

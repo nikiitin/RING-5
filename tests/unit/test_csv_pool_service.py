@@ -1,5 +1,5 @@
 """
-Comprehensive tests for CsvPoolService following Rule 004 (QA Testing Mastery).
+Behavioral tests for CSV pool discovery, caching, and file lifecycle.
 
 Test Strategy:
 - Solitary Unit Tests (mocked dependencies)
@@ -22,7 +22,7 @@ import pytest
 from src.core.services.data_services.csv_pool_service import CsvPoolService
 
 # ============================================================================
-# Fixtures (TDD Ch. 5 - Fixture-First Design)
+# Fixtures
 # ============================================================================
 
 
@@ -31,7 +31,7 @@ def sample_csv(tmp_path: Path) -> Path:
     """
     Create a sample CSV file for testing.
 
-    Uses tmp_path fixture for automatic cleanup (Rule 004).
+    Uses ``tmp_path`` so every test owns and cleans up its files.
     """
     csv_file = tmp_path / "sample.csv"
     df = pd.DataFrame(
@@ -50,7 +50,7 @@ def empty_pool_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """
     Create an empty pool directory and patch PathService.
 
-    Uses monkeypatch for safe attribute replacement (Rule 004).
+    Uses ``monkeypatch`` to restore class attributes after each test.
     """
     pool_dir = tmp_path / "csv_pool"
     pool_dir.mkdir()
@@ -80,7 +80,7 @@ def clear_service_state() -> Generator[None, None, None]:
     """
     Clear CsvPoolService caches before each test.
 
-    Uses autouse=True to ensure clean state (Rule 004).
+    Resets class caches before and after every test.
     Yields for cleanup guarantee.
     """
     CsvPoolService.clear_caches()
@@ -453,7 +453,7 @@ class TestFileHashing:
 
 
 # ============================================================================
-# Edge Cases and Error Handling (Rule 004 - Methodical Cases)
+# Edge cases and error handling
 # ============================================================================
 
 

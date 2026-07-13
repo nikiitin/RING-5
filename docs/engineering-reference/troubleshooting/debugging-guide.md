@@ -110,7 +110,7 @@ streamlit run app.py --logger.level=debug
 
 ```python
 # Quick debug: inspect current application state
-api = st.session_state.api  # ApplicationAPI singleton
+api = st.session_state.api  # current browser session's workspace
 view = api.get_current_view()
 print(view["raw_data"].shape if view["raw_data"] is not None else "No data loaded")
 print(view["config"])
@@ -137,18 +137,11 @@ print(view["config"])
 
 | Cache Type | Mechanism | Location |
 |------------|-----------|----------|
-| `ApplicationAPI` singleton | `@st.cache_resource` | `app.py:54-56` |
-| Figure generation | Manual hash cache (`SimpleCache`) | `src/web/controllers/plot/render_controller.py:206` |
-| Data fingerprint | MD5 of shape + sample rows + params | `src/core/performance.py:210-243` |
-| Global plot cache | `SimpleCache(maxsize=32, ttl=300)` | `src/core/performance.py:97` |
-
-- **`@st.cache_resource`**: Persists across reruns, cleared only on code change or manual `st.cache_resource.clear()`
-- **Manual hash cache**: `_compute_figure_cache_key(plot_id, config, data_hash)` in render controller
-- **Cache miss debugging**:
-  ```python
-  from src.core.performance import get_cache_stats
-  print(get_cache_stats())  # {"plot_cache": {"hits": N, "misses": M, "size": S, "hit_rate": R}}
-  ```
+| `ApplicationAPI` workspace | `st.session_state.api` | `app.py` |
+| Figure generation | Per-plot content/config/engine identity | `src/web/controllers/plot/render_controller.py` |
+| Data fingerprint | Full schema, index, and row content | `PlotRenderController._compute_data_hash` |
+- **Render identity**: `_compute_figure_cache_key(plot_id, config, data_hash, engine)`
+  is stored on the session-owned plot.
 
 ### Fragment Isolation (`@st.fragment`)
 

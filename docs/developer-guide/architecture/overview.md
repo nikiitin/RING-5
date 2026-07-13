@@ -103,13 +103,12 @@ context warnings.
 **Initialization sequence** (`app.py:15-59`):
 
 1. `st.set_page_config(layout="wide")` configures the Streamlit page.
-2. `get_api()` is decorated with `@st.cache_resource`, making `ApplicationAPI`
-   a singleton for the lifetime of the Streamlit server process.
+2. `ApplicationAPI` is created lazily under `st.session_state.api`, giving each
+   browser session its own mutable workspace.
 3. `BasePlot.from_dict` is injected as `plot_deserializer` -- this is how Core
    can deserialize plot dicts back into Web-layer `BasePlot` instances without
    ever importing from Web.
-4. The singleton is stored as `st.session_state.api` so every page can access
-   it.
+4. Every page receives that session's API instance through dependency injection.
 
 **`ApplicationAPI` composition** (`src/core/application_api.py:60-76`):
 
@@ -269,8 +268,8 @@ well-defined points.
 
 | Concern | Location | Mechanism |
 |---|---|---|
-| **Singleton API** | `app.py:54-56` | `@st.cache_resource` ensures one `ApplicationAPI` per server process |
-| **Session state storage** | `src/core/state/repositories/` | All 7 repositories use `st.session_state` as their backing store |
+| **Session workspace** | `app.py` | `st.session_state.api` owns one `ApplicationAPI` per browser session |
+| **Domain state storage** | `src/core/state/repositories/` | Seven pure-Python repositories owned by that API instance |
 | **Page routing** | `app.py:138-157` | Manual `if/elif` dispatch on `st.session_state["_nav_page"]` with lazy imports |
 | **Fragment isolation** | `app.py:115-135`, pages | `@st.fragment` / `st.fragment(fn)` scopes reruns to individual tabs and sections (11 fragments total) |
 | **Web-layer UI state** | `src/web/state/ui_state_manager.py` | Centralised management of widget keys (`plot.{id}.*`, `manager.{name}.*`) |
@@ -293,8 +292,8 @@ Two rendering engines are supported and selectable at runtime via
 |---|---|
 | Layer Boundaries (detailed import analysis) | `docs/developer-guide/architecture/layer-boundaries.md` |
 | Design Patterns (12 patterns in depth) | `docs/developer-guide/architecture/design-patterns.md` |
-| State Management (repository pattern) | `docs/developer-guide/architecture/state-management.md` |
-| Core Services API | `docs/developer-guide/api/core-services.md` |
-| Plotting System | `docs/developer-guide/api/plotting.md` |
-| Parsing System | `docs/developer-guide/api/parsing.md` |
-| Adding a New Plot Type | `docs/developer-guide/guides/adding-plot-types.md` |
+| State Management (repository pattern) | `docs/developer-guide/core/state-management.md` |
+| Core Services API | `docs/developer-guide/api-reference/services-api.md` |
+| Plotting System | `docs/developer-guide/visualization/plotting-system.md` |
+| Parsing System | `docs/developer-guide/parsing/parsing-architecture.md` |
+| Adding a New Plot Type | `docs/developer-guide/extension-guides/adding-a-plot-type.md` |

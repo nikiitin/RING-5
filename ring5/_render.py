@@ -17,6 +17,7 @@ from matplotlib.figure import Figure as MplFigure
 
 from src.core.models.visualization.engine import VALID_ENGINES, EngineMode
 from src.web.pages.ui.plotting.base_plot import BasePlot
+from ring5.errors import RenderError
 
 Figure = Union[go.Figure, MplFigure]
 
@@ -42,18 +43,19 @@ def render_figure(plot: BasePlot, *, engine: EngineMode = "plotly") -> Figure:
         PGF export can apply the LaTeX preamble.
 
     Raises:
-        ValueError: Unknown engine, or the plot has no processed data.
+        RenderError: The engine is invalid or the plot has no processed data.
     """
     if engine not in VALID_ENGINES:
-        raise ValueError(f"Unknown engine {engine!r}. Choose from {sorted(VALID_ENGINES)}.")
+        raise RenderError(f"Unknown engine {engine!r}. Choose from {sorted(VALID_ENGINES)}.")
     if plot.processed_data is None:
-        raise ValueError(f"Plot '{plot.name}' has no processed data to render.")
+        raise RenderError(f"Plot '{plot.name}' has no processed data to render.")
 
     if engine == "plotly":
         # UI sequence (render_controller.py): create_figure + apply_common_layout.
         plotly_fig = plot.create_figure(plot.processed_data, plot.config)
         plotly_fig = plot.apply_common_layout(plotly_fig, plot.config)
         plot.last_generated_fig = plotly_fig
+        plot.last_figure_cache_key = None
         return plotly_fig
 
     # Matplotlib: build straight from the engine-agnostic traces — NO Plotly figure is

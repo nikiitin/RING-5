@@ -39,6 +39,7 @@ class StubPlotHandle:
         self.pipeline_counter = pipeline_counter
         self.last_generated_fig: Any = None
         self.last_traces: Any = None
+        self.last_figure_cache_key: str | None = None
         self._style_ui = MagicMock()
         self._applicator = MagicMock()
 
@@ -65,6 +66,15 @@ class StubPlotHandle:
 
     def update_from_relayout(self, relayout_data: dict[str, Any]) -> bool:
         return False
+
+    def invalidate_figure(self) -> None:
+        self.last_generated_fig = None
+        self.last_traces = None
+        self.last_figure_cache_key = None
+
+    def replace_processed_data(self, data: pd.DataFrame | None) -> None:
+        self.processed_data = data
+        self.invalidate_figure()
 
     # RenderablePlot stubs
     def create_figure(self, data: pd.DataFrame, config: dict[str, Any]) -> Any:

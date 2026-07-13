@@ -1,7 +1,7 @@
 """
 Tests for MixerService - Column merge and mixing operations.
 
-Following Rule 004 (QA Testing Mastery):
+Exercises mixer validation and transformation behavior:
 - Fixture-first design for test data
 - AAA pattern (Arrange-Act-Assert)
 - Parametrization for multiple scenarios

@@ -1,4 +1,4 @@
-"""Tests for HistoryComponents — branch coverage."""
+"""Tests for history table rendering and actions."""
 
 from typing import Any
 from unittest.mock import MagicMock, patch

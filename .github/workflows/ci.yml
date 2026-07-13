@@ -70,16 +70,11 @@ jobs:
 
       - name: Run non-browser tests
         if: matrix.python-version != '3.12'
-        run: >-
-          python_venv/bin/pytest -m "not requires_browser and not serial"
-          --timeout=60 --no-cov
+        run: make test-nonbrowser
 
       - name: Run coverage gate
         if: matrix.python-version == '3.12'
-        run: >-
-          python_venv/bin/pytest -m "not requires_browser and not serial"
-          --timeout=60 --cov=src --cov=ring5 --cov-branch
-          --cov-report=term-missing --cov-report=xml --cov-fail-under=84
+        run: make test-ci
 
       - name: Upload coverage
         if: matrix.python-version == '3.12'
@@ -119,14 +114,40 @@ jobs:
         run: python_venv/bin/kaleido_get_chrome
 
       - name: Run serial export tests
-        run: >-
-          python_venv/bin/pytest -m "not requires_browser and serial"
-          -n 0 --timeout=120 --no-cov
+        run: make test-export
+
+  latex:
+    name: LaTeX figure exports
+    runs-on: ubuntu-latest
+    needs: quality
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install LaTeX
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y texlive-latex-base texlive-fonts-recommended texlive-xetex cm-super
+
+      - name: Install exact dependencies
+        run: |
+          python -m venv python_venv
+          python_venv/bin/python -m pip install "pip==26.1.2"
+          python_venv/bin/pip install -e ".[dev,ci]"
+
+      - name: Run LaTeX export tests
+        run: make test-latex
 
   e2e:
     name: Streamlit E2E
     runs-on: ubuntu-latest
-    needs: tests
+    needs: quality
     steps:
       - name: Check out repository
         uses: actions/checkout@v6

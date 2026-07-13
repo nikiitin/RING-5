@@ -19,6 +19,7 @@ from src.web.pages.ui.plotting.base_plot import BasePlot
 from ring5 import _export, _parse, _render
 from ring5.errors import (
     ColumnNotFoundError,
+    DataLoadError,
     DataValidationError,
     ParseError,
     PipelineError,
@@ -168,6 +169,11 @@ class Session:
 
         Returns:
             A submitted parse job that can be finalized or cancelled.
+
+        Raises:
+            ScanError: No matching statistics files were found or variable
+                discovery failed.
+            ParseError: The parser rejected the submission.
         """
         configs, scanned = _parse.build_stat_configs(
             self.api, stats_path, variables, pattern=pattern, scan_limit=scan_limit
@@ -238,6 +244,12 @@ class Session:
 
         Returns:
             The assembled CSV path and any missing statistic names.
+
+        Raises:
+            ScanError: Discovery failed or a requested name was not found.
+            ParseError: Parsing or CSV assembly failed.
+            MissingStatError: ``strict`` is true and a requested statistic
+                produced no values.
         """
         job = self.parse_submit(
             stats_path,
@@ -259,11 +271,18 @@ class Session:
 
         Returns:
             The loaded DataFrame.
+
+        Raises:
+            DataLoadError: The file is missing, unreadable, malformed, or
+                produces no table.
         """
-        self.api.load_data(csv_path)
+        try:
+            self.api.load_data(csv_path)
+        except (OSError, ValueError, UnicodeError) as exc:
+            raise DataLoadError(f"Could not load CSV {csv_path!r}: {exc}") from exc
         data = self.api.state_manager.get_data()
         if data is None:
-            raise ParseError(f"Loading {csv_path!r} produced no data.")
+            raise DataLoadError(f"Loading {csv_path!r} produced no data.")
         return data
 
     def shape(
@@ -290,7 +309,7 @@ class Session:
             raise PipelineError(
                 str(exc), step_index=exc.step_index, shaper_type=exc.shaper_type
             ) from exc
-        except ValueError as exc:
+        except (TypeError, ValueError) as exc:
             raise PipelineError(str(exc)) from exc
         return _rewrap_table(shaped) if was_table else shaped
 
@@ -396,7 +415,7 @@ class Session:
         plot = PlotService.create_plot(name or resolved_type, resolved_type, self.api.state_manager)
         if name is None:
             plot.name = f"{resolved_type}_{plot.plot_id}"
-        plot.processed_data = frame.copy()
+        plot.replace_processed_data(frame.copy())
         raw_config = config.to_config() if isinstance(config, FigureSpec) else dict(config)
         # Plot configuration contains nested lists and dictionaries. Copy it so a
         # later caller mutation cannot silently change an already registered plot.
@@ -424,6 +443,10 @@ class Session:
         Returns:
             The rendered Plotly or Matplotlib figure. The underlying plot remains
             registered in :attr:`plots` and is included in saved portfolios.
+
+        Raises:
+            DataValidationError: ``plot_type`` is not registered.
+            RenderError: ``engine`` is invalid or rendering fails validation.
         """
         configured = self.create_plot(plot_type, data=data, config=config, name=name)
         return self.render(configured, engine=engine)
@@ -437,6 +460,10 @@ class Session:
 
         Returns:
             The rendered Plotly or Matplotlib figure.
+
+        Raises:
+            RenderError: The engine is invalid or the plot has no processed
+                data.
         """
         return _render.render_figure(plot, engine=engine)
 
@@ -460,6 +487,12 @@ class Session:
 
         Returns:
             The written file path.
+
+        Raises:
+            ExportError: The format is unsupported or the destination cannot
+                be written.
+            DependencyMissingError: The selected format requires an external
+                executable that is unavailable.
         """
         return _export.export_file(fig, path, fmt=fmt, deterministic=deterministic, **kwargs)
 
@@ -481,6 +514,11 @@ class Session:
 
         Returns:
             Encoded figure bytes.
+
+        Raises:
+            ExportError: The format is unsupported or generation fails.
+            DependencyMissingError: The selected format requires an external
+                executable that is unavailable.
         """
         return _export.export_bytes(fig, fmt, deterministic=deterministic, **kwargs)
 
@@ -522,6 +560,8 @@ class Session:
             )
         except FileExistsError as exc:
             raise PortfolioError(str(exc)) from exc
+        except (OSError, ValueError) as exc:
+            raise PortfolioError(f"Portfolio '{name}' could not be saved: {exc}") from exc
 
     def load_portfolio(self, name: str) -> RestoreReport:
         """Load + restore a portfolio; the report says what was skipped.
@@ -552,7 +592,10 @@ class Session:
         except ValueError as exc:
             # JSON and schema validation errors both surface as ``ValueError`` here.
             raise PortfolioError(f"Portfolio '{name}' could not be read: {exc}") from exc
-        return self.api.state_manager.restore_session(data)
+        try:
+            return self.api.state_manager.restore_session(data)
+        except (KeyError, TypeError, ValueError) as exc:
+            raise PortfolioError(f"Portfolio '{name}' could not be restored: {exc}") from exc
 
 
 def _require_columns(data: pd.DataFrame, columns: list[str]) -> None:

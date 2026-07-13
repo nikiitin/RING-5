@@ -50,6 +50,7 @@ class BasePlot(PlotConfigUIMixin, ABC):
         self.processed_data: pd.DataFrame | None = None
         self.last_generated_fig: go.Figure | None = None
         self.last_traces: TraceBuildResult | None = None
+        self.last_figure_cache_key: str | None = None
         self.pipeline: list[PipelineStep] = []
         self.pipeline_counter: int = 0
         self.legend_mappings_by_column: dict[str, dict[str, str]] = {}
@@ -123,9 +124,25 @@ class BasePlot(PlotConfigUIMixin, ABC):
 
         if changed:
             self.config = updated_config
-            self.last_generated_fig = None
+            self.invalidate_figure()
 
         return changed
+
+    def invalidate_figure(self) -> None:
+        """Discard render artifacts derived from the current data and config."""
+        self.last_generated_fig = None
+        self.last_traces = None
+        self.last_figure_cache_key = None
+
+    def replace_processed_data(self, data: pd.DataFrame | None) -> None:
+        """Replace processed data and atomically invalidate render artifacts.
+
+        Args:
+            data: New transformed data, or ``None`` when no pipeline result is
+                available.
+        """
+        self.processed_data = data
+        self.invalidate_figure()
 
     @abstractmethod
     def get_legend_column(self, config: PlotConfig) -> str | None:
@@ -156,6 +173,7 @@ class BasePlot(PlotConfigUIMixin, ABC):
         fig = self.create_figure(self.processed_data, self.config)
         fig = self.apply_common_layout(fig, self.config)
         self.last_generated_fig = fig
+        self.last_figure_cache_key = None
         return fig
 
     def to_dict(self) -> dict[str, Any]:
@@ -207,6 +225,6 @@ class BasePlot(PlotConfigUIMixin, ABC):
 
         # Deserialize processed_data if it exists
         if data.get("processed_data"):
-            plot.processed_data = pd.read_csv(StringIO(data["processed_data"]))
+            plot.replace_processed_data(pd.read_csv(StringIO(data["processed_data"])))
 
         return plot

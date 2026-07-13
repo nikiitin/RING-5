@@ -32,6 +32,16 @@ PROHIBITED: tuple[tuple[str, re.Pattern[str]], ...] = (
         re.compile(r"\b(?:zero hallucination|scientific (?:integrity|safety))\b", re.IGNORECASE),
     ),
     (
+        "test-process bookkeeping",
+        re.compile(
+            r"(?:\b(?:coverage[- ]boost|low[- ]coverage|branch coverage|"
+            r"additional coverage|for coverage|TDD Ch\.|Rule \d+ compliance|"
+            r"for brevity)\b|\d+%\s*(?:→|->)\s*\d+%|"
+            r"targets? (?:the following )?(?:files?/)?lines?:)",
+            re.IGNORECASE,
+        ),
+    ),
+    (
         "generated template marker",
         re.compile(
             r"(?:\b(?:Design Patterns|Last Modified|NEW ISSUES|YOU ARE HERE|WITH FIX)\b|"

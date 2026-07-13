@@ -1,4 +1,4 @@
-"""Tests for DualAxisBarDotPlot and GroupedBarPlot render_config_ui — branch coverage."""
+"""Tests for dual-axis and grouped-bar configuration controls."""
 
 from typing import Any, cast
 from unittest.mock import MagicMock, patch

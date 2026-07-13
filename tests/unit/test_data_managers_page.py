@@ -1,4 +1,4 @@
-"""Tests for data_managers.py page — 36% → 100% coverage."""
+"""Tests for Data Managers page orchestration."""
 
 from unittest.mock import MagicMock, patch
 

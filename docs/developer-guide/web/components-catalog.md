@@ -89,20 +89,6 @@ widgets.
 - **`render_portfolio_history(records)`** -- Full history page with total
   operations metric.
 
-### 2.4 LayoutComponents
-
-**Source:** `src/web/components/common/layout_components.py`
-
-| Method | Returns | Description |
-|---|---|---|
-| `sidebar_info()` | `None` | App description in sidebar. |
-| `navigation_menu()` | `str` | Radio with 5 pages: Data Source, Data Managers, Configure Pipeline, Generate Plots, Load Configuration. |
-| `progress_display(step, total, msg)` | `None` | Progress bar with status text. |
-| `add_variable_button()` | `bool` | "+ Add Variable" button. |
-| `clear_data_button()` | `bool` | "Clear All Data" button. |
-
----
-
 ## 3. Chart Display
 
 **Source:** `src/web/components/common/chart_display.py`

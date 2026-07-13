@@ -1,6 +1,6 @@
 """Unit tests for state repository layer.
 
-Tests all 7 state repositories with comprehensive coverage:
+Tests the contracts of all seven state repositories:
 - DataRepository
 - ConfigRepository
 - PlotRepository
@@ -543,9 +543,6 @@ class TestSessionRepository:
         repo.initialize_session()
         # Should not raise; data should remain None
         assert repo.data_repo.get_data() is None
-
-    def test_clear_widget_state_is_noop(self, repo: SessionRepository) -> None:
-        repo.clear_widget_state()  # Should not raise
 
     def test_clear_all(self, repo: SessionRepository) -> None:
         # Populate state

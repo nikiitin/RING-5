@@ -106,7 +106,4 @@ class TestFacadeReduction:
         assert values == [15.0, 20.0]
 
     def test_vector_reduction(self, facade: Any, temp_dirs: Any) -> None:
-
-        # Test vector reduction if possible
-        # Skipping complex vector mock setup for brevity, relying on scalar reduction coverage.
-        pass
+        pytest.skip("Vector reduction requires vector parser fixtures")

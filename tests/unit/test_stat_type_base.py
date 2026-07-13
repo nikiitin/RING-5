@@ -1,4 +1,4 @@
-"""Tests for StatType base + StatTypeRegistry — target 78% → 95%+."""
+"""Tests for StatType base behavior and registry lookup."""
 
 import math
 

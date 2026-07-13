@@ -177,11 +177,6 @@ class TestShaperPerformance:
             }
         )
 
-        # Clear cache before first run
-        from src.core.performance import clear_all_caches
-
-        clear_all_caches()
-
         # First call (uncached)
         suite1 = BenchmarkSuite("First Call")
         _ = suite1.benchmark(normalizer, data, name="First normalize")

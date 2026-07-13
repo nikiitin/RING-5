@@ -11,9 +11,12 @@ TEST_DATA_URL := https://github.com/nikiitin/RING-5/releases/download/test-data-
 TEST_DATA_TARBALL := test_data.tar.gz
 MOCK_CSV := tests/data/mock/inputs/csv/configurer/configurer_test_case01.csv
 COVERAGE_MIN := 84
+NON_BROWSER_TESTS := tests/unit tests/integration tests/ui tests/ui_logic tests/ui_unit \
+	tests/performance tests/tests_principle_compliance
 
 .PHONY: help venv install dev run playwright-install install-latex check-latex \
-	test-data mock-data test test-unit test-ci test-export test-e2e test-visual \
+	test-data mock-data test test-unit test-nonbrowser test-ci test-export test-latex \
+	test-e2e test-visual \
 	format format-check lint type-check arch-check comments-check docs-check dependency-check \
 	security-audit quality-gate package-check check-outdated pre-commit-install \
 	pre-commit clean
@@ -25,6 +28,7 @@ help:
 	@echo "  run                 Start the Streamlit application"
 	@echo "  test-unit           Run fast unit tests"
 	@echo "  test                Run non-browser tests, including serial exports"
+	@echo "  test-latex          Run tests that require a local XeLaTeX installation"
 	@echo "  test-ci             Run tests with the coverage gate"
 	@echo "  test-e2e            Run Playwright browser tests"
 	@echo "  quality-gate        Run architecture, docs, format, lint, types, and security"
@@ -88,20 +92,27 @@ mock-data: test-data
 	fi
 
 test-unit:
-	$(PYTEST) tests/unit tests/ui_unit -m "not serial" -q --no-cov
+	$(PYTEST) tests/unit tests/ui_unit -m "not serial and not requires_latex" -q --no-cov
+
+test-nonbrowser:
+	$(PYTEST) $(NON_BROWSER_TESTS) -m "not serial and not requires_latex" \
+		--timeout=60 --no-cov
 
 test-export:
 	$(PYTEST) tests/unit/test_plotly_download.py -m "serial" -n 0 --timeout=120 --no-cov
 
+test-latex:
+	$(PYTEST) tests/unit/test_matplotlib_download.py::TestMatplotlibPGF \
+		-m "requires_latex" -n 0 --timeout=120 --no-cov
+
 test: test-data mock-data
-	$(PYTEST) -m "not requires_browser and not serial" --no-cov
-	$(PYTEST) -m "not requires_browser and serial" -n 0 --timeout=120 --no-cov
+	$(MAKE) test-nonbrowser
+	$(MAKE) test-export
 
 test-ci: test-data mock-data
-	$(PYTEST) -m "not requires_browser and not serial" \
+	$(PYTEST) $(NON_BROWSER_TESTS) -m "not serial and not requires_latex" \
 		--cov=src --cov=ring5 --cov-branch --cov-report=term-missing \
 		--cov-report=xml --cov-fail-under=$(COVERAGE_MIN) --timeout=60
-	$(PYTEST) -m "not requires_browser and serial" -n 0 --timeout=120 --no-cov
 
 test-e2e:
 	$(PYTEST) tests/e2e -m "requires_browser and not serial" \

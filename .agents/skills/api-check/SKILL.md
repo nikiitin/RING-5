@@ -5,9 +5,9 @@ description: Gate the ApplicationAPI facade contract — the single Web→Core e
 
 # API check (the facade contract gate)
 
-The UI's **only** doorway into core is `src/core/application_api.py::ApplicationAPI` (built once,
-cached via `@st.cache_resource` in `app.py`). There is **no** `src/web/facade.py`. This gate
-confirms callers use the facade correctly and the contract holds.
+The UI's **only** doorway into core is `src/core/application_api.py::ApplicationAPI` (one
+session-owned instance in `app.py`). There is no separate web facade module. This gate confirms
+callers use the facade correctly and the contract holds.
 
 ## The contract
 - **Three sub-APIs**, exposed as properties and composed by `DefaultServicesAPI(state_manager)`

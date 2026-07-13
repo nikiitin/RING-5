@@ -23,14 +23,13 @@ The approach relies on two key techniques:
 
 ## Composition Root
 
-The composition root lives in `app.py` inside the Streamlit-cached `get_api()`
-factory:
+The composition root lives in `app.py` and creates the workspace lazily for
+the current browser session:
 
 ```python
 # app.py
-@st.cache_resource(show_spinner="Initializing RING-5...")
-def get_api() -> ApplicationAPI:
-    return ApplicationAPI(plot_deserializer=BasePlot.from_dict)
+if "api" not in st.session_state:
+    st.session_state.api = ApplicationAPI(plot_deserializer=BasePlot.from_dict)
 ```
 
 This single call constructs the entire object graph:
@@ -47,8 +46,8 @@ This single call constructs the entire object graph:
 5. The parser backend defaults to the gem5 parser obtained from
    `SimulatorRegistry` when no explicit parser is supplied.
 
-Because `get_api()` is decorated with `@st.cache_resource`, the graph is built
-once per Streamlit server process and reused across reruns.
+The graph is built once per browser session and reused across that session's
+reruns. Mutable repositories are never shared between users.
 
 ## ApplicationAPI as DI Hub
 

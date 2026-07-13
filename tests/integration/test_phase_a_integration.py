@@ -1,4 +1,4 @@
-"""Phase A integration tests — palette unification & matplotlib renderer fixes.
+"""Integration tests for palette resolution and Matplotlib rendering.
 
 Validates end-to-end that:
   1. Palette registry is the single source of truth

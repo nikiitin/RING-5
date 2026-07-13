@@ -1,4 +1,4 @@
-"""Tests for ConditionSelector — 85% → 100% branch coverage."""
+"""Tests for condition selector branches and validation."""
 
 from typing import Any, cast
 

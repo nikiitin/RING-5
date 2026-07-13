@@ -46,7 +46,7 @@ Recipe to add a styling option:
    fonts/colors → Typography pill).
 3. Apply it in `FigureSpecToPlotly` **and** `FigureSpecToMatplotlib` at the right pipeline step.
 4. Update `trace_to_plotly.py` / `matplotlib_trace_renderer.py` if it's per-trace.
-5. Add/extend an export preset in `src/web/pages/ui/plotting/export/presets/` if publication-relevant.
+5. Extend `ring5.figure_spec.FigureSpec` when the option belongs in the public publication API.
 
 ## Engine, palettes, export
 - `EngineManager` (`src/web/rendering/engine_manager.py`) toggles `plotly`/`matplotlib` via the

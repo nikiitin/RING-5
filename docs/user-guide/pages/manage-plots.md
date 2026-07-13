@@ -527,7 +527,10 @@ The available formats depend on the active rendering engine:
 | **Matplotlib** | PDF, PGF, PNG, SVG |
 
 Select a format using the format pills, then click the **Download** button. The
-file is named after your plot with the appropriate extension.
+file is named after your plot with the appropriate extension. Plotly export data
+is generated after the click, so selecting a Chrome-backed format does not slow
+down other plot controls. PNG, SVG, and PDF downloads can take a few seconds
+while the image renderer starts.
 
 ### Format Recommendations
 

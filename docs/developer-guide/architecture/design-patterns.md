@@ -68,7 +68,7 @@ facade also provides a natural place for orchestration logic -- for example,
 `load_data()` coordinates loading via `DataServicesAPI`, then persists the
 result via `RepositoryStateManager`, then resets derived state.
 
-**Related Patterns:** Singleton (the facade itself is cached as a singleton),
+**Related Patterns:** Session Workspace (the facade owns one browser session),
 Protocol (the facade depends on `ServicesAPI`, `SimulationParser`, and
 `PlotDeserializer` protocols rather than concrete classes).
 
@@ -408,39 +408,33 @@ parsing across multiple processes.
 
 ---
 
-## 7. Singleton
+## 7. Session Workspace
 
-**GoF Classification:** Creational
+**Classification:** Lifecycle ownership
 
-**Location:** `app.py` lines 54--58
+**Location:** `app.py`
 
 **Implementation.**
-`ApplicationAPI` is instantiated exactly once per Streamlit session using
-`@st.cache_resource`, which caches the return value of `get_api()` for the
-lifetime of the server process.
+`ApplicationAPI` is instantiated exactly once per browser session and stored
+under `st.session_state.api`.
 
 ```python
-# app.py:54-58
-@st.cache_resource(show_spinner="Initializing RING-5...")
-def get_api() -> ApplicationAPI:
-    return ApplicationAPI(plot_deserializer=BasePlot.from_dict)
-
-api = get_api()
-st.session_state.api = api
+if "api" not in st.session_state:
+    st.session_state.api = ApplicationAPI(plot_deserializer=BasePlot.from_dict)
+api: ApplicationAPI = st.session_state.api
 ```
 
-The instance is also stored in `st.session_state.api` so that all pages and
-components can access it without re-importing or re-constructing.
+Pages and components receive the instance through dependency injection.
 
 **Design Rationale.**
-Streamlit reruns the entire script on every user interaction. Without caching,
+Streamlit reruns the entire script on every user interaction. Without session ownership,
 `ApplicationAPI` and its entire dependency tree (services, repositories, parser
 backend) would be reconstructed on each rerun, discarding all in-memory state.
-`@st.cache_resource` provides singleton semantics in a framework-idiomatic way,
-and the `ApplicationAPI.__init__` logger confirms this with the message
-`"ApplicationAPI initialized (Singleton Service)"`.
+Process-wide caching would instead expose one user's mutable data and plots to
+other sessions. Session state preserves rerun continuity without cross-user
+sharing.
 
-**Related Patterns:** Facade (`ApplicationAPI` is the singleton facade).
+**Related Patterns:** Facade (`ApplicationAPI` is the session-owned facade).
 
 ---
 
@@ -751,8 +745,8 @@ import cost. The application logs a warning when a rerun exceeds 500 ms
 prevents worker subprocesses from loading Streamlit modules.
 
 **Related Patterns:** Factory (`StrategyFactory` and `PlotFactory` both use
-lazy imports internally), Singleton (the `@st.cache_resource` singleton avoids
-re-initialization, complementing lazy imports).
+lazy imports internally), Session Workspace (session state avoids rebuilding
+the mutable facade on each rerun).
 
 ---
 
@@ -763,7 +757,7 @@ skeleton. The following table summarizes how they collaborate:
 
 | Producer Pattern | Consumer Pattern | Interaction |
 |---|---|---|
-| Facade | Singleton | The facade is instantiated as a singleton |
+| Facade | Session Workspace | The facade owns one browser session's state |
 | Facade | Repository | The facade delegates state operations to the repository layer |
 | Facade | Protocol | The facade depends on protocol contracts, not implementations |
 | Factory | Strategy | Factories create strategy instances |

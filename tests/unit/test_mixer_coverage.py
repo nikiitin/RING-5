@@ -1,4 +1,4 @@
-"""Tests for MixerManager — branch coverage."""
+"""Tests for mixer manager orchestration."""
 
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -40,7 +40,7 @@ def mock_api() -> MagicMock:
 
 
 class TestMixerRender:
-    """Test MixerManager.render branch coverage."""
+    """Exercise mixer rendering states."""
 
     @patch("src.web.components.data_managers.mixer.HistoryComponents")
     @patch("src.web.components.data_managers.mixer.st")

@@ -1,5 +1,5 @@
 """
-Coverage tests for StackedBarPlot, HistogramPlot, and PlotConfigComponents.
+Tests for stacked bars, histograms, and plot configuration components.
 
 Targets uncovered lines:
 - stacked_bar_plot.py: 22-63 (render_config_ui), 159->163, 212-213, 253->255

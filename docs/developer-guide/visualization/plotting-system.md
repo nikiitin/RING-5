@@ -480,8 +480,8 @@ consumers such as the LaTeX export pipeline.
 
 - `src/web/pages/ui/plotting/plot_service.py` -- `PlotService` for create,
   delete, duplicate, change type, and export operations.
-- `src/web/pages/ui/plotting/plot_renderer.py` -- `PlotRenderer` for
-  cache-key computation utilities.
+- `src/web/controllers/plot/render_controller.py` -- `PlotRenderController`
+  for render identity, regeneration, and display orchestration.
 - `src/web/pages/ui/plotting/utils/grouped_bar_utils.py` -- `GroupedBarUtils`
   for coordinate calculation and shape building in grouped bar layouts.
 - `src/web/pages/ui/plotting/utils/grouped_stacked_bar_helpers.py` -- helper
