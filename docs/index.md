@@ -21,7 +21,7 @@ script.
 | ----- | --- | ---------- |
 | [User Guide](user-guide/) | Researchers using the app | [Installation](user-guide/getting-started/installation/) · [First Steps](user-guide/getting-started/first-steps/) |
 | [Developer Guide](developer-guide/) | Contributors & maintainers | [Architecture Overview](developer-guide/architecture/overview/) · [Development Setup](developer-guide/development/setup/) |
-| [AI Knowledge Base](ai-knowledge-base/) | AI coding agents & deep reference | [System Overview](ai-knowledge-base/architecture/system-overview/) · [File Locations](ai-knowledge-base/quick-reference/file-locations/) |
+| [Engineering Reference](engineering-reference/) | Maintainer catalogs and task references | [System Overview](engineering-reference/architecture/system-overview/) · [File Locations](engineering-reference/quick-reference/file-locations/) |
 
 ### Popular topics
 
@@ -36,8 +36,8 @@ script.
   [Adding a shaper](developer-guide/extension-guides/adding-a-shaper/)
 
 > Working in the repo with an AI coding agent? The canonical in-repo guide is
-> [`CLAUDE.md`](https://github.com/nikiitin/RING-5/blob/main/CLAUDE.md) with task recipes under
-> `.claude/skills/`.
+> [`AGENTS.md`](https://github.com/nikiitin/RING-5/blob/main/AGENTS.md) with task recipes under
+> `.agents/skills/`.
 
 ---
 

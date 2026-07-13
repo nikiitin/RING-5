@@ -155,7 +155,7 @@ make test-data
 |---------|-------------|
 | `make test` | Full suite, no coverage gate, 3 parallel workers |
 | `make test-unit` | `tests/unit/` only -- fast feedback |
-| `make test-ci` | Full suite with 90% branch coverage gate |
+| `make test-ci` | Non-browser suite with the 84% branch-coverage gate |
 | `make test-visual` | Playwright browser tests (starts Streamlit first) |
 
 ### Pytest configuration
@@ -196,9 +196,8 @@ make test-unit
 make quality-gate
 ```
 
-This runs five gates and reports a summary: architecture boundary enforcement,
-mypy type safety, black formatting, flake8 linting, and `eval`/`exec` security
-scanning.
+This runs the architecture, comment, documentation, dependency, formatting,
+lint, type, Bandit, and vulnerability checks used by CI.
 
 **4. Commit** -- Pre-commit hooks run automatically on `git commit`, enforcing
 formatting, linting, type checking, import sorting, and architecture rules. If
@@ -212,9 +211,10 @@ commits to `main` are blocked by the `no-commit-to-branch` hook.
 | `make run` | Start the Streamlit application |
 | `make test` | Run tests (no coverage gate) |
 | `make test-unit` | Unit tests only (fast) |
-| `make test-ci` | Tests with 90% coverage gate |
-| `make quality-gate` | All quality checks |
+| `make test-ci` | Tests with the 84% branch-coverage gate |
+| `make quality-gate` | All quality and security checks |
 | `make arch-check` | Architecture boundary violations |
+| `make comments-check` | Code comment audit |
 | `make pre-commit` | Pre-commit hooks on entire codebase |
 | `make check-outdated` | List outdated packages |
 | `make security-audit` | Known vulnerability check |
@@ -226,5 +226,5 @@ commits to `main` are blocked by the `no-commit-to-branch` hook.
 
 - [Testing Guide](testing.md) -- pytest fixtures, mock patterns, test organization
 - [CI/CD](ci-cd.md) -- GitHub Actions workflows, pre-commit hook details
-- [Code Quality](code-quality.md) -- black, flake8, mypy, isort configuration
+- [Code Quality](code-quality.md) -- Black, Flake8, mypy, and repository checks
 - [Architecture Overview](../architecture/overview.md) -- 3-layer architecture and import rules

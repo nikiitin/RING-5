@@ -121,7 +121,7 @@ Setup, testing, CI/CD, and code quality tooling.
 | [Development Setup](development/setup.md) | Dependencies, virtual env, pyproject.toml |
 | [Testing Guide](development/testing.md) | pytest config, fixtures, mock patterns |
 | [CI/CD](development/ci-cd.md) | GitHub Actions, pre-commit hooks |
-| [Code Quality](development/code-quality.md) | Ruff, black, isort, mypy configuration |
+| [Code Quality](development/code-quality.md) | Black, Flake8, mypy, and repository checks |
 
 ---
 
@@ -144,5 +144,5 @@ Layer A (Data)          -->  src/parsing/     -->  File I/O, parsing, scanning
 ## Canonical AI guide
 
 For the maintained, single-source project guide aimed at AI coding agents (architecture, hard rules,
-commands, conventions, and extension recipes), see [`CLAUDE.md`](../../CLAUDE.md) at the repository
-root, with task-specific guides under [`.claude/skills/`](../../.claude/skills/).
+commands, conventions, and extension recipes), see [`AGENTS.md`](../../AGENTS.md) at the repository
+root, with task-specific guides under [`.agents/skills/`](../../.agents/skills/).

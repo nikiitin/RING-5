@@ -26,22 +26,22 @@ with ring5.Session() as s:
     df = s.reduce_seeds(df, ["config_description_abbrev"], ["simTicks"])
     df = s.shape(df, [{"type": "sort", "by": ["simTicks"]}])
 
-    # 3. Plot (snake_case plot types, same config keys the UI builds)
-    plot = s.create_plot(
-        "bar",
+    # 3. Create and render a plot in one call
+    fig = s.plot(
+        "Bar Chart",
         data=df,
         config={"x": "config_description_abbrev", "y": "simTicks",
                 "title": "Simulated Ticks"},
+        engine="matplotlib",
     )
 
-    # 4. Render with an explicit engine and export
-    fig = s.render(plot, engine="matplotlib")
+    # 4. Export
     s.export(fig, "out/simticks.pdf", deterministic=True)
 
     # 5. Snapshot the whole session
     s.save_portfolio("my_paper")
 
-# Reproduce every figure from the snapshot — years later, headless:
+# Reproduce every figure from the snapshot:
 ring5.render_portfolio("my_paper", "figs/", engine="matplotlib", fmt="pdf")
 ```
 
@@ -52,6 +52,17 @@ Key points:
 - **Engine is always an explicit argument** (`engine="plotly"` or
   `"matplotlib"`); the rendered figure is a regular `plotly` /
   `matplotlib` figure object.
+- **Plot names are forgiving.** `Session.plot` and `Session.create_plot`
+  accept identifiers such as `"grouped_bar"` and display names such as
+  `"Grouped Bar"`; spaces and hyphens are normalized. Use
+  `ring5.available_plot_types()` to discover every registered identifier.
+- **Choose the workflow that fits.** `Session.plot(...)` creates, registers,
+  and renders in one call. Use `Session.create_plot(...)` followed by
+  `Session.render(...)` when the registered plot must be inspected or changed
+  before rendering.
+- **Configuration can be typed or mapping-based.** Pass a regular mapping for
+  concise scripts, or a `ring5.FigureSpec` for editor completion and static
+  type checking.
 - **Errors are typed.** Everything raised derives from
   `ring5.Ring5Error`: `ScanError`, `ParseError`, `MissingStatError` (a
   typoed stat name fails loudly instead of producing an all-NaN column),
