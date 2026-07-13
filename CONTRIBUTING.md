@@ -1,376 +1,90 @@
 # Contributing to RING-5
 
-Thank you for your interest in contributing to RING-5! This document provides guidelines and information for contributors.
+RING-5 welcomes focused bug fixes, documentation improvements, new simulator support, and plotting
+features. Repository-specific architecture rules are summarized in [`AGENTS.md`](AGENTS.md).
 
-## Development Setup
-
-### 1. Clone and Install
+## Development setup
 
 ```bash
-git clone https://github.com/vnicolas/RING-5.git
+git clone https://github.com/nikiitin/RING-5.git
 cd RING-5
-python -m venv python_venv
-source python_venv/bin/activate  # On Windows: python_venv\Scripts\activate
-pip install -e .
+make dev
+make pre-commit-install
 ```
 
-### 2. Install Development Tools
+`make dev` creates `python_venv`, installs the exact development dependencies, installs Chromium,
+and prepares test fixtures. Python 3.12, 3.13, and 3.14 are supported by CI.
+
+## Workflow
+
+1. Create a branch from `main`.
+2. Inspect existing tests and documentation for the affected behavior.
+3. Implement the smallest coherent change and add focused tests.
+4. Update user or developer documentation when a public contract changes.
+5. Run the local verification commands.
+6. Review the complete diff before opening a pull request.
+
+Use conventional commit subjects where practical: `feat`, `fix`, `docs`, `test`, `refactor`,
+`perf`, `build`, or `chore`.
+
+## Verification
+
+During development, run focused tests such as:
 
 ```bash
-pip install pytest pytest-cov pytest-timeout black flake8 mypy pre-commit
+python_venv/bin/pytest tests/unit/test_target.py -n 0
+python_venv/bin/mypy path/to/changed_module.py
 ```
 
-### 3. Setup Pre-commit Hooks
-
-Pre-commit hooks automatically check code quality before each commit:
+Before opening a pull request, run:
 
 ```bash
-pre-commit install
+make quality-gate
+make test-ci
+make test-e2e
+make package-check
 ```
 
-This will run:
-
-- **black**: Code formatting
-- **flake8**: Linting
-- **mypy**: Type checking
-- **isort**: Import sorting
-- **bandit**: Security checks
-
-## Development Workflow
-
-### Running Tests
-
-```bash
-# Run all tests
-make test
-
-# Run specific test categories
-pytest tests/unit/ -v                    # Unit tests only
-pytest tests/integration/ -v             # Integration tests only
-pytest tests/ui_logic/ -v                # UI logic tests only
-
-# Run with coverage
-pytest tests/ --cov=src --cov-report=html
-```
-
-### Type Checking
-
-RING-5 uses **mypy strict mode** with zero tolerance for type errors:
-
-```bash
-# Check entire codebase
-mypy src/ --strict
-
-# Check specific file
-mypy src/core/services/data_services/variable_service.py --strict
-```
-
-**Current Status**: mypy clean — run `mypy src/ --strict` ✅
-
-### Code Formatting
-
-```bash
-# Format code with black
-black src/ tests/
-
-# Check formatting without changes
-black --check src/ tests/
-```
-
-### Linting
-
-```bash
-# Run flake8
-flake8 src/ tests/ --max-line-length=100
-
-# Check for dead code
-vulture src/ tests/ --min-confidence 80
-```
-
-## Continuous Integration
-
-### GitHub Actions CI Pipeline
-
-Every push and pull request triggers automated checks:
-
-**Jobs**:
-
-1. **test**: Runs full test suite with coverage
-2. **type-safety**: Enforces mypy strict compliance
-3. **code-quality**: Checks formatting and linting
-
-**Requirements for Merge**:
-
-- ✅ All tests passing
-- ✅ Type safety (0 mypy errors)
-- ✅ Code formatted with black
-- ✅ No critical flake8 violations
-
-### Local CI Simulation
-
-Run all CI checks locally before pushing:
-
-```bash
-# 1. Format code
-black src/ tests/
-
-# 2. Run linters
-flake8 src/ tests/ --max-line-length=100
-
-# 3. Type check (strict)
-mypy src/ --strict
-
-# 4. Run tests
-make test
-
-# 5. Check coverage
-pytest tests/ --cov=src --cov-report=term-missing
-```
-
-## Code Quality Standards
-
-### Type Annotations (MANDATORY)
-
-Every function, method, and class must have complete type hints:
-
-```python
-# ✅ GOOD
-def process_data(df: pd.DataFrame, threshold: float) -> pd.DataFrame:
-    """Process dataframe with threshold."""
-    result: pd.DataFrame = df[df["value"] > threshold]
-    return result
-
-# ❌ BAD
-def process_data(df, threshold):  # No type hints
-    return df[df["value"] > threshold]
-```
-
-### Documentation (REQUIRED)
-
-All public functions and classes need docstrings:
-
-```python
-def calculate_speedup(baseline: float, experiment: float) -> float:
-    """
-    Calculate speedup relative to baseline.
-
-    Args:
-        baseline: Baseline execution time
-        experiment: Experiment execution time
-
-    Returns:
-        Speedup value (baseline / experiment)
-
-    Raises:
-        ValueError: If experiment is zero
-    """
-    if experiment == 0:
-        raise ValueError("Experiment time cannot be zero")
-    return baseline / experiment
-```
-
-### Testing (COMPREHENSIVE)
-
-- **Unit tests**: Test individual functions/methods
-- **Integration tests**: Test component interactions
-- **UI tests**: Test Streamlit components (mocked)
-
-**Coverage Target**: Maintain or improve coverage (CI enforces the gate via `make test-ci`)
-
-```python
-# Example unit test structure
-class TestCalculateSpeedup:
-    """Tests for calculate_speedup function."""
-
-    def test_basic_speedup(self) -> None:
-        """Should calculate correct speedup."""
-        assert calculate_speedup(100, 50) == 2.0
-
-    def test_raises_on_zero_experiment(self) -> None:
-        """Should raise ValueError for zero experiment time."""
-        with pytest.raises(ValueError):
-            calculate_speedup(100, 0)
-```
-
-## Architecture Guidelines
-
-### Layered Architecture
-
-RING-5 follows strict architectural layers:
-
-```text
-UI Layer (Streamlit)
-    ↓ uses
-Service Layer (Business Logic)
-    ↓ uses
-Data Layer (Parsing, CSV)
-```
-
-**Rules**:
-
-- ❌ UI components NEVER contain business logic
-- ❌ Services NEVER import Streamlit
-- ✅ All business logic goes in services
-- ✅ Services are pure Python, fully testable
-
-### Service Pattern Example
-
-```python
-# ❌ BAD - Business logic in UI
-def render_component():
-    data = st.session_state["data"]
-    if len(data) > 0:
-        result = data.groupby("category").mean()  # Business logic!
-        st.dataframe(result)
-
-# ✅ GOOD - Service handles logic
-class DataService:
-    @staticmethod
-    def aggregate_by_category(data: pd.DataFrame) -> pd.DataFrame:
-        """Aggregate data by category with mean."""
-        return data.groupby("category").mean()
-
-def render_component():
-    data = st.session_state["data"]
-    if len(data) > 0:
-        result = DataService.aggregate_by_category(data)
-        st.dataframe(result)
-```
-
-## Pull Request Process
-
-### 1. Create Feature Branch
-
-```bash
-git checkout -b feature/your-feature-name
-```
-
-### 2. Make Changes
-
-- Follow code quality standards
-- Add/update tests
-- Update documentation
-
-### 3. Run Pre-commit Checks
-
-```bash
-pre-commit run --all-files
-```
-
-### 4. Commit
-
-```bash
-git add .
-git commit -m "feat: add new feature description"
-```
-
-**Commit Message Format**:
-
-- `feat:` New feature
-- `fix:` Bug fix
-- `docs:` Documentation only
-- `test:` Adding tests
-- `refactor:` Code refactoring
-- `perf:` Performance improvement
-- `chore:` Maintenance tasks
-
-### 5. Push and Create PR
-
-```bash
-git push origin feature/your-feature-name
-```
-
-Then create a Pull Request on GitHub.
-
-### 6. PR Requirements
-
-Your PR will be automatically checked by CI. Required:
-
-- ✅ All tests pass
-- ✅ No type errors
-- ✅ Code formatted with black
-- ✅ Coverage maintained (CI gate via `make test-ci`)
-
-## Common Tasks
-
-### Adding a New Service
-
-1. Create service file: `src/core/services/data_services/my_service.py`
-2. Add comprehensive type hints
-3. Write unit tests: `tests/unit/test_my_service.py`
-4. Ensure 0 mypy errors: `mypy src/core/services/data_services/my_service.py --strict`
-
-### Adding a New Plot Type
-
-1. Create plot class: `src/web/pages/ui/plotting/types/my_plot.py`
-2. Register in `PlotFactory`
-3. Add integration test: `tests/integration/test_my_plot.py`
-4. Update documentation
-
-### Refactoring a Component
-
-1. Write tests for current behavior (if missing)
-2. Make changes incrementally
-3. Run tests after each change
-4. Verify: `make test && mypy src/ --strict`
-
-## Testing Patterns
-
-### Connector Tests
-
-Test engine connectors by verifying they correctly apply `FigureSpec` fields:
-
-```python
-def test_plotly_connector_applies_title(default_figure_spec):
-    spec = dataclasses.replace(default_figure_spec, title="My Title")
-    connector = PlotlyConnector()
-    fig = connector.apply(go.Figure(), spec)
-    assert fig.layout.title.text == "My Title"
-```
-
-### Spec Roundtrip Tests
-
-Verify `FigureSpec` survives config → spec → config conversion:
-
-```python
-def test_spec_roundtrip(default_figure_spec):
-    config = ConfigBridge.spec_to_config(default_figure_spec)
-    rebuilt = ConfigSpecBuilder.from_config(config)
-    assert rebuilt == default_figure_spec
-```
-
-### UI Logic Tests (No Streamlit)
-
-Test widget logic without running Streamlit by mocking `st.*` calls:
-
-```python
-@mock.patch("src.web.pages.ui.plotting.base_plot.st")
-def test_section_renders(mock_st, base_plot_instance):
-    base_plot_instance.render_settings_section("layout", {})
-    mock_st.number_input.assert_called()
-```
-
-### Principle Compliance Tests
-
-Guard architectural rules with automated checks in `tests/tests_principle_compliance/`:
-
-- No `Any` in spec dataclasses
-- No UI "Export" strings (must be "Download")
-- No `st.expander` for styling navigation
-
-## Questions?
-
-- Check existing code for examples
-- Read `CLAUDE.md` and `.claude/skills/` for detailed guides
-- Open an issue for clarification
-
-## Code of Conduct
-
-- Be respectful and professional
-- Focus on the code, not the person
-- Welcome newcomers
-- Give constructive feedback
-
----
-
-Thank you for contributing to RING-5! 🚀
+Plotly/Kaleido export tests are marked `serial` and must run with `-n 0`. Browser tests require the
+Playwright Chromium installation provided by `make dev`.
+
+## Code standards
+
+- Add complete type annotations to production functions.
+- Use concise Google-style docstrings for public classes, functions, parameters, return values,
+  and meaningful exceptions.
+- Keep comments for intent, constraints, and non-obvious decisions. Do not narrate the code or
+  preserve change history in comments.
+- Do not mutate caller-owned DataFrames or configuration dictionaries.
+- Catch specific exceptions and preserve the original exception as `__cause__` at public boundaries.
+- Keep core and parsing code independent from Streamlit and `src.web`.
+- Expose supported scripting functionality through `ring5/`; user code should not import `src.*`.
+
+The semantic checks in `scripts/check_architecture.py`, `scripts/check_comments.py`, and
+`scripts/check_public_docstrings.py` enforce the principal boundaries.
+
+## Tests
+
+- Unit tests belong in `tests/unit/`.
+- Cross-component and public API workflows belong in `tests/integration/`.
+- Streamlit logic and component tests belong in `tests/ui_logic/` and `tests/ui_unit/`.
+- Browser workflows belong in `tests/e2e/`.
+- Reuse fixtures from `tests/conftest.py` and existing xdist groups for shared state.
+- Test both Plotly and Matplotlib when traces, figure configuration, or export behavior changes.
+- Add migration tests when serialized portfolio or pipeline formats change.
+
+## Extension guides
+
+Detailed recipes are available for common changes:
+
+- [Add a plot type](.agents/skills/add-plot-type/SKILL.md)
+- [Add a shaper](.agents/skills/add-shaper/SKILL.md)
+- [Extend parsing](.agents/skills/parsing-and-variable-types/SKILL.md)
+- [Modify rendering](.agents/skills/rendering-figureconfig/SKILL.md)
+- [Write browser tests](.agents/skills/e2e-streamlit-testing/SKILL.md)
+
+## Pull requests
+
+Describe the problem, behavior change, compatibility impact, and verification performed. Include
+screenshots for visible UI changes and representative output for parser or export changes. Keep the
+branch free of generated files, local settings, credentials, plans, and unrelated formatting churn.

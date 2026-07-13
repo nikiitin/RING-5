@@ -308,12 +308,12 @@ pytest -s               # Show print/logging output
 
 ## Coverage
 
-Coverage is managed via `pytest-cov`. Only `dual_axis_bar_dot_plot.py` (WIP) is
-excluded from measurement.
+Coverage is managed via `pytest-cov` across both `src` and the supported
+`ring5` package.
 
 ```bash
-pytest --cov=src --cov-report=term-missing       # Terminal report
-pytest --cov=src --cov-report=html                # HTML report
+pytest --cov=src --cov=ring5 --cov-branch --cov-report=term-missing
+pytest --cov=src --cov=ring5 --cov-branch --cov-report=html
 ```
 
 The project includes coverage-targeted test files

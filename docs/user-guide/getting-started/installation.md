@@ -13,7 +13,7 @@ This page covers how to install and run RING-5 on your local machine.
 
 Before you begin, make sure you have the following installed:
 
-- **Python 3.12 or later.** Check your version with `python3 --version`.
+- **Python 3.12, 3.13, or 3.14.** Check your version with `python3 --version`.
 - **pip.** Included with most Python installations. Verify with `pip --version`.
 - **Perl 5.** Required by the gem5 stats parser. Most Linux and macOS systems include Perl by default. Verify with `perl --version`.
 - **Git.** Needed to clone the repository.
@@ -21,8 +21,8 @@ Before you begin, make sure you have the following installed:
 ## Clone the Repository
 
 ```bash
-git clone https://github.com/your-org/ring5.git
-cd ring5
+git clone https://github.com/nikiitin/RING-5.git
+cd RING-5
 ```
 
 ## Create a Virtual Environment
@@ -51,13 +51,13 @@ This installs the following packages and their transitive dependencies:
 - **matplotlib** -- publication-quality static plot rendering
 - **plotly** and **kaleido** -- interactive plot rendering and image export
 - **streamlit** -- web application framework
-- **jsonschema** -- configuration and portfolio validation
 - **openpyxl** -- Excel file support
 
-If you plan to run the test suite or use development tools, install the optional dev dependencies as well:
+For the complete contributor environment, install the development, CI, and browser-test groups:
 
 ```bash
-pip install -e ".[dev]"
+pip install -e ".[dev,ci,e2e]"
+playwright install chromium
 ```
 
 ## Platform-Specific Instructions
@@ -72,11 +72,11 @@ sudo apt update
 sudo apt install python3.12 python3.12-venv python3-pip git perl
 
 # Clone and install
-git clone https://github.com/your-org/ring5.git
-cd ring5
+git clone https://github.com/nikiitin/RING-5.git
+cd RING-5
 python3.12 -m venv venv
 source venv/bin/activate
-pip install -e ".[dev]"
+pip install -e ".[dev,ci,e2e]"
 ```
 
 ### macOS
@@ -91,11 +91,11 @@ RING-5 installs cleanly on macOS using [Homebrew](https://brew.sh) to provide Py
 brew install python@3.12 git
 
 # Clone and install
-git clone https://github.com/your-org/ring5.git
-cd ring5
+git clone https://github.com/nikiitin/RING-5.git
+cd RING-5
 python3.12 -m venv venv
 source venv/bin/activate
-pip install -e ".[dev]"
+pip install -e ".[dev,ci,e2e]"
 ```
 
 ### Windows
@@ -106,20 +106,21 @@ On Windows, install Python 3.12 from [python.org](https://www.python.org/downloa
 # After installing Python 3.12, Git, and Strawberry Perl:
 
 # Clone the repository
-git clone https://github.com/your-org/ring5.git
-cd ring5
+git clone https://github.com/nikiitin/RING-5.git
+cd RING-5
 
 # Create and activate a virtual environment
 python -m venv venv
 venv\Scripts\activate
 
 # Install dependencies
-pip install -e ".[dev]"
+pip install -e ".[dev,ci,e2e]"
 ```
 
 ## Dependencies
 
-RING-5 organizes its requirements into core, development, and the full set declared in `pyproject.toml`.
+RING-5 organizes its requirements into core and optional development, CI, and browser-test groups
+declared in `pyproject.toml`.
 
 ### Core Dependencies
 
@@ -130,14 +131,16 @@ Installed by `pip install -e .` and required to run the application:
 - **numpy** and **scipy** -- numerical computation and statistical analysis
 - **matplotlib** -- publication-quality static plot rendering
 - **plotly** and **kaleido** -- interactive plot rendering and image export
-- **jsonschema** -- configuration and portfolio validation
 - **openpyxl** -- Excel file support
 
 ### Development Dependencies
 
-Installed by `pip install -e ".[dev]"` and used for testing, type checking, and formatting:
+Installed by `pip install -e ".[dev,ci,e2e]"` and used for testing, type checking, formatting,
+security checks, and browser automation:
 
 - **pytest** -- testing framework
+- **pytest-order**, **pytest-randomly**, and **pytest-xdist** -- deterministic ordering,
+  order-dependence detection, and parallel execution
 - **mypy** -- static type checking
 - **black** -- code formatting
 - **flake8** -- linting
@@ -190,7 +193,7 @@ git pull origin main
 
 # Update dependencies inside your virtual environment
 source venv/bin/activate
-pip install -e ".[dev]"
+pip install -e ".[dev,ci,e2e]"
 
 # Confirm everything still works
 make test
@@ -222,7 +225,9 @@ streamlit run app.py --server.port 8502
 ```
 
 **ModuleNotFoundError for a dependency.**
-Make sure your virtual environment is activated (`source venv/bin/activate`) and that you ran `pip install -e .` from the project root. You can verify installed packages with `pip list`.
+Make sure your virtual environment is activated (`source venv/bin/activate`) and that you ran
+`pip install -e .` from the project root. Contributors should install
+`pip install -e ".[dev,ci,e2e]"`. You can verify installed packages with `pip list`.
 
 **Perl not found (parser errors).**
 The gem5 stats parser relies on Perl scripts. If you see errors related to Perl when parsing stats files, install Perl through your system package manager:
@@ -238,7 +243,9 @@ brew install perl
 ```
 
 **Wrong Python version.**
-Check your version with `python3 --version`; it should be 3.12 or later. If your default `python3` points to an older release, create the virtual environment with the explicit interpreter, for example `python3.12 -m venv venv`.
+Check your version with `python3 --version`; supported releases are 3.12, 3.13, and 3.14. If
+your default `python3` points elsewhere, create the virtual environment with an explicit supported
+interpreter, for example `python3.12 -m venv venv`.
 
 **Virtual environment not activating.**
 The activation command differs by platform:
@@ -261,7 +268,7 @@ Do not use `sudo` to install RING-5. Instead, ensure your user has write permiss
 Reinstall in editable mode from the project root:
 
 ```bash
-pip install -e ".[dev]"
+pip install -e ".[dev,ci,e2e]"
 ```
 
 **Blank page or connection refused.**

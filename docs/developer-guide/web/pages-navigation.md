@@ -286,7 +286,7 @@ The page renders link cards organized into three sections using two-column
 grids:
 
 - **WebApp Guide** -- Quick Start, Data Source, Manage Plots, First Analysis,
-  Data Managers, Plot Settings, Export & Download, Portfolios.
+  Data Managers, Plot Settings, Downloads, and Portfolios.
 - **API Reference** -- Backend Facade, Plotting API, Parsing API, Shaper API.
 - **Developer Guides** -- Architecture, Testing Guide, Development Setup,
   Adding Plot Types.

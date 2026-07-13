@@ -7,244 +7,124 @@ nav_order: 3
 
 # Code Quality Tools
 
-## Overview
+RING-5 keeps tool versions in `pyproject.toml` and exposes repeatable commands
+through the Makefile. The same quality gate runs locally and in CI.
 
-RING-5 enforces code quality through six automated tools integrated into both
-pre-commit hooks and CI pipelines. Every commit is checked by the full toolchain
-before it reaches the repository.
+## Toolchain
 
-| Tool       | Role                        | Version |
-|------------|-----------------------------|---------|
-| Black      | Code formatter              | 26.1.0  |
-| isort      | Import sorter               | 7.0.0   |
-| Flake8     | Linter (PEP 8 + errors)     | 7.3.0   |
-| mypy       | Static type checker         | 1.19.1  |
-| Bandit     | Security scanner            | 1.9.3   |
-| pyupgrade  | Python syntax modernizer    | 3.19.1  |
+| Tool | Version | Purpose |
+|---|---:|---|
+| Black | 26.5.1 | Deterministic Python formatting |
+| Flake8 | 7.3.0 | Style and correctness linting |
+| MyPy | 2.3.0 | Static type checking |
+| Bandit | 1.9.4 | Python security analysis |
+| pip-audit | 2.10.1 | Installed-package vulnerability audit |
 
-All tool configurations live in `pyproject.toml` (or `.pre-commit-config.yaml`
-for hook-specific arguments), keeping a single source of truth.
+Black and Flake8 use a 100-character line limit. MyPy targets Python 3.12,
+requires typed function definitions, rejects implicit optionals, and checks
+untyped bodies. Third-party stubs are declared in the development extra.
 
----
+Bandit scans `ring5/` and `src/` for medium- and high-severity findings.
+`B404` and `B603` are excluded because the parser intentionally launches a
+validated Perl command without a shell.
 
-## Black
+## Semantic checks
 
-Black is the project's opinionated code formatter. It produces deterministic
-output, eliminating style debates during code review.
+Generic linters cannot enforce all repository contracts, so the project ships
+three dependency-free checks in `scripts/`.
 
-**Configuration** (`pyproject.toml`):
-
-```toml
-[tool.black]
-line-length = 100
-target-version = ['py312']
-```
-
-- **Line length 100** -- wider than the default 88 to accommodate the long
-  method chains common in pandas data-processing code.
-- **Target Python 3.12** -- enables modern formatting choices such as
-  parenthesized context managers.
-
-**Usage**:
+### Architecture
 
 ```bash
-black src/ tests/              # Format all source files
-black --check --diff src/      # Dry-run: show what would change
+make arch-check
 ```
 
----
+`check_architecture.py` parses imports and syntax to enforce layer boundaries,
+keep Streamlit state out of core code, prohibit unsafe constructs, and preserve
+immutable DataFrame operations.
 
-## isort
-
-isort sorts and groups import statements so that every file follows the same
-ordering convention.
-
-**Configuration** (via pre-commit hook arguments):
-
-```yaml
-args: [--profile=black, --line-length=100]
-```
-
-- `--profile=black` ensures import formatting does not conflict with Black.
-- `--line-length=100` matches the project-wide line length.
-
-**Usage**:
+### Public documentation
 
 ```bash
-isort src/ tests/              # Sort imports in-place
-isort --check-only src/        # Dry-run: report unsorted files
+make docs-check
 ```
 
----
+`check_public_docstrings.py` requires docstrings on public modules, classes,
+functions, and methods. When a Google-style `Args` section is present, its
+parameter names must match the signature. `check_doc_links.py` validates local
+Markdown targets throughout the contributor and user documentation.
 
-## Flake8
-
-Flake8 is the project's linter, checking for PEP 8 violations and common
-programming errors.
-
-**Configuration** (`pyproject.toml`):
-
-```toml
-[tool.flake8]
-max-line-length = 100
-extend-ignore = ["E203", "W503"]
-exclude = [".git", "__pycache__", "python_venv", ".pytest_cache", "*.egg-info", "build", "dist"]
-```
-
-- **E203 ignored** -- "Whitespace before `:`". Conflicts with how Black formats
-  slice expressions (e.g., `x[1 : 2]`).
-- **W503 ignored** -- "Line break before binary operator". Black always places
-  breaks before operators; ignoring W503 prevents conflicts.
-- The `flake8-pyproject` plugin is required so that flake8 reads its settings
-  from `pyproject.toml`.
-
-**Usage**:
+### Comments
 
 ```bash
-flake8 src/ tests/ --count --statistics
+make comments-check
 ```
 
----
+`check_comments.py` tokenizes Python comments and rejects assistant-specific
+references, internal milestone labels, and drafting slogans. Comments should
+explain intent, constraints, or non-obvious behavior—not narrate statements or
+record change history.
 
-## mypy
-
-mypy performs static type checking. The project runs it in a near-strict mode
-that requires type annotations on every function definition.
-
-**Configuration** (`pyproject.toml`):
-
-```toml
-[tool.mypy]
-python_version = "3.12"
-disallow_untyped_defs = true
-no_implicit_optional = true
-check_untyped_defs = true
-strict_equality = true
-warn_return_any = true
-warn_no_return = true
-warn_redundant_casts = true
-```
-
-Key rules enforced:
-
-| Setting                  | Effect                                                  |
-|--------------------------|---------------------------------------------------------|
-| `disallow_untyped_defs`  | All functions must have type annotations.               |
-| `no_implicit_optional`   | `x: str = None` is an error; must write `str \| None`.  |
-| `strict_equality`        | Prevents comparing incompatible types.                  |
-| `check_untyped_defs`     | Bodies of untyped functions are still type-checked.      |
-
-Type stubs for third-party libraries are provided by `pandas-stubs`,
-`plotly-stubs`, `types-jsonschema`, and `scipy-stubs` (all in dev dependencies).
-
-**Usage**:
+### Dependencies
 
 ```bash
-mypy src/ --show-error-codes --pretty
+make dependency-check
 ```
 
----
+`analyze_dependencies.py` compares production imports with declared runtime
+dependencies. The target also runs `pip check` to detect incompatible or missing
+installed packages.
 
-## Bandit
+## Commands
 
-Bandit scans Python code for common security issues such as hardcoded passwords,
-use of `exec()`/`eval()`, and insecure module usage.
-
-**Configuration** (`pyproject.toml`):
-
-```toml
-[tool.bandit]
-skips = ["B603", "B404"]
-```
-
-- **B603** (subprocess without shell) -- skipped because the project explicitly
-  uses `shell=False` with validated paths for the Perl parser.
-- **B404** (import subprocess) -- skipped because subprocess is required for
-  invoking the external Perl parser.
-
-**Usage**:
+Format the repository:
 
 ```bash
-bandit -r src/ -c pyproject.toml -ll
+make format
 ```
 
-The `-ll` flag limits output to medium- and high-severity findings.
-
----
-
-## pyupgrade
-
-pyupgrade automatically rewrites source files to use modern Python 3.12+ syntax.
-
-**Configuration** (`.pre-commit-config.yaml`):
-
-```yaml
-args: [--py312-plus]
-```
-
-Examples of transformations applied:
-
-- `Optional[X]` becomes `X | None`
-- `Union[X, Y]` becomes `X | Y`
-- `Dict[K, V]` becomes `dict[K, V]` (lowercase built-in generics)
-
-pyupgrade runs as a pre-commit hook only; there is no separate CI step.
-
----
-
-## Custom Architecture Hooks
-
-Five local pre-commit hooks enforce project-specific rules that go beyond
-generic linting. Each hook scans `src/` with `grep` and fails the commit if a
-violation is found.
-
-| Hook ID                    | Rule                                                   |
-|----------------------------|--------------------------------------------------------|
-| `no-streamlit-in-core`     | No `import streamlit` or `from streamlit` in `src/core/`. Keeps the core layer framework-independent. |
-| `no-session-state-in-core` | No `session_state` references in `src/core/`. Confines Streamlit state to the web layer. |
-| `no-inplace-true`          | No `inplace=True` anywhere in `src/`. Enforces immutable DataFrame operations. |
-| `no-bare-except`           | No bare `except:` clauses in `src/`. Requires specifying an exception type. |
-| `no-eval-exec`             | No `eval()` or `exec()` in `src/`. Blocks arbitrary code execution as a security measure. |
-
-These hooks only trigger on `.py` files under their respective scopes.
-
----
-
-## Running Quality Checks
-
-**Run all checks at once** (recommended before pushing):
+Run individual checks:
 
 ```bash
-make quality-gate          # 5-gate check: architecture, types, formatting, lint, security
+make format-check
+make lint
+make type-check
+make arch-check
+make comments-check
+make docs-check
+make dependency-check
+make security-audit
 ```
 
-**Run all pre-commit hooks on the entire codebase**:
+Run the complete gate before pushing:
 
 ```bash
-pre-commit run --all-files
+make quality-gate
 ```
 
-**Run individual tools**:
+The gate runs architecture, comment, documentation, dependency, formatting,
+lint, type, Bandit, and vulnerability checks. Build validation is separate:
 
 ```bash
-black --check src/ tests/                       # Formatting
-isort --check-only src/ tests/                  # Import order
-flake8 src/ tests/ --count --statistics         # Linting
-mypy src/ --show-error-codes --pretty           # Type checking
-bandit -r src/ -c pyproject.toml -ll            # Security
+make package-check
 ```
 
-**Install pre-commit hooks** (first-time setup):
+## Pre-commit
+
+Install and run repository hooks with:
 
 ```bash
-pip install -e ".[dev]"
-pre-commit install
+make pre-commit-install
+make pre-commit
 ```
 
----
+Pre-commit combines the quality tools above with file-format, merge-marker,
+large-file, debug-statement, private-key, and filename-case checks. It also
+blocks direct commits to `main`.
 
-## See Also
+## See also
 
-- [Testing](testing.md) -- pytest configuration and test execution
-- [CI/CD Pipelines](ci-cd.md) -- GitHub Actions workflow details
-- [Architecture](../architecture/overview.md) -- layer boundaries enforced by custom hooks
+- [Testing](testing.md)
+- [CI/CD pipeline](ci-cd.md)
+- [Architecture overview](../architecture/overview.md)
+- [Layer boundaries](../architecture/layer-boundaries.md)

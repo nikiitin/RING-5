@@ -10,7 +10,7 @@ This folder is organized into three trees (each is a section in the published si
 | ---- | -------- | ----------- |
 | [`user-guide/`](user-guide/index.md) | Researchers using the app | `getting-started/installation.md`, `getting-started/first-steps.md` |
 | [`developer-guide/`](developer-guide/index.md) | Contributors & maintainers | `architecture/overview.md`, `development/setup.md` |
-| [`ai-knowledge-base/`](ai-knowledge-base/index.md) | AI coding agents & deep reference | `architecture/system-overview.md`, `quick-reference/file-locations.md` |
+| [`engineering-reference/`](engineering-reference/index.md) | Maintainers needing concise reference material | `architecture/system-overview.md`, `quick-reference/file-locations.md` |
 
 `index.md` is the site landing page; `_config.yml` holds the Jekyll/just-the-docs configuration.
 
@@ -22,5 +22,5 @@ This folder is organized into three trees (each is a section in the published si
   `gem "just-the-docs"` + `gem "jekyll-redirect-from"`, then `bundle exec jekyll serve`. The
   GitHub Pages workflow (`.github/workflows/pages.yml`) builds and deploys on push.
 
-> Working in the repo with an AI agent? The canonical in-repo guide is
-> [`/CLAUDE.md`](../CLAUDE.md) with task recipes under [`/.claude/skills/`](../.claude/skills/).
+Repository contribution rules are in [`/AGENTS.md`](../AGENTS.md), with task recipes under
+[`/.agents/skills/`](../.agents/skills/).

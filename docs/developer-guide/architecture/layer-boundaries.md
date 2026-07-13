@@ -356,4 +356,4 @@ consumer depends only on the protocol.
 - **ApplicationAPI Reference** -- `src/core/application_api.py` is the
   primary boundary enforcement point.
 - **Boundary enforcement** -- `make arch-check` (and the pre-commit hooks) verify these rules on every
-  change; see also [`CLAUDE.md`](../../../CLAUDE.md) §1-2.
+  change; see also [`AGENTS.md`](../../../AGENTS.md) §1-2.

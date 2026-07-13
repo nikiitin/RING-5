@@ -2,7 +2,9 @@
 
 **R**eproducible **I**nstrumentation for **N**umerical **G**raphics for gem5
 
-RING-5 turns raw simulator output into publication-ready figures. Point it at your stats files, pick your variables, and get clean, reproducible plots for your next ISCA, MICRO, or ASPLOS paper -- in the web app (no scripting required) or headlessly via the `ring5` Python API and CLI (batch parsing, CI figure regression, regenerating every figure from a saved portfolio). Currently supports **gem5**, with a multi-simulator architecture for future backends.
+RING-5 turns raw simulator output into publication-ready figures. It supports interactive analysis
+through a Streamlit application and repeatable automation through the `ring5` Python API and CLI.
+RING-5 currently supports **gem5** and provides an extension point for additional simulators.
 
 [![Python](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org/)
 [![Tests](https://img.shields.io/badge/tests-passing-success)](tests/)
@@ -12,7 +14,8 @@ RING-5 turns raw simulator output into publication-ready figures. Point it at yo
 
 ## Why RING-5?
 
-If you work with gem5 (or plan to add other simulator backends), you know the drill: parse `stats.txt`, wrangle the data in pandas, fight with matplotlib, and pray the numbers are right. RING-5 handles all of that behind a web interface.
+Simulator analysis combines statistics parsing, table transformations, visualization, and
+repeatable export. RING-5 provides those stages through one web and scripting interface.
 
 - **Parse once, plot many times.** Scan and parse simulator stats files into structured CSVs with automatic variable discovery.
 - **Transform without code.** Normalize against baselines, aggregate across seeds, remove outliers, compute geometric means -- all through a visual pipeline builder.
@@ -25,7 +28,7 @@ If you work with gem5 (or plan to add other simulator backends), you know the dr
 
 ### Requirements
 
-- Python 3.12+
+- Python 3.12, 3.13, or 3.14
 - Linux (tested on Ubuntu 20.04+)
 - `make` and `pip`
 
@@ -47,10 +50,34 @@ make install-latex
 ### Launch
 
 ```bash
-streamlit run app.py
+make run
 ```
 
 Open [http://localhost:8501](http://localhost:8501) in your browser.
+
+### Use the Python API
+
+The supported `ring5` package provides the same workflow without a browser:
+
+```python
+import pandas as pd
+import ring5
+
+data = pd.DataFrame({"benchmark": ["a", "b"], "ipc": [1.0, 1.4]})
+with ring5.Session() as session:
+    figure = session.plot(
+        "Bar Chart",
+        data=data,
+        config={"x": "benchmark", "y": "ipc", "title": "IPC"},
+        engine="matplotlib",
+    )
+    session.export(figure, "ipc.pdf", deterministic=True)
+```
+
+Plot identifiers and display names are both accepted; call `ring5.available_plot_types()` to
+discover the registered identifiers. See
+[Scripting & Headless Use](https://nikiitin.github.io/RING-5/user-guide/features/scripting/) for
+parsing, typed figure specifications, transformations, and portfolio replay.
 
 ---
 
@@ -105,6 +132,7 @@ Quick links:
 - [Parsing Guide](https://nikiitin.github.io/RING-5/developer-guide/parsing/parsing-architecture/) -- gem5 stats parsing in depth
 - [Data Transformations](https://nikiitin.github.io/RING-5/user-guide/features/shapers/) -- shapers and pipelines
 - [Creating Plots](https://nikiitin.github.io/RING-5/user-guide/pages/manage-plots/) -- visualization options
+- [Python API and CLI](https://nikiitin.github.io/RING-5/user-guide/features/scripting/) -- headless automation
 - [Architecture](https://nikiitin.github.io/RING-5/developer-guide/architecture/overview/) -- system design for contributors
 
 ---
@@ -114,15 +142,17 @@ Quick links:
 ### Setup
 
 ```bash
-make dev                    # Create venv and install all dependencies
-make pre-commit-install     # Install git hooks (black, flake8, mypy, isort, bandit)
+make dev                    # Create the environment and install exact dependencies
+make pre-commit-install     # Install repository git hooks
 ```
 
 ### Quality checks
 
 ```bash
-make test           # Run the test suite
-make pre-commit     # Run all pre-commit hooks
+make quality-gate   # Architecture, comments, docs, dependencies, style, types, security
+make test-ci        # Non-browser tests and coverage
+make test-e2e       # Playwright browser workflows
+make package-check  # Validate wheel and source distributions
 ```
 
 ### Project structure
@@ -132,14 +162,16 @@ src/
   core/
     models/          # Data models, protocols, configuration
     state/           # Repository-based state management
-    parsing/         # gem5 stats parser (async, strategy-based)
     services/        # Business logic
       managers/      #   Arithmetic, outlier, reduction operations
       data_services/ #   CSV pool, config, variables, portfolios
       shapers/       #   Pipeline CRUD + transformation strategies
   web/
     pages/           # Streamlit page components
-    ui/              # Reusable widgets, data managers, plotting
+    components/      # Reusable Streamlit components
+    rendering/       # Plotly and Matplotlib connectors
+  parsing/           # Simulator protocols and gem5 implementation
+ring5/               # Supported headless Python API and CLI
 ```
 
 ### Contributing
@@ -147,21 +179,9 @@ src/
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines. The short version:
 
 1. Branch from `main`.
-2. Write tests first.
-3. All tests, type checks (`mypy --strict`), and linting must pass.
+2. Add focused tests for changed behavior.
+3. Run the repository quality, test, and package gates.
 4. Open a pull request.
-
----
-
-## Performance
-
-RING-5 uses persistent Perl worker pools for parsing. Compared to spawning subprocesses per variable:
-
-| Operation           | Subprocess | Worker Pool | Speedup |
-| ------------------- | ---------- | ----------- | ------- |
-| Parse 20 variables  | 54s        | 1s          | **54x** |
-| Scan 1000 variables | 120s       | 8s          | **15x** |
-| Full pipeline       | 180s       | 12s         | **15x** |
 
 ---
 
