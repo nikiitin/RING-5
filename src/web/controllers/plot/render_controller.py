@@ -206,7 +206,12 @@ class PlotRenderController:
         active_engine = current_engine
         if engine_choice is not None:
             active_engine = cast("EngineMode", engine_choice)
-            EngineManager.set_engine(active_engine)
+            if active_engine != current_engine:
+                EngineManager.set_engine(active_engine)
+                # Rebuild the selector from the persisted engine before
+                # rendering so the control and chart cannot disagree.
+                st.rerun()
+                return
 
         # Cache identity
         data_hash: str = self._compute_data_hash(plot.processed_data)
