@@ -572,9 +572,7 @@ DATA_LABELS = WidgetSection(
     ),
 )
 
-# Collect all standard sections for easy iteration
-# Note: LEGEND is a convenience aggregate — STANDARD_SECTIONS uses the
-# granular sub-sections to avoid duplicate spec_path entries.
+# LEGEND is an aggregate; use its granular sections here to avoid duplicate paths.
 STANDARD_SECTIONS: tuple[WidgetSection, ...] = (
     LAYOUT_DIMENSIONS,
     LAYOUT_MARGINS,
@@ -719,7 +717,7 @@ ADVANCED_SECTION = WidgetSection(
         ),
         SelectWidgetDef(
             key="export_scale",
-            label="Export Scale (Resolution)",
+            label="Download Scale (Resolution)",
             default="1",
             options=("1", "2", "3"),
             help_text="1x = WYSIWYG. 3x = High Res (Publication).",

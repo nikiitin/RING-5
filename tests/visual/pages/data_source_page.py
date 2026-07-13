@@ -72,24 +72,22 @@ class DataSourcePage(BasePage):
     @property
     def segmented_control(self) -> Locator:
         """The segmented control for selecting data source mode."""
-        return self.page.locator(
-            "[data-testid='stMainBlockContainer'] " "[data-testid='stButtonGroup']"
-        ).first
+        return self.page.get_by_role("radiogroup", name="Select your data source:")
 
     @property
     def parse_option(self) -> Locator:
         """'Parse gem5 Stats Files' option in the segmented control."""
-        return self.segmented_control.get_by_role("button", name="Parse gem5 Stats Files")
+        return self.segmented_control.get_by_role("radio", name="Parse gem5 Stats Files")
 
     @property
     def csv_option(self) -> Locator:
         """'I already have CSV data' option."""
-        return self.segmented_control.get_by_role("button", name="I already have CSV data")
+        return self.segmented_control.get_by_role("radio", name="I already have CSV data")
 
     @property
     def recent_option(self) -> Locator:
         """'Load from Recent' option."""
-        return self.segmented_control.get_by_role("button", name="Load from Recent")
+        return self.segmented_control.get_by_role("radio", name="Load from Recent")
 
     # ==================================================================
     # SECTION 3: Parser config (Parse mode)
@@ -101,14 +99,12 @@ class DataSourcePage(BasePage):
     @property
     def simulator_pills(self) -> Locator:
         """The simulator backend pills selector (key=simulator_selector)."""
-        return self.page.locator(
-            "[data-testid='stMainBlockContainer'] " "[data-testid='stButtonGroup']"
-        ).filter(has_text="gem5")
+        return self.page.get_by_role("radiogroup", name="Simulator")
 
     @property
     def gem5_pill(self) -> Locator:
         """The gem5 simulator pill button."""
-        return self.simulator_pills.get_by_role("button", name="gem5")
+        return self.simulator_pills.get_by_role("radio", name="gem5")
 
     # 3b — File Location
     # ------------------------------------------------------------------
@@ -149,21 +145,18 @@ class DataSourcePage(BasePage):
     @property
     def strategy_segmented_control(self) -> Locator:
         """The strategy segmented control (Simple / Config-Aware)."""
-        # It's the second ButtonGroup on the page (first is mode selector)
-        return self.page.locator(
-            "[data-testid='stMainBlockContainer'] " "[data-testid='stButtonGroup']"
-        ).nth(1)
+        return self.page.get_by_role("radiogroup", name="Select ingestion strategy:")
 
     @property
     def strategy_simple_option(self) -> Locator:
         """'Simple (stats.txt only)' strategy button."""
-        return self.strategy_segmented_control.get_by_role("button", name="Simple (stats.txt only)")
+        return self.strategy_segmented_control.get_by_role("radio", name="Simple (stats.txt only)")
 
     @property
     def strategy_config_aware_option(self) -> Locator:
         """'Config-Aware (Integrates config.ini)' strategy button."""
         return self.strategy_segmented_control.get_by_role(
-            "button", name="Config-Aware (Integrates config.ini)"
+            "radio", name="Config-Aware (Integrates config.ini)"
         )
 
     # 3c — Variables to Extract
@@ -304,12 +297,12 @@ class DataSourcePage(BasePage):
     @property
     def dialog_search_pill(self) -> Locator:
         """'Search Scanned Variables' pill in the dialog."""
-        return self.dialog_overlay.get_by_role("button", name="Search Scanned Variables")
+        return self.dialog_overlay.get_by_role("radio", name="Search Scanned Variables")
 
     @property
     def dialog_manual_pill(self) -> Locator:
         """'Manual Entry' pill in the dialog."""
-        return self.dialog_overlay.get_by_role("button", name="Manual Entry")
+        return self.dialog_overlay.get_by_role("radio", name="Manual Entry")
 
     @property
     def dialog_no_vars_warning(self) -> Locator:
@@ -411,10 +404,16 @@ class DataSourcePage(BasePage):
     # Actions
     # ==================================================================
 
-    def _is_mode_active(self, button: Locator) -> bool:
-        """Check if a segmented control mode button is currently active."""
-        testid = button.get_attribute("data-testid") or ""
-        return "Active" in testid
+    def _is_mode_active(self, option: Locator) -> bool:
+        """Return whether a segmented-control radio option is selected."""
+        return option.is_checked()
+
+    def _select_mode(self, option: Locator) -> None:
+        """Select a segmented-control option and wait for its rerun."""
+        if option.is_checked():
+            return
+        option.click()
+        self.wait_for_streamlit(expect_rerun=True)
 
     def ensure_parse_mode(self) -> None:
         """Ensure Parse mode is active without toggling it off.
@@ -422,24 +421,19 @@ class DataSourcePage(BasePage):
         If Parse mode is already active (default), do nothing.
         If not active, click it to activate.
         """
-        if not self._is_mode_active(self.parse_option):
-            self.parse_option.click()
-            self.wait_for_streamlit()
+        self._select_mode(self.parse_option)
 
     def select_parse_mode(self) -> None:
         """Click the 'Parse gem5 Stats Files' option."""
-        self.parse_option.click()
-        self.wait_for_streamlit()
+        self._select_mode(self.parse_option)
 
     def select_csv_mode(self) -> None:
         """Click the 'I already have CSV data' option."""
-        self.csv_option.click()
-        self.wait_for_streamlit()
+        self._select_mode(self.csv_option)
 
     def select_recent_mode(self) -> None:
         """Click the 'Load from Recent' option."""
-        self.recent_option.click()
-        self.wait_for_streamlit()
+        self._select_mode(self.recent_option)
 
     def fill_stats_path(self, path: str) -> None:
         """Type a value into the stats directory path input."""
@@ -459,8 +453,7 @@ class DataSourcePage(BasePage):
 
     def select_simple_strategy(self) -> None:
         """Select the 'Simple' parsing strategy."""
-        self.strategy_simple_option.click()
-        self.wait_for_streamlit()
+        self._select_mode(self.strategy_simple_option)
 
     def ensure_simple_strategy(self) -> None:
         """Ensure 'Simple' strategy is active without toggling it off.
@@ -468,20 +461,15 @@ class DataSourcePage(BasePage):
         Same pattern as ``ensure_parse_mode`` — only clicks if not
         already active.
         """
-        if not self._is_mode_active(self.strategy_simple_option):
-            self.strategy_simple_option.click()
-            self.wait_for_streamlit()
+        self._select_mode(self.strategy_simple_option)
 
     def select_config_aware_strategy(self) -> None:
         """Select the 'Config-Aware' parsing strategy."""
-        self.strategy_config_aware_option.click()
-        self.wait_for_streamlit()
+        self._select_mode(self.strategy_config_aware_option)
 
     def ensure_config_aware_strategy(self) -> None:
         """Ensure 'Config-Aware' strategy is active without toggling it off."""
-        if not self._is_mode_active(self.strategy_config_aware_option):
-            self.strategy_config_aware_option.click()
-            self.wait_for_streamlit()
+        self._select_mode(self.strategy_config_aware_option)
 
     def toggle_deep_scan(self) -> None:
         """Toggle the 'Deep Scan' checkbox."""
@@ -529,13 +517,11 @@ class DataSourcePage(BasePage):
 
     def switch_dialog_to_manual(self) -> None:
         """Switch the Add Variable dialog to Manual Entry mode."""
-        self.dialog_manual_pill.click()
-        self.wait_for_streamlit()
+        self._select_mode(self.dialog_manual_pill)
 
     def switch_dialog_to_search(self) -> None:
         """Switch the Add Variable dialog to Search Scanned Variables."""
-        self.dialog_search_pill.click()
-        self.wait_for_streamlit()
+        self._select_mode(self.dialog_search_pill)
 
     def fill_dialog_manual_name(self, name: str) -> None:
         """Type a variable name in the Manual Entry dialog."""
@@ -645,27 +631,15 @@ class DataSourcePage(BasePage):
 
     def assert_parse_mode_active(self) -> None:
         """Assert Parse mode is the currently active segmented option."""
-        expect(self.parse_option).to_have_attribute(
-            "data-testid",
-            "stBaseButton-segmented_controlActive",
-            timeout=self.RENDER_TIMEOUT,
-        )
+        expect(self.parse_option).to_be_checked(timeout=self.RENDER_TIMEOUT)
 
     def assert_csv_mode_active(self) -> None:
         """Assert CSV mode is the currently active segmented option."""
-        expect(self.csv_option).to_have_attribute(
-            "data-testid",
-            "stBaseButton-segmented_controlActive",
-            timeout=self.RENDER_TIMEOUT,
-        )
+        expect(self.csv_option).to_be_checked(timeout=self.RENDER_TIMEOUT)
 
     def assert_recent_mode_active(self) -> None:
         """Assert Recent mode is the currently active segmented option."""
-        expect(self.recent_option).to_have_attribute(
-            "data-testid",
-            "stBaseButton-segmented_controlActive",
-            timeout=self.RENDER_TIMEOUT,
-        )
+        expect(self.recent_option).to_be_checked(timeout=self.RENDER_TIMEOUT)
 
     def assert_parser_config_visible(self) -> None:
         """Assert the entire parser configuration section is visible."""
@@ -811,10 +785,9 @@ class DataSourcePage(BasePage):
         # Wait for the selectbox to appear (scan data available)
         expect(self.dialog_search_selectbox).to_be_visible(timeout=self.RENDER_TIMEOUT)
         # Click the selectbox to open its dropdown
-        self.dialog_search_selectbox.click()
-        self.page.wait_for_timeout(500)
+        self.dialog_search_selectbox.get_by_role("button", name="Open").click()
         # Select the option by index
-        options = self.page.locator("[data-testid='stSelectboxVirtualDropdown'] li")
+        options = self.page.get_by_role("option")
         expect(options.first).to_be_visible(timeout=self.RENDER_TIMEOUT)
         options.nth(index).click()
         self.wait_for_streamlit()
@@ -842,11 +815,8 @@ class DataSourcePage(BasePage):
         # Change type if not scalar (default)
         if var_type != "scalar":
             selectbox = self.dialog_manual_type_selectbox
-            selectbox.click()
-            self.page.wait_for_timeout(300)
-            option = self.page.locator("[data-testid='stSelectboxVirtualDropdown'] li").filter(
-                has_text=var_type
-            )
+            selectbox.get_by_role("button", name="Open").click()
+            option = self.page.get_by_role("option", name=var_type, exact=True)
             option.click()
             self.wait_for_streamlit()
 

@@ -79,7 +79,7 @@ class DualAxisOpts:
     ylabel: str = ""
     y_range: tuple[float, float] | None = None
     unified_legend: bool = True  # keep right series in the same legend as the bars
-    # Style/place the SEPARATE right-axis (twin) legend when not unified. Without
+    # Style and position the separate right-axis legend when legends are not unified.
     # this the twin legend falls back to loc="upper right". Lets a dual-axis figure
     # position its second-axis legend the same way the primary legend is positioned.
     legend: "LegendOpts | None" = None
@@ -413,7 +413,16 @@ class FigureSpecBuilder:
         group: str | None = None,
         y_columns: list[str] | None = None,
     ) -> "FigureSpecBuilder":
-        """Column mapping: x (major group), group (minor group), stacked series."""
+        """Configure data columns.
+
+        Args:
+            x: Major category column.
+            group: Minor group column.
+            y_columns: Value or stacked-series columns.
+
+        Returns:
+            This builder.
+        """
         return self._set(x=x, group=group, y_columns=y_columns)
 
     def size(
@@ -422,7 +431,16 @@ class FigureSpecBuilder:
         height: float | None = None,
         margins: tuple[float, float, float, float] | None = None,
     ) -> "FigureSpecBuilder":
-        """Figure size (px) and margins (top, bottom, left, right in px)."""
+        """Configure figure dimensions.
+
+        Args:
+            width: Figure width in pixels.
+            height: Figure height in pixels.
+            margins: Top, bottom, left, and right margins in pixels.
+
+        Returns:
+            This builder.
+        """
         return self._set(width=width, height=height, margins=margins)
 
     def title(
@@ -431,7 +449,16 @@ class FigureSpecBuilder:
         font_size: int | None = None,
         font_family: str | None = None,
     ) -> "FigureSpecBuilder":
-        """Figure title and global font family."""
+        """Configure the title and font family.
+
+        Args:
+            text: Figure title.
+            font_size: Title font size.
+            font_family: Global font family.
+
+        Returns:
+            This builder.
+        """
         return self._set(title=text, title_font_size=font_size, font_family=font_family)
 
     def axes(
@@ -445,7 +472,21 @@ class FigureSpecBuilder:
         label_font_size: int | None = None,
         tick_font_size: int | None = None,
     ) -> "FigureSpecBuilder":
-        """Axis labels, y-range/dtick, category/group order, and font sizes."""
+        """Configure axes.
+
+        Args:
+            xlabel: Horizontal-axis title.
+            ylabel: Primary vertical-axis title.
+            y_range: Primary vertical-axis minimum and maximum.
+            y_dtick: Primary vertical-axis major tick interval.
+            x_order: Explicit category order.
+            group_order: Explicit minor-group order.
+            label_font_size: Axis-title font size.
+            tick_font_size: Axis tick-label font size.
+
+        Returns:
+            This builder.
+        """
         return self._set(
             xlabel=xlabel,
             ylabel=ylabel,
@@ -465,7 +506,18 @@ class FigureSpecBuilder:
         color: str | None = None,
         x: bool | None = None,
     ) -> "FigureSpecBuilder":
-        """Y-grid visibility/style and X-grid visibility."""
+        """Configure grid lines.
+
+        Args:
+            y: Show horizontal grid lines.
+            dash: Horizontal grid-line style.
+            alpha: Horizontal grid-line opacity.
+            color: Horizontal grid-line color.
+            x: Show vertical grid lines.
+
+        Returns:
+            This builder.
+        """
         return self._set(
             show_y_grid=y,
             y_grid_dash=dash,
@@ -475,7 +527,15 @@ class FigureSpecBuilder:
         )
 
     def tick_marks(self, x: bool | None = None, y: bool | None = None) -> "FigureSpecBuilder":
-        """Show/hide axis tick marks."""
+        """Configure axis tick marks.
+
+        Args:
+            x: Show horizontal-axis tick marks.
+            y: Show vertical-axis tick marks.
+
+        Returns:
+            This builder.
+        """
         return self._set(show_x_tick_marks=x, show_y_tick_marks=y)
 
     def bars(
@@ -485,13 +545,30 @@ class FigureSpecBuilder:
         group_gap: float | None = None,
         border_width: float | None = None,
     ) -> "FigureSpecBuilder":
-        """Bar layout: barmode, intra/inter-group gaps, border width."""
+        """Configure bar layout.
+
+        Args:
+            mode: Bar arrangement mode.
+            gap: Gap between category groups.
+            group_gap: Gap between bars inside a group.
+            border_width: Bar outline width.
+
+        Returns:
+            This builder.
+        """
         return self._set(
             barmode=mode, bargap=gap, bargroupgap=group_gap, bar_border_width=border_width
         )
 
     def palette(self, palette: str | list[str]) -> "FigureSpecBuilder":
-        """Color palette: a registry name (e.g. ``"Set2"``) or an explicit hex list."""
+        """Configure the color palette.
+
+        Args:
+            palette: Registry name or explicit color list.
+
+        Returns:
+            This builder.
+        """
         return self._set(palette=palette)
 
     def separators(
@@ -501,7 +578,17 @@ class FigureSpecBuilder:
         isolate_last: bool | None = None,
         isolation_gap: float | None = None,
     ) -> "FigureSpecBuilder":
-        """Inter-group separators + bold isolation of the last group."""
+        """Configure separators between groups.
+
+        Args:
+            show: Draw standard separators.
+            color: Separator color.
+            isolate_last: Emphasize the boundary before the last group.
+            isolation_gap: Additional spacing before the isolated group.
+
+        Returns:
+            This builder.
+        """
         return self._set(
             show_separators=show,
             separator_color=color,
@@ -518,7 +605,19 @@ class FigureSpecBuilder:
         alternate: bool | None = None,
         alt_spacing: float | None = None,
     ) -> "FigureSpecBuilder":
-        """Major-group (category) label size, offset, rotation(s), and staggering."""
+        """Configure category labels.
+
+        Args:
+            size: Label font size.
+            offset: Vertical label offset.
+            rotation: Default label rotation in degrees.
+            rotation_overrides: Rotation by displayed category.
+            alternate: Stagger labels across two rows.
+            alt_spacing: Vertical spacing between staggered rows.
+
+        Returns:
+            This builder.
+        """
         return self._set(
             major_label_size=size,
             major_label_offset=offset,
@@ -543,7 +642,25 @@ class FigureSpecBuilder:
         rule_y: float | None = None,
         rule_inset: float | None = None,
     ) -> "FigureSpecBuilder":
-        """Category super-groups: mapping, boundary separators, labels, span rules."""
+        """Configure category super-groups.
+
+        Args:
+            mapping: Category names mapped to super-group labels.
+            label_size: Super-group label font size.
+            label_offset: Vertical label offset.
+            label_color: Label color.
+            separator_color: Boundary separator color.
+            separator_width: Boundary separator width.
+            separator_dash: Boundary separator style.
+            rule: Draw a span rule above each label.
+            rule_color: Span-rule color.
+            rule_width: Span-rule width.
+            rule_y: Explicit span-rule vertical position.
+            rule_inset: Space trimmed from both ends of each span rule.
+
+        Returns:
+            This builder.
+        """
         return self._set(
             category_groups=mapping,
             category_group_label_size=label_size,
@@ -560,27 +677,69 @@ class FigureSpecBuilder:
         )
 
     def numbered_xaxis(self, *modes: str) -> "FigureSpecBuilder":
-        """Enable numbered x-axis mode(s): ``"Numbers"``, ``"Labels"``, ``"Number legend"``."""
+        """Enable numbered x-axis modes.
+
+        Args:
+            *modes: Any of ``"Numbers"``, ``"Labels"``, and ``"Number legend"``.
+
+        Returns:
+            This builder.
+        """
         return self._set(numbered_xaxis_modes=list(modes))
 
     def legend(self, **opts: Any) -> "FigureSpecBuilder":
-        """Style the primary (series) legend — see :class:`LegendOpts` fields."""
+        """Configure the primary series legend.
+
+        Args:
+            **opts: :class:`LegendOpts` field values.
+
+        Returns:
+            This builder.
+        """
         return self._set(legend=LegendOpts(**opts))
 
     def number_legend(self, **opts: Any) -> "FigureSpecBuilder":
-        """Style the numbered "1. .. / 2. .." box — see :class:`LegendOpts` fields."""
+        """Configure the numbered group legend.
+
+        Args:
+            **opts: :class:`LegendOpts` field values.
+
+        Returns:
+            This builder.
+        """
         return self._set(number_legend=LegendOpts(**opts))
 
     def reference_line(self, **opts: Any) -> "FigureSpecBuilder":
-        """Add a horizontal reference line — see :class:`ReferenceLineOpts` fields."""
+        """Configure a horizontal reference line.
+
+        Args:
+            **opts: :class:`ReferenceLineOpts` field values.
+
+        Returns:
+            This builder.
+        """
         return self._set(reference_line=ReferenceLineOpts(**opts))
 
     def dual_axis(self, **opts: Any) -> "FigureSpecBuilder":
-        """Add a secondary right Y-axis overlay — see :class:`DualAxisOpts` fields."""
+        """Configure a secondary vertical axis.
+
+        Args:
+            **opts: :class:`DualAxisOpts` field values.
+
+        Returns:
+            This builder.
+        """
         return self._set(dual_axis=DualAxisOpts(**opts))
 
     def extra(self, **kw: Any) -> "FigureSpecBuilder":
-        """Set raw flat-config keys not modelled as fields (merged last)."""
+        """Set unmodelled flat configuration keys.
+
+        Args:
+            **kw: Flat configuration values merged after typed fields.
+
+        Returns:
+            This builder.
+        """
         merged = dict(self._kw.get("extra", {}))
         merged.update(kw)
         self._kw["extra"] = merged

@@ -24,7 +24,7 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
 
     report = doctor()
     print(report)
-    # Exit non-zero only when an ESSENTIAL dependency (perl) is missing; chrome/xelatex
+    # Only a missing required dependency (Perl) makes the command fail; Chrome and XeLaTeX
     # gate optional export formats and shouldn't fail a `ring5 doctor && ...` gate.
     return 0 if report.essential_found else 1
 
@@ -94,6 +94,11 @@ def _cmd_upgrade(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build the command-line parser.
+
+    Returns:
+        The configured top-level argument parser.
+    """
     parser = argparse.ArgumentParser(
         prog="ring5",
         description="RING-5 headless workflow: parse gem5 stats, regenerate figures.",
@@ -151,6 +156,14 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface.
+
+    Args:
+        argv: Arguments without the executable name. Uses ``sys.argv`` when omitted.
+
+    Returns:
+        Process-style exit code: zero for success and two for an operational error.
+    """
     args = build_parser().parse_args(argv)
     try:
         return int(args.func(args))

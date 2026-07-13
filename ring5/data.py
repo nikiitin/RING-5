@@ -53,12 +53,26 @@ class Table:
     # ── constructors ─────────────────────────────────────────────────────
     @classmethod
     def from_csv(cls, path: str) -> "Table":
-        """Read a CSV into a Table (same parse as the old ``pd.read_csv``)."""
+        """Read a CSV into a table.
+
+        Args:
+            path: CSV file path.
+
+        Returns:
+            A table containing the parsed rows.
+        """
         return cls(pd.read_csv(path))
 
     @classmethod
     def from_rows(cls, rows: list[dict[str, Any]]) -> "Table":
-        """Build a Table from a list of row dicts (column order follows first-seen keys)."""
+        """Build a table from row dictionaries.
+
+        Args:
+            rows: Records whose first-seen key order defines column order.
+
+        Returns:
+            A table containing the records.
+        """
         return cls(pd.DataFrame(rows))
 
     # ── introspection ────────────────────────────────────────────────────
@@ -69,12 +83,14 @@ class Table:
 
     @property
     def is_empty(self) -> bool:
+        """Whether the table contains no rows."""
         return self._df.empty
 
     def __len__(self) -> int:
         return len(self._df)
 
     def columns(self) -> list[str]:
+        """Return column names in table order."""
         return list(self._df.columns)
 
     def rows(self) -> list[dict[str, Any]]:
@@ -87,17 +103,39 @@ class Table:
 
     # ── I/O ──────────────────────────────────────────────────────────────
     def to_csv(self, path: str) -> str:
-        """Write the table to ``path`` (no index column) and return ``path``."""
+        """Write the table without an index column.
+
+        Args:
+            path: Destination CSV path.
+
+        Returns:
+            The destination path.
+        """
         self._df.to_csv(path, index=False)
         return path
 
     # ── transforms (return a new Table) ──────────────────────────────────
     def filter_eq(self, column: str, value: Any) -> "Table":
-        """Rows where ``column == value`` (index reset)."""
+        """Retain rows equal to a value.
+
+        Args:
+            column: Column to compare.
+            value: Required value.
+
+        Returns:
+            A filtered table with a fresh row index.
+        """
         return Table(self._df[self._df[column] == value].reset_index(drop=True))
 
     def sort(self, by: list[str]) -> "Table":
-        """Stable sort by the given columns (index reset)."""
+        """Sort rows stably by one or more columns.
+
+        Args:
+            by: Columns in precedence order.
+
+        Returns:
+            A sorted table with a fresh row index.
+        """
         return Table(self._df.sort_values(by).reset_index(drop=True))
 
     def with_scalar_op(self, new_column: str, src_column: str, op: str, value: float) -> "Table":
@@ -105,6 +143,15 @@ class Table:
 
         Delegates to the ``deriveColumn`` shaper so the column-scalar arithmetic lives in
         exactly one place (no drift between the Table facade and the shaper).
+
+        Args:
+            new_column: Destination column name.
+            src_column: Numeric source column.
+            op: Arithmetic operator: ``+``, ``-``, ``*``, or ``/``.
+            value: Scalar right operand.
+
+        Returns:
+            A table containing the derived column.
         """
         from src.core.services.shapers.impl.derive_column import DeriveColumn
 
@@ -122,16 +169,38 @@ class Table:
         )
 
     def apply(self, shaper: Shaper) -> "Table":
-        """Run a RING-5 shaper (e.g. ``ring5.shapers.Mean(cfg)``) and return a new Table."""
+        """Run a RING-5 shaper.
+
+        Args:
+            shaper: Callable that accepts and returns a DataFrame.
+
+        Returns:
+            A table containing the transformed data.
+        """
         return Table(shaper(self._df))
 
     def concat(self, other: "Table") -> "Table":
-        """Append another Table's rows (``pd.concat(..., ignore_index=True)``)."""
+        """Append another table's rows.
+
+        Args:
+            other: Table appended after this table.
+
+        Returns:
+            The combined table with a fresh row index.
+        """
         return Table(pd.concat([self._df, other._df], ignore_index=True))
 
     # ── value extraction (for over-cap / dot labels) ─────────────────────
     def value_map(self, key_columns: list[str], value_column: str) -> dict[tuple, float]:
-        """``{(key_columns…): float(value_column)}`` over every row."""
+        """Map composite row keys to numeric values.
+
+        Args:
+            key_columns: Columns forming each tuple key.
+            value_column: Column converted to the numeric value.
+
+        Returns:
+            Composite keys mapped to values.
+        """
         cols = self._df
         return {
             tuple(cols[c].iloc[i] for c in key_columns): float(cols[value_column].iloc[i])
@@ -142,6 +211,13 @@ class Table:
         """``{(key_columns…): float(sum of sum_columns)}`` — the over-cap bar totals.
 
         Uses ``df[sum_columns].sum(axis=1)`` so totals match the pre-facade values exactly.
+
+        Args:
+            key_columns: Columns forming each tuple key.
+            sum_columns: Numeric columns summed for each row.
+
+        Returns:
+            Composite keys mapped to row totals.
         """
         totals = self._df[sum_columns].sum(axis=1)
         cols = self._df
@@ -152,5 +228,12 @@ class Table:
 
 
 def read_table(path: str) -> Table:
-    """Read a CSV file into a :class:`Table` (the public entry point for figure data)."""
+    """Read a CSV file into a table.
+
+    Args:
+        path: CSV file path.
+
+    Returns:
+        A table containing the parsed rows.
+    """
     return Table.from_csv(path)

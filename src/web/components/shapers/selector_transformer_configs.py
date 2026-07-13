@@ -1,9 +1,4 @@
-"""
-Selector and Transformer Configs - UI Configuration for Selection Shapers.
-
-Provides Streamlit components for configuring data selection and filtering shapers:
-column selection, conditional filtering, and item-based selection.
-"""
+"""Streamlit editors for selector and transformer shapers."""
 
 from typing import cast
 
@@ -14,10 +9,13 @@ from src.core.models.shaper_models import ShaperStepConfig
 
 
 class ColumnSelectorConfig:
+    """Render a column-selector configuration."""
+
     @staticmethod
     def render(
         data: pd.DataFrame, existing_config: ShaperStepConfig, key_prefix: str, shaper_id: int
     ) -> ShaperStepConfig:
+        """Return the configured columns to retain."""
         st.markdown("Select which columns to keep")
         default_cols = [
             c for c in cast(list[str], existing_config.get("columns", [])) if c in data.columns
@@ -35,10 +33,13 @@ class ColumnSelectorConfig:
 
 
 class ConditionSelectorConfig:
+    """Render a conditional row-selector configuration."""
+
     @staticmethod
     def render(
         data: pd.DataFrame, existing_config: ShaperStepConfig, key_prefix: str, shaper_id: int
     ) -> ShaperStepConfig:
+        """Return the configured numeric or categorical row condition."""
         categorical_cols = data.select_dtypes(
             include=["object", "string", "category"]
         ).columns.tolist()
@@ -91,7 +92,6 @@ class ConditionSelectorConfig:
                     ShaperStepConfig,
                     {"column": filter_column, "mode": "range", "range": list(value_range)},
                 )
-            # ... (Simplified for brevity, similar for gt/lt/eq)
             elif filter_mode == "greater_than":
                 threshold = st.number_input(
                     "Greater than",
@@ -136,10 +136,13 @@ class ConditionSelectorConfig:
 
 
 class ItemSelectorConfig:
+    """Render an exact-value or substring selector configuration."""
+
     @staticmethod
     def render(
         data: pd.DataFrame, existing_config: ShaperStepConfig, key_prefix: str, shaper_id: int
     ) -> ShaperStepConfig:
+        """Return the configured item-selection rule."""
         st.markdown("Keep rows whose column value matches the given items")
         all_cols = data.columns.tolist()
         col_default = cast(str, existing_config.get("column", ""))
@@ -188,10 +191,13 @@ class ItemSelectorConfig:
 
 
 class GroupCardinalitySelectorConfig:
+    """Render a distinct-value cardinality selector configuration."""
+
     @staticmethod
     def render(
         data: pd.DataFrame, existing_config: ShaperStepConfig, key_prefix: str, shaper_id: int
     ) -> ShaperStepConfig:
+        """Return the configured group-cardinality rule."""
         st.markdown(
             "Keep groups by their distinct-value count (e.g. benchmarks present "
             "under all policies)."
@@ -242,10 +248,13 @@ class GroupCardinalitySelectorConfig:
 
 
 class GroupPredicateSelectorConfig:
+    """Render a baseline predicate selector configuration."""
+
     @staticmethod
     def render(
         data: pd.DataFrame, existing_config: ShaperStepConfig, key_prefix: str, shaper_id: int
     ) -> ShaperStepConfig:
+        """Return the configured group predicate and action."""
         st.markdown(
             "Drop or keep whole groups based on a predicate on each group's " "baseline row."
         )
@@ -326,10 +335,13 @@ class GroupPredicateSelectorConfig:
 
 
 class TransformerConfig:
+    """Render a factor-or-scalar column transformation."""
+
     @staticmethod
     def render(
         data: pd.DataFrame, existing_config: ShaperStepConfig, key_prefix: str, shaper_id: int
     ) -> ShaperStepConfig:
+        """Return the configured target column and data type."""
         col1, col2 = st.columns(2)
         with col1:
             target_col = st.selectbox(

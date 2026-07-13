@@ -163,24 +163,16 @@ class TestPlotControls:
     Starts with a pre-existing bar plot created by the ``tier2_page`` fixture.
     """
 
+    @pytest.mark.order(1)
     def test_01_rename_plot(self, tier2_page: Page) -> None:
-        """Rename 'E2E Bar' to 'Renamed Bar' and verify the pill updates.
-
-        Note: the rename control mutates the plot in place but (unlike Delete /
-        Duplicate) does **not** trigger an ``st.rerun()``, and the selector
-        pills are rendered earlier in the same run — so the pill label only
-        refreshes on the *next* rerun. We force one by navigating away and back.
-        (Surfaced as a suspected app inconsistency, not silently patched.)
-        """
+        """Rename 'E2E Bar' to 'Renamed Bar' and verify the selector updates."""
         mp = ManagePlotsPage(tier2_page)
         mp.navigate()
         mp.select_plot("E2E Bar")
         mp.rename_plot("Renamed Bar")
-        # Force a rerun so the renamed pill is re-rendered (see docstring).
-        mp.navigate_to("Data Source")
-        mp.navigate()
         mp.assert_plot_pill_visible("Renamed Bar")
 
+    @pytest.mark.order(2)
     def test_02_duplicate_plot(self, tier2_page: Page) -> None:
         """Duplicate 'Renamed Bar' and verify a new pill appears."""
         mp = ManagePlotsPage(tier2_page)
@@ -188,19 +180,21 @@ class TestPlotControls:
         mp.select_plot("Renamed Bar")
         mp.duplicate_plot()
         # Streamlit appends " (copy)" or similar; just check we have more pills
-        expect(mp.plot_selector_pills.get_by_role("button")).to_have_count(2, timeout=E2E_TIMEOUT)
+        expect(mp.plot_selector_pills.get_by_role("radio")).to_have_count(2, timeout=E2E_TIMEOUT)
 
+    @pytest.mark.order(3)
     def test_03_delete_plot(self, tier2_page: Page) -> None:
         """Delete the duplicated plot and verify its pill disappears."""
         mp = ManagePlotsPage(tier2_page)
         mp.navigate()
         # Select the second pill (the duplicate) — index 1
-        pills = mp.plot_selector_pills.get_by_role("button")
+        pills = mp.plot_selector_pills.get_by_role("radio")
         duplicate_name = pills.nth(1).inner_text()
         mp.select_plot(duplicate_name)
         mp.delete_plot()
         mp.assert_plot_pill_not_visible(duplicate_name)
 
+    @pytest.mark.order(4)
     def test_04_create_form_visible(self, tier2_page: Page) -> None:
         """Assert the plot creation form is accessible."""
         mp = ManagePlotsPage(tier2_page)

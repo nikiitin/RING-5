@@ -15,6 +15,8 @@ from src.web.rendering.figure_export import (
     plotly_download_bytes,
 )
 
+pytestmark = pytest.mark.serial
+
 # ── Fixtures ─────────────────────────────────────────────────────
 
 

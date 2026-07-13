@@ -34,6 +34,7 @@ class VariableEditor:
         Display an editor for parser variables.
 
         Args:
+            api: Application facade used for identifiers and deep scans.
             variables: List of variable configurations
             available_variables: Optional list of discovered variables from stats files
             stats_path: Optional path to stats files (for deep scanning)

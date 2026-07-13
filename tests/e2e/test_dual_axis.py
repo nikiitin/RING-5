@@ -1,12 +1,7 @@
 """E2E tests for the dual-axis bar+dot plot across both rendering engines.
 
-``test_engine_comparison`` covers engine switching for a *bar* plot. This
-suite covers the **dual-axis bar+dot** path specifically, which exercises:
-
-- the decomposed ``DualAxisBarDotPlot.create_traces`` (Theme-B B6) — bars on
-  the primary Y-axis + dot/line traces on a secondary Y-axis;
-- dual-engine parity for that path: Plotly (twin y-axes in one figure) vs
-  matplotlib (``twinx`` secondary axis), which the C4/M3 work introduced.
+``test_engine_comparison`` covers a bar plot; this suite covers the dual-axis
+bar-and-dot path in both Plotly and Matplotlib.
 
 Data precondition: ``tier1_page`` (18-row CSV). ``y_bar`` / ``y_dot`` auto-
 default to the first two numeric columns (``system.cpu.ipc`` /
@@ -58,6 +53,7 @@ class TestDualAxisRendering:
     the engine — never re-selecting the pill.
     """
 
+    @pytest.mark.order(1)
     def test_01_plotly_renders_with_auto_axes(self, dual_axis_page: Page) -> None:
         """Default (Plotly) engine renders the dual-axis chart from auto-picked axes."""
         mp = ManagePlotsPage(dual_axis_page)
@@ -67,6 +63,7 @@ class TestDualAxisRendering:
         # proving the dual-axis config picked a bar column and a dot column.
         expect(mp.viz_title_input).to_have_value(re.compile(r"\bvs\b"))
 
+    @pytest.mark.order(2)
     def test_02_explicit_axis_config_renders(self, dual_axis_page: Page) -> None:
         """Explicitly mapping bars→ipc and dots→numCycles still renders (Plotly)."""
         mp = ManagePlotsPage(dual_axis_page)
@@ -77,6 +74,7 @@ class TestDualAxisRendering:
         mp.refresh_plot()
         mp.assert_chart_visible(timeout=CHART_TIMEOUT)
 
+    @pytest.mark.order(3)
     def test_03_matplotlib_renders(self, dual_axis_page: Page) -> None:
         """Switching to matplotlib renders the dual-axis chart via twinx (st.pyplot)."""
         mp = ManagePlotsPage(dual_axis_page)
@@ -85,6 +83,7 @@ class TestDualAxisRendering:
         mp.select_engine("matplotlib")
         mp.assert_matplotlib_chart_visible()
 
+    @pytest.mark.order(4)
     def test_04_switch_back_to_plotly(self, dual_axis_page: Page) -> None:
         """Switching back to Plotly re-renders the interactive dual-axis chart."""
         mp = ManagePlotsPage(dual_axis_page)

@@ -196,7 +196,7 @@ def show_documentation_page() -> None:
         )
         _link_card(
             "📄",
-            "Publication-Ready Export",
+            "Publication-Ready Downloads",
             "Configure dimensions and export PDF/PGF figures " "for LaTeX papers.",
             "user-guide/tutorials/publication-ready.md",
         )

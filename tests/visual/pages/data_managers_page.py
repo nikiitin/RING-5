@@ -347,9 +347,7 @@ class DataManagersPage(BasePage):
     @property
     def mixer_mode_control(self) -> Locator:
         """Mixer Mode segmented control."""
-        return self.page.locator(
-            "[data-testid='stMainBlockContainer'] " "[data-testid='stButtonGroup']"
-        ).first
+        return self.page.get_by_role("radiogroup", name="Mixer Mode")
 
     @property
     def mixer_columns_multiselect(self) -> Locator:

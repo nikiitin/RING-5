@@ -1,6 +1,4 @@
-"""
-Mixer Manager
-"""
+"""Data-manager UI for combining columns."""
 
 from datetime import datetime, timezone
 
@@ -18,6 +16,7 @@ class MixerManager(DataManager):
 
     @property
     def name(self) -> str:
+        """Return the manager's display name."""
         return "Mixer (Merge Columns)"
 
     def render(self) -> None:
@@ -76,10 +75,7 @@ class MixerManager(DataManager):
             available_cols = [c for c in numeric_cols if not c.endswith((".sd", "_stdev"))]
             operations = ["Sum", "Mean (Average)"]
         else:
-            # For configuration, allow all columns but prioritize string/object
-            # Actually, usually config cols are object/string.
-            # Include all columns to allow concatenating numbers to strings
-
+            # Configuration labels may combine numeric and text columns.
             available_cols = data.columns.tolist()
             operations = ["Concatenate"]
 
@@ -177,7 +173,7 @@ class MixerManager(DataManager):
                     }
                     self.api.add_manager_history_record(record)
                     st.toast("✓ Merged data active!", icon="✅")
-                    # set_data mutates GLOBAL data → app-scope rerun so sibling fragments
+                    # ``set_data`` changes shared data; an app rerun updates sibling fragments.
                     # don't keep rendering the previously-captured dataframe.
                     st.rerun(scope="app")
 

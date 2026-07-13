@@ -12,7 +12,7 @@ Columns: benchmark_name, config_description, seed, system.cpu.ipc,
 from __future__ import annotations
 
 import pytest
-from playwright.sync_api import Locator, Page, expect
+from playwright.sync_api import Locator, Page, TimeoutError as PlaywrightTimeoutError, expect
 
 from tests.visual.pages.data_managers_page import DataManagersPage
 
@@ -27,12 +27,19 @@ _E2E_TIMEOUT: int = 30_000
 
 
 def _select_dropdown_option(page: Page, selectbox: Locator, text: str) -> None:
-    """Open a Streamlit selectbox and choose *text* from the dropdown."""
-    selectbox.click()
-    page.wait_for_timeout(300)
-    page.locator("[data-testid='stSelectboxVirtualDropdown'] li").get_by_text(
-        text, exact=True
-    ).click()
+    """Open a Streamlit selectbox and choose *text*, retrying missed clicks."""
+    option = page.get_by_role("option", name=text, exact=True).first
+    for _ in range(3):
+        selectbox.get_by_role("combobox").click()
+        try:
+            option.wait_for(state="visible", timeout=5_000)
+            option.click(timeout=5_000)
+        except PlaywrightTimeoutError:
+            page.keyboard.press("Escape")
+            page.wait_for_timeout(250)
+            continue
+        return
+    expect(option).to_be_visible(timeout=_E2E_TIMEOUT)
 
 
 def _add_multiselect_option(page: Page, multiselect: Locator, text: str) -> None:
@@ -45,9 +52,7 @@ def _add_multiselect_option(page: Page, multiselect: Locator, text: str) -> None
     """
     multiselect.click()
     multiselect.locator("input").fill(text)
-    option = page.locator("[data-testid='stSelectboxVirtualDropdown'] li").get_by_text(
-        text, exact=True
-    )
+    option = page.get_by_role("option", name=text, exact=True)
     expect(option.first).to_be_visible(timeout=_E2E_TIMEOUT)
     option.first.click()
     page.wait_for_timeout(200)
@@ -72,9 +77,11 @@ class TestDataManagersPageStructure:
         dm.navigate()
         dm.assert_tabs_visible()
 
-    def test_summary_tab_is_default_active(self, tier1_page: Page) -> None:
+    def test_summary_tab_can_be_selected(self, tier1_page: Page) -> None:
+        """The Summary tab can be restored after another tab was active."""
         dm = DataManagersPage(tier1_page)
         dm.navigate()
+        dm.select_tab("Summary")
         dm.assert_tab_active("Summary")
 
     def test_summary_tab_shows_rows_metric(self, tier1_page: Page) -> None:

@@ -1,18 +1,12 @@
-"""The ring5 Session — one workspace, the full workflow, no Streamlit.
-
-A ``Session`` owns one :class:`ApplicationAPI` (isolated in-memory state)
-and adds the seams the facade never had: plot creation, engine-explicit
-rendering, file export, and portfolio replay. Sessions share the
-process-wide worker pools (safe — verified under concurrent load); use
-:func:`ring5.shutdown` once per process to tear those down.
-"""
+"""Headless workspace for parsing, shaping, plotting, and portfolio replay."""
 
 from __future__ import annotations
 
 import copy
 import shutil
 import tempfile
-from typing import TYPE_CHECKING, Any, cast
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import pandas as pd
 
@@ -30,6 +24,19 @@ from ring5.errors import (
     PipelineError,
     PortfolioError,
 )
+from ring5.figure_spec import FigureSpec
+
+PlotType = Literal[
+    "bar",
+    "dual_axis_bar_dot",
+    "grouped_bar",
+    "grouped_stacked_bar",
+    "heatmap",
+    "histogram",
+    "line",
+    "scatter",
+    "stacked_bar",
+]
 
 if TYPE_CHECKING:
     from src.core.models.data_models import ParseVariableConfig
@@ -58,6 +65,35 @@ def _rewrap_table(frame: pd.DataFrame) -> "Table":
     return _Table(frame)
 
 
+def available_plot_types() -> tuple[str, ...]:
+    """Return the registered plot-type identifiers accepted by :class:`Session`.
+
+    Returns:
+        Plot types in their stable display order.
+    """
+    from src.web.pages.ui.plotting.plot_factory import PlotFactory
+
+    return tuple(PlotFactory.get_available_plot_types())
+
+
+def _resolve_plot_type(plot_type: str) -> str:
+    """Normalize a plot identifier or display name and validate it."""
+    from src.web.pages.ui.plotting.plot_factory import PlotFactory
+
+    normalized = plot_type.strip().lower().replace("-", "_").replace(" ", "_")
+    available = PlotFactory.get_available_plot_types()
+    if normalized in available:
+        return normalized
+
+    for identifier, metadata in PlotFactory.get_plot_metadata().items():
+        display_name = metadata["display_name"].lower().replace("-", "_").replace(" ", "_")
+        if normalized == display_name:
+            return identifier
+
+    choices = ", ".join(available)
+    raise DataValidationError(f"Unknown plot type {plot_type!r}. Available types: {choices}.")
+
+
 class Session:
     """A headless RING-5 workspace.
 
@@ -68,10 +104,10 @@ class Session:
             csv = s.parse("/sims", variables=["simTicks"]).csv_path
             df = s.load(csv)
             df = s.reduce_seeds(df, ["config_description_abbrev"], ["simTicks"])
-            plot = s.create_plot("bar", data=df,
-                                 config={"x": "config_description_abbrev",
-                                         "y": "simTicks"})
-            fig = s.render(plot, engine="matplotlib")
+            fig = s.plot("Bar Chart", data=df,
+                         config={"x": "config_description_abbrev",
+                                 "y": "simTicks"},
+                         engine="matplotlib")
             s.export(fig, "out/simticks.pdf")
 
     The full :class:`ApplicationAPI` remains available as ``session.api``
@@ -79,11 +115,9 @@ class Session:
     """
 
     def __init__(self, *, parser: "SimulationParser | None" = None) -> None:
-        # The plot deserializer is ALWAYS wired — a Session can never hit
-        # the silent drop-all-plots restore path a bare ApplicationAPI has.
+        # Headless portfolio restores need the web composition root's plot deserializer.
         self.api = ApplicationAPI(plot_deserializer=BasePlot.from_dict, parser=parser)
-        # Temp dirs this session created for parse output (no explicit output_dir) — cleaned
-        # up in close()/__exit__ so each parse/CLI run doesn't orphan a dir in the system tmp.
+        # Temporary parse output is removed when the session closes.
         self._owned_tmpdirs: list[str] = []
 
     # ── lifecycle ────────────────────────────────────────────────
@@ -122,13 +156,25 @@ class Session:
         :class:`ParseJob` owns its futures — ``job.finalize()`` needs no
         re-supplied arguments and ``job.cancel()`` touches nothing but
         this job.
+
+        Args:
+            stats_path: Root directory containing simulator statistics.
+            variables: Statistic names or explicit statistic configurations.
+            pattern: Statistics filename pattern.
+            strategy: Registered parser strategy.
+            output_dir: Directory for parser output. A temporary directory is used
+                when omitted and is removed when the session closes.
+            scan_limit: Maximum files to scan; zero scans every matching file.
+
+        Returns:
+            A submitted parse job that can be finalized or cancelled.
         """
         configs, scanned = _parse.build_stat_configs(
             self.api, stats_path, variables, pattern=pattern, scan_limit=scan_limit
         )
         if output_dir is None:
             out_dir = tempfile.mkdtemp(prefix="ring5_parse_")
-            self._owned_tmpdirs.append(out_dir)  # cleaned in close()/__exit__
+            self._owned_tmpdirs.append(out_dir)
         else:
             out_dir = output_dir
         try:
@@ -143,9 +189,7 @@ class Session:
         except (FileNotFoundError, ValueError, RuntimeError) as exc:
             raise ParseError(f"Parse submission failed: {exc}") from exc
 
-        # Record parse provenance in session state so a portfolio saved from
-        # this session carries the real source (an app load of the portfolio
-        # shows it on the Data Source page and can re-run the parse).
+        # Store parse provenance for portfolio restoration and replay.
         sm = self.api.state_manager
         sm.set_stats_path(stats_path)
         sm.set_stats_pattern(pattern)
@@ -180,7 +224,21 @@ class Session:
         scan_limit: int = 10,
         strict: bool = True,
     ) -> _parse.ParseResult:
-        """Blocking convenience: ``parse_submit(...)`` + ``finalize()``."""
+        """Parse simulator statistics and wait for completion.
+
+        Args:
+            stats_path: Root directory containing simulator statistics.
+            variables: Statistic names or explicit statistic configurations.
+            pattern: Statistics filename pattern.
+            strategy: Registered parser strategy.
+            output_dir: Directory for parser output. A temporary directory is used
+                when omitted.
+            scan_limit: Maximum files to scan; zero scans every matching file.
+            strict: Raise when a requested statistic produces no values.
+
+        Returns:
+            The assembled CSV path and any missing statistic names.
+        """
         job = self.parse_submit(
             stats_path,
             variables,
@@ -194,7 +252,14 @@ class Session:
     # ── data ─────────────────────────────────────────────────────
 
     def load(self, csv_path: str) -> pd.DataFrame:
-        """Load a CSV into the session and return the DataFrame."""
+        """Load a CSV into the session.
+
+        Args:
+            csv_path: CSV file to load.
+
+        Returns:
+            The loaded DataFrame.
+        """
         self.api.load_data(csv_path)
         data = self.api.state_manager.get_data()
         if data is None:
@@ -208,6 +273,13 @@ class Session:
 
         Accepts a :class:`ring5.Table` or a raw ``DataFrame`` and returns the same kind, so
         figure scripts can express ``build_data`` as a pipeline without touching pandas.
+
+        Args:
+            data: Input table or DataFrame.
+            pipeline: Ordered shaper configurations.
+
+        Returns:
+            Shaped data of the same public type as ``data``.
         """
         from src.core.services.shapers.pipeline_service import PipelineStepError
 
@@ -232,6 +304,14 @@ class Session:
 
         Accepts a :class:`ring5.Table` or a raw ``DataFrame`` and returns the same kind, so
         figure scripts can stay pandas-free.
+
+        Args:
+            data: Input table or DataFrame.
+            categorical_cols: Columns defining each experiment group.
+            statistic_cols: Numeric columns to aggregate.
+
+        Returns:
+            Aggregated data of the same public type as ``data``.
 
         Raises:
             ColumnNotFoundError: A named column is absent.
@@ -262,6 +342,14 @@ class Session:
         Accepts a :class:`ring5.Table` or a raw ``DataFrame`` and returns the same kind,
         consistent with ``shape``/``reduce_seeds``/``create_plot``.
 
+        Args:
+            data: Input table or DataFrame.
+            outlier_col: Numeric column tested for outliers.
+            group_by_cols: Optional columns defining independent IQR groups.
+
+        Returns:
+            Filtered data of the same public type as ``data``.
+
         Raises:
             ColumnNotFoundError: A named column is absent.
             DataValidationError: Inputs rejected (e.g. non-numeric column).
@@ -281,32 +369,75 @@ class Session:
         plot_type: str,
         *,
         data: "pd.DataFrame | Table",
-        config: dict[str, Any],
+        config: "FigureSpec | Mapping[str, Any]",
         name: str | None = None,
     ) -> BasePlot:
-        """Create a plot (snake_case type, e.g. ``bar``, ``grouped_bar``).
+        """Create and register a configured plot.
 
-        The plot is registered in the session (so portfolios include it)
-        and carries *data* as its processed data and *config* as its plot
-        config — the same dict the web UI builds (``x``, ``y``,
-        ``y_columns``, styling keys, …). *data* may be a :class:`ring5.Table`
-        or a raw ``DataFrame``.
+        Args:
+            plot_type: A snake-case identifier such as ``"bar"`` or a display
+                name such as ``"Grouped Bar"``. Hyphens and spaces are normalized.
+            data: A :class:`ring5.Table` or pandas DataFrame.
+            config: A typed :class:`FigureSpec` or a mapping containing the
+                renderer's flat configuration.
+            name: Portfolio/display name. A stable generated name is used when omitted.
+
+        Returns:
+            The registered plot. Pass it to :meth:`render`, or use :meth:`plot`
+            to create and render in one call.
+
+        Raises:
+            DataValidationError: ``plot_type`` is not registered.
         """
         from src.web.pages.ui.plotting.plot_service import PlotService
 
+        resolved_type = _resolve_plot_type(plot_type)
         frame, _ = _unwrap_table(data)
-        plot = PlotService.create_plot(name or plot_type, plot_type, self.api.state_manager)
+        plot = PlotService.create_plot(name or resolved_type, resolved_type, self.api.state_manager)
         if name is None:
-            plot.name = f"{plot_type}_{plot.plot_id}"
+            plot.name = f"{resolved_type}_{plot.plot_id}"
         plot.processed_data = frame.copy()
-        # Deep copy: nested mutables (y_columns, series_styles) must not stay
-        # shared with the caller's dict — the web UI deep-copies for the
-        # same reason (a later caller mutation would rewrite the plot).
-        plot.config = copy.deepcopy(config)
+        raw_config = config.to_config() if isinstance(config, FigureSpec) else dict(config)
+        # Plot configuration contains nested lists and dictionaries. Copy it so a
+        # later caller mutation cannot silently change an already registered plot.
+        plot.config = copy.deepcopy(raw_config)
         return plot
 
+    def plot(
+        self,
+        plot_type: str,
+        *,
+        data: "pd.DataFrame | Table",
+        config: "FigureSpec | Mapping[str, Any]",
+        engine: EngineMode = "plotly",
+        name: str | None = None,
+    ) -> _render.Figure:
+        """Create, register, and render a plot in one call.
+
+        Args:
+            plot_type: Registered plot identifier or display name.
+            data: A :class:`ring5.Table` or pandas DataFrame.
+            config: A :class:`FigureSpec` or flat configuration mapping.
+            engine: Rendering engine, ``"plotly"`` or ``"matplotlib"``.
+            name: Optional portfolio/display name.
+
+        Returns:
+            The rendered Plotly or Matplotlib figure. The underlying plot remains
+            registered in :attr:`plots` and is included in saved portfolios.
+        """
+        configured = self.create_plot(plot_type, data=data, config=config, name=name)
+        return self.render(configured, engine=engine)
+
     def render(self, plot: BasePlot, *, engine: EngineMode = "plotly") -> _render.Figure:
-        """Render headlessly with an explicit engine (never session state)."""
+        """Render a configured plot headlessly.
+
+        Args:
+            plot: Plot returned by :meth:`create_plot` or a portfolio restore.
+            engine: Rendering engine, ``"plotly"`` or ``"matplotlib"``.
+
+        Returns:
+            The rendered Plotly or Matplotlib figure.
+        """
         return _render.render_figure(plot, engine=engine)
 
     def export(
@@ -318,7 +449,18 @@ class Session:
         deterministic: bool = False,
         **kwargs: Any,
     ) -> str:
-        """Export a rendered figure to *path* (format from the extension)."""
+        """Export a rendered figure to a file.
+
+        Args:
+            fig: Figure returned by :meth:`render`.
+            path: Destination file path.
+            fmt: Explicit format; inferred from ``path`` when omitted.
+            deterministic: Enable byte-stable export settings.
+            **kwargs: Engine-specific dimensions and resolution options.
+
+        Returns:
+            The written file path.
+        """
         return _export.export_file(fig, path, fmt=fmt, deterministic=deterministic, **kwargs)
 
     def export_bytes(
@@ -329,7 +471,17 @@ class Session:
         deterministic: bool = False,
         **kwargs: Any,
     ) -> bytes:
-        """Export a rendered figure to bytes."""
+        """Export a rendered figure to bytes.
+
+        Args:
+            fig: Figure returned by :meth:`render`.
+            fmt: Output format supported by the figure's engine.
+            deterministic: Enable byte-stable export settings.
+            **kwargs: Engine-specific dimensions and resolution options.
+
+        Returns:
+            Encoded figure bytes.
+        """
         return _export.export_bytes(fig, fmt, deterministic=deterministic, **kwargs)
 
     # ── portfolios ───────────────────────────────────────────────
@@ -345,6 +497,10 @@ class Session:
         Unlike the web UI, ``overwrite`` defaults to **False** here:
         portfolios are keyed by name alone, and a script silently replacing
         one is data loss. Pass ``overwrite=True`` to replace.
+
+        Args:
+            name: Portfolio name.
+            overwrite: Replace an existing portfolio with the same name.
 
         Raises:
             PortfolioError: The name exists and ``overwrite`` is False.
@@ -370,6 +526,12 @@ class Session:
     def load_portfolio(self, name: str) -> RestoreReport:
         """Load + restore a portfolio; the report says what was skipped.
 
+        Args:
+            name: Portfolio name.
+
+        Returns:
+            A report describing restored and skipped content.
+
         Raises:
             PortfolioError: The portfolio does not exist.
             PortfolioVersionError: It was written by a newer RING-5.
@@ -385,12 +547,10 @@ class Session:
         except FileNotFoundError as exc:
             raise PortfolioError(str(exc)) from exc
         except CoreVersionError as exc:
-            # Re-typed at the public boundary so it joins the Ring5Error
-            # hierarchy (the core class is a ValueError for the web UI).
+            # Keep errors from the public API within the ``Ring5Error`` hierarchy.
             raise PortfolioVersionError(str(exc)) from exc
         except ValueError as exc:
-            # Corrupt JSON (json.JSONDecodeError) or a malformed
-            # schema_version — both ValueErrors from the load/migrate path.
+            # JSON and schema validation errors both surface as ``ValueError`` here.
             raise PortfolioError(f"Portfolio '{name}' could not be read: {exc}") from exc
         return self.api.state_manager.restore_session(data)
 

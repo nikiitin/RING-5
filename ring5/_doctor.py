@@ -37,6 +37,7 @@ class DoctorReport:
 
     @property
     def all_found(self) -> bool:
+        """Whether every optional and required external dependency is available."""
         return self.perl.found and self.chrome.found and self.xelatex.found
 
     @property

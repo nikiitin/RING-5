@@ -12,7 +12,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from pathlib import Path
 
-from playwright.sync_api import Locator, Page, expect
+from playwright.sync_api import Locator, Page, TimeoutError as PlaywrightTimeoutError, expect
 
 
 class BasePage:
@@ -78,38 +78,18 @@ class BasePage:
     def wait_for_streamlit(self, *, timeout: int | None = None, expect_rerun: bool = False) -> None:
         """Wait until Streamlit finishes its current script run.
 
-        Strategy:
-        1. (optional) When ``expect_rerun`` is set, first wait for the
-           "Running..." status indicator to APPEAR. A rerun starts a beat
-           after the triggering click (client→server round-trip), so without
-           this we can observe the *pre-rerun* idle state and return too early
-           — letting a follow-up action abort the rerun before it commits its
-           state (e.g. a rename/delete silently lost). Only pass this for
-           actions that are GUARANTEED to trigger a rerun.
-        2. Try ``networkidle`` with a short timeout (pages with custom
-           component iframes may never reach true *networkidle*).
-        3. Ensure the "Running..." status indicator is gone — this is
-           the authoritative signal that the Streamlit script has finished.
+        When ``expect_rerun`` is true, wait briefly for Streamlit's running
+        indicator to appear before waiting for it to disappear. Network-idle
+        is unsuitable here because Streamlit and its chart components maintain
+        long-lived connections.
         """
         effective_timeout = timeout or self.RENDER_TIMEOUT
         running = self.page.locator("[data-testid='stStatusWidget']")
         if expect_rerun:
             try:
-                # Wait for the rerun to actually begin. Under -n 3 load the
-                # client→server round-trip can take a few seconds, so allow a
-                # generous window; a real rerun's status is visible well over a
-                # poll interval, so fast reruns are still caught near-instantly.
                 running.wait_for(state="visible", timeout=6_000)
-            except Exception:
+            except PlaywrightTimeoutError:
                 pass
-        try:
-            self.page.wait_for_load_state("networkidle", timeout=5_000)
-        except Exception:
-            # Custom components (iframes) or WebSocket heartbeats may
-            # keep activity going indefinitely — fall through to the
-            # status-widget check which is the reliable indicator.
-            pass
-        # Streamlit shows a status element while re-running
         running.wait_for(state="hidden", timeout=effective_timeout)
 
     def goto_and_wait(self, url: str) -> None:

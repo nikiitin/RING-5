@@ -462,16 +462,8 @@ class DataSourceComponents:
         results: list[Any] = []
         errors: list[str] = []
 
-        # User defined rule: "futures could be asked for only once... use these in the UI"
         completed_count = 0
         total = len(futures)
-
-        # Note: We cannot easily use a 'Stop' button inside a blocking loop in Streamlit
-        # without some trickery, but we can check a session state flag or just rely on
-        # the user closing the dialog (which might not kill threads,
-        # but user said "call cancel_parse").
-        # If we block here, `st.button` inside the loop won't work well.
-        # However, `as_completed` is an iterator. We can iterate it.
 
         try:
             for future in as_completed(futures):
