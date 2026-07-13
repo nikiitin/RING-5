@@ -7,13 +7,14 @@ Tests core functionality without requiring all dependencies.
 import json
 import sys
 from pathlib import Path
+from typing import Any, cast
 
 
-def test_config_validation():
+def test_config_validation() -> bool:
     """Test configuration validation."""
     print("Testing configuration validation...")
     try:
-        from src.core.models.config.config_manager import ConfigValidator
+        from src.core.services.config_validation_service import ConfigValidator
 
         # Test with template
         with open("templates/config_template.json") as f:
@@ -28,17 +29,17 @@ def test_config_validation():
         return False
 
 
-def test_template_generation():
+def test_template_generation() -> bool:
     """Test template generation."""
     print("\nTesting template generation...")
     try:
-        from src.core.models.config.config_manager import ConfigTemplateGenerator
+        from src.core.services.config_validation_service import ConfigTemplateGenerator
 
         config = ConfigTemplateGenerator.create_minimal_config("./output", "/path/to/stats")
 
         # Add some variables
-        ConfigTemplateGenerator.add_variable(config, "simTicks", "scalar")
-        ConfigTemplateGenerator.enable_seeds_reducer(config)
+        ConfigTemplateGenerator.add_variable(cast(dict[str, Any], config), "simTicks", "scalar")
+        ConfigTemplateGenerator.enable_seeds_reducer(cast(dict[str, Any], config))
 
         # Create a plot
         plot = ConfigTemplateGenerator.create_plot_config(
@@ -48,7 +49,7 @@ def test_template_generation():
         config["plots"].append(plot)
 
         # Validate it
-        from src.core.models.config.config_manager import ConfigValidator
+        from src.core.services.config_validation_service import ConfigValidator
 
         validator = ConfigValidator()
         validator.validate(config)
@@ -63,11 +64,11 @@ def test_template_generation():
         return False
 
 
-def test_schema_validation():
+def test_schema_validation() -> bool:
     """Test JSON schema validation."""
     print("\nTesting JSON schema...")
     try:
-        from src.core.models.config.config_manager import ConfigValidator
+        from src.core.services.config_validation_service import ConfigValidator
 
         # Test invalid config
         invalid_config = {
@@ -96,7 +97,7 @@ def test_schema_validation():
     return True
 
 
-def test_file_structure():
+def test_file_structure() -> bool:
     """Test that all required files exist."""
     print("\nTesting file structure...")
 
@@ -126,7 +127,7 @@ def test_file_structure():
         return True
 
 
-def test_dependencies():
+def test_dependencies() -> bool:
     """Check if dependencies are installed."""
     print("\nChecking dependencies...")
 
@@ -156,7 +157,7 @@ def test_dependencies():
         return True
 
 
-def test_latex_dependencies():
+def test_latex_dependencies() -> bool:
     """Check if LaTeX system packages are installed (for export feature)."""
     print("\nChecking LaTeX dependencies (for export feature)...")
     import shutil
@@ -177,7 +178,8 @@ def test_latex_dependencies():
                     text=True,
                     timeout=5,
                 )
-                version = result.stdout.split("\n")[0]
+                first_line: str = result.stdout.split("\n")[0]
+                version: str = first_line
                 print(f"  ✓ {name:25s} - {purpose}")
                 print(f"    {version}")
             except Exception as e:
@@ -219,7 +221,7 @@ def test_latex_dependencies():
         return True
 
 
-def main():
+def main() -> int:
     """Run all verification tests."""
     print("=" * 60)
     print("RING-5 Installation Verification")

@@ -1,12 +1,16 @@
 """Grouped stacked bar plot implementation."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, override
 
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from src.web.pages.ui.components.plot_config_components import PlotConfigComponents
+from src.core.models.visualization.trace_build_result import TraceBuildResult
+from src.core.models.visualization.trace_config import TraceConfig
+from src.web.components.plotting.config import grouped_stacked_bar_config
+from src.web.models.plot_models import PlotConfig
+from src.web.pages.ui.plotting.types._trace_helpers import prepare_categorical_data
 from src.web.pages.ui.plotting.types.stacked_bar_plot import StackedBarPlot
 from src.web.pages.ui.plotting.utils import GroupedBarUtils
 
@@ -20,282 +24,64 @@ class GroupedStackedBarPlot(StackedBarPlot):
         # Override plot_type set by parent chain ("stacked_bar" → "grouped_stacked_bar")
         self.plot_type: str = "grouped_stacked_bar"
 
-    def render_config_ui(self, data: pd.DataFrame, saved_config: Dict[str, Any]) -> Dict[str, Any]:
+    @override
+    def _supports_secondary_legend(self) -> bool:
+        """Grouped stacked bar always supports a secondary legend.
+
+        The secondary legend is used for the numbered X-axis feature
+        as well as dual-axis legend separation.
+        """
+        return True
+
+    @override
+    def _supports_tertiary_legend(self) -> bool:
+        """Tertiary legend is available when dual-axis splits legends.
+
+        When dual-axis is active AND legends are not unified, the
+        secondary pill controls the right-axis legend (legend2_*) and
+        the tertiary pill controls the numbered-xaxis annotation
+        (legend3_*).  Without dual-axis, the secondary pill itself
+        controls the annotation, so no third level is needed.
+        """
+        return True
+
+    @override
+    def render_config_ui(self, data: pd.DataFrame, saved_config: PlotConfig) -> PlotConfig:
         """Render configuration UI for grouped stacked bar plot."""
-        numeric_cols = data.select_dtypes(include=["number"]).columns.tolist()
-        categorical_cols = data.select_dtypes(include=["object", "string"]).columns.tolist()
+        return grouped_stacked_bar_config.render(data, saved_config, self.plot_id)
 
-        col1, col2 = st.columns(2)
-
-        with col1:
-            # X-axis (Major Group)
-            x_default_idx = 0
-            if saved_config.get("x") and saved_config["x"] in (categorical_cols + numeric_cols):
-                x_default_idx = (categorical_cols + numeric_cols).index(saved_config["x"])
-
-            x_column = st.selectbox(
-                "Major Grouping (Outer)",
-                options=categorical_cols + numeric_cols,
-                index=x_default_idx,
-                key=f"x_{self.plot_id}",
-                help="The main outer category (e.g., Benchmark)",
-            )
-
-            # Sub-group (Minor Group)
-            group_default_idx = 0
-            if saved_config.get("group") and saved_config["group"] in categorical_cols:
-                group_default_idx = categorical_cols.index(saved_config["group"])
-
-            # Filter out None from categorical_cols for selectbox
-            filtered_cols: List[str] = [col for col in categorical_cols if col is not None]
-            options_list: List[Optional[str]] = [None] + filtered_cols
-            group_column = st.selectbox(
-                "X-Axis / Minor Grouping (Inner)",
-                options=options_list,
-                index=group_default_idx + 1 if saved_config.get("group") else 0,
-                key=f"group_{self.plot_id}",
-                help="The variable displayed on the X-axis within the major group (e.g., Configuration)",  # noqa: E501
-            )
-
-        with col2:
-            # Y-axis (Statistics to stack)
-            default_ys = saved_config.get("y_columns", [])
-            # Filter to ensure they exist
-            default_ys = [y for y in default_ys if y in numeric_cols]
-
-            y_columns = st.multiselect(
-                "Statistics to Stack (Y-axis)",
-                options=numeric_cols,
-                default=default_ys,
-                key=f"y_multiselect_{self.plot_id}",
-                help="Select multiple statistics to stack on top of each other",
-            )
-
-            # Title & Labels
-            default_title = saved_config.get("title", f"Stacked Statistics by {x_column}")
-            default_xlabel = saved_config.get("xlabel", x_column)
-            default_ylabel = saved_config.get("ylabel", "Value")
-
-            label_config = PlotConfigComponents.render_title_labels_section(
-                saved_config=saved_config,
-                plot_id=self.plot_id,
-                default_title=default_title,
-                default_xlabel=default_xlabel,
-                default_ylabel=default_ylabel,
-                include_legend_title=True,
-                default_legend_title=saved_config.get("legend_title", ""),
-            )
-            title = label_config["title"]
-            xlabel = label_config["xlabel"]
-            ylabel = label_config["ylabel"]
-            legend_title = label_config["legend_title"]
-
-        # Renaming Options (Delegated to Advanced Options now)
-        # Renaming handled by standardized 'Series Configuration' in Advanced Options.
-
-        # Filter Options
-        st.markdown("#### Filter Data")
-        x_values, group_values = PlotConfigComponents.render_filter_multiselects(
-            data=data,
-            x_col=x_column,
-            group_col=group_column,
-            saved_config=saved_config,
-            plot_id=self.plot_id,
-            x_label=f"Filter {x_column} (X-axis)" if x_column else "Filter X values",
-            group_label=f"Filter {group_column} (Sub-group)" if group_column else "Filter Groups",
+    def _render_stack_total_options(self, saved_config: PlotConfig, config: PlotConfig) -> None:
+        """Render options for Stack Totals."""
+        from src.web.components.plotting.config.grouped_stacked_bar_theme import (
+            render_stack_total_options,
         )
 
-        return {
-            "x": x_column,
-            "group": group_column,
-            "y_columns": y_columns,
-            "y": y_columns[0] if y_columns else None,  # For compatibility
-            "title": title,
-            "xlabel": xlabel,
-            "ylabel": ylabel,
-            "legend_title": legend_title,
-            "x_filter": x_values,
-            "group_filter": group_values,
-            "_needs_advanced": True,
-        }
+        render_stack_total_options(saved_config, config, self.plot_id)
 
-    def _render_stack_total_options(
-        self, saved_config: Dict[str, Any], config: Dict[str, Any]
-    ) -> None:
-        """Render options for Stack Totals."""
-        st.markdown("**Stack Totals**")
-        c1, c2 = st.columns(2)
-        with c1:
-            config["show_totals"] = st.checkbox(
-                "Show Stack Totals",
-                value=saved_config.get("show_totals", False),
-                key=f"show_tot_{self.plot_id}",
-            )
-        with c2:
-            if config["show_totals"]:
-                config["net_total_format"] = st.text_input(
-                    "Format",
-                    value=saved_config.get("net_total_format", ".2f"),
-                    help="Python format string (e.g. .2f)",
-                    key=f"tot_fmt_{self.plot_id}",
-                )
-
-        if config["show_totals"]:
-            c3, c4 = st.columns(2)
-            with c3:
-                config["total_font_size"] = st.number_input(
-                    "Font Size",
-                    value=saved_config.get("total_font_size", 12),
-                    min_value=8,
-                    max_value=30,
-                    key=f"tot_sz_{self.plot_id}",
-                )
-                config["total_font_color"] = st.color_picker(
-                    "Font Color",
-                    value=saved_config.get("total_font_color", "#000000"),
-                    key=f"tot_col_{self.plot_id}",
-                )
-            with c4:
-                config["total_position"] = st.selectbox(
-                    "Position",
-                    options=["Outside", "Inside"],
-                    index=["Outside", "Inside"].index(
-                        saved_config.get("total_position", "Outside")
-                    ),
-                    key=f"tot_pos_{self.plot_id}",
-                    help="Outside: Always on top. Inside: Configurable anchor.",
-                )
-
-                if config["total_position"] == "Inside":
-                    config["total_anchor"] = st.selectbox(
-                        "Anchor (Inside)",
-                        options=["Start", "Middle", "End"],
-                        index=["Start", "Middle", "End"].index(
-                            saved_config.get("total_anchor", "End")
-                        ),
-                        key=f"tot_anc_{self.plot_id}",
-                        help="Start=Bottom, End=Top",
-                    )
-
-        if config["show_totals"]:
-            c5, c6 = st.columns(2)
-            with c5:
-                config["total_offset"] = st.number_input(
-                    "Vertical Offset (px)",
-                    value=saved_config.get("total_offset", 0),
-                    step=1,
-                    key=f"tot_off_{self.plot_id}",
-                    help="Adjustment in pixels (positive = up, negative = down)",
-                )
-            with c6:
-                config["total_rotation"] = st.number_input(
-                    "Rotation",
-                    value=int(saved_config.get("total_rotation", 0)),
-                    step=45,
-                    min_value=-360,
-                    max_value=360,
-                    key=f"tot_rot_{self.plot_id}",
-                )
-
-        if config["show_totals"]:
-            config["total_threshold"] = st.number_input(
-                "Minimum Threshold",
-                value=float(saved_config.get("total_threshold", 0.0)),
-                step=0.1,
-                key=f"tot_thresh_{self.plot_id}",
-                help="Only show totals greater than this value.",
-            )
-
+    @override
     def render_theme_options(
-        self, saved_config: Dict[str, Any], items: Optional[List[str]] = None
-    ) -> Dict[str, Any]:
+        self, saved_config: PlotConfig, items: list[str] | None = None
+    ) -> PlotConfig:
         """Override to add specific styling options."""
         # Get base theme options
-        # Fix: Pass stacks as items to ensure correct Series Styling
         stacks = saved_config.get("y_columns", [])
         config = super().render_theme_options(saved_config, items=stacks)
 
-        # Add Groups Styling
-        st.markdown("#### Major Group Styling")
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            config["major_label_size"] = st.number_input(
-                "Major Label Font Size",
-                value=saved_config.get("major_label_size", 14),
-                key=f"maj_sz_th_{self.plot_id}",
-            )
-        with c2:
-            config["major_label_color"] = st.color_picker(
-                "Major Label Font Color",
-                value=saved_config.get("major_label_color", "#000000"),
-                key=f"maj_col_th_{self.plot_id}",
-            )
-        with c3:
-            config["major_label_offset"] = st.number_input(
-                "Vertical Offset",
-                value=float(saved_config.get("major_label_offset", -0.15)),
-                step=0.05,
-                max_value=0.0,
-                min_value=-1.0,
-                format="%.2f",
-                key=f"maj_off_th_{self.plot_id}",
-                help="Adjust vertical position of Major Group labels (negative values move down)",
-            )
+        # Add grouped-stacked-bar-specific theme extras
+        from src.web.components.plotting.config.grouped_stacked_bar_theme import (
+            render_grouped_theme_extras,
+        )
 
-        # Add Stack Totals
-        self._render_stack_total_options(saved_config, config)
-
-        st.markdown("**Visual Distinction**")
-        d1, d2 = st.columns(2)
-        with d1:
-            config["show_separators"] = st.checkbox(
-                "Show Vertical Separators",
-                value=saved_config.get("show_separators", True),
-                key=f"show_sep_{self.plot_id}",
-            )
-            config["separator_color"] = st.color_picker(
-                "Separator Color",
-                value=saved_config.get("separator_color", "#E0E0E0"),
-                key=f"sep_col_{self.plot_id}",
-            )
-        with d2:
-            config["shade_alternate"] = st.checkbox(
-                "Shade Alternate Groups",
-                value=saved_config.get("shade_alternate", False),
-                key=f"shade_alt_{self.plot_id}",
-            )
-            config["shade_color"] = st.color_picker(
-                "Shade Color",
-                value=saved_config.get("shade_color", "#F5F5F5"),
-                key=f"shade_col_{self.plot_id}",
-            )
-
-        st.markdown("**Summary Group Isolation (Last Group)**")
-        d3, d4 = st.columns(2)
-        with d3:
-            config["isolate_last_group"] = st.checkbox(
-                "Isolate Last Group",
-                value=saved_config.get("isolate_last_group", False),
-                key=f"iso_last_{self.plot_id}",
-                help="Adds extra space and a distinct separator before the last major group.",
-            )
-        with d4:
-            if config["isolate_last_group"]:
-                config["isolation_gap"] = st.number_input(
-                    "Isolation Gap Size",
-                    value=float(saved_config.get("isolation_gap", 0.5)),
-                    min_value=0.0,
-                    step=0.1,
-                    key=f"iso_gap_{self.plot_id}",
-                )
+        render_grouped_theme_extras(saved_config, config, self.plot_id)
 
         return config
 
+    @override
     def render_advanced_options(
-        self, saved_config: Dict[str, Any], data: Optional[pd.DataFrame] = None
-    ) -> Dict[str, Any]:
+        self, saved_config: PlotConfig, data: pd.DataFrame | None = None
+    ) -> PlotConfig:
         """Custom Advanced Options for Grouped Stacked Bar."""
-        config: Dict[str, Any] = {}
+        config: dict[str, Any] = {}
 
         # 1. General Settings
         self._render_general_settings(saved_config, config)
@@ -304,58 +90,95 @@ class GroupedStackedBarPlot(StackedBarPlot):
         specific = self.render_specific_advanced_options(saved_config, data)
         config.update(specific)
 
+        # 2b. Right-axis dot/line settings (only when dual_axis + dots)
+        if saved_config.get("dual_axis") and saved_config.get("right_axis_type") == "dots":
+            self._render_right_axis_dot_settings(saved_config, config)
+
+        # 2c. Dual-axis display settings (grid lines, legend unification)
+        if saved_config.get("dual_axis"):
+            self._render_dual_axis_display_settings(saved_config, config)
+
+        # 2d. Right-axis series configuration (reorder & rename)
+        if saved_config.get("dual_axis"):
+            y_cols_right: list[str] = saved_config.get("y_columns_right", [])
+            if y_cols_right:
+                st.markdown("#### Right-Axis Series Configuration")
+                existing_styles: dict[str, Any] = saved_config.get("series_styles", {})
+                right_rename_map: dict[str, str] = {
+                    k: str(existing_styles[k].get("name", k))
+                    for k in y_cols_right
+                    if k in existing_styles and existing_styles[k].get("name")
+                }
+                with st.expander("Reorder & Rename Right-Axis Series"):
+                    current_right_order = list(y_cols_right)
+                    r_result = self.render_reorderable_list(
+                        "Right-Axis Order",
+                        current_right_order,
+                        "right_ord",
+                        enable_rename=True,
+                        rename_map=right_rename_map or None,
+                    )
+                    new_right_order, right_renames = r_result  # type: ignore[misc]
+                    if new_right_order != current_right_order:
+                        config["y_columns_right"] = new_right_order
+                    if right_renames and isinstance(right_renames, dict):
+                        if "series_styles" not in config:
+                            config["series_styles"] = {}
+                        for k, v in right_renames.items():
+                            if k not in config["series_styles"]:
+                                config["series_styles"][k] = {"name": v}
+                            else:
+                                config["series_styles"][k]["name"] = v
+
         # 3. Stack Configuration
-        # Restore functionality handled by BasePlot's generic "Series Configuration"
-        # We explicitly pass y_columns as items to ensure we rename the stacks/statistics,
-        # not the internal 'group' column.
         y_cols = saved_config.get("y_columns", [])
         if y_cols:
             st.markdown("#### Stack / Legend Configuration")
-
+            stack_styles: dict[str, Any] = saved_config.get("series_styles", {})
+            stack_rename_map: dict[str, str] = {
+                k: str(stack_styles[k].get("name", k))
+                for k in y_cols
+                if k in stack_styles and stack_styles[k].get("name")
+            }
             with st.expander("Reorder & Rename"):
-                # A. Reorder Stacks
-                st.markdown("**Order**")
-                # We allow reordering the y_columns list
                 current_order = list(y_cols)
-                new_order = self.render_reorderable_list("Stack Order", current_order, "stack_ord")
+                s_result = self.render_reorderable_list(
+                    "Stack Order",
+                    current_order,
+                    "stack_ord",
+                    enable_rename=True,
+                    rename_map=stack_rename_map or None,
+                )
+                new_order, stack_renames = s_result  # type: ignore[misc]
                 if new_order != current_order:
                     config["y_columns"] = new_order
-
-                # B. Rename Series
-                st.markdown("**Rename**")
-                renaming_styles = self.style_manager.render_series_renaming_ui(
-                    saved_config, data, items=y_cols  # Explicitly pass stack names
-                )
-
-                if "series_styles" not in config:
-                    config["series_styles"] = {}
-
-                for k, v in renaming_styles.items():
-                    if k not in config["series_styles"]:
-                        config["series_styles"][k] = v
-                    else:
-                        config["series_styles"][k].update(v)
+                if stack_renames and isinstance(stack_renames, dict):
+                    if "series_styles" not in config:
+                        config["series_styles"] = {}
+                    for k, v in stack_renames.items():
+                        if k not in config["series_styles"]:
+                            config["series_styles"][k] = {"name": v}
+                        else:
+                            config["series_styles"][k]["name"] = v
 
         # 4. Major Group Configuration (Original X)
         x_col = saved_config.get("x")
         if data is not None and x_col and x_col in data.columns:
             st.markdown("#### Major Grouping (Outer) Configuration")
             with st.expander("Reorder & Rename Major Groups"):
-                # Reorder
-                st.markdown("**Order**")
                 unique_x = sorted(data[x_col].unique().tolist())
-                config["xaxis_order"] = self.render_reorderable_list(
+                maj_result = self.render_reorderable_list(
                     "Major Group Order",
                     unique_x,
                     "xaxis",
                     default_order=saved_config.get("xaxis_order"),
+                    enable_rename=True,
+                    rename_map=saved_config.get("xaxis_labels"),
                 )
-
-                # Rename
-                st.markdown("**Rename**")
-                config["xaxis_labels"] = self.style_manager.render_xaxis_labels_ui(
-                    saved_config, data, key_prefix="maj_rename"
-                )
+                order_maj, renames_maj = maj_result  # type: ignore[misc]
+                config["xaxis_order"] = order_maj
+                if renames_maj:
+                    config["xaxis_labels"] = renames_maj
 
         # 5. Minor Group Configuration (Original Group)
         group_col = saved_config.get("group")
@@ -363,24 +186,23 @@ class GroupedStackedBarPlot(StackedBarPlot):
             st.markdown("#### X-Axis / Minor Grouping (Inner) Configuration")
             with st.expander("Reorder & Rename Minor Groups"):
                 unique_g = sorted(data[group_col].unique().tolist())
-                config["group_order"] = self.render_reorderable_list(
+                min_result = self.render_reorderable_list(
                     "Minor Group Order",
                     unique_g,
                     "group",
                     default_order=saved_config.get("group_order"),
+                    enable_rename=True,
+                    rename_map=saved_config.get("group_renames"),
                 )
+                order_min, renames_min = min_result  # type: ignore[misc]
+                config["group_order"] = order_min
+                if renames_min:
+                    config["group_renames"] = renames_min
 
-                st.markdown("**Rename Minor Groups**")
-                # Use style_manager but mock the config to point 'x' to 'group'
-                temp_config = saved_config.copy()
-                temp_config["x"] = group_col
-                temp_config["xaxis_labels"] = saved_config.get("group_renames", {})
+        # 6. Reference Line (Normalizer)
+        self._render_reference_line_ui(saved_config, data, config)
 
-                config["group_renames"] = self.style_manager.render_xaxis_labels_ui(
-                    temp_config, data, key_prefix="min_rename"
-                )
-
-        # 6. Annotations
+        # 7. Annotations
         st.markdown("#### Annotations (Shapes)")
         config["shapes"] = self._render_shapes_ui(saved_config)
 
@@ -394,57 +216,47 @@ class GroupedStackedBarPlot(StackedBarPlot):
 
         return config
 
-    def create_figure(self, data: pd.DataFrame, config: Dict[str, Any]) -> go.Figure:
-        """Create grouped stacked bar plot figure."""
+    @override
+    def create_traces(self, data: pd.DataFrame, config: PlotConfig) -> TraceBuildResult:
+        """Create grouped stacked bar trace configurations."""
         x_col = config.get("x")
         group_col = config.get("group")
         y_cols = config.get("y_columns", [])
+        dual_axis: bool = bool(config.get("dual_axis"))
 
         # If no group column, delegate to parent's simple stacked bar implementation
         if not group_col:
-            return super().create_figure(data, config)
-
-        fig = go.Figure()
+            return super().create_traces(data, config)
 
         if not x_col or not y_cols:
-            fig.update_layout(title="Please select X axis and at least one Statistic")
-            return fig
+            return TraceBuildResult(traces=[], barmode="stack")
 
-        # Prepare data using parent's method
-        data = self._prepare_data(data, x_col, y_cols, config)
+        # Prepare data — include right-axis columns in total calculation
+        y_cols_right: list[str] = config.get("y_columns_right", []) if dual_axis else []
+        all_y_cols: list[str] = y_cols + [c for c in y_cols_right if c not in y_cols]
+        data = self._prepare_data(data, x_col, all_y_cols, config)
 
         # Define hover template
         hover_template = self._get_hover_template()
 
-        # Create grouped figure
-        fig = self._create_grouped_figure(
-            fig, data, x_col, group_col, y_cols, config, hover_template
+        # Create grouped traces
+        return self._create_grouped_traces(
+            data, x_col, group_col, y_cols, config, hover_template, dual_axis
         )
 
-        fig.update_layout(
-            title=config.get("title", ""),
-            yaxis_title=config.get("ylabel", "Value"),
-            legend_title=config.get("legend_title", "Statistics"),
-        )
-
-        return fig
-
-    def _create_grouped_figure(
+    def _create_grouped_traces(
         self,
-        fig: go.Figure,
         data: pd.DataFrame,
         x_col: str,
         group_col: str,
-        y_cols: List[str],
-        config: Dict[str, Any],
+        y_cols: list[str],
+        config: PlotConfig,
         hover_template: str,
-    ) -> go.Figure:
-        """Create figure for grouped stacked bars."""
-        # Make a copy to avoid SettingWithCopyWarning
-        data = data.copy()
-
-        # Ensure group column is string
-        data[group_col] = data[group_col].astype(str)
+        dual_axis: bool = False,
+    ) -> TraceBuildResult:
+        """Build TraceBuildResult for grouped stacked bars."""
+        # Copy + cast the group column to string (categorical axis)
+        data = prepare_categorical_data(data, [group_col])
 
         # Apply Group Filter
         if config.get("group_filter") is not None:
@@ -466,7 +278,8 @@ class GroupedStackedBarPlot(StackedBarPlot):
         tick_vals = coord_result["tick_vals"]
         tick_text = coord_result["tick_text"]
         cat_centers = coord_result["cat_centers"]
-        distinction_shapes = coord_result["shapes"]
+        separator_lines = coord_result["separator_lines"]
+        shaded_regions = coord_result["shaded_regions"]
         bar_width = coord_result["bar_width"]
 
         # Map coordinates to data
@@ -474,132 +287,232 @@ class GroupedStackedBarPlot(StackedBarPlot):
             lambda row: coord_map.get((row[x_col], row[group_col]), None), axis=1
         )
 
-        # Add bar traces
+        # Build bar traces (LEFT axis)
+        traces: list[TraceConfig] = []
         for y_col in y_cols:
-            fig = self._add_bar_trace(
-                fig, data, y_col, "__x_coord", bar_width, hover_template, config
+            trace = self._build_bar_trace(
+                data, y_col, "__x_coord", bar_width, hover_template, config
             )
+            traces.append(trace)
 
-        # Update layout for grouped bars
-        fig.update_layout(
-            barmode="stack",
-            xaxis=dict(
-                tickmode="array",
-                tickvals=tick_vals,
-                ticktext=tick_text,
-                title=config.get("xlabel", x_col),
-            ),
-        )
+        # Build RIGHT-axis traces (dual-axis mode)
+        if dual_axis:
+            y_cols_right: list[str] = config.get("y_columns_right", [])
+            right_type: str = config.get("right_axis_type", "bars")
+            right_traces = self._build_right_axis_traces(
+                data, "__x_coord", y_cols_right, right_type, bar_width, config
+            )
+            traces.extend(right_traces)
 
-        # Combine shapes
-        existing_shapes = config.get("shapes", []) or []
-        if not isinstance(existing_shapes, list):
-            existing_shapes = []
-        fig.update_layout(shapes=existing_shapes + distinction_shapes)
+        # Apply numbered X-axis labels (replace verbose ticks with indices)
+        tick_text, numbered_legend = self._apply_numbered_xaxis(tick_text, config)
+
+        # Build custom_x_ticks
+        custom_x_ticks: dict[str, list[Any]] = {"vals": tick_vals, "text": tick_text}
+
+        # Hide x-tick labels per the shared rule (same logic the mpl path uses).
+        from src.web.rendering.config_builder import should_show_x_tick_labels
+
+        if not should_show_x_tick_labels(config):
+            custom_x_ticks["hide_ticks"] = [True]
 
         # Build annotations
-        annotations = self._build_category_annotations(cat_centers, config)
+        layout_annotations = self._build_category_annotations(cat_centers, config)
+
+        # Super-group labels under the category labels
+        group_centers = coord_result.get("category_group_centers") or []
+        if group_centers:
+            layout_annotations.extend(self._build_category_group_annotations(group_centers, config))
 
         # Add totals if requested
         if config.get("show_totals"):
             totals_annotations = self._build_totals_annotations(data, "__x_coord", config)
-            annotations.extend(totals_annotations)
+            layout_annotations.extend(totals_annotations)
 
-        fig.update_layout(annotations=annotations)
+        # Add numbered legend annotation if enabled
+        if numbered_legend is not None:
+            layout_annotations.append(numbered_legend)
 
-        return fig
+        return TraceBuildResult(
+            traces=traces,
+            barmode="stack",
+            separator_lines=separator_lines,
+            rule_lines=coord_result.get("category_group_rules") or [],
+            shaded_regions=shaded_regions,
+            custom_x_ticks=custom_x_ticks,
+            layout_annotations=layout_annotations,
+            secondary_y=dual_axis,
+        )
 
     def _get_ordered_categories_and_groups(
-        self, data: pd.DataFrame, x_col: str, group_col: str, config: Dict[str, Any]
-    ) -> tuple[List[str], List[str]]:
+        self, data: pd.DataFrame, x_col: str, group_col: str, config: PlotConfig
+    ) -> tuple[list[str], list[str]]:
         """Get ordered lists of categories and groups."""
-        # Categories
-        if config.get("xaxis_order"):
-            xaxis_order_str = [str(x) for x in config["xaxis_order"]]
-            ordered_cats = [c for c in xaxis_order_str if c in data[x_col].unique()]
-            missing = [c for c in sorted(data[x_col].unique()) if c not in ordered_cats]
-            ordered_cats.extend(missing)
-        else:
-            ordered_cats = sorted(data[x_col].unique())
+        from src.web.pages.ui.plotting.utils.grouped_stacked_bar_helpers import (
+            get_ordered_categories_and_groups,
+        )
 
-        # Groups
-        if config.get("group_order"):
-            group_order_str = [str(g) for g in config["group_order"]]
-            ordered_groups = [g for g in group_order_str if g in data[group_col].unique()]
-            missing = [g for g in sorted(data[group_col].unique()) if g not in ordered_groups]
-            ordered_groups.extend(missing)
-        else:
-            ordered_groups = sorted(data[group_col].unique())
-
-        return ordered_cats, ordered_groups
+        return get_ordered_categories_and_groups(data, x_col, group_col, config)
 
     def _apply_renames(
         self,
         data: pd.DataFrame,
         x_col: str,
         group_col: str,
-        categories: List[str],
-        groups: List[str],
-        config: Dict[str, Any],
-    ) -> tuple[pd.DataFrame, List[str], List[str]]:
+        categories: list[str],
+        groups: list[str],
+        config: PlotConfig,
+    ) -> tuple[pd.DataFrame, list[str], list[str]]:
         """Apply renames to data and ordered lists."""
-        # X-axis renames
-        x_renames = config.get("xaxis_labels", {})
-        if x_renames:
-            data[x_col] = data[x_col].replace(x_renames)
+        from src.web.pages.ui.plotting.utils.grouped_stacked_bar_helpers import (
+            apply_renames,
+        )
 
-        renamed_categories = [x_renames.get(cat, cat) for cat in categories]
-
-        # Group renames
-        group_renames = config.get("group_renames", {})
-        if group_renames:
-            data[group_col] = data[group_col].replace(group_renames)
-
-        renamed_groups = [group_renames.get(grp, grp) for grp in groups]
-
-        return data, renamed_categories, renamed_groups
+        return apply_renames(data, x_col, group_col, categories, groups, config)
 
     def _build_coordinate_map(
         self,
-        categories: List[str],
-        groups: List[str],
+        categories: list[str],
+        groups: list[str],
         data: pd.DataFrame,
         x_col: str,
         group_col: str,
-        config: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        config: PlotConfig,
+    ) -> dict[str, Any]:
         """Build coordinate mapping for grouped bars using centralized utility."""
         return GroupedBarUtils.calculate_grouped_coordinates(
             categories=categories, groups=groups, config=config
         )
 
-    def _build_category_annotations(
-        self, cat_centers: List[tuple[float, str]], config: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
-        """Build annotations for category labels (grouped bars only)."""
-        return GroupedBarUtils.build_category_annotations(
-            cat_centers=cat_centers,
-            font_size=config.get("major_label_size", 14),
-            font_color=config.get("major_label_color", "#000000"),
-            y_offset=config.get("major_label_offset", -0.15),
+    def _apply_numbered_xaxis(
+        self,
+        tick_text: list[str],
+        config: PlotConfig,
+    ) -> tuple[list[str], dict[str, Any] | None]:
+        """Replace tick labels with numbered indices and build legend annotation."""
+        from src.web.pages.ui.plotting.utils.grouped_stacked_bar_helpers import (
+            apply_numbered_xaxis,
         )
 
-    def apply_common_layout(self, fig: go.Figure, config: Dict[str, Any]) -> go.Figure:
+        return apply_numbered_xaxis(tick_text, config)
+
+    def _build_category_annotations(
+        self, cat_centers: list[tuple[float, str]], config: PlotConfig
+    ) -> list[dict[str, Any]]:
+        """Build annotations for category labels (grouped bars only)."""
+        from src.web.pages.ui.plotting.utils.grouped_stacked_bar_helpers import (
+            build_category_annotations,
+        )
+
+        return build_category_annotations(cat_centers, config)
+
+    def _build_category_group_annotations(
+        self, group_centers: list[tuple[float, str]], config: PlotConfig
+    ) -> list[dict[str, Any]]:
+        """Build annotations for category super-group labels."""
+        from src.web.pages.ui.plotting.utils.grouped_stacked_bar_helpers import (
+            build_category_group_annotations,
+        )
+
+        return build_category_group_annotations(group_centers, config)
+
+    @override
+    def apply_common_layout(self, fig: go.Figure, config: PlotConfig) -> go.Figure:
         """Apply common layout and enforce hover template."""
         fig = super().apply_common_layout(fig, config)
 
-        # Enforce hover template for this specific plot type
-        # We need to make sure this overwrites what base_plot does
-        hover_template = (
-            "<b>%{x}</b><br>"
-            "Value: %{y:.4f}<br>"
-            "<b>Total: %{customdata:.4f}</b>"
-            "<extra></extra>"
-        )
-        fig.update_traces(hovertemplate=hover_template)
+        # Enforce hover template for this specific plot type (reuse the inherited single
+        # source so the two never drift); this overwrites what base_plot sets.
+        fig.update_traces(hovertemplate=self._get_hover_template())
+
+        # Dual-axis enhancements
+        if config.get("dual_axis"):
+            # 1. Y-axis title rotation
+            #    Primary (left):  reads bottom-to-top (textangle=-90, standard)
+            #    Secondary (right): reads top-to-bottom (textangle=90, opposite)
+            self._apply_dual_axis_titles(fig, config)
+
+            # 2. Grid lines per axis — primary ON by default, secondary OFF
+            fig.update_yaxes(
+                showgrid=config.get("show_y_grid", True),
+                secondary_y=False,
+            )
+            fig.update_yaxes(
+                showgrid=config.get("y2show_y_grid", False),
+                secondary_y=True,
+            )
+
+            # 3. Legend unification
+            if not config.get("unified_legend", True):
+                self._apply_separate_legends(fig, config)
 
         return fig
 
-    def get_legend_column(self, config: Dict[str, Any]) -> Optional[str]:
+    # ------------------------------------------------------------------
+    # Dual-axis helpers
+    # ------------------------------------------------------------------
+
+    def _apply_dual_axis_titles(self, fig: go.Figure, config: PlotConfig) -> None:
+        """Apply Y-axis titles as symmetrical annotations for dual-axis mode."""
+        from src.web.pages.ui.plotting.utils.grouped_stacked_bar_helpers import (
+            apply_dual_axis_titles,
+        )
+
+        apply_dual_axis_titles(fig, config)
+
+    def _apply_separate_legends(self, fig: go.Figure, config: PlotConfig) -> None:
+        """Split traces into separate legends for left and right axis groups."""
+        from src.web.pages.ui.plotting.utils.grouped_stacked_bar_helpers import (
+            apply_separate_legends,
+        )
+
+        apply_separate_legends(fig, config)
+
+    def _render_dual_axis_display_settings(
+        self, saved_config: PlotConfig, config: PlotConfig
+    ) -> None:
+        """Render dual-axis display settings: grid, typography, legend."""
+        from src.web.components.plotting.config.dual_axis_settings import (
+            render_dual_axis_display_settings,
+        )
+
+        render_dual_axis_display_settings(saved_config, config, self.plot_id)
+
+    def _render_secondary_legend_controls(
+        self, saved_config: PlotConfig, config: PlotConfig
+    ) -> None:
+        """Render full legend controls for the secondary (right-axis) legend."""
+        from src.web.components.plotting.config.dual_axis_settings import (
+            render_secondary_legend_controls,
+        )
+
+        render_secondary_legend_controls(saved_config, config, self.plot_id)
+
+    def _render_right_axis_dot_settings(self, saved_config: PlotConfig, config: PlotConfig) -> None:
+        """Render dot & line settings for the right (secondary) Y-axis."""
+        from src.web.components.plotting.config.dual_axis_settings import (
+            render_right_axis_dot_settings,
+        )
+
+        render_right_axis_dot_settings(saved_config, config, self.plot_id)
+
+    def _build_right_axis_traces(
+        self,
+        data: pd.DataFrame,
+        x_coord_col: str,
+        y_cols: list[str],
+        trace_type: str,
+        bar_width: float | None,
+        config: PlotConfig,
+    ) -> list[TraceConfig]:
+        """Build traces for the secondary (right) Y-axis."""
+        from src.web.pages.ui.plotting.utils.grouped_stacked_bar_helpers import (
+            build_right_axis_traces,
+        )
+
+        return build_right_axis_traces(data, x_coord_col, y_cols, trace_type, bar_width, config)
+
+    @override
+    def get_legend_column(self, config: PlotConfig) -> str | None:
         """Get legend column for grouped stacked bar plot."""
         return None

@@ -1,5 +1,0 @@
-# Auto-detect text files and perform LF normalization
-* text=auto
-
-# Test data moved to GitHub Releases (no longer tracked by Git LFS)
-# Download from: https://github.com/nikiitin/RING-5/releases/tag/test-data-v1

@@ -5,8 +5,8 @@ name: RING-5 CodeQL Config
 
 # Paths to exclude from analysis
 paths-ignore:
-  - tests/**  # Test code not part of production
-  - scripts/**  # Utility scripts for development
+  - tests/** # Test code not part of production
+  - scripts/** # Utility scripts for development
   - tests/data/**
   - python_venv/**
   - "**/*.egg-info/**"

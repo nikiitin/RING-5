@@ -6,23 +6,28 @@ Tests for styles, state manager, facade, and components.
 import json
 import shutil
 import tempfile
+from collections.abc import Generator
 from pathlib import Path
+from typing import Any, cast
 from unittest.mock import patch
 
 import pandas as pd
 import pytest
+
+from src.core.models.data_models import ParseVariableConfig
+from src.core.models.shaper_models import ShaperStepConfig
 
 
 class TestStateManager:
     """Test the StateManager class."""
 
     @pytest.fixture
-    def mock_session_state(self):
+    def mock_session_state(self) -> Generator[dict[str, Any], None, None]:
         """Mock streamlit.session_state as a dictionary."""
         with patch("streamlit.session_state", new_callable=dict) as mock_state:
             yield mock_state
 
-    def test_initialize_creates_defaults(self, mock_session_state):
+    def test_initialize_creates_defaults(self, mock_session_state: Any) -> None:
         """Test that initialize creates default values."""
         from src.core.state.repository_state_manager import RepositoryStateManager as StateManager
 
@@ -39,7 +44,7 @@ class TestStateManager:
         assert not mgr.has_data()
         assert mgr.get_data() is None
 
-    def test_get_set_data(self, mock_session_state):
+    def test_get_set_data(self, mock_session_state: Any) -> None:
         """Test data getter and setter."""
         from src.core.state.repository_state_manager import RepositoryStateManager as StateManager
 
@@ -53,19 +58,18 @@ class TestStateManager:
         assert len(retrieved) == 3
         pd.testing.assert_frame_equal(retrieved, test_data)
 
-    def test_get_set_config(self, mock_session_state):
+    def test_get_set_config(self, mock_session_state: Any) -> None:
         """Test config getter and setter."""
         from src.core.state.repository_state_manager import RepositoryStateManager as StateManager
 
         mgr = StateManager()
-
-        test_config = {"shapers": [{"type": "test"}]}
+        test_config = {"shapers": cast(Any, [{"type": "test"}])}
         mgr.set_config(test_config)
 
         retrieved = mgr.get_config()
         assert retrieved == test_config
 
-    def test_update_config(self, mock_session_state):
+    def test_update_config(self, mock_session_state: Any) -> None:
         """Test config update method."""
         from src.core.state.repository_state_manager import RepositoryStateManager as StateManager
 
@@ -77,7 +81,7 @@ class TestStateManager:
         assert "test_key" in config
         assert config["test_key"] == "test_value"
 
-    def test_has_data(self, mock_session_state):
+    def test_has_data(self, mock_session_state: Any) -> None:
         """Test has_data method."""
         from src.core.state.repository_state_manager import RepositoryStateManager as StateManager
 
@@ -92,16 +96,30 @@ class TestStateManager:
 class TestApplicationAPI:
     """Test the ApplicationAPI class."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Setup test environment."""
+        from src.core.services.data_services.config_service import ConfigService
+        from src.core.services.data_services.csv_pool_service import CsvPoolService
+        from src.core.services.data_services.path_service import PathService
+
+        PathService.reset_caches()
+        CsvPoolService.clear_caches()
+        ConfigService.reset_caches()
         self.test_dir = Path(tempfile.mkdtemp())
 
-    def teardown_method(self):
+    def teardown_method(self) -> None:
         """Cleanup test environment."""
+        from src.core.services.data_services.config_service import ConfigService
+        from src.core.services.data_services.csv_pool_service import CsvPoolService
+        from src.core.services.data_services.path_service import PathService
+
+        PathService.reset_caches()
+        CsvPoolService.clear_caches()
+        ConfigService.reset_caches()
         if self.test_dir.exists():
             shutil.rmtree(self.test_dir)
 
-    def test_api_initialization(self):
+    def test_api_initialization(self) -> None:
         """Test API initializes services."""
         from src.core.application_api import ApplicationAPI
 
@@ -115,7 +133,7 @@ class TestApplicationAPI:
         # API doesn't allow direct property access to csv_pool_dir by default but uses service
         # We check functionality instead of internal properties
 
-    def test_load_csv_pool_empty(self):
+    def test_load_csv_pool_empty(self) -> None:
         """Test loading empty CSV pool."""
         from unittest.mock import patch
 
@@ -142,7 +160,7 @@ class TestApplicationAPI:
             assert isinstance(pool, list)
             assert len(pool) == 0
 
-    def test_add_to_csv_pool(self):
+    def test_add_to_csv_pool(self) -> None:
         """Test adding CSV to pool."""
         from src.core.application_api import ApplicationAPI
 
@@ -160,7 +178,7 @@ class TestApplicationAPI:
         assert Path(pool_path).exists()
         assert "parsed_" in Path(pool_path).name
 
-    def test_load_csv_file(self):
+    def test_load_csv_file(self) -> None:
         """Test loading CSV file."""
         from src.core.application_api import ApplicationAPI
 
@@ -176,7 +194,7 @@ class TestApplicationAPI:
         assert len(loaded_data) == 3
         assert list(loaded_data.columns) == ["a", "b"]
 
-    def test_save_configuration(self):
+    def test_save_configuration(self) -> None:
         """Test saving configuration."""
         from src.core.application_api import ApplicationAPI
 
@@ -193,21 +211,21 @@ class TestApplicationAPI:
             config_path = api.save_configuration(
                 name="test_config",
                 description="Test description",
-                shapers_config=[{"type": "test"}],
+                shapers_config=cast(Any, [{"type": "test"}]),
                 csv_path="/path/to/csv",
             )
 
         assert Path(config_path).exists()
 
         # Verify content
-        with open(config_path, "r") as f:
+        with open(config_path) as f:
             config_data = json.load(f)
 
         assert config_data["name"] == "test_config"
         assert config_data["description"] == "Test description"
         assert len(config_data["shapers"]) == 1
 
-    def test_load_configuration(self):
+    def test_load_configuration(self) -> None:
         """Test loading configuration."""
         from src.core.application_api import ApplicationAPI
 
@@ -228,9 +246,9 @@ class TestApplicationAPI:
             loaded_config = api.load_configuration(str(config_file))
 
         assert loaded_config["name"] == "test"
-        assert loaded_config["description"] == "Test config"
+        assert loaded_config.get("description") == "Test config"
 
-    def test_find_stats_files(self):
+    def test_find_stats_files(self) -> None:
         """Test finding stats files."""
         from src.core.application_api import ApplicationAPI
 
@@ -248,7 +266,7 @@ class TestApplicationAPI:
 
         assert len(found_files) == 2
 
-    def test_apply_shapers(self):
+    def test_apply_shapers(self) -> None:
         """Test applying shapers to data (requires shaper module)."""
         from src.core.application_api import ApplicationAPI
 
@@ -257,7 +275,9 @@ class TestApplicationAPI:
             api = ApplicationAPI()
             test_data = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
 
-            shapers_config = [{"type": "columnSelector", "columns": ["a", "b"]}]
+            shapers_config = cast(
+                list[ShaperStepConfig], [{"type": "columnSelector", "columns": ["a", "b"]}]
+            )
 
             result = api.apply_shapers(test_data, shapers_config)
 
@@ -269,7 +289,7 @@ class TestApplicationAPI:
             # Skip if shaper module has import issues
             pytest.skip("Shaper module not properly configured")
 
-    def test_get_column_info(self):
+    def test_get_column_info(self) -> None:
         """Test getting column information."""
         from src.core.application_api import ApplicationAPI
 
@@ -289,26 +309,26 @@ class TestApplicationAPI:
 class TestUIComponents:
     """Test the UI Components."""
 
-    def test_data_components_preview(self):
+    def test_data_components_preview(self) -> None:
         """Test DataComponents.show_data_preview exist."""
-        from src.web.pages.ui.components.data_components import DataComponents
+        from src.web.components.common.data_components import DataComponents
 
         assert hasattr(DataComponents, "show_data_preview")
         assert callable(DataComponents.show_data_preview)
 
-    def test_variable_editor_exists(self):
+    def test_variable_editor_exists(self) -> None:
         """Test VariableEditor.render exists."""
-        from src.web.pages.ui.components.variable_editor import VariableEditor
+        from src.web.components.data_source.variable_editor import VariableEditor
 
         assert hasattr(VariableEditor, "render")
         assert callable(VariableEditor.render)
 
-    def test_variable_editor_histogram_support(self):
+    def test_variable_editor_histogram_support(self) -> None:
         """Test VariableEditor supports histogram configuration."""
         from unittest.mock import MagicMock
 
         from src.core.application_api import ApplicationAPI
-        from src.web.pages.ui.components.variable_editor import VariableEditor
+        from src.web.components.data_source.variable_editor import VariableEditor
 
         assert hasattr(VariableEditor, "render_histogram_config")
 
@@ -316,24 +336,16 @@ class TestUIComponents:
         mock_api = MagicMock(spec=ApplicationAPI)
 
         # Mock st
-        with patch("src.web.pages.ui.components.variable_editor.st") as mock_st:
+        with patch("src.web.components.data_source.variable_editor.st") as mock_st:
             mock_st.columns.side_effect = [
                 [MagicMock(), MagicMock(), MagicMock(), MagicMock()],
                 [MagicMock(), MagicMock()],
             ]
-            variables = [{"name": "test_hist", "type": "histogram"}]
+            # Don't trigger the add-variable buttons (this test exercises histogram config,
+            # not the add path which persists via api.state_manager).
+            mock_st.button.return_value = False
+            variables = cast(
+                list[ParseVariableConfig], [{"name": "test_hist", "type": "histogram"}]
+            )
             # Pass mock API
             VariableEditor.render(mock_api, variables)
-
-
-def run_tests():
-    """Run all tests and report results."""
-    print("Running RING-5 Web Module Tests...")
-    print("=" * 60)
-
-    # Run pytest
-    pytest.main([__file__, "-v", "--tb=short"])
-
-
-if __name__ == "__main__":
-    run_tests()

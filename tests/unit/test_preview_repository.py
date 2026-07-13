@@ -4,20 +4,23 @@ Unit tests for PreviewRepository.
 Tests the preview-commit pattern implementation.
 """
 
+from typing import Any
+
 import pandas as pd
 import pytest
+from pandas import DataFrame
 
 from src.core.state.repositories.preview_repository import PreviewRepository
 
 
 @pytest.fixture
-def test_dataframe():
+def test_dataframe() -> DataFrame:
     """Create a test DataFrame."""
     return pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
 
 
 @pytest.fixture
-def preview_repo():
+def preview_repo() -> PreviewRepository:
     """Create a fresh PreviewRepository for each test."""
     return PreviewRepository()
 
@@ -25,7 +28,7 @@ def preview_repo():
 class TestPreviewRepositoryBasics:
     """Test basic preview operations."""
 
-    def test_set_and_get_preview(self, test_dataframe, preview_repo):
+    def test_set_and_get_preview(self, test_dataframe: Any, preview_repo: Any) -> None:
         """Test storing and retrieving preview."""
         preview_repo.set_preview("test_operation", test_dataframe)
 
@@ -35,7 +38,7 @@ class TestPreviewRepositoryBasics:
         assert isinstance(result, pd.DataFrame)
         assert result.equals(test_dataframe)
 
-    def test_has_preview_exists(self, test_dataframe, preview_repo):
+    def test_has_preview_exists(self, test_dataframe: Any, preview_repo: Any) -> None:
         """Test has_preview returns True when preview exists."""
         assert not preview_repo.has_preview("test_op")
 
@@ -43,17 +46,17 @@ class TestPreviewRepositoryBasics:
 
         assert preview_repo.has_preview("test_op")
 
-    def test_has_preview_not_exists(self, preview_repo):
+    def test_has_preview_not_exists(self, preview_repo: Any) -> None:
         """Test has_preview returns False when preview doesn't exist."""
         assert not preview_repo.has_preview("nonexistent_operation")
 
-    def test_get_preview_nonexistent(self, preview_repo):
+    def test_get_preview_nonexistent(self, preview_repo: Any) -> None:
         """Test get_preview returns None for nonexistent operation."""
         result = preview_repo.get_preview("missing")
 
         assert result is None
 
-    def test_clear_preview(self, test_dataframe, preview_repo):
+    def test_clear_preview(self, test_dataframe: Any, preview_repo: Any) -> None:
         """Test clearing preview."""
         preview_repo.set_preview("to_clear", test_dataframe)
         assert preview_repo.has_preview("to_clear")
@@ -63,7 +66,7 @@ class TestPreviewRepositoryBasics:
         assert not preview_repo.has_preview("to_clear")
         assert preview_repo.get_preview("to_clear") is None
 
-    def test_clear_preview_nonexistent_is_safe(self, preview_repo):
+    def test_clear_preview_nonexistent_is_safe(self, preview_repo: Any) -> None:
         """Test clearing nonexistent preview is idempotent."""
         # Should not raise exception
         preview_repo.clear_preview("nonexistent")
@@ -75,7 +78,7 @@ class TestPreviewRepositoryBasics:
 class TestPreviewRepositoryMultiple:
     """Test handling multiple previews."""
 
-    def test_multiple_previews_independent(self, test_dataframe, preview_repo):
+    def test_multiple_previews_independent(self, test_dataframe: Any, preview_repo: Any) -> None:
         """Test multiple previews don't interfere with each other."""
         df1 = test_dataframe
         df2 = test_dataframe * 2
@@ -90,7 +93,7 @@ class TestPreviewRepositoryMultiple:
         assert preview_repo.get_preview("op2").equals(df2)
         assert preview_repo.get_preview("op3").equals(df3)
 
-    def test_clear_one_doesnt_affect_others(self, test_dataframe, preview_repo):
+    def test_clear_one_doesnt_affect_others(self, test_dataframe: Any, preview_repo: Any) -> None:
         """Test clearing one preview doesn't affect others."""
         preview_repo.set_preview("keep1", test_dataframe)
         preview_repo.set_preview("remove", test_dataframe * 2)
@@ -102,7 +105,7 @@ class TestPreviewRepositoryMultiple:
         assert not preview_repo.has_preview("remove")
         assert preview_repo.has_preview("keep2")
 
-    def test_list_active_previews(self, test_dataframe, preview_repo):
+    def test_list_active_previews(self, test_dataframe: Any, preview_repo: Any) -> None:
         """Test listing all active previews."""
         assert preview_repo.list_active_previews() == []
 
@@ -117,7 +120,7 @@ class TestPreviewRepositoryMultiple:
         assert "mixer" in active
         assert "seeds_reduction" in active
 
-    def test_clear_all_previews(self, test_dataframe, preview_repo):
+    def test_clear_all_previews(self, test_dataframe: Any, preview_repo: Any) -> None:
         """Test clearing all previews at once."""
         preview_repo.set_preview("op1", test_dataframe)
         preview_repo.set_preview("op2", test_dataframe)
@@ -135,32 +138,32 @@ class TestPreviewRepositoryMultiple:
 class TestPreviewRepositoryEdgeCases:
     """Test edge cases and error handling."""
 
-    def test_set_preview_empty_name_raises(self, test_dataframe, preview_repo):
+    def test_set_preview_empty_name_raises(self, test_dataframe: Any, preview_repo: Any) -> None:
         """Test setting preview with empty name raises error."""
         with pytest.raises(ValueError, match="Operation name cannot be empty"):
             preview_repo.set_preview("", test_dataframe)
 
-    def test_set_preview_none_data_raises(self, preview_repo):
+    def test_set_preview_none_data_raises(self, preview_repo: Any) -> None:
         """Test setting preview with None data raises error."""
         with pytest.raises(ValueError, match="Preview data cannot be None"):
             preview_repo.set_preview("test_op", None)
 
-    def test_get_preview_empty_name_returns_none(self, preview_repo):
+    def test_get_preview_empty_name_returns_none(self, preview_repo: Any) -> None:
         """Test getting preview with empty name returns None."""
         result = preview_repo.get_preview("")
 
         assert result is None
 
-    def test_has_preview_empty_name_returns_false(self, preview_repo):
+    def test_has_preview_empty_name_returns_false(self, preview_repo: Any) -> None:
         """Test has_preview with empty name returns False."""
         assert not preview_repo.has_preview("")
 
-    def test_clear_preview_empty_name_is_safe(self, preview_repo):
+    def test_clear_preview_empty_name_is_safe(self, preview_repo: Any) -> None:
         """Test clearing preview with empty name is safe."""
         # Should not raise exception
         preview_repo.clear_preview("")
 
-    def test_overwrite_existing_preview(self, test_dataframe, preview_repo):
+    def test_overwrite_existing_preview(self, test_dataframe: Any, preview_repo: Any) -> None:
         """Test overwriting existing preview replaces it."""
         df1 = test_dataframe
         df2 = test_dataframe * 10
@@ -180,7 +183,9 @@ class TestPreviewRepositoryEdgeCases:
 class TestPreviewRepositoryDataIntegrity:
     """Test data integrity and isolation."""
 
-    def test_preview_data_not_modified_by_external_changes(self, test_dataframe, preview_repo):
+    def test_preview_data_not_modified_by_external_changes(
+        self, test_dataframe: Any, preview_repo: Any
+    ) -> None:
         """Test stored preview behavior with DataFrame references."""
         df = test_dataframe.copy()
         preview_repo.set_preview("isolation_test", df)
@@ -201,7 +206,7 @@ class TestPreviewRepositoryDataIntegrity:
         safe_stored = preview_repo.get_preview("safe_test")
         assert safe_stored.loc[0, "a"] == 1  # Original value preserved
 
-    def test_dataframe_types_preserved(self, preview_repo):
+    def test_dataframe_types_preserved(self, preview_repo: Any) -> None:
         """Test DataFrame column types are preserved."""
         df = pd.DataFrame(
             {"int_col": [1, 2, 3], "float_col": [1.1, 2.2, 3.3], "str_col": ["a", "b", "c"]}
@@ -214,7 +219,7 @@ class TestPreviewRepositoryDataIntegrity:
         assert result["float_col"].dtype == df["float_col"].dtype
         assert result["str_col"].dtype == df["str_col"].dtype
 
-    def test_empty_dataframe_handled_correctly(self, preview_repo):
+    def test_empty_dataframe_handled_correctly(self, preview_repo: Any) -> None:
         """Test empty DataFrame can be stored and retrieved."""
         empty_df = pd.DataFrame()
 
@@ -229,7 +234,9 @@ class TestPreviewRepositoryDataIntegrity:
 class TestPreviewRepositoryNamingConventions:
     """Test naming convention enforcement."""
 
-    def test_operation_names_with_special_chars(self, test_dataframe, preview_repo):
+    def test_operation_names_with_special_chars(
+        self, test_dataframe: Any, preview_repo: Any
+    ) -> None:
         """Test operation names with underscores and hyphens work correctly."""
         names = [
             "outlier_removal",
@@ -243,7 +250,9 @@ class TestPreviewRepositoryNamingConventions:
             assert preview_repo.has_preview(name)
             assert preview_repo.get_preview(name) is not None
 
-    def test_operation_names_are_case_sensitive(self, test_dataframe, preview_repo):
+    def test_operation_names_are_case_sensitive(
+        self, test_dataframe: Any, preview_repo: Any
+    ) -> None:
         """Test operation names are case-sensitive."""
         preview_repo.set_preview("MixerOp", test_dataframe)
 
@@ -255,7 +264,9 @@ class TestPreviewRepositoryNamingConventions:
 class TestPreviewRepositorySessionIsolation:
     """Test isolation from non-preview session state."""
 
-    def test_preview_keys_dont_collide_with_other_state(self, test_dataframe, preview_repo):
+    def test_preview_keys_dont_collide_with_other_state(
+        self, test_dataframe: Any, preview_repo: Any
+    ) -> None:
         """Test preview keys don't interfere with other session state.
         Note: PreviewRepository no longer uses st.session_state directly in memory mode.
         If it did, we'd mock st here. But validating it keeps its own dict is valuable.
@@ -266,7 +277,9 @@ class TestPreviewRepositorySessionIsolation:
         # It should be in repo
         assert preview_repo.has_preview("operation")
 
-    def test_list_previews_only_returns_previews(self, test_dataframe, preview_repo):
+    def test_list_previews_only_returns_previews(
+        self, test_dataframe: Any, preview_repo: Any
+    ) -> None:
         """Test list_active_previews only returns preview keys."""
         # Add previews
         preview_repo.set_preview("preview1", test_dataframe)

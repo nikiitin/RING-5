@@ -2,22 +2,23 @@
 help:
 	@echo "RING-5 Interactive Analyzer - Management"
 	@echo ""
-	@echo "Execution Modes:"
-	@echo "  make <target>                - Run targets on local host (default)"
-	@echo "  make <target> USE_DOCKER=true - Run targets inside Docker sandbox"
-	@echo ""
+
 	@echo "Common Targets:"
 	@echo "  install                      - Install project dependencies"
 	@echo "  run                          - Start the Streamlit application"
-	@echo "  test                         - Run full test suite"
-	@echo "  dev                          - Install dev dependencies (pytest, black, etc.)"
+	@echo "  test                         - Run unit + integration tests (no coverage gate)"
+	@echo "  test-ci                      - Run tests with 90% coverage gate (main branch CI)"
+	@echo "  test-visual                  - Run visual/UI browser tests (Playwright)"
+	@echo "  test-e2e                     - Run the Playwright e2e suite (two-pass: -n 3 parallel + -n 0 serial)"
+	@echo "  test-unit                    - Run only unit tests (fast)"
+	@echo "  dev                          - Install dev + e2e deps and the Playwright browser"
+	@echo "  playwright-install           - (Re)install the Playwright browser for e2e/visual tests"
 	@echo "  clean                        - Remove caches and build artifacts"
+	@echo "  quality-gate                 - Run ALL quality checks (architecture + type + format + lint + security)"
+	@echo "  arch-check                   - Check architecture boundary violations"
+	@echo "  pre-commit                   - Run pre-commit hooks on all files"
 	@echo ""
-	@echo "Docker Specific:"
-	@echo "  docker-build                 - Build/Rebuild the Docker image"
-	@echo "  docker-shell                 - Open a bash session in the container"
-	@echo "  docker-down                  - Stop and remove containers"
-	@echo ""
+
 
 # Virtual environment settings
 VENV_NAME = python_venv
@@ -26,10 +27,7 @@ PYTHON = python3
 PIP = $(VENV_BIN)/pip
 pytest = $(VENV_BIN)/pytest
 
-# Docker settings
-DOCKER_COMPOSE = docker-compose
-DOCKER_RUN = $(DOCKER_COMPOSE) run --rm ring5-dev
-USE_DOCKER ?= false
+
 
 # Create virtual environment if it doesn't exist
 venv:
@@ -37,24 +35,27 @@ venv:
 	$(PIP) install --upgrade pip
 
 install: venv
-ifeq ($(USE_DOCKER),true)
-	$(DOCKER_COMPOSE) build
-else
 	$(PIP) install .
-endif
 
 dev: venv
-ifeq ($(USE_DOCKER),true)
-	$(DOCKER_COMPOSE) build
-else
-	$(PIP) install -e ".[dev]"
+	$(PIP) install -e ".[dev,e2e]"
+	$(VENV_BIN)/playwright install chromium
+	$(MAKE) mock-data
 	@echo ""
 	@echo "📋 Don't forget to install pre-commit hooks:"
 	@echo "   make pre-commit-install"
-endif
 	@echo ""
 	@echo "📋 For LaTeX export support, install system packages:"
 	@echo "   make install-latex"
+	@echo ""
+	@echo "📋 If browser (e2e/visual) tests fail to launch, your OS may be"
+	@echo "   missing chromium system libraries. On Debian/Ubuntu run:"
+	@echo "   $(VENV_BIN)/playwright install-deps chromium"
+
+# (Re)install the Playwright browser used by the e2e / visual test suites.
+# Run automatically by 'make dev'; provided standalone for re-installs.
+playwright-install: venv
+	$(VENV_BIN)/playwright install chromium
 
 # Install system dependencies for LaTeX export
 install-latex:
@@ -154,6 +155,10 @@ TEST_DATA_DIR = tests/data/results-micro26-sens
 TEST_DATA_URL = https://github.com/nikiitin/RING-5/releases/download/test-data-v1/test_data.tar.gz
 TEST_DATA_TARBALL = test_data.tar.gz
 
+# Shaper e2e mock CSV fixture, generated from the gem5 stats.txt by parsing them.
+# (The fixture is not committed and is not in the test-data tarball — see the script.)
+MOCK_CSV = tests/data/mock/inputs/csv/configurer/configurer_test_case01.csv
+
 test-data:
 	@if [ ! -d "$(TEST_DATA_DIR)" ]; then \
 		echo ">> Test data not found. Downloading..."; \
@@ -178,36 +183,69 @@ test-data:
 		echo ""; \
 	fi
 
-test: test-data
-ifeq ($(USE_DOCKER),true)
-	$(DOCKER_RUN) python3 -m pytest
-else
-	$(pytest)
-endif
+# Generate the shaper e2e mock CSV fixture by parsing the gem5 stats.txt data.
+# Idempotent (skips if present); needs the .txt data (test-data) and the editable install.
+.PHONY: mock-data
+mock-data: test-data
+	@if [ ! -f "$(MOCK_CSV)" ]; then \
+		echo ">> Generating shaper mock CSV fixture from gem5 stats.txt ..."; \
+		$(VENV_BIN)/python scripts/generate_mock_fixtures.py; \
+	else \
+		echo ">> Mock fixture already present: $(MOCK_CSV)"; \
+	fi
+
+test: test-data mock-data
+	$(pytest) --no-cov
+
+# Run unit + integration tests WITH 90% coverage gate (for main branch CI/CD)
+test-ci: test-data mock-data
+	$(pytest) --cov=src --cov-report=term-missing --cov-branch --cov-fail-under=90
+
+# Run only unit tests (fast feedback during development)
+test-unit:
+	$(pytest) tests/unit/ -q --no-cov
+
+# Run visual/UI browser tests (Playwright — separate from CI coverage)
+# These need a running Streamlit server; they are NOT gated on feature branches.
+test-visual:
+	@echo "=== Visual / UI Browser Tests (Playwright) ==="
+	@echo ""
+	@echo "Starting Streamlit server in background..."
+	@$(VENV_BIN)/streamlit run app.py --server.port 8502 --server.headless true &
+	@sleep 5
+	@echo "Running visual tests..."
+	@$(pytest) tests/ui/ tests/visual/ --no-cov -v --timeout=60 || EXIT_CODE=$$?; \
+	echo "Stopping Streamlit server..."; \
+	kill %1 2>/dev/null || true; \
+	exit $${EXIT_CODE:-0}
+
+# Run the Playwright e2e suite as TWO passes (each spins up its own Streamlit
+# server(s) via the e2e fixtures — no manual server needed):
+#   1. main suite in parallel (-n 3 --dist loadgroup);
+#   2. the @pytest.mark.serial classes in -n 0 — the Kaleido raster-download
+#      tests drive a headless-Chrome subprocess and deadlock/starve (and cascade
+#      into other tests) if run across xdist workers. Running them serially is
+#      required, NOT optional — a plain `pytest tests/e2e` would run them under
+#      the default -n 3 and flake. Both passes always run; the target fails if
+#      either does.
+test-e2e:
+	@echo "=== E2E pass 1/2: parallel (-n 3 --dist loadgroup) ==="
+	@$(pytest) tests/e2e -m "requires_browser and not serial" \
+		-n 3 --dist loadgroup --no-cov --timeout=120; E1=$$?; \
+	echo ""; \
+	echo "=== E2E pass 2/2: serial (-n 0 — Kaleido raster export) ==="; \
+	$(pytest) tests/e2e -m "requires_browser and serial" \
+		-n 0 --no-cov --timeout=120; E2=$$?; \
+	echo ""; \
+	if [ $$E1 -ne 0 ] || [ $$E2 -ne 0 ]; then \
+		echo "🔴 e2e FAILED (parallel=$$E1, serial=$$E2)"; exit 1; \
+	fi; \
+	echo "🟢 e2e PASSED (both passes)"
 
 # Run the application
 run:
-ifeq ($(USE_DOCKER),true)
-	$(DOCKER_COMPOSE) up ring5-dev
-else
 	$(VENV_BIN)/streamlit run app.py
-endif
 
-# Docker management
-docker-build:
-	$(DOCKER_COMPOSE) build
-
-docker-up:
-	$(DOCKER_COMPOSE) up -d ring5-dev
-
-docker-down:
-	$(DOCKER_COMPOSE) down
-
-docker-rebuild:
-	$(DOCKER_COMPOSE) build --no-cache
-
-docker-shell:
-	$(DOCKER_COMPOSE) run --rm -it ring5-dev bash
 
 # Install pre-commit hooks
 pre-commit-install:
@@ -220,20 +258,12 @@ pre-commit-install:
 # Run pre-commit on all files
 pre-commit:
 	@echo "=== Running pre-commit on all files ==="
-ifeq ($(USE_DOCKER),true)
-	$(DOCKER_RUN) ./$(VENV_NAME)/bin/pre-commit run --all-files
-else
 	@$(VENV_BIN)/pre-commit run --all-files
-endif
 
 # Check for outdated dependencies
 check-outdated:
 	@echo "=== Checking for outdated packages ==="
-ifeq ($(USE_DOCKER),true)
-	$(DOCKER_RUN) pip list --outdated --format=columns
-else
 	$(PIP) list --outdated --format=columns
-endif
 	@echo ""
 	@echo "To update all packages: make update-deps"
 	@echo "To update specific package: $(PIP) install --upgrade <package>"
@@ -337,3 +367,64 @@ clean:
 	rm -rf *.egg-info
 	find . -type d -name __pycache__ -exec rm -rf {} +
 	find . -type f -name "*.pyc" -delete
+
+# === Code Quality Gate ===
+# Run ALL quality checks (architecture + type + format + lint + security)
+quality-gate:
+	@echo "╔══════════════════════════════════╗"
+	@echo "║     RING-5 QUALITY GATE          ║"
+	@echo "╚══════════════════════════════════╝"
+	@echo ""
+	@PASS=0; FAIL=0; \
+	echo "▸ Gate 1: Architecture..."; \
+	V=$$(grep -rn "import streamlit\|from streamlit" src/core/ --include="*.py" 2>/dev/null | grep -v __pycache__ | wc -l); \
+	V=$$((V + $$(grep -rn "inplace=True" src/ ring5/ --include="*.py" 2>/dev/null | grep -v __pycache__ | wc -l))); \
+	V=$$((V + $$(grep -rn "^[[:space:]]*except:" src/ ring5/ --include="*.py" 2>/dev/null | grep -v __pycache__ | wc -l))); \
+	V=$$((V + $$(grep -rn "session_state" src/core/ --include="*.py" 2>/dev/null | grep -v __pycache__ | grep -v "^\s*#" | grep -v "^.*#.*session_state" | grep -v "st\.session_state is" | wc -l))); \
+	if [ $$V -eq 0 ]; then echo "  ✅ Architecture OK"; PASS=$$((PASS+1)); else echo "  ❌ $$V violations"; FAIL=$$((FAIL+1)); fi; \
+	echo "▸ Gate 2: Type Safety..."; \
+	MYPY_ERRORS=$$($(VENV_BIN)/mypy src/ ring5/ --no-error-summary 2>&1 | grep ": error:" | wc -l); \
+	if [ "$$MYPY_ERRORS" -eq 0 ]; then echo "  ✅ Types OK"; PASS=$$((PASS+1)); else echo "  ❌ $$MYPY_ERRORS mypy errors"; FAIL=$$((FAIL+1)); fi; \
+	echo "▸ Gate 3: Formatting..."; \
+	if $(VENV_BIN)/black --check --quiet src/ ring5/ 2>&1; then echo "  ✅ Formatting OK"; PASS=$$((PASS+1)); else echo "  ❌ Needs formatting"; FAIL=$$((FAIL+1)); fi; \
+	echo "▸ Gate 4: Linting..."; \
+	LINT_ERRORS=$$($(VENV_BIN)/flake8 src/ ring5/ --count 2>&1 | tail -1); \
+	if [ "$$LINT_ERRORS" = "0" ] || [ -z "$$LINT_ERRORS" ]; then echo "  ✅ Linting OK"; PASS=$$((PASS+1)); else echo "  ❌ $$LINT_ERRORS lint issues"; FAIL=$$((FAIL+1)); fi; \
+	echo "▸ Gate 5: Security..."; \
+	SEC=$$(grep -rn "eval(\|exec(" src/ ring5/ --include="*.py" 2>/dev/null | grep -v __pycache__ | grep -v test | wc -l); \
+	if [ $$SEC -eq 0 ]; then echo "  ✅ Security OK"; PASS=$$((PASS+1)); else echo "  ⚠️ $$SEC security findings"; FAIL=$$((FAIL+1)); fi; \
+	echo ""; \
+	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"; \
+	echo "Results: $$PASS passed, $$FAIL failed"; \
+	if [ $$FAIL -eq 0 ]; then echo "🟢 ALL GATES PASSED"; else echo "🔴 QUALITY GATE FAILED"; exit 1; fi
+
+# Check architecture boundaries only
+arch-check:
+	@echo "=== Architecture Boundary Check ==="
+	@VIOLATIONS=0; \
+	echo "--- Streamlit in core ---"; \
+	RESULT=$$(grep -rn "import streamlit\|from streamlit" src/core/ --include="*.py" 2>/dev/null | grep -v __pycache__); \
+	if [ -n "$$RESULT" ]; then echo "❌ $$RESULT"; VIOLATIONS=$$((VIOLATIONS+1)); fi; \
+	echo "--- session_state in core ---"; \
+	RESULT=$$(grep -rn "session_state" src/core/ --include="*.py" 2>/dev/null | grep -v __pycache__ | grep -v "^\s*#" | grep -v "^.*#.*session_state" | grep -v "st\.session_state is"); \
+	if [ -n "$$RESULT" ]; then echo "❌ $$RESULT"; VIOLATIONS=$$((VIOLATIONS+1)); fi; \
+	echo "--- inplace=True ---"; \
+	RESULT=$$(grep -rn "inplace=True" src/ --include="*.py" 2>/dev/null | grep -v __pycache__); \
+	if [ -n "$$RESULT" ]; then echo "❌ $$RESULT"; VIOLATIONS=$$((VIOLATIONS+1)); fi; \
+	echo "--- bare except ---"; \
+	RESULT=$$(grep -rn "^[[:space:]]*except:" src/ --include="*.py" 2>/dev/null | grep -v __pycache__); \
+	if [ -n "$$RESULT" ]; then echo "❌ $$RESULT"; VIOLATIONS=$$((VIOLATIONS+1)); fi; \
+	echo "--- eval/exec ---"; \
+	RESULT=$$(grep -rn "eval(\|exec(" src/ --include="*.py" 2>/dev/null | grep -v __pycache__ | grep -v test); \
+	if [ -n "$$RESULT" ]; then echo "❌ $$RESULT"; VIOLATIONS=$$((VIOLATIONS+1)); fi; \
+	echo "--- models -> services (models depend on nobody) ---"; \
+	RESULT=$$(grep -rn "from src.core.services\|import src.core.services" src/core/models/ --include="*.py" 2>/dev/null | grep -v __pycache__); \
+	if [ -n "$$RESULT" ]; then echo "❌ $$RESULT"; VIOLATIONS=$$((VIOLATIONS+1)); fi; \
+	echo "--- parsing -> core.services (Layer A must not import Layer B) ---"; \
+	RESULT=$$(grep -rn "from src.core.services\|import src.core.services" src/parsing/ --include="*.py" 2>/dev/null | grep -v __pycache__); \
+	if [ -n "$$RESULT" ]; then echo "❌ $$RESULT"; VIOLATIONS=$$((VIOLATIONS+1)); fi; \
+	echo "--- web -> RepositoryStateManager (use the StateManager protocol via the facade) ---"; \
+	RESULT=$$(grep -rn "repository_state_manager" src/web/ --include="*.py" 2>/dev/null | grep -v __pycache__); \
+	if [ -n "$$RESULT" ]; then echo "❌ $$RESULT"; VIOLATIONS=$$((VIOLATIONS+1)); fi; \
+	echo ""; \
+	if [ $$VIOLATIONS -eq 0 ]; then echo "✅ All architecture checks passed"; else echo "❌ $$VIOLATIONS violations found"; exit 1; fi

@@ -1,7 +1,7 @@
 """Test persistent legend labels across different group-by columns."""
 
 
-def test_persistent_legend_labels_per_column():
+def test_persistent_legend_labels_per_column() -> None:
     """Test that legend labels are preserved per column."""
 
     # Simulate a plot object
@@ -41,7 +41,7 @@ def test_persistent_legend_labels_per_column():
     assert "architecture" in plot["legend_mappings_by_column"]
 
 
-def test_legend_labels_backward_compatibility():
+def test_legend_labels_backward_compatibility() -> None:
     """Test backward compatibility with old legend_mappings field."""
 
     # Simulate old plot object with legacy legend_mappings
@@ -67,7 +67,7 @@ def test_legend_labels_backward_compatibility():
     assert existing_mappings["baseline"] == "Baseline Config"
 
 
-def test_multiple_column_persistence():
+def test_multiple_column_persistence() -> None:
     """Test that multiple columns can have different custom labels."""
 
     plot = {

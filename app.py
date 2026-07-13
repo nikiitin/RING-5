@@ -12,28 +12,31 @@ if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
 
-def run_app():
+def run_app() -> None:
     """Main application entry point."""
     # LATE IMPORTS: Avoid loading UI/Plotting modules when this file is imported by workers.
     # This prevents the "missing ScriptRunContext" warnings.
+    import time
+
     import streamlit as st
 
+    _t0 = time.perf_counter()
     # Page configuration
     st.set_page_config(
         page_title="RING-5 Interactive Analyzer",
-        page_icon="⚡",
+        page_icon="R5",
         layout="wide",
         initial_sidebar_state="expanded",
     )
 
-    # Custom CSS
+    # Custom CSS for dark Alphabet-inspired theme + sidebar nav menu
     st.markdown(
         """
     <style>
         .main-header {
             font-size: 3rem;
             font-weight: bold;
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(90deg, #8b5cf6 0%, #a78bfa 50%, #c4b5fd 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             text-align: center;
@@ -46,85 +49,96 @@ def run_app():
 
     # Initialize Core Components
     from src.core.application_api import ApplicationAPI
+    from src.web.pages.ui.plotting.base_plot import BasePlot
 
-    @st.cache_resource
+    @st.cache_resource(show_spinner="Initializing RING-5...")
     def get_api() -> ApplicationAPI:
-        return ApplicationAPI()
+        return ApplicationAPI(plot_deserializer=BasePlot.from_dict)
 
     api = get_api()
-    # Store for easy access in pages (optional, but consistent)
     st.session_state.api = api
-
-    # Header
-    st.markdown('<h1 class="main-header">RING-5 Interactive Analyzer</h1>', unsafe_allow_html=True)
-
-    # Show current data preview if data is loaded
-    # Access via API's state manager (exposed or via API method)
-    # The API should expose a view model
-    current_view = api.get_current_view()
-
-    if current_view["raw_data"] is not None and not current_view["raw_data"].empty:
-        st.markdown("#### Current Dataset")
-        col1, col2, col3 = st.columns(3)
-        data = current_view["raw_data"]
-        config = current_view["config"]
-
-        with col1:
-            st.metric("Rows", len(data))
-        with col2:
-            st.metric("Columns", len(data.columns))
-        with col3:
-            csv_path = config.get("csv_path")
-            if csv_path:
-                st.metric("Source", Path(csv_path).name)
-            else:
-                st.metric("Source", "Uploaded")
-
-        with st.expander("View Current Data", expanded=False):
-            st.dataframe(data, width="stretch", height=300)
 
     # Sidebar - Navigation
     with st.sidebar:
         st.markdown("# RING-5")
+        st.caption("gem5 Analysis & Visualization")
         st.markdown("---")
 
-        page = st.radio(
-            "Navigation",
-            [
-                "Data Source",
-                "Upload Data",
-                "Data Managers",
-                "Manage Plots",
-                "Save/Load Portfolio",
-                "⚡ Performance",
-            ],
-            label_visibility="collapsed",
-        )
+        _NAV_OPTIONS = [
+            "Data Source",
+            "Data Managers",
+            "Manage Plots",
+            "Save/Load Portfolio",
+            "Documentation",
+        ]
+
+        if "_nav_page" not in st.session_state:
+            st.session_state["_nav_page"] = _NAV_OPTIONS[0]
+
+        for _nav_item in _NAV_OPTIONS:
+            _is_active = st.session_state["_nav_page"] == _nav_item
+            if st.button(
+                _nav_item,
+                key=f"nav_{_nav_item}",
+                use_container_width=True,
+                type="primary" if _is_active else "tertiary",
+            ):
+                st.session_state["_nav_page"] = _nav_item
+                st.rerun()
+
+        page = st.session_state["_nav_page"]
 
         st.markdown("---")
 
-        if st.button("Clear Data", width="stretch", help="Clear loaded CSV data and plots"):
+        if st.button(
+            "Clear Data",
+            use_container_width=True,
+            type="tertiary",
+            help="Clear loaded CSV data and plots",
+        ):
             api.reset_session()
             st.rerun()
 
         if st.button(
             "Reset All",
-            width="stretch",
+            use_container_width=True,
             type="secondary",
             help="Reset entire application to defaults",
         ):
             api.reset_session()
             st.rerun()
 
+    # Header
+    st.markdown('<h1 class="main-header">RING-5 Interactive Analyzer</h1>', unsafe_allow_html=True)
+
+    # Data preview (fragment-wrapped — only reruns when its own widgets change).
+    @st.fragment
+    def _data_preview_fragment() -> None:
+        current_view = api.get_current_view()
+
+        if current_view["raw_data"] is not None and not current_view["raw_data"].empty:
+            col1, col2, col3 = st.columns(3)
+            data = current_view["raw_data"]
+            config = current_view["config"]
+
+            with col1:
+                st.metric("Rows", len(data), border=True)
+            with col2:
+                st.metric("Columns", len(data.columns), border=True)
+            with col3:
+                csv_path = config.get("csv_path")
+                if csv_path:
+                    st.metric("Source", Path(csv_path).name, border=True)
+                else:
+                    st.metric("Source", "Uploaded", border=True)
+
+    _data_preview_fragment()
+
     # Main content — lazy page imports: only the active page module is loaded
     if page == "Data Source":
         from src.web.pages.data_source import DataSourcePage
 
         DataSourcePage(api).render()
-    elif page == "Upload Data":
-        from src.web.pages.upload_data import UploadDataPage
-
-        UploadDataPage(api).render()
     elif page == "Data Managers":
         from src.web.pages.data_managers import show_data_managers_page
 
@@ -137,10 +151,17 @@ def run_app():
         from src.web.pages.portfolio import show_portfolio_page
 
         show_portfolio_page(api)
-    elif page == "⚡ Performance":
-        from src.web.pages.performance import render_performance_page
+    elif page == "Documentation":
+        from src.web.pages.documentation import show_documentation_page
 
-        render_performance_page(api)
+        show_documentation_page()
+
+    # Rerun timing diagnostic — remove once perf issue is confirmed resolved.
+    _elapsed = time.perf_counter() - _t0
+    if _elapsed > 0.5:
+        import logging
+
+        logging.getLogger("ring5.perf").warning("Slow rerun: %.2fs (page=%s)", _elapsed, page)
 
 
 if __name__ == "__main__":

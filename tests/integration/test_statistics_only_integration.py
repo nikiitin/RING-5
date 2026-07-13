@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 
 from src.core.models import StatConfig
-from src.core.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
+from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
 
 
 class TestStatisticsOnlyIntegration:
@@ -40,7 +40,7 @@ system.mem.latency_dist::total               500
         stats_path.write_text(stats_content)
         return stats_path
 
-    def test_distribution_statistics_only_parsing(self, stats_file: Path, tmp_path: Path):
+    def test_distribution_statistics_only_parsing(self, stats_file: Path, tmp_path: Path) -> None:
         """Test parsing distribution with only statistics (no buckets)."""
         # Configure variable with statisticsOnly=True
         variables = [
@@ -72,6 +72,7 @@ system.mem.latency_dist::total               500
         )
 
         # Load and verify CSV
+        assert csv_path is not None
         df = pd.read_csv(csv_path)
 
         # Should have 1 row (1 simpoint)
@@ -95,7 +96,7 @@ system.mem.latency_dist::total               500
         assert df["system.mem.latency_dist..stdev"].iloc[0] == 2.3
         assert df["system.mem.latency_dist..total"].iloc[0] == 500
 
-    def test_distribution_full_mode_parsing(self, stats_file: Path, tmp_path: Path):
+    def test_distribution_full_mode_parsing(self, stats_file: Path, tmp_path: Path) -> None:
         """Test parsing distribution with full buckets (statisticsOnly=False)."""
         # Configure variable with statisticsOnly=False
         variables = [
@@ -127,6 +128,7 @@ system.mem.latency_dist::total               500
         )
 
         # Load and verify CSV
+        assert csv_path is not None
         df = pd.read_csv(csv_path)
 
         # Should have 1 row (1 simpoint)
@@ -141,7 +143,7 @@ system.mem.latency_dist::total               500
         # Just check that we have significantly more columns than statistics_only mode
         assert len(df.columns) > 10  # Should have many bucket columns
 
-    def test_statistics_only_reduces_column_count(self, stats_file: Path, tmp_path: Path):
+    def test_statistics_only_reduces_column_count(self, stats_file: Path, tmp_path: Path) -> None:
         """Verify that statistics-only mode significantly reduces column count."""
         variables_full = [
             StatConfig(
@@ -183,6 +185,7 @@ system.mem.latency_dist::total               500
         csv_full = ParseService.construct_final_csv(
             output_dir_full, results_full, var_names=batch_full.var_names
         )
+        assert csv_full is not None
         df_full = pd.read_csv(csv_full)
 
         output_dir_stats = str(tmp_path / "stats_only_stats")
@@ -199,6 +202,7 @@ system.mem.latency_dist::total               500
         csv_stats = ParseService.construct_final_csv(
             output_dir_stats, results_stats, var_names=batch_stats.var_names
         )
+        assert csv_stats is not None
         df_stats = pd.read_csv(csv_stats)
 
         # Statistics-only should have fewer columns

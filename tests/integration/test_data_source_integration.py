@@ -1,18 +1,28 @@
+from collections.abc import Generator
 from pathlib import Path
+from typing import Any, cast
 from unittest.mock import patch
 
 import pandas as pd
 import pytest
 
 from src.core.application_api import ApplicationAPI
+from src.core.services.data_services.config_service import ConfigService
+from src.core.services.data_services.csv_pool_service import CsvPoolService
+from src.core.services.data_services.path_service import PathService
 
 
 @pytest.fixture
-def facade(tmp_path):
+def facade(tmp_path: Any) -> Generator[ApplicationAPI, None, None]:
     """
     Fixture creates a ApplicationAPI instance with temporary directories.
     Patches PathService to use temp directories for isolation.
     """
+    # Reset class-level caches for test isolation
+    PathService.reset_caches()
+    CsvPoolService.clear_caches()
+    ConfigService.reset_caches()
+
     # Create temp structure
     ring5_dir = tmp_path / ".ring5"
     ring5_dir.mkdir()
@@ -37,13 +47,13 @@ def facade(tmp_path):
                 # Initialize facade (will use patched paths)
                 f = ApplicationAPI()
                 # Override paths on facade too for backward compatibility
-                f.ring5_data_dir = ring5_dir
-                f.csv_pool_dir = csv_pool
-                f.config_pool_dir = config_pool
+                cast(Any, f).ring5_data_dir = ring5_dir
+                cast(Any, f).csv_pool_dir = csv_pool
+                cast(Any, f).config_pool_dir = config_pool
                 yield f
 
 
-def test_csv_pool_operations(facade, tmp_path):
+def test_csv_pool_operations(facade: Any, tmp_path: Any) -> None:
     """Test adding, listing, loading, and deleting CSV files."""
 
     # 1. Create a dummy CSV
@@ -73,7 +83,7 @@ def test_csv_pool_operations(facade, tmp_path):
     assert len(facade.load_csv_pool()) == 0
 
 
-def test_configuration_operations(facade, tmp_path):
+def test_configuration_operations(facade: Any, tmp_path: Any) -> None:
     """Test saving, listing, loading, and deleting configurations."""
 
     # 1. Save Config
@@ -107,7 +117,7 @@ def test_configuration_operations(facade, tmp_path):
     assert len(facade.load_saved_configs()) == 0
 
 
-def test_csv_pool_sorting(facade, tmp_path):
+def test_csv_pool_sorting(facade: Any, tmp_path: Any) -> None:
     """Test that CSV pool is sorted by modification time (reverse)."""
 
     # Create 3 files with different times

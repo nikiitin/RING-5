@@ -13,13 +13,16 @@ Example from gem5 output:
     ...
 """
 
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, cast
 
 import pandas as pd
 import pytest
 
 from src.core.application_api import ApplicationAPI
+from src.core.models.data_models import ParseVariableConfig
+from src.core.models.parsing_models import StatConfig
 
 
 class TestHistogramWithStatistics:
@@ -50,7 +53,7 @@ class TestHistogramWithStatistics:
         # Scan
         scan_futures = facade.submit_scan_async(str(stats_dir), "stats.txt", limit=-1)
         scan_results = [f.result() for f in scan_futures]
-        vars_found = facade.finalize_scan(scan_results)
+        vars_found = facade.finalize_scan(scan_results).variables
 
         # Find the variable
         htm_var = next(
@@ -86,13 +89,13 @@ class TestHistogramWithStatistics:
         # 1. Scan
         scan_futures = facade.submit_scan_async(str(stats_dir), "stats.txt", limit=-1)
         scan_results = [f.result() for f in scan_futures]
-        vars_found = facade.finalize_scan(scan_results)
+        vars_found = facade.finalize_scan(scan_results).variables
 
         # 2. Parse with histogram configuration
         output_dir = tmp_path / "hist_stats_output"
         output_dir.mkdir()
 
-        variables: List[Dict[str, Any]] = [
+        variables: list[dict[str, Any]] = [
             {
                 "name": "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles",
                 "type": "histogram",
@@ -104,7 +107,7 @@ class TestHistogramWithStatistics:
         parse_batch = facade.submit_parse_async(
             str(stats_dir),
             "stats.txt",
-            variables,
+            cast("Sequence[ParseVariableConfig | StatConfig]", variables),
             str(output_dir),
             scanned_vars=vars_found,
         )
@@ -131,14 +134,14 @@ class TestHistogramWithStatistics:
         # 1. Scan
         scan_futures = facade.submit_scan_async(str(stats_dir), "stats.txt", limit=-1)
         scan_results = [f.result() for f in scan_futures]
-        vars_found = facade.finalize_scan(scan_results)
+        vars_found = facade.finalize_scan(scan_results).variables
 
         # 2. Parse with regex pattern
         output_dir = tmp_path / "hist_regex_output"
         output_dir.mkdir()
 
         pattern = r"system.ruby.l\d+_cntrl\d+.xact_mgr.htm_transaction_commit_cycles"
-        variables: List[Dict[str, Any]] = [
+        variables: list[dict[str, Any]] = [
             {
                 "name": pattern,
                 "type": "histogram",
@@ -150,7 +153,7 @@ class TestHistogramWithStatistics:
         parse_batch = facade.submit_parse_async(
             str(stats_dir),
             "stats.txt",
-            variables,
+            cast("Sequence[ParseVariableConfig | StatConfig]", variables),
             str(output_dir),
             scanned_vars=vars_found,
         )
@@ -183,13 +186,13 @@ class TestHistogramWithStatistics:
         # 1. Scan
         scan_futures = facade.submit_scan_async(str(stats_dir), "stats.txt", limit=-1)
         scan_results = [f.result() for f in scan_futures]
-        vars_found = facade.finalize_scan(scan_results)
+        vars_found = facade.finalize_scan(scan_results).variables
 
         # 2. Parse with explicit statistics
         output_dir = tmp_path / "hist_explicit_stats_output"
         output_dir.mkdir()
 
-        variables: List[Dict[str, Any]] = [
+        variables: list[dict[str, Any]] = [
             {
                 "name": "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles",
                 "type": "histogram",
@@ -201,7 +204,7 @@ class TestHistogramWithStatistics:
         parse_batch = facade.submit_parse_async(
             str(stats_dir),
             "stats.txt",
-            variables,
+            cast("Sequence[ParseVariableConfig | StatConfig]", variables),
             str(output_dir),
             scanned_vars=vars_found,
         )
@@ -224,4 +227,4 @@ class TestHistogramWithStatistics:
 
         for stat_col in expected_stats:
             assert stat_col in df.columns, f"Missing expected column: {stat_col}"
-            assert not df[stat_col].isna().all(), f"Column has no data: {stat_col}"
+            assert not bool(df[stat_col].isna().all()), f"Column has no data: {stat_col}"

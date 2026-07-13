@@ -7,7 +7,7 @@ from pathlib import Path
 import pandas as pd
 
 
-def test_portfolio_serialization():
+def test_portfolio_serialization() -> None:
     """Test that plot configurations are properly saved and loaded."""
 
     # Create sample plot data
@@ -73,15 +73,15 @@ def test_portfolio_serialization():
         json.dump(portfolio_data, f, indent=2)
 
     # Load it back
-    with open(temp_path, "r") as f:
+    with open(temp_path) as f:
         loaded_portfolio = json.load(f)
 
     # Deserialize plot
     loaded_plot = loaded_portfolio["plots"][0]
     if isinstance(loaded_plot["processed_data"], str):
-        loaded_plot["processed_data"] = pd.read_csv(
-            pd.io.common.StringIO(loaded_plot["processed_data"])
-        )
+        from io import StringIO
+
+        loaded_plot["processed_data"] = pd.read_csv(StringIO(loaded_plot["processed_data"]))
 
     # Verify all configurations are preserved
     assert loaded_plot["plot_config"]["type"] == "grouped_bar"

@@ -7,10 +7,11 @@ Part of the selector algorithm family for value-based filtering.
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Any, cast
 
 import pandas as pd
 
+from src.core.models.shaper_models import ItemSelectorConfig
 from src.core.services.shapers.impl.selector import Selector
 
 
@@ -20,7 +21,7 @@ class ItemSelector(Selector):
     Supports exact match (isin) or substring matching (contains).
     """
 
-    def __init__(self, params: Dict[str, Any]) -> None:
+    def __init__(self, params: dict[str, Any]) -> None:
         """
         Initialize ItemSelector.
 
@@ -28,45 +29,37 @@ class ItemSelector(Selector):
             params: Must contain 'column' and 'strings'.
                 - mode (str): 'exact' (default) or 'contains'.
         """
-        self.strings: List[str] = [str(s) for s in params.get("strings", [])]
-        self.mode: str = params.get("mode", "exact")
+        config = cast(ItemSelectorConfig, params)
+        self.strings: list[str] = [str(s) for s in config.get("strings", [])]
+        self.mode: str = config.get("mode", "exact")
         super().__init__(params)
 
     def _verify_params(self) -> bool:
         """Verify that 'strings' parameter is a valid list."""
         super()._verify_params()
-        if "strings" not in self.params:
+        config = cast(ItemSelectorConfig, self.params)
+
+        if "strings" not in config:
             raise ValueError("ItemSelector requires 'strings' parameter.")
-        if not isinstance(self.params["strings"], list):
+        if not isinstance(config["strings"], list):
             raise TypeError("ItemSelector 'strings' parameter must be a list.")
         return True
 
-    def _verify_preconditions(self, data_frame: pd.DataFrame) -> bool:
-        """Verify that items exist to be selected (optional warning)."""
-        super()._verify_preconditions(data_frame)
-
-        if self.mode == "exact":
-            mask = data_frame[self.column].astype(str).isin(self.strings)
-        else:
-            pattern = "|".join(self.strings)
-            mask = data_frame[self.column].astype(str).str.contains(pattern, na=False)
-
-        if not mask.any():
-            logging.getLogger(__name__).warning(
-                f"ItemSelector: None of the strings {self.strings} found in column '{self.column}'."
-            )
-
-        return True
-
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
-        """
-        Filters the dataframe to only include rows with matching strings.
-        """
+        """Filter the dataframe to only include rows with matching strings."""
         self._verify_preconditions(data_frame)
 
         if self.mode == "exact":
-            return data_frame[data_frame[self.column].astype(str).isin(self.strings)]
+            result = data_frame[data_frame[self.column].astype(str).isin(self.strings)]
         else:
-            # Regex mode (previous behavior)
             pattern = "|".join(self.strings)
-            return data_frame[data_frame[self.column].astype(str).str.contains(pattern, na=False)]
+            result = data_frame[data_frame[self.column].astype(str).str.contains(pattern, na=False)]
+
+        if result.empty:
+            logging.getLogger(__name__).warning(
+                f"ItemSelector: None of the strings {self.strings} "
+                f"found in column '{self.column}'."
+            )
+
+        # .copy() so the shaper returns an independent frame, not a view.
+        return result.copy()

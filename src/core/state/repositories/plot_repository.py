@@ -15,7 +15,6 @@ Responsibilities:
 from __future__ import annotations
 
 import logging
-from typing import List, Optional
 
 from src.core.models import PlotProtocol
 
@@ -37,20 +36,21 @@ class PlotRepository:
 
     def __init__(self) -> None:
         """Initialize in-memory storage."""
-        self._plots: List[PlotProtocol] = []
+        self._plots: list[PlotProtocol] = []
         self._plot_counter: int = 0
-        self._current_plot_id: Optional[int] = None
+        self._current_plot_id: int | None = None
 
-    def get_plots(self) -> List[PlotProtocol]:
+    def get_plots(self) -> list[PlotProtocol]:
         """
         Retrieve all plot objects.
 
         Returns:
-            List of PlotProtocol instances (empty list if none exist)
+            A shallow copy of the plot list (defensive copy-on-read) — callers
+            may reorder/filter it freely and persist via ``set_plots``.
         """
-        return self._plots
+        return list(self._plots)
 
-    def set_plots(self, plots: List[PlotProtocol]) -> None:
+    def set_plots(self, plots: list[PlotProtocol]) -> None:
         """
         Replace the entire plot list.
 
@@ -58,7 +58,7 @@ class PlotRepository:
             plots: New list of plot objects
         """
         self._plots = plots
-        logger.info(f"PLOT_REPO: Plots updated - {len(plots)} total plots")
+        logger.info("PLOT_REPO: Plots updated - %d total plots", len(plots))
 
     def add_plot(self, plot: PlotProtocol) -> None:
         """
@@ -68,7 +68,7 @@ class PlotRepository:
             plot: Plot instance to add
         """
         self._plots.append(plot)
-        logger.info(f"PLOT_REPO: Plot added - ID {plot.plot_id}, Type {plot.plot_type}")
+        logger.info("PLOT_REPO: Plot added - ID %s, Type %s", plot.plot_id, plot.plot_type)
 
     def remove_plot(self, plot_id: int) -> bool:
         """
@@ -84,7 +84,7 @@ class PlotRepository:
         self._plots = [p for p in self._plots if p.plot_id != plot_id]
 
         if len(self._plots) < initial_count:
-            logger.info(f"PLOT_REPO: Plot removed - ID {plot_id}")
+            logger.info("PLOT_REPO: Plot removed - ID %s", plot_id)
             return True
 
         logger.warning(f"PLOT_REPO: Plot not found for removal - ID {plot_id}")
@@ -118,7 +118,7 @@ class PlotRepository:
         self._plot_counter += 1
         return current
 
-    def get_current_plot_id(self) -> Optional[int]:
+    def get_current_plot_id(self) -> int | None:
         """
         Get the currently active plot ID.
 
@@ -127,7 +127,7 @@ class PlotRepository:
         """
         return self._current_plot_id
 
-    def set_current_plot_id(self, plot_id: Optional[int]) -> None:
+    def set_current_plot_id(self, plot_id: int | None) -> None:
         """
         Set the currently active plot ID.
 

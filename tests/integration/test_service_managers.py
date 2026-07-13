@@ -3,9 +3,12 @@ Integration tests for DataProcessingService methods.
 Replaces legacy facade manager tests.
 """
 
+from typing import Any, cast
+
 import numpy as np
 import pandas as pd
 import pytest
+from pandas import DataFrame
 
 from src.core.services.managers.arithmetic_service import ArithmeticService
 from src.core.services.managers.outlier_service import OutlierService
@@ -13,7 +16,7 @@ from src.core.services.managers.reduction_service import ReductionService
 
 
 @pytest.fixture
-def sample_data_with_seeds():
+def sample_data_with_seeds() -> DataFrame:
     """Create sample data with random_seed column for seeds reducer test."""
     return pd.DataFrame(
         {
@@ -27,7 +30,7 @@ def sample_data_with_seeds():
 
 
 @pytest.fixture
-def sample_data_with_outliers():
+def sample_data_with_outliers() -> DataFrame:
     """Create sample data with outliers for outlier remover test."""
     return pd.DataFrame(
         {
@@ -40,7 +43,7 @@ def sample_data_with_outliers():
 
 
 @pytest.fixture
-def sample_data_for_preprocess():
+def sample_data_for_preprocess() -> DataFrame:
     """Create sample data for preprocessor test."""
     return pd.DataFrame(
         {
@@ -55,7 +58,7 @@ def sample_data_for_preprocess():
 class TestServiceSeedsReducer:
     """Test seeds reducer integration via DataProcessingService."""
 
-    def test_seeds_reducer_basic(self, sample_data_with_seeds):
+    def test_seeds_reducer_basic(self, sample_data_with_seeds: Any) -> None:
         """Test basic seeds reduction."""
         result = ReductionService.reduce_seeds(
             df=sample_data_with_seeds,
@@ -75,9 +78,10 @@ class TestServiceSeedsReducer:
         # Verify mean calculation for bench1
         bench1_row = result[result["benchmark"] == "bench1"]
         expected_mean = np.mean([100, 110, 105])
-        assert np.isclose(bench1_row["cycles"].values[0], expected_mean)
+        cycles = cast("pd.Series", bench1_row["cycles"])
+        assert np.isclose(cycles.iloc[0], expected_mean)
 
-    def test_seeds_reducer_with_normalization(self, sample_data_with_seeds):
+    def test_seeds_reducer_with_normalization(self, sample_data_with_seeds: Any) -> None:
         """Test seeds reduction - std columns created but NOT pre-normalized."""
         result = ReductionService.reduce_seeds(
             df=sample_data_with_seeds,
@@ -92,14 +96,14 @@ class TestServiceSeedsReducer:
 
         # Std should be absolute values, NOT normalized
         # For cycles [100, 110, 105], mean=105, std≈5
-        sd_cycles = bench1_row["cycles.sd"].values[0]
+        sd_cycles = cast("pd.Series", bench1_row["cycles.sd"]).iloc[0]
         assert sd_cycles > 1.0  # Should be absolute std, not relative
 
 
 class TestServiceOutlierRemover:
     """Test outlier remover integration via DataProcessingService."""
 
-    def test_outlier_remover_removes_high_values(self, sample_data_with_outliers):
+    def test_outlier_remover_removes_high_values(self, sample_data_with_outliers: Any) -> None:
         """Test that outlier remover removes values above Q3."""
         result = OutlierService.remove_outliers(
             df=sample_data_with_outliers,
@@ -109,9 +113,9 @@ class TestServiceOutlierRemover:
 
         # Should remove the row with cycles=1000
         assert len(result) < len(sample_data_with_outliers)
-        assert 1000 not in result["cycles"].values
+        assert 1000 not in result["cycles"].tolist()
 
-    def test_outlier_remover_keeps_normal_data(self, sample_data_with_outliers):
+    def test_outlier_remover_keeps_normal_data(self, sample_data_with_outliers: Any) -> None:
         """Test that normal data is preserved."""
         result = OutlierService.remove_outliers(
             df=sample_data_with_outliers,
@@ -120,13 +124,13 @@ class TestServiceOutlierRemover:
         )
 
         # Normal values should still be present
-        assert 100 in result["cycles"].values or 110 in result["cycles"].values
+        assert 100 in result["cycles"].tolist() or 110 in result["cycles"].tolist()
 
 
 class TestServicePreprocessor:
     """Test preprocessor integration via DataProcessingService."""
 
-    def test_preprocessor_divide_operation(self, sample_data_for_preprocess):
+    def test_preprocessor_divide_operation(self, sample_data_for_preprocess: Any) -> None:
         """Test divide operation creates correct new column."""
         result = ArithmeticService.apply_operation(
             df=sample_data_for_preprocess,
@@ -145,7 +149,7 @@ class TestServicePreprocessor:
         )
         assert np.allclose(result["ipc"], expected_ipc)
 
-    def test_preprocessor_sum_operation(self, sample_data_for_preprocess):
+    def test_preprocessor_sum_operation(self, sample_data_for_preprocess: Any) -> None:
         """Test sum operation creates correct new column."""
         result = ArithmeticService.apply_operation(
             df=sample_data_for_preprocess,
@@ -164,7 +168,7 @@ class TestServicePreprocessor:
         )
         assert np.allclose(result["total"], expected_total)
 
-    def test_preprocessor_preserves_original_columns(self, sample_data_for_preprocess):
+    def test_preprocessor_preserves_original_columns(self, sample_data_for_preprocess: Any) -> None:
         """Test that original columns are preserved."""
         result = ArithmeticService.apply_operation(
             df=sample_data_for_preprocess,
@@ -184,7 +188,7 @@ class TestServicePreprocessor:
 class TestServiceManagersIntegration:
     """Test integration between multiple data processing steps."""
 
-    def test_pipeline_seeds_then_outlier(self, sample_data_with_seeds):
+    def test_pipeline_seeds_then_outlier(self, sample_data_with_seeds: Any) -> None:
         """Test applying seeds reducer followed by outlier remover."""
         # First reduce seeds
         after_seeds = ReductionService.reduce_seeds(
@@ -204,7 +208,7 @@ class TestServiceManagersIntegration:
         # Should still have data
         assert len(after_outlier) > 0
 
-    def test_pipeline_preprocess_then_seeds(self, sample_data_with_seeds):
+    def test_pipeline_preprocess_then_seeds(self, sample_data_with_seeds: Any) -> None:
         """Test applying preprocessor followed by seeds reducer."""
         # First add IPC column
         after_preprocess = ArithmeticService.apply_operation(

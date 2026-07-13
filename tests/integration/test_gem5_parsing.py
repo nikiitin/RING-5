@@ -1,10 +1,20 @@
 import os
+from collections.abc import Generator
 from pathlib import Path
+from typing import Any, cast
 
 import pandas as pd
 import pytest
 
 from src.core.application_api import ApplicationAPI
+from src.core.models.data_models import ParseVariableConfig
+from src.core.services.data_services.config_service import ConfigService
+from src.core.services.data_services.csv_pool_service import CsvPoolService
+from src.core.services.data_services.path_service import PathService
+
+# Serialize Perl-worker-pool tests onto one xdist worker to bound the number of
+# concurrent Perl pools under -n3 (matches the other pool tests' convention).
+pytestmark = pytest.mark.xdist_group("perl_pool")
 
 
 class TestGem5Parsing:
@@ -12,17 +22,28 @@ class TestGem5Parsing:
 
     TEST_DATA_DIR = Path("tests/data/results-micro26-sens")
 
+    @pytest.fixture(autouse=True)
+    def reset_service_caches(self) -> Generator[None, None, None]:
+        """Reset class-level caches for test isolation."""
+        PathService.reset_caches()
+        CsvPoolService.clear_caches()
+        ConfigService.reset_caches()
+        yield
+        PathService.reset_caches()
+        CsvPoolService.clear_caches()
+        ConfigService.reset_caches()
+
     @pytest.fixture
-    def facade(self):
+    def facade(self) -> ApplicationAPI:
         """Create a ApplicationAPI instance."""
         return ApplicationAPI()
 
     @pytest.fixture
-    def output_dir(self, tmp_path):
+    def output_dir(self, tmp_path: Any) -> None:
         """Create a temporary output directory."""
         return tmp_path / "output"
 
-    def test_scan_variables(self, facade):
+    def test_scan_variables(self, facade: Any) -> None:
         """Test scanning variables from real data."""
         if not self.TEST_DATA_DIR.exists():
             pytest.skip("Test data not found")
@@ -37,12 +58,11 @@ class TestGem5Parsing:
             if result:
                 results.append(result)
 
-        variables = facade.finalize_scan(results)
+        variables = facade.finalize_scan(results).variables
         assert len(variables) > 0
 
         # Check for common gem5 stats
         var_names = [v.name for v in variables]
-        print(f"Discovered variables: {var_names[:10]}...")
 
         # We expect at least some standard stats (simTicks or other common gem5 vars)
         # Some test data may have different variable names, so check for multiple options
@@ -51,7 +71,7 @@ class TestGem5Parsing:
             any(common_var in name for common_var in common_vars) for name in var_names
         ), f"Expected to find common gem5 variables, but got: {var_names[:5]}"
 
-    def test_parse_workflow(self, facade, output_dir):
+    def test_parse_workflow(self, facade: Any, output_dir: Any) -> None:
         """Test the full parsing workflow."""
         if not self.TEST_DATA_DIR.exists():
             pytest.skip("Test data not found")
@@ -68,7 +88,7 @@ class TestGem5Parsing:
             if result:
                 scan_results.append(result)
 
-        all_variables = facade.finalize_scan(scan_results)
+        all_variables = facade.finalize_scan(scan_results).variables
 
         # 2. Select a few scalar variables
         selected_vars = [
@@ -81,8 +101,6 @@ class TestGem5Parsing:
         if not selected_vars:
             # Fallback if specific names not found
             selected_vars = [v for v in all_variables if v.type == "scalar"][:5]
-
-        print(f"Selected variables for parsing: {[v.name for v in selected_vars]}")
 
         # 3. Run Parser
         batch = facade.submit_parse_async(
@@ -110,9 +128,6 @@ class TestGem5Parsing:
         # 4. Verify CSV content
         df = pd.read_csv(csv_path)
 
-        print(f"Parsed DataFrame Shape: {df.shape}")
-        print(df.head())
-
         # Check Dimensions
         assert len(df) > 0
 
@@ -126,7 +141,7 @@ class TestGem5Parsing:
 
         # Verify presence of inferred columns.
 
-    def test_histogram_parsing(self, tmp_path):
+    def test_histogram_parsing(self, tmp_path: Any) -> None:
         """Test scanning and parsing a file containing histograms."""
 
         # Use the builtin tmp_path fixture for Rule 004 compliance
@@ -157,7 +172,7 @@ system.mem.ctrl::1024-2047                    5      50.00%     100.00%      # H
                 if result:
                     scan_results.append(result)
 
-            vars_found = facade.finalize_scan(scan_results)
+            vars_found = facade.finalize_scan(scan_results).variables
             hist_var = next((v for v in vars_found if v.name == "system.mem.ctrl"), None)
 
             assert hist_var is not None
@@ -167,7 +182,10 @@ system.mem.ctrl::1024-2047                    5      50.00%     100.00%      # H
 
             # 2. Parse
             # Configure variables
-            variables = [{"name": "system.mem.ctrl", "type": "histogram"}]
+            variables = cast(
+                list[ParseVariableConfig],
+                [{"name": "system.mem.ctrl", "type": "histogram"}],
+            )
 
             parse_batch = facade.submit_parse_async(
                 str(stats_dir), "stats.txt", variables, str(output_dir), scanned_vars=vars_found

@@ -1,22 +1,24 @@
 """
 Variable Service for RING-5.
-Handles CRUD operations for parser variables (scalar, vector, distribution, histogram, configuration).  # noqa: E501
+Handles CRUD operations for parser variables
+(scalar, vector, distribution, histogram, configuration).
 Provides business logic for variable management without UI dependencies.
 """
 
 import re
 import uuid
-from typing import Any, Dict, List, Optional, Set
+
+from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
 
 # Maximum allowed regex pattern length to prevent ReDoS abuse
 _MAX_REGEX_LEN: int = 500
 
-# Allowlist: only characters expected in gem5 stat patterns (letters, digits,
+# Allowlist: only characters expected in simulator stat patterns (letters, digits,
 # dots, underscores, backslashes for \d+, and regex anchors/quantifiers).
 _SAFE_PATTERN_RE: re.Pattern[str] = re.compile(r"^[a-zA-Z0-9_.\\+\[\]{}()|^$*?]+$")
 
 
-def _compile_safe_pattern(pattern: str) -> Optional[re.Pattern[str]]:
+def _compile_safe_pattern(pattern: str) -> re.Pattern[str] | None:
     """Compile a regex pattern with safety checks against ReDoS/injection.
 
     Validates the pattern length, character allowlist, and syntax before
@@ -42,16 +44,21 @@ def _compile_safe_pattern(pattern: str) -> Optional[re.Pattern[str]]:
 class VariableService:
     """Service for managing parser variables with CRUD operations."""
 
-    # Scientific filter: Internal gem5 statistics that should not appear as regular entries
-    INTERNAL_STATS: Set[str] = {
-        "total",
-        "mean",
-        "gmean",
-        "stdev",
-        "samples",
-        "overflows",
-        "underflows",
-    }
+    # Scientific filter: Internal statistics that should not appear as
+    # regular entries.  The default set covers common simulator
+    # meta-statistics.  Callers can override via the
+    # ``internal_stats`` parameter of ``filter_internal_stats``.
+    DEFAULT_INTERNAL_STATS: frozenset[str] = frozenset(
+        {
+            "total",
+            "mean",
+            "gmean",
+            "stdev",
+            "samples",
+            "overflows",
+            "underflows",
+        }
+    )
 
     @staticmethod
     def generate_variable_id() -> str:
@@ -65,8 +72,8 @@ class VariableService:
 
     @classmethod
     def add_variable(
-        cls, variables: List[Dict[str, Any]], var_config: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        cls, variables: list[ParseVariableConfig], var_config: ParseVariableConfig
+    ) -> list[ParseVariableConfig]:
         """
         Add a new variable to the list.
 
@@ -98,8 +105,8 @@ class VariableService:
 
     @classmethod
     def update_variable(
-        cls, variables: List[Dict[str, Any]], index: int, var_config: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        cls, variables: list[ParseVariableConfig], index: int, var_config: ParseVariableConfig
+    ) -> list[ParseVariableConfig]:
         """
         Update an existing variable at the specified index.
 
@@ -117,7 +124,9 @@ class VariableService:
         Examples:
             >>> service = VariableService()
             >>> vars = [{"name": "old", "type": "scalar", "_id": "123"}]
-            >>> vars = service.update_variable(vars, 0, {"name": "new", "type": "vector", "_id": "123"})  # noqa: E501
+            >>> vars = service.update_variable(
+            ...     vars, 0, {"name": "new", "type": "vector", "_id": "123"}
+            ... )
             >>> vars[0]["name"]
             'new'
         """
@@ -129,7 +138,9 @@ class VariableService:
         return updated_vars
 
     @classmethod
-    def delete_variable(cls, variables: List[Dict[str, Any]], index: int) -> List[Dict[str, Any]]:
+    def delete_variable(
+        cls, variables: list[ParseVariableConfig], index: int
+    ) -> list[ParseVariableConfig]:
         """
         Delete a variable at the specified index.
 
@@ -160,7 +171,7 @@ class VariableService:
         return updated_vars
 
     @classmethod
-    def ensure_variable_ids(cls, variables: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def ensure_variable_ids(cls, variables: list[ParseVariableConfig]) -> list[ParseVariableConfig]:
         """
         Ensure all variables have unique IDs, generating them if missing.
 
@@ -177,7 +188,7 @@ class VariableService:
             >>> all("_id" in v for v in vars)
             True
         """
-        updated_vars = []
+        updated_vars: list[ParseVariableConfig] = []
         for var in variables:
             var_copy = var.copy()
             if "_id" not in var_copy:
@@ -186,12 +197,20 @@ class VariableService:
         return updated_vars
 
     @classmethod
-    def filter_internal_stats(cls, entries: List[str]) -> List[str]:
+    def filter_internal_stats(
+        cls,
+        entries: list[str],
+        internal_stats: frozenset[str] | None = None,
+    ) -> list[str]:
         """
-        Filter out internal gem5 statistics from entry list.
+        Filter out internal simulator statistics from entry list.
 
         Args:
             entries: List of entry names to filter
+            internal_stats: Set of stat names to exclude.  Defaults to
+                ``DEFAULT_INTERNAL_STATS`` if not provided.  Callers
+                can pass ``SimulatorInfo.internal_stats`` from the
+                active simulator registry entry for accurate filtering.
 
         Returns:
             Filtered list with internal stats removed, sorted alphabetically
@@ -203,13 +222,14 @@ class VariableService:
             >>> filtered
             ['cpu0', 'cpu1']
         """
-        filtered = [e for e in entries if e.lower() not in cls.INTERNAL_STATS]
+        exclude = internal_stats if internal_stats is not None else cls.DEFAULT_INTERNAL_STATS
+        filtered = [e for e in entries if e.lower() not in exclude]
         return sorted(filtered)
 
     @classmethod
     def find_variable_by_name(
-        cls, variables: List[Dict[str, Any]], name: str, exact: bool = True
-    ) -> Optional[Dict[str, Any]]:
+        cls, variables: list[ParseVariableConfig], name: str, exact: bool = True
+    ) -> ParseVariableConfig | None:
         """
         Find a variable by name in the list.
 
@@ -249,8 +269,8 @@ class VariableService:
 
     @classmethod
     def aggregate_discovered_entries(
-        cls, snapshot: List[Dict[str, Any]], var_name: str
-    ) -> List[str]:
+        cls, snapshot: list[ScannedVariableDict], var_name: str
+    ) -> list[str]:
         r"""
         Aggregate all discovered entries for a variable across scanned files.
 
@@ -271,11 +291,10 @@ class VariableService:
             >>> entries
             ['cpu0', 'cpu1']
         """
-        found_entries: Set[str] = set()
+        found_entries: set[str] = set()
         for var in snapshot:
-            # Handle both ScannedVariable models and legacy dicts
-            name = var.name if hasattr(var, "name") else var.get("name", "")
-            entries = var.entries if hasattr(var, "entries") else var.get("entries", [])
+            name = var.get("name", "")
+            entries = var.get("entries", [])
 
             var_name_match = name == var_name
             if not var_name_match:
@@ -290,8 +309,8 @@ class VariableService:
 
     @classmethod
     def aggregate_distribution_range(
-        cls, snapshot: List[Dict[str, Any]], var_name: str
-    ) -> tuple[Optional[float], Optional[float]]:
+        cls, snapshot: list[ScannedVariableDict], var_name: str
+    ) -> tuple[float | None, float | None]:
         """
         Aggregate min/max range for a distribution variable across scanned files.
 
@@ -305,22 +324,25 @@ class VariableService:
         Examples:
             >>> service = VariableService()
             >>> snapshot = [
-            ...     {"name": "system.latency", "type": "distribution", "minimum": 10, "maximum": 100},  # noqa: E501
-            ...     {"name": "system.latency", "type": "distribution", "minimum": 5, "maximum": 150}
+            ...     {"name": "system.latency", "type": "distribution",
+            ...      "minimum": 10, "maximum": 100},
+            ...     {"name": "system.latency", "type": "distribution",
+            ...      "minimum": 5, "maximum": 150}
             ... ]
-            >>> min_val, max_val = service.aggregate_distribution_range(snapshot, "system.latency")
+            >>> min_val, max_val = service.aggregate_distribution_range(
+            ...     snapshot, "system.latency"
+            ... )
             >>> (min_val, max_val)
             (5, 150)
         """
-        global_min: Optional[float] = None
-        global_max: Optional[float] = None
+        global_min: float | None = None
+        global_max: float | None = None
 
         for var in snapshot:
-            # Handle both ScannedVariable models and legacy dicts
-            name = var.name if hasattr(var, "name") else var.get("name", "")
-            v_type = var.type if hasattr(var, "type") else var.get("type", "")
-            v_min = var.minimum if hasattr(var, "minimum") else var.get("minimum")
-            v_max = var.maximum if hasattr(var, "maximum") else var.get("maximum")
+            name = var.get("name", "")
+            v_type = var.get("type", "")
+            v_min = var.get("minimum")
+            v_max = var.get("maximum")
 
             var_name_match = name == var_name
             if not var_name_match:
@@ -337,7 +359,7 @@ class VariableService:
         return global_min, global_max
 
     @classmethod
-    def parse_comma_separated_entries(cls, entries_str: str) -> List[str]:
+    def parse_comma_separated_entries(cls, entries_str: str) -> list[str]:
         """
         Parse comma-separated entry string into list.
 
@@ -356,7 +378,7 @@ class VariableService:
         return [e.strip() for e in entries_str.split(",") if e.strip()]
 
     @classmethod
-    def format_entries_as_string(cls, entries: List[str]) -> str:
+    def format_entries_as_string(cls, entries: list[str]) -> str:
         """
         Format list of entries as comma-separated string.
 
@@ -372,3 +394,148 @@ class VariableService:
             'cpu0, cpu1, cpu2'
         """
         return ", ".join(entries)
+
+    @classmethod
+    def find_entries_for_variable(
+        cls,
+        available_variables: list[ScannedVariableDict],
+        var_name: str,
+    ) -> list[str]:
+        r"""
+        Find all entries for a variable by searching available/scanned variables.
+
+        Searches both exact name matches and regex pattern matches (e.g.,
+        var_name contains \\d+ patterns). Aggregates entries from all matches
+        and filters out internal statistics.
+
+        Args:
+            available_variables: List of scanned variable dicts with 'name'
+                                 and 'entries' keys.
+            var_name: Variable name or regex pattern to search for.
+
+        Returns:
+            Sorted list of unique, non-internal entries found across matches.
+
+        Examples:
+            >>> service = VariableService()
+            >>> avail = [
+            ...     {"name": "system.cpu.ipc", "entries": ["cpu0", "cpu1", "total"]},
+            ...     {"name": "system.mem.lat", "entries": ["bank0"]},
+            ... ]
+            >>> service.find_entries_for_variable(avail, "system.cpu.ipc")
+            ['cpu0', 'cpu1']
+        """
+        found_entries: set[str] = set()
+
+        for var in available_variables:
+            v_name = var.get("name", "")
+            v_entries = var.get("entries", [])
+
+            matched = v_name == var_name
+            if not matched:
+                compiled = _compile_safe_pattern(var_name)
+                if compiled is not None:
+                    matched = bool(compiled.fullmatch(v_name))
+
+            if matched and v_entries:
+                found_entries.update(v_entries)
+
+        return cls.filter_internal_stats(list(found_entries))
+
+    @classmethod
+    def update_scanned_entries(
+        cls,
+        scanned_vars: list[ScannedVariableDict],
+        var_name: str,
+        new_entries: list[str],
+    ) -> list[ScannedVariableDict]:
+        """
+        Update or add entries for a variable in the scanned variables list.
+
+        If the variable exists, updates its entries field (preserving other
+        fields like pattern_indices). If not, appends a new vector variable.
+
+        Args:
+            scanned_vars: Current list of scanned variable dicts.
+            var_name: Variable name to update.
+            new_entries: New entries to set.
+
+        Returns:
+            Updated list of scanned variables (new list, original not mutated).
+
+        Examples:
+            >>> service = VariableService()
+            >>> scanned = [{"name": "cpu.ipc", "type": "vector", "entries": ["old"]}]
+            >>> updated = service.update_scanned_entries(scanned, "cpu.ipc", ["new1", "new2"])
+            >>> updated[0]["entries"]
+            ['new1', 'new2']
+            >>> updated2 = service.update_scanned_entries(scanned, "new.var", ["e1"])
+            >>> len(updated2)
+            2
+        """
+        result = [v.copy() for v in scanned_vars]
+
+        var_found = False
+        for v in result:
+            if v["name"] == var_name:
+                v["entries"] = new_entries
+                var_found = True
+                break
+
+        if not var_found:
+            result.append({"name": var_name, "type": "vector", "entries": new_entries})
+
+        return result
+
+    @classmethod
+    def has_variable_with_name(
+        cls,
+        variables: list[ParseVariableConfig],
+        name: str,
+    ) -> bool:
+        """
+        Check if a variable with the given name already exists.
+
+        Args:
+            variables: List of variable configurations to check.
+            name: Variable name to look for.
+
+        Returns:
+            True if a variable with this name exists.
+
+        Examples:
+            >>> service = VariableService()
+            >>> vars = [{"name": "cpu.ipc"}, {"name": "mem.lat"}]
+            >>> service.has_variable_with_name(vars, "cpu.ipc")
+            True
+            >>> service.has_variable_with_name(vars, "nonexistent")
+            False
+        """
+        return any(v.get("name") == name for v in variables)
+
+    @classmethod
+    def build_statistics_list(
+        cls,
+        selected: dict[str, bool],
+    ) -> list[str]:
+        """
+        Build a list of selected statistics from a boolean mapping.
+
+        Utility for building the list of statistics to extract from vectors
+        or distributions based on user checkbox selections.
+
+        Args:
+            selected: Mapping of statistic name to whether it's selected.
+                      E.g., {"total": True, "mean": False, "stdev": True}
+
+        Returns:
+            List of selected statistic names, in insertion order.
+
+        Examples:
+            >>> service = VariableService()
+            >>> service.build_statistics_list({"total": True, "mean": False, "stdev": True})
+            ['total', 'stdev']
+            >>> service.build_statistics_list({})
+            []
+        """
+        return [name for name, is_selected in selected.items() if is_selected]

@@ -1,11 +1,15 @@
+from typing import Any, cast
+
 import pandas as pd
+import plotly.graph_objects as go
 import pytest
+from pandas import DataFrame
 
 from src.web.pages.ui.plotting import GroupedBarPlot, GroupedStackedBarPlot
 
 
 @pytest.fixture
-def sample_data():
+def sample_data() -> DataFrame:
     """Create sample data for testing."""
     return pd.DataFrame(
         {
@@ -20,7 +24,7 @@ def sample_data():
 class TestGroupedBarPlotFilters:
     """Test filtering in GroupedBarPlot."""
 
-    def test_filter_x(self, sample_data):
+    def test_filter_x(self, sample_data: Any) -> None:
         """Test filtering X values."""
         plot = GroupedBarPlot(1, "Test")
         config = {
@@ -42,7 +46,7 @@ class TestGroupedBarPlotFilters:
         assert "B" in tick_text
         assert "C" not in tick_text
 
-    def test_filter_group(self, sample_data):
+    def test_filter_group(self, sample_data: Any) -> None:
         """Test filtering Group values."""
         plot = GroupedBarPlot(1, "Test")
         config = {
@@ -58,7 +62,7 @@ class TestGroupedBarPlotFilters:
 
         # Check only G1 is present
         # Traces are named after groups
-        trace_names = [trace.name for trace in fig.data]
+        trace_names = [cast(go.Bar, trace).name for trace in fig.data]
         assert "G1" in trace_names
         assert "G2" not in trace_names
 
@@ -66,7 +70,7 @@ class TestGroupedBarPlotFilters:
 class TestGroupedStackedBarPlotFilters:
     """Test filtering in GroupedStackedBarPlot."""
 
-    def test_filter_x(self, sample_data):
+    def test_filter_x(self, sample_data: Any) -> None:
         """Test filtering X values."""
         plot = GroupedStackedBarPlot(1, "Test")
         config = {
@@ -86,7 +90,7 @@ class TestGroupedStackedBarPlotFilters:
         assert "<b>B</b>" in annotation_texts
         assert "<b>C</b>" not in annotation_texts
 
-    def test_filter_group(self, sample_data):
+    def test_filter_group(self, sample_data: Any) -> None:
         """Test filtering Group values."""
         plot = GroupedStackedBarPlot(1, "Test")
         config = {
@@ -107,7 +111,7 @@ class TestGroupedStackedBarPlotFilters:
 class TestHoverTotal:
     """Test hover total functionality."""
 
-    def test_hover_total_present(self, sample_data):
+    def test_hover_total_present(self, sample_data: Any) -> None:
         """Test that customdata (total) matches sum of stacked values."""
         plot = GroupedStackedBarPlot(1, "Test")
         config = {"x": "category", "y_columns": ["value"], "group": "group", "title": "Test"}
@@ -115,11 +119,13 @@ class TestHoverTotal:
 
         # Check that customdata is present in traces
         for trace in fig.data:
-            assert trace.customdata is not None
+            bar_trace = cast(go.Bar, trace)
+            assert bar_trace.customdata is not None
             # Verify presence of customdata in hover template.
-            assert "customdata" in trace.hovertemplate
+            assert isinstance(bar_trace.hovertemplate, str)
+            assert "customdata" in bar_trace.hovertemplate
 
-    def test_hover_total_calculation(self):
+    def test_hover_total_calculation(self) -> None:
         """Test calculation of total with multiple stacks."""
         data = pd.DataFrame(
             {
@@ -143,7 +149,8 @@ class TestHoverTotal:
         # Validate that customdata values contain the expected totals.
         # Simpler: just check that customdata values are 15, 25, 35 in some order.
 
-        trace0 = fig.data[0]
+        trace0 = cast(go.Bar, fig.data[0])
         # customdata might be a Series or array
+        assert trace0.customdata is not None
         totals = sorted(list(trace0.customdata))
         assert totals == [15, 25, 35]

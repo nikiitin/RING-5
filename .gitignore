@@ -5,6 +5,8 @@
 *.tar
 *.tar.gz
 *.pyc
+*.epub
+*.azw3
 __pycache__
 python_venv/
 .pytest_cache/
@@ -16,6 +18,17 @@ build/
 config_files
 .mypy_cache/
 
+# Node.js — only needed for Playwright E2E testing, installed on demand
+node_modules/
+package.json
+package-lock.json
+
+# Playwright MCP logs
+.playwright-mcp/
+
+# pytest-benchmark output
+.benchmarks/
+
 # VS Code - keep settings but ignore user-specific files
 .vscode/*
 !.vscode/settings.json
@@ -26,6 +39,10 @@ config_files
 # Test data downloaded from GitHub Releases (not tracked in Git)
 tests/data/
 
+# Playwright visual test outputs (screenshots, traces, GIFs)
+tests/visual/screenshots/
+tests/visual/artifacts/
+
 # AI Assistant - keep configuration, ignore personal settings
 .mcp-config.local.json
 .cursor/
@@ -34,6 +51,18 @@ tests/data/
 # Keep these AI config files (explicitly)
 !.github/copilot-instructions.md
 !.agent/
+!.agent/
 !.cursorrules
 !.ai-assistant-guide.md
 !AI-SETUP.md
+tests/e2e/artifacts/
+
+# R session / environment artifacts (RING-5 is a Python project)
+.RData
+.Rhistory
+.proj
+.proj.json
+/renv/
+
+# Editor workspace files
+*.code-workspace

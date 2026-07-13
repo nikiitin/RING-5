@@ -78,10 +78,11 @@ Version: 2.0.0
 Last Modified: 2026-01-27
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, cast, override
 
 import pandas as pd
 
+from src.core.models.shaper_models import TransformerShaperConfig
 from src.core.services.shapers.uni_df_shaper import UniDfShaper
 
 
@@ -92,7 +93,7 @@ class Transformer(UniDfShaper):
     Can also apply a fixed sorting order when converting to Factor.
     """
 
-    def __init__(self, params: Dict[str, Any]) -> None:
+    def __init__(self, params: dict[str, Any]) -> None:
         """
         Initialize Transformer.
 
@@ -100,26 +101,30 @@ class Transformer(UniDfShaper):
             params: Dictionary containing:
                 - column (str): Target column to transform.
                 - target_type (str): 'scalar' or 'factor'.
-                - order (Optional[List[str]]): Specific categorical order for factors.
+                - order (list[str] | None): Specific categorical order for factors.
         """
-        self.column: str = params.get("column", "")
-        self.target_type: str = params.get("target_type", "")
-        self.order: Optional[List[str]] = params.get("order")
+        config = cast(TransformerShaperConfig, params)
+        self.column: str = config.get("column", "")
+        self.target_type: str = config.get("target_type", "")
+        self.order: list[str] | None = config.get("order")
         super().__init__(params)
 
+    @override
     def _verify_params(self) -> bool:
         """Verify parameter presence and value validity."""
         super()._verify_params()
+        config = cast(TransformerShaperConfig, self.params)
 
-        if not isinstance(self.params.get("column"), str) or not self.params["column"]:
+        if not isinstance(config.get("column"), str) or not config["column"]:
             raise ValueError("Transformer requires non-empty string 'column' parameter.")
 
-        target_type = self.params.get("target_type")
+        target_type = config.get("target_type")
         if target_type not in ["scalar", "factor"]:
             raise ValueError("Transformer 'target_type' must be 'scalar' or 'factor'.")
 
         return True
 
+    @override
     def _verify_preconditions(self, data_frame: pd.DataFrame) -> bool:
         """Verify that the target column exists."""
         super()._verify_preconditions(data_frame)
@@ -127,6 +132,7 @@ class Transformer(UniDfShaper):
             raise ValueError(f"Transformer: Column '{self.column}' not found in dataframe.")
         return True
 
+    @override
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
         """Executes the data type conversion."""
         self._verify_preconditions(data_frame)

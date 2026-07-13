@@ -4,7 +4,6 @@ Manages temporary preview results for data operations.
 """
 
 import logging
-from typing import Dict, List, Optional
 
 from pandas import DataFrame
 
@@ -27,7 +26,7 @@ class PreviewRepository:
     # methods and have it managed by SessionRepository/StateManager.
 
     def __init__(self) -> None:
-        self._previews: Dict[str, DataFrame] = {}
+        self._previews: dict[str, DataFrame] = {}
 
     def set_preview(self, operation_name: str, data: DataFrame) -> None:
         """
@@ -41,13 +40,14 @@ class PreviewRepository:
         self._previews[operation_name] = data
         logger.debug(f"PREVIEW_REPO: Stored preview for '{operation_name}'")
 
-    def get_preview(self, operation_name: str) -> Optional[DataFrame]:
+    def get_preview(self, operation_name: str) -> DataFrame | None:
         """
         Retrieve preview result for an operation.
         """
         if not operation_name:
             return None
-        return self._previews.get(operation_name)
+        preview = self._previews.get(operation_name)
+        return preview.copy() if preview is not None else None
 
     def has_preview(self, operation_name: str) -> bool:
         """
@@ -70,10 +70,10 @@ class PreviewRepository:
         count = len(self._previews)
         self._previews.clear()
         if count > 0:
-            logger.info(f"PREVIEW_REPO: Cleared {count} preview(s)")
+            logger.info("PREVIEW_REPO: Cleared %d preview(s)", count)
         return count
 
-    def list_active_previews(self) -> List[str]:
+    def list_active_previews(self) -> list[str]:
         """
         List all active preview operations.
         """

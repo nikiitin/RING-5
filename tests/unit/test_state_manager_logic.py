@@ -3,22 +3,26 @@ Refactored unit tests for StateManager logic.
 Uses mocks instead of MemoryStorageAdapter.
 """
 
+from collections.abc import Generator
+from typing import Any, cast
 from unittest.mock import patch
 
 import pandas as pd
 import pytest
 
+from src.core.models.data_models import ParseVariableConfig
+from src.core.models.portfolio_models import PortfolioData
 from src.core.state.repository_state_manager import RepositoryStateManager as StateManager
 
 
 @pytest.fixture
-def mock_session_state():
+def mock_session_state() -> Generator[dict[str, Any], None, None]:
     """Mock streamlit.session_state as a dictionary."""
     with patch("streamlit.session_state", new_callable=dict) as mock_state:
         yield mock_state
 
 
-def test_initialize_defaults(mock_session_state):
+def test_initialize_defaults(mock_session_state: Any) -> None:
     """Verify default state initialization."""
     mgr = StateManager()
 
@@ -27,12 +31,12 @@ def test_initialize_defaults(mock_session_state):
     assert len(mgr.get_parse_variables()) > 0
 
 
-def test_set_data_enforce_config_types(mock_session_state):
+def test_set_data_enforce_config_types(mock_session_state: Any) -> None:
     """Verify that set_data enforces string types for configuration variables."""
     mgr = StateManager()
 
     # Setup variables with configuration type
-    vars_config = [{"name": "cfg", "type": "configuration"}]
+    vars_config = cast(list[ParseVariableConfig], [{"name": "cfg", "type": "configuration"}])
     mgr.set_parse_variables(vars_config)
 
     # Data with numeric "cfg" column
@@ -49,7 +53,7 @@ def test_set_data_enforce_config_types(mock_session_state):
     assert stored_df["cfg"].tolist() == ["1", "2", "3"]
 
 
-def test_update_config(mock_session_state):
+def test_update_config(mock_session_state: Any) -> None:
     """Verify config updates via facade."""
     mgr = StateManager()
 
@@ -62,12 +66,12 @@ def test_update_config(mock_session_state):
     assert cfg["b"] == 3
 
 
-def test_set_parse_variables_generate_ids(mock_session_state):
+def test_set_parse_variables_generate_ids(mock_session_state: Any) -> None:
     """Verify unique ID generation for parse variables."""
     mgr = StateManager()
 
     # Setup variables without IDs
-    vars_config = [{"name": "v1"}]
+    vars_config = cast(list[ParseVariableConfig], [{"name": "v1"}])
 
     with patch("src.core.state.repositories.parser_state_repository.uuid") as mock_uuid:
         mock_uuid.uuid4.return_value = "uuid-1"
@@ -77,7 +81,7 @@ def test_set_parse_variables_generate_ids(mock_session_state):
     assert vars_out[0]["_id"] == "uuid-1"
 
 
-def test_start_next_plot_id(mock_session_state):
+def test_start_next_plot_id(mock_session_state: Any) -> None:
     """Verify plot ID generation increments correctly."""
     mgr = StateManager()
 
@@ -93,11 +97,13 @@ def test_start_next_plot_id(mock_session_state):
     assert mgr.get_plot_counter() == 11
 
 
-def test_restore_session_state(mock_session_state):
+def test_restore_session_state(mock_session_state: Any) -> None:
     """Verify session restoration logic."""
     mgr = StateManager()
 
-    portfolio_data = {"csv_path": "/mock/test.csv", "plot_counter": 5, "plots": []}
+    portfolio_data = cast(
+        PortfolioData, {"csv_path": "/mock/test.csv", "plot_counter": 5, "plots": []}
+    )
 
     mgr.restore_session(portfolio_data)
 

@@ -1,9 +1,9 @@
 import pytest
 
-from src.core.parsing.gem5.types.histogram import Histogram
+from src.parsing.gem5.types.histogram import Histogram
 
 
-def test_histogram_creation():
+def test_histogram_creation() -> None:
     # Verify pre-initialization with statistics
     h = Histogram(repeat=1, statistics=["samples"])
     assert h._repeat == 1
@@ -12,16 +12,17 @@ def test_histogram_creation():
     assert h.content["samples"] == []
 
 
-def test_histogram_entries_merging():
+def test_histogram_entries_merging() -> None:
     # Verify that entries merges buckets and statistics correctly
     h = Histogram(repeat=1, bins=3, max_range=10.0, statistics=["samples"])
     entries = h.entries
+    assert entries is not None
     assert "samples" in entries
     assert "0-5" in entries
     assert "5-10" in entries
 
 
-def test_histogram_content_setting():
+def test_histogram_content_setting() -> None:
     h = Histogram(repeat=1, statistics=["samples"])
     # Mock data from parser: dict of range string -> values
     data = {"0-10": ["5"], "samples": ["100"]}
@@ -31,7 +32,7 @@ def test_histogram_content_setting():
     assert h.content["samples"] == [100.0]
 
 
-def test_histogram_balance_with_missing_stats():
+def test_histogram_balance_with_missing_stats() -> None:
     # Verify that balance_content pads missing statistics
     h = Histogram(repeat=2, statistics=["samples"])
     h.content = {"0-10": ["10", "20"]}  # samples is missing
@@ -41,7 +42,7 @@ def test_histogram_balance_with_missing_stats():
     assert h.content["samples"] == [0.0, 0.0]
 
 
-def test_histogram_balance_and_reduce():
+def test_histogram_balance_and_reduce() -> None:
     h = Histogram(repeat=2, statistics=["samples"])
     h.content = {"0-10": ["10", "20"], "samples": ["100"]}
 
@@ -55,7 +56,7 @@ def test_histogram_balance_and_reduce():
     assert reduced["samples"] == 50.0  # (100+0)/2
 
 
-def test_histogram_invalid_value():
+def test_histogram_invalid_value() -> None:
     h = Histogram()
     with pytest.raises(TypeError):
         h.content = {"0-10": ["invalid"]}

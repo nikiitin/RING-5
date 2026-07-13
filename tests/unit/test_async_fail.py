@@ -5,21 +5,23 @@ Tests for async scanning behavior with Futures-based API.
 import time
 from concurrent.futures import as_completed
 
-from src.core.parsing.gem5.impl.pool.pool import ScanWorkPool
-from src.core.parsing.gem5.impl.pool.scan_work import ScanWork
+from src.core.models import ScannedVariable
+from src.parsing.gem5.impl.pool.pool import ScanWorkPool
+from src.parsing.gem5.impl.pool.scan_work import ScanWork
 
 
 class MockWork(ScanWork):
-    def __init__(self, val, duration=0.1):
+    def __init__(self, val: int, duration: float = 0.1) -> None:
+
         self.val = val
         self.duration = duration
 
-    def __call__(self):
+    def __call__(self) -> list[ScannedVariable]:
         time.sleep(self.duration)
-        return {"name": f"var_{self.val}", "type": "scalar"}
+        return [ScannedVariable(name=f"var_{self.val}", type="scalar")]
 
 
-def test_async_scan_flow():
+def test_async_scan_flow() -> None:
     """Test full async flow with futures."""
     pool = ScanWorkPool.get_instance()
 
@@ -31,28 +33,30 @@ def test_async_scan_flow():
     assert len(futures) == 5
 
     # Collect results
-    results = []
+    results: list[ScannedVariable] = []
     for future in as_completed(futures):
         res = future.result()
         if res:
-            results.append(res)
+            results.extend(res)
 
     assert len(results) == 5
-    for i, result in enumerate(sorted(results, key=lambda x: x["name"])):
-        assert result["name"] == f"var_{i}"
-        assert result["type"] == "scalar"
+    for i, result in enumerate(sorted(results, key=lambda x: x.name)):
+        assert result.name == f"var_{i}"
+        assert result.type == "scalar"
 
 
-def test_async_scan_cancellation():
-    """Test cancellation of async scan via futures."""
+def test_async_scan_cancellation() -> None:
+    """Test cancellation of async scan via the caller-owned future handles."""
     pool = ScanWorkPool.get_instance()
 
     # Long duration works
     works = [MockWork(i, 0.5) for i in range(5)]
     futures = pool.submit_batch_async(works)
 
-    # Cancel all immediately
-    pool.cancel_all()
+    # Cancel the handles we own — the pool keeps no references, so
+    # cancellation cannot touch another caller's in-flight batch.
+    for future in futures:
+        future.cancel()
 
     # Try to collect results - some may be cancelled
     results = []
@@ -74,7 +78,7 @@ def test_async_scan_cancellation():
     assert len(results) < 5 or cancelled_count > 0
 
 
-def test_multiple_batch_submissions():
+def test_multiple_batch_submissions() -> None:
     """Test that multiple batch submissions work independently."""
     pool = ScanWorkPool.get_instance()
 

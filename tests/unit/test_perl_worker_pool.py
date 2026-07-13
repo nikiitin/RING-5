@@ -8,23 +8,27 @@ import logging
 import shutil
 import tempfile
 import time
+from collections.abc import Generator
 from pathlib import Path
+from typing import Any
 
 import pytest
 
-from src.core.parsing.gem5.impl.strategies.perl_worker_pool import (
+from src.parsing.gem5.impl.strategies.perl_worker_pool import (
     PerlWorker,
     PerlWorkerPool,
     get_worker_pool,
     shutdown_worker_pool,
 )
 
+pytestmark = pytest.mark.xdist_group("perl_pool")
+
 # Enable debug logging for tests
 logging.basicConfig(level=logging.DEBUG)
 
 
 @pytest.fixture
-def test_stats_file():
+def test_stats_file() -> Generator[str, None, None]:
     """Create a temporary stats file for testing."""
     content = """
 ---------- Begin Simulation Statistics ----------
@@ -44,7 +48,7 @@ system.mem.readReqs                            500                       # Total
 
 
 @pytest.fixture
-def perl_exe():
+def perl_exe() -> Any:
     """Provide perl executable path, ensuring it exists."""
     perl_path = shutil.which("perl")
     assert perl_path is not None, "Perl executable not found"
@@ -52,12 +56,11 @@ def perl_exe():
 
 
 @pytest.fixture
-def perl_script_path():
+def perl_script_path() -> str:
     """Provide path to the Perl parser script."""
     return str(
         Path(__file__).parent.parent.parent
         / "src"
-        / "core"
         / "parsing"
         / "gem5"
         / "perl"
@@ -66,7 +69,7 @@ def perl_script_path():
 
 
 @pytest.fixture
-def worker_pool():
+def worker_pool() -> Generator[PerlWorkerPool, None, None]:
     """Create a worker pool for testing."""
     # Small pool for testing
     pool = PerlWorkerPool(pool_size=2)
@@ -77,7 +80,7 @@ def worker_pool():
 class TestPerlWorker:
     """Test individual Perl worker functionality."""
 
-    def test_worker_startup(self, perl_exe, perl_script_path):
+    def test_worker_startup(self, perl_exe: Any, perl_script_path: Any) -> None:
         """Worker should start successfully and be healthy."""
         worker = PerlWorker(worker_id=0, script_path=perl_script_path, perl_exe=perl_exe)
 
@@ -89,7 +92,7 @@ class TestPerlWorker:
         finally:
             worker.shutdown()
 
-    def test_worker_health_check(self, perl_exe, perl_script_path):
+    def test_worker_health_check(self, perl_exe: Any, perl_script_path: Any) -> None:
         """Health check should work correctly."""
         worker = PerlWorker(worker_id=0, script_path=perl_script_path, perl_exe=perl_exe)
 
@@ -98,6 +101,7 @@ class TestPerlWorker:
             assert worker.health_check()
 
             # Kill the process
+            assert worker.process is not None
             worker.process.kill()
             time.sleep(0.1)
 
@@ -106,7 +110,9 @@ class TestPerlWorker:
         finally:
             worker.shutdown()
 
-    def test_worker_parse_file(self, test_stats_file, perl_exe, perl_script_path):
+    def test_worker_parse_file(
+        self, test_stats_file: Any, perl_exe: Any, perl_script_path: Any
+    ) -> None:
         """Worker should parse files correctly."""
         worker = PerlWorker(worker_id=0, script_path=perl_script_path, perl_exe=perl_exe)
 
@@ -129,17 +135,19 @@ class TestPerlWorker:
         finally:
             worker.shutdown()
 
-    def test_worker_restart(self, perl_exe, perl_script_path):
+    def test_worker_restart(self, perl_exe: Any, perl_script_path: Any) -> None:
         """Worker should restart successfully."""
         worker = PerlWorker(worker_id=0, script_path=perl_script_path, perl_exe=perl_exe)
 
         try:
+            assert worker.process is not None
             original_pid = worker.process.pid
 
             # Restart
             assert worker.restart()
 
             # Should have new PID and be healthy
+            assert worker.process is not None
             assert worker.process.pid != original_pid
             assert worker.is_healthy
             assert worker.restarts == 1
@@ -150,7 +158,7 @@ class TestPerlWorker:
 class TestPerlWorkerPool:
     """Test worker pool functionality."""
 
-    def test_pool_initialization(self, worker_pool):
+    def test_pool_initialization(self, worker_pool: Any) -> None:
         """Pool should initialize with correct number of workers."""
         stats = worker_pool.get_stats()
 
@@ -158,7 +166,7 @@ class TestPerlWorkerPool:
         assert stats["healthy_workers"] == 2
         assert stats["total_requests"] == 0
 
-    def test_pool_parse_file(self, worker_pool, test_stats_file):
+    def test_pool_parse_file(self, worker_pool: Any, test_stats_file: Any) -> None:
         """Pool should parse files using workers."""
         output = worker_pool.parse_file(test_stats_file, ["system.cpu.numCycles", "system.cpu.ipc"])
 
@@ -168,7 +176,7 @@ class TestPerlWorkerPool:
         stats = worker_pool.get_stats()
         assert stats["total_requests"] >= 1
 
-    def test_pool_multiple_files(self, worker_pool, test_stats_file):
+    def test_pool_multiple_files(self, worker_pool: Any, test_stats_file: Any) -> None:
         """Pool should handle multiple files efficiently."""
         results = []
 
@@ -184,7 +192,7 @@ class TestPerlWorkerPool:
         stats = worker_pool.get_stats()
         assert stats["total_requests"] == 5
 
-    def test_pool_worker_failure_recovery(self, worker_pool, test_stats_file):
+    def test_pool_worker_failure_recovery(self, worker_pool: Any, test_stats_file: Any) -> None:
         """Pool should recover from worker failures."""
         # Kill one worker
         worker_pool.workers[0].process.kill()
@@ -198,7 +206,7 @@ class TestPerlWorkerPool:
 
         assert len(output) > 0
 
-    def test_pool_statistics(self, worker_pool, test_stats_file):
+    def test_pool_statistics(self, worker_pool: Any, test_stats_file: Any) -> None:
         """Pool should track statistics correctly."""
         # Parse multiple files
         for _i in range(3):
@@ -217,7 +225,7 @@ class TestPerlWorkerPool:
             assert hasattr(worker_stats, "is_healthy")
             assert worker_stats.requests_served > 0  # Verify it served requests
 
-    def test_pool_graceful_shutdown(self, worker_pool):
+    def test_pool_graceful_shutdown(self, worker_pool: Any) -> None:
         """Pool should shut down gracefully."""
         # Get PIDs before shutdown
         [w.process.pid for w in worker_pool.workers if w.process]
@@ -236,7 +244,14 @@ class TestPerlWorkerPool:
 class TestWorkerPoolIntegration:
     """Integration tests for worker pool."""
 
-    def test_worker_pool_vs_subprocess_mode(self, test_stats_file: Path):
+    @pytest.fixture(autouse=True)
+    def _reset_singleton(self) -> Generator[None, None, None]:
+        """Ensure no stale singleton leaks between tests."""
+        shutdown_worker_pool()
+        yield
+        shutdown_worker_pool()
+
+    def test_worker_pool_vs_subprocess_mode(self, test_stats_file: Path) -> None:
         """Test worker pool performance."""
         # Test with worker pool (the ONLY mechanism now!)
         pool = get_worker_pool(pool_size=2)
@@ -245,14 +260,13 @@ class TestWorkerPoolIntegration:
 
         start = time.time()
         result = pool.parse_file(str(test_stats_file), ["system.cpu.numCycles"])
-        pool_time = time.time() - start
+        _ = time.time() - start
 
         assert len(result) > 0
-        print(f"Pool time: {pool_time:.3f}s")
 
         shutdown_worker_pool()
 
-    def test_singleton_pool(self):
+    def test_singleton_pool(self) -> None:
         """Test singleton pattern for worker pool."""
         # Get pool instance
         pool1 = get_worker_pool(pool_size=2)
@@ -275,24 +289,25 @@ class TestWorkerPoolIntegration:
 class TestErrorHandling:
     """Test error handling and robustness."""
 
-    def test_worker_invalid_file(self, worker_pool):
+    def test_worker_invalid_file(self, worker_pool: Any) -> None:
         """Worker should handle invalid file gracefully."""
         # Worker logs error but returns empty result (doesn't raise)
         result = worker_pool.parse_file("/nonexistent/file.txt", ["system.cpu.ipc"])
         assert result == []  # Empty result on error
 
-    def test_worker_timeout(self, worker_pool):
+    def test_worker_timeout(self, worker_pool: Any) -> None:
         """Worker should timeout on hung operations."""
         # This would require a file that causes hang - skip for now
         pass
 
-    def test_pool_no_available_workers(self):
+    def test_pool_no_available_workers(self) -> None:
         """Pool should handle no available workers."""
         # Create pool with 1 worker
         pool = PerlWorkerPool(pool_size=1)
 
         try:
             # Kill the worker
+            assert pool.workers[0].process is not None
             pool.workers[0].process.kill()
             pool.workers[0].is_healthy = False
 
@@ -301,7 +316,3 @@ class TestErrorHandling:
                 pool.parse_file("/tmp/test.txt", ["var"], timeout=2.0)
         finally:
             pool.shutdown()
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v", "-s"])

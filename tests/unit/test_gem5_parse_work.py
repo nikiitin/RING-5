@@ -1,12 +1,17 @@
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.core.parsing.gem5.impl.strategies.gem5_parse_work import Gem5ParseWork
+from src.parsing.gem5.impl.strategies.gem5_parse_work import (
+    Gem5ParseWork,
+    VarsDictType,
+)
 
 
 class MockType:
-    def __init__(self, type_name):
+    def __init__(self, type_name: Any) -> None:
+
         self._type_name = type_name
         self.content = None
         self.entries = []
@@ -15,47 +20,52 @@ class MockType:
 
 # Mocking type(var).__name__ requires the class name to match
 class Scalar:
-    def __init__(self):
+    def __init__(self) -> None:
         self.content = None
+        self.repeat = 1
 
 
 class Vector:
-    def __init__(self):
+    def __init__(self) -> None:
         self.content = None
         self.entries = []
+        self.repeat = 1
 
 
 class Distribution:
-    def __init__(self):
+    def __init__(self) -> None:
         self.content = None
         self.entries = []
+        self.repeat = 1
 
 
 class Configuration:
-    def __init__(self):
-        self.content = None
-        self.onEmpty = None
+    def __init__(self) -> None:
+        self.content: Any = None
+        self.onEmpty: str | None = None
 
 
 @pytest.fixture
-def parser():
+def parser() -> Gem5ParseWork:
     vars_to_parse = {"scalar_var": Scalar(), "vector_var": Vector(), "dist_var": Distribution()}
     # Mock file existence check if needed, but __init__ doesn't check it (checkFile is in __call__)
     return Gem5ParseWork("dummy.txt", vars_to_parse)
 
 
-def test_init_empty_vars():
+def test_init_empty_vars() -> None:
     with pytest.raises(RuntimeError):
         Gem5ParseWork("file", {})
 
 
-def test_process_line_scalar(parser):
+def test_process_line_scalar(parser: Any) -> None:
+
     line = "scalar/scalar_var/123"
     parser._processLine(line, parser._varsToParse)
     assert parser._varsToParse["scalar_var"].content == "123"
 
 
-def test_process_line_vector(parser):
+def test_process_line_vector(parser: Any) -> None:
+
     # Vector comes as Vector/ID::key/value
     line1 = "vector/vector_var::0/10"
     line2 = "vector/vector_var::1/20"
@@ -70,7 +80,8 @@ def test_process_line_vector(parser):
     assert parser._entryBuffer["vector_var"]["1"] == ["20"]
 
 
-def test_process_output_full_flow(parser):
+def test_process_output_full_flow(parser: Any) -> None:
+
     output = """scalar/scalar_var/99
 vector/vector_var::0/100
 vector/vector_var::0/101
@@ -95,23 +106,29 @@ distribution/dist_var::max/15
     assert d_content["max"] == ["15"]
 
 
-def test_validate_vars_missing_content(parser):
-    # Scalar var content remains None
-    # WITH FIX: Should default to "0" instead of raising error
-    parser._validateVars(parser._varsToParse)
-    assert parser._varsToParse["scalar_var"].content == "0"
+def test_validate_vars_missing_numeric_not_fabricated(parser: Any, caplog: Any) -> None:
+    import logging
+
+    # A numeric var with no parsed content must NOT be fabricated to "0";
+    # it is left empty (NaN-padded downstream) and logged for traceability.
+    with caplog.at_level(logging.WARNING):
+        parser._validateVars(parser._varsToParse)
+    assert parser._varsToParse["scalar_var"].content is None
+    assert "absent or incomplete" in caplog.text
+    assert "scalar_var" in caplog.text
 
 
-def test_process_output_empty_returns_defaults(parser):
-    # Empty output should result in defaults being populated
+def test_process_output_empty_no_fabrication(parser: Any) -> None:
+
+    # Empty output: numeric vars are left empty (missing), never fabricated to "0".
     output = ""
     parsed = parser._processOutput(output, parser._varsToParse)
     assert parsed is not None
-    assert parsed["scalar_var"].content == "0"
+    assert parsed["scalar_var"].content is None
 
 
-def test_validate_vars_config_default():
-    vars_map = {"config_var": Configuration()}
+def test_validate_vars_config_default() -> None:
+    vars_map: VarsDictType = cast(VarsDictType, {"config_var": Configuration()})
     vars_map["config_var"].onEmpty = "Default"
     # Content must not be None to pass first check, but empty to trigger default logic
     vars_map["config_var"].content = []
@@ -122,8 +139,8 @@ def test_validate_vars_config_default():
     assert validated["config_var"].content == "Default"
 
 
-def test_validate_vars_config_no_default_fail():
-    vars_map = {"config_var": Configuration()}
+def test_validate_vars_config_no_default_fail() -> None:
+    vars_map: VarsDictType = cast(VarsDictType, {"config_var": Configuration()})
     vars_map["config_var"].onEmpty = None
     vars_map["config_var"].content = []
 
@@ -134,13 +151,12 @@ def test_validate_vars_config_no_default_fail():
     assert vars_map["config_var"].content == "None"
 
 
-def test_call_subprocess(parser):
+def test_call_subprocess(parser: Any) -> None:
+
     # Test __call__ flow mocking worker pool instead of subprocess
     # Note: Worker pool is now the PRIMARY mechanism
     # Patch at gem5_parse_work module since get_worker_pool is now imported at module level
-    with patch(
-        "src.core.parsing.gem5.impl.strategies.gem5_parse_work.get_worker_pool"
-    ) as mock_get_pool:
+    with patch("src.parsing.gem5.impl.strategies.gem5_parse_work.get_worker_pool") as mock_get_pool:
         with patch("src.core.common.utils.checkFileExistsOrException"):
             # Success Case
             mock_pool = MagicMock()
@@ -157,10 +173,11 @@ def test_call_subprocess(parser):
             assert result["vector_var"].content["0"] == ["20"]
 
 
-def test_distribution_with_stats(parser):
+def test_distribution_with_stats(parser: Any) -> None:
+
     # Test processing distribution with stats entries (mean, samples)
     # Mock variables first
-    from src.core.parsing.gem5.types import StatTypeRegistry
+    from src.parsing.gem5.types import StatTypeRegistry
 
     # Use small range to satisfy validation of all buckets
     # Initialize with configured statistics to pass validation

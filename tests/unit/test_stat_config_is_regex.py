@@ -1,4 +1,4 @@
-"""
+r"""
 Tests for the ``is_regex`` flag on :class:`StatConfig`.
 
 Validates that:
@@ -12,8 +12,8 @@ Validates that:
 
 import re
 from dataclasses import replace
-from typing import Any, Dict, List
-from unittest.mock import MagicMock, patch
+from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -73,15 +73,16 @@ class TestApplicationAPIIsRegex:
         """Import lazily to avoid heavy module-level loading."""
         from src.core.application_api import ApplicationAPI
 
-        return ApplicationAPI()
+        api = ApplicationAPI()
+        api._parser = MagicMock()
+        return api
 
-    @patch("src.core.application_api.ParseService")
-    def test_dict_with_regex_name(self, mock_svc: MagicMock) -> None:
-        """A dict variable with \\d+ in name should produce is_regex=True."""
-        mock_svc.submit_parse_async.return_value = MagicMock()
+    def test_dict_with_regex_name(self) -> None:
+        r"""A dict variable with \\d+ in name should produce is_regex=True."""
         api = self._make_api()
+        api._parser.submit_parse_async.return_value = MagicMock()
 
-        variables: List[Dict[str, Any]] = [
+        variables: list[dict[str, Any]] = [
             {"name": r"system.cpu\d+.ipc", "type": "scalar"},
         ]
         api.submit_parse_async(
@@ -91,18 +92,17 @@ class TestApplicationAPIIsRegex:
             output_dir="/tmp/out",
         )
 
-        call_args = mock_svc.submit_parse_async.call_args
-        configs: List[StatConfig] = call_args[0][2]  # third positional arg
+        call_args = api._parser.submit_parse_async.call_args
+        configs: list[StatConfig] = call_args[0][2]  # third positional arg
         assert len(configs) == 1
         assert configs[0].is_regex is True
 
-    @patch("src.core.application_api.ParseService")
-    def test_dict_with_plain_name(self, mock_svc: MagicMock) -> None:
-        """A dict variable without \\d+ should produce is_regex=False."""
-        mock_svc.submit_parse_async.return_value = MagicMock()
+    def test_dict_with_plain_name(self) -> None:
+        r"""A dict variable without \\d+ should produce is_regex=False."""
         api = self._make_api()
+        api._parser.submit_parse_async.return_value = MagicMock()
 
-        variables: List[Dict[str, Any]] = [
+        variables: list[dict[str, Any]] = [
             {"name": "system.cpu.ipc", "type": "scalar"},
         ]
         api.submit_parse_async(
@@ -112,16 +112,15 @@ class TestApplicationAPIIsRegex:
             output_dir="/tmp/out",
         )
 
-        call_args = mock_svc.submit_parse_async.call_args
-        configs: List[StatConfig] = call_args[0][2]
+        call_args = api._parser.submit_parse_async.call_args
+        configs: list[StatConfig] = call_args[0][2]
         assert len(configs) == 1
         assert configs[0].is_regex is False
 
-    @patch("src.core.application_api.ParseService")
-    def test_scanned_variable_with_regex(self, mock_svc: MagicMock) -> None:
-        """A ScannedVariable with \\d+ in name should produce is_regex=True."""
-        mock_svc.submit_parse_async.return_value = MagicMock()
+    def test_scanned_variable_with_regex(self) -> None:
+        r"""A ScannedVariable with \\d+ in name should produce is_regex=True."""
         api = self._make_api()
+        api._parser.submit_parse_async.return_value = MagicMock()
 
         sv = ScannedVariable(
             name=r"system.cpu\d+.numCycles",
@@ -135,8 +134,8 @@ class TestApplicationAPIIsRegex:
             output_dir="/tmp/out",
         )
 
-        call_args = mock_svc.submit_parse_async.call_args
-        configs: List[StatConfig] = call_args[0][2]
+        call_args = api._parser.submit_parse_async.call_args
+        configs: list[StatConfig] = call_args[0][2]
         assert len(configs) == 1
         assert configs[0].is_regex is True
 
@@ -170,7 +169,7 @@ class TestRegexExpansionUsesFlag:
         expanded = config
         if config.is_regex:
             pattern = re.compile(config.name)
-            matched: List[str] = []
+            matched: list[str] = []
             for sv in scanned:
                 if config.name == sv.name or pattern.fullmatch(sv.name):
                     if sv.pattern_indices:

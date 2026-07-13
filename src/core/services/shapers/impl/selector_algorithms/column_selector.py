@@ -5,10 +5,11 @@ Filters a DataFrame to include only specified columns. Part of the
 selector algorithm family for data filtering and subsetting.
 """
 
-from typing import Any, Dict, List
+from typing import Any, cast
 
 import pandas as pd
 
+from src.core.models.shaper_models import ColumnSelectorConfig
 from src.core.services.shapers.uni_df_shaper import UniDfShaper
 
 
@@ -17,23 +18,26 @@ class ColumnSelector(UniDfShaper):
     Shaper that subsets columns in the dataframe.
     """
 
-    def __init__(self, params: Dict[str, Any]) -> None:
+    def __init__(self, params: dict[str, Any]) -> None:
         """
         Initialize ColumnSelector.
 
         Args:
-            params: Must contain 'columns' (List[str]).
+            params: Must contain 'columns' (list[str]).
         """
-        self.columns: List[str] = params.get("columns", [])
+        config = cast(ColumnSelectorConfig, params)
+        self.columns: list[str] = config.get("columns", [])
         super().__init__(params)
 
     def _verify_params(self) -> bool:
         """Verify 'columns' parameter exists and is a non-empty list of strings."""
         super()._verify_params()
-        if "columns" not in self.params:
+        config = cast(ColumnSelectorConfig, self.params)
+
+        if "columns" not in config:
             raise ValueError("ColumnSelector requires 'columns' parameter.")
 
-        cols = self.params["columns"]
+        cols = config["columns"]
         if not isinstance(cols, list):
             raise TypeError("ColumnSelector 'columns' parameter must be a list.")
 
@@ -55,4 +59,5 @@ class ColumnSelector(UniDfShaper):
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
         """Subsets the dataframe to only include specified columns."""
         self._verify_preconditions(data_frame)
-        return data_frame[self.columns]
+        # .copy() so the shaper returns an independent frame, not a view.
+        return data_frame[self.columns].copy()

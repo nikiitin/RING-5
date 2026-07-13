@@ -1,12 +1,14 @@
+from collections.abc import Generator
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.core.parsing.gem5.impl.pool.pool import ScanWorkPool
-from src.core.parsing.gem5.impl.scanning.gem5_scan_work import Gem5ScanWork
+from src.parsing.gem5.impl.pool.pool import ScanWorkPool
+from src.parsing.gem5.impl.scanning.gem5_scan_work import Gem5ScanWork
 
 
-def test_stats_scan_work_success():
+def test_stats_scan_work_success() -> None:
     work = Gem5ScanWork("test_file.txt")
 
     from src.core.models import ScannedVariable
@@ -17,7 +19,7 @@ def test_stats_scan_work_success():
     ]
 
     with patch(
-        "src.core.parsing.gem5.impl.scanning.scanner.Gem5StatsScanner.get_instance"
+        "src.parsing.gem5.impl.scanning.scanner.Gem5StatsScanner.get_instance"
     ) as mock_scanner_cls:
         mock_instance = MagicMock()
         mock_scanner_cls.return_value = mock_instance
@@ -26,23 +28,27 @@ def test_stats_scan_work_success():
         result = work()
 
         mock_instance.scan_file.assert_called_once()
-        assert len(result) == 2
-        assert result[0].name == "var1"
+        assert len(result.variables) == 2
+        assert result.variables[0].name == "var1"
+        assert result.ok
 
 
-def test_stats_scan_work_failure():
+def test_stats_scan_work_failure() -> None:
     work = Gem5ScanWork("test_file.txt")
 
     with patch(
-        "src.core.parsing.gem5.impl.scanning.scanner.Gem5StatsScanner.get_instance"
+        "src.parsing.gem5.impl.scanning.scanner.Gem5StatsScanner.get_instance"
     ) as mock_scanner_cls:
         mock_instance = MagicMock()
         mock_scanner_cls.return_value = mock_instance
-        mock_instance.scan_file.side_effect = Exception("Scan error")
+        mock_instance.scan_file.side_effect = RuntimeError("Scan error")
 
-        # Should handle exception and return empty
+        # A fatal scan failure is reported as a failed ScanFileResult,
+        # never masked as an empty success.
         result = work()
-        assert result == []
+        assert not result.ok
+        assert result.variables == []
+        assert "Scan error" in (result.error or "")
 
 
 # --- ScanWorkPool Tests ---
@@ -50,23 +56,24 @@ def test_stats_scan_work_failure():
 
 
 @pytest.fixture
-def clean_pool_singleton():
+def clean_pool_singleton() -> Generator[None, None, None]:
     ScanWorkPool._singleton = None
     yield
     ScanWorkPool._singleton = None
 
 
-def test_scan_work_pool_singleton(clean_pool_singleton):
+def test_scan_work_pool_singleton(clean_pool_singleton: Any) -> None:
+
     pool1 = ScanWorkPool.get_instance()
     pool2 = ScanWorkPool.get_instance()
     assert pool1 is pool2
 
 
-def test_scan_work_pool_async_flow(clean_pool_singleton):
+def test_scan_work_pool_async_flow(clean_pool_singleton: Any) -> None:
     """Test the core async flow of the pool."""
     from concurrent.futures import Future
 
-    with patch("src.core.parsing.gem5.impl.pool.work_pool.WorkPool.get_instance"):
+    with patch("src.parsing.framework.work_pool.WorkPool.get_instance"):
         scan_pool = ScanWorkPool.get_instance()
 
         work1 = MagicMock(spec=Gem5ScanWork)
@@ -78,8 +85,8 @@ def test_scan_work_pool_async_flow(clean_pool_singleton):
         f2 = Future()
         f2.set_result("res2")
 
-        # Mock the internal _workPool to return our futures
-        scan_pool._workPool.submit.side_effect = [f1, f2]
+        # Mock the internal _work_pool to return our futures
+        cast(MagicMock, scan_pool._work_pool.submit).side_effect = [f1, f2]
 
         futures = scan_pool.submit_batch_async([work1, work2])
 

@@ -4,6 +4,8 @@ Verifies that legend positioning and styling properties are correctly
 applied to Plotly figures following publication-quality standards.
 """
 
+from typing import Any
+
 import plotly.graph_objects as go
 import pytest
 
@@ -14,11 +16,11 @@ class TestLegendStyling:
     """Test suite for legend styling features."""
 
     @pytest.fixture
-    def applicator(self):
+    def applicator(self) -> StyleApplicator:
         """Create a StyleApplicator instance for testing."""
         return StyleApplicator(plot_type="bar")
 
-    def test_legend_position_applied(self, applicator):
+    def test_legend_position_applied(self, applicator: Any) -> None:
         """
         Verify legend x/y positioning is correctly applied.
         """
@@ -35,24 +37,26 @@ class TestLegendStyling:
         assert fig.layout.legend.x == 0.5
         assert fig.layout.legend.y == 1.05
 
-    def test_legend_orientation_horizontal(self, applicator):
+    def test_legend_orientation_not_applied_from_config(self, applicator: Any) -> None:
         """
-        Verify horizontal legend orientation is applied.
+        Orientation field was removed from UI — verify it's not applied.
         """
         fig = go.Figure()
         fig.add_trace(go.Bar(y=[1, 2], name="Test"))
 
         config = {
-            "legend_orientation": "h",
+            "legend_orientation": "h",  # present but dead field
         }
 
         fig = applicator.apply_styles(fig, config)
 
-        assert fig.layout.legend.orientation == "h"
+        # Orientation should remain at Plotly default (vertical)
+        assert fig.layout.legend.orientation in (None, "v")
 
-    def test_legend_anchor_settings(self, applicator):
+    def test_legend_anchor_not_applied_from_config(self, applicator: Any) -> None:
         """
-        Verify legend anchor settings for proper alignment.
+        Legacy xanchor/yanchor keys don't override auto-derived anchors.
+        The default position (1.02, 1.0) auto-derives left/bottom.
         """
         fig = go.Figure()
         fig.add_trace(go.Bar(y=[1, 2], name="Test"))
@@ -64,10 +68,11 @@ class TestLegendStyling:
 
         fig = applicator.apply_styles(fig, config)
 
-        assert fig.layout.legend.xanchor == "center"
+        # Anchors are now auto-derived from default position (1.02, 1.0)
+        assert fig.layout.legend.xanchor == "left"
         assert fig.layout.legend.yanchor == "bottom"
 
-    def test_legend_no_columns_default_behavior(self, applicator):
+    def test_legend_no_columns_default_behavior(self, applicator: Any) -> None:
         """
         Verify that ncols=0 does not set a fixed entrywidth.
 

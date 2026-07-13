@@ -2,19 +2,19 @@
 
 **R**eproducible **I**nstrumentation for **N**umerical **G**raphics for gem5
 
-RING-5 turns raw gem5 simulator output into publication-ready figures. Point it at your stats files, pick your variables, and get clean, reproducible plots for your next ISCA, MICRO, or ASPLOS paper -- no scripting required.
+RING-5 turns raw simulator output into publication-ready figures. Point it at your stats files, pick your variables, and get clean, reproducible plots for your next ISCA, MICRO, or ASPLOS paper -- in the web app (no scripting required) or headlessly via the `ring5` Python API and CLI (batch parsing, CI figure regression, regenerating every figure from a saved portfolio). Currently supports **gem5**, with a multi-simulator architecture for future backends.
 
 [![Python](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org/)
-[![Tests](https://img.shields.io/badge/tests-1110%20passing-success)](tests/)
+[![Tests](https://img.shields.io/badge/tests-passing-success)](tests/)
 [![License](https://img.shields.io/badge/license-GPL--3.0--or--later-green)](LICENSE)
 
 ---
 
 ## Why RING-5?
 
-If you work with gem5, you know the drill: parse `stats.txt`, wrangle the data in pandas, fight with matplotlib, and pray the numbers are right. RING-5 handles all of that behind a web interface.
+If you work with gem5 (or plan to add other simulator backends), you know the drill: parse `stats.txt`, wrangle the data in pandas, fight with matplotlib, and pray the numbers are right. RING-5 handles all of that behind a web interface.
 
-- **Parse once, plot many times.** Scan and parse gem5 stats files into structured CSVs with automatic variable discovery.
+- **Parse once, plot many times.** Scan and parse simulator stats files into structured CSVs with automatic variable discovery.
 - **Transform without code.** Normalize against baselines, aggregate across seeds, remove outliers, compute geometric means -- all through a visual pipeline builder.
 - **Publication quality out of the box.** Bar charts, grouped bars, stacked bars, line plots, scatter plots, and histograms with full style control. Export to PDF, SVG, PGF, or PNG.
 - **Reproducible by design.** Save your entire analysis as a portfolio -- data, transformations, and plots -- and reload it months later for camera-ready revisions.
@@ -80,14 +80,14 @@ On the **Manage Plots** page, create visualizations:
 - Configure axes, grouping columns, colors, and legend placement.
 - Preview interactively, then export.
 
-| Plot Type          | Typical Use                           |
-|--------------------|---------------------------------------|
-| Bar                | Comparing a single metric             |
-| Grouped Bar        | Comparing multiple configurations     |
-| Stacked Bar        | Part-to-whole breakdowns              |
-| Line               | Trends over parameters or time        |
-| Scatter            | Correlations between two metrics      |
-| Histogram          | Value distributions                   |
+| Plot Type   | Typical Use                       |
+| ----------- | --------------------------------- |
+| Bar         | Comparing a single metric         |
+| Grouped Bar | Comparing multiple configurations |
+| Stacked Bar | Part-to-whole breakdowns          |
+| Line        | Trends over parameters or time    |
+| Scatter     | Correlations between two metrics  |
+| Histogram   | Value distributions               |
 
 ### 4. Save
 
@@ -101,11 +101,11 @@ Full documentation is available at **[nikiitin.github.io/RING-5](https://nikiiti
 
 Quick links:
 
-- [Quick Start](https://nikiitin.github.io/RING-5/Quick-Start) -- 5-minute setup
-- [Parsing Guide](https://nikiitin.github.io/RING-5/Parsing-Guide) -- gem5 stats parsing in depth
-- [Data Transformations](https://nikiitin.github.io/RING-5/Data-Transformations) -- shapers and pipelines
-- [Creating Plots](https://nikiitin.github.io/RING-5/Creating-Plots) -- visualization options
-- [Architecture](https://nikiitin.github.io/RING-5/Architecture) -- system design for contributors
+- [Quick Start](https://nikiitin.github.io/RING-5/user-guide/getting-started/first-steps/) -- 5-minute setup
+- [Parsing Guide](https://nikiitin.github.io/RING-5/developer-guide/parsing/parsing-architecture/) -- gem5 stats parsing in depth
+- [Data Transformations](https://nikiitin.github.io/RING-5/user-guide/features/shapers/) -- shapers and pipelines
+- [Creating Plots](https://nikiitin.github.io/RING-5/user-guide/pages/manage-plots/) -- visualization options
+- [Architecture](https://nikiitin.github.io/RING-5/developer-guide/architecture/overview/) -- system design for contributors
 
 ---
 
@@ -121,13 +121,13 @@ make pre-commit-install     # Install git hooks (black, flake8, mypy, isort, ban
 ### Quality checks
 
 ```bash
-make test           # Run all 1110 tests
-make pre-commit     # Run all 14 pre-commit hooks
+make test           # Run the test suite
+make pre-commit     # Run all pre-commit hooks
 ```
 
 ### Project structure
 
-```
+```text
 src/
   core/
     models/          # Data models, protocols, configuration
@@ -157,11 +157,11 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines. The short version:
 
 RING-5 uses persistent Perl worker pools for parsing. Compared to spawning subprocesses per variable:
 
-| Operation           | Subprocess | Worker Pool | Speedup   |
-|---------------------|-----------|-------------|-----------|
-| Parse 20 variables  | 54s       | 1s          | **54x**   |
-| Scan 1000 variables | 120s      | 8s          | **15x**   |
-| Full pipeline       | 180s      | 12s         | **15x**   |
+| Operation           | Subprocess | Worker Pool | Speedup |
+| ------------------- | ---------- | ----------- | ------- |
+| Parse 20 variables  | 54s        | 1s          | **54x** |
+| Scan 1000 variables | 120s       | 8s          | **15x** |
+| Full pipeline       | 180s       | 12s         | **15x** |
 
 ---
 

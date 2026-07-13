@@ -3,8 +3,11 @@ Unit tests for VariableService.
 Tests CRUD operations, entry filtering, and aggregation logic.
 """
 
+from typing import cast
+
 import pytest
 
+from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
 from src.core.services.data_services.variable_service import VariableService
 
 
@@ -32,8 +35,8 @@ class TestAddVariable:
 
     def test_add_to_empty_list(self) -> None:
         """Should add variable to empty list."""
-        variables = []
-        config = {"name": "system.cpu.ipc", "type": "scalar"}
+        variables: list[ParseVariableConfig] = []
+        config = cast(ParseVariableConfig, {"name": "system.cpu.ipc", "type": "scalar"})
         result = VariableService.add_variable(variables, config)
 
         assert len(result) == 1
@@ -43,8 +46,10 @@ class TestAddVariable:
 
     def test_add_to_existing_list(self) -> None:
         """Should append to existing list."""
-        variables = [{"name": "var1", "type": "scalar", "_id": "id1"}]
-        config = {"name": "var2", "type": "vector"}
+        variables = cast(
+            list[ParseVariableConfig], [{"name": "var1", "type": "scalar", "_id": "id1"}]
+        )
+        config = cast(ParseVariableConfig, {"name": "var2", "type": "vector"})
         result = VariableService.add_variable(variables, config)
 
         assert len(result) == 2
@@ -53,16 +58,16 @@ class TestAddVariable:
 
     def test_preserves_existing_id(self) -> None:
         """Should preserve _id if already present."""
-        variables = []
-        config = {"name": "var1", "type": "scalar", "_id": "custom_id"}
+        variables: list[ParseVariableConfig] = []
+        config = cast(ParseVariableConfig, {"name": "var1", "type": "scalar", "_id": "custom_id"})
         result = VariableService.add_variable(variables, config)
 
         assert result[0]["_id"] == "custom_id"
 
     def test_generates_id_if_missing(self) -> None:
         """Should generate _id if not present."""
-        variables = []
-        config = {"name": "var1", "type": "scalar"}
+        variables: list[ParseVariableConfig] = []
+        config = cast(ParseVariableConfig, {"name": "var1", "type": "scalar"})
         result = VariableService.add_variable(variables, config)
 
         assert "_id" in result[0]
@@ -70,8 +75,8 @@ class TestAddVariable:
 
     def test_does_not_mutate_original_list(self) -> None:
         """Should not modify the original variables list."""
-        variables = [{"name": "var1", "type": "scalar"}]
-        config = {"name": "var2", "type": "vector"}
+        variables = cast(list[ParseVariableConfig], [{"name": "var1", "type": "scalar"}])
+        config = cast(ParseVariableConfig, {"name": "var2", "type": "vector"})
         result = VariableService.add_variable(variables, config)
 
         assert len(variables) == 1
@@ -83,11 +88,16 @@ class TestUpdateVariable:
 
     def test_update_at_valid_index(self) -> None:
         """Should update variable at specified index."""
-        variables = [
-            {"name": "var1", "type": "scalar", "_id": "id1"},
-            {"name": "var2", "type": "vector", "_id": "id2"},
-        ]
-        new_config = {"name": "updated_var", "type": "distribution", "_id": "id2"}
+        variables = cast(
+            list[ParseVariableConfig],
+            [
+                {"name": "var1", "type": "scalar", "_id": "id1"},
+                {"name": "var2", "type": "vector", "_id": "id2"},
+            ],
+        )
+        new_config = cast(
+            ParseVariableConfig, {"name": "updated_var", "type": "distribution", "_id": "id2"}
+        )
         result = VariableService.update_variable(variables, 1, new_config)
 
         assert len(result) == 2
@@ -97,28 +107,32 @@ class TestUpdateVariable:
 
     def test_update_at_index_zero(self) -> None:
         """Should update first variable."""
-        variables = [{"name": "var1", "type": "scalar"}]
-        new_config = {"name": "updated", "type": "vector"}
+        variables = cast(list[ParseVariableConfig], [{"name": "var1", "type": "scalar"}])
+        new_config = cast(ParseVariableConfig, {"name": "updated", "type": "vector"})
         result = VariableService.update_variable(variables, 0, new_config)
 
         assert result[0]["name"] == "updated"
 
     def test_raises_on_negative_index(self) -> None:
         """Should raise IndexError for negative index."""
-        variables = [{"name": "var1"}]
+        variables = cast(list[ParseVariableConfig], [{"name": "var1"}])
         with pytest.raises(IndexError):
-            VariableService.update_variable(variables, -1, {"name": "new"})
+            VariableService.update_variable(
+                variables, -1, cast(ParseVariableConfig, {"name": "new"})
+            )
 
     def test_raises_on_out_of_bounds_index(self) -> None:
         """Should raise IndexError for index >= len."""
-        variables = [{"name": "var1"}]
+        variables = cast(list[ParseVariableConfig], [{"name": "var1"}])
         with pytest.raises(IndexError):
-            VariableService.update_variable(variables, 1, {"name": "new"})
+            VariableService.update_variable(
+                variables, 1, cast(ParseVariableConfig, {"name": "new"})
+            )
 
     def test_does_not_mutate_original_list(self) -> None:
         """Should not modify the original variables list."""
-        variables = [{"name": "var1", "type": "scalar"}]
-        new_config = {"name": "updated", "type": "vector"}
+        variables = cast(list[ParseVariableConfig], [{"name": "var1", "type": "scalar"}])
+        new_config = cast(ParseVariableConfig, {"name": "updated", "type": "vector"})
         result = VariableService.update_variable(variables, 0, new_config)
 
         assert variables[0]["name"] == "var1"
@@ -130,18 +144,21 @@ class TestDeleteVariable:
 
     def test_delete_from_single_element_list(self) -> None:
         """Should delete the only element."""
-        variables = [{"name": "var1"}]
+        variables = cast(list[ParseVariableConfig], [{"name": "var1"}])
         result = VariableService.delete_variable(variables, 0)
 
         assert len(result) == 0
 
     def test_delete_from_middle(self) -> None:
         """Should delete variable from middle of list."""
-        variables = [
-            {"name": "var1"},
-            {"name": "var2"},
-            {"name": "var3"},
-        ]
+        variables = cast(
+            list[ParseVariableConfig],
+            [
+                {"name": "var1"},
+                {"name": "var2"},
+                {"name": "var3"},
+            ],
+        )
         result = VariableService.delete_variable(variables, 1)
 
         assert len(result) == 2
@@ -150,7 +167,7 @@ class TestDeleteVariable:
 
     def test_delete_first_element(self) -> None:
         """Should delete first variable."""
-        variables = [{"name": "var1"}, {"name": "var2"}]
+        variables = cast(list[ParseVariableConfig], [{"name": "var1"}, {"name": "var2"}])
         result = VariableService.delete_variable(variables, 0)
 
         assert len(result) == 1
@@ -158,7 +175,7 @@ class TestDeleteVariable:
 
     def test_delete_last_element(self) -> None:
         """Should delete last variable."""
-        variables = [{"name": "var1"}, {"name": "var2"}]
+        variables = cast(list[ParseVariableConfig], [{"name": "var1"}, {"name": "var2"}])
         result = VariableService.delete_variable(variables, 1)
 
         assert len(result) == 1
@@ -166,19 +183,19 @@ class TestDeleteVariable:
 
     def test_raises_on_negative_index(self) -> None:
         """Should raise IndexError for negative index."""
-        variables = [{"name": "var1"}]
+        variables = cast(list[ParseVariableConfig], [{"name": "var1"}])
         with pytest.raises(IndexError):
             VariableService.delete_variable(variables, -1)
 
     def test_raises_on_out_of_bounds_index(self) -> None:
         """Should raise IndexError for index >= len."""
-        variables = [{"name": "var1"}]
+        variables = cast(list[ParseVariableConfig], [{"name": "var1"}])
         with pytest.raises(IndexError):
             VariableService.delete_variable(variables, 1)
 
     def test_does_not_mutate_original_list(self) -> None:
         """Should not modify the original variables list."""
-        variables = [{"name": "var1"}, {"name": "var2"}]
+        variables = cast(list[ParseVariableConfig], [{"name": "var1"}, {"name": "var2"}])
         result = VariableService.delete_variable(variables, 0)
 
         assert len(variables) == 2
@@ -190,11 +207,14 @@ class TestEnsureVariableIds:
 
     def test_adds_ids_to_all_variables(self) -> None:
         """Should add _id to all variables without one."""
-        variables = [
-            {"name": "var1"},
-            {"name": "var2"},
-            {"name": "var3"},
-        ]
+        variables = cast(
+            list[ParseVariableConfig],
+            [
+                {"name": "var1"},
+                {"name": "var2"},
+                {"name": "var3"},
+            ],
+        )
         result = VariableService.ensure_variable_ids(variables)
 
         assert all("_id" in v for v in result)
@@ -202,11 +222,14 @@ class TestEnsureVariableIds:
 
     def test_preserves_existing_ids(self) -> None:
         """Should preserve existing _id fields."""
-        variables = [
-            {"name": "var1", "_id": "custom_id_1"},
-            {"name": "var2"},
-            {"name": "var3", "_id": "custom_id_3"},
-        ]
+        variables = cast(
+            list[ParseVariableConfig],
+            [
+                {"name": "var1", "_id": "custom_id_1"},
+                {"name": "var2"},
+                {"name": "var3", "_id": "custom_id_3"},
+            ],
+        )
         result = VariableService.ensure_variable_ids(variables)
 
         assert result[0]["_id"] == "custom_id_1"
@@ -220,7 +243,7 @@ class TestEnsureVariableIds:
 
     def test_does_not_mutate_original_list(self) -> None:
         """Should not modify original variables list."""
-        variables = [{"name": "var1"}]
+        variables = cast(list[ParseVariableConfig], [{"name": "var1"}])
         result = VariableService.ensure_variable_ids(variables)
 
         assert "_id" not in variables[0]
@@ -272,10 +295,13 @@ class TestFindVariableByName:
 
     def test_exact_match_found(self) -> None:
         """Should find variable with exact name match."""
-        variables = [
-            {"name": "system.cpu.ipc", "type": "scalar"},
-            {"name": "system.mem.bandwidth", "type": "vector"},
-        ]
+        variables = cast(
+            list[ParseVariableConfig],
+            [
+                {"name": "system.cpu.ipc", "type": "scalar"},
+                {"name": "system.mem.bandwidth", "type": "vector"},
+            ],
+        )
         result = VariableService.find_variable_by_name(variables, "system.cpu.ipc")
 
         assert result is not None
@@ -283,17 +309,20 @@ class TestFindVariableByName:
 
     def test_exact_match_not_found(self) -> None:
         """Should return None if exact match not found."""
-        variables = [{"name": "system.cpu.ipc", "type": "scalar"}]
+        variables = cast(list[ParseVariableConfig], [{"name": "system.cpu.ipc", "type": "scalar"}])
         result = VariableService.find_variable_by_name(variables, "system.mem.bandwidth")
 
         assert result is None
 
     def test_regex_match_found(self) -> None:
         """Should find variable using regex pattern."""
-        variables = [
-            {"name": "system.cpu0.ipc", "type": "scalar"},
-            {"name": "system.cpu1.ipc", "type": "scalar"},
-        ]
+        variables = cast(
+            list[ParseVariableConfig],
+            [
+                {"name": "system.cpu0.ipc", "type": "scalar"},
+                {"name": "system.cpu1.ipc", "type": "scalar"},
+            ],
+        )
         result = VariableService.find_variable_by_name(
             variables, r"system\.cpu\d+\.ipc", exact=False
         )
@@ -303,14 +332,14 @@ class TestFindVariableByName:
 
     def test_regex_match_not_found(self) -> None:
         """Should return None if regex doesn't match."""
-        variables = [{"name": "system.cpu.ipc", "type": "scalar"}]
+        variables = cast(list[ParseVariableConfig], [{"name": "system.cpu.ipc", "type": "scalar"}])
         result = VariableService.find_variable_by_name(variables, r"system\.mem\..*", exact=False)
 
         assert result is None
 
     def test_invalid_regex_fallback_to_exact(self) -> None:
         """Should fall back to exact match on invalid regex."""
-        variables = [{"name": "system[cpu", "type": "scalar"}]
+        variables = cast(list[ParseVariableConfig], [{"name": "system[cpu", "type": "scalar"}])
         result = VariableService.find_variable_by_name(variables, "system[cpu", exact=False)
 
         assert result is not None
@@ -326,48 +355,63 @@ class TestAggregateDiscoveredEntries:
 
     def test_aggregates_from_single_variable(self) -> None:
         """Should aggregate entries from one variable."""
-        snapshot = [
-            {"name": "system.cpu.vector", "entries": ["cpu0", "cpu1", "total"]},
-        ]
+        snapshot = cast(
+            list[ScannedVariableDict],
+            [
+                {"name": "system.cpu.vector", "entries": ["cpu0", "cpu1", "total"]},
+            ],
+        )
         result = VariableService.aggregate_discovered_entries(snapshot, "system.cpu.vector")
 
         assert sorted(result) == ["cpu0", "cpu1"]
 
     def test_aggregates_from_multiple_variables(self) -> None:
         """Should aggregate entries from multiple matching variables."""
-        snapshot = [
-            {"name": "system.cpu0.vector", "entries": ["entry0", "total"]},
-            {"name": "system.cpu1.vector", "entries": ["entry1", "mean"]},
-            {"name": "system.cpu2.vector", "entries": ["entry2", "stdev"]},
-        ]
+        snapshot = cast(
+            list[ScannedVariableDict],
+            [
+                {"name": "system.cpu0.vector", "entries": ["entry0", "total"]},
+                {"name": "system.cpu1.vector", "entries": ["entry1", "mean"]},
+                {"name": "system.cpu2.vector", "entries": ["entry2", "stdev"]},
+            ],
+        )
         result = VariableService.aggregate_discovered_entries(snapshot, r"system\.cpu\d+\.vector")
 
         assert sorted(result) == ["entry0", "entry1", "entry2"]
 
     def test_removes_duplicates(self) -> None:
         """Should remove duplicate entries."""
-        snapshot = [
-            {"name": "system.var1", "entries": ["cpu0", "cpu1"]},
-            {"name": "system.var2", "entries": ["cpu1", "cpu2"]},
-        ]
+        snapshot = cast(
+            list[ScannedVariableDict],
+            [
+                {"name": "system.var1", "entries": ["cpu0", "cpu1"]},
+                {"name": "system.var2", "entries": ["cpu1", "cpu2"]},
+            ],
+        )
         result = VariableService.aggregate_discovered_entries(snapshot, r"system\.var\d+")
 
         assert sorted(result) == ["cpu0", "cpu1", "cpu2"]
 
     def test_filters_internal_stats(self) -> None:
         """Should filter out internal statistics."""
-        snapshot = [
-            {"name": "system.vec", "entries": ["cpu0", "total", "mean", "gmean"]},
-        ]
+        snapshot = cast(
+            list[ScannedVariableDict],
+            [
+                {"name": "system.vec", "entries": ["cpu0", "total", "mean", "gmean"]},
+            ],
+        )
         result = VariableService.aggregate_discovered_entries(snapshot, "system.vec")
 
         assert result == ["cpu0"]
 
     def test_no_matching_variables(self) -> None:
         """Should return empty list if no matches."""
-        snapshot = [
-            {"name": "system.cpu", "entries": ["cpu0"]},
-        ]
+        snapshot = cast(
+            list[ScannedVariableDict],
+            [
+                {"name": "system.cpu", "entries": ["cpu0"]},
+            ],
+        )
         result = VariableService.aggregate_discovered_entries(snapshot, "system.mem")
 
         assert result == []
@@ -378,9 +422,12 @@ class TestAggregateDistributionRange:
 
     def test_single_distribution(self) -> None:
         """Should extract range from single distribution."""
-        snapshot = [
-            {"name": "system.latency", "type": "distribution", "minimum": 10, "maximum": 100},
-        ]
+        snapshot = cast(
+            list[ScannedVariableDict],
+            [
+                {"name": "system.latency", "type": "distribution", "minimum": 10, "maximum": 100},
+            ],
+        )
         min_val, max_val = VariableService.aggregate_distribution_range(snapshot, "system.latency")
 
         assert min_val == 10
@@ -388,11 +435,14 @@ class TestAggregateDistributionRange:
 
     def test_multiple_distributions_find_global_range(self) -> None:
         """Should find global min/max across multiple distributions."""
-        snapshot = [
-            {"name": "system.latency", "type": "distribution", "minimum": 10, "maximum": 100},
-            {"name": "system.latency", "type": "distribution", "minimum": 5, "maximum": 150},
-            {"name": "system.latency", "type": "distribution", "minimum": 15, "maximum": 80},
-        ]
+        snapshot = cast(
+            list[ScannedVariableDict],
+            [
+                {"name": "system.latency", "type": "distribution", "minimum": 10, "maximum": 100},
+                {"name": "system.latency", "type": "distribution", "minimum": 5, "maximum": 150},
+                {"name": "system.latency", "type": "distribution", "minimum": 15, "maximum": 80},
+            ],
+        )
         min_val, max_val = VariableService.aggregate_distribution_range(snapshot, "system.latency")
 
         assert min_val == 5
@@ -400,10 +450,23 @@ class TestAggregateDistributionRange:
 
     def test_regex_pattern_matching(self) -> None:
         """Should match using regex patterns."""
-        snapshot = [
-            {"name": "system.cpu0.latency", "type": "distribution", "minimum": 10, "maximum": 100},
-            {"name": "system.cpu1.latency", "type": "distribution", "minimum": 5, "maximum": 120},
-        ]
+        snapshot = cast(
+            list[ScannedVariableDict],
+            [
+                {
+                    "name": "system.cpu0.latency",
+                    "type": "distribution",
+                    "minimum": 10,
+                    "maximum": 100,
+                },
+                {
+                    "name": "system.cpu1.latency",
+                    "type": "distribution",
+                    "minimum": 5,
+                    "maximum": 120,
+                },
+            ],
+        )
         min_val, max_val = VariableService.aggregate_distribution_range(
             snapshot, r"system\.cpu\d+\.latency"
         )
@@ -413,9 +476,12 @@ class TestAggregateDistributionRange:
 
     def test_no_matching_distributions(self) -> None:
         """Should return (None, None) if no matches."""
-        snapshot = [
-            {"name": "system.cpu", "type": "scalar", "value": 42},
-        ]
+        snapshot = cast(
+            list[ScannedVariableDict],
+            [
+                {"name": "system.cpu", "type": "scalar", "value": 42},
+            ],
+        )
         min_val, max_val = VariableService.aggregate_distribution_range(snapshot, "system.latency")
 
         assert min_val is None
@@ -423,10 +489,13 @@ class TestAggregateDistributionRange:
 
     def test_partial_range_data(self) -> None:
         """Should handle distributions with partial range data."""
-        snapshot = [
-            {"name": "system.latency", "type": "distribution", "minimum": 10},
-            {"name": "system.latency", "type": "distribution", "maximum": 100},
-        ]
+        snapshot = cast(
+            list[ScannedVariableDict],
+            [
+                {"name": "system.latency", "type": "distribution", "minimum": 10},
+                {"name": "system.latency", "type": "distribution", "maximum": 100},
+            ],
+        )
         min_val, max_val = VariableService.aggregate_distribution_range(snapshot, "system.latency")
 
         assert min_val == 10
