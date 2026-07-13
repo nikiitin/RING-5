@@ -1,6 +1,4 @@
-"""
-Seeds Reducer Manager
-"""
+"""Data-manager UI for aggregation across random seeds."""
 
 from datetime import datetime, timezone
 
@@ -18,6 +16,7 @@ class SeedsReducerManager(DataManager):
 
     @property
     def name(self) -> str:
+        """Return the manager's display name."""
         return "Seeds Reducer"
 
     def render(self) -> None:
@@ -194,8 +193,7 @@ class SeedsReducerManager(DataManager):
                     }
                     self.api.add_manager_history_record(record)
                     st.toast("✓ Seeds-reduced data is now active!", icon="✅")
-                    # set_data mutates GLOBAL data → rerun the whole app, not just this
-                    # fragment, so sibling tabs (Summary/Viz/other managers) refresh too.
+                    # ``set_data`` changes shared data; an app rerun updates sibling tabs.
                     st.rerun(scope="app")
 
         # Show manager-specific history with Load / Delete

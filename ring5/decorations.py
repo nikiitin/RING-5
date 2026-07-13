@@ -42,7 +42,11 @@ class FigureDecorations:
     # ── axes-level tweaks ────────────────────────────────────────────────
     @staticmethod
     def axis_below(fig: Figure) -> None:
-        """Draw grid lines behind the bars (``set_axisbelow(True)``)."""
+        """Draw grid lines behind the bars.
+
+        Args:
+            fig: Matplotlib figure returned by :meth:`ring5.Session.render`.
+        """
         _primary_axes(fig).set_axisbelow(True)
 
     @staticmethod
@@ -50,6 +54,11 @@ class FigureDecorations:
         """Reduce the gap between y tick labels and the axis (RING-5 has no flat key).
 
         ``twin_pad`` (if given) does the same for the dual right axis.
+
+        Args:
+            fig: Matplotlib figure returned by :meth:`ring5.Session.render`.
+            pad: Left-axis tick-label padding.
+            twin_pad: Optional right-axis tick-label padding.
         """
         ax = _primary_axes(fig)
         ax.tick_params(axis="y", pad=pad)
@@ -64,12 +73,21 @@ class FigureDecorations:
 
         matplotlib keeps this y and recomputes x from labelpad, so the horizontal
         position is unaffected — used to un-clip a long title at the figure top.
+
+        Args:
+            fig: Matplotlib figure returned by :meth:`ring5.Session.render`.
+            y: Vertical label anchor in axes coordinates.
         """
         _primary_axes(fig).yaxis.label.set_y(y)
 
     @staticmethod
     def set_twin_ylabel_pad(fig: Figure, pad: float) -> None:
-        """Pull the dual right-axis title close to its ticks (``labelpad``)."""
+        """Set the right-axis title padding.
+
+        Args:
+            fig: Matplotlib figure returned by :meth:`ring5.Session.render`.
+            pad: Label padding in points.
+        """
         twin = _twin_axes(_primary_axes(fig))
         if twin is not None:
             twin.yaxis.labelpad = pad
@@ -83,6 +101,12 @@ class FigureDecorations:
         Prefer the native ``bgalpha`` legend config; use this when you also need the
         legend lifted above other artists (matplotlib legends default to ``framealpha``
         0.8 and a low z-order, so tall bars/labels can show through or over them).
+
+        Args:
+            fig: Matplotlib figure returned by :meth:`ring5.Session.render`.
+            facecolor: Legend frame color.
+            alpha: Legend frame opacity.
+            zorder: Legend drawing order.
         """
         import matplotlib.legend as mlegend
 
@@ -108,6 +132,13 @@ class FigureDecorations:
         defaults to ``str(t)`` for each tick; ``xlim`` clamps the visible range. ``base``
         only affects unlabelled minor ticks — fixed major-tick *positions* are
         base-independent on a log axis.
+
+        Args:
+            fig: Matplotlib figure returned by :meth:`ring5.Session.render`.
+            ticks: Major tick positions.
+            labels: Optional labels corresponding to ``ticks``.
+            xlim: Optional visible x-axis range.
+            base: Logarithm base.
         """
         ax = _primary_axes(fig)
         ax.set_xscale("log", base=base)
@@ -118,7 +149,13 @@ class FigureDecorations:
 
     @staticmethod
     def hide_spines(fig: Figure, *sides: str, include_twin: bool = True) -> None:
-        """Hide the named spines (e.g. ``"top"``, ``"right"``) on the axes (and twin)."""
+        """Hide named axes spines.
+
+        Args:
+            fig: Matplotlib figure returned by :meth:`ring5.Session.render`.
+            *sides: Spine names such as ``"top"`` or ``"right"``.
+            include_twin: Apply the same change to a secondary axis.
+        """
         ax = _primary_axes(fig)
         for s in sides:
             if s in ax.spines:
@@ -137,6 +174,11 @@ class FigureDecorations:
         matplotlib autoscales ~half a group of side padding; this removes it (with a
         small ``left``/``right`` margin in data units). The dual axis shares x, so it's
         clamped too.
+
+        Args:
+            fig: Matplotlib figure returned by :meth:`ring5.Session.render`.
+            left: Margin before the first bar in data units.
+            right: Margin after the last bar in data units.
         """
         import matplotlib.patches as mpatches
 
@@ -156,6 +198,12 @@ class FigureDecorations:
         """Find a text artist by exact content and shift it by ``(dx, dy)`` (data coords).
 
         Used to nudge the angled ``arithmean`` tick label right of the STAMP block.
+
+        Args:
+            fig: Matplotlib figure returned by :meth:`ring5.Session.render`.
+            text: Exact artist text to find.
+            dx: Horizontal offset in data coordinates.
+            dy: Vertical offset in data coordinates.
         """
         ax = _primary_axes(fig)
         for t in ax.texts:
@@ -180,6 +228,15 @@ class FigureDecorations:
         ``coord_map`` maps ``(category, group) -> x`` (from
         :func:`ring5.grouped_bar_coordinates`); ``totals`` maps the same keys to the true
         (un-clipped) value. Labels sit just above the cap line (left-axis data coords).
+
+        Args:
+            fig: Matplotlib figure returned by :meth:`ring5.Session.render`.
+            coord_map: Composite bar keys mapped to x positions.
+            totals: Composite bar keys mapped to unclipped totals.
+            cap: Visible upper limit of the left axis.
+            fontsize: Label font size.
+            color: Label color.
+            y_offset: Vertical offset above ``cap`` in data coordinates.
         """
         ax = _primary_axes(fig)
         for key, tot in totals.items():
@@ -218,6 +275,17 @@ class FigureDecorations:
         bumps labels that are within ``lbl_dx`` (data units) of an already-placed one at
         the same level up to the next level (``y0 + level*dy``) — different heights, no
         overlap.
+
+        Args:
+            fig: Matplotlib figure returned by :meth:`ring5.Session.render`.
+            coord_map: Composite point keys mapped to x positions.
+            values: Composite point keys mapped to unclipped values.
+            cap: Visible upper limit of the right axis.
+            lbl_dx: Minimum horizontal distance between labels at one level.
+            y0: First label level in axes coordinates.
+            dy: Vertical spacing between label levels.
+            fontsize: Label font size.
+            color: Label color.
         """
         ax = _primary_axes(fig)
         over = sorted(
@@ -266,6 +334,19 @@ class FigureDecorations:
         group. ``totals`` gives each bar's height (clamped to ``cap``); ``label`` is the
         small caption placed at ``(center+label_dx, ytxt+label_dy)``. ``gap`` sets the
         arrow-tail height above the tallest bar; ``arrow_dy`` nudges each arrow head.
+
+        Args:
+            fig: Matplotlib figure returned by :meth:`ring5.Session.render`.
+            coord_map: Composite bar keys mapped to x positions.
+            first_category: Category whose bars receive callouts.
+            groups: Groups in numbered-legend order.
+            totals: Composite bar keys mapped to bar heights.
+            cap: Visible upper limit of the left axis.
+            gap: Vertical gap above the tallest bar.
+            arrow_dy: Vertical offset applied between arrow heads.
+            label: Caption placed above the callouts.
+            label_dx: Horizontal caption offset.
+            label_dy: Vertical caption offset.
         """
         ax = _primary_axes(fig)
         if not groups:

@@ -60,24 +60,28 @@ class TestShaperPipelineOperations:
     guarantee execution order.
     """
 
+    @pytest.mark.order(1)
     def test_01_create_plot_for_pipeline(self, tier1_page: Page) -> None:
         """Create a bar plot dedicated to pipeline testing."""
         mp = ManagePlotsPage(tier1_page)
         _create_bar_plot(mp, "Pipeline Test")
         mp.assert_pipeline_editor_visible()
 
+    @pytest.mark.order(2)
     def test_02_add_sort_shaper(self, tier1_page: Page) -> None:
         """Add a Sort shaper and verify the pipeline has 1 step."""
         mp = ManagePlotsPage(tier1_page)
         mp.add_shaper("Sort")
         mp.assert_pipeline_step_count(1)
 
+    @pytest.mark.order(3)
     def test_03_add_column_selector(self, tier1_page: Page) -> None:
         """Add Column Selector; pipeline should now have 2 steps."""
         mp = ManagePlotsPage(tier1_page)
         mp.add_shaper("Column Selector")
         mp.assert_pipeline_step_count(2)
 
+    @pytest.mark.order(4)
     def test_04_reorder_steps(self, tier1_page: Page) -> None:
         """Move step 1 (Column Selector) up so it becomes step 0."""
         mp = ManagePlotsPage(tier1_page)
@@ -87,12 +91,14 @@ class TestShaperPipelineOperations:
         step_0 = mp.get_pipeline_step(0)
         expect(step_0).to_contain_text("Column Selector", timeout=E2E_TIMEOUT)
 
+    @pytest.mark.order(5)
     def test_05_delete_step(self, tier1_page: Page) -> None:
         """Delete step 0 (Column Selector); 1 step (Sort) remains."""
         mp = ManagePlotsPage(tier1_page)
         mp.delete_step(0)
         mp.assert_pipeline_step_count(1)
 
+    @pytest.mark.order(6)
     def test_06_add_multiple_shapers(self, tier1_page: Page) -> None:
         """Add Normalize and Sort; pipeline should have 3 steps total."""
         mp = ManagePlotsPage(tier1_page)
@@ -101,6 +107,7 @@ class TestShaperPipelineOperations:
         mp.add_shaper("Sort")
         mp.assert_pipeline_step_count(3)
 
+    @pytest.mark.order(7)
     def test_07_finalize_pipeline(self, tier1_page: Page) -> None:
         """Finalize, navigate away+back, confirm visualization visible."""
         mp = ManagePlotsPage(tier1_page)

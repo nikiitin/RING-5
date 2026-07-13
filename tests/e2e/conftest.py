@@ -21,6 +21,7 @@ import os
 import signal
 import socket
 import subprocess
+import sys
 import time
 from collections.abc import Generator
 from pathlib import Path
@@ -41,7 +42,7 @@ from tests.visual.pages.manage_plots_page import ManagePlotsPage
 
 _ROOT_DIR: Path = Path(__file__).parents[2]
 _APP_PY: Path = _ROOT_DIR / "app.py"
-_PYTHON: str = str(_ROOT_DIR / "python_venv" / "bin" / "python")
+_PYTHON: str = sys.executable
 _FIXTURES_DIR: Path = Path(__file__).parent / "fixtures"
 _ARTIFACTS_DIR: Path = Path(__file__).parent / "artifacts"
 _E2E_CSV: Path = _FIXTURES_DIR / "sample_data.csv"
@@ -53,8 +54,8 @@ LOAD_TIMEOUT: int = 30_000
 # 60s gives headroom while staying well under the per-test timeout.
 CHART_TIMEOUT: int = 60_000
 E2E_TIMEOUT: int = 60_000
-# Raster downloads (png/svg/pdf) render the figure eagerly via Kaleido
-# (fig.to_image()) BEFORE st.download_button, so the button is absent until the
+# Raster downloads (png/svg/pdf) render the figure eagerly via Kaleido before
+# st.download_button, so the button is absent until the
 # export finishes. Three concurrent Kaleido/Chromium exports deadlock/starve
 # under -n 3 (no timeout fixes it), so those tests are marked ``serial`` and run
 # in a separate -n 0 pass; this 90s headroom comfortably covers a single export.
@@ -149,8 +150,10 @@ def live_server_url(_streamlit_port: int, _isolated_data_dir: None) -> Generator
     proc = subprocess.Popen(
         cmd,
         cwd=str(_ROOT_DIR),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        # The server is long-lived and these streams are never consumed. Sending
+        # them to a pipe can fill the OS buffer and deadlock a parallel E2E run.
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
     )
     try:
         _wait_for_server(port)

@@ -1,6 +1,4 @@
-"""
-Outlier Remover Manager
-"""
+"""Data-manager UI for IQR outlier removal."""
 
 from datetime import datetime, timezone
 
@@ -18,6 +16,7 @@ class OutlierRemoverManager(DataManager):
 
     @property
     def name(self) -> str:
+        """Return the manager's display name."""
         return "Outlier Remover"
 
     def render(self) -> None:
@@ -80,15 +79,11 @@ class OutlierRemoverManager(DataManager):
 
         with col2:
             if categorical_cols:
-                # Intelligent default: Exclude seed-like columns
-                # from grouping as they defeat outlier
-                # detection (grouping by seed means
-                # 1 item per group -> no outliers)
+                # Seed-like columns create one-row groups, for which IQR filtering is ineffective.
                 seed_patterns = ("seed", "iteration", "run_id")
                 default_cols = [
                     c for c in categorical_cols if not any(p in c.lower() for p in seed_patterns)
                 ]
-                # Fallback if everything was filtered out (unlikely) or take top 3
                 if not default_cols:
                     default_cols = categorical_cols[:3]
                 else:
@@ -188,7 +183,7 @@ class OutlierRemoverManager(DataManager):
                     }
                     self.api.add_manager_history_record(record)
                     st.toast("✓ Outlier-filtered data is now active!", icon="✅")
-                    # set_data mutates GLOBAL data → app-scope rerun so sibling fragments
+                    # ``set_data`` changes shared data; an app rerun updates sibling fragments.
                     # don't keep rendering the previously-captured dataframe.
                     st.rerun(scope="app")
 

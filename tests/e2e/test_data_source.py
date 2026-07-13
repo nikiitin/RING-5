@@ -40,9 +40,10 @@ class TestDataSourcePageStructure:
         ds.assert_info_box_visible()
         ds.assert_segmented_control_visible()
 
-    def test_parse_mode_is_default(self, tier0_page: Page) -> None:
-        """Parse mode should be the default active mode with config visible."""
+    def test_parse_mode_can_be_selected(self, tier0_page: Page) -> None:
+        """Parse mode can be selected and shows its configuration."""
         ds = DataSourcePage(tier0_page)
+        ds.ensure_parse_mode()
         ds.assert_parse_mode_active()
         ds.assert_parser_config_visible()
 
@@ -54,21 +55,25 @@ class TestDataSourcePageStructure:
     def test_parser_file_location_visible(self, tier0_page: Page) -> None:
         """File Location section with path and pattern inputs is visible."""
         ds = DataSourcePage(tier0_page)
+        ds.ensure_parse_mode()
         ds.assert_file_location_visible()
 
     def test_parser_strategy_section_visible(self, tier0_page: Page) -> None:
         """Parsing Strategy section with Simple/Config-Aware options is visible."""
         ds = DataSourcePage(tier0_page)
+        ds.ensure_parse_mode()
         ds.assert_strategy_section_visible()
 
     def test_parser_variables_section_visible(self, tier0_page: Page) -> None:
         """Variables to Extract section with scan and add buttons is visible."""
         ds = DataSourcePage(tier0_page)
+        ds.ensure_parse_mode()
         ds.assert_variables_section_visible()
 
     def test_config_preview_and_parse_button(self, tier0_page: Page) -> None:
         """Configuration Preview and Parse button are visible in parse mode."""
         ds = DataSourcePage(tier0_page)
+        ds.ensure_parse_mode()
         ds.assert_config_preview_visible()
         ds.assert_parse_button_visible()
 
@@ -135,11 +140,13 @@ class TestDataSourceVariableDialog:
         ds.close_dialog_by_clicking_outside()
         ds.assert_dialog_hidden()
 
-    def test_dialog_search_mode_is_default(self, tier0_page: Page) -> None:
-        """Dialog opens in Search Scanned Variables mode by default."""
+    def test_dialog_search_mode_can_be_selected(self, tier0_page: Page) -> None:
+        """The dialog exposes and selects Search Scanned Variables mode."""
         ds = DataSourcePage(tier0_page)
         ds.open_add_variable_dialog()
+        ds.switch_dialog_to_search()
         expect(ds.dialog_search_pill).to_be_visible()
+        expect(ds.dialog_search_pill).to_be_checked()
         expect(ds.dialog_manual_pill).to_be_visible()
         ds.close_dialog()
 
@@ -147,6 +154,7 @@ class TestDataSourceVariableDialog:
         """Search mode shows warning when no variables have been scanned."""
         ds = DataSourcePage(tier0_page)
         ds.open_add_variable_dialog()
+        ds.switch_dialog_to_search()
         expect(ds.dialog_no_vars_warning).to_be_visible()
         ds.close_dialog()
 
@@ -227,6 +235,8 @@ class TestDataSourceCsvLoad:
     def test_csv_mode_hides_parser_config(self, tier0_page: Page) -> None:
         """CSV mode hides the parser configuration section."""
         ds = DataSourcePage(tier0_page)
+        ds.navigate()
+        ds.select_csv_mode()
         ds.assert_parser_config_hidden()
 
     def test_csv_load_loads_data(self, tier0_page: Page, e2e_csv_path: Path) -> None:
@@ -237,7 +247,9 @@ class TestDataSourceCsvLoad:
         tier0_page.wait_for_timeout(1000)
         ds.assert_data_loaded()
 
-    def test_csv_load_shows_row_count(self, tier0_page: Page) -> None:
+    def test_csv_load_shows_row_count(self, tier0_page: Page, e2e_csv_path: Path) -> None:
         """The loaded CSV shows the correct row count (18 rows)."""
         ds = DataSourcePage(tier0_page)
+        ds.navigate()
+        ds.upload_csv(e2e_csv_path)
         ds.assert_data_loaded(row_count=18)

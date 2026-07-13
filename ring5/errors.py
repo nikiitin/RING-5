@@ -104,7 +104,7 @@ class PortfolioError(Ring5Error):
 
 
 class PortfolioVersionError(PortfolioError):
-    """The portfolio was written by a NEWER RING-5 schema than this one.
+    """The portfolio was written by a newer RING-5 schema.
 
     Mirrors the core migrator's guard (raised at the Session boundary so it
     belongs to the :class:`Ring5Error` hierarchy): loading anyway would

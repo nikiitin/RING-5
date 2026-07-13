@@ -6,7 +6,6 @@ Modern, interactive dashboard for gem5 data analysis and visualization.
 import sys
 from pathlib import Path
 
-# Add project root to path
 root_dir = Path(__file__).parent
 if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
@@ -14,13 +13,9 @@ if str(root_dir) not in sys.path:
 
 def run_app() -> None:
     """Main application entry point."""
-    # LATE IMPORTS: Avoid loading UI/Plotting modules when this file is imported by workers.
-    # This prevents the "missing ScriptRunContext" warnings.
-    import time
-
+    # Lazy imports keep Streamlit out of multiprocessing workers that import app.py.
     import streamlit as st
 
-    _t0 = time.perf_counter()
     # Page configuration
     st.set_page_config(
         page_title="RING-5 Interactive Analyzer",
@@ -156,16 +151,7 @@ def run_app() -> None:
 
         show_documentation_page()
 
-    # Rerun timing diagnostic — remove once perf issue is confirmed resolved.
-    _elapsed = time.perf_counter() - _t0
-    if _elapsed > 0.5:
-        import logging
-
-        logging.getLogger("ring5.perf").warning("Slow rerun: %.2fs (page=%s)", _elapsed, page)
-
 
 if __name__ == "__main__":
-    # Note: Streamlit re-imports the main script.
-    # By wrapping imports inside run_app(), we ensure they are NOT executed
-    # when this script is imported as a module by multiprocessing workers.
+    # Keep page imports out of multiprocessing workers that import this module.
     run_app()

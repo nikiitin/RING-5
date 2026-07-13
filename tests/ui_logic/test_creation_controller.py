@@ -313,4 +313,4 @@ class TestRenderControls:
 
 
 # NOTE: TestHandleSaveDialog, TestHandleLoadDialog, and save/load callback
-# tests removed — pipeline save/load feature was removed in Phase 4.
+# Pipeline save/load tests were removed with that feature.

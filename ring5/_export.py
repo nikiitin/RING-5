@@ -63,6 +63,7 @@ def export_bytes(
         height: Plotly image height in pixels (before scale).
         scale: Plotly raster resolution multiplier.
         dpi: Matplotlib raster resolution.
+        spec: Optional resolved figure configuration used for Matplotlib PGF export.
 
     Raises:
         ExportError: Unsupported format for the figure's engine, or the
@@ -151,6 +152,7 @@ def export_file(
         height: Plotly image height in pixels (before scale).
         scale: Plotly raster resolution multiplier.
         dpi: Matplotlib raster resolution.
+        spec: Optional resolved figure configuration used for Matplotlib PGF export.
 
     Returns:
         The written file path.

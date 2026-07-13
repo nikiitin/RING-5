@@ -105,8 +105,8 @@ class AdvancedSettingsComponent:
         """
         config: PlotConfig = {}
 
-        # ── Export & Download ────────────────────────────────────
-        st.markdown("#### Export & Download")
+        # Download settings
+        st.markdown("#### Download")
         col_exp1, col_exp2 = st.columns(2)
         with col_exp1:
             config["show_error_bars"] = st.checkbox(

@@ -40,15 +40,7 @@ logger = logging.getLogger(__name__)
 
 
 class PlotCreationController:
-    """
-    Orchestrates plot lifecycle: create, select, rename, delete, duplicate.
-
-    Single Responsibility: managing which plots exist and which is selected.
-    Does NOT handle pipeline editing, config gathering, or rendering.
-
-    Dependencies are injected via protocols — no concrete imports from
-    ``pages.ui.plotting.*``.
-    """
+    """Create, select, rename, delete, and duplicate plots."""
 
     def __init__(
         self,
@@ -90,6 +82,7 @@ class PlotCreationController:
             self._lifecycle.create_plot(
                 result["name"], result["plot_type"], self._api.state_manager
             )
+            st.session_state.pop("plot_selector", None)
             st.rerun()
 
     def render_selector(self) -> RenderablePlot | None:
@@ -104,7 +97,7 @@ class PlotCreationController:
             PlotSelectorComponent.render_no_plots_warning()
             return None
 
-        # Build UNIQUE display labels (a duplicate "X" becomes "X (2)") so plots with the
+        # Disambiguate duplicate names (for example, ``X`` becomes ``X (2)``) so plots with the
         # same name can't collapse in the pills widget or resolve to the wrong plot.
         seen: dict[str, int] = {}
         labels: list[str] = []
@@ -150,14 +143,20 @@ class PlotCreationController:
         # Rename
         if actions["new_name"] != plot.name:
             plot.name = actions["new_name"]
+            st.session_state.pop("plot_selector", None)
+            st.rerun()
+            return
 
         # Delete
         if actions["delete_clicked"]:
             self._ui.plot.cleanup(plot.plot_id)
             self._lifecycle.delete_plot(plot.plot_id, self._api.state_manager)
+            st.session_state.pop("plot_selector", None)
             st.rerun()
 
         # Duplicate
         if actions["duplicate_clicked"]:
-            self._lifecycle.duplicate_plot(plot, self._api.state_manager)
+            duplicate = self._lifecycle.duplicate_plot(plot, self._api.state_manager)
+            self._api.state_manager.set_current_plot_id(duplicate.plot_id)
+            st.session_state.pop("plot_selector", None)
             st.rerun()

@@ -78,13 +78,10 @@ class TestPortfolioSaveLoad:
         pf.navigate()
 
         # Open the load selector dropdown
-        pf.load_selector.click()
-        tier3_page.wait_for_timeout(300)
+        pf.load_selector.get_by_role("button", name="Open").click()
 
         # Select the saved portfolio from the dropdown
-        option = tier3_page.locator("[data-testid='stSelectboxVirtualDropdown'] li").get_by_text(
-            PORTFOLIO_NAME, exact=True
-        )
+        option = tier3_page.get_by_role("option", name=PORTFOLIO_NAME, exact=True)
         expect(option).to_be_visible(timeout=E2E_TIMEOUT)
         option.click()
         pf.wait_for_streamlit()

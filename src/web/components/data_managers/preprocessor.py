@@ -1,6 +1,4 @@
-"""
-Preprocessor Manager
-"""
+"""Data-manager UI for basic column arithmetic."""
 
 from datetime import datetime, timezone
 
@@ -18,6 +16,7 @@ class PreprocessorManager(DataManager):
 
     @property
     def name(self) -> str:
+        """Return the manager's display name."""
         return "Preprocessor (Basic)"
 
     def render(self) -> None:
@@ -163,7 +162,7 @@ class PreprocessorManager(DataManager):
                     }
                     self.api.add_manager_history_record(record)
                     st.toast("✓ Column added to dataset!", icon="✅")
-                    # set_data mutates GLOBAL data → app-scope rerun so sibling fragments
+                    # ``set_data`` changes shared data; an app rerun updates sibling fragments.
                     # don't keep rendering the previously-captured dataframe.
                     st.rerun(scope="app")
 

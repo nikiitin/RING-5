@@ -132,6 +132,13 @@ def build_stat_configs(
     scan identifies their name as a pattern variable, ``is_regex`` is
     enabled so the regex actually expands.
 
+    Args:
+        api: Application facade that owns scan operations.
+        stats_path: Root directory containing simulator statistics.
+        variables: Statistic names or explicit statistic configurations.
+        pattern: Statistics filename pattern.
+        scan_limit: Maximum files to scan; zero scans every matching file.
+
     Returns:
         ``(variable_configs, scanned_variables)`` — the latter must be
         passed to ``submit_parse_async`` so regex/pattern names resolve.

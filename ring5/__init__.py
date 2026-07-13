@@ -74,7 +74,7 @@ if TYPE_CHECKING:
     from ring5._parse import ParseJob, ParseResult
     from ring5._portfolio import render_portfolio
     from ring5._render import render_figure
-    from ring5._session import Session
+    from ring5._session import PlotType, Session, available_plot_types
     from ring5.coordinates import grouped_bar_coordinates
     from ring5.data import Table, read_table
     from ring5.decorations import FigureDecorations
@@ -89,6 +89,8 @@ except PackageNotFoundError:  # not installed (e.g. vendored checkout)
 # resolved lazily: attribute name -> (module, attribute).
 _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "Session": ("ring5._session", "Session"),
+    "PlotType": ("ring5._session", "PlotType"),
+    "available_plot_types": ("ring5._session", "available_plot_types"),
     "ParseJob": ("ring5._parse", "ParseJob"),
     "ParseResult": ("ring5._parse", "ParseResult"),
     "render_figure": ("ring5._render", "render_figure"),
@@ -140,6 +142,8 @@ __all__ = [
     "__version__",
     # workflow
     "Session",
+    "PlotType",
+    "available_plot_types",
     "StatConfig",
     "ParseJob",
     "ParseResult",

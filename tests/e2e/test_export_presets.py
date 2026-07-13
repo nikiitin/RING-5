@@ -85,7 +85,7 @@ class TestExportDownload:
         across a rerun), which would hide the download button — so we re-open it
         afterwards (idempotent).
         """
-        pill = mp.download_format_pills.get_by_role("button", name=format_name)
+        pill = mp.download_format_pills.get_by_role("radio", name=format_name)
         pill.click()
         mp.wait_for_streamlit(timeout=EXPORT_TIMEOUT, expect_rerun=True)
         # Re-open the expander if the rerun collapsed it, so the download button
@@ -96,6 +96,7 @@ class TestExportDownload:
 
     # -- tests -------------------------------------------------------------
 
+    @pytest.mark.order(1)
     def test_01_download_expander_exists(self, tier2_page: Page) -> None:
         """The download expander is present and shows "Download" text.
 
@@ -109,6 +110,7 @@ class TestExportDownload:
         expect(mp.download_expander).to_be_visible(timeout=E2E_TIMEOUT)
         expect(mp.download_expander).to_contain_text("Download")
 
+    @pytest.mark.order(2)
     def test_02_open_download_expander(self, tier2_page: Page) -> None:
         """Opening the download expander reveals the format pills.
 
@@ -122,6 +124,7 @@ class TestExportDownload:
         self._open_download_expander(mp)
         expect(mp.download_format_pills).to_be_visible(timeout=E2E_TIMEOUT)
 
+    @pytest.mark.order(3)
     def test_03_pdf_format_available(self, tier2_page: Page) -> None:
         """Selecting the PDF format pill makes the download button appear.
 
@@ -138,13 +141,14 @@ class TestExportDownload:
         self._open_download_expander(mp)
 
         # Select PDF format
-        pdf_pill = mp.download_format_pills.get_by_role("button", name="pdf")
+        pdf_pill = mp.download_format_pills.get_by_role("radio", name="pdf")
         expect(pdf_pill).to_be_visible(timeout=E2E_TIMEOUT)
         self._select_format_pill(mp, "pdf")
 
         # Download button should appear
         expect(mp.download_button).to_be_visible(timeout=EXPORT_TIMEOUT)
 
+    @pytest.mark.order(4)
     def test_04_svg_format_available(self, tier2_page: Page) -> None:
         """Selecting the SVG format pill makes the download button appear.
 
@@ -158,13 +162,14 @@ class TestExportDownload:
         self._open_download_expander(mp)
 
         # Select SVG format
-        svg_pill = mp.download_format_pills.get_by_role("button", name="svg")
+        svg_pill = mp.download_format_pills.get_by_role("radio", name="svg")
         expect(svg_pill).to_be_visible(timeout=E2E_TIMEOUT)
         self._select_format_pill(mp, "svg")
 
         # Download button should appear
         expect(mp.download_button).to_be_visible(timeout=EXPORT_TIMEOUT)
 
+    @pytest.mark.order(5)
     def test_05_png_format_available(self, tier2_page: Page) -> None:
         """Selecting the PNG format pill makes the download button appear.
 
@@ -178,13 +183,14 @@ class TestExportDownload:
         self._open_download_expander(mp)
 
         # Select PNG format
-        png_pill = mp.download_format_pills.get_by_role("button", name="png")
+        png_pill = mp.download_format_pills.get_by_role("radio", name="png")
         expect(png_pill).to_be_visible(timeout=E2E_TIMEOUT)
         self._select_format_pill(mp, "png")
 
         # Download button should appear
         expect(mp.download_button).to_be_visible(timeout=EXPORT_TIMEOUT)
 
+    @pytest.mark.order(6)
     def test_06_matplotlib_pgf_format(self, tier2_page: Page) -> None:
         """After switching to Matplotlib, the PGF format pill is available.
 
@@ -205,9 +211,10 @@ class TestExportDownload:
         expect(mp.download_format_pills).to_be_visible(timeout=E2E_TIMEOUT)
 
         # PGF pill should be present under Matplotlib
-        pgf_pill = mp.download_format_pills.get_by_role("button", name="pgf")
+        pgf_pill = mp.download_format_pills.get_by_role("radio", name="pgf")
         expect(pgf_pill).to_be_visible(timeout=E2E_TIMEOUT)
 
+    @pytest.mark.order(7)
     def test_07_download_button_label(self, tier2_page: Page) -> None:
         """The download button inside the expander has the correct role + is enabled.
 

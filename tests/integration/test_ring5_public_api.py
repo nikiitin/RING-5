@@ -1,17 +1,10 @@
-"""Keystone test: the full workflow through the public ring5 API, headless.
-
-parse → load → reduce seeds → shape → create plot → render (both engines)
-→ export → portfolio save / replay — no Streamlit server, no mocks of the
-pipeline itself. Exercises only zero-dependency export formats (matplotlib
-pdf, plotly html) plus Perl for the parse half (same requirement as the
-rest of the integration suite).
-"""
+"""Integration tests for the complete headless ``ring5`` workflow."""
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, get_args
 
 import pandas as pd
 import pytest
@@ -283,3 +276,29 @@ class TestErrorSurface:
             ring5.DependencyMissingError,
         ):
             assert issubclass(err, ring5.Ring5Error)
+
+
+class TestApiErgonomics:
+    """Common plotting workflows remain concise and discoverable."""
+
+    def test_plot_accepts_typed_spec_and_display_name(self) -> None:
+        data = pd.DataFrame({"benchmark": ["a", "b"], "ipc": [1.0, 1.5]})
+        spec = ring5.FigureSpec(x="benchmark", y_columns=["ipc"], title="IPC")
+
+        with ring5.Session() as session:
+            figure = session.plot("Bar Chart", data=data, config=spec, engine="plotly")
+
+            assert figure.layout.title.text == "IPC"
+            assert session.plots[0].plot_type == "bar"
+
+    def test_available_plot_types_are_public(self) -> None:
+        assert "bar" in ring5.available_plot_types()
+        assert "grouped_stacked_bar" in ring5.available_plot_types()
+        assert set(get_args(ring5.PlotType)) == set(ring5.available_plot_types())
+
+    def test_unknown_plot_type_lists_valid_choices(self) -> None:
+        data = pd.DataFrame({"x": ["a"], "y": [1.0]})
+
+        with ring5.Session() as session:
+            with pytest.raises(ring5.DataValidationError, match="Available types:.*bar"):
+                session.create_plot("not-a-plot", data=data, config={"x": "x", "y": "y"})

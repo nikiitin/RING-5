@@ -30,13 +30,7 @@ class PlotTypeMetadata(TypedDict):
 
 
 class PlotFactory:
-    """
-    Factory for creating plot instances.
-
-    Uses the Factory pattern to centralize plot creation and maintain
-    a registry of available plot types. Supports runtime registration
-    of new plot types for extensibility.
-    """
+    """Create plots from a registry that supports runtime extension."""
 
     _plot_classes: dict[str, Callable[[int, str], BasePlot]] = {
         "bar": BarPlot,
@@ -96,7 +90,8 @@ class PlotFactory:
         """
         plot_constructor: Callable[[int, str], BasePlot] | None = cls._plot_classes.get(plot_type)
         if plot_constructor is None:
-            raise ValueError(f"Unknown plot type: {plot_type}")
+            available = ", ".join(cls.get_available_plot_types())
+            raise ValueError(f"Unknown plot type {plot_type!r}. Available types: {available}.")
 
         # Subclasses add plot_type in their __init__ before calling super()
         # Type checker doesn't know subclass signatures, but we validate at runtime

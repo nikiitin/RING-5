@@ -13,7 +13,7 @@ Covers:
 
 from __future__ import annotations
 
-from playwright.sync_api import Locator, Page, expect
+from playwright.sync_api import Locator, Page, TimeoutError as PlaywrightTimeoutError, expect
 
 from tests.visual.pages.base_page import BasePage
 
@@ -110,9 +110,7 @@ class ManagePlotsPage(BasePage):
     @property
     def plot_selector_pills(self) -> Locator:
         """The st.pills widget for selecting plots (key=plot_selector)."""
-        return self.page.locator(
-            "[data-testid='stMainBlockContainer'] " "[data-testid='stButtonGroup']"
-        ).first
+        return self.page.get_by_role("radiogroup", name="Select Plot")
 
     @property
     def no_plots_warning(self) -> Locator:
@@ -127,7 +125,7 @@ class ManagePlotsPage(BasePage):
         Args:
             plot_name: Display name of the plot.
         """
-        return self.plot_selector_pills.get_by_role("button", name=plot_name, exact=True)
+        return self.plot_selector_pills.get_by_role("radio", name=plot_name, exact=True)
 
     # ==================================================================
     #  4. Controls row (rename / save / load / delete / duplicate)
@@ -379,9 +377,7 @@ class ManagePlotsPage(BasePage):
         whenever a plot's visualization section is shown — they are not gated by
         the 'Show advanced settings' toggle (only the advanced sections are).
         """
-        return self.page.locator(
-            "[data-testid='stMainBlockContainer'] " "[data-testid='stButtonGroup']"
-        ).filter(has_text="layout")
+        return self.page.get_by_role("radiogroup", name="Settings")
 
     @property
     def viz_advanced_section_pill(self) -> Locator:
@@ -391,14 +387,12 @@ class ManagePlotsPage(BasePage):
         only when 'Show advanced settings' is enabled — so this pill is the
         reliable signal of the toggle's effect (the basic pills never disappear).
         """
-        return self.viz_settings_pills.get_by_role("button", name="Colors")
+        return self.viz_settings_pills.get_by_role("radio", name="Colors")
 
     @property
     def viz_engine_pills(self) -> Locator:
         """Engine selector pills (plotly / matplotlib)."""
-        return self.page.locator(
-            "[data-testid='stMainBlockContainer'] " "[data-testid='stButtonGroup']"
-        ).filter(has_text="plotly")
+        return self.page.get_by_role("radiogroup", name="Engine")
 
     # -- Chart output -------
 
@@ -431,7 +425,7 @@ class ManagePlotsPage(BasePage):
     @property
     def download_format_pills(self) -> Locator:
         """Format selector pills inside the download expander."""
-        return self.download_expander.locator("[data-testid='stButtonGroup']")
+        return self.download_expander.get_by_role("radiogroup", name="Format")
 
     @property
     def download_button(self) -> Locator:
@@ -492,43 +486,25 @@ class ManagePlotsPage(BasePage):
             self.select_plot_type(plot_type)
         self.create_plot_button.click()
         self.wait_for_streamlit(expect_rerun=True)
-        # Confirm creation registered (the pill appears) before callers proceed.
         expect(self.get_plot_pill(name).first).to_be_visible(timeout=self.RENDER_TIMEOUT)
-        # Creating a plot does NOT auto-select it when another plot is already
-        # selected: the st.pills 'plot_selector' session state retains the old
-        # selection and render_selector resets current_plot_id back to it,
-        # overriding create_plot's set_current_plot_id. Explicitly select the new
-        # plot so the pipeline/config edits that follow act on THIS plot.
-        # (Surfaced as a suspected app bug — see the e2e-revive notes.)
         self.select_plot(name)
 
-    def _select_dropdown_option(self, option_text: str) -> None:
-        """Click an option in the currently-open Streamlit selectbox dropdown.
-
-        Streamlit renders selectbox options as ``<li>`` elements inside a
-        ``[data-testid='stSelectboxVirtualDropdown']`` container. Waits for the
-        option to render (rather than a fixed sleep) so it is deterministic
-        under load.
-
-        Args:
-            option_text: Exact display label of the option.
-        """
-        option = self.page.locator("[data-testid='stSelectboxVirtualDropdown'] li").get_by_text(
-            option_text, exact=True
-        )
-        expect(option.first).to_be_visible(timeout=self.RENDER_TIMEOUT)
-        option.first.click()
-        self.wait_for_streamlit()
-
     def _open_and_select(self, selectbox: Locator, value: str) -> None:
-        """Verify-then-act: wait for a selectbox to render, open it, choose *value*.
-
-        Waiting for the selectbox before clicking avoids racing a not-yet-rendered
-        visualization fragment under load (a major source of e2e flakiness).
-        """
+        """Open a selectbox and choose *value*, retrying interrupted clicks."""
         expect(selectbox).to_be_visible(timeout=self.RENDER_TIMEOUT)
-        selectbox.click()
-        self._select_dropdown_option(value)
+        option = self.page.get_by_role("option", name=value, exact=True).first
+        for _ in range(3):
+            selectbox.get_by_role("combobox").click()
+            try:
+                option.wait_for(state="visible", timeout=5_000)
+                option.click(timeout=5_000)
+            except PlaywrightTimeoutError:
+                self.page.keyboard.press("Escape")
+                self.page.wait_for_timeout(250)
+                continue
+            self.wait_for_streamlit()
+            return
+        expect(option).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
     def select_plot_type(self, plot_type: str) -> None:
         """Select a plot type in the create-plot form selectbox, verifying it took.
@@ -537,35 +513,28 @@ class ManagePlotsPage(BasePage):
             plot_type: Exact factory key (e.g. "bar", "dual_axis_bar_dot").
         """
         self._open_and_select(self.plot_type_selectbox, plot_type)
-        # Confirm the selection registered — guards the "selected dual_axis but a
-        # bar plot got created" race seen under -n 3.
-        expect(self.plot_type_selectbox).to_contain_text(plot_type, timeout=self.RENDER_TIMEOUT)
+        expect(self.plot_type_selectbox.get_by_role("combobox")).to_have_value(
+            plot_type,
+            timeout=self.RENDER_TIMEOUT,
+        )
 
     # ==================================================================
     #  ACTIONS — Plot Selector
     # ==================================================================
 
     def select_plot(self, plot_name: str) -> None:
-        """Select a plot by clicking its pill (idempotent + verify-then-act).
-
-        Clicking an already-active pill DESELECTS it (the segmented-control
-        toggle gotcha), so we skip the click when the pill is already active.
-        After clicking we assert the pill became active, so a missed click
-        fails loudly rather than silently leaving the wrong plot selected
-        (which previously caused the wrong plot to be deleted).
+        """Select a plot by clicking its pill when it is not already selected.
 
         Args:
             plot_name: Display name of the plot.
         """
         pill = self.get_plot_pill(plot_name)
         expect(pill).to_be_visible(timeout=self.RENDER_TIMEOUT)
-        if (pill.get_attribute("data-testid") or "").endswith("pillsActive"):
+        if pill.is_checked():
             return
         pill.click()
         self.wait_for_streamlit(expect_rerun=True)
-        expect(pill).to_have_attribute(
-            "data-testid", "stBaseButton-pillsActive", timeout=self.RENDER_TIMEOUT
-        )
+        expect(pill).to_be_checked(timeout=self.RENDER_TIMEOUT)
 
     # ==================================================================
     #  ACTIONS — Controls row
@@ -573,15 +542,6 @@ class ManagePlotsPage(BasePage):
 
     def rename_plot(self, new_name: str) -> None:
         """Rename the currently selected plot.
-
-        Pressing Enter triggers a rerun in which the controller commits the new
-        name to the plot (``render_controls``). That rerun can start a beat
-        *after* the keypress, so we let it begin before waiting for completion:
-        otherwise a too-fast follow-up navigation aborts it BEFORE the commit,
-        and Streamlit then discards the now-unrendered rename-widget state — the
-        rename is silently lost. The selector pills are rendered earlier in the
-        same run (and there is no ``st.rerun`` after rename), so the pill label
-        only refreshes on the NEXT rerun — callers force one before asserting.
 
         Args:
             new_name: New plot name.
@@ -659,9 +619,7 @@ class ManagePlotsPage(BasePage):
         """
         ms = self.column_selector_multiselect
         expect(ms).to_be_visible(timeout=self.RENDER_TIMEOUT)
-        options = self.page.locator("[data-testid='stSelectboxVirtualDropdown'] li").filter(
-            has_not_text="No options"
-        )
+        options = self.page.get_by_role("option").filter(has_not_text="No options")
         for _ in range(30):  # safety bound, >> number of columns
             ms.click()
             self.page.wait_for_timeout(250)  # let the option list render
@@ -724,7 +682,7 @@ class ManagePlotsPage(BasePage):
         (Axes / Data Labels / Colors / Advanced); the basic Layout / Typography
         / Legends pills are always visible.
         """
-        checkbox = self.page.get_by_role("checkbox", name="Show advanced settings")
+        checkbox = self.page.get_by_role("switch", name="Show advanced settings")
         expect(checkbox).to_be_attached(timeout=self.RENDER_TIMEOUT)
         was_checked = checkbox.is_checked()
         self.viz_show_advanced_toggle.click()
@@ -735,31 +693,26 @@ class ManagePlotsPage(BasePage):
             expect(checkbox).to_be_checked(timeout=self.RENDER_TIMEOUT)
 
     def select_engine(self, engine: str) -> None:
-        """Select a rendering engine via pills (idempotent + verify-then-act).
-
-        Clicking an already-active segmented-control pill DESELECTS it, so we
-        click only when the target engine isn't already active. Switching engines
-        reruns to regenerate the figure (and swap the Plotly iframe ↔ Matplotlib
-        image), which can be slow under -n 3 — so we wait for that rerun and then
-        assert the pill became active, so a missed switch fails loudly instead of
-        leaving the OLD engine's chart on screen (which then trips
-        assert_chart_visible / assert_matplotlib_chart_visible downstream).
+        """Select a rendering engine and wait for figure regeneration.
 
         Args:
             engine: ``"plotly"`` or ``"matplotlib"``.
         """
-        pill = self.viz_engine_pills.get_by_role("button", name=engine)
+        pill = self.viz_engine_pills.get_by_role("radio", name=engine)
         expect(pill).to_be_visible(timeout=self.RENDER_TIMEOUT)
-        active = self.viz_engine_pills.locator("[data-testid='stBaseButton-pillsActive']")
-        if active.count() and engine.lower() in (active.first.inner_text() or "").lower():
+        if pill.is_checked():
             return
-        pill.click()
-        # Engine switch + figure regeneration; allow generous time for the rerun
-        # (a cold first switch re-renders/loads heavier than warm ones). The pill
-        # may flip only once that slow rerun settles, so give the verify the same
-        # headroom rather than the default 15s.
-        self.wait_for_streamlit(timeout=60_000, expect_rerun=True)
-        expect(pill).to_have_attribute("data-testid", "stBaseButton-pillsActive", timeout=60_000)
+        for _ in range(3):
+            pill.click()
+            try:
+                expect(pill).to_be_checked(timeout=10_000)
+            except AssertionError:
+                self.page.wait_for_timeout(250)
+                continue
+            self.wait_for_streamlit(timeout=60_000, expect_rerun=True)
+            expect(pill).to_be_checked(timeout=60_000)
+            return
+        expect(pill).to_be_checked(timeout=60_000)
 
     # ==================================================================
     #  ASSERTIONS

@@ -54,6 +54,7 @@ class TestEngineSwitching:
 
     # -- tests -------------------------------------------------------------
 
+    @pytest.mark.order(1)
     def test_01_default_engine_is_plotly(self, tier2_page: Page) -> None:
         """The default engine is Plotly; chart iframe should be visible.
 
@@ -65,6 +66,7 @@ class TestEngineSwitching:
         mp.select_plot("E2E Bar")
         mp.assert_chart_visible(timeout=CHART_TIMEOUT)
 
+    @pytest.mark.order(2)
     def test_02_switch_to_matplotlib(self, tier2_page: Page) -> None:
         """Switch from Plotly to Matplotlib and verify the chart renders.
 
@@ -82,6 +84,7 @@ class TestEngineSwitching:
         mp.select_engine("matplotlib")
         mp.assert_matplotlib_chart_visible()
 
+    @pytest.mark.order(3)
     def test_03_switch_back_to_plotly(self, tier2_page: Page) -> None:
         """Switch back from Matplotlib to Plotly and verify the chart.
 
@@ -98,6 +101,7 @@ class TestEngineSwitching:
         mp.select_engine("plotly")
         mp.assert_chart_visible(timeout=CHART_TIMEOUT)
 
+    @pytest.mark.order(4)
     def test_04_matplotlib_chart_renders(self, tier2_page: Page) -> None:
         """Switch to Matplotlib and verify the stImage DOM element.
 
@@ -120,6 +124,7 @@ class TestEngineSwitching:
         img_tag = st_image.locator("img").first
         expect(img_tag).to_be_attached(timeout=CHART_TIMEOUT)
 
+    @pytest.mark.order(5)
     def test_05_engine_pills_visible(self, tier2_page: Page) -> None:
         """The engine selector pills widget is visible with expected options.
 
@@ -134,13 +139,14 @@ class TestEngineSwitching:
         expect(mp.viz_engine_pills).to_be_visible(timeout=E2E_TIMEOUT)
 
         # Verify "plotly" option exists within the pills
-        plotly_button = mp.viz_engine_pills.get_by_role("button", name="plotly")
+        plotly_button = mp.viz_engine_pills.get_by_role("radio", name="plotly")
         expect(plotly_button).to_be_visible(timeout=E2E_TIMEOUT)
 
         # Verify "matplotlib" option exists within the pills
-        matplotlib_button = mp.viz_engine_pills.get_by_role("button", name="matplotlib")
+        matplotlib_button = mp.viz_engine_pills.get_by_role("radio", name="matplotlib")
         expect(matplotlib_button).to_be_visible(timeout=E2E_TIMEOUT)
 
+    @pytest.mark.order(6)
     def test_06_plotly_iframe_has_nonzero_height(self, tier2_page: Page) -> None:
         """After switching to Plotly, the iframe height attribute is > 0.
 

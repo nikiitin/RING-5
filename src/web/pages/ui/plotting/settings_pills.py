@@ -4,14 +4,8 @@ Provides a declarative data structure (``SettingsSection``) and a renderer
 (``render_settings_pills``) that together power the top-level pills
 navigation used in the plot-styling sidebar.
 
-Sections are split into *basic* (always visible) and *advanced* (hidden
-behind a progressive-disclosure toggle), keeping the UI clean for common
-workflows while still exposing every knob when needed.
-
-Progressive disclosure (Step 31):
-    By default only **Layout**, **Typography**, and **Legends** pills are
-    visible.  An ``st.toggle("Show advanced settings", ...)`` reveals the
-    remaining four sections (Axes, Data Labels, Colors, Advanced).
+Layout, typography, and legend settings are always visible. The advanced
+toggle reveals axes, data labels, colors, and other specialized controls.
 """
 
 from __future__ import annotations
