@@ -46,4 +46,5 @@ names remain inside the backend.
 - Keep core services and Streamlit out of parsing imports.
 - Release or cancel owned futures without shutting down another session's live work.
 
-See [Add a Parser](../extension-guides/adding-a-parser/) for implementation steps.
+See [Add a Parser]({{site.baseurl}}/developer-guide/extension-guides/adding-a-parser/) for
+implementation steps.

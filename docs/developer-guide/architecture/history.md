@@ -9,7 +9,8 @@ permalink: /developer-guide/architecture/history/
 
 # Architecture history
 
-This page records removed designs. Use [Architecture Overview](overview/) for current code.
+This page records removed designs. Use
+[Architecture Overview]({{site.baseurl}}/developer-guide/architecture/overview/) for current code.
 
 ## Engine-independent configuration
 

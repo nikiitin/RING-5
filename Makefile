@@ -18,7 +18,7 @@ NON_BROWSER_TESTS := tests/unit tests/integration tests/ui tests/ui_logic tests/
 	test-data mock-data test test-unit test-nonbrowser test-ci test-export test-latex \
 	test-e2e test-visual \
 	format format-check lint type-check arch-check comments-check docs-check dependency-check \
-	security-audit quality-gate package-check check-outdated pre-commit-install \
+	docs-build security-audit quality-gate package-check check-outdated pre-commit-install \
 	pre-commit clean
 
 help:
@@ -32,6 +32,7 @@ help:
 	@echo "  test-ci             Run tests with the coverage gate"
 	@echo "  test-e2e            Run Playwright browser tests"
 	@echo "  quality-gate        Run architecture, docs, format, lint, types, and security"
+	@echo "  docs-build          Build the documentation site with Bundler"
 	@echo "  package-check       Build and validate wheel and source distributions"
 	@echo "  pre-commit          Run all pre-commit hooks"
 
@@ -148,7 +149,12 @@ comments-check:
 
 docs-check:
 	$(PYTHON) scripts/check_public_docstrings.py
-	$(PYTHON) scripts/check_doc_links.py
+	$(PYTHON) scripts/check_doc_structure.py
+
+docs-build:
+	rm -rf _site
+	BUNDLE_GEMFILE=$(CURDIR)/Gemfile bundle exec jekyll build \
+		--source docs --destination _site
 
 dependency-check:
 	$(PYTHON) scripts/analyze_dependencies.py
@@ -175,6 +181,6 @@ pre-commit:
 	$(VENV_BIN)/pre-commit run --all-files
 
 clean:
-	rm -rf build dist .coverage coverage.xml htmlcov
+	rm -rf build dist _site .coverage coverage.xml htmlcov
 	find . -type d -name __pycache__ -prune -exec rm -rf {} +
 	find . -type f -name '*.pyc' -delete

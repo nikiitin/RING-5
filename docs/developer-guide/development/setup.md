@@ -39,4 +39,4 @@ Optional dependencies are purpose-specific:
 - `make install-latex` installs TeX on supported package managers.
 - `make check-latex` verifies the tools required by PGF tests.
 
-Next: [Contributor Workflow](workflow/).
+Next: [Contributor Workflow]({{site.baseurl}}/developer-guide/development/workflow/).

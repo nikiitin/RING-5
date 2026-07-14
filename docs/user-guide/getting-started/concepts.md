@@ -57,7 +57,8 @@ configuring the plot.
 
 Plot types build engine-independent traces. Plotly renders an interactive figure; Matplotlib renders
 a static figure. Their export formats and optional dependencies differ. Choose an engine before
-checking the available downloads. See [Rendering and Export](../reference/rendering-export/).
+checking the available downloads. See
+[Rendering and Export]({{site.baseurl}}/user-guide/reference/rendering-export/).
 
 ## Portfolio
 

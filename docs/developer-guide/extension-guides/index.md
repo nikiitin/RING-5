@@ -17,4 +17,4 @@ permalink: /developer-guide/extension-guides/
 - [Add a Settings Panel](adding-a-settings-panel/)
 
 Each guide lists the owning files and minimum verification. Read the matching repository recipe
-under [`.agents/skills/`](../../../.agents/skills/) before implementation.
+under [`.agents/skills/`](https://github.com/nikiitin/RING-5/tree/main/.agents/skills) before implementation.

@@ -37,7 +37,7 @@ the environment-specific Kaleido command. For PGF, run `make check-latex` before
 
 ## The architecture check rejects an import
 
-Read [Layer Boundaries](../architecture/layer-boundaries/). Move shared data to models, domain logic
+Read [Layer Boundaries]({{site.baseurl}}/developer-guide/architecture/layer-boundaries/). Move shared data to models, domain logic
 to core services, UI rendering to components, or inject a protocol/callback from a composition root.
 Do not bypass the AST check with a dynamic import.
 

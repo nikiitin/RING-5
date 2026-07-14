@@ -94,4 +94,5 @@ ring5 parse results/ \
 The CLI defaults to the `stats.txt` pattern and strict missing-stat handling. Run
 `ring5 parse --help` for the current arguments.
 
-Next: [Manage Datasets](managing-datasets/) or [Create and Configure Plots](plotting/).
+Next: [Manage Datasets]({{site.baseurl}}/user-guide/workflows/managing-datasets/) or
+[Create and Configure Plots]({{site.baseurl}}/user-guide/workflows/plotting/).

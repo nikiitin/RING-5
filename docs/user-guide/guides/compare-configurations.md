@@ -95,4 +95,4 @@ with ring5.Session() as session:
     session.export(figure, "figures/ipc-normalized.pdf", deterministic=True)
 ```
 
-Next: [Prepare Publication Output](publication-export/).
+Next: [Prepare Publication Output]({{site.baseurl}}/user-guide/guides/publication-export/).

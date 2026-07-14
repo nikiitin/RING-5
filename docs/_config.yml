@@ -3,7 +3,7 @@ description: Reproducible Instrumentation for Numerical Graphics for gem5
 url: https://nikiitin.github.io
 baseurl: /RING-5
 
-remote_theme: just-the-docs/just-the-docs@v0.10.0
+theme: just-the-docs
 
 # Preserve old wiki URLs after the docs consolidation (see redirect_from front-matter).
 plugins:

@@ -52,4 +52,4 @@ stateless and do not close caller-owned figures.
 
 When adding a visual setting, update its model round trip, builder, UI, both connectors, and public
 `FigureSpec` when it belongs to the supported scripting surface. See
-[Add a Renderer](../extension-guides/adding-a-renderer/).
+[Add a Renderer]({{site.baseurl}}/developer-guide/extension-guides/adding-a-renderer/).

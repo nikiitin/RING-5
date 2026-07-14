@@ -38,9 +38,11 @@ pages use an explicit `permalink` ending in `/` and set `has_children: true` whe
 Run the documentation checks before committing:
 
 ```bash
+bundle install
 make docs-check
 make docs-build
 ```
 
-Do not commit the generated `_site/` directory. Repository-wide contribution rules are in
-[`AGENTS.md`](../AGENTS.md).
+The build requires Ruby and Bundler. Dependencies are pinned in the repository-level `Gemfile`
+and `Gemfile.lock`. Do not commit the generated `_site/` directory. Repository-wide contribution
+rules are in [`AGENTS.md`](../AGENTS.md).

@@ -49,7 +49,7 @@ same names.
 
 Use the download controls below the figure. A Matplotlib PDF works without a LaTeX installation.
 For the engine-specific format list and optional dependencies, see
-[Rendering and Export](../reference/rendering-export/).
+[Rendering and Export]({{site.baseurl}}/user-guide/reference/rendering-export/).
 
 ## Run the same minimal plot in Python
 
@@ -75,5 +75,5 @@ with ring5.Session() as session:
     session.export(figure, "simulation-ticks.pdf")
 ```
 
-Continue with [Load and Parse Data](../workflows/loading-data/) or
-[Compare Configurations](../guides/compare-configurations/).
+Continue with [Load and Parse Data]({{site.baseurl}}/user-guide/workflows/loading-data/) or
+[Compare Configurations]({{site.baseurl}}/user-guide/guides/compare-configurations/).

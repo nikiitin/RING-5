@@ -89,5 +89,5 @@ Each manager records confirmed operations. Use its history to reload a configura
 **Operations History** to review workspace changes. History records configuration; they do not
 replace versioned source data or a reproducible script.
 
-Next: [Create and Configure Plots](plotting/) or
-[Compare Configurations](../guides/compare-configurations/).
+Next: [Create and Configure Plots]({{site.baseurl}}/user-guide/workflows/plotting/) or
+[Compare Configurations]({{site.baseurl}}/user-guide/guides/compare-configurations/).

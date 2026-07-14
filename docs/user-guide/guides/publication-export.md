@@ -74,5 +74,5 @@ session.export(
 Deterministic export applies byte-stability controls where the format supports them. Keep the input
 CSV, script or portfolio, RING-5 version, and exact export command with the paper artifacts.
 
-See [Rendering and Export](../reference/rendering-export/) for the engine-format matrix and
+See [Rendering and Export]({{site.baseurl}}/user-guide/reference/rendering-export/) for the engine-format matrix and
 dependency checks.

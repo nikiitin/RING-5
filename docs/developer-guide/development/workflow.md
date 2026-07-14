@@ -17,8 +17,10 @@ redirect_from:
 
 ## Before editing
 
-1. Read [`AGENTS.md`](../../../AGENTS.md) and the extension recipe for the area, if one exists.
-2. Locate the owning layer and its protocols with [Layer Boundaries](../architecture/layer-boundaries/).
+1. Read [`AGENTS.md`](https://github.com/nikiitin/RING-5/blob/main/AGENTS.md) and the extension
+   recipe for the area, if one exists.
+2. Locate the owning layer and its protocols with
+   [Layer Boundaries]({{site.baseurl}}/developer-guide/architecture/layer-boundaries/).
 3. Read the implementation, focused tests, serialized models, and public documentation.
 4. Record any compatibility surface: public Python name, CLI option, UI label, plot or shaper
    identifier, portfolio schema, or parser CSV output.

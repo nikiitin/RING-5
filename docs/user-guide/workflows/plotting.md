@@ -23,7 +23,7 @@ the workspace dataset or another plot's pipeline.
    with the controls beside it.
 
 Choose the plot type from the relationship you need to show, not from styling. See
-[Plot Types](../reference/plot-types/) for selection guidance. Python users can inspect the live
+[Plot Types]({{site.baseurl}}/user-guide/reference/plot-types/) for selection guidance. Python users can inspect the live
 registry with `ring5.available_plot_types()`.
 
 ## Shape data for this plot
@@ -43,7 +43,7 @@ Preview the result after each step. Reorder steps when their dependency changesâ
 the baseline rows before normalizing only if the normalizer still receives every required baseline.
 
 Select **Finalize Pipeline for Plotting** after the preview matches the intended table. See
-[Shapers](../reference/shapers/) for configuration rules.
+[Shapers]({{site.baseurl}}/user-guide/reference/shapers/) for configuration rules.
 
 ## Map columns and configure the figure
 
@@ -53,7 +53,8 @@ scientific meaning.
 
 Settings are grouped by purpose. Keep **Show advanced settings** off until the data mapping and
 basic figure are correct. Then use the settings selector for layout, axes, legend, labels, colors,
-and plot-specific controls. See [Figure Settings](../reference/settings/).
+and plot-specific controls. See
+[Figure Settings]({{site.baseurl}}/user-guide/reference/settings/).
 
 Automatic refresh controls whether widget changes immediately regenerate the figure. With it off,
 select **Refresh Plot** after a change. An unrefreshed figure continues to use the last persisted
@@ -66,7 +67,7 @@ PGF when XeLaTeX is installed. Both engines consume the same trace and figure co
 backend capabilities and text metrics differ.
 
 Always inspect the engine you will export. Use the download controls below that rendered figure;
-see [Rendering and Export](../reference/rendering-export/) for supported combinations.
+see [Rendering and Export]({{site.baseurl}}/user-guide/reference/rendering-export/) for supported combinations.
 
 ## Create a plot in Python
 

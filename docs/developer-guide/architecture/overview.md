@@ -63,4 +63,5 @@ Registries select simulator backends, parsing strategies, plots, and shapers. Se
 shaper identifiers are compatibility contracts for portfolios and pipelines. Add migration support
 before renaming one.
 
-Continue with [Data Flow](data-flow/) and [Layer Boundaries](layer-boundaries/).
+Continue with [Data Flow]({{site.baseurl}}/developer-guide/architecture/data-flow/) and
+[Layer Boundaries]({{site.baseurl}}/developer-guide/architecture/layer-boundaries/).

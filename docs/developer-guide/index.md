@@ -25,5 +25,6 @@ verify the result.
 - [Stable Interfaces](api-reference/) records the supported `ring5` surface and selected internal
   protocols used across boundaries.
 
-The repository-level invariants in [`AGENTS.md`](../../AGENTS.md) are authoritative. Run
+The repository-level invariants in
+[`AGENTS.md`](https://github.com/nikiitin/RING-5/blob/main/AGENTS.md) are authoritative. Run
 `make arch-check` after a structural change and keep user scripts on the `ring5` public package.
