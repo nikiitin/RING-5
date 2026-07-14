@@ -1,54 +1,32 @@
 ---
-title: "User Guide"
+layout: default
+title: User Guide
 nav_order: 2
 has_children: true
+permalink: /user-guide/
 ---
 
-# RING-5 User Guide
+# User Guide
 
-RING-5 is a data analysis and visualization tool designed for researchers working with the gem5 architectural simulator. It helps you turn raw simulation output into publication-quality plots suitable for venues such as ISCA, MICRO, ASPLOS, and HPCA.
+Use RING-5 to parse gem5 statistics or open a CSV, prepare the resulting table, render plots, and
+save enough state to reproduce the work later. You can use the Streamlit application for
+interactive work and the `ring5` API or CLI for scripts and continuous integration.
 
-Whether you are comparing CPU configurations across SPEC benchmarks or visualizing cache miss distributions, RING-5 handles the entire pipeline: parsing gem5 stats files, cleaning and transforming data, building plots, and exporting publication-quality figures sized to your paper's column width.
+## Start here
 
-## What You Will Find Here
+1. [Install RING-5](getting-started/installation/).
+2. Read the [core concepts](getting-started/concepts/).
+3. Complete [First Steps](getting-started/first-steps/).
 
-This guide is organized into five sections.
+## Find a task
 
-- **Getting Started** -- Install the application, learn the key concepts, and produce your first plot.
-  - [Installation](getting-started/installation.md)
-  - [Key Concepts](getting-started/concepts.md)
+- [Workflows](workflows/) cover loading and parsing, dataset operations, plotting, portfolios, and
+  scripting.
+- [Analysis Guides](guides/) apply those workflows to configuration comparison and publication
+  export.
+- [Reference](reference/) describes plot selection, shapers, settings, rendering and export, plus
+  troubleshooting.
 
-- **Page Guides** -- Detailed walkthroughs for every page in the application.
-  - Data Source -- load simulation data into RING-5.
-  - Data Managers -- clean, reduce, and preprocess your dataset.
-  - Manage Plots -- create, configure, and render visualizations.
-  - Save/Load Portfolio -- persist and restore entire analysis sessions.
-
-- **Features** -- In-depth coverage of individual capabilities.
-  - Shaper Pipeline -- per-plot data transformations (filter, sort, normalize, and more).
-  - Settings Pills -- fine-grained control over typography, axes, legends, and layout.
-  - [Scripting & Headless Use](features/scripting.md) -- the `ring5` Python API and CLI: batch parsing, CI figure regression, regenerating every figure from a portfolio.
-
-- **Tutorials** -- Step-by-step recipes for common research workflows.
-
-- **Reference** -- Plot type catalog, configuration keys, and keyboard shortcuts.
-
-## Quick Start
-
-The fastest path from raw data to a finished plot takes five steps.
-
-1. **Launch the application.** Run `streamlit run app.py` from the project root and open your browser at `http://localhost:8501`. You should see the RING-5 Interactive Analyzer with the Data Source page active.
-
-2. **Load your data.** On the Data Source page, select "I already have CSV data" if you have a preprocessed CSV file, or select "Parse Stats" to point RING-5 at a directory of gem5 `stats.txt` files. After loading, a metrics bar at the top of the page should display the number of rows, columns, and the source file name.
-
-3. **Navigate to Manage Plots.** Click "Manage Plots" in the sidebar. This page is where you create and configure all of your visualizations.
-
-4. **Create a bar chart.** Click "Add Plot," give it a name, and select "Bar" as the plot type. Choose your X-axis variable (for example, benchmark names) and Y-axis variable (for example, IPC). Click "Generate" and you should see a rendered bar chart appear below the configuration panel.
-
-5. **Export the figure.** Scroll down to the download section beneath your plot. Select a format (PNG, PDF, or SVG) and click the download button. The file should save to your browser's default download location.
-
-From here you can refine your plot using the shaper pipeline, adjust styling through the settings pills, or add more plots to your analysis session.
-
-## Requirements
-
-RING-5 requires Python 3.12 or later and runs on Linux, macOS, and Windows. See the [Installation](getting-started/installation.md) page for detailed setup instructions.
+Examples use gem5 names such as `simTicks` where the parser provides them, but RING-5 does not
+require a fixed CSV schema. Any non-empty CSV with a header can be loaded; individual operations
+validate the columns and data types they need.
