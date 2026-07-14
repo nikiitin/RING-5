@@ -1,5 +1,6 @@
 from collections.abc import Generator
 from concurrent.futures import Future
+from pathlib import Path
 from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
@@ -63,7 +64,7 @@ class TestScannerFix:
         """Test that scanner calls api.submit_scan_async, not api.backend..."""
         # Setup
         mock_api.state_manager.get_simulator.return_value = "gem5"
-        mock_api.state_manager.get_stats_path.return_value = "/tmp"
+        mock_api.state_manager.get_stats_path.return_value = str(Path.cwd())
         mock_api.state_manager.get_stats_pattern.return_value = "stats.txt"
         mock_api.state_manager.get_parser_strategy.return_value = "simple"
 
@@ -83,7 +84,7 @@ class TestScannerFix:
         try:
             with patch(
                 "src.web.components.data_source.data_source_components.as_completed",
-                side_effect=lambda fs: fs,
+                side_effect=lambda fs, **_kwargs: fs,
             ):
                 DataSourceComponents.render_parser_config(mock_api)
         except AttributeError as e:
@@ -128,7 +129,7 @@ class TestScannerFix:
             "src.core.services.data_services.variable_service.VariableService.generate_variable_id",
             return_value="123",
         ):
-            VariableEditor.render(api=mock_api, variables=variables, stats_path="/tmp")
+            VariableEditor.render(api=mock_api, variables=variables, stats_path=str(Path.cwd()))
 
         # Verify call to api.submit_scan_async (NOT backend)
         mock_api.submit_scan_async.assert_called()

@@ -118,9 +118,10 @@ scan completes, a success message appears reporting the number of variables
 found (for example, "Scanner found 142 variables"). The scan results are
 stored in the session so you can select from them in the next step.
 
-If you need an exhaustive scan of all files, check the **Deep Scan (check
-all files)** checkbox before clicking Quick Scan. Deep scans take longer but
-ensure no variables are missed.
+To inspect a broader sample, check **Deep Scan (up to 256 files)** before
+clicking Quick Scan. Deep scans remain bounded so a large or accidental root
+path cannot monopolize the server. Split unusually large result trees into
+smaller directories when you need complete coverage.
 
 ### Select Variables to Extract
 

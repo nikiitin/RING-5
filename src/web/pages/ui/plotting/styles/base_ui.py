@@ -6,13 +6,16 @@ of visual parameters: colors, fonts, layouts, legends, and styling options
 through Streamlit UI components.
 """
 
-import hashlib
 from typing import Any, cast
 
 import pandas as pd
 import streamlit as st
 
 from src.core.services.visualization.palette_service import resolve_palette
+from src.web.components.common.bounded_options import (
+    bounded_unique_strings,
+    stable_widget_suffix,
+)
 from src.web.components.plotting.settings import (
     DataLabelsSettingsComponent,
     LayoutSettingsComponent,
@@ -292,7 +295,7 @@ class BaseStyleUI:
         if unique_vals:
             for idx, val in enumerate(unique_vals):
                 val_str = str(val)
-                val_hash = hashlib.md5(val_str.encode(), usedforsecurity=False).hexdigest()[:8]
+                val_hash = stable_widget_suffix(idx, val_str)
 
                 raw_color = palette_colors[idx % len(palette_colors)]
                 default_color = to_hex(raw_color)
@@ -398,9 +401,9 @@ class BaseStyleUI:
         unique_vals = self._get_unique_values(saved_config, data, items)
 
         if unique_vals:
-            for val in unique_vals:
+            for idx, val in enumerate(unique_vals):
                 val_str = str(val)
-                val_hash = hashlib.md5(val_str.encode(), usedforsecurity=False).hexdigest()[:8]
+                val_hash = stable_widget_suffix(idx, val_str)
 
                 current_style = series_styles.get(val_str, {})
 
@@ -439,16 +442,14 @@ class BaseStyleUI:
 
         if data is not None and x_col and x_col in data.columns:
             with st.expander("Rename X-Axis Labels"):
-                unique_x_raw = data[x_col].unique()
-                unique_x = sorted(unique_x_raw, key=str)
-
-                if len(unique_x) > 50:
+                unique_x, truncated = bounded_unique_strings(data[x_col])
+                if truncated or len(unique_x) > 50:
                     st.warning("Too many X-axis values to list all. Showing first 50.")
                     unique_x = unique_x[:50]
 
-                for val in unique_x:
+                for idx, val in enumerate(unique_x):
                     s_val = str(val)
-                    val_hash = hashlib.md5(s_val.encode(), usedforsecurity=False).hexdigest()[:8]
+                    val_hash = stable_widget_suffix(idx, s_val)
 
                     col_l, col_r = st.columns([1, 2])
                     with col_l:
@@ -475,15 +476,15 @@ class BaseStyleUI:
         """Helper to determine series items."""
         unique_vals: list[str] = []
         if items is not None:
-            unique_vals = sorted([str(i) for i in items])
+            unique_vals, _ = bounded_unique_strings(items)
         elif data is not None:
             legend_col = saved_config.get("color") or saved_config.get("group")
             y_cols = saved_config.get("y_columns", [])
 
             if legend_col and legend_col in data.columns:
-                unique_vals = sorted(data[legend_col].unique().astype(str).tolist())
+                unique_vals, _ = bounded_unique_strings(data[legend_col])
             elif y_cols:
-                unique_vals = sorted([str(c) for c in y_cols])
+                unique_vals, _ = bounded_unique_strings(y_cols)
         return unique_vals
 
     def render_data_labels_ui(self, saved_config: PlotConfig, key_prefix: str = "") -> PlotConfig:

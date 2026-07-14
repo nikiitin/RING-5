@@ -3,6 +3,7 @@
 import pandas as pd
 import streamlit as st
 
+from src.web.components.common.bounded_options import bounded_unique_strings
 from src.web.models.plot_models import PlotConfig
 
 
@@ -41,8 +42,15 @@ class PlotConfigComponents:
 
         # Filter X values
         if x_col and x_col in data.columns:
-            unique_x = sorted(data[x_col].astype(str).unique())
-            default_x = saved_config.get("x_filter", unique_x)
+            unique_x, x_truncated = bounded_unique_strings(data[x_col])
+            if x_truncated:
+                st.warning(
+                    "X-axis filter options were capped for safety; refine the dataset first."
+                )
+            raw_default_x = saved_config.get("x_filter", unique_x)
+            default_x, _ = bounded_unique_strings(
+                raw_default_x if isinstance(raw_default_x, list) else unique_x
+            )
             # Ensure defaults are valid
             default_x = [x for x in default_x if x in unique_x]
 
@@ -52,7 +60,7 @@ class PlotConfigComponents:
             if _xf_key in st.session_state:
                 _xf_state = st.session_state[_xf_key]
                 if isinstance(_xf_state, list):
-                    _xf_valid = [v for v in _xf_state if v in unique_x]
+                    _xf_valid = [v for v in _xf_state[: len(unique_x)] if v in unique_x]
                     if len(_xf_valid) != len(_xf_state):
                         st.session_state[_xf_key] = _xf_valid
 
@@ -67,8 +75,13 @@ class PlotConfigComponents:
 
         # Filter Group values
         if group_col and group_col in data.columns:
-            unique_g = sorted(data[group_col].astype(str).unique())
-            default_g = saved_config.get("group_filter", unique_g)
+            unique_g, group_truncated = bounded_unique_strings(data[group_col])
+            if group_truncated:
+                st.warning("Group filter options were capped for safety; refine the dataset first.")
+            raw_default_g = saved_config.get("group_filter", unique_g)
+            default_g, _ = bounded_unique_strings(
+                raw_default_g if isinstance(raw_default_g, list) else unique_g
+            )
             # Ensure defaults are valid
             default_g = [g for g in default_g if g in unique_g]
 
@@ -77,7 +90,7 @@ class PlotConfigComponents:
             if _gf_key in st.session_state:
                 _gf_state = st.session_state[_gf_key]
                 if isinstance(_gf_state, list):
-                    _gf_valid = [v for v in _gf_state if v in unique_g]
+                    _gf_valid = [v for v in _gf_state[: len(unique_g)] if v in unique_g]
                     if len(_gf_valid) != len(_gf_state):
                         st.session_state[_gf_key] = _gf_valid
 

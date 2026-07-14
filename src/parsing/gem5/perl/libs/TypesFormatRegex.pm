@@ -43,21 +43,17 @@ sub getRealVariableNameFromLine {
 
     # Optimization: Try exact match first (fastest path)
     foreach my $filter (@storedFilters) {
-        return $filter if $namePart eq $filter;
+        return $namePart if $namePart eq $filter;
     }
 
     # Then try anchored regex match
     foreach my $filter (@storedFilters) {
-        return $filter if $namePart =~ /^$filter$/;
+        return $namePart if $namePart =~ /^(?:$filter)$/;
     }
 
-    # Fallback for complex regexes
-    foreach my $filter (@storedFilters) {
-        return $filter if $namePart =~ /$filter/;
-    }
-
-    # Ultimate fallback
-    return $1 if $line =~ /($filtersRegexes)/;
+    # parseAndPrintLineWithFormat already performed the same anchored filter
+    # check, so a non-match here is malformed rather than a reason to search
+    # arbitrary text later in the line.
     return '';
 }
 
@@ -139,11 +135,15 @@ sub formatLine {
 
 sub setFilterRegexes {
     my (@regexes) = @_;
+    die "Too many filter expressions" if scalar(@regexes) > 2048;
+    foreach my $filter (@regexes) {
+        die "Filter expression is too long" if length($filter) > 1024;
+    }
     @storedFilters = @regexes;
     # Add all filters to same regex
-    $filtersRegexes = join("|", @regexes);
+    $filtersRegexes = join("|", map { "(?:$_)" } @regexes);
     # Compile regexes
-    $filtersRegexes = qr/$filtersRegexes/;
+    $filtersRegexes = qr/^(?:$filtersRegexes)(?=::|\s|=)/;
 }
 
 sub parseAndPrintLineWithFormat {

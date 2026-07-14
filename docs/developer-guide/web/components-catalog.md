@@ -264,8 +264,9 @@ Alias, Type, Delete) then type-specific dispatch:
 | histogram | `render_histogram_config` | Parse mode, rebin, target bins, entry mode |
 | configuration | `render_configuration_config` | Default-on-empty text input |
 
-Deep scans use `api.submit_scan_async()` with results in a blocking
-`@st.dialog("Deep Scan")` with real-time progress.
+Deep scans submit at most 256 files through `api.submit_scan_async()` and show
+results in a blocking `@st.dialog("Deep Scan")` with real-time progress and a
+five-minute batch timeout.
 
 ### 7.3 PatternIndexSelector
 

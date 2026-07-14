@@ -111,7 +111,7 @@ RING-5 understands:
 Before you can add variables, you typically need to discover what is available
 in your stats files. RING-5 provides a scanner for this purpose.
 
-You will see a **Deep Scan (check all files)** checkbox and a **Quick Scan**
+You will see a **Deep Scan (up to 256 files)** checkbox and a **Quick Scan**
 button.
 
 **Quick Scan** examines a small sample of your stats files (up to 10 files by
@@ -124,10 +124,10 @@ scanned. When the scan finishes, the page reloads and a green success
 message appears: "Scanner found N variables. Use 'Add Variable' to select
 them."
 
-**Deep Scan** examines every stats file in the directory tree. Enable the
-checkbox before clicking Quick Scan if you suspect that different simulation
-configurations produce different sets of variables. Deep scans take longer
-but guarantee a complete picture.
+**Deep Scan** examines up to 256 stats files in the directory tree. Enable the
+checkbox before clicking Quick Scan if different simulation configurations may
+produce different variables. Discovery also has entry and time limits. Split a
+larger tree into smaller approved roots when complete coverage is required.
 
 #### Adding Variables
 

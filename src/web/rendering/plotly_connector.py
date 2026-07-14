@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Any
 
 import plotly.graph_objects as go
 
+from src.core.common.safe_format import plotly_numeric_template
 from src.core.models.visualization.figure_config import FigureConfig
 from src.core.models.visualization.legend_config import LegendConfig
 from src.web.rendering._heatmap_utils import compute_nice_range, compute_z_extent
@@ -568,13 +569,7 @@ class FigureSpecToPlotly:
         valid_positions = {"auto", "inside", "outside", "none"}
         text_position = dl.position if dl.position in valid_positions else "auto"
 
-        # Build texttemplate: if format_string already contains "%{",
-        # use it verbatim (full Plotly template); otherwise wrap it.
-        fmt = dl.format_string
-        if "%{" in fmt:
-            texttemplate = fmt
-        else:
-            texttemplate = f"%{{y:{fmt}}}"
+        texttemplate = plotly_numeric_template(dl.format_string)
 
         for trace in _fig_traces(fig):
             # Heatmap traces don't support textposition/texttemplate —

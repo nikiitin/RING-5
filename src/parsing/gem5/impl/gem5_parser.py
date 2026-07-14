@@ -4,7 +4,6 @@ import csv
 import logging
 import math
 import os
-import re
 import time
 from concurrent.futures import Future
 from dataclasses import replace
@@ -12,6 +11,12 @@ from pathlib import Path
 from typing import Any
 
 from src.core.common.utils import normalize_user_path
+from src.core.common.safe_regex import (
+    SafeRegexError,
+    compile_bounded_regex,
+    fullmatch_bounded_regex,
+)
+from src.core.common.security_limits import MAX_SCAN_FILES
 from src.core.models import (
     ParseBatchResult,
     ScanFileResult,
@@ -83,14 +88,30 @@ class Gem5Parser(SimulationParser):
                         f"PARSER: Matching regex '{source_name}' "
                         f"against {len(scanned_vars)} scanned variables"
                     )
-                    pattern = re.compile(source_name)
+                    pattern = compile_bounded_regex(source_name)
                     matched_ids: list[str] = []
                     for sv in scanned_vars:
                         sv_name = sv.name
-                        if source_name == sv_name or pattern.fullmatch(sv_name):
+                        if source_name == sv_name or fullmatch_bounded_regex(pattern, sv_name):
                             # If sv is already an aggregated pattern, use its constituents
                             if sv.pattern_indices:
-                                matched_ids.extend(sv.pattern_indices)
+                                for pattern_id in sv.pattern_indices:
+                                    if "." in pattern_id:
+                                        matched_ids.append(pattern_id)
+                                        continue
+                                    try:
+                                        matched_ids.append(
+                                            PatternIndexService.reconstruct_concrete_name(
+                                                source_name, pattern_id
+                                            )
+                                        )
+                                    except ValueError:
+                                        logger.warning(
+                                            "PARSER: Ignoring malformed pattern index '%s' "
+                                            "for '%s'",
+                                            pattern_id,
+                                            source_name,
+                                        )
                             else:
                                 matched_ids.append(sv_name)
 
@@ -146,8 +167,10 @@ class Gem5Parser(SimulationParser):
                             expanded_config = replace(config, params=params)
                     else:
                         logger.warning(f"PARSER: No matches found for regex '{source_name}'")
-                except re.error:
-                    logger.warning(f"PARSER: Invalid regex in variable: {source_name}")
+                except SafeRegexError as exc:
+                    raise ValueError(
+                        f"Unsafe regex in parser variable '{source_name}': {exc}"
+                    ) from exc
 
             processed_configs.append(expanded_config)
 
@@ -192,7 +215,8 @@ class Gem5Parser(SimulationParser):
         Args:
             stats_path: Base directory to search for stats files
             stats_pattern: Filename pattern to match (default: "stats.txt")
-            limit: Maximum number of files to scan (0 for unlimited)
+            limit: Maximum number of files to scan. Non-positive values select
+                the bounded deep-scan maximum.
 
         Returns:
             List of Future objects that each resolve to a ``ScanFileResult``
@@ -200,8 +224,13 @@ class Gem5Parser(SimulationParser):
         Raises:
             FileNotFoundError: If stats_path doesn't exist or no files found
         """
+        effective_limit = MAX_SCAN_FILES if limit <= 0 else min(limit, MAX_SCAN_FILES)
         files = find_stats_files(
-            stats_path, stats_pattern, limit=limit, sort=True, raise_if_empty=True
+            stats_path,
+            stats_pattern,
+            limit=effective_limit,
+            sort=True,
+            raise_if_empty=True,
         )
         pool: ScanWorkPool = ScanWorkPool.get_instance()
         batch_work: list[Gem5ScanWork] = [Gem5ScanWork(f) for f in files]

@@ -15,6 +15,7 @@ import subprocess
 from pathlib import Path
 
 from src.core.models import ScannedVariable
+from src.core.common.security_limits import MAX_SCAN_FILE_BYTES
 from src.parsing.gem5.models import Gem5ScannedVariable
 from src.parsing.gem5.types.type_mapper import TypeMapper
 
@@ -83,6 +84,12 @@ class Gem5StatsScanner:
         """
         if not file_path.exists():
             raise FileNotFoundError(f"SCANNER: File not found: {file_path}")
+        file_size = file_path.stat().st_size
+        if file_size > MAX_SCAN_FILE_BYTES:
+            raise RuntimeError(
+                f"Scanner input exceeds the {MAX_SCAN_FILE_BYTES // (1024 * 1024)} MiB limit: "
+                f"{file_path}"
+            )
 
         cmd = [str(self._perl_exe), str(self._script_path), str(file_path)]
         if config_vars:
@@ -92,7 +99,7 @@ class Gem5StatsScanner:
         try:
             # Command constructed from validated paths, shell=False enforced for safety
             result = subprocess.run(
-                cmd, capture_output=True, text=True, check=True, shell=False, timeout=60
+                cmd, capture_output=True, text=True, check=True, shell=False, timeout=15
             )
 
             if not result.stdout.strip():

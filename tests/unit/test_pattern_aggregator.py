@@ -68,6 +68,11 @@ class TestPatternAggregation:
         assert result[0].name == r"system.cpu\d+.numCycles"
         assert result[0].type == "vector"
         assert result[0].entries == ["0", "1", "2"]
+        assert result[0].pattern_indices == [
+            "system.cpu0.numCycles",
+            "system.cpu1.numCycles",
+            "system.cpu2.numCycles",
+        ]
 
     def test_aggregate_mixed_patterns_and_non_patterns(self) -> None:
         """Test that non-pattern variables are preserved."""

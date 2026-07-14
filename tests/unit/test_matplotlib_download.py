@@ -140,14 +140,23 @@ class TestMatplotlibPGF:
         assert isinstance(data, bytes)
         assert len(data) > 100
 
-    def test_pgf_with_spec_preamble(self, simple_mpl_figure: Figure) -> None:
-        """PGF export uses LaTeX preamble from FigureConfig."""
+    def test_pgf_ignores_spec_preamble(self, simple_mpl_figure: Figure) -> None:
+        """Untrusted FigureConfig preambles never reach PGF output."""
         spec = FigureConfig(
             latex_extra_preamble="\\usepackage{times}",
         )
         data = matplotlib_download_bytes(simple_mpl_figure, "pgf", spec=spec)
-        # Should still produce valid PGF output
         assert b"\\begin{pgfpicture}" in data
+        assert b"usepackage{times}" not in data
+
+    def test_pgf_escapes_tex_commands(self, simple_mpl_figure: Figure) -> None:
+        """Figure labels are data, not executable TeX."""
+        simple_mpl_figure.axes[0].set_title(r"\input{/etc/hostname}")
+
+        data = matplotlib_download_bytes(simple_mpl_figure, "pgf")
+
+        assert b"\\input{/etc/hostname}" not in data
+        assert b"\\textbackslash{}input\\{/etc/hostname\\}" in data
 
     def test_pgf_without_spec(self, simple_mpl_figure: Figure) -> None:
         """PGF export works without a FigureConfig (empty preamble)."""

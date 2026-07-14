@@ -492,12 +492,11 @@ class TestParseServiceRegexExpansion:
 
     @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
-    def test_invalid_regex_warns(
+    def test_invalid_regex_is_rejected(
         self, mock_factory: MagicMock, mock_pool_cls: MagicMock, tmp_path: Path
     ) -> None:
-        """An invalid regex still returns a valid batch."""
+        """An invalid regex fails before parser work is queued."""
         from src.core.models.parsing_models import (
-            ParseBatchResult,
             ScannedVariable,
             StatConfig,
         )
@@ -520,14 +519,14 @@ class TestParseServiceRegexExpansion:
             is_regex=True,
         )
 
-        result = ParseService.submit_parse_async(
-            stats_path=str(stats_dir),
-            stats_pattern="stats.txt",
-            variables=[config],
-            output_dir=str(tmp_path / "out"),
-            scanned_vars=scanned,
-        )
-        assert isinstance(result, ParseBatchResult)
+        with pytest.raises(ValueError, match="Unsafe regex"):
+            ParseService.submit_parse_async(
+                stats_path=str(stats_dir),
+                stats_pattern="stats.txt",
+                variables=[config],
+                output_dir=str(tmp_path / "out"),
+                scanned_vars=scanned,
+            )
 
 
 class TestParseServiceFinalize:
@@ -1284,11 +1283,7 @@ class TestGem5ParserSubmitParseAsync:
     def test_invalid_regex(
         self, mock_factory: MagicMock, mock_pool_cls: MagicMock, tmp_path: Path
     ) -> None:
-        from src.core.models.parsing_models import (
-            ParseBatchResult,
-            ScannedVariable,
-            StatConfig,
-        )
+        from src.core.models.parsing_models import ScannedVariable, StatConfig
         from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
         stats_dir = tmp_path / "sim"
@@ -1302,14 +1297,14 @@ class TestGem5ParserSubmitParseAsync:
 
         config = StatConfig(name="system.[bad", type="scalar", is_regex=True)
 
-        result = Gem5Parser.submit_parse_async(
-            stats_path=str(stats_dir),
-            stats_pattern="stats.txt",
-            variables=[config],
-            output_dir=str(tmp_path / "out"),
-            scanned_vars=scanned,
-        )
-        assert isinstance(result, ParseBatchResult)
+        with pytest.raises(ValueError, match="Unsafe regex"):
+            Gem5Parser.submit_parse_async(
+                stats_path=str(stats_dir),
+                stats_pattern="stats.txt",
+                variables=[config],
+                output_dir=str(tmp_path / "out"),
+                scanned_vars=scanned,
+            )
 
     def test_finalize_no_results(self) -> None:
         from src.parsing.gem5.impl.gem5_parser import Gem5Parser

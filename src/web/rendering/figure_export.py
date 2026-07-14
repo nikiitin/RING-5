@@ -35,6 +35,7 @@ from kaleido.errors import ChromeNotFoundError
 from matplotlib.figure import Figure as MplFigure
 
 from src.core.models.visualization.figure_config import FigureConfig
+from src.web.rendering.latex_security import disabled_figure_usetex, escaped_figure_text
 
 if TYPE_CHECKING:
     from matplotlib.typing import RcKeyType
@@ -321,14 +322,18 @@ def matplotlib_download_bytes(
             )
 
             if fmt == "pgf":
-                preamble = spec.latex_extra_preamble if spec else ""
-                with plt.rc_context(
-                    {
-                        "pgf.texsystem": "xelatex",
-                        "pgf.preamble": preamble,
-                        "pgf.rcfonts": True,
-                        **det_rc,
-                    }
+                # TeX treats both preambles and labels as code. Custom preambles
+                # are disabled and all Text artists are temporarily escaped.
+                with (
+                    escaped_figure_text(fig),
+                    plt.rc_context(
+                        {
+                            "pgf.texsystem": "xelatex",
+                            "pgf.preamble": "",
+                            "pgf.rcfonts": True,
+                            **det_rc,
+                        }
+                    ),
                 ):
                     # NOTE: PGF deliberately omits bbox_inches="tight" — the exported
                     # physical size must equal the matplotlib figsize so a LaTeX \input fills
@@ -336,15 +341,15 @@ def matplotlib_download_bytes(
                     # figure is a different size across formats by design (see docs).
                     fig.savefig(buf, format="pgf", backend="pgf")
             elif fmt == "pdf":
-                with plt.rc_context(det_rc):
+                with disabled_figure_usetex(fig), plt.rc_context({"text.usetex": False, **det_rc}):
                     fig.savefig(buf, format="pdf", dpi=dpi, bbox_inches="tight")
             elif fmt == "png":
                 # rc_context ensures usetex is off – dvipng may not be installed
                 # and another caller may have turned it on globally.
-                with plt.rc_context({"text.usetex": False, **det_rc}):
+                with disabled_figure_usetex(fig), plt.rc_context({"text.usetex": False, **det_rc}):
                     fig.savefig(buf, format="png", dpi=dpi, bbox_inches="tight", backend="agg")
             elif fmt == "svg":
-                with plt.rc_context(det_rc):
+                with disabled_figure_usetex(fig), plt.rc_context({"text.usetex": False, **det_rc}):
                     fig.savefig(buf, format="svg", bbox_inches="tight")
 
             buf.seek(0)

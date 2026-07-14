@@ -10,7 +10,6 @@ Usage::
     config = component.render(saved_config, data=df)
 """
 
-import hashlib
 from typing import Any, cast
 
 import pandas as pd
@@ -21,6 +20,10 @@ from src.core.services.visualization.palette_service import (
     get_palette_names,
     is_colorblind_safe,
     resolve_palette,
+)
+from src.web.components.common.bounded_options import (
+    bounded_unique_strings,
+    stable_widget_suffix,
 )
 from src.web.components.plotting.settings.widget_factory import (
     color_picker,
@@ -207,7 +210,7 @@ class ColorsSettingsComponent:
         if unique_vals:
             for idx, val in enumerate(unique_vals):
                 val_str = str(val)
-                val_hash = hashlib.md5(val_str.encode(), usedforsecurity=False).hexdigest()[:8]
+                val_hash = stable_widget_suffix(idx, val_str)
 
                 raw_color = palette_colors[idx % len(palette_colors)]
                 # Lazy import to avoid circular dependency with styles package
@@ -407,13 +410,13 @@ class ColorsSettingsComponent:
         """Determine series items for colour picker rendering."""
         unique_vals: list[str] = []
         if items is not None:
-            unique_vals = sorted([str(i) for i in items])
+            unique_vals, _ = bounded_unique_strings(items)
         elif data is not None:
             legend_col = saved_config.get("color") or saved_config.get("group")
             y_cols = saved_config.get("y_columns", [])
 
             if legend_col and legend_col in data.columns:
-                unique_vals = sorted(data[legend_col].unique().astype(str).tolist())
+                unique_vals, _ = bounded_unique_strings(data[legend_col])
             elif y_cols:
-                unique_vals = sorted([str(c) for c in y_cols])
+                unique_vals, _ = bounded_unique_strings(y_cols)
         return unique_vals

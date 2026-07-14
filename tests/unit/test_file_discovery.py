@@ -4,7 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from src.parsing.framework.file_discovery import find_stats_files
+import src.parsing.framework.file_discovery as discovery
+from src.parsing.framework.file_discovery import FileDiscoveryLimitError, find_stats_files
 
 
 @pytest.fixture
@@ -48,3 +49,15 @@ def test_empty_and_missing_paths(stats_tree: Path, tmp_path: Path) -> None:
             raise_if_empty=True,
         )
     assert find_stats_files(str(tmp_path / "absent"), sort=True) == []
+
+
+def test_negative_limit_is_rejected(stats_tree: Path) -> None:
+    with pytest.raises(ValueError, match="cannot be negative"):
+        find_stats_files(str(stats_tree), limit=-1)
+
+
+def test_entry_walk_is_bounded(stats_tree: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(discovery, "MAX_DISCOVERY_ENTRIES", 1)
+
+    with pytest.raises(FileDiscoveryLimitError, match="exceeded 1 entries"):
+        find_stats_files(str(stats_tree), pattern="missing.txt")

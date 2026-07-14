@@ -18,6 +18,8 @@ open(my $fh, '<', $filename) or die "Could not open file '$filename' $!";
 # Data structure to hold discovered variables
 # { name => { type => type, entries => [entries...] } }
 my %discovered_vars;
+my $line_count = 0;
+my $max_lines = 1_000_000;
 
 # Helper globals from TypesFormatRegex
 # We access regexes indirectly by calling classifyLine provided by TypesFormatRegex.
@@ -89,6 +91,7 @@ sub addEntry {
 }
 
 while (my $line = <$fh>) {
+    last if ++$line_count > $max_lines;
     # print STDERR "DEBUG: $line\n";
     chomp $line;
     # $line =~ s/\s+$//;

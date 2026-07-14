@@ -270,4 +270,4 @@ class TestScanFileScanFile:
 
         scanner.scan_file(test_file)
 
-        assert mock_run.call_args[1]["timeout"] == 60
+        assert mock_run.call_args[1]["timeout"] == 15

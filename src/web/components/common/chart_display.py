@@ -176,8 +176,8 @@ class ChartDisplayComponent:
             st.pyplot(mpl_fig)
 
             # 3. Store for download (closed on next render or session end).
-            # The spec rides along so the PGF download can apply the user's
-            # LaTeX preamble (latex_extra_preamble).
+            # The spec rides along for format-specific export settings. PGF
+            # deliberately ignores custom preambles at the security boundary.
             st.session_state[mpl_state_key] = mpl_fig
             st.session_state[spec_state_key] = spec
 

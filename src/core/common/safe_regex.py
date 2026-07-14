@@ -32,6 +32,11 @@ class BoundedPattern(Protocol):
     def search(self, value: str, *, timeout: float, concurrent: bool = False) -> RegexMatch | None:
         """Search *value* with an execution timeout."""
 
+    def fullmatch(
+        self, value: str, *, timeout: float, concurrent: bool = False
+    ) -> RegexMatch | None:
+        """Fully match *value* with an execution timeout."""
+
 
 def compile_bounded_regex(pattern: str) -> BoundedPattern:
     """Compile a user expression after enforcing its structural limits.
@@ -79,3 +84,49 @@ def search_bounded_regex(pattern: BoundedPattern, value: str) -> RegexMatch | No
     except TimeoutError as exc:
         timeout_ms = round(MATCH_TIMEOUT_SECONDS * 1000)
         raise SafeRegexError(f"Regular expression matching exceeded {timeout_ms} ms.") from exc
+
+
+def fullmatch_bounded_regex(pattern: BoundedPattern, value: str) -> RegexMatch | None:
+    """Fully match a bounded string with an execution timeout."""
+    if len(value) > MAX_INPUT_LENGTH:
+        raise SafeRegexError(f"Regex input exceeds the {MAX_INPUT_LENGTH}-character limit.")
+    try:
+        return pattern.fullmatch(value, timeout=MATCH_TIMEOUT_SECONDS, concurrent=True)
+    except TimeoutError as exc:
+        timeout_ms = round(MATCH_TIMEOUT_SECONDS * 1000)
+        raise SafeRegexError(f"Regular expression matching exceeded {timeout_ms} ms.") from exc
+
+
+def escape_perl_stat_filter(pattern: str) -> str:
+    r"""Convert a stat-name pattern into a bounded, Perl-safe expression.
+
+    Only literal gem5 identifier characters and the generated ``\d+`` numeric
+    placeholder are accepted. Literal dots may be supplied as either ``.`` or
+    ``\.``. This deliberately excludes arbitrary grouping and quantifiers.
+    """
+    if not pattern or len(pattern) > MAX_PATTERN_LENGTH:
+        raise SafeRegexError("Stat filters must be between 1 and 512 characters.")
+
+    escaped: list[str] = []
+    index = 0
+    while index < len(pattern):
+        if pattern.startswith(r"\d+", index):
+            escaped.append(r"\d+")
+            index += 3
+            continue
+
+        char = pattern[index]
+        if char == "\\":
+            if index + 1 < len(pattern) and pattern[index + 1] in "._:":
+                char = pattern[index + 1]
+                index += 2
+            else:
+                raise SafeRegexError("Stat filters only support the \\d+ placeholder.")
+        else:
+            index += 1
+
+        if not (char.isalnum() or char in "._:"):
+            raise SafeRegexError(f"Unsupported character in stat filter: {char!r}.")
+        escaped.append(regex.escape(char))
+
+    return "".join(escaped)

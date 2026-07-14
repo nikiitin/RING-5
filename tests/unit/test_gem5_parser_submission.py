@@ -172,7 +172,7 @@ class TestSubmitParseAsync:
 
     @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
-    def test_invalid_regex_logs_warning(
+    def test_invalid_regex_is_rejected(
         self, mock_factory: MagicMock, mock_pool: MagicMock, tmp_path: Any
     ) -> None:
         stats_dir = tmp_path / "stats"
@@ -189,14 +189,14 @@ class TestSubmitParseAsync:
         pool_instance.submit_batch_async.return_value = [MagicMock()]
         mock_pool.get_instance.return_value = pool_instance
 
-        # Should not crash — just log warning
-        Gem5Parser.submit_parse_async(
-            str(stats_dir),
-            "stats.txt",
-            [config],  # type: ignore[list-item]
-            str(tmp_path),
-            scanned_vars=scanned,
-        )
+        with pytest.raises(ValueError, match="Unsafe regex"):
+            Gem5Parser.submit_parse_async(
+                str(stats_dir),
+                "stats.txt",
+                [config],  # type: ignore[list-item]
+                str(tmp_path),
+                scanned_vars=scanned,
+            )
 
 
 class TestFinalizeAndConstructCSV:

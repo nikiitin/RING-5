@@ -33,8 +33,10 @@ class TestEngineSpecificControls:
 
     @patch(f"{_MODULE}.EngineManager")
     @patch(f"{_MODULE}.st")
-    def test_matplotlib_shows_latex_preamble(self, mock_st: MagicMock, mock_em: MagicMock) -> None:
-        """When engine is Matplotlib, LaTeX preamble and TeX system are shown."""
+    def test_matplotlib_disables_latex_preamble(
+        self, mock_st: MagicMock, mock_em: MagicMock
+    ) -> None:
+        """Matplotlib fixes the preamble while still exposing the TeX system."""
         from src.web.components.plotting.settings.engine_settings import (
             render_engine_controls,
         )
@@ -48,9 +50,9 @@ class TestEngineSpecificControls:
         with patch(_WF, mock_st):
             render_engine_controls(1, {}, config)
 
-        # text_area for preamble
-        mock_st.text_area.assert_called_once()
-        assert config["latex_extra_preamble"] == "\\usepackage{amsmath}"
+        mock_st.text_area.assert_not_called()
+        mock_st.caption.assert_called_once()
+        assert config["latex_extra_preamble"] == ""
 
         # selectbox for TeX system
         mock_st.selectbox.assert_called_once()

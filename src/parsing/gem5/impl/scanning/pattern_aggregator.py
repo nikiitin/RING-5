@@ -173,15 +173,13 @@ class PatternAggregator:
         first_var = instances[0][1]
         base_type = first_var.type
 
-        # If all instances are scalars, the pattern is a vector
-        # If instances are already vectors, we need to keep pattern indices AND vector entries
+        # Repeated scalar names form a logical vector. Store the concrete names
+        # as pattern indices so the parser can request only anchored literal
+        # filters and route each scalar value into its numeric vector entry.
         if base_type == "scalar":
             result_type = "vector"
             result_entries = entries
-            # For scalars, store the actual matched variable names for proper reduction
-            pattern_indices: list[str] | None = [
-                var.name for _, var in instances
-            ]  # Store full variable names, not just numeric IDs
+            pattern_indices: list[str] | None = [var.name for _, var in instances]
         else:
             # For vectors/histograms/distributions, we need BOTH:
             # - pattern_indices: numeric IDs from variable names (for pattern selection)

@@ -76,6 +76,16 @@ def test_render_visualization_tab_search_specific(mock_streamlit: Any) -> None:
     mock_streamlit.info.assert_any_call("Found 1 matching rows (out of 2 total)")
 
 
+def test_render_visualization_search_is_literal(mock_streamlit: Any) -> None:
+    df = pd.DataFrame({"A": ["value[0]", "value0"]})
+    mock_streamlit.selectbox.side_effect = ["A", "All"]
+    mock_streamlit.text_input.return_value = "["
+
+    DataManagerComponents.render_visualization_tab(df)
+
+    mock_streamlit.info.assert_any_call("Found 1 matching rows (out of 2 total)")
+
+
 def test_render_visualization_tab_pagination(mock_streamlit: Any) -> None:
 
     df = pd.DataFrame({"A": range(100)})

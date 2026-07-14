@@ -1,3 +1,4 @@
+import copy
 from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
@@ -78,6 +79,30 @@ def test_process_line_vector(parser: Any) -> None:
 
     assert parser._entryBuffer["vector_var"]["0"] == ["10"]
     assert parser._entryBuffer["vector_var"]["1"] == ["20"]
+
+
+def test_process_pattern_scalars_into_vector_entries() -> None:
+    """Concrete scalar aliases populate their logical pattern vector."""
+    from src.parsing.gem5.types.type_mapper import TypeMapper
+
+    logical = TypeMapper.create_stat(
+        {"name": r"system.cpu\d+.cycles", "type": "vector", "entries": ["0", "1"]}
+    )
+    vars_map = cast(
+        VarsDictType,
+        {
+            r"system.cpu\d+.cycles": logical,
+            "system.cpu0.cycles": copy.copy(logical),
+            "system.cpu1.cycles": copy.copy(logical),
+        },
+    )
+    work = Gem5ParseWork("f", vars_map)
+
+    parsed = work._processOutput(
+        "scalar/system.cpu0.cycles/10\nscalar/system.cpu1.cycles/20", vars_map
+    )
+
+    assert parsed[r"system.cpu\d+.cycles"].content == {"0": [10.0], "1": [20.0]}
 
 
 def test_process_output_full_flow(parser: Any) -> None:

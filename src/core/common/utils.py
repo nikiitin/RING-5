@@ -110,6 +110,10 @@ _SAFE_GLOB_RE: re.Pattern[str] = re.compile(r"^[a-zA-Z0-9_.*?]+$")
 
 _DEFAULT_STATS_PATTERN: str = "stats.txt"
 
+# The web application is intentionally confined to the repository tree unless an
+# administrator explicitly mounts and allows additional statistics roots.
+_PROJECT_ROOT = Path(__file__).resolve().parents[3]
+
 
 def sanitize_glob_pattern(pattern: str, default: str = _DEFAULT_STATS_PATTERN) -> str:
     """Sanitize a user-provided glob pattern for safe use with rglob/glob.
@@ -168,3 +172,46 @@ def normalize_user_path(user_path: str, default: str = _DEFAULT_STATS_PATH) -> P
     # Resolve to absolute using os.path functions (CodeQL-compatible)
     resolved_path: str = os.path.normpath(os.path.abspath(normalized))
     return Path(resolved_path)
+
+
+def allowed_web_stats_roots() -> tuple[Path, ...]:
+    """Return administrator-approved roots for web-triggered stats access.
+
+    ``RING5_ALLOWED_STATS_ROOTS`` is an ``os.pathsep``-separated list. When it is
+    unset, only the repository root is allowed. The environment is read on every
+    call so tests and long-running deployments can update configuration safely.
+    """
+    configured = os.environ.get("RING5_ALLOWED_STATS_ROOTS", "")
+    raw_roots = [part.strip() for part in configured.split(os.pathsep) if part.strip()]
+    if not raw_roots:
+        return (_PROJECT_ROOT,)
+    return tuple(Path(root).expanduser().resolve(strict=False) for root in raw_roots)
+
+
+def validate_web_stats_path(user_path: str) -> Path:
+    """Resolve a web-supplied stats path and confine it to approved roots.
+
+    Symlinks are resolved before containment is checked, preventing an allowed
+    directory from linking to arbitrary server-readable locations.
+
+    Args:
+        user_path: Path supplied through the Streamlit application.
+
+    Returns:
+        The resolved path within an approved root.
+
+    Raises:
+        ValueError: If the path is outside every approved root.
+    """
+    candidate = normalize_user_path(user_path).expanduser().resolve(strict=False)
+    for root in allowed_web_stats_roots():
+        try:
+            candidate.relative_to(root)
+            return candidate
+        except ValueError:
+            continue
+    allowed = ", ".join(str(root) for root in allowed_web_stats_roots())
+    raise ValueError(
+        f"Stats path '{candidate}' is outside the allowed web roots: {allowed}. "
+        "Set RING5_ALLOWED_STATS_ROOTS on the server to authorize another root."
+    )

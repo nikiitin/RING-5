@@ -151,6 +151,15 @@ See `pyproject.toml` for the complete, authoritative dependency list, including 
 
 ## Run the Application
 
+The web interface reads statistics only from approved roots. By default, the
+repository directory is the only approved root. If your gem5 results live
+elsewhere, configure one or more absolute roots before launching the server
+(``RING5_ALLOWED_STATS_ROOTS`` uses the platform path separator):
+
+```bash
+export RING5_ALLOWED_STATS_ROOTS="/data/gem5-results:/mnt/experiments"
+```
+
 Launch RING-5 from the project root directory:
 
 ```bash

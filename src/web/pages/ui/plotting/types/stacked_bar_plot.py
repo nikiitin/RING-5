@@ -4,6 +4,7 @@ from typing import Any, override
 
 import pandas as pd
 
+from src.core.common.safe_format import safe_format_number
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import BarTraceConfig
 from src.web.components.plotting.config import stacked_bar_config
@@ -156,10 +157,7 @@ class StackedBarPlot(BasePlot):
         threshold = config.get("total_threshold", 0.0)
 
         def fmt_val(val: float) -> str:
-            try:
-                return f"{val:{total_fmt}}"
-            except ValueError:
-                return str(val)
+            return safe_format_number(val, total_fmt)
 
         annotations = []
         for total_val, x_pos in zip(data["__total"], data[x_col], strict=False):

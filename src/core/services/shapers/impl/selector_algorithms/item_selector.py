@@ -11,6 +11,7 @@ from typing import Any, cast
 
 import pandas as pd
 
+from src.core.common.security_limits import MAX_SEARCH_TERM_LENGTH, MAX_SELECTOR_STRINGS
 from src.core.models.shaper_models import ItemSelectorConfig
 from src.core.services.shapers.impl.selector import Selector
 
@@ -43,6 +44,12 @@ class ItemSelector(Selector):
             raise ValueError("ItemSelector requires 'strings' parameter.")
         if not isinstance(config["strings"], list):
             raise TypeError("ItemSelector 'strings' parameter must be a list.")
+        if len(config["strings"]) > MAX_SELECTOR_STRINGS:
+            raise ValueError(f"ItemSelector accepts at most {MAX_SELECTOR_STRINGS} search strings.")
+        if any(len(str(value)) > MAX_SEARCH_TERM_LENGTH for value in config["strings"]):
+            raise ValueError(
+                f"ItemSelector search strings cannot exceed {MAX_SEARCH_TERM_LENGTH} characters."
+            )
         return True
 
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
@@ -52,8 +59,11 @@ class ItemSelector(Selector):
         if self.mode == "exact":
             result = data_frame[data_frame[self.column].astype(str).isin(self.strings)]
         else:
-            pattern = "|".join(self.strings)
-            result = data_frame[data_frame[self.column].astype(str).str.contains(pattern, na=False)]
+            values = data_frame[self.column].astype(str)
+            mask = pd.Series(False, index=data_frame.index)
+            for literal in self.strings:
+                mask = mask | values.str.contains(literal, na=False, regex=False)
+            result = data_frame[mask]
 
         if result.empty:
             logging.getLogger(__name__).warning(

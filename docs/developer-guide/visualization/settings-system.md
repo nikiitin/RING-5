@@ -433,7 +433,8 @@ editing) with three injected sub-sections:
 - **Shapes/Annotations** (`ShapesSettingsComponent`) -- Dynamic list builder for
   rectangles, lines, and circles with position, color, and width controls.
 - **Engine Controls** (`EngineSettingsComponent`) -- Engine-specific options like
-  Plotly hover mode and Matplotlib LaTeX preamble/TeX system.
+  Plotly hover mode and Matplotlib's TeX system. Custom PGF preambles are
+  deliberately disabled because the web configuration is untrusted input.
 
 ### Ordering (Sub-Section)
 

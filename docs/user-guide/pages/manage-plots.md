@@ -464,14 +464,14 @@ when you are preparing figures for a paper or presentation.
 Capabilities:
 
 - Pixel-perfect control over all visual elements.
-- Native LaTeX text rendering for mathematical notation.
 - PGF export for direct inclusion in LaTeX documents.
 - Consistent output across platforms.
 
 Engine-specific settings (in the Advanced pill):
 
-- **Extra LaTeX preamble** -- additional LaTeX packages or commands for PGF
-  export.
+- Figure labels are escaped before PGF export and custom LaTeX preambles are
+  disabled. Add document-level packages and commands in the LaTeX document that
+  includes the generated PGF file.
 - **TeX system** -- select the LaTeX compiler (xelatex by default).
 
 ---
