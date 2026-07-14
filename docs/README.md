@@ -1,26 +1,46 @@
-# RING-5 Documentation
+# RING-5 documentation source
 
-Documentation source for **RING-5** — published via GitHub Pages with the
-[just-the-docs](https://just-the-docs.com/) theme at
-**<https://nikiitin.github.io/RING-5/>**.
+The published documentation is at <https://nikiitin.github.io/RING-5/>. The source is split by
+audience:
 
-This folder is organized into three trees (each is a section in the published site's sidebar):
+- [`user-guide/`](user-guide/index.md) helps researchers install RING-5 and complete analysis
+  tasks in the web application, Python API, or CLI.
+- [`developer-guide/`](developer-guide/index.md) explains the architecture, contributor workflow,
+  subsystems, extension points, and stable interfaces.
 
-| Tree | Audience | Entry point |
-| ---- | -------- | ----------- |
-| [`user-guide/`](user-guide/index.md) | Researchers using the app | `getting-started/installation.md`, `getting-started/first-steps.md` |
-| [`developer-guide/`](developer-guide/index.md) | Contributors & maintainers | `architecture/overview.md`, `development/setup.md` |
-| [`engineering-reference/`](engineering-reference/index.md) | Maintainers needing concise reference material | `architecture/system-overview.md`, `quick-reference/file-locations.md` |
+`index.md` is the site landing page and `_config.yml` configures Jekyll and Just the Docs.
 
-`index.md` is the site landing page; `_config.yml` holds the Jekyll/just-the-docs configuration.
+## Editorial rules
 
-## Editing
+Write for readers who understand gem5 but have not used RING-5.
 
-- Each page carries just-the-docs nav front-matter (`title`, `parent`, `grand_parent`, `nav_order`,
-  `has_children`). Keep `parent`/`grand_parent` values matching the exact section/tree page titles.
-- Building locally (optional): `gem install bundler jekyll`, add a `Gemfile` with
-  `gem "just-the-docs"` + `gem "jekyll-redirect-from"`, then `bundle exec jekyll serve`. The
-  GitHub Pages workflow (`.github/workflows/pages.yml`) builds and deploys on push.
+- Lead with the reader's task or the observable result.
+- Use active voice, present tense, and direct instructions.
+- Explain a term where the reader first needs it. Use the same term in the UI, API, and docs.
+- Keep procedures short. Prefer a realistic command, configuration, or Mermaid flow over UI
+  narration.
+- State requirements and limitations without promotional language or decorative filler.
+- Do not publish component totals or inventories that will drift. Point to a registry or discovery
+  command when the software can answer the question.
+- Verify commands with executable `--help` output. Verify UI labels, API calls, registry names, and
+  formats against source or tests.
+- Use repository-relative links for source files and site-relative links for published pages.
+- Add `redirect_from` entries when a page moves or several pages merge. A redirect must name the
+  old published route, including its leading and trailing slash.
+- Do not add screenshots for procedures that change frequently. Use text, code, or diagrams.
 
-Repository contribution rules are in [`/AGENTS.md`](../AGENTS.md), with task recipes under
-[`/.agents/skills/`](../.agents/skills/).
+## Page structure
+
+Every published Markdown page starts with YAML front matter. Use a unique `title`, set `parent` and
+`grand_parent` to exact page titles, and use `nav_order` for stable navigation. Directory index
+pages use an explicit `permalink` ending in `/` and set `has_children: true` when applicable.
+
+Run the documentation checks before committing:
+
+```bash
+make docs-check
+make docs-build
+```
+
+Do not commit the generated `_site/` directory. Repository-wide contribution rules are in
+[`AGENTS.md`](../AGENTS.md).
