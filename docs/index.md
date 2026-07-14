@@ -18,7 +18,7 @@ or CLI.
 | [Developer Guide](developer-guide/) | Understand the architecture, prepare a contribution, work on a subsystem, or add an extension. |
 
 New users can follow [Installation](user-guide/getting-started/installation/) and then
-[First Steps](user-guide/getting-started/first-steps/). For a common research workflow, see
+[First Analysis](user-guide/getting-started/first-analysis/). For a common research workflow, see
 [Compare Simulations](user-guide/tutorials/compare-simulations/).
 
 Contributors should begin with the [Architecture](developer-guide/architecture/) and

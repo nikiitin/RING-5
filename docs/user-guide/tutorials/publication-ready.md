@@ -20,7 +20,7 @@ Before starting this tutorial, you should have:
 - A working RING-5 installation with data loaded on the Data Source page.
 - At least one plot already created on the Manage Plots page. If you have not
   created a plot yet, start with the
-  [Getting Started](../getting-started/first-steps.md) guide to build a basic
+  [First Analysis](../getting-started/first-analysis.md) guide to build a basic
   bar chart.
 - A LaTeX installation (TeX Live or MiKTeX) if you plan to use PGF export.
   XeLaTeX is the default TeX engine.

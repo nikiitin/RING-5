@@ -16,7 +16,7 @@ interactive work and the `ring5` API or CLI for scripts and continuous integrati
 
 1. [Install RING-5](getting-started/installation/).
 2. Read the [core concepts](getting-started/concepts/).
-3. Complete [First Steps](getting-started/first-steps/).
+3. Complete a [first analysis](getting-started/first-analysis/).
 
 ## Find a task
 
