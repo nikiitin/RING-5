@@ -73,5 +73,5 @@ with ring5.Session() as session:
     session.export(figure, "simulation-ticks.pdf")
 ```
 
-Continue with the [Data Source](../pages/data-source/) workflow or
+Continue with [Load and Parse Data](../workflows/loading-data/) or
 [Compare Simulations](../tutorials/compare-simulations/).
