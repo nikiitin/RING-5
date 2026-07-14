@@ -5,6 +5,8 @@ parent: Workflows
 grand_parent: User Guide
 nav_order: 2
 permalink: /user-guide/workflows/managing-datasets/
+redirect_from:
+  - /user-guide/pages/data-managers/
 ---
 
 # Manage datasets
@@ -88,4 +90,4 @@ Each manager records confirmed operations. Use its history to reload a configura
 replace versioned source data or a reproducible script.
 
 Next: [Create and Configure Plots](plotting/) or
-[Compare Simulations](../tutorials/compare-simulations/).
+[Compare Configurations](../guides/compare-configurations/).

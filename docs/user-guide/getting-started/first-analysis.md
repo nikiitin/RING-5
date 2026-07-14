@@ -7,6 +7,8 @@ nav_order: 3
 permalink: /user-guide/getting-started/first-analysis/
 redirect_from:
   - /user-guide/getting-started/first-steps/
+  - /user-guide/tutorials/create-bar-chart/
+  - /user-guide/tutorials/load-and-explore/
 ---
 
 # First analysis
@@ -47,7 +49,7 @@ same names.
 
 Use the download controls below the figure. A Matplotlib PDF works without a LaTeX installation.
 For the engine-specific format list and optional dependencies, see
-[Supported Formats](../reference/supported-formats/).
+[Rendering and Export](../reference/rendering-export/).
 
 ## Run the same minimal plot in Python
 
@@ -74,4 +76,4 @@ with ring5.Session() as session:
 ```
 
 Continue with [Load and Parse Data](../workflows/loading-data/) or
-[Compare Simulations](../tutorials/compare-simulations/).
+[Compare Configurations](../guides/compare-configurations/).

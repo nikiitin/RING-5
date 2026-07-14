@@ -19,7 +19,7 @@ or CLI.
 
 New users can follow [Installation](user-guide/getting-started/installation/) and then
 [First Analysis](user-guide/getting-started/first-analysis/). For a common research workflow, see
-[Compare Simulations](user-guide/tutorials/compare-simulations/).
+[Compare Configurations](user-guide/guides/compare-configurations/).
 
 Contributors should begin with the [Architecture](developer-guide/architecture/) and
 [Development Setup](developer-guide/development/setup/).

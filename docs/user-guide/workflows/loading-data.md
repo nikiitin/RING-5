@@ -5,6 +5,8 @@ parent: Workflows
 grand_parent: User Guide
 nav_order: 1
 permalink: /user-guide/workflows/loading-data/
+redirect_from:
+  - /user-guide/pages/data-source/
 ---
 
 # Load and parse data

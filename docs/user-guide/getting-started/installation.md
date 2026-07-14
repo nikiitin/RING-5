@@ -73,7 +73,7 @@ ring5 --help
 ```
 
 If either command fails, confirm that you are in the repository root and that
-`python_venv/bin/python` exists. See the [FAQ](../reference/faq/) for dependency,
+`python_venv/bin/python` exists. See [Troubleshooting and FAQ](../reference/troubleshooting/) for dependency,
 parser, rendering, and portfolio failures.
 
 Next: [Core Concepts](concepts/) and [First Analysis](first-analysis/).

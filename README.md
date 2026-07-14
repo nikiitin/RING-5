@@ -46,7 +46,7 @@ with ring5.Session() as session:
 ```
 
 Use `ring5.available_plot_types()` to discover registered plot identifiers. The
-[scripting workflow](https://nikiitin.github.io/RING-5/user-guide/features/scripting/) covers
+[scripting workflow](https://nikiitin.github.io/RING-5/user-guide/workflows/scripting/) covers
 parsing, transformations, portfolios, and the CLI.
 
 ## Documentation
