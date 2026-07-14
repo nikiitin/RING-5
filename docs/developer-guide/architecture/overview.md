@@ -1,299 +1,63 @@
 ---
-title: "Architecture Overview"
+layout: default
+title: Architecture Overview
 parent: Architecture
 grand_parent: Developer Guide
 nav_order: 1
-redirect_from:
-  - /developer/Architecture/
-  - /Architecture/
+permalink: /developer-guide/architecture/overview/
 ---
 
-# Architecture Overview
+# Architecture overview
 
-## 1. Overview
+RING-5 has two composition roots and a one-way dependency structure. `app.py` builds a Streamlit
+workspace; `ring5/` builds the supported headless workflow. Both compose parsing, core services, and
+rendering without moving UI dependencies into the domain.
 
-RING-5 Unified Engine v2 is a Streamlit-based web application for gem5
-simulation data analysis and publication-quality plot generation. It ingests
-raw simulation statistics (gem5 `stats.txt` files or pre-built CSV), applies
-configurable data transformations, builds interactive visualizations with
-Plotly and Matplotlib, and exports figures suitable for academic publication.
-
-The codebase is organized as a strict **3-layer architecture** totalling
-roughly 237 Python files across 42 packages. Every import between layers
-follows a single rule -- the Web layer depends on Core; the Parsing layer
-depends on Core; no other cross-layer direction is permitted.
-
----
-
-## 2. The Three Layers
-
-```
-+-----------------------------------------------------------------------+
-|                       Web  (Presentation)                             |
-|  ~120 files   src/web/                                                |
-|  Pages, Components, Controllers, Rendering Engines                    |
-+----------------------------------+------------------------------------+
-                                   |
-                                   v  (imports)
-+-----------------------------------------------------------------------+
-|                       Core  (Domain)                                  |
-|  81 files     src/core/                                               |
-|  Models, Services, State Repositories, ApplicationAPI Facade          |
-+----------------------------------+------------------------------------+
-                                   ^
-                                   |  (imports)
-+-----------------------------------------------------------------------+
-|                       Parsing  (Data / Infrastructure)                |
-|  36 files     src/parsing/                                            |
-|  gem5 Parser, Scanner, Perl Worker Pool, Strategy Pattern             |
-+-----------------------------------------------------------------------+
+```mermaid
+flowchart TB
+    APP[app.py] --> WEB[src/web]
+    API[ring5 package] --> CORE[src/core]
+    API --> PARSE[src/parsing]
+    API --> RENDER[src/web/rendering]
+    WEB --> CORE
+    WEB --> PARSE
+    PARSE --> MODELS[src/core/models]
+    CORE --> MODELS
 ```
 
-**Import rule: Web --> Core <-- Parsing.** No violations exist.
+## Ownership
 
-### Core (`src/core/`, 81 files)
+| Area | Owns | Does not own |
+| --- | --- | --- |
+| `src/parsing/` | Simulator discovery, variable scanning, parser strategies, CSV assembly | Streamlit state or plot rendering |
+| `src/core/models/` | Cross-boundary dataclasses, typed mappings, protocols, visualization configuration | Service orchestration or UI widgets |
+| `src/core/services/` | Data operations, shaper execution, persistent application data, portfolio migration | Streamlit rendering |
+| `src/core/state/` | Repository-backed workspace state | UI-only widget state |
+| `src/web/components/` | Streamlit widgets and visual output | Domain decisions |
+| `src/web/controllers/` | UI orchestration across components and protocols | Persistent domain state implementations |
+| `src/web/rendering/` | Plotly and Matplotlib connectors, figure configuration resolution, export bytes | Core business rules |
+| `ring5/` | Stable Python facade, typed errors, CLI, headless composition | A promise that `src.*` is public API |
 
-The domain layer. Contains all business models, service interfaces,
-service implementations, and application state. It has zero UI imports.
+`src/core/application_api.py` is the facade used by the web application. It exposes services and
+state operations without allowing components to construct repositories directly.
 
-| Sub-package | Purpose |
-|---|---|
-| `models/` | Dataclasses, TypedDicts, Protocols (`PlotProtocol`, `PlotDeserializer`) |
-| `models/visualization/` | 13 config models (`FigureConfig`, `TraceConfig`, `AxisConfig`, ...) |
-| `services/` | `ServicesAPI` facade, managers, data services, shapers, visualization |
-| `state/` | `StateManager` Protocol, `RepositoryStateManager`, 7 child repositories |
-| `application_api.py` | Top-level facade -- the single entry point for the UI |
+## Visualization boundary
 
-### Parsing (`src/parsing/`, 36 files)
+Plot implementations under `src/web/pages/ui/plotting/` map processed data into typed,
+engine-independent traces. Rendering connectors translate those traces and the resolved figure
+configuration into Plotly or Matplotlib figures. The public API uses the same builder and exporters,
+so a headless Matplotlib render follows the application path below the Streamlit component.
 
-Handles all data ingestion. Currently only gem5 is implemented, but a
-Protocol-based design (`SimulationParser`) supports adding new simulator
-backends without touching Core or Web.
+## State boundary
 
-| Sub-package | Purpose |
-|---|---|
-| `parser_protocol.py` | `SimulationParser` Protocol (5 methods) |
-| `registry.py` | `SimulatorRegistry` with auto-discovery |
-| `framework/` | Simulator-agnostic infra: `WorkPool`, `Job`, `find_stats_files` |
-| `gem5/impl/` | `Gem5Parser` (parse + scan + CSV), pools, strategies |
-| `gem5/types/` | Self-registering stat types (scalar, vector, distribution, histogram, configuration) |
+`RepositoryStateManager` delegates to repositories for session data, parser configuration,
+previews, plots, visualization state, and history. Web-only transient state remains behind
+`UIStateManager`. Core and parsing code never access `st.session_state`.
 
-### Web (`src/web/`, ~120 files)
+## Extension boundary
 
-The presentation layer. Owns all Streamlit UI code, rendering engines, and
-user interaction logic.
+Registries select simulator backends, parsing strategies, plots, and shapers. Serialized plot and
+shaper identifiers are compatibility contracts for portfolios and pipelines. Add migration support
+before renaming one.
 
-| Sub-package | Purpose |
-|---|---|
-| `pages/` | 5 Streamlit pages + plot adapters |
-| `pages/ui/plotting/` | `BasePlot` ABC, `PlotFactory`, 9 plot types, settings pills, styles |
-| `controllers/plot/` | Creation, pipeline, and render controllers |
-| `components/` | Reusable UI components (common, data source, data managers, shapers, plotting) |
-| `rendering/` | `ConfigSpecBuilder`, Plotly connector, Matplotlib connector, engine manager |
-| `state/ui_state_manager.py` | Web-layer session state management |
-
----
-
-## 3. Entry Point and Initialization
-
-The application entry point is `app.py` (172 lines). All imports are wrapped
-inside `run_app()` so that multiprocessing workers do not trigger Streamlit
-context warnings.
-
-**Initialization sequence** (`app.py:15-59`):
-
-1. `st.set_page_config(layout="wide")` configures the Streamlit page.
-2. `ApplicationAPI` is created lazily under `st.session_state.api`, giving each
-   browser session its own mutable workspace.
-3. `PlotFactory.from_dict` is injected as `plot_deserializer` -- this is how Core
-   can deserialize plot dicts back into Web-layer `BasePlot` instances without
-   ever importing from Web.
-4. Every page receives that session's API instance through dependency injection.
-
-**`ApplicationAPI` composition** (`src/core/application_api.py:60-76`):
-
-```
-ApplicationAPI
-  |-- RepositoryStateManager   (state)
-  |-- DefaultServicesAPI        (services facade)
-  |     |-- DefaultManagersAPI       (arithmetic, outlier, reduction)
-  |     |-- DefaultDataServicesAPI   (CSV pool, config, variables, portfolio)
-  |     \-- DefaultShapersAPI        (factory, pipeline, 7+ shapers)
-  \-- SimulationParser          (Gem5Parser backend: parse + scan)
-```
-
-Constructor injection is used throughout. `ApplicationAPI.__init__` accepts a
-`PlotDeserializer` callback and an optional `SimulationParser`. Sub-APIs
-(`ServicesAPI`, `DataServicesAPI`, etc.) are composed internally and exposed as
-read-only properties: `api.managers`, `api.data_services`, `api.shapers`.
-
----
-
-## 4. Navigation and Pages
-
-RING-5 uses custom sidebar navigation (not Streamlit's native `st.navigation`).
-The active page name is stored in `st.session_state["_nav_page"]` and page
-modules are lazy-imported on each rerun (`app.py:138-157`).
-
-| # | Page | Module | Entry | Responsibility |
-|---|---|---|---|---|
-| 1 | Data Source | `src/web/pages/data_source.py` | `DataSourcePage(api).render()` | Parse gem5 stats, upload CSV, or load from recent pool |
-| 2 | Data Managers | `src/web/pages/data_managers.py` | `show_data_managers_page(api)` | Seeds reduction, outlier removal, preprocessing, mixing |
-| 3 | Manage Plots | `src/web/pages/manage_plots.py` | `show_manage_plots_page(api)` | Create plots, per-plot shaper pipelines, configure and render |
-| 4 | Save/Load Portfolio | `src/web/pages/portfolio.py` | `show_portfolio_page(api)` | Save and restore complete analysis snapshots |
-| 5 | Documentation | `src/web/pages/documentation.py` | `show_documentation_page()` | In-app links to guides and API references |
-
-Pages form a linear workflow: ingest data, transform it, plot it, save it.
-Each page (except Documentation) receives the `ApplicationAPI` instance as
-its sole dependency.
-
----
-
-## 5. Key Architectural Elements
-
-### 5.1 Protocols (19 total)
-
-| Layer | Protocol | File | Purpose |
-|---|---|---|---|
-| Core | `StateManager` | `src/core/state/state_manager.py` | 40+ method contract for all state operations |
-| Core | `PlotProtocol` | `src/core/models/plot_protocol.py` | Decouples Core from Web's `BasePlot` |
-| Core | `ServicesAPI` | `src/core/services/services_api.py` | Unified service facade |
-| Core | `DataServicesAPI` | `src/core/services/data_services/data_services_api.py` | CSV pool, config, variables, portfolio |
-| Core | `ManagersAPI` | `src/core/services/managers/managers_api.py` | Arithmetic, outlier, reduction |
-| Core | `ShapersAPI` | `src/core/services/shapers/shapers_api.py` | Pipeline CRUD and shaper execution |
-| Core | `PlotDeserializer` | `src/core/models/plot_protocol.py` | Callback type for dict-to-plot conversion |
-| Parsing | `SimulationParser` | `src/parsing/parser_protocol.py` | 4-method contract for simulator backends |
-| Parsing | `FileParserStrategy` | `src/parsing/gem5/impl/strategies/file_parser_strategy.py` | Strategy for individual file parsing |
-| Web | 10 Protocols | `src/web/models/plot_protocols.py` and others | `PlotHandle`, `ConfigRenderer`, `RenderablePlot`, `PipelineExecutor`, etc. |
-
-### 5.2 Factories (4)
-
-| Factory | File | Creates |
-|---|---|---|
-| `ShaperFactory` | `src/core/services/shapers/factory.py` | Shaper instances (10 registered types) |
-| `StrategyFactory` | `src/parsing/gem5/impl/strategies/factory.py` | `FileParserStrategy` instances |
-| `PlotFactory` | `src/web/pages/ui/plotting/plot_factory.py` | `BasePlot` instances (9 plot types) |
-| `StyleUIFactory` | `src/web/pages/ui/plotting/styles/factory.py` | `BaseStyleUI` instances |
-
-### 5.3 Registries (4)
-
-| Registry | File | Discovery |
-|---|---|---|
-| `ShaperFactory._registry` | `src/core/services/shapers/factory.py` | Static dict + `register()` classmethod |
-| `SimulatorRegistry` | `src/parsing/registry.py` | Auto-registration via package imports |
-| `StatTypeRegistry` | `src/parsing/gem5/types/__init__.py` | Self-registering on import |
-| `PlotFactory` | `src/web/pages/ui/plotting/plot_factory.py` | Static dict in factory |
-
-### 5.4 Abstract Base Classes (4)
-
-| ABC | File | Concrete Types |
-|---|---|---|
-| `Shaper` | `src/core/services/shapers/shaper.py` | 7+ shapers (Selector, Sort, Mean, Normalize, Pivot, ...) |
-| `Job` | `src/parsing/framework/job.py` | `ParseWork`, `ScanWork` |
-| `BasePlot` | `src/web/pages/ui/plotting/base_plot.py` | 9 plot types (Bar, Line, Scatter, Heatmap, ...) |
-| `DataManager` | `src/web/components/data_managers/data_manager.py` | Preprocessor, SeedsReducer, OutlierRemover, Mixer |
-
----
-
-## 6. Package-Level Dependency Graph
-
-```
-+---------------------------------------------------------------------------+
-|                        PRESENTATION (Web)                                 |
-|                                                                           |
-|  pages/ --> controllers/ --> components/ --> rendering/                    |
-|    |              |               |               |                       |
-|    |              +---------------+---------------+                       |
-|    |                           |                                          |
-|    |                    models/plot_protocols.py                           |
-|    |                    models/plot_models.py                              |
-|    |                    state/ui_state_manager.py                          |
-|    |                           |                                          |
-|    +---------------------------+------------------------------------------+
-                                 |
-                                 v
-+---------------------------------------------------------------------------+
-|                       DOMAIN (Core)                                       |
-|                                                                           |
-|  application_api.py  (FACADE)                                             |
-|    +-- services/                                                          |
-|    |   +-- services_api.py    (Protocol)                                  |
-|    |   +-- services_impl.py   (DefaultServicesAPI)                        |
-|    |   +-- managers/          (arithmetic, outlier, reduction)             |
-|    |   +-- data_services/     (CSV, config, variables, portfolio)          |
-|    |   +-- shapers/           (factory, pipeline, 7+ shapers)             |
-|    |   \-- visualization/     (resolver, palette, interaction)             |
-|    +-- models/                                                            |
-|    |   +-- data_models.py     parsing_models.py  shaper_models.py         |
-|    |   +-- plot_protocol.py   plot_config.py     history_models.py        |
-|    |   \-- visualization/     (figure, trace, axis, legend, etc.)         |
-|    \-- state/                                                             |
-|        +-- state_manager.py   (Protocol)                                  |
-|        +-- repository_state_manager.py  (Implementation)                  |
-|        \-- repositories/      (7 child repositories)                      |
-|                                                                           |
-|    application_api.py --> parsing.parser_protocol.SimulationParser         |
-|    application_api.py --> parsing.registry.SimulatorRegistry               |
-|                                                                           |
-+---------------------------------------------------------------------------+
-                                 ^
-                                 |
-+---------------------------------------------------------------------------+
-|                    DATA / INFRASTRUCTURE (Parsing)                        |
-|                                                                           |
-|  parser_protocol.py    (SimulationParser Protocol)                        |
-|  registry.py           (SimulatorRegistry)                                |
-|  framework/            (WorkPool, Job, find_stats_files -- shared)        |
-|  gem5/                                                                    |
-|    +-- impl/                                                              |
-|    |   +-- gem5_parser.py   (Gem5Parser: parse + scan + CSV)              |
-|    |   +-- pool/            (ScanWorkPool / ParseWorkPool facades)        |
-|    |   +-- scanning/        (scanner, pattern_aggregator)                 |
-|    |   \-- strategies/      (simple, config_aware, perl_worker_pool)      |
-|    \-- types/               (scalar, vector, distribution, etc.)          |
-|                                                                           |
-+---------------------------------------------------------------------------+
-
-Legend:
-  -->  = imports / depends on
-  ^/v  = allowed dependency direction
-```
-
----
-
-## 7. Streamlit Integration Points
-
-The application bridges its layered architecture with Streamlit at five
-well-defined points.
-
-| Concern | Location | Mechanism |
-|---|---|---|
-| **Session workspace** | `app.py` | `st.session_state.api` owns one `ApplicationAPI` per browser session |
-| **Domain state storage** | `src/core/state/repositories/` | Seven pure-Python repositories owned by that API instance |
-| **Page routing** | `app.py:138-157` | Manual `if/elif` dispatch on `st.session_state["_nav_page"]` with lazy imports |
-| **Fragment isolation** | `app.py:115-135`, pages | `@st.fragment` / `st.fragment(fn)` scopes reruns to individual tabs and sections (11 fragments total) |
-| **Web-layer UI state** | `src/web/state/ui_state_manager.py` | Centralised management of widget keys (`plot.{id}.*`, `manager.{name}.*`) |
-
-Two rendering engines are supported and selectable at runtime via
-`st.session_state["ring5_engine_mode"]`:
-
-- **Plotly** (default) -- interactive charts with zoom, pan, hover, and legend
-  drag. Rendered through `src/web/rendering/trace_to_plotly.py` and
-  `src/web/rendering/plotly_connector.py`.
-- **Matplotlib** -- publication-quality output with LaTeX font support and PGF
-  export. Rendered through `src/web/rendering/matplotlib_connector.py` and
-  `src/web/rendering/matplotlib_trace_renderer.py`.
-
----
-
-## 8. See Also
-
-| Topic | Path |
-|---|---|
-| Layer Boundaries (detailed import analysis) | `docs/developer-guide/architecture/layer-boundaries.md` |
-| Design Patterns (12 patterns in depth) | `docs/developer-guide/architecture/design-patterns.md` |
-| State Management (repository pattern) | `docs/developer-guide/core/state-management.md` |
-| Core Services API | `docs/developer-guide/api-reference/services-api.md` |
-| Plotting System | `docs/developer-guide/visualization/plotting-system.md` |
-| Parsing System | `docs/developer-guide/parsing/parsing-architecture.md` |
-| Adding a New Plot Type | `docs/developer-guide/extension-guides/adding-a-plot-type.md` |
+Continue with [Data Flow](data-flow/) and [Layer Boundaries](layer-boundaries/).
