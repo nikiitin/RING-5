@@ -54,5 +54,5 @@ companion `.sd` columns are divided by the same baseline. A pipeline failure rai
 `ring5.PipelineError` with the failing step index and shaper type where available.
 
 Serialized configuration is validated by each shaper. Use the web configuration form or the typed
-models documented in the [Developer Guide](../../developer-guide/core/models-reference/) rather than
+models documented in the [Developer Guide](../../developer-guide/api-reference/models-and-protocols/) rather than
 guessing keys for complex steps.

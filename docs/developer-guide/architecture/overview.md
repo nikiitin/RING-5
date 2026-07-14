@@ -5,6 +5,9 @@ parent: Architecture
 grand_parent: Developer Guide
 nav_order: 1
 permalink: /developer-guide/architecture/overview/
+redirect_from:
+  - /engineering-reference/architecture/
+  - /engineering-reference/architecture/system-overview/
 ---
 
 # Architecture overview

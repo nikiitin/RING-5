@@ -5,6 +5,17 @@ parent: Subsystems
 grand_parent: Developer Guide
 nav_order: 3
 permalink: /developer-guide/subsystems/visualization/
+redirect_from:
+  - /developer-guide/core/visualization-configs/
+  - /developer-guide/visualization/
+  - /developer-guide/visualization/plotting-system/
+  - /developer-guide/visualization/rendering-engines/
+  - /developer-guide/visualization/settings-system/
+  - /developer-guide/visualization/shaper-pipeline/
+  - /engineering-reference/visualization/
+  - /engineering-reference/visualization/figure-config-guide/
+  - /engineering-reference/visualization/rendering-pipeline/
+  - /engineering-reference/visualization/sentinel-resolution/
 ---
 
 # Visualization subsystem

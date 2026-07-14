@@ -5,6 +5,12 @@ parent: Subsystems
 grand_parent: Developer Guide
 nav_order: 4
 permalink: /developer-guide/subsystems/web/
+redirect_from:
+  - /developer-guide/web/
+  - /developer-guide/web/components-catalog/
+  - /developer-guide/web/controllers/
+  - /developer-guide/web/pages-navigation/
+  - /developer-guide/web/streamlit-best-practices/
 ---
 
 # Web application

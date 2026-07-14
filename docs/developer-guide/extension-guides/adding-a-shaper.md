@@ -5,6 +5,8 @@ parent: Extension Guides
 grand_parent: Developer Guide
 nav_order: 3
 permalink: /developer-guide/extension-guides/adding-a-shaper/
+redirect_from:
+  - /engineering-reference/development/adding-a-shaper/
 ---
 
 # Add a shaper

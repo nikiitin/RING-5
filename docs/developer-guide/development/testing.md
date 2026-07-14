@@ -5,6 +5,8 @@ parent: Development
 grand_parent: Developer Guide
 nav_order: 3
 permalink: /developer-guide/development/testing/
+redirect_from:
+  - /engineering-reference/development/testing-patterns/
 ---
 
 # Testing

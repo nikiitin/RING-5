@@ -5,6 +5,8 @@ parent: Extension Guides
 grand_parent: Developer Guide
 nav_order: 4
 permalink: /developer-guide/extension-guides/adding-a-renderer/
+redirect_from:
+  - /engineering-reference/development/adding-a-renderer/
 ---
 
 # Add a renderer

@@ -5,6 +5,12 @@ parent: Development
 grand_parent: Developer Guide
 nav_order: 2
 permalink: /developer-guide/development/workflow/
+redirect_from:
+  - /engineering-reference/development/
+  - /engineering-reference/quick-reference/
+  - /engineering-reference/quick-reference/common-tasks/
+  - /engineering-reference/quick-reference/file-locations/
+  - /engineering-reference/quick-reference/naming-conventions/
 ---
 
 # Contributor workflow

@@ -5,6 +5,10 @@ parent: Subsystems
 grand_parent: Developer Guide
 nav_order: 1
 permalink: /developer-guide/subsystems/parsing/
+redirect_from:
+  - /developer-guide/parsing/
+  - /developer-guide/parsing/parsing-architecture/
+  - /developer-guide/parsing/gem5-deep-dive/
 ---
 
 # Parsing subsystem

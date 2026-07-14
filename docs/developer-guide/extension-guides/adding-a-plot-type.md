@@ -5,6 +5,8 @@ parent: Extension Guides
 grand_parent: Developer Guide
 nav_order: 2
 permalink: /developer-guide/extension-guides/adding-a-plot-type/
+redirect_from:
+  - /engineering-reference/development/adding-a-plot-type/
 ---
 
 # Add a plot type

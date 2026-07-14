@@ -5,6 +5,11 @@ parent: Development
 grand_parent: Developer Guide
 nav_order: 6
 permalink: /developer-guide/development/troubleshooting/
+redirect_from:
+  - /engineering-reference/troubleshooting/
+  - /engineering-reference/troubleshooting/common-issues/
+  - /engineering-reference/troubleshooting/debugging-guide/
+  - /engineering-reference/troubleshooting/performance/
 ---
 
 # Development troubleshooting

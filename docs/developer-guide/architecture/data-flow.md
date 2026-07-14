@@ -5,6 +5,8 @@ parent: Architecture
 grand_parent: Developer Guide
 nav_order: 2
 permalink: /developer-guide/architecture/data-flow/
+redirect_from:
+  - /engineering-reference/architecture/data-flow/
 ---
 
 # Data flow
