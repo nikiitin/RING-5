@@ -17,12 +17,11 @@ pytestmark = pytest.mark.xdist_group("ring5_portfolios")
 
 
 def _first_stats_subtree() -> Path:
-    """A small real gem5 subtree from the test dataset."""
+    """The directory for one real gem5 run from the test dataset."""
     if not DATA_ROOT.exists():
         pytest.skip("test data not downloaded (make test-data)")
-    for sub in sorted(DATA_ROOT.iterdir()):
-        if sub.is_dir() and any(sub.rglob("stats.txt")):
-            return sub
+    for stats_file in sorted(DATA_ROOT.rglob("stats.txt")):
+        return stats_file.parent
     pytest.skip("no stats.txt under test data")
 
 

@@ -8,6 +8,7 @@ seed reduction, mixing, and outlier removal operations.
 import pandas as pd
 import streamlit as st
 
+from src.core.common.security_limits import MAX_SEARCH_TERM_LENGTH
 from src.web.components.common.data_components import DataComponents
 
 
@@ -82,16 +83,20 @@ class DataManagerComponents:
         # Apply search filter
         filtered_data = data.copy()
         if search_term:
+            search_term = search_term[:MAX_SEARCH_TERM_LENGTH]
             if search_column == "All Columns":
                 mask = filtered_data.astype(str).apply(
-                    lambda row: row.str.contains(search_term, case=False, na=False).any(), axis=1
+                    lambda row: row.str.contains(
+                        search_term, case=False, na=False, regex=False
+                    ).any(),
+                    axis=1,
                 )
                 filtered_data = filtered_data[mask]
             else:
                 mask = (
                     filtered_data[search_column]
                     .astype(str)
-                    .str.contains(search_term, case=False, na=False)
+                    .str.contains(search_term, case=False, na=False, regex=False)
                 )
                 filtered_data = filtered_data[mask]
             st.info(f"Found {len(filtered_data)} matching rows (out of {len(data)} total)")

@@ -14,7 +14,7 @@ class EngineSettingsComponent:
     """Render controls that depend on the current rendering engine.
 
     **Plotly mode**: hovermode selector.
-    **Matplotlib mode**: LaTeX preamble, TeX system.
+    **Matplotlib mode**: secure PGF export settings and TeX system.
 
     Parameters
     ----------
@@ -54,11 +54,9 @@ class EngineSettingsComponent:
             )
         elif EngineManager.is_matplotlib():
             st.markdown("#### :material/description: LaTeX Settings")
-            config["latex_extra_preamble"] = st.text_area(
-                "Extra LaTeX preamble",
-                value=saved_config.get("latex_extra_preamble", ""),
-                key=f"latex_preamble_{self.plot_id}",
-                help=("Additional LaTeX preamble commands " "(e.g. \\\\usepackage{...})."),
+            config["latex_extra_preamble"] = ""
+            st.caption(
+                "Custom LaTeX preambles are disabled because PGF export treats them as code."
             )
             config["tex_system"] = select_option(
                 "TeX system",

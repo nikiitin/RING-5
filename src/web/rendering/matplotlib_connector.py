@@ -16,11 +16,13 @@ import logging
 import re
 from typing import TYPE_CHECKING, Any, cast
 
+from src.core.common.safe_format import normalize_numeric_format
 from src.core.models.visualization.data_label_config import DataLabelConfig
 from src.core.models.visualization.figure_config import FigureConfig
 from src.core.models.visualization.legend_config import ColorbarConfig
 from src.core.models.visualization.trace_build_result import RuleLine, SeparatorLine, ShadedRegion
 from src.web.rendering._render_result import MatplotlibRenderResult
+from src.web.rendering.latex_security import escape_latex_text
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -283,7 +285,7 @@ class FigureSpecToMatplotlib:
             raise ValueError("FigureConfig requires typography")
         weight = "bold" if typo.bold_title else "normal"
         ax.set_title(
-            FigureSpecToMatplotlib._escape_latex(spec.title),
+            spec.title,
             fontsize=typo.font_size_title,
             fontweight=weight,
         )
@@ -302,7 +304,7 @@ class FigureSpecToMatplotlib:
         if x_label:
             weight = "bold" if typo.bold_xlabel else "normal"
             ax.set_xlabel(
-                FigureSpecToMatplotlib._escape_latex(x_label),
+                x_label,
                 fontsize=typo.font_size_xlabel,
                 fontweight=weight,
                 labelpad=spec.axes.x.label_pad,
@@ -319,7 +321,7 @@ class FigureSpecToMatplotlib:
                 else spec.axes.y.label_pad
             )
             ax.set_ylabel(
-                FigureSpecToMatplotlib._escape_latex(y_label),
+                y_label,
                 fontsize=typo.font_size_ylabel,
                 fontweight=weight,
                 labelpad=y_pad,
@@ -346,7 +348,7 @@ class FigureSpecToMatplotlib:
                     if y2_label:
                         weight = "bold" if typo.bold_y2label else "normal"
                         child_ax.set_ylabel(
-                            FigureSpecToMatplotlib._escape_latex(y2_label),
+                            y2_label,
                             fontsize=typo.font_size_y2label,
                             fontweight=weight,
                             labelpad=spec.axes.y2.label_pad,
@@ -412,9 +414,8 @@ class FigureSpecToMatplotlib:
             except (TypeError, ValueError):
                 x_tick_positions = list(range(len(x_axis.tick_values)))
             ax.set_xticks(x_tick_positions)
-            escaped = [FigureSpecToMatplotlib._escape_latex(str(t)) for t in x_axis.tick_text]
             ax.set_xticklabels(
-                escaped,
+                [str(t) for t in x_axis.tick_text],
                 rotation=x_axis.tick_angle,
                 ha=x_axis.tick_ha,
                 fontsize=typo.font_size_ticks,
@@ -451,9 +452,8 @@ class FigureSpecToMatplotlib:
             except (TypeError, ValueError):
                 y_tick_positions = list(range(len(y_axis.tick_values)))
             ax.set_yticks(y_tick_positions)
-            escaped = [FigureSpecToMatplotlib._escape_latex(str(t)) for t in y_axis.tick_text]
             ax.set_yticklabels(
-                escaped,
+                [str(t) for t in y_axis.tick_text],
                 fontsize=typo.font_size_yticks,
                 rotation=y_axis.tick_angle,
             )
@@ -656,26 +656,8 @@ class FigureSpecToMatplotlib:
 
     @staticmethod
     def _escape_latex(text: str) -> str:
-        r"""Escape special LaTeX characters in display text.
-
-        Preserves existing LaTeX commands (\textbf, \texttt, etc.)
-        and only escapes raw special characters.
-        """
-        if not text:
-            return text
-
-        # Don't escape if text already contains LaTeX commands
-        if "\\" in text and any(
-            cmd in text for cmd in ["\\textbf", "\\texttt", "\\textit", "\\mathrm"]
-        ):
-            return text
-
-        # Escape special characters
-        special_chars = ["&", "%", "$", "#", "_", "{", "}"]
-        result = text
-        for char in special_chars:
-            result = result.replace(char, f"\\{char}")
-        return result
+        r"""Escape untrusted text for TeX-backed export."""
+        return escape_latex_text(text)
 
     # Layout decoration helpers
     _DASH_MAP: dict[str, str] = {
@@ -841,7 +823,8 @@ class FigureSpecToMatplotlib:
         # handles these natively; on matplotlib skip the labels rather than abort the figure.
         if dl.format_string and "%{" in dl.format_string:
             return
-        fmt = f"{{:{dl.format_string}}}" if dl.format_string else "{:.2f}"
+        safe_format = normalize_numeric_format(dl.format_string)
+        fmt = f"{{:{safe_format}}}"
 
         color = dl.custom_color if dl.color_mode == "custom" else "#000000"
         # Clamp rotation to Plotly's accepted [-360, 360] for dual-engine parity.
@@ -917,7 +900,7 @@ class FigureSpecToMatplotlib:
             raw_text = re.sub(r"<[^>]+>", "", raw_text)
             # Convert HTML entities to plain characters
             raw_text = raw_text.replace("&nbsp;", " ").replace("&amp;", "&")
-            text = FigureSpecToMatplotlib._escape_latex(raw_text)
+            text = raw_text
 
             # Determine coordinate transform
             if ann.xref == "paper" and ann.yref == "paper":

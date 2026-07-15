@@ -428,6 +428,10 @@ class TestReconstructConcreteName:
         result = PatternIndexService.reconstruct_concrete_name(r"system.cpu\d+.ipc", "3")
         assert result == "system.cpu3.ipc"
 
+    def test_escaped_literal_punctuation_is_canonicalized(self) -> None:
+        result = PatternIndexService.reconstruct_concrete_name(r"system\.cpu\d+\.ipc", "3")
+        assert result == "system.cpu3.ipc"
+
     def test_single_dimension_zero(self) -> None:
         r"""``system.cpu\d+.numCycles`` + ``"0"`` → ``system.cpu0.numCycles``."""
         result = PatternIndexService.reconstruct_concrete_name(r"system.cpu\d+.numCycles", "0")
@@ -451,6 +455,15 @@ class TestReconstructConcreteName:
         """Two-digit IDs are handled correctly."""
         result = PatternIndexService.reconstruct_concrete_name(r"system.cpu\d+.ipc", "15")
         assert result == "system.cpu15.ipc"
+
+    @pytest.mark.parametrize("numeric_id", ["cpu", "1_cpu", "١"])
+    def test_non_numeric_id_raises_value_error(self, numeric_id: str) -> None:
+        with pytest.raises(ValueError, match="ASCII digits"):
+            PatternIndexService.reconstruct_concrete_name(r"system.cpu\d+.ipc", numeric_id)
+
+    def test_oversized_numeric_id_raises_value_error(self) -> None:
+        with pytest.raises(ValueError, match="character limit"):
+            PatternIndexService.reconstruct_concrete_name(r"system.cpu\d+.ipc", "1" * 4097)
 
     def test_mismatch_raises_value_error(self) -> None:
         r"""Mismatched placeholder count and ID parts raises ValueError."""

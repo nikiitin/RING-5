@@ -47,6 +47,12 @@ class TestConditionSelectorModes:
         result = sel(sample_data)
         assert list(result["name"]) == ["beta"]
 
+    def test_contains_treats_regex_syntax_as_literal(self) -> None:
+        data = pd.DataFrame({"name": ["value[0]", "value0"]})
+        sel = ConditionSelector(cast(Any, {"column": "name", "mode": "contains", "value": "["}))
+
+        assert list(sel(data)["name"]) == ["value[0]"]
+
     def test_values_isin(self, sample_data: pd.DataFrame) -> None:
         sel = ConditionSelector(cast(Any, {"column": "name", "values": ["alpha", "gamma"]}))
         result = sel(sample_data)
@@ -142,6 +148,10 @@ class TestConditionSelectorValidation:
     def test_contains_no_value_raises(self) -> None:
         with pytest.raises(ValueError, match="value"):
             ConditionSelector(cast(Any, {"column": "x", "mode": "contains"}))
+
+    def test_contains_rejects_oversized_literal(self) -> None:
+        with pytest.raises(ValueError, match="cannot exceed"):
+            ConditionSelector(cast(Any, {"column": "x", "mode": "contains", "value": "x" * 257}))
 
     def test_invalid_legacy_operator_raises(self) -> None:
         with pytest.raises(ValueError, match="Invalid legacy operator"):

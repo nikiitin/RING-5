@@ -106,7 +106,7 @@ class TestSubmitParseAsync:
         config = FakeStatConfig(name=r"system\.cpu\d+\.ipc", is_regex=True)
         scanned = [
             ScannedVariable(
-                name=r"system\.cpu\d+\.ipc",
+                name=r"system.cpu\d+.ipc",
                 type="scalar",
                 pattern_indices=["system.cpu0.ipc", "system.cpu1.ipc"],
             )
@@ -127,6 +127,9 @@ class TestSubmitParseAsync:
             str(tmp_path),
             scanned_vars=scanned,
         )
+
+        expanded = strategy.get_work_items.call_args[0][2][0]
+        assert expanded.params["parsed_ids"] == ["system.cpu0.ipc", "system.cpu1.ipc"]
 
     @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
@@ -172,7 +175,7 @@ class TestSubmitParseAsync:
 
     @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
-    def test_invalid_regex_logs_warning(
+    def test_invalid_regex_is_rejected(
         self, mock_factory: MagicMock, mock_pool: MagicMock, tmp_path: Any
     ) -> None:
         stats_dir = tmp_path / "stats"
@@ -189,14 +192,103 @@ class TestSubmitParseAsync:
         pool_instance.submit_batch_async.return_value = [MagicMock()]
         mock_pool.get_instance.return_value = pool_instance
 
-        # Should not crash — just log warning
+        with pytest.raises(ValueError, match="Unsafe regex"):
+            Gem5Parser.submit_parse_async(
+                str(stats_dir),
+                "stats.txt",
+                [config],  # type: ignore[list-item]
+                str(tmp_path),
+                scanned_vars=scanned,
+            )
+
+    def test_regex_candidate_budget_is_rejected(
+        self, tmp_path: Any, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        stats_dir = tmp_path / "stats"
+        stats_dir.mkdir()
+        monkeypatch.setattr("src.parsing.gem5.impl.gem5_parser.MAX_REGEX_CANDIDATES", 1)
+        config = FakeStatConfig(name=r"system.cpu\d+.ipc", is_regex=True)
+        scanned = [
+            ScannedVariable(name="system.cpu0.ipc", type="scalar"),
+            ScannedVariable(name="system.cpu1.ipc", type="scalar"),
+        ]
+
+        with pytest.raises(ValueError, match="received 2 candidates"):
+            Gem5Parser.submit_parse_async(
+                str(stats_dir),
+                "stats.txt",
+                [config],  # type: ignore[list-item]
+                str(tmp_path),
+                scanned_vars=scanned,
+            )
+
+    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
+    def test_keep_indices_rejects_selection_not_present_in_scan(
+        self, mock_factory: MagicMock, mock_pool: MagicMock, tmp_path: Any
+    ) -> None:
+        stats_dir = tmp_path / "stats"
+        stats_dir.mkdir()
+        config = StatConfig(
+            name=r"system.cpu\d+.ipc",
+            type="scalar",
+            is_regex=True,
+            keep_indices=True,
+            params={"parsed_ids": ["9"]},
+        )
+        scanned = [
+            ScannedVariable(
+                name=r"system.cpu\d+.ipc",
+                type="vector",
+                pattern_indices=["0", "1"],
+            )
+        ]
+
+        with pytest.raises(ValueError, match="was not present in the scan results"):
+            Gem5Parser.submit_parse_async(
+                str(stats_dir),
+                "stats.txt",
+                [config],
+                str(tmp_path),
+                scanned_vars=scanned,
+            )
+
+    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
+    def test_keep_indices_accepts_mixed_concrete_and_numeric_selections(
+        self, mock_factory: MagicMock, mock_pool: MagicMock, tmp_path: Any
+    ) -> None:
+        stats_dir = tmp_path / "stats"
+        stats_dir.mkdir()
+        strategy = MagicMock()
+        strategy.get_work_items.return_value = [MagicMock()]
+        mock_factory.create.return_value = strategy
+        mock_pool.get_instance.return_value.submit_batch_async.return_value = []
+        config = StatConfig(
+            name=r"system.cpu\d+.ipc",
+            type="scalar",
+            is_regex=True,
+            keep_indices=True,
+            params={"parsed_ids": ["system.cpu0.ipc", "1"]},
+        )
+        scanned = [
+            ScannedVariable(
+                name=r"system.cpu\d+.ipc",
+                type="vector",
+                pattern_indices=["0", "1"],
+            )
+        ]
+
         Gem5Parser.submit_parse_async(
             str(stats_dir),
             "stats.txt",
-            [config],  # type: ignore[list-item]
+            [config],
             str(tmp_path),
             scanned_vars=scanned,
         )
+
+        expanded = strategy.get_work_items.call_args.args[2]
+        assert [item.name for item in expanded] == ["system.cpu0.ipc", "system.cpu1.ipc"]
 
 
 class TestFinalizeAndConstructCSV:

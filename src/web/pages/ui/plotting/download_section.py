@@ -122,8 +122,8 @@ def _render_mpl_download(plot_id: int, plot_name: str) -> None:
         st.warning("No matplotlib figure available for download.")
         return
 
-    # Resolved FigureConfig cached by the chart display — PGF reads the
-    # user's LaTeX preamble (latex_extra_preamble) from it.
+    # Resolved FigureConfig cached by the chart display. The exporter ignores
+    # custom LaTeX preambles and escapes all figure text for PGF.
     spec = st.session_state.get(f"plot.{plot_id}.mpl_spec")
 
     fmt = st.pills(

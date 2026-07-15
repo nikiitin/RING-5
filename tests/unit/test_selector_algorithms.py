@@ -120,6 +120,12 @@ class TestItemSelector:
         assert len(result) == 2
         assert set(result["name"]) == {"alpha", "gamma"}
 
+    def test_item_selector_contains_treats_patterns_as_literals(self) -> None:
+        data = pd.DataFrame({"name": ["group[0]", "group0", "other"]})
+        selector = ItemSelector({"column": "name", "strings": ["["], "mode": "contains"})
+
+        assert list(selector(data)["name"]) == ["group[0]"]
+
 
 class TestColumnSelector:
     """Tests for ColumnSelector column subsetting."""

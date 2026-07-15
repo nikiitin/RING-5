@@ -253,7 +253,14 @@ class PatternIndexService:
             ... )
             'system.ruby.l0_cntrl1.stat'
         """
+        from src.core.common.safe_regex import MAX_INPUT_LENGTH, normalize_stat_pattern
+
+        pattern_name = normalize_stat_pattern(pattern_name)
+        if len(numeric_id) > MAX_INPUT_LENGTH:
+            raise ValueError(f"numeric_id exceeds the {MAX_INPUT_LENGTH}-character limit.")
         parts = numeric_id.split("_")
+        if any(not part or not part.isascii() or not part.isdecimal() for part in parts):
+            raise ValueError("numeric_id must contain only underscore-separated ASCII digits.")
         marker = r"\d+"
         segments = pattern_name.split(marker)
 
@@ -269,4 +276,9 @@ class PatternIndexService:
             if i < len(parts):
                 result.append(parts[i])
 
-        return "".join(result)
+        concrete_name = "".join(result)
+        if len(concrete_name) > MAX_INPUT_LENGTH:
+            raise ValueError(
+                f"Reconstructed stat name exceeds the {MAX_INPUT_LENGTH}-character limit."
+            )
+        return concrete_name

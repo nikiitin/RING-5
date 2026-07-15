@@ -12,6 +12,7 @@ import logging
 import os
 from pathlib import Path
 
+from src.core.common.utils import sanitize_log_value
 from src.core.models import ScanFileResult
 from src.parsing.gem5.impl.pool.scan_work import ScanWork
 from src.parsing.gem5.impl.scanning.scanner import Gem5StatsScanner
@@ -42,9 +43,13 @@ class Gem5ScanWork(ScanWork):
             scanner = Gem5StatsScanner.get_instance()
             variables = scanner.scan_file(Path(self.file_path))
             return ScanFileResult(file_path=self.file_path, variables=variables)
-        except (RuntimeError, FileNotFoundError) as e:
-            logger.warning("SCANNER: Failed to scan %s: %s", self.file_path, e)
-            return ScanFileResult(file_path=self.file_path, error=str(e))
+        except (OSError, RuntimeError) as e:
+            logger.warning(
+                "SCANNER: Failed to scan %s: %s",
+                sanitize_log_value(self.file_path),
+                sanitize_log_value(e),
+            )
+            return ScanFileResult(file_path=self.file_path, error=sanitize_log_value(e))
 
     def __str__(self) -> str:
         return f"Gem5ScanWork({os.path.basename(self.file_path)})"

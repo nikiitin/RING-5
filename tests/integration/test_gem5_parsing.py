@@ -16,6 +16,11 @@ from src.core.services.data_services.path_service import PathService
 # concurrent Perl pools under -n3 (matches the other pool tests' convention).
 pytestmark = pytest.mark.xdist_group("perl_pool")
 
+# A scan subprocess has its own 15-second deadline. A future can also spend
+# time queued behind other scans, so its integration-test allowance must be
+# comfortably larger than the backend deadline.
+SCAN_FUTURE_TIMEOUT = 30
+
 
 class TestGem5Parsing:
     """Integration tests for parsing real gem5 data."""
@@ -54,7 +59,7 @@ class TestGem5Parsing:
         # Wait for all futures to complete
         results = []
         for future in futures:
-            result = future.result(timeout=10)  # 10 second timeout
+            result = future.result(timeout=SCAN_FUTURE_TIMEOUT)
             if result:
                 results.append(result)
 
@@ -84,7 +89,7 @@ class TestGem5Parsing:
         # Wait for scan to complete
         scan_results = []
         for future in scan_futures:
-            result = future.result(timeout=10)
+            result = future.result(timeout=SCAN_FUTURE_TIMEOUT)
             if result:
                 scan_results.append(result)
 

@@ -31,7 +31,7 @@ class Ring5Error(Exception):
 
 
 class ScanError(Ring5Error):
-    """Variable scanning failed (no files, or every file failed to scan)."""
+    """Variable scanning failed or returned an incomplete file set."""
 
 
 class ParseError(Ring5Error):

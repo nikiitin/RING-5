@@ -23,6 +23,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from src.core.common.security_limits import MAX_PARSE_LINE_COUNT
+
 logger = logging.getLogger(__name__)
 
 
@@ -115,6 +117,7 @@ class PerlWorker:
                     stderr=subprocess.PIPE,
                     text=True,
                     bufsize=1,  # line-buffered: correct for a text line protocol
+                    env={**os.environ, "RING5_MAX_PARSE_LINES": str(MAX_PARSE_LINE_COUNT)},
                 )
 
                 # Bind the reader to this process before publishing the generation.
@@ -255,6 +258,10 @@ class PerlWorker:
             RuntimeError: If worker is not healthy
             TimeoutError: If parsing exceeds timeout
         """
+        protocol_fields = [file_path, *variables]
+        if any("||" in field or "\n" in field or "\r" in field for field in protocol_fields):
+            raise ValueError("Perl worker request contains a reserved protocol delimiter.")
+
         with self._lock:
             if not self.is_healthy:
                 raise RuntimeError(f"Worker-{self.worker_id} is not healthy")
@@ -275,6 +282,7 @@ class PerlWorker:
 
                 # Read output lines until END_PARSE marker
                 output_lines = []
+                protocol_error: str | None = None
                 start_time = time.time()
 
                 while True:
@@ -292,6 +300,7 @@ class PerlWorker:
                     elif line.startswith("ERROR"):
                         logger.error(f"[Worker-{self.worker_id}] Perl error: {line}")
                         self.errors_encountered += 1
+                        protocol_error = line
                         # Continue reading to END_PARSE
                     elif line == "RESTART_NEEDED":
                         logger.warning(f"[Worker-{self.worker_id}] Worker needs restart")
@@ -302,6 +311,14 @@ class PerlWorker:
 
                 self.requests_served += 1
                 self.last_used = time.time()
+
+                if protocol_error is not None:
+                    logger.error(
+                        "[Worker-%s] Parse request failed: %s",
+                        self.worker_id,
+                        protocol_error,
+                    )
+                    return [], False
 
                 logger.debug(
                     f"[Worker-{self.worker_id}] Completed: {len(output_lines)} lines "

@@ -11,6 +11,7 @@ import streamlit as st
 from src.web.components.common.reorderable_list import (
     render_reorderable_list,
 )
+from src.web.components.common.bounded_options import bounded_unique_strings
 from src.web.models.plot_models import PlotConfig
 
 
@@ -47,7 +48,9 @@ class OrderingSettingsComponent:
         # X-axis Order
         if saved_config.get("x") and saved_config["x"] in data.columns:
             with st.expander("Reorder and Rename X-axis Labels"):
-                unique_x: list[str] = sorted(data[saved_config["x"]].unique().tolist())
+                unique_x, truncated = bounded_unique_strings(data[saved_config["x"]])
+                if truncated:
+                    st.warning("Ordering options were capped for safety.")
                 x_result = render_reorderable_list(
                     "X-axis Order",
                     unique_x,
@@ -65,7 +68,9 @@ class OrderingSettingsComponent:
         # Group Order
         if saved_config.get("group") and saved_config["group"] in data.columns:
             with st.expander("Reorder and Rename Groups"):
-                unique_g: list[str] = sorted(data[saved_config["group"]].unique().tolist())
+                unique_g, truncated = bounded_unique_strings(data[saved_config["group"]])
+                if truncated:
+                    st.warning("Group ordering options were capped for safety.")
                 g_result = render_reorderable_list(
                     "Group Order",
                     unique_g,
@@ -84,7 +89,9 @@ class OrderingSettingsComponent:
         # Legend Order (Color)
         if saved_config.get("color") and saved_config["color"] in data.columns:
             with st.expander("Reorder and Rename Legend Items"):
-                unique_c: list[str] = sorted(data[saved_config["color"]].unique().tolist())
+                unique_c, truncated = bounded_unique_strings(data[saved_config["color"]])
+                if truncated:
+                    st.warning("Legend ordering options were capped for safety.")
                 c_result = render_reorderable_list(
                     "Legend Order",
                     unique_c,

@@ -18,6 +18,9 @@ open(my $fh, '<', $filename) or die "Could not open file '$filename' $!";
 # Data structure to hold discovered variables
 # { name => { type => type, entries => [entries...] } }
 my %discovered_vars;
+my $line_count = 0;
+my $max_lines = $ENV{RING5_MAX_SCAN_LINES} // 1_000_000;
+die "Invalid scanner line limit\n" unless $max_lines =~ /^\d+$/ && $max_lines > 0;
 
 # Helper globals from TypesFormatRegex
 # We access regexes indirectly by calling classifyLine provided by TypesFormatRegex.
@@ -89,6 +92,9 @@ sub addEntry {
 }
 
 while (my $line = <$fh>) {
+    if (++$line_count > $max_lines) {
+        die "Scanner line limit exceeded ($max_lines lines): $filename\n";
+    }
     # print STDERR "DEBUG: $line\n";
     chomp $line;
     # $line =~ s/\s+$//;

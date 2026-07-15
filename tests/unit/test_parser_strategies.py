@@ -17,9 +17,10 @@ def mock_variables() -> list[StatConfig]:
 
 class TestSimpleStatsStrategy:
 
+    @patch("src.parsing.gem5.impl.strategies.simple.os.path.getsize", return_value=10)
     @patch("src.parsing.gem5.impl.strategies.simple.find_stats_files")
     def test_get_work_items_one_per_file(
-        self, mock_find: MagicMock, mock_variables: list[StatConfig]
+        self, mock_find: MagicMock, _mock_size: MagicMock, mock_variables: list[StatConfig]
     ) -> None:
         # The strategy discovers files and builds one ParseWork unit per file;
         # the worker pool that runs them is owned by Gem5Parser, not the strategy.
@@ -51,28 +52,108 @@ class TestSimpleStatsStrategy:
             name=name, type="scalar", params={"parsed_ids": [f"{name}{i}" for i in range(n)]}
         )
 
-    def test_repeat_cap_skips_huge_pattern_vars(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """A regex var expanding past the cap is skipped (not OOM-parsed)."""
+    def test_repeat_cap_rejects_huge_pattern_vars(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """A regex var expanding past the cap fails visibly before allocation."""
         monkeypatch.delenv("RING5_MAX_VAR_REPEAT", raising=False)  # default cap = 1024
         strategy = SimpleStatsStrategy()
-        var_map = strategy._map_variables(
-            [self._ids("normal.cpu", 64), self._ids("monster.matrix", 2704)]
-        )
-        # normal var (+ its aliases) stays; monster var and its aliases are dropped
-        assert "normal.cpu" in var_map and var_map["normal.cpu"].repeat == 64
-        assert not any(k.startswith("monster.matrix") for k in var_map)
+        with pytest.raises(RuntimeError, match="expands to 2704"):
+            strategy._map_variables(
+                [self._ids("normal.cpu", 64), self._ids("monster.matrix", 2704)]
+            )
 
     def test_repeat_cap_env_override(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """RING5_MAX_VAR_REPEAT tightens the cap; 0 disables it entirely."""
         strategy = SimpleStatsStrategy()
 
         monkeypatch.setenv("RING5_MAX_VAR_REPEAT", "100")
-        var_map = strategy._map_variables([self._ids("v", 64), self._ids("big", 2704)])
-        assert "v" in var_map and "big" not in var_map  # 64 <= 100 < 2704
+        with pytest.raises(RuntimeError, match="cap of 100"):
+            strategy._map_variables([self._ids("v", 64), self._ids("big", 2704)])
 
-        monkeypatch.setenv("RING5_MAX_VAR_REPEAT", "0")  # 0 == unlimited
-        var_map = strategy._map_variables([self._ids("big", 2704)])
-        assert "big" in var_map and var_map["big"].repeat == 2704
+        monkeypatch.setenv("RING5_MAX_VAR_REPEAT", "0")  # aggregate limit still applies
+        var_map = strategy._map_variables([self._ids("big", 1500)])
+        assert "big" in var_map and var_map["big"].repeat == 1500
+        with pytest.raises(RuntimeError, match="logical variables and aliases"):
+            strategy._map_variables([self._ids("too_big", 2704)])
+
+    def test_duplicate_aliases_are_deduplicated_before_repeat_count(self) -> None:
+        strategy = SimpleStatsStrategy()
+        config = StatConfig(
+            name="pattern",
+            type="scalar",
+            params={"parsed_ids": ["cpu0", "cpu0", "cpu1"]},
+        )
+
+        var_map = strategy._map_variables([config])
+
+        assert var_map["pattern"].repeat == 2
+        assert set(var_map) == {"pattern", "cpu0", "cpu1"}
+
+    def test_alias_collision_is_rejected(self) -> None:
+        strategy = SimpleStatsStrategy()
+
+        with pytest.raises(RuntimeError, match="Duplicate variable or alias"):
+            strategy._map_variables(
+                [
+                    StatConfig(name="cpu0", type="scalar"),
+                    StatConfig(
+                        name="pattern",
+                        type="scalar",
+                        params={"parsed_ids": ["cpu0"]},
+                    ),
+                ]
+            )
+
+    @patch("src.parsing.gem5.impl.strategies.simple.find_stats_files")
+    def test_file_count_limit_fails_before_submission(
+        self, mock_find: MagicMock, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr("src.parsing.gem5.impl.strategies.simple.MAX_PARSE_FILES", 1)
+        mock_find.return_value = ["one/stats.txt", "two/stats.txt"]
+
+        with pytest.raises(RuntimeError, match="2 files exceed"):
+            SimpleStatsStrategy()._get_files(".", "stats.txt")
+
+    @patch("src.parsing.gem5.impl.strategies.simple.os.path.getsize", return_value=11)
+    @patch("src.parsing.gem5.impl.strategies.simple.find_stats_files")
+    def test_per_file_byte_limit_fails_before_submission(
+        self, mock_find: MagicMock, _mock_size: MagicMock, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr("src.parsing.gem5.impl.strategies.simple.MAX_PARSE_FILE_BYTES", 10)
+        mock_find.return_value = ["one/stats.txt"]
+
+        with pytest.raises(RuntimeError, match="per-file limit"):
+            SimpleStatsStrategy()._get_files(".", "stats.txt")
+
+    @patch("src.parsing.gem5.impl.strategies.simple.os.path.getsize", return_value=10)
+    @patch("src.parsing.gem5.impl.strategies.simple.find_stats_files")
+    def test_aggregate_byte_limit_fails_before_submission(
+        self, mock_find: MagicMock, _mock_size: MagicMock, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr("src.parsing.gem5.impl.strategies.simple.MAX_PARSE_TOTAL_BYTES", 15)
+        mock_find.return_value = ["one/stats.txt", "two/stats.txt"]
+
+        with pytest.raises(RuntimeError, match="aggregate limit"):
+            SimpleStatsStrategy()._get_files(".", "stats.txt")
+
+    def test_file_variable_matrix_limit_fails_before_submission(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        strategy = SimpleStatsStrategy()
+        monkeypatch.setattr(strategy, "_get_files", lambda *_args: ["one", "two"])
+        monkeypatch.setattr("src.parsing.gem5.impl.strategies.simple.MAX_PARSE_MATRIX_CELLS", 1)
+
+        with pytest.raises(RuntimeError, match="2 file-variable cells"):
+            strategy.get_work_items(".", "stats.txt", [StatConfig(name="v", type="scalar")])
+
+    def test_variable_and_alias_limit_fails_before_submission(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        strategy = SimpleStatsStrategy()
+        monkeypatch.setattr(strategy, "_get_files", lambda *_args: ["one"])
+        monkeypatch.setattr("src.parsing.gem5.impl.strategies.simple.MAX_PARSE_VARIABLES", 1)
+
+        with pytest.raises(RuntimeError, match="2 logical variables and aliases"):
+            strategy.get_work_items(".", "stats.txt", [self._ids("v", 1)])
 
 
 class TestConfigAwareStrategy:

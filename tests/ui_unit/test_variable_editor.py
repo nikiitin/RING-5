@@ -139,12 +139,12 @@ def test_variable_editor_deep_scan(mock_streamlit: Any, mock_api: Any) -> None:
     # Mock Async Pipeline - simulate that scan completed
     mock_future = MagicMock()
     mock_future.result.return_value = [{"name": "vec", "type": "vector", "entries": ["e1", "e2"]}]
-    mock_api.backend.submit_scan_async.return_value = [mock_future]
+    mock_api.submit_scan_async.return_value = [mock_future]
 
     from src.web.components.data_source.variable_editor import VariableEditor
 
     with patch.object(VariableEditor, "_show_scan_dialog") as mock_dialog:
-        VariableEditor.render(mock_api, vars_config, available_variables=[], stats_path="/path")
+        VariableEditor.render(mock_api, vars_config, available_variables=[], stats_path=".")
 
         # Verify it was called
         mock_dialog.assert_called_once()

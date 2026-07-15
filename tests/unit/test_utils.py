@@ -145,3 +145,49 @@ class TestNormalizeUserPath:
     def test_redundant_separators_collapsed(self) -> None:
         result = utils.normalize_user_path("/tmp//data///file")
         assert "//" not in str(result)
+
+
+class TestValidateWebStatsPath:
+    def test_default_root_is_launch_directory(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.delenv("RING5_ALLOWED_STATS_ROOTS", raising=False)
+        monkeypatch.chdir(tmp_path)
+
+        assert utils.allowed_web_stats_roots() == (tmp_path.resolve(),)
+
+    def test_allowed_root_accepts_child(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        allowed = tmp_path / "allowed"
+        child = allowed / "run"
+        child.mkdir(parents=True)
+        monkeypatch.setenv("RING5_ALLOWED_STATS_ROOTS", str(allowed))
+
+        assert utils.validate_web_stats_path(str(child)) == child.resolve()
+
+    def test_outside_root_is_rejected(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        allowed = tmp_path / "allowed"
+        outside = tmp_path / "outside"
+        allowed.mkdir()
+        outside.mkdir()
+        monkeypatch.setenv("RING5_ALLOWED_STATS_ROOTS", str(allowed))
+
+        with pytest.raises(ValueError, match="outside the allowed web roots"):
+            utils.validate_web_stats_path(str(outside))
+
+    def test_symlink_escape_is_rejected(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        allowed = tmp_path / "allowed"
+        outside = tmp_path / "outside"
+        allowed.mkdir()
+        outside.mkdir()
+        link = allowed / "linked-outside"
+        link.symlink_to(outside, target_is_directory=True)
+        monkeypatch.setenv("RING5_ALLOWED_STATS_ROOTS", str(allowed))
+
+        with pytest.raises(ValueError, match="outside the allowed web roots"):
+            utils.validate_web_stats_path(str(link))

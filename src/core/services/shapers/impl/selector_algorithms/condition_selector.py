@@ -11,6 +11,7 @@ from typing import Any, cast
 
 import pandas as pd
 
+from src.core.common.security_limits import MAX_SEARCH_TERM_LENGTH
 from src.core.models.shaper_models import ConditionSelectorConfig
 from src.core.services.shapers.impl.selector import Selector
 
@@ -74,6 +75,11 @@ class ConditionSelector(Selector):
             # value is required for these modes
             if config.get("value") is None:
                 raise ValueError(f"ConditionSelector: '{self.mode}' mode requires 'value'.")
+            if self.mode == "contains" and len(str(config.get("value"))) > MAX_SEARCH_TERM_LENGTH:
+                raise ValueError(
+                    f"ConditionSelector contains values cannot exceed "
+                    f"{MAX_SEARCH_TERM_LENGTH} characters."
+                )
 
         elif self.condition is not None and self.value is not None:
             valid_ops = ["<", ">", "<=", ">=", "==", "!="]
@@ -114,7 +120,9 @@ class ConditionSelector(Selector):
             case "equals":
                 return data_frame[data_frame[col] == self.value]
             case "contains":
-                mask = data_frame[col].astype(str).str.contains(str(self.value), na=False)
+                mask = (
+                    data_frame[col].astype(str).str.contains(str(self.value), na=False, regex=False)
+                )
                 return data_frame[mask]
 
         # 4. Legacy Operator/Value pair

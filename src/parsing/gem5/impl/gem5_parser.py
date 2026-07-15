@@ -4,14 +4,27 @@ import csv
 import logging
 import math
 import os
-import re
 import time
 from concurrent.futures import Future
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
+from src.core.common.safe_regex import (
+    SafeRegexError,
+    compile_bounded_regex,
+    escape_perl_stat_filter,
+    fullmatch_bounded_regex,
+    normalize_stat_pattern,
+)
 from src.core.common.utils import normalize_user_path
+from src.core.common.security_limits import (
+    MAX_DISCOVERED_FILES,
+    MAX_PARSE_VARIABLES,
+    MAX_REGEX_CANDIDATES,
+    MAX_REGEX_EXPANSION_SECONDS,
+    MAX_REGEX_MATCH_ATTEMPTS,
+)
 from src.core.models import (
     ParseBatchResult,
     ScanFileResult,
@@ -73,52 +86,120 @@ class Gem5Parser(SimulationParser):
 
         # 1. Regex Expansion (Centralized Logic)
         t_regex_start = time.perf_counter()
+        regex_deadline = time.monotonic() + MAX_REGEX_EXPANSION_SECONDS
+        match_attempts = 0
         processed_configs: list[StatConfig] = []
         for config in variables:
             expanded_config = config
             source_name = getattr(config, "source_name", None) or config.name
-            if scanned_vars and config.is_regex:
+            if config.is_regex:
                 try:
+                    canonical_source = normalize_stat_pattern(source_name)
+                    if not scanned_vars:
+                        raise SafeRegexError(
+                            "Regex parser variables require results from a scan of the same tree."
+                        )
+                    if len(scanned_vars) > MAX_REGEX_CANDIDATES:
+                        raise SafeRegexError(
+                            f"Regex expansion received {len(scanned_vars)} candidates; "
+                            f"the limit is {MAX_REGEX_CANDIDATES}."
+                        )
                     logger.info(
                         f"PARSER: Matching regex '{source_name}' "
                         f"against {len(scanned_vars)} scanned variables"
                     )
-                    pattern = re.compile(source_name)
+                    pattern = compile_bounded_regex(escape_perl_stat_filter(source_name))
                     matched_ids: list[str] = []
+                    matched_id_set: set[str] = set()
+
+                    def add_matched_id(pattern_id: str) -> None:
+                        if pattern_id in matched_id_set:
+                            return
+                        if len(matched_ids) >= MAX_PARSE_VARIABLES:
+                            raise SafeRegexError(
+                                f"Pattern expands beyond the {MAX_PARSE_VARIABLES}-variable "
+                                "limit."
+                            )
+                        matched_id_set.add(pattern_id)
+                        matched_ids.append(pattern_id)
+
                     for sv in scanned_vars:
+                        match_attempts += 1
+                        if match_attempts > MAX_REGEX_MATCH_ATTEMPTS:
+                            raise SafeRegexError(
+                                f"Regex expansion exceeded {MAX_REGEX_MATCH_ATTEMPTS} "
+                                "candidate matches."
+                            )
+                        if time.monotonic() > regex_deadline:
+                            raise SafeRegexError(
+                                f"Regex expansion exceeded {MAX_REGEX_EXPANSION_SECONDS:g} seconds."
+                            )
                         sv_name = sv.name
-                        if source_name == sv_name or pattern.fullmatch(sv_name):
+                        same_pattern = False
+                        if r"\d+" in sv_name:
+                            try:
+                                same_pattern = canonical_source == normalize_stat_pattern(sv_name)
+                            except SafeRegexError:
+                                pass
+                        if same_pattern or fullmatch_bounded_regex(pattern, sv_name):
                             # If sv is already an aggregated pattern, use its constituents
                             if sv.pattern_indices:
-                                matched_ids.extend(sv.pattern_indices)
+                                for pattern_id in sv.pattern_indices:
+                                    if fullmatch_bounded_regex(pattern, pattern_id):
+                                        add_matched_id(pattern_id)
+                                        continue
+                                    try:
+                                        add_matched_id(
+                                            PatternIndexService.reconstruct_concrete_name(
+                                                source_name, pattern_id
+                                            )
+                                        )
+                                    except ValueError as exc:
+                                        raise SafeRegexError(
+                                            f"Scanned pattern index {pattern_id!r} is invalid "
+                                            f"for {source_name!r}."
+                                        ) from exc
                             else:
-                                matched_ids.append(sv_name)
+                                add_matched_id(sv_name)
 
                     if matched_ids:
                         if config.keep_indices:
                             user_ids_raw = config.params.get("parsed_ids", [])
-                            user_ids: list[str] = (
-                                user_ids_raw if isinstance(user_ids_raw, list) else []
-                            )
+                            if not isinstance(user_ids_raw, list) or any(
+                                not isinstance(pattern_id, str) or not pattern_id
+                                for pattern_id in user_ids_raw
+                            ):
+                                raise SafeRegexError(
+                                    "Selected pattern IDs must be a list of non-empty strings."
+                                )
+                            user_ids: list[str] = list(dict.fromkeys(user_ids_raw))
                             ids_to_expand = user_ids if user_ids else matched_ids
-                            ids_are_full_names = any("." in pid for pid in ids_to_expand)
+                            if len(ids_to_expand) > MAX_PARSE_VARIABLES:
+                                raise SafeRegexError(
+                                    f"Pattern selection expands to {len(ids_to_expand)} variables; "
+                                    f"the limit is {MAX_PARSE_VARIABLES}."
+                                )
                             concrete_names: list[str] = []
-                            if ids_are_full_names:
-                                concrete_names = list(ids_to_expand)
-                            else:
-                                for nid in ids_to_expand:
+                            for nid in ids_to_expand:
+                                if nid in matched_id_set:
+                                    cname = nid
+                                else:
                                     try:
                                         cname = PatternIndexService.reconstruct_concrete_name(
                                             source_name, nid
                                         )
-                                        concrete_names.append(cname)
-                                    except ValueError:
-                                        logger.warning(
-                                            "PARSER: Could not reconstruct "
-                                            "name for id '%s' in '%s'",
-                                            nid,
-                                            source_name,
-                                        )
+                                    except ValueError as exc:
+                                        raise SafeRegexError(
+                                            f"Selected pattern ID {nid!r} is neither a scanned "
+                                            "concrete name nor a valid numeric ID."
+                                        ) from exc
+                                if cname not in matched_id_set:
+                                    raise SafeRegexError(
+                                        f"Selected pattern ID {nid!r} was not present in the "
+                                        "scan results."
+                                    )
+                                concrete_names.append(cname)
+                            concrete_names = list(dict.fromkeys(concrete_names))
 
                             if len(concrete_names) > 50:
                                 logger.warning(
@@ -146,8 +227,10 @@ class Gem5Parser(SimulationParser):
                             expanded_config = replace(config, params=params)
                     else:
                         logger.warning(f"PARSER: No matches found for regex '{source_name}'")
-                except re.error:
-                    logger.warning(f"PARSER: Invalid regex in variable: {source_name}")
+                except SafeRegexError as exc:
+                    raise ValueError(
+                        f"Unsafe regex in parser variable '{source_name}': {exc}"
+                    ) from exc
 
             processed_configs.append(expanded_config)
 
@@ -192,7 +275,8 @@ class Gem5Parser(SimulationParser):
         Args:
             stats_path: Base directory to search for stats files
             stats_pattern: Filename pattern to match (default: "stats.txt")
-            limit: Maximum number of files to scan (0 for unlimited)
+            limit: Maximum number of files to scan. Non-positive values scan
+                every matching file up to the global discovery safety ceiling.
 
         Returns:
             List of Future objects that each resolve to a ``ScanFileResult``
@@ -200,8 +284,18 @@ class Gem5Parser(SimulationParser):
         Raises:
             FileNotFoundError: If stats_path doesn't exist or no files found
         """
+        if limit > MAX_DISCOVERED_FILES:
+            raise ValueError(
+                f"Scan limit {limit} exceeds the global safety ceiling of "
+                f"{MAX_DISCOVERED_FILES} files."
+            )
+        effective_limit = 0 if limit <= 0 else limit
         files = find_stats_files(
-            stats_path, stats_pattern, limit=limit, sort=True, raise_if_empty=True
+            stats_path,
+            stats_pattern,
+            limit=effective_limit,
+            sort=True,
+            raise_if_empty=True,
         )
         pool: ScanWorkPool = ScanWorkPool.get_instance()
         batch_work: list[Gem5ScanWork] = [Gem5ScanWork(f) for f in files]
@@ -234,7 +328,11 @@ class Gem5Parser(SimulationParser):
         # Apply pattern aggregation to consolidate repeated numeric patterns
         aggregated_vars = PatternAggregator.aggregate_patterns(merged_vars)
 
-        return ScanResult(variables=aggregated_vars, failures=failures)
+        return ScanResult(
+            variables=aggregated_vars,
+            failures=failures,
+            scanned_files=len(results),
+        )
 
     @staticmethod
     def _merge_variable(registry: dict[str, ScannedVariable], var: ScannedVariable) -> None:

@@ -8,6 +8,7 @@ parser configuration, variable selection, and data preview.
 import logging
 import tempfile
 import uuid
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from concurrent.futures import as_completed
 from pathlib import Path
 from typing import Any, cast
@@ -15,6 +16,12 @@ from typing import Any, cast
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
+from src.core.common.security_limits import (
+    MAX_SCAN_FILES,
+    PARSE_BATCH_TIMEOUT_SECONDS,
+    SCAN_BATCH_TIMEOUT_SECONDS,
+)
+from src.core.common.utils import allowed_web_stats_roots, validate_web_stats_path
 from src.core.models import ParseBatchResult, ScanFileResult, ScanResult
 from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
 from src.web.components.common.card_components import CardComponents
@@ -126,6 +133,8 @@ class DataSourceComponents:
         @st.fragment
         def _parser_config_fragment() -> None:
             st.markdown("#### File Location")
+            allowed_roots = ", ".join(str(root) for root in allowed_web_stats_roots())
+            st.caption(f"Allowed statistics roots: {allowed_roots}")
             col1, col2 = st.columns(2)
             with col1:
                 current_path = api.state_manager.get_stats_path()
@@ -189,23 +198,35 @@ class DataSourceComponents:
             col_scan1, _col_scan2 = st.columns([1, 3])
             with col_scan1:
                 deep_scan = st.checkbox(
-                    "Deep Scan (check all files)", help="Scan ALL files for variables (slower)"
+                    f"Deep Scan (up to {MAX_SCAN_FILES} files)",
+                    help="Scan a bounded sample of files for variables (slower)",
                 )
                 if st.button("🔍 Quick Scan", help="Scan files to auto-discover variables"):
                     try:
-                        scan_limit = -1 if deep_scan else 10
+                        scan_limit = MAX_SCAN_FILES if deep_scan else 10
                         scan_label = "Deep" if deep_scan else "Quick"
                         with st.status(f"{scan_label} scanning...", expanded=True) as status:
                             st.write("Submitting scan tasks...")
+                            safe_stats_path = str(validate_web_stats_path(stats_path))
                             scan_futures = api.submit_scan_async(
-                                stats_path, stats_pattern, limit=scan_limit
+                                safe_stats_path, stats_pattern, limit=scan_limit
                             )
                             st.write(f"Scanning {len(scan_futures)} files...")
                             scan_results: list[ScanFileResult] = []
                             total_futures = len(scan_futures)
-                            for i, future in enumerate(as_completed(scan_futures)):
-                                scan_results.append(future.result())
-                                st.write(f"Scanned {i + 1}/{total_futures} files...")
+                            try:
+                                completed = as_completed(
+                                    scan_futures, timeout=SCAN_BATCH_TIMEOUT_SECONDS
+                                )
+                                for i, future in enumerate(completed):
+                                    scan_results.append(future.result())
+                                    st.write(f"Scanned {i + 1}/{total_futures} files...")
+                            except FuturesTimeoutError as exc:
+                                for future in scan_futures:
+                                    future.cancel()
+                                raise TimeoutError(
+                                    "Scan batch exceeded the five-minute limit."
+                                ) from exc
                             st.write("Aggregating patterns...")
                             scan_result: ScanResult = api.finalize_scan(scan_results)
                             found_vars = scan_result.variables
@@ -297,13 +318,13 @@ class DataSourceComponents:
             if not _stats_path:
                 st.error("Please specify a stats directory path.")
             else:
-                # Reset state for new run
-                output_dir = tempfile.mkdtemp()
-                api.state_manager.set_temp_dir(output_dir)
-
                 try:
+                    safe_stats_path = str(validate_web_stats_path(str(_stats_path)))
+                    # Reset state for new run only after validating the source path.
+                    output_dir = tempfile.mkdtemp()
+                    api.state_manager.set_temp_dir(output_dir)
                     batch = api.submit_parse_async(
-                        _stats_path,
+                        safe_stats_path,
                         _stats_pattern,
                         api.state_manager.get_parse_variables(),
                         output_dir,
@@ -466,7 +487,7 @@ class DataSourceComponents:
         total = len(futures)
 
         try:
-            for future in as_completed(futures):
+            for future in as_completed(futures, timeout=PARSE_BATCH_TIMEOUT_SECONDS):
                 try:
                     res = future.result()
                     if res:
@@ -479,6 +500,14 @@ class DataSourceComponents:
                     pct = min(completed_count / total, 1.0)
                     progress_bar.progress(pct, text=f"Processed {completed_count}/{total}")
 
+        except FuturesTimeoutError:
+            for future in futures:
+                future.cancel()
+            st.error(
+                "Parse batch exceeded the ten-minute limit; cancellation was requested for "
+                "unfinished work. Already-running files may finish in the background."
+            )
+            return
         except KeyboardInterrupt:
             # Fallback if something interrupts
             for f in futures:

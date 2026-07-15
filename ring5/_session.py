@@ -149,7 +149,8 @@ class Session:
         """Scan the tree, resolve *variables*, and submit an async parse.
 
         Plain string names are resolved against a scan of ``scan_limit``
-        files (``0`` = all files — use it when stats differ across runs),
+        files (``0`` = all files up to the global 10,000-file discovery
+        ceiling — use it when stats differ across runs),
         which supplies each variable's type and metadata; pass
         :class:`StatConfig` objects for regex patterns. The returned
         :class:`ParseJob` owns its futures — ``job.finalize()`` needs no
@@ -163,7 +164,8 @@ class Session:
             strategy: Registered parser strategy.
             output_dir: Directory for parser output. A temporary directory is used
                 when omitted and is removed when the session closes.
-            scan_limit: Maximum files to scan; zero scans every matching file.
+            scan_limit: Maximum files to scan; zero scans every matching file
+                up to the global discovery ceiling.
 
         Returns:
             A submitted parse job that can be finalized or cancelled.
@@ -237,7 +239,8 @@ class Session:
             strategy: Registered parser strategy.
             output_dir: Directory for parser output. A temporary directory is used
                 when omitted.
-            scan_limit: Maximum files to scan; zero scans every matching file.
+            scan_limit: Maximum files to scan; zero scans every matching file
+                up to the global discovery ceiling.
             strict: Raise when a requested statistic produces no values.
 
         Returns:

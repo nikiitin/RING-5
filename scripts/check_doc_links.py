@@ -22,6 +22,7 @@ REPOSITORY_PATH_PATTERN = re.compile(
     r"`((?:src|ring5|tests|scripts|docs|\.agents|\.github)/[^`\s]+)`"
 )
 EXTERNAL_SCHEMES = {"http", "https", "mailto", "tel"}
+SITE_BASEURL_PATTERN = re.compile(r"^\{\{\s*site\.baseurl\s*\}\}(?P<route>/[^?#]*)(?:[?#].*)?$")
 RAW_PATH_EXEMPT_FILES = {ROOT / "docs/developer-guide/architecture/history.md"}
 ILLUSTRATIVE_PATHS = {
     "src/parsing/my_sim/__init__.py",
@@ -42,6 +43,55 @@ GENERATED_REPOSITORY_PATHS = {
     "tests/data",
     "tests/data/results-micro26-sens",
 }
+
+
+def redirected_documentation_paths() -> set[str]:
+    """Return retired ``docs/`` paths represented by published redirects."""
+    redirected: set[str] = set()
+    for path in (ROOT / "docs").rglob("*.md"):
+        lines = path.read_text(encoding="utf-8").splitlines()
+        if not lines or lines[0].strip() != "---":
+            continue
+        in_redirects = False
+        for line in lines[1:]:
+            if line.strip() == "---":
+                break
+            if line == "redirect_from:":
+                in_redirects = True
+                continue
+            if in_redirects and line.startswith("  - /"):
+                route = line.removeprefix("  - ").strip()
+                redirected.add(f"docs{route}".rstrip("/"))
+                continue
+            if line and not line.startswith(" "):
+                in_redirects = False
+    return redirected
+
+
+def published_documentation_routes() -> set[str]:
+    """Return canonical and redirected routes declared by published pages."""
+    routes: set[str] = set()
+    for path in (ROOT / "docs").rglob("*.md"):
+        lines = path.read_text(encoding="utf-8").splitlines()
+        if not lines or lines[0].strip() != "---":
+            continue
+        in_redirects = False
+        for line in lines[1:]:
+            if line.strip() == "---":
+                break
+            if line.startswith("permalink: "):
+                routes.add(line.removeprefix("permalink: ").strip())
+                in_redirects = False
+                continue
+            if line == "redirect_from:":
+                in_redirects = True
+                continue
+            if in_redirects and line.startswith("  - /"):
+                routes.add(line.removeprefix("  - ").strip())
+                continue
+            if line and not line.startswith(" "):
+                in_redirects = False
+    return routes
 
 
 def markdown_files() -> Iterator[Path]:
@@ -66,6 +116,16 @@ def relative_targets(path: Path) -> Iterator[tuple[int, str]]:
                 continue
             if parsed.path:
                 yield line_number, unquote(parsed.path)
+
+
+def site_route_targets(path: Path) -> Iterator[tuple[int, str]]:
+    """Yield base-URL-aware links to published documentation routes."""
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        for match in LINK_PATTERN.finditer(line):
+            raw_target = match.group(1).strip().split(maxsplit=1)[0]
+            site_match = SITE_BASEURL_PATTERN.match(raw_target)
+            if site_match:
+                yield line_number, unquote(site_match.group("route"))
 
 
 def resolves(path: Path, target: str) -> bool:
@@ -94,22 +154,36 @@ def repository_path_targets(path: Path) -> Iterator[tuple[int, str]]:
             yield line_number, target
 
 
-def main() -> int:
-    """Report broken relative links and return a nonzero status when found."""
+def collect_failures() -> list[str]:
+    """Return broken local links and repository paths."""
     failures: list[str] = []
+    redirected_paths = redirected_documentation_paths()
+    published_routes = published_documentation_routes()
     for path in sorted(markdown_files()):
         for line_number, target in relative_targets(path):
             if not resolves(path, target):
                 relative = path.relative_to(ROOT)
                 failures.append(f"{relative}:{line_number}: missing target {target!r}")
+        for line_number, route in site_route_targets(path):
+            if route not in published_routes:
+                relative = path.relative_to(ROOT)
+                failures.append(f"{relative}:{line_number}: missing published route {route!r}")
         for line_number, target in repository_path_targets(path):
             candidate = ROOT / target.rstrip("/")
             if target in ILLUSTRATIVE_PATHS or target.rstrip("/") in GENERATED_REPOSITORY_PATHS:
+                continue
+            if target.rstrip("/") in redirected_paths:
                 continue
             if not candidate.exists() and not candidate.with_suffix(".py").exists():
                 relative = path.relative_to(ROOT)
                 failures.append(f"{relative}:{line_number}: missing repository path {target!r}")
 
+    return failures
+
+
+def main() -> int:
+    """Report broken relative links and return a nonzero status when found."""
+    failures = collect_failures()
     if failures:
         print("Documentation link check failed:", file=sys.stderr)
         print("\n".join(failures), file=sys.stderr)

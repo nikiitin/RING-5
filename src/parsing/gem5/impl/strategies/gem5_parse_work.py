@@ -12,6 +12,12 @@ if TYPE_CHECKING:
     from src.parsing.gem5.types.base import StatType
 
 import src.core.common.utils as utils
+from src.core.common.safe_regex import (
+    SafeRegexError,
+    escape_perl_stat_filter,
+    numeric_pattern_id,
+)
+from src.core.common.security_limits import MAX_PARSE_VARIABLES
 from src.parsing.gem5.impl.pool.parse_work import ParsedVarsDict, ParseWork
 from src.parsing.gem5.impl.strategies.perl_worker_pool import get_worker_pool
 from src.parsing.gem5.types.type_mapper import TypeMapper
@@ -98,6 +104,33 @@ class Gem5ParseWork(ParseWork):
     def _request_key(var_id: str) -> str:
         """Request key before the ``__`` separator (e.g. ``a__b`` -> ``a``)."""
         return var_id.split("__", 1)[0]
+
+    @staticmethod
+    def _numeric_pattern_id(pattern: str, concrete_name: str) -> str | None:
+        r"""Return the numeric ID when *concrete_name* matches a ``\d+`` pattern.
+
+        Literal segments are escaped before matching, so this helper never
+        evaluates user-controlled regex syntax.
+        """
+        try:
+            return numeric_pattern_id(pattern, concrete_name)
+        except SafeRegexError:
+            return None
+
+    @classmethod
+    def _scalar_pattern_entry(
+        cls, var_id: str, target_var: StatType, vars_to_parse: VarsDictType
+    ) -> tuple[str, str] | None:
+        """Resolve a concrete scalar alias to its logical vector entry."""
+        target_content = target_var.content
+        target_entries = target_var.entries or []
+        for logical_id, logical_var in vars_to_parse.items():
+            entry = cls._numeric_pattern_id(logical_id, var_id)
+            if entry is None:
+                continue
+            if logical_var.content is target_content and entry in target_entries:
+                return logical_id, entry
+        return None
 
     # ========== Line Processing ==========
 
@@ -236,7 +269,19 @@ class Gem5ParseWork(ParseWork):
         elif normalizedType in ("scalar", "configuration"):
             if varID not in varsToParse:
                 return  # Unknown variable, skip
-            varsToParse[varID].content = varValue
+            target_var = varsToParse[varID]
+            expected_type = self._getExpectedType(target_var)
+            if normalizedType == "scalar" and expected_type == "vector":
+                resolved_entry = self._scalar_pattern_entry(varID, target_var, varsToParse)
+                if resolved_entry is None:
+                    raise RuntimeError(
+                        f"Variable type mismatch - Expected: {expected_type} "
+                        f"Found: {normalizedType} ID: {varID}"
+                    )
+                logical_id, entry = resolved_entry
+                self._bufferEntry(f"{logical_id}::{entry}", varValue)
+                return
+            target_var.content = varValue
 
         elif normalizedType == "summary":
             self._processSummary(varID, varValue, varsToParse)
@@ -321,15 +366,35 @@ class Gem5ParseWork(ParseWork):
         """
         utils.checkFileExistsOrException(self._fileToParse)
 
-        # Build keys and validate they are safe (no leading dashes)
+        # Convert user-visible names into a deliberately tiny regex grammar:
+        # literals plus the scanner-generated \d+ placeholder. The Perl backend
+        # never receives arbitrary regex grouping or quantifiers.
+        request_keys = list(
+            dict.fromkeys(self._request_key(var_id) for var_id in self._varsToParse)
+        )
         safe_keys: list[str] = []
-        for varID in self._varsToParse.keys():
-            key: str = self._request_key(varID)
-            if key.startswith("-"):
-                # Avoid flag injection
-                logger.warning("Skipping potentially unsafe key: %s", key)
+        for key in request_keys:
+            # Regex-expanded variables also have concrete aliases in the map.
+            # Request those anchored literals and omit the broader pattern.
+            if r"\d+" in key and any(
+                self._numeric_pattern_id(key, candidate) is not None
+                for candidate in request_keys
+                if candidate != key
+            ):
                 continue
-            safe_keys.append(key)
+            try:
+                escaped_key = escape_perl_stat_filter(key)
+            except SafeRegexError as exc:
+                raise RuntimeError(f"Unsafe parser stat filter {key!r}: {exc}") from exc
+            if escaped_key not in safe_keys:
+                safe_keys.append(escaped_key)
+
+        if not safe_keys:
+            raise RuntimeError("No variable filters were provided for parsing.")
+        if len(safe_keys) > MAX_PARSE_VARIABLES:
+            raise RuntimeError(
+                f"Parser request exceeds the {MAX_PARSE_VARIABLES}-variable filter limit."
+            )
 
         # Use worker pool for parsing (54x faster than subprocess)
         logger.debug(f"Parsing {self._fileToParse} with {len(safe_keys)} variables via worker pool")

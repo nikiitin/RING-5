@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
+from src.core.common.security_limits import PARSE_BATCH_TIMEOUT_SECONDS
 from src.core.models import StatConfig
 
 from ring5.errors import MissingStatError, ParseError, ScanError
@@ -68,6 +69,17 @@ class ParseJob:
             ParseError: A worker failed, or no CSV was produced.
             MissingStatError: See ``strict``.
         """
+        from concurrent.futures import wait
+
+        _done, pending = wait(self.futures, timeout=PARSE_BATCH_TIMEOUT_SECONDS)
+        if pending:
+            cancelled = sum(future.cancel() for future in pending)
+            raise ParseError(
+                f"Parse batch exceeded {PARSE_BATCH_TIMEOUT_SECONDS:g} seconds; "
+                f"{len(pending)} file(s) remained unfinished and cancellation "
+                f"succeeded for {cancelled} not-yet-running file(s)."
+            )
+
         try:
             results = [f.result() for f in self.futures]
         except Exception as exc:
@@ -143,7 +155,8 @@ def build_stat_configs(
         stats_path: Root directory containing simulator statistics.
         variables: Statistic names or explicit statistic configurations.
         pattern: Statistics filename pattern.
-        scan_limit: Maximum files to scan; zero scans every matching file.
+        scan_limit: Maximum files to scan; zero scans every matching file
+            up to the global discovery ceiling.
 
     Returns:
         ``(variable_configs, scanned_variables)`` — the latter must be
@@ -151,7 +164,7 @@ def build_stat_configs(
 
     Raises:
         ScanError: The stats path has no matching files, the scan failed
-            for every file, or a requested name was not found by the scan.
+            for any selected file, or a requested name was not found by the scan.
     """
     from dataclasses import replace as dc_replace
 
@@ -163,10 +176,12 @@ def build_stat_configs(
     except (OSError, RuntimeError, ValueError) as exc:
         raise ScanError(str(exc)) from exc
 
-    if not scan.variables and scan.failures:
+    if scan.failures:
         first = scan.failures[0]
         raise ScanError(
-            f"Scanning failed for all files (first error: {first}). "
+            f"Scanning was incomplete: {len(scan.failures)} of "
+            f"{scan.scanned_files or len(futures)} file(s) failed "
+            f"(first error in {first.file_path}: {first.error}). "
             "Is perl installed and the stats path correct?"
         )
 
@@ -200,10 +215,12 @@ def build_stat_configs(
 
     if unknown:
         sample = ", ".join(sorted(by_name)[:8])
+        scanned_files = scan.scanned_files or len(futures)
+        requested_scope = "all matching files" if scan_limit <= 0 else f"up to {scan_limit} files"
         raise ScanError(
             f"Variables not found by the scan: {', '.join(unknown)}. "
-            f"Scanned {len(by_name)} variables from {scan_limit or 'all'} sampled "
-            f"file(s) (e.g. {sample}…). A stat present only in unsampled files "
+            f"Scanned {scanned_files} file(s) ({requested_scope}) and found "
+            f"{len(by_name)} variables (e.g. {sample}…). A stat present only in unsampled files "
             "needs a deeper scan: pass scan_limit=0 (all files). "
             "For regex patterns, pass a StatConfig."
         )

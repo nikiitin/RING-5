@@ -8,10 +8,21 @@ strategies (enumerate work). Path/pattern sanitisation is reused from
 
 from __future__ import annotations
 
+import fnmatch
 import os
+import time
 from pathlib import Path
 
+from src.core.common.security_limits import (
+    MAX_DISCOVERED_FILES,
+    MAX_DISCOVERY_ENTRIES,
+    MAX_DISCOVERY_SECONDS,
+)
 from src.core.common.utils import normalize_user_path, sanitize_glob_pattern
+
+
+class FileDiscoveryLimitError(RuntimeError):
+    """Filesystem discovery exceeded a configured resource bound."""
 
 
 def find_stats_files(
@@ -27,11 +38,10 @@ def find_stats_files(
     Args:
         search_path: Base directory to search (recursively).
         pattern: Filename glob pattern (default ``"stats.txt"``).
-        limit: Return at most this many files (``0`` = unlimited). With
-            ``sort=False``, discovery stops at the limit. With ``sort=True``,
-            the complete tree is sorted before selecting the first N paths.
-        sort: Return paths in lexical order. Combined with ``limit``, this
-            deterministically selects the first N matching paths.
+        limit: Return at most this many files. ``0`` uses the bounded global
+            discovery maximum; negative values are rejected.
+        sort: Return paths in lexical order. Discovery itself is lexical and
+            stops as soon as the requested number of matches is collected.
         raise_if_empty: Raise ``FileNotFoundError`` when the path is missing or no
             file matches; otherwise return an empty list.
 
@@ -41,11 +51,14 @@ def find_stats_files(
     Raises:
         FileNotFoundError: Only when ``raise_if_empty`` is True and nothing is found.
         OSError: The operating system rejects traversal of the search tree.
+        FileDiscoveryLimitError: Traversal exceeds a file, entry, or time bound.
 
     Notes:
-        Directory symlinks are not followed by ``Path.rglob``. Matching file
-        symlinks are returned when the platform reports them as files.
+        Symlinks are not followed or returned.
     """
+    if limit < 0:
+        raise ValueError("File discovery limit cannot be negative.")
+
     base: Path = normalize_user_path(os.path.normpath(search_path) if search_path else ".")
     if not base.exists():
         if raise_if_empty:
@@ -54,22 +67,61 @@ def find_stats_files(
 
     safe_pattern: str = sanitize_glob_pattern(pattern)
 
-    if limit > 0 and not sort:
-        collected: list[Path] = []
-        for f in base.rglob(safe_pattern):
-            if not f.is_file():
-                continue
-            collected.append(f)
-            if len(collected) >= limit:
-                break
-        files = collected
-    else:
-        files = [path for path in base.rglob(safe_pattern) if path.is_file()]
+    requested_limit = limit if limit > 0 else MAX_DISCOVERED_FILES + 1
+    files: list[Path] = []
+    visited_entries = 0
+    deadline = time.monotonic() + MAX_DISCOVERY_SECONDS
+
+    # Store directory-entry metadata in the stack so symlinks are never followed.
+    # Each directory is materialized only after the global entry budget is checked,
+    # giving deterministic lexical traversal without an unbounded full-tree list.
+    pending: list[tuple[Path, bool, bool]] = [(base, True, False)]
+    while pending:
+        if time.monotonic() > deadline:
+            raise FileDiscoveryLimitError(
+                f"File discovery exceeded {MAX_DISCOVERY_SECONDS:g} seconds under: {search_path}"
+            )
+
+        current, is_dir, is_file = pending.pop()
+        if is_file:
+            if fnmatch.fnmatchcase(current.name, safe_pattern):
+                files.append(current)
+                if limit == 0 and len(files) > MAX_DISCOVERED_FILES:
+                    raise FileDiscoveryLimitError(
+                        f"More than {MAX_DISCOVERED_FILES} matching files were found under: "
+                        f"{search_path}"
+                    )
+                if len(files) >= requested_limit:
+                    break
+            continue
+        if not is_dir:
+            continue
+
+        entries: list[os.DirEntry[str]] = []
+        with os.scandir(current) as iterator:
+            for entry in iterator:
+                visited_entries += 1
+                if visited_entries > MAX_DISCOVERY_ENTRIES:
+                    raise FileDiscoveryLimitError(
+                        f"File discovery exceeded {MAX_DISCOVERY_ENTRIES} entries under: "
+                        f"{search_path}"
+                    )
+                if time.monotonic() > deadline:
+                    raise FileDiscoveryLimitError(
+                        f"File discovery exceeded {MAX_DISCOVERY_SECONDS:g} seconds under: "
+                        f"{search_path}"
+                    )
+                entries.append(entry)
+
+        entries.sort(key=lambda entry: entry.name, reverse=True)
+        for entry in entries:
+            entry_is_dir = entry.is_dir(follow_symlinks=False)
+            entry_is_file = entry.is_file(follow_symlinks=False)
+            if entry_is_dir or entry_is_file:
+                pending.append((Path(entry.path), entry_is_dir, entry_is_file))
 
     if sort:
-        files = sorted(files)
-        if limit > 0:
-            files = files[:limit]
+        files.sort()
 
     if not files and raise_if_empty:
         raise FileNotFoundError(f"No files matching '{pattern}' found under: {search_path}")

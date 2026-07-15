@@ -4,11 +4,13 @@ Handles rendering and interaction for defining parser variables (scalars, vector
 """
 
 import uuid
-from concurrent.futures import Future, as_completed
+from concurrent.futures import Future, TimeoutError as FuturesTimeoutError, as_completed
 
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
+from src.core.common.security_limits import MAX_SCAN_FILES, SCAN_BATCH_TIMEOUT_SECONDS
+from src.core.common.utils import validate_web_stats_path
 from src.core.models import ScanFileResult
 from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
 from src.web.components.common.filtered_selector import (
@@ -199,7 +201,7 @@ class VariableEditor:
 
         st.info(
             "Histograms require buckets (ranges) to be specified. "
-            "You can use **Deep Scan** to find all range buckets found across all simulations."
+            "You can use **Deep Scan** to find range buckets across a larger bounded sample."
         )
 
         discovered_entries: list[str] = []
@@ -328,7 +330,7 @@ class VariableEditor:
         st.info(
             "Vectors require entries to be specified. "
             "You can manually search for entries, or use the **Deep Scan** feature below "
-            "to automatically find them in your stats files."
+            "to automatically find them across a larger bounded sample."
         )
 
         discovered_entries: list[str] = []
@@ -422,20 +424,21 @@ class VariableEditor:
         if is_distribution:
             should_show_scan = True
             btn_label = f"Deep Scan Range for '{var_name}'"
-            help_text = (
-                "Scan ALL stats files to find the total min/max bucket range for this distribution."
-            )
+            help_text = f"Scan up to {MAX_SCAN_FILES} stats files to find the min/max bucket range."
         else:
             should_show_scan = entry_mode == "Select from Discovered Entries" or (
                 not discover_entries_available and entry_mode == "Manual Entry Names"
             )
             btn_label = f"Deep Scan Entries for '{var_name}'"
-            help_text = "Scan ALL stats files to find all possible entries for this variable."
+            help_text = f"Scan up to {MAX_SCAN_FILES} stats files to find variable entries."
 
         if should_show_scan:
             if st.button(btn_label, key=f"deep_scan_{var_id}", help=help_text):
                 try:
-                    futures = api.submit_scan_async(stats_path, stats_pattern, limit=-1)
+                    safe_stats_path = str(validate_web_stats_path(stats_path))
+                    futures = api.submit_scan_async(
+                        safe_stats_path, stats_pattern, limit=MAX_SCAN_FILES
+                    )
                     cls._show_scan_dialog(api, var_name, var_id, futures, is_distribution)
                 except Exception as e:
                     st.exception(e)
@@ -461,7 +464,7 @@ class VariableEditor:
         total = len(futures)
 
         try:
-            for future in as_completed(futures):
+            for future in as_completed(futures, timeout=SCAN_BATCH_TIMEOUT_SECONDS):
                 try:
                     res = future.result()
                     results.append(res)
@@ -474,6 +477,11 @@ class VariableEditor:
                 if total > 0:
                     pct = min(completed / total, 1.0)
                     progress_bar.progress(pct, text=f"Scanned {completed}/{total} files")
+        except FuturesTimeoutError:
+            for future in futures:
+                future.cancel()
+            st.error("Scan batch exceeded the five-minute limit.")
+            return
         except KeyboardInterrupt:
             st.warning("Scan interrupted.")
             return

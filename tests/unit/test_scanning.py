@@ -51,6 +51,22 @@ def test_stats_scan_work_failure() -> None:
         assert "Scan error" in (result.error or "")
 
 
+def test_stats_scan_work_reports_os_error() -> None:
+    work = Gem5ScanWork("test_file.txt")
+
+    with patch(
+        "src.parsing.gem5.impl.scanning.scanner.Gem5StatsScanner.get_instance"
+    ) as mock_scanner_cls:
+        mock_instance = MagicMock()
+        mock_scanner_cls.return_value = mock_instance
+        mock_instance.scan_file.side_effect = PermissionError("Permission denied")
+
+        result = work()
+
+        assert not result.ok
+        assert result.error == "Permission denied"
+
+
 # --- ScanWorkPool Tests ---
 # Note: Testing singletons and pools can be tricky. We'll mock the internal WorkPool.
 

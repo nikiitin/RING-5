@@ -1,10 +1,17 @@
 ---
-title: "Architecture"
+layout: default
+title: Architecture
 parent: Developer Guide
-nav_order: 10
+nav_order: 2
 has_children: true
+permalink: /developer-guide/architecture/
 ---
 
 # Architecture
 
-Guides in this section are listed in the sidebar.
+- [Architecture Overview](overview/) identifies the layers and composition roots.
+- [Data Flow](data-flow/) follows parsing, dataset changes, plotting, rendering, and portfolios.
+- [Layer Boundaries](layer-boundaries/) states import and ownership rules.
+- [Dependency Injection](dependency-injection/) explains how composition roots construct services.
+- [Design Patterns](design-patterns/) describes the few patterns that affect extension work.
+- [Architecture History](history/) records removed designs and is not current API guidance.

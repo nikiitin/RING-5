@@ -1,10 +1,13 @@
 ---
-title: "Getting Started"
+layout: default
+title: Getting Started
 parent: User Guide
-nav_order: 10
+nav_order: 2
 has_children: true
+permalink: /user-guide/getting-started/
 ---
 
-# Getting Started
+# Getting started
 
-Guides in this section are listed in the sidebar.
+[Install RING-5](installation/), review the [concepts](concepts/) that connect gem5 output to
+RING-5 objects, and then complete a [first analysis](first-analysis/).

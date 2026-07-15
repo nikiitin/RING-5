@@ -36,6 +36,8 @@ log_info("Parser server started and ready for commands");
 
 my $request_count = 0;
 my $max_requests = 1000; # Restart after N requests to prevent memory leaks
+my $max_lines = $ENV{RING5_MAX_PARSE_LINES} // 10_000_000;
+die "Invalid parser line limit\n" unless $max_lines =~ /^\d+$/ && $max_lines > 0;
 
 # Main command loop
 while (my $command = <STDIN>) {
@@ -102,7 +104,9 @@ while (my $command = <STDIN>) {
 
             while (my $line = <$fh>) {
                 chomp $line;
-                $line_count++;
+                if (++$line_count > $max_lines) {
+                    die "Parser line limit exceeded ($max_lines lines): $filename\n";
+                }
 
                 # Skip empty lines
                 next if $line =~ /^\s*$/;
@@ -111,11 +115,6 @@ while (my $command = <STDIN>) {
                 my $before_count = $match_count;
                 parseAndPrintLineWithFormat($line);
 
-                # Safety limit
-                if ($line_count > 10_000_000) {
-                    log_warn("File too large, stopping at 10M lines");
-                    last;
-                }
             }
 
             close($fh);

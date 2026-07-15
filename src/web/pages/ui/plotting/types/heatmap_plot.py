@@ -14,6 +14,7 @@ from typing import Literal, cast, override
 import pandas as pd
 import plotly.graph_objects as go
 
+from src.core.common.safe_format import safe_format_number
 from src.core.services.visualization.palette_service import resolve_palette
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import HeatmapTraceConfig
@@ -44,10 +45,7 @@ def _aggregate_series(values: pd.Series, agg_func: _AGG_FUNCS) -> float | None:
 
 def _format_value(val: float, fmt: str) -> str:
     """Format a numeric value using a Python format spec, with fallback."""
-    try:
-        return format(val, fmt)
-    except (ValueError, TypeError):
-        return format(val, ".4g")
+    return safe_format_number(val, fmt, default=".4g")
 
 
 def _compute_total(values: list[float], agg: str) -> float | None:

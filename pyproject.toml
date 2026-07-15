@@ -79,6 +79,15 @@ ring5 = "ring5.cli:main"
 where = ["."]
 include = ["src*", "ring5*"]
 
+[tool.setuptools.package-data]
+"src.parsing.gem5" = [
+  "perl/*.pl",
+  "perl/libs/*.pm",
+  "perl/libs/Scanning/*.pm",
+  "perl/libs/Scanning/Type/*.pm",
+]
+"src.web.components.plotting" = ["custom_plotly/*.html"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 norecursedirs = [

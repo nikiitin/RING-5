@@ -18,6 +18,7 @@ dist/
 .coverage
 coverage.xml
 htmlcov/
+_site/
 config_files
 .mypy_cache/
 

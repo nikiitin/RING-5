@@ -5,20 +5,18 @@ Handles CRUD operations for parser variables
 Provides business logic for variable management without UI dependencies.
 """
 
-import re
 import uuid
 
+from src.core.common.safe_regex import (
+    BoundedPattern,
+    SafeRegexError,
+    compile_bounded_regex,
+    fullmatch_bounded_regex,
+)
 from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
 
-# Maximum allowed regex pattern length to prevent ReDoS abuse
-_MAX_REGEX_LEN: int = 500
 
-# Allowlist: only characters expected in simulator stat patterns (letters, digits,
-# dots, underscores, backslashes for \d+, and regex anchors/quantifiers).
-_SAFE_PATTERN_RE: re.Pattern[str] = re.compile(r"^[a-zA-Z0-9_.\\+\[\]{}()|^$*?]+$")
-
-
-def _compile_safe_pattern(pattern: str) -> re.Pattern[str] | None:
+def _compile_safe_pattern(pattern: str) -> BoundedPattern | None:
     """Compile a regex pattern with safety checks against ReDoS/injection.
 
     Validates the pattern length, character allowlist, and syntax before
@@ -31,14 +29,18 @@ def _compile_safe_pattern(pattern: str) -> re.Pattern[str] | None:
     Returns:
         Compiled regex pattern, or None if unsafe/invalid.
     """
-    if len(pattern) > _MAX_REGEX_LEN:
-        return None
-    if not _SAFE_PATTERN_RE.match(pattern):
-        return None
     try:
-        return re.compile(pattern)
-    except re.error:
+        return compile_bounded_regex(pattern)
+    except SafeRegexError:
         return None
+
+
+def _safe_fullmatch(pattern: BoundedPattern, value: str) -> bool:
+    """Return a timeout-bounded full-match result."""
+    try:
+        return bool(fullmatch_bounded_regex(pattern, value))
+    except SafeRegexError:
+        return False
 
 
 class VariableService:
@@ -259,7 +261,7 @@ class VariableService:
                 # Regex pattern matching via safe compilation
                 compiled = _compile_safe_pattern(name)
                 if compiled is not None:
-                    if compiled.fullmatch(var_name):
+                    if _safe_fullmatch(compiled, var_name):
                         return var
                 else:
                     # Pattern failed safety check, fall back to exact match
@@ -300,7 +302,7 @@ class VariableService:
             if not var_name_match:
                 compiled = _compile_safe_pattern(var_name)
                 if compiled is not None:
-                    var_name_match = bool(compiled.fullmatch(name))
+                    var_name_match = _safe_fullmatch(compiled, name)
 
             if var_name_match and entries:
                 found_entries.update(entries)
@@ -348,7 +350,7 @@ class VariableService:
             if not var_name_match:
                 compiled = _compile_safe_pattern(var_name)
                 if compiled is not None:
-                    var_name_match = bool(compiled.fullmatch(name))
+                    var_name_match = _safe_fullmatch(compiled, name)
 
             if var_name_match and v_type == "distribution":
                 if v_min is not None:
@@ -435,7 +437,7 @@ class VariableService:
             if not matched:
                 compiled = _compile_safe_pattern(var_name)
                 if compiled is not None:
-                    matched = bool(compiled.fullmatch(v_name))
+                    matched = _safe_fullmatch(compiled, v_name)
 
             if matched and v_entries:
                 found_entries.update(v_entries)
