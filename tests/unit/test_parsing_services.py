@@ -7,7 +7,7 @@ ApplicationAPI facade.
 from collections.abc import Generator
 from pathlib import Path
 from typing import cast
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -127,12 +127,38 @@ class TestScannerService:
         with pytest.raises(FileNotFoundError, match="No files matching"):
             ScannerService.submit_scan_async(str(tmp_path), "stats.txt")
 
+    def test_submit_scan_zero_preserves_exhaustive_discovery_contract(self, tmp_path: Path) -> None:
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ScannerService
+
+        paths = [str(tmp_path / f"run-{index:03d}" / "stats.txt") for index in range(257)]
+        with (
+            patch("src.parsing.gem5.impl.gem5_parser.find_stats_files", return_value=paths) as find,
+            patch("src.parsing.gem5.impl.gem5_parser.ScanWorkPool") as pool,
+        ):
+            pool.get_instance.return_value.submit_batch_async.return_value = [MagicMock()] * 257
+            futures = ScannerService.submit_scan_async(str(tmp_path), "stats.txt", limit=0)
+
+        assert len(futures) == 257
+        assert find.call_args.kwargs["limit"] == 0
+
+    def test_submit_scan_rejects_limit_above_global_ceiling(self, tmp_path: Path) -> None:
+        from src.core.common.security_limits import MAX_DISCOVERED_FILES
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ScannerService
+
+        with pytest.raises(ValueError, match="global safety ceiling"):
+            ScannerService.submit_scan_async(
+                str(tmp_path), "stats.txt", limit=MAX_DISCOVERED_FILES + 1
+            )
+
     def test_aggregate_empty_results(self) -> None:
         from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ScannerService
 
         result = ScannerService.aggregate_scan_results([])
         assert result.variables == []
         assert result.failures == []
+        assert result.scanned_files == 0
+        assert result.successful_files == 0
+        assert result.complete
 
     def test_aggregate_single_file(self) -> None:
         from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ScannerService
@@ -142,6 +168,25 @@ class TestScannerService:
         assert len(result.variables) >= 1
         names = [v.name for v in result.variables]
         assert "simTicks" in names
+        assert result.scanned_files == 1
+        assert result.successful_files == 1
+        assert result.complete
+
+    def test_aggregate_preserves_partial_scan_metadata(self) -> None:
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ScannerService
+
+        var = ScannedVariable(name="simTicks", type="scalar", entries=[])
+        result = ScannerService.aggregate_scan_results(
+            [
+                ScanFileResult("good", [var]),
+                ScanFileResult("oversized", error="line limit exceeded"),
+            ]
+        )
+
+        assert result.scanned_files == 2
+        assert result.successful_files == 1
+        assert not result.complete
+        assert result.failures[0].file_path == "oversized"
 
     def test_aggregate_merges_vector_entries(self) -> None:
         from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ScannerService

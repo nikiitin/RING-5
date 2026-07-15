@@ -105,6 +105,28 @@ def test_process_pattern_scalars_into_vector_entries() -> None:
     assert parsed[r"system.cpu\d+.cycles"].content == {"0": [10.0], "1": [20.0]}
 
 
+def test_process_escaped_pattern_scalars_into_vector_entries() -> None:
+    r"""Conventional escaped dots resolve the same aliases as scanner patterns."""
+    from src.parsing.gem5.types.type_mapper import TypeMapper
+
+    pattern = r"system\.cpu\d+\.cycles"
+    logical = TypeMapper.create_stat({"name": pattern, "type": "vector", "entries": ["0", "1"]})
+    vars_map = cast(
+        VarsDictType,
+        {
+            pattern: logical,
+            "system.cpu0.cycles": copy.copy(logical),
+            "system.cpu1.cycles": copy.copy(logical),
+        },
+    )
+
+    parsed = Gem5ParseWork("f", vars_map)._processOutput(
+        "scalar/system.cpu0.cycles/10\nscalar/system.cpu1.cycles/20", vars_map
+    )
+
+    assert parsed[pattern].content == {"0": [10.0], "1": [20.0]}
+
+
 def test_process_output_full_flow(parser: Any) -> None:
 
     output = """scalar/scalar_var/99

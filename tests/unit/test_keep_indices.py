@@ -428,6 +428,10 @@ class TestReconstructConcreteName:
         result = PatternIndexService.reconstruct_concrete_name(r"system.cpu\d+.ipc", "3")
         assert result == "system.cpu3.ipc"
 
+    def test_escaped_literal_punctuation_is_canonicalized(self) -> None:
+        result = PatternIndexService.reconstruct_concrete_name(r"system\.cpu\d+\.ipc", "3")
+        assert result == "system.cpu3.ipc"
+
     def test_single_dimension_zero(self) -> None:
         r"""``system.cpu\d+.numCycles`` + ``"0"`` → ``system.cpu0.numCycles``."""
         result = PatternIndexService.reconstruct_concrete_name(r"system.cpu\d+.numCycles", "0")

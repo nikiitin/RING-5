@@ -110,10 +110,6 @@ _SAFE_GLOB_RE: re.Pattern[str] = re.compile(r"^[a-zA-Z0-9_.*?]+$")
 
 _DEFAULT_STATS_PATTERN: str = "stats.txt"
 
-# The web application is intentionally confined to the repository tree unless an
-# administrator explicitly mounts and allows additional statistics roots.
-_PROJECT_ROOT = Path(__file__).resolve().parents[3]
-
 
 def sanitize_glob_pattern(pattern: str, default: str = _DEFAULT_STATS_PATTERN) -> str:
     """Sanitize a user-provided glob pattern for safe use with rglob/glob.
@@ -178,14 +174,19 @@ def allowed_web_stats_roots() -> tuple[Path, ...]:
     """Return administrator-approved roots for web-triggered stats access.
 
     ``RING5_ALLOWED_STATS_ROOTS`` is an ``os.pathsep``-separated list. When it is
-    unset, only the repository root is allowed. The environment is read on every
-    call so tests and long-running deployments can update configuration safely.
+    unset, only the process working directory is allowed. Using the working
+    directory keeps repository checkouts and installed-package launches
+    predictable without deriving a user-data root from ``site-packages``.
+
+    The environment and working directory are read on every call so tests and
+    long-running deployments can update configuration safely.
     """
     configured = os.environ.get("RING5_ALLOWED_STATS_ROOTS", "")
     raw_roots = [part.strip() for part in configured.split(os.pathsep) if part.strip()]
     if not raw_roots:
-        return (_PROJECT_ROOT,)
-    return tuple(Path(root).expanduser().resolve(strict=False) for root in raw_roots)
+        return (Path.cwd().resolve(),)
+    roots = (Path(root).expanduser().resolve(strict=False) for root in raw_roots)
+    return tuple(dict.fromkeys(roots))
 
 
 def validate_web_stats_path(user_path: str) -> Path:

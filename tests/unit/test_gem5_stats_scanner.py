@@ -271,3 +271,27 @@ class TestScanFileScanFile:
         scanner.scan_file(test_file)
 
         assert mock_run.call_args[1]["timeout"] == 15
+
+    def test_scan_file_passes_line_limit_to_perl(
+        self, scanner: Any, tmp_path: Any, monkeypatch: Any
+    ) -> None:
+        test_file = tmp_path / "stats.txt"
+        test_file.write_text("dummy")
+        mock_run = Mock(return_value=Mock(stdout="[]", stderr=""))
+        monkeypatch.setattr("subprocess.run", mock_run)
+
+        scanner.scan_file(test_file)
+
+        assert mock_run.call_args.kwargs["env"]["RING5_MAX_SCAN_LINES"] == "1000000"
+
+    def test_scan_file_reports_line_limit_instead_of_returning_partial_results(
+        self, scanner: Any, tmp_path: Any, monkeypatch: Any
+    ) -> None:
+        import src.parsing.gem5.impl.scanning.scanner as scanner_module
+
+        test_file = tmp_path / "stats.txt"
+        test_file.write_text("a 1\nb 2\nc 3\n")
+        monkeypatch.setattr(scanner_module, "MAX_SCAN_LINE_COUNT", 2)
+
+        with pytest.raises(RuntimeError, match="line limit exceeded"):
+            scanner.scan_file(test_file)

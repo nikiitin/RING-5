@@ -17,6 +17,7 @@ Run the corresponding local targets before pushing:
 
 ```bash
 make quality-gate
+make docs-build docs-audit
 make package-check
 make test-ci
 make test-export
@@ -24,8 +25,11 @@ make test-latex     # when XeLaTeX is installed
 make test-e2e
 ```
 
-CodeQL runs separately on pushes, pull requests, and its scheduled audit. GitHub Pages builds the
-`docs/` source and deploys only from `main`.
+The documentation CI job installs the locked root `Gemfile`, performs a Jekyll production build,
+then audits canonical routes, redirects, assets, and internal links in `_site/`. This catches theme
+or plugin mismatches that a Markdown-only check cannot see. CodeQL runs separately on pushes, pull
+requests, and its scheduled audit. GitHub Pages uses the same locked build and audit path, and
+deploys only from `main`.
 
 When CI differs from a local run, compare the Python version, optional system dependencies, test
 markers, xdist mode, and generated fixtures. Reproduce the exact Make target before changing code.

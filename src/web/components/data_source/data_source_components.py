@@ -16,8 +16,12 @@ from typing import Any, cast
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
-from src.core.common.security_limits import MAX_SCAN_FILES, SCAN_BATCH_TIMEOUT_SECONDS
-from src.core.common.utils import validate_web_stats_path
+from src.core.common.security_limits import (
+    MAX_SCAN_FILES,
+    PARSE_BATCH_TIMEOUT_SECONDS,
+    SCAN_BATCH_TIMEOUT_SECONDS,
+)
+from src.core.common.utils import allowed_web_stats_roots, validate_web_stats_path
 from src.core.models import ParseBatchResult, ScanFileResult, ScanResult
 from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
 from src.web.components.common.card_components import CardComponents
@@ -129,6 +133,8 @@ class DataSourceComponents:
         @st.fragment
         def _parser_config_fragment() -> None:
             st.markdown("#### File Location")
+            allowed_roots = ", ".join(str(root) for root in allowed_web_stats_roots())
+            st.caption(f"Allowed statistics roots: {allowed_roots}")
             col1, col2 = st.columns(2)
             with col1:
                 current_path = api.state_manager.get_stats_path()
@@ -481,7 +487,7 @@ class DataSourceComponents:
         total = len(futures)
 
         try:
-            for future in as_completed(futures):
+            for future in as_completed(futures, timeout=PARSE_BATCH_TIMEOUT_SECONDS):
                 try:
                     res = future.result()
                     if res:
@@ -494,6 +500,11 @@ class DataSourceComponents:
                     pct = min(completed_count / total, 1.0)
                     progress_bar.progress(pct, text=f"Processed {completed_count}/{total}")
 
+        except FuturesTimeoutError:
+            for future in futures:
+                future.cancel()
+            st.error("Parse batch exceeded the ten-minute limit; pending work was cancelled.")
+            return
         except KeyboardInterrupt:
             # Fallback if something interrupts
             for f in futures:

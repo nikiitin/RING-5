@@ -18,7 +18,7 @@ NON_BROWSER_TESTS := tests/unit tests/integration tests/ui tests/ui_logic tests/
 	test-data mock-data test test-unit test-nonbrowser test-ci test-export test-latex \
 	test-e2e test-visual \
 	format format-check lint type-check arch-check comments-check docs-check dependency-check \
-	docs-build security-audit quality-gate package-check check-outdated pre-commit-install \
+	docs-build docs-audit security-audit quality-gate package-check check-outdated pre-commit-install \
 	pre-commit clean
 
 help:
@@ -33,6 +33,7 @@ help:
 	@echo "  test-e2e            Run Playwright browser tests"
 	@echo "  quality-gate        Run architecture, docs, format, lint, types, and security"
 	@echo "  docs-build          Build the documentation site with Bundler"
+	@echo "  docs-audit          Audit generated routes and local site references"
 	@echo "  package-check       Build and validate wheel and source distributions"
 	@echo "  pre-commit          Run all pre-commit hooks"
 
@@ -153,8 +154,11 @@ docs-check:
 
 docs-build:
 	rm -rf _site
-	BUNDLE_GEMFILE=$(CURDIR)/Gemfile bundle exec jekyll build \
+	JEKYLL_ENV=production BUNDLE_GEMFILE=$(CURDIR)/Gemfile bundle exec jekyll build \
 		--source docs --destination _site
+
+docs-audit:
+	$(PYTHON) scripts/check_built_site.py
 
 dependency-check:
 	$(PYTHON) scripts/analyze_dependencies.py

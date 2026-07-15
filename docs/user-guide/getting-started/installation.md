@@ -34,6 +34,19 @@ make run
 
 Open <http://localhost:8501>. Stop the server with <kbd>Ctrl</kbd>+<kbd>C</kbd>.
 
+The web application can read statistics only below its configured filesystem roots. When
+`RING5_ALLOWED_STATS_ROOTS` is unset, the root is the directory where you start RING-5. Start it
+from the common parent of your result trees, or configure one or more roots before `make run`:
+
+```bash
+export RING5_ALLOWED_STATS_ROOTS="$HOME/gem5-results:/mnt/shared-results"
+make run
+```
+
+Use the platform path separator: `:` on Linux and macOS, `;` on Windows. The Data Source page shows
+the active roots. This restriction applies to paths submitted through the web application; a
+trusted local Python script can open paths available to its own process.
+
 ## Install runtime dependencies only
 
 Use the runtime target if you only need the web application, Python API, and CLI:

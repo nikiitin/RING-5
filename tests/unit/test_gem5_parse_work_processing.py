@@ -237,8 +237,8 @@ class TestRunPerlScriptErrors:
 
     @patch("src.parsing.gem5.impl.strategies.gem5_parse_work.get_worker_pool")
     @patch("src.core.common.utils.checkFileExistsOrException")
-    def test_unsafe_key_skipped(self, mock_check: MagicMock, mock_pool_fn: MagicMock) -> None:
-        """Keys starting with '-' should be skipped for safety."""
+    def test_unsafe_key_fails_visibly(self, mock_check: MagicMock, mock_pool_fn: MagicMock) -> None:
+        """An unsafe requested key must not produce silently partial output."""
         mock_pool = MagicMock()
         mock_pool.parse_file.return_value = []
         mock_pool_fn.return_value = mock_pool
@@ -247,10 +247,7 @@ class TestRunPerlScriptErrors:
         vars_map = cast(VarsDictType, {"-dangerous_key": Scalar(), "safe_key": Scalar()})
         work = Gem5ParseWork("stats.txt", vars_map)
 
-        work._runPerlScript()
+        with pytest.raises(RuntimeError, match="Unsafe parser stat filter"):
+            work._runPerlScript()
 
-        # pool.parse_file should be called with safe_keys only
-        call_args = mock_pool.parse_file.call_args
-        keys_passed = call_args[0][1]  # second positional arg
-        assert "-dangerous_key" not in keys_passed
-        assert "safe_key" in keys_passed
+        mock_pool.parse_file.assert_not_called()

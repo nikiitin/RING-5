@@ -7,6 +7,8 @@ on:
       - docs/**
       - Gemfile
       - Gemfile.lock
+      - Makefile
+      - scripts/check_built_site.py
       - .github/workflows/pages.yml
   workflow_dispatch:
 
@@ -29,11 +31,21 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v6
 
-      - name: Build with Jekyll
-        uses: actions/jekyll-build-pages@v1
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
         with:
-          source: ./docs
-          destination: ./_site
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Build and audit documentation
+        run: |
+          python -m venv python_venv
+          make docs-build docs-audit
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5

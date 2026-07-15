@@ -10,13 +10,20 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
-from src.core.common.utils import normalize_user_path
 from src.core.common.safe_regex import (
     SafeRegexError,
     compile_bounded_regex,
+    escape_perl_stat_filter,
     fullmatch_bounded_regex,
+    normalize_stat_pattern,
 )
-from src.core.common.security_limits import MAX_SCAN_FILES
+from src.core.common.utils import normalize_user_path
+from src.core.common.security_limits import (
+    MAX_DISCOVERED_FILES,
+    MAX_REGEX_CANDIDATES,
+    MAX_REGEX_EXPANSION_SECONDS,
+    MAX_REGEX_MATCH_ATTEMPTS,
+)
 from src.core.models import (
     ParseBatchResult,
     ScanFileResult,
@@ -78,21 +85,49 @@ class Gem5Parser(SimulationParser):
 
         # 1. Regex Expansion (Centralized Logic)
         t_regex_start = time.perf_counter()
+        regex_deadline = time.monotonic() + MAX_REGEX_EXPANSION_SECONDS
+        match_attempts = 0
         processed_configs: list[StatConfig] = []
         for config in variables:
             expanded_config = config
             source_name = getattr(config, "source_name", None) or config.name
-            if scanned_vars and config.is_regex:
+            if config.is_regex:
                 try:
+                    canonical_source = normalize_stat_pattern(source_name)
+                    if not scanned_vars:
+                        raise SafeRegexError(
+                            "Regex parser variables require results from a scan of the same tree."
+                        )
+                    if len(scanned_vars) > MAX_REGEX_CANDIDATES:
+                        raise SafeRegexError(
+                            f"Regex expansion received {len(scanned_vars)} candidates; "
+                            f"the limit is {MAX_REGEX_CANDIDATES}."
+                        )
                     logger.info(
                         f"PARSER: Matching regex '{source_name}' "
                         f"against {len(scanned_vars)} scanned variables"
                     )
-                    pattern = compile_bounded_regex(source_name)
+                    pattern = compile_bounded_regex(escape_perl_stat_filter(source_name))
                     matched_ids: list[str] = []
                     for sv in scanned_vars:
+                        match_attempts += 1
+                        if match_attempts > MAX_REGEX_MATCH_ATTEMPTS:
+                            raise SafeRegexError(
+                                f"Regex expansion exceeded {MAX_REGEX_MATCH_ATTEMPTS} "
+                                "candidate matches."
+                            )
+                        if time.monotonic() > regex_deadline:
+                            raise SafeRegexError(
+                                f"Regex expansion exceeded {MAX_REGEX_EXPANSION_SECONDS:g} seconds."
+                            )
                         sv_name = sv.name
-                        if source_name == sv_name or fullmatch_bounded_regex(pattern, sv_name):
+                        same_pattern = False
+                        if r"\d+" in sv_name:
+                            try:
+                                same_pattern = canonical_source == normalize_stat_pattern(sv_name)
+                            except SafeRegexError:
+                                pass
+                        if same_pattern or fullmatch_bounded_regex(pattern, sv_name):
                             # If sv is already an aggregated pattern, use its constituents
                             if sv.pattern_indices:
                                 for pattern_id in sv.pattern_indices:
@@ -215,8 +250,8 @@ class Gem5Parser(SimulationParser):
         Args:
             stats_path: Base directory to search for stats files
             stats_pattern: Filename pattern to match (default: "stats.txt")
-            limit: Maximum number of files to scan. Non-positive values select
-                the bounded deep-scan maximum.
+            limit: Maximum number of files to scan. Non-positive values scan
+                every matching file up to the global discovery safety ceiling.
 
         Returns:
             List of Future objects that each resolve to a ``ScanFileResult``
@@ -224,7 +259,12 @@ class Gem5Parser(SimulationParser):
         Raises:
             FileNotFoundError: If stats_path doesn't exist or no files found
         """
-        effective_limit = MAX_SCAN_FILES if limit <= 0 else min(limit, MAX_SCAN_FILES)
+        if limit > MAX_DISCOVERED_FILES:
+            raise ValueError(
+                f"Scan limit {limit} exceeds the global safety ceiling of "
+                f"{MAX_DISCOVERED_FILES} files."
+            )
+        effective_limit = 0 if limit <= 0 else limit
         files = find_stats_files(
             stats_path,
             stats_pattern,
@@ -263,7 +303,11 @@ class Gem5Parser(SimulationParser):
         # Apply pattern aggregation to consolidate repeated numeric patterns
         aggregated_vars = PatternAggregator.aggregate_patterns(merged_vars)
 
-        return ScanResult(variables=aggregated_vars, failures=failures)
+        return ScanResult(
+            variables=aggregated_vars,
+            failures=failures,
+            scanned_files=len(results),
+        )
 
     @staticmethod
     def _merge_variable(registry: dict[str, ScannedVariable], var: ScannedVariable) -> None:

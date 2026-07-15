@@ -25,7 +25,14 @@ On **Data Source**, select **Parse gem5 Stats Files** and set:
   unless your dataset needs a different registered strategy.
 
 Select **Quick Scan** to inspect a bounded sample. Use **Deep Scan** when variables or vector entries
-differ across runs. Scanning discovers names and types; it does not parse the dataset.
+differ across runs. Quick Scan reads up to 10 files; Deep Scan reads up to 256 files. Scanning
+discovers names and types; it does not parse the dataset. A scan that cannot read every selected
+file reports the file failures instead of presenting partial metadata as complete.
+
+The path must be below an allowed root displayed on the Data Source page. Administrators configure
+the roots with the `RING5_ALLOWED_STATS_ROOTS` environment variable; when it is unset, RING-5 uses
+the directory where the web process started. See
+[Install RING-5]({{site.baseurl}}/user-guide/getting-started/installation/) for examples.
 
 Add variables from the scan results. Check vector and distribution entry selections before parsing:
 their configuration controls which output columns are created. Then select **Parse gem5 Stats
@@ -72,12 +79,23 @@ with ring5.Session() as session:
     data = session.load(result.csv_path)
 ```
 
-Set `scan_limit=0` when every matching file must be scanned for variable discovery. By default,
-`parse` raises `ring5.MissingStatError` if a requested statistic produces no values. Use
-`strict=False` only when a `NaN` column is an intentional part of the analysis.
+Set `scan_limit=0` when every matching file must be scanned for variable discovery. Exhaustive
+discovery is capped at 10,000 files; a larger explicit limit is rejected. This differs from the web
+Deep Scan sample, which remains capped at 256 files. By default, `parse` raises
+`ring5.MissingStatError` if a requested statistic produces no values. Use `strict=False` only when
+a `NaN` column is an intentional part of the analysis.
+
+Pattern variables accept the scanner form `system.cpu\d+.ipc` and the equivalent escaped-literal
+form `system\.cpu\d+\.ipc`. Only literal statistic-name characters and `\d+` numeric placeholders
+are accepted; arbitrary regular expressions are rejected before parsing.
 
 For a non-blocking workflow, call `Session.parse_submit(...)`, then `finalize()` or `cancel()` on the
 returned job. Each job owns its futures.
+
+Parsing and pattern expansion have aggregate file, byte, variable, file-variable, and time bounds.
+Crossing a bound raises `ring5.ScanError` or `ring5.ParseError`; RING-5 does not truncate the output
+and report success. For trusted, unusually wide pattern variables, `RING5_MAX_VAR_REPEAT` can raise
+the default 1,024-instance cap, or `0` can disable that one cap.
 
 ## Parse from the CLI
 

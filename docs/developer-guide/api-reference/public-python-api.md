@@ -23,6 +23,11 @@ are released.
 `Session.load` returns a DataFrame. `shape`, `reduce_seeds`, and `remove_outliers` preserve
 `ring5.Table` when given one.
 
+`scan_limit=0` means exhaustive variable discovery up to the global 10,000-file ceiling; a positive
+value is an exact sample cap. A scan with any failed files raises `ScanError` at the public boundary
+instead of returning incomplete variable metadata. Parser worker, aggregate resource, pattern
+expansion, and ten-minute batch timeout failures are wrapped as `ParseError`.
+
 `create_plot` registers a plot and `render` renders it. `plot` performs both. Plot identifiers come
 from `ring5.available_plot_types()`; display names are accepted but identifiers are preferable in
 versioned scripts.
@@ -46,8 +51,9 @@ process-exit cleanup and restart on later use.
 ## Errors
 
 Catch the narrow error from `ring5.errors` when recovery differs. All supported operational errors
-inherit `Ring5Error`. Public boundaries preserve the original failure as `__cause__` where wrapping
-adds API context.
+inherit `Ring5Error`. `ScanError` covers empty, failed, or incomplete scans; `ParseError` covers
+submission, resource-limit, worker, timeout, and assembly failures. Public boundaries preserve the
+original failure as `__cause__` where wrapping adds API context.
 
 When adding a public name, export it lazily where appropriate, document parameters and exceptions,
 add integration coverage, and update the User Guide.

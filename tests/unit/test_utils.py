@@ -148,6 +148,14 @@ class TestNormalizeUserPath:
 
 
 class TestValidateWebStatsPath:
+    def test_default_root_is_launch_directory(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.delenv("RING5_ALLOWED_STATS_ROOTS", raising=False)
+        monkeypatch.chdir(tmp_path)
+
+        assert utils.allowed_web_stats_roots() == (tmp_path.resolve(),)
+
     def test_allowed_root_accepts_child(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:

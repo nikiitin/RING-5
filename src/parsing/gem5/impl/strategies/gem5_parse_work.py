@@ -6,14 +6,18 @@ Executed in parallel across multiple stats files.
 from __future__ import annotations
 
 import logging
-import re
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from src.parsing.gem5.types.base import StatType
 
 import src.core.common.utils as utils
-from src.core.common.safe_regex import SafeRegexError, escape_perl_stat_filter
+from src.core.common.safe_regex import (
+    SafeRegexError,
+    escape_perl_stat_filter,
+    numeric_pattern_id,
+)
+from src.core.common.security_limits import MAX_PARSE_VARIABLES
 from src.parsing.gem5.impl.pool.parse_work import ParsedVarsDict, ParseWork
 from src.parsing.gem5.impl.strategies.perl_worker_pool import get_worker_pool
 from src.parsing.gem5.types.type_mapper import TypeMapper
@@ -108,12 +112,10 @@ class Gem5ParseWork(ParseWork):
         Literal segments are escaped before matching, so this helper never
         evaluates user-controlled regex syntax.
         """
-        marker = r"\d+"
-        if marker not in pattern:
+        try:
+            return numeric_pattern_id(pattern, concrete_name)
+        except SafeRegexError:
             return None
-        capture_pattern = re.escape(pattern).replace(re.escape(marker), r"(\d+)")
-        matched = re.fullmatch(capture_pattern, concrete_name)
-        return "_".join(matched.groups()) if matched else None
 
     @classmethod
     def _scalar_pattern_entry(
@@ -383,15 +385,14 @@ class Gem5ParseWork(ParseWork):
             try:
                 escaped_key = escape_perl_stat_filter(key)
             except SafeRegexError as exc:
-                logger.warning("Skipping unsafe stat filter %r: %s", key, exc)
-                continue
+                raise RuntimeError(f"Unsafe parser stat filter {key!r}: {exc}") from exc
             if escaped_key not in safe_keys:
                 safe_keys.append(escaped_key)
 
-        if not safe_keys:
-            raise RuntimeError("No safe variable filters remain after validation.")
-        if len(safe_keys) > 2048:
-            raise RuntimeError("Parser request exceeds the 2048-variable filter limit.")
+        if len(safe_keys) > MAX_PARSE_VARIABLES:
+            raise RuntimeError(
+                f"Parser request exceeds the {MAX_PARSE_VARIABLES}-variable filter limit."
+            )
 
         # Use worker pool for parsing (54x faster than subprocess)
         logger.debug(f"Parsing {self._fileToParse} with {len(safe_keys)} variables via worker pool")

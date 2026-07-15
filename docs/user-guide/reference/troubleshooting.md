@@ -30,8 +30,28 @@ Check **Stats directory path** and **File pattern** against the filesystem. Run 
 then use **Deep Scan** when variables differ between runs. Parsing needs Perl; check it with
 `ring5 doctor`.
 
+If the path is outside the allowed web roots, start RING-5 from the results parent directory or set
+`RING5_ALLOWED_STATS_ROOTS` before starting the server. The Data Source page lists the active roots.
+Separate multiple roots with `:` on Linux and macOS or `;` on Windows.
+
+If a scan reports a line, file-size, file-count, or timeout limit, narrow the selected results tree
+or split the analysis. The scanner fails that file visibly; it never returns the first part of an
+oversized file as though the scan were complete. In Python, `scan_limit=0` scans all matches up to
+the 10,000-file discovery ceiling. The web Deep Scan deliberately samples at most 256 files.
+
 Do not use lenient parsing to hide a misspelled statistic. `--lenient` and `strict=False` are for
 intentional missing columns represented as `NaN`.
+
+## Parsing reports a resource-limit error
+
+Reduce either the number of files or requested variables. One parse accepts at most 4,096 files,
+2,048 logical variables and aliases, one million file-variable cells, 256 MiB per input file, and
+4 GiB across the selected inputs. A parse batch has a ten-minute completion bound. These are
+failure boundaries, not truncation points: no CSV is reported as complete after a limit is crossed.
+
+A pattern variable expands to at most 1,024 instances by default. On trusted inputs only, set
+`RING5_MAX_VAR_REPEAT` to a larger integer or `0` to disable that cap. Arbitrary regular expressions
+are not supported; use literal statistic-name characters and `\d+` placeholders.
 
 ## A CSV does not load
 

@@ -253,6 +253,9 @@ class PatternIndexService:
             ... )
             'system.ruby.l0_cntrl1.stat'
         """
+        from src.core.common.safe_regex import normalize_stat_pattern
+
+        pattern_name = normalize_stat_pattern(pattern_name)
         parts = numeric_id.split("_")
         marker = r"\d+"
         segments = pattern_name.split(marker)

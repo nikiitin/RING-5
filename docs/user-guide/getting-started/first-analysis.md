@@ -20,7 +20,8 @@ results directory that contains at least one `stats.txt` file with `simTicks`.
 
 1. Start RING-5 with `make run` and leave **Data Source** selected.
 2. Keep **Parse gem5 Stats Files** selected. Enter the results root in **Stats directory path** and
-   keep `stats.txt` in **File pattern**.
+   keep `stats.txt` in **File pattern**. The directory must be below one of the allowed statistics
+   roots displayed above the path field.
 3. Select **Quick Scan**. When the scan finishes, select **Add Variable**, search for `simTicks`,
    and select **Add to Configuration**.
 4. Select **Parse gem5 Stats Files**. When parsing completes, the page shows the loaded row and

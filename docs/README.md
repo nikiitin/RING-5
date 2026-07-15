@@ -41,8 +41,10 @@ Run the documentation checks before committing:
 bundle install
 make docs-check
 make docs-build
+make docs-audit
 ```
 
 The build requires Ruby and Bundler. Dependencies are pinned in the repository-level `Gemfile`
-and `Gemfile.lock`. Do not commit the generated `_site/` directory. Repository-wide contribution
-rules are in [`AGENTS.md`](../AGENTS.md).
+and `Gemfile.lock`. The audit checks the generated canonical and redirect routes plus local HTML
+references. Do not commit the generated `_site/` directory. Repository-wide contribution rules are
+in [`AGENTS.md`](../AGENTS.md).

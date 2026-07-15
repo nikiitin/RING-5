@@ -110,11 +110,24 @@ class ScanResult:
 
     ``variables`` is the merged, deduplicated list from files that scanned
     successfully; ``failures`` lists per-file failures so the UI can surface
-    them instead of silently showing "no variables".
+    them instead of silently showing "no variables". ``scanned_files`` records
+    the full batch size, including failed files, so callers can distinguish a
+    complete scan from a partial result.
     """
 
     variables: list[ScannedVariable] = field(default_factory=list)
     failures: list[ScanFileResult] = field(default_factory=list)
+    scanned_files: int = 0
+
+    @property
+    def successful_files(self) -> int:
+        """Number of files whose scanner completed successfully."""
+        return max(self.scanned_files - len(self.failures), 0)
+
+    @property
+    def complete(self) -> bool:
+        """True when every submitted file scanned successfully."""
+        return not self.failures
 
 
 @dataclass(frozen=True)

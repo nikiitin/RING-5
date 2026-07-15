@@ -13,6 +13,13 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from src.parsing.gem5.types.base import StatType
 
+from src.core.common.security_limits import (
+    MAX_PARSE_FILES,
+    MAX_PARSE_FILE_BYTES,
+    MAX_PARSE_MATRIX_CELLS,
+    MAX_PARSE_TOTAL_BYTES,
+    MAX_PARSE_VARIABLES,
+)
 from src.core.common.utils import sanitize_log_value
 from src.core.models import StatConfig
 from src.parsing.framework.file_discovery import find_stats_files
@@ -27,9 +34,9 @@ def _max_var_repeat() -> int:
 
     A regex variable can match thousands of concrete instances (e.g. an NxN
     network traffic matrix → repeat in the thousands), which blows up memory when
-    parsed across many files. Variables above this cap are skipped with a loud log
-    rather than risking an OOM. Override with ``RING5_MAX_VAR_REPEAT``; ``0`` disables
-    the cap (parse everything).
+    parsed across many files. Variables above this cap fail before worker
+    submission rather than producing silently incomplete output. Override with
+    ``RING5_MAX_VAR_REPEAT``; ``0`` disables the cap for trusted inputs.
     """
     raw = os.environ.get("RING5_MAX_VAR_REPEAT")
     if raw is not None:
@@ -70,6 +77,17 @@ class SimpleStatsStrategy:
         # thread-based worker operates on its own mutable StatType set.
         t_map_start = time.perf_counter()
         template_map: dict[str, StatType] = self._map_variables(variables)
+        if len(template_map) > MAX_PARSE_VARIABLES:
+            raise RuntimeError(
+                f"PARSER: {len(template_map)} logical variables and aliases exceed the "
+                f"{MAX_PARSE_VARIABLES}-variable limit."
+            )
+        matrix_cells = len(files) * len(template_map)
+        if matrix_cells > MAX_PARSE_MATRIX_CELLS:
+            raise RuntimeError(
+                f"PARSER: workload requires {matrix_cells} file-variable cells; "
+                f"the limit is {MAX_PARSE_MATRIX_CELLS}. Reduce the file set or variables."
+            )
         t_map_end = time.perf_counter()
         logger.info(f"PERF: Variable map creation took {t_map_end - t_map_start:.4f}s")
 
@@ -95,6 +113,25 @@ class SimpleStatsStrategy:
                 whole parse run "succeed" while producing nothing.
         """
         files = find_stats_files(stats_path, stats_pattern, raise_if_empty=True)
+        if len(files) > MAX_PARSE_FILES:
+            raise RuntimeError(
+                f"PARSER: {len(files)} files exceed the {MAX_PARSE_FILES}-file parse limit."
+            )
+
+        total_bytes = 0
+        for file_path in files:
+            file_size = os.path.getsize(file_path)
+            if file_size > MAX_PARSE_FILE_BYTES:
+                raise RuntimeError(
+                    f"PARSER: input exceeds the {MAX_PARSE_FILE_BYTES // (1024 * 1024)} MiB "
+                    f"per-file limit: {file_path}"
+                )
+            total_bytes += file_size
+            if total_bytes > MAX_PARSE_TOTAL_BYTES:
+                raise RuntimeError(
+                    f"PARSER: selected inputs exceed the "
+                    f"{MAX_PARSE_TOTAL_BYTES // (1024 * 1024 * 1024)} GiB aggregate limit."
+                )
         logger.info(
             "PARSER: Found %d candidate files in %s",
             len(files),
@@ -127,15 +164,11 @@ class SimpleStatsStrategy:
                 n_ids = len(parsed_ids)
                 cap = _max_var_repeat()
                 if cap and n_ids > cap:
-                    logger.error(
-                        "PARSER: skipping variable '%s' — repeat=%d exceeds the cap of %d "
-                        "(would risk excessive memory). Raise RING5_MAX_VAR_REPEAT (or set 0 "
-                        "to disable) to include it.",
-                        name,
-                        n_ids,
-                        cap,
+                    raise RuntimeError(
+                        f"PARSER: variable {name!r} expands to {n_ids} instances, exceeding "
+                        f"the cap of {cap}. Raise RING5_MAX_VAR_REPEAT, or set it to 0 for "
+                        "trusted inputs, to include it."
                     )
-                    continue
                 # Update repeat count for the logical variable (Spatial aggregation)
                 stat_obj = TypeMapper.create_stat(replace(var, repeat=n_ids))
                 if n_ids > 50:

@@ -9,6 +9,8 @@ from src.core.common.safe_regex import (
     compile_bounded_regex,
     escape_perl_stat_filter,
     fullmatch_bounded_regex,
+    normalize_stat_pattern,
+    numeric_pattern_id,
     search_bounded_regex,
 )
 
@@ -55,6 +57,13 @@ def test_bounded_fullmatch_times_out_catastrophic_backtracking() -> None:
 
 def test_perl_stat_filter_allows_only_literals_and_numeric_placeholder() -> None:
     assert escape_perl_stat_filter(r"system.cpu\d+.ipc") == r"system\.cpu\d+\.ipc"
+    assert escape_perl_stat_filter(r"system\.cpu\d+\.ipc") == r"system\.cpu\d+\.ipc"
 
     with pytest.raises(SafeRegexError, match="Unsupported character"):
         escape_perl_stat_filter(r"(a+)+$")
+
+
+def test_stat_patterns_have_one_canonical_representation() -> None:
+    assert normalize_stat_pattern(r"system\.cpu\d+\.ipc") == r"system.cpu\d+.ipc"
+    assert numeric_pattern_id(r"system.cpu\d+.ipc", "system.cpu12.ipc") == "12"
+    assert numeric_pattern_id(r"system\.cpu\d+\.ipc", "system.cpu12.ipc") == "12"

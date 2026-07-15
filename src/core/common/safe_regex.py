@@ -97,21 +97,22 @@ def fullmatch_bounded_regex(pattern: BoundedPattern, value: str) -> RegexMatch |
         raise SafeRegexError(f"Regular expression matching exceeded {timeout_ms} ms.") from exc
 
 
-def escape_perl_stat_filter(pattern: str) -> str:
-    r"""Convert a stat-name pattern into a bounded, Perl-safe expression.
+def normalize_stat_pattern(pattern: str) -> str:
+    r"""Return the canonical form of a bounded stat-name pattern.
 
     Only literal gem5 identifier characters and the generated ``\d+`` numeric
     placeholder are accepted. Literal dots may be supplied as either ``.`` or
-    ``\.``. This deliberately excludes arbitrary grouping and quantifiers.
+    ``\.``. The canonical form stores literal punctuation without a leading
+    backslash and retains ``\d+`` placeholders.
     """
     if not pattern or len(pattern) > MAX_PATTERN_LENGTH:
         raise SafeRegexError("Stat filters must be between 1 and 512 characters.")
 
-    escaped: list[str] = []
+    normalized: list[str] = []
     index = 0
     while index < len(pattern):
         if pattern.startswith(r"\d+", index):
-            escaped.append(r"\d+")
+            normalized.append(r"\d+")
             index += 3
             continue
 
@@ -127,6 +128,31 @@ def escape_perl_stat_filter(pattern: str) -> str:
 
         if not (char.isalnum() or char in "._:"):
             raise SafeRegexError(f"Unsupported character in stat filter: {char!r}.")
-        escaped.append(regex.escape(char))
+        normalized.append(char)
 
-    return "".join(escaped)
+    return "".join(normalized)
+
+
+def escape_perl_stat_filter(pattern: str) -> str:
+    r"""Convert a stat-name pattern into a bounded, Perl-safe expression."""
+    normalized = normalize_stat_pattern(pattern)
+    segments = normalized.split(r"\d+")
+    escaped = [regex.escape(segment) for segment in segments]
+    return r"\d+".join(escaped)
+
+
+def numeric_pattern_id(pattern: str, concrete_name: str) -> str | None:
+    r"""Return numeric placeholder values when a concrete stat name matches.
+
+    Literal punctuation is normalized before the capture expression is built,
+    so both ``system.cpu\d+.ipc`` and ``system\.cpu\d+\.ipc`` resolve the
+    concrete name ``system.cpu0.ipc`` identically.
+    """
+    normalized = normalize_stat_pattern(pattern)
+    marker = r"\d+"
+    if marker not in normalized:
+        return None
+
+    capture_pattern = "(\\d+)".join(regex.escape(part) for part in normalized.split(marker))
+    matched = regex.fullmatch(capture_pattern, concrete_name)
+    return "_".join(matched.groups()) if matched else None

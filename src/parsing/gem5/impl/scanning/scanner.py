@@ -10,12 +10,13 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import shutil
 import subprocess
 from pathlib import Path
 
 from src.core.models import ScannedVariable
-from src.core.common.security_limits import MAX_SCAN_FILE_BYTES
+from src.core.common.security_limits import MAX_SCAN_FILE_BYTES, MAX_SCAN_LINE_COUNT
 from src.parsing.gem5.models import Gem5ScannedVariable
 from src.parsing.gem5.types.type_mapper import TypeMapper
 
@@ -99,7 +100,13 @@ class Gem5StatsScanner:
         try:
             # Command constructed from validated paths, shell=False enforced for safety
             result = subprocess.run(
-                cmd, capture_output=True, text=True, check=True, shell=False, timeout=15
+                cmd,
+                capture_output=True,
+                text=True,
+                check=True,
+                shell=False,
+                timeout=15,
+                env={**os.environ, "RING5_MAX_SCAN_LINES": str(MAX_SCAN_LINE_COUNT)},
             )
 
             if not result.stdout.strip():

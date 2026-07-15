@@ -52,6 +52,7 @@ Run the applicable full gates:
 
 ```bash
 make quality-gate
+make docs-build docs-audit
 make test-ci
 make test-e2e
 make package-check
