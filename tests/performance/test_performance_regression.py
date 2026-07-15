@@ -6,6 +6,7 @@ Run with: pytest tests/performance/ -v
 """
 
 import time
+from statistics import median
 from typing import Any
 
 import pandas as pd
@@ -217,22 +218,36 @@ class TestCsvPoolPerformance:
         metadata1 = CsvPoolService._get_csv_metadata(str(csv_path))
         duration1 = (time.perf_counter() - start1) * 1000
 
-        # Second call - should use cache
-        start2 = time.perf_counter()
-        metadata2 = CsvPoolService._get_csv_metadata(str(csv_path))
-        duration2 = (time.perf_counter() - start2) * 1000
+        # Repeated calls should use the cache. Use a median so a single CI
+        # scheduling pause cannot dominate this sub-millisecond operation.
+        cached_metadata = []
+        cached_durations = []
+        for _ in range(7):
+            start = time.perf_counter()
+            cached_metadata.append(CsvPoolService._get_csv_metadata(str(csv_path)))
+            cached_durations.append((time.perf_counter() - start) * 1000)
+
+        duration2 = median(cached_durations)
+        metadata2 = cached_metadata[-1]
 
         # Verify metadata is correct
         assert metadata1 is not None
         assert metadata2 is not None
         assert metadata1["rows"] == 1000
         assert len(metadata1["columns"]) == 3
+        assert all(metadata is metadata1 for metadata in cached_metadata)
+
+        cache_stats = CsvPoolService._metadata_cache.stats()
+        assert cache_stats["misses"] == 1
+        assert cache_stats["hits"] == len(cached_metadata)
+        assert cache_stats["size"] == 1
 
         # Second call should be much faster (at least 5x)
         speedup = duration1 / duration2 if duration2 > 0 else 1.0
         assert speedup >= 5.0, (
             f"Metadata caching not effective: {speedup:.2f}x speedup "
-            f"(expected >= 5.0x). First: {duration1:.2f}ms, Second: {duration2:.2f}ms"
+            f"(expected >= 5.0x). First: {duration1:.2f}ms, "
+            f"cached median: {duration2:.2f}ms"
         )
 
     def test_csv_loading_with_cache(self, tmp_path: Any) -> None:
