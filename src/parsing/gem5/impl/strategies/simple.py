@@ -158,7 +158,15 @@ class SimpleStatsStrategy:
 
             # Handle multi-ID mapping (Variables matched via regex scanning)
             parsed_ids_raw = var.params.get("parsed_ids", [])
-            parsed_ids: list[str] = parsed_ids_raw if isinstance(parsed_ids_raw, list) else []
+            if not isinstance(parsed_ids_raw, list) or any(
+                not isinstance(pattern_id, str) or not pattern_id for pattern_id in parsed_ids_raw
+            ):
+                raise ValueError(
+                    f"PARSER: parsed_ids for {name!r} must be a list of non-empty strings."
+                )
+            parsed_ids = list(
+                dict.fromkeys(pattern_id for pattern_id in parsed_ids_raw if pattern_id != name)
+            )
 
             if parsed_ids:
                 n_ids = len(parsed_ids)
@@ -169,6 +177,20 @@ class SimpleStatsStrategy:
                         f"the cap of {cap}. Raise RING5_MAX_VAR_REPEAT, or set it to 0 for "
                         "trusted inputs, to include it."
                     )
+
+            duplicate_alias = next((pid for pid in parsed_ids if pid in var_map), None)
+            if duplicate_alias is not None:
+                raise RuntimeError(
+                    f"PARSER: Duplicate variable or alias definition: {duplicate_alias}"
+                )
+            projected_variables = len(var_map) + 1 + len(parsed_ids)
+            if projected_variables > MAX_PARSE_VARIABLES:
+                raise RuntimeError(
+                    f"PARSER: {projected_variables} logical variables and aliases exceed the "
+                    f"{MAX_PARSE_VARIABLES}-variable limit."
+                )
+
+            if parsed_ids:
                 # Update repeat count for the logical variable (Spatial aggregation)
                 stat_obj = TypeMapper.create_stat(replace(var, repeat=n_ids))
                 if n_ids > 50:

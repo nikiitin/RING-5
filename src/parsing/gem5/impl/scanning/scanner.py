@@ -10,13 +10,16 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import os
 import shutil
 import subprocess
 from pathlib import Path
 
-from src.core.models import ScannedVariable
 from src.core.common.security_limits import MAX_SCAN_FILE_BYTES, MAX_SCAN_LINE_COUNT
+from src.core.common.safe_regex import MAX_INPUT_LENGTH
+from src.core.common.utils import sanitize_log_value
+from src.core.models import ScannedVariable
 from src.parsing.gem5.models import Gem5ScannedVariable
 from src.parsing.gem5.types.type_mapper import TypeMapper
 
@@ -83,13 +86,14 @@ class Gem5StatsScanner:
             FileNotFoundError: If the target stats file does not exist.
             RuntimeError: If the Perl scanner returns invalid output or crashes.
         """
+        display_path = sanitize_log_value(file_path)
         if not file_path.exists():
-            raise FileNotFoundError(f"SCANNER: File not found: {file_path}")
+            raise FileNotFoundError(f"SCANNER: File not found: {display_path}")
         file_size = file_path.stat().st_size
         if file_size > MAX_SCAN_FILE_BYTES:
             raise RuntimeError(
                 f"Scanner input exceeds the {MAX_SCAN_FILE_BYTES // (1024 * 1024)} MiB limit: "
-                f"{file_path}"
+                f"{display_path}"
             )
 
         cmd = [str(self._perl_exe), str(self._script_path), str(file_path)]
@@ -113,16 +117,67 @@ class Gem5StatsScanner:
                 return []
 
             results = json.loads(result.stdout)
+            if not isinstance(results, list):
+                raise RuntimeError("Perl scanner produced a non-list JSON result.")
 
-            return [Gem5ScannedVariable.from_dict(TypeMapper.map_scan_result(r)) for r in results]
+            variables: list[ScannedVariable] = []
+            for index, item in enumerate(results):
+                if not isinstance(item, dict):
+                    raise RuntimeError(f"Perl scanner result {index} is not a variable object.")
+                try:
+                    name = item.get("name")
+                    type_name = item.get("type")
+                    entries = item.get("entries", [])
+                    pattern_indices = item.get("pattern_indices", [])
+                    if not isinstance(name, str) or not name:
+                        raise ValueError("name must be a non-empty string")
+                    if len(name) > MAX_INPUT_LENGTH:
+                        raise ValueError("name exceeds the scanner string limit")
+                    if type_name not in {
+                        "configuration",
+                        "distribution",
+                        "histogram",
+                        "scalar",
+                        "vector",
+                    }:
+                        raise ValueError("type is not supported")
+                    if not isinstance(entries, list) or any(
+                        not isinstance(entry, str) or len(entry) > MAX_INPUT_LENGTH
+                        for entry in entries
+                    ):
+                        raise ValueError("entries must be a list of bounded strings")
+                    if not isinstance(pattern_indices, list) or any(
+                        not isinstance(pattern_id, str) or len(pattern_id) > MAX_INPUT_LENGTH
+                        for pattern_id in pattern_indices
+                    ):
+                        raise ValueError("pattern_indices must be a list of bounded strings")
+                    for range_name in ("minimum", "maximum"):
+                        range_value = item.get(range_name)
+                        if range_value is not None and (
+                            isinstance(range_value, bool)
+                            or not isinstance(range_value, (int, float))
+                            or not math.isfinite(range_value)
+                        ):
+                            raise ValueError(f"{range_name} must be a finite number")
+                    mapped = TypeMapper.map_scan_result(item)
+                    variables.append(Gem5ScannedVariable.from_dict(mapped))
+                except (KeyError, TypeError, ValueError) as exc:
+                    raise RuntimeError(
+                        f"Perl scanner result {index} has an invalid variable schema."
+                    ) from exc
+            return variables
 
         except subprocess.TimeoutExpired as e:
-            logger.error(f"SCANNER: Timeout scanning {file_path}")
-            raise RuntimeError(f"Scanner timed out on {file_path}") from e
+            logger.error("SCANNER: Timeout scanning %s", display_path)
+            raise RuntimeError(f"Scanner timed out on {display_path}") from e
         except subprocess.CalledProcessError as e:
-            logger.error(f"SCANNER: Perl script failed: {e.stderr}")
-            raise RuntimeError(f"Perl scanner failed for {file_path}: {e.stderr}") from e
+            stderr = sanitize_log_value(str(e.stderr or "")[:1000])
+            logger.error("SCANNER: Perl script failed: %s", stderr)
+            raise RuntimeError(f"Perl scanner failed for {display_path}: {stderr}") from e
         except json.JSONDecodeError as e:
             raw_output = result.stdout[:200] if result is not None else "<no output>"
-            logger.error(f"SCANNER: Invalid JSON output from script: {raw_output}")
+            logger.error(
+                "SCANNER: Invalid JSON output from script: %s",
+                sanitize_log_value(raw_output),
+            )
             raise RuntimeError("Perl scanner produced corrupt JSON output.") from e

@@ -86,8 +86,8 @@ Deep Scan sample, which remains capped at 256 files. By default, `parse` raises
 a `NaN` column is an intentional part of the analysis.
 
 Pattern variables accept the scanner form `system.cpu\d+.ipc` and the equivalent escaped-literal
-form `system\.cpu\d+\.ipc`. Only literal statistic-name characters and `\d+` numeric placeholders
-are accepted; arbitrary regular expressions are rejected before parsing.
+form `system\.cpu\d+\.ipc`. Only literal ASCII statistic-name characters and `\d+` numeric
+placeholders are accepted; arbitrary regular expressions are rejected before parsing.
 
 For a non-blocking workflow, call `Session.parse_submit(...)`, then `finalize()` or `cancel()` on the
 returned job. Each job owns its futures.

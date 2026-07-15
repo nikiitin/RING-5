@@ -172,8 +172,10 @@ quality-gate: arch-check comments-check docs-check dependency-check format-check
 	@echo "Quality gate passed."
 
 package-check:
+	rm -rf build dist ring5.egg-info
 	$(PYTHON) -m build
 	$(VENV_BIN)/twine check dist/*
+	$(PYTHON) scripts/check_package_contents.py
 
 check-outdated:
 	$(PIP) list --outdated --format=columns

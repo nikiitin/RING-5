@@ -20,6 +20,7 @@ from src.core.common.safe_regex import (
 from src.core.common.utils import normalize_user_path
 from src.core.common.security_limits import (
     MAX_DISCOVERED_FILES,
+    MAX_PARSE_VARIABLES,
     MAX_REGEX_CANDIDATES,
     MAX_REGEX_EXPANSION_SECONDS,
     MAX_REGEX_MATCH_ATTEMPTS,
@@ -109,6 +110,19 @@ class Gem5Parser(SimulationParser):
                     )
                     pattern = compile_bounded_regex(escape_perl_stat_filter(source_name))
                     matched_ids: list[str] = []
+                    matched_id_set: set[str] = set()
+
+                    def add_matched_id(pattern_id: str) -> None:
+                        if pattern_id in matched_id_set:
+                            return
+                        if len(matched_ids) >= MAX_PARSE_VARIABLES:
+                            raise SafeRegexError(
+                                f"Pattern expands beyond the {MAX_PARSE_VARIABLES}-variable "
+                                "limit."
+                            )
+                        matched_id_set.add(pattern_id)
+                        matched_ids.append(pattern_id)
+
                     for sv in scanned_vars:
                         match_attempts += 1
                         if match_attempts > MAX_REGEX_MATCH_ATTEMPTS:
@@ -131,50 +145,61 @@ class Gem5Parser(SimulationParser):
                             # If sv is already an aggregated pattern, use its constituents
                             if sv.pattern_indices:
                                 for pattern_id in sv.pattern_indices:
-                                    if "." in pattern_id:
-                                        matched_ids.append(pattern_id)
+                                    if fullmatch_bounded_regex(pattern, pattern_id):
+                                        add_matched_id(pattern_id)
                                         continue
                                     try:
-                                        matched_ids.append(
+                                        add_matched_id(
                                             PatternIndexService.reconstruct_concrete_name(
                                                 source_name, pattern_id
                                             )
                                         )
-                                    except ValueError:
-                                        logger.warning(
-                                            "PARSER: Ignoring malformed pattern index '%s' "
-                                            "for '%s'",
-                                            pattern_id,
-                                            source_name,
-                                        )
+                                    except ValueError as exc:
+                                        raise SafeRegexError(
+                                            f"Scanned pattern index {pattern_id!r} is invalid "
+                                            f"for {source_name!r}."
+                                        ) from exc
                             else:
-                                matched_ids.append(sv_name)
+                                add_matched_id(sv_name)
 
                     if matched_ids:
                         if config.keep_indices:
                             user_ids_raw = config.params.get("parsed_ids", [])
-                            user_ids: list[str] = (
-                                user_ids_raw if isinstance(user_ids_raw, list) else []
-                            )
+                            if not isinstance(user_ids_raw, list) or any(
+                                not isinstance(pattern_id, str) or not pattern_id
+                                for pattern_id in user_ids_raw
+                            ):
+                                raise SafeRegexError(
+                                    "Selected pattern IDs must be a list of non-empty strings."
+                                )
+                            user_ids: list[str] = list(dict.fromkeys(user_ids_raw))
                             ids_to_expand = user_ids if user_ids else matched_ids
-                            ids_are_full_names = any("." in pid for pid in ids_to_expand)
+                            if len(ids_to_expand) > MAX_PARSE_VARIABLES:
+                                raise SafeRegexError(
+                                    f"Pattern selection expands to {len(ids_to_expand)} variables; "
+                                    f"the limit is {MAX_PARSE_VARIABLES}."
+                                )
                             concrete_names: list[str] = []
-                            if ids_are_full_names:
-                                concrete_names = list(ids_to_expand)
-                            else:
-                                for nid in ids_to_expand:
+                            for nid in ids_to_expand:
+                                if nid in matched_id_set:
+                                    cname = nid
+                                else:
                                     try:
                                         cname = PatternIndexService.reconstruct_concrete_name(
                                             source_name, nid
                                         )
-                                        concrete_names.append(cname)
-                                    except ValueError:
-                                        logger.warning(
-                                            "PARSER: Could not reconstruct "
-                                            "name for id '%s' in '%s'",
-                                            nid,
-                                            source_name,
-                                        )
+                                    except ValueError as exc:
+                                        raise SafeRegexError(
+                                            f"Selected pattern ID {nid!r} is neither a scanned "
+                                            "concrete name nor a valid numeric ID."
+                                        ) from exc
+                                if cname not in matched_id_set:
+                                    raise SafeRegexError(
+                                        f"Selected pattern ID {nid!r} was not present in the "
+                                        "scan results."
+                                    )
+                                concrete_names.append(cname)
+                            concrete_names = list(dict.fromkeys(concrete_names))
 
                             if len(concrete_names) > 50:
                                 logger.warning(

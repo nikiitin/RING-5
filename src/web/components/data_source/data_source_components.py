@@ -503,7 +503,10 @@ class DataSourceComponents:
         except FuturesTimeoutError:
             for future in futures:
                 future.cancel()
-            st.error("Parse batch exceeded the ten-minute limit; pending work was cancelled.")
+            st.error(
+                "Parse batch exceeded the ten-minute limit; cancellation was requested for "
+                "unfinished work. Already-running files may finish in the background."
+            )
             return
         except KeyboardInterrupt:
             # Fallback if something interrupts

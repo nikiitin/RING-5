@@ -164,8 +164,8 @@ class DataSourcePage(BasePage):
 
     @property
     def deep_scan_checkbox(self) -> Locator:
-        """'Deep Scan (check all files)' checkbox."""
-        return self.page.get_by_text("Deep Scan (check all files)")
+        """Bounded 'Deep Scan' checkbox."""
+        return self.page.get_by_text(re.compile(r"Deep Scan \(up to \d+ files\)"))
 
     @property
     def quick_scan_button(self) -> Locator:

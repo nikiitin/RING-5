@@ -69,9 +69,39 @@ class TestSimpleStatsStrategy:
         with pytest.raises(RuntimeError, match="cap of 100"):
             strategy._map_variables([self._ids("v", 64), self._ids("big", 2704)])
 
-        monkeypatch.setenv("RING5_MAX_VAR_REPEAT", "0")  # 0 == unlimited
-        var_map = strategy._map_variables([self._ids("big", 2704)])
-        assert "big" in var_map and var_map["big"].repeat == 2704
+        monkeypatch.setenv("RING5_MAX_VAR_REPEAT", "0")  # aggregate limit still applies
+        var_map = strategy._map_variables([self._ids("big", 1500)])
+        assert "big" in var_map and var_map["big"].repeat == 1500
+        with pytest.raises(RuntimeError, match="logical variables and aliases"):
+            strategy._map_variables([self._ids("too_big", 2704)])
+
+    def test_duplicate_aliases_are_deduplicated_before_repeat_count(self) -> None:
+        strategy = SimpleStatsStrategy()
+        config = StatConfig(
+            name="pattern",
+            type="scalar",
+            params={"parsed_ids": ["cpu0", "cpu0", "cpu1"]},
+        )
+
+        var_map = strategy._map_variables([config])
+
+        assert var_map["pattern"].repeat == 2
+        assert set(var_map) == {"pattern", "cpu0", "cpu1"}
+
+    def test_alias_collision_is_rejected(self) -> None:
+        strategy = SimpleStatsStrategy()
+
+        with pytest.raises(RuntimeError, match="Duplicate variable or alias"):
+            strategy._map_variables(
+                [
+                    StatConfig(name="cpu0", type="scalar"),
+                    StatConfig(
+                        name="pattern",
+                        type="scalar",
+                        params={"parsed_ids": ["cpu0"]},
+                    ),
+                ]
+            )
 
     @patch("src.parsing.gem5.impl.strategies.simple.find_stats_files")
     def test_file_count_limit_fails_before_submission(

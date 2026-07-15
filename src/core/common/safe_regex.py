@@ -126,7 +126,7 @@ def normalize_stat_pattern(pattern: str) -> str:
         else:
             index += 1
 
-        if not (char.isalnum() or char in "._:"):
+        if not ((char.isascii() and char.isalnum()) or char in "._:"):
             raise SafeRegexError(f"Unsupported character in stat filter: {char!r}.")
         normalized.append(char)
 
@@ -138,7 +138,7 @@ def escape_perl_stat_filter(pattern: str) -> str:
     normalized = normalize_stat_pattern(pattern)
     segments = normalized.split(r"\d+")
     escaped = [regex.escape(segment) for segment in segments]
-    return r"\d+".join(escaped)
+    return r"[0-9]+".join(escaped)
 
 
 def numeric_pattern_id(pattern: str, concrete_name: str) -> str | None:
@@ -149,10 +149,12 @@ def numeric_pattern_id(pattern: str, concrete_name: str) -> str | None:
     concrete name ``system.cpu0.ipc`` identically.
     """
     normalized = normalize_stat_pattern(pattern)
+    if len(concrete_name) > MAX_INPUT_LENGTH:
+        raise SafeRegexError(f"Stat name exceeds the {MAX_INPUT_LENGTH}-character matching limit.")
     marker = r"\d+"
     if marker not in normalized:
         return None
 
-    capture_pattern = "(\\d+)".join(regex.escape(part) for part in normalized.split(marker))
+    capture_pattern = "([0-9]+)".join(regex.escape(part) for part in normalized.split(marker))
     matched = regex.fullmatch(capture_pattern, concrete_name)
     return "_".join(matched.groups()) if matched else None

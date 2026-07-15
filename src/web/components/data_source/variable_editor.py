@@ -201,7 +201,7 @@ class VariableEditor:
 
         st.info(
             "Histograms require buckets (ranges) to be specified. "
-            "You can use **Deep Scan** to find all range buckets found across all simulations."
+            "You can use **Deep Scan** to find range buckets across a larger bounded sample."
         )
 
         discovered_entries: list[str] = []
@@ -330,7 +330,7 @@ class VariableEditor:
         st.info(
             "Vectors require entries to be specified. "
             "You can manually search for entries, or use the **Deep Scan** feature below "
-            "to automatically find them in your stats files."
+            "to automatically find them across a larger bounded sample."
         )
 
         discovered_entries: list[str] = []

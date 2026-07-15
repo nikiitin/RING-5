@@ -135,6 +135,17 @@ class TestPerlWorker:
         finally:
             worker.shutdown()
 
+    def test_worker_rejects_protocol_delimiters(self, perl_exe: str, perl_script_path: str) -> None:
+        worker = PerlWorker(worker_id=0, script_path=perl_script_path, perl_exe=perl_exe)
+
+        try:
+            with pytest.raises(ValueError, match="reserved protocol delimiter"):
+                worker.parse_file("/tmp/stats.txt\nPING", ["simTicks"])
+            with pytest.raises(ValueError, match="reserved protocol delimiter"):
+                worker.parse_file("/tmp/stats.txt", ["simTicks||SHUTDOWN"])
+        finally:
+            worker.shutdown()
+
     def test_worker_restart(self, perl_exe: Any, perl_script_path: Any) -> None:
         """Worker should restart successfully."""
         worker = PerlWorker(worker_id=0, script_path=perl_script_path, perl_exe=perl_exe)
@@ -290,10 +301,31 @@ class TestErrorHandling:
     """Test error handling and robustness."""
 
     def test_worker_invalid_file(self, worker_pool: Any) -> None:
-        """Worker should handle invalid file gracefully."""
-        # Worker logs error but returns empty result (doesn't raise)
-        result = worker_pool.parse_file("/nonexistent/file.txt", ["system.cpu.ipc"])
-        assert result == []  # Empty result on error
+        """A backend file error must not look like a successful empty parse."""
+        with pytest.raises(RuntimeError, match="All workers"):
+            worker_pool.parse_file("/nonexistent/file.txt", ["system.cpu.ipc"])
+
+    def test_worker_reports_parser_line_limit(
+        self,
+        tmp_path: Path,
+        perl_exe: str,
+        perl_script_path: str,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        from src.parsing.gem5.impl.strategies import perl_worker_pool
+
+        monkeypatch.setattr(perl_worker_pool, "MAX_PARSE_LINE_COUNT", 2)
+        stats_file = tmp_path / "stats.txt"
+        stats_file.write_text("simTicks 1\nsimTicks 2\nsimTicks 3\n")
+        worker = PerlWorker(worker_id=0, script_path=perl_script_path, perl_exe=perl_exe)
+
+        try:
+            output, success = worker.parse_file(str(stats_file), ["simTicks"], timeout=10)
+        finally:
+            worker.shutdown()
+
+        assert not success
+        assert output == []
 
     def test_worker_timeout(self, worker_pool: Any) -> None:
         """Worker should timeout on hung operations."""

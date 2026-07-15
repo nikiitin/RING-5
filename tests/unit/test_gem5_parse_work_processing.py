@@ -209,6 +209,14 @@ class TestProcessLineEdgeCases:
 class TestRunPerlScriptErrors:
     """Tests for _runPerlScript error handling."""
 
+    @patch("src.core.common.utils.checkFileExistsOrException")
+    def test_empty_variable_map_is_rejected(self, mock_check: MagicMock) -> None:
+        work = Gem5ParseWork("stats.txt", cast(VarsDictType, {"var": Scalar()}))
+        work._varsToParse.clear()
+
+        with pytest.raises(RuntimeError, match="No variable filters"):
+            work._runPerlScript()
+
     @patch("src.parsing.gem5.impl.strategies.gem5_parse_work.get_worker_pool")
     @patch("src.core.common.utils.checkFileExistsOrException")
     def test_timeout_error(self, mock_check: MagicMock, mock_pool_fn: MagicMock) -> None:

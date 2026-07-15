@@ -46,12 +46,13 @@ intentional missing columns represented as `NaN`.
 
 Reduce either the number of files or requested variables. One parse accepts at most 4,096 files,
 2,048 logical variables and aliases, one million file-variable cells, 256 MiB per input file, and
-4 GiB across the selected inputs. A parse batch has a ten-minute completion bound. These are
+4 GiB across the selected inputs. A parser worker rejects an input beyond ten million lines, and a
+parse batch has a ten-minute completion bound. These are
 failure boundaries, not truncation points: no CSV is reported as complete after a limit is crossed.
 
 A pattern variable expands to at most 1,024 instances by default. On trusted inputs only, set
 `RING5_MAX_VAR_REPEAT` to a larger integer or `0` to disable that cap. Arbitrary regular expressions
-are not supported; use literal statistic-name characters and `\d+` placeholders.
+are not supported; use literal ASCII statistic-name characters and `\d+` placeholders.
 
 ## A CSV does not load
 

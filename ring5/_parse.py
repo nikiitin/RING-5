@@ -73,11 +73,11 @@ class ParseJob:
 
         _done, pending = wait(self.futures, timeout=PARSE_BATCH_TIMEOUT_SECONDS)
         if pending:
-            for future in pending:
-                future.cancel()
+            cancelled = sum(future.cancel() for future in pending)
             raise ParseError(
                 f"Parse batch exceeded {PARSE_BATCH_TIMEOUT_SECONDS:g} seconds; "
-                f"cancelled {len(pending)} pending file(s)."
+                f"{len(pending)} file(s) remained unfinished and cancellation "
+                f"succeeded for {cancelled} not-yet-running file(s)."
             )
 
         try:
@@ -164,7 +164,7 @@ def build_stat_configs(
 
     Raises:
         ScanError: The stats path has no matching files, the scan failed
-            for every file, or a requested name was not found by the scan.
+            for any selected file, or a requested name was not found by the scan.
     """
     from dataclasses import replace as dc_replace
 
@@ -215,10 +215,12 @@ def build_stat_configs(
 
     if unknown:
         sample = ", ".join(sorted(by_name)[:8])
+        scanned_files = scan.scanned_files or len(futures)
+        requested_scope = "all matching files" if scan_limit <= 0 else f"up to {scan_limit} files"
         raise ScanError(
             f"Variables not found by the scan: {', '.join(unknown)}. "
-            f"Scanned {len(by_name)} variables from {scan_limit or 'all'} sampled "
-            f"file(s) (e.g. {sample}…). A stat present only in unsampled files "
+            f"Scanned {scanned_files} file(s) ({requested_scope}) and found "
+            f"{len(by_name)} variables (e.g. {sample}…). A stat present only in unsampled files "
             "needs a deeper scan: pass scan_limit=0 (all files). "
             "For regex patterns, pass a StatConfig."
         )

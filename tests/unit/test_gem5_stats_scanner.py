@@ -244,6 +244,57 @@ class TestScanFileScanFile:
         with pytest.raises(RuntimeError, match="corrupt JSON"):
             scanner.scan_file(test_file)
 
+    @pytest.mark.parametrize(
+        "payload,error",
+        [
+            ({"name": "simTicks", "type": "scalar"}, "non-list JSON"),
+            (["not-an-object"], "not a variable object"),
+            ([{"name": "", "type": "scalar"}], "invalid variable schema"),
+            ([{"name": "simTicks", "type": 3}], "invalid variable schema"),
+            ([{"name": "simTicks", "type": "unknown"}], "invalid variable schema"),
+            (
+                [{"name": "simTicks", "type": "scalar", "entries": "not-a-list"}],
+                "invalid variable schema",
+            ),
+            (
+                [{"name": "simTicks", "type": "distribution", "minimum": float("nan")}],
+                "invalid variable schema",
+            ),
+        ],
+    )
+    def test_scan_file_rejects_invalid_json_schema(
+        self,
+        scanner: Any,
+        tmp_path: Any,
+        monkeypatch: Any,
+        payload: object,
+        error: str,
+    ) -> None:
+        test_file = tmp_path / "stats.txt"
+        test_file.write_text("dummy")
+        mock_run = Mock(return_value=Mock(stdout=json.dumps(payload), stderr=""))
+        monkeypatch.setattr("subprocess.run", mock_run)
+
+        with pytest.raises(RuntimeError, match=error):
+            scanner.scan_file(test_file)
+
+    def test_scan_file_sanitizes_and_bounds_perl_stderr(
+        self, scanner: Any, tmp_path: Any, monkeypatch: Any
+    ) -> None:
+        test_file = tmp_path / "stats.txt"
+        test_file.write_text("dummy")
+        stderr = "first\nsecond" + "x" * 2000
+        mock_run = Mock(side_effect=subprocess.CalledProcessError(1, "perl", stderr=stderr))
+        monkeypatch.setattr("subprocess.run", mock_run)
+
+        with pytest.raises(RuntimeError) as exc_info:
+            scanner.scan_file(test_file)
+
+        message = str(exc_info.value)
+        assert "first\\nsecond" in message
+        assert "first\nsecond" not in message
+        assert len(message) < 1200
+
     def test_scan_file_enforces_shell_false(
         self, scanner: Any, tmp_path: Any, monkeypatch: Any
     ) -> None:

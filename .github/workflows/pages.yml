@@ -9,6 +9,7 @@ on:
       - Gemfile.lock
       - Makefile
       - scripts/check_built_site.py
+      - scripts/check_doc_structure.py
       - .github/workflows/pages.yml
   workflow_dispatch:
 

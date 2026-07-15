@@ -158,12 +158,9 @@ class PatternAggregator:
         Returns:
             Aggregated variable with regex pattern name and vector entries
         """
-        # Convert pattern signature to regex pattern (replace {} with \d+). NOTE: the dotted
-        # literals are intentionally left unescaped — this string doubles as the aggregated
-        # variable's user-facing NAME (e.g. ``system.cpu\d+.numCycles``); escaping the dots
-        # would corrupt that name. The dot-as-any-char over-match is not realistically
-        # reachable (aggregated candidates already contain \d+ and the dominant match path
-        # uses exact ``pattern_indices``), so it is left as-is by design.
+        # Convert the signature to the canonical, user-facing pattern name. Literal dots stay
+        # readable here; safe_regex escapes them only when compiling or sending the filter to
+        # Perl, so they never acquire wildcard semantics.
         regex_pattern = pattern_signature.replace("{}", r"\d+")
 
         # Extract numeric IDs as entries

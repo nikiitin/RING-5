@@ -389,6 +389,8 @@ class Gem5ParseWork(ParseWork):
             if escaped_key not in safe_keys:
                 safe_keys.append(escaped_key)
 
+        if not safe_keys:
+            raise RuntimeError("No variable filters were provided for parsing.")
         if len(safe_keys) > MAX_PARSE_VARIABLES:
             raise RuntimeError(
                 f"Parser request exceeds the {MAX_PARSE_VARIABLES}-variable filter limit."

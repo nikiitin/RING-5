@@ -20,12 +20,15 @@ open(my $fh, '<:raw', $filename) or die "Could not open file '$filename' $!";
 # Optimization: Read in larger chunks and pre-allocate buffer
 my $buffer;
 my $line_count = 0;
-my $max_lines = 1_000_000; # Safety limit to prevent infinite loops
+my $max_lines = $ENV{RING5_MAX_PARSE_LINES} // 10_000_000;
+die "Invalid parser line limit\n" unless $max_lines =~ /^\d+$/ && $max_lines > 0;
 
 # Parse every line, chomping the \n and printing
 # the line with the needed format.
 # @see TypesFormatRegex
-while (defined($buffer = <$fh>) && $line_count++ < $max_lines) {
+while (defined($buffer = <$fh>)) {
+    die "Parser line limit exceeded ($max_lines lines): $filename\n"
+        if ++$line_count > $max_lines;
     chomp $buffer;
     # Skip empty lines early
     next if $buffer =~ /^\s*$/;

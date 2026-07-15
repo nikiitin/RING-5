@@ -17,6 +17,11 @@ permalink: /developer-guide/development/release-notes/
   complete Just the Docs site, and audit generated routes, redirects, assets, and internal links.
 - `make docs-audit` reproduces the generated-site check after `make docs-build`.
 
+### Packaging
+
+- Wheels and source distributions now include the Perl scanner/parser runtime and the custom
+  Plotly component. `make package-check` verifies those files in both archive formats.
+
 ### Scanning and parsing
 
 - `scan_limit=0` again means every matching file, up to the 10,000-file discovery safety ceiling.
@@ -27,8 +32,9 @@ permalink: /developer-guide/development/release-notes/
   its first one million lines. Aggregated scan results include submitted and successful file counts,
   and the public API rejects partial scans with `ScanError`.
 - Parser submission now enforces aggregate file, byte, variable, file-variable, regex-candidate,
-  regex-attempt, and elapsed-time bounds. Parse batches that exceed ten minutes fail with
-  `ParseError`; pending work is cancelled.
+  regex-attempt, line-count, and elapsed-time bounds. Parse batches that exceed ten minutes fail
+  with `ParseError`; cancellation is requested for unfinished work. Perl backend errors no longer
+  appear as successful empty parses.
 - A numeric pattern that expands beyond `RING5_MAX_VAR_REPEAT` now fails visibly instead of being
   omitted. The default is 1,024 instances; `0` disables this cap for trusted inputs.
 
@@ -44,5 +50,5 @@ permalink: /developer-guide/development/release-notes/
   `RING5_ALLOWED_STATS_ROOTS` before starting Streamlit.
 - Scripts that depended on a partial scan or parse after a resource limit must split or narrow the
   workload and handle `ScanError` or `ParseError`.
-- Pattern filters are intentionally narrow: literal letters, digits, `.`, `_`, `:`, and `\d+`
-  placeholders are accepted; arbitrary regular-expression operators are rejected.
+- Pattern filters are intentionally narrow: literal ASCII letters and digits, `.`, `_`, `:`, and
+  `\d+` placeholders are accepted; arbitrary regular-expression operators are rejected.

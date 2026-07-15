@@ -48,7 +48,29 @@ def test_parse_job_timeout_is_typed_and_cancels_pending(
         stats_pattern="stats.txt",
     )
 
-    with pytest.raises(ParseError, match="exceeded 0 seconds"):
+    with pytest.raises(ParseError, match="cancellation succeeded for 1"):
         job.finalize()
 
     assert pending.cancelled()
+
+
+def test_unknown_variable_error_reports_actual_scanned_file_count() -> None:
+    api = MagicMock()
+    futures: list[Future[ScanFileResult]] = []
+    for index in range(2):
+        future: Future[ScanFileResult] = Future()
+        future.set_result(
+            ScanFileResult(
+                file_path=f"run-{index}/stats.txt",
+                variables=[ScannedVariable(name="simTicks", type="scalar")],
+            )
+        )
+        futures.append(future)
+    api.submit_scan_async.return_value = futures
+    api.finalize_scan.return_value = ScanResult(
+        variables=[ScannedVariable(name="simTicks", type="scalar")],
+        scanned_files=2,
+    )
+
+    with pytest.raises(ScanError, match=r"Scanned 2 file\(s\) \(up to 10 files\)"):
+        build_stat_configs(api, "results", ["missing"], scan_limit=10)
