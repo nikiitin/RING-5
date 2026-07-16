@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use Exporter 'import';
 our $VERSION = '1.00';
-our @EXPORT  = qw(parseAndPrintLineWithFormat setFilterRegexes classifyLine);
+our @EXPORT  = qw(parseAndPrintLineWithFormat setFilterRegexes classifyLine resetLineContext);
 
 # Imports from new modular packages
 use Scanning::RegexUtils qw(:all);
@@ -21,6 +21,60 @@ use Scanning::Type::Summary qw($summaryRegex);
 
 my $filtersRegexes;
 my @storedFilters;
+my %onelineHistogramMetadata;
+
+sub resetLineContext {
+    %onelineHistogramMetadata = ();
+}
+
+sub _rememberOnelineHistogramMetadata {
+    my ($line) = @_;
+    if ($line =~ /^($varNameRegex)::(bucket_size|max_bucket)\s+(-?\d+)$commentRegex$/) {
+        $onelineHistogramMetadata{$1}{$2} = int($3);
+        return 1;
+    }
+    return 0;
+}
+
+sub _classifyOnelineHistogram {
+    my ($line) = @_;
+    my $clean = removeCommentFromLine($line);
+    return undef unless $clean =~ /^($varNameRegex)\s+\|(.*)$/;
+
+    my $name = $1;
+    my $payload = $2;
+    my $metadata = $onelineHistogramMetadata{$name};
+    return undef unless defined $metadata;
+    die "Incomplete one-line histogram metadata for $name\n"
+        unless exists $metadata->{bucket_size} && exists $metadata->{max_bucket};
+
+    my $bucket_size = $metadata->{bucket_size};
+    my $max_bucket = $metadata->{max_bucket};
+    die "Invalid one-line histogram metadata for $name\n"
+        unless $bucket_size > 0 && $max_bucket >= 0;
+
+    my @groups = split /\s*\|\s*/, $payload;
+    my @values;
+    foreach my $group (@groups) {
+        die "Malformed one-line histogram bucket for $name: $group\n"
+            unless $group =~ /^\s*(-?\d+)\s+$floatRegex%\s+$floatRegex%\s*$/;
+        push @values, $1;
+    }
+
+    my $expected = int($max_bucket / $bucket_size) + 1;
+    die "One-line histogram bucket count mismatch for $name: expected $expected, found "
+        . scalar(@values) . "\n"
+        unless scalar(@values) == $expected;
+
+    my @entries;
+    for (my $index = 0; $index < @values; $index++) {
+        my $start = $index * $bucket_size;
+        my $end = $start + $bucket_size - 1;
+        $end = $max_bucket if $end > $max_bucket;
+        push @entries, { entry => "$start-$end", value => $values[$index] };
+    }
+    return { type => 'histogram', name => $name, entries => \@entries };
+}
 
 sub getRealVariableNameFromLine {
     my ($line) = @_;
@@ -152,6 +206,18 @@ sub parseAndPrintLineWithFormat {
     # Early return optimization: check filter first
     return unless $line =~ $filtersRegexes;
 
+    # Gem5's Stats::oneline histogram format writes its bucket geometry on
+    # preceding metadata lines, followed by one pipe-delimited row.  Consume
+    # the metadata rather than exposing it as fake vector buckets.
+    return if _rememberOnelineHistogramMetadata($line);
+    my $oneline = _classifyOnelineHistogram($line);
+    if (defined $oneline) {
+        foreach my $item (@{$oneline->{entries}}) {
+            print "histogram/$oneline->{name}::$item->{entry}/$item->{value}\n";
+        }
+        return;
+    }
+
     # Optimization: Check types in order of frequency (most common first)
     # and use elsif to avoid multiple regex matches
 
@@ -163,13 +229,13 @@ sub parseAndPrintLineWithFormat {
     elsif ($line =~ $vectorRegex) {
         print "vector/" . formatLine($line) . "\n";
     }
-    # Distribution
-    elsif ($line =~ $distRegex) {
-        print "distribution/" . formatLine($line) . "\n";
-    }
     # Histogram
     elsif ($line =~ $histogramRegex) {
         print "histogram/" . formatLine($line) . "\n";
+    }
+    # Distribution
+    elsif ($line =~ $distRegex) {
+        print "distribution/" . formatLine($line) . "\n";
     }
     # Summary
     elsif ($line =~ $summaryRegex) {
@@ -189,6 +255,12 @@ sub parseAndPrintLineWithFormat {
 
 sub classifyLine {
     my ($line) = @_;
+
+    if (_rememberOnelineHistogramMetadata($line)) {
+        return { type => 'oneline_metadata', name => undef, entry => undef };
+    }
+    my $oneline = _classifyOnelineHistogram($line);
+    return $oneline if defined $oneline;
 
     # Check types in order with explicit captures
 

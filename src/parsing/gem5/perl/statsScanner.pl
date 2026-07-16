@@ -26,6 +26,7 @@ die "Invalid scanner line limit\n" unless $max_lines =~ /^\d+$/ && $max_lines > 
 # We access regexes indirectly by calling classifyLine provided by TypesFormatRegex.
 # We set a catch-all filter to scan all lines.
 TypesFormatRegex::setFilterRegexes(".*");
+TypesFormatRegex::resetLineContext();
 
 
 
@@ -104,9 +105,19 @@ while (my $line = <$fh>) {
     my $info = TypesFormatRegex::classifyLine($line);
     next unless $info;
 
+    next if $info->{type} eq 'oneline_metadata';
+
     my $name = $info->{name};
     my $type = $info->{type};
     my $entry = $info->{entry};
+
+    if ($info->{entries}) {
+        manageType($name, $type, \%discovered_vars);
+        foreach my $item (@{$info->{entries}}) {
+            addEntry($name, $item->{entry}, \%discovered_vars);
+        }
+        next;
+    }
 
     if ($type eq 'summary') {
         processSummary($name, $entry, \%discovered_vars);

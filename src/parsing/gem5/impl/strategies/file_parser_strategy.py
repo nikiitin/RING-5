@@ -20,6 +20,8 @@ from typing import Any, Protocol
 from src.core.models import StatConfig
 from src.parsing.gem5.impl.pool.parse_work import ParseWork
 
+INTERNAL_SIM_PATH_KEY = "__ring5_internal_sim_path"
+
 
 class FileParserStrategy(Protocol):
     """

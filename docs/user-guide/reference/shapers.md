@@ -57,3 +57,7 @@ Serialized configuration is validated by each shaper. Use the web configuration 
 models documented in the
 [Developer Guide]({{site.baseurl}}/developer-guide/api-reference/models-and-protocols/) rather than
 guessing keys for complex steps.
+
+Call `ring5.available_shaper_types()` for the current serialized identifiers. Direct, supported
+class imports live in `ring5.shapers`; this includes `ColumnSelector`, `ConditionSelector`,
+`ItemSelector`, and the group selector variants in addition to the calculation and pivot shapers.

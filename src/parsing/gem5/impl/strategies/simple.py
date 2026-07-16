@@ -20,10 +20,12 @@ from src.core.common.security_limits import (
     MAX_PARSE_TOTAL_BYTES,
     MAX_PARSE_VARIABLES,
 )
+from src.core.common.safe_regex import SafeRegexError, numeric_pattern_id
 from src.core.common.utils import sanitize_log_value
 from src.core.models import StatConfig
 from src.parsing.framework.file_discovery import find_stats_files
 from src.parsing.gem5.impl.strategies.gem5_parse_work import Gem5ParseWork
+from src.parsing.gem5.impl.strategies.file_parser_strategy import INTERNAL_SIM_PATH_KEY
 from src.parsing.gem5.types.type_mapper import TypeMapper
 
 logger = logging.getLogger(__name__)
@@ -101,8 +103,13 @@ class SimpleStatsStrategy:
         return works
 
     def post_process(self, results: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """Perform any post-processing on aggregated results."""
-        return results
+        """Remove worker-only provenance before writing the public CSV."""
+        processed: list[dict[str, Any]] = []
+        for result in results:
+            public_result = dict(result)
+            public_result.pop(INTERNAL_SIM_PATH_KEY, None)
+            processed.append(public_result)
+        return processed
 
     def _get_files(self, stats_path: str, stats_pattern: str) -> list[str]:
         """Find all stats files matching the pattern in the target path.
@@ -152,6 +159,8 @@ class SimpleStatsStrategy:
             # Validation logic kept from original parser
             if not name:
                 raise ValueError("PARSER: Variable config missing 'name'.")
+            if name == INTERNAL_SIM_PATH_KEY:
+                raise ValueError(f"PARSER: Variable name {name!r} is reserved for internal use.")
 
             if name in var_map:
                 raise RuntimeError(f"PARSER: Duplicate variable definition: {name}")
@@ -191,14 +200,36 @@ class SimpleStatsStrategy:
                 )
 
             if parsed_ids:
-                # Update repeat count for the logical variable (Spatial aggregation)
-                stat_obj = TypeMapper.create_stat(replace(var, repeat=n_ids))
+                # Resolve repeat count for the logical variable (spatial aggregation).
+                source_pattern = var.source_name or name
+                entry_ids: list[str] = []
+                try:
+                    entry_ids = [
+                        pattern_id
+                        for parsed_id in parsed_ids
+                        if (pattern_id := numeric_pattern_id(source_pattern, parsed_id)) is not None
+                    ]
+                except SafeRegexError:
+                    entry_ids = []
+                configured_entries = var.params.get("entries", [])
+                # Repeated scalar names are exposed by the scanner as a logical
+                # vector whose entries are the numeric IDs.  Each entry contains
+                # one value, so padding it to ``n_ids`` makes every mean NaN.
+                # True vector/distribution patterns still aggregate the same
+                # bucket across all concrete instances and retain repeat=n_ids.
+                scalar_pattern_vector = (
+                    var.type == "vector"
+                    and isinstance(configured_entries, list)
+                    and set(entry_ids) == set(configured_entries)
+                    and len(entry_ids) == n_ids
+                )
+                repeat = var.repeat if scalar_pattern_vector else n_ids
+                stat_obj = TypeMapper.create_stat(replace(var, repeat=repeat))
                 if n_ids > 50:
                     logger.warning(
-                        "PARSER: Variable '%s' has repeat=%d (from %d parsed_ids) — "
+                        "PARSER: Variable '%s' expands to %d concrete instances — "
                         "this may increase memory usage significantly.",
                         name,
-                        n_ids,
                         n_ids,
                     )
             else:

@@ -13,8 +13,11 @@ Two guarantees are pinned here:
 from __future__ import annotations
 
 import pandas as pd
+import pytest
 
 import ring5
+
+pytestmark = pytest.mark.public_api
 
 
 def _grouped_stacked_config() -> dict:

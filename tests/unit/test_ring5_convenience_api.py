@@ -9,6 +9,8 @@ import pytest
 import ring5
 import ring5.shapers as shapers
 
+pytestmark = pytest.mark.public_api
+
 
 class TestTable:
     """The public table wrapper keeps common scripts pandas-independent."""
@@ -84,6 +86,9 @@ def test_shapers_are_available_from_the_supported_module() -> None:
         "Mean",
         "Normalize",
         "Selector",
+        "ColumnSelector",
+        "ConditionSelector",
+        "ItemSelector",
         "Sort",
         "SplitApply",
         "Transformer",
@@ -92,6 +97,7 @@ def test_shapers_are_available_from_the_supported_module() -> None:
         "DeriveColumn",
         "GroupCardinalitySelector",
         "GroupPredicateSelector",
+        "available_shaper_types",
     }
 
     assert expected == set(shapers.__all__)

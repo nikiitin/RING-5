@@ -20,20 +20,34 @@ from src.core.services.shapers.impl.mean import Mean
 from src.core.services.shapers.impl.normalize import Normalize
 from src.core.services.shapers.impl.pivot import PivotLonger, PivotWider
 from src.core.services.shapers.impl.selector import Selector
+from src.core.services.shapers.impl.selector_algorithms.column_selector import ColumnSelector
+from src.core.services.shapers.impl.selector_algorithms.condition_selector import ConditionSelector
 from src.core.services.shapers.impl.selector_algorithms.group_cardinality_selector import (
     GroupCardinalitySelector,
 )
 from src.core.services.shapers.impl.selector_algorithms.group_predicate_selector import (
     GroupPredicateSelector,
 )
+from src.core.services.shapers.impl.selector_algorithms.item_selector import ItemSelector
 from src.core.services.shapers.impl.sort import Sort
 from src.core.services.shapers.impl.split_apply import SplitApply
 from src.core.services.shapers.impl.transformer import Transformer
+
+
+def available_shaper_types() -> tuple[str, ...]:
+    """Return every registered pipeline shaper identifier."""
+    from src.core.services.shapers.factory import ShaperFactory
+
+    return tuple(ShaperFactory.get_available_types())
+
 
 __all__ = [
     "Mean",
     "Normalize",
     "Selector",
+    "ColumnSelector",
+    "ConditionSelector",
+    "ItemSelector",
     "Sort",
     "SplitApply",
     "Transformer",
@@ -42,4 +56,5 @@ __all__ = [
     "DeriveColumn",
     "GroupCardinalitySelector",
     "GroupPredicateSelector",
+    "available_shaper_types",
 ]

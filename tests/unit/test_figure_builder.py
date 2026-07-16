@@ -11,6 +11,8 @@ from ring5.figure_spec import (
     ReferenceLineOpts,
 )
 
+pytestmark = pytest.mark.public_api
+
 
 class TestFigureSpecBuilder:
     def test_chaining_returns_self(self) -> None:

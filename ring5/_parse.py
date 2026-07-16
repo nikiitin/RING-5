@@ -17,6 +17,7 @@ import pandas as pd
 from src.core.common.security_limits import PARSE_BATCH_TIMEOUT_SECONDS
 from src.core.models import StatConfig
 
+from ring5._scan import ScanJob
 from ring5.errors import MissingStatError, ParseError, ScanError
 
 if TYPE_CHECKING:
@@ -172,18 +173,11 @@ def build_stat_configs(
 
     try:
         futures = api.submit_scan_async(stats_path, pattern, limit=scan_limit)
-        scan = api.finalize_scan([f.result() for f in futures])
+        scan = ScanJob(api, list(futures), stats_path, pattern).finalize()
+    except ScanError:
+        raise
     except (OSError, RuntimeError, ValueError) as exc:
         raise ScanError(str(exc)) from exc
-
-    if scan.failures:
-        first = scan.failures[0]
-        raise ScanError(
-            f"Scanning was incomplete: {len(scan.failures)} of "
-            f"{scan.scanned_files or len(futures)} file(s) failed "
-            f"(first error in {first.file_path}: {first.error}). "
-            "Is perl installed and the stats path correct?"
-        )
 
     by_name = {v.name: v for v in scan.variables}
     configs: list[StatConfig | dict[str, Any]] = []

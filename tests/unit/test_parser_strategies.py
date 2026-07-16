@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -158,21 +159,20 @@ class TestSimpleStatsStrategy:
 
 class TestConfigAwareStrategy:
 
-    def test_augment_results(self) -> None:
-        raw_results = [{"sim_path": "/data/run1/stats.txt", "ipc": 1.5}]
+    def test_augment_results(self, tmp_path: Path) -> None:
+        from src.parsing.gem5.impl.strategies.file_parser_strategy import (
+            INTERNAL_SIM_PATH_KEY,
+        )
+
+        stats_path = tmp_path / "stats.txt"
+        stats_path.write_text("dummy")
+        (tmp_path / "config.ini").write_text("[system]\ncores = 4\n")
+        raw_results = [{INTERNAL_SIM_PATH_KEY: str(stats_path), "ipc": 1.5}]
 
         strategy = ConfigAwareStrategy()
+        results = strategy.post_process(raw_results)
 
-        with patch.object(strategy, "_parse_config") as mock_parse_config:
-            with patch("src.parsing.gem5.impl.strategies.config_aware.Path") as mock_path_cls:
-                mock_config_path = MagicMock()
-                mock_config_path.exists.return_value = True
-                mock_path_cls.return_value.parent.__truediv__.return_value = mock_config_path
-
-                mock_parse_config.return_value = {"system": {"cores": "4"}}
-
-                results = strategy.post_process(raw_results)
-
-                assert len(results) == 1
-                assert results[0]["ipc"] == 1.5
-                assert results[0]["config"]["system"]["cores"] == "4"
+        assert len(results) == 1
+        assert results[0]["ipc"] == 1.5
+        assert results[0]["sim_path"] == str(stats_path)
+        assert results[0]["config_json"] == '{"system":{"cores":"4"}}'

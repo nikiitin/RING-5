@@ -12,7 +12,7 @@ from ring5.cli import build_parser, main
 
 # Shares the conftest `portfolios_dir` patching with the public-api suite —
 # keep both files in one xdist group so they never interleave across workers.
-pytestmark = pytest.mark.xdist_group("ring5_portfolios")
+pytestmark = [pytest.mark.xdist_group("ring5_portfolios"), pytest.mark.public_api]
 
 
 class TestParserStructure:
@@ -38,6 +38,20 @@ class TestDoctorCommand:
         out = capsys.readouterr().out
         assert "dependency check" in out
         assert code in (0, 1)  # 1 when an optional binary is absent
+
+
+class TestParseCommand:
+    def test_parse_materializes_session_owned_output(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        run = tmp_path / "run"
+        run.mkdir()
+        (run / "stats.txt").write_text("simTicks 42 # ticks\n")
+        output = tmp_path / "result.csv"
+
+        assert main(["parse", str(run), "-v", "simTicks", "-o", str(output)]) == 0
+        assert pd.read_csv(output).loc[0, "simTicks"] == 42
+        assert "wrote" in capsys.readouterr().out
 
 
 class TestRenderCommand:

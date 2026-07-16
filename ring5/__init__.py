@@ -69,14 +69,16 @@ from ring5.figure_spec import (
 
 if TYPE_CHECKING:
     # Static names for mypy/IDEs; at runtime these resolve via __getattr__.
-    from src.core.models import RestoreReport
+    from src.core.models import RestoreReport, ScanResult, ScannedVariable, ShaperStepConfig
     from src.core.models.parsing_models import StatConfig
 
     from ring5._export import export_bytes, export_file
     from ring5._parse import ParseJob, ParseResult
+    from ring5._scan import ScanJob
     from ring5._portfolio import render_portfolio
     from ring5._render import render_figure
     from ring5._session import PlotType, Session, available_plot_types
+    from ring5.shapers import available_shaper_types
     from ring5.coordinates import grouped_bar_coordinates
     from ring5.data import Table, read_table
     from ring5.decorations import FigureDecorations
@@ -95,12 +97,17 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "available_plot_types": ("ring5._session", "available_plot_types"),
     "ParseJob": ("ring5._parse", "ParseJob"),
     "ParseResult": ("ring5._parse", "ParseResult"),
+    "ScanJob": ("ring5._scan", "ScanJob"),
+    "ScanResult": ("src.core.models", "ScanResult"),
+    "ScannedVariable": ("src.core.models", "ScannedVariable"),
     "render_figure": ("ring5._render", "render_figure"),
     "export_bytes": ("ring5._export", "export_bytes"),
     "export_file": ("ring5._export", "export_file"),
     "render_portfolio": ("ring5._portfolio", "render_portfolio"),
     "StatConfig": ("src.core.models.parsing_models", "StatConfig"),
     "RestoreReport": ("src.core.models", "RestoreReport"),
+    "ShaperStepConfig": ("src.core.models", "ShaperStepConfig"),
+    "available_shaper_types": ("ring5.shapers", "available_shaper_types"),
     # Self-contained figure-scripting surface (so scripts import only `ring5`):
     "grouped_bar_coordinates": ("ring5.coordinates", "grouped_bar_coordinates"),
     "FigureDecorations": ("ring5.decorations", "FigureDecorations"),
@@ -146,9 +153,14 @@ __all__ = [
     "Session",
     "PlotType",
     "available_plot_types",
+    "available_shaper_types",
     "StatConfig",
     "ParseJob",
     "ParseResult",
+    "ScanJob",
+    "ScanResult",
+    "ScannedVariable",
+    "ShaperStepConfig",
     "RestoreReport",
     "render_figure",
     "export_bytes",

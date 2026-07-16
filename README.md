@@ -45,7 +45,8 @@ with ring5.Session() as session:
     session.export(figure, "ipc.pdf", deterministic=True)
 ```
 
-Use `ring5.available_plot_types()` to discover registered plot identifiers. The
+Use `ring5.available_plot_types()` and `ring5.available_shaper_types()` to discover registered
+workflow identifiers. The
 [scripting workflow](https://nikiitin.github.io/RING-5/user-guide/workflows/scripting/) covers
 parsing, transformations, portfolios, and the CLI.
 
@@ -61,6 +62,7 @@ parsing, transformations, portfolios, and the CLI.
 
 ```bash
 make quality-gate
+make test-api
 make test-ci
 make test-e2e
 make package-check

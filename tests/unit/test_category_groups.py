@@ -10,6 +10,8 @@ import pytest
 from src.web.pages.ui.plotting.utils.grouped_bar_utils import GroupedBarUtils
 from ring5.figure_spec import FigureSpec, FigureSpecBuilder
 
+pytestmark = pytest.mark.public_api
+
 CATS = ["a", "b", "c"]
 GROUPS = {"a": "G1", "b": "G1", "c": "G2"}
 

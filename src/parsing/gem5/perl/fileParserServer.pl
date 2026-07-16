@@ -94,6 +94,7 @@ while (my $command = <STDIN>) {
             print "END_PARSE\n";
             next;
         }
+        resetLineContext();
 
         # Open and parse file
         my $line_count = 0;

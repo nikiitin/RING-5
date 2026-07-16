@@ -102,6 +102,7 @@ python_functions = "test_*"
 addopts = "-v --tb=short --strict-markers -n 3 --dist loadgroup"
 xfail_strict = true
 markers = [
+  "public_api: Tests that enforce the supported ring5 Python API contract",
   "requires_latex: Tests that require LaTeX installation",
   "requires_browser: Tests that require a running browser/server",
   "benchmark: marks tests as performance benchmarks (deselect with '-m \"not benchmark\"')",
@@ -110,6 +111,11 @@ markers = [
   "slow: Marks tests as slow (deselect with '-m \"not slow\"')",
   "xdist_group: Group tests to run on the same xdist worker",
   "serial: Tests that must run WITHOUT xdist parallelism (e.g. Kaleido Chromium raster export deadlocks/starves under -n 3); run them in a separate '-n 0' pass",
+]
+
+[tool.coverage.report]
+exclude_also = [
+  "if TYPE_CHECKING:",
 ]
 
 [tool.black]

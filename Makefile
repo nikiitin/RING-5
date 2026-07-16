@@ -15,7 +15,7 @@ NON_BROWSER_TESTS := tests/unit tests/integration tests/ui tests/ui_logic tests/
 	tests/performance tests/tests_principle_compliance
 
 .PHONY: help venv install dev run playwright-install install-latex check-latex \
-	test-data mock-data test test-unit test-nonbrowser test-ci test-export test-latex \
+	test-data mock-data test test-unit test-nonbrowser test-api test-ci test-export test-latex \
 	test-e2e test-visual \
 	format format-check lint type-check arch-check comments-check docs-check dependency-check \
 	docs-build docs-audit security-audit quality-gate package-check check-outdated pre-commit-install \
@@ -29,6 +29,7 @@ help:
 	@echo "  test-unit           Run fast unit tests"
 	@echo "  test                Run non-browser tests, including serial exports"
 	@echo "  test-latex          Run tests that require a local XeLaTeX installation"
+	@echo "  test-api            Run the exact 100% line/branch public API gate"
 	@echo "  test-ci             Run tests with the coverage gate"
 	@echo "  test-e2e            Run Playwright browser tests"
 	@echo "  quality-gate        Run architecture, docs, format, lint, types, and security"
@@ -103,6 +104,10 @@ test-nonbrowser:
 test-export:
 	$(PYTEST) tests/unit/test_plotly_download.py -m "serial" -n 0 --timeout=120 --no-cov
 
+test-api: test-data mock-data
+	$(PYTEST) -m "public_api" -n 0 --cov=ring5 --cov-branch \
+		--cov-report=term-missing --cov-fail-under=100 --timeout=120
+
 test-latex:
 	$(PYTEST) tests/unit/test_matplotlib_download.py::TestMatplotlibPGF \
 		-m "requires_latex" -n 0 --timeout=120 --no-cov
@@ -111,7 +116,7 @@ test: test-data mock-data
 	$(MAKE) test-nonbrowser
 	$(MAKE) test-export
 
-test-ci: test-data mock-data
+test-ci: test-data mock-data test-api
 	$(PYTEST) $(NON_BROWSER_TESTS) -m "not serial and not requires_latex" \
 		--cov=src --cov=ring5 --cov-branch --cov-report=term-missing \
 		--cov-report=xml --cov-fail-under=$(COVERAGE_MIN) --timeout=60
