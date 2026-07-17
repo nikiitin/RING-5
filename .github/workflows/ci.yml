@@ -86,7 +86,9 @@ jobs:
         run: |
           python -m venv python_venv
           python_venv/bin/python -m pip install "pip==26.1.2"
-          python_venv/bin/pip install -e ".[dev,ci]"
+          # The coverage gate collects the full test tree before marker filtering,
+          # so its environment must be able to import the E2E conftest module.
+          python_venv/bin/pip install -e ".[dev,ci,e2e]"
 
       - name: Prepare test fixtures
         run: make test-data mock-data

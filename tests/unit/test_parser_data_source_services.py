@@ -100,21 +100,23 @@ class TestConfigAwareStrategy:
     """Tests for configuration discovery and parsing failures."""
 
     def test_post_process_no_sim_path(self) -> None:
-        """Result without sim_path key — should be appended as-is."""
+        """Worker results without internal provenance fail visibly."""
         from src.parsing.gem5.impl.strategies.config_aware import (
             ConfigAwareStrategy,
         )
 
         strategy = ConfigAwareStrategy()
         results = [{"some_data": 123}]
-        out = strategy.post_process(results)
-        assert len(out) == 1
-        assert out[0] == {"some_data": 123}
+        with pytest.raises(RuntimeError, match="missing simulation provenance"):
+            strategy.post_process(results)
 
     def test_post_process_config_found(self, tmp_path: Path) -> None:
         """Result with sim_path pointing to existing config.ini."""
         from src.parsing.gem5.impl.strategies.config_aware import (
             ConfigAwareStrategy,
+        )
+        from src.parsing.gem5.impl.strategies.file_parser_strategy import (
+            INTERNAL_SIM_PATH_KEY,
         )
 
         # Create a mock config.ini
@@ -125,29 +127,29 @@ class TestConfigAwareStrategy:
         stats_path.write_text("dummy")
 
         strategy = ConfigAwareStrategy()
-        results = [{"sim_path": str(stats_path), "data": "abc"}]
+        results = [{INTERNAL_SIM_PATH_KEY: str(stats_path), "data": "abc"}]
         out = strategy.post_process(results)
 
         assert len(out) == 1
-        assert "config" in out[0]
-        assert "system" in out[0]["config"]
-        assert out[0]["config"]["system"]["cpu_type"] == "O3CPU"
+        assert out[0]["sim_path"] == str(stats_path)
+        assert '"cpu_type":"O3CPU"' in out[0]["config_json"]
 
     def test_post_process_config_not_found(self, tmp_path: Path) -> None:
         """Result with sim_path but no config.ini in the directory."""
         from src.parsing.gem5.impl.strategies.config_aware import (
             ConfigAwareStrategy,
         )
+        from src.parsing.gem5.impl.strategies.file_parser_strategy import (
+            INTERNAL_SIM_PATH_KEY,
+        )
 
         stats_path = tmp_path / "stats.txt"
         stats_path.write_text("dummy")
 
         strategy = ConfigAwareStrategy()
-        results = [{"sim_path": str(stats_path), "data": "abc"}]
-        out = strategy.post_process(results)
-
-        assert len(out) == 1
-        assert "config" not in out[0]
+        results = [{INTERNAL_SIM_PATH_KEY: str(stats_path), "data": "abc"}]
+        with pytest.raises(FileNotFoundError, match="config.ini not found"):
+            strategy.post_process(results)
 
     def test_parse_config_error_handling(self, tmp_path: Path) -> None:
         """_parse_config handles malformed config gracefully."""
@@ -165,7 +167,7 @@ class TestConfigAwareStrategy:
         assert "section1" in result
 
     def test_parse_config_unreadable(self, tmp_path: Path) -> None:
-        """_parse_config returns empty dict on read error."""
+        """An empty configuration is rejected rather than silently emitted."""
         from src.parsing.gem5.impl.strategies.config_aware import (
             ConfigAwareStrategy,
         )
@@ -176,8 +178,8 @@ class TestConfigAwareStrategy:
         config_path.write_text("")  # Empty is fine for configparser
 
         strategy = ConfigAwareStrategy()
-        result = strategy._parse_config(config_path)
-        assert isinstance(result, dict)
+        with pytest.raises(RuntimeError, match="contains no sections"):
+            strategy._parse_config(config_path)
 
 
 # Parse work contract
@@ -1951,5 +1953,5 @@ class TestConfigAwareParseConfigException:
             mock_parser.read.side_effect = configparser.Error("parse error")
             mock_cp.return_value = mock_parser
 
-            result = strategy._parse_config(config_path)
-            assert result == {}
+            with pytest.raises(RuntimeError, match="parse error"):
+                strategy._parse_config(config_path)

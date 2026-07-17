@@ -13,11 +13,13 @@ Features:
 """
 
 import configparser
+import json
 import logging
 from pathlib import Path
 from typing import Any
 
 from src.parsing.gem5.impl.strategies.simple import SimpleStatsStrategy
+from src.parsing.gem5.impl.strategies.file_parser_strategy import INTERNAL_SIM_PATH_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -35,25 +37,32 @@ class ConfigAwareStrategy(SimpleStatsStrategy):
         """
         Augment results with config data.
         """
-        augmented_results = []
+        augmented_results: list[dict[str, Any]] = []
         for sim_result in results:
-            if "sim_path" not in sim_result:
-                # Should not happen if worker is correct, but safety first
-                augmented_results.append(sim_result)
-                continue
+            if INTERNAL_SIM_PATH_KEY not in sim_result:
+                raise RuntimeError("PARSER: config-aware result is missing simulation provenance.")
+            if "sim_path" in sim_result or "config_json" in sim_result:
+                raise ValueError(
+                    "PARSER: config-aware metadata columns collide with requested statistics."
+                )
 
-            sim_dir = Path(sim_result["sim_path"]).parent
+            sim_path = str(sim_result[INTERNAL_SIM_PATH_KEY])
+            sim_dir = Path(sim_path).parent
             config_path = sim_dir / "config.ini"
 
-            if config_path.exists():
-                logger.debug(f"PARSER: Found config at {config_path}")
-                config_data = self._parse_config(config_path)
-                # Build a NEW dict with the config merged in, rather than mutating
-                # the caller's result dict in place.
-                augmented_results.append({**sim_result, "config": config_data})
-            else:
-                logger.warning(f"PARSER: config.ini not found for {sim_result['sim_path']}")
-                augmented_results.append(sim_result)
+            if not config_path.is_file():
+                raise FileNotFoundError(f"PARSER: config.ini not found beside {sim_path}")
+
+            logger.debug("PARSER: Found config at %s", config_path)
+            config_data = self._parse_config(config_path)
+            public_result = {
+                key: value for key, value in sim_result.items() if key != INTERNAL_SIM_PATH_KEY
+            }
+            public_result["sim_path"] = sim_path
+            public_result["config_json"] = json.dumps(
+                config_data, sort_keys=True, separators=(",", ":")
+            )
+            augmented_results.append(public_result)
 
         return augmented_results
 
@@ -66,9 +75,11 @@ class ConfigAwareStrategy(SimpleStatsStrategy):
         """
         parser = configparser.ConfigParser()
         try:
-            parser.read(str(config_path))
+            loaded = parser.read(str(config_path))
+            if not loaded or not parser.sections():
+                raise configparser.Error("configuration contains no sections")
             # Convert ConfigParser to dict for easier handling
             return {section: dict(parser.items(section)) for section in parser.sections()}
         except (configparser.Error, OSError) as e:
             logger.error("PARSER: Failed to parse %s: %s", config_path, e)
-            return {}
+            raise RuntimeError(f"PARSER: Failed to parse {config_path}: {e}") from e

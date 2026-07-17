@@ -6,6 +6,8 @@ import pytest
 
 from ring5.figure_spec import FigureSpec, LegendOpts, ReferenceLineOpts
 
+pytestmark = pytest.mark.public_api
+
 
 class TestFigureSpecToConfig:
     """FigureSpec.to_config emits the flat keys the renderer expects."""

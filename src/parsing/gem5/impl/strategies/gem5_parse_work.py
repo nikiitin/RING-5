@@ -19,6 +19,7 @@ from src.core.common.safe_regex import (
 )
 from src.core.common.security_limits import MAX_PARSE_VARIABLES
 from src.parsing.gem5.impl.pool.parse_work import ParsedVarsDict, ParseWork
+from src.parsing.gem5.impl.strategies.file_parser_strategy import INTERNAL_SIM_PATH_KEY
 from src.parsing.gem5.impl.strategies.perl_worker_pool import get_worker_pool
 from src.parsing.gem5.types.type_mapper import TypeMapper
 
@@ -102,8 +103,15 @@ class Gem5ParseWork(ParseWork):
 
     @staticmethod
     def _request_key(var_id: str) -> str:
-        """Request key before the ``__`` separator (e.g. ``a__b`` -> ``a``)."""
-        return var_id.split("__", 1)[0]
+        """Return the concrete stat name requested from the Perl parser.
+
+        ``__get_summary`` is RING-5's only synthetic suffix.  Gem5 itself
+        legitimately uses double underscores in names (for example
+        ``MemDepUnit__0``), so splitting at the first ``__`` silently
+        truncated pattern-expanded aliases and left their values missing.
+        """
+        suffix = "__get_summary"
+        return var_id[: -len(suffix)] if var_id.endswith(suffix) else var_id
 
     @staticmethod
     def _numeric_pattern_id(pattern: str, concrete_name: str) -> str | None:
@@ -427,4 +435,6 @@ class Gem5ParseWork(ParseWork):
             subprocess.CalledProcessError: If Perl script fails
         """
         output: str = self._runPerlScript()
-        return self._processOutput(output, self._varsToParse)
+        result: ParsedVarsDict = dict(self._processOutput(output, self._varsToParse))
+        result[INTERNAL_SIM_PATH_KEY] = self._fileToParse
+        return result

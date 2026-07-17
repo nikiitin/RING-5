@@ -39,9 +39,11 @@ def _cmd_parse(args: argparse.Namespace) -> int:
             pattern=args.pattern,
             strict=not args.lenient,
         )
-    target = Path(args.output)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(result.csv_path, target)
+        # Session-owned parse directories are deleted on context exit, so
+        # materialize the requested output while the result still exists.
+        target = Path(args.output)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(result.csv_path, target)
     print(f"wrote {target}")
     if result.missing_stats:
         print(f"warning: no values parsed for: {', '.join(result.missing_stats)}")

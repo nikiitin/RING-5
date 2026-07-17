@@ -12,6 +12,7 @@ import math
 
 import matplotlib
 import pandas as pd
+import pytest
 
 from src.core.models.visualization.trace_config import LineTraceConfig
 from src.web.pages.ui.plotting.utils.grouped_stacked_bar_helpers import (
@@ -22,6 +23,8 @@ from src.web.rendering.matplotlib_trace_renderer import MatplotlibTraceRenderer
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
+
+pytestmark = pytest.mark.public_api
 
 # FigureSpec / DualAxisOpts -> flat config
 

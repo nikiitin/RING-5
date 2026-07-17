@@ -13,7 +13,7 @@ import ring5
 
 DATA_ROOT = Path(__file__).parent.parent / "data" / "results-micro26-sens"
 
-pytestmark = pytest.mark.xdist_group("ring5_portfolios")
+pytestmark = [pytest.mark.xdist_group("ring5_portfolios"), pytest.mark.public_api]
 
 
 def _first_stats_subtree() -> Path:
@@ -121,11 +121,8 @@ class TestFullWorkflow:
             if vector is not None:
                 assert vector.name not in result.missing_stats
 
-            # The pattern variable expanded (is_regex was enabled) and
-            # produced its per-index entry columns — exact parity with the
-            # web UI's dict path. NOTE: aggregated-pattern VALUES are a
-            # known pre-existing parser limitation shared with the web path
-            # (verified identical), so values are not asserted here.
+            # The pattern variable expanded (is_regex was enabled), produced
+            # its per-index entry columns, and retained real values.
             if pattern is not None:
                 df = pd.read_csv(result.csv_path)
                 pattern_cols = [c for c in df.columns if c.startswith(f"{pattern.name}.")]
@@ -133,6 +130,7 @@ class TestFullWorkflow:
                     "pattern variable produced no columns — is_regex was "
                     "not enabled on the way to the parser"
                 )
+                assert bool(df[pattern_cols].notna().any().any())
 
     def test_parse_empty_dir_raises_typed(self, tmp_path: Path) -> None:
         """The boundary normalizes the core FileNotFoundError to ScanError."""

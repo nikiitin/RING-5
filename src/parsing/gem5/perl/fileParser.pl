@@ -14,6 +14,7 @@ my $filename = shift or die "Please provide a filename as an argument.\n";
 die "Please provide at least one filter as an argument.\n" unless @ARGV;
 # Filters for variable names
 setFilterRegexes(@ARGV);
+resetLineContext();
 # Open the statistics file with buffered I/O
 open(my $fh, '<:raw', $filename) or die "Could not open file '$filename' $!";
 

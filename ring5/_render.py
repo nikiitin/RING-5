@@ -50,32 +50,41 @@ def render_figure(plot: BasePlot, *, engine: EngineMode = "plotly") -> Figure:
     if plot.processed_data is None:
         raise RenderError(f"Plot '{plot.name}' has no processed data to render.")
 
-    if engine == "plotly":
-        # UI sequence (render_controller.py): create_figure + apply_common_layout.
-        plotly_fig = plot.create_figure(plot.processed_data, plot.config)
-        plotly_fig = plot.apply_common_layout(plotly_fig, plot.config)
-        plot.last_generated_fig = plotly_fig
-        plot.last_figure_cache_key = None
-        return plotly_fig
+    try:
+        if engine == "plotly":
+            # UI sequence (render_controller.py): create_figure + apply_common_layout.
+            plotly_fig = plot.create_figure(plot.processed_data, plot.config)
+            plotly_fig = plot.apply_common_layout(plotly_fig, plot.config)
+            plot.last_generated_fig = plotly_fig
+            plot.last_figure_cache_key = None
+            return plotly_fig
 
-    # Matplotlib: build straight from the engine-agnostic traces — NO Plotly figure is
-    # constructed (the two engines are independent). create_traces + the same legend
-    # relabel create_figure would apply, then the traces-direct matplotlib builder.
-    import matplotlib.pyplot as plt
+        # Matplotlib: build straight from the engine-agnostic traces — NO Plotly figure is
+        # constructed (the two engines are independent). create_traces + the same legend
+        # relabel create_figure would apply, then the traces-direct matplotlib builder.
+        import matplotlib.pyplot as plt
 
-    from src.web.pages.ui.plotting.base_plot import _relabel_traces
-    from src.web.rendering.matplotlib_figure_builder import build_matplotlib_figure_from_traces
+        from src.web.pages.ui.plotting.base_plot import _relabel_traces
+        from src.web.rendering.matplotlib_figure_builder import (
+            build_matplotlib_figure_from_traces,
+        )
 
-    traces_result = plot.create_traces(plot.processed_data, plot.config)
-    traces_result = _relabel_traces(traces_result, plot.config.get("legend_labels"))
-    plot.last_traces = traces_result
+        traces_result = plot.create_traces(plot.processed_data, plot.config)
+        traces_result = _relabel_traces(traces_result, plot.config.get("legend_labels"))
+        plot.last_traces = traces_result
 
-    mpl_fig, spec = build_matplotlib_figure_from_traces(plot.config, plot.plot_type, traces_result)
+        mpl_fig, spec = build_matplotlib_figure_from_traces(
+            plot.config, plot.plot_type, traces_result
+        )
 
-    # Deregister from pyplot: headless callers loop over many plots
-    # (render_portfolio), and pyplot would otherwise pin every figure in
-    # its global manager. The Figure object stays fully usable (savefig).
-    plt.close(mpl_fig)
+        # Deregister from pyplot: headless callers loop over many plots
+        # (render_portfolio), and pyplot would otherwise pin every figure in
+        # its global manager. The Figure object stays fully usable (savefig).
+        plt.close(mpl_fig)
 
-    mpl_fig._ring5_spec = spec  # type: ignore[attr-defined]
-    return mpl_fig
+        mpl_fig._ring5_spec = spec  # type: ignore[attr-defined]
+        return mpl_fig
+    except (AttributeError, IndexError, KeyError, RuntimeError, TypeError, ValueError) as exc:
+        raise RenderError(
+            f"Could not render plot '{plot.name}' ({plot.plot_type}) with {engine}: {exc}"
+        ) from exc

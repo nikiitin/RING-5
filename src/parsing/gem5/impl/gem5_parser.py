@@ -447,7 +447,16 @@ class Gem5Parser(SimulationParser):
         column_map: dict[str, list[str] | None] = {}
 
         # Use provided var_names to ensure consistent order
-        ordered_names: list[str] = var_names if var_names else list(results[0].keys())
+        ordered_names = list(var_names) if var_names else list(results[0].keys())
+        extra_names = sorted(
+            {
+                name
+                for result in results
+                for name, value in result.items()
+                if name not in ordered_names and not hasattr(value, "balance_content")
+            }
+        )
+        ordered_names.extend(extra_names)
 
         for var_name in ordered_names:
             # Search all results for the first occurrence of this variable

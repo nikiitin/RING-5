@@ -12,6 +12,8 @@ import pytest
 
 import ring5
 
+pytestmark = pytest.mark.public_api
+
 
 @pytest.fixture
 def session() -> Any:

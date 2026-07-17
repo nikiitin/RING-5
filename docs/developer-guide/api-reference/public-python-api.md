@@ -9,8 +9,8 @@ permalink: /developer-guide/api-reference/public-python-api/
 
 # Public Python API
 
-`ring5` is the supported headless surface. Public names are exported from `ring5/__init__.py` and
-covered by `tests/integration/test_ring5_public_api.py`.
+`ring5` is the supported headless surface. Public names are exported from `ring5/__init__.py`. The
+tests marked `public_api` enforce exact line and branch coverage for the package (`make test-api`).
 
 ## Workspace
 
@@ -19,18 +19,28 @@ manager operations and shaper pipelines, create and render plots, export figures
 restore portfolios. Use it as a context manager so pending session work and temporary parser output
 are released.
 
-`Session.parse_submit` returns an owned `ParseJob`; `Session.parse` waits and returns `ParseResult`.
-`Session.load` returns a DataFrame. `shape`, `reduce_seeds`, and `remove_outliers` preserve
-`ring5.Table` when given one.
+`Session.scan_submit` returns an owned `ScanJob`; `Session.scan` waits and returns `ScanResult`.
+Likewise, `parse_submit` returns `ParseJob` and `parse` returns `ParseResult`. A job can be cancelled
+without touching work from another handle. `Session.load` returns a DataFrame. `shape`,
+`reduce_seeds`, `remove_outliers`, `apply_operation`, and `mix_columns` preserve `ring5.Table` when
+given one.
 
 `scan_limit=0` means exhaustive variable discovery up to the global 10,000-file ceiling; a positive
-value is an exact sample cap. A scan with any failed files raises `ScanError` at the public boundary
-instead of returning incomplete variable metadata. Parser worker, aggregate resource, pattern
-expansion, and ten-minute batch timeout failures are wrapped as `ParseError`.
+value is an exact sample cap. A scan with any failed files raises `ScanError` at the public boundary;
+pass `strict=False` to `ScanJob.finalize` or `Session.scan` only when a documented partial result is
+acceptable. Parser worker, aggregate resource, pattern expansion, and ten-minute batch timeout
+failures are wrapped as `ParseError`.
+
+The `config_aware` parser strategy adds deterministic `sim_path` and `config_json` columns. It
+requires a readable, non-empty `config.ini` beside every selected stats file. Gem5 scalar-name
+patterns, conventional distributions, range histograms, and pipe-delimited one-line histograms are
+all supported by the public parse workflow.
 
 `create_plot` registers a plot and `render` renders it. `plot` performs both. Plot identifiers come
 from `ring5.available_plot_types()`; display names are accepted but identifiers are preferable in
-versioned scripts.
+versioned scripts. Mapping configurations are validated before registration for required fields,
+field types, and referenced columns. Every downstream engine failure is normalized to `RenderError`.
+`ring5.available_shaper_types()` provides the equivalent registry for pipelines.
 
 ## Figure configuration and export
 
@@ -56,4 +66,4 @@ submission, resource-limit, worker, timeout, and assembly failures. Public bound
 original failure as `__cause__` where wrapping adds API context.
 
 When adding a public name, export it lazily where appropriate, document parameters and exceptions,
-add integration coverage, and update the User Guide.
+add a `public_api` contract test, keep `make test-api` at 100%, and update the User Guide.
