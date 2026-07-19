@@ -143,9 +143,11 @@ class TestFullWorkflow:
 
 
 class TestPortfolioReplay:
+    # [test->req~ring5.portfolio.batch-replay~1]
     """Save a session, regenerate every figure from the snapshot."""
 
     def test_save_then_render_portfolio(self, tmp_path: Path, portfolios_dir: Path) -> None:
+        # [test->req~ring5.portfolio.safe-overwrite~1]
         df = pd.DataFrame({"bench": ["a", "b", "c"], "ipc": [1.0, 2.0, 3.0]})
         with ring5.Session() as s:
             s.api.state_manager.set_data(df)
@@ -208,6 +210,7 @@ class TestPortfolioReplay:
         assert open(written[0], "rb").read(5) == b"%PDF-"
 
     def test_future_portfolio_refused(self, tmp_path: Path, portfolios_dir: Path) -> None:
+        # [test->req~ring5.portfolio.migration~1]
         """Forward-version files are refused, never silently downgraded."""
         (portfolios_dir / "future.json").write_text(json.dumps({"schema_version": 3}))
         with pytest.raises(ring5.PortfolioVersionError, match="newer than this RING-5"):

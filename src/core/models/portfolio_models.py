@@ -16,6 +16,7 @@ from src.core.models.history_models import OperationRecord
 
 @dataclass(frozen=True)
 class RestoreReport:
+    # [impl->req~ring5.portfolio.partial-report~1]
     """Outcome of a portfolio restore.
 
     A restore is best-effort per item (a portfolio with one corrupt plot
@@ -39,6 +40,7 @@ class RestoreReport:
 
     @property
     def complete(self) -> bool:
+        # [impl->req~ring5.portfolio.upgrade-protection~1]
         """True when nothing was skipped or lost."""
         return (
             self.data_error is None and not self.plots_skipped and self.parse_variables_skipped == 0

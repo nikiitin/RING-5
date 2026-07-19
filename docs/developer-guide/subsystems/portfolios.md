@@ -24,6 +24,14 @@ The CLI upgrade command re-saves only a complete restore.
 
 ## Compatibility rules
 
+<!--
+`uman~ring5.portfolio.migration.documentation~1`
+
+Covers:
+- req~ring5.portfolio.migration~1
+
+-->
+
 - Increment and migrate the schema for a breaking serialized change.
 - Preserve plot and shaper identifiers or translate them during migration.
 - Keep plot configuration JSON-compatible and retain figure-config enrichment where required.

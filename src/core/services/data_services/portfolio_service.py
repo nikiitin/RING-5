@@ -25,6 +25,7 @@ class PortfolioService:
         self.state_manager = state_manager
 
     def list_portfolios(self) -> list[str]:
+        # [impl->req~ring5.portfolio.manage~1]
         """Return saved portfolio names."""
         portfolios_dir = PathService.get_portfolios_dir()
         if not portfolios_dir.exists():
@@ -45,6 +46,7 @@ class PortfolioService:
         ) = None,
         overwrite: bool = True,
     ) -> None:
+        # [impl->req~ring5.portfolio.save~1]
         """Serialize and save the current workspace state.
 
         Args:
@@ -140,6 +142,7 @@ class PortfolioService:
         return cast(PortfolioData, PortfolioMigrator.migrate(raw))
 
     def delete_portfolio(self, name: str) -> None:
+        # [impl->req~ring5.portfolio.manage~1]
         """Delete a portfolio if it exists.
 
         Args:

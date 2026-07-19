@@ -78,6 +78,8 @@ class SessionRepository:
         return result
 
     def restore_from_portfolio(self, portfolio_data: PortfolioData) -> RestoreReport:
+        # [impl->req~ring5.portfolio.restore~1]
+        # [impl->req~ring5.portfolio.partial-report~1]
         """
         Restore complete session state from portfolio data.
 

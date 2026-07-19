@@ -2014,9 +2014,17 @@
       "description": "Users shall save a named snapshot containing the available workspace data, plots, processed plot data, pipelines, figure configuration, parse provenance, counters, and histories; a configuration-only snapshot shall remain valid when no data is loaded.",
       "tags": ["persistence", "portfolios", "reproducibility"],
       "evidence": {
-        "implementation": ["src/core/services/data_services/portfolio_service.py"],
-        "tests": ["tests/integration/test_portfolio_persistence.py"],
-        "documentation": ["docs/user-guide/workflows/portfolios.md"]
+        "implementation": [
+          "src/core/services/data_services/portfolio_service.py::PortfolioService.save_portfolio",
+          "src/web/pages/ui/plotting/base_plot.py::BasePlot.to_dict"
+        ],
+        "tests": [
+          "tests/integration/test_portfolio_service_integration.py::test_save_and_load_portfolio",
+          "tests/unit/test_portfolio_page.py::TestShowPortfolioPage.test_save_no_data"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/portfolios.md#save-and-restore-in-the-web-application"
+        ]
       }
     },
     {
@@ -2029,8 +2037,13 @@
       "tags": ["api", "portfolios", "safety"],
       "evidence": {
         "implementation": ["ring5/_session.py::Session.save_portfolio"],
-        "tests": ["tests/integration/test_ring5_api_completeness.py"],
-        "documentation": ["docs/user-guide/workflows/portfolios.md"]
+        "tests": [
+          "tests/integration/test_portfolio_service_integration.py::test_save_portfolio_overwrite_false_raises",
+          "tests/integration/test_ring5_public_api.py::TestPortfolioReplay.test_save_then_render_portfolio"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/portfolios.md#save-and-restore-in-python"
+        ]
       }
     },
     {
@@ -2042,9 +2055,17 @@
       "description": "Users shall load a named portfolio and restore every compatible data, plot, pipeline, configuration, provenance, and history item into the current session.",
       "tags": ["persistence", "portfolios", "restore"],
       "evidence": {
-        "implementation": ["src/core/state/repository_state_manager.py::restore_session"],
-        "tests": ["tests/integration/test_portfolio_round_trip.py"],
-        "documentation": ["docs/user-guide/workflows/portfolios.md"]
+        "implementation": [
+          "src/core/state/repository_state_manager.py::RepositoryStateManager.restore_session",
+          "src/core/state/repositories/session_repository.py::SessionRepository.restore_from_portfolio"
+        ],
+        "tests": [
+          "tests/unit/test_repository_state_manager.py::TestRestoreSession",
+          "tests/integration/test_portfolio_service_integration.py::test_restore_report_complete_with_deserializer"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/portfolios.md#save-and-restore-in-the-web-application"
+        ]
       }
     },
     {
@@ -2056,9 +2077,19 @@
       "description": "Portfolio restoration shall return or display a structured report of data errors, skipped plots, and malformed parser variables instead of silently dropping content.",
       "tags": ["errors", "portfolios", "restore"],
       "evidence": {
-        "implementation": ["src/core/models/portfolio_models.py::RestoreReport", "src/web/pages/portfolio.py"],
-        "tests": ["tests/integration/test_portfolio_fix.py"],
-        "documentation": ["docs/user-guide/workflows/portfolios.md"]
+        "implementation": [
+          "src/core/models/portfolio_models.py::RestoreReport",
+          "src/core/state/repositories/session_repository.py::SessionRepository.restore_from_portfolio",
+          "src/web/pages/portfolio.py::_portfolio_fragment"
+        ],
+        "tests": [
+          "tests/integration/test_portfolio_service_integration.py::test_restore_returns_report_with_skipped_plots_when_no_deserializer",
+          "tests/integration/test_portfolio_service_integration.py::test_restore_survives_malformed_parse_variables",
+          "tests/unit/test_portfolio_page.py::TestShowPortfolioPage.test_incomplete_restore_is_reported"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/portfolios.md#review-restoration-outcomes"
+        ]
       }
     },
     {
@@ -2070,9 +2101,17 @@
       "description": "Older supported portfolio schemas shall migrate deterministically before restoration, while newer unknown schemas shall fail with a typed version error.",
       "tags": ["migration", "portfolios", "schema"],
       "evidence": {
-        "implementation": ["src/core/services/portfolio_migrator.py"],
-        "tests": ["tests/integration/test_portfolio_migration.py"],
-        "documentation": ["docs/developer-guide/subsystems/portfolios.md"]
+        "implementation": [
+          "src/core/services/portfolio_migrator.py::PortfolioMigrator.migrate"
+        ],
+        "tests": [
+          "tests/integration/test_portfolio_migration.py::TestV1LoadAndMigrate",
+          "tests/integration/test_portfolio_migration.py::TestV2Passthrough",
+          "tests/integration/test_ring5_public_api.py::TestPortfolioReplay.test_future_portfolio_refused"
+        ],
+        "documentation": [
+          "docs/developer-guide/subsystems/portfolios.md#compatibility-rules"
+        ]
       }
     },
     {
@@ -2084,9 +2123,19 @@
       "description": "The web application shall list saved portfolios and allow intentional deletion of an individual snapshot.",
       "tags": ["delete", "portfolios", "web"],
       "evidence": {
-        "implementation": ["src/web/pages/portfolio.py"],
-        "tests": ["tests/e2e/test_portfolio.py"],
-        "documentation": ["docs/user-guide/workflows/portfolios.md"]
+        "implementation": [
+          "src/core/services/data_services/portfolio_service.py::PortfolioService.list_portfolios",
+          "src/core/services/data_services/portfolio_service.py::PortfolioService.delete_portfolio",
+          "src/web/pages/portfolio.py::_portfolio_fragment"
+        ],
+        "tests": [
+          "tests/integration/test_portfolio_service_integration.py::test_list_portfolios",
+          "tests/integration/test_portfolio_service_integration.py::test_delete_portfolio",
+          "tests/unit/test_portfolio_page.py::TestShowPortfolioPage.test_delete_portfolio"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/portfolios.md#inspect-and-delete-saved-portfolios"
+        ]
       }
     },
     {
@@ -2098,9 +2147,17 @@
       "description": "The public API and CLI shall restore, render, and export every valid plot in a portfolio through a selected engine and format.",
       "tags": ["automation", "portfolios", "rendering"],
       "evidence": {
-        "implementation": ["ring5/_portfolio.py::render_portfolio"],
-        "tests": ["tests/integration/test_ring5_public_api.py"],
-        "documentation": ["docs/user-guide/workflows/portfolios.md"]
+        "implementation": [
+          "ring5/_portfolio.py::render_portfolio",
+          "ring5/cli.py::_cmd_render"
+        ],
+        "tests": [
+          "tests/integration/test_ring5_public_api.py::TestPortfolioReplay",
+          "tests/unit/test_ring5_cli.py::TestRenderCommand"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/portfolios.md#render-every-saved-plot"
+        ]
       }
     },
     {
@@ -2112,9 +2169,17 @@
       "description": "The CLI shall refuse to re-save a partially restored portfolio because doing so would permanently discard skipped content.",
       "tags": ["cli", "migration", "portfolios", "safety"],
       "evidence": {
-        "implementation": ["ring5/cli.py::_cmd_upgrade"],
-        "tests": ["tests/unit/test_ring5_cli.py"],
-        "documentation": ["docs/user-guide/workflows/portfolios.md"]
+        "implementation": [
+          "ring5/cli.py::_cmd_upgrade",
+          "src/core/models/portfolio_models.py::RestoreReport.complete"
+        ],
+        "tests": [
+          "tests/unit/test_ring5_cli.py::TestUpgradeCommand",
+          "tests/unit/test_ring5_cli.py::TestUpgradeRefusal"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/portfolios.md#upgrade-a-saved-portfolio"
+        ]
       }
     },
     {

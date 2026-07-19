@@ -181,6 +181,7 @@ class BasePlot(PlotConfigUIMixin, ABC):
         return fig
 
     def to_dict(self) -> dict[str, Any]:
+        # [impl->req~ring5.portfolio.save~1]
         """
         Convert plot to dictionary for serialization.
 

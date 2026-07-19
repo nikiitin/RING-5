@@ -55,6 +55,7 @@ class TestParseCommand:
 
 
 class TestRenderCommand:
+    # [test->req~ring5.portfolio.batch-replay~1]
     def test_render_portfolio_to_pdf(self, tmp_path: Path, portfolios_dir: Path) -> None:
         import ring5
 
@@ -86,6 +87,7 @@ class TestRenderCommand:
 
 
 class TestUpgradeCommand:
+    # [test->req~ring5.portfolio.upgrade-protection~1]
     def test_upgrade_persists_current_schema(
         self, portfolios_dir: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:
@@ -116,6 +118,7 @@ class TestUpgradeCommand:
 
 
 class TestUpgradeRefusal:
+    # [test->req~ring5.portfolio.upgrade-protection~1]
     def test_upgrade_refuses_incomplete_restore(
         self, portfolios_dir: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:

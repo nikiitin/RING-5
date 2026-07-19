@@ -15,6 +15,7 @@ from src.web.rendering.config_builder import ConfigSpecBuilder
 
 
 class TestV1LoadAndMigrate:
+    # [test->req~ring5.portfolio.migration~1]
     """Load a V1-shaped portfolio, migrate, verify valid structure."""
 
     def test_v1_portfolio_produces_valid_v2(self) -> None:
@@ -67,6 +68,7 @@ class TestV1LoadAndMigrate:
 
 
 class TestV2Passthrough:
+    # [test->req~ring5.portfolio.migration~1]
     """V2 portfolio needs no migration, passes through unchanged."""
 
     def test_v2_no_modification(self) -> None:

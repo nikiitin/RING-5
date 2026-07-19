@@ -40,6 +40,7 @@ class PortfolioMigrator:
 
     @staticmethod
     def migrate(portfolio_data: dict[str, Any]) -> dict[str, Any]:
+        # [impl->req~ring5.portfolio.migration~1]
         """Migrate portfolio to current schema version.
 
         Args:

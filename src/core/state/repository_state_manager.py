@@ -291,5 +291,6 @@ class RepositoryStateManager:
         self._session_repo.clear_all()
 
     def restore_session(self, portfolio_data: PortfolioData) -> RestoreReport:
+        # [impl->req~ring5.portfolio.restore~1]
         """Restore session state from a portfolio snapshot."""
         return self._session_repo.restore_from_portfolio(portfolio_data)

@@ -1252,7 +1252,8 @@ Tags: api, errors, export, status_approved
 `impl~ring5.portfolio.save~1`
 
 Implementation evidence:
-- `src/core/services/data_services/portfolio_service.py`
+- `src/core/services/data_services/portfolio_service.py::PortfolioService.save_portfolio`
+- `src/web/pages/ui/plotting/base_plot.py::BasePlot.to_dict`
 
 Covers:
 - req~ring5.portfolio.save~1
@@ -1276,7 +1277,8 @@ Tags: api, portfolios, safety, status_approved
 `impl~ring5.portfolio.restore~1`
 
 Implementation evidence:
-- `src/core/state/repository_state_manager.py::restore_session`
+- `src/core/state/repository_state_manager.py::RepositoryStateManager.restore_session`
+- `src/core/state/repositories/session_repository.py::SessionRepository.restore_from_portfolio`
 
 Covers:
 - req~ring5.portfolio.restore~1
@@ -1289,7 +1291,8 @@ Tags: persistence, portfolios, restore, status_approved
 
 Implementation evidence:
 - `src/core/models/portfolio_models.py::RestoreReport`
-- `src/web/pages/portfolio.py`
+- `src/core/state/repositories/session_repository.py::SessionRepository.restore_from_portfolio`
+- `src/web/pages/portfolio.py::_portfolio_fragment`
 
 Covers:
 - req~ring5.portfolio.partial-report~1
@@ -1301,7 +1304,7 @@ Tags: errors, portfolios, restore, status_approved
 `impl~ring5.portfolio.migration~1`
 
 Implementation evidence:
-- `src/core/services/portfolio_migrator.py`
+- `src/core/services/portfolio_migrator.py::PortfolioMigrator.migrate`
 
 Covers:
 - req~ring5.portfolio.migration~1
@@ -1313,7 +1316,9 @@ Tags: migration, portfolios, schema, status_approved
 `impl~ring5.portfolio.manage~1`
 
 Implementation evidence:
-- `src/web/pages/portfolio.py`
+- `src/core/services/data_services/portfolio_service.py::PortfolioService.list_portfolios`
+- `src/core/services/data_services/portfolio_service.py::PortfolioService.delete_portfolio`
+- `src/web/pages/portfolio.py::_portfolio_fragment`
 
 Covers:
 - req~ring5.portfolio.manage~1
@@ -1326,6 +1331,7 @@ Tags: delete, portfolios, status_approved, web
 
 Implementation evidence:
 - `ring5/_portfolio.py::render_portfolio`
+- `ring5/cli.py::_cmd_render`
 
 Covers:
 - req~ring5.portfolio.batch-replay~1
@@ -1338,6 +1344,7 @@ Tags: automation, portfolios, rendering, status_approved
 
 Implementation evidence:
 - `ring5/cli.py::_cmd_upgrade`
+- `src/core/models/portfolio_models.py::RestoreReport.complete`
 
 Covers:
 - req~ring5.portfolio.upgrade-protection~1
@@ -3305,7 +3312,8 @@ Tags: api, errors, export, status_approved
 `test~ring5.portfolio.save~1`
 
 Verification evidence:
-- `tests/integration/test_portfolio_persistence.py`
+- `tests/integration/test_portfolio_service_integration.py::test_save_and_load_portfolio`
+- `tests/unit/test_portfolio_page.py::TestShowPortfolioPage.test_save_no_data`
 
 Covers:
 - req~ring5.portfolio.save~1
@@ -3317,7 +3325,8 @@ Tags: persistence, portfolios, reproducibility, status_approved
 `test~ring5.portfolio.safe-overwrite~1`
 
 Verification evidence:
-- `tests/integration/test_ring5_api_completeness.py`
+- `tests/integration/test_portfolio_service_integration.py::test_save_portfolio_overwrite_false_raises`
+- `tests/integration/test_ring5_public_api.py::TestPortfolioReplay.test_save_then_render_portfolio`
 
 Covers:
 - req~ring5.portfolio.safe-overwrite~1
@@ -3329,7 +3338,8 @@ Tags: api, portfolios, safety, status_approved
 `test~ring5.portfolio.restore~1`
 
 Verification evidence:
-- `tests/integration/test_portfolio_round_trip.py`
+- `tests/unit/test_repository_state_manager.py::TestRestoreSession`
+- `tests/integration/test_portfolio_service_integration.py::test_restore_report_complete_with_deserializer`
 
 Covers:
 - req~ring5.portfolio.restore~1
@@ -3341,7 +3351,9 @@ Tags: persistence, portfolios, restore, status_approved
 `test~ring5.portfolio.partial-report~1`
 
 Verification evidence:
-- `tests/integration/test_portfolio_fix.py`
+- `tests/integration/test_portfolio_service_integration.py::test_restore_returns_report_with_skipped_plots_when_no_deserializer`
+- `tests/integration/test_portfolio_service_integration.py::test_restore_survives_malformed_parse_variables`
+- `tests/unit/test_portfolio_page.py::TestShowPortfolioPage.test_incomplete_restore_is_reported`
 
 Covers:
 - req~ring5.portfolio.partial-report~1
@@ -3353,7 +3365,9 @@ Tags: errors, portfolios, restore, status_approved
 `test~ring5.portfolio.migration~1`
 
 Verification evidence:
-- `tests/integration/test_portfolio_migration.py`
+- `tests/integration/test_portfolio_migration.py::TestV1LoadAndMigrate`
+- `tests/integration/test_portfolio_migration.py::TestV2Passthrough`
+- `tests/integration/test_ring5_public_api.py::TestPortfolioReplay.test_future_portfolio_refused`
 
 Covers:
 - req~ring5.portfolio.migration~1
@@ -3365,7 +3379,9 @@ Tags: migration, portfolios, schema, status_approved
 `test~ring5.portfolio.manage~1`
 
 Verification evidence:
-- `tests/e2e/test_portfolio.py`
+- `tests/integration/test_portfolio_service_integration.py::test_list_portfolios`
+- `tests/integration/test_portfolio_service_integration.py::test_delete_portfolio`
+- `tests/unit/test_portfolio_page.py::TestShowPortfolioPage.test_delete_portfolio`
 
 Covers:
 - req~ring5.portfolio.manage~1
@@ -3377,7 +3393,8 @@ Tags: delete, portfolios, status_approved, web
 `test~ring5.portfolio.batch-replay~1`
 
 Verification evidence:
-- `tests/integration/test_ring5_public_api.py`
+- `tests/integration/test_ring5_public_api.py::TestPortfolioReplay`
+- `tests/unit/test_ring5_cli.py::TestRenderCommand`
 
 Covers:
 - req~ring5.portfolio.batch-replay~1
@@ -3389,7 +3406,8 @@ Tags: automation, portfolios, rendering, status_approved
 `test~ring5.portfolio.upgrade-protection~1`
 
 Verification evidence:
-- `tests/unit/test_ring5_cli.py`
+- `tests/unit/test_ring5_cli.py::TestUpgradeCommand`
+- `tests/unit/test_ring5_cli.py::TestUpgradeRefusal`
 
 Covers:
 - req~ring5.portfolio.upgrade-protection~1
@@ -5235,7 +5253,7 @@ Tags: api, errors, export, status_approved
 `uman~ring5.portfolio.save~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/portfolios.md`
+- `docs/user-guide/workflows/portfolios.md#save-and-restore-in-the-web-application`
 
 Covers:
 - req~ring5.portfolio.save~1
@@ -5247,7 +5265,7 @@ Tags: persistence, portfolios, reproducibility, status_approved
 `uman~ring5.portfolio.safe-overwrite~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/portfolios.md`
+- `docs/user-guide/workflows/portfolios.md#save-and-restore-in-python`
 
 Covers:
 - req~ring5.portfolio.safe-overwrite~1
@@ -5259,7 +5277,7 @@ Tags: api, portfolios, safety, status_approved
 `uman~ring5.portfolio.restore~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/portfolios.md`
+- `docs/user-guide/workflows/portfolios.md#save-and-restore-in-the-web-application`
 
 Covers:
 - req~ring5.portfolio.restore~1
@@ -5271,7 +5289,7 @@ Tags: persistence, portfolios, restore, status_approved
 `uman~ring5.portfolio.partial-report~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/portfolios.md`
+- `docs/user-guide/workflows/portfolios.md#review-restoration-outcomes`
 
 Covers:
 - req~ring5.portfolio.partial-report~1
@@ -5283,7 +5301,7 @@ Tags: errors, portfolios, restore, status_approved
 `uman~ring5.portfolio.migration~1`
 
 User documentation evidence:
-- `docs/developer-guide/subsystems/portfolios.md`
+- `docs/developer-guide/subsystems/portfolios.md#compatibility-rules`
 
 Covers:
 - req~ring5.portfolio.migration~1
@@ -5295,7 +5313,7 @@ Tags: migration, portfolios, schema, status_approved
 `uman~ring5.portfolio.manage~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/portfolios.md`
+- `docs/user-guide/workflows/portfolios.md#inspect-and-delete-saved-portfolios`
 
 Covers:
 - req~ring5.portfolio.manage~1
@@ -5307,7 +5325,7 @@ Tags: delete, portfolios, status_approved, web
 `uman~ring5.portfolio.batch-replay~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/portfolios.md`
+- `docs/user-guide/workflows/portfolios.md#render-every-saved-plot`
 
 Covers:
 - req~ring5.portfolio.batch-replay~1
@@ -5319,7 +5337,7 @@ Tags: automation, portfolios, rendering, status_approved
 `uman~ring5.portfolio.upgrade-protection~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/portfolios.md`
+- `docs/user-guide/workflows/portfolios.md#upgrade-a-saved-portfolio`
 
 Covers:
 - req~ring5.portfolio.upgrade-protection~1

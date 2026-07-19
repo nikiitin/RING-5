@@ -26,6 +26,19 @@ research data storage.
 
 ## Save and restore in the web application
 
+<!--
+`uman~ring5.portfolio.save.documentation~1`
+
+Covers:
+- req~ring5.portfolio.save~1
+
+`uman~ring5.portfolio.restore.documentation~1`
+
+Covers:
+- req~ring5.portfolio.restore~1
+
+-->
+
 Open **Save/Load Portfolio** and enter a descriptive name under **Save Portfolio**. Saving from the
 web application replaces an existing portfolio with the same sanitized name, so check **Manage
 Saved Portfolios** before reusing a name.
@@ -41,7 +54,42 @@ Portfolios are JSON files under the RING-5 application data directory. It defaul
 `.ring5/portfolios/` in the checkout. Set `RING5_DATA_DIR` before starting RING-5 to use an isolated
 or backed-up location.
 
+## Review restoration outcomes
+
+<!--
+`uman~ring5.portfolio.partial-report.documentation~1`
+
+Covers:
+- req~ring5.portfolio.partial-report~1
+
+-->
+
+Restoration handles data, parser variables, and plots independently. The web application reports
+data errors, skipped plots, and malformed parser-variable entries before rerunning. Python callers
+receive the same details in `RestoreReport`; `report.complete` is false when any item was lost.
+
+## Inspect and delete saved portfolios
+
+<!--
+`uman~ring5.portfolio.manage.documentation~1`
+
+Covers:
+- req~ring5.portfolio.manage~1
+
+-->
+
+**Manage Saved Portfolios** lists each stored snapshot. Expanding one and selecting **Delete**
+removes that named portfolio file. Keep a separate backup when a snapshot cannot be recreated.
+
 ## Save and restore in Python
+
+<!--
+`uman~ring5.portfolio.safe-overwrite.documentation~1`
+
+Covers:
+- req~ring5.portfolio.safe-overwrite~1
+
+-->
 
 ```python
 import ring5
@@ -63,6 +111,14 @@ parse-variable outcomes.
 
 ## Render every saved plot
 
+<!--
+`uman~ring5.portfolio.batch-replay.documentation~1`
+
+Covers:
+- req~ring5.portfolio.batch-replay~1
+
+-->
+
 ```python
 written = ring5.render_portfolio(
     "paper-a",
@@ -81,6 +137,16 @@ ring5 render paper-a --out-dir figures/ \
 
 Rendering defaults to deterministic output, Matplotlib PDF, or Plotly HTML. The command stops with a
 typed error when a plot cannot be restored, rendered, or exported.
+
+## Upgrade a saved portfolio
+
+<!--
+`uman~ring5.portfolio.upgrade-protection.documentation~1`
+
+Covers:
+- req~ring5.portfolio.upgrade-protection~1
+
+-->
 
 Use `ring5 upgrade NAME` to migrate and re-save an older portfolio only after a complete restore.
 The command refuses to write a partial restore because that would discard skipped content.

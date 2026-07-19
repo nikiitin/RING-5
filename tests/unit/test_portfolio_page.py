@@ -22,6 +22,7 @@ class TestShowPortfolioPage:
 
     @patch("src.web.pages.portfolio.st")
     def test_save_no_data(self, mock_st: MagicMock) -> None:
+        # [test->req~ring5.portfolio.save~1]
         """Save button with no data saves config-only portfolio."""
         from src.web.pages.portfolio import show_portfolio_page
 
@@ -178,6 +179,7 @@ class TestShowPortfolioPage:
 
     @patch("src.web.pages.portfolio.st")
     def test_delete_portfolio(self, mock_st: MagicMock) -> None:
+        # [test->req~ring5.portfolio.manage~1]
         """Delete button triggers delete_portfolio."""
         from src.web.pages.portfolio import show_portfolio_page
 
@@ -206,6 +208,38 @@ class TestShowPortfolioPage:
         show_portfolio_page(api)
 
         api.data_services.delete_portfolio.assert_called()
+
+    @patch("src.web.pages.portfolio.st")
+    def test_incomplete_restore_is_reported(self, mock_st: MagicMock) -> None:
+        # [test->req~ring5.portfolio.partial-report~1]
+        """The web page reports skipped restore content before rerunning."""
+        from src.core.models import RestoreReport
+        from src.web.pages.portfolio import show_portfolio_page
+
+        api = MagicMock()
+        api.state_manager.get_plots.return_value = []
+        api.data_services.list_portfolios.return_value = ["damaged"]
+        api.data_services.load_portfolio.return_value = {}
+        api.state_manager.restore_session.return_value = RestoreReport(
+            data_error="invalid CSV",
+            plots_skipped=["plot-a: unknown plot type"],
+            parse_variables_skipped=2,
+        )
+        mock_st.fragment.side_effect = lambda func: func
+        mock_st.columns.side_effect = _columns_side_effect
+        mock_st.button.side_effect = lambda label, **_kwargs: label == "Load Portfolio"
+        mock_st.selectbox.return_value = "damaged"
+        mock_st.text_input.return_value = "unused"
+        expander = MagicMock()
+        expander.__enter__ = MagicMock(return_value=expander)
+        expander.__exit__ = MagicMock(return_value=False)
+        mock_st.expander.return_value = expander
+
+        show_portfolio_page(api)
+
+        messages = [str(call.args[0]) for call in mock_st.toast.call_args_list]
+        assert any("Restore incomplete" in message for message in messages)
+        assert any("unknown plot type" in message for message in messages)
 
     # NOTE: test_save_pipeline and test_apply_pipeline removed —
     # Pipeline save/load is no longer part of the page.

@@ -342,6 +342,7 @@ class TestHistoryManagement:
 
 
 class TestRestoreSession:
+    # [test->req~ring5.portfolio.restore~1]
     """Tests for portfolio restore."""
 
     def test_restore_session_from_portfolio(self, manager: RepositoryStateManager) -> None:

@@ -18,6 +18,8 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 
 def _portfolio_fragment(api: ApplicationAPI) -> None:
+    # [impl->req~ring5.portfolio.partial-report~1]
+    # [impl->req~ring5.portfolio.manage~1]
     col1, col2 = st.columns(2)
 
     with col1:

@@ -705,6 +705,7 @@ class Session:
         return list(self.api.state_manager.get_plots())  # type: ignore[arg-type]
 
     def save_portfolio(self, name: str, *, overwrite: bool = False) -> None:
+        # [impl->req~ring5.portfolio.safe-overwrite~1]
         """Snapshot the session (data + plots + config) to a portfolio.
 
         Unlike the web UI, ``overwrite`` defaults to **False** here:

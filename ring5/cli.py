@@ -51,6 +51,7 @@ def _cmd_parse(args: argparse.Namespace) -> int:
 
 
 def _cmd_render(args: argparse.Namespace) -> int:
+    # [impl->req~ring5.portfolio.batch-replay~1]
     from ring5._portfolio import render_portfolio
 
     written = render_portfolio(
@@ -66,6 +67,7 @@ def _cmd_render(args: argparse.Namespace) -> int:
 
 
 def _cmd_upgrade(args: argparse.Namespace) -> int:
+    # [impl->req~ring5.portfolio.upgrade-protection~1]
     from ring5._session import Session
 
     with Session() as session:
