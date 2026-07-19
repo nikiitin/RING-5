@@ -184,6 +184,8 @@ class Normalize(UniDfShaper):
             Normalized DataFrame
         """
 
+        # [impl->req~ring5.quality.bounded-caching~1]
+
         with warnings.catch_warnings():
             # Suppress pandas warning about group keys
             warnings.filterwarnings(

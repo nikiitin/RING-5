@@ -29,6 +29,7 @@ class ScanJob:
 
     def cancel(self) -> None:
         """Cancel only work belonging to this scan job."""
+        # [impl->req~ring5.quality.async-ownership~1]
         for future in self.futures:
             future.cancel()
 

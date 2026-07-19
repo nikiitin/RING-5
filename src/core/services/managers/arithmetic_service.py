@@ -27,6 +27,7 @@ class ArithmeticService:
     ) -> pd.DataFrame:
         """Apply arithmetic operation between two columns."""
         # [impl->req~ring5.data.arithmetic~1]
+        # [impl->req~ring5.quality.immutable-data~1]
         result = df.copy()
 
         s1 = result[src1]

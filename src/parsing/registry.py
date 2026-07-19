@@ -101,6 +101,7 @@ class SimulatorRegistry:
         Raises:
             ValueError: If a simulator with the same name is already registered.
         """
+        # [impl->req~ring5.extension.parser-protocol~1]
         if info.name in cls._registry:
             raise ValueError(
                 f"Simulator '{info.name}' is already registered. "
@@ -126,6 +127,7 @@ class SimulatorRegistry:
         Raises:
             KeyError: If no simulator with that name is registered.
         """
+        # [impl->req~ring5.extension.parser-protocol~1]
         if name not in cls._registry:
             available = ", ".join(sorted(cls._registry.keys())) or "(none)"
             raise KeyError(f"Unknown simulator '{name}'. Available: {available}")

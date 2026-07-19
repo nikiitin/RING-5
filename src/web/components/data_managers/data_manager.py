@@ -16,6 +16,8 @@ from src.web.state.ui_state_manager import WidgetKeyBuilder
 class DataManager(ABC):
     """Abstract base class for data managers."""
 
+    # [impl->req~ring5.extension.data-manager~1]
+
     def __init__(self, api: ApplicationAPI):
         """Initialize the manager with ApplicationAPI."""
         self.api = api

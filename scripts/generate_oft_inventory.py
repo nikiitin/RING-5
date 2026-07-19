@@ -708,9 +708,7 @@ def check_html_report(inventory: Mapping[str, Any], output_dir: Path) -> None:
             f"OFT HTML report {_display_path(path)} is stale; run `make oft-report`."
         )
     if '<main id="oft-native-report">' not in report:
-        raise InventoryError(
-            f"OFT HTML report {_display_path(path)} lacks the native OFT trace."
-        )
+        raise InventoryError(f"OFT HTML report {_display_path(path)} lacks the native OFT trace.")
 
 
 def _display_path(path: Path) -> Path:

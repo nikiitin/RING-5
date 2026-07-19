@@ -105,6 +105,7 @@ class FigureSpecToMatplotlib:
             ax: A ``matplotlib.axes.Axes`` instance.
             render_result: Trace-rendering metadata, including an optional heatmap image.
         """
+        # [impl->req~ring5.extension.render-connector~1]
         import matplotlib as mpl
 
         # Scope the font family to this build: artists the steps below create

@@ -14,6 +14,8 @@ from src.web.pages.ui.plotting.settings_pills import (
 
 
 class TestSettingsSection:
+    # [test->req~ring5.extension.settings-panel~1]
+
     """Verify the frozen dataclass behaviour."""
 
     def test_creation_basic(self) -> None:
@@ -115,6 +117,8 @@ class TestProgressiveDisclosure:
 
 
 class TestRenderSettingsPills:
+    # [test->req~ring5.extension.settings-panel~1]
+
     """Test the render function with mocked Streamlit."""
 
     def test_basic_mode_passes_three_options(self, monkeypatch: pytest.MonkeyPatch) -> None:

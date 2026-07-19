@@ -29,6 +29,8 @@ def api() -> Generator[ApplicationAPI, None, None]:
 
 
 class TestPropertyAccess:
+    # [test->req~ring5.quality.application-facade~1]
+
     """Test sub-API property accessors."""
 
     def test_managers_property(self, api: ApplicationAPI) -> None:
@@ -248,6 +250,8 @@ class TestScanMethods:
 
 
 class TestShapersDelegation:
+    # [test->req~ring5.quality.application-facade~1]
+
     """Test apply_shapers delegation."""
 
     def test_apply_shapers(self, api: ApplicationAPI) -> None:
@@ -341,6 +345,8 @@ class TestGetColumnInfo:
 
 
 class TestPreviewDelegation:
+    # [test->req~ring5.quality.application-facade~1]
+
     """Test preview methods delegate to state manager."""
 
     def test_set_preview(self, api: ApplicationAPI) -> None:

@@ -31,6 +31,8 @@ class SimpleCache:
     Optimized for Streamlit's execution model.
     """
 
+    # [impl->req~ring5.quality.bounded-caching~1]
+
     def __init__(self, maxsize: int = 128, ttl: float | None = None):
         """
         Initialize cache.
@@ -172,6 +174,8 @@ def timed(func: Callable[..., T]) -> Callable[..., T]:
             # ... slow code
     """
 
+    # [impl->req~ring5.quality.performance-regression-gates~1]
+
     @functools.wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> T:
         start = time.perf_counter()
@@ -207,6 +211,8 @@ def compute_data_fingerprint(
     Returns:
         16-char hex digest suitable as a cache key.
     """
+
+    # [impl->req~ring5.quality.bounded-caching~1]
 
     fingerprint_parts = [
         f"shape:{data.shape}",

@@ -204,6 +204,17 @@ file.
 Plotly uses configured pixel dimensions. Matplotlib uses configured physical dimensions; PDF, PNG,
 and SVG apply tight bounding boxes, while PGF preserves the configured figure size for LaTeX input.
 Matplotlib advanced settings select XeLaTeX, pdfLaTeX, or LuaLaTeX for supported text rendering.
+
+### Safe numeric and TeX formatting
+
+<!--
+`uman~ring5.quality.safe-output-formatting.documentation~1`
+
+Covers:
+- req~ring5.quality.safe-output-formatting~1
+
+-->
+
 The web interface does not accept an arbitrary TeX preamble, and RING-5 escapes user-controlled
 figure text before TeX-backed export. User-provided number formats are also bounded before they are
 applied to labels.

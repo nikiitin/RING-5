@@ -21,6 +21,8 @@ from src.web.rendering.widgets.widget_def import (
 
 
 class TestExtendedSections:
+    # [test->req~ring5.extension.settings-panel~1]
+
     """Verify new WidgetSections have expected widget counts."""
 
     def test_axis_x_has_widgets(self) -> None:
@@ -62,6 +64,8 @@ class TestExtendedSections:
 
 
 class TestSpecPathWiring:
+    # [test->req~ring5.extension.settings-panel~1]
+
     """Verify spec_path is set on key widgets for bidirectional bridge."""
 
     def test_dimensions_have_spec_path(self) -> None:

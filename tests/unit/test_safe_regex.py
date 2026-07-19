@@ -30,11 +30,13 @@ def test_bounded_regex_rejects_invalid_syntax() -> None:
 
 
 def test_bounded_regex_rejects_long_pattern() -> None:
+    # [test->req~ring5.quality.input-security~1]
     with pytest.raises(SafeRegexError, match="character limit"):
         compile_bounded_regex("a" * (MAX_PATTERN_LENGTH + 1))
 
 
 def test_bounded_regex_rejects_long_input() -> None:
+    # [test->req~ring5.quality.input-security~1]
     pattern = compile_bounded_regex("a")
 
     with pytest.raises(SafeRegexError, match="Regex input exceeds"):

@@ -16,6 +16,14 @@ enforces ownership and public API intent.
 
 ## Enforced rules
 
+<!--
+`uman~ring5.quality.architecture-boundaries.documentation~1`
+
+Covers:
+- req~ring5.quality.architecture-boundaries~1
+
+-->
+
 - `src/core/` and `src/parsing/` do not import Streamlit, access `st.session_state`, or import
   `src.web`.
 - `src/core/models/` and `src/parsing/` do not import `src.core.services`.

@@ -130,6 +130,7 @@ def test_scan_job_partial_and_timeout_are_typed(monkeypatch: pytest.MonkeyPatch)
 def test_session_close_defers_cleanup_for_running_parse(tmp_path: Path) -> None:
     # [test->req~ring5.api.session~1]
     # [test->req~ring5.ingestion.async-parse~1]
+    # [test->req~ring5.quality.async-ownership~1]
     output = tmp_path / "owned"
     output.mkdir()
     running: Future[dict[str, Any]] = Future()
@@ -157,7 +158,9 @@ def test_session_close_defers_cleanup_for_running_parse(tmp_path: Path) -> None:
 
 def test_manager_operations_preserve_dataframe_and_table() -> None:
     # [test->req~ring5.api.session~1]
+    # [test->req~ring5.quality.immutable-data~1]
     frame = pd.DataFrame({"a": [2.0, 4.0], "b": [1.0, 2.0], "a.sd": [0.3, 0.4], "b.sd": [0.4, 0.3]})
+    original = frame.copy(deep=True)
     with ring5.Session() as session:
         divided = session.apply_operation(frame, "Division", "a", "b", "ratio")
         assert isinstance(divided, pd.DataFrame)
@@ -172,6 +175,8 @@ def test_manager_operations_preserve_dataframe_and_table() -> None:
             session.apply_operation(frame, "Sum", "missing", "b", "total")
         with pytest.raises(ring5.DataValidationError, match="Invalid operation"):
             session.mix_columns(frame, "total", ["a", "b"], operation="Nope")
+
+    pd.testing.assert_frame_equal(frame, original)
 
 
 def test_public_registries_are_complete() -> None:

@@ -33,6 +33,8 @@ class SettingsSection:
         enables advanced mode (progressive disclosure).
     """
 
+    # [impl->req~ring5.extension.settings-panel~1]
+
     key: str
     label: str
     icon: str
@@ -69,6 +71,7 @@ def render_settings_pills(show_advanced: bool = False) -> str | None:
         if nothing is selected.
     """
     # [impl->req~ring5.figure.advanced-disclosure~1]
+    # [impl->req~ring5.extension.settings-panel~1]
     visible: list[SettingsSection] = [
         s for s in SETTINGS_SECTIONS if not s.advanced or show_advanced
     ]

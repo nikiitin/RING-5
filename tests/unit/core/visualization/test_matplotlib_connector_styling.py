@@ -85,6 +85,8 @@ class TestSeriesStyling:
 
 
 class TestConnectorParity:
+    # [test->req~ring5.extension.render-connector~1]
+
     def test_both_connectors_expose_per_trace_styling(self) -> None:
         from src.web.rendering.plotly_connector import FigureSpecToPlotly
 

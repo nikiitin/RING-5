@@ -28,6 +28,8 @@ class DefaultServicesAPI:
         out = api.shapers.process_pipeline(df, pipeline_config)
     """
 
+    # [impl->req~ring5.quality.application-facade~1]
+
     def __init__(self, state_manager: StateManager) -> None:
         """Initialize the services API with all sub-APIs.
 

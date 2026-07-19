@@ -43,9 +43,20 @@ make test-visual      # local visual diagnostics
 Use markers declared in `pyproject.toml`. Plotly/Kaleido export and other process-owning tests run
 serially. Browser tests use the Chromium installed by `make dev`.
 
+## Performance regression checks
+
+<!--
+`uman~ring5.quality.performance-regression-gates.documentation~1`
+
+Covers:
+- req~ring5.quality.performance-regression-gates~1
+
+-->
+
 Performance tests use repeatable fixtures and explicit thresholds for large-data transformations,
 caches, rendering, and worker-pool throughput. Treat a threshold change as a reviewed contract
-change rather than weakening it merely to accommodate a regression.
+change rather than weakening it merely to accommodate a regression. They live outside the default
+test targets and run explicitly with `python_venv/bin/pytest tests/performance -n 0 --no-cov`.
 
 For a public API addition, extend `tests/integration/test_ring5_public_api.py`. For serialized
 changes, test both current output and loading or migrating an older fixture.

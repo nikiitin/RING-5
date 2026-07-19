@@ -121,6 +121,8 @@ class TestPoolDirectory:
 class TestCSVLoading:
     """Test CSV file loading with caching."""
 
+    # [test->req~ring5.quality.bounded-caching~1]
+
     # [test->req~ring5.ingestion.csv-pool~1]
 
     def test_load_csv_file_reads_data_correctly(self, sample_csv: Path) -> None:
@@ -324,6 +326,8 @@ class TestPoolManagement:
 
 class TestCacheManagement:
     """Test cache operations and statistics."""
+
+    # [test->req~ring5.quality.bounded-caching~1]
 
     def test_clear_caches_empties_all_caches(self, sample_csv: Path) -> None:
         """Verify all caches are cleared."""

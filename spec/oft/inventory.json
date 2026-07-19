@@ -2429,12 +2429,12 @@
       "revision": 1,
       "status": "approved",
       "title": "Runtime plot registration",
-      "description": "New BasePlot implementations shall register stable snake-case identifiers and UI metadata through the plot factory.",
+      "description": "PlotFactory shall support runtime registration of BasePlot subclasses under caller-provided identifiers with optional UI metadata.",
       "tags": ["extensibility", "plots", "registry"],
       "evidence": {
-        "implementation": ["src/web/pages/ui/plotting/plot_factory.py"],
-        "tests": ["tests/unit/test_plot_factory.py"],
-        "documentation": ["docs/developer-guide/extension-guides/adding-a-plot-type.md"]
+        "implementation": ["src/web/pages/ui/plotting/plot_factory.py::PlotFactory.get_plot_metadata", "src/web/pages/ui/plotting/plot_factory.py::PlotFactory.register_plot_type"],
+        "tests": ["tests/unit/test_plot_factory.py::TestPlotFactoryRegistration", "tests/unit/test_plot_factory.py::TestPlotFactoryMetadata"],
+        "documentation": ["docs/developer-guide/extension-guides/adding-a-plot-type.md#implement-and-register"]
       }
     },
     {
@@ -2443,12 +2443,12 @@
       "revision": 1,
       "status": "approved",
       "title": "Shaper factory registration",
-      "description": "New pure shapers shall register stable serialized identifiers, typed configurations, UI configuration, and pipeline validation through the shaper factory.",
+      "description": "ShaperFactory shall support runtime class registration under serialized identifiers, expose display names, and instantiate registered shapers from ShaperStepConfig.",
       "tags": ["extensibility", "registry", "shapers"],
       "evidence": {
-        "implementation": ["src/core/services/shapers/factory.py"],
-        "tests": ["tests/unit/test_shaper_factory_display.py"],
-        "documentation": ["docs/developer-guide/extension-guides/adding-a-shaper.md"]
+        "implementation": ["src/core/services/shapers/factory.py::ShaperFactory.register", "src/core/services/shapers/factory.py::ShaperFactory.get_display_name_map", "src/core/services/shapers/factory.py::ShaperFactory.create_shaper"],
+        "tests": ["tests/unit/test_factory_registries.py::TestShaperFactoryRegistry", "tests/unit/test_shaper_factory_display.py::TestShaperFactoryDisplayNames"],
+        "documentation": ["docs/developer-guide/extension-guides/adding-a-shaper.md#implement-and-register"]
       }
     },
     {
@@ -2460,9 +2460,9 @@
       "description": "Additional simulators shall integrate through the SimulationParser protocol and simulator registry without adding simulator-specific logic to core services.",
       "tags": ["extensibility", "parsing", "protocol"],
       "evidence": {
-        "implementation": ["src/parsing/parser_protocol.py", "src/parsing/registry.py"],
-        "tests": ["tests/unit/test_simulator_registry.py"],
-        "documentation": ["docs/developer-guide/extension-guides/adding-a-parser.md"]
+        "implementation": ["src/parsing/parser_protocol.py::SimulationParser", "src/parsing/registry.py::SimulatorRegistry.register", "src/parsing/registry.py::SimulatorRegistry.get_parser"],
+        "tests": ["tests/unit/test_simulator_registry.py::TestSimulatorRegistry"],
+        "documentation": ["docs/developer-guide/extension-guides/adding-a-parser.md#implement-the-backend"]
       }
     },
     {
@@ -2470,13 +2470,13 @@
       "group": "extensibility-quality",
       "revision": 1,
       "status": "approved",
-      "title": "Rendering connector protocol",
-      "description": "Rendering engines shall consume the canonical FigureConfig and typed traces through a common connector boundary.",
+      "title": "Shared renderer styling contract",
+      "description": "Plotly and Matplotlib shall consume resolved FigureConfig and typed traces, and their connectors shall implement the shared named styling phases.",
       "tags": ["extensibility", "protocol", "rendering"],
       "evidence": {
-        "implementation": ["src/web/rendering/_connector_protocol.py"],
-        "tests": ["tests/unit/core/visualization/test_connectors.py"],
-        "documentation": ["docs/developer-guide/extension-guides/adding-a-renderer.md"]
+        "implementation": ["src/web/rendering/plotly_connector.py::FigureSpecToPlotly.apply", "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib.apply", "src/web/rendering/matplotlib_trace_renderer.py::MatplotlibTraceRenderer.render"],
+        "tests": ["tests/unit/core/visualization/test_connectors.py::TestFigureSpecToPlotly", "tests/unit/core/visualization/test_matplotlib_connector_styling.py::TestConnectorParity", "tests/integration/test_matplotlib_rendering.py::TestMatplotlibTraceRenderer"],
+        "documentation": ["docs/developer-guide/extension-guides/adding-a-renderer.md#implement-the-connector"]
       }
     },
     {
@@ -2488,9 +2488,9 @@
       "description": "Core managers, shapers, and public table operations shall return new data objects and preserve caller-owned inputs.",
       "tags": ["data", "immutability", "quality"],
       "evidence": {
-        "implementation": ["src/core/common/dataframe_utils.py", "src/core/services/shapers/pipeline_service.py"],
-        "tests": ["tests/unit/test_aliasing.py"],
-        "documentation": ["docs/developer-guide/architecture/design-patterns.md"]
+        "implementation": ["src/core/services/managers/arithmetic_service.py::ArithmeticService.apply_operation", "src/core/services/shapers/pipeline_service.py::PipelineService.process_pipeline", "ring5/data.py::Table.apply"],
+        "tests": ["tests/integration/test_ring5_api_completeness.py::test_manager_operations_preserve_dataframe_and_table", "tests/unit/test_shaper_config_validate.py::TestApplyShapers.test_does_not_mutate_original_data", "tests/unit/test_ring5_convenience_api.py::TestTable"],
+        "documentation": ["docs/developer-guide/architecture/design-patterns.md#immutable-data-operations"]
       }
     },
     {
@@ -2502,9 +2502,9 @@
       "description": "Core and parsing code shall remain independent of Streamlit, core shall not import web composition, and presentation shall depend inward through explicit facades and protocols.",
       "tags": ["architecture", "boundaries", "quality"],
       "evidence": {
-        "implementation": ["scripts/check_architecture.py"],
-        "tests": ["tests/unit/test_architecture_boundary.py"],
-        "documentation": ["docs/developer-guide/architecture/layer-boundaries.md"]
+        "implementation": ["scripts/check_architecture.py::inspect_file", "scripts/check_architecture.py::main"],
+        "tests": ["tests/unit/test_architecture_boundary.py::TestArchitectureBoundary", "tests/unit/test_architecture_boundary.py::TestDependencyDirection"],
+        "documentation": ["docs/developer-guide/architecture/layer-boundaries.md#enforced-rules"]
       }
     },
     {
@@ -2513,12 +2513,12 @@
       "revision": 1,
       "status": "approved",
       "title": "Bounded and sanitized input",
-      "description": "File names, paths, regular expressions, text searches, uploads, and aggregate operations shall be validated, contained, and bounded before expensive or persistent work.",
+      "description": "Untrusted file names, paths, glob and regular-expression patterns, option lists, and text-search inputs shall be sanitized, contained, or bounded before filesystem or matching work.",
       "tags": ["limits", "security", "validation"],
       "evidence": {
-        "implementation": ["src/core/common/security_limits.py", "src/core/common/safe_regex.py", "src/core/common/utils.py"],
-        "tests": ["tests/unit/test_safe_regex.py"],
-        "documentation": ["docs/user-guide/reference/troubleshooting.md"]
+        "implementation": ["src/core/common/utils.py::sanitize_filename", "src/core/common/utils.py::sanitize_glob_pattern", "src/core/common/utils.py::validate_web_stats_path", "src/core/common/safe_regex.py::compile_bounded_regex", "src/core/common/safe_regex.py::search_bounded_regex", "src/web/components/common/bounded_options.py::bounded_unique_strings"],
+        "tests": ["tests/unit/test_utils.py::TestSanitizeFilename", "tests/unit/test_utils.py::TestValidateWebStatsPath", "tests/unit/test_safe_regex.py::test_bounded_regex_rejects_long_pattern", "tests/unit/test_safe_regex.py::test_bounded_regex_rejects_long_input", "tests/unit/test_bounded_options.py::test_unique_options_are_capped", "tests/unit/test_bounded_options.py::test_oversized_values_are_omitted"],
+        "documentation": ["docs/user-guide/reference/troubleshooting.md#input-bounds-and-path-containment"]
       }
     },
     {
@@ -2527,12 +2527,12 @@
       "revision": 1,
       "status": "approved",
       "title": "Owned asynchronous work",
-      "description": "Scan and parse batches shall expose ownership, cancellation, timeout, resource ceilings, and cleanup without allowing one session to cancel or delete another session's work.",
+      "description": "Scan and parse submission shall return caller-owned future batches; job and session handles shall cancel only their own futures and defer temporary-output cleanup until running parse work settles.",
       "tags": ["async", "lifecycle", "quality"],
       "evidence": {
-        "implementation": ["src/parsing/framework/job.py", "src/parsing/framework/work_pool.py"],
-        "tests": ["tests/unit/test_pool_future_leak.py"],
-        "documentation": ["docs/developer-guide/architecture/data-flow.md"]
+        "implementation": ["ring5/_scan.py::ScanJob.cancel", "ring5/_parse.py::ParseJob.cancel", "ring5/_session.py::Session.close"],
+        "tests": ["tests/unit/test_pool_future_leak.py::TestScanWorkPoolStateless", "tests/unit/test_pool_future_leak.py::TestParseWorkPoolStateless", "tests/unit/test_pool_future_leak.py::TestSessionScopedCancellation", "tests/integration/test_ring5_api_completeness.py::test_session_close_defers_cleanup_for_running_parse"],
+        "documentation": ["docs/developer-guide/architecture/data-flow.md#parse-and-load"]
       }
     },
     {
@@ -2993,12 +2993,12 @@
       "revision": 1,
       "status": "approved",
       "title": "Data-manager extension contract",
-      "description": "New shared-dataset operations shall place pure validation and transformation in the managers service family, delegate through the facade, and use preview-confirm UI state before replacement.",
+      "description": "Shared-dataset manager extensions shall expose stateless transformations through ManagersAPI, receive the session's ApplicationAPI, and keep tentative output in named preview state before replacement.",
       "tags": ["extension", "managers", "services"],
       "evidence": {
-        "implementation": ["src/core/services/managers/managers_api.py", "src/web/components/data_managers/data_manager.py"],
-        "tests": ["tests/integration/test_data_manager_api_flow.py"],
-        "documentation": ["docs/developer-guide/extension-guides/adding-a-data-manager.md"]
+        "implementation": ["src/core/services/managers/managers_api.py::ManagersAPI", "src/web/components/data_managers/data_manager.py::DataManager", "src/core/application_api.py::ApplicationAPI.set_preview"],
+        "tests": ["tests/integration/test_data_manager_api_flow.py::TestPreviewLifecycle", "tests/integration/test_data_manager_api_flow.py::TestApplyShapersPipeline"],
+        "documentation": ["docs/developer-guide/extension-guides/adding-a-data-manager.md#implement"]
       }
     },
     {
@@ -3007,12 +3007,12 @@
       "revision": 1,
       "status": "approved",
       "title": "Figure-settings extension contract",
-      "description": "New figure controls shall use typed canonical configuration where shared, renderer resolution and both connectors, stable widget keys, and the registered settings-section composition.",
+      "description": "Top-level figure-settings sections shall use stable keys and progressive-disclosure metadata; option widgets shall derive per-plot keys and safe persisted defaults through the shared widget factory.",
       "tags": ["extension", "settings", "visualization"],
       "evidence": {
-        "implementation": ["src/web/pages/ui/plotting/settings_pills.py", "src/web/components/plotting/settings/widget_factory.py"],
-        "tests": ["tests/unit/test_widget_sections.py"],
-        "documentation": ["docs/developer-guide/extension-guides/adding-a-settings-panel.md"]
+        "implementation": ["src/web/pages/ui/plotting/settings_pills.py::SettingsSection", "src/web/pages/ui/plotting/settings_pills.py::render_settings_pills", "src/web/components/plotting/settings/widget_factory.py::select_option"],
+        "tests": ["tests/unit/test_settings_pills.py::TestSettingsSection", "tests/unit/test_settings_pills.py::TestRenderSettingsPills", "tests/unit/test_widget_sections.py::TestExtendedSections", "tests/unit/test_widget_sections.py::TestSpecPathWiring"],
+        "documentation": ["docs/developer-guide/extension-guides/adding-a-settings-panel.md#implement-a-visual-setting"]
       }
     },
     {
@@ -3024,9 +3024,9 @@
       "description": "Web features shall reach state, managers, data services, shapers, and parser submission through one session-owned ApplicationAPI whose three focused sub-APIs delegate to concrete services.",
       "tags": ["architecture", "facade", "services"],
       "evidence": {
-        "implementation": ["src/core/application_api.py", "src/core/services/services_impl.py"],
-        "tests": ["tests/unit/test_application_api_delegation.py", "tests/integration/test_web_architecture.py"],
-        "documentation": ["docs/developer-guide/api-reference/application-api.md"]
+        "implementation": ["src/core/application_api.py::ApplicationAPI", "src/core/services/services_impl.py::DefaultServicesAPI"],
+        "tests": ["tests/unit/test_application_api_delegation.py::TestPropertyAccess", "tests/unit/test_application_api_delegation.py::TestShapersDelegation", "tests/unit/test_application_api_delegation.py::TestPreviewDelegation"],
+        "documentation": ["docs/developer-guide/api-reference/application-api.md#application-api"]
       }
     },
     {
@@ -3038,9 +3038,9 @@
       "description": "CSV metadata, loaded frames, and expensive shaper results shall use thread-safe caches with bounded size, expiry or content fingerprints, defensive result isolation, statistics, and explicit clearing.",
       "tags": ["caching", "performance", "quality"],
       "evidence": {
-        "implementation": ["src/core/performance.py", "src/core/services/data_services/csv_pool_service.py"],
-        "tests": ["tests/unit/test_simple_cache.py", "tests/unit/test_aliasing.py"],
-        "documentation": ["docs/developer-guide/development/code-quality.md"]
+        "implementation": ["src/core/performance.py::SimpleCache", "src/core/performance.py::compute_data_fingerprint", "src/core/services/data_services/csv_pool_service.py::CsvPoolService.load_csv_file", "src/core/services/data_services/csv_pool_service.py::CsvPoolService.clear_caches", "src/core/services/data_services/csv_pool_service.py::CsvPoolService.get_cache_stats", "src/core/services/shapers/impl/mean.py::Mean._calculate_mean_with_cache", "src/core/services/shapers/impl/normalize.py::Normalize._normalize_with_cache"],
+        "tests": ["tests/unit/test_simple_cache.py::TestComputeDataFingerprint", "tests/unit/test_simple_cache.py::TestBasicOperations", "tests/unit/test_simple_cache.py::TestConcurrency", "tests/unit/test_csv_pool_service.py::TestCSVLoading", "tests/unit/test_csv_pool_service.py::TestCacheManagement"],
+        "documentation": ["docs/developer-guide/development/code-quality.md#cache-requirements"]
       }
     },
     {
@@ -3052,9 +3052,9 @@
       "description": "User-controlled numeric formats and figure text shall be bounded or escaped before formatting and TeX export so malformed formats and TeX commands cannot execute or exhaust resources.",
       "tags": ["formatting", "latex", "security"],
       "evidence": {
-        "implementation": ["src/core/common/safe_format.py", "src/web/rendering/latex_security.py"],
-        "tests": ["tests/unit/test_safe_format.py", "tests/unit/test_latex_security.py"],
-        "documentation": ["docs/user-guide/reference/rendering-export.md"]
+        "implementation": ["src/core/common/safe_format.py::normalize_numeric_format", "src/core/common/safe_format.py::safe_format_number", "src/core/common/safe_format.py::plotly_numeric_template", "src/web/rendering/latex_security.py::escape_latex_text", "src/web/rendering/latex_security.py::escaped_figure_text", "src/web/rendering/latex_security.py::disabled_figure_usetex"],
+        "tests": ["tests/unit/test_safe_format.py::test_normal_formats_are_preserved", "tests/unit/test_safe_format.py::test_huge_width_falls_back_without_allocating", "tests/unit/test_safe_format.py::test_huge_plotly_template_falls_back", "tests/unit/test_safe_format.py::test_arbitrary_template_is_not_forwarded", "tests/unit/test_latex_security.py::test_latex_commands_are_neutralized", "tests/unit/test_latex_security.py::test_figure_text_is_escaped_temporarily", "tests/unit/test_latex_security.py::test_figure_usetex_is_disabled_temporarily"],
+        "documentation": ["docs/user-guide/reference/rendering-export.md#safe-numeric-and-tex-formatting"]
       }
     },
     {
@@ -3062,13 +3062,13 @@
       "group": "extensibility-quality",
       "revision": 1,
       "status": "approved",
-      "title": "Performance regression gates",
-      "description": "Representative large-data, cache, worker-pool, transformation, and rendering workflows shall have repeatable performance checks with explicit regression thresholds.",
+      "title": "Performance regression checks",
+      "description": "The repository shall provide repeatable performance checks for representative large-data transformations, caches, rendering, and worker-pool stability, with explicit thresholds where wall-clock regression limits are asserted.",
       "tags": ["benchmarks", "performance", "quality"],
       "evidence": {
-        "implementation": ["src/core/performance.py", "tests/helpers/benchmark.py"],
-        "tests": ["tests/performance/test_performance_regression.py", "tests/performance/test_worker_pool_performance.py"],
-        "documentation": ["docs/developer-guide/development/testing.md"]
+        "implementation": ["tests/helpers/benchmark.py::BenchmarkSuite", "src/core/performance.py::timed"],
+        "tests": ["tests/performance/test_performance_regression.py::TestPlotPerformance", "tests/performance/test_performance_regression.py::TestShaperPerformance", "tests/performance/test_performance_regression.py::TestCsvPoolPerformance", "tests/performance/test_performance_regression.py::TestDataLoadingPerformance", "tests/performance/test_worker_pool_performance.py::test_worker_pool_performance_vs_subprocess", "tests/performance/test_worker_pool_performance.py::test_worker_pool_memory_efficiency"],
+        "documentation": ["docs/developer-guide/development/testing.md#performance-regression-checks"]
       }
     },
     {

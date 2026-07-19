@@ -19,6 +19,8 @@ class ManagersAPI(Protocol):
     operations used by the data-manager UI components.
     """
 
+    # [impl->req~ring5.extension.data-manager~1]
+
     # -- Arithmetic (Preprocessor) --
 
     def list_operators(self) -> list[str]:

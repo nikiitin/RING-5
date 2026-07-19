@@ -204,6 +204,7 @@ class Table:
             ColumnNotFoundError: The shaper references an absent column.
             PipelineError: The shaper rejects its configuration or data.
         """
+        # [impl->req~ring5.quality.immutable-data~1]
         try:
             return Table(shaper(self._df))
         except KeyError as exc:

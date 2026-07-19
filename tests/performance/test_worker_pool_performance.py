@@ -61,6 +61,7 @@ def multiple_stats_files(
 def test_worker_pool_performance_vs_subprocess(
     test_stats_file: Path, multiple_stats_files: list[Path]
 ) -> None:
+    # [test->req~ring5.quality.performance-regression-gates~1]
     """
     Benchmark worker pool performance.
 
@@ -173,6 +174,7 @@ def test_worker_pool_scalability(test_stats_file: Path) -> None:
 
 
 def test_worker_pool_memory_efficiency(test_stats_file: Path) -> None:
+    # [test->req~ring5.quality.performance-regression-gates~1]
     """
     Test that worker pool maintains stable resource usage over many requests.
 

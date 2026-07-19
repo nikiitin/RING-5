@@ -44,6 +44,7 @@ class PipelineService:
         ``step_index``/``shaper_type``) if any step is malformed or fails.
         """
         # [impl->req~ring5.shaping.independent-pipelines~1]
+        # [impl->req~ring5.quality.immutable-data~1]
         t_start = time.perf_counter()
         current_data = data
 

@@ -79,6 +79,8 @@ def _minimal_config() -> dict[str, Any]:
 
 
 class TestMatplotlibTraceRenderer:
+    # [test->req~ring5.extension.render-connector~1]
+
     # [test->req~ring5.render.matplotlib~1]
     """Test trace conversion from TraceConfig → matplotlib artists."""
 

@@ -1509,7 +1509,8 @@ Tags: api, lifecycle, status_approved, workers
 `impl~ring5.extension.plot-registry~1`
 
 Implementation evidence:
-- `src/web/pages/ui/plotting/plot_factory.py`
+- `src/web/pages/ui/plotting/plot_factory.py::PlotFactory.get_plot_metadata`
+- `src/web/pages/ui/plotting/plot_factory.py::PlotFactory.register_plot_type`
 
 Covers:
 - req~ring5.extension.plot-registry~1
@@ -1521,7 +1522,9 @@ Tags: extensibility, plots, registry, status_approved
 `impl~ring5.extension.shaper-registry~1`
 
 Implementation evidence:
-- `src/core/services/shapers/factory.py`
+- `src/core/services/shapers/factory.py::ShaperFactory.register`
+- `src/core/services/shapers/factory.py::ShaperFactory.get_display_name_map`
+- `src/core/services/shapers/factory.py::ShaperFactory.create_shaper`
 
 Covers:
 - req~ring5.extension.shaper-registry~1
@@ -1533,20 +1536,23 @@ Tags: extensibility, registry, shapers, status_approved
 `impl~ring5.extension.parser-protocol~1`
 
 Implementation evidence:
-- `src/parsing/parser_protocol.py`
-- `src/parsing/registry.py`
+- `src/parsing/parser_protocol.py::SimulationParser`
+- `src/parsing/registry.py::SimulatorRegistry.register`
+- `src/parsing/registry.py::SimulatorRegistry.get_parser`
 
 Covers:
 - req~ring5.extension.parser-protocol~1
 
 Tags: extensibility, parsing, protocol, status_approved
 
-### Rendering connector protocol — implementation
+### Shared renderer styling contract — implementation
 
 `impl~ring5.extension.render-connector~1`
 
 Implementation evidence:
-- `src/web/rendering/_connector_protocol.py`
+- `src/web/rendering/plotly_connector.py::FigureSpecToPlotly.apply`
+- `src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib.apply`
+- `src/web/rendering/matplotlib_trace_renderer.py::MatplotlibTraceRenderer.render`
 
 Covers:
 - req~ring5.extension.render-connector~1
@@ -1558,8 +1564,9 @@ Tags: extensibility, protocol, rendering, status_approved
 `impl~ring5.quality.immutable-data~1`
 
 Implementation evidence:
-- `src/core/common/dataframe_utils.py`
-- `src/core/services/shapers/pipeline_service.py`
+- `src/core/services/managers/arithmetic_service.py::ArithmeticService.apply_operation`
+- `src/core/services/shapers/pipeline_service.py::PipelineService.process_pipeline`
+- `ring5/data.py::Table.apply`
 
 Covers:
 - req~ring5.quality.immutable-data~1
@@ -1571,7 +1578,8 @@ Tags: data, immutability, quality, status_approved
 `impl~ring5.quality.architecture-boundaries~1`
 
 Implementation evidence:
-- `scripts/check_architecture.py`
+- `scripts/check_architecture.py::inspect_file`
+- `scripts/check_architecture.py::main`
 
 Covers:
 - req~ring5.quality.architecture-boundaries~1
@@ -1583,9 +1591,12 @@ Tags: architecture, boundaries, quality, status_approved
 `impl~ring5.quality.input-security~1`
 
 Implementation evidence:
-- `src/core/common/security_limits.py`
-- `src/core/common/safe_regex.py`
-- `src/core/common/utils.py`
+- `src/core/common/utils.py::sanitize_filename`
+- `src/core/common/utils.py::sanitize_glob_pattern`
+- `src/core/common/utils.py::validate_web_stats_path`
+- `src/core/common/safe_regex.py::compile_bounded_regex`
+- `src/core/common/safe_regex.py::search_bounded_regex`
+- `src/web/components/common/bounded_options.py::bounded_unique_strings`
 
 Covers:
 - req~ring5.quality.input-security~1
@@ -1597,8 +1608,9 @@ Tags: limits, security, status_approved, validation
 `impl~ring5.quality.async-ownership~1`
 
 Implementation evidence:
-- `src/parsing/framework/job.py`
-- `src/parsing/framework/work_pool.py`
+- `ring5/_scan.py::ScanJob.cancel`
+- `ring5/_parse.py::ParseJob.cancel`
+- `ring5/_session.py::Session.close`
 
 Covers:
 - req~ring5.quality.async-ownership~1
@@ -1931,8 +1943,9 @@ Tags: api, plots, status_approved, validation
 `impl~ring5.extension.data-manager~1`
 
 Implementation evidence:
-- `src/core/services/managers/managers_api.py`
-- `src/web/components/data_managers/data_manager.py`
+- `src/core/services/managers/managers_api.py::ManagersAPI`
+- `src/web/components/data_managers/data_manager.py::DataManager`
+- `src/core/application_api.py::ApplicationAPI.set_preview`
 
 Covers:
 - req~ring5.extension.data-manager~1
@@ -1944,8 +1957,9 @@ Tags: extension, managers, services, status_approved
 `impl~ring5.extension.settings-panel~1`
 
 Implementation evidence:
-- `src/web/pages/ui/plotting/settings_pills.py`
-- `src/web/components/plotting/settings/widget_factory.py`
+- `src/web/pages/ui/plotting/settings_pills.py::SettingsSection`
+- `src/web/pages/ui/plotting/settings_pills.py::render_settings_pills`
+- `src/web/components/plotting/settings/widget_factory.py::select_option`
 
 Covers:
 - req~ring5.extension.settings-panel~1
@@ -1957,8 +1971,8 @@ Tags: extension, settings, status_approved, visualization
 `impl~ring5.quality.application-facade~1`
 
 Implementation evidence:
-- `src/core/application_api.py`
-- `src/core/services/services_impl.py`
+- `src/core/application_api.py::ApplicationAPI`
+- `src/core/services/services_impl.py::DefaultServicesAPI`
 
 Covers:
 - req~ring5.quality.application-facade~1
@@ -1970,8 +1984,13 @@ Tags: architecture, facade, services, status_approved
 `impl~ring5.quality.bounded-caching~1`
 
 Implementation evidence:
-- `src/core/performance.py`
-- `src/core/services/data_services/csv_pool_service.py`
+- `src/core/performance.py::SimpleCache`
+- `src/core/performance.py::compute_data_fingerprint`
+- `src/core/services/data_services/csv_pool_service.py::CsvPoolService.load_csv_file`
+- `src/core/services/data_services/csv_pool_service.py::CsvPoolService.clear_caches`
+- `src/core/services/data_services/csv_pool_service.py::CsvPoolService.get_cache_stats`
+- `src/core/services/shapers/impl/mean.py::Mean._calculate_mean_with_cache`
+- `src/core/services/shapers/impl/normalize.py::Normalize._normalize_with_cache`
 
 Covers:
 - req~ring5.quality.bounded-caching~1
@@ -1983,21 +2002,25 @@ Tags: caching, performance, quality, status_approved
 `impl~ring5.quality.safe-output-formatting~1`
 
 Implementation evidence:
-- `src/core/common/safe_format.py`
-- `src/web/rendering/latex_security.py`
+- `src/core/common/safe_format.py::normalize_numeric_format`
+- `src/core/common/safe_format.py::safe_format_number`
+- `src/core/common/safe_format.py::plotly_numeric_template`
+- `src/web/rendering/latex_security.py::escape_latex_text`
+- `src/web/rendering/latex_security.py::escaped_figure_text`
+- `src/web/rendering/latex_security.py::disabled_figure_usetex`
 
 Covers:
 - req~ring5.quality.safe-output-formatting~1
 
 Tags: formatting, latex, security, status_approved
 
-### Performance regression gates — implementation
+### Performance regression checks — implementation
 
 `impl~ring5.quality.performance-regression-gates~1`
 
 Implementation evidence:
-- `src/core/performance.py`
-- `tests/helpers/benchmark.py`
+- `tests/helpers/benchmark.py::BenchmarkSuite`
+- `src/core/performance.py::timed`
 
 Covers:
 - req~ring5.quality.performance-regression-gates~1
@@ -3581,7 +3604,8 @@ Tags: api, lifecycle, status_approved, workers
 `test~ring5.extension.plot-registry~1`
 
 Verification evidence:
-- `tests/unit/test_plot_factory.py`
+- `tests/unit/test_plot_factory.py::TestPlotFactoryRegistration`
+- `tests/unit/test_plot_factory.py::TestPlotFactoryMetadata`
 
 Covers:
 - req~ring5.extension.plot-registry~1
@@ -3593,7 +3617,8 @@ Tags: extensibility, plots, registry, status_approved
 `test~ring5.extension.shaper-registry~1`
 
 Verification evidence:
-- `tests/unit/test_shaper_factory_display.py`
+- `tests/unit/test_factory_registries.py::TestShaperFactoryRegistry`
+- `tests/unit/test_shaper_factory_display.py::TestShaperFactoryDisplayNames`
 
 Covers:
 - req~ring5.extension.shaper-registry~1
@@ -3605,19 +3630,21 @@ Tags: extensibility, registry, shapers, status_approved
 `test~ring5.extension.parser-protocol~1`
 
 Verification evidence:
-- `tests/unit/test_simulator_registry.py`
+- `tests/unit/test_simulator_registry.py::TestSimulatorRegistry`
 
 Covers:
 - req~ring5.extension.parser-protocol~1
 
 Tags: extensibility, parsing, protocol, status_approved
 
-### Rendering connector protocol — verification
+### Shared renderer styling contract — verification
 
 `test~ring5.extension.render-connector~1`
 
 Verification evidence:
-- `tests/unit/core/visualization/test_connectors.py`
+- `tests/unit/core/visualization/test_connectors.py::TestFigureSpecToPlotly`
+- `tests/unit/core/visualization/test_matplotlib_connector_styling.py::TestConnectorParity`
+- `tests/integration/test_matplotlib_rendering.py::TestMatplotlibTraceRenderer`
 
 Covers:
 - req~ring5.extension.render-connector~1
@@ -3629,7 +3656,9 @@ Tags: extensibility, protocol, rendering, status_approved
 `test~ring5.quality.immutable-data~1`
 
 Verification evidence:
-- `tests/unit/test_aliasing.py`
+- `tests/integration/test_ring5_api_completeness.py::test_manager_operations_preserve_dataframe_and_table`
+- `tests/unit/test_shaper_config_validate.py::TestApplyShapers.test_does_not_mutate_original_data`
+- `tests/unit/test_ring5_convenience_api.py::TestTable`
 
 Covers:
 - req~ring5.quality.immutable-data~1
@@ -3641,7 +3670,8 @@ Tags: data, immutability, quality, status_approved
 `test~ring5.quality.architecture-boundaries~1`
 
 Verification evidence:
-- `tests/unit/test_architecture_boundary.py`
+- `tests/unit/test_architecture_boundary.py::TestArchitectureBoundary`
+- `tests/unit/test_architecture_boundary.py::TestDependencyDirection`
 
 Covers:
 - req~ring5.quality.architecture-boundaries~1
@@ -3653,7 +3683,12 @@ Tags: architecture, boundaries, quality, status_approved
 `test~ring5.quality.input-security~1`
 
 Verification evidence:
-- `tests/unit/test_safe_regex.py`
+- `tests/unit/test_utils.py::TestSanitizeFilename`
+- `tests/unit/test_utils.py::TestValidateWebStatsPath`
+- `tests/unit/test_safe_regex.py::test_bounded_regex_rejects_long_pattern`
+- `tests/unit/test_safe_regex.py::test_bounded_regex_rejects_long_input`
+- `tests/unit/test_bounded_options.py::test_unique_options_are_capped`
+- `tests/unit/test_bounded_options.py::test_oversized_values_are_omitted`
 
 Covers:
 - req~ring5.quality.input-security~1
@@ -3665,7 +3700,10 @@ Tags: limits, security, status_approved, validation
 `test~ring5.quality.async-ownership~1`
 
 Verification evidence:
-- `tests/unit/test_pool_future_leak.py`
+- `tests/unit/test_pool_future_leak.py::TestScanWorkPoolStateless`
+- `tests/unit/test_pool_future_leak.py::TestParseWorkPoolStateless`
+- `tests/unit/test_pool_future_leak.py::TestSessionScopedCancellation`
+- `tests/integration/test_ring5_api_completeness.py::test_session_close_defers_cleanup_for_running_parse`
 
 Covers:
 - req~ring5.quality.async-ownership~1
@@ -3996,7 +4034,8 @@ Tags: api, plots, status_approved, validation
 `test~ring5.extension.data-manager~1`
 
 Verification evidence:
-- `tests/integration/test_data_manager_api_flow.py`
+- `tests/integration/test_data_manager_api_flow.py::TestPreviewLifecycle`
+- `tests/integration/test_data_manager_api_flow.py::TestApplyShapersPipeline`
 
 Covers:
 - req~ring5.extension.data-manager~1
@@ -4008,7 +4047,10 @@ Tags: extension, managers, services, status_approved
 `test~ring5.extension.settings-panel~1`
 
 Verification evidence:
-- `tests/unit/test_widget_sections.py`
+- `tests/unit/test_settings_pills.py::TestSettingsSection`
+- `tests/unit/test_settings_pills.py::TestRenderSettingsPills`
+- `tests/unit/test_widget_sections.py::TestExtendedSections`
+- `tests/unit/test_widget_sections.py::TestSpecPathWiring`
 
 Covers:
 - req~ring5.extension.settings-panel~1
@@ -4020,8 +4062,9 @@ Tags: extension, settings, status_approved, visualization
 `test~ring5.quality.application-facade~1`
 
 Verification evidence:
-- `tests/unit/test_application_api_delegation.py`
-- `tests/integration/test_web_architecture.py`
+- `tests/unit/test_application_api_delegation.py::TestPropertyAccess`
+- `tests/unit/test_application_api_delegation.py::TestShapersDelegation`
+- `tests/unit/test_application_api_delegation.py::TestPreviewDelegation`
 
 Covers:
 - req~ring5.quality.application-facade~1
@@ -4033,8 +4076,11 @@ Tags: architecture, facade, services, status_approved
 `test~ring5.quality.bounded-caching~1`
 
 Verification evidence:
-- `tests/unit/test_simple_cache.py`
-- `tests/unit/test_aliasing.py`
+- `tests/unit/test_simple_cache.py::TestComputeDataFingerprint`
+- `tests/unit/test_simple_cache.py::TestBasicOperations`
+- `tests/unit/test_simple_cache.py::TestConcurrency`
+- `tests/unit/test_csv_pool_service.py::TestCSVLoading`
+- `tests/unit/test_csv_pool_service.py::TestCacheManagement`
 
 Covers:
 - req~ring5.quality.bounded-caching~1
@@ -4046,21 +4092,30 @@ Tags: caching, performance, quality, status_approved
 `test~ring5.quality.safe-output-formatting~1`
 
 Verification evidence:
-- `tests/unit/test_safe_format.py`
-- `tests/unit/test_latex_security.py`
+- `tests/unit/test_safe_format.py::test_normal_formats_are_preserved`
+- `tests/unit/test_safe_format.py::test_huge_width_falls_back_without_allocating`
+- `tests/unit/test_safe_format.py::test_huge_plotly_template_falls_back`
+- `tests/unit/test_safe_format.py::test_arbitrary_template_is_not_forwarded`
+- `tests/unit/test_latex_security.py::test_latex_commands_are_neutralized`
+- `tests/unit/test_latex_security.py::test_figure_text_is_escaped_temporarily`
+- `tests/unit/test_latex_security.py::test_figure_usetex_is_disabled_temporarily`
 
 Covers:
 - req~ring5.quality.safe-output-formatting~1
 
 Tags: formatting, latex, security, status_approved
 
-### Performance regression gates — verification
+### Performance regression checks — verification
 
 `test~ring5.quality.performance-regression-gates~1`
 
 Verification evidence:
-- `tests/performance/test_performance_regression.py`
-- `tests/performance/test_worker_pool_performance.py`
+- `tests/performance/test_performance_regression.py::TestPlotPerformance`
+- `tests/performance/test_performance_regression.py::TestShaperPerformance`
+- `tests/performance/test_performance_regression.py::TestCsvPoolPerformance`
+- `tests/performance/test_performance_regression.py::TestDataLoadingPerformance`
+- `tests/performance/test_worker_pool_performance.py::test_worker_pool_performance_vs_subprocess`
+- `tests/performance/test_worker_pool_performance.py::test_worker_pool_memory_efficiency`
 
 Covers:
 - req~ring5.quality.performance-regression-gates~1
@@ -5515,7 +5570,7 @@ Tags: api, lifecycle, status_approved, workers
 `uman~ring5.extension.plot-registry~1`
 
 User documentation evidence:
-- `docs/developer-guide/extension-guides/adding-a-plot-type.md`
+- `docs/developer-guide/extension-guides/adding-a-plot-type.md#implement-and-register`
 
 Covers:
 - req~ring5.extension.plot-registry~1
@@ -5527,7 +5582,7 @@ Tags: extensibility, plots, registry, status_approved
 `uman~ring5.extension.shaper-registry~1`
 
 User documentation evidence:
-- `docs/developer-guide/extension-guides/adding-a-shaper.md`
+- `docs/developer-guide/extension-guides/adding-a-shaper.md#implement-and-register`
 
 Covers:
 - req~ring5.extension.shaper-registry~1
@@ -5539,19 +5594,19 @@ Tags: extensibility, registry, shapers, status_approved
 `uman~ring5.extension.parser-protocol~1`
 
 User documentation evidence:
-- `docs/developer-guide/extension-guides/adding-a-parser.md`
+- `docs/developer-guide/extension-guides/adding-a-parser.md#implement-the-backend`
 
 Covers:
 - req~ring5.extension.parser-protocol~1
 
 Tags: extensibility, parsing, protocol, status_approved
 
-### Rendering connector protocol — user documentation
+### Shared renderer styling contract — user documentation
 
 `uman~ring5.extension.render-connector~1`
 
 User documentation evidence:
-- `docs/developer-guide/extension-guides/adding-a-renderer.md`
+- `docs/developer-guide/extension-guides/adding-a-renderer.md#implement-the-connector`
 
 Covers:
 - req~ring5.extension.render-connector~1
@@ -5563,7 +5618,7 @@ Tags: extensibility, protocol, rendering, status_approved
 `uman~ring5.quality.immutable-data~1`
 
 User documentation evidence:
-- `docs/developer-guide/architecture/design-patterns.md`
+- `docs/developer-guide/architecture/design-patterns.md#immutable-data-operations`
 
 Covers:
 - req~ring5.quality.immutable-data~1
@@ -5575,7 +5630,7 @@ Tags: data, immutability, quality, status_approved
 `uman~ring5.quality.architecture-boundaries~1`
 
 User documentation evidence:
-- `docs/developer-guide/architecture/layer-boundaries.md`
+- `docs/developer-guide/architecture/layer-boundaries.md#enforced-rules`
 
 Covers:
 - req~ring5.quality.architecture-boundaries~1
@@ -5587,7 +5642,7 @@ Tags: architecture, boundaries, quality, status_approved
 `uman~ring5.quality.input-security~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/troubleshooting.md`
+- `docs/user-guide/reference/troubleshooting.md#input-bounds-and-path-containment`
 
 Covers:
 - req~ring5.quality.input-security~1
@@ -5599,7 +5654,7 @@ Tags: limits, security, status_approved, validation
 `uman~ring5.quality.async-ownership~1`
 
 User documentation evidence:
-- `docs/developer-guide/architecture/data-flow.md`
+- `docs/developer-guide/architecture/data-flow.md#parse-and-load`
 
 Covers:
 - req~ring5.quality.async-ownership~1
@@ -5899,7 +5954,7 @@ Tags: api, plots, status_approved, validation
 `uman~ring5.extension.data-manager~1`
 
 User documentation evidence:
-- `docs/developer-guide/extension-guides/adding-a-data-manager.md`
+- `docs/developer-guide/extension-guides/adding-a-data-manager.md#implement`
 
 Covers:
 - req~ring5.extension.data-manager~1
@@ -5911,7 +5966,7 @@ Tags: extension, managers, services, status_approved
 `uman~ring5.extension.settings-panel~1`
 
 User documentation evidence:
-- `docs/developer-guide/extension-guides/adding-a-settings-panel.md`
+- `docs/developer-guide/extension-guides/adding-a-settings-panel.md#implement-a-visual-setting`
 
 Covers:
 - req~ring5.extension.settings-panel~1
@@ -5923,7 +5978,7 @@ Tags: extension, settings, status_approved, visualization
 `uman~ring5.quality.application-facade~1`
 
 User documentation evidence:
-- `docs/developer-guide/api-reference/application-api.md`
+- `docs/developer-guide/api-reference/application-api.md#application-api`
 
 Covers:
 - req~ring5.quality.application-facade~1
@@ -5935,7 +5990,7 @@ Tags: architecture, facade, services, status_approved
 `uman~ring5.quality.bounded-caching~1`
 
 User documentation evidence:
-- `docs/developer-guide/development/code-quality.md`
+- `docs/developer-guide/development/code-quality.md#cache-requirements`
 
 Covers:
 - req~ring5.quality.bounded-caching~1
@@ -5947,19 +6002,19 @@ Tags: caching, performance, quality, status_approved
 `uman~ring5.quality.safe-output-formatting~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/rendering-export.md`
+- `docs/user-guide/reference/rendering-export.md#safe-numeric-and-tex-formatting`
 
 Covers:
 - req~ring5.quality.safe-output-formatting~1
 
 Tags: formatting, latex, security, status_approved
 
-### Performance regression gates — user documentation
+### Performance regression checks — user documentation
 
 `uman~ring5.quality.performance-regression-gates~1`
 
 User documentation evidence:
-- `docs/developer-guide/development/testing.md`
+- `docs/developer-guide/development/testing.md#performance-regression-checks`
 
 Covers:
 - req~ring5.quality.performance-regression-gates~1

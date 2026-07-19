@@ -44,6 +44,8 @@ logger = logging.getLogger(__name__)
 class ApplicationAPI:
     """Coordinate parsers, domain services, and repository state for the UI."""
 
+    # [impl->req~ring5.quality.application-facade~1]
+
     def __init__(
         self,
         plot_deserializer: PlotDeserializer | None = None,
@@ -350,6 +352,7 @@ class ApplicationAPI:
 
     def set_preview(self, operation_name: str, data: pd.DataFrame) -> None:
         """Store a preview DataFrame for an operation."""
+        # [impl->req~ring5.extension.data-manager~1]
         self.state_manager.set_preview(operation_name, data)
 
     def get_preview(self, operation_name: str) -> pd.DataFrame | None:

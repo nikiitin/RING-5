@@ -38,6 +38,21 @@ Parser strategies and shapers provide replaceable algorithms behind common contr
 pipeline applies strategies in order and reports the failing step. Preserve input immutability and
 validate a strategy's configuration before expensive work.
 
+## Immutable data operations
+
+<!--
+`uman~ring5.quality.immutable-data.documentation~1`
+
+Covers:
+- req~ring5.quality.immutable-data~1
+
+-->
+
+Manager operations copy caller-owned frames before adding or changing columns. Every shaper in a
+pipeline returns a new frame, and public `Table` transformations wrap results in a new `Table`.
+Tests must compare the original object after the operation; returning a different object alone is
+not proof that the input was preserved.
+
 ## Adapter and connector
 
 Web adapters satisfy controller protocols around existing plot and pipeline services. Rendering

@@ -142,6 +142,7 @@ class CsvPoolService:
             IsADirectoryError: If the resolved path is a directory.
         """
         # [impl->req~ring5.ingestion.csv-delimiter-detection~1]
+        # [impl->req~ring5.quality.bounded-caching~1]
         # Validate input before resolving
         if not csv_path or not csv_path.strip():
             raise ValueError(f"Invalid CSV path: '{csv_path}'")
@@ -252,6 +253,7 @@ class CsvPoolService:
     @staticmethod
     def clear_caches() -> None:
         """Clear all CSV pool caches."""
+        # [impl->req~ring5.quality.bounded-caching~1]
         CsvPoolService._metadata_cache.clear()
         CsvPoolService._dataframe_cache.clear()
         with CsvPoolService._pool_lock:
@@ -261,6 +263,7 @@ class CsvPoolService:
     @staticmethod
     def get_cache_stats() -> CacheStatsInfo:
         """Get cache statistics for monitoring."""
+        # [impl->req~ring5.quality.bounded-caching~1]
         with CsvPoolService._pool_lock:
             index_size = len(CsvPoolService._pool_index)
         return cast(

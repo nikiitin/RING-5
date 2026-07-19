@@ -11,6 +11,8 @@ from src.core.services.shapers.factory import ShaperFactory
 class TestShaperFactoryRegistry:
     """Tests for ShaperFactory registry functionality."""
 
+    # [test->req~ring5.extension.shaper-registry~1]
+
     def test_get_available_types(self) -> None:
         """Test getting available shaper types."""
         types = ShaperFactory.get_available_types()

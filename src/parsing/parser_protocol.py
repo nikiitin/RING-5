@@ -19,6 +19,8 @@ class SimulationParser(Protocol):
     or core Facade, decoupling the application from 'gem5' specifics.
     """
 
+    # [impl->req~ring5.extension.parser-protocol~1]
+
     def submit_parse_async(
         self,
         stats_path: str,

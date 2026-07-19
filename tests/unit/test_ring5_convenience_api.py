@@ -14,6 +14,7 @@ pytestmark = pytest.mark.public_api
 
 class TestTable:
     # [test->req~ring5.api.table~1]
+    # [test->req~ring5.quality.immutable-data~1]
     """The public table wrapper keeps common scripts pandas-independent."""
 
     def test_construction_introspection_and_copy_isolation(self) -> None:

@@ -22,6 +22,8 @@ METADATA_REQUIRED_KEYS = {"display_name", "icon", "category"}
 class TestPlotFactoryRegistration:
     """Tests for plot type registration."""
 
+    # [test->req~ring5.extension.plot-registry~1]
+
     def test_all_nine_plot_types_registered(self) -> None:
         """All 9 plot types are registered in the factory."""
         available = PlotFactory.get_available_plot_types()
@@ -40,6 +42,8 @@ class TestPlotFactoryRegistration:
 
 class TestPlotFactoryMetadata:
     """Tests for plot type metadata."""
+
+    # [test->req~ring5.extension.plot-registry~1]
 
     def test_metadata_present_for_all_types(self) -> None:
         """Metadata is present for every registered plot type."""

@@ -1992,7 +1992,7 @@ Tags: api, plots, status_approved, validation
 `req~ring5.extension.plot-registry~1`
 Status: approved
 
-New BasePlot implementations shall register stable snake-case identifiers and UI metadata through the plot factory.
+PlotFactory shall support runtime registration of BasePlot subclasses under caller-provided identifiers with optional UI metadata.
 
 Covers:
 - feat~ring5.extensibility-quality~1
@@ -2006,7 +2006,7 @@ Tags: extensibility, plots, registry, status_approved
 `req~ring5.extension.shaper-registry~1`
 Status: approved
 
-New pure shapers shall register stable serialized identifiers, typed configurations, UI configuration, and pipeline validation through the shaper factory.
+ShaperFactory shall support runtime class registration under serialized identifiers, expose display names, and instantiate registered shapers from ShaperStepConfig.
 
 Covers:
 - feat~ring5.extensibility-quality~1
@@ -2029,12 +2029,12 @@ Needs: impl, test, uman
 
 Tags: extensibility, parsing, protocol, status_approved
 
-### Rendering connector protocol
+### Shared renderer styling contract
 
 `req~ring5.extension.render-connector~1`
 Status: approved
 
-Rendering engines shall consume the canonical FigureConfig and typed traces through a common connector boundary.
+Plotly and Matplotlib shall consume resolved FigureConfig and typed traces, and their connectors shall implement the shared named styling phases.
 
 Covers:
 - feat~ring5.extensibility-quality~1
@@ -2076,7 +2076,7 @@ Tags: architecture, boundaries, quality, status_approved
 `req~ring5.quality.input-security~1`
 Status: approved
 
-File names, paths, regular expressions, text searches, uploads, and aggregate operations shall be validated, contained, and bounded before expensive or persistent work.
+Untrusted file names, paths, glob and regular-expression patterns, option lists, and text-search inputs shall be sanitized, contained, or bounded before filesystem or matching work.
 
 Covers:
 - feat~ring5.extensibility-quality~1
@@ -2090,7 +2090,7 @@ Tags: limits, security, status_approved, validation
 `req~ring5.quality.async-ownership~1`
 Status: approved
 
-Scan and parse batches shall expose ownership, cancellation, timeout, resource ceilings, and cleanup without allowing one session to cancel or delete another session's work.
+Scan and parse submission shall return caller-owned future batches; job and session handles shall cancel only their own futures and defer temporary-output cleanup until running parse work settles.
 
 Covers:
 - feat~ring5.extensibility-quality~1
@@ -2104,7 +2104,7 @@ Tags: async, lifecycle, quality, status_approved
 `req~ring5.extension.data-manager~1`
 Status: approved
 
-New shared-dataset operations shall place pure validation and transformation in the managers service family, delegate through the facade, and use preview-confirm UI state before replacement.
+Shared-dataset manager extensions shall expose stateless transformations through ManagersAPI, receive the session's ApplicationAPI, and keep tentative output in named preview state before replacement.
 
 Covers:
 - feat~ring5.extensibility-quality~1
@@ -2118,7 +2118,7 @@ Tags: extension, managers, services, status_approved
 `req~ring5.extension.settings-panel~1`
 Status: approved
 
-New figure controls shall use typed canonical configuration where shared, renderer resolution and both connectors, stable widget keys, and the registered settings-section composition.
+Top-level figure-settings sections shall use stable keys and progressive-disclosure metadata; option widgets shall derive per-plot keys and safe persisted defaults through the shared widget factory.
 
 Covers:
 - feat~ring5.extensibility-quality~1
@@ -2169,12 +2169,12 @@ Needs: impl, test, uman
 
 Tags: formatting, latex, security, status_approved
 
-### Performance regression gates
+### Performance regression checks
 
 `req~ring5.quality.performance-regression-gates~1`
 Status: approved
 
-Representative large-data, cache, worker-pool, transformation, and rendering workflows shall have repeatable performance checks with explicit regression thresholds.
+The repository shall provide repeatable performance checks for representative large-data transformations, caches, rendering, and worker-pool stability, with explicit thresholds where wall-clock regression limits are asserted.
 
 Covers:
 - feat~ring5.extensibility-quality~1

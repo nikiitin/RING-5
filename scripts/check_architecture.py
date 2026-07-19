@@ -31,6 +31,7 @@ def is_under(path: Path, relative_root: str) -> bool:
 
 def inspect_file(path: Path) -> list[str]:
     """Return architecture violations found in one Python file."""
+    # [impl->req~ring5.quality.architecture-boundaries~1]
     relative = path.relative_to(REPOSITORY_ROOT)
     try:
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(relative))
@@ -85,6 +86,7 @@ def inspect_file(path: Path) -> list[str]:
 
 def main() -> int:
     """Inspect production sources and return a process exit code."""
+    # [impl->req~ring5.quality.architecture-boundaries~1]
     issues = [
         issue
         for root in PRODUCTION_ROOTS

@@ -144,6 +144,7 @@ class PlotFactory:
         Returns:
             Dictionary mapping plot type identifiers to their metadata.
         """
+        # [impl->req~ring5.extension.plot-registry~1]
         return dict(cls._plot_metadata)
 
     @classmethod
@@ -164,6 +165,7 @@ class PlotFactory:
         Raises:
             ValueError: If plot_class is not a subclass of BasePlot.
         """
+        # [impl->req~ring5.extension.plot-registry~1]
         if isinstance(plot_class, type):
             from .base_plot import BasePlot
 

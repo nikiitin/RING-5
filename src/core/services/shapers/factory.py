@@ -86,6 +86,7 @@ class ShaperFactory:
             shaper_type: Unique identifier for the shaper type
             shaper_class: Class reference implementing the Shaper interface
         """
+        # [impl->req~ring5.extension.shaper-registry~1]
         cls._registry[shaper_type] = shaper_class
 
     @classmethod
@@ -110,6 +111,7 @@ class ShaperFactory:
             Dict mapping display name -> shaper type id.
             E.g., {"Column Selector": "columnSelector", "Sort": "sort", ...}
         """
+        # [impl->req~ring5.extension.shaper-registry~1]
         return {
             display: shaper_type
             for shaper_type, display in cls._display_names.items()
@@ -144,6 +146,7 @@ class ShaperFactory:
         Raises:
             ValueError: If the shaper_type is not found in the registry
         """
+        # [impl->req~ring5.extension.shaper-registry~1]
         shaper_class: type[Shaper] | None = cls._registry.get(shaper_type)
         if shaper_class is None:
             available: str = ", ".join(cls._registry.keys())

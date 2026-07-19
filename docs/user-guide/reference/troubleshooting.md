@@ -50,6 +50,22 @@ the 10,000-file discovery ceiling. The web Deep Scan deliberately samples at mos
 Do not use lenient parsing to hide a misspelled statistic. `--lenient` and `strict=False` are for
 intentional missing columns represented as `NaN`.
 
+## Input bounds and path containment
+
+<!--
+`uman~ring5.quality.input-security.documentation~1`
+
+Covers:
+- req~ring5.quality.input-security~1
+
+-->
+
+Browser paths are resolved below configured statistics roots, file names and glob patterns are
+sanitized before filesystem work, and regular-expression matching has pattern, input-length, and
+execution-time bounds. Large data columns are also capped before their distinct values become
+widget options. A rejected or truncated input is reported; widening a limit requires reviewing the
+work and payload it permits.
+
 ## Parsing reports a resource-limit error
 
 Reduce either the number of files or requested variables. One parse accepts at most 4,096 files,

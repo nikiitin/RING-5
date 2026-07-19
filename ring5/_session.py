@@ -158,6 +158,7 @@ class Session:
 
     def close(self) -> None:
         # [impl->req~ring5.api.session~1]
+        # [impl->req~ring5.quality.async-ownership~1]
         """Release this session's pending work (process pools stay up)."""
         self.api.cancel_pending_scans()
         for job in self._parse_jobs:

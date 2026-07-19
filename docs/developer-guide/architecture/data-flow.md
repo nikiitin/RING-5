@@ -19,6 +19,11 @@ redirect_from:
 Covers:
 - req~ring5.ingestion.parse-output-provenance~1
 
+`uman~ring5.quality.async-ownership.documentation~1`
+
+Covers:
+- req~ring5.quality.async-ownership~1
+
 -->
 
 ```mermaid

@@ -50,6 +50,7 @@ def compile_bounded_regex(pattern: str) -> BoundedPattern:
     Raises:
         SafeRegexError: The expression is empty, too long, or invalid.
     """
+    # [impl->req~ring5.quality.input-security~1]
     if not pattern:
         raise SafeRegexError("The regular expression cannot be empty.")
     if len(pattern) > MAX_PATTERN_LENGTH:
@@ -76,6 +77,7 @@ def search_bounded_regex(pattern: BoundedPattern, value: str) -> RegexMatch | No
     Raises:
         SafeRegexError: The input is too long or matching exceeds the time limit.
     """
+    # [impl->req~ring5.quality.input-security~1]
     if len(value) > MAX_INPUT_LENGTH:
         raise SafeRegexError(f"Regex input exceeds the {MAX_INPUT_LENGTH}-character limit.")
 

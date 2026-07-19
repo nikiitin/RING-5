@@ -56,6 +56,7 @@ class ParseJob:
 
     def cancel(self) -> None:
         """Cancel this job's pending work (only this job's — handle-based)."""
+        # [impl->req~ring5.quality.async-ownership~1]
         for future in self.futures:
             future.cancel()
 

@@ -66,6 +66,8 @@ class TestSanitizeLogValue:
 class TestSanitizeFilename:
     """Tests for sanitize_filename function."""
 
+    # [test->req~ring5.quality.input-security~1]
+
     def test_normal_filename(self) -> None:
         assert utils.sanitize_filename("data.csv") == "data.csv"
 
@@ -148,6 +150,8 @@ class TestNormalizeUserPath:
 
 
 class TestValidateWebStatsPath:
+    # [test->req~ring5.quality.input-security~1]
+
     def test_default_root_is_launch_directory(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:

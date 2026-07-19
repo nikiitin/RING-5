@@ -23,6 +23,11 @@ Keep simulator-specific names and file handling inside `src/parsing/<simulator>/
 Covers:
 - req~ring5.ingestion.simulator-registry~1
 
+`uman~ring5.extension.parser-protocol.documentation~1`
+
+Covers:
+- req~ring5.extension.parser-protocol~1
+
 -->
 
 1. Read `src/parsing/parser_protocol.py` and the gem5 implementation.

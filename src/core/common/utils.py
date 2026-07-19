@@ -57,6 +57,7 @@ def sanitize_filename(name: str) -> str:
     Returns:
         A safe filename without directory components.
     """
+    # [impl->req~ring5.quality.input-security~1]
     # Remove any directory separators and traversal sequences
     name = name.replace("/", "_").replace("\\", "_")
     name = name.replace("..", "_")
@@ -125,6 +126,7 @@ def sanitize_glob_pattern(pattern: str, default: str = _DEFAULT_STATS_PATTERN) -
     Returns:
         A validated glob pattern string.
     """
+    # [impl->req~ring5.quality.input-security~1]
     if not pattern or not pattern.strip():
         return default
     clean: str = pattern.strip()
@@ -205,6 +207,7 @@ def validate_web_stats_path(user_path: str) -> Path:
         ValueError: If the path is outside every approved root.
     """
     # [impl->req~ring5.ingestion.web-path-authorization~1]
+    # [impl->req~ring5.quality.input-security~1]
     candidate = normalize_user_path(user_path).expanduser().resolve(strict=False)
     for root in allowed_web_stats_roots():
         try:

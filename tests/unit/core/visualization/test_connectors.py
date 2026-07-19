@@ -27,6 +27,8 @@ from src.web.rendering.plotly_connector import FigureSpecToPlotly
 
 
 class TestFigureSpecToPlotly:
+    # [test->req~ring5.extension.render-connector~1]
+
     # [test->req~ring5.render.plotly~1]
     """Test Plotly connector."""
 
