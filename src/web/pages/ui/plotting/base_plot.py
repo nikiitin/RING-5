@@ -80,6 +80,7 @@ class BasePlot(PlotConfigUIMixin, ABC):
         """
 
     def create_figure(self, data: pd.DataFrame, config: PlotConfig) -> go.Figure:
+        # [impl->req~ring5.render.engine-independent-traces~1]
         """
         Create the Plotly figure from data and configuration.
 

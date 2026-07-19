@@ -30,6 +30,8 @@ from src.web.rendering.trace_to_plotly import (
 
 
 class TestTracesToPlotly:
+    # [test->req~ring5.render.engine-independent-traces~1]
+    # [test->req~ring5.render.plotly~1]
     """Tests for the top-level ``traces_to_plotly`` function."""
 
     def test_empty_result_returns_figure(self) -> None:
@@ -122,6 +124,7 @@ class TestTracesToPlotly:
 
 
 class TestConvertTrace:
+    # [test->req~ring5.render.engine-independent-traces~1]
     """Tests for the dispatch ``_convert_trace``."""
 
     def test_bar_trace_dispatch(self) -> None:

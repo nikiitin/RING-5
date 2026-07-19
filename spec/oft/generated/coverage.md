@@ -1107,8 +1107,8 @@ Tags: interactive, plotly, settings, status_approved
 `impl~ring5.render.engine-independent-traces~1`
 
 Implementation evidence:
-- `src/core/models/visualization/trace_build_result.py`
-- `src/web/pages/ui/plotting/base_plot.py`
+- `src/core/models/visualization/trace_build_result.py::TraceBuildResult`
+- `src/web/pages/ui/plotting/base_plot.py::BasePlot.create_figure`
 
 Covers:
 - req~ring5.render.engine-independent-traces~1
@@ -1120,7 +1120,8 @@ Tags: architecture, rendering, status_approved, traces
 `impl~ring5.render.plotly~1`
 
 Implementation evidence:
-- `src/web/rendering/plotly_connector.py`
+- `src/web/rendering/trace_to_plotly.py::traces_to_plotly`
+- `src/web/rendering/plotly_connector.py::FigureSpecToPlotly.apply`
 
 Covers:
 - req~ring5.render.plotly~1
@@ -1132,20 +1133,23 @@ Tags: plotly, rendering, status_approved
 `impl~ring5.render.matplotlib~1`
 
 Implementation evidence:
-- `src/web/rendering/matplotlib_connector.py`
+- `src/web/rendering/matplotlib_figure_builder.py::build_matplotlib_figure_from_traces`
+- `src/web/rendering/matplotlib_trace_renderer.py::MatplotlibTraceRenderer.render`
 
 Covers:
 - req~ring5.render.matplotlib~1
 
 Tags: matplotlib, rendering, status_approved
 
-### Per-plot engine selection — implementation
+### Session rendering-engine selection — implementation
 
 `impl~ring5.render.engine-selection~1`
 
 Implementation evidence:
-- `src/web/components/plotting/settings/engine_settings.py`
-- `src/web/rendering/engine_manager.py`
+- `src/web/components/common/chart_display.py::ChartDisplayComponent.render_engine_selector`
+- `src/web/rendering/engine_manager.py::EngineManager.get_engine`
+- `src/web/rendering/engine_manager.py::EngineManager.set_engine`
+- `src/web/controllers/plot/render_controller.py::PlotRenderController._render_visualization`
 
 Covers:
 - req~ring5.render.engine-selection~1
@@ -1194,7 +1198,7 @@ Tags: export, matplotlib, status_approved
 
 Implementation evidence:
 - `src/web/rendering/figure_export.py::matplotlib_download_bytes`
-- `src/web/pages/ui/plotting/download_section.py`
+- `src/web/pages/ui/plotting/download_section.py::_render_mpl_download`
 
 Covers:
 - req~ring5.export.matplotlib-pgf~1
@@ -1206,7 +1210,9 @@ Tags: export, latex, matplotlib, pgf, status_approved
 `impl~ring5.export.web-download~1`
 
 Implementation evidence:
-- `src/web/pages/ui/plotting/download_section.py`
+- `src/web/pages/ui/plotting/download_section.py::render_download_section`
+- `src/web/pages/ui/plotting/download_section.py::_render_plotly_download`
+- `src/web/pages/ui/plotting/download_section.py::_render_mpl_download`
 
 Covers:
 - req~ring5.export.web-download~1
@@ -1218,7 +1224,10 @@ Tags: download, export, status_approved, web
 `impl~ring5.export.deterministic~1`
 
 Implementation evidence:
-- `src/web/rendering/figure_export.py`
+- `src/web/rendering/figure_export.py::_normalize_plotly_svg`
+- `src/web/rendering/figure_export.py::_normalize_plotly_pdf`
+- `src/web/rendering/figure_export.py::plotly_download_bytes`
+- `src/web/rendering/figure_export.py::matplotlib_download_bytes`
 
 Covers:
 - req~ring5.export.deterministic~1
@@ -1230,7 +1239,8 @@ Tags: determinism, export, reproducibility, status_approved
 `impl~ring5.export.public-boundary~1`
 
 Implementation evidence:
-- `ring5/_export.py`
+- `ring5/_export.py::export_bytes`
+- `ring5/_export.py::export_file`
 
 Covers:
 - req~ring5.export.public-boundary~1
@@ -1864,13 +1874,13 @@ Covers:
 
 Tags: markers, series, status_approved, styles
 
-### Plotly raster export scale — implementation
+### Plotly mode-bar export scale — implementation
 
 `impl~ring5.export.plotly-scale~1`
 
 Implementation evidence:
-- `src/web/components/plotting/settings/advanced_settings.py`
-- `src/web/components/common/chart_display.py`
+- `src/web/components/plotting/settings/advanced_settings.py::AdvancedSettingsComponent.render`
+- `src/web/components/common/chart_display.py::ChartDisplayComponent.render_plotly_chart`
 
 Covers:
 - req~ring5.export.plotly-scale~1
@@ -3146,7 +3156,8 @@ Tags: interactive, plotly, settings, status_approved
 `test~ring5.render.engine-independent-traces~1`
 
 Verification evidence:
-- `tests/unit/test_trace_to_plotly.py`
+- `tests/unit/test_trace_to_plotly.py::TestTracesToPlotly`
+- `tests/unit/test_trace_to_plotly.py::TestConvertTrace`
 
 Covers:
 - req~ring5.render.engine-independent-traces~1
@@ -3158,7 +3169,8 @@ Tags: architecture, rendering, status_approved, traces
 `test~ring5.render.plotly~1`
 
 Verification evidence:
-- `tests/unit/core/visualization/test_connectors.py`
+- `tests/unit/test_trace_to_plotly.py::TestTracesToPlotly`
+- `tests/unit/core/visualization/test_connectors.py::TestFigureSpecToPlotly`
 
 Covers:
 - req~ring5.render.plotly~1
@@ -3170,19 +3182,22 @@ Tags: plotly, rendering, status_approved
 `test~ring5.render.matplotlib~1`
 
 Verification evidence:
-- `tests/integration/test_matplotlib_rendering.py`
+- `tests/integration/test_matplotlib_rendering.py::TestMatplotlibTraceRenderer`
+- `tests/integration/test_matplotlib_rendering.py::TestMatplotlibFullPipeline`
 
 Covers:
 - req~ring5.render.matplotlib~1
 
 Tags: matplotlib, rendering, status_approved
 
-### Per-plot engine selection — verification
+### Session rendering-engine selection — verification
 
 `test~ring5.render.engine-selection~1`
 
 Verification evidence:
-- `tests/e2e/test_engine_comparison.py`
+- `tests/unit/test_engine_manager.py::TestGetEngine`
+- `tests/unit/test_engine_manager.py::TestSetEngine`
+- `tests/e2e/test_engine_comparison.py::TestEngineSwitching`
 
 Covers:
 - req~ring5.render.engine-selection~1
@@ -3194,7 +3209,8 @@ Tags: engine, rendering, status_approved, web
 `test~ring5.export.plotly-html~1`
 
 Verification evidence:
-- `tests/unit/test_plotly_download.py`
+- `tests/unit/test_plotly_download.py::TestPlotlyHTML`
+- `tests/unit/test_export_logic.py::test_export_html_via_plotly`
 
 Covers:
 - req~ring5.export.plotly-html~1
@@ -3206,7 +3222,10 @@ Tags: export, html, plotly, status_approved
 `test~ring5.export.plotly-static~1`
 
 Verification evidence:
-- `tests/unit/test_plotly_download.py`
+- `tests/unit/test_plotly_download.py::TestPlotlyPNG`
+- `tests/unit/test_plotly_download.py::TestPlotlySVG`
+- `tests/unit/test_plotly_download.py::TestPlotlyPDF`
+- `tests/unit/test_plotly_download.py::TestChromeNotFound`
 
 Covers:
 - req~ring5.export.plotly-static~1
@@ -3218,7 +3237,9 @@ Tags: export, kaleido, plotly, status_approved
 `test~ring5.export.matplotlib-standard~1`
 
 Verification evidence:
-- `tests/unit/test_matplotlib_download.py`
+- `tests/unit/test_matplotlib_download.py::TestMatplotlibPDF`
+- `tests/unit/test_matplotlib_download.py::TestMatplotlibPNG`
+- `tests/unit/test_matplotlib_download.py::TestMatplotlibSVG`
 
 Covers:
 - req~ring5.export.matplotlib-standard~1
@@ -3230,7 +3251,8 @@ Tags: export, matplotlib, status_approved
 `test~ring5.export.matplotlib-pgf~1`
 
 Verification evidence:
-- `tests/unit/test_matplotlib_download.py`
+- `tests/unit/test_matplotlib_download.py::TestMatplotlibPGF`
+- `tests/unit/test_download_section_ui.py::TestRenderDownloadSectionMatplotlib.test_pgf_raster_failure_falls_back_visibly_to_pdf`
 
 Covers:
 - req~ring5.export.matplotlib-pgf~1
@@ -3242,7 +3264,8 @@ Tags: export, latex, matplotlib, pgf, status_approved
 `test~ring5.export.web-download~1`
 
 Verification evidence:
-- `tests/e2e/test_export_presets.py`
+- `tests/unit/test_download_section_ui.py::TestRenderDownloadSectionPlotly`
+- `tests/unit/test_download_section_ui.py::TestRenderDownloadSectionMatplotlib`
 
 Covers:
 - req~ring5.export.web-download~1
@@ -3254,7 +3277,10 @@ Tags: download, export, status_approved, web
 `test~ring5.export.deterministic~1`
 
 Verification evidence:
-- `tests/unit/test_export_logic.py`
+- `tests/unit/test_plotly_download.py::TestDeterministicSvg`
+- `tests/unit/test_export_logic.py::test_deterministic_mpl_pdf_byte_identical`
+- `tests/unit/test_export_logic.py::test_deterministic_html_byte_identical`
+- `tests/integration/test_ring5_public_api.py::TestDeterminism`
 
 Covers:
 - req~ring5.export.deterministic~1
@@ -3266,7 +3292,8 @@ Tags: determinism, export, reproducibility, status_approved
 `test~ring5.export.public-boundary~1`
 
 Verification evidence:
-- `tests/integration/test_ring5_public_api.py`
+- `tests/unit/test_ring5_coverage_edges.py::test_export_error_normalization`
+- `tests/unit/test_plot_service.py::TestRing5ExportFile`
 
 Covers:
 - req~ring5.export.public-boundary~1
@@ -3887,13 +3914,13 @@ Covers:
 
 Tags: markers, series, status_approved, styles
 
-### Plotly raster export scale — verification
+### Plotly mode-bar export scale — verification
 
 `test~ring5.export.plotly-scale~1`
 
 Verification evidence:
-- `tests/ui_unit/test_advanced_settings.py`
-- `tests/e2e/test_export_presets.py`
+- `tests/ui_unit/test_advanced_settings.py::TestAdvancedSettingsComponent.test_export_scale_caption`
+- `tests/unit/test_plot_presenters.py::TestChartDisplayComponent.test_plotly_modebar_uses_configured_export_scale`
 
 Covers:
 - req~ring5.export.plotly-scale~1
@@ -5076,7 +5103,7 @@ Tags: interactive, plotly, settings, status_approved
 `uman~ring5.render.engine-independent-traces~1`
 
 User documentation evidence:
-- `docs/developer-guide/subsystems/visualization.md`
+- `docs/developer-guide/subsystems/visualization.md#engine-independent-traces`
 
 Covers:
 - req~ring5.render.engine-independent-traces~1
@@ -5088,7 +5115,7 @@ Tags: architecture, rendering, status_approved, traces
 `uman~ring5.render.plotly~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/rendering-export.md`
+- `docs/user-guide/reference/rendering-export.md#plotly-rendering`
 
 Covers:
 - req~ring5.render.plotly~1
@@ -5100,19 +5127,19 @@ Tags: plotly, rendering, status_approved
 `uman~ring5.render.matplotlib~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/rendering-export.md`
+- `docs/user-guide/reference/rendering-export.md#matplotlib-rendering`
 
 Covers:
 - req~ring5.render.matplotlib~1
 
 Tags: matplotlib, rendering, status_approved
 
-### Per-plot engine selection — user documentation
+### Session rendering-engine selection — user documentation
 
 `uman~ring5.render.engine-selection~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/plotting.md`
+- `docs/user-guide/reference/rendering-export.md#session-engine-selection`
 
 Covers:
 - req~ring5.render.engine-selection~1
@@ -5124,7 +5151,7 @@ Tags: engine, rendering, status_approved, web
 `uman~ring5.export.plotly-html~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/rendering-export.md`
+- `docs/user-guide/reference/rendering-export.md#plotly-html`
 
 Covers:
 - req~ring5.export.plotly-html~1
@@ -5136,7 +5163,7 @@ Tags: export, html, plotly, status_approved
 `uman~ring5.export.plotly-static~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/rendering-export.md`
+- `docs/user-guide/reference/rendering-export.md#plotly-static-formats`
 
 Covers:
 - req~ring5.export.plotly-static~1
@@ -5148,7 +5175,7 @@ Tags: export, kaleido, plotly, status_approved
 `uman~ring5.export.matplotlib-standard~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/rendering-export.md`
+- `docs/user-guide/reference/rendering-export.md#matplotlib-standard-formats`
 
 Covers:
 - req~ring5.export.matplotlib-standard~1
@@ -5160,7 +5187,7 @@ Tags: export, matplotlib, status_approved
 `uman~ring5.export.matplotlib-pgf~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/rendering-export.md`
+- `docs/user-guide/reference/rendering-export.md#matplotlib-pgf`
 
 Covers:
 - req~ring5.export.matplotlib-pgf~1
@@ -5172,7 +5199,7 @@ Tags: export, latex, matplotlib, pgf, status_approved
 `uman~ring5.export.web-download~1`
 
 User documentation evidence:
-- `docs/user-guide/guides/publication-export.md`
+- `docs/user-guide/guides/publication-export.md#export-from-the-web-application`
 
 Covers:
 - req~ring5.export.web-download~1
@@ -5184,7 +5211,7 @@ Tags: download, export, status_approved, web
 `uman~ring5.export.deterministic~1`
 
 User documentation evidence:
-- `docs/user-guide/guides/publication-export.md`
+- `docs/user-guide/guides/publication-export.md#export-deterministically-from-python`
 
 Covers:
 - req~ring5.export.deterministic~1
@@ -5196,7 +5223,7 @@ Tags: determinism, export, reproducibility, status_approved
 `uman~ring5.export.public-boundary~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/rendering-export.md`
+- `docs/user-guide/reference/rendering-export.md#export-through-python`
 
 Covers:
 - req~ring5.export.public-boundary~1
@@ -5791,12 +5818,12 @@ Covers:
 
 Tags: markers, series, status_approved, styles
 
-### Plotly raster export scale — user documentation
+### Plotly mode-bar export scale — user documentation
 
 `uman~ring5.export.plotly-scale~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/rendering-export.md`
+- `docs/user-guide/reference/rendering-export.md#plotly-raster-scale`
 
 Covers:
 - req~ring5.export.plotly-scale~1

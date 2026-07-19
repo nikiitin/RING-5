@@ -61,6 +61,7 @@ class MatplotlibTraceRenderer:
         heatmap_vmin: float | None = None,
         heatmap_vmax: float | None = None,
     ) -> MatplotlibRenderResult:
+        # [impl->req~ring5.render.matplotlib~1]
         """Render all traces onto *ax*.
 
         Args:

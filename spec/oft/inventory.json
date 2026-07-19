@@ -1770,9 +1770,17 @@
       "description": "Every plot type shall build typed engine-independent traces before either rendering connector is invoked.",
       "tags": ["architecture", "rendering", "traces"],
       "evidence": {
-        "implementation": ["src/core/models/visualization/trace_build_result.py", "src/web/pages/ui/plotting/base_plot.py"],
-        "tests": ["tests/unit/test_trace_to_plotly.py"],
-        "documentation": ["docs/developer-guide/subsystems/visualization.md"]
+        "implementation": [
+          "src/core/models/visualization/trace_build_result.py::TraceBuildResult",
+          "src/web/pages/ui/plotting/base_plot.py::BasePlot.create_figure"
+        ],
+        "tests": [
+          "tests/unit/test_trace_to_plotly.py::TestTracesToPlotly",
+          "tests/unit/test_trace_to_plotly.py::TestConvertTrace"
+        ],
+        "documentation": [
+          "docs/developer-guide/subsystems/visualization.md#engine-independent-traces"
+        ]
       }
     },
     {
@@ -1784,9 +1792,17 @@
       "description": "RING-5 shall render all registered plot traces as interactive Plotly figures.",
       "tags": ["plotly", "rendering"],
       "evidence": {
-        "implementation": ["src/web/rendering/plotly_connector.py"],
-        "tests": ["tests/unit/core/visualization/test_connectors.py"],
-        "documentation": ["docs/user-guide/reference/rendering-export.md"]
+        "implementation": [
+          "src/web/rendering/trace_to_plotly.py::traces_to_plotly",
+          "src/web/rendering/plotly_connector.py::FigureSpecToPlotly.apply"
+        ],
+        "tests": [
+          "tests/unit/test_trace_to_plotly.py::TestTracesToPlotly",
+          "tests/unit/core/visualization/test_connectors.py::TestFigureSpecToPlotly"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/rendering-export.md#plotly-rendering"
+        ]
       }
     },
     {
@@ -1798,9 +1814,17 @@
       "description": "RING-5 shall render all registered plot traces as static Matplotlib figures.",
       "tags": ["matplotlib", "rendering"],
       "evidence": {
-        "implementation": ["src/web/rendering/matplotlib_connector.py"],
-        "tests": ["tests/integration/test_matplotlib_rendering.py"],
-        "documentation": ["docs/user-guide/reference/rendering-export.md"]
+        "implementation": [
+          "src/web/rendering/matplotlib_figure_builder.py::build_matplotlib_figure_from_traces",
+          "src/web/rendering/matplotlib_trace_renderer.py::MatplotlibTraceRenderer.render"
+        ],
+        "tests": [
+          "tests/integration/test_matplotlib_rendering.py::TestMatplotlibTraceRenderer",
+          "tests/integration/test_matplotlib_rendering.py::TestMatplotlibFullPipeline"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/rendering-export.md#matplotlib-rendering"
+        ]
       }
     },
     {
@@ -1808,13 +1832,24 @@
       "group": "rendering-export",
       "revision": 1,
       "status": "approved",
-      "title": "Per-plot engine selection",
-      "description": "Users shall switch each plot between Plotly and Matplotlib, with engine-specific controls and export formats synchronized before rendering.",
+      "title": "Session rendering-engine selection",
+      "description": "Users shall switch the active session between Plotly and Matplotlib, with engine-specific rendering, cache identity, controls, and export formats synchronized before the active plot is displayed.",
       "tags": ["engine", "rendering", "web"],
       "evidence": {
-        "implementation": ["src/web/components/plotting/settings/engine_settings.py", "src/web/rendering/engine_manager.py"],
-        "tests": ["tests/e2e/test_engine_comparison.py"],
-        "documentation": ["docs/user-guide/workflows/plotting.md"]
+        "implementation": [
+          "src/web/components/common/chart_display.py::ChartDisplayComponent.render_engine_selector",
+          "src/web/rendering/engine_manager.py::EngineManager.get_engine",
+          "src/web/rendering/engine_manager.py::EngineManager.set_engine",
+          "src/web/controllers/plot/render_controller.py::PlotRenderController._render_visualization"
+        ],
+        "tests": [
+          "tests/unit/test_engine_manager.py::TestGetEngine",
+          "tests/unit/test_engine_manager.py::TestSetEngine",
+          "tests/e2e/test_engine_comparison.py::TestEngineSwitching"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/rendering-export.md#session-engine-selection"
+        ]
       }
     },
     {
@@ -1827,8 +1862,13 @@
       "tags": ["export", "html", "plotly"],
       "evidence": {
         "implementation": ["src/web/rendering/figure_export.py::plotly_download_bytes"],
-        "tests": ["tests/unit/test_plotly_download.py"],
-        "documentation": ["docs/user-guide/reference/rendering-export.md"]
+        "tests": [
+          "tests/unit/test_plotly_download.py::TestPlotlyHTML",
+          "tests/unit/test_export_logic.py::test_export_html_via_plotly"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/rendering-export.md#plotly-html"
+        ]
       }
     },
     {
@@ -1841,8 +1881,15 @@
       "tags": ["export", "kaleido", "plotly"],
       "evidence": {
         "implementation": ["src/web/rendering/figure_export.py::plotly_download_bytes"],
-        "tests": ["tests/unit/test_plotly_download.py"],
-        "documentation": ["docs/user-guide/reference/rendering-export.md"]
+        "tests": [
+          "tests/unit/test_plotly_download.py::TestPlotlyPNG",
+          "tests/unit/test_plotly_download.py::TestPlotlySVG",
+          "tests/unit/test_plotly_download.py::TestPlotlyPDF",
+          "tests/unit/test_plotly_download.py::TestChromeNotFound"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/rendering-export.md#plotly-static-formats"
+        ]
       }
     },
     {
@@ -1855,8 +1902,14 @@
       "tags": ["export", "matplotlib"],
       "evidence": {
         "implementation": ["src/web/rendering/figure_export.py::matplotlib_download_bytes"],
-        "tests": ["tests/unit/test_matplotlib_download.py"],
-        "documentation": ["docs/user-guide/reference/rendering-export.md"]
+        "tests": [
+          "tests/unit/test_matplotlib_download.py::TestMatplotlibPDF",
+          "tests/unit/test_matplotlib_download.py::TestMatplotlibPNG",
+          "tests/unit/test_matplotlib_download.py::TestMatplotlibSVG"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/rendering-export.md#matplotlib-standard-formats"
+        ]
       }
     },
     {
@@ -1868,9 +1921,17 @@
       "description": "Matplotlib figures shall export as XeLaTeX-compatible PGF, preserving configured figure size and falling back visibly when raster content prevents PGF output.",
       "tags": ["export", "latex", "matplotlib", "pgf"],
       "evidence": {
-        "implementation": ["src/web/rendering/figure_export.py::matplotlib_download_bytes", "src/web/pages/ui/plotting/download_section.py"],
-        "tests": ["tests/unit/test_matplotlib_download.py"],
-        "documentation": ["docs/user-guide/reference/rendering-export.md"]
+        "implementation": [
+          "src/web/rendering/figure_export.py::matplotlib_download_bytes",
+          "src/web/pages/ui/plotting/download_section.py::_render_mpl_download"
+        ],
+        "tests": [
+          "tests/unit/test_matplotlib_download.py::TestMatplotlibPGF",
+          "tests/unit/test_download_section_ui.py::TestRenderDownloadSectionMatplotlib.test_pgf_raster_failure_falls_back_visibly_to_pdf"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/rendering-export.md#matplotlib-pgf"
+        ]
       }
     },
     {
@@ -1882,9 +1943,18 @@
       "description": "The plot page shall expose only formats supported by the selected engine and generate a correctly named downloadable artifact.",
       "tags": ["download", "export", "web"],
       "evidence": {
-        "implementation": ["src/web/pages/ui/plotting/download_section.py"],
-        "tests": ["tests/e2e/test_export_presets.py"],
-        "documentation": ["docs/user-guide/guides/publication-export.md"]
+        "implementation": [
+          "src/web/pages/ui/plotting/download_section.py::render_download_section",
+          "src/web/pages/ui/plotting/download_section.py::_render_plotly_download",
+          "src/web/pages/ui/plotting/download_section.py::_render_mpl_download"
+        ],
+        "tests": [
+          "tests/unit/test_download_section_ui.py::TestRenderDownloadSectionPlotly",
+          "tests/unit/test_download_section_ui.py::TestRenderDownloadSectionMatplotlib"
+        ],
+        "documentation": [
+          "docs/user-guide/guides/publication-export.md#export-from-the-web-application"
+        ]
       }
     },
     {
@@ -1896,9 +1966,21 @@
       "description": "Headless exports shall optionally normalize engine-specific identifiers, timestamps, and salts so repeated exports are byte-stable where supported.",
       "tags": ["determinism", "export", "reproducibility"],
       "evidence": {
-        "implementation": ["src/web/rendering/figure_export.py"],
-        "tests": ["tests/unit/test_export_logic.py"],
-        "documentation": ["docs/user-guide/guides/publication-export.md"]
+        "implementation": [
+          "src/web/rendering/figure_export.py::_normalize_plotly_svg",
+          "src/web/rendering/figure_export.py::_normalize_plotly_pdf",
+          "src/web/rendering/figure_export.py::plotly_download_bytes",
+          "src/web/rendering/figure_export.py::matplotlib_download_bytes"
+        ],
+        "tests": [
+          "tests/unit/test_plotly_download.py::TestDeterministicSvg",
+          "tests/unit/test_export_logic.py::test_deterministic_mpl_pdf_byte_identical",
+          "tests/unit/test_export_logic.py::test_deterministic_html_byte_identical",
+          "tests/integration/test_ring5_public_api.py::TestDeterminism"
+        ],
+        "documentation": [
+          "docs/user-guide/guides/publication-export.md#export-deterministically-from-python"
+        ]
       }
     },
     {
@@ -1910,9 +1992,17 @@
       "description": "The public API shall infer a figure engine, validate formats, return bytes or write files, create parent directories, and expose typed dependency and export failures.",
       "tags": ["api", "errors", "export"],
       "evidence": {
-        "implementation": ["ring5/_export.py"],
-        "tests": ["tests/integration/test_ring5_public_api.py"],
-        "documentation": ["docs/user-guide/reference/rendering-export.md"]
+        "implementation": [
+          "ring5/_export.py::export_bytes",
+          "ring5/_export.py::export_file"
+        ],
+        "tests": [
+          "tests/unit/test_ring5_coverage_edges.py::test_export_error_normalization",
+          "tests/unit/test_plot_service.py::TestRing5ExportFile"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/rendering-export.md#export-through-python"
+        ]
       }
     },
     {
@@ -2702,13 +2792,21 @@
       "group": "rendering-export",
       "revision": 1,
       "status": "approved",
-      "title": "Plotly raster export scale",
-      "description": "Plotly static downloads shall support one-, two-, or three-times export scale and apply the selected scale when producing the downloadable artifact.",
+      "title": "Plotly mode-bar export scale",
+      "description": "Plotly's mode-bar image control shall support one-, two-, or three-times export scale and receive the selected scale together with the configured preview dimensions.",
       "tags": ["export", "plotly", "scale"],
       "evidence": {
-        "implementation": ["src/web/components/plotting/settings/advanced_settings.py", "src/web/components/common/chart_display.py"],
-        "tests": ["tests/ui_unit/test_advanced_settings.py", "tests/e2e/test_export_presets.py"],
-        "documentation": ["docs/user-guide/reference/rendering-export.md"]
+        "implementation": [
+          "src/web/components/plotting/settings/advanced_settings.py::AdvancedSettingsComponent.render",
+          "src/web/components/common/chart_display.py::ChartDisplayComponent.render_plotly_chart"
+        ],
+        "tests": [
+          "tests/ui_unit/test_advanced_settings.py::TestAdvancedSettingsComponent.test_export_scale_caption",
+          "tests/unit/test_plot_presenters.py::TestChartDisplayComponent.test_plotly_modebar_uses_configured_export_scale"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/rendering-export.md#plotly-raster-scale"
+        ]
       }
     },
     {

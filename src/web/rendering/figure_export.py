@@ -100,6 +100,7 @@ _MPL_EXPORT_LOCK = threading.Lock()
 
 
 def _normalize_plotly_svg(data: bytes) -> bytes:
+    # [impl->req~ring5.export.deterministic~1]
     """Replace plotly.js's per-render random ids with fixed tokens.
 
     Three sources of nondeterminism:
@@ -158,6 +159,7 @@ def _normalize_plotly_svg(data: bytes) -> bytes:
 
 
 def _normalize_plotly_pdf(data: bytes) -> bytes:
+    # [impl->req~ring5.export.deterministic~1]
     """Zero the digits of Chrome's /CreationDate and /ModDate stamps.
 
     Length-preserving (digit-for-digit), so the PDF xref offsets stay valid.
@@ -183,6 +185,9 @@ def plotly_download_bytes(
     deterministic: bool = False,
     div_id: str | None = None,
 ) -> bytes:
+    # [impl->req~ring5.export.plotly-html~1]
+    # [impl->req~ring5.export.plotly-static~1]
+    # [impl->req~ring5.export.deterministic~1]
     """Export a Plotly figure to bytes.
 
     Args:
@@ -281,6 +286,9 @@ def matplotlib_download_bytes(
     spec: FigureConfig | None = None,
     deterministic: bool = False,
 ) -> bytes:
+    # [impl->req~ring5.export.matplotlib-standard~1]
+    # [impl->req~ring5.export.matplotlib-pgf~1]
+    # [impl->req~ring5.export.deterministic~1]
     """Export a matplotlib Figure to image bytes via savefig.
 
     Args:

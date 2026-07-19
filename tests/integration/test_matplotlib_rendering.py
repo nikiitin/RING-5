@@ -79,6 +79,7 @@ def _minimal_config() -> dict[str, Any]:
 
 
 class TestMatplotlibTraceRenderer:
+    # [test->req~ring5.render.matplotlib~1]
     """Test trace conversion from TraceConfig → matplotlib artists."""
 
     def test_render_bar_traces(self) -> None:
@@ -241,6 +242,7 @@ class TestMatplotlibTraceRenderer:
 
 
 class TestMatplotlibFullPipeline:
+    # [test->req~ring5.render.matplotlib~1]
     """Test the complete FigureConfig → matplotlib pipeline."""
 
     def test_bar_pipeline(self) -> None:

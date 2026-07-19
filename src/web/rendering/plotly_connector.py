@@ -69,6 +69,7 @@ class FigureSpecToPlotly:
 
     @staticmethod
     def apply(spec: FigureConfig, fig: go.Figure) -> go.Figure:
+        # [impl->req~ring5.render.plotly~1]
         """Apply the full FigureConfig to a Plotly figure.
 
         Args:

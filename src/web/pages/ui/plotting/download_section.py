@@ -39,6 +39,7 @@ def render_download_section(
     plot_name: str,
     fig: go.Figure,
 ) -> None:
+    # [impl->req~ring5.export.web-download~1]
     """Engine-aware download controls.
 
     Shows format pills and a download button appropriate for the
@@ -64,6 +65,7 @@ def _render_plotly_download(
     plot_name: str,
     fig: go.Figure,
 ) -> None:
+    # [impl->req~ring5.export.web-download~1]
     """Format pills + a deferred download for the Plotly/Kaleido path.
 
     Image generation is delayed until the user clicks the download button.
@@ -116,6 +118,8 @@ def _render_plotly_download(
 
 
 def _render_mpl_download(plot_id: int, plot_name: str) -> None:
+    # [impl->req~ring5.export.matplotlib-pgf~1]
+    # [impl->req~ring5.export.web-download~1]
     """Format pills + download button for the Matplotlib path."""
     mpl_fig: MplFigure | None = st.session_state.get(f"plot.{plot_id}.mpl_fig")
     if mpl_fig is None:
@@ -149,7 +153,7 @@ def _render_mpl_download(plot_id: int, plot_name: str) -> None:
         else:
             raise
     st.download_button(
-        label=f"Download {fmt.upper()}",
+        label=f"Download {fmt_typed.upper()}",
         data=data,
         file_name=f"{plot_name}{get_matplotlib_extension(fmt_typed)}",
         mime=get_matplotlib_mime(fmt_typed),

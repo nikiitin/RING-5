@@ -53,10 +53,34 @@ def simple_line_figure() -> go.Figure:
     return fig
 
 
+# HTML tests
+
+
+class TestPlotlyHTML:
+    # [test->req~ring5.export.plotly-html~1]
+    """Verify self-contained HTML export without Kaleido."""
+
+    def test_html_is_self_contained_and_does_not_invoke_kaleido(
+        self, simple_bar_figure: go.Figure
+    ) -> None:
+        """HTML embeds Plotly and does not require a browser executable."""
+        from unittest.mock import patch
+
+        with patch("src.web.rendering.figure_export.kaleido.calc_fig_sync") as mock_calc:
+            data = plotly_download_bytes(simple_bar_figure, "html")
+
+        text = data.decode("utf-8")
+        assert "<html" in text
+        assert "Plotly.newPlot" in text
+        assert "plotly.js" in text
+        mock_calc.assert_not_called()
+
+
 # PNG tests
 
 
 class TestPlotlyPNG:
+    # [test->req~ring5.export.plotly-static~1]
     """Verify PNG export via Kaleido."""
 
     def test_png_magic_bytes(self, simple_bar_figure: go.Figure) -> None:
@@ -81,6 +105,7 @@ class TestPlotlyPNG:
 
 
 class TestPlotlySVG:
+    # [test->req~ring5.export.plotly-static~1]
     """Verify SVG export via Kaleido."""
 
     def test_svg_starts_with_xml_or_svg(self, simple_bar_figure: go.Figure) -> None:
@@ -105,6 +130,7 @@ class TestPlotlySVG:
 
 
 class TestPlotlyPDF:
+    # [test->req~ring5.export.plotly-static~1]
     """Verify PDF export via Kaleido."""
 
     def test_pdf_magic_bytes(self, simple_bar_figure: go.Figure) -> None:
@@ -177,6 +203,7 @@ class TestPlotlyMultipleFigures:
 
 
 class TestChromeNotFound:
+    # [test->req~ring5.export.plotly-static~1]
     """A missing browser must fail fast with the actionable upstream error."""
 
     def test_chrome_not_found_propagates_without_retry(self, simple_bar_figure: go.Figure) -> None:
@@ -211,6 +238,7 @@ class TestChromeNotFound:
 
 
 class TestDeterministicSvg:
+    # [test->req~ring5.export.deterministic~1]
     """deterministic=True must yield byte-identical SVG re-exports."""
 
     def test_bar_svg_deterministic(self, simple_bar_figure: go.Figure) -> None:

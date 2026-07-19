@@ -27,6 +27,7 @@ from src.web.rendering.plotly_connector import FigureSpecToPlotly
 
 
 class TestFigureSpecToPlotly:
+    # [test->req~ring5.render.plotly~1]
     """Test Plotly connector."""
 
     def _make_simple_fig(self) -> go.Figure:

@@ -20,6 +20,7 @@ class EngineManager:
 
     @staticmethod
     def get_engine() -> EngineMode:
+        # [impl->req~ring5.render.engine-selection~1]
         """Return the current engine mode.
 
         Defaults to ``DEFAULT_ENGINE`` when no mode has been set yet.
@@ -32,6 +33,7 @@ class EngineManager:
 
     @staticmethod
     def set_engine(mode: EngineMode) -> None:
+        # [impl->req~ring5.render.engine-selection~1]
         """Set the engine mode.
 
         Only writes to session state when the value actually changes,

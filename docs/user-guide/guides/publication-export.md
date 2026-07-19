@@ -66,6 +66,14 @@ RING-5 does not support EPS export.
 
 ## Export from the web application
 
+<!--
+`uman~ring5.export.web-download.documentation~1`
+
+Covers:
+- req~ring5.export.web-download~1
+
+-->
+
 Select **Engine**, refresh the plot, expand **Download**, select **Format**, and use the matching
 download button. The format list changes with the active engine.
 
@@ -73,6 +81,14 @@ Open the exported file outside the browser. Check dimensions, clipped labels, em
 fonts, line weights, marker visibility, and color accessibility at the size used in the paper.
 
 ## Export deterministically from Python
+
+<!--
+`uman~ring5.export.deterministic.documentation~1`
+
+Covers:
+- req~ring5.export.deterministic~1
+
+-->
 
 ```python
 figure = session.plot(

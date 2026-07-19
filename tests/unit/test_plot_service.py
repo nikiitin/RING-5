@@ -149,6 +149,7 @@ class TestChangePlotType:
 
 
 class TestRing5ExportFile:
+    # [test->req~ring5.export.public-boundary~1]
     """Unit tests for ring5._export.export_file (subsumed export_plot_to_file)."""
 
     def test_pdf_export_writes_bytes(self, tmp_path: Path) -> None:

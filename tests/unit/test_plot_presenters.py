@@ -256,6 +256,36 @@ class TestChartDisplayComponent:
 
         assert result["should_generate"] is True
 
+    @patch("src.web.components.common.chart_display.render_download_section")
+    @patch("src.web.components.common.chart_display.interactive_plotly_chart")
+    def test_plotly_modebar_uses_configured_export_scale(
+        self,
+        mock_chart: MagicMock,
+        mock_download: MagicMock,
+    ) -> None:
+        # [test->req~ring5.export.plotly-scale~1]
+        """The configured export scale reaches Plotly's mode-bar image control."""
+        import plotly.graph_objects as go
+
+        from src.web.components.common.chart_display import ChartDisplayComponent
+
+        ChartDisplayComponent.render_plotly_chart(
+            go.Figure(),
+            plot_id=7,
+            plot_name="ipc",
+            config={"width": 900, "height": 540, "export_scale": 3},
+        )
+
+        plotly_config = mock_chart.call_args.kwargs["config"]
+        assert plotly_config["toImageButtonOptions"] == {
+            "format": "svg",
+            "filename": "ipc_view",
+            "height": 540,
+            "width": 900,
+            "scale": 3,
+        }
+        mock_download.assert_called_once()
+
     @patch("src.web.components.common.chart_display.st")
     def test_should_not_generate_when_no_auto_and_no_manual(
         self,

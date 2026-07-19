@@ -72,6 +72,7 @@ class ChartDisplayComponent:
         plot_id: int,
         current_engine: str,
     ) -> str | None:
+        # [impl->req~ring5.render.engine-selection~1]
         """Render engine-selection pills (Plotly / Matplotlib)."""
         engine_choice: str | None = st.pills(
             "Engine",
@@ -94,6 +95,7 @@ class ChartDisplayComponent:
         plot_name: str,
         config: dict[str, Any],
     ) -> dict[str, Any] | None:
+        # [impl->req~ring5.export.plotly-scale~1]
         """Render an interactive Plotly chart with relayout feedback."""
         plotly_config: dict[str, Any] = {
             "responsive": False,

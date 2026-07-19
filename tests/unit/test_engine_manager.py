@@ -33,6 +33,7 @@ def mock_state() -> Any:
 
 
 class TestGetEngine:
+    # [test->req~ring5.render.engine-selection~1]
     """Tests for ``EngineManager.get_engine()``."""
 
     def test_default_is_plotly(self, mock_state: MockSessionState) -> None:
@@ -60,6 +61,7 @@ class TestGetEngine:
 
 
 class TestSetEngine:
+    # [test->req~ring5.render.engine-selection~1]
     """Tests for ``EngineManager.set_engine()``."""
 
     def test_set_matplotlib(self, mock_state: MockSessionState) -> None:

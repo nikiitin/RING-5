@@ -35,6 +35,7 @@ def _error_y_dict(error_y: list[float] | None) -> dict[str, Any] | None:
 
 
 def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
+    # [impl->req~ring5.render.plotly~1]
     """Convert a ``TraceBuildResult`` into a Plotly ``go.Figure``.
 
     The returned figure contains all traces, shapes, annotations,

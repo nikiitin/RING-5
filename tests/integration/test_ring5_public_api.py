@@ -219,6 +219,7 @@ class TestPortfolioReplay:
 
 
 class TestDeterminism:
+    # [test->req~ring5.export.deterministic~1]
     """The CI-regression contract for the zero-dependency formats."""
 
     def test_fig_json_and_exports_stable(self) -> None:

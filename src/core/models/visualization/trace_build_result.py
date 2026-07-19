@@ -65,6 +65,7 @@ class ShadedRegion:
 
 @dataclass
 class TraceBuildResult:
+    # [impl->req~ring5.render.engine-independent-traces~1]
     """Complete output from a plot type's ``create_traces()`` method.
 
     Attributes:

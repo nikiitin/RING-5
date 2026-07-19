@@ -17,8 +17,8 @@ Matplotlib. Select the engine before opening **Download** because formats depend
 renderer.
 
 Plotly settings also select hover behavior: unified X, closest point, X, Y, or disabled. This is a
-rendering preference and does not change the mapped data. Static Plotly downloads accept 1×, 2×,
-or 3× scale; higher scale increases raster dimensions and generation cost.
+rendering preference and does not change the mapped data. Its mode-bar image control accepts 1×,
+2×, or 3× scale; higher scale increases raster dimensions and generation cost.
 
 | Engine | Format | External requirement | Typical use |
 | --- | --- | --- | --- |
@@ -29,6 +29,115 @@ or 3× scale; higher scale increases raster dimensions and generation cost.
 
 EPS is not supported. PGF does not support raster graphics; the web application falls back to PDF
 when a PGF download contains raster content.
+
+## Rendering engines
+
+### Plotly rendering
+
+<!--
+`uman~ring5.render.plotly.documentation~1`
+
+Covers:
+- req~ring5.render.plotly~1
+
+-->
+
+Plotly converts every typed trace to an interactive figure and applies the resolved common figure
+configuration. Interactive relayout support is available only in this engine.
+
+### Matplotlib rendering
+
+<!--
+`uman~ring5.render.matplotlib.documentation~1`
+
+Covers:
+- req~ring5.render.matplotlib~1
+
+-->
+
+Matplotlib draws every registered typed trace as static artists, including secondary axes and
+multi-panel heatmaps. Backend-specific text and spacing can differ from Plotly.
+
+### Session engine selection
+
+<!--
+`uman~ring5.render.engine-selection.documentation~1`
+
+Covers:
+- req~ring5.render.engine-selection~1
+
+-->
+
+The active Plotly or Matplotlib choice is session-scoped. It changes the visible controls, render
+cache identity, and available download formats for the active plot.
+
+### Plotly raster scale
+
+<!--
+`uman~ring5.export.plotly-scale.documentation~1`
+
+Covers:
+- req~ring5.export.plotly-scale~1
+
+-->
+
+The Plotly mode-bar image control accepts a 1×, 2×, or 3× scale. The selected value is passed in
+Plotly's `toImageButtonOptions` together with the configured preview dimensions. The separate
+Download panel uses its own export defaults.
+
+## Export formats
+
+### Plotly HTML
+
+<!--
+`uman~ring5.export.plotly-html.documentation~1`
+
+Covers:
+- req~ring5.export.plotly-html~1
+
+-->
+
+HTML export embeds Plotly JavaScript and figure data in a self-contained interactive document. It
+does not invoke Chrome or Kaleido.
+
+### Plotly static formats
+
+<!--
+`uman~ring5.export.plotly-static.documentation~1`
+
+Covers:
+- req~ring5.export.plotly-static~1
+
+-->
+
+PNG, SVG, and PDF export use Kaleido and a Chrome-family browser. Transient browser failures use a
+bounded retry; a missing browser is reported immediately as a dependency failure.
+
+### Matplotlib standard formats
+
+<!--
+`uman~ring5.export.matplotlib-standard.documentation~1`
+
+Covers:
+- req~ring5.export.matplotlib-standard~1
+
+-->
+
+PDF, PNG, and SVG export use the configured physical figure dimensions. PNG also applies the
+selected raster DPI.
+
+### Matplotlib PGF
+
+<!--
+`uman~ring5.export.matplotlib-pgf.documentation~1`
+
+Covers:
+- req~ring5.export.matplotlib-pgf~1
+
+-->
+
+PGF export preserves physical size for LaTeX inclusion and uses the selected TeX system. The web
+download reports a visible PDF fallback when raster content prevents PGF serialization.
 
 ## Check the environment
 
@@ -69,6 +178,14 @@ installs a TeX distribution on supported package managers; `make check-latex` ch
 and packages used by PGF tests.
 
 ## Export through Python
+
+<!--
+`uman~ring5.export.public-boundary.documentation~1`
+
+Covers:
+- req~ring5.export.public-boundary~1
+
+-->
 
 The figure type determines the engine-specific formats, and the file extension determines the
 format when `fmt` is omitted:

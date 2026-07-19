@@ -76,6 +76,7 @@ def test_doctor_report_and_browser_fallbacks() -> None:
 
 
 def test_export_error_normalization(tmp_path: Path) -> None:
+    # [test->req~ring5.export.public-boundary~1]
     plotly = go.Figure()
     mpl = Figure()
 

@@ -1575,12 +1575,12 @@ Needs: impl, test, uman
 
 Tags: matplotlib, rendering, status_approved
 
-### Per-plot engine selection
+### Session rendering-engine selection
 
 `req~ring5.render.engine-selection~1`
 Status: approved
 
-Users shall switch each plot between Plotly and Matplotlib, with engine-specific controls and export formats synchronized before rendering.
+Users shall switch the active session between Plotly and Matplotlib, with engine-specific rendering, cache identity, controls, and export formats synchronized before the active plot is displayed.
 
 Covers:
 - feat~ring5.rendering-export~1
@@ -1687,12 +1687,12 @@ Needs: impl, test, uman
 
 Tags: api, errors, export, status_approved
 
-### Plotly raster export scale
+### Plotly mode-bar export scale
 
 `req~ring5.export.plotly-scale~1`
 Status: approved
 
-Plotly static downloads shall support one-, two-, or three-times export scale and apply the selected scale when producing the downloadable artifact.
+Plotly's mode-bar image control shall support one-, two-, or three-times export scale and receive the selected scale together with the configured preview dimensions.
 
 Covers:
 - feat~ring5.rendering-export~1

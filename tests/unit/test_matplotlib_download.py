@@ -66,6 +66,7 @@ def line_mpl_figure() -> Figure:
 
 
 class TestMatplotlibPDF:
+    # [test->req~ring5.export.matplotlib-standard~1]
     """Verify PDF export via savefig."""
 
     def test_pdf_magic_bytes(self, simple_mpl_figure: Figure) -> None:
@@ -84,6 +85,7 @@ class TestMatplotlibPDF:
 
 
 class TestMatplotlibPNG:
+    # [test->req~ring5.export.matplotlib-standard~1]
     """Verify PNG export via savefig."""
 
     def test_png_magic_bytes(self, simple_mpl_figure: Figure) -> None:
@@ -108,6 +110,7 @@ class TestMatplotlibPNG:
 
 
 class TestMatplotlibSVG:
+    # [test->req~ring5.export.matplotlib-standard~1]
     """Verify SVG export via savefig."""
 
     def test_svg_contains_svg_tag(self, simple_mpl_figure: Figure) -> None:
@@ -127,6 +130,7 @@ class TestMatplotlibSVG:
 
 @pytest.mark.requires_latex
 class TestMatplotlibPGF:
+    # [test->req~ring5.export.matplotlib-pgf~1]
     """Verify PGF export via savefig with PGF backend."""
 
     def test_pgf_contains_begin_pgfpicture(self, simple_mpl_figure: Figure) -> None:

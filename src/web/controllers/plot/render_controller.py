@@ -182,6 +182,7 @@ class PlotRenderController:
 
     # Private helpers
     def _render_visualization(self, plot: RenderablePlot, should_generate: bool) -> None:
+        # [impl->req~ring5.render.engine-selection~1]
         """
         Generate figure (with caching) and delegate display to component.
 
