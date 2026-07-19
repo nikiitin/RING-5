@@ -89,9 +89,7 @@ def test_html_report_fingerprint_detects_missing_stale_or_non_native_output(
     with pytest.raises(InventoryError, match="lacks the native OFT trace"):
         check_html_report(inventory, tmp_path)
 
-    report.write_text(
-        marker + source_marker + '<main id="oft-native-report">', encoding="utf-8"
-    )
+    report.write_text(marker + source_marker + '<main id="oft-native-report">', encoding="utf-8")
     check_html_report(inventory, tmp_path)
 
 

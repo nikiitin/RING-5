@@ -199,7 +199,7 @@ def _evidence_details(
                 )
             items.append(
                 '<li><a class="human-source-link" href="{source}"><code>{reference}</code>'
-                '<b>open source ↗</b></a>'
+                "<b>open source ↗</b></a>"
                 '<span>{location} · <a href="{native}">native OFT artifact</a></span></li>'.format(
                     source=source_href,
                     reference=_escape(reference),
@@ -386,7 +386,8 @@ def _human_layer(
       specification artifact.</p>
       <ol><li><code>impl</code> points to the Python symbol implementing the behavior.</li>
       <li><code>test</code> points to the exact verification test or test class.</li>
-      <li><code>uman</code> points to the documentation heading that specifies the behavior.</li></ol>
+      <li><code>uman</code> points to the documentation heading that specifies the
+      behavior.</li></ol>
       <p>The inventory validator also checks that every displayed locator has a matching marker in
       that source symbol or heading. <strong>Covered does not mean that tests passed in the latest
       CI run, or by itself prove that the implementation is correct.</strong></p>
@@ -684,7 +685,12 @@ body { margin:0; color:var(--h-ink); background:var(--h-soft); line-height:1.5; 
   font-weight:800;
   cursor:pointer;
 }
-.human-evidence-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:.6rem; padding:.75rem; }
+.human-evidence-grid {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:.6rem;
+  padding:.75rem;
+}
 .human-evidence-column {
   min-width:0;
   padding:.65rem;
@@ -694,9 +700,18 @@ body { margin:0; color:var(--h-ink); background:var(--h-soft); line-height:1.5; 
 }
 .human-evidence-column h5 { margin:0 0 .5rem; font-size:.78rem; text-transform:uppercase; }
 .human-evidence-column ul { margin:0; padding:0; list-style:none; }
-.human-evidence-column li+li { margin-top:.65rem; padding-top:.65rem; border-top:1px solid var(--h-line); }
+.human-evidence-column li+li {
+  margin-top:.65rem;
+  padding-top:.65rem;
+  border-top:1px solid var(--h-line);
+}
 .human-evidence-column li>a { display:block; overflow-wrap:anywhere; }
-.human-evidence-column li>span { display:block; margin-top:.2rem; color:var(--h-muted); font-size:.72rem; }
+.human-evidence-column li>span {
+  display:block;
+  margin-top:.2rem;
+  color:var(--h-muted);
+  font-size:.72rem;
+}
 .human-source-link { color:var(--h-ink); text-decoration:none; }
 .human-source-link b {
   display:block;

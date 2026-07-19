@@ -138,8 +138,7 @@ def test_human_layer_preserves_native_trace_and_links_to_it(
         f'content="{inventory_fingerprint(small_inventory)}">'
     ) in report
     assert (
-        f'<meta name="ring5-evidence-sha256" '
-        f'content="{evidence_fingerprint(source_markers)}">'
+        f'<meta name="ring5-evidence-sha256" ' f'content="{evidence_fingerprint(source_markers)}">'
     ) in report
 
 
