@@ -12,6 +12,13 @@ redirect_from:
 
 # Manage portfolios
 
+<!--
+`uman~ring5.workspace.application-data-directory.documentation~1`
+
+Covers:
+- req~ring5.workspace.application-data-directory~1
+-->
+
 A portfolio stores the current table as CSV text together with plot definitions, shaper pipelines,
 parser configuration, and operation history. Use it to reopen or batch-render a RING-5 workspace.
 Keep original simulator output and analysis code separately; a portfolio is not a substitute for

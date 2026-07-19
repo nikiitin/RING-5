@@ -23,7 +23,7 @@ Tags: status_approved, streamlit, web, workspace
 `impl~ring5.workspace.navigation~1`
 
 Implementation evidence:
-- `app.py::_NAV_OPTIONS`
+- `app.py::run_app`
 
 Covers:
 - req~ring5.workspace.navigation~1
@@ -35,8 +35,8 @@ Tags: navigation, status_approved, web
 `impl~ring5.workspace.session-isolation~1`
 
 Implementation evidence:
-- `src/core/state/repository_state_manager.py`
-- `app.py`
+- `src/core/state/repository_state_manager.py::RepositoryStateManager.__init__`
+- `app.py::run_app`
 
 Covers:
 - req~ring5.workspace.session-isolation~1
@@ -48,7 +48,7 @@ Tags: isolation, state, status_approved, web
 `impl~ring5.workspace.data-preview~1`
 
 Implementation evidence:
-- `app.py::_data_preview_fragment`
+- `app.py::run_app._data_preview_fragment`
 
 Covers:
 - req~ring5.workspace.data-preview~1
@@ -60,8 +60,8 @@ Tags: data, metrics, status_approved, web
 `impl~ring5.workspace.reset~1`
 
 Implementation evidence:
-- `app.py`
-- `src/core/state/repository_state_manager.py`
+- `app.py::run_app`
+- `src/core/state/repository_state_manager.py::RepositoryStateManager.clear_data`
 
 Covers:
 - req~ring5.workspace.reset~1
@@ -73,7 +73,7 @@ Tags: reset, state, status_approved, web
 `impl~ring5.workspace.documentation-hub~1`
 
 Implementation evidence:
-- `src/web/pages/documentation.py`
+- `src/web/pages/documentation.py::show_documentation_page`
 
 Covers:
 - req~ring5.workspace.documentation-hub~1
@@ -1535,7 +1535,7 @@ Tags: async, lifecycle, quality, status_approved
 `impl~ring5.workspace.application-data-directory~1`
 
 Implementation evidence:
-- `src/core/services/data_services/path_service.py`
+- `src/core/services/data_services/path_service.py::PathService.get_data_dir`
 
 Covers:
 - req~ring5.workspace.application-data-directory~1
@@ -1980,7 +1980,7 @@ Tags: discovery, governance, openfasttrace, status_approved
 `test~ring5.workspace.web-app~1`
 
 Verification evidence:
-- `tests/ui/test_ui_sanity.py`
+- `tests/ui/test_ui_sanity.py::TestUISanity.test_app_startup`
 
 Covers:
 - req~ring5.workspace.web-app~1
@@ -1992,7 +1992,7 @@ Tags: status_approved, streamlit, web, workspace
 `test~ring5.workspace.navigation~1`
 
 Verification evidence:
-- `tests/visual/test_navigation.py`
+- `tests/visual/test_navigation.py::TestNavigationWorkflow.test_navigate_all_pages_and_return`
 
 Covers:
 - req~ring5.workspace.navigation~1
@@ -2004,7 +2004,7 @@ Tags: navigation, status_approved, web
 `test~ring5.workspace.session-isolation~1`
 
 Verification evidence:
-- `tests/e2e/test_session_isolation.py`
+- `tests/e2e/test_session_isolation.py::test_browser_sessions_keep_data_plots_and_reset_isolated`
 
 Covers:
 - req~ring5.workspace.session-isolation~1
@@ -2016,7 +2016,7 @@ Tags: isolation, state, status_approved, web
 `test~ring5.workspace.data-preview~1`
 
 Verification evidence:
-- `tests/ui/test_e2e_data_loaded.py`
+- `tests/ui/test_e2e_data_loaded.py::TestSidebarWithData.test_data_preview_metrics_shown`
 
 Covers:
 - req~ring5.workspace.data-preview~1
@@ -2028,7 +2028,7 @@ Tags: data, metrics, status_approved, web
 `test~ring5.workspace.reset~1`
 
 Verification evidence:
-- `tests/ui/test_e2e_data_loaded.py`
+- `tests/ui/test_e2e_data_loaded.py::TestSidebarWithData.test_clear_data_button_clears_state`
 
 Covers:
 - req~ring5.workspace.reset~1
@@ -2040,7 +2040,7 @@ Tags: reset, state, status_approved, web
 `test~ring5.workspace.documentation-hub~1`
 
 Verification evidence:
-- `tests/ui_unit/test_documentation_page.py`
+- `tests/ui_unit/test_documentation_page.py::TestShowDocumentationPage.test_renders_two_guide_sections`
 
 Covers:
 - req~ring5.workspace.documentation-hub~1
@@ -3468,7 +3468,7 @@ Tags: async, lifecycle, quality, status_approved
 `test~ring5.workspace.application-data-directory~1`
 
 Verification evidence:
-- `tests/unit/test_parsing_services.py`
+- `tests/unit/test_parsing_services.py::TestPathService.test_get_data_dir_creates_directory`
 
 Covers:
 - req~ring5.workspace.application-data-directory~1
@@ -3896,7 +3896,7 @@ Tags: discovery, governance, openfasttrace, status_approved
 `uman~ring5.workspace.web-app~1`
 
 User documentation evidence:
-- `docs/user-guide/index.md`
+- `docs/user-guide/index.md#user-guide`
 
 Covers:
 - req~ring5.workspace.web-app~1
@@ -3908,7 +3908,7 @@ Tags: status_approved, streamlit, web, workspace
 `uman~ring5.workspace.navigation~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/index.md`
+- `docs/user-guide/workflows/index.md#workflows`
 
 Covers:
 - req~ring5.workspace.navigation~1
@@ -3920,7 +3920,7 @@ Tags: navigation, status_approved, web
 `uman~ring5.workspace.session-isolation~1`
 
 User documentation evidence:
-- `docs/developer-guide/api-reference/state-manager.md`
+- `docs/developer-guide/api-reference/state-manager.md#state-manager`
 
 Covers:
 - req~ring5.workspace.session-isolation~1
@@ -3932,7 +3932,7 @@ Tags: isolation, state, status_approved, web
 `uman~ring5.workspace.data-preview~1`
 
 User documentation evidence:
-- `docs/user-guide/getting-started/first-analysis.md`
+- `docs/user-guide/getting-started/first-analysis.md#first-analysis`
 
 Covers:
 - req~ring5.workspace.data-preview~1
@@ -3944,7 +3944,7 @@ Tags: data, metrics, status_approved, web
 `uman~ring5.workspace.reset~1`
 
 User documentation evidence:
-- `docs/user-guide/getting-started/concepts.md`
+- `docs/user-guide/getting-started/concepts.md#core-concepts`
 
 Covers:
 - req~ring5.workspace.reset~1
@@ -3956,7 +3956,7 @@ Tags: reset, state, status_approved, web
 `uman~ring5.workspace.documentation-hub~1`
 
 User documentation evidence:
-- `docs/index.md`
+- `docs/index.md#ring-5-documentation`
 
 Covers:
 - req~ring5.workspace.documentation-hub~1
@@ -5384,7 +5384,7 @@ Tags: async, lifecycle, quality, status_approved
 `uman~ring5.workspace.application-data-directory~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/portfolios.md`
+- `docs/user-guide/workflows/portfolios.md#manage-portfolios`
 
 Covers:
 - req~ring5.workspace.application-data-directory~1

@@ -12,6 +12,13 @@ redirect_from:
 
 # State manager
 
+<!--
+`uman~ring5.workspace.session-isolation.documentation~1`
+
+Covers:
+- req~ring5.workspace.session-isolation~1
+-->
+
 `StateManager` defines workspace state operations. `RepositoryStateManager` implements them by
 delegating to focused repositories rather than storing a single untyped mapping.
 

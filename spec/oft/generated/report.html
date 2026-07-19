@@ -491,7 +491,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
 
 </style>
     <title>RING-5 feature coverage · OpenFastTrace</title>
-    <meta name="ring5-inventory-sha256" content="fa3cea96d0801cec75b8be60f27b3ef0bd73d2dbd4a9f90b5a8e9d8d2774836b">
+    <meta name="ring5-inventory-sha256" content="b32913128733797cab55424f69a4eb688f4f5a21056786ad2329e043ed20dc9d">
 </head>
   <body>
 
@@ -3917,7 +3917,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
         <details>
           <summary title="impl~ring5.workspace.session-isolation~1"><span class="green">&check;</span> <b>Browser-session isolation — implementation</b><small>, rev. 1, impl</small></summary>
           <p class="id">impl~ring5.workspace.session-isolation~1</p>
-          <p>Implementation evidence:</p><ul><li><code>src/core/state/repository<em>state</em>manager.py</code></li><li><code>app.py</code></li></ul>
+          <p>Implementation evidence:</p><ul><li><code>src/core/state/repository<em>state</em>manager.py::RepositoryStateManager.<strong>init</strong></code></li><li><code>app.py::run_app</code></li></ul>
           <p class="origin">spec/oft/generated/coverage.md:35</p>
           <div class="out">
             <h6>Out: 1</h6>
@@ -4015,7 +4015,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
         <details>
           <summary title="impl~ring5.workspace.reset~1"><span class="green">&check;</span> <b>Clear and reset session — implementation</b><small>, rev. 1, impl</small></summary>
           <p class="id">impl~ring5.workspace.reset~1</p>
-          <p>Implementation evidence:</p><ul><li><code>app.py</code></li><li><code>src/core/state/repository<em>state</em>manager.py</code></li></ul>
+          <p>Implementation evidence:</p><ul><li><code>app.py::run_app</code></li><li><code>src/core/state/repository<em>state_manager.py::RepositoryStateManager.clear</em>data</code></li></ul>
           <p class="origin">spec/oft/generated/coverage.md:60</p>
           <div class="out">
             <h6>Out: 1</h6>
@@ -4085,7 +4085,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
         <details>
           <summary title="impl~ring5.workspace.application-data-directory~1"><span class="green">&check;</span> <b>Configurable application-data directory — implementation</b><small>, rev. 1, impl</small></summary>
           <p class="id">impl~ring5.workspace.application-data-directory~1</p>
-          <p>Implementation evidence:</p><ul><li><code>src/core/services/data<em>services/path</em>service.py</code></li></ul>
+          <p>Implementation evidence:</p><ul><li><code>src/core/services/data<em>services/path_service.py::PathService.get_data</em>dir</code></li></ul>
           <p class="origin">spec/oft/generated/coverage.md:1535</p>
           <div class="out">
             <h6>Out: 1</h6>
@@ -4687,7 +4687,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
         <details>
           <summary title="impl~ring5.workspace.documentation-hub~1"><span class="green">&check;</span> <b>In-application documentation hub — implementation</b><small>, rev. 1, impl</small></summary>
           <p class="id">impl~ring5.workspace.documentation-hub~1</p>
-          <p>Implementation evidence:</p><ul><li><code>src/web/pages/documentation.py</code></li></ul>
+          <p>Implementation evidence:</p><ul><li><code>src/web/pages/documentation.py::show<em>documentation</em>page</code></li></ul>
           <p class="origin">spec/oft/generated/coverage.md:73</p>
           <div class="out">
             <h6>Out: 1</h6>
@@ -4967,7 +4967,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
         <details>
           <summary title="impl~ring5.workspace.navigation~1"><span class="green">&check;</span> <b>Page navigation — implementation</b><small>, rev. 1, impl</small></summary>
           <p class="id">impl~ring5.workspace.navigation~1</p>
-          <p>Implementation evidence:</p><ul><li><code>app.py::<em>NAV</em>OPTIONS</code></li></ul>
+          <p>Implementation evidence:</p><ul><li><code>app.py::run_app</code></li></ul>
           <p class="origin">spec/oft/generated/coverage.md:23</p>
           <div class="out">
             <h6>Out: 1</h6>
@@ -5947,7 +5947,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
         <details>
           <summary title="impl~ring5.workspace.data-preview~1"><span class="green">&check;</span> <b>Workspace data metrics — implementation</b><small>, rev. 1, impl</small></summary>
           <p class="id">impl~ring5.workspace.data-preview~1</p>
-          <p>Implementation evidence:</p><ul><li><code>app.py::<em>data_preview</em>fragment</code></li></ul>
+          <p>Implementation evidence:</p><ul><li><code>app.py::run<em>app._data_preview</em>fragment</code></li></ul>
           <p class="origin">spec/oft/generated/coverage.md:48</p>
           <div class="out">
             <h6>Out: 1</h6>
@@ -5967,6 +5967,123 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
             <h6>Out: 1</h6>
             <ul>
               <li><a href="#req~ring5.ingestion.gem5-backend~1">req~ring5.ingestion.gem5-backend~1</a> <span class="origin">spec/oft/generated/requirements.md:182</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="impl~ring5.workspace.application-data-directory-875187704~0">
+        <details>
+          <summary title="impl~ring5.workspace.application-data-directory-875187704~0"><span class="green">&check;</span> <b>ring5.workspace.application-data-directory-875187704</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.workspace.application-data-directory-875187704~0</p>
+          <p class="origin">src/core/services/data_services/path_service.py:38</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.workspace.application-data-directory~1">req~ring5.workspace.application-data-directory~1</a> <span class="origin">spec/oft/generated/requirements.md:96</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="impl~ring5.workspace.data-preview-1392542517~0">
+        <details>
+          <summary title="impl~ring5.workspace.data-preview-1392542517~0"><span class="green">&check;</span> <b>ring5.workspace.data-preview-1392542517</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.workspace.data-preview-1392542517~0</p>
+          <p class="origin">app.py:117</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.workspace.data-preview~1">req~ring5.workspace.data-preview~1</a> <span class="origin">spec/oft/generated/requirements.md:54</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="impl~ring5.workspace.documentation-hub-3291393085~0">
+        <details>
+          <summary title="impl~ring5.workspace.documentation-hub-3291393085~0"><span class="green">&check;</span> <b>ring5.workspace.documentation-hub-3291393085</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.workspace.documentation-hub-3291393085~0</p>
+          <p class="origin">src/web/pages/documentation.py:41</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.workspace.documentation-hub~1">req~ring5.workspace.documentation-hub~1</a> <span class="origin">spec/oft/generated/requirements.md:82</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="impl~ring5.workspace.navigation-779318393~0">
+        <details>
+          <summary title="impl~ring5.workspace.navigation-779318393~0"><span class="green">&check;</span> <b>ring5.workspace.navigation-779318393</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.workspace.navigation-779318393~0</p>
+          <p class="origin">app.py:65</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.workspace.navigation~1">req~ring5.workspace.navigation~1</a> <span class="origin">spec/oft/generated/requirements.md:26</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="impl~ring5.workspace.reset-2530841423~0">
+        <details>
+          <summary title="impl~ring5.workspace.reset-2530841423~0"><span class="green">&check;</span> <b>ring5.workspace.reset-2530841423</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.workspace.reset-2530841423~0</p>
+          <p class="origin">src/core/state/repository_state_manager.py:78</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.workspace.reset~1">req~ring5.workspace.reset~1</a> <span class="origin">spec/oft/generated/requirements.md:68</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="impl~ring5.workspace.reset-2553719468~0">
+        <details>
+          <summary title="impl~ring5.workspace.reset-2553719468~0"><span class="green">&check;</span> <b>ring5.workspace.reset-2553719468</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.workspace.reset-2553719468~0</p>
+          <p class="origin">app.py:92</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.workspace.reset~1">req~ring5.workspace.reset~1</a> <span class="origin">spec/oft/generated/requirements.md:68</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="impl~ring5.workspace.session-isolation-1510246407~0">
+        <details>
+          <summary title="impl~ring5.workspace.session-isolation-1510246407~0"><span class="green">&check;</span> <b>ring5.workspace.session-isolation-1510246407</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.workspace.session-isolation-1510246407~0</p>
+          <p class="origin">app.py:53</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.workspace.session-isolation~1">req~ring5.workspace.session-isolation~1</a> <span class="origin">spec/oft/generated/requirements.md:40</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="impl~ring5.workspace.session-isolation-16932950~0">
+        <details>
+          <summary title="impl~ring5.workspace.session-isolation-16932950~0"><span class="green">&check;</span> <b>ring5.workspace.session-isolation-16932950</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.workspace.session-isolation-16932950~0</p>
+          <p class="origin">src/core/state/repository_state_manager.py:37</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.workspace.session-isolation~1">req~ring5.workspace.session-isolation~1</a> <span class="origin">spec/oft/generated/requirements.md:40</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="impl~ring5.workspace.web-app-473113226~0">
+        <details>
+          <summary title="impl~ring5.workspace.web-app-473113226~0"><span class="green">&check;</span> <b>ring5.workspace.web-app-473113226</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.workspace.web-app-473113226~0</p>
+          <p class="origin">app.py:16</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.workspace.web-app~1">req~ring5.workspace.web-app~1</a> <span class="origin">spec/oft/generated/requirements.md:12</span></li>
             </ul>
           </div>
         </details>
@@ -6235,10 +6352,14 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <h6>Needs: impl, test, uman</h6>
           <p class="origin">spec/oft/generated/requirements.md:40</p>
           <div class="in">
-            <h6>In: 3</h6>
+            <h6>In: 7</h6>
             <ul>
+              <li><a href="#impl~ring5.workspace.session-isolation-1510246407~0">impl~ring5.workspace.session-isolation-1510246407~0</a> <span class="origin">app.py:53</span></li>
+              <li><a href="#impl~ring5.workspace.session-isolation-16932950~0">impl~ring5.workspace.session-isolation-16932950~0</a> <span class="origin">src/core/state/repository_state_manager.py:37</span></li>
               <li><a href="#impl~ring5.workspace.session-isolation~1">impl~ring5.workspace.session-isolation~1</a> <span class="origin">spec/oft/generated/coverage.md:35</span></li>
+              <li><a href="#test~ring5.workspace.session-isolation-3554749424~0">test~ring5.workspace.session-isolation-3554749424~0</a> <span class="origin">tests/e2e/test_session_isolation.py:26</span></li>
               <li><a href="#test~ring5.workspace.session-isolation~1">test~ring5.workspace.session-isolation~1</a> <span class="origin">spec/oft/generated/coverage.md:2004</span></li>
+              <li><a href="#uman~ring5.workspace.session-isolation.documentation~1">uman~ring5.workspace.session-isolation.documentation~1</a> <span class="origin">docs/developer-guide/api-reference/state-manager.md:16</span></li>
               <li><a href="#uman~ring5.workspace.session-isolation~1">uman~ring5.workspace.session-isolation~1</a> <span class="origin">spec/oft/generated/coverage.md:3920</span></li>
             </ul>
           </div>
@@ -6396,10 +6517,14 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <h6>Needs: impl, test, uman</h6>
           <p class="origin">spec/oft/generated/requirements.md:68</p>
           <div class="in">
-            <h6>In: 3</h6>
+            <h6>In: 7</h6>
             <ul>
+              <li><a href="#impl~ring5.workspace.reset-2530841423~0">impl~ring5.workspace.reset-2530841423~0</a> <span class="origin">src/core/state/repository_state_manager.py:78</span></li>
+              <li><a href="#impl~ring5.workspace.reset-2553719468~0">impl~ring5.workspace.reset-2553719468~0</a> <span class="origin">app.py:92</span></li>
               <li><a href="#impl~ring5.workspace.reset~1">impl~ring5.workspace.reset~1</a> <span class="origin">spec/oft/generated/coverage.md:60</span></li>
+              <li><a href="#test~ring5.workspace.reset-3496616399~0">test~ring5.workspace.reset-3496616399~0</a> <span class="origin">tests/ui/test_e2e_data_loaded.py:173</span></li>
               <li><a href="#test~ring5.workspace.reset~1">test~ring5.workspace.reset~1</a> <span class="origin">spec/oft/generated/coverage.md:2028</span></li>
+              <li><a href="#uman~ring5.workspace.reset.documentation~1">uman~ring5.workspace.reset.documentation~1</a> <span class="origin">docs/user-guide/getting-started/concepts.md:13</span></li>
               <li><a href="#uman~ring5.workspace.reset~1">uman~ring5.workspace.reset~1</a> <span class="origin">spec/oft/generated/coverage.md:3944</span></li>
             </ul>
           </div>
@@ -6511,10 +6636,13 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <h6>Needs: impl, test, uman</h6>
           <p class="origin">spec/oft/generated/requirements.md:96</p>
           <div class="in">
-            <h6>In: 3</h6>
+            <h6>In: 6</h6>
             <ul>
+              <li><a href="#impl~ring5.workspace.application-data-directory-875187704~0">impl~ring5.workspace.application-data-directory-875187704~0</a> <span class="origin">src/core/services/data_services/path_service.py:38</span></li>
               <li><a href="#impl~ring5.workspace.application-data-directory~1">impl~ring5.workspace.application-data-directory~1</a> <span class="origin">spec/oft/generated/coverage.md:1535</span></li>
+              <li><a href="#test~ring5.workspace.application-data-directory-1632275387~0">test~ring5.workspace.application-data-directory-1632275387~0</a> <span class="origin">tests/unit/test_parsing_services.py:249</span></li>
               <li><a href="#test~ring5.workspace.application-data-directory~1">test~ring5.workspace.application-data-directory~1</a> <span class="origin">spec/oft/generated/coverage.md:3468</span></li>
+              <li><a href="#uman~ring5.workspace.application-data-directory.documentation~1">uman~ring5.workspace.application-data-directory.documentation~1</a> <span class="origin">docs/user-guide/workflows/portfolios.md:16</span></li>
               <li><a href="#uman~ring5.workspace.application-data-directory~1">uman~ring5.workspace.application-data-directory~1</a> <span class="origin">spec/oft/generated/coverage.md:5384</span></li>
             </ul>
           </div>
@@ -7500,10 +7628,13 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <h6>Needs: impl, test, uman</h6>
           <p class="origin">spec/oft/generated/requirements.md:82</p>
           <div class="in">
-            <h6>In: 3</h6>
+            <h6>In: 6</h6>
             <ul>
+              <li><a href="#impl~ring5.workspace.documentation-hub-3291393085~0">impl~ring5.workspace.documentation-hub-3291393085~0</a> <span class="origin">src/web/pages/documentation.py:41</span></li>
               <li><a href="#impl~ring5.workspace.documentation-hub~1">impl~ring5.workspace.documentation-hub~1</a> <span class="origin">spec/oft/generated/coverage.md:73</span></li>
+              <li><a href="#test~ring5.workspace.documentation-hub-1542230543~0">test~ring5.workspace.documentation-hub-1542230543~0</a> <span class="origin">tests/ui_unit/test_documentation_page.py:45</span></li>
               <li><a href="#test~ring5.workspace.documentation-hub~1">test~ring5.workspace.documentation-hub~1</a> <span class="origin">spec/oft/generated/coverage.md:2040</span></li>
+              <li><a href="#uman~ring5.workspace.documentation-hub.documentation~1">uman~ring5.workspace.documentation-hub.documentation~1</a> <span class="origin">docs/index.md:11</span></li>
               <li><a href="#uman~ring5.workspace.documentation-hub~1">uman~ring5.workspace.documentation-hub~1</a> <span class="origin">spec/oft/generated/coverage.md:3956</span></li>
             </ul>
           </div>
@@ -7960,10 +8091,13 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <h6>Needs: impl, test, uman</h6>
           <p class="origin">spec/oft/generated/requirements.md:26</p>
           <div class="in">
-            <h6>In: 3</h6>
+            <h6>In: 6</h6>
             <ul>
+              <li><a href="#impl~ring5.workspace.navigation-779318393~0">impl~ring5.workspace.navigation-779318393~0</a> <span class="origin">app.py:65</span></li>
               <li><a href="#impl~ring5.workspace.navigation~1">impl~ring5.workspace.navigation~1</a> <span class="origin">spec/oft/generated/coverage.md:23</span></li>
+              <li><a href="#test~ring5.workspace.navigation-3699793864~0">test~ring5.workspace.navigation-3699793864~0</a> <span class="origin">tests/visual/test_navigation.py:28</span></li>
               <li><a href="#test~ring5.workspace.navigation~1">test~ring5.workspace.navigation~1</a> <span class="origin">spec/oft/generated/coverage.md:1992</span></li>
+              <li><a href="#uman~ring5.workspace.navigation.documentation~1">uman~ring5.workspace.navigation.documentation~1</a> <span class="origin">docs/user-guide/workflows/index.md:16</span></li>
               <li><a href="#uman~ring5.workspace.navigation~1">uman~ring5.workspace.navigation~1</a> <span class="origin">spec/oft/generated/coverage.md:3908</span></li>
             </ul>
           </div>
@@ -9363,10 +9497,13 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <h6>Needs: impl, test, uman</h6>
           <p class="origin">spec/oft/generated/requirements.md:12</p>
           <div class="in">
-            <h6>In: 3</h6>
+            <h6>In: 6</h6>
             <ul>
+              <li><a href="#impl~ring5.workspace.web-app-473113226~0">impl~ring5.workspace.web-app-473113226~0</a> <span class="origin">app.py:16</span></li>
               <li><a href="#impl~ring5.workspace.web-app~1">impl~ring5.workspace.web-app~1</a> <span class="origin">spec/oft/generated/coverage.md:11</span></li>
+              <li><a href="#test~ring5.workspace.web-app-986946547~0">test~ring5.workspace.web-app-986946547~0</a> <span class="origin">tests/ui/test_ui_sanity.py:13</span></li>
               <li><a href="#test~ring5.workspace.web-app~1">test~ring5.workspace.web-app~1</a> <span class="origin">spec/oft/generated/coverage.md:1980</span></li>
+              <li><a href="#uman~ring5.workspace.web-app.documentation~1">uman~ring5.workspace.web-app.documentation~1</a> <span class="origin">docs/user-guide/index.md:14</span></li>
               <li><a href="#uman~ring5.workspace.web-app~1">uman~ring5.workspace.web-app~1</a> <span class="origin">spec/oft/generated/coverage.md:3896</span></li>
             </ul>
           </div>
@@ -9570,10 +9707,13 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <h6>Needs: impl, test, uman</h6>
           <p class="origin">spec/oft/generated/requirements.md:54</p>
           <div class="in">
-            <h6>In: 3</h6>
+            <h6>In: 6</h6>
             <ul>
+              <li><a href="#impl~ring5.workspace.data-preview-1392542517~0">impl~ring5.workspace.data-preview-1392542517~0</a> <span class="origin">app.py:117</span></li>
               <li><a href="#impl~ring5.workspace.data-preview~1">impl~ring5.workspace.data-preview~1</a> <span class="origin">spec/oft/generated/coverage.md:48</span></li>
+              <li><a href="#test~ring5.workspace.data-preview-1477740443~0">test~ring5.workspace.data-preview-1477740443~0</a> <span class="origin">tests/ui/test_e2e_data_loaded.py:159</span></li>
               <li><a href="#test~ring5.workspace.data-preview~1">test~ring5.workspace.data-preview~1</a> <span class="origin">spec/oft/generated/coverage.md:2016</span></li>
+              <li><a href="#uman~ring5.workspace.data-preview.documentation~1">uman~ring5.workspace.data-preview.documentation~1</a> <span class="origin">docs/user-guide/getting-started/first-analysis.md:17</span></li>
               <li><a href="#uman~ring5.workspace.data-preview~1">uman~ring5.workspace.data-preview~1</a> <span class="origin">spec/oft/generated/coverage.md:3932</span></li>
             </ul>
           </div>
@@ -9769,7 +9909,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
         <details>
           <summary title="test~ring5.workspace.session-isolation~1"><span class="green">&check;</span> <b>Browser-session isolation — verification</b><small>, rev. 1, test</small></summary>
           <p class="id">test~ring5.workspace.session-isolation~1</p>
-          <p>Verification evidence:</p><ul><li><code>tests/e2e/test<em>session</em>isolation.py</code></li></ul>
+          <p>Verification evidence:</p><ul><li><code>tests/e2e/test<em>session_isolation.py::test_browser_sessions_keep_data_plots_and_reset</em>isolated</code></li></ul>
           <p class="origin">spec/oft/generated/coverage.md:2004</p>
           <div class="out">
             <h6>Out: 1</h6>
@@ -9867,7 +10007,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
         <details>
           <summary title="test~ring5.workspace.reset~1"><span class="green">&check;</span> <b>Clear and reset session — verification</b><small>, rev. 1, test</small></summary>
           <p class="id">test~ring5.workspace.reset~1</p>
-          <p>Verification evidence:</p><ul><li><code>tests/ui/test<em>e2e_data</em>loaded.py</code></li></ul>
+          <p>Verification evidence:</p><ul><li><code>tests/ui/test<em>e2e_data_loaded.py::TestSidebarWithData.test_clear_data_button_clears</em>state</code></li></ul>
           <p class="origin">spec/oft/generated/coverage.md:2028</p>
           <div class="out">
             <h6>Out: 1</h6>
@@ -9937,7 +10077,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
         <details>
           <summary title="test~ring5.workspace.application-data-directory~1"><span class="green">&check;</span> <b>Configurable application-data directory — verification</b><small>, rev. 1, test</small></summary>
           <p class="id">test~ring5.workspace.application-data-directory~1</p>
-          <p>Verification evidence:</p><ul><li><code>tests/unit/test<em>parsing</em>services.py</code></li></ul>
+          <p>Verification evidence:</p><ul><li><code>tests/unit/test<em>parsing_services.py::TestPathService.test_get_data_dir_creates</em>directory</code></li></ul>
           <p class="origin">spec/oft/generated/coverage.md:3468</p>
           <div class="out">
             <h6>Out: 1</h6>
@@ -10539,7 +10679,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
         <details>
           <summary title="test~ring5.workspace.documentation-hub~1"><span class="green">&check;</span> <b>In-application documentation hub — verification</b><small>, rev. 1, test</small></summary>
           <p class="id">test~ring5.workspace.documentation-hub~1</p>
-          <p>Verification evidence:</p><ul><li><code>tests/ui<em>unit/test_documentation</em>page.py</code></li></ul>
+          <p>Verification evidence:</p><ul><li><code>tests/ui<em>unit/test_documentation_page.py::TestShowDocumentationPage.test_renders_two_guide</em>sections</code></li></ul>
           <p class="origin">spec/oft/generated/coverage.md:2040</p>
           <div class="out">
             <h6>Out: 1</h6>
@@ -10819,7 +10959,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
         <details>
           <summary title="test~ring5.workspace.navigation~1"><span class="green">&check;</span> <b>Page navigation — verification</b><small>, rev. 1, test</small></summary>
           <p class="id">test~ring5.workspace.navigation~1</p>
-          <p>Verification evidence:</p><ul><li><code>tests/visual/test_navigation.py</code></li></ul>
+          <p>Verification evidence:</p><ul><li><code>tests/visual/test<em>navigation.py::TestNavigationWorkflow.test_navigate_all_pages_and</em>return</code></li></ul>
           <p class="origin">spec/oft/generated/coverage.md:1992</p>
           <div class="out">
             <h6>Out: 1</h6>
@@ -11673,7 +11813,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
         <details>
           <summary title="test~ring5.workspace.web-app~1"><span class="green">&check;</span> <b>Streamlit analysis workspace — verification</b><small>, rev. 1, test</small></summary>
           <p class="id">test~ring5.workspace.web-app~1</p>
-          <p>Verification evidence:</p><ul><li><code>tests/ui/test<em>ui</em>sanity.py</code></li></ul>
+          <p>Verification evidence:</p><ul><li><code>tests/ui/test<em>ui_sanity.py::TestUISanity.test_app</em>startup</code></li></ul>
           <p class="origin">spec/oft/generated/coverage.md:1980</p>
           <div class="out">
             <h6>Out: 1</h6>
@@ -11799,7 +11939,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
         <details>
           <summary title="test~ring5.workspace.data-preview~1"><span class="green">&check;</span> <b>Workspace data metrics — verification</b><small>, rev. 1, test</small></summary>
           <p class="id">test~ring5.workspace.data-preview~1</p>
-          <p>Verification evidence:</p><ul><li><code>tests/ui/test<em>e2e_data</em>loaded.py</code></li></ul>
+          <p>Verification evidence:</p><ul><li><code>tests/ui/test<em>e2e_data_loaded.py::TestSidebarWithData.test_data_preview_metrics</em>shown</code></li></ul>
           <p class="origin">spec/oft/generated/coverage.md:2016</p>
           <div class="out">
             <h6>Out: 1</h6>
@@ -11819,6 +11959,97 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
             <h6>Out: 1</h6>
             <ul>
               <li><a href="#req~ring5.ingestion.gem5-backend~1">req~ring5.ingestion.gem5-backend~1</a> <span class="origin">spec/oft/generated/requirements.md:182</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="test~ring5.workspace.application-data-directory-1632275387~0">
+        <details>
+          <summary title="test~ring5.workspace.application-data-directory-1632275387~0"><span class="green">&check;</span> <b>ring5.workspace.application-data-directory-1632275387</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.workspace.application-data-directory-1632275387~0</p>
+          <p class="origin">tests/unit/test_parsing_services.py:249</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.workspace.application-data-directory~1">req~ring5.workspace.application-data-directory~1</a> <span class="origin">spec/oft/generated/requirements.md:96</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="test~ring5.workspace.data-preview-1477740443~0">
+        <details>
+          <summary title="test~ring5.workspace.data-preview-1477740443~0"><span class="green">&check;</span> <b>ring5.workspace.data-preview-1477740443</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.workspace.data-preview-1477740443~0</p>
+          <p class="origin">tests/ui/test_e2e_data_loaded.py:159</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.workspace.data-preview~1">req~ring5.workspace.data-preview~1</a> <span class="origin">spec/oft/generated/requirements.md:54</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="test~ring5.workspace.documentation-hub-1542230543~0">
+        <details>
+          <summary title="test~ring5.workspace.documentation-hub-1542230543~0"><span class="green">&check;</span> <b>ring5.workspace.documentation-hub-1542230543</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.workspace.documentation-hub-1542230543~0</p>
+          <p class="origin">tests/ui_unit/test_documentation_page.py:45</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.workspace.documentation-hub~1">req~ring5.workspace.documentation-hub~1</a> <span class="origin">spec/oft/generated/requirements.md:82</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="test~ring5.workspace.navigation-3699793864~0">
+        <details>
+          <summary title="test~ring5.workspace.navigation-3699793864~0"><span class="green">&check;</span> <b>ring5.workspace.navigation-3699793864</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.workspace.navigation-3699793864~0</p>
+          <p class="origin">tests/visual/test_navigation.py:28</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.workspace.navigation~1">req~ring5.workspace.navigation~1</a> <span class="origin">spec/oft/generated/requirements.md:26</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="test~ring5.workspace.reset-3496616399~0">
+        <details>
+          <summary title="test~ring5.workspace.reset-3496616399~0"><span class="green">&check;</span> <b>ring5.workspace.reset-3496616399</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.workspace.reset-3496616399~0</p>
+          <p class="origin">tests/ui/test_e2e_data_loaded.py:173</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.workspace.reset~1">req~ring5.workspace.reset~1</a> <span class="origin">spec/oft/generated/requirements.md:68</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="test~ring5.workspace.session-isolation-3554749424~0">
+        <details>
+          <summary title="test~ring5.workspace.session-isolation-3554749424~0"><span class="green">&check;</span> <b>ring5.workspace.session-isolation-3554749424</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.workspace.session-isolation-3554749424~0</p>
+          <p class="origin">tests/e2e/test_session_isolation.py:26</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.workspace.session-isolation~1">req~ring5.workspace.session-isolation~1</a> <span class="origin">spec/oft/generated/requirements.md:40</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="test~ring5.workspace.web-app-986946547~0">
+        <details>
+          <summary title="test~ring5.workspace.web-app-986946547~0"><span class="green">&check;</span> <b>ring5.workspace.web-app-986946547</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.workspace.web-app-986946547~0</p>
+          <p class="origin">tests/ui/test_ui_sanity.py:13</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.workspace.web-app~1">req~ring5.workspace.web-app~1</a> <span class="origin">spec/oft/generated/requirements.md:12</span></li>
             </ul>
           </div>
         </details>
@@ -11984,7 +12215,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
         <details>
           <summary title="uman~ring5.workspace.session-isolation~1"><span class="green">&check;</span> <b>Browser-session isolation — user documentation</b><small>, rev. 1, uman</small></summary>
           <p class="id">uman~ring5.workspace.session-isolation~1</p>
-          <p>User documentation evidence:</p><ul><li><code>docs/developer-guide/api-reference/state-manager.md</code></li></ul>
+          <p>User documentation evidence:</p><ul><li><code>docs/developer-guide/api-reference/state-manager.md#state-manager</code></li></ul>
           <p class="origin">spec/oft/generated/coverage.md:3920</p>
           <div class="out">
             <h6>Out: 1</h6>
@@ -12082,7 +12313,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
         <details>
           <summary title="uman~ring5.workspace.reset~1"><span class="green">&check;</span> <b>Clear and reset session — user documentation</b><small>, rev. 1, uman</small></summary>
           <p class="id">uman~ring5.workspace.reset~1</p>
-          <p>User documentation evidence:</p><ul><li><code>docs/user-guide/getting-started/concepts.md</code></li></ul>
+          <p>User documentation evidence:</p><ul><li><code>docs/user-guide/getting-started/concepts.md#core-concepts</code></li></ul>
           <p class="origin">spec/oft/generated/coverage.md:3944</p>
           <div class="out">
             <h6>Out: 1</h6>
@@ -12152,7 +12383,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
         <details>
           <summary title="uman~ring5.workspace.application-data-directory~1"><span class="green">&check;</span> <b>Configurable application-data directory — user documentation</b><small>, rev. 1, uman</small></summary>
           <p class="id">uman~ring5.workspace.application-data-directory~1</p>
-          <p>User documentation evidence:</p><ul><li><code>docs/user-guide/workflows/portfolios.md</code></li></ul>
+          <p>User documentation evidence:</p><ul><li><code>docs/user-guide/workflows/portfolios.md#manage-portfolios</code></li></ul>
           <p class="origin">spec/oft/generated/coverage.md:5384</p>
           <div class="out">
             <h6>Out: 1</h6>
@@ -12754,7 +12985,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
         <details>
           <summary title="uman~ring5.workspace.documentation-hub~1"><span class="green">&check;</span> <b>In-application documentation hub — user documentation</b><small>, rev. 1, uman</small></summary>
           <p class="id">uman~ring5.workspace.documentation-hub~1</p>
-          <p>User documentation evidence:</p><ul><li><code>docs/index.md</code></li></ul>
+          <p>User documentation evidence:</p><ul><li><code>docs/index.md#ring-5-documentation</code></li></ul>
           <p class="origin">spec/oft/generated/coverage.md:3956</p>
           <div class="out">
             <h6>Out: 1</h6>
@@ -13034,7 +13265,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
         <details>
           <summary title="uman~ring5.workspace.navigation~1"><span class="green">&check;</span> <b>Page navigation — user documentation</b><small>, rev. 1, uman</small></summary>
           <p class="id">uman~ring5.workspace.navigation~1</p>
-          <p>User documentation evidence:</p><ul><li><code>docs/user-guide/workflows/index.md</code></li></ul>
+          <p>User documentation evidence:</p><ul><li><code>docs/user-guide/workflows/index.md#workflows</code></li></ul>
           <p class="origin">spec/oft/generated/coverage.md:3908</p>
           <div class="out">
             <h6>Out: 1</h6>
@@ -13888,7 +14119,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
         <details>
           <summary title="uman~ring5.workspace.web-app~1"><span class="green">&check;</span> <b>Streamlit analysis workspace — user documentation</b><small>, rev. 1, uman</small></summary>
           <p class="id">uman~ring5.workspace.web-app~1</p>
-          <p>User documentation evidence:</p><ul><li><code>docs/user-guide/index.md</code></li></ul>
+          <p>User documentation evidence:</p><ul><li><code>docs/user-guide/index.md#user-guide</code></li></ul>
           <p class="origin">spec/oft/generated/coverage.md:3896</p>
           <div class="out">
             <h6>Out: 1</h6>
@@ -14014,7 +14245,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
         <details>
           <summary title="uman~ring5.workspace.data-preview~1"><span class="green">&check;</span> <b>Workspace data metrics — user documentation</b><small>, rev. 1, uman</small></summary>
           <p class="id">uman~ring5.workspace.data-preview~1</p>
-          <p>User documentation evidence:</p><ul><li><code>docs/user-guide/getting-started/first-analysis.md</code></li></ul>
+          <p>User documentation evidence:</p><ul><li><code>docs/user-guide/getting-started/first-analysis.md#first-analysis</code></li></ul>
           <p class="origin">spec/oft/generated/coverage.md:3932</p>
           <div class="out">
             <h6>Out: 1</h6>
@@ -14038,10 +14269,101 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
+      <section class="sitem" id="uman~ring5.workspace.application-data-directory.documentation~1">
+        <details>
+          <summary title="uman~ring5.workspace.application-data-directory.documentation~1"><span class="green">&check;</span> <b>ring5.workspace.application-data-directory.documentation</b><small>, rev. 1, uman</small></summary>
+          <p class="id">uman~ring5.workspace.application-data-directory.documentation~1</p>
+          <p class="origin">docs/user-guide/workflows/portfolios.md:16</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.workspace.application-data-directory~1">req~ring5.workspace.application-data-directory~1</a> <span class="origin">spec/oft/generated/requirements.md:96</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="uman~ring5.workspace.data-preview.documentation~1">
+        <details>
+          <summary title="uman~ring5.workspace.data-preview.documentation~1"><span class="green">&check;</span> <b>ring5.workspace.data-preview.documentation</b><small>, rev. 1, uman</small></summary>
+          <p class="id">uman~ring5.workspace.data-preview.documentation~1</p>
+          <p class="origin">docs/user-guide/getting-started/first-analysis.md:17</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.workspace.data-preview~1">req~ring5.workspace.data-preview~1</a> <span class="origin">spec/oft/generated/requirements.md:54</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="uman~ring5.workspace.documentation-hub.documentation~1">
+        <details>
+          <summary title="uman~ring5.workspace.documentation-hub.documentation~1"><span class="green">&check;</span> <b>ring5.workspace.documentation-hub.documentation</b><small>, rev. 1, uman</small></summary>
+          <p class="id">uman~ring5.workspace.documentation-hub.documentation~1</p>
+          <p class="origin">docs/index.md:11</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.workspace.documentation-hub~1">req~ring5.workspace.documentation-hub~1</a> <span class="origin">spec/oft/generated/requirements.md:82</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="uman~ring5.workspace.navigation.documentation~1">
+        <details>
+          <summary title="uman~ring5.workspace.navigation.documentation~1"><span class="green">&check;</span> <b>ring5.workspace.navigation.documentation</b><small>, rev. 1, uman</small></summary>
+          <p class="id">uman~ring5.workspace.navigation.documentation~1</p>
+          <p class="origin">docs/user-guide/workflows/index.md:16</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.workspace.navigation~1">req~ring5.workspace.navigation~1</a> <span class="origin">spec/oft/generated/requirements.md:26</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="uman~ring5.workspace.reset.documentation~1">
+        <details>
+          <summary title="uman~ring5.workspace.reset.documentation~1"><span class="green">&check;</span> <b>ring5.workspace.reset.documentation</b><small>, rev. 1, uman</small></summary>
+          <p class="id">uman~ring5.workspace.reset.documentation~1</p>
+          <p class="origin">docs/user-guide/getting-started/concepts.md:13</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.workspace.reset~1">req~ring5.workspace.reset~1</a> <span class="origin">spec/oft/generated/requirements.md:68</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="uman~ring5.workspace.session-isolation.documentation~1">
+        <details>
+          <summary title="uman~ring5.workspace.session-isolation.documentation~1"><span class="green">&check;</span> <b>ring5.workspace.session-isolation.documentation</b><small>, rev. 1, uman</small></summary>
+          <p class="id">uman~ring5.workspace.session-isolation.documentation~1</p>
+          <p class="origin">docs/developer-guide/api-reference/state-manager.md:16</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.workspace.session-isolation~1">req~ring5.workspace.session-isolation~1</a> <span class="origin">spec/oft/generated/requirements.md:40</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="uman~ring5.workspace.web-app.documentation~1">
+        <details>
+          <summary title="uman~ring5.workspace.web-app.documentation~1"><span class="green">&check;</span> <b>ring5.workspace.web-app.documentation</b><small>, rev. 1, uman</small></summary>
+          <p class="id">uman~ring5.workspace.web-app.documentation~1</p>
+          <p class="origin">docs/user-guide/index.md:14</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.workspace.web-app~1">req~ring5.workspace.web-app~1</a> <span class="origin">spec/oft/generated/requirements.md:12</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
     </section>
   </main>
   <nav>
-    <span class="green">&check;</span> 644 total <meter value="644" max="644">100%</meter> | <a href="#feat">feat</a> &middot; <a href="#impl">impl</a> &middot; <a href="#req">req</a> &middot; <a href="#test">test</a> &middot; <a href="#uman">uman</a>  </nav>
+    <span class="green">&check;</span> 667 total <meter value="667" max="667">100%</meter> | <a href="#feat">feat</a> &middot; <a href="#impl">impl</a> &middot; <a href="#req">req</a> &middot; <a href="#test">test</a> &middot; <a href="#uman">uman</a>  </nav>
   
 <script>
 (() => {

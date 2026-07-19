@@ -86,8 +86,8 @@
       "tags": ["streamlit", "web", "workspace"],
       "evidence": {
         "implementation": ["app.py::run_app"],
-        "tests": ["tests/ui/test_ui_sanity.py"],
-        "documentation": ["docs/user-guide/index.md"]
+        "tests": ["tests/ui/test_ui_sanity.py::TestUISanity.test_app_startup"],
+        "documentation": ["docs/user-guide/index.md#user-guide"]
       }
     },
     {
@@ -99,9 +99,9 @@
       "description": "Users shall navigate between Data Source, Data Managers, Manage Plots, Save/Load Portfolio, and Documentation pages from the sidebar.",
       "tags": ["navigation", "web"],
       "evidence": {
-        "implementation": ["app.py::_NAV_OPTIONS"],
-        "tests": ["tests/visual/test_navigation.py"],
-        "documentation": ["docs/user-guide/workflows/index.md"]
+        "implementation": ["app.py::run_app"],
+        "tests": ["tests/visual/test_navigation.py::TestNavigationWorkflow.test_navigate_all_pages_and_return"],
+        "documentation": ["docs/user-guide/workflows/index.md#workflows"]
       }
     },
     {
@@ -113,9 +113,9 @@
       "description": "Each browser session shall own independent mutable data, parser, plot, preview, and history state while sharing only explicitly thread-safe process pools.",
       "tags": ["isolation", "state", "web"],
       "evidence": {
-        "implementation": ["src/core/state/repository_state_manager.py", "app.py"],
-        "tests": ["tests/e2e/test_session_isolation.py"],
-        "documentation": ["docs/developer-guide/api-reference/state-manager.md"]
+        "implementation": ["src/core/state/repository_state_manager.py::RepositoryStateManager.__init__", "app.py::run_app"],
+        "tests": ["tests/e2e/test_session_isolation.py::test_browser_sessions_keep_data_plots_and_reset_isolated"],
+        "documentation": ["docs/developer-guide/api-reference/state-manager.md#state-manager"]
       }
     },
     {
@@ -127,9 +127,9 @@
       "description": "When data is loaded, the workspace shall display its row count, column count, and source name.",
       "tags": ["data", "metrics", "web"],
       "evidence": {
-        "implementation": ["app.py::_data_preview_fragment"],
-        "tests": ["tests/ui/test_e2e_data_loaded.py"],
-        "documentation": ["docs/user-guide/getting-started/first-analysis.md"]
+        "implementation": ["app.py::run_app._data_preview_fragment"],
+        "tests": ["tests/ui/test_e2e_data_loaded.py::TestSidebarWithData.test_data_preview_metrics_shown"],
+        "documentation": ["docs/user-guide/getting-started/first-analysis.md#first-analysis"]
       }
     },
     {
@@ -141,9 +141,9 @@
       "description": "Users shall be able to clear loaded data, plots, and session state from the sidebar without affecting other browser sessions.",
       "tags": ["reset", "state", "web"],
       "evidence": {
-        "implementation": ["app.py", "src/core/state/repository_state_manager.py"],
-        "tests": ["tests/ui/test_e2e_data_loaded.py"],
-        "documentation": ["docs/user-guide/getting-started/concepts.md"]
+        "implementation": ["app.py::run_app", "src/core/state/repository_state_manager.py::RepositoryStateManager.clear_data"],
+        "tests": ["tests/ui/test_e2e_data_loaded.py::TestSidebarWithData.test_clear_data_button_clears_state"],
+        "documentation": ["docs/user-guide/getting-started/concepts.md#core-concepts"]
       }
     },
     {
@@ -155,9 +155,9 @@
       "description": "The application shall link users to canonical getting-started, workflow, guide, reference, and developer documentation.",
       "tags": ["documentation", "web"],
       "evidence": {
-        "implementation": ["src/web/pages/documentation.py"],
-        "tests": ["tests/ui_unit/test_documentation_page.py"],
-        "documentation": ["docs/index.md"]
+        "implementation": ["src/web/pages/documentation.py::show_documentation_page"],
+        "tests": ["tests/ui_unit/test_documentation_page.py::TestShowDocumentationPage.test_renders_two_guide_sections"],
+        "documentation": ["docs/index.md#ring-5-documentation"]
       }
     },
     {
@@ -1821,9 +1821,9 @@
       "description": "RING-5 shall keep CSV-pool, saved-configuration, and portfolio files below one application-data directory that defaults to .ring5 and can be redirected with RING5_DATA_DIR.",
       "tags": ["deployment", "persistence", "workspace"],
       "evidence": {
-        "implementation": ["src/core/services/data_services/path_service.py"],
-        "tests": ["tests/unit/test_parsing_services.py"],
-        "documentation": ["docs/user-guide/workflows/portfolios.md"]
+        "implementation": ["src/core/services/data_services/path_service.py::PathService.get_data_dir"],
+        "tests": ["tests/unit/test_parsing_services.py::TestPathService.test_get_data_dir_creates_directory"],
+        "documentation": ["docs/user-guide/workflows/portfolios.md#manage-portfolios"]
       }
     },
     {

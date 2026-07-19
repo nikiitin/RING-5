@@ -34,6 +34,7 @@ class RepositoryStateManager:
                 a ``PlotProtocol`` instance.  Forwarded to SessionRepository
                 so portfolio restoration never imports web-layer classes.
         """
+        # [impl->req~ring5.workspace.session-isolation~1]
         self._session_repo = SessionRepository(plot_deserializer=plot_deserializer)
 
     def initialize(self) -> None:
@@ -74,6 +75,7 @@ class RepositoryStateManager:
 
     def clear_data(self) -> None:
         """Clear data, plots, and temporary files owned by the session."""
+        # [impl->req~ring5.workspace.reset~1]
         temp_dir = self._session_repo.config_repo.get_temp_dir()
         if temp_dir and Path(temp_dir).exists():
             try:

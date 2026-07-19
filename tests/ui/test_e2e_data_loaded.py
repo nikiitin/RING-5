@@ -156,6 +156,7 @@ class TestSidebarWithData:
 
     def test_data_preview_metrics_shown(self) -> None:
         """Sidebar area should show Rows/Columns metrics."""
+        # [test->req~ring5.workspace.data-preview~1]
         at = create_app_with_data()
         # After first run with data, re-run to render header metrics
         at.run()
@@ -169,6 +170,7 @@ class TestSidebarWithData:
 
     def test_clear_data_button_clears_state(self) -> None:
         """Clicking Clear Data removes data from state."""
+        # [test->req~ring5.workspace.reset~1]
         at = create_app_with_data()
         at.run()
 

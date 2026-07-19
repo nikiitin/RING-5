@@ -38,6 +38,7 @@ def _card_grid(cards: Sequence[_Card]) -> None:
 
 def show_documentation_page() -> None:
     """Render the Documentation hub page."""
+    # [impl->req~ring5.workspace.documentation-hub~1]
     st.markdown("## Documentation")
     st.markdown(
         "Open the published User Guide for analysis tasks or the Developer Guide "

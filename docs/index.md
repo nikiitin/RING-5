@@ -7,6 +7,13 @@ permalink: /
 
 # RING-5 documentation
 
+<!--
+`uman~ring5.workspace.documentation-hub.documentation~1`
+
+Covers:
+- req~ring5.workspace.documentation-hub~1
+-->
+
 RING-5 turns gem5 statistics and CSV datasets into figures through a web application, Python API,
 or CLI.
 

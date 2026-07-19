@@ -9,6 +9,13 @@ permalink: /user-guide/getting-started/concepts/
 
 # Core concepts
 
+<!--
+`uman~ring5.workspace.reset.documentation~1`
+
+Covers:
+- req~ring5.workspace.reset~1
+-->
+
 RING-5 separates data preparation from per-figure shaping so one loaded dataset can support several
 figures without hidden mutation.
 

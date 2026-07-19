@@ -35,6 +35,7 @@ class PathService:
         environment variable when set, so tests (and sandboxes) can redirect all
         app data to an isolated location instead of the shared repo ``.ring5``.
         """
+        # [impl->req~ring5.workspace.application-data-directory~1]
         if PathService._data_dir is None:
             override = os.environ.get("RING5_DATA_DIR")
             PathService._data_dir = (

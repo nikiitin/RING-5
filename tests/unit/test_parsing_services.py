@@ -246,6 +246,7 @@ class TestPathService:
         assert root.exists()
 
     def test_get_data_dir_creates_directory(self, tmp_path: Path) -> None:
+        # [test->req~ring5.workspace.application-data-directory~1]
         with patch.object(PathService, "get_root_dir", return_value=tmp_path):
             data_dir = PathService.get_data_dir()
             assert data_dir.exists()

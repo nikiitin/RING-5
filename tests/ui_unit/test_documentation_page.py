@@ -42,6 +42,7 @@ class TestShowDocumentationPage:
 
     @patch("src.web.pages.documentation.st")
     def test_renders_two_guide_sections(self, mock_st: MagicMock) -> None:
+        # [test->req~ring5.workspace.documentation-hub~1]
         from src.web.pages.documentation import show_documentation_page
 
         mock_st.columns.return_value = [MagicMock(), MagicMock()]

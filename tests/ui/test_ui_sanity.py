@@ -10,6 +10,7 @@ class TestUISanity:
 
     def test_app_startup(self) -> None:
         """Test that the app starts without error."""
+        # [test->req~ring5.workspace.web-app~1]
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
 

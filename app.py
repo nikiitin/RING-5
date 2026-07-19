@@ -13,6 +13,7 @@ if str(root_dir) not in sys.path:
 
 def run_app() -> None:
     """Main application entry point."""
+    # [impl->req~ring5.workspace.web-app~1]
     # Lazy imports keep Streamlit out of multiprocessing workers that import app.py.
     import streamlit as st
 
@@ -49,6 +50,7 @@ def run_app() -> None:
     # The API owns mutable data, plots, parser configuration, and operation
     # history. Keep one workspace per browser session; only explicitly
     # thread-safe worker pools are shared process-wide.
+    # [impl->req~ring5.workspace.session-isolation~1]
     if "api" not in st.session_state:
         st.session_state.api = ApplicationAPI(plot_deserializer=PlotFactory.from_dict)
 
@@ -60,6 +62,7 @@ def run_app() -> None:
         st.caption("gem5 Analysis & Visualization")
         st.markdown("---")
 
+        # [impl->req~ring5.workspace.navigation~1]
         _NAV_OPTIONS = [
             "Data Source",
             "Data Managers",
@@ -86,6 +89,7 @@ def run_app() -> None:
 
         st.markdown("---")
 
+        # [impl->req~ring5.workspace.reset~1]
         if st.button(
             "Clear Data",
             use_container_width=True,
@@ -110,6 +114,7 @@ def run_app() -> None:
     # Data preview (fragment-wrapped — only reruns when its own widgets change).
     @st.fragment
     def _data_preview_fragment() -> None:
+        # [impl->req~ring5.workspace.data-preview~1]
         current_view = api.get_current_view()
 
         if current_view["raw_data"] is not None and not current_view["raw_data"].empty:

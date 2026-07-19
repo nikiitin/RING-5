@@ -10,6 +10,13 @@ redirect_from:
 
 # User Guide
 
+<!--
+`uman~ring5.workspace.web-app.documentation~1`
+
+Covers:
+- req~ring5.workspace.web-app~1
+-->
+
 Use RING-5 to parse gem5 statistics or open a CSV, prepare the resulting table, render plots, and
 save enough state to reproduce the work later. You can use the Streamlit application for
 interactive work and the `ring5` API or CLI for scripts and continuous integration.

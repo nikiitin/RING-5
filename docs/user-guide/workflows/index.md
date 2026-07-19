@@ -12,6 +12,13 @@ redirect_from:
 
 # Workflows
 
+<!--
+`uman~ring5.workspace.navigation.documentation~1`
+
+Covers:
+- req~ring5.workspace.navigation~1
+-->
+
 Use these pages for recurring tasks:
 
 - [Load and Parse Data](loading-data/) from a gem5 results tree or existing CSV.
