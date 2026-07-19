@@ -42,6 +42,7 @@ class BasePlot(PlotConfigUIMixin, ABC):
             name: Display name for the plot
             plot_type: Type of plot (bar, line, etc.)
         """
+        # [impl->req~ring5.plots.independent-state~1]
         # [impl->req~ring5.shaping.independent-pipelines~1]
         self.plot_id: int = plot_id
         self.name: str = name

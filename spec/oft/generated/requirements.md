@@ -1000,7 +1000,7 @@ Tags: delete, lifecycle, plots, status_approved
 `req~ring5.plots.independent-state~1`
 Status: approved
 
-Each plot shall retain independent data mapping, styling, pipeline, legend mapping, render engine, and cached render state.
+Each plot shall retain independent data mapping, styling, pipeline, legend mapping, and cached render state, while the session engine participates in the cache identity.
 
 Covers:
 - feat~ring5.plot-lifecycle~1
@@ -1028,7 +1028,7 @@ Tags: cache, plots, refresh, status_approved
 `req~ring5.plots.change-type~1`
 Status: approved
 
-Users shall switch an existing plot to another registered type while preserving its identity, pipeline, processed data, compatible configuration, and independent workspace state.
+Users shall switch an existing plot to another registered type while preserving its identity, pipeline, and processed data and resetting type-specific mappings and figure settings.
 
 Covers:
 - feat~ring5.plot-lifecycle~1

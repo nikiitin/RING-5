@@ -70,6 +70,7 @@ class PlotCreationController:
         Delegates rendering to PlotCreationComponent, then handles
         the create action if the button was clicked.
         """
+        # [impl->req~ring5.plots.create-multiple~1]
         counter: int = self._api.state_manager.get_plot_counter()
         available_types: list[str] = self._registry.get_available_types()
 
@@ -92,6 +93,7 @@ class PlotCreationController:
         Returns:
             The selected plot, or None if no plots exist.
         """
+        # [impl->req~ring5.plots.create-multiple~1]
         plots = self._api.state_manager.get_plots()
         if not plots:
             PlotSelectorComponent.render_no_plots_warning()
@@ -135,6 +137,9 @@ class PlotCreationController:
         Args:
             plot: The currently selected plot.
         """
+        # [impl->req~ring5.plots.delete~1]
+        # [impl->req~ring5.plots.duplicate~1]
+        # [impl->req~ring5.plots.rename~1]
         actions = PlotControlsComponent.render(
             plot_id=plot.plot_id,
             current_name=plot.name,

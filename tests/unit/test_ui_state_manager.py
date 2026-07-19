@@ -60,6 +60,7 @@ class TestPlotUIState:
         self, ui_state: Any, mock_state: MockSessionState
     ) -> None:
         """Each plot has independent auto-refresh state."""
+        # [test->req~ring5.plots.independent-state~1]
         ui_state.plot.set_auto_refresh(1, False)
         ui_state.plot.set_auto_refresh(2, True)
         assert ui_state.plot.get_auto_refresh(1) is False

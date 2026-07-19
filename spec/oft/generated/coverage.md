@@ -671,7 +671,9 @@ Tags: derived_column, shapers, status_approved, transformation
 `impl~ring5.plots.create-multiple~1`
 
 Implementation evidence:
-- `src/web/controllers/plot/creation_controller.py`
+- `src/web/controllers/plot/creation_controller.py::PlotCreationController.render_create_section`
+- `src/web/controllers/plot/creation_controller.py::PlotCreationController.render_selector`
+- `src/web/pages/ui/plotting/plot_service.py::PlotService.create_plot`
 
 Covers:
 - req~ring5.plots.create-multiple~1
@@ -683,7 +685,7 @@ Tags: lifecycle, plots, status_approved, web
 `impl~ring5.plots.rename~1`
 
 Implementation evidence:
-- `src/web/controllers/plot/creation_controller.py`
+- `src/web/controllers/plot/creation_controller.py::PlotCreationController.render_controls`
 
 Covers:
 - req~ring5.plots.rename~1
@@ -695,7 +697,8 @@ Tags: lifecycle, plots, status_approved
 `impl~ring5.plots.duplicate~1`
 
 Implementation evidence:
-- `src/web/pages/plot_adapters.py`
+- `src/web/pages/ui/plotting/plot_service.py::PlotService.duplicate_plot`
+- `src/web/controllers/plot/creation_controller.py::PlotCreationController.render_controls`
 
 Covers:
 - req~ring5.plots.duplicate~1
@@ -707,7 +710,8 @@ Tags: copy, lifecycle, plots, status_approved
 `impl~ring5.plots.delete~1`
 
 Implementation evidence:
-- `src/web/controllers/plot/creation_controller.py`
+- `src/web/pages/ui/plotting/plot_service.py::PlotService.delete_plot`
+- `src/web/controllers/plot/creation_controller.py::PlotCreationController.render_controls`
 
 Covers:
 - req~ring5.plots.delete~1
@@ -719,8 +723,8 @@ Tags: delete, lifecycle, plots, status_approved
 `impl~ring5.plots.independent-state~1`
 
 Implementation evidence:
-- `src/web/pages/ui/plotting/base_plot.py`
-- `src/core/state/repositories/plot_repository.py`
+- `src/web/pages/ui/plotting/base_plot.py::BasePlot.__init__`
+- `src/web/controllers/plot/render_controller.py::PlotRenderController._compute_figure_cache_key`
 
 Covers:
 - req~ring5.plots.independent-state~1
@@ -732,7 +736,9 @@ Tags: isolation, plots, state, status_approved
 `impl~ring5.plots.refresh-cache~1`
 
 Implementation evidence:
-- `src/web/controllers/plot/render_controller.py`
+- `src/web/controllers/plot/render_controller.py::PlotRenderController.render`
+- `src/web/controllers/plot/render_controller.py::PlotRenderController._render_visualization`
+- `src/web/components/common/chart_display.py::ChartDisplayComponent.render_refresh_controls`
 
 Covers:
 - req~ring5.plots.refresh-cache~1
@@ -1787,8 +1793,8 @@ Tags: hover, plotly, settings, status_approved
 `impl~ring5.plots.change-type~1`
 
 Implementation evidence:
-- `src/web/controllers/plot/render_controller.py`
-- `src/web/pages/ui/plotting/plot_service.py`
+- `src/web/controllers/plot/render_controller.py::PlotRenderController.render`
+- `src/web/pages/ui/plotting/plot_service.py::PlotService.change_plot_type`
 
 Covers:
 - req~ring5.plots.change-type~1
@@ -2661,7 +2667,8 @@ Tags: derived_column, shapers, status_approved, transformation
 `test~ring5.plots.create-multiple~1`
 
 Verification evidence:
-- `tests/integration/test_plot_lifecycle.py`
+- `tests/integration/test_plot_lifecycle.py::TestPlotLifecycle.test_create_plot`
+- `tests/ui/test_e2e_manage_plots.py::TestPlotCreation.test_create_multiple_plots_unique_ids`
 
 Covers:
 - req~ring5.plots.create-multiple~1
@@ -2673,7 +2680,7 @@ Tags: lifecycle, plots, status_approved, web
 `test~ring5.plots.rename~1`
 
 Verification evidence:
-- `tests/ui_logic/test_creation_controller.py`
+- `tests/ui_logic/test_creation_controller.py::TestRenderControls.test_rename_updates_plot_name`
 
 Covers:
 - req~ring5.plots.rename~1
@@ -2685,7 +2692,8 @@ Tags: lifecycle, plots, status_approved
 `test~ring5.plots.duplicate~1`
 
 Verification evidence:
-- `tests/integration/test_plot_lifecycle.py`
+- `tests/integration/test_plot_lifecycle.py::TestPlotLifecycle.test_duplicate_plot`
+- `tests/integration/test_controller_presenter.py::TestPlotLifecycleIntegration.test_duplicate_creates_independent_copy`
 
 Covers:
 - req~ring5.plots.duplicate~1
@@ -2697,7 +2705,8 @@ Tags: copy, lifecycle, plots, status_approved
 `test~ring5.plots.delete~1`
 
 Verification evidence:
-- `tests/ui_logic/test_creation_controller.py`
+- `tests/integration/test_plot_lifecycle.py::TestPlotLifecycle.test_delete_plot`
+- `tests/ui_logic/test_creation_controller.py::TestRenderControls.test_delete_calls_lifecycle_and_cleanup`
 
 Covers:
 - req~ring5.plots.delete~1
@@ -2709,7 +2718,9 @@ Tags: delete, lifecycle, plots, status_approved
 `test~ring5.plots.independent-state~1`
 
 Verification evidence:
-- `tests/integration/test_engine_isolation.py`
+- `tests/integration/test_controller_presenter.py::TestPlotLifecycleIntegration.test_duplicate_creates_independent_copy`
+- `tests/ui_logic/test_render_controller.py::TestFigureIdentity.test_engine_change_regenerates_figure`
+- `tests/unit/test_ui_state_manager.py::TestPlotUIState.test_auto_refresh_per_plot_isolation`
 
 Covers:
 - req~ring5.plots.independent-state~1
@@ -2721,7 +2732,8 @@ Tags: isolation, plots, state, status_approved
 `test~ring5.plots.refresh-cache~1`
 
 Verification evidence:
-- `tests/unit/test_auto_refresh.py`
+- `tests/integration/test_controller_presenter.py::TestChartDisplayComponentIntegration`
+- `tests/ui_logic/test_render_controller.py::TestFigureIdentity`
 
 Covers:
 - req~ring5.plots.refresh-cache~1
@@ -3753,9 +3765,9 @@ Tags: hover, plotly, settings, status_approved
 `test~ring5.plots.change-type~1`
 
 Verification evidence:
-- `tests/unit/test_plot_service.py`
-- `tests/integration/test_plot_lifecycle.py`
-- `tests/ui/test_e2e_manage_plots.py`
+- `tests/unit/test_plot_service.py::TestChangePlotType.test_different_type_replaces`
+- `tests/ui/test_e2e_manage_plots.py::TestPlotTypeChange.test_change_plot_type`
+- `tests/ui/test_e2e_manage_plots.py::TestPlotTypeChange.test_type_change_preserves_pipeline`
 
 Covers:
 - req~ring5.plots.change-type~1
@@ -4582,7 +4594,7 @@ Tags: derived_column, shapers, status_approved, transformation
 `uman~ring5.plots.create-multiple~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/plotting.md`
+- `docs/user-guide/workflows/plotting.md#create-a-plot`
 
 Covers:
 - req~ring5.plots.create-multiple~1
@@ -4594,7 +4606,7 @@ Tags: lifecycle, plots, status_approved, web
 `uman~ring5.plots.rename~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/plotting.md`
+- `docs/user-guide/workflows/plotting.md#create-a-plot`
 
 Covers:
 - req~ring5.plots.rename~1
@@ -4606,7 +4618,7 @@ Tags: lifecycle, plots, status_approved
 `uman~ring5.plots.duplicate~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/plotting.md`
+- `docs/user-guide/workflows/plotting.md#create-a-plot`
 
 Covers:
 - req~ring5.plots.duplicate~1
@@ -4618,7 +4630,7 @@ Tags: copy, lifecycle, plots, status_approved
 `uman~ring5.plots.delete~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/plotting.md`
+- `docs/user-guide/workflows/plotting.md#create-a-plot`
 
 Covers:
 - req~ring5.plots.delete~1
@@ -4630,7 +4642,7 @@ Tags: delete, lifecycle, plots, status_approved
 `uman~ring5.plots.independent-state~1`
 
 User documentation evidence:
-- `docs/user-guide/getting-started/concepts.md`
+- `docs/user-guide/getting-started/concepts.md#plot-and-shaper-pipeline`
 
 Covers:
 - req~ring5.plots.independent-state~1
@@ -4642,7 +4654,7 @@ Tags: isolation, plots, state, status_approved
 `uman~ring5.plots.refresh-cache~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/plotting.md`
+- `docs/user-guide/workflows/plotting.md#map-columns-and-configure-the-figure`
 
 Covers:
 - req~ring5.plots.refresh-cache~1
@@ -5662,7 +5674,7 @@ Tags: hover, plotly, settings, status_approved
 `uman~ring5.plots.change-type~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/plotting.md`
+- `docs/user-guide/workflows/plotting.md#create-a-plot`
 
 Covers:
 - req~ring5.plots.change-type~1

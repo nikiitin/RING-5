@@ -110,6 +110,7 @@ class TestChangePlotType:
 
     @patch("src.web.pages.ui.plotting.plot_service.PlotFactory")
     def test_different_type_replaces(self, mock_factory: MagicMock, mock_state: MagicMock) -> None:
+        # [test->req~ring5.plots.change-type~1]
         old_plot = MagicMock()
         old_plot.plot_type = "bar"
         old_plot.plot_id = 5

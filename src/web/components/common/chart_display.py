@@ -48,6 +48,7 @@ class ChartDisplayComponent:
         Returns:
             Dict with auto_refresh, manual_refresh, should_generate.
         """
+        # [impl->req~ring5.plots.refresh-cache~1]
         r1, r2 = st.columns([1, 3])
         with r1:
             new_auto: bool = st.toggle(

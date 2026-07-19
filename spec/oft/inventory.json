@@ -1021,9 +1021,18 @@
       "description": "Users shall create named plots of registered types and select among all plots in the current workspace.",
       "tags": ["lifecycle", "plots", "web"],
       "evidence": {
-        "implementation": ["src/web/controllers/plot/creation_controller.py"],
-        "tests": ["tests/integration/test_plot_lifecycle.py"],
-        "documentation": ["docs/user-guide/workflows/plotting.md"]
+        "implementation": [
+          "src/web/controllers/plot/creation_controller.py::PlotCreationController.render_create_section",
+          "src/web/controllers/plot/creation_controller.py::PlotCreationController.render_selector",
+          "src/web/pages/ui/plotting/plot_service.py::PlotService.create_plot"
+        ],
+        "tests": [
+          "tests/integration/test_plot_lifecycle.py::TestPlotLifecycle.test_create_plot",
+          "tests/ui/test_e2e_manage_plots.py::TestPlotCreation.test_create_multiple_plots_unique_ids"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/plotting.md#create-a-plot"
+        ]
       }
     },
     {
@@ -1035,9 +1044,15 @@
       "description": "Users shall rename an existing plot without changing its configuration, pipeline, or data.",
       "tags": ["lifecycle", "plots"],
       "evidence": {
-        "implementation": ["src/web/controllers/plot/creation_controller.py"],
-        "tests": ["tests/ui_logic/test_creation_controller.py"],
-        "documentation": ["docs/user-guide/workflows/plotting.md"]
+        "implementation": [
+          "src/web/controllers/plot/creation_controller.py::PlotCreationController.render_controls"
+        ],
+        "tests": [
+          "tests/ui_logic/test_creation_controller.py::TestRenderControls.test_rename_updates_plot_name"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/plotting.md#create-a-plot"
+        ]
       }
     },
     {
@@ -1049,9 +1064,17 @@
       "description": "Users shall duplicate a plot into independent copied configuration, pipeline, and processed data state.",
       "tags": ["copy", "lifecycle", "plots"],
       "evidence": {
-        "implementation": ["src/web/pages/plot_adapters.py"],
-        "tests": ["tests/integration/test_plot_lifecycle.py"],
-        "documentation": ["docs/user-guide/workflows/plotting.md"]
+        "implementation": [
+          "src/web/pages/ui/plotting/plot_service.py::PlotService.duplicate_plot",
+          "src/web/controllers/plot/creation_controller.py::PlotCreationController.render_controls"
+        ],
+        "tests": [
+          "tests/integration/test_plot_lifecycle.py::TestPlotLifecycle.test_duplicate_plot",
+          "tests/integration/test_controller_presenter.py::TestPlotLifecycleIntegration.test_duplicate_creates_independent_copy"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/plotting.md#create-a-plot"
+        ]
       }
     },
     {
@@ -1063,9 +1086,17 @@
       "description": "Users shall remove a plot and its derived state without corrupting the remaining workspace plots.",
       "tags": ["delete", "lifecycle", "plots"],
       "evidence": {
-        "implementation": ["src/web/controllers/plot/creation_controller.py"],
-        "tests": ["tests/ui_logic/test_creation_controller.py"],
-        "documentation": ["docs/user-guide/workflows/plotting.md"]
+        "implementation": [
+          "src/web/pages/ui/plotting/plot_service.py::PlotService.delete_plot",
+          "src/web/controllers/plot/creation_controller.py::PlotCreationController.render_controls"
+        ],
+        "tests": [
+          "tests/integration/test_plot_lifecycle.py::TestPlotLifecycle.test_delete_plot",
+          "tests/ui_logic/test_creation_controller.py::TestRenderControls.test_delete_calls_lifecycle_and_cleanup"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/plotting.md#create-a-plot"
+        ]
       }
     },
     {
@@ -1074,12 +1105,21 @@
       "revision": 1,
       "status": "approved",
       "title": "Independent plot state",
-      "description": "Each plot shall retain independent data mapping, styling, pipeline, legend mapping, render engine, and cached render state.",
+      "description": "Each plot shall retain independent data mapping, styling, pipeline, legend mapping, and cached render state, while the session engine participates in the cache identity.",
       "tags": ["isolation", "plots", "state"],
       "evidence": {
-        "implementation": ["src/web/pages/ui/plotting/base_plot.py", "src/core/state/repositories/plot_repository.py"],
-        "tests": ["tests/integration/test_engine_isolation.py"],
-        "documentation": ["docs/user-guide/getting-started/concepts.md"]
+        "implementation": [
+          "src/web/pages/ui/plotting/base_plot.py::BasePlot.__init__",
+          "src/web/controllers/plot/render_controller.py::PlotRenderController._compute_figure_cache_key"
+        ],
+        "tests": [
+          "tests/integration/test_controller_presenter.py::TestPlotLifecycleIntegration.test_duplicate_creates_independent_copy",
+          "tests/ui_logic/test_render_controller.py::TestFigureIdentity.test_engine_change_regenerates_figure",
+          "tests/unit/test_ui_state_manager.py::TestPlotUIState.test_auto_refresh_per_plot_isolation"
+        ],
+        "documentation": [
+          "docs/user-guide/getting-started/concepts.md#plot-and-shaper-pipeline"
+        ]
       }
     },
     {
@@ -1091,9 +1131,18 @@
       "description": "Users shall choose automatic or manual figure refresh, and unchanged plot inputs shall reuse an engine-aware render cache.",
       "tags": ["cache", "plots", "refresh"],
       "evidence": {
-        "implementation": ["src/web/controllers/plot/render_controller.py"],
-        "tests": ["tests/unit/test_auto_refresh.py"],
-        "documentation": ["docs/user-guide/workflows/plotting.md"]
+        "implementation": [
+          "src/web/controllers/plot/render_controller.py::PlotRenderController.render",
+          "src/web/controllers/plot/render_controller.py::PlotRenderController._render_visualization",
+          "src/web/components/common/chart_display.py::ChartDisplayComponent.render_refresh_controls"
+        ],
+        "tests": [
+          "tests/integration/test_controller_presenter.py::TestChartDisplayComponentIntegration",
+          "tests/ui_logic/test_render_controller.py::TestFigureIdentity"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/plotting.md#map-columns-and-configure-the-figure"
+        ]
       }
     },
     {
@@ -2289,12 +2338,21 @@
       "revision": 1,
       "status": "approved",
       "title": "Change an existing plot type",
-      "description": "Users shall switch an existing plot to another registered type while preserving its identity, pipeline, processed data, compatible configuration, and independent workspace state.",
+      "description": "Users shall switch an existing plot to another registered type while preserving its identity, pipeline, and processed data and resetting type-specific mappings and figure settings.",
       "tags": ["lifecycle", "plots", "types"],
       "evidence": {
-        "implementation": ["src/web/controllers/plot/render_controller.py", "src/web/pages/ui/plotting/plot_service.py"],
-        "tests": ["tests/unit/test_plot_service.py", "tests/integration/test_plot_lifecycle.py", "tests/ui/test_e2e_manage_plots.py"],
-        "documentation": ["docs/user-guide/workflows/plotting.md"]
+        "implementation": [
+          "src/web/controllers/plot/render_controller.py::PlotRenderController.render",
+          "src/web/pages/ui/plotting/plot_service.py::PlotService.change_plot_type"
+        ],
+        "tests": [
+          "tests/unit/test_plot_service.py::TestChangePlotType.test_different_type_replaces",
+          "tests/ui/test_e2e_manage_plots.py::TestPlotTypeChange.test_change_plot_type",
+          "tests/ui/test_e2e_manage_plots.py::TestPlotTypeChange.test_type_change_preserves_pipeline"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/plotting.md#create-a-plot"
+        ]
       }
     },
     {

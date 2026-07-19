@@ -338,6 +338,8 @@ class TestErrorResilience:
 class TestFigureIdentity:
     """Figure reuse is limited to identical data, config, and engine."""
 
+    # [test->req~ring5.plots.refresh-cache~1]
+
     def test_middle_row_changes_data_hash(self) -> None:
         """The fingerprint covers rows beyond the frame boundaries."""
         from src.web.controllers.plot.render_controller import PlotRenderController
@@ -386,6 +388,7 @@ class TestFigureIdentity:
         mock_engine: MagicMock,
     ) -> None:
         """An engine change reruns, then regenerates with the new identity."""
+        # [test->req~ring5.plots.independent-state~1]
         mock_engine.get_engine.side_effect = ["plotly", "plotly", "matplotlib"]
         mock_chart.render_engine_selector.side_effect = [
             "plotly",

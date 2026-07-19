@@ -214,6 +214,8 @@ class TestPlotRenderControllerIntegration:
 class TestChartDisplayComponentIntegration:
     """Test ChartDisplayComponent.render_refresh_controls() logic."""
 
+    # [test->req~ring5.plots.refresh-cache~1]
+
     @patch("src.web.components.common.chart_display.st")
     def test_auto_refresh_with_config_change_triggers_generation(self, mock_st: MagicMock) -> None:
         """Auto-refresh ON + config changed → should_generate is True."""
@@ -336,6 +338,8 @@ class TestPlotLifecycleIntegration:
         self, state_manager: RepositoryStateManager, rich_sample_data: pd.DataFrame
     ) -> None:
         """Duplicated plot is independent — changes don't affect original."""
+        # [test->req~ring5.plots.duplicate~1]
+        # [test->req~ring5.plots.independent-state~1]
         # [test->req~ring5.shaping.independent-pipelines~1]
         # Create and populate
         plot: BasePlot = PlotService.create_plot(

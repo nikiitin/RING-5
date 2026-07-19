@@ -88,6 +88,8 @@ class PlotRenderController:
             plot: The plot to render (must satisfy both PlotHandle
                   and ConfigRenderer protocols).
         """
+        # [impl->req~ring5.plots.change-type~1]
+        # [impl->req~ring5.plots.refresh-cache~1]
         if plot.processed_data is None:
             st.warning("No processed data available.")
             return
@@ -194,6 +196,7 @@ class PlotRenderController:
             plot: The plot instance (``BasePlot`` at runtime).
             should_generate: Whether to force figure regeneration.
         """
+        # [impl->req~ring5.plots.refresh-cache~1]
         if plot.processed_data is None:
             return
 
@@ -304,6 +307,7 @@ class PlotRenderController:
         Returns:
             Cache key string.
         """
+        # [impl->req~ring5.plots.independent-state~1]
         cache_relevant_config = {
             k: v for k, v in config.items() if k not in {"xaxis_range", "yaxis_range"}
         }

@@ -65,6 +65,7 @@ class TestPlotCreation:
 
     def test_create_multiple_plots_unique_ids(self) -> None:
         """Each created plot gets a unique plot_id."""
+        # [test->req~ring5.plots.create-multiple~1]
         at = create_app_with_data()
         api: Any = get_api(at)
 
@@ -357,6 +358,7 @@ class TestPlotTypeChange:
 
     def test_change_plot_type(self) -> None:
         """Changing type from bar to line updates the plot_type."""
+        # [test->req~ring5.plots.change-type~1]
         from src.web.pages.ui.plotting.plot_service import PlotService
 
         at = create_app_with_data()
@@ -369,6 +371,7 @@ class TestPlotTypeChange:
 
     def test_type_change_preserves_pipeline(self) -> None:
         """Pipeline is preserved when changing plot type."""
+        # [test->req~ring5.plots.change-type~1]
         from src.web.pages.ui.plotting.plot_service import PlotService
 
         at = create_app_with_data()

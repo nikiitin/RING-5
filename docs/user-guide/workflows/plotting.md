@@ -16,6 +16,34 @@ the workspace dataset or another plot's pipeline.
 
 ## Create a plot
 
+<!--
+`uman~ring5.plots.change-type.documentation~1`
+
+Covers:
+- req~ring5.plots.change-type~1
+
+`uman~ring5.plots.create-multiple.documentation~1`
+
+Covers:
+- req~ring5.plots.create-multiple~1
+
+`uman~ring5.plots.delete.documentation~1`
+
+Covers:
+- req~ring5.plots.delete~1
+
+`uman~ring5.plots.duplicate.documentation~1`
+
+Covers:
+- req~ring5.plots.duplicate~1
+
+`uman~ring5.plots.rename.documentation~1`
+
+Covers:
+- req~ring5.plots.rename~1
+
+-->
+
 1. Load data, then open **Manage Plots**.
 2. Enter a **New plot name**, choose a registry identifier in **Plot type**, and select **Create
    Plot**.
@@ -23,8 +51,8 @@ the workspace dataset or another plot's pipeline.
    with the controls beside it.
 
 The **Plot Type** selector inside the active plot can convert it to another registered type. RING-5
-keeps the plot identity, transformation pipeline, and processed table, then asks for any mappings
-the new type requires; review inherited settings after the conversion.
+keeps the plot identity, transformation pipeline, and processed table. Type-specific mappings and
+figure settings reset, so configure the fields required by the new type after conversion.
 
 Choose the plot type from the relationship you need to show, not from styling. See
 [Plot Types]({{site.baseurl}}/user-guide/reference/plot-types/) for selection guidance. Python users can inspect the live
@@ -63,6 +91,14 @@ Select **Finalize Pipeline for Plotting** after the preview matches the intended
 [Shapers]({{site.baseurl}}/user-guide/reference/shapers/) for configuration rules.
 
 ## Map columns and configure the figure
+
+<!--
+`uman~ring5.plots.refresh-cache.documentation~1`
+
+Covers:
+- req~ring5.plots.refresh-cache~1
+
+-->
 
 Under **Plot Configuration**, map the processed columns to the fields required by the plot type.
 The UI prevents many invalid selections, but it cannot decide whether a column has the intended
