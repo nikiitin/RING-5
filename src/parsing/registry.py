@@ -79,6 +79,8 @@ class SimulatorRegistry:
     with a ``SimulatorInfo`` descriptor and a factory callable.
     """
 
+    # [impl->req~ring5.ingestion.simulator-registry~1]
+
     _registry: dict[str, tuple[SimulatorInfo, Callable[[], SimulationParser]]] = {}
     _instances: dict[str, SimulationParser] = {}
     _instances_lock: threading.Lock = threading.Lock()

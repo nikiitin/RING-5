@@ -22,6 +22,19 @@ print(ring5.available_plot_types())
 
 ## Selection guide
 
+<!--
+`uman~ring5.ingestion.distribution.documentation~1`
+
+Covers:
+- req~ring5.ingestion.distribution~1
+
+`uman~ring5.ingestion.histogram.documentation~1`
+
+Covers:
+- req~ring5.ingestion.histogram~1
+
+-->
+
 | Relationship | Starting point | Data requirement |
 | --- | --- | --- |
 | One numeric measure by category | `bar` | Categorical X and numeric Y |

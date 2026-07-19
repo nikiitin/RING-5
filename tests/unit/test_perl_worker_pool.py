@@ -169,6 +169,8 @@ class TestPerlWorker:
 class TestPerlWorkerPool:
     """Test worker pool functionality."""
 
+    # [test->req~ring5.ingestion.persistent-workers~1]
+
     def test_pool_initialization(self, worker_pool: Any) -> None:
         """Pool should initialize with correct number of workers."""
         stats = worker_pool.get_stats()

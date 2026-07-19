@@ -105,6 +105,8 @@ class TestParseEntryIndices:
 class TestFilterEntries:
     """Tests for filtering entries based on selections."""
 
+    # [test->req~ring5.ingestion.pattern-index-selection~1]
+
     def test_filter_single_position(self) -> None:
         entries = ["0_0", "0_1", "1_0", "1_1"]
         result = PatternIndexService.filter_entries(entries, {0: ["0"]})

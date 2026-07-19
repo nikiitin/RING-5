@@ -84,6 +84,7 @@ class TestDataSourcePageStructure:
 
     def test_mode_switching_round_trip(self, tier0_page: Page) -> None:
         """Cycling parse -> csv -> recent -> parse restores correct content."""
+        # [test->req~ring5.ingestion.source-modes~1]
         ds = DataSourcePage(tier0_page)
         # Parse
         ds.select_parse_mode()

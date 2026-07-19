@@ -11,6 +11,8 @@ logger = logging.getLogger(__name__)
 class ParserStateRepository:
     """Store parser inputs, scan results, and selected variables."""
 
+    # [impl->req~ring5.ingestion.parse-output-provenance~1]
+
     # Default variables for new sessions
     DEFAULT_PARSE_VARIABLES: list[ParseVariableConfig] = [
         ParseVariableConfig(name="simTicks", type="scalar", _id=str(uuid.uuid4())),

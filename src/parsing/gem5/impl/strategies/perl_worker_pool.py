@@ -451,6 +451,8 @@ class PerlWorker:
 class PerlWorkerPool:
     """Balance requests across monitored, restartable Perl workers."""
 
+    # [impl->req~ring5.ingestion.persistent-workers~1]
+
     def __init__(self, pool_size: int | None = None):
         """Initialize the persistent worker pool.
 

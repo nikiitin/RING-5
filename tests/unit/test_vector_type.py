@@ -213,6 +213,8 @@ class TestVectorBalanceContent:
 class TestVectorReduceDuplicates:
     """Test reduce_duplicates method (arithmetic mean per entry)."""
 
+    # [test->req~ring5.ingestion.vector~1]
+
     def test_reduce_single_value_per_entry(self) -> None:
         vector = Vector(entries=["e0", "e1"])
         vector.content = {"e0": [100], "e1": [200]}

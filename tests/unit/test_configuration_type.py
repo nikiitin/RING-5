@@ -52,6 +52,8 @@ class TestConfigurationInitialization:
 class TestConfigurationOnEmptyProperty:
     """Test onEmpty property getter."""
 
+    # [test->req~ring5.ingestion.configuration-fallbacks~1]
+
     def test_on_empty_property_returns_string(self) -> None:
         config = Configuration(onEmpty="test_default")
 
@@ -164,6 +166,8 @@ class TestConfigurationSetContent:
 
 class TestConfigurationBalanceContent:
     """Test balance_content method (always balanced, no padding)."""
+
+    # [test->req~ring5.ingestion.configuration~1]
 
     def test_balance_empty_content_no_padding(self) -> None:
         config = Configuration(onEmpty="default")

@@ -26,6 +26,14 @@ the Streamlit command.
 
 ## Parsing finds no files or variables
 
+<!--
+`uman~ring5.ingestion.parse-integrity.documentation~1`
+
+Covers:
+- req~ring5.ingestion.parse-integrity~1
+
+-->
+
 Check **Stats directory path** and **File pattern** against the filesystem. Run **Quick Scan** first,
 then use **Deep Scan** when variables differ between runs. Parsing needs Perl; check it with
 `ring5 doctor`.
@@ -55,6 +63,14 @@ A pattern variable expands to at most 1,024 instances by default. On trusted inp
 are not supported; use literal ASCII statistic-name characters and `\d+` placeholders.
 
 ## A CSV does not load
+
+<!--
+`uman~ring5.ingestion.csv-contract.documentation~1`
+
+Covers:
+- req~ring5.ingestion.csv-contract~1
+
+-->
 
 Confirm that the file is readable, has a non-empty header, contains a data row, and uses consistent
 row widths. RING-5 does not require specific gem5 columns. Operations later validate the columns and

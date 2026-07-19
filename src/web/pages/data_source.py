@@ -18,6 +18,7 @@ class DataSourcePage:
 
     def render(self) -> None:
         """Render the data source page."""
+        # [impl->req~ring5.ingestion.source-modes~1]
         st.markdown("## Step 1: Choose Data Source")
 
         # Determine selected simulator for dynamic labels

@@ -169,9 +169,9 @@
       "description": "Users shall choose between parsing simulator output, using existing CSV data, and loading a recent CSV-pool entry.",
       "tags": ["csv", "parsing", "web"],
       "evidence": {
-        "implementation": ["src/web/pages/data_source.py"],
-        "tests": ["tests/e2e/test_data_source.py"],
-        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+        "implementation": ["src/web/pages/data_source.py::DataSourcePage.render"],
+        "tests": ["tests/e2e/test_data_source.py::TestDataSourcePageStructure.test_mode_switching_round_trip"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
     {
@@ -183,9 +183,9 @@
       "description": "RING-5 shall load an existing CSV into the active workspace through the web application or Session API.",
       "tags": ["api", "csv", "data"],
       "evidence": {
-        "implementation": ["ring5/_session.py::Session.load", "src/core/application_api.py::load_data"],
-        "tests": ["tests/integration/test_ring5_public_api.py"],
-        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+        "implementation": ["ring5/_session.py::Session.load", "src/core/application_api.py::ApplicationAPI.load_data"],
+        "tests": ["tests/integration/test_ring5_public_api.py::TestFullWorkflow.test_parse_to_figure_files"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md#load-an-existing-csv-in-python"]
       }
     },
     {
@@ -197,9 +197,9 @@
       "description": "CSV input shall have a header and at least one data row, remain simulator-independent, and report malformed or empty input explicitly.",
       "tags": ["csv", "validation"],
       "evidence": {
-        "implementation": ["src/core/models/csv_contract.py"],
-        "tests": ["tests/unit/test_csv_contract.py"],
-        "documentation": ["docs/user-guide/reference/troubleshooting.md"]
+        "implementation": ["src/core/models/csv_contract.py::validate_parser_csv"],
+        "tests": ["tests/unit/test_csv_contract.py::TestValidateParserCsv"],
+        "documentation": ["docs/user-guide/reference/troubleshooting.md#a-csv-does-not-load"]
       }
     },
     {
@@ -211,9 +211,9 @@
       "description": "Parsed and selected CSV files shall be discoverable in a recent-file pool that supports loading and removal.",
       "tags": ["csv", "persistence", "web"],
       "evidence": {
-        "implementation": ["src/core/services/data_services/csv_pool_service.py", "src/web/components/data_source/data_source_components.py"],
-        "tests": ["tests/unit/test_csv_pool_service.py"],
-        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+        "implementation": ["src/core/services/data_services/csv_pool_service.py::CsvPoolService", "src/web/components/data_source/data_source_components.py::DataSourceComponents.render_csv_pool"],
+        "tests": ["tests/unit/test_csv_pool_service.py::TestPoolManagement", "tests/unit/test_csv_pool_service.py::TestCSVLoading"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md#reopen-parser-output-in-the-web-application"]
       }
     },
     {
@@ -226,8 +226,8 @@
       "tags": ["extensibility", "parsing", "registry"],
       "evidence": {
         "implementation": ["src/parsing/registry.py::SimulatorRegistry"],
-        "tests": ["tests/unit/test_simulator_registry.py"],
-        "documentation": ["docs/developer-guide/extension-guides/adding-a-parser.md"]
+        "tests": ["tests/unit/test_simulator_registry.py::TestSimulatorRegistry"],
+        "documentation": ["docs/developer-guide/extension-guides/adding-a-parser.md#implement-the-backend"]
       }
     },
     {
@@ -239,9 +239,9 @@
       "description": "RING-5 shall provide a registered gem5 backend for scanning and parsing stats.txt output.",
       "tags": ["gem5", "parsing"],
       "evidence": {
-        "implementation": ["src/parsing/gem5/impl/gem5_parser.py"],
-        "tests": ["tests/integration/test_gem5_parsing.py"],
-        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+        "implementation": ["src/parsing/gem5/impl/gem5_parser.py::Gem5Parser"],
+        "tests": ["tests/integration/test_gem5_parsing.py::TestGem5Parsing"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
     {
@@ -253,9 +253,9 @@
       "description": "The parser shall recursively discover regular files matching literal, glob, or regular-expression-aware statistics patterns within configured resource limits.",
       "tags": ["discovery", "files", "parsing"],
       "evidence": {
-        "implementation": ["src/parsing/framework/file_discovery.py"],
-        "tests": ["tests/unit/test_file_discovery.py"],
-        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+        "implementation": ["src/parsing/framework/file_discovery.py::find_stats_files"],
+        "tests": ["tests/unit/test_file_discovery.py::test_sorted_limit_selects_lexical_paths", "tests/unit/test_file_discovery.py::test_empty_and_missing_paths", "tests/unit/test_file_discovery.py::test_entry_walk_is_bounded"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
     {
@@ -267,9 +267,9 @@
       "description": "RING-5 shall scan selected simulator files and aggregate discovered variable names, types, metadata, ranges, and visible per-file failures.",
       "tags": ["parsing", "scan", "variables"],
       "evidence": {
-        "implementation": ["src/parsing/gem5/impl/gem5_parser.py::Gem5Parser.aggregate_scan_results", "src/parsing/gem5/impl/scanning/scanner.py"],
-        "tests": ["tests/integration/test_scanner_functional.py"],
-        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+        "implementation": ["src/parsing/gem5/impl/gem5_parser.py::Gem5Parser.aggregate_scan_results", "src/parsing/gem5/impl/scanning/scanner.py::Gem5StatsScanner.scan_file"],
+        "tests": ["tests/integration/test_scanner_functional.py::TestScannerFunctional.test_scan_real_stats"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
     {
@@ -281,9 +281,9 @@
       "description": "Scanning shall support submit, finalize, strict or partial result handling, cancellation, and ownership-safe cleanup through ScanJob.",
       "tags": ["api", "async", "scan"],
       "evidence": {
-        "implementation": ["ring5/_scan.py", "ring5/_session.py::Session.scan_submit"],
-        "tests": ["tests/integration/test_ring5_api_completeness.py"],
-        "documentation": ["docs/user-guide/workflows/scripting.md"]
+        "implementation": ["ring5/_scan.py::ScanJob", "ring5/_session.py::Session.scan_submit"],
+        "tests": ["tests/integration/test_ring5_api_completeness.py::test_scan_job_partial_and_timeout_are_typed", "tests/integration/test_ring5_api_completeness.py::test_scan_parse_and_config_aware_workflow"],
+        "documentation": ["docs/user-guide/workflows/scripting.md#run-a-complete-analysis"]
       }
     },
     {
@@ -295,9 +295,9 @@
       "description": "Users shall select an exact positive scan sample limit or use zero for exhaustive discovery up to the global file ceiling.",
       "tags": ["limits", "scan"],
       "evidence": {
-        "implementation": ["ring5/_session.py::Session.scan", "src/core/common/security_limits.py"],
-        "tests": ["tests/unit/test_public_parse_limits.py"],
-        "documentation": ["docs/developer-guide/api-reference/public-python-api.md"]
+        "implementation": ["ring5/_session.py::Session.scan"],
+        "tests": ["tests/unit/test_parsing_services.py::TestScannerService.test_submit_scan_zero_preserves_exhaustive_discovery_contract", "tests/unit/test_parsing_services.py::TestScannerService.test_submit_scan_rejects_limit_above_global_ceiling"],
+        "documentation": ["docs/developer-guide/api-reference/public-python-api.md#workspace"]
       }
     },
     {
@@ -309,9 +309,9 @@
       "description": "Users shall search scanned variables or manually add, edit, type, rename, and remove parser variable configurations before parsing.",
       "tags": ["parsing", "variables", "web"],
       "evidence": {
-        "implementation": ["src/web/components/data_source/variable_editor.py"],
-        "tests": ["tests/ui_unit/test_variable_editor.py"],
-        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+        "implementation": ["src/web/components/data_source/variable_editor.py::VariableEditor"],
+        "tests": ["tests/ui_unit/test_variable_editor.py::test_variable_editor_add_manual", "tests/ui_unit/test_variable_editor.py::test_variable_editor_render_existing"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
     {
@@ -323,9 +323,9 @@
       "description": "The gem5 backend shall scan and parse scalar statistics, including exact names and supported regular-expression patterns.",
       "tags": ["gem5", "scalar", "variables"],
       "evidence": {
-        "implementation": ["src/parsing/gem5/types/scalar.py"],
-        "tests": ["tests/unit/test_scalar_type.py"],
-        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+        "implementation": ["src/parsing/gem5/types/scalar.py::Scalar"],
+        "tests": ["tests/unit/test_scalar_type.py::TestScalarReduceDuplicates"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
     {
@@ -337,9 +337,9 @@
       "description": "The gem5 backend shall scan and expand vector statistics into deterministic indexed columns.",
       "tags": ["gem5", "vector", "variables"],
       "evidence": {
-        "implementation": ["src/parsing/gem5/types/vector.py"],
-        "tests": ["tests/unit/test_vector_type.py"],
-        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+        "implementation": ["src/parsing/gem5/types/vector.py::Vector"],
+        "tests": ["tests/unit/test_vector_type.py::TestVectorReduceDuplicates"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
     {
@@ -351,9 +351,9 @@
       "description": "The gem5 backend shall parse distribution summaries and preserve their configured fields without inventing unavailable values.",
       "tags": ["distribution", "gem5", "variables"],
       "evidence": {
-        "implementation": ["src/parsing/gem5/types/distribution.py"],
-        "tests": ["tests/unit/test_distribution_type.py"],
-        "documentation": ["docs/user-guide/reference/plot-types.md"]
+        "implementation": ["src/parsing/gem5/types/distribution.py::Distribution"],
+        "tests": ["tests/unit/test_distribution_type.py::TestDistributionReduceDuplicates"],
+        "documentation": ["docs/user-guide/reference/plot-types.md#selection-guide"]
       }
     },
     {
@@ -365,9 +365,9 @@
       "description": "The gem5 backend shall parse conventional ranges and pipe-delimited one-line histograms, expand buckets, and aggregate repeated matches.",
       "tags": ["gem5", "histogram", "variables"],
       "evidence": {
-        "implementation": ["src/parsing/gem5/types/histogram.py"],
-        "tests": ["tests/unit/test_histogram_type.py"],
-        "documentation": ["docs/user-guide/reference/plot-types.md"]
+        "implementation": ["src/parsing/gem5/types/histogram.py::Histogram"],
+        "tests": ["tests/unit/test_histogram_type.py::TestHistogramRangeParser", "tests/unit/test_histogram_type.py::TestHistogramReduceDuplicates"],
+        "documentation": ["docs/user-guide/reference/plot-types.md#selection-guide"]
       }
     },
     {
@@ -379,9 +379,9 @@
       "description": "The gem5 backend shall extract configuration metadata derived from simulation paths using explicit path index selection.",
       "tags": ["configuration", "gem5", "variables"],
       "evidence": {
-        "implementation": ["src/parsing/gem5/types/configuration.py"],
-        "tests": ["tests/unit/test_configuration_type.py"],
-        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+        "implementation": ["src/parsing/gem5/types/configuration.py::Configuration"],
+        "tests": ["tests/unit/test_configuration_type.py::TestConfigurationBalanceContent"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
     {
@@ -393,9 +393,9 @@
       "description": "A regex statistic matching several simulator values shall aggregate according to the variable type while retaining traceable source semantics.",
       "tags": ["aggregation", "parsing", "regex"],
       "evidence": {
-        "implementation": ["src/parsing/gem5/types/base.py"],
-        "tests": ["tests/integration/test_pattern_aggregation_integration.py"],
-        "documentation": ["docs/developer-guide/subsystems/parsing.md"]
+        "implementation": ["src/parsing/gem5/types/base.py::StatType.reduce_duplicates"],
+        "tests": ["tests/integration/test_pattern_aggregation_integration.py::TestScannerPatternAggregation"],
+        "documentation": ["docs/developer-guide/subsystems/parsing.md#variable-types-and-csv"]
       }
     },
     {
@@ -407,9 +407,9 @@
       "description": "The simple parsing strategy shall parse matching statistics files without requiring configuration metadata.",
       "tags": ["gem5", "parsing", "strategy"],
       "evidence": {
-        "implementation": ["src/parsing/gem5/impl/strategies/simple.py"],
-        "tests": ["tests/unit/test_parser_strategies.py"],
-        "documentation": ["docs/user-guide/workflows/scripting.md"]
+        "implementation": ["src/parsing/gem5/impl/strategies/simple.py::SimpleStatsStrategy"],
+        "tests": ["tests/unit/test_parser_strategies.py::TestSimpleStatsStrategy"],
+        "documentation": ["docs/user-guide/workflows/scripting.md#run-a-complete-analysis"]
       }
     },
     {
@@ -421,9 +421,9 @@
       "description": "The config-aware strategy shall require valid config.ini input and add deterministic sim_path and compact key-sorted config_json columns.",
       "tags": ["configuration", "gem5", "strategy"],
       "evidence": {
-        "implementation": ["src/parsing/gem5/impl/strategies/config_aware.py"],
-        "tests": ["tests/unit/test_parser_strategies.py"],
-        "documentation": ["docs/user-guide/workflows/scripting.md"]
+        "implementation": ["src/parsing/gem5/impl/strategies/config_aware.py::ConfigAwareStrategy"],
+        "tests": ["tests/unit/test_parser_strategies.py::TestConfigAwareStrategy"],
+        "documentation": ["docs/user-guide/workflows/scripting.md#run-a-complete-analysis"]
       }
     },
     {
@@ -435,9 +435,9 @@
       "description": "Parsing shall support submit, owned futures, finalize, cancellation, strict missing-stat handling, and safe temporary-output cleanup through ParseJob.",
       "tags": ["api", "async", "parsing"],
       "evidence": {
-        "implementation": ["ring5/_parse.py", "ring5/_session.py::Session.parse_submit"],
-        "tests": ["tests/integration/test_ring5_api_completeness.py"],
-        "documentation": ["docs/user-guide/workflows/scripting.md"]
+        "implementation": ["ring5/_parse.py::ParseJob", "ring5/_session.py::Session.parse_submit"],
+        "tests": ["tests/integration/test_ring5_api_completeness.py::test_scan_parse_and_config_aware_workflow", "tests/integration/test_ring5_api_completeness.py::test_session_close_defers_cleanup_for_running_parse"],
+        "documentation": ["docs/user-guide/workflows/scripting.md#run-a-complete-analysis"]
       }
     },
     {
@@ -449,9 +449,9 @@
       "description": "Parsing shall expose failed files and missing statistics and represent unavailable simulator values as NaN rather than fabricating zeroes.",
       "tags": ["errors", "integrity", "parsing"],
       "evidence": {
-        "implementation": ["ring5/_parse.py::ParseJob.finalize", "src/parsing/gem5/impl/gem5_parser.py", "ring5/errors.py"],
-        "tests": ["tests/unit/test_missing_data_integrity.py"],
-        "documentation": ["docs/user-guide/reference/troubleshooting.md"]
+        "implementation": ["ring5/_parse.py::ParseJob.finalize", "src/parsing/gem5/impl/gem5_parser.py::Gem5Parser.finalize_parsing", "ring5/errors.py::ParseError"],
+        "tests": ["tests/unit/test_missing_data_integrity.py::TestMissingScalarBecomesNaN"],
+        "documentation": ["docs/user-guide/reference/troubleshooting.md#parsing-finds-no-files-or-variables"]
       }
     },
     {
@@ -463,9 +463,9 @@
       "description": "Successful parsing shall assemble a CSV and retain stats path, pattern, selected variables, scanned variables, and strategy context for later restoration.",
       "tags": ["csv", "parsing", "provenance"],
       "evidence": {
-        "implementation": ["ring5/_session.py::Session.parse_submit", "src/core/state/repositories/parser_state_repository.py"],
-        "tests": ["tests/integration/test_full_parser_workflow.py"],
-        "documentation": ["docs/developer-guide/architecture/data-flow.md"]
+        "implementation": ["ring5/_session.py::Session.parse_submit", "src/core/state/repositories/parser_state_repository.py::ParserStateRepository"],
+        "tests": ["tests/integration/test_full_parser_workflow.py::TestFullParserWorkflow.test_scan_select_parse_load_workflow"],
+        "documentation": ["docs/developer-guide/architecture/data-flow.md#parse-and-load"]
       }
     },
     {
@@ -1835,9 +1835,9 @@
       "description": "CSV loading through the data service shall detect common delimiters, cache immutable copies and metadata, and expose rows, columns, types, size, and modification time for recent files.",
       "tags": ["csv", "metadata", "usability"],
       "evidence": {
-        "implementation": ["src/core/services/data_services/csv_pool_service.py"],
-        "tests": ["tests/unit/test_csv_pool_service.py"],
-        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+        "implementation": ["src/core/services/data_services/csv_pool_service.py::CsvPoolService.load_csv_file", "src/core/services/data_services/csv_pool_service.py::CsvPoolService._get_csv_metadata"],
+        "tests": ["tests/unit/test_csv_pool_service.py::TestCSVLoading.test_load_csv_file_handles_different_separators", "tests/unit/test_csv_pool_service.py::TestMetadataCaching"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md#reopen-parser-output-in-the-web-application"]
       }
     },
     {
@@ -1849,9 +1849,9 @@
       "description": "Browser-submitted statistics paths shall be resolved below the roots configured by RING5_ALLOWED_STATS_ROOTS, and the Data Source page shall display the active roots.",
       "tags": ["paths", "security", "web"],
       "evidence": {
-        "implementation": ["src/core/common/utils.py::validate_web_stats_path", "src/web/components/data_source/data_source_components.py"],
-        "tests": ["tests/unit/test_utils.py"],
-        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+        "implementation": ["src/core/common/utils.py::validate_web_stats_path", "src/web/components/data_source/data_source_components.py::DataSourceComponents.render_parser_config"],
+        "tests": ["tests/unit/test_utils.py::TestValidateWebStatsPath.test_allowed_root_accepts_child"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
     {
@@ -1863,9 +1863,9 @@
       "description": "The web workflow shall offer bounded quick and deep scan presets, show per-file progress, surface scan failures and timeouts, and release only settled work owned by that application instance.",
       "tags": ["progress", "scan", "web"],
       "evidence": {
-        "implementation": ["src/web/components/data_source/data_source_components.py", "src/web/components/data_source/variable_editor.py::_show_scan_dialog"],
-        "tests": ["tests/unit/test_parser_data_source_services.py"],
-        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+        "implementation": ["src/web/components/data_source/data_source_components.py::DataSourceComponents.render_parser_config", "src/web/components/data_source/variable_editor.py::VariableEditor._show_scan_dialog"],
+        "tests": ["tests/visual/test_ds_parser_config.py::TestParserConfig.test_variables_section", "tests/visual/test_e2e_parse_workflow.py::TestScanWorkflow.test_scan_single_stats", "tests/integration/test_scanner_fix.py::TestScannerFix.test_variable_editor_deep_scan_calls_api_directly"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
     {
@@ -1877,9 +1877,9 @@
       "description": "For statistics containing one or more numeric pattern positions, users shall filter discovered index values and optionally preserve each selected concrete instance as an independent output column.",
       "tags": ["patterns", "selection", "variables"],
       "evidence": {
-        "implementation": ["src/core/models/pattern_index_service.py", "src/web/components/data_source/pattern_index_selector.py", "src/parsing/gem5/impl/gem5_parser.py"],
-        "tests": ["tests/unit/test_keep_indices.py", "tests/unit/test_pattern_index_service.py"],
-        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+        "implementation": ["src/core/models/pattern_index_service.py::PatternIndexService", "src/web/components/data_source/pattern_index_selector.py::PatternIndexSelector.render_selector", "src/parsing/gem5/impl/gem5_parser.py::Gem5Parser.construct_final_csv"],
+        "tests": ["tests/unit/test_keep_indices.py::TestKeepIndicesUserFiltered", "tests/unit/test_pattern_index_service.py::TestFilterEntries"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
     {
@@ -1891,9 +1891,9 @@
       "description": "Vector, distribution, and histogram configurations shall choose statistics only, entries only, or entries plus statistics so wide bucket or entry sets can be omitted intentionally.",
       "tags": ["parsing", "statistics", "variables"],
       "evidence": {
-        "implementation": ["src/web/components/data_source/variable_editor.py", "src/parsing/gem5/types/type_mapper.py"],
-        "tests": ["tests/unit/test_statistics_only_mode.py", "tests/integration/test_statistics_only_integration.py"],
-        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+        "implementation": ["src/web/components/data_source/variable_editor.py::VariableEditor", "src/parsing/gem5/types/type_mapper.py::TypeMapper.create_stat"],
+        "tests": ["tests/unit/test_statistics_only_mode.py::TestStatisticsOnlyMode", "tests/integration/test_statistics_only_integration.py::TestStatisticsOnlyIntegration"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
     {
@@ -1905,9 +1905,9 @@
       "description": "Users shall select discovered or manually named vector and histogram entries and choose supported totals, means, geometric means, samples, deviations, underflows, and overflows where the variable type provides them.",
       "tags": ["entries", "statistics", "variables"],
       "evidence": {
-        "implementation": ["src/web/components/data_source/variable_editor.py"],
-        "tests": ["tests/unit/test_variable_service.py", "tests/ui_unit/test_variable_editor.py"],
-        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+        "implementation": ["src/web/components/data_source/variable_editor.py::VariableEditor._render_vector_discovered_selection"],
+        "tests": ["tests/unit/test_variable_service.py::TestAggregateDiscoveredEntries", "tests/ui_unit/test_variable_editor.py::test_variable_editor_vector_stats_checkboxes"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
     {
@@ -1919,9 +1919,9 @@
       "description": "A deep scan shall aggregate the global minimum and maximum distribution bucket range across its bounded sample and make those values available to the variable configuration.",
       "tags": ["distribution", "range", "scan"],
       "evidence": {
-        "implementation": ["src/web/components/data_source/variable_editor.py::_show_scan_dialog", "src/core/services/data_services/variable_service.py::aggregate_distribution_range"],
-        "tests": ["tests/unit/test_deep_scan_min_max.py"],
-        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+        "implementation": ["src/web/components/data_source/variable_editor.py::VariableEditor._show_scan_dialog", "src/core/services/data_services/variable_service.py::VariableService.aggregate_distribution_range"],
+        "tests": ["tests/unit/test_deep_scan_min_max.py::TestDeepScanMinMax"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
     {
@@ -1933,9 +1933,9 @@
       "description": "Histogram variables shall optionally normalize inconsistent source ranges into a configured number of fixed buckets and maximum range before CSV assembly.",
       "tags": ["histogram", "normalization", "parsing"],
       "evidence": {
-        "implementation": ["src/parsing/gem5/types/histogram.py", "src/web/components/data_source/variable_editor.py::render_histogram_config"],
-        "tests": ["tests/unit/test_histogram_rebinning.py"],
-        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+        "implementation": ["src/parsing/gem5/types/histogram.py::Histogram._reduce_with_rebinning", "src/web/components/data_source/variable_editor.py::VariableEditor.render_histogram_config"],
+        "tests": ["tests/unit/test_histogram_rebinning.py::test_histogram_rebinning_exact_values"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
     {
@@ -1947,9 +1947,9 @@
       "description": "gem5 parsing shall reuse a bounded pool of persistent Perl workers with request timeouts, health monitoring, restart, statistics, and orderly shutdown.",
       "tags": ["parsing", "performance", "workers"],
       "evidence": {
-        "implementation": ["src/parsing/gem5/impl/strategies/perl_worker_pool.py"],
-        "tests": ["tests/unit/test_perl_worker_pool.py"],
-        "documentation": ["docs/developer-guide/subsystems/parsing.md"]
+        "implementation": ["src/parsing/gem5/impl/strategies/perl_worker_pool.py::PerlWorkerPool"],
+        "tests": ["tests/unit/test_perl_worker_pool.py::TestPerlWorkerPool"],
+        "documentation": ["docs/developer-guide/subsystems/parsing.md#async-contract"]
       }
     },
     {
@@ -1961,9 +1961,9 @@
       "description": "Users shall assign a logical output alias to a scalar or pattern variable without changing the source statistic used for discovery and parsing, and duplicate source or alias definitions shall fail visibly.",
       "tags": ["alias", "parser", "variables"],
       "evidence": {
-        "implementation": ["src/core/application_api.py", "src/parsing/gem5/impl/strategies/simple.py", "src/web/components/data_source/variable_editor.py"],
-        "tests": ["tests/unit/test_aliasing.py", "tests/unit/test_application_api_delegation.py"],
-        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+        "implementation": ["src/core/application_api.py::ApplicationAPI.submit_parse_async", "src/parsing/gem5/impl/strategies/simple.py::SimpleStatsStrategy._map_variables", "src/web/components/data_source/variable_editor.py::VariableEditor._render_common_fields"],
+        "tests": ["tests/unit/test_aliasing.py::TestAliasing.test_aliasing_config_generation", "tests/unit/test_application_api_delegation.py::TestSubmitParseAsync.test_dict_variable_with_alias"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
     {
@@ -1975,9 +1975,9 @@
       "description": "Configuration variables shall accept an explicit onEmpty value and use it when path-derived metadata is absent while preserving the first extracted value when content exists.",
       "tags": ["configuration", "fallback", "parser"],
       "evidence": {
-        "implementation": ["src/parsing/gem5/types/configuration.py", "src/parsing/gem5/impl/strategies/gem5_parse_work.py", "src/web/components/data_source/variable_editor.py"],
-        "tests": ["tests/unit/test_configuration_type.py", "tests/unit/test_gem5_parse_work.py"],
-        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+        "implementation": ["src/parsing/gem5/types/configuration.py::Configuration", "src/parsing/gem5/impl/strategies/gem5_parse_work.py::Gem5ParseWork._scalar_pattern_entry", "src/web/components/data_source/variable_editor.py::VariableEditor.render_configuration_config"],
+        "tests": ["tests/unit/test_configuration_type.py::TestConfigurationOnEmptyProperty", "tests/unit/test_gem5_parse_work.py::test_validate_vars_config_default"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
     {

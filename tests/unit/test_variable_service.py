@@ -353,6 +353,8 @@ class TestFindVariableByName:
 class TestAggregateDiscoveredEntries:
     """Tests for aggregate_discovered_entries()."""
 
+    # [test->req~ring5.ingestion.variable-entry-selection~1]
+
     def test_aggregates_from_single_variable(self) -> None:
         """Should aggregate entries from one variable."""
         snapshot = cast(

@@ -60,6 +60,7 @@ class PatternIndexSelector:
             - use_filter: True if user wants to filter indices
             - filtered_entries: Entries matching the selection
         """
+        # [impl->req~ring5.ingestion.pattern-index-selection~1]
         if not cls.is_pattern_variable(var_name):
             return False, entries
 

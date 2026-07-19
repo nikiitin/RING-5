@@ -14,6 +14,14 @@ tests marked `public_api` enforce exact line and branch coverage for the package
 
 ## Workspace
 
+<!--
+`uman~ring5.ingestion.scan-limits.documentation~1`
+
+Covers:
+- req~ring5.ingestion.scan-limits~1
+
+-->
+
 `ring5.Session` owns one headless workspace. It can submit or complete parsing, load CSV data, run
 manager operations and shaper pipelines, create and render plots, export figures, and save or
 restore portfolios. Use it as a context manager so pending session work and temporary parser output

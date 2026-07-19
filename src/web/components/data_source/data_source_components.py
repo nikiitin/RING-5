@@ -38,6 +38,7 @@ class DataSourceComponents:
     @staticmethod
     def render_csv_pool(api: ApplicationAPI) -> None:
         """Display and manage the CSV pool."""
+        # [impl->req~ring5.ingestion.csv-pool~1]
         st.markdown("---")
         st.markdown("### Recent CSV Files")
 
@@ -101,6 +102,8 @@ class DataSourceComponents:
     @staticmethod
     def render_parser_config(api: ApplicationAPI) -> None:
         """Display parser configuration interface."""
+        # [impl->req~ring5.ingestion.scan-presets-progress~1]
+        # [impl->req~ring5.ingestion.web-path-authorization~1]
         # Get simulator info for dynamic labels
         selected_sim = api.state_manager.get_simulator()
         sim_info = ApplicationAPI.get_simulator_info(selected_sim)

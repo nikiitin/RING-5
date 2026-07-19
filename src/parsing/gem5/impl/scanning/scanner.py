@@ -86,6 +86,7 @@ class Gem5StatsScanner:
             FileNotFoundError: If the target stats file does not exist.
             RuntimeError: If the Perl scanner returns invalid output or crashes.
         """
+        # [impl->req~ring5.ingestion.variable-scan~1]
         display_path = sanitize_log_value(file_path)
         if not file_path.exists():
             raise FileNotFoundError(f"SCANNER: File not found: {display_path}")

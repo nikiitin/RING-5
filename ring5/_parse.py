@@ -44,6 +44,8 @@ class ParseResult:
 class ParseJob:
     """A submitted parse batch — everything finalize needs, in one handle."""
 
+    # [impl->req~ring5.ingestion.async-parse~1]
+
     api: "ApplicationAPI"
     futures: list["Future[dict[str, Any]]"]
     var_names: list[str]
@@ -70,6 +72,7 @@ class ParseJob:
             ParseError: A worker failed, or no CSV was produced.
             MissingStatError: See ``strict``.
         """
+        # [impl->req~ring5.ingestion.parse-integrity~1]
         from concurrent.futures import wait
 
         _done, pending = wait(self.futures, timeout=PARSE_BATCH_TIMEOUT_SECONDS)

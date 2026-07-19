@@ -8,6 +8,8 @@ from src.parsing.gem5.types.type_mapper import TypeMapper
 class TestStatisticsOnlyMode:
     """Test that statisticsOnly flag correctly configures stat types."""
 
+    # [test->req~ring5.ingestion.statistics-only~1]
+
     def test_distribution_statistics_only(self) -> None:
         """Distribution with statisticsOnly=True should skip bucket validation."""
         config = {

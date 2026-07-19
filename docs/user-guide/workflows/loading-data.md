@@ -16,6 +16,94 @@ when another tool already produced the analysis table.
 
 ## Parse gem5 statistics in the web application
 
+<!--
+`uman~ring5.ingestion.configuration.documentation~1`
+
+Covers:
+- req~ring5.ingestion.configuration~1
+
+`uman~ring5.ingestion.configuration-fallbacks.documentation~1`
+
+Covers:
+- req~ring5.ingestion.configuration-fallbacks~1
+
+`uman~ring5.ingestion.distribution-range-scan.documentation~1`
+
+Covers:
+- req~ring5.ingestion.distribution-range-scan~1
+
+`uman~ring5.ingestion.file-discovery.documentation~1`
+
+Covers:
+- req~ring5.ingestion.file-discovery~1
+
+`uman~ring5.ingestion.gem5-backend.documentation~1`
+
+Covers:
+- req~ring5.ingestion.gem5-backend~1
+
+`uman~ring5.ingestion.histogram-rebinning.documentation~1`
+
+Covers:
+- req~ring5.ingestion.histogram-rebinning~1
+
+`uman~ring5.ingestion.output-aliases.documentation~1`
+
+Covers:
+- req~ring5.ingestion.output-aliases~1
+
+`uman~ring5.ingestion.pattern-index-selection.documentation~1`
+
+Covers:
+- req~ring5.ingestion.pattern-index-selection~1
+
+`uman~ring5.ingestion.scalar.documentation~1`
+
+Covers:
+- req~ring5.ingestion.scalar~1
+
+`uman~ring5.ingestion.scan-presets-progress.documentation~1`
+
+Covers:
+- req~ring5.ingestion.scan-presets-progress~1
+
+`uman~ring5.ingestion.source-modes.documentation~1`
+
+Covers:
+- req~ring5.ingestion.source-modes~1
+
+`uman~ring5.ingestion.statistics-only.documentation~1`
+
+Covers:
+- req~ring5.ingestion.statistics-only~1
+
+`uman~ring5.ingestion.variable-editor.documentation~1`
+
+Covers:
+- req~ring5.ingestion.variable-editor~1
+
+`uman~ring5.ingestion.variable-entry-selection.documentation~1`
+
+Covers:
+- req~ring5.ingestion.variable-entry-selection~1
+
+`uman~ring5.ingestion.variable-scan.documentation~1`
+
+Covers:
+- req~ring5.ingestion.variable-scan~1
+
+`uman~ring5.ingestion.vector.documentation~1`
+
+Covers:
+- req~ring5.ingestion.vector~1
+
+`uman~ring5.ingestion.web-path-authorization.documentation~1`
+
+Covers:
+- req~ring5.ingestion.web-path-authorization~1
+
+-->
+
 On **Data Source**, select **Parse gem5 Stats Files** and set:
 
 - **Stats directory path** to the common root of the gem5 runs.
@@ -48,6 +136,19 @@ simulator values. Investigate missing variables before reducing or normalizing t
 
 ## Reopen parser output in the web application
 
+<!--
+`uman~ring5.ingestion.csv-delimiter-detection.documentation~1`
+
+Covers:
+- req~ring5.ingestion.csv-delimiter-detection~1
+
+`uman~ring5.ingestion.csv-pool.documentation~1`
+
+Covers:
+- req~ring5.ingestion.csv-pool~1
+
+-->
+
 Parsed CSVs are stored in the application's recent-file pool. On **Data Source**, select **Load from
 Recent**, choose a file, and load it. The recent-file pool is local application state, not a durable
 archive; copy important results to research storage.
@@ -57,6 +158,14 @@ delimiters rather than requiring comma-only input; the file must still satisfy t
 contract.
 
 ## Load an existing CSV in Python
+
+<!--
+`uman~ring5.ingestion.csv-load.documentation~1`
+
+Covers:
+- req~ring5.ingestion.csv-load~1
+
+-->
 
 `Session.load` reads a non-empty CSV with a header. It does not require fixed gem5 columns.
 

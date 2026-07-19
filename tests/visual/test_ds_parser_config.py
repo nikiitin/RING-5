@@ -103,6 +103,7 @@ class TestParserConfig:
         - Quick Scan button visible
         - Add Variable button visible
         """
+        # [test->req~ring5.ingestion.scan-presets-progress~1]
         ds = DataSourcePage(shared_page)
         ds.goto_and_wait(live_server_url)
         ds.assert_step_header_visible()

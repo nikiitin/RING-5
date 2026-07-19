@@ -1,4 +1,5 @@
 class TestDeepScanMinMax:
+    # [test->req~ring5.ingestion.distribution-range-scan~1]
     def test_merging_logic_in_async_pipeline(self) -> None:
         """Test that the async pipeline correctly merges distribution ranges from multiple files."""
         from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ScannerService

@@ -101,6 +101,7 @@ class TestScannerFix:
         self, mock_api: Any, mock_streamlit: Any
     ) -> None:
         """Test that VariableEditor deep scan calls api.submit_scan_async"""
+        # [test->req~ring5.ingestion.scan-presets-progress~1]
         # Setup
         variables = cast(
             list[ParseVariableConfig], [{"name": "test_var", "type": "vector", "_id": "123"}]

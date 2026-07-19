@@ -11,6 +11,7 @@ class TestAliasing:
     def test_aliasing_config_generation(self, mock_file_open: Any) -> None:
 
         # Setup
+        # [test->req~ring5.ingestion.output-aliases~1]
         facade = ApplicationAPI()  # Use ApplicationAPI instead of BackendFacade
         stats_path = "/tmp/stats"
         stats_pattern = "stats.txt"

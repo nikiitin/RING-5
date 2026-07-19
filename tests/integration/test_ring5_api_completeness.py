@@ -29,6 +29,8 @@ def _write_stats_run(root: Path, body: str, config: str | None = None) -> Path:
 
 
 def test_scan_parse_and_config_aware_workflow(tmp_path: Path) -> None:
+    # [test->req~ring5.ingestion.async-parse~1]
+    # [test->req~ring5.ingestion.async-scan~1]
     run = _write_stats_run(
         tmp_path / "inputs",
         "simTicks 123 # ticks\n",
@@ -98,6 +100,7 @@ def test_gem5_oneline_histogram_is_scanned_and_parsed(tmp_path: Path) -> None:
 
 
 def test_scan_job_partial_and_timeout_are_typed(monkeypatch: pytest.MonkeyPatch) -> None:
+    # [test->req~ring5.ingestion.async-scan~1]
     good: Future[ScanFileResult] = Future()
     good.set_result(ScanFileResult("good/stats.txt", [ScannedVariable(name="x", type="scalar")]))
     bad_result = ScanFileResult("bad/stats.txt", error="scanner failed")
@@ -125,6 +128,7 @@ def test_scan_job_partial_and_timeout_are_typed(monkeypatch: pytest.MonkeyPatch)
 
 
 def test_session_close_defers_cleanup_for_running_parse(tmp_path: Path) -> None:
+    # [test->req~ring5.ingestion.async-parse~1]
     output = tmp_path / "owned"
     output.mkdir()
     running: Future[dict[str, Any]] = Future()

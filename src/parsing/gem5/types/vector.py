@@ -32,6 +32,8 @@ class Vector(StatType):
     - Raises RuntimeError if more values than expected after balancing
     """
 
+    # [impl->req~ring5.ingestion.vector~1]
+
     required_params = ["entries"]
     _allowed_attributes = frozenset(
         {

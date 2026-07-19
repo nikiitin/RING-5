@@ -35,6 +35,7 @@ class ScanError(Ring5Error):
 
 
 class ParseError(Ring5Error):
+    # [impl->req~ring5.ingestion.parse-integrity~1]
     """Parsing failed or produced nothing."""
 
 

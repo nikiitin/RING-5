@@ -33,6 +33,7 @@ def test_sorted_limit_selects_lexical_paths(
     expected: list[str],
 ) -> None:
     """Sorting happens before slicing, independent of creation order."""
+    # [test->req~ring5.ingestion.file-discovery~1]
     paths = find_stats_files(str(stats_tree), limit=limit, sort=True)
     relative = [str(Path(path).relative_to(stats_tree)) for path in paths]
     assert relative == expected
@@ -40,6 +41,7 @@ def test_sorted_limit_selects_lexical_paths(
 
 def test_empty_and_missing_paths(stats_tree: Path, tmp_path: Path) -> None:
     """No matches are empty by default and typed when requested."""
+    # [test->req~ring5.ingestion.file-discovery~1]
     assert find_stats_files(str(stats_tree), pattern="missing.txt", sort=True) == []
     with pytest.raises(FileNotFoundError, match="No files matching"):
         find_stats_files(
@@ -57,6 +59,7 @@ def test_negative_limit_is_rejected(stats_tree: Path) -> None:
 
 
 def test_entry_walk_is_bounded(stats_tree: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # [test->req~ring5.ingestion.file-discovery~1]
     monkeypatch.setattr(discovery, "MAX_DISCOVERY_ENTRIES", 1)
 
     with pytest.raises(FileDiscoveryLimitError, match="exceeded 1 entries"):

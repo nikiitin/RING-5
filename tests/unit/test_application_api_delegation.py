@@ -96,6 +96,7 @@ class TestSubmitParseAsync:
 
     def test_dict_variable_with_alias(self, api: ApplicationAPI) -> None:
         """Dict variable with alias uses alias as name."""
+        # [test->req~ring5.ingestion.output-aliases~1]
         cast(Any, api._parser.submit_parse_async).return_value = MagicMock()
         api.submit_parse_async(
             "/path",

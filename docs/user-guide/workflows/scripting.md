@@ -16,6 +16,29 @@ without exposing `src.*` modules as a supported interface.
 
 ## Run a complete analysis
 
+<!--
+`uman~ring5.ingestion.async-parse.documentation~1`
+
+Covers:
+- req~ring5.ingestion.async-parse~1
+
+`uman~ring5.ingestion.async-scan.documentation~1`
+
+Covers:
+- req~ring5.ingestion.async-scan~1
+
+`uman~ring5.ingestion.config-aware-strategy.documentation~1`
+
+Covers:
+- req~ring5.ingestion.config-aware-strategy~1
+
+`uman~ring5.ingestion.simple-strategy.documentation~1`
+
+Covers:
+- req~ring5.ingestion.simple-strategy~1
+
+-->
+
 ```python
 import ring5
 

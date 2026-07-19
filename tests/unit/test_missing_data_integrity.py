@@ -41,6 +41,7 @@ class TestRenderValue:
 
 
 class TestMissingScalarBecomesNaN:
+    # [test->req~ring5.ingestion.parse-integrity~1]
     def test_absent_scalar_is_nan_not_zero(self, tmp_path: Path) -> None:
         # File A measured ipc; file B is missing it entirely.
         results = [

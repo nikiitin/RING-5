@@ -69,6 +69,8 @@ class TestSimulatorInfo:
 class TestSimulatorRegistry:
     """Test SimulatorRegistry class."""
 
+    # [test->req~ring5.ingestion.simulator-registry~1]
+
     def test_gem5_auto_registered(self) -> None:
         """gem5 should be auto-registered on module import."""
         assert "gem5" in SimulatorRegistry.available_simulators()

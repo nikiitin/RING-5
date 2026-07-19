@@ -29,6 +29,7 @@ class TestFullWorkflow:
     """stats.txt → figure file, entirely through ring5."""
 
     def test_parse_to_figure_files(self, tmp_path: Path) -> None:
+        # [test->req~ring5.ingestion.csv-load~1]
         subtree = _first_stats_subtree()
 
         with ring5.Session() as s:

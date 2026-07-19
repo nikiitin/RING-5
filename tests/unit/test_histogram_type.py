@@ -240,6 +240,8 @@ class TestHistogramBalanceContent:
 class TestHistogramReduceDuplicates:
     """Test reduce_duplicates method (mean calculation)."""
 
+    # [test->req~ring5.ingestion.histogram~1]
+
     def test_reduce_single_value_per_bucket(self) -> None:
         hist = Histogram()
         hist.content = {"0-10": 100, "10-20": 200}
@@ -334,6 +336,8 @@ class TestHistogramRebinning:
 
 class TestHistogramRangeParser:
     """Test _parse_range_key helper method."""
+
+    # [test->req~ring5.ingestion.histogram~1]
 
     def test_parse_range_key_valid(self) -> None:
         hist = Histogram()

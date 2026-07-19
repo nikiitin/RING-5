@@ -143,6 +143,8 @@ class TestScalarContentProperty:
 class TestScalarReduceDuplicates:
     """Test Scalar reduce_duplicates (arithmetic mean)."""
 
+    # [test->req~ring5.ingestion.scalar~1]
+
     def test_reduce_single_value(self) -> None:
         scalar = Scalar(repeat=1)
         scalar._set_content(42)

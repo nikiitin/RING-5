@@ -29,6 +29,8 @@ class Histogram(StatType):
     - Values are automatically aggregated (summed) if multiple matches occur in one file.
     """
 
+    # [impl->req~ring5.ingestion.histogram~1]
+
     required_params = []  # Histogram buckets are usually dynamic in gem5 stats
     _allowed_attributes = frozenset(
         {
@@ -201,6 +203,7 @@ class Histogram(StatType):
 
     def _reduce_with_rebinning(self) -> None:
         """Perform reduction by rebinning each simulation's data into target uniform buckets."""
+        # [impl->req~ring5.ingestion.histogram-rebinning~1]
         num_bins = self._bins
         max_val = self._max_range
 

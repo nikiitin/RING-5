@@ -175,6 +175,7 @@ def test_process_output_empty_no_fabrication(parser: Any) -> None:
 
 
 def test_validate_vars_config_default() -> None:
+    # [test->req~ring5.ingestion.configuration-fallbacks~1]
     vars_map: VarsDictType = cast(VarsDictType, {"config_var": Configuration()})
     vars_map["config_var"].onEmpty = "Default"
     # Content must not be None to pass first check, but empty to trigger default logic

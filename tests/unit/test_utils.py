@@ -159,6 +159,7 @@ class TestValidateWebStatsPath:
     def test_allowed_root_accepts_child(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        # [test->req~ring5.ingestion.web-path-authorization~1]
         allowed = tmp_path / "allowed"
         child = allowed / "run"
         child.mkdir(parents=True)

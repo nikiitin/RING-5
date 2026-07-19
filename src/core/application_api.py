@@ -94,6 +94,7 @@ class ApplicationAPI:
         1. Load via data services
         2. Persist via StateManager
         """
+        # [impl->req~ring5.ingestion.csv-load~1]
         try:
             # 1. Operation: Load
             df = self._services.data_services.load_csv_file(csv_path)
@@ -156,6 +157,7 @@ class ApplicationAPI:
         Converts variable dictionaries to StatConfig objects.
         Repetition and regex expansion are handled by the parsing module.
         """
+        # [impl->req~ring5.ingestion.output-aliases~1]
         stat_configs: list[StatConfig] = []
         for var in variables:
             if isinstance(var, dict):

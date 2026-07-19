@@ -77,6 +77,7 @@ def mock_api() -> Any:
 
 def test_variable_editor_render_existing(mock_streamlit: Any, mock_api: Any) -> None:
 
+    # [test->req~ring5.ingestion.variable-editor~1]
     vars_config = cast(list[ParseVariableConfig], [{"name": "v1", "type": "scalar", "_id": "1"}])
 
     # Setup inputs
@@ -95,6 +96,7 @@ def test_variable_editor_render_existing(mock_streamlit: Any, mock_api: Any) -> 
 
 def test_variable_editor_add_manual(mock_streamlit: Any, mock_api: Any) -> None:
 
+    # [test->req~ring5.ingestion.variable-editor~1]
     vars_config: list[ParseVariableConfig] = []
 
     # Button clicks: X (delete) -> False, Add Selected -> False, Add Manual -> True
@@ -152,6 +154,7 @@ def test_variable_editor_deep_scan(mock_streamlit: Any, mock_api: Any) -> None:
 
 def test_variable_editor_vector_stats_checkboxes(mock_streamlit: Any, mock_api: Any) -> None:
 
+    # [test->req~ring5.ingestion.variable-entry-selection~1]
     vars_config = cast(
         list[ParseVariableConfig],
         [{"name": "vec", "type": "vector", "_id": "1", "vectorEntries": []}],

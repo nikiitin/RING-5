@@ -297,6 +297,8 @@ class TestDistributionBalanceContent:
 class TestDistributionReduceDuplicates:
     """Test reduce_duplicates method (arithmetic mean per bucket)."""
 
+    # [test->req~ring5.ingestion.distribution~1]
+
     def test_reduce_single_value_per_bucket(self) -> None:
         dist = Distribution(minimum=0, maximum=1)
         dist.content = {"underflows": [5], "0": [100], "1": [200], "overflows": [3]}

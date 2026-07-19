@@ -128,6 +128,7 @@ class TestScannerService:
             ScannerService.submit_scan_async(str(tmp_path), "stats.txt")
 
     def test_submit_scan_zero_preserves_exhaustive_discovery_contract(self, tmp_path: Path) -> None:
+        # [test->req~ring5.ingestion.scan-limits~1]
         from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ScannerService
 
         paths = [str(tmp_path / f"run-{index:03d}" / "stats.txt") for index in range(257)]
@@ -142,6 +143,7 @@ class TestScannerService:
         assert find.call_args.kwargs["limit"] == 0
 
     def test_submit_scan_rejects_limit_above_global_ceiling(self, tmp_path: Path) -> None:
+        # [test->req~ring5.ingestion.scan-limits~1]
         from src.core.common.security_limits import MAX_DISCOVERED_FILES
         from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ScannerService
 

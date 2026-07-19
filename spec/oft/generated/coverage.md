@@ -85,7 +85,7 @@ Tags: documentation, status_approved, web
 `impl~ring5.ingestion.source-modes~1`
 
 Implementation evidence:
-- `src/web/pages/data_source.py`
+- `src/web/pages/data_source.py::DataSourcePage.render`
 
 Covers:
 - req~ring5.ingestion.source-modes~1
@@ -98,7 +98,7 @@ Tags: csv, parsing, status_approved, web
 
 Implementation evidence:
 - `ring5/_session.py::Session.load`
-- `src/core/application_api.py::load_data`
+- `src/core/application_api.py::ApplicationAPI.load_data`
 
 Covers:
 - req~ring5.ingestion.csv-load~1
@@ -110,7 +110,7 @@ Tags: api, csv, data, status_approved
 `impl~ring5.ingestion.csv-contract~1`
 
 Implementation evidence:
-- `src/core/models/csv_contract.py`
+- `src/core/models/csv_contract.py::validate_parser_csv`
 
 Covers:
 - req~ring5.ingestion.csv-contract~1
@@ -122,8 +122,8 @@ Tags: csv, status_approved, validation
 `impl~ring5.ingestion.csv-pool~1`
 
 Implementation evidence:
-- `src/core/services/data_services/csv_pool_service.py`
-- `src/web/components/data_source/data_source_components.py`
+- `src/core/services/data_services/csv_pool_service.py::CsvPoolService`
+- `src/web/components/data_source/data_source_components.py::DataSourceComponents.render_csv_pool`
 
 Covers:
 - req~ring5.ingestion.csv-pool~1
@@ -147,7 +147,7 @@ Tags: extensibility, parsing, registry, status_approved
 `impl~ring5.ingestion.gem5-backend~1`
 
 Implementation evidence:
-- `src/parsing/gem5/impl/gem5_parser.py`
+- `src/parsing/gem5/impl/gem5_parser.py::Gem5Parser`
 
 Covers:
 - req~ring5.ingestion.gem5-backend~1
@@ -159,7 +159,7 @@ Tags: gem5, parsing, status_approved
 `impl~ring5.ingestion.file-discovery~1`
 
 Implementation evidence:
-- `src/parsing/framework/file_discovery.py`
+- `src/parsing/framework/file_discovery.py::find_stats_files`
 
 Covers:
 - req~ring5.ingestion.file-discovery~1
@@ -172,7 +172,7 @@ Tags: discovery, files, parsing, status_approved
 
 Implementation evidence:
 - `src/parsing/gem5/impl/gem5_parser.py::Gem5Parser.aggregate_scan_results`
-- `src/parsing/gem5/impl/scanning/scanner.py`
+- `src/parsing/gem5/impl/scanning/scanner.py::Gem5StatsScanner.scan_file`
 
 Covers:
 - req~ring5.ingestion.variable-scan~1
@@ -184,7 +184,7 @@ Tags: parsing, scan, status_approved, variables
 `impl~ring5.ingestion.async-scan~1`
 
 Implementation evidence:
-- `ring5/_scan.py`
+- `ring5/_scan.py::ScanJob`
 - `ring5/_session.py::Session.scan_submit`
 
 Covers:
@@ -198,7 +198,6 @@ Tags: api, async, scan, status_approved
 
 Implementation evidence:
 - `ring5/_session.py::Session.scan`
-- `src/core/common/security_limits.py`
 
 Covers:
 - req~ring5.ingestion.scan-limits~1
@@ -210,7 +209,7 @@ Tags: limits, scan, status_approved
 `impl~ring5.ingestion.variable-editor~1`
 
 Implementation evidence:
-- `src/web/components/data_source/variable_editor.py`
+- `src/web/components/data_source/variable_editor.py::VariableEditor`
 
 Covers:
 - req~ring5.ingestion.variable-editor~1
@@ -222,7 +221,7 @@ Tags: parsing, status_approved, variables, web
 `impl~ring5.ingestion.scalar~1`
 
 Implementation evidence:
-- `src/parsing/gem5/types/scalar.py`
+- `src/parsing/gem5/types/scalar.py::Scalar`
 
 Covers:
 - req~ring5.ingestion.scalar~1
@@ -234,7 +233,7 @@ Tags: gem5, scalar, status_approved, variables
 `impl~ring5.ingestion.vector~1`
 
 Implementation evidence:
-- `src/parsing/gem5/types/vector.py`
+- `src/parsing/gem5/types/vector.py::Vector`
 
 Covers:
 - req~ring5.ingestion.vector~1
@@ -246,7 +245,7 @@ Tags: gem5, status_approved, variables, vector
 `impl~ring5.ingestion.distribution~1`
 
 Implementation evidence:
-- `src/parsing/gem5/types/distribution.py`
+- `src/parsing/gem5/types/distribution.py::Distribution`
 
 Covers:
 - req~ring5.ingestion.distribution~1
@@ -258,7 +257,7 @@ Tags: distribution, gem5, status_approved, variables
 `impl~ring5.ingestion.histogram~1`
 
 Implementation evidence:
-- `src/parsing/gem5/types/histogram.py`
+- `src/parsing/gem5/types/histogram.py::Histogram`
 
 Covers:
 - req~ring5.ingestion.histogram~1
@@ -270,7 +269,7 @@ Tags: gem5, histogram, status_approved, variables
 `impl~ring5.ingestion.configuration~1`
 
 Implementation evidence:
-- `src/parsing/gem5/types/configuration.py`
+- `src/parsing/gem5/types/configuration.py::Configuration`
 
 Covers:
 - req~ring5.ingestion.configuration~1
@@ -282,7 +281,7 @@ Tags: configuration, gem5, status_approved, variables
 `impl~ring5.ingestion.pattern-aggregation~1`
 
 Implementation evidence:
-- `src/parsing/gem5/types/base.py`
+- `src/parsing/gem5/types/base.py::StatType.reduce_duplicates`
 
 Covers:
 - req~ring5.ingestion.pattern-aggregation~1
@@ -294,7 +293,7 @@ Tags: aggregation, parsing, regex, status_approved
 `impl~ring5.ingestion.simple-strategy~1`
 
 Implementation evidence:
-- `src/parsing/gem5/impl/strategies/simple.py`
+- `src/parsing/gem5/impl/strategies/simple.py::SimpleStatsStrategy`
 
 Covers:
 - req~ring5.ingestion.simple-strategy~1
@@ -306,7 +305,7 @@ Tags: gem5, parsing, status_approved, strategy
 `impl~ring5.ingestion.config-aware-strategy~1`
 
 Implementation evidence:
-- `src/parsing/gem5/impl/strategies/config_aware.py`
+- `src/parsing/gem5/impl/strategies/config_aware.py::ConfigAwareStrategy`
 
 Covers:
 - req~ring5.ingestion.config-aware-strategy~1
@@ -318,7 +317,7 @@ Tags: configuration, gem5, status_approved, strategy
 `impl~ring5.ingestion.async-parse~1`
 
 Implementation evidence:
-- `ring5/_parse.py`
+- `ring5/_parse.py::ParseJob`
 - `ring5/_session.py::Session.parse_submit`
 
 Covers:
@@ -332,8 +331,8 @@ Tags: api, async, parsing, status_approved
 
 Implementation evidence:
 - `ring5/_parse.py::ParseJob.finalize`
-- `src/parsing/gem5/impl/gem5_parser.py`
-- `ring5/errors.py`
+- `src/parsing/gem5/impl/gem5_parser.py::Gem5Parser.finalize_parsing`
+- `ring5/errors.py::ParseError`
 
 Covers:
 - req~ring5.ingestion.parse-integrity~1
@@ -346,7 +345,7 @@ Tags: errors, integrity, parsing, status_approved
 
 Implementation evidence:
 - `ring5/_session.py::Session.parse_submit`
-- `src/core/state/repositories/parser_state_repository.py`
+- `src/core/state/repositories/parser_state_repository.py::ParserStateRepository`
 
 Covers:
 - req~ring5.ingestion.parse-output-provenance~1
@@ -1547,7 +1546,8 @@ Tags: deployment, persistence, status_approved, workspace
 `impl~ring5.ingestion.csv-delimiter-detection~1`
 
 Implementation evidence:
-- `src/core/services/data_services/csv_pool_service.py`
+- `src/core/services/data_services/csv_pool_service.py::CsvPoolService.load_csv_file`
+- `src/core/services/data_services/csv_pool_service.py::CsvPoolService._get_csv_metadata`
 
 Covers:
 - req~ring5.ingestion.csv-delimiter-detection~1
@@ -1560,7 +1560,7 @@ Tags: csv, metadata, status_approved, usability
 
 Implementation evidence:
 - `src/core/common/utils.py::validate_web_stats_path`
-- `src/web/components/data_source/data_source_components.py`
+- `src/web/components/data_source/data_source_components.py::DataSourceComponents.render_parser_config`
 
 Covers:
 - req~ring5.ingestion.web-path-authorization~1
@@ -1572,8 +1572,8 @@ Tags: paths, security, status_approved, web
 `impl~ring5.ingestion.scan-presets-progress~1`
 
 Implementation evidence:
-- `src/web/components/data_source/data_source_components.py`
-- `src/web/components/data_source/variable_editor.py::_show_scan_dialog`
+- `src/web/components/data_source/data_source_components.py::DataSourceComponents.render_parser_config`
+- `src/web/components/data_source/variable_editor.py::VariableEditor._show_scan_dialog`
 
 Covers:
 - req~ring5.ingestion.scan-presets-progress~1
@@ -1585,9 +1585,9 @@ Tags: progress, scan, status_approved, web
 `impl~ring5.ingestion.pattern-index-selection~1`
 
 Implementation evidence:
-- `src/core/models/pattern_index_service.py`
-- `src/web/components/data_source/pattern_index_selector.py`
-- `src/parsing/gem5/impl/gem5_parser.py`
+- `src/core/models/pattern_index_service.py::PatternIndexService`
+- `src/web/components/data_source/pattern_index_selector.py::PatternIndexSelector.render_selector`
+- `src/parsing/gem5/impl/gem5_parser.py::Gem5Parser.construct_final_csv`
 
 Covers:
 - req~ring5.ingestion.pattern-index-selection~1
@@ -1599,8 +1599,8 @@ Tags: patterns, selection, status_approved, variables
 `impl~ring5.ingestion.statistics-only~1`
 
 Implementation evidence:
-- `src/web/components/data_source/variable_editor.py`
-- `src/parsing/gem5/types/type_mapper.py`
+- `src/web/components/data_source/variable_editor.py::VariableEditor`
+- `src/parsing/gem5/types/type_mapper.py::TypeMapper.create_stat`
 
 Covers:
 - req~ring5.ingestion.statistics-only~1
@@ -1612,7 +1612,7 @@ Tags: parsing, statistics, status_approved, variables
 `impl~ring5.ingestion.variable-entry-selection~1`
 
 Implementation evidence:
-- `src/web/components/data_source/variable_editor.py`
+- `src/web/components/data_source/variable_editor.py::VariableEditor._render_vector_discovered_selection`
 
 Covers:
 - req~ring5.ingestion.variable-entry-selection~1
@@ -1624,8 +1624,8 @@ Tags: entries, statistics, status_approved, variables
 `impl~ring5.ingestion.distribution-range-scan~1`
 
 Implementation evidence:
-- `src/web/components/data_source/variable_editor.py::_show_scan_dialog`
-- `src/core/services/data_services/variable_service.py::aggregate_distribution_range`
+- `src/web/components/data_source/variable_editor.py::VariableEditor._show_scan_dialog`
+- `src/core/services/data_services/variable_service.py::VariableService.aggregate_distribution_range`
 
 Covers:
 - req~ring5.ingestion.distribution-range-scan~1
@@ -1637,8 +1637,8 @@ Tags: distribution, range, scan, status_approved
 `impl~ring5.ingestion.histogram-rebinning~1`
 
 Implementation evidence:
-- `src/parsing/gem5/types/histogram.py`
-- `src/web/components/data_source/variable_editor.py::render_histogram_config`
+- `src/parsing/gem5/types/histogram.py::Histogram._reduce_with_rebinning`
+- `src/web/components/data_source/variable_editor.py::VariableEditor.render_histogram_config`
 
 Covers:
 - req~ring5.ingestion.histogram-rebinning~1
@@ -1650,7 +1650,7 @@ Tags: histogram, normalization, parsing, status_approved
 `impl~ring5.ingestion.persistent-workers~1`
 
 Implementation evidence:
-- `src/parsing/gem5/impl/strategies/perl_worker_pool.py`
+- `src/parsing/gem5/impl/strategies/perl_worker_pool.py::PerlWorkerPool`
 
 Covers:
 - req~ring5.ingestion.persistent-workers~1
@@ -1662,9 +1662,9 @@ Tags: parsing, performance, status_approved, workers
 `impl~ring5.ingestion.output-aliases~1`
 
 Implementation evidence:
-- `src/core/application_api.py`
-- `src/parsing/gem5/impl/strategies/simple.py`
-- `src/web/components/data_source/variable_editor.py`
+- `src/core/application_api.py::ApplicationAPI.submit_parse_async`
+- `src/parsing/gem5/impl/strategies/simple.py::SimpleStatsStrategy._map_variables`
+- `src/web/components/data_source/variable_editor.py::VariableEditor._render_common_fields`
 
 Covers:
 - req~ring5.ingestion.output-aliases~1
@@ -1676,9 +1676,9 @@ Tags: alias, parser, status_approved, variables
 `impl~ring5.ingestion.configuration-fallbacks~1`
 
 Implementation evidence:
-- `src/parsing/gem5/types/configuration.py`
-- `src/parsing/gem5/impl/strategies/gem5_parse_work.py`
-- `src/web/components/data_source/variable_editor.py`
+- `src/parsing/gem5/types/configuration.py::Configuration`
+- `src/parsing/gem5/impl/strategies/gem5_parse_work.py::Gem5ParseWork._scalar_pattern_entry`
+- `src/web/components/data_source/variable_editor.py::VariableEditor.render_configuration_config`
 
 Covers:
 - req~ring5.ingestion.configuration-fallbacks~1
@@ -2052,7 +2052,7 @@ Tags: documentation, status_approved, web
 `test~ring5.ingestion.source-modes~1`
 
 Verification evidence:
-- `tests/e2e/test_data_source.py`
+- `tests/e2e/test_data_source.py::TestDataSourcePageStructure.test_mode_switching_round_trip`
 
 Covers:
 - req~ring5.ingestion.source-modes~1
@@ -2064,7 +2064,7 @@ Tags: csv, parsing, status_approved, web
 `test~ring5.ingestion.csv-load~1`
 
 Verification evidence:
-- `tests/integration/test_ring5_public_api.py`
+- `tests/integration/test_ring5_public_api.py::TestFullWorkflow.test_parse_to_figure_files`
 
 Covers:
 - req~ring5.ingestion.csv-load~1
@@ -2076,7 +2076,7 @@ Tags: api, csv, data, status_approved
 `test~ring5.ingestion.csv-contract~1`
 
 Verification evidence:
-- `tests/unit/test_csv_contract.py`
+- `tests/unit/test_csv_contract.py::TestValidateParserCsv`
 
 Covers:
 - req~ring5.ingestion.csv-contract~1
@@ -2088,7 +2088,8 @@ Tags: csv, status_approved, validation
 `test~ring5.ingestion.csv-pool~1`
 
 Verification evidence:
-- `tests/unit/test_csv_pool_service.py`
+- `tests/unit/test_csv_pool_service.py::TestPoolManagement`
+- `tests/unit/test_csv_pool_service.py::TestCSVLoading`
 
 Covers:
 - req~ring5.ingestion.csv-pool~1
@@ -2100,7 +2101,7 @@ Tags: csv, persistence, status_approved, web
 `test~ring5.ingestion.simulator-registry~1`
 
 Verification evidence:
-- `tests/unit/test_simulator_registry.py`
+- `tests/unit/test_simulator_registry.py::TestSimulatorRegistry`
 
 Covers:
 - req~ring5.ingestion.simulator-registry~1
@@ -2112,7 +2113,7 @@ Tags: extensibility, parsing, registry, status_approved
 `test~ring5.ingestion.gem5-backend~1`
 
 Verification evidence:
-- `tests/integration/test_gem5_parsing.py`
+- `tests/integration/test_gem5_parsing.py::TestGem5Parsing`
 
 Covers:
 - req~ring5.ingestion.gem5-backend~1
@@ -2124,7 +2125,9 @@ Tags: gem5, parsing, status_approved
 `test~ring5.ingestion.file-discovery~1`
 
 Verification evidence:
-- `tests/unit/test_file_discovery.py`
+- `tests/unit/test_file_discovery.py::test_sorted_limit_selects_lexical_paths`
+- `tests/unit/test_file_discovery.py::test_empty_and_missing_paths`
+- `tests/unit/test_file_discovery.py::test_entry_walk_is_bounded`
 
 Covers:
 - req~ring5.ingestion.file-discovery~1
@@ -2136,7 +2139,7 @@ Tags: discovery, files, parsing, status_approved
 `test~ring5.ingestion.variable-scan~1`
 
 Verification evidence:
-- `tests/integration/test_scanner_functional.py`
+- `tests/integration/test_scanner_functional.py::TestScannerFunctional.test_scan_real_stats`
 
 Covers:
 - req~ring5.ingestion.variable-scan~1
@@ -2148,7 +2151,8 @@ Tags: parsing, scan, status_approved, variables
 `test~ring5.ingestion.async-scan~1`
 
 Verification evidence:
-- `tests/integration/test_ring5_api_completeness.py`
+- `tests/integration/test_ring5_api_completeness.py::test_scan_job_partial_and_timeout_are_typed`
+- `tests/integration/test_ring5_api_completeness.py::test_scan_parse_and_config_aware_workflow`
 
 Covers:
 - req~ring5.ingestion.async-scan~1
@@ -2160,7 +2164,8 @@ Tags: api, async, scan, status_approved
 `test~ring5.ingestion.scan-limits~1`
 
 Verification evidence:
-- `tests/unit/test_public_parse_limits.py`
+- `tests/unit/test_parsing_services.py::TestScannerService.test_submit_scan_zero_preserves_exhaustive_discovery_contract`
+- `tests/unit/test_parsing_services.py::TestScannerService.test_submit_scan_rejects_limit_above_global_ceiling`
 
 Covers:
 - req~ring5.ingestion.scan-limits~1
@@ -2172,7 +2177,8 @@ Tags: limits, scan, status_approved
 `test~ring5.ingestion.variable-editor~1`
 
 Verification evidence:
-- `tests/ui_unit/test_variable_editor.py`
+- `tests/ui_unit/test_variable_editor.py::test_variable_editor_add_manual`
+- `tests/ui_unit/test_variable_editor.py::test_variable_editor_render_existing`
 
 Covers:
 - req~ring5.ingestion.variable-editor~1
@@ -2184,7 +2190,7 @@ Tags: parsing, status_approved, variables, web
 `test~ring5.ingestion.scalar~1`
 
 Verification evidence:
-- `tests/unit/test_scalar_type.py`
+- `tests/unit/test_scalar_type.py::TestScalarReduceDuplicates`
 
 Covers:
 - req~ring5.ingestion.scalar~1
@@ -2196,7 +2202,7 @@ Tags: gem5, scalar, status_approved, variables
 `test~ring5.ingestion.vector~1`
 
 Verification evidence:
-- `tests/unit/test_vector_type.py`
+- `tests/unit/test_vector_type.py::TestVectorReduceDuplicates`
 
 Covers:
 - req~ring5.ingestion.vector~1
@@ -2208,7 +2214,7 @@ Tags: gem5, status_approved, variables, vector
 `test~ring5.ingestion.distribution~1`
 
 Verification evidence:
-- `tests/unit/test_distribution_type.py`
+- `tests/unit/test_distribution_type.py::TestDistributionReduceDuplicates`
 
 Covers:
 - req~ring5.ingestion.distribution~1
@@ -2220,7 +2226,8 @@ Tags: distribution, gem5, status_approved, variables
 `test~ring5.ingestion.histogram~1`
 
 Verification evidence:
-- `tests/unit/test_histogram_type.py`
+- `tests/unit/test_histogram_type.py::TestHistogramRangeParser`
+- `tests/unit/test_histogram_type.py::TestHistogramReduceDuplicates`
 
 Covers:
 - req~ring5.ingestion.histogram~1
@@ -2232,7 +2239,7 @@ Tags: gem5, histogram, status_approved, variables
 `test~ring5.ingestion.configuration~1`
 
 Verification evidence:
-- `tests/unit/test_configuration_type.py`
+- `tests/unit/test_configuration_type.py::TestConfigurationBalanceContent`
 
 Covers:
 - req~ring5.ingestion.configuration~1
@@ -2244,7 +2251,7 @@ Tags: configuration, gem5, status_approved, variables
 `test~ring5.ingestion.pattern-aggregation~1`
 
 Verification evidence:
-- `tests/integration/test_pattern_aggregation_integration.py`
+- `tests/integration/test_pattern_aggregation_integration.py::TestScannerPatternAggregation`
 
 Covers:
 - req~ring5.ingestion.pattern-aggregation~1
@@ -2256,7 +2263,7 @@ Tags: aggregation, parsing, regex, status_approved
 `test~ring5.ingestion.simple-strategy~1`
 
 Verification evidence:
-- `tests/unit/test_parser_strategies.py`
+- `tests/unit/test_parser_strategies.py::TestSimpleStatsStrategy`
 
 Covers:
 - req~ring5.ingestion.simple-strategy~1
@@ -2268,7 +2275,7 @@ Tags: gem5, parsing, status_approved, strategy
 `test~ring5.ingestion.config-aware-strategy~1`
 
 Verification evidence:
-- `tests/unit/test_parser_strategies.py`
+- `tests/unit/test_parser_strategies.py::TestConfigAwareStrategy`
 
 Covers:
 - req~ring5.ingestion.config-aware-strategy~1
@@ -2280,7 +2287,8 @@ Tags: configuration, gem5, status_approved, strategy
 `test~ring5.ingestion.async-parse~1`
 
 Verification evidence:
-- `tests/integration/test_ring5_api_completeness.py`
+- `tests/integration/test_ring5_api_completeness.py::test_scan_parse_and_config_aware_workflow`
+- `tests/integration/test_ring5_api_completeness.py::test_session_close_defers_cleanup_for_running_parse`
 
 Covers:
 - req~ring5.ingestion.async-parse~1
@@ -2292,7 +2300,7 @@ Tags: api, async, parsing, status_approved
 `test~ring5.ingestion.parse-integrity~1`
 
 Verification evidence:
-- `tests/unit/test_missing_data_integrity.py`
+- `tests/unit/test_missing_data_integrity.py::TestMissingScalarBecomesNaN`
 
 Covers:
 - req~ring5.ingestion.parse-integrity~1
@@ -2304,7 +2312,7 @@ Tags: errors, integrity, parsing, status_approved
 `test~ring5.ingestion.parse-output-provenance~1`
 
 Verification evidence:
-- `tests/integration/test_full_parser_workflow.py`
+- `tests/integration/test_full_parser_workflow.py::TestFullParserWorkflow.test_scan_select_parse_load_workflow`
 
 Covers:
 - req~ring5.ingestion.parse-output-provenance~1
@@ -3480,7 +3488,8 @@ Tags: deployment, persistence, status_approved, workspace
 `test~ring5.ingestion.csv-delimiter-detection~1`
 
 Verification evidence:
-- `tests/unit/test_csv_pool_service.py`
+- `tests/unit/test_csv_pool_service.py::TestCSVLoading.test_load_csv_file_handles_different_separators`
+- `tests/unit/test_csv_pool_service.py::TestMetadataCaching`
 
 Covers:
 - req~ring5.ingestion.csv-delimiter-detection~1
@@ -3492,7 +3501,7 @@ Tags: csv, metadata, status_approved, usability
 `test~ring5.ingestion.web-path-authorization~1`
 
 Verification evidence:
-- `tests/unit/test_utils.py`
+- `tests/unit/test_utils.py::TestValidateWebStatsPath.test_allowed_root_accepts_child`
 
 Covers:
 - req~ring5.ingestion.web-path-authorization~1
@@ -3504,7 +3513,9 @@ Tags: paths, security, status_approved, web
 `test~ring5.ingestion.scan-presets-progress~1`
 
 Verification evidence:
-- `tests/unit/test_parser_data_source_services.py`
+- `tests/visual/test_ds_parser_config.py::TestParserConfig.test_variables_section`
+- `tests/visual/test_e2e_parse_workflow.py::TestScanWorkflow.test_scan_single_stats`
+- `tests/integration/test_scanner_fix.py::TestScannerFix.test_variable_editor_deep_scan_calls_api_directly`
 
 Covers:
 - req~ring5.ingestion.scan-presets-progress~1
@@ -3516,8 +3527,8 @@ Tags: progress, scan, status_approved, web
 `test~ring5.ingestion.pattern-index-selection~1`
 
 Verification evidence:
-- `tests/unit/test_keep_indices.py`
-- `tests/unit/test_pattern_index_service.py`
+- `tests/unit/test_keep_indices.py::TestKeepIndicesUserFiltered`
+- `tests/unit/test_pattern_index_service.py::TestFilterEntries`
 
 Covers:
 - req~ring5.ingestion.pattern-index-selection~1
@@ -3529,8 +3540,8 @@ Tags: patterns, selection, status_approved, variables
 `test~ring5.ingestion.statistics-only~1`
 
 Verification evidence:
-- `tests/unit/test_statistics_only_mode.py`
-- `tests/integration/test_statistics_only_integration.py`
+- `tests/unit/test_statistics_only_mode.py::TestStatisticsOnlyMode`
+- `tests/integration/test_statistics_only_integration.py::TestStatisticsOnlyIntegration`
 
 Covers:
 - req~ring5.ingestion.statistics-only~1
@@ -3542,8 +3553,8 @@ Tags: parsing, statistics, status_approved, variables
 `test~ring5.ingestion.variable-entry-selection~1`
 
 Verification evidence:
-- `tests/unit/test_variable_service.py`
-- `tests/ui_unit/test_variable_editor.py`
+- `tests/unit/test_variable_service.py::TestAggregateDiscoveredEntries`
+- `tests/ui_unit/test_variable_editor.py::test_variable_editor_vector_stats_checkboxes`
 
 Covers:
 - req~ring5.ingestion.variable-entry-selection~1
@@ -3555,7 +3566,7 @@ Tags: entries, statistics, status_approved, variables
 `test~ring5.ingestion.distribution-range-scan~1`
 
 Verification evidence:
-- `tests/unit/test_deep_scan_min_max.py`
+- `tests/unit/test_deep_scan_min_max.py::TestDeepScanMinMax`
 
 Covers:
 - req~ring5.ingestion.distribution-range-scan~1
@@ -3567,7 +3578,7 @@ Tags: distribution, range, scan, status_approved
 `test~ring5.ingestion.histogram-rebinning~1`
 
 Verification evidence:
-- `tests/unit/test_histogram_rebinning.py`
+- `tests/unit/test_histogram_rebinning.py::test_histogram_rebinning_exact_values`
 
 Covers:
 - req~ring5.ingestion.histogram-rebinning~1
@@ -3579,7 +3590,7 @@ Tags: histogram, normalization, parsing, status_approved
 `test~ring5.ingestion.persistent-workers~1`
 
 Verification evidence:
-- `tests/unit/test_perl_worker_pool.py`
+- `tests/unit/test_perl_worker_pool.py::TestPerlWorkerPool`
 
 Covers:
 - req~ring5.ingestion.persistent-workers~1
@@ -3591,8 +3602,8 @@ Tags: parsing, performance, status_approved, workers
 `test~ring5.ingestion.output-aliases~1`
 
 Verification evidence:
-- `tests/unit/test_aliasing.py`
-- `tests/unit/test_application_api_delegation.py`
+- `tests/unit/test_aliasing.py::TestAliasing.test_aliasing_config_generation`
+- `tests/unit/test_application_api_delegation.py::TestSubmitParseAsync.test_dict_variable_with_alias`
 
 Covers:
 - req~ring5.ingestion.output-aliases~1
@@ -3604,8 +3615,8 @@ Tags: alias, parser, status_approved, variables
 `test~ring5.ingestion.configuration-fallbacks~1`
 
 Verification evidence:
-- `tests/unit/test_configuration_type.py`
-- `tests/unit/test_gem5_parse_work.py`
+- `tests/unit/test_configuration_type.py::TestConfigurationOnEmptyProperty`
+- `tests/unit/test_gem5_parse_work.py::test_validate_vars_config_default`
 
 Covers:
 - req~ring5.ingestion.configuration-fallbacks~1
@@ -3968,7 +3979,7 @@ Tags: documentation, status_approved, web
 `uman~ring5.ingestion.source-modes~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/loading-data.md`
+- `docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application`
 
 Covers:
 - req~ring5.ingestion.source-modes~1
@@ -3980,7 +3991,7 @@ Tags: csv, parsing, status_approved, web
 `uman~ring5.ingestion.csv-load~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/loading-data.md`
+- `docs/user-guide/workflows/loading-data.md#load-an-existing-csv-in-python`
 
 Covers:
 - req~ring5.ingestion.csv-load~1
@@ -3992,7 +4003,7 @@ Tags: api, csv, data, status_approved
 `uman~ring5.ingestion.csv-contract~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/troubleshooting.md`
+- `docs/user-guide/reference/troubleshooting.md#a-csv-does-not-load`
 
 Covers:
 - req~ring5.ingestion.csv-contract~1
@@ -4004,7 +4015,7 @@ Tags: csv, status_approved, validation
 `uman~ring5.ingestion.csv-pool~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/loading-data.md`
+- `docs/user-guide/workflows/loading-data.md#reopen-parser-output-in-the-web-application`
 
 Covers:
 - req~ring5.ingestion.csv-pool~1
@@ -4016,7 +4027,7 @@ Tags: csv, persistence, status_approved, web
 `uman~ring5.ingestion.simulator-registry~1`
 
 User documentation evidence:
-- `docs/developer-guide/extension-guides/adding-a-parser.md`
+- `docs/developer-guide/extension-guides/adding-a-parser.md#implement-the-backend`
 
 Covers:
 - req~ring5.ingestion.simulator-registry~1
@@ -4028,7 +4039,7 @@ Tags: extensibility, parsing, registry, status_approved
 `uman~ring5.ingestion.gem5-backend~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/loading-data.md`
+- `docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application`
 
 Covers:
 - req~ring5.ingestion.gem5-backend~1
@@ -4040,7 +4051,7 @@ Tags: gem5, parsing, status_approved
 `uman~ring5.ingestion.file-discovery~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/loading-data.md`
+- `docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application`
 
 Covers:
 - req~ring5.ingestion.file-discovery~1
@@ -4052,7 +4063,7 @@ Tags: discovery, files, parsing, status_approved
 `uman~ring5.ingestion.variable-scan~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/loading-data.md`
+- `docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application`
 
 Covers:
 - req~ring5.ingestion.variable-scan~1
@@ -4064,7 +4075,7 @@ Tags: parsing, scan, status_approved, variables
 `uman~ring5.ingestion.async-scan~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/scripting.md`
+- `docs/user-guide/workflows/scripting.md#run-a-complete-analysis`
 
 Covers:
 - req~ring5.ingestion.async-scan~1
@@ -4076,7 +4087,7 @@ Tags: api, async, scan, status_approved
 `uman~ring5.ingestion.scan-limits~1`
 
 User documentation evidence:
-- `docs/developer-guide/api-reference/public-python-api.md`
+- `docs/developer-guide/api-reference/public-python-api.md#workspace`
 
 Covers:
 - req~ring5.ingestion.scan-limits~1
@@ -4088,7 +4099,7 @@ Tags: limits, scan, status_approved
 `uman~ring5.ingestion.variable-editor~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/loading-data.md`
+- `docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application`
 
 Covers:
 - req~ring5.ingestion.variable-editor~1
@@ -4100,7 +4111,7 @@ Tags: parsing, status_approved, variables, web
 `uman~ring5.ingestion.scalar~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/loading-data.md`
+- `docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application`
 
 Covers:
 - req~ring5.ingestion.scalar~1
@@ -4112,7 +4123,7 @@ Tags: gem5, scalar, status_approved, variables
 `uman~ring5.ingestion.vector~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/loading-data.md`
+- `docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application`
 
 Covers:
 - req~ring5.ingestion.vector~1
@@ -4124,7 +4135,7 @@ Tags: gem5, status_approved, variables, vector
 `uman~ring5.ingestion.distribution~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/plot-types.md`
+- `docs/user-guide/reference/plot-types.md#selection-guide`
 
 Covers:
 - req~ring5.ingestion.distribution~1
@@ -4136,7 +4147,7 @@ Tags: distribution, gem5, status_approved, variables
 `uman~ring5.ingestion.histogram~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/plot-types.md`
+- `docs/user-guide/reference/plot-types.md#selection-guide`
 
 Covers:
 - req~ring5.ingestion.histogram~1
@@ -4148,7 +4159,7 @@ Tags: gem5, histogram, status_approved, variables
 `uman~ring5.ingestion.configuration~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/loading-data.md`
+- `docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application`
 
 Covers:
 - req~ring5.ingestion.configuration~1
@@ -4160,7 +4171,7 @@ Tags: configuration, gem5, status_approved, variables
 `uman~ring5.ingestion.pattern-aggregation~1`
 
 User documentation evidence:
-- `docs/developer-guide/subsystems/parsing.md`
+- `docs/developer-guide/subsystems/parsing.md#variable-types-and-csv`
 
 Covers:
 - req~ring5.ingestion.pattern-aggregation~1
@@ -4172,7 +4183,7 @@ Tags: aggregation, parsing, regex, status_approved
 `uman~ring5.ingestion.simple-strategy~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/scripting.md`
+- `docs/user-guide/workflows/scripting.md#run-a-complete-analysis`
 
 Covers:
 - req~ring5.ingestion.simple-strategy~1
@@ -4184,7 +4195,7 @@ Tags: gem5, parsing, status_approved, strategy
 `uman~ring5.ingestion.config-aware-strategy~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/scripting.md`
+- `docs/user-guide/workflows/scripting.md#run-a-complete-analysis`
 
 Covers:
 - req~ring5.ingestion.config-aware-strategy~1
@@ -4196,7 +4207,7 @@ Tags: configuration, gem5, status_approved, strategy
 `uman~ring5.ingestion.async-parse~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/scripting.md`
+- `docs/user-guide/workflows/scripting.md#run-a-complete-analysis`
 
 Covers:
 - req~ring5.ingestion.async-parse~1
@@ -4208,7 +4219,7 @@ Tags: api, async, parsing, status_approved
 `uman~ring5.ingestion.parse-integrity~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/troubleshooting.md`
+- `docs/user-guide/reference/troubleshooting.md#parsing-finds-no-files-or-variables`
 
 Covers:
 - req~ring5.ingestion.parse-integrity~1
@@ -4220,7 +4231,7 @@ Tags: errors, integrity, parsing, status_approved
 `uman~ring5.ingestion.parse-output-provenance~1`
 
 User documentation evidence:
-- `docs/developer-guide/architecture/data-flow.md`
+- `docs/developer-guide/architecture/data-flow.md#parse-and-load`
 
 Covers:
 - req~ring5.ingestion.parse-output-provenance~1
@@ -5396,7 +5407,7 @@ Tags: deployment, persistence, status_approved, workspace
 `uman~ring5.ingestion.csv-delimiter-detection~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/loading-data.md`
+- `docs/user-guide/workflows/loading-data.md#reopen-parser-output-in-the-web-application`
 
 Covers:
 - req~ring5.ingestion.csv-delimiter-detection~1
@@ -5408,7 +5419,7 @@ Tags: csv, metadata, status_approved, usability
 `uman~ring5.ingestion.web-path-authorization~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/loading-data.md`
+- `docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application`
 
 Covers:
 - req~ring5.ingestion.web-path-authorization~1
@@ -5420,7 +5431,7 @@ Tags: paths, security, status_approved, web
 `uman~ring5.ingestion.scan-presets-progress~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/loading-data.md`
+- `docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application`
 
 Covers:
 - req~ring5.ingestion.scan-presets-progress~1
@@ -5432,7 +5443,7 @@ Tags: progress, scan, status_approved, web
 `uman~ring5.ingestion.pattern-index-selection~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/loading-data.md`
+- `docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application`
 
 Covers:
 - req~ring5.ingestion.pattern-index-selection~1
@@ -5444,7 +5455,7 @@ Tags: patterns, selection, status_approved, variables
 `uman~ring5.ingestion.statistics-only~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/loading-data.md`
+- `docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application`
 
 Covers:
 - req~ring5.ingestion.statistics-only~1
@@ -5456,7 +5467,7 @@ Tags: parsing, statistics, status_approved, variables
 `uman~ring5.ingestion.variable-entry-selection~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/loading-data.md`
+- `docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application`
 
 Covers:
 - req~ring5.ingestion.variable-entry-selection~1
@@ -5468,7 +5479,7 @@ Tags: entries, statistics, status_approved, variables
 `uman~ring5.ingestion.distribution-range-scan~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/loading-data.md`
+- `docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application`
 
 Covers:
 - req~ring5.ingestion.distribution-range-scan~1
@@ -5480,7 +5491,7 @@ Tags: distribution, range, scan, status_approved
 `uman~ring5.ingestion.histogram-rebinning~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/loading-data.md`
+- `docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application`
 
 Covers:
 - req~ring5.ingestion.histogram-rebinning~1
@@ -5492,7 +5503,7 @@ Tags: histogram, normalization, parsing, status_approved
 `uman~ring5.ingestion.persistent-workers~1`
 
 User documentation evidence:
-- `docs/developer-guide/subsystems/parsing.md`
+- `docs/developer-guide/subsystems/parsing.md#async-contract`
 
 Covers:
 - req~ring5.ingestion.persistent-workers~1
@@ -5504,7 +5515,7 @@ Tags: parsing, performance, status_approved, workers
 `uman~ring5.ingestion.output-aliases~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/loading-data.md`
+- `docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application`
 
 Covers:
 - req~ring5.ingestion.output-aliases~1
@@ -5516,7 +5527,7 @@ Tags: alias, parser, status_approved, variables
 `uman~ring5.ingestion.configuration-fallbacks~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/loading-data.md`
+- `docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application`
 
 Covers:
 - req~ring5.ingestion.configuration-fallbacks~1

@@ -61,6 +61,8 @@ class SimpleStatsStrategy:
     It corresponds to the legacy behavior of Gem5StatsParser.
     """
 
+    # [impl->req~ring5.ingestion.simple-strategy~1]
+
     def get_work_items(
         self, stats_path: str, stats_pattern: str, variables: Sequence[StatConfig]
     ) -> Sequence[Gem5ParseWork]:
@@ -152,6 +154,7 @@ class SimpleStatsStrategy:
 
         Handles multi-ID mapping (e.g., regex variables matching multiple controllers).
         """
+        # [impl->req~ring5.ingestion.output-aliases~1]
         var_map: dict[str, StatType] = {}
 
         for var in variables:

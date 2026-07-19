@@ -56,6 +56,7 @@ def find_stats_files(
     Notes:
         Symlinks are not followed or returned.
     """
+    # [impl->req~ring5.ingestion.file-discovery~1]
     if limit < 0:
         raise ValueError("File discovery limit cannot be negative.")
 

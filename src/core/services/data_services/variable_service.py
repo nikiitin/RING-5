@@ -337,6 +337,7 @@ class VariableService:
             >>> (min_val, max_val)
             (5, 150)
         """
+        # [impl->req~ring5.ingestion.distribution-range-scan~1]
         global_min: float | None = None
         global_max: float | None = None
 

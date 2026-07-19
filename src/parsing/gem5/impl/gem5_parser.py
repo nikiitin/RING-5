@@ -68,6 +68,8 @@ class Gem5Parser(SimulationParser):
     instance the registry hands to ``ApplicationAPI``.
     """
 
+    # [impl->req~ring5.ingestion.gem5-backend~1]
+
     @staticmethod
     def submit_parse_async(
         stats_path: str,
@@ -316,6 +318,7 @@ class Gem5Parser(SimulationParser):
         Returns:
             ``ScanResult`` with the merged variables and the list of failures.
         """
+        # [impl->req~ring5.ingestion.variable-scan~1]
         failures: list[ScanFileResult] = [r for r in results if not r.ok]
 
         merged_registry: dict[str, ScannedVariable] = {}
@@ -402,6 +405,7 @@ class Gem5Parser(SimulationParser):
         """
         Post-process and aggregate provided results into final CSV.
         """
+        # [impl->req~ring5.ingestion.parse-integrity~1]
         t_start = time.perf_counter()
         if not results:
             logger.warning("PARSER: No results to persist.")
@@ -437,6 +441,7 @@ class Gem5Parser(SimulationParser):
         """
         Aggregate provided results and save to CSV.
         """
+        # [impl->req~ring5.ingestion.pattern-index-selection~1]
         t_start = time.perf_counter()
         if not results:
             return None

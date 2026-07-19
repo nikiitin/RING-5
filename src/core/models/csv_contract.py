@@ -61,6 +61,7 @@ def validate_parser_csv(path: Path) -> list[str]:
         FileNotFoundError: If the file does not exist.
         ValueError: If the file is fundamentally invalid (no header, empty).
     """
+    # [impl->req~ring5.ingestion.csv-contract~1]
     warnings: list[str] = []
 
     if not path.exists():

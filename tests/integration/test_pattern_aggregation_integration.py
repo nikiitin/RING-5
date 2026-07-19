@@ -13,6 +13,8 @@ from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ScannerService
 class TestScannerPatternAggregation:
     """Test pattern aggregation in full scanning workflow."""
 
+    # [test->req~ring5.ingestion.pattern-aggregation~1]
+
     @pytest.fixture
     def stats_dir(self) -> Path:
         """Get path to test data directory."""

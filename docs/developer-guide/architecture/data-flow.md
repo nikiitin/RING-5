@@ -13,6 +13,14 @@ redirect_from:
 
 ## Parse and load
 
+<!--
+`uman~ring5.ingestion.parse-output-provenance.documentation~1`
+
+Covers:
+- req~ring5.ingestion.parse-output-provenance~1
+
+-->
+
 ```mermaid
 sequenceDiagram
     participant UI as Web or ring5.Session

@@ -496,6 +496,8 @@ class TestReconstructConcreteName:
 class TestKeepIndicesUserFiltered:
     """Verify that user-filtered IDs from PatternIndexSelector are respected."""
 
+    # [test->req~ring5.ingestion.pattern-index-selection~1]
+
     @staticmethod
     def _expand(config: StatConfig, scanned: list[ScannedVariable]) -> list[StatConfig]:
         """Mirror the expansion logic (same as TestKeepIndicesExpansion._expand)."""

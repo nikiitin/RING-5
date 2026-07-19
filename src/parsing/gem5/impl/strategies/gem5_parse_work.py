@@ -130,6 +130,7 @@ class Gem5ParseWork(ParseWork):
         cls, var_id: str, target_var: StatType, vars_to_parse: VarsDictType
     ) -> tuple[str, str] | None:
         """Resolve a concrete scalar alias to its logical vector entry."""
+        # [impl->req~ring5.ingestion.configuration-fallbacks~1]
         target_content = target_var.content
         target_entries = target_var.entries or []
         for logical_id, logical_var in vars_to_parse.items():

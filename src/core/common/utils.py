@@ -204,6 +204,7 @@ def validate_web_stats_path(user_path: str) -> Path:
     Raises:
         ValueError: If the path is outside every approved root.
     """
+    # [impl->req~ring5.ingestion.web-path-authorization~1]
     candidate = normalize_user_path(user_path).expanduser().resolve(strict=False)
     for root in allowed_web_stats_roots():
         try:

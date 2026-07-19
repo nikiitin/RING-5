@@ -20,6 +20,9 @@ class Configuration(StatType):
     - Reduction returns first value or onEmpty
     """
 
+    # [impl->req~ring5.ingestion.configuration-fallbacks~1]
+    # [impl->req~ring5.ingestion.configuration~1]
+
     required_params = ["onEmpty"]
     _allowed_attributes = frozenset(
         {

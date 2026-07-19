@@ -20,6 +20,7 @@ class TestSimpleStatsStrategy:
 
     @patch("src.parsing.gem5.impl.strategies.simple.os.path.getsize", return_value=10)
     @patch("src.parsing.gem5.impl.strategies.simple.find_stats_files")
+    # [test->req~ring5.ingestion.simple-strategy~1]
     def test_get_work_items_one_per_file(
         self, mock_find: MagicMock, _mock_size: MagicMock, mock_variables: list[StatConfig]
     ) -> None:
@@ -159,6 +160,7 @@ class TestSimpleStatsStrategy:
 
 class TestConfigAwareStrategy:
 
+    # [test->req~ring5.ingestion.config-aware-strategy~1]
     def test_augment_results(self, tmp_path: Path) -> None:
         from src.parsing.gem5.impl.strategies.file_parser_strategy import (
             INTERNAL_SIM_PATH_KEY,

@@ -188,6 +188,7 @@ class Session:
         Raises:
             ScanError: Discovery could not be submitted.
         """
+        # [impl->req~ring5.ingestion.async-scan~1]
         try:
             futures = self.api.submit_scan_async(stats_path, pattern, limit=limit)
         except (FileNotFoundError, OSError, RuntimeError, ValueError) as exc:
@@ -219,6 +220,7 @@ class Session:
             ScanError: Discovery failed, timed out, or was incomplete in
                 strict mode.
         """
+        # [impl->req~ring5.ingestion.scan-limits~1]
         return self.scan_submit(stats_path, pattern=pattern, limit=limit).finalize(strict=strict)
 
     # parse
@@ -261,6 +263,8 @@ class Session:
                 discovery failed.
             ParseError: The parser rejected the submission.
         """
+        # [impl->req~ring5.ingestion.async-parse~1]
+        # [impl->req~ring5.ingestion.parse-output-provenance~1]
         configs, scanned = _parse.build_stat_configs(
             self.api, stats_path, variables, pattern=pattern, scan_limit=scan_limit
         )
@@ -367,6 +371,7 @@ class Session:
             DataLoadError: The file is missing, unreadable, malformed, or
                 produces no table.
         """
+        # [impl->req~ring5.ingestion.csv-load~1]
         try:
             self.api.load_data(csv_path)
         except (OSError, ValueError, UnicodeError) as exc:
