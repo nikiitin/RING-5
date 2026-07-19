@@ -17,6 +17,7 @@ class ReductionService:
         df: pd.DataFrame, categorical_cols: list[str], statistic_cols: list[str]
     ) -> pd.DataFrame:
         """Group by categorical columns and calculate mean and std dev."""
+        # [impl->req~ring5.data.seed-reduction~1]
         if df.empty:
             return df
 

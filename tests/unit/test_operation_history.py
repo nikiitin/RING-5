@@ -52,6 +52,8 @@ class TestOperationRecord:
 class TestHistoryRepository:
     """Test the HistoryRepository (state/repository layer)."""
 
+    # [test->req~ring5.data.operation-history~1]
+
     def test_initial_state_empty(self) -> None:
         """History starts empty."""
         repo = HistoryRepository()

@@ -21,6 +21,8 @@ class SeedsReducerManager(DataManager):
 
     def render(self) -> None:
         """Render the Seeds Reducer UI."""
+        # [impl->req~ring5.data.preview-confirm~1]
+        # [impl->req~ring5.data.seed-reduction~1]
         st.markdown("### Seeds Reducer")
 
         st.info(

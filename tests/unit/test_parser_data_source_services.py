@@ -1660,6 +1660,7 @@ class TestReductionService:
         assert result.empty
 
     def test_reduce_seeds_basic(self) -> None:
+        # [test->req~ring5.data.seed-reduction~1]
         import pandas as pd
 
         from src.core.services.managers.reduction_service import ReductionService
@@ -1717,6 +1718,8 @@ class TestReductionService:
 
 class TestArithmeticService:
     """Tests for arithmetic operation dispatch."""
+
+    # [test->req~ring5.data.arithmetic~1]
 
     def test_division(self) -> None:
         import pandas as pd

@@ -243,6 +243,8 @@ class TestSeedsReducerRender:
     def test_confirm_applies_data(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
+        # [test->req~ring5.data.preview-confirm~1]
+        # [test->req~ring5.data.seed-reduction~1]
         from src.web.components.data_managers.seeds_reducer import (
             SeedsReducerManager,
         )
@@ -296,6 +298,7 @@ class TestSeedsReducerRender:
         mock_api: MagicMock,
         sample_df: pd.DataFrame,
     ) -> None:
+        # [test->req~ring5.data.operation-history~1]
         from src.web.components.data_managers.seeds_reducer import (
             SeedsReducerManager,
         )

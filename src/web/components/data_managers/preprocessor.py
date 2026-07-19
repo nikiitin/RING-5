@@ -21,6 +21,8 @@ class PreprocessorManager(DataManager):
 
     def render(self) -> None:
         """Render the Preprocessor UI."""
+        # [impl->req~ring5.data.arithmetic~1]
+        # [impl->req~ring5.data.preview-confirm~1]
         st.markdown("### Preprocessor (Basic)")
 
         st.info("""

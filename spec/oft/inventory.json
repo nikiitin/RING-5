@@ -477,9 +477,15 @@
       "description": "Users shall inspect row, column, memory, missing-value, type, numeric, and categorical summaries of the active dataset.",
       "tags": ["data", "inspection", "web"],
       "evidence": {
-        "implementation": ["src/web/components/data_managers/data_manager_components.py::render_summary_tab"],
-        "tests": ["tests/e2e/test_data_managers.py"],
-        "documentation": ["docs/user-guide/workflows/managing-datasets.md"]
+        "implementation": [
+          "src/web/components/data_managers/data_manager_components.py::DataManagerComponents.render_summary_tab"
+        ],
+        "tests": [
+          "tests/ui_unit/test_data_manager_components.py::test_render_summary_tab_stats"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/managing-datasets.md#inspect-the-table"
+        ]
       }
     },
     {
@@ -491,9 +497,18 @@
       "description": "Users shall search literal text across one or all columns, select visible columns, paginate rows, and download the current filtered view as CSV.",
       "tags": ["data", "filter", "web"],
       "evidence": {
-        "implementation": ["src/web/components/data_managers/data_manager_components.py::render_visualization_tab"],
-        "tests": ["tests/e2e/test_data_managers.py"],
-        "documentation": ["docs/user-guide/workflows/managing-datasets.md"]
+        "implementation": [
+          "src/web/components/data_managers/data_manager_components.py::DataManagerComponents.render_visualization_tab"
+        ],
+        "tests": [
+          "tests/ui_unit/test_data_manager_components.py::test_render_visualization_tab_search_specific",
+          "tests/ui_unit/test_data_manager_components.py::test_render_visualization_search_is_literal",
+          "tests/ui_unit/test_data_manager_components.py::test_render_visualization_tab_pagination",
+          "tests/ui_unit/test_data_manager_components.py::test_render_visualization_tab_download"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/managing-datasets.md#inspect-the-table"
+        ]
       }
     },
     {
@@ -505,9 +520,22 @@
       "description": "Dataset managers shall place candidate results in an isolated preview and replace workspace data only after explicit user confirmation.",
       "tags": ["data", "preview", "safety"],
       "evidence": {
-        "implementation": ["src/core/state/repositories/preview_repository.py", "src/web/components/data_managers/data_manager.py"],
-        "tests": ["tests/unit/test_preview_repository.py"],
-        "documentation": ["docs/user-guide/workflows/managing-datasets.md"]
+        "implementation": [
+          "src/core/state/repositories/preview_repository.py::PreviewRepository.set_preview",
+          "src/web/components/data_managers/seeds_reducer.py::SeedsReducerManager.render",
+          "src/web/components/data_managers/outlier_remover.py::OutlierRemoverManager.render",
+          "src/web/components/data_managers/preprocessor.py::PreprocessorManager.render",
+          "src/web/components/data_managers/mixer.py::MixerManager.render"
+        ],
+        "tests": [
+          "tests/unit/test_seeds_reducer.py::TestSeedsReducerRender.test_confirm_applies_data",
+          "tests/unit/test_outlier_remover.py::TestOutlierRemoverRender.test_confirm_applies_data",
+          "tests/unit/test_preprocessor.py::TestPreprocessorRender.test_confirm_applies_data",
+          "tests/unit/test_mixer_manager.py::TestMixerRender.test_confirm_applies_data"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/managing-datasets.md#preview-and-confirm-changes"
+        ]
       }
     },
     {
@@ -519,9 +547,17 @@
       "description": "Users shall reduce repeated seeds or runs by selected categorical groups and numeric statistics, producing means and companion .sd columns.",
       "tags": ["aggregation", "data", "statistics"],
       "evidence": {
-        "implementation": ["src/core/services/managers/reduction_service.py", "src/web/components/data_managers/seeds_reducer.py"],
-        "tests": ["tests/unit/test_seeds_reducer.py"],
-        "documentation": ["docs/user-guide/workflows/managing-datasets.md"]
+        "implementation": [
+          "src/core/services/managers/reduction_service.py::ReductionService.reduce_seeds",
+          "src/web/components/data_managers/seeds_reducer.py::SeedsReducerManager.render"
+        ],
+        "tests": [
+          "tests/unit/test_parser_data_source_services.py::TestReductionService.test_reduce_seeds_basic",
+          "tests/unit/test_seeds_reducer.py::TestSeedsReducerRender.test_confirm_applies_data"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/managing-datasets.md#reduce-repeated-runs"
+        ]
       }
     },
     {
@@ -533,9 +569,17 @@
       "description": "Users shall remove numeric values outside 1.5-IQR fences globally or independently within selected categorical groups.",
       "tags": ["data", "iqr", "outliers"],
       "evidence": {
-        "implementation": ["src/core/services/managers/outlier_service.py", "src/web/components/data_managers/outlier_remover.py"],
-        "tests": ["tests/unit/test_outlier_service.py"],
-        "documentation": ["docs/user-guide/workflows/managing-datasets.md"]
+        "implementation": [
+          "src/core/services/managers/outlier_service.py::OutlierService.remove_outliers",
+          "src/web/components/data_managers/outlier_remover.py::OutlierRemoverManager.render"
+        ],
+        "tests": [
+          "tests/unit/test_outlier_service.py::TestRemoveOutliers.test_with_group_by_uses_group_iqr",
+          "tests/unit/test_outlier_remover.py::TestOutlierRemoverRender.test_confirm_applies_data"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/managing-datasets.md#remove-outliers"
+        ]
       }
     },
     {
@@ -547,9 +591,17 @@
       "description": "Users shall derive a named numeric column from two existing columns using division, sum, subtraction, or multiplication.",
       "tags": ["arithmetic", "data", "derived_column"],
       "evidence": {
-        "implementation": ["src/core/services/managers/arithmetic_service.py", "src/web/components/data_managers/preprocessor.py"],
-        "tests": ["tests/unit/test_preprocessor.py"],
-        "documentation": ["docs/user-guide/workflows/managing-datasets.md"]
+        "implementation": [
+          "src/core/services/managers/arithmetic_service.py::ArithmeticService.apply_operation",
+          "src/web/components/data_managers/preprocessor.py::PreprocessorManager.render"
+        ],
+        "tests": [
+          "tests/unit/test_parser_data_source_services.py::TestArithmeticService",
+          "tests/unit/test_preprocessor.py::TestPreprocessorRender.test_confirm_applies_data"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/managing-datasets.md#binary-arithmetic"
+        ]
       }
     },
     {
@@ -561,9 +613,18 @@
       "description": "Users shall combine multiple numeric columns into a named sum or arithmetic mean column.",
       "tags": ["aggregation", "data", "mixer"],
       "evidence": {
-        "implementation": ["src/core/services/managers/arithmetic_service.py", "src/web/components/data_managers/mixer.py"],
-        "tests": ["tests/unit/test_mixer.py"],
-        "documentation": ["docs/user-guide/workflows/managing-datasets.md"]
+        "implementation": [
+          "src/core/services/managers/arithmetic_service.py::ArithmeticService.apply_mixer",
+          "src/web/components/data_managers/mixer.py::MixerManager.render"
+        ],
+        "tests": [
+          "tests/unit/test_mixer.py::TestApplyMixerSumOperation",
+          "tests/unit/test_mixer.py::TestApplyMixerMeanOperation",
+          "tests/unit/test_mixer_manager.py::TestMixerRender.test_confirm_applies_data"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/managing-datasets.md#numeric-column-mixing"
+        ]
       }
     },
     {
@@ -575,9 +636,17 @@
       "description": "Users shall concatenate multiple columns with a configurable separator to create a combined configuration label.",
       "tags": ["configuration", "data", "mixer"],
       "evidence": {
-        "implementation": ["src/core/services/managers/arithmetic_service.py", "src/web/components/data_managers/mixer.py"],
-        "tests": ["tests/unit/test_mixer.py"],
-        "documentation": ["docs/user-guide/workflows/managing-datasets.md"]
+        "implementation": [
+          "src/core/services/managers/arithmetic_service.py::ArithmeticService.apply_mixer",
+          "src/web/components/data_managers/mixer.py::MixerManager.render"
+        ],
+        "tests": [
+          "tests/unit/test_mixer.py::TestApplyMixerConcatenateOperation",
+          "tests/unit/test_mixer_manager.py::TestMixerRender.test_history_load_concatenate"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/managing-datasets.md#configuration-label-mixing"
+        ]
       }
     },
     {
@@ -589,9 +658,16 @@
       "description": "When source columns have .sd or _stdev companions, numeric mixing shall propagate uncertainty into a companion output standard deviation.",
       "tags": ["data", "mixer", "statistics"],
       "evidence": {
-        "implementation": ["src/core/services/managers/arithmetic_service.py"],
-        "tests": ["tests/unit/test_mixer.py"],
-        "documentation": ["docs/user-guide/workflows/managing-datasets.md"]
+        "implementation": [
+          "src/core/services/managers/arithmetic_service.py::ArithmeticService.apply_mixer"
+        ],
+        "tests": [
+          "tests/unit/test_mixer.py::TestApplyMixerSumOperation.test_sum_with_sd_propagation",
+          "tests/unit/test_mixer.py::TestApplyMixerMeanOperation.test_mean_with_sd_propagation"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/managing-datasets.md#uncertainty-propagation"
+        ]
       }
     },
     {
@@ -603,9 +679,17 @@
       "description": "Confirmed manager operations shall be recorded, reviewable, reloadable into controls, and individually removable.",
       "tags": ["data", "history", "web"],
       "evidence": {
-        "implementation": ["src/core/state/repositories/history_repository.py", "src/web/components/common/history_components.py"],
-        "tests": ["tests/unit/test_operation_history.py"],
-        "documentation": ["docs/user-guide/workflows/managing-datasets.md"]
+        "implementation": [
+          "src/core/state/repositories/history_repository.py::HistoryRepository",
+          "src/web/components/common/history_components.py::HistoryComponents.render_manager_history"
+        ],
+        "tests": [
+          "tests/unit/test_operation_history.py::TestHistoryRepository",
+          "tests/unit/test_seeds_reducer.py::TestSeedsReducerRender.test_history_load_full"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/managing-datasets.md#review-operation-history"
+        ]
       }
     },
     {
@@ -1989,9 +2073,20 @@
       "description": "The application data service shall save, list, load, and delete named shaper-pipeline configurations with descriptions and an optional associated CSV path.",
       "tags": ["configuration", "persistence", "shapers"],
       "evidence": {
-        "implementation": ["src/core/services/data_services/config_service.py", "src/core/application_api.py::save_configuration"],
-        "tests": ["tests/unit/test_config_service.py"],
-        "documentation": ["docs/developer-guide/api-reference/services-api.md"]
+        "implementation": [
+          "src/core/services/data_services/config_service.py::ConfigService.load_saved_configs",
+          "src/core/services/data_services/config_service.py::ConfigService.save_configuration",
+          "src/core/services/data_services/config_service.py::ConfigService.load_configuration",
+          "src/core/services/data_services/config_service.py::ConfigService.delete_configuration"
+        ],
+        "tests": [
+          "tests/unit/test_config_service.py::TestConfigurationLoading",
+          "tests/unit/test_config_service.py::TestConfigurationRoundTrip.test_save_and_load_preserves_data",
+          "tests/integration/test_portfolio_round_trip.py::TestConfigurationRoundTrip.test_delete_configuration"
+        ],
+        "documentation": [
+          "docs/developer-guide/api-reference/services-api.md#data-services"
+        ]
       }
     },
     {

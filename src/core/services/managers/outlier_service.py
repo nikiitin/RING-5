@@ -32,6 +32,7 @@ class OutlierService:
                 group-by column is missing (a silent no-op here would let a
                 caller publish data believing outliers were removed).
         """
+        # [impl->req~ring5.data.outlier-removal~1]
         if multiplier is None:
             multiplier = OutlierService.IQR_MULTIPLIER
         if df.empty:

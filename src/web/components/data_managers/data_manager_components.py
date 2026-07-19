@@ -18,6 +18,7 @@ class DataManagerComponents:
     @staticmethod
     def render_summary_tab(data: pd.DataFrame) -> None:
         """Display current data with statistics."""
+        # [impl->req~ring5.data.summary~1]
         st.markdown("### Dataset Summary")
 
         # Quick overview
@@ -64,6 +65,7 @@ class DataManagerComponents:
     @staticmethod
     def render_visualization_tab(data: pd.DataFrame) -> None:
         """Full data visualization with search and filtering."""
+        # [impl->req~ring5.data.table-view~1]
         st.markdown("### Full Data Visualization")
 
         # Search functionality

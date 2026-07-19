@@ -211,6 +211,8 @@ class TestOutlierRemoverRender:
     def test_confirm_applies_data(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
+        # [test->req~ring5.data.outlier-removal~1]
+        # [test->req~ring5.data.preview-confirm~1]
         from src.web.components.data_managers.outlier_remover import (
             OutlierRemoverManager,
         )

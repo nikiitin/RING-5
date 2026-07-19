@@ -357,7 +357,7 @@ Tags: csv, parsing, provenance, status_approved
 `impl~ring5.data.summary~1`
 
 Implementation evidence:
-- `src/web/components/data_managers/data_manager_components.py::render_summary_tab`
+- `src/web/components/data_managers/data_manager_components.py::DataManagerComponents.render_summary_tab`
 
 Covers:
 - req~ring5.data.summary~1
@@ -369,7 +369,7 @@ Tags: data, inspection, status_approved, web
 `impl~ring5.data.table-view~1`
 
 Implementation evidence:
-- `src/web/components/data_managers/data_manager_components.py::render_visualization_tab`
+- `src/web/components/data_managers/data_manager_components.py::DataManagerComponents.render_visualization_tab`
 
 Covers:
 - req~ring5.data.table-view~1
@@ -381,8 +381,11 @@ Tags: data, filter, status_approved, web
 `impl~ring5.data.preview-confirm~1`
 
 Implementation evidence:
-- `src/core/state/repositories/preview_repository.py`
-- `src/web/components/data_managers/data_manager.py`
+- `src/core/state/repositories/preview_repository.py::PreviewRepository.set_preview`
+- `src/web/components/data_managers/seeds_reducer.py::SeedsReducerManager.render`
+- `src/web/components/data_managers/outlier_remover.py::OutlierRemoverManager.render`
+- `src/web/components/data_managers/preprocessor.py::PreprocessorManager.render`
+- `src/web/components/data_managers/mixer.py::MixerManager.render`
 
 Covers:
 - req~ring5.data.preview-confirm~1
@@ -394,8 +397,8 @@ Tags: data, preview, safety, status_approved
 `impl~ring5.data.seed-reduction~1`
 
 Implementation evidence:
-- `src/core/services/managers/reduction_service.py`
-- `src/web/components/data_managers/seeds_reducer.py`
+- `src/core/services/managers/reduction_service.py::ReductionService.reduce_seeds`
+- `src/web/components/data_managers/seeds_reducer.py::SeedsReducerManager.render`
 
 Covers:
 - req~ring5.data.seed-reduction~1
@@ -407,8 +410,8 @@ Tags: aggregation, data, statistics, status_approved
 `impl~ring5.data.outlier-removal~1`
 
 Implementation evidence:
-- `src/core/services/managers/outlier_service.py`
-- `src/web/components/data_managers/outlier_remover.py`
+- `src/core/services/managers/outlier_service.py::OutlierService.remove_outliers`
+- `src/web/components/data_managers/outlier_remover.py::OutlierRemoverManager.render`
 
 Covers:
 - req~ring5.data.outlier-removal~1
@@ -420,8 +423,8 @@ Tags: data, iqr, outliers, status_approved
 `impl~ring5.data.arithmetic~1`
 
 Implementation evidence:
-- `src/core/services/managers/arithmetic_service.py`
-- `src/web/components/data_managers/preprocessor.py`
+- `src/core/services/managers/arithmetic_service.py::ArithmeticService.apply_operation`
+- `src/web/components/data_managers/preprocessor.py::PreprocessorManager.render`
 
 Covers:
 - req~ring5.data.arithmetic~1
@@ -433,8 +436,8 @@ Tags: arithmetic, data, derived_column, status_approved
 `impl~ring5.data.numeric-mixer~1`
 
 Implementation evidence:
-- `src/core/services/managers/arithmetic_service.py`
-- `src/web/components/data_managers/mixer.py`
+- `src/core/services/managers/arithmetic_service.py::ArithmeticService.apply_mixer`
+- `src/web/components/data_managers/mixer.py::MixerManager.render`
 
 Covers:
 - req~ring5.data.numeric-mixer~1
@@ -446,8 +449,8 @@ Tags: aggregation, data, mixer, status_approved
 `impl~ring5.data.configuration-mixer~1`
 
 Implementation evidence:
-- `src/core/services/managers/arithmetic_service.py`
-- `src/web/components/data_managers/mixer.py`
+- `src/core/services/managers/arithmetic_service.py::ArithmeticService.apply_mixer`
+- `src/web/components/data_managers/mixer.py::MixerManager.render`
 
 Covers:
 - req~ring5.data.configuration-mixer~1
@@ -459,7 +462,7 @@ Tags: configuration, data, mixer, status_approved
 `impl~ring5.data.error-propagation~1`
 
 Implementation evidence:
-- `src/core/services/managers/arithmetic_service.py`
+- `src/core/services/managers/arithmetic_service.py::ArithmeticService.apply_mixer`
 
 Covers:
 - req~ring5.data.error-propagation~1
@@ -471,8 +474,8 @@ Tags: data, mixer, statistics, status_approved
 `impl~ring5.data.operation-history~1`
 
 Implementation evidence:
-- `src/core/state/repositories/history_repository.py`
-- `src/web/components/common/history_components.py`
+- `src/core/state/repositories/history_repository.py::HistoryRepository`
+- `src/web/components/common/history_components.py::HistoryComponents.render_manager_history`
 
 Covers:
 - req~ring5.data.operation-history~1
@@ -1690,8 +1693,10 @@ Tags: configuration, fallback, parser, status_approved
 `impl~ring5.data.saved-pipeline-configurations~1`
 
 Implementation evidence:
-- `src/core/services/data_services/config_service.py`
-- `src/core/application_api.py::save_configuration`
+- `src/core/services/data_services/config_service.py::ConfigService.load_saved_configs`
+- `src/core/services/data_services/config_service.py::ConfigService.save_configuration`
+- `src/core/services/data_services/config_service.py::ConfigService.load_configuration`
+- `src/core/services/data_services/config_service.py::ConfigService.delete_configuration`
 
 Covers:
 - req~ring5.data.saved-pipeline-configurations~1
@@ -2324,7 +2329,7 @@ Tags: csv, parsing, provenance, status_approved
 `test~ring5.data.summary~1`
 
 Verification evidence:
-- `tests/e2e/test_data_managers.py`
+- `tests/ui_unit/test_data_manager_components.py::test_render_summary_tab_stats`
 
 Covers:
 - req~ring5.data.summary~1
@@ -2336,7 +2341,10 @@ Tags: data, inspection, status_approved, web
 `test~ring5.data.table-view~1`
 
 Verification evidence:
-- `tests/e2e/test_data_managers.py`
+- `tests/ui_unit/test_data_manager_components.py::test_render_visualization_tab_search_specific`
+- `tests/ui_unit/test_data_manager_components.py::test_render_visualization_search_is_literal`
+- `tests/ui_unit/test_data_manager_components.py::test_render_visualization_tab_pagination`
+- `tests/ui_unit/test_data_manager_components.py::test_render_visualization_tab_download`
 
 Covers:
 - req~ring5.data.table-view~1
@@ -2348,7 +2356,10 @@ Tags: data, filter, status_approved, web
 `test~ring5.data.preview-confirm~1`
 
 Verification evidence:
-- `tests/unit/test_preview_repository.py`
+- `tests/unit/test_seeds_reducer.py::TestSeedsReducerRender.test_confirm_applies_data`
+- `tests/unit/test_outlier_remover.py::TestOutlierRemoverRender.test_confirm_applies_data`
+- `tests/unit/test_preprocessor.py::TestPreprocessorRender.test_confirm_applies_data`
+- `tests/unit/test_mixer_manager.py::TestMixerRender.test_confirm_applies_data`
 
 Covers:
 - req~ring5.data.preview-confirm~1
@@ -2360,7 +2371,8 @@ Tags: data, preview, safety, status_approved
 `test~ring5.data.seed-reduction~1`
 
 Verification evidence:
-- `tests/unit/test_seeds_reducer.py`
+- `tests/unit/test_parser_data_source_services.py::TestReductionService.test_reduce_seeds_basic`
+- `tests/unit/test_seeds_reducer.py::TestSeedsReducerRender.test_confirm_applies_data`
 
 Covers:
 - req~ring5.data.seed-reduction~1
@@ -2372,7 +2384,8 @@ Tags: aggregation, data, statistics, status_approved
 `test~ring5.data.outlier-removal~1`
 
 Verification evidence:
-- `tests/unit/test_outlier_service.py`
+- `tests/unit/test_outlier_service.py::TestRemoveOutliers.test_with_group_by_uses_group_iqr`
+- `tests/unit/test_outlier_remover.py::TestOutlierRemoverRender.test_confirm_applies_data`
 
 Covers:
 - req~ring5.data.outlier-removal~1
@@ -2384,7 +2397,8 @@ Tags: data, iqr, outliers, status_approved
 `test~ring5.data.arithmetic~1`
 
 Verification evidence:
-- `tests/unit/test_preprocessor.py`
+- `tests/unit/test_parser_data_source_services.py::TestArithmeticService`
+- `tests/unit/test_preprocessor.py::TestPreprocessorRender.test_confirm_applies_data`
 
 Covers:
 - req~ring5.data.arithmetic~1
@@ -2396,7 +2410,9 @@ Tags: arithmetic, data, derived_column, status_approved
 `test~ring5.data.numeric-mixer~1`
 
 Verification evidence:
-- `tests/unit/test_mixer.py`
+- `tests/unit/test_mixer.py::TestApplyMixerSumOperation`
+- `tests/unit/test_mixer.py::TestApplyMixerMeanOperation`
+- `tests/unit/test_mixer_manager.py::TestMixerRender.test_confirm_applies_data`
 
 Covers:
 - req~ring5.data.numeric-mixer~1
@@ -2408,7 +2424,8 @@ Tags: aggregation, data, mixer, status_approved
 `test~ring5.data.configuration-mixer~1`
 
 Verification evidence:
-- `tests/unit/test_mixer.py`
+- `tests/unit/test_mixer.py::TestApplyMixerConcatenateOperation`
+- `tests/unit/test_mixer_manager.py::TestMixerRender.test_history_load_concatenate`
 
 Covers:
 - req~ring5.data.configuration-mixer~1
@@ -2420,7 +2437,8 @@ Tags: configuration, data, mixer, status_approved
 `test~ring5.data.error-propagation~1`
 
 Verification evidence:
-- `tests/unit/test_mixer.py`
+- `tests/unit/test_mixer.py::TestApplyMixerSumOperation.test_sum_with_sd_propagation`
+- `tests/unit/test_mixer.py::TestApplyMixerMeanOperation.test_mean_with_sd_propagation`
 
 Covers:
 - req~ring5.data.error-propagation~1
@@ -2432,7 +2450,8 @@ Tags: data, mixer, statistics, status_approved
 `test~ring5.data.operation-history~1`
 
 Verification evidence:
-- `tests/unit/test_operation_history.py`
+- `tests/unit/test_operation_history.py::TestHistoryRepository`
+- `tests/unit/test_seeds_reducer.py::TestSeedsReducerRender.test_history_load_full`
 
 Covers:
 - req~ring5.data.operation-history~1
@@ -3628,7 +3647,9 @@ Tags: configuration, fallback, parser, status_approved
 `test~ring5.data.saved-pipeline-configurations~1`
 
 Verification evidence:
-- `tests/unit/test_config_service.py`
+- `tests/unit/test_config_service.py::TestConfigurationLoading`
+- `tests/unit/test_config_service.py::TestConfigurationRoundTrip.test_save_and_load_preserves_data`
+- `tests/integration/test_portfolio_round_trip.py::TestConfigurationRoundTrip.test_delete_configuration`
 
 Covers:
 - req~ring5.data.saved-pipeline-configurations~1
@@ -4243,7 +4264,7 @@ Tags: csv, parsing, provenance, status_approved
 `uman~ring5.data.summary~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/managing-datasets.md`
+- `docs/user-guide/workflows/managing-datasets.md#inspect-the-table`
 
 Covers:
 - req~ring5.data.summary~1
@@ -4255,7 +4276,7 @@ Tags: data, inspection, status_approved, web
 `uman~ring5.data.table-view~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/managing-datasets.md`
+- `docs/user-guide/workflows/managing-datasets.md#inspect-the-table`
 
 Covers:
 - req~ring5.data.table-view~1
@@ -4267,7 +4288,7 @@ Tags: data, filter, status_approved, web
 `uman~ring5.data.preview-confirm~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/managing-datasets.md`
+- `docs/user-guide/workflows/managing-datasets.md#preview-and-confirm-changes`
 
 Covers:
 - req~ring5.data.preview-confirm~1
@@ -4279,7 +4300,7 @@ Tags: data, preview, safety, status_approved
 `uman~ring5.data.seed-reduction~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/managing-datasets.md`
+- `docs/user-guide/workflows/managing-datasets.md#reduce-repeated-runs`
 
 Covers:
 - req~ring5.data.seed-reduction~1
@@ -4291,7 +4312,7 @@ Tags: aggregation, data, statistics, status_approved
 `uman~ring5.data.outlier-removal~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/managing-datasets.md`
+- `docs/user-guide/workflows/managing-datasets.md#remove-outliers`
 
 Covers:
 - req~ring5.data.outlier-removal~1
@@ -4303,7 +4324,7 @@ Tags: data, iqr, outliers, status_approved
 `uman~ring5.data.arithmetic~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/managing-datasets.md`
+- `docs/user-guide/workflows/managing-datasets.md#binary-arithmetic`
 
 Covers:
 - req~ring5.data.arithmetic~1
@@ -4315,7 +4336,7 @@ Tags: arithmetic, data, derived_column, status_approved
 `uman~ring5.data.numeric-mixer~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/managing-datasets.md`
+- `docs/user-guide/workflows/managing-datasets.md#numeric-column-mixing`
 
 Covers:
 - req~ring5.data.numeric-mixer~1
@@ -4327,7 +4348,7 @@ Tags: aggregation, data, mixer, status_approved
 `uman~ring5.data.configuration-mixer~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/managing-datasets.md`
+- `docs/user-guide/workflows/managing-datasets.md#configuration-label-mixing`
 
 Covers:
 - req~ring5.data.configuration-mixer~1
@@ -4339,7 +4360,7 @@ Tags: configuration, data, mixer, status_approved
 `uman~ring5.data.error-propagation~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/managing-datasets.md`
+- `docs/user-guide/workflows/managing-datasets.md#uncertainty-propagation`
 
 Covers:
 - req~ring5.data.error-propagation~1
@@ -4351,7 +4372,7 @@ Tags: data, mixer, statistics, status_approved
 `uman~ring5.data.operation-history~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/managing-datasets.md`
+- `docs/user-guide/workflows/managing-datasets.md#review-operation-history`
 
 Covers:
 - req~ring5.data.operation-history~1
@@ -5539,7 +5560,7 @@ Tags: configuration, fallback, parser, status_approved
 `uman~ring5.data.saved-pipeline-configurations~1`
 
 User documentation evidence:
-- `docs/developer-guide/api-reference/services-api.md`
+- `docs/developer-guide/api-reference/services-api.md#data-services`
 
 Covers:
 - req~ring5.data.saved-pipeline-configurations~1

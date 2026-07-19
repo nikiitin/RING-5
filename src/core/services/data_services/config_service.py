@@ -44,6 +44,7 @@ class ConfigService:
         Returns:
             List of dicts with 'path', 'name', 'modified', 'description' keys.
         """
+        # [impl->req~ring5.data.saved-pipeline-configurations~1]
         config_dir = ConfigService.get_config_dir()
         configs: list[SavedConfigEntry] = []
 
@@ -85,6 +86,7 @@ class ConfigService:
         Returns:
             Path to the saved configuration file.
         """
+        # [impl->req~ring5.data.saved-pipeline-configurations~1]
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         safe_name = sanitize_filename(name)
         # uuid suffix: timestamps have 1-second resolution, so two saves of the
@@ -117,6 +119,7 @@ class ConfigService:
         Returns:
             Configuration dictionary.
         """
+        # [impl->req~ring5.data.saved-pipeline-configurations~1]
         config_dir = ConfigService.get_config_dir()
         validated_path = validate_path_within(Path(config_path), config_dir)
         with open(validated_path) as f:
@@ -133,6 +136,7 @@ class ConfigService:
         Returns:
             True if deleted successfully.
         """
+        # [impl->req~ring5.data.saved-pipeline-configurations~1]
         try:
             config_dir = ConfigService.get_config_dir()
             validated_path = validate_path_within(Path(config_path), config_dir)

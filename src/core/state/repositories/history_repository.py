@@ -13,6 +13,8 @@ _MANAGER_HISTORY_MAX: int = 10
 class HistoryRepository:
     """Store bounded manager history and unbounded portfolio history."""
 
+    # [impl->req~ring5.data.operation-history~1]
+
     def __init__(self) -> None:
         """Initialize empty history lists."""
         self._manager_history: list[OperationRecord] = []

@@ -196,6 +196,8 @@ class TestConfigurationSaving:
 class TestConfigurationLoading:
     """Test configuration loading functionality."""
 
+    # [test->req~ring5.data.saved-pipeline-configurations~1]
+
     def test_load_saved_configs_returns_empty_list_for_empty_dir(
         self, empty_config_dir: Path
     ) -> None:
@@ -298,6 +300,7 @@ class TestConfigurationRoundTrip:
 
     def test_save_and_load_preserves_data(self, empty_config_dir: Path) -> None:
         """Verify round-trip save and load preserves all data."""
+        # [test->req~ring5.data.saved-pipeline-configurations~1]
         original_shapers = cast(
             list[ShaperStepConfig],
             [

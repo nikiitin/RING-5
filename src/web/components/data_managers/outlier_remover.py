@@ -21,6 +21,8 @@ class OutlierRemoverManager(DataManager):
 
     def render(self) -> None:
         """Render the Outlier Remover UI."""
+        # [impl->req~ring5.data.outlier-removal~1]
+        # [impl->req~ring5.data.preview-confirm~1]
         st.markdown("### Outlier Remover")
 
         st.info("""

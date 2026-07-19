@@ -17,6 +17,7 @@ class PreviewRepository:
         """
         Store preview result for an operation.
         """
+        # [impl->req~ring5.data.preview-confirm~1]
         if not operation_name:
             raise ValueError("Operation name cannot be empty")
         if data is None:

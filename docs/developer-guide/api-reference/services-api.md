@@ -23,9 +23,20 @@ before replacing workspace data.
 
 ## Data services
 
+<!--
+`uman~ring5.data.saved-pipeline-configurations.documentation~1`
+
+Covers:
+- req~ring5.data.saved-pipeline-configurations~1
+
+-->
+
 `DataServicesAPI` covers the local CSV pool, saved shaper configuration, parser variables,
 portfolios, and path-backed application data. File operations validate names and containment before
 reading or writing.
+
+Saved shaper configurations contain a name, description, ordered shaper configuration, and optional
+CSV path. The service supports saving, listing, loading, and deleting these path-backed records.
 
 ## Shapers
 

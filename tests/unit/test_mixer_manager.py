@@ -193,6 +193,8 @@ class TestMixerRender:
     def test_confirm_applies_data(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
+        # [test->req~ring5.data.numeric-mixer~1]
+        # [test->req~ring5.data.preview-confirm~1]
         from src.web.components.data_managers.mixer import MixerManager
 
         merged = sample_df.copy()
@@ -225,6 +227,7 @@ class TestMixerRender:
         mock_api: MagicMock,
         sample_df: pd.DataFrame,
     ) -> None:
+        # [test->req~ring5.data.configuration-mixer~1]
         from src.web.components.data_managers.mixer import MixerManager
 
         mock_ui_state.return_value.manager.consume_load_trigger.return_value = {

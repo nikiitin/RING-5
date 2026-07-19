@@ -19,6 +19,19 @@ workspace table, while the implementation returns a new DataFrame rather than mu
 
 ## Inspect the table
 
+<!--
+`uman~ring5.data.summary.documentation~1`
+
+Covers:
+- req~ring5.data.summary~1
+
+`uman~ring5.data.table-view.documentation~1`
+
+Covers:
+- req~ring5.data.table-view~1
+
+-->
+
 Open **Data Managers** and use **Summary** to check column types and missing values. Use **Data
 Visualization** to search, select columns, and inspect rows. **Download Current View as CSV** exports
 the filtered view for inspection; it does not redefine the active workspace table.
@@ -26,7 +39,29 @@ the filtered view for inspection; it does not redefine the active workspace tabl
 Before changing data, verify that configuration columns are categorical and statistics are numeric.
 An incorrect inferred type usually indicates inconsistent CSV values.
 
+## Preview and confirm changes
+
+<!--
+`uman~ring5.data.preview-confirm.documentation~1`
+
+Covers:
+- req~ring5.data.preview-confirm~1
+
+-->
+
+Seeds Reducer, Outlier Remover, Preprocessor, and Mixer calculate into an isolated preview. The
+active workspace table changes only after the corresponding confirmation control is selected.
+Discarding or replacing a preview leaves the active table unchanged.
+
 ## Reduce repeated runs
+
+<!--
+`uman~ring5.data.seed-reduction.documentation~1`
+
+Covers:
+- req~ring5.data.seed-reduction~1
+
+-->
 
 Use **Seeds Reducer** after confirming the raw runs and before normalizing a figure:
 
@@ -51,6 +86,14 @@ reduced = session.reduce_seeds(
 
 ## Remove outliers
 
+<!--
+`uman~ring5.data.outlier-removal.documentation~1`
+
+Covers:
+- req~ring5.data.outlier-removal~1
+
+-->
+
 **Outlier Remover** computes Q1 and Q3 for a numeric column and removes values outside
 `[Q1 - 1.5 × IQR, Q3 + 1.5 × IQR]`. Optional group-by columns calculate independent bounds for
 each experiment group.
@@ -73,17 +116,72 @@ measurements.
 
 ## Derive or combine columns
 
-- **Preprocessor** applies a selected binary arithmetic operation to two numeric columns. Use
-  **Preview Result**, check invalid or infinite results, then select **Confirm and Add Column to
-  Dataset**.
-- **Mixer** combines several numeric columns with sum or mean, or concatenates columns into a
-  configuration label. When matching standard-deviation columns exist, numeric mixing propagates
-  them into the result.
+### Binary arithmetic
+
+<!--
+`uman~ring5.data.arithmetic.documentation~1`
+
+Covers:
+- req~ring5.data.arithmetic~1
+
+-->
+
+**Preprocessor** creates a named column by dividing, adding, subtracting, or multiplying two numeric
+source columns. Division by zero produces a missing value. Use **Preview Result**, inspect invalid or
+infinite results, then select **Confirm and Add Column to Dataset**.
+
+### Numeric column mixing
+
+<!--
+`uman~ring5.data.numeric-mixer.documentation~1`
+
+Covers:
+- req~ring5.data.numeric-mixer~1
+
+-->
+
+**Mixer** creates a named sum or arithmetic mean from two or more numeric columns. The source
+columns remain in the result.
+
+### Configuration label mixing
+
+<!--
+`uman~ring5.data.configuration-mixer.documentation~1`
+
+Covers:
+- req~ring5.data.configuration-mixer~1
+
+-->
+
+In configuration mode, **Mixer** converts the selected source values to text and concatenates them
+in selection order with the configured separator. This mode does not calculate uncertainty.
+
+### Uncertainty propagation
+
+<!--
+`uman~ring5.data.error-propagation.documentation~1`
+
+Covers:
+- req~ring5.data.error-propagation~1
+
+-->
+
+For numeric sums and means, Mixer looks for a `.sd` or `_stdev` companion for each source column.
+When at least one is present, it combines variances and writes `<result>.sd`; means divide the
+combined standard deviation by the number of source columns.
 
 Name derived columns for the quantity and unit they contain. For example, a division is not
 automatically IPC unless the numerator and denominator have the correct semantics.
 
 ## Review operation history
+
+<!--
+`uman~ring5.data.operation-history.documentation~1`
+
+Covers:
+- req~ring5.data.operation-history~1
+
+-->
 
 Each manager records confirmed operations. Use its history to reload a configuration, and use
 **Operations History** to review workspace changes. History records configuration; they do not

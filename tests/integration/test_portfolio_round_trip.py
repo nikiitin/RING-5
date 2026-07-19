@@ -129,6 +129,7 @@ class TestConfigurationRoundTrip:
         tmp_path: Path,
     ) -> None:
         """Deleted configuration file no longer exists."""
+        # [test->req~ring5.data.saved-pipeline-configurations~1]
         pipeline: list[ShaperStepConfig] = [
             cast(ShaperStepConfig, {"type": "columnSelector", "columns": ["x"]}),
         ]
