@@ -219,6 +219,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
     @override
     def create_traces(self, data: pd.DataFrame, config: PlotConfig) -> TraceBuildResult:
         """Create grouped stacked bar trace configurations."""
+        # [impl->req~ring5.figure.plot-filtering~1]
         # [impl->req~ring5.plot.grouped-stacked-bar~1]
         x_col = config.get("x")
         group_col = config.get("group")
@@ -365,6 +366,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         config: PlotConfig,
     ) -> tuple[pd.DataFrame, list[str], list[str]]:
         """Apply renames to data and ordered lists."""
+        # [impl->req~ring5.figure.ordering-renaming~1]
         from src.web.pages.ui.plotting.utils.grouped_stacked_bar_helpers import (
             apply_renames,
         )
@@ -505,6 +507,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         config: PlotConfig,
     ) -> list[TraceConfig]:
         """Build traces for the secondary (right) Y-axis."""
+        # [impl->req~ring5.figure.dual-axis-controls~1]
         # [impl->req~ring5.plot.grouped-stacked-bar~1]
         from src.web.pages.ui.plotting.utils.grouped_stacked_bar_helpers import (
             build_right_axis_traces,

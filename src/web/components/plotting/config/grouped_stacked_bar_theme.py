@@ -17,6 +17,7 @@ def render_stack_total_options(saved_config: PlotConfig, config: PlotConfig, plo
         config: Current configuration dict to update in-place.
         plot_id: Plot identifier for unique widget keys.
     """
+    # [impl->req~ring5.figure.stack-totals~1]
     st.markdown("**Stack Totals**")
     c1, c2 = st.columns(2)
     with c1:
@@ -108,6 +109,7 @@ def render_grouped_theme_extras(saved_config: PlotConfig, config: PlotConfig, pl
         config: Current configuration dict to update in-place.
         plot_id: Plot identifier for unique widget keys.
     """
+    # [impl->req~ring5.figure.alternate-category-shading~1]
     # Major Group Styling
     st.markdown("#### Major Group Styling")
     c1, c2, c3 = st.columns(3)

@@ -75,6 +75,7 @@ def test_heatmap_plot_aggregates_duplicate_rows() -> None:
 
 
 def test_multiple_heatmap_traces_render_as_subplots() -> None:
+    # [test->req~ring5.figure.heatmap-controls~1]
     result = TraceBuildResult(
         traces=[
             HeatmapTraceConfig(
@@ -219,6 +220,7 @@ def test_heatmap_subplot_annotations_use_correct_axis_refs() -> None:
 
 def test_heatmap_totals_right_adds_column() -> None:
     """Totals position='right' adds an extra column to z and col_labels."""
+    # [test->req~ring5.figure.heatmap-summary-controls~1]
     data = pd.DataFrame(
         {
             "cfg": ["A", "B"],
@@ -307,6 +309,7 @@ def test_heatmap_totals_sum_aggregation() -> None:
 
 def test_heatmap_totals_with_none_values() -> None:
     """None values are excluded when computing totals."""
+    # [test->req~ring5.figure.heatmap-summary-controls~1]
     data = pd.DataFrame(
         {
             "cfg": ["A", "B", "C"],
@@ -380,6 +383,8 @@ def test_heatmap_apply_common_layout_restricts_xaxis_categories() -> None:
 
 def test_heatmap_data_labels_format_and_threshold() -> None:
     """Data labels configuration applies format and threshold logic."""
+    # [test->req~ring5.figure.heatmap-controls~1]
+    # [test->req~ring5.figure.heatmap-summary-controls~1]
     data = pd.DataFrame(
         {
             "cfg": ["A", "B", "C"],
@@ -462,6 +467,7 @@ def test_heatmap_facet_renaming() -> None:
 
 def test_heatmap_facet_order_and_rename_combined() -> None:
     """Facet ordering and renaming work together."""
+    # [test->req~ring5.figure.ordering-renaming~1]
     data = pd.DataFrame(
         {
             "cfg": ["A", "A"],
@@ -490,6 +496,7 @@ def test_heatmap_facet_order_and_rename_combined() -> None:
 
 def test_heatmap_colorscale_from_palette() -> None:
     """When color_palette is set, colorscale is derived from it."""
+    # [test->req~ring5.figure.heatmap-controls~1]
     data = pd.DataFrame({"cfg": ["A"], "m1": [1.0]})
     plot = HeatmapPlot(plot_id=60, name="PaletteCS")
     result = plot.create_traces(
@@ -512,6 +519,7 @@ def test_heatmap_colorscale_from_palette() -> None:
 
 def test_heatmap_colorscale_reverse_list() -> None:
     """Reversing a list-format colorscale flips positions."""
+    # [test->req~ring5.figure.heatmap-summary-controls~1]
     data = pd.DataFrame({"cfg": ["A"], "m1": [1.0]})
     plot = HeatmapPlot(plot_id=61, name="ReverseCS")
     result_normal = plot.create_traces(
@@ -695,6 +703,7 @@ def test_heatmap_plotly_no_separator_without_totals() -> None:
 
 def test_plotly_shared_colorbar_zmin_zmax_match() -> None:
     """Shared colorbar mode: all traces get identical zmin/zmax, only last shows scale."""
+    # [test->req~ring5.figure.heatmap-controls~1]
     import plotly.graph_objects as go
 
     from src.core.models.visualization.figure_config import FigureConfig

@@ -13,6 +13,7 @@ class BarStyleUI(BaseStyleUI):
     def _render_specific_series_visuals(
         self, current_style: dict[str, Any], key_suffix: str, key_prefix: str = ""
     ) -> None:
+        # [impl->req~ring5.figure.series-styling~1]
         patterns = ["", "/", "\\", "x", "-", "|", "+", "."]
         cur_pat = current_style.get("pattern", "")
         if isinstance(cur_pat, dict):

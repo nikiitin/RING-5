@@ -32,6 +32,33 @@ when a PGF download contains raster content.
 
 ## Check the environment
 
+### Matplotlib TeX system
+
+<!--
+`uman~ring5.figure.matplotlib-tex-system.documentation~1`
+
+Covers:
+- req~ring5.figure.matplotlib-tex-system~1
+
+-->
+
+Matplotlib advanced settings select XeLaTeX, pdfLaTeX, or LuaLaTeX for PGF output. The web
+application fixes the additional preamble to an empty value because a TeX preamble is executable
+input.
+
+### Plotly hover mode
+
+<!--
+`uman~ring5.figure.plotly-hovermode.documentation~1`
+
+Covers:
+- req~ring5.figure.plotly-hovermode~1
+
+-->
+
+Plotly advanced settings select unified X, closest-point, X, Y, or disabled hover behavior. The
+selection is stored in the common figure configuration and applied by the Plotly connector.
+
 ```bash
 source python_venv/bin/activate
 ring5 doctor

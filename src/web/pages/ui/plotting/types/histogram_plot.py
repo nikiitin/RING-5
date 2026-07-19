@@ -52,6 +52,7 @@ class HistogramPlot(BasePlot):
         Raises:
             ValueError: If histogram variable not found in data
         """
+        # [impl->req~ring5.figure.histogram-controls~1]
         # [impl->req~ring5.plot.histogram~1]
         histogram_var = config.get("histogram_variable")
         if not histogram_var:
@@ -275,6 +276,7 @@ class HistogramPlot(BasePlot):
         Returns:
             Normalized values
         """
+        # [impl->req~ring5.figure.histogram-cumulative~1]
         normalization = config.get("normalization", "count")
         cumulative = config.get("cumulative", False)
 

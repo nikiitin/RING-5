@@ -1114,7 +1114,7 @@ Tags: heatmap, matrix, plots, status_approved
 `req~ring5.plot.histogram~1`
 Status: approved
 
-RING-5 shall render observation distributions or parsed gem5 bucket columns with configurable bins, grouping, stacking, and normalization.
+RING-5 shall render parsed histogram bucket columns with optional grouping, normalization, and cumulative display.
 
 Covers:
 - feat~ring5.plot-types~1
@@ -1172,7 +1172,7 @@ Tags: bar, plots, stacked, status_approved
 `req~ring5.figure.layout~1`
 Status: approved
 
-Users shall configure publication presets, width, height, DPI, margins, bar width, and group gaps.
+Users shall choose single-column, double-column, or custom figure dimensions, and the web application shall derive preview pixels with automatic zero margins.
 
 Covers:
 - feat~ring5.figure-configuration~1
@@ -1186,7 +1186,7 @@ Tags: dimensions, layout, status_approved, styling
 `req~ring5.figure.typography~1`
 Status: approved
 
-Users shall configure font family and title, axis-title, tick-label, legend, annotation, and data-label typography.
+The web application shall configure title, axis-title, and tick-label typography, while typed figure configuration shall carry global font-family and renderer typography state.
 
 Covers:
 - feat~ring5.figure-configuration~1
@@ -1270,7 +1270,7 @@ Tags: settings, status_approved, usability, web
 `req~ring5.figure.error-bars~1`
 Status: approved
 
-Plots that support uncertainty shall optionally render error bars from companion .sd columns on both rendering engines.
+Plots that support uncertainty shall optionally create trace error bars from companion .sd columns, and Plotly shall render those trace error bars.
 
 Covers:
 - feat~ring5.figure-configuration~1
@@ -1298,7 +1298,7 @@ Tags: annotations, reference_line, status_approved, styling
 `req~ring5.figure.shapes-annotations~1`
 Status: approved
 
-Users and scripts shall add engine-independent text annotations and line, rectangle, or other supported shape decorations.
+The web application shall add and edit Plotly line, circle, and rectangle shapes, while typed figure configuration shall serialize text annotations consumed by the Matplotlib connector.
 
 Covers:
 - feat~ring5.figure-configuration~1
@@ -1382,7 +1382,7 @@ Tags: dual_axis, settings, status_approved, styling
 `req~ring5.figure.histogram-controls~1`
 Status: approved
 
-Histogram plots shall expose observation or pre-binned input, binning, group, stack or overlay, and count, probability, density, or percent normalization controls.
+Histogram plots shall expose parsed bucket-column selection, optional grouping, count, probability, density, or percent normalization, and cumulative display controls.
 
 Covers:
 - feat~ring5.figure-configuration~1
@@ -1410,7 +1410,7 @@ Tags: heatmap, settings, status_approved
 `req~ring5.figure.interactive-editing~1`
 Status: approved
 
-Plotly figures shall optionally accept zoom, pan, legend movement, and editable text events and persist supported relayout changes into plot configuration.
+Plotly figures shall optionally persist zoom, pan, legend movement, anchor, and primary legend-title relayout changes into plot configuration.
 
 Covers:
 - feat~ring5.figure-configuration~1
@@ -1522,7 +1522,7 @@ Tags: grouped_bar, settings, shading, status_approved
 `req~ring5.figure.series-styling~1`
 Status: approved
 
-Applicable plots shall style individual series with an override color, display name, bar pattern, marker symbol and size, line width, opacity, and border settings while allowing a series to return to its palette default.
+Applicable web plots shall configure per-series override color, display name, bar pattern, marker symbol and size, and line width, while typed renderer styles shall also carry opacity and border settings.
 
 Covers:
 - feat~ring5.figure-configuration~1

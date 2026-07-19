@@ -11,6 +11,8 @@ from src.web.rendering.relayout import update_config_from_relayout
 class TestUpdateConfigFromRelayout:
     """Tests for relayout event processing."""
 
+    # [test->req~ring5.figure.interactive-editing~1]
+
     def test_empty_relayout_returns_unchanged(self) -> None:
         config = {"range_x": [0, 10]}
         new_config, changed = update_config_from_relayout(config, {})

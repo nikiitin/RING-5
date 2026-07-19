@@ -46,6 +46,18 @@ the pipeline only after checking those invariants.
 
 ## Configure the comparison
 
+<!--
+`uman~ring5.figure.group-separators.documentation~1`
+
+Covers:
+- req~ring5.figure.group-separators~1
+
+-->
+
+Grouped comparisons can draw separators between major categories and either add a gap or divider
+before an isolated final group. Category super-groups can add stronger boundaries and labels over
+adjacent category runs.
+
 Map `benchmark` to the X axis, `ipc` to the Y axis, and `configuration` to the group. Label the Y
 axis with the ratio direction, such as `IPC / baseline`; a generic label such as `Normalized IPC`
 can hide whether larger or smaller is better. Enable error bars when the plot recognizes the

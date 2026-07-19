@@ -860,7 +860,7 @@ Tags: bar, plots, stacked, status_approved
 `impl~ring5.figure.layout~1`
 
 Implementation evidence:
-- `src/web/components/plotting/settings/layout_settings.py`
+- `src/web/components/plotting/settings/layout_settings.py::LayoutSettingsComponent.render`
 
 Covers:
 - req~ring5.figure.layout~1
@@ -872,7 +872,9 @@ Tags: dimensions, layout, status_approved, styling
 `impl~ring5.figure.typography~1`
 
 Implementation evidence:
-- `src/web/components/plotting/settings/typography_settings.py`
+- `src/web/components/plotting/settings/typography_settings.py::TypographySettingsComponent.render`
+- `src/web/rendering/plotly_connector.py::FigureSpecToPlotly._apply_font_family`
+- `src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_font_family`
 
 Covers:
 - req~ring5.figure.typography~1
@@ -884,7 +886,10 @@ Tags: fonts, status_approved, styling, typography
 `impl~ring5.figure.axes~1`
 
 Implementation evidence:
-- `src/web/components/plotting/settings/axes_settings.py`
+- `src/web/components/plotting/settings/axes_settings.py::AxesSettingsComponent.render`
+- `src/web/rendering/plotly_connector.py::FigureSpecToPlotly._apply_xaxis`
+- `src/web/rendering/plotly_connector.py::FigureSpecToPlotly._apply_yaxis`
+- `src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_axis_ticks`
 
 Covers:
 - req~ring5.figure.axes~1
@@ -896,7 +901,9 @@ Tags: axes, status_approved, styling
 `impl~ring5.figure.legends~1`
 
 Implementation evidence:
-- `src/web/components/plotting/settings/legend_settings.py`
+- `src/web/components/plotting/settings/legend_settings.py::LegendSettingsComponent.render`
+- `src/web/rendering/plotly_connector.py::FigureSpecToPlotly._apply_legends`
+- `src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_legends`
 
 Covers:
 - req~ring5.figure.legends~1
@@ -908,8 +915,11 @@ Tags: legend, status_approved, styling
 `impl~ring5.figure.colors~1`
 
 Implementation evidence:
-- `src/web/components/plotting/settings/colors_settings.py`
-- `src/core/services/visualization/palette_service.py`
+- `src/web/components/plotting/settings/colors_settings.py::ColorsSettingsComponent.render`
+- `src/core/services/visualization/palette_service.py::resolve_palette`
+- `src/core/services/visualization/palette_service.py::get_palette_names`
+- `src/core/services/visualization/palette_service.py::is_colorblind_safe`
+- `src/web/rendering/plotly_connector.py::FigureSpecToPlotly._apply_backgrounds`
 
 Covers:
 - req~ring5.figure.colors~1
@@ -921,7 +931,9 @@ Tags: colors, palette, status_approved, styling
 `impl~ring5.figure.data-labels~1`
 
 Implementation evidence:
-- `src/web/components/plotting/settings/data_labels_settings.py`
+- `src/web/components/plotting/settings/data_labels_settings.py::DataLabelsSettingsComponent.render`
+- `src/web/rendering/plotly_connector.py::FigureSpecToPlotly._apply_data_labels`
+- `src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_data_labels`
 
 Covers:
 - req~ring5.figure.data-labels~1
@@ -933,7 +945,7 @@ Tags: annotations, labels, status_approved, styling
 `impl~ring5.figure.advanced-disclosure~1`
 
 Implementation evidence:
-- `src/web/pages/ui/plotting/settings_pills.py`
+- `src/web/pages/ui/plotting/settings_pills.py::render_settings_pills`
 
 Covers:
 - req~ring5.figure.advanced-disclosure~1
@@ -945,7 +957,8 @@ Tags: settings, status_approved, usability, web
 `impl~ring5.figure.error-bars~1`
 
 Implementation evidence:
-- `src/web/pages/ui/plotting/types/_trace_helpers.py`
+- `src/web/pages/ui/plotting/types/_trace_helpers.py::extract_error_bars`
+- `src/web/rendering/trace_to_plotly.py::_bar_trace`
 
 Covers:
 - req~ring5.figure.error-bars~1
@@ -957,7 +970,9 @@ Tags: error_bars, statistics, status_approved, styling
 `impl~ring5.figure.reference-lines~1`
 
 Implementation evidence:
-- `src/web/components/plotting/settings/reference_line_settings.py`
+- `src/web/components/plotting/settings/reference_line_settings.py::ReferenceLineSettingsComponent.render`
+- `src/web/rendering/plotly_connector.py::FigureSpecToPlotly._apply_reference_lines`
+- `src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_reference_lines`
 
 Covers:
 - req~ring5.figure.reference-lines~1
@@ -969,8 +984,9 @@ Tags: annotations, reference_line, status_approved, styling
 `impl~ring5.figure.shapes-annotations~1`
 
 Implementation evidence:
-- `src/web/components/plotting/settings/shapes_settings.py`
-- `ring5/decorations.py`
+- `src/web/components/plotting/settings/shapes_settings.py::ShapesSettingsComponent.render`
+- `src/web/pages/ui/plotting/styles/applicator.py::StyleApplicator.apply_styles`
+- `src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_annotations`
 
 Covers:
 - req~ring5.figure.shapes-annotations~1
@@ -982,7 +998,9 @@ Tags: annotations, shapes, status_approved, styling
 `impl~ring5.figure.ordering-renaming~1`
 
 Implementation evidence:
-- `src/web/components/plotting/settings/ordering_settings.py`
+- `src/web/components/plotting/settings/ordering_settings.py::OrderingSettingsComponent.render`
+- `src/web/pages/ui/plotting/base_plot.py::_relabel_traces`
+- `src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot._apply_renames`
 
 Covers:
 - req~ring5.figure.ordering-renaming~1
@@ -994,7 +1012,9 @@ Tags: labels, ordering, status_approved, styling
 `impl~ring5.figure.group-separators~1`
 
 Implementation evidence:
-- `src/web/pages/ui/plotting/utils/grouped_bar_utils.py`
+- `src/web/pages/ui/plotting/utils/grouped_bar_utils.py::GroupedBarUtils.create_separator_shape`
+- `src/web/pages/ui/plotting/utils/grouped_bar_utils.py::GroupedBarUtils.create_isolation_separator`
+- `src/web/pages/ui/plotting/utils/grouped_bar_utils.py::GroupedBarUtils.calculate_grouped_coordinates`
 
 Covers:
 - req~ring5.figure.group-separators~1
@@ -1006,7 +1026,7 @@ Tags: grouped, layout, status_approved, styling
 `impl~ring5.figure.numbered-xaxis~1`
 
 Implementation evidence:
-- `src/web/pages/ui/plotting/utils/grouped_stacked_bar_helpers.py`
+- `src/web/pages/ui/plotting/utils/grouped_stacked_bar_helpers.py::apply_numbered_xaxis`
 
 Covers:
 - req~ring5.figure.numbered-xaxis~1
@@ -1018,7 +1038,8 @@ Tags: labels, numbered_axis, status_approved, styling
 `impl~ring5.figure.category-groups~1`
 
 Implementation evidence:
-- `src/core/models/visualization/axis_config.py`
+- `src/web/pages/ui/plotting/utils/grouped_bar_utils.py::GroupedBarUtils.build_category_group_annotations`
+- `src/web/pages/ui/plotting/utils/grouped_bar_utils.py::GroupedBarUtils.calculate_grouped_coordinates`
 
 Covers:
 - req~ring5.figure.category-groups~1
@@ -1030,7 +1051,11 @@ Tags: category_groups, labels, status_approved, styling
 `impl~ring5.figure.dual-axis-controls~1`
 
 Implementation evidence:
-- `src/web/components/plotting/config/dual_axis_settings.py`
+- `src/web/components/plotting/config/dual_axis_settings.py::render_dual_axis_display_settings`
+- `src/web/components/plotting/config/dual_axis_settings.py::render_secondary_legend_controls`
+- `src/web/components/plotting/config/dual_axis_settings.py::render_right_axis_dot_settings`
+- `src/web/pages/ui/plotting/types/dual_axis_bar_dot_plot.py::DualAxisBarDotPlot.create_traces`
+- `src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot._build_right_axis_traces`
 
 Covers:
 - req~ring5.figure.dual-axis-controls~1
@@ -1042,7 +1067,8 @@ Tags: dual_axis, settings, status_approved, styling
 `impl~ring5.figure.histogram-controls~1`
 
 Implementation evidence:
-- `src/web/components/plotting/config/histogram_config.py`
+- `src/web/components/plotting/config/histogram_config.py::render`
+- `src/web/pages/ui/plotting/types/histogram_plot.py::HistogramPlot.create_traces`
 
 Covers:
 - req~ring5.figure.histogram-controls~1
@@ -1054,7 +1080,8 @@ Tags: histogram, settings, status_approved
 `impl~ring5.figure.heatmap-controls~1`
 
 Implementation evidence:
-- `src/web/components/plotting/config/heatmap_config.py`
+- `src/web/components/plotting/config/heatmap_config.py::render`
+- `src/web/pages/ui/plotting/types/heatmap_plot.py::HeatmapPlot.create_traces`
 
 Covers:
 - req~ring5.figure.heatmap-controls~1
@@ -1066,8 +1093,9 @@ Tags: heatmap, settings, status_approved
 `impl~ring5.figure.interactive-editing~1`
 
 Implementation evidence:
-- `src/web/components/plotting/interactive_plot.py`
-- `src/web/rendering/relayout.py`
+- `src/web/components/plotting/interactive_plot.py::interactive_plotly_chart`
+- `src/web/rendering/relayout.py::update_config_from_relayout`
+- `src/web/pages/ui/plotting/base_plot.py::BasePlot.update_from_relayout`
 
 Covers:
 - req~ring5.figure.interactive-editing~1
@@ -1718,7 +1746,9 @@ Tags: configuration, persistence, shapers, status_approved
 `impl~ring5.figure.plot-filtering~1`
 
 Implementation evidence:
-- `src/web/components/plotting/config/plot_config_components.py`
+- `src/web/components/plotting/config/plot_config_components.py::PlotConfigComponents.render_filter_multiselects`
+- `src/web/pages/ui/plotting/types/grouped_bar_plot.py::GroupedBarPlot.create_traces`
+- `src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot.create_traces`
 
 Covers:
 - req~ring5.figure.plot-filtering~1
@@ -1731,7 +1761,7 @@ Tags: filtering, plots, selection, status_approved
 
 Implementation evidence:
 - `src/web/components/plotting/config/grouped_stacked_bar_theme.py::render_stack_total_options`
-- `src/web/pages/ui/plotting/types/stacked_bar_plot.py`
+- `src/web/pages/ui/plotting/types/stacked_bar_plot.py::StackedBarPlot._build_totals_annotations`
 
 Covers:
 - req~ring5.figure.stack-totals~1
@@ -1743,8 +1773,8 @@ Tags: annotations, stacked, status_approved, totals
 `impl~ring5.figure.heatmap-summary-controls~1`
 
 Implementation evidence:
-- `src/web/pages/ui/plotting/types/heatmap_plot.py`
-- `src/web/components/plotting/settings/data_labels_settings.py`
+- `src/web/pages/ui/plotting/types/heatmap_plot.py::HeatmapPlot.create_traces`
+- `src/web/components/plotting/settings/data_labels_settings.py::DataLabelsSettingsComponent.render`
 
 Covers:
 - req~ring5.figure.heatmap-summary-controls~1
@@ -1756,8 +1786,8 @@ Tags: heatmap, labels, status_approved, totals
 `impl~ring5.figure.histogram-cumulative~1`
 
 Implementation evidence:
-- `src/web/components/plotting/config/histogram_config.py`
-- `src/web/pages/ui/plotting/types/histogram_plot.py`
+- `src/web/components/plotting/config/histogram_config.py::render`
+- `src/web/pages/ui/plotting/types/histogram_plot.py::HistogramPlot._normalize_values`
 
 Covers:
 - req~ring5.figure.histogram-cumulative~1
@@ -1769,7 +1799,7 @@ Tags: cumulative, histogram, statistics, status_approved
 `impl~ring5.figure.matplotlib-tex-system~1`
 
 Implementation evidence:
-- `src/web/components/plotting/settings/engine_settings.py`
+- `src/web/components/plotting/settings/engine_settings.py::EngineSettingsComponent.render`
 
 Covers:
 - req~ring5.figure.matplotlib-tex-system~1
@@ -1781,9 +1811,8 @@ Tags: latex, matplotlib, settings, status_approved
 `impl~ring5.figure.plotly-hovermode~1`
 
 Implementation evidence:
-- `src/web/components/plotting/settings/engine_settings.py`
-- `src/web/rendering/plotly_connector.py`
-- `src/core/models/visualization/figure_config.py`
+- `src/web/components/plotting/settings/engine_settings.py::EngineSettingsComponent.render`
+- `src/web/rendering/plotly_connector.py::FigureSpecToPlotly._apply_hovermode`
 
 Covers:
 - req~ring5.figure.plotly-hovermode~1
@@ -1808,9 +1837,10 @@ Tags: lifecycle, plots, status_approved, types
 `impl~ring5.figure.alternate-category-shading~1`
 
 Implementation evidence:
-- `src/web/pages/ui/plotting/utils/grouped_bar_utils.py`
-- `src/web/pages/ui/plotting/types/grouped_bar_plot.py`
-- `src/web/components/plotting/config/grouped_stacked_bar_theme.py`
+- `src/web/pages/ui/plotting/utils/grouped_bar_utils.py::GroupedBarUtils.create_shade_shape`
+- `src/web/pages/ui/plotting/utils/grouped_bar_utils.py::GroupedBarUtils.calculate_grouped_coordinates`
+- `src/web/pages/ui/plotting/types/grouped_bar_plot.py::GroupedBarPlot.create_traces`
+- `src/web/components/plotting/config/grouped_stacked_bar_theme.py::render_grouped_theme_extras`
 
 Covers:
 - req~ring5.figure.alternate-category-shading~1
@@ -1822,10 +1852,12 @@ Tags: grouped_bar, settings, shading, status_approved
 `impl~ring5.figure.series-styling~1`
 
 Implementation evidence:
-- `src/web/pages/ui/plotting/styles/base_ui.py`
-- `src/web/pages/ui/plotting/styles/bar_ui.py`
-- `src/web/pages/ui/plotting/styles/line_ui.py`
-- `src/web/pages/ui/plotting/styles/applicator.py`
+- `src/web/pages/ui/plotting/styles/base_ui.py::BaseStyleUI._render_series_item`
+- `src/web/pages/ui/plotting/styles/bar_ui.py::BarStyleUI._render_specific_series_visuals`
+- `src/web/pages/ui/plotting/styles/line_ui.py::LineStyleUI._render_specific_series_visuals`
+- `src/web/rendering/plotly_connector.py::FigureSpecToPlotly._apply_series_styling`
+- `src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_series_styling`
+- `src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_trace_overrides`
 
 Covers:
 - req~ring5.figure.series-styling~1
@@ -2859,7 +2891,8 @@ Tags: bar, plots, stacked, status_approved
 `test~ring5.figure.layout~1`
 
 Verification evidence:
-- `tests/unit/core/visualization/test_figure_spec.py`
+- `tests/ui_logic/test_layout_settings.py::test_custom_dimensions_are_converted_to_preview_pixels`
+- `tests/ui_logic/test_layout_settings.py::test_single_column_preset_fixes_width`
 
 Covers:
 - req~ring5.figure.layout~1
@@ -2871,7 +2904,9 @@ Tags: dimensions, layout, status_approved, styling
 `test~ring5.figure.typography~1`
 
 Verification evidence:
-- `tests/unit/core/visualization/test_settings_verification.py`
+- `tests/ui_logic/test_settings_pills_e2e.py::TestTypographyNoAxisLeak`
+- `tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorFontFamily`
+- `tests/unit/core/visualization/test_matplotlib_connector.py::TestMatplotlibFontFamily`
 
 Covers:
 - req~ring5.figure.typography~1
@@ -2883,7 +2918,10 @@ Tags: fonts, status_approved, styling, typography
 `test~ring5.figure.axes~1`
 
 Verification evidence:
-- `tests/unit/core/visualization/test_axis_spec.py`
+- `tests/ui_logic/test_settings_pills_e2e.py::TestAxesAxisLineControls`
+- `tests/unit/core/visualization/test_axis_spec.py::TestAxisSpecRoundTrip`
+- `tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorTickSide`
+- `tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorYTickAngle`
 
 Covers:
 - req~ring5.figure.axes~1
@@ -2895,7 +2933,10 @@ Tags: axes, status_approved, styling
 `test~ring5.figure.legends~1`
 
 Verification evidence:
-- `tests/unit/test_legend_settings.py`
+- `tests/ui_logic/test_settings_pills_e2e.py::TestSecondaryLegendConfig`
+- `tests/ui_logic/test_settings_pills_e2e.py::TestLegendSizingControls`
+- `tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorLegendAnchor`
+- `tests/unit/core/visualization/test_connectors.py::TestConfigBuilderLegendOrientation`
 
 Covers:
 - req~ring5.figure.legends~1
@@ -2907,7 +2948,10 @@ Tags: legend, status_approved, styling
 `test~ring5.figure.colors~1`
 
 Verification evidence:
-- `tests/unit/test_colorblind_palettes.py`
+- `tests/unit/test_colorblind_palettes.py::TestPaletteSelector`
+- `tests/unit/test_palettes.py::TestIsColorblindSafe`
+- `tests/unit/core/visualization/test_connectors.py::TestFigureSpecToPlotly.test_apply_backgrounds`
+- `tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorColorPalette`
 
 Covers:
 - req~ring5.figure.colors~1
@@ -2919,7 +2963,11 @@ Tags: colors, palette, status_approved, styling
 `test~ring5.figure.data-labels~1`
 
 Verification evidence:
-- `tests/unit/test_data_labels.py`
+- `tests/ui_logic/test_settings_pills_e2e.py::TestDataLabelsProgressiveDisclosure`
+- `tests/unit/test_data_labels.py::TestDataLabelsBasic`
+- `tests/unit/test_data_labels.py::TestTextPosition`
+- `tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorDataLabels`
+- `tests/unit/core/visualization/test_matplotlib_connector.py::TestMatplotlibDataLabels`
 
 Covers:
 - req~ring5.figure.data-labels~1
@@ -2931,7 +2979,8 @@ Tags: annotations, labels, status_approved, styling
 `test~ring5.figure.advanced-disclosure~1`
 
 Verification evidence:
-- `tests/ui_logic/test_settings_pills.py`
+- `tests/ui_logic/test_settings_pills.py::TestRenderSettingsPills.test_basic_only_shows_three`
+- `tests/ui_logic/test_settings_pills.py::TestRenderSettingsPills.test_advanced_shows_all_seven`
 
 Covers:
 - req~ring5.figure.advanced-disclosure~1
@@ -2943,7 +2992,8 @@ Tags: settings, status_approved, usability, web
 `test~ring5.figure.error-bars~1`
 
 Verification evidence:
-- `tests/unit/test_dual_axis_rendering.py`
+- `tests/unit/test_bar_line_create_figure.py::TestBarPlotCreateFigure.test_bar_with_error_bars`
+- `tests/unit/test_trace_to_plotly.py::TestBarTrace.test_bar_error_y`
 
 Covers:
 - req~ring5.figure.error-bars~1
@@ -2955,7 +3005,9 @@ Tags: error_bars, statistics, status_approved, styling
 `test~ring5.figure.reference-lines~1`
 
 Verification evidence:
-- `tests/unit/test_reference_line.py`
+- `tests/unit/test_reference_line.py::TestReferenceLineConfig`
+- `tests/unit/test_reference_line.py::TestPlotlyReferenceLine`
+- `tests/unit/core/visualization/test_matplotlib_connector.py::TestMatplotlibReferenceLines`
 
 Covers:
 - req~ring5.figure.reference-lines~1
@@ -2967,7 +3019,9 @@ Tags: annotations, reference_line, status_approved, styling
 `test~ring5.figure.shapes-annotations~1`
 
 Verification evidence:
-- `tests/ui_unit/test_shapes_settings.py`
+- `tests/ui_unit/test_shapes_settings.py::test_render_does_not_mutate_saved_config`
+- `tests/ui_unit/test_shapes_settings.py::test_add_shape_returns_new_list_without_mutating`
+- `tests/unit/core/visualization/test_matplotlib_connector.py::TestMatplotlibAnnotations`
 
 Covers:
 - req~ring5.figure.shapes-annotations~1
@@ -2979,7 +3033,11 @@ Tags: annotations, shapes, status_approved, styling
 `test~ring5.figure.ordering-renaming~1`
 
 Verification evidence:
-- `tests/unit/test_persistent_labels.py`
+- `tests/unit/test_persistent_labels.py::test_multiple_column_persistence`
+- `tests/ui_logic/test_settings_pills_e2e.py::TestStackedSeriesOrderRename`
+- `tests/unit/test_grouped_stacked_bar_create_figure.py::TestCreateFigure.test_with_xaxis_order`
+- `tests/unit/test_grouped_stacked_bar_create_figure.py::TestCreateFigure.test_with_group_order`
+- `tests/unit/test_heatmap_plot.py::test_heatmap_facet_order_and_rename_combined`
 
 Covers:
 - req~ring5.figure.ordering-renaming~1
@@ -2991,7 +3049,8 @@ Tags: labels, ordering, status_approved, styling
 `test~ring5.figure.group-separators~1`
 
 Verification evidence:
-- `tests/unit/test_grouped_bar_utils.py`
+- `tests/unit/test_grouped_bar_utils.py::TestGroupedBarUtils.test_calculate_grouped_coordinates_with_separators`
+- `tests/unit/test_grouped_bar_utils.py::TestGroupedBarUtils.test_calculate_grouped_coordinates_isolate_last`
 
 Covers:
 - req~ring5.figure.group-separators~1
@@ -3003,7 +3062,8 @@ Tags: grouped, layout, status_approved, styling
 `test~ring5.figure.numbered-xaxis~1`
 
 Verification evidence:
-- `tests/unit/test_numbered_xaxis.py`
+- `tests/unit/test_numbered_xaxis.py::TestApplyNumberedXaxis`
+- `tests/unit/test_numbered_xaxis.py::TestCreateFigureNumberedXaxis`
 
 Covers:
 - req~ring5.figure.numbered-xaxis~1
@@ -3015,7 +3075,10 @@ Tags: labels, numbered_axis, status_approved, styling
 `test~ring5.figure.category-groups~1`
 
 Verification evidence:
-- `tests/unit/test_category_groups.py`
+- `tests/unit/test_category_groups.py::TestGroupSeparators`
+- `tests/unit/test_category_groups.py::TestGroupCenters`
+- `tests/unit/test_category_groups.py::TestGroupRules`
+- `tests/unit/test_category_groups.py::TestGroupAnnotations`
 
 Covers:
 - req~ring5.figure.category-groups~1
@@ -3027,7 +3090,10 @@ Tags: category_groups, labels, status_approved, styling
 `test~ring5.figure.dual-axis-controls~1`
 
 Verification evidence:
-- `tests/e2e/test_dual_axis.py`
+- `tests/unit/test_dual_axis_bar_dot_plot.py::TestDualAxisBarDotPlotCreateFigure`
+- `tests/unit/test_dual_axis_bar_dot_plot.py::TestDualAxisBarDotPlotDotCustomization`
+- `tests/unit/test_grouped_stacked_dual_axis.py::TestDualAxisCreateFigure`
+- `tests/e2e/test_dual_axis.py::TestDualAxisRendering`
 
 Covers:
 - req~ring5.figure.dual-axis-controls~1
@@ -3039,7 +3105,8 @@ Tags: dual_axis, settings, status_approved, styling
 `test~ring5.figure.histogram-controls~1`
 
 Verification evidence:
-- `tests/unit/test_histogram_rebinning.py`
+- `tests/unit/test_stacked_histogram_config.py::TestHistogramRenderConfigUI`
+- `tests/unit/test_stacked_histogram_config.py::TestHistogramCreateFigure`
 
 Covers:
 - req~ring5.figure.histogram-controls~1
@@ -3051,7 +3118,10 @@ Tags: histogram, settings, status_approved
 `test~ring5.figure.heatmap-controls~1`
 
 Verification evidence:
-- `tests/unit/test_heatmap_plot.py`
+- `tests/unit/test_heatmap_plot.py::test_multiple_heatmap_traces_render_as_subplots`
+- `tests/unit/test_heatmap_plot.py::test_heatmap_colorscale_from_palette`
+- `tests/unit/test_heatmap_plot.py::test_plotly_shared_colorbar_zmin_zmax_match`
+- `tests/unit/test_heatmap_plot.py::test_heatmap_data_labels_format_and_threshold`
 
 Covers:
 - req~ring5.figure.heatmap-controls~1
@@ -3063,7 +3133,8 @@ Tags: heatmap, settings, status_approved
 `test~ring5.figure.interactive-editing~1`
 
 Verification evidence:
-- `tests/ui_logic/test_interactive_plot.py`
+- `tests/ui_logic/test_interactive_plot.py::TestInteractivePlotlyChart`
+- `tests/unit/test_relayout.py::TestUpdateConfigFromRelayout`
 
 Covers:
 - req~ring5.figure.interactive-editing~1
@@ -3697,7 +3768,8 @@ Tags: configuration, persistence, shapers, status_approved
 `test~ring5.figure.plot-filtering~1`
 
 Verification evidence:
-- `tests/unit/test_interactive_filters.py`
+- `tests/unit/test_interactive_filters.py::TestGroupedBarPlotFilters`
+- `tests/unit/test_interactive_filters.py::TestGroupedStackedBarPlotFilters`
 
 Covers:
 - req~ring5.figure.plot-filtering~1
@@ -3709,8 +3781,9 @@ Tags: filtering, plots, selection, status_approved
 `test~ring5.figure.stack-totals~1`
 
 Verification evidence:
-- `tests/unit/test_stacked_histogram_config.py`
-- `tests/unit/test_grouped_stacked_options.py`
+- `tests/unit/test_stacked_histogram_config.py::TestStackedBarCreateFigure.test_show_totals_annotations`
+- `tests/unit/test_stacked_histogram_config.py::TestStackedBarCreateFigure.test_totals_threshold_skips_small`
+- `tests/unit/test_grouped_stacked_options.py::TestRenderStackTotalOptions`
 
 Covers:
 - req~ring5.figure.stack-totals~1
@@ -3722,7 +3795,10 @@ Tags: annotations, stacked, status_approved, totals
 `test~ring5.figure.heatmap-summary-controls~1`
 
 Verification evidence:
-- `tests/unit/test_heatmap_plot.py`
+- `tests/unit/test_heatmap_plot.py::test_heatmap_totals_right_adds_column`
+- `tests/unit/test_heatmap_plot.py::test_heatmap_colorscale_reverse_list`
+- `tests/unit/test_heatmap_plot.py::test_heatmap_data_labels_format_and_threshold`
+- `tests/unit/test_heatmap_plot.py::test_heatmap_totals_with_none_values`
 
 Covers:
 - req~ring5.figure.heatmap-summary-controls~1
@@ -3734,7 +3810,8 @@ Tags: heatmap, labels, status_approved, totals
 `test~ring5.figure.histogram-cumulative~1`
 
 Verification evidence:
-- `tests/integration/test_histogram_plot_integration.py`
+- `tests/integration/test_histogram_plot_integration.py::TestHistogramPlotIntegration.test_histogram_cumulative_distribution`
+- `tests/unit/test_stacked_histogram_config.py::TestHistogramCreateFigure.test_normalization_cumulative`
 
 Covers:
 - req~ring5.figure.histogram-cumulative~1
@@ -3746,7 +3823,8 @@ Tags: cumulative, histogram, statistics, status_approved
 `test~ring5.figure.matplotlib-tex-system~1`
 
 Verification evidence:
-- `tests/ui_logic/test_engine_specific_controls.py`
+- `tests/ui_logic/test_engine_specific_controls.py::TestEngineSpecificControls.test_matplotlib_disables_latex_preamble`
+- `tests/ui_logic/test_engine_specific_controls.py::TestEngineSpecificControls.test_matplotlib_no_hovermode`
 
 Covers:
 - req~ring5.figure.matplotlib-tex-system~1
@@ -3758,8 +3836,9 @@ Tags: latex, matplotlib, settings, status_approved
 `test~ring5.figure.plotly-hovermode~1`
 
 Verification evidence:
-- `tests/ui_logic/test_engine_specific_controls.py`
-- `tests/unit/core/visualization/test_connectors.py`
+- `tests/ui_logic/test_engine_specific_controls.py::TestEngineSpecificControls.test_plotly_shows_hovermode`
+- `tests/ui_logic/test_engine_specific_controls.py::TestEngineSpecificControls.test_saved_hovermode_preserved`
+- `tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorHovermode`
 
 Covers:
 - req~ring5.figure.plotly-hovermode~1
@@ -3785,8 +3864,8 @@ Tags: lifecycle, plots, status_approved, types
 `test~ring5.figure.alternate-category-shading~1`
 
 Verification evidence:
-- `tests/unit/test_grouped_bar_utils.py`
-- `tests/unit/test_grouped_stacked_options.py`
+- `tests/unit/test_grouped_bar_utils.py::TestGroupedBarUtils.test_calculate_grouped_coordinates_shade_alternate`
+- `tests/unit/test_grouped_stacked_options.py::TestRenderThemeOptions.test_adds_major_group_styling`
 
 Covers:
 - req~ring5.figure.alternate-category-shading~1
@@ -3798,9 +3877,10 @@ Tags: grouped_bar, settings, shading, status_approved
 `test~ring5.figure.series-styling~1`
 
 Verification evidence:
-- `tests/unit/test_style_applicator.py`
-- `tests/ui_logic/test_style_factory.py`
-- `tests/unit/core/visualization/test_matplotlib_connector_styling.py`
+- `tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorSeriesStyling`
+- `tests/unit/core/visualization/test_matplotlib_connector_styling.py::TestTraceOverrides`
+- `tests/unit/core/visualization/test_matplotlib_connector_styling.py::TestSeriesStyling`
+- `tests/unit/test_style_applicator.py::TestApplyStyles.test_full_pipeline`
 
 Covers:
 - req~ring5.figure.series-styling~1
@@ -4780,7 +4860,7 @@ Tags: bar, plots, stacked, status_approved
 `uman~ring5.figure.layout~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/settings.md`
+- `docs/user-guide/reference/settings.md#layout`
 
 Covers:
 - req~ring5.figure.layout~1
@@ -4792,7 +4872,7 @@ Tags: dimensions, layout, status_approved, styling
 `uman~ring5.figure.typography~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/settings.md`
+- `docs/user-guide/reference/settings.md#typography`
 
 Covers:
 - req~ring5.figure.typography~1
@@ -4804,7 +4884,7 @@ Tags: fonts, status_approved, styling, typography
 `uman~ring5.figure.axes~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/settings.md`
+- `docs/user-guide/reference/settings.md#axes`
 
 Covers:
 - req~ring5.figure.axes~1
@@ -4816,7 +4896,7 @@ Tags: axes, status_approved, styling
 `uman~ring5.figure.legends~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/settings.md`
+- `docs/user-guide/reference/settings.md#legends`
 
 Covers:
 - req~ring5.figure.legends~1
@@ -4828,7 +4908,7 @@ Tags: legend, status_approved, styling
 `uman~ring5.figure.colors~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/settings.md`
+- `docs/user-guide/reference/settings.md#colors`
 
 Covers:
 - req~ring5.figure.colors~1
@@ -4840,7 +4920,7 @@ Tags: colors, palette, status_approved, styling
 `uman~ring5.figure.data-labels~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/settings.md`
+- `docs/user-guide/reference/settings.md#data-labels`
 
 Covers:
 - req~ring5.figure.data-labels~1
@@ -4852,7 +4932,7 @@ Tags: annotations, labels, status_approved, styling
 `uman~ring5.figure.advanced-disclosure~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/settings.md`
+- `docs/user-guide/reference/settings.md#progressive-disclosure`
 
 Covers:
 - req~ring5.figure.advanced-disclosure~1
@@ -4864,7 +4944,7 @@ Tags: settings, status_approved, usability, web
 `uman~ring5.figure.error-bars~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/plotting.md`
+- `docs/user-guide/workflows/plotting.md#map-columns-and-configure-the-figure`
 
 Covers:
 - req~ring5.figure.error-bars~1
@@ -4876,7 +4956,7 @@ Tags: error_bars, statistics, status_approved, styling
 `uman~ring5.figure.reference-lines~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/settings.md`
+- `docs/user-guide/reference/settings.md#reference-lines`
 
 Covers:
 - req~ring5.figure.reference-lines~1
@@ -4888,7 +4968,7 @@ Tags: annotations, reference_line, status_approved, styling
 `uman~ring5.figure.shapes-annotations~1`
 
 User documentation evidence:
-- `docs/developer-guide/api-reference/public-python-api.md`
+- `docs/developer-guide/api-reference/public-python-api.md#annotations-and-web-shapes`
 
 Covers:
 - req~ring5.figure.shapes-annotations~1
@@ -4900,7 +4980,7 @@ Tags: annotations, shapes, status_approved, styling
 `uman~ring5.figure.ordering-renaming~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/settings.md`
+- `docs/user-guide/reference/settings.md#ordering-and-renaming`
 
 Covers:
 - req~ring5.figure.ordering-renaming~1
@@ -4912,7 +4992,7 @@ Tags: labels, ordering, status_approved, styling
 `uman~ring5.figure.group-separators~1`
 
 User documentation evidence:
-- `docs/user-guide/guides/compare-configurations.md`
+- `docs/user-guide/guides/compare-configurations.md#configure-the-comparison`
 
 Covers:
 - req~ring5.figure.group-separators~1
@@ -4924,7 +5004,7 @@ Tags: grouped, layout, status_approved, styling
 `uman~ring5.figure.numbered-xaxis~1`
 
 User documentation evidence:
-- `docs/user-guide/guides/publication-export.md`
+- `docs/user-guide/guides/publication-export.md#check-typography-and-axes`
 
 Covers:
 - req~ring5.figure.numbered-xaxis~1
@@ -4936,7 +5016,7 @@ Tags: labels, numbered_axis, status_approved, styling
 `uman~ring5.figure.category-groups~1`
 
 User documentation evidence:
-- `docs/user-guide/guides/publication-export.md`
+- `docs/user-guide/guides/publication-export.md#check-typography-and-axes`
 
 Covers:
 - req~ring5.figure.category-groups~1
@@ -4948,7 +5028,7 @@ Tags: category_groups, labels, status_approved, styling
 `uman~ring5.figure.dual-axis-controls~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/plot-types.md`
+- `docs/user-guide/reference/plot-types.md#dual-axis-controls`
 
 Covers:
 - req~ring5.figure.dual-axis-controls~1
@@ -4960,7 +5040,7 @@ Tags: dual_axis, settings, status_approved, styling
 `uman~ring5.figure.histogram-controls~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/plot-types.md`
+- `docs/user-guide/reference/plot-types.md#histogram-controls`
 
 Covers:
 - req~ring5.figure.histogram-controls~1
@@ -4972,7 +5052,7 @@ Tags: histogram, settings, status_approved
 `uman~ring5.figure.heatmap-controls~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/plot-types.md`
+- `docs/user-guide/reference/plot-types.md#heatmap-controls`
 
 Covers:
 - req~ring5.figure.heatmap-controls~1
@@ -4984,7 +5064,7 @@ Tags: heatmap, settings, status_approved
 `uman~ring5.figure.interactive-editing~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/settings.md`
+- `docs/user-guide/reference/settings.md#interactive-editing`
 
 Covers:
 - req~ring5.figure.interactive-editing~1
@@ -5608,7 +5688,7 @@ Tags: configuration, persistence, shapers, status_approved
 `uman~ring5.figure.plot-filtering~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/plotting.md`
+- `docs/user-guide/workflows/plotting.md#map-columns-and-configure-the-figure`
 
 Covers:
 - req~ring5.figure.plot-filtering~1
@@ -5620,7 +5700,7 @@ Tags: filtering, plots, selection, status_approved
 `uman~ring5.figure.stack-totals~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/settings.md`
+- `docs/user-guide/reference/settings.md#stack-totals`
 
 Covers:
 - req~ring5.figure.stack-totals~1
@@ -5632,7 +5712,7 @@ Tags: annotations, stacked, status_approved, totals
 `uman~ring5.figure.heatmap-summary-controls~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/settings.md`
+- `docs/user-guide/reference/settings.md#heatmap-summaries`
 
 Covers:
 - req~ring5.figure.heatmap-summary-controls~1
@@ -5644,7 +5724,7 @@ Tags: heatmap, labels, status_approved, totals
 `uman~ring5.figure.histogram-cumulative~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/plot-types.md`
+- `docs/user-guide/reference/plot-types.md#cumulative-histograms`
 
 Covers:
 - req~ring5.figure.histogram-cumulative~1
@@ -5656,7 +5736,7 @@ Tags: cumulative, histogram, statistics, status_approved
 `uman~ring5.figure.matplotlib-tex-system~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/rendering-export.md`
+- `docs/user-guide/reference/rendering-export.md#matplotlib-tex-system`
 
 Covers:
 - req~ring5.figure.matplotlib-tex-system~1
@@ -5668,7 +5748,7 @@ Tags: latex, matplotlib, settings, status_approved
 `uman~ring5.figure.plotly-hovermode~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/rendering-export.md`
+- `docs/user-guide/reference/rendering-export.md#plotly-hover-mode`
 
 Covers:
 - req~ring5.figure.plotly-hovermode~1
@@ -5692,7 +5772,7 @@ Tags: lifecycle, plots, status_approved, types
 `uman~ring5.figure.alternate-category-shading~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/settings.md`
+- `docs/user-guide/reference/settings.md#alternate-category-shading`
 
 Covers:
 - req~ring5.figure.alternate-category-shading~1
@@ -5704,7 +5784,7 @@ Tags: grouped_bar, settings, shading, status_approved
 `uman~ring5.figure.series-styling~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/settings.md`
+- `docs/user-guide/reference/settings.md#series-styling`
 
 Covers:
 - req~ring5.figure.series-styling~1

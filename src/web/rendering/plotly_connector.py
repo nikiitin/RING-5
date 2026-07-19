@@ -125,6 +125,7 @@ class FigureSpecToPlotly:
     @staticmethod
     def _apply_backgrounds(spec: FigureConfig, fig: go.Figure) -> None:
         """Set paper and plot background colors."""
+        # [impl->req~ring5.figure.colors~1]
         fig.update_layout(
             paper_bgcolor=spec.paper_bgcolor,
             plot_bgcolor=spec.plot_bgcolor,
@@ -149,6 +150,7 @@ class FigureSpecToPlotly:
     @staticmethod
     def _apply_xaxis(spec: FigureConfig, fig: go.Figure) -> None:
         """Configure the primary X-axis."""
+        # [impl->req~ring5.figure.axes~1]
         if spec.axes is None:
             raise ValueError("FigureConfig requires axes")
         if spec.typography is None:
@@ -210,6 +212,7 @@ class FigureSpecToPlotly:
     @staticmethod
     def _apply_yaxis(spec: FigureConfig, fig: go.Figure) -> None:
         """Configure the primary Y-axis."""
+        # [impl->req~ring5.figure.axes~1]
         if spec.axes is None:
             raise ValueError("FigureConfig requires axes")
         if spec.typography is None:
@@ -304,6 +307,7 @@ class FigureSpecToPlotly:
     @staticmethod
     def _apply_legends(spec: FigureConfig, fig: go.Figure) -> None:
         """Apply legend configuration for all legends."""
+        # [impl->req~ring5.figure.legends~1]
         if not spec.legends:
             return
 
@@ -520,17 +524,20 @@ class FigureSpecToPlotly:
     @staticmethod
     def _apply_hovermode(spec: FigureConfig, fig: go.Figure) -> None:
         """Set hovermode from spec."""
+        # [impl->req~ring5.figure.plotly-hovermode~1]
         fig.update_layout(hovermode=spec.hovermode)
 
     @staticmethod
     def _apply_font_family(spec: FigureConfig, fig: go.Figure) -> None:
         """Set global font family."""
+        # [impl->req~ring5.figure.typography~1]
         if spec.font_family:
             fig.update_layout(font=dict(family=spec.font_family))
 
     @staticmethod
     def _apply_reference_lines(spec: FigureConfig, fig: go.Figure) -> None:
         """Add horizontal/vertical reference lines via fig.add_shape()."""
+        # [impl->req~ring5.figure.reference-lines~1]
         for rl in spec.reference_lines:
             if not rl.enabled:
                 continue
@@ -554,6 +561,7 @@ class FigureSpecToPlotly:
     @staticmethod
     def _apply_data_labels(spec: FigureConfig, fig: go.Figure) -> None:
         """Apply data label annotations on bars/points."""
+        # [impl->req~ring5.figure.data-labels~1]
         if spec.data_labels is None or not spec.data_labels.enabled:
             return
 
@@ -612,6 +620,7 @@ class FigureSpecToPlotly:
     @staticmethod
     def _apply_series_styling(spec: FigureConfig, fig: go.Figure) -> None:
         """Apply per-trace line_width, marker, opacity from series_styles."""
+        # [impl->req~ring5.figure.series-styling~1]
         if not spec.series_styles:
             return
 

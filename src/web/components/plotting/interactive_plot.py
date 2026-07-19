@@ -37,6 +37,7 @@ def interactive_plotly_chart(
         Dictionary containing relayoutData if an interaction occurred,
         None otherwise
     """
+    # [impl->req~ring5.figure.interactive-editing~1]
     # Serialize figure to JSON string
     fig_json: str = fig.to_json() or ""
 

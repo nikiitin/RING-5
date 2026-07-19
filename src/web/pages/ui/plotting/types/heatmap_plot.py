@@ -112,6 +112,8 @@ class HeatmapPlot(BasePlot):
     @override
     def create_traces(self, data: pd.DataFrame, config: PlotConfig) -> TraceBuildResult:
         """Produce one or more heatmap traces from data and config."""
+        # [impl->req~ring5.figure.heatmap-controls~1]
+        # [impl->req~ring5.figure.heatmap-summary-controls~1]
         # [impl->req~ring5.plot.heatmap~1]
         x_col: str = config["x"]
         metric_columns: list[str] = [

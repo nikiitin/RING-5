@@ -42,6 +42,7 @@ class LayoutSettingsComponent:
         PlotConfig
             Configuration dict with dimension and margin keys.
         """
+        # [impl->req~ring5.figure.layout~1]
         st.markdown("**Dimensions**")
 
         preset_options: dict[str, float] = {

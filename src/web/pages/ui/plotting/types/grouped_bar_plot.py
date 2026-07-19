@@ -106,6 +106,8 @@ class GroupedBarPlot(BasePlot):
     @override
     def create_traces(self, data: pd.DataFrame, config: PlotConfig) -> TraceBuildResult:
         """Create grouped bar trace configurations using manual coordinates."""
+        # [impl->req~ring5.figure.alternate-category-shading~1]
+        # [impl->req~ring5.figure.plot-filtering~1]
         # [impl->req~ring5.plot.grouped-bar~1]
 
         # 1. Data Preparation

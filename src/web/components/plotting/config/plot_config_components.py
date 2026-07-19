@@ -35,6 +35,7 @@ class PlotConfigComponents:
         Returns:
             Tuple of (x_filter_values, group_filter_values)
         """
+        # [impl->req~ring5.figure.plot-filtering~1]
         col_filter1, col_filter2 = st.columns(2)
 
         x_values: list[str] = []

@@ -72,6 +72,7 @@ class ColorsSettingsComponent:
             Configuration dict with palette, series_styles, and background
             keys.
         """
+        # [impl->req~ring5.figure.colors~1]
         # Palette selector
         st.markdown("#### :material/palette: Color Palette")
         palette_names = get_palette_names()

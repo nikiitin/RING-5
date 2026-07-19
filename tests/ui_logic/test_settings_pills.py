@@ -15,6 +15,7 @@ class TestRenderSettingsPills:
     @patch("src.web.pages.ui.plotting.settings_pills.st")
     def test_basic_only_shows_three(self, mock_st: MagicMock) -> None:
         """When show_advanced=False, only 3 basic sections are offered."""
+        # [test->req~ring5.figure.advanced-disclosure~1]
         from src.web.pages.ui.plotting.settings_pills import render_settings_pills
 
         mock_st.pills.return_value = "layout"
@@ -27,6 +28,7 @@ class TestRenderSettingsPills:
     @patch("src.web.pages.ui.plotting.settings_pills.st")
     def test_advanced_shows_all_seven(self, mock_st: MagicMock) -> None:
         """When show_advanced=True, all 7 sections are offered."""
+        # [test->req~ring5.figure.advanced-disclosure~1]
         from src.web.pages.ui.plotting.settings_pills import render_settings_pills
 
         mock_st.pills.return_value = "axes"

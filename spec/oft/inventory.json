@@ -1256,7 +1256,7 @@
       "revision": 1,
       "status": "approved",
       "title": "Histogram",
-      "description": "RING-5 shall render observation distributions or parsed gem5 bucket columns with configurable bins, grouping, stacking, and normalization.",
+      "description": "RING-5 shall render parsed histogram bucket columns with optional grouping, normalization, and cumulative display.",
       "tags": ["distribution", "histogram", "plots"],
       "evidence": {
         "implementation": [
@@ -1337,12 +1337,19 @@
       "revision": 1,
       "status": "approved",
       "title": "Figure layout and dimensions",
-      "description": "Users shall configure publication presets, width, height, DPI, margins, bar width, and group gaps.",
+      "description": "Users shall choose single-column, double-column, or custom figure dimensions, and the web application shall derive preview pixels with automatic zero margins.",
       "tags": ["dimensions", "layout", "styling"],
       "evidence": {
-        "implementation": ["src/web/components/plotting/settings/layout_settings.py"],
-        "tests": ["tests/unit/core/visualization/test_figure_spec.py"],
-        "documentation": ["docs/user-guide/reference/settings.md"]
+        "implementation": [
+          "src/web/components/plotting/settings/layout_settings.py::LayoutSettingsComponent.render"
+        ],
+        "tests": [
+          "tests/ui_logic/test_layout_settings.py::test_custom_dimensions_are_converted_to_preview_pixels",
+          "tests/ui_logic/test_layout_settings.py::test_single_column_preset_fixes_width"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/settings.md#layout"
+        ]
       }
     },
     {
@@ -1351,12 +1358,22 @@
       "revision": 1,
       "status": "approved",
       "title": "Typography configuration",
-      "description": "Users shall configure font family and title, axis-title, tick-label, legend, annotation, and data-label typography.",
+      "description": "The web application shall configure title, axis-title, and tick-label typography, while typed figure configuration shall carry global font-family and renderer typography state.",
       "tags": ["fonts", "styling", "typography"],
       "evidence": {
-        "implementation": ["src/web/components/plotting/settings/typography_settings.py"],
-        "tests": ["tests/unit/core/visualization/test_settings_verification.py"],
-        "documentation": ["docs/user-guide/reference/settings.md"]
+        "implementation": [
+          "src/web/components/plotting/settings/typography_settings.py::TypographySettingsComponent.render",
+          "src/web/rendering/plotly_connector.py::FigureSpecToPlotly._apply_font_family",
+          "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_font_family"
+        ],
+        "tests": [
+          "tests/ui_logic/test_settings_pills_e2e.py::TestTypographyNoAxisLeak",
+          "tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorFontFamily",
+          "tests/unit/core/visualization/test_matplotlib_connector.py::TestMatplotlibFontFamily"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/settings.md#typography"
+        ]
       }
     },
     {
@@ -1368,9 +1385,21 @@
       "description": "Users shall configure axis titles, ranges, tick steps, tick angles, tick marks, axis lines, and left or right axis styling where applicable.",
       "tags": ["axes", "styling"],
       "evidence": {
-        "implementation": ["src/web/components/plotting/settings/axes_settings.py"],
-        "tests": ["tests/unit/core/visualization/test_axis_spec.py"],
-        "documentation": ["docs/user-guide/reference/settings.md"]
+        "implementation": [
+          "src/web/components/plotting/settings/axes_settings.py::AxesSettingsComponent.render",
+          "src/web/rendering/plotly_connector.py::FigureSpecToPlotly._apply_xaxis",
+          "src/web/rendering/plotly_connector.py::FigureSpecToPlotly._apply_yaxis",
+          "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_axis_ticks"
+        ],
+        "tests": [
+          "tests/ui_logic/test_settings_pills_e2e.py::TestAxesAxisLineControls",
+          "tests/unit/core/visualization/test_axis_spec.py::TestAxisSpecRoundTrip",
+          "tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorTickSide",
+          "tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorYTickAngle"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/settings.md#axes"
+        ]
       }
     },
     {
@@ -1382,9 +1411,20 @@
       "description": "Users shall configure applicable primary, secondary, and numbered legends, including position, orientation, anchors, columns, fonts, backgrounds, borders, markers, and spacing.",
       "tags": ["legend", "styling"],
       "evidence": {
-        "implementation": ["src/web/components/plotting/settings/legend_settings.py"],
-        "tests": ["tests/unit/test_legend_settings.py"],
-        "documentation": ["docs/user-guide/reference/settings.md"]
+        "implementation": [
+          "src/web/components/plotting/settings/legend_settings.py::LegendSettingsComponent.render",
+          "src/web/rendering/plotly_connector.py::FigureSpecToPlotly._apply_legends",
+          "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_legends"
+        ],
+        "tests": [
+          "tests/ui_logic/test_settings_pills_e2e.py::TestSecondaryLegendConfig",
+          "tests/ui_logic/test_settings_pills_e2e.py::TestLegendSizingControls",
+          "tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorLegendAnchor",
+          "tests/unit/core/visualization/test_connectors.py::TestConfigBuilderLegendOrientation"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/settings.md#legends"
+        ]
       }
     },
     {
@@ -1396,9 +1436,22 @@
       "description": "Users shall choose registered colorblind-aware palettes or explicit colors and configure plot, paper, grid, and axis colors with optional transparent backgrounds.",
       "tags": ["colors", "palette", "styling"],
       "evidence": {
-        "implementation": ["src/web/components/plotting/settings/colors_settings.py", "src/core/services/visualization/palette_service.py"],
-        "tests": ["tests/unit/test_colorblind_palettes.py"],
-        "documentation": ["docs/user-guide/reference/settings.md"]
+        "implementation": [
+          "src/web/components/plotting/settings/colors_settings.py::ColorsSettingsComponent.render",
+          "src/core/services/visualization/palette_service.py::resolve_palette",
+          "src/core/services/visualization/palette_service.py::get_palette_names",
+          "src/core/services/visualization/palette_service.py::is_colorblind_safe",
+          "src/web/rendering/plotly_connector.py::FigureSpecToPlotly._apply_backgrounds"
+        ],
+        "tests": [
+          "tests/unit/test_colorblind_palettes.py::TestPaletteSelector",
+          "tests/unit/test_palettes.py::TestIsColorblindSafe",
+          "tests/unit/core/visualization/test_connectors.py::TestFigureSpecToPlotly.test_apply_backgrounds",
+          "tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorColorPalette"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/settings.md#colors"
+        ]
       }
     },
     {
@@ -1410,9 +1463,21 @@
       "description": "Users shall show formatted data values with configurable color mode, font size, rotation, position, anchor, threshold logic, and size constraint.",
       "tags": ["annotations", "labels", "styling"],
       "evidence": {
-        "implementation": ["src/web/components/plotting/settings/data_labels_settings.py"],
-        "tests": ["tests/unit/test_data_labels.py"],
-        "documentation": ["docs/user-guide/reference/settings.md"]
+        "implementation": [
+          "src/web/components/plotting/settings/data_labels_settings.py::DataLabelsSettingsComponent.render",
+          "src/web/rendering/plotly_connector.py::FigureSpecToPlotly._apply_data_labels",
+          "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_data_labels"
+        ],
+        "tests": [
+          "tests/ui_logic/test_settings_pills_e2e.py::TestDataLabelsProgressiveDisclosure",
+          "tests/unit/test_data_labels.py::TestDataLabelsBasic",
+          "tests/unit/test_data_labels.py::TestTextPosition",
+          "tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorDataLabels",
+          "tests/unit/core/visualization/test_matplotlib_connector.py::TestMatplotlibDataLabels"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/settings.md#data-labels"
+        ]
       }
     },
     {
@@ -1424,9 +1489,16 @@
       "description": "Layout, typography, and legends shall remain directly accessible while axes, labels, colors, and advanced controls can be progressively disclosed.",
       "tags": ["settings", "usability", "web"],
       "evidence": {
-        "implementation": ["src/web/pages/ui/plotting/settings_pills.py"],
-        "tests": ["tests/ui_logic/test_settings_pills.py"],
-        "documentation": ["docs/user-guide/reference/settings.md"]
+        "implementation": [
+          "src/web/pages/ui/plotting/settings_pills.py::render_settings_pills"
+        ],
+        "tests": [
+          "tests/ui_logic/test_settings_pills.py::TestRenderSettingsPills.test_basic_only_shows_three",
+          "tests/ui_logic/test_settings_pills.py::TestRenderSettingsPills.test_advanced_shows_all_seven"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/settings.md#progressive-disclosure"
+        ]
       }
     },
     {
@@ -1435,12 +1507,20 @@
       "revision": 1,
       "status": "approved",
       "title": "Standard-deviation error bars",
-      "description": "Plots that support uncertainty shall optionally render error bars from companion .sd columns on both rendering engines.",
+      "description": "Plots that support uncertainty shall optionally create trace error bars from companion .sd columns, and Plotly shall render those trace error bars.",
       "tags": ["error_bars", "statistics", "styling"],
       "evidence": {
-        "implementation": ["src/web/pages/ui/plotting/types/_trace_helpers.py"],
-        "tests": ["tests/unit/test_dual_axis_rendering.py"],
-        "documentation": ["docs/user-guide/workflows/plotting.md"]
+        "implementation": [
+          "src/web/pages/ui/plotting/types/_trace_helpers.py::extract_error_bars",
+          "src/web/rendering/trace_to_plotly.py::_bar_trace"
+        ],
+        "tests": [
+          "tests/unit/test_bar_line_create_figure.py::TestBarPlotCreateFigure.test_bar_with_error_bars",
+          "tests/unit/test_trace_to_plotly.py::TestBarTrace.test_bar_error_y"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/plotting.md#map-columns-and-configure-the-figure"
+        ]
       }
     },
     {
@@ -1452,9 +1532,19 @@
       "description": "Users shall add and style horizontal reference lines, including normalized baselines, with position, color, width, style, and label.",
       "tags": ["annotations", "reference_line", "styling"],
       "evidence": {
-        "implementation": ["src/web/components/plotting/settings/reference_line_settings.py"],
-        "tests": ["tests/unit/test_reference_line.py"],
-        "documentation": ["docs/user-guide/reference/settings.md"]
+        "implementation": [
+          "src/web/components/plotting/settings/reference_line_settings.py::ReferenceLineSettingsComponent.render",
+          "src/web/rendering/plotly_connector.py::FigureSpecToPlotly._apply_reference_lines",
+          "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_reference_lines"
+        ],
+        "tests": [
+          "tests/unit/test_reference_line.py::TestReferenceLineConfig",
+          "tests/unit/test_reference_line.py::TestPlotlyReferenceLine",
+          "tests/unit/core/visualization/test_matplotlib_connector.py::TestMatplotlibReferenceLines"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/settings.md#reference-lines"
+        ]
       }
     },
     {
@@ -1463,12 +1553,22 @@
       "revision": 1,
       "status": "approved",
       "title": "Shapes and text annotations",
-      "description": "Users and scripts shall add engine-independent text annotations and line, rectangle, or other supported shape decorations.",
+      "description": "The web application shall add and edit Plotly line, circle, and rectangle shapes, while typed figure configuration shall serialize text annotations consumed by the Matplotlib connector.",
       "tags": ["annotations", "shapes", "styling"],
       "evidence": {
-        "implementation": ["src/web/components/plotting/settings/shapes_settings.py", "ring5/decorations.py"],
-        "tests": ["tests/ui_unit/test_shapes_settings.py"],
-        "documentation": ["docs/developer-guide/api-reference/public-python-api.md"]
+        "implementation": [
+          "src/web/components/plotting/settings/shapes_settings.py::ShapesSettingsComponent.render",
+          "src/web/pages/ui/plotting/styles/applicator.py::StyleApplicator.apply_styles",
+          "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_annotations"
+        ],
+        "tests": [
+          "tests/ui_unit/test_shapes_settings.py::test_render_does_not_mutate_saved_config",
+          "tests/ui_unit/test_shapes_settings.py::test_add_shape_returns_new_list_without_mutating",
+          "tests/unit/core/visualization/test_matplotlib_connector.py::TestMatplotlibAnnotations"
+        ],
+        "documentation": [
+          "docs/developer-guide/api-reference/public-python-api.md#annotations-and-web-shapes"
+        ]
       }
     },
     {
@@ -1480,9 +1580,21 @@
       "description": "Users shall reorder and rename applicable X categories, groups, legend items, stack series, Y metrics, and facets without rewriting source data.",
       "tags": ["labels", "ordering", "styling"],
       "evidence": {
-        "implementation": ["src/web/components/plotting/settings/ordering_settings.py"],
-        "tests": ["tests/unit/test_persistent_labels.py"],
-        "documentation": ["docs/user-guide/reference/settings.md"]
+        "implementation": [
+          "src/web/components/plotting/settings/ordering_settings.py::OrderingSettingsComponent.render",
+          "src/web/pages/ui/plotting/base_plot.py::_relabel_traces",
+          "src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot._apply_renames"
+        ],
+        "tests": [
+          "tests/unit/test_persistent_labels.py::test_multiple_column_persistence",
+          "tests/ui_logic/test_settings_pills_e2e.py::TestStackedSeriesOrderRename",
+          "tests/unit/test_grouped_stacked_bar_create_figure.py::TestCreateFigure.test_with_xaxis_order",
+          "tests/unit/test_grouped_stacked_bar_create_figure.py::TestCreateFigure.test_with_group_order",
+          "tests/unit/test_heatmap_plot.py::test_heatmap_facet_order_and_rename_combined"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/settings.md#ordering-and-renaming"
+        ]
       }
     },
     {
@@ -1494,9 +1606,18 @@
       "description": "Grouped plots shall optionally draw category separators and isolate the final group with a configurable gap or divider.",
       "tags": ["grouped", "layout", "styling"],
       "evidence": {
-        "implementation": ["src/web/pages/ui/plotting/utils/grouped_bar_utils.py"],
-        "tests": ["tests/unit/test_grouped_bar_utils.py"],
-        "documentation": ["docs/user-guide/guides/compare-configurations.md"]
+        "implementation": [
+          "src/web/pages/ui/plotting/utils/grouped_bar_utils.py::GroupedBarUtils.create_separator_shape",
+          "src/web/pages/ui/plotting/utils/grouped_bar_utils.py::GroupedBarUtils.create_isolation_separator",
+          "src/web/pages/ui/plotting/utils/grouped_bar_utils.py::GroupedBarUtils.calculate_grouped_coordinates"
+        ],
+        "tests": [
+          "tests/unit/test_grouped_bar_utils.py::TestGroupedBarUtils.test_calculate_grouped_coordinates_with_separators",
+          "tests/unit/test_grouped_bar_utils.py::TestGroupedBarUtils.test_calculate_grouped_coordinates_isolate_last"
+        ],
+        "documentation": [
+          "docs/user-guide/guides/compare-configurations.md#configure-the-comparison"
+        ]
       }
     },
     {
@@ -1508,9 +1629,16 @@
       "description": "Grouped figures shall optionally replace or supplement long category labels with numbers and a separately configurable number legend.",
       "tags": ["labels", "numbered_axis", "styling"],
       "evidence": {
-        "implementation": ["src/web/pages/ui/plotting/utils/grouped_stacked_bar_helpers.py"],
-        "tests": ["tests/unit/test_numbered_xaxis.py"],
-        "documentation": ["docs/user-guide/guides/publication-export.md"]
+        "implementation": [
+          "src/web/pages/ui/plotting/utils/grouped_stacked_bar_helpers.py::apply_numbered_xaxis"
+        ],
+        "tests": [
+          "tests/unit/test_numbered_xaxis.py::TestApplyNumberedXaxis",
+          "tests/unit/test_numbered_xaxis.py::TestCreateFigureNumberedXaxis"
+        ],
+        "documentation": [
+          "docs/user-guide/guides/publication-export.md#check-typography-and-axes"
+        ]
       }
     },
     {
@@ -1522,9 +1650,19 @@
       "description": "Grouped figures shall optionally combine adjacent categories into labeled super-groups with boundaries and span rules.",
       "tags": ["category_groups", "labels", "styling"],
       "evidence": {
-        "implementation": ["src/core/models/visualization/axis_config.py"],
-        "tests": ["tests/unit/test_category_groups.py"],
-        "documentation": ["docs/user-guide/guides/publication-export.md"]
+        "implementation": [
+          "src/web/pages/ui/plotting/utils/grouped_bar_utils.py::GroupedBarUtils.build_category_group_annotations",
+          "src/web/pages/ui/plotting/utils/grouped_bar_utils.py::GroupedBarUtils.calculate_grouped_coordinates"
+        ],
+        "tests": [
+          "tests/unit/test_category_groups.py::TestGroupSeparators",
+          "tests/unit/test_category_groups.py::TestGroupCenters",
+          "tests/unit/test_category_groups.py::TestGroupRules",
+          "tests/unit/test_category_groups.py::TestGroupAnnotations"
+        ],
+        "documentation": [
+          "docs/user-guide/guides/publication-export.md#check-typography-and-axes"
+        ]
       }
     },
     {
@@ -1536,9 +1674,22 @@
       "description": "Applicable plots shall expose right-axis mappings, range, title, dot or bar mode, marker and line styling, per-group lines, and unified or separate legends.",
       "tags": ["dual_axis", "settings", "styling"],
       "evidence": {
-        "implementation": ["src/web/components/plotting/config/dual_axis_settings.py"],
-        "tests": ["tests/e2e/test_dual_axis.py"],
-        "documentation": ["docs/user-guide/reference/plot-types.md"]
+        "implementation": [
+          "src/web/components/plotting/config/dual_axis_settings.py::render_dual_axis_display_settings",
+          "src/web/components/plotting/config/dual_axis_settings.py::render_secondary_legend_controls",
+          "src/web/components/plotting/config/dual_axis_settings.py::render_right_axis_dot_settings",
+          "src/web/pages/ui/plotting/types/dual_axis_bar_dot_plot.py::DualAxisBarDotPlot.create_traces",
+          "src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot._build_right_axis_traces"
+        ],
+        "tests": [
+          "tests/unit/test_dual_axis_bar_dot_plot.py::TestDualAxisBarDotPlotCreateFigure",
+          "tests/unit/test_dual_axis_bar_dot_plot.py::TestDualAxisBarDotPlotDotCustomization",
+          "tests/unit/test_grouped_stacked_dual_axis.py::TestDualAxisCreateFigure",
+          "tests/e2e/test_dual_axis.py::TestDualAxisRendering"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/plot-types.md#dual-axis-controls"
+        ]
       }
     },
     {
@@ -1547,12 +1698,20 @@
       "revision": 1,
       "status": "approved",
       "title": "Histogram configuration",
-      "description": "Histogram plots shall expose observation or pre-binned input, binning, group, stack or overlay, and count, probability, density, or percent normalization controls.",
+      "description": "Histogram plots shall expose parsed bucket-column selection, optional grouping, count, probability, density, or percent normalization, and cumulative display controls.",
       "tags": ["histogram", "settings"],
       "evidence": {
-        "implementation": ["src/web/components/plotting/config/histogram_config.py"],
-        "tests": ["tests/unit/test_histogram_rebinning.py"],
-        "documentation": ["docs/user-guide/reference/plot-types.md"]
+        "implementation": [
+          "src/web/components/plotting/config/histogram_config.py::render",
+          "src/web/pages/ui/plotting/types/histogram_plot.py::HistogramPlot.create_traces"
+        ],
+        "tests": [
+          "tests/unit/test_stacked_histogram_config.py::TestHistogramRenderConfigUI",
+          "tests/unit/test_stacked_histogram_config.py::TestHistogramCreateFigure"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/plot-types.md#histogram-controls"
+        ]
       }
     },
     {
@@ -1564,9 +1723,19 @@
       "description": "Heatmap plots shall expose matrix mappings, optional facets, color scale, range, colorbar, missing-cell, and cell-label controls.",
       "tags": ["heatmap", "settings"],
       "evidence": {
-        "implementation": ["src/web/components/plotting/config/heatmap_config.py"],
-        "tests": ["tests/unit/test_heatmap_plot.py"],
-        "documentation": ["docs/user-guide/reference/plot-types.md"]
+        "implementation": [
+          "src/web/components/plotting/config/heatmap_config.py::render",
+          "src/web/pages/ui/plotting/types/heatmap_plot.py::HeatmapPlot.create_traces"
+        ],
+        "tests": [
+          "tests/unit/test_heatmap_plot.py::test_multiple_heatmap_traces_render_as_subplots",
+          "tests/unit/test_heatmap_plot.py::test_heatmap_colorscale_from_palette",
+          "tests/unit/test_heatmap_plot.py::test_plotly_shared_colorbar_zmin_zmax_match",
+          "tests/unit/test_heatmap_plot.py::test_heatmap_data_labels_format_and_threshold"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/plot-types.md#heatmap-controls"
+        ]
       }
     },
     {
@@ -1575,12 +1744,21 @@
       "revision": 1,
       "status": "approved",
       "title": "Interactive Plotly editing",
-      "description": "Plotly figures shall optionally accept zoom, pan, legend movement, and editable text events and persist supported relayout changes into plot configuration.",
+      "description": "Plotly figures shall optionally persist zoom, pan, legend movement, anchor, and primary legend-title relayout changes into plot configuration.",
       "tags": ["interactive", "plotly", "settings"],
       "evidence": {
-        "implementation": ["src/web/components/plotting/interactive_plot.py", "src/web/rendering/relayout.py"],
-        "tests": ["tests/ui_logic/test_interactive_plot.py"],
-        "documentation": ["docs/user-guide/reference/settings.md"]
+        "implementation": [
+          "src/web/components/plotting/interactive_plot.py::interactive_plotly_chart",
+          "src/web/rendering/relayout.py::update_config_from_relayout",
+          "src/web/pages/ui/plotting/base_plot.py::BasePlot.update_from_relayout"
+        ],
+        "tests": [
+          "tests/ui_logic/test_interactive_plot.py::TestInteractivePlotlyChart",
+          "tests/unit/test_relayout.py::TestUpdateConfigFromRelayout"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/settings.md#interactive-editing"
+        ]
       }
     },
     {
@@ -2317,9 +2495,18 @@
       "description": "Applicable plot mappings shall let users restrict visible X categories and groups without changing the processed plot table or workspace dataset.",
       "tags": ["filtering", "plots", "selection"],
       "evidence": {
-        "implementation": ["src/web/components/plotting/config/plot_config_components.py"],
-        "tests": ["tests/unit/test_interactive_filters.py"],
-        "documentation": ["docs/user-guide/workflows/plotting.md"]
+        "implementation": [
+          "src/web/components/plotting/config/plot_config_components.py::PlotConfigComponents.render_filter_multiselects",
+          "src/web/pages/ui/plotting/types/grouped_bar_plot.py::GroupedBarPlot.create_traces",
+          "src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot.create_traces"
+        ],
+        "tests": [
+          "tests/unit/test_interactive_filters.py::TestGroupedBarPlotFilters",
+          "tests/unit/test_interactive_filters.py::TestGroupedStackedBarPlotFilters"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/plotting.md#map-columns-and-configure-the-figure"
+        ]
       }
     },
     {
@@ -2331,9 +2518,18 @@
       "description": "Stacked and grouped-stacked plots shall optionally label stack totals with configurable numeric format, threshold, typography, position, anchor, offset, and rotation.",
       "tags": ["annotations", "stacked", "totals"],
       "evidence": {
-        "implementation": ["src/web/components/plotting/config/grouped_stacked_bar_theme.py::render_stack_total_options", "src/web/pages/ui/plotting/types/stacked_bar_plot.py"],
-        "tests": ["tests/unit/test_stacked_histogram_config.py", "tests/unit/test_grouped_stacked_options.py"],
-        "documentation": ["docs/user-guide/reference/settings.md"]
+        "implementation": [
+          "src/web/components/plotting/config/grouped_stacked_bar_theme.py::render_stack_total_options",
+          "src/web/pages/ui/plotting/types/stacked_bar_plot.py::StackedBarPlot._build_totals_annotations"
+        ],
+        "tests": [
+          "tests/unit/test_stacked_histogram_config.py::TestStackedBarCreateFigure.test_show_totals_annotations",
+          "tests/unit/test_stacked_histogram_config.py::TestStackedBarCreateFigure.test_totals_threshold_skips_small",
+          "tests/unit/test_grouped_stacked_options.py::TestRenderStackTotalOptions"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/settings.md#stack-totals"
+        ]
       }
     },
     {
@@ -2345,9 +2541,19 @@
       "description": "Heatmaps shall optionally add a total row, reverse their color scale, and show all, above-threshold, or below-threshold formatted cell labels with configurable missing-cell text.",
       "tags": ["heatmap", "labels", "totals"],
       "evidence": {
-        "implementation": ["src/web/pages/ui/plotting/types/heatmap_plot.py", "src/web/components/plotting/settings/data_labels_settings.py"],
-        "tests": ["tests/unit/test_heatmap_plot.py"],
-        "documentation": ["docs/user-guide/reference/settings.md"]
+        "implementation": [
+          "src/web/pages/ui/plotting/types/heatmap_plot.py::HeatmapPlot.create_traces",
+          "src/web/components/plotting/settings/data_labels_settings.py::DataLabelsSettingsComponent.render"
+        ],
+        "tests": [
+          "tests/unit/test_heatmap_plot.py::test_heatmap_totals_right_adds_column",
+          "tests/unit/test_heatmap_plot.py::test_heatmap_colorscale_reverse_list",
+          "tests/unit/test_heatmap_plot.py::test_heatmap_data_labels_format_and_threshold",
+          "tests/unit/test_heatmap_plot.py::test_heatmap_totals_with_none_values"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/settings.md#heatmap-summaries"
+        ]
       }
     },
     {
@@ -2359,9 +2565,17 @@
       "description": "Histogram plots shall optionally accumulate bins in display order while preserving the selected count, probability, density, or percent normalization semantics.",
       "tags": ["cumulative", "histogram", "statistics"],
       "evidence": {
-        "implementation": ["src/web/components/plotting/config/histogram_config.py", "src/web/pages/ui/plotting/types/histogram_plot.py"],
-        "tests": ["tests/integration/test_histogram_plot_integration.py"],
-        "documentation": ["docs/user-guide/reference/plot-types.md"]
+        "implementation": [
+          "src/web/components/plotting/config/histogram_config.py::render",
+          "src/web/pages/ui/plotting/types/histogram_plot.py::HistogramPlot._normalize_values"
+        ],
+        "tests": [
+          "tests/integration/test_histogram_plot_integration.py::TestHistogramPlotIntegration.test_histogram_cumulative_distribution",
+          "tests/unit/test_stacked_histogram_config.py::TestHistogramCreateFigure.test_normalization_cumulative"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/plot-types.md#cumulative-histograms"
+        ]
       }
     },
     {
@@ -2373,9 +2587,16 @@
       "description": "Matplotlib-specific advanced settings shall select XeLaTeX, pdfLaTeX, or LuaLaTeX while keeping arbitrary preamble injection disabled in the web interface.",
       "tags": ["latex", "matplotlib", "settings"],
       "evidence": {
-        "implementation": ["src/web/components/plotting/settings/engine_settings.py"],
-        "tests": ["tests/ui_logic/test_engine_specific_controls.py"],
-        "documentation": ["docs/user-guide/reference/rendering-export.md"]
+        "implementation": [
+          "src/web/components/plotting/settings/engine_settings.py::EngineSettingsComponent.render"
+        ],
+        "tests": [
+          "tests/ui_logic/test_engine_specific_controls.py::TestEngineSpecificControls.test_matplotlib_disables_latex_preamble",
+          "tests/ui_logic/test_engine_specific_controls.py::TestEngineSpecificControls.test_matplotlib_no_hovermode"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/rendering-export.md#matplotlib-tex-system"
+        ]
       }
     },
     {
@@ -2387,9 +2608,18 @@
       "description": "Plotly-specific settings shall choose unified X, closest-point, X, Y, or disabled hover behavior and preserve that choice in the engine-independent figure configuration.",
       "tags": ["hover", "plotly", "settings"],
       "evidence": {
-        "implementation": ["src/web/components/plotting/settings/engine_settings.py", "src/web/rendering/plotly_connector.py", "src/core/models/visualization/figure_config.py"],
-        "tests": ["tests/ui_logic/test_engine_specific_controls.py", "tests/unit/core/visualization/test_connectors.py"],
-        "documentation": ["docs/user-guide/reference/rendering-export.md"]
+        "implementation": [
+          "src/web/components/plotting/settings/engine_settings.py::EngineSettingsComponent.render",
+          "src/web/rendering/plotly_connector.py::FigureSpecToPlotly._apply_hovermode"
+        ],
+        "tests": [
+          "tests/ui_logic/test_engine_specific_controls.py::TestEngineSpecificControls.test_plotly_shows_hovermode",
+          "tests/ui_logic/test_engine_specific_controls.py::TestEngineSpecificControls.test_saved_hovermode_preserved",
+          "tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorHovermode"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/rendering-export.md#plotly-hover-mode"
+        ]
       }
     },
     {
@@ -2424,9 +2654,19 @@
       "description": "Grouped and grouped-stacked bar charts shall optionally shade alternating major categories with a selected color while retaining category separators and isolation spacing.",
       "tags": ["grouped_bar", "shading", "settings"],
       "evidence": {
-        "implementation": ["src/web/pages/ui/plotting/utils/grouped_bar_utils.py", "src/web/pages/ui/plotting/types/grouped_bar_plot.py", "src/web/components/plotting/config/grouped_stacked_bar_theme.py"],
-        "tests": ["tests/unit/test_grouped_bar_utils.py", "tests/unit/test_grouped_stacked_options.py"],
-        "documentation": ["docs/user-guide/reference/settings.md"]
+        "implementation": [
+          "src/web/pages/ui/plotting/utils/grouped_bar_utils.py::GroupedBarUtils.create_shade_shape",
+          "src/web/pages/ui/plotting/utils/grouped_bar_utils.py::GroupedBarUtils.calculate_grouped_coordinates",
+          "src/web/pages/ui/plotting/types/grouped_bar_plot.py::GroupedBarPlot.create_traces",
+          "src/web/components/plotting/config/grouped_stacked_bar_theme.py::render_grouped_theme_extras"
+        ],
+        "tests": [
+          "tests/unit/test_grouped_bar_utils.py::TestGroupedBarUtils.test_calculate_grouped_coordinates_shade_alternate",
+          "tests/unit/test_grouped_stacked_options.py::TestRenderThemeOptions.test_adds_major_group_styling"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/settings.md#alternate-category-shading"
+        ]
       }
     },
     {
@@ -2435,12 +2675,26 @@
       "revision": 1,
       "status": "approved",
       "title": "Per-series visual styling",
-      "description": "Applicable plots shall style individual series with an override color, display name, bar pattern, marker symbol and size, line width, opacity, and border settings while allowing a series to return to its palette default.",
+      "description": "Applicable web plots shall configure per-series override color, display name, bar pattern, marker symbol and size, and line width, while typed renderer styles shall also carry opacity and border settings.",
       "tags": ["markers", "series", "styles"],
       "evidence": {
-        "implementation": ["src/web/pages/ui/plotting/styles/base_ui.py", "src/web/pages/ui/plotting/styles/bar_ui.py", "src/web/pages/ui/plotting/styles/line_ui.py", "src/web/pages/ui/plotting/styles/applicator.py"],
-        "tests": ["tests/unit/test_style_applicator.py", "tests/ui_logic/test_style_factory.py", "tests/unit/core/visualization/test_matplotlib_connector_styling.py"],
-        "documentation": ["docs/user-guide/reference/settings.md"]
+        "implementation": [
+          "src/web/pages/ui/plotting/styles/base_ui.py::BaseStyleUI._render_series_item",
+          "src/web/pages/ui/plotting/styles/bar_ui.py::BarStyleUI._render_specific_series_visuals",
+          "src/web/pages/ui/plotting/styles/line_ui.py::LineStyleUI._render_specific_series_visuals",
+          "src/web/rendering/plotly_connector.py::FigureSpecToPlotly._apply_series_styling",
+          "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_series_styling",
+          "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_trace_overrides"
+        ],
+        "tests": [
+          "tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorSeriesStyling",
+          "tests/unit/core/visualization/test_matplotlib_connector_styling.py::TestTraceOverrides",
+          "tests/unit/core/visualization/test_matplotlib_connector_styling.py::TestSeriesStyling",
+          "tests/unit/test_style_applicator.py::TestApplyStyles.test_full_pipeline"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/settings.md#series-styling"
+        ]
       }
     },
     {

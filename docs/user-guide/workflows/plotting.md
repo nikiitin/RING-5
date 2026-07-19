@@ -93,6 +93,19 @@ Select **Finalize Pipeline for Plotting** after the preview matches the intended
 ## Map columns and configure the figure
 
 <!--
+`uman~ring5.figure.error-bars.documentation~1`
+
+Covers:
+- req~ring5.figure.error-bars~1
+
+`uman~ring5.figure.plot-filtering.documentation~1`
+
+Covers:
+- req~ring5.figure.plot-filtering~1
+
+-->
+
+<!--
 `uman~ring5.plots.refresh-cache.documentation~1`
 
 Covers:
@@ -106,6 +119,10 @@ scientific meaning.
 
 Applicable plot types also expose X-category and group filters. These filters change the visible
 plot selection without rewriting the finalized pipeline output or shared workspace table.
+
+Plots with uncertainty support read companion `.sd` columns into their engine-independent trace
+data. Plotly displays those trace error bars. The current Matplotlib trace renderer does not draw
+them, so verify uncertainty output with Plotly.
 
 Settings are grouped by purpose. Keep **Show advanced settings** off until the data mapping and
 basic figure are correct. Then use the settings selector for layout, axes, legend, labels, colors,

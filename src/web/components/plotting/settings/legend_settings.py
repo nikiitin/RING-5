@@ -80,6 +80,7 @@ class LegendSettingsComponent:
         PlotConfig
             Legend configuration keys (prefixed per legend level).
         """
+        # [impl->req~ring5.figure.legends~1]
         _labels: dict[str, str] = {
             "primary": ":material/legend_toggle: Primary",
         }

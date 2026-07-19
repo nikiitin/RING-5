@@ -58,6 +58,7 @@ class TestFigureSpecToPlotly:
 
     def test_apply_backgrounds(self) -> None:
         """Background colors should be applied."""
+        # [test->req~ring5.figure.colors~1]
         spec = FigureConfig(
             paper_bgcolor="#F0F0F0",
             plot_bgcolor="#FFFFFF",
@@ -228,6 +229,8 @@ class TestFigureSpecToPlotly:
 class TestPlotlyConnectorColorPalette:
     """Test _apply_color_palette."""
 
+    # [test->req~ring5.figure.colors~1]
+
     def test_color_palette_set(self) -> None:
         spec = FigureConfig(color_palette=["#AA0000", "#00BB00"])
         fig = go.Figure(data=[go.Bar(x=["A"], y=[1])])
@@ -244,6 +247,8 @@ class TestPlotlyConnectorColorPalette:
 class TestPlotlyConnectorHovermode:
     """Test _apply_hovermode."""
 
+    # [test->req~ring5.figure.plotly-hovermode~1]
+
     def test_hovermode_set(self) -> None:
         spec = FigureConfig(hovermode="closest")
         fig = go.Figure()
@@ -259,6 +264,8 @@ class TestPlotlyConnectorHovermode:
 
 class TestPlotlyConnectorFontFamily:
     """Test _apply_font_family."""
+
+    # [test->req~ring5.figure.typography~1]
 
     def test_font_family_set(self) -> None:
         spec = FigureConfig(font_family="serif")
@@ -304,6 +311,8 @@ class TestPlotlyConnectorReferenceLines:
 class TestPlotlyConnectorDataLabels:
     """Test _apply_data_labels."""
 
+    # [test->req~ring5.figure.data-labels~1]
+
     def test_data_labels_applied(self) -> None:
         dl = DataLabelConfig(enabled=True, font_size=12, format_string=".1f")
         spec = FigureConfig(data_labels=dl)
@@ -336,6 +345,8 @@ class TestPlotlyConnectorDataLabels:
 
 class TestPlotlyConnectorSeriesStyling:
     """Test _apply_series_styling."""
+
+    # [test->req~ring5.figure.series-styling~1]
 
     def test_bar_border_width(self) -> None:
         ss = SeriesStyleConfig(bar_border_width=1.5, bar_border_color="#000")
@@ -823,6 +834,8 @@ class TestConfigBuilderColorbarKeys:
 class TestPlotlyConnectorLegendAnchor:
     """Test that anchor_x/anchor_y are applied to Plotly legend."""
 
+    # [test->req~ring5.figure.legends~1]
+
     def test_anchor_x_applied(self) -> None:
         """Non-auto anchor_x is set on the Plotly legend."""
         legend = LegendConfig(
@@ -930,6 +943,8 @@ class TestMatplotlibLegendAnchor:
 class TestConfigBuilderLegendOrientation:
     """Test that config builder reads orientation keys."""
 
+    # [test->req~ring5.figure.legends~1]
+
     def test_horizontal_read(self) -> None:
         """Horizontal orientation is read from config."""
         from src.web.rendering.config_builder import ConfigSpecBuilder
@@ -953,6 +968,8 @@ class TestConfigBuilderLegendOrientation:
 
 class TestPlotlyConnectorTickSide:
     """Test that tick side is applied to Plotly axes."""
+
+    # [test->req~ring5.figure.axes~1]
 
     def test_xaxis_side_top(self) -> None:
         """X-axis side='top' is set on the Plotly figure."""
@@ -1030,6 +1047,8 @@ class TestConfigBuilderTickSide:
 
 class TestPlotlyConnectorYTickAngle:
     """Test that Y-axis tick angle is applied to Plotly."""
+
+    # [test->req~ring5.figure.axes~1]
 
     def test_tickangle_applied(self) -> None:
         """Non-zero tick_angle sets tickangle on Plotly Y-axis."""

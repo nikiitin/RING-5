@@ -13,6 +13,7 @@ class GroupedBarUtils:
         x0: float, x1: float, shade_color: str = "#F5F5F5", opacity: float = 0.5
     ) -> ShadedRegion:
         """Create an engine-agnostic shading band for alternating categories."""
+        # [impl->req~ring5.figure.alternate-category-shading~1]
         return ShadedRegion(x0=x0, x1=x1, color=shade_color, opacity=opacity)
 
     @staticmethod
@@ -23,11 +24,13 @@ class GroupedBarUtils:
         width: float = 1.0,
     ) -> SeparatorLine:
         """Create an engine-agnostic dashed separator line between categories."""
+        # [impl->req~ring5.figure.group-separators~1]
         return SeparatorLine(x=sep_x, color=sep_color, dash=dash, width=width)
 
     @staticmethod
     def create_isolation_separator(sep_x: float) -> SeparatorLine:
         """Create an engine-agnostic solid isolation separator (thicker, solid)."""
+        # [impl->req~ring5.figure.group-separators~1]
         return SeparatorLine(x=sep_x, color="#333333", dash="solid", width=2.0)
 
     @staticmethod
@@ -103,6 +106,7 @@ class GroupedBarUtils:
         Returns:
             List of Plotly annotation dicts
         """
+        # [impl->req~ring5.figure.category-groups~1]
         return [
             dict(
                 x=center,
@@ -144,6 +148,9 @@ class GroupedBarUtils:
             - shapes: List of separator/shading shapes
             - bar_width: Width of each bar
         """
+        # [impl->req~ring5.figure.alternate-category-shading~1]
+        # [impl->req~ring5.figure.category-groups~1]
+        # [impl->req~ring5.figure.group-separators~1]
         bargroupgap = config.get("bargroupgap", 0.0)
         # In grouped bar, groups are iterator. In stacked, groups are clustered.
         # This logic handles the clustered grouping (GroupedStacked or GroupedBar).

@@ -47,6 +47,8 @@ def _base_config(**overrides: Any) -> dict[str, Any]:
 class TestApplyNumberedXaxis:
     """Test the _apply_numbered_xaxis helper directly."""
 
+    # [test->req~ring5.figure.numbered-xaxis~1]
+
     def test_disabled_returns_original(self, plot: GroupedStackedBarPlot) -> None:
         """When numbered_xaxis is False, tick_text is returned unchanged."""
         tick_text: list[str] = ["c1", "c2", "c3", "c1", "c2", "c3"]
@@ -215,6 +217,8 @@ class TestApplyNumberedXaxis:
 # Integration: create_figure with numbered_xaxis
 class TestCreateFigureNumberedXaxis:
     """Test full figure creation with numbered X-axis enabled."""
+
+    # [test->req~ring5.figure.numbered-xaxis~1]
 
     def test_figure_ticks_are_hidden(
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame

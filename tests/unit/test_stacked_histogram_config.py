@@ -170,6 +170,7 @@ class TestStackedBarCreateFigure:
         assert len(list(trace0_x)) == 1
 
     def test_show_totals_annotations(self) -> None:
+        # [test->req~ring5.figure.stack-totals~1]
         from src.web.pages.ui.plotting.types.stacked_bar_plot import StackedBarPlot
 
         plot = StackedBarPlot(plot_id=1, name="test")
@@ -219,6 +220,7 @@ class TestStackedBarCreateFigure:
         assert anchor == "bottom"
 
     def test_totals_threshold_skips_small(self) -> None:
+        # [test->req~ring5.figure.stack-totals~1]
         from src.web.pages.ui.plotting.types.stacked_bar_plot import StackedBarPlot
 
         plot = StackedBarPlot(plot_id=1, name="test")
@@ -244,6 +246,8 @@ class TestStackedBarCreateFigure:
 class TestHistogramRenderConfigUI:
     """Tests for histogram configuration controls."""
 
+    # [test->req~ring5.figure.histogram-controls~1]
+
     @patch(f"{_HIST_CFG}.render_common_config")
     @patch(f"{_HIST_CFG}.st")
     def test_no_histogram_vars_detected(self, mock_st: MagicMock, mock_common: MagicMock) -> None:
@@ -267,6 +271,8 @@ class TestHistogramRenderConfigUI:
 
 class TestHistogramCreateFigure:
     """Tests for histogram figure creation."""
+
+    # [test->req~ring5.figure.histogram-controls~1]
 
     def test_no_histogram_var_raises(self) -> None:
         from src.web.pages.ui.plotting.types.histogram_plot import HistogramPlot
@@ -340,6 +346,7 @@ class TestHistogramCreateFigure:
         assert vals == pytest.approx(expected)
 
     def test_normalization_cumulative(self) -> None:
+        # [test->req~ring5.figure.histogram-cumulative~1]
         from src.web.pages.ui.plotting.types.histogram_plot import HistogramPlot
 
         plot = HistogramPlot(plot_id=1, name="test")

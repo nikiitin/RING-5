@@ -41,6 +41,7 @@ def extract_error_bars(
     config: PlotConfig,
 ) -> str | None:
     """Return the SD column name if error bars are enabled and the column exists."""
+    # [impl->req~ring5.figure.error-bars~1]
     if config.get("show_error_bars"):
         candidate = f"{y_col}.sd"
         if candidate in data.columns:

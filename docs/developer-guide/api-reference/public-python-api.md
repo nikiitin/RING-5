@@ -52,6 +52,20 @@ field types, and referenced columns. Every downstream engine failure is normaliz
 
 ## Figure configuration and export
 
+### Annotations and web shapes
+
+<!--
+`uman~ring5.figure.shapes-annotations.documentation~1`
+
+Covers:
+- req~ring5.figure.shapes-annotations~1
+
+-->
+
+`FigureSpec` serializes engine-independent text annotations; the Matplotlib connector applies their
+text, coordinates, and optional arrow styling. In the web application, editable line, circle, and
+rectangle shapes are Plotly layout shapes and remain Plotly-specific.
+
 `ring5.FigureSpec` is the typed common figure configuration. `FigureSpecBuilder`, legend, reference
 line, and dual-axis options support more structured construction. `FigureDecorations` and
 `grouped_bar_coordinates` support script-defined annotations without importing rendering modules.

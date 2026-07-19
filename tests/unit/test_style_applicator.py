@@ -31,6 +31,7 @@ class TestApplyStyles:
     """Integration test for the full apply_styles pipeline."""
 
     def test_full_pipeline(self) -> None:
+        # [test->req~ring5.figure.series-styling~1]
         sa = StyleApplicator("grouped_bar")
         fig = _multi_bar_fig()
         config: dict[str, Any] = {

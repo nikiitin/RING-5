@@ -41,6 +41,7 @@ def render(
     Returns:
         Configuration dictionary.
     """
+    # [impl->req~ring5.figure.heatmap-controls~1]
     numeric_cols, categorical_cols = detect_column_types(data)
     all_cols: list[str] = categorical_cols + numeric_cols
 

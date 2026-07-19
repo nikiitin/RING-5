@@ -58,6 +58,7 @@ class DualAxisBarDotPlot(BasePlot):
         Returns:
             TraceBuildResult with bars on primary Y and dots on secondary Y.
         """
+        # [impl->req~ring5.figure.dual-axis-controls~1]
         # [impl->req~ring5.plot.dual-axis-bar-dot~1]
         x_col: str = config["x"]
         y_bar: str = config["y_bar"]

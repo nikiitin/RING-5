@@ -83,6 +83,8 @@ class TestDualAxisBarDotPlotFactory:
 class TestDualAxisBarDotPlotCreateFigure:
     """Test figure creation logic."""
 
+    # [test->req~ring5.figure.dual-axis-controls~1]
+
     # [test->req~ring5.plot.dual-axis-bar-dot~1]
 
     def test_create_figure_returns_figure(
@@ -193,6 +195,8 @@ class TestDualAxisBarDotPlotColorGrouping:
 
 class TestDualAxisBarDotPlotDotCustomization:
     """Test dot/marker customization options."""
+
+    # [test->req~ring5.figure.dual-axis-controls~1]
 
     # [test->req~ring5.plot.dual-axis-bar-dot~1]
 

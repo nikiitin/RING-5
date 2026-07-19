@@ -35,6 +35,7 @@ def update_config_from_relayout(
 
     Returns ``(updated_config, changed)``; the input config is not mutated.
     """
+    # [impl->req~ring5.figure.interactive-editing~1]
     if not relayout_data:
         return config, False
 

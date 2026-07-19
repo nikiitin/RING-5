@@ -96,6 +96,7 @@ class TestGroupedBarUtils:
         assert len(result["tick_vals"]) == 2
 
     def test_calculate_grouped_coordinates_with_separators(self) -> None:
+        # [test->req~ring5.figure.group-separators~1]
         config = {
             "bargroupgap": 1.0,
             "bargap": 0.2,
@@ -109,6 +110,7 @@ class TestGroupedBarUtils:
         assert len(result["separator_lines"]) == 2
 
     def test_calculate_grouped_coordinates_shade_alternate(self) -> None:
+        # [test->req~ring5.figure.alternate-category-shading~1]
         config = {
             "bargroupgap": 1.0,
             "bargap": 0.2,
@@ -118,6 +120,7 @@ class TestGroupedBarUtils:
         assert len(result["shaded_regions"]) == 1  # Only "B" (index 1) is shaded
 
     def test_calculate_grouped_coordinates_isolate_last(self) -> None:
+        # [test->req~ring5.figure.group-separators~1]
         config = {
             "bargroupgap": 1.0,
             "bargap": 0.2,

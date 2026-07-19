@@ -204,6 +204,7 @@ class TestBarTrace:
         assert bar.textposition == "outside"
 
     def test_bar_error_y(self) -> None:
+        # [test->req~ring5.figure.error-bars~1]
         trace = BarTraceConfig(x=["a"], y=[1], error_y=[0.1])
         bar = _bar_trace(trace)
         error_y = cast(Any, bar.error_y)

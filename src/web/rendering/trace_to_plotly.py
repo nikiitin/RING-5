@@ -181,6 +181,7 @@ def _convert_trace(trace: TraceConfig) -> go.BaseTraceType:  # type: ignore[name
 
 def _bar_trace(trace: BarTraceConfig) -> go.Bar:
     """Convert a ``BarTraceConfig`` to ``go.Bar``."""
+    # [impl->req~ring5.figure.error-bars~1]
     # Use x_positions for manually positioned bars, else use x values
     x_data = trace.x_positions if trace.x_positions else trace.x
 

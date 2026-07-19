@@ -91,12 +91,66 @@ Covers:
 | Components nested within comparisons | `grouped_stacked_bar` | Major and minor groups plus stack columns |
 | Trend over an ordered value | `line` | Ordered X and numeric Y |
 | Relationship between numeric measures | `scatter` | Numeric X and Y |
-| Distribution of observations | `histogram` | Numeric observations; optional cumulative display |
+| Parsed histogram buckets | `histogram` | Columns named `<variable>..<start>-<end>` |
 | Matrix of values | `heatmap` | Row, column, and numeric value mappings |
 | Bars with a distinct right-axis measure | `dual_axis_bar_dot` | Bar mapping and right-axis dot mapping |
 
 These are task descriptions, not a frozen registry inventory. Extensions can register additional
 identifiers.
+
+## Plot-specific controls
+
+### Dual-axis controls
+
+<!--
+`uman~ring5.figure.dual-axis-controls.documentation~1`
+
+Covers:
+- req~ring5.figure.dual-axis-controls~1
+
+-->
+
+Dual-axis bar-and-dot and grouped-stacked plots configure right-axis metrics, range and title, bars
+or dots, dot marker and line styling, per-group connecting lines, and unified or separate legends.
+
+### Histogram controls
+
+<!--
+`uman~ring5.figure.histogram-controls.documentation~1`
+
+Covers:
+- req~ring5.figure.histogram-controls~1
+
+-->
+
+Histogram plots select parsed bucket columns, an optional categorical group, count, probability,
+percent, or density normalization, and cumulative display. Grouped bucket traces overlay.
+
+### Heatmap controls
+
+<!--
+`uman~ring5.figure.heatmap-controls.documentation~1`
+
+Covers:
+- req~ring5.figure.heatmap-controls~1
+
+-->
+
+Heatmaps map row, column, and numeric value fields with optional facets. Controls include palette,
+range, shared or individual colorbars, missing-cell text, and formatted cell labels.
+
+### Cumulative histograms
+
+<!--
+`uman~ring5.figure.histogram-cumulative.documentation~1`
+
+Covers:
+- req~ring5.figure.histogram-cumulative~1
+
+-->
+
+Cumulative mode accumulates pre-binned values in display order after applying the selected count,
+probability, percent, or density normalization.
 
 ## Common checks
 

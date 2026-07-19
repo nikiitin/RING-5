@@ -51,6 +51,8 @@ class TestDefaultPalette:
 class TestPaletteSelector:
     """Verify palette selector widget in ColorsSettingsComponent."""
 
+    # [test->req~ring5.figure.colors~1]
+
     def _make_component(self) -> Any:
         from src.web.components.plotting.settings import (
             ColorsSettingsComponent,

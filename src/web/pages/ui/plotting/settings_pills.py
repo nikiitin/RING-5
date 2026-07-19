@@ -68,6 +68,7 @@ def render_settings_pills(show_advanced: bool = False) -> str | None:
         The ``key`` of the currently selected section, or ``None``
         if nothing is selected.
     """
+    # [impl->req~ring5.figure.advanced-disclosure~1]
     visible: list[SettingsSection] = [
         s for s in SETTINGS_SECTIONS if not s.advanced or show_advanced
     ]

@@ -13,6 +13,8 @@ from tests.conftest import columns_side_effect
 class TestTypographyNoAxisLeak:
     """Verify Typography returns only its documented font settings."""
 
+    # [test->req~ring5.figure.typography~1]
+
     # The exact set of allowed keys.
     ALLOWED_KEYS = frozenset(
         {
@@ -113,6 +115,8 @@ class TestTypographyNoAxisLeak:
 
 class TestAxesAxisLineControls:
     """Verify axis line width/color controls are in the Axes pill."""
+
+    # [test->req~ring5.figure.axes~1]
 
     def _make_component(self) -> Any:
         from src.web.components.plotting.settings import (
@@ -357,6 +361,8 @@ class TestLegendRenameReorder:
 class TestSecondaryLegendConfig:
     """Verify secondary legend tab outputs legend2_* config keys."""
 
+    # [test->req~ring5.figure.legends~1]
+
     def _make_component(self) -> Any:
         from src.web.components.plotting.settings import (
             LegendSettingsComponent,
@@ -488,6 +494,8 @@ class TestLegendSizingControls:
     primary, secondary, and tertiary legends with the correct
     per-level prefix.
     """
+
+    # [test->req~ring5.figure.legends~1]
 
     # Required suffixes for each legend-specific prefix.
     SIZING_SUFFIXES = (
@@ -773,6 +781,8 @@ class TestNumberedXAxisMultiselect:
 class TestDataLabelsProgressiveDisclosure:
     """Data labels formatting widgets must be hidden when Show Values is off."""
 
+    # [test->req~ring5.figure.data-labels~1]
+
     def _make_component(self) -> Any:
         from src.web.components.plotting.settings import (
             DataLabelsSettingsComponent,
@@ -874,6 +884,8 @@ class TestDataLabelsProgressiveDisclosure:
 
 class TestStackedSeriesOrderRename:
     """Verify y_columns reorder/rename is in ordering settings."""
+
+    # [test->req~ring5.figure.ordering-renaming~1]
 
     @patch("src.web.components.plotting.settings.ordering_settings.render_reorderable_list")
     @patch("src.web.components.plotting.settings.ordering_settings.st")

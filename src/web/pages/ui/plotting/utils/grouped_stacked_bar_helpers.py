@@ -84,6 +84,7 @@ def apply_numbered_xaxis(
     Returns:
         Tuple of (possibly-replaced tick_text, legend annotation dict or None).
     """
+    # [impl->req~ring5.figure.numbered-xaxis~1]
     # Determine active modes (new multiselect or old boolean)
     modes: list[str] = config.get("numbered_xaxis_modes", [])
     if not modes:

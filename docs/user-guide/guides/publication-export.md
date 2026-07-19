@@ -24,6 +24,23 @@ physical width and height for export; Plotly uses the corresponding pixel dimens
 
 ## Check typography and axes
 
+<!--
+`uman~ring5.figure.category-groups.documentation~1`
+
+Covers:
+- req~ring5.figure.category-groups~1
+
+`uman~ring5.figure.numbered-xaxis.documentation~1`
+
+Covers:
+- req~ring5.figure.numbered-xaxis~1
+
+-->
+
+For long grouped-category labels, numbered X-axis mode can replace or supplement ticks with numbers
+and a separately positioned number legend. Category super-groups can label adjacent spans and draw
+their boundary or rule lines.
+
 Under **Typography**, set title, axis-title, and tick-label sizes for the final printed size. Under
 **Axes**, check tick spacing, label rotation, units, and ranges. A truncated range can change the
 visual claim, especially for bars.

@@ -28,14 +28,190 @@ and **Legends** are always visible. **Show advanced settings** reveals **Axes**,
 Plot-specific controls appear with the basic mapping or inside the relevant section. A setting can
 be unavailable when it does not apply to the active plot type or engine.
 
+## Setting reference
+
+### Progressive disclosure
+
+<!--
+`uman~ring5.figure.advanced-disclosure.documentation~1`
+
+Covers:
+- req~ring5.figure.advanced-disclosure~1
+
+-->
+
+Layout, Typography, and Legends remain available in the basic settings view. **Show advanced
+settings** adds Axes, Data Labels, Colors, and Advanced without changing the saved plot
+configuration by itself.
+
+### Layout
+
+<!--
+`uman~ring5.figure.layout.documentation~1`
+
+Covers:
+- req~ring5.figure.layout~1
+
+-->
+
+Choose a single-column, double-column, or custom publication width and set the height in inches.
+RING-5 derives the Plotly preview dimensions at 100 pixels per inch and uses automatic zero margins.
+
+### Typography
+
+<!--
+`uman~ring5.figure.typography.documentation~1`
+
+Covers:
+- req~ring5.figure.typography~1
+
+-->
+
+The web controls set title, axis-title, and tick-label sizes and tick colors. The typed Python figure
+configuration additionally carries a global font family; legend and data-label typography are set
+in their own sections.
+
+### Axes
+
+<!--
+`uman~ring5.figure.axes.documentation~1`
+
+Covers:
+- req~ring5.figure.axes~1
+
+-->
+
+Configure axis titles, explicit ranges, tick steps and angles, tick marks, grids, axis lines, and
+axis-title placement. Applicable dual-axis plots expose the same controls for the right axis.
+
+### Legends
+
+<!--
+`uman~ring5.figure.legends.documentation~1`
+
+Covers:
+- req~ring5.figure.legends~1
+
+-->
+
+Primary, secondary, and numbered legends have independent visibility, position, orientation,
+anchors, column sizing, font, background, border, marker, and spacing settings when the plot type
+provides those legend tiers.
+
+### Colors
+
+<!--
+`uman~ring5.figure.colors.documentation~1`
+
+Covers:
+- req~ring5.figure.colors~1
+
+-->
+
+Choose a named palette or explicit per-series colors. Colorblind-safe palettes are identified in
+the selector. Background, grid, axis, and transparent paper or plot colors are stored with the plot.
+
+### Data labels
+
+<!--
+`uman~ring5.figure.data-labels.documentation~1`
+
+Covers:
+- req~ring5.figure.data-labels~1
+
+-->
+
+Enable formatted values on supported marks and configure color mode, font size, rotation, position,
+anchor, numeric format, threshold condition, and the uniform-size constraint.
+
+### Reference lines
+
+<!--
+`uman~ring5.figure.reference-lines.documentation~1`
+
+Covers:
+- req~ring5.figure.reference-lines~1
+
+-->
+
+Horizontal reference lines have an enabled state, numeric position, color, width, dash style, and
+label. A normalized baseline is represented by a line at one.
+
+### Ordering and renaming
+
+<!--
+`uman~ring5.figure.ordering-renaming.documentation~1`
+
+Covers:
+- req~ring5.figure.ordering-renaming~1
+
+-->
+
+Applicable plots store display-only order and label mappings for X categories, groups, legend
+items, stack series, Y metrics, and heatmap facets. These settings do not rewrite processed data.
+
+### Stack totals
+
+<!--
+`uman~ring5.figure.stack-totals.documentation~1`
+
+Covers:
+- req~ring5.figure.stack-totals~1
+
+-->
+
 Stacked plots can label stack totals with a format, visibility threshold, position, anchor,
-typography, offset, and rotation. Heatmaps can add a total row, reverse the palette direction, and
-limit formatted cell labels to values above or below a threshold. These controls are serialized in
-the plot configuration and restored with a portfolio.
+typography, offset, and rotation.
+
+### Heatmap summaries
+
+<!--
+`uman~ring5.figure.heatmap-summary-controls.documentation~1`
+
+Covers:
+- req~ring5.figure.heatmap-summary-controls~1
+
+-->
+
+Heatmaps can add a total row or column, reverse the palette direction, and limit formatted cell
+labels to values above or below a threshold. Missing cells use configurable display text.
+
+### Interactive editing
+
+<!--
+`uman~ring5.figure.interactive-editing.documentation~1`
+
+Covers:
+- req~ring5.figure.interactive-editing~1
+
+-->
+
+Plotly relayout events persist supported zoom and pan ranges, legend positions and anchors, and an
+edited primary legend title into plot configuration.
+
+### Alternate category shading
+
+<!--
+`uman~ring5.figure.alternate-category-shading.documentation~1`
+
+Covers:
+- req~ring5.figure.alternate-category-shading~1
+
+-->
 
 Grouped and grouped-stacked bars can shade alternating major categories with a chosen background
 color. This works alongside vertical separators and the optional extra gap before an isolated final
 category.
+
+### Series styling
+
+<!--
+`uman~ring5.figure.series-styling.documentation~1`
+
+Covers:
+- req~ring5.figure.series-styling~1
+
+-->
 
 Where a plot type supports them, per-series overrides set color, display name, bar pattern, marker
 symbol and size, line width, opacity, and borders. **Rewind** returns a series to its current palette

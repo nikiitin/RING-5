@@ -119,6 +119,8 @@ class TestGetPaletteNames:
 class TestIsColorblindSafe:
     """Tests for is_colorblind_safe()."""
 
+    # [test->req~ring5.figure.colors~1]
+
     def test_wong_is_colorblind_safe(self) -> None:
         assert is_colorblind_safe("wong") is True
 

@@ -56,6 +56,7 @@ class TypographySettingsComponent:
         PlotConfig
             Configuration dict with typography keys.
         """
+        # [impl->req~ring5.figure.typography~1]
         st.markdown("#### Typography (Font Sizes & Colors)")
         typo_c1, typo_c2 = st.columns(2)
 

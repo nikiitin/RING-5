@@ -19,6 +19,8 @@ MODULE = "src.web.components.plotting.interactive_plot"
 class TestInteractivePlotlyChart:
     """Tests for the interactive_plotly_chart function."""
 
+    # [test->req~ring5.figure.interactive-editing~1]
+
     @patch(f"{MODULE}._component_func")
     def test_basic_call_serializes_figure(self, mock_func: MagicMock) -> None:
         """Figure is serialized to JSON and passed to the component."""

@@ -245,6 +245,7 @@ class TestHistogramPlotIntegration:
 
     def test_histogram_cumulative_distribution(self) -> None:
         """Test cumulative histogram."""
+        # [test->req~ring5.figure.histogram-cumulative~1]
         data = pd.DataFrame(
             {
                 "hist_var..0-10": [10],

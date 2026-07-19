@@ -47,6 +47,7 @@ class ReferenceLineSettingsComponent:
             data: The data being plotted (needed for conditional display).
             config: Configuration dictionary to populate.
         """
+        # [impl->req~ring5.figure.reference-lines~1]
         st.markdown("#### Reference Line")
         ref_enabled = toggle(
             "Show reference line",

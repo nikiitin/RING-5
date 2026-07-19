@@ -210,6 +210,7 @@ class FigureSpecToMatplotlib:
     @staticmethod
     def _apply_series_styling(spec: FigureConfig, ax: Axes) -> None:
         """Apply per-trace line_width / marker_size / opacity / bar border (by index)."""
+        # [impl->req~ring5.figure.series-styling~1]
         if not spec.series_styles:
             return
         for i, (handle, _label) in enumerate(FigureSpecToMatplotlib._styleable_handles(ax)):
@@ -228,6 +229,7 @@ class FigureSpecToMatplotlib:
     @staticmethod
     def _apply_trace_overrides(spec: FigureConfig, ax: Axes) -> None:
         """Apply per-trace overrides (color/symbol/size/width/hatch/rename) by trace name."""
+        # [impl->req~ring5.figure.series-styling~1]
         if not spec.trace_overrides:
             return
         for handle, label in FigureSpecToMatplotlib._styleable_handles(ax):
@@ -360,6 +362,7 @@ class FigureSpecToMatplotlib:
         spec: FigureConfig, ax: Axes, render_result: MatplotlibRenderResult | None = None
     ) -> None:
         """Configure tick labels, rotation, padding."""
+        # [impl->req~ring5.figure.axes~1]
         import matplotlib.transforms as transforms
 
         typo = spec.typography
@@ -547,6 +550,7 @@ class FigureSpecToMatplotlib:
     @staticmethod
     def _apply_legends(spec: FigureConfig, ax: Axes) -> None:
         """Render legends with full spacing control."""
+        # [impl->req~ring5.figure.legends~1]
         if not spec.legends:
             return
 
@@ -737,6 +741,7 @@ class FigureSpecToMatplotlib:
         mutated — a mid-render mutation leaked process-wide and made the
         first figure of every process render in the wrong font.
         """
+        # [impl->req~ring5.figure.typography~1]
         import matplotlib.text
 
         if spec.font_family:
@@ -762,6 +767,7 @@ class FigureSpecToMatplotlib:
 
         Uses the ReferenceLineConfig list on FigureConfig.
         """
+        # [impl->req~ring5.figure.reference-lines~1]
         for rl in spec.reference_lines:
             if not rl.enabled:
                 continue
@@ -814,6 +820,7 @@ class FigureSpecToMatplotlib:
         Falls back to ``ax.bar_label()`` when available (mpl 3.4+),
         otherwise silently skips.
         """
+        # [impl->req~ring5.figure.data-labels~1]
         if spec.data_labels is None or not spec.data_labels.enabled:
             return
 
@@ -861,6 +868,7 @@ class FigureSpecToMatplotlib:
         and the coordinate is a category name that can't be converted, the
         annotation is silently skipped.
         """
+        # [impl->req~ring5.figure.shapes-annotations~1]
         if not spec.annotations:
             return
 

@@ -53,6 +53,8 @@ class TestDualAxisRendering:
     the engine — never re-selecting the pill.
     """
 
+    # [test->req~ring5.figure.dual-axis-controls~1]
+
     @pytest.mark.order(1)
     def test_01_plotly_renders_with_auto_axes(self, dual_axis_page: Page) -> None:
         """Default (Plotly) engine renders the dual-axis chart from auto-picked axes."""

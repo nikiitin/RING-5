@@ -148,6 +148,7 @@ class StackedBarPlot(BasePlot):
         self, data: pd.DataFrame, x_col: str, config: PlotConfig
     ) -> list[dict[str, Any]]:
         """Build annotations for stack totals."""
+        # [impl->req~ring5.figure.stack-totals~1]
         total_fmt = config.get("net_total_format", ".2f")
         font_size = config.get("total_font_size", 12)
         font_color = config.get("total_font_color", "#000000")

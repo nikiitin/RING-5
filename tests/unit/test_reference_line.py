@@ -39,6 +39,8 @@ def simple_figure() -> go.Figure:
 class TestPlotlyReferenceLine:
     """Tests for reference line rendering in Plotly figures."""
 
+    # [test->req~ring5.figure.reference-lines~1]
+
     def test_hline_added_when_enabled(
         self, simple_figure: go.Figure, base_config: dict[str, Any]
     ) -> None:
@@ -157,6 +159,8 @@ class TestPlotlyReferenceLine:
 
 class TestReferenceLineConfig:
     """Tests for reference line config defaults and structure."""
+
+    # [test->req~ring5.figure.reference-lines~1]
 
     def test_default_values(self) -> None:
         """Default config values should produce a valid reference line."""

@@ -24,6 +24,7 @@ def _relabel_traces(
     single source of truth for legend relabeling, so BOTH the Plotly and
     Matplotlib engines honor it (each reads ``trace.name`` for the legend entry).
     """
+    # [impl->req~ring5.figure.ordering-renaming~1]
     if not legend_labels:
         return result
     new_traces = [replace(t, name=legend_labels.get(t.name, t.name)) for t in result.traces]
@@ -121,6 +122,7 @@ class BasePlot(PlotConfigUIMixin, ABC):
         Returns:
             True if config changed, False otherwise
         """
+        # [impl->req~ring5.figure.interactive-editing~1]
         updated_config, changed = update_config_from_relayout(self.config, relayout_data)
 
         if changed:
