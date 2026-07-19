@@ -10,6 +10,7 @@ pytestmark = pytest.mark.public_api
 
 
 class TestFigureSpecToConfig:
+    # [test->req~ring5.api.figure-spec~1]
     """FigureSpec.to_config emits the flat keys the renderer expects."""
 
     def test_data_mapping_keys(self) -> None:
@@ -81,6 +82,7 @@ class TestFigureSpecToConfig:
 
 
 class TestFigureSpecValidation:
+    # [test->req~ring5.api.figure-spec~1]
     """__post_init__ light validation."""
 
     def test_bad_margins(self) -> None:

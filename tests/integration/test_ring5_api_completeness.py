@@ -128,6 +128,7 @@ def test_scan_job_partial_and_timeout_are_typed(monkeypatch: pytest.MonkeyPatch)
 
 
 def test_session_close_defers_cleanup_for_running_parse(tmp_path: Path) -> None:
+    # [test->req~ring5.api.session~1]
     # [test->req~ring5.ingestion.async-parse~1]
     output = tmp_path / "owned"
     output.mkdir()
@@ -155,6 +156,7 @@ def test_session_close_defers_cleanup_for_running_parse(tmp_path: Path) -> None:
 
 
 def test_manager_operations_preserve_dataframe_and_table() -> None:
+    # [test->req~ring5.api.session~1]
     frame = pd.DataFrame({"a": [2.0, 4.0], "b": [1.0, 2.0], "a.sd": [0.3, 0.4], "b.sd": [0.4, 0.3]})
     with ring5.Session() as session:
         divided = session.apply_operation(frame, "Division", "a", "b", "ratio")
@@ -173,6 +175,7 @@ def test_manager_operations_preserve_dataframe_and_table() -> None:
 
 
 def test_public_registries_are_complete() -> None:
+    # [test->req~ring5.api.registry-discovery~1]
     assert set(ring5.available_shaper_types()) == {
         "mean",
         "columnSelector",
@@ -211,6 +214,7 @@ def test_public_registries_are_complete() -> None:
 def test_every_registered_plot_accepts_validated_config(
     plot_type: str, config: dict[str, Any]
 ) -> None:
+    # [test->req~ring5.api.plot-validation~1]
     frame = pd.DataFrame(
         {
             "x": ["a", "b"],
@@ -229,6 +233,7 @@ def test_every_registered_plot_accepts_validated_config(
 
 
 def test_invalid_plot_config_does_not_register_and_render_errors_are_typed() -> None:
+    # [test->req~ring5.api.plot-validation~1]
     frame = pd.DataFrame({"x": ["a"], "y": [1.0]})
     with ring5.Session() as session:
         with pytest.raises(ring5.DataValidationError, match="field 'y'"):

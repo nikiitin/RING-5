@@ -133,6 +133,7 @@ def __dir__() -> list[str]:
 
 
 def shutdown() -> None:
+    # [impl->req~ring5.api.process-lifecycle~1]
     """Tear down the process-wide worker pools (Perl workers + thread pool).
 
     Safe to call at any time: the pools restart transparently on the next

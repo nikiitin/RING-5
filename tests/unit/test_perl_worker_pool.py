@@ -280,6 +280,7 @@ class TestWorkerPoolIntegration:
         shutdown_worker_pool()
 
     def test_singleton_pool(self) -> None:
+        # [test->req~ring5.api.process-lifecycle~1]
         """Test singleton pattern for worker pool."""
         # Get pool instance
         pool1 = get_worker_pool(pool_size=2)

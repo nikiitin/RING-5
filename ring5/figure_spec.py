@@ -87,6 +87,7 @@ class DualAxisOpts:
 
 @dataclass
 class FigureSpec:
+    # [impl->req~ring5.api.figure-spec~1]
     """Typed description of a (grouped/stacked) bar figure for headless rendering.
 
     Build one, call :meth:`to_config`, and pass the result as the ``config`` to
@@ -372,6 +373,7 @@ def _emit_legend(
 
 
 class FigureSpecBuilder:
+    # [impl->req~ring5.api.figure-builder~1]
     """Fluent builder for :class:`FigureSpec` — set knobs in cohesive groups.
 
     Mirrors RING-5's ``*SpecBuilder`` convention and avoids one giant constructor

@@ -44,6 +44,7 @@ def _to_py(value: Any) -> Any:
 
 
 class Table:
+    # [impl->req~ring5.api.table~1]
     """An opaque, immutable-style table of figure data (wraps a pandas DataFrame)."""
 
     __slots__ = ("_df",)
@@ -275,6 +276,7 @@ class Table:
 
 
 def read_table(path: str) -> Table:
+    # [impl->req~ring5.api.table~1]
     """Read a CSV file into a table.
 
     Args:

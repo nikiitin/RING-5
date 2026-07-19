@@ -1357,6 +1357,7 @@ Tags: cli, migration, portfolios, safety, status_approved
 
 Implementation evidence:
 - `ring5/_session.py::Session`
+- `ring5/_session.py::Session.close`
 
 Covers:
 - req~ring5.api.session~1
@@ -1368,7 +1369,8 @@ Tags: api, automation, session, status_approved
 `impl~ring5.api.table~1`
 
 Implementation evidence:
-- `ring5/data.py`
+- `ring5/data.py::Table`
+- `ring5/data.py::read_table`
 
 Covers:
 - req~ring5.api.table~1
@@ -1404,8 +1406,8 @@ Tags: api, builder, figures, status_approved
 `impl~ring5.api.figure-decorations~1`
 
 Implementation evidence:
-- `ring5/coordinates.py`
-- `ring5/decorations.py`
+- `ring5/coordinates.py::grouped_bar_coordinates`
+- `ring5/decorations.py::FigureDecorations`
 
 Covers:
 - req~ring5.api.figure-decorations~1
@@ -1430,7 +1432,19 @@ Tags: api, discovery, registry, status_approved
 `impl~ring5.api.typed-errors~1`
 
 Implementation evidence:
-- `ring5/errors.py`
+- `ring5/errors.py::Ring5Error`
+- `ring5/errors.py::ScanError`
+- `ring5/errors.py::ParseError`
+- `ring5/errors.py::MissingStatError`
+- `ring5/errors.py::PipelineError`
+- `ring5/errors.py::ColumnNotFoundError`
+- `ring5/errors.py::DataLoadError`
+- `ring5/errors.py::DataValidationError`
+- `ring5/errors.py::RenderError`
+- `ring5/errors.py::ExportError`
+- `ring5/errors.py::DependencyMissingError`
+- `ring5/errors.py::PortfolioError`
+- `ring5/errors.py::PortfolioVersionError`
 
 Covers:
 - req~ring5.api.typed-errors~1
@@ -1442,7 +1456,8 @@ Tags: api, errors, status_approved, typing
 `impl~ring5.api.doctor~1`
 
 Implementation evidence:
-- `ring5/_doctor.py`
+- `ring5/_doctor.py::doctor`
+- `ring5/_doctor.py::DoctorReport.essential_found`
 
 Covers:
 - req~ring5.api.doctor~1
@@ -1479,7 +1494,10 @@ Tags: cli, portfolios, rendering, status_approved
 
 Implementation evidence:
 - `ring5/__init__.py::shutdown`
-- `src/parsing/framework/work_pool.py`
+- `src/parsing/framework/work_pool.py::WorkPool.submit`
+- `src/parsing/framework/work_pool.py::WorkPool.shutdown`
+- `src/parsing/gem5/impl/strategies/perl_worker_pool.py::get_worker_pool`
+- `src/parsing/gem5/impl/strategies/perl_worker_pool.py::shutdown_worker_pool`
 
 Covers:
 - req~ring5.api.process-lifecycle~1
@@ -1899,8 +1917,9 @@ Tags: export, plotly, scale, status_approved
 `impl~ring5.api.plot-validation~1`
 
 Implementation evidence:
-- `ring5/_plot_validation.py`
+- `ring5/_plot_validation.py::validate_plot_config`
 - `ring5/_session.py::Session.create_plot`
+- `ring5/_session.py::Session.render`
 
 Covers:
 - req~ring5.api.plot-validation~1
@@ -3419,7 +3438,9 @@ Tags: cli, migration, portfolios, safety, status_approved
 `test~ring5.api.session~1`
 
 Verification evidence:
-- `tests/integration/test_ring5_api_completeness.py`
+- `tests/integration/test_ring5_public_api.py::TestFullWorkflow`
+- `tests/integration/test_ring5_api_completeness.py::test_session_close_defers_cleanup_for_running_parse`
+- `tests/integration/test_ring5_api_completeness.py::test_manager_operations_preserve_dataframe_and_table`
 
 Covers:
 - req~ring5.api.session~1
@@ -3431,7 +3452,7 @@ Tags: api, automation, session, status_approved
 `test~ring5.api.table~1`
 
 Verification evidence:
-- `tests/unit/test_ring5_convenience_api.py`
+- `tests/unit/test_ring5_convenience_api.py::TestTable`
 
 Covers:
 - req~ring5.api.table~1
@@ -3443,7 +3464,8 @@ Tags: api, data, scripting, status_approved
 `test~ring5.api.figure-spec~1`
 
 Verification evidence:
-- `tests/unit/test_figure_spec.py`
+- `tests/unit/test_figure_spec.py::TestFigureSpecToConfig`
+- `tests/unit/test_figure_spec.py::TestFigureSpecValidation`
 
 Covers:
 - req~ring5.api.figure-spec~1
@@ -3455,7 +3477,7 @@ Tags: api, figures, status_approved, typing
 `test~ring5.api.figure-builder~1`
 
 Verification evidence:
-- `tests/unit/test_figure_spec.py`
+- `tests/unit/test_figure_builder.py::TestFigureSpecBuilder`
 
 Covers:
 - req~ring5.api.figure-builder~1
@@ -3467,7 +3489,8 @@ Tags: api, builder, figures, status_approved
 `test~ring5.api.figure-decorations~1`
 
 Verification evidence:
-- `tests/unit/test_ring5_convenience_api.py`
+- `tests/unit/test_ring5_convenience_api.py::test_grouped_bar_coordinates_public_wrapper`
+- `tests/unit/test_ring5_convenience_api.py::TestFigureDecorations`
 
 Covers:
 - req~ring5.api.figure-decorations~1
@@ -3479,7 +3502,8 @@ Tags: annotations, api, figures, status_approved
 `test~ring5.api.registry-discovery~1`
 
 Verification evidence:
-- `tests/unit/test_factory_registries.py`
+- `tests/integration/test_ring5_public_api.py::TestApiErgonomics.test_available_plot_types_are_public`
+- `tests/integration/test_ring5_api_completeness.py::test_public_registries_are_complete`
 
 Covers:
 - req~ring5.api.registry-discovery~1
@@ -3491,7 +3515,8 @@ Tags: api, discovery, registry, status_approved
 `test~ring5.api.typed-errors~1`
 
 Verification evidence:
-- `tests/integration/test_ring5_api_completeness.py`
+- `tests/integration/test_ring5_public_api.py::TestErrorSurface`
+- `tests/unit/test_ring5_coverage_edges.py::test_error_payloads_and_complete_figure_spec`
 
 Covers:
 - req~ring5.api.typed-errors~1
@@ -3503,7 +3528,8 @@ Tags: api, errors, status_approved, typing
 `test~ring5.api.doctor~1`
 
 Verification evidence:
-- `tests/unit/test_ring5_cli.py`
+- `tests/unit/test_ring5_coverage_edges.py::test_doctor_report_and_browser_fallbacks`
+- `tests/unit/test_ring5_cli.py::TestDoctorCommand`
 
 Covers:
 - req~ring5.api.doctor~1
@@ -3515,7 +3541,8 @@ Tags: api, cli, dependencies, status_approved
 `test~ring5.cli.parse~1`
 
 Verification evidence:
-- `tests/unit/test_ring5_cli.py`
+- `tests/unit/test_ring5_cli.py::TestParseCommand`
+- `tests/unit/test_ring5_coverage_edges.py::test_cli_warning_restore_details_file_error_and_module_entry`
 
 Covers:
 - req~ring5.cli.parse~1
@@ -3527,7 +3554,7 @@ Tags: cli, parsing, status_approved
 `test~ring5.cli.render~1`
 
 Verification evidence:
-- `tests/unit/test_ring5_cli.py`
+- `tests/unit/test_ring5_cli.py::TestRenderCommand`
 
 Covers:
 - req~ring5.cli.render~1
@@ -3539,7 +3566,10 @@ Tags: cli, portfolios, rendering, status_approved
 `test~ring5.api.process-lifecycle~1`
 
 Verification evidence:
-- `tests/integration/test_worker_pool_integration.py`
+- `tests/unit/test_ring5_coverage_edges.py::test_lazy_module_fallback_directory_and_shutdown`
+- `tests/unit/test_parser_data_source_services.py::TestWorkPool`
+- `tests/unit/test_perl_worker_pool.py::TestWorkerPoolIntegration.test_singleton_pool`
+- `tests/integration/test_worker_pool_integration.py::TestWorkerPoolIntegration.test_worker_pool_reused_across_multiple_parses`
 
 Covers:
 - req~ring5.api.process-lifecycle~1
@@ -3950,7 +3980,11 @@ Tags: export, plotly, scale, status_approved
 `test~ring5.api.plot-validation~1`
 
 Verification evidence:
-- `tests/unit/test_ring5_coverage_edges.py`
+- `tests/unit/test_ring5_coverage_edges.py::test_plot_validation_rejects_each_invalid_shape`
+- `tests/integration/test_ring5_api_completeness.py::test_every_registered_plot_accepts_validated_config`
+- `tests/integration/test_ring5_api_completeness.py::test_invalid_plot_config_does_not_register_and_render_errors_are_typed`
+- `tests/integration/test_ring5_public_api.py::TestErrorSurface.test_invalid_engine_lists_choices`
+- `tests/integration/test_ring5_public_api.py::TestApiErgonomics.test_unknown_plot_type_lists_valid_choices`
 
 Covers:
 - req~ring5.api.plot-validation~1
@@ -5349,7 +5383,7 @@ Tags: cli, migration, portfolios, safety, status_approved
 `uman~ring5.api.session~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/scripting.md`
+- `docs/user-guide/workflows/scripting.md#run-a-complete-analysis`
 
 Covers:
 - req~ring5.api.session~1
@@ -5361,7 +5395,7 @@ Tags: api, automation, session, status_approved
 `uman~ring5.api.table~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/scripting.md`
+- `docs/user-guide/workflows/scripting.md#use-portable-table-scripts`
 
 Covers:
 - req~ring5.api.table~1
@@ -5373,7 +5407,7 @@ Tags: api, data, scripting, status_approved
 `uman~ring5.api.figure-spec~1`
 
 User documentation evidence:
-- `docs/developer-guide/api-reference/public-python-api.md`
+- `docs/developer-guide/api-reference/public-python-api.md#typed-figurespec`
 
 Covers:
 - req~ring5.api.figure-spec~1
@@ -5385,7 +5419,7 @@ Tags: api, figures, status_approved, typing
 `uman~ring5.api.figure-builder~1`
 
 User documentation evidence:
-- `docs/developer-guide/api-reference/public-python-api.md`
+- `docs/developer-guide/api-reference/public-python-api.md#fluent-figurespec-builder`
 
 Covers:
 - req~ring5.api.figure-builder~1
@@ -5397,7 +5431,7 @@ Tags: api, builder, figures, status_approved
 `uman~ring5.api.figure-decorations~1`
 
 User documentation evidence:
-- `docs/developer-guide/api-reference/public-python-api.md`
+- `docs/developer-guide/api-reference/public-python-api.md#public-coordinates-and-decorations`
 
 Covers:
 - req~ring5.api.figure-decorations~1
@@ -5409,7 +5443,7 @@ Tags: annotations, api, figures, status_approved
 `uman~ring5.api.registry-discovery~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/scripting.md`
+- `docs/user-guide/workflows/scripting.md#discover-and-handle-errors`
 
 Covers:
 - req~ring5.api.registry-discovery~1
@@ -5421,7 +5455,7 @@ Tags: api, discovery, registry, status_approved
 `uman~ring5.api.typed-errors~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/scripting.md`
+- `docs/developer-guide/api-reference/public-python-api.md#errors`
 
 Covers:
 - req~ring5.api.typed-errors~1
@@ -5433,7 +5467,7 @@ Tags: api, errors, status_approved, typing
 `uman~ring5.api.doctor~1`
 
 User documentation evidence:
-- `docs/user-guide/getting-started/installation.md`
+- `docs/user-guide/getting-started/installation.md#check-external-dependencies`
 
 Covers:
 - req~ring5.api.doctor~1
@@ -5445,7 +5479,7 @@ Tags: api, cli, dependencies, status_approved
 `uman~ring5.cli.parse~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/scripting.md`
+- `docs/user-guide/workflows/scripting.md#parse-statistics-to-csv`
 
 Covers:
 - req~ring5.cli.parse~1
@@ -5457,7 +5491,7 @@ Tags: cli, parsing, status_approved
 `uman~ring5.cli.render~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/scripting.md`
+- `docs/user-guide/workflows/scripting.md#render-a-portfolio`
 
 Covers:
 - req~ring5.cli.render~1
@@ -5469,7 +5503,7 @@ Tags: cli, portfolios, rendering, status_approved
 `uman~ring5.api.process-lifecycle~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/scripting.md`
+- `docs/developer-guide/api-reference/public-python-api.md#portfolio-replay-and-lifecycle`
 
 Covers:
 - req~ring5.api.process-lifecycle~1
@@ -5853,7 +5887,7 @@ Tags: export, plotly, scale, status_approved
 `uman~ring5.api.plot-validation~1`
 
 User documentation evidence:
-- `docs/developer-guide/api-reference/public-python-api.md`
+- `docs/developer-guide/api-reference/public-python-api.md#workspace`
 
 Covers:
 - req~ring5.api.plot-validation~1

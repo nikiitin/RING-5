@@ -33,14 +33,16 @@ class TestParserStructure:
 
 
 class TestDoctorCommand:
+    # [test->req~ring5.api.doctor~1]
     def test_doctor_runs(self, capsys: pytest.CaptureFixture[str]) -> None:
         code = main(["doctor"])
         out = capsys.readouterr().out
         assert "dependency check" in out
-        assert code in (0, 1)  # 1 when an optional binary is absent
+        assert code in (0, 1)  # 1 only when the essential Perl binary is absent
 
 
 class TestParseCommand:
+    # [test->req~ring5.cli.parse~1]
     def test_parse_materializes_session_owned_output(
         self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:
@@ -53,9 +55,37 @@ class TestParseCommand:
         assert pd.read_csv(output).loc[0, "simTicks"] == 42
         assert "wrote" in capsys.readouterr().out
 
+    def test_parse_accepts_repeated_variables(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        run = tmp_path / "run"
+        run.mkdir()
+        (run / "stats.txt").write_text("simTicks 42 # ticks\nsimInsts 17 # instructions\n")
+        output = tmp_path / "result.csv"
+
+        code = main(
+            [
+                "parse",
+                str(run),
+                "-v",
+                "simTicks",
+                "-v",
+                "simInsts",
+                "-o",
+                str(output),
+            ]
+        )
+
+        assert code == 0
+        parsed = pd.read_csv(output)
+        assert parsed.loc[0, "simTicks"] == 42
+        assert parsed.loc[0, "simInsts"] == 17
+        assert "wrote" in capsys.readouterr().out
+
 
 class TestRenderCommand:
     # [test->req~ring5.portfolio.batch-replay~1]
+    # [test->req~ring5.cli.render~1]
     def test_render_portfolio_to_pdf(self, tmp_path: Path, portfolios_dir: Path) -> None:
         import ring5
 

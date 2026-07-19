@@ -2191,9 +2191,18 @@
       "description": "The supported Session context manager shall compose scan, parse, load, manage, shape, plot, render, export, and portfolio operations and release owned pending work on close.",
       "tags": ["api", "automation", "session"],
       "evidence": {
-        "implementation": ["ring5/_session.py::Session"],
-        "tests": ["tests/integration/test_ring5_api_completeness.py"],
-        "documentation": ["docs/user-guide/workflows/scripting.md"]
+        "implementation": [
+          "ring5/_session.py::Session",
+          "ring5/_session.py::Session.close"
+        ],
+        "tests": [
+          "tests/integration/test_ring5_public_api.py::TestFullWorkflow",
+          "tests/integration/test_ring5_api_completeness.py::test_session_close_defers_cleanup_for_running_parse",
+          "tests/integration/test_ring5_api_completeness.py::test_manager_operations_preserve_dataframe_and_table"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/scripting.md#run-a-complete-analysis"
+        ]
       }
     },
     {
@@ -2205,9 +2214,16 @@
       "description": "The public Table and read_table surface shall provide immutable loading, selection, transformation, inspection, and export for scripts that do not import pandas.",
       "tags": ["api", "data", "scripting"],
       "evidence": {
-        "implementation": ["ring5/data.py"],
-        "tests": ["tests/unit/test_ring5_convenience_api.py"],
-        "documentation": ["docs/user-guide/workflows/scripting.md"]
+        "implementation": [
+          "ring5/data.py::Table",
+          "ring5/data.py::read_table"
+        ],
+        "tests": [
+          "tests/unit/test_ring5_convenience_api.py::TestTable"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/scripting.md#use-portable-table-scripts"
+        ]
       }
     },
     {
@@ -2220,8 +2236,13 @@
       "tags": ["api", "figures", "typing"],
       "evidence": {
         "implementation": ["ring5/figure_spec.py::FigureSpec"],
-        "tests": ["tests/unit/test_figure_spec.py"],
-        "documentation": ["docs/developer-guide/api-reference/public-python-api.md"]
+        "tests": [
+          "tests/unit/test_figure_spec.py::TestFigureSpecToConfig",
+          "tests/unit/test_figure_spec.py::TestFigureSpecValidation"
+        ],
+        "documentation": [
+          "docs/developer-guide/api-reference/public-python-api.md#typed-figurespec"
+        ]
       }
     },
     {
@@ -2234,8 +2255,12 @@
       "tags": ["api", "builder", "figures"],
       "evidence": {
         "implementation": ["ring5/figure_spec.py::FigureSpecBuilder"],
-        "tests": ["tests/unit/test_figure_spec.py"],
-        "documentation": ["docs/developer-guide/api-reference/public-python-api.md"]
+        "tests": [
+          "tests/unit/test_figure_builder.py::TestFigureSpecBuilder"
+        ],
+        "documentation": [
+          "docs/developer-guide/api-reference/public-python-api.md#fluent-figurespec-builder"
+        ]
       }
     },
     {
@@ -2244,12 +2269,20 @@
       "revision": 1,
       "status": "approved",
       "title": "Scripted coordinates and decorations",
-      "description": "Scripts shall calculate grouped-bar coordinates and add engine-independent annotations and shapes without importing internal rendering modules.",
+      "description": "Scripts shall calculate engine-independent grouped-bar coordinates and apply supported post-render Matplotlib decorations without importing internal rendering modules.",
       "tags": ["annotations", "api", "figures"],
       "evidence": {
-        "implementation": ["ring5/coordinates.py", "ring5/decorations.py"],
-        "tests": ["tests/unit/test_ring5_convenience_api.py"],
-        "documentation": ["docs/developer-guide/api-reference/public-python-api.md"]
+        "implementation": [
+          "ring5/coordinates.py::grouped_bar_coordinates",
+          "ring5/decorations.py::FigureDecorations"
+        ],
+        "tests": [
+          "tests/unit/test_ring5_convenience_api.py::test_grouped_bar_coordinates_public_wrapper",
+          "tests/unit/test_ring5_convenience_api.py::TestFigureDecorations"
+        ],
+        "documentation": [
+          "docs/developer-guide/api-reference/public-python-api.md#public-coordinates-and-decorations"
+        ]
       }
     },
     {
@@ -2262,8 +2295,13 @@
       "tags": ["api", "discovery", "registry"],
       "evidence": {
         "implementation": ["ring5/_session.py::available_plot_types", "ring5/shapers.py::available_shaper_types"],
-        "tests": ["tests/unit/test_factory_registries.py"],
-        "documentation": ["docs/user-guide/workflows/scripting.md"]
+        "tests": [
+          "tests/integration/test_ring5_public_api.py::TestApiErgonomics.test_available_plot_types_are_public",
+          "tests/integration/test_ring5_api_completeness.py::test_public_registries_are_complete"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/scripting.md#discover-and-handle-errors"
+        ]
       }
     },
     {
@@ -2275,9 +2313,28 @@
       "description": "Supported operational failures shall inherit Ring5Error and expose narrower scan, parse, pipeline, data, render, export, dependency, and portfolio error types.",
       "tags": ["api", "errors", "typing"],
       "evidence": {
-        "implementation": ["ring5/errors.py"],
-        "tests": ["tests/integration/test_ring5_api_completeness.py"],
-        "documentation": ["docs/user-guide/workflows/scripting.md"]
+        "implementation": [
+          "ring5/errors.py::Ring5Error",
+          "ring5/errors.py::ScanError",
+          "ring5/errors.py::ParseError",
+          "ring5/errors.py::MissingStatError",
+          "ring5/errors.py::PipelineError",
+          "ring5/errors.py::ColumnNotFoundError",
+          "ring5/errors.py::DataLoadError",
+          "ring5/errors.py::DataValidationError",
+          "ring5/errors.py::RenderError",
+          "ring5/errors.py::ExportError",
+          "ring5/errors.py::DependencyMissingError",
+          "ring5/errors.py::PortfolioError",
+          "ring5/errors.py::PortfolioVersionError"
+        ],
+        "tests": [
+          "tests/integration/test_ring5_public_api.py::TestErrorSurface",
+          "tests/unit/test_ring5_coverage_edges.py::test_error_payloads_and_complete_figure_spec"
+        ],
+        "documentation": [
+          "docs/developer-guide/api-reference/public-python-api.md#errors"
+        ]
       }
     },
     {
@@ -2289,9 +2346,17 @@
       "description": "The public API and CLI shall report essential Perl and optional browser and XeLaTeX dependency availability without making optional exporters mandatory.",
       "tags": ["api", "cli", "dependencies"],
       "evidence": {
-        "implementation": ["ring5/_doctor.py"],
-        "tests": ["tests/unit/test_ring5_cli.py"],
-        "documentation": ["docs/user-guide/getting-started/installation.md"]
+        "implementation": [
+          "ring5/_doctor.py::doctor",
+          "ring5/_doctor.py::DoctorReport.essential_found"
+        ],
+        "tests": [
+          "tests/unit/test_ring5_coverage_edges.py::test_doctor_report_and_browser_fallbacks",
+          "tests/unit/test_ring5_cli.py::TestDoctorCommand"
+        ],
+        "documentation": [
+          "docs/user-guide/getting-started/installation.md#check-external-dependencies"
+        ]
       }
     },
     {
@@ -2304,8 +2369,13 @@
       "tags": ["cli", "parsing"],
       "evidence": {
         "implementation": ["ring5/cli.py::_cmd_parse"],
-        "tests": ["tests/unit/test_ring5_cli.py"],
-        "documentation": ["docs/user-guide/workflows/scripting.md"]
+        "tests": [
+          "tests/unit/test_ring5_cli.py::TestParseCommand",
+          "tests/unit/test_ring5_coverage_edges.py::test_cli_warning_restore_details_file_error_and_module_entry"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/scripting.md#parse-statistics-to-csv"
+        ]
       }
     },
     {
@@ -2318,8 +2388,12 @@
       "tags": ["cli", "portfolios", "rendering"],
       "evidence": {
         "implementation": ["ring5/cli.py::_cmd_render"],
-        "tests": ["tests/unit/test_ring5_cli.py"],
-        "documentation": ["docs/user-guide/workflows/scripting.md"]
+        "tests": [
+          "tests/unit/test_ring5_cli.py::TestRenderCommand"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/scripting.md#render-a-portfolio"
+        ]
       }
     },
     {
@@ -2331,9 +2405,22 @@
       "description": "Process-wide parser and scan pools shall remain reusable across sessions, support explicit shutdown, and restart transparently when used again.",
       "tags": ["api", "lifecycle", "workers"],
       "evidence": {
-        "implementation": ["ring5/__init__.py::shutdown", "src/parsing/framework/work_pool.py"],
-        "tests": ["tests/integration/test_worker_pool_integration.py"],
-        "documentation": ["docs/user-guide/workflows/scripting.md"]
+        "implementation": [
+          "ring5/__init__.py::shutdown",
+          "src/parsing/framework/work_pool.py::WorkPool.submit",
+          "src/parsing/framework/work_pool.py::WorkPool.shutdown",
+          "src/parsing/gem5/impl/strategies/perl_worker_pool.py::get_worker_pool",
+          "src/parsing/gem5/impl/strategies/perl_worker_pool.py::shutdown_worker_pool"
+        ],
+        "tests": [
+          "tests/unit/test_ring5_coverage_edges.py::test_lazy_module_fallback_directory_and_shutdown",
+          "tests/unit/test_parser_data_source_services.py::TestWorkPool",
+          "tests/unit/test_perl_worker_pool.py::TestWorkerPoolIntegration.test_singleton_pool",
+          "tests/integration/test_worker_pool_integration.py::TestWorkerPoolIntegration.test_worker_pool_reused_across_multiple_parses"
+        ],
+        "documentation": [
+          "docs/developer-guide/api-reference/public-python-api.md#portfolio-replay-and-lifecycle"
+        ]
       }
     },
     {
@@ -2883,9 +2970,21 @@
       "description": "The public plotting boundary shall reject unknown plot types, missing or mistyped mappings, absent referenced columns, and invalid engine choices before registering or rendering a plot.",
       "tags": ["api", "plots", "validation"],
       "evidence": {
-        "implementation": ["ring5/_plot_validation.py", "ring5/_session.py::Session.create_plot"],
-        "tests": ["tests/unit/test_ring5_coverage_edges.py"],
-        "documentation": ["docs/developer-guide/api-reference/public-python-api.md"]
+        "implementation": [
+          "ring5/_plot_validation.py::validate_plot_config",
+          "ring5/_session.py::Session.create_plot",
+          "ring5/_session.py::Session.render"
+        ],
+        "tests": [
+          "tests/unit/test_ring5_coverage_edges.py::test_plot_validation_rejects_each_invalid_shape",
+          "tests/integration/test_ring5_api_completeness.py::test_every_registered_plot_accepts_validated_config",
+          "tests/integration/test_ring5_api_completeness.py::test_invalid_plot_config_does_not_register_and_render_errors_are_typed",
+          "tests/integration/test_ring5_public_api.py::TestErrorSurface.test_invalid_engine_lists_choices",
+          "tests/integration/test_ring5_public_api.py::TestApiErgonomics.test_unknown_plot_type_lists_valid_choices"
+        ],
+        "documentation": [
+          "docs/developer-guide/api-reference/public-python-api.md#workspace"
+        ]
       }
     },
     {

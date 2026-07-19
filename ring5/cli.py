@@ -30,6 +30,7 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
 
 
 def _cmd_parse(args: argparse.Namespace) -> int:
+    # [impl->req~ring5.cli.parse~1]
     from ring5._session import Session
 
     with Session() as session:
@@ -52,6 +53,7 @@ def _cmd_parse(args: argparse.Namespace) -> int:
 
 def _cmd_render(args: argparse.Namespace) -> int:
     # [impl->req~ring5.portfolio.batch-replay~1]
+    # [impl->req~ring5.cli.render~1]
     from ring5._portfolio import render_portfolio
 
     written = render_portfolio(

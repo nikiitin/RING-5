@@ -13,6 +13,7 @@ pytestmark = pytest.mark.public_api
 
 
 class TestTable:
+    # [test->req~ring5.api.table~1]
     """The public table wrapper keeps common scripts pandas-independent."""
 
     def test_construction_introspection_and_copy_isolation(self) -> None:
@@ -68,6 +69,7 @@ class TestTable:
 
 
 def test_grouped_bar_coordinates_public_wrapper() -> None:
+    # [test->req~ring5.api.figure-decorations~1]
     geometry = ring5.grouped_bar_coordinates(
         ["a", "b"], ["base", "opt"], {"bargroupgap": 0.5, "bargap": 0.2}
     )
@@ -105,6 +107,7 @@ def test_shapers_are_available_from_the_supported_module() -> None:
 
 
 class TestFigureDecorations:
+    # [test->req~ring5.api.figure-decorations~1]
     """Figure helpers apply their documented Matplotlib changes."""
 
     def test_axis_legend_and_scale_helpers(self) -> None:

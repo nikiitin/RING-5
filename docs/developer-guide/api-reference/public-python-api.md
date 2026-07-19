@@ -15,6 +15,11 @@ tests marked `public_api` enforce exact line and branch coverage for the package
 ## Workspace
 
 <!--
+`uman~ring5.api.plot-validation.documentation~1`
+
+Covers:
+- req~ring5.api.plot-validation~1
+
 `uman~ring5.ingestion.scan-limits.documentation~1`
 
 Covers:
@@ -66,9 +71,47 @@ Covers:
 text, coordinates, and optional arrow styling. In the web application, editable line, circle, and
 rectangle shapes are Plotly layout shapes and remain Plotly-specific.
 
-`ring5.FigureSpec` is the typed common figure configuration. `FigureSpecBuilder`, legend, reference
-line, and dual-axis options support more structured construction. `FigureDecorations` and
-`grouped_bar_coordinates` support script-defined annotations without importing rendering modules.
+### Typed FigureSpec
+
+<!--
+`uman~ring5.api.figure-spec.documentation~1`
+
+Covers:
+- req~ring5.api.figure-spec~1
+
+-->
+
+`ring5.FigureSpec` is the typed common figure configuration. It covers data mappings, dimensions,
+axes, grouping, legends, reference lines, and dual-axis options. The `extra` mapping carries
+supported flat configuration keys that do not yet have typed fields.
+
+### Fluent FigureSpec builder
+
+<!--
+`uman~ring5.api.figure-builder.documentation~1`
+
+Covers:
+- req~ring5.api.figure-builder~1
+
+-->
+
+`FigureSpecBuilder` groups related settings into chainable methods for data, size, palettes, axes,
+bars, category labels, legends, reference lines, and dual axes. `build()` returns a validated
+`FigureSpec`.
+
+### Public coordinates and decorations
+
+<!--
+`uman~ring5.api.figure-decorations.documentation~1`
+
+Covers:
+- req~ring5.api.figure-decorations~1
+
+-->
+
+`grouped_bar_coordinates` exposes engine-independent grouped-bar geometry. `FigureDecorations`
+applies supported post-render changes to Matplotlib figures, including labels, callout arrows,
+axis limits, ticks, legends, and spines. Scripts use both without importing `src.*` modules.
 
 `export_file` and `export_bytes` infer the engine from the figure object. `Session.export` delegates
 to the same boundary. Unsupported formats raise `ExportError`; missing optional executables raise
@@ -76,11 +119,27 @@ to the same boundary. Unsupported formats raise `ExportError`; missing optional 
 
 ## Portfolio replay and lifecycle
 
+<!--
+`uman~ring5.api.process-lifecycle.documentation~1`
+
+Covers:
+- req~ring5.api.process-lifecycle~1
+
+-->
+
 `ring5.render_portfolio` restores and exports every plot. `ring5.doctor` reports parser and export
 dependencies. `ring5.shutdown` releases process-wide worker pools early; they otherwise register
 process-exit cleanup and restart on later use.
 
 ## Errors
+
+<!--
+`uman~ring5.api.typed-errors.documentation~1`
+
+Covers:
+- req~ring5.api.typed-errors~1
+
+-->
 
 Catch the narrow error from `ring5.errors` when recovery differs. All supported operational errors
 inherit `Ring5Error`. `ScanError` covers empty, failed, or incomplete scans; `ParseError` covers

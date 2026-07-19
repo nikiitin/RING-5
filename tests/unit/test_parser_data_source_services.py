@@ -213,6 +213,7 @@ class TestParseWork:
 
 
 class TestWorkPool:
+    # [test->req~ring5.api.process-lifecycle~1]
     """Tests for lazy executor creation and submission."""
 
     def test_thread_executor_lazy_init(self) -> None:
@@ -248,6 +249,23 @@ class TestWorkPool:
         result = future.result(timeout=5)
         assert result == "done"
 
+        pool.shutdown(wait=True)
+        WorkPool._instance = None
+
+    def test_submit_restarts_executor_after_shutdown(self) -> None:
+        from src.parsing.framework.work_pool import WorkPool
+
+        WorkPool._instance = None
+        pool = WorkPool()
+        assert pool.submit(lambda: "first").result(timeout=5) == "first"
+        original_executor = pool._thread_executor
+
+        pool.shutdown(wait=True)
+
+        assert pool._thread_executor is None
+        assert pool.submit(lambda: "second").result(timeout=5) == "second"
+        assert pool._thread_executor is not original_executor
+        pool.shutdown(wait=True)
         WorkPool._instance = None
 
 

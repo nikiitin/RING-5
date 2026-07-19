@@ -114,6 +114,7 @@ class TestWorkerPoolIntegration:
             assert Path(csv_path).exists()
 
     def test_worker_pool_reused_across_multiple_parses(self, test_stats_file: str) -> None:
+        # [test->req~ring5.api.process-lifecycle~1]
         """Verify same worker pool is reused across multiple parse operations."""
         from src.parsing.gem5.types.type_mapper import TypeMapper
 

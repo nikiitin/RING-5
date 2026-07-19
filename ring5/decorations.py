@@ -34,6 +34,7 @@ def _twin_axes(ax: Any) -> Any:
 
 
 class FigureDecorations:
+    # [impl->req~ring5.api.figure-decorations~1]
     """Stateless post-render tweaks for a RING-5 matplotlib figure.
 
     Every method takes the figure from ``Session.render(..., engine="matplotlib")`` and

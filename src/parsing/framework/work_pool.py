@@ -60,10 +60,12 @@ class WorkPool:
             return self._thread_executor
 
     def submit(self, task: Job | Callable[[], Any]) -> Future[Any]:
+        # [impl->req~ring5.api.process-lifecycle~1]
         """Submit a single task to the thread pool."""
         return self._get_thread_executor().submit(task)
 
     def shutdown(self, wait: bool = False) -> None:
+        # [impl->req~ring5.api.process-lifecycle~1]
         """Shutdown the executor and release resources."""
         # Lock the teardown symmetrically with the locked lazy creation in
         # _get_thread_executor, so a concurrent submit can't race the null-out.

@@ -25,6 +25,7 @@ def grouped_bar_coordinates(
     groups: list[str],
     config: dict[str, Any],
 ) -> dict[str, Any]:
+    # [impl->req~ring5.api.figure-decorations~1]
     """Compute sub-bar coordinates + layout geometry for a grouped(-stacked) bar figure.
 
     Args:

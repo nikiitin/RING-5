@@ -42,6 +42,7 @@ def _future(value: Any = None, error: Exception | None = None) -> Future[Any]:
 
 
 def test_lazy_module_fallback_directory_and_shutdown() -> None:
+    # [test->req~ring5.api.process-lifecycle~1]
     assert "Session" in dir(ring5)
     assert ring5.__getattr__("Session") is Session
     ring5.shutdown()
@@ -53,12 +54,14 @@ def test_lazy_module_fallback_directory_and_shutdown() -> None:
 
 
 def test_doctor_report_and_browser_fallbacks() -> None:
+    # [test->req~ring5.api.doctor~1]
     found = _doctor.DependencyStatus("x", True, "/x", "tests", "install")
     missing = _doctor.DependencyStatus("y", False, None, "tests", "install y")
     all_found = _doctor.DoctorReport(found, found, found)
     partial = _doctor.DoctorReport(found, missing, missing)
     assert all_found.all_found
     assert not partial.all_found
+    assert partial.essential_found
     assert "install y" in str(partial)
 
     real_import = builtins.__import__
@@ -161,6 +164,7 @@ def test_build_stat_configs_explicit_and_distribution_metadata() -> None:
 
 
 def test_plot_validation_rejects_each_invalid_shape() -> None:
+    # [test->req~ring5.api.plot-validation~1]
     frame = pd.DataFrame({"x": ["a"], "y": [1.0], "latency..0-9.sd": [1.0]})
     with pytest.raises(ring5.DataValidationError, match="non-empty string"):
         _plot_validation.validate_plot_config("bar", frame, {"x": 1, "y": "y"})
@@ -347,6 +351,7 @@ def test_session_plot_and_portfolio_error_edges() -> None:
 def test_cli_warning_restore_details_file_error_and_module_entry(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    # [test->req~ring5.cli.parse~1]
     source = tmp_path / "source.csv"
     source.write_text("x\nNaN\n")
     fake_session = MagicMock()
@@ -395,6 +400,7 @@ def test_table_io_and_shaper_error_edges(tmp_path: Path) -> None:
 
 
 def test_error_payloads_and_complete_figure_spec() -> None:
+    # [test->req~ring5.api.typed-errors~1]
     missing = ring5.MissingStatError(["x"])
     dependency = ring5.DependencyMissingError("tool", "install it")
     assert missing.missing == ["x"]

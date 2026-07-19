@@ -1878,7 +1878,7 @@ Tags: api, builder, figures, status_approved
 `req~ring5.api.figure-decorations~1`
 Status: approved
 
-Scripts shall calculate grouped-bar coordinates and add engine-independent annotations and shapes without importing internal rendering modules.
+Scripts shall calculate engine-independent grouped-bar coordinates and apply supported post-render Matplotlib decorations without importing internal rendering modules.
 
 Covers:
 - feat~ring5.automation~1

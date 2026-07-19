@@ -35,6 +35,7 @@ from src.core.services.shapers.impl.transformer import Transformer
 
 
 def available_shaper_types() -> tuple[str, ...]:
+    # [impl->req~ring5.api.registry-discovery~1]
     """Return every registered pipeline shaper identifier."""
     from src.core.services.shapers.factory import ShaperFactory
 

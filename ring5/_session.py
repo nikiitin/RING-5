@@ -92,6 +92,7 @@ def _remove_directory_when_settled(path: str, futures: list[Any]) -> None:
 
 
 def available_plot_types() -> tuple[str, ...]:
+    # [impl->req~ring5.api.registry-discovery~1]
     """Return the registered plot-type identifiers accepted by :class:`Session`.
 
     Returns:
@@ -121,6 +122,7 @@ def _resolve_plot_type(plot_type: str) -> str:
 
 
 class Session:
+    # [impl->req~ring5.api.session~1]
     """A headless RING-5 workspace.
 
     Mirrors what one browser session of the web app can do — parse, shape,
@@ -155,6 +157,7 @@ class Session:
         self.close()
 
     def close(self) -> None:
+        # [impl->req~ring5.api.session~1]
         """Release this session's pending work (process pools stay up)."""
         self.api.cancel_pending_scans()
         for job in self._parse_jobs:
@@ -558,6 +561,7 @@ class Session:
         config: FigureSpec | Mapping[str, Any],
         name: str | None = None,
     ) -> BasePlot:
+        # [impl->req~ring5.api.plot-validation~1]
         """Create and register a configured plot.
 
         Args:
@@ -628,6 +632,7 @@ class Session:
         return self.render(configured, engine=engine)
 
     def render(self, plot: BasePlot, *, engine: EngineMode = "plotly") -> _render.Figure:
+        # [impl->req~ring5.api.plot-validation~1]
         """Render a configured plot headlessly.
 
         Args:

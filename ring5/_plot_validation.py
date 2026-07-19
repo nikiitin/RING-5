@@ -75,6 +75,7 @@ def _columns(data: pd.DataFrame, config: Mapping[str, Any], field: str, *, requi
 
 
 def validate_plot_config(plot_type: str, data: pd.DataFrame, config: Mapping[str, Any]) -> None:
+    # [impl->req~ring5.api.plot-validation~1]
     """Validate required fields, their types, and every referenced column.
 
     Args:

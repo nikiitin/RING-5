@@ -61,6 +61,14 @@ export and Matplotlib PDF, PNG, and SVG export remain available without those op
 
 ## Check external dependencies
 
+<!--
+`uman~ring5.api.doctor.documentation~1`
+
+Covers:
+- req~ring5.api.doctor~1
+
+-->
+
 Activate the environment and run the dependency report:
 
 ```bash

@@ -17,6 +17,11 @@ without exposing `src.*` modules as a supported interface.
 ## Run a complete analysis
 
 <!--
+`uman~ring5.api.session.documentation~1`
+
+Covers:
+- req~ring5.api.session~1
+
 `uman~ring5.ingestion.async-parse.documentation~1`
 
 Covers:
@@ -84,6 +89,14 @@ The optional `strategy="config_aware"` parse mode adds `sim_path` and compact, k
 
 ## Discover and handle errors
 
+<!--
+`uman~ring5.api.registry-discovery.documentation~1`
+
+Covers:
+- req~ring5.api.registry-discovery~1
+
+-->
+
 Use `ring5.available_plot_types()` and `ring5.available_shaper_types()` rather than copying registry
 inventories. Plot mappings are checked for required keys and referenced columns before a plot is
 registered. Public failures inherit from `ring5.Ring5Error`, with narrower types such as
@@ -108,10 +121,45 @@ ring5 render PORTFOLIO --out-dir DIRECTORY
 ring5 upgrade PORTFOLIO
 ```
 
+### Parse statistics to CSV
+
+<!--
+`uman~ring5.cli.parse.documentation~1`
+
+Covers:
+- req~ring5.cli.parse~1
+
+-->
+
+Repeat `--variable` for every statistic. By default a missing statistic fails the command; pass
+`--lenient` to write the available values and report missing names. The requested output is copied
+out of the session-owned temporary directory before the command exits.
+
+### Render a portfolio
+
+<!--
+`uman~ring5.cli.render.documentation~1`
+
+Covers:
+- req~ring5.cli.render~1
+
+-->
+
+`ring5 render` restores every valid plot in the named portfolio and writes it under `--out-dir`.
+Select the engine and format explicitly when a script depends on them.
+
 Run `ring5 COMMAND --help` for current options. `render` uses Matplotlib and PDF by default; Plotly
 defaults to HTML. Pass `--no-deterministic` only when byte-stable output is not required.
 
 ## Use portable table scripts
+
+<!--
+`uman~ring5.api.table.documentation~1`
+
+Covers:
+- req~ring5.api.table~1
+
+-->
 
 `ring5.Table` and `ring5.read_table` provide a pandas-independent handle for figure scripts.
 `Session.shape`, `reduce_seeds`, `remove_outliers`, `apply_operation`, and `mix_columns` return a

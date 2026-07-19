@@ -675,6 +675,7 @@ _pool_lock = threading.Lock()
 
 
 def get_worker_pool(pool_size: int | None = None) -> PerlWorkerPool:
+    # [impl->req~ring5.api.process-lifecycle~1]
     """
     Return the singleton worker pool, creating it when necessary.
 
@@ -695,6 +696,7 @@ def get_worker_pool(pool_size: int | None = None) -> PerlWorkerPool:
 
 
 def shutdown_worker_pool() -> None:
+    # [impl->req~ring5.api.process-lifecycle~1]
     """Shutdown the global worker pool."""
     global _worker_pool_instance
 

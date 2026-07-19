@@ -26,6 +26,7 @@ def _first_stats_subtree() -> Path:
 
 
 class TestFullWorkflow:
+    # [test->req~ring5.api.session~1]
     """stats.txt → figure file, entirely through ring5."""
 
     def test_parse_to_figure_files(self, tmp_path: Path) -> None:
@@ -247,6 +248,7 @@ class TestDeterminism:
 
 
 class TestErrorSurface:
+    # [test->req~ring5.api.typed-errors~1]
     """The typed error hierarchy behaves as documented."""
 
     def test_pipeline_error_carries_step(self) -> None:
@@ -290,6 +292,7 @@ class TestErrorSurface:
         assert isinstance(exc_info.value.__cause__, FileNotFoundError)
 
     def test_invalid_engine_lists_choices(self) -> None:
+        # [test->req~ring5.api.plot-validation~1]
         """Invalid render configuration uses the public error hierarchy."""
         data = pd.DataFrame({"x": ["a"], "y": [1.0]})
         with ring5.Session() as session:
@@ -328,11 +331,13 @@ class TestApiErgonomics:
             assert session.plots[0].plot_type == "bar"
 
     def test_available_plot_types_are_public(self) -> None:
+        # [test->req~ring5.api.registry-discovery~1]
         assert "bar" in ring5.available_plot_types()
         assert "grouped_stacked_bar" in ring5.available_plot_types()
         assert set(get_args(ring5.PlotType)) == set(ring5.available_plot_types())
 
     def test_unknown_plot_type_lists_valid_choices(self) -> None:
+        # [test->req~ring5.api.plot-validation~1]
         data = pd.DataFrame({"x": ["a"], "y": [1.0]})
 
         with ring5.Session() as session:

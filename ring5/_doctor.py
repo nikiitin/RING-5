@@ -42,6 +42,7 @@ class DoctorReport:
 
     @property
     def essential_found(self) -> bool:
+        # [impl->req~ring5.api.doctor~1]
         """Only the dependency required for core parse/render — ``perl``.
 
         chrome/xelatex gate *optional* export formats, so a CLI exit gate should not fail
@@ -88,6 +89,7 @@ def _find_chrome() -> str | None:
 
 
 def doctor() -> DoctorReport:
+    # [impl->req~ring5.api.doctor~1]
     """Run the three instant dependency probes and return a report.
 
     ``print(ring5.doctor())`` gives the human-readable summary.
