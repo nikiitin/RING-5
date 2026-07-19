@@ -18,8 +18,11 @@ OFT_SHA256 := 4c6194fdd59d5098edb7abd184a8c53002a139794d8a66f10997b27a140bb40a
 OFT_CACHE_DIR := .cache/openfasttrace
 OFT_JAR := $(OFT_CACHE_DIR)/openfasttrace-$(OFT_VERSION).jar
 OFT_URL := https://repo1.maven.org/maven2/org/itsallcode/openfasttrace/openfasttrace/$(OFT_VERSION)/openfasttrace-$(OFT_VERSION).jar
-OFT_SOURCES := spec/oft/generated/features.md spec/oft/generated/requirements.md \
+OFT_SPEC_SOURCES := spec/oft/generated/features.md spec/oft/generated/requirements.md \
 	spec/oft/generated/coverage.md
+OFT_CODE_SOURCES := app.py ring5 src scripts tests
+OFT_DOCUMENTATION_SOURCES := docs spec/oft/README.md spec/oft/discovery-audit.md
+OFT_SOURCES := $(OFT_SPEC_SOURCES) $(OFT_CODE_SOURCES) $(OFT_DOCUMENTATION_SOURCES)
 OFT_NATIVE_REPORT := $(OFT_CACHE_DIR)/ring5-openfasttrace.html
 OFT_REPORT := spec/oft/generated/report.html
 

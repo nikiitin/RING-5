@@ -26,8 +26,10 @@ from pathlib import Path
 from typing import Any, cast, get_args
 
 if __package__:
+    from scripts.oft_evidence import validate_source_evidence
     from scripts.oft_html_report import inventory_fingerprint
 else:
+    from oft_evidence import validate_source_evidence
     from oft_html_report import inventory_fingerprint
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -333,8 +335,9 @@ def validate_inventory(
         InventoryError: Any validation rule fails.
     """
     errors: list[str] = []
-    if inventory.get("schema_version") != 1:
-        errors.append("schema_version must be 1")
+    schema_version = inventory.get("schema_version")
+    if schema_version not in (1, 2):
+        errors.append("schema_version must be 1 or 2")
 
     groups_raw = inventory.get("groups")
     features_raw = inventory.get("features")
@@ -455,6 +458,9 @@ def validate_inventory(
                     f"discovery_bindings.{source}[{value!r}] references unknown "
                     f"requirement {feature_id!r}"
                 )
+
+    if schema_version == 2 and not errors:
+        errors.extend(validate_source_evidence(cast(dict[str, Any], inventory), root))
 
     if errors:
         details = "\n".join(f"- {error}" for error in errors)
