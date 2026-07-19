@@ -38,6 +38,11 @@ Add variables from the scan results. Check vector and distribution entry selecti
 their configuration controls which output columns are created. Then select **Parse gem5 Stats
 Files**. RING-5 assembles the parser output into one CSV and loads it into the workspace.
 
+Use **Alias** when the CSV column should have a concise logical name while discovery still targets
+the original statistic or numeric pattern. Scalar aliases must remain unique across both source and
+output names. For a configuration variable, **On Empty** supplies the value to emit when the
+selected path position contains no metadata; otherwise the first extracted value is retained.
+
 The parser records missing values as `NaN`. It reports file failures instead of substituting
 simulator values. Investigate missing variables before reducing or normalizing the data.
 
@@ -46,6 +51,10 @@ simulator values. Investigate missing variables before reducing or normalizing t
 Parsed CSVs are stored in the application's recent-file pool. On **Data Source**, select **Load from
 Recent**, choose a file, and load it. The recent-file pool is local application state, not a durable
 archive; copy important results to research storage.
+
+Recent-file cards include cached row, column, and type metadata. CSV loading detects common
+delimiters rather than requiring comma-only input; the file must still satisfy the non-empty header
+contract.
 
 ## Load an existing CSV in Python
 
@@ -88,6 +97,16 @@ a `NaN` column is an intentional part of the analysis.
 Pattern variables accept the scanner form `system.cpu\d+.ipc` and the equivalent escaped-literal
 form `system\.cpu\d+\.ipc`. Only literal ASCII statistic-name characters and `\d+` numeric
 placeholders are accepted; arbitrary regular expressions are rejected before parsing.
+
+When a pattern has one or more numeric positions, **Select specific indices** filters the discovered
+instances. Enabling it preserves each selected instance as a separate concrete output column;
+leaving it disabled applies the variable type's normal pattern aggregation.
+
+Vector, distribution, and histogram editors offer **Statistics Only**, **Entries Only**, and
+**Entries + Statistics** modes where applicable. Entries can be selected from scan results or
+entered manually. A per-variable deep scan discovers entries across the larger bounded sample and
+aggregates the minimum and maximum bucket range for distributions. Histogram configurations can
+also rebin inconsistent source ranges into a fixed bucket count and maximum range.
 
 For a non-blocking workflow, call `Session.parse_submit(...)`, then `finalize()` or `cancel()` on the
 returned job. Each job owns its futures.

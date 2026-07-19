@@ -16,6 +16,10 @@ RING-5 builds engine-independent traces, then resolves figure configuration for 
 Matplotlib. Select the engine before opening **Download** because formats depend on the active
 renderer.
 
+Plotly settings also select hover behavior: unified X, closest point, X, Y, or disabled. This is a
+rendering preference and does not change the mapped data. Static Plotly downloads accept 1×, 2×,
+or 3× scale; higher scale increases raster dimensions and generation cost.
+
 | Engine | Format | External requirement | Typical use |
 | --- | --- | --- | --- |
 | Plotly | HTML | None | Interactive, self-contained figure |
@@ -55,3 +59,7 @@ file.
 
 Plotly uses configured pixel dimensions. Matplotlib uses configured physical dimensions; PDF, PNG,
 and SVG apply tight bounding boxes, while PGF preserves the configured figure size for LaTeX input.
+Matplotlib advanced settings select XeLaTeX, pdfLaTeX, or LuaLaTeX for supported text rendering.
+The web interface does not accept an arbitrary TeX preamble, and RING-5 escapes user-controlled
+figure text before TeX-backed export. User-provided number formats are also bounded before they are
+applied to labels.

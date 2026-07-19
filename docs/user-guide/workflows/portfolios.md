@@ -23,6 +23,9 @@ Open **Save/Load Portfolio** and enter a descriptive name under **Save Portfolio
 web application replaces an existing portfolio with the same sanitized name, so check **Manage
 Saved Portfolios** before reusing a name.
 
+Saving is also allowed before data is loaded. That creates a configuration-only portfolio for the
+current settings and parser state; it does not invent an empty table.
+
 Under **Load Portfolio**, choose a saved name and select **Load Portfolio**. Restoration is
 best-effort: compatible data and plots can load even when another item is invalid. Review every
 warning before trusting a restored workspace.

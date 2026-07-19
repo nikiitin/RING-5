@@ -22,6 +22,10 @@ the workspace dataset or another plot's pipeline.
 3. Use the plot selector to switch among saved plots. Rename, duplicate, or delete the active plot
    with the controls beside it.
 
+The **Plot Type** selector inside the active plot can convert it to another registered type. RING-5
+keeps the plot identity, transformation pipeline, and processed table, then asks for any mappings
+the new type requires; review inherited settings after the conversion.
+
 Choose the plot type from the relationship you need to show, not from styling. See
 [Plot Types]({{site.baseurl}}/user-guide/reference/plot-types/) for selection guidance. Python users can inspect the live
 registry with `ring5.available_plot_types()`.
@@ -50,6 +54,9 @@ Select **Finalize Pipeline for Plotting** after the preview matches the intended
 Under **Plot Configuration**, map the processed columns to the fields required by the plot type.
 The UI prevents many invalid selections, but it cannot decide whether a column has the intended
 scientific meaning.
+
+Applicable plot types also expose X-category and group filters. These filters change the visible
+plot selection without rewriting the finalized pipeline output or shared workspace table.
 
 Settings are grouped by purpose. Keep **Show advanced settings** off until the data mapping and
 basic figure are correct. Then use the settings selector for layout, axes, legend, labels, colors,

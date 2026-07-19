@@ -22,11 +22,24 @@ and **Legends** are always visible. **Show advanced settings** reveals **Axes**,
 | Legends | Visibility, placement, orientation, labels, and spacing |
 | Axes | Ranges, scales, ticks, grids, label rotation, and axis-specific controls |
 | Data Labels | Values drawn on marks, numeric format, placement, and thresholds |
-| Colors | Palettes, per-series colors, backgrounds, grid styling, and supported patterns |
+| Colors | Palettes, per-series overrides, backgrounds, grid styling, and supported patterns |
 | Advanced | Reference shapes, error bars, default download configuration, and engine controls |
 
 Plot-specific controls appear with the basic mapping or inside the relevant section. A setting can
 be unavailable when it does not apply to the active plot type or engine.
+
+Stacked plots can label stack totals with a format, visibility threshold, position, anchor,
+typography, offset, and rotation. Heatmaps can add a total row, reverse the palette direction, and
+limit formatted cell labels to values above or below a threshold. These controls are serialized in
+the plot configuration and restored with a portfolio.
+
+Grouped and grouped-stacked bars can shade alternating major categories with a chosen background
+color. This works alongside vertical separators and the optional extra gap before an isolated final
+category.
+
+Where a plot type supports them, per-series overrides set color, display name, bar pattern, marker
+symbol and size, line width, opacity, and borders. **Rewind** returns a series to its current palette
+color.
 
 ## Working method
 

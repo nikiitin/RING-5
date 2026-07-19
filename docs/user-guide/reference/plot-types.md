@@ -30,7 +30,7 @@ print(ring5.available_plot_types())
 | Components nested within comparisons | `grouped_stacked_bar` | Major and minor groups plus stack columns |
 | Trend over an ordered value | `line` | Ordered X and numeric Y |
 | Relationship between numeric measures | `scatter` | Numeric X and Y |
-| Distribution of observations | `histogram` | Numeric observations |
+| Distribution of observations | `histogram` | Numeric observations; optional cumulative display |
 | Matrix of values | `heatmap` | Row, column, and numeric value mappings |
 | Bars with a distinct right-axis measure | `dual_axis_bar_dot` | Bar mapping and right-axis dot mapping |
 

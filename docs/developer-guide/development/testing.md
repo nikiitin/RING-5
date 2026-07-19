@@ -43,5 +43,9 @@ make test-visual      # local visual diagnostics
 Use markers declared in `pyproject.toml`. Plotly/Kaleido export and other process-owning tests run
 serially. Browser tests use the Chromium installed by `make dev`.
 
+Performance tests use repeatable fixtures and explicit thresholds for large-data transformations,
+caches, rendering, and worker-pool throughput. Treat a threshold change as a reviewed contract
+change rather than weakening it merely to accommodate a regression.
+
 For a public API addition, extend `tests/integration/test_ring5_public_api.py`. For serialized
 changes, test both current output and loading or migrating an older fixture.
