@@ -135,6 +135,7 @@ class Normalize(UniDfShaper):
         Returns:
             A new dataframe with normalized values.
         """
+        # [impl->req~ring5.shaping.normalize~1]
         result = group.copy()
 
         # Identify the baseline row for this group

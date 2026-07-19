@@ -124,6 +124,7 @@ class SplitApply(UniDfShaper):
         Returns:
             Transformed DataFrame.
         """
+        # [impl->req~ring5.shaping.split-apply~1]
         # Late import to avoid circular dependency with factory
         from src.core.services.shapers.factory import ShaperFactory
 
@@ -156,6 +157,7 @@ class SplitApply(UniDfShaper):
             Merged DataFrame with all groups' transformations applied
             independently.
         """
+        # [impl->req~ring5.shaping.split-apply~1]
         self._verify_preconditions(data_frame)
 
         # Also include any .sd columns that correspond to group columns

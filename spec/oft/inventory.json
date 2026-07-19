@@ -701,9 +701,19 @@
       "description": "Each plot shall own an ordered shaper pipeline whose output does not mutate workspace data or another plot.",
       "tags": ["pipeline", "plots", "shapers"],
       "evidence": {
-        "implementation": ["src/web/controllers/plot/pipeline_controller.py", "src/web/pages/ui/plotting/base_plot.py"],
-        "tests": ["tests/integration/test_transformation_pipeline.py"],
-        "documentation": ["docs/user-guide/workflows/plotting.md"]
+        "implementation": [
+          "src/core/services/shapers/pipeline_service.py::PipelineService.process_pipeline",
+          "src/web/pages/ui/plotting/base_plot.py::BasePlot.__init__",
+          "src/web/controllers/plot/pipeline_controller.py::PipelineController._handle_finalize"
+        ],
+        "tests": [
+          "tests/unit/test_shaper_config_validate.py::TestApplyShapers.test_does_not_mutate_original_data",
+          "tests/integration/test_transformation_pipeline.py::TestTransformationPipeline.test_multi_shaper_pipeline",
+          "tests/integration/test_controller_presenter.py::TestPlotLifecycleIntegration.test_duplicate_creates_independent_copy"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/plotting.md#shape-data-for-this-plot"
+        ]
       }
     },
     {
@@ -715,9 +725,17 @@
       "description": "Users shall add, configure, reorder, remove, preview, and explicitly finalize shaper steps before plotting.",
       "tags": ["pipeline", "shapers", "web"],
       "evidence": {
-        "implementation": ["src/web/components/common/pipeline.py", "src/web/controllers/plot/pipeline_controller.py"],
-        "tests": ["tests/e2e/test_shaper_pipeline.py"],
-        "documentation": ["docs/user-guide/workflows/plotting.md"]
+        "implementation": [
+          "src/web/controllers/plot/pipeline_controller.py::PipelineController.render",
+          "src/web/controllers/plot/pipeline_controller.py::PipelineController._handle_pipeline_steps"
+        ],
+        "tests": [
+          "tests/e2e/test_shaper_pipeline.py::TestShaperPipelineOperations",
+          "tests/unit/test_pipeline_controller.py::TestPipelineControllerRender.test_finalize_applies_pipeline"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/plotting.md#shape-data-for-this-plot"
+        ]
       }
     },
     {
@@ -729,9 +747,17 @@
       "description": "The mean shaper shall append arithmetic, geometric, or harmonic summary rows for selected variables and groups.",
       "tags": ["aggregation", "mean", "shapers"],
       "evidence": {
-        "implementation": ["src/core/services/shapers/impl/mean.py"],
-        "tests": ["tests/unit/test_shapers_extended.py"],
-        "documentation": ["docs/user-guide/reference/shapers.md"]
+        "implementation": [
+          "src/core/services/shapers/impl/mean.py::Mean._calculate_mean_with_cache"
+        ],
+        "tests": [
+          "tests/unit/test_processing_regressions.py::TestMeanNaNHandling.test_arithmean_with_nan_values",
+          "tests/unit/test_shapers_extended.py::TestMeanExtended.test_geometric_mean",
+          "tests/unit/test_shapers_extended.py::TestMeanExtended.test_harmonic_mean"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/shapers.md#mean"
+        ]
       }
     },
     {
@@ -743,9 +769,16 @@
       "description": "The column selector shall retain an explicitly ordered subset of input columns.",
       "tags": ["selection", "shapers"],
       "evidence": {
-        "implementation": ["src/core/services/shapers/impl/selector_algorithms/column_selector.py"],
-        "tests": ["tests/unit/test_selectors.py"],
-        "documentation": ["docs/user-guide/reference/shapers.md"]
+        "implementation": [
+          "src/core/services/shapers/impl/selector_algorithms/column_selector.py::ColumnSelector.__call__"
+        ],
+        "tests": [
+          "tests/unit/test_selectors.py::TestColumnSelector.test_select_multiple_columns",
+          "tests/unit/test_selectors.py::TestColumnSelector.test_column_order_preserved"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/shapers.md#column-selector"
+        ]
       }
     },
     {
@@ -757,9 +790,15 @@
       "description": "The condition selector shall filter rows by equality, containment, comparison, explicit values, or numeric range.",
       "tags": ["filter", "selection", "shapers"],
       "evidence": {
-        "implementation": ["src/core/services/shapers/impl/selector_algorithms/condition_selector.py"],
-        "tests": ["tests/unit/test_condition_selector.py"],
-        "documentation": ["docs/user-guide/reference/shapers.md"]
+        "implementation": [
+          "src/core/services/shapers/impl/selector_algorithms/condition_selector.py::ConditionSelector._apply"
+        ],
+        "tests": [
+          "tests/unit/test_condition_selector.py::TestConditionSelectorModes"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/shapers.md#condition-selector"
+        ]
       }
     },
     {
@@ -771,9 +810,16 @@
       "description": "The item selector shall keep rows whose selected column exactly matches or contains configured string values.",
       "tags": ["filter", "selection", "shapers"],
       "evidence": {
-        "implementation": ["src/core/services/shapers/impl/selector_algorithms/item_selector.py"],
-        "tests": ["tests/unit/test_selectors.py"],
-        "documentation": ["docs/user-guide/reference/shapers.md"]
+        "implementation": [
+          "src/core/services/shapers/impl/selector_algorithms/item_selector.py::ItemSelector.__call__"
+        ],
+        "tests": [
+          "tests/unit/test_selectors.py::TestItemSelector.test_select_multiple_items",
+          "tests/unit/test_selectors.py::TestItemSelector.test_partial_match_contains_mode"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/shapers.md#item-selector"
+        ]
       }
     },
     {
@@ -785,9 +831,16 @@
       "description": "The group cardinality selector shall retain groups when the distinct-value count of a configured column equals, exceeds, or falls below a configured threshold.",
       "tags": ["grouping", "selection", "shapers"],
       "evidence": {
-        "implementation": ["src/core/services/shapers/impl/selector_algorithms/group_cardinality_selector.py"],
-        "tests": ["tests/unit/test_derive_and_group_shapers.py"],
-        "documentation": ["docs/user-guide/reference/shapers.md"]
+        "implementation": [
+          "src/core/services/shapers/impl/selector_algorithms/group_cardinality_selector.py::GroupCardinalitySelector.__call__"
+        ],
+        "tests": [
+          "tests/unit/test_derive_and_group_shapers.py::test_group_cardinality_eq_keeps_complete_groups",
+          "tests/unit/test_derive_and_group_shapers.py::test_group_cardinality_modes_and_validation"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/shapers.md#group-cardinality-selector"
+        ]
       }
     },
     {
@@ -799,9 +852,16 @@
       "description": "The group predicate selector shall keep or drop whole groups according to whether a configured baseline row contains zero, NaN, or either in a selected predicate column.",
       "tags": ["grouping", "selection", "shapers"],
       "evidence": {
-        "implementation": ["src/core/services/shapers/impl/selector_algorithms/group_predicate_selector.py"],
-        "tests": ["tests/unit/test_derive_and_group_shapers.py"],
-        "documentation": ["docs/user-guide/reference/shapers.md"]
+        "implementation": [
+          "src/core/services/shapers/impl/selector_algorithms/group_predicate_selector.py::GroupPredicateSelector.__call__"
+        ],
+        "tests": [
+          "tests/unit/test_derive_and_group_shapers.py::test_group_predicate_drops_zero_baseline_group",
+          "tests/unit/test_derive_and_group_shapers.py::test_group_predicate_keep_action_and_validation"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/shapers.md#group-predicate-selector"
+        ]
       }
     },
     {
@@ -813,9 +873,17 @@
       "description": "The normalize shaper shall divide selected variables and optional .sd companions by a non-zero baseline within each configured group.",
       "tags": ["normalization", "shapers", "statistics"],
       "evidence": {
-        "implementation": ["src/core/services/shapers/impl/normalize.py"],
-        "tests": ["tests/unit/test_shaper_normalize.py"],
-        "documentation": ["docs/user-guide/reference/shapers.md"]
+        "implementation": [
+          "src/core/services/shapers/impl/normalize.py::Normalize._normalize_group"
+        ],
+        "tests": [
+          "tests/unit/test_shaper_normalize.py::test_normalization_logic",
+          "tests/unit/test_shaper_normalize.py::test_normalization_sd",
+          "tests/unit/test_shaper_normalize.py::test_zero_division"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/shapers.md#normalize"
+        ]
       }
     },
     {
@@ -827,9 +895,17 @@
       "description": "The pivot-longer shaper shall melt selected columns and optionally extract, select, discard, or merge pattern-derived categories.",
       "tags": ["pivot", "reshape", "shapers"],
       "evidence": {
-        "implementation": ["src/core/services/shapers/impl/pivot.py"],
-        "tests": ["tests/unit/test_pivot_selective.py"],
-        "documentation": ["docs/user-guide/reference/shapers.md"]
+        "implementation": [
+          "src/core/services/shapers/impl/pivot.py::PivotLonger.__call__"
+        ],
+        "tests": [
+          "tests/unit/test_pivot_selective.py::test_pivot_longer_selective_discard",
+          "tests/unit/test_pivot_selective.py::test_pivot_longer_selective_merge",
+          "tests/unit/test_pivot_selective.py::test_pivot_longer_multi_group_extraction"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/shapers.md#pivot-longer"
+        ]
       }
     },
     {
@@ -841,9 +917,15 @@
       "description": "The pivot-wider shaper shall reshape a long table into indexed columns from configured names and values.",
       "tags": ["pivot", "reshape", "shapers"],
       "evidence": {
-        "implementation": ["src/core/services/shapers/impl/pivot.py"],
-        "tests": ["tests/unit/test_shapers_extended.py"],
-        "documentation": ["docs/user-guide/reference/shapers.md"]
+        "implementation": [
+          "src/core/services/shapers/impl/pivot.py::PivotWider.__call__"
+        ],
+        "tests": [
+          "tests/unit/test_pivot_selective.py::test_pivot_wider_reshapes_long_table"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/shapers.md#pivot-wider"
+        ]
       }
     },
     {
@@ -855,9 +937,15 @@
       "description": "The sort shaper shall reorder rows using explicit category orders for one or more columns.",
       "tags": ["ordering", "shapers", "sort"],
       "evidence": {
-        "implementation": ["src/core/services/shapers/impl/sort.py"],
-        "tests": ["tests/unit/test_sort_config.py"],
-        "documentation": ["docs/user-guide/reference/shapers.md"]
+        "implementation": [
+          "src/core/services/shapers/impl/sort.py::Sort.__call__"
+        ],
+        "tests": [
+          "tests/unit/test_shapers_extended.py::TestSortShaper.test_reorders_rows_by_each_configured_category_order"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/shapers.md#sort"
+        ]
       }
     },
     {
@@ -869,9 +957,17 @@
       "description": "The split-apply shaper shall partition data by join columns, apply independent nested pipelines, and merge the results.",
       "tags": ["composition", "grouping", "shapers"],
       "evidence": {
-        "implementation": ["src/core/services/shapers/impl/split_apply.py"],
-        "tests": ["tests/unit/test_split_apply.py"],
-        "documentation": ["docs/user-guide/reference/shapers.md"]
+        "implementation": [
+          "src/core/services/shapers/impl/split_apply.py::SplitApply._apply_sub_pipeline",
+          "src/core/services/shapers/impl/split_apply.py::SplitApply.__call__"
+        ],
+        "tests": [
+          "tests/unit/test_split_apply.py::TestSplitApplyMean.test_mean_values_are_correct_per_axis",
+          "tests/unit/test_split_apply.py::TestSplitApplyFourGroups.test_four_groups_with_mean"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/shapers.md#split-apply"
+        ]
       }
     },
     {
@@ -883,9 +979,15 @@
       "description": "The transformer shaper shall convert a column to a supported type and optionally enforce categorical order.",
       "tags": ["shapers", "transformation", "types"],
       "evidence": {
-        "implementation": ["src/core/services/shapers/impl/transformer.py"],
-        "tests": ["tests/unit/test_shapers_extended.py"],
-        "documentation": ["docs/user-guide/reference/shapers.md"]
+        "implementation": [
+          "src/core/services/shapers/impl/transformer.py::Transformer.__call__"
+        ],
+        "tests": [
+          "tests/unit/test_shapers_extended.py::TestTransformer"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/shapers.md#transformer"
+        ]
       }
     },
     {
@@ -897,9 +999,17 @@
       "description": "The derive-column shaper shall create or replace a column through sum, ratio, scalar arithmetic, concatenation, or value mapping.",
       "tags": ["derived_column", "shapers", "transformation"],
       "evidence": {
-        "implementation": ["src/core/services/shapers/impl/derive_column.py"],
-        "tests": ["tests/unit/test_derive_and_group_shapers.py"],
-        "documentation": ["docs/user-guide/reference/shapers.md"]
+        "implementation": [
+          "src/core/services/shapers/impl/derive_column.py::DeriveColumn.__call__"
+        ],
+        "tests": [
+          "tests/unit/test_derive_and_group_shapers.py::test_derive_sum_skips_nan_like_pandas",
+          "tests/unit/test_derive_and_group_shapers.py::test_derive_ratio_zero_denominator_becomes_nan",
+          "tests/unit/test_derive_and_group_shapers.py::test_derive_scalar_and_concat_and_map"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/shapers.md#derive-column"
+        ]
       }
     },
     {

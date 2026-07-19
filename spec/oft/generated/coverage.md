@@ -487,8 +487,9 @@ Tags: data, history, status_approved, web
 `impl~ring5.shaping.independent-pipelines~1`
 
 Implementation evidence:
-- `src/web/controllers/plot/pipeline_controller.py`
-- `src/web/pages/ui/plotting/base_plot.py`
+- `src/core/services/shapers/pipeline_service.py::PipelineService.process_pipeline`
+- `src/web/pages/ui/plotting/base_plot.py::BasePlot.__init__`
+- `src/web/controllers/plot/pipeline_controller.py::PipelineController._handle_finalize`
 
 Covers:
 - req~ring5.shaping.independent-pipelines~1
@@ -500,8 +501,8 @@ Tags: pipeline, plots, shapers, status_approved
 `impl~ring5.shaping.pipeline-editor~1`
 
 Implementation evidence:
-- `src/web/components/common/pipeline.py`
-- `src/web/controllers/plot/pipeline_controller.py`
+- `src/web/controllers/plot/pipeline_controller.py::PipelineController.render`
+- `src/web/controllers/plot/pipeline_controller.py::PipelineController._handle_pipeline_steps`
 
 Covers:
 - req~ring5.shaping.pipeline-editor~1
@@ -513,7 +514,7 @@ Tags: pipeline, shapers, status_approved, web
 `impl~ring5.shaping.mean~1`
 
 Implementation evidence:
-- `src/core/services/shapers/impl/mean.py`
+- `src/core/services/shapers/impl/mean.py::Mean._calculate_mean_with_cache`
 
 Covers:
 - req~ring5.shaping.mean~1
@@ -525,7 +526,7 @@ Tags: aggregation, mean, shapers, status_approved
 `impl~ring5.shaping.column-selector~1`
 
 Implementation evidence:
-- `src/core/services/shapers/impl/selector_algorithms/column_selector.py`
+- `src/core/services/shapers/impl/selector_algorithms/column_selector.py::ColumnSelector.__call__`
 
 Covers:
 - req~ring5.shaping.column-selector~1
@@ -537,7 +538,7 @@ Tags: selection, shapers, status_approved
 `impl~ring5.shaping.condition-selector~1`
 
 Implementation evidence:
-- `src/core/services/shapers/impl/selector_algorithms/condition_selector.py`
+- `src/core/services/shapers/impl/selector_algorithms/condition_selector.py::ConditionSelector._apply`
 
 Covers:
 - req~ring5.shaping.condition-selector~1
@@ -549,7 +550,7 @@ Tags: filter, selection, shapers, status_approved
 `impl~ring5.shaping.item-selector~1`
 
 Implementation evidence:
-- `src/core/services/shapers/impl/selector_algorithms/item_selector.py`
+- `src/core/services/shapers/impl/selector_algorithms/item_selector.py::ItemSelector.__call__`
 
 Covers:
 - req~ring5.shaping.item-selector~1
@@ -561,7 +562,7 @@ Tags: filter, selection, shapers, status_approved
 `impl~ring5.shaping.group-cardinality-selector~1`
 
 Implementation evidence:
-- `src/core/services/shapers/impl/selector_algorithms/group_cardinality_selector.py`
+- `src/core/services/shapers/impl/selector_algorithms/group_cardinality_selector.py::GroupCardinalitySelector.__call__`
 
 Covers:
 - req~ring5.shaping.group-cardinality-selector~1
@@ -573,7 +574,7 @@ Tags: grouping, selection, shapers, status_approved
 `impl~ring5.shaping.group-predicate-selector~1`
 
 Implementation evidence:
-- `src/core/services/shapers/impl/selector_algorithms/group_predicate_selector.py`
+- `src/core/services/shapers/impl/selector_algorithms/group_predicate_selector.py::GroupPredicateSelector.__call__`
 
 Covers:
 - req~ring5.shaping.group-predicate-selector~1
@@ -585,7 +586,7 @@ Tags: grouping, selection, shapers, status_approved
 `impl~ring5.shaping.normalize~1`
 
 Implementation evidence:
-- `src/core/services/shapers/impl/normalize.py`
+- `src/core/services/shapers/impl/normalize.py::Normalize._normalize_group`
 
 Covers:
 - req~ring5.shaping.normalize~1
@@ -597,7 +598,7 @@ Tags: normalization, shapers, statistics, status_approved
 `impl~ring5.shaping.pivot-longer~1`
 
 Implementation evidence:
-- `src/core/services/shapers/impl/pivot.py`
+- `src/core/services/shapers/impl/pivot.py::PivotLonger.__call__`
 
 Covers:
 - req~ring5.shaping.pivot-longer~1
@@ -609,7 +610,7 @@ Tags: pivot, reshape, shapers, status_approved
 `impl~ring5.shaping.pivot-wider~1`
 
 Implementation evidence:
-- `src/core/services/shapers/impl/pivot.py`
+- `src/core/services/shapers/impl/pivot.py::PivotWider.__call__`
 
 Covers:
 - req~ring5.shaping.pivot-wider~1
@@ -621,7 +622,7 @@ Tags: pivot, reshape, shapers, status_approved
 `impl~ring5.shaping.sort~1`
 
 Implementation evidence:
-- `src/core/services/shapers/impl/sort.py`
+- `src/core/services/shapers/impl/sort.py::Sort.__call__`
 
 Covers:
 - req~ring5.shaping.sort~1
@@ -633,7 +634,8 @@ Tags: ordering, shapers, sort, status_approved
 `impl~ring5.shaping.split-apply~1`
 
 Implementation evidence:
-- `src/core/services/shapers/impl/split_apply.py`
+- `src/core/services/shapers/impl/split_apply.py::SplitApply._apply_sub_pipeline`
+- `src/core/services/shapers/impl/split_apply.py::SplitApply.__call__`
 
 Covers:
 - req~ring5.shaping.split-apply~1
@@ -645,7 +647,7 @@ Tags: composition, grouping, shapers, status_approved
 `impl~ring5.shaping.transformer~1`
 
 Implementation evidence:
-- `src/core/services/shapers/impl/transformer.py`
+- `src/core/services/shapers/impl/transformer.py::Transformer.__call__`
 
 Covers:
 - req~ring5.shaping.transformer~1
@@ -657,7 +659,7 @@ Tags: shapers, status_approved, transformation, types
 `impl~ring5.shaping.derive-column~1`
 
 Implementation evidence:
-- `src/core/services/shapers/impl/derive_column.py`
+- `src/core/services/shapers/impl/derive_column.py::DeriveColumn.__call__`
 
 Covers:
 - req~ring5.shaping.derive-column~1
@@ -2463,7 +2465,9 @@ Tags: data, history, status_approved, web
 `test~ring5.shaping.independent-pipelines~1`
 
 Verification evidence:
-- `tests/integration/test_transformation_pipeline.py`
+- `tests/unit/test_shaper_config_validate.py::TestApplyShapers.test_does_not_mutate_original_data`
+- `tests/integration/test_transformation_pipeline.py::TestTransformationPipeline.test_multi_shaper_pipeline`
+- `tests/integration/test_controller_presenter.py::TestPlotLifecycleIntegration.test_duplicate_creates_independent_copy`
 
 Covers:
 - req~ring5.shaping.independent-pipelines~1
@@ -2475,7 +2479,8 @@ Tags: pipeline, plots, shapers, status_approved
 `test~ring5.shaping.pipeline-editor~1`
 
 Verification evidence:
-- `tests/e2e/test_shaper_pipeline.py`
+- `tests/e2e/test_shaper_pipeline.py::TestShaperPipelineOperations`
+- `tests/unit/test_pipeline_controller.py::TestPipelineControllerRender.test_finalize_applies_pipeline`
 
 Covers:
 - req~ring5.shaping.pipeline-editor~1
@@ -2487,7 +2492,9 @@ Tags: pipeline, shapers, status_approved, web
 `test~ring5.shaping.mean~1`
 
 Verification evidence:
-- `tests/unit/test_shapers_extended.py`
+- `tests/unit/test_processing_regressions.py::TestMeanNaNHandling.test_arithmean_with_nan_values`
+- `tests/unit/test_shapers_extended.py::TestMeanExtended.test_geometric_mean`
+- `tests/unit/test_shapers_extended.py::TestMeanExtended.test_harmonic_mean`
 
 Covers:
 - req~ring5.shaping.mean~1
@@ -2499,7 +2506,8 @@ Tags: aggregation, mean, shapers, status_approved
 `test~ring5.shaping.column-selector~1`
 
 Verification evidence:
-- `tests/unit/test_selectors.py`
+- `tests/unit/test_selectors.py::TestColumnSelector.test_select_multiple_columns`
+- `tests/unit/test_selectors.py::TestColumnSelector.test_column_order_preserved`
 
 Covers:
 - req~ring5.shaping.column-selector~1
@@ -2511,7 +2519,7 @@ Tags: selection, shapers, status_approved
 `test~ring5.shaping.condition-selector~1`
 
 Verification evidence:
-- `tests/unit/test_condition_selector.py`
+- `tests/unit/test_condition_selector.py::TestConditionSelectorModes`
 
 Covers:
 - req~ring5.shaping.condition-selector~1
@@ -2523,7 +2531,8 @@ Tags: filter, selection, shapers, status_approved
 `test~ring5.shaping.item-selector~1`
 
 Verification evidence:
-- `tests/unit/test_selectors.py`
+- `tests/unit/test_selectors.py::TestItemSelector.test_select_multiple_items`
+- `tests/unit/test_selectors.py::TestItemSelector.test_partial_match_contains_mode`
 
 Covers:
 - req~ring5.shaping.item-selector~1
@@ -2535,7 +2544,8 @@ Tags: filter, selection, shapers, status_approved
 `test~ring5.shaping.group-cardinality-selector~1`
 
 Verification evidence:
-- `tests/unit/test_derive_and_group_shapers.py`
+- `tests/unit/test_derive_and_group_shapers.py::test_group_cardinality_eq_keeps_complete_groups`
+- `tests/unit/test_derive_and_group_shapers.py::test_group_cardinality_modes_and_validation`
 
 Covers:
 - req~ring5.shaping.group-cardinality-selector~1
@@ -2547,7 +2557,8 @@ Tags: grouping, selection, shapers, status_approved
 `test~ring5.shaping.group-predicate-selector~1`
 
 Verification evidence:
-- `tests/unit/test_derive_and_group_shapers.py`
+- `tests/unit/test_derive_and_group_shapers.py::test_group_predicate_drops_zero_baseline_group`
+- `tests/unit/test_derive_and_group_shapers.py::test_group_predicate_keep_action_and_validation`
 
 Covers:
 - req~ring5.shaping.group-predicate-selector~1
@@ -2559,7 +2570,9 @@ Tags: grouping, selection, shapers, status_approved
 `test~ring5.shaping.normalize~1`
 
 Verification evidence:
-- `tests/unit/test_shaper_normalize.py`
+- `tests/unit/test_shaper_normalize.py::test_normalization_logic`
+- `tests/unit/test_shaper_normalize.py::test_normalization_sd`
+- `tests/unit/test_shaper_normalize.py::test_zero_division`
 
 Covers:
 - req~ring5.shaping.normalize~1
@@ -2571,7 +2584,9 @@ Tags: normalization, shapers, statistics, status_approved
 `test~ring5.shaping.pivot-longer~1`
 
 Verification evidence:
-- `tests/unit/test_pivot_selective.py`
+- `tests/unit/test_pivot_selective.py::test_pivot_longer_selective_discard`
+- `tests/unit/test_pivot_selective.py::test_pivot_longer_selective_merge`
+- `tests/unit/test_pivot_selective.py::test_pivot_longer_multi_group_extraction`
 
 Covers:
 - req~ring5.shaping.pivot-longer~1
@@ -2583,7 +2598,7 @@ Tags: pivot, reshape, shapers, status_approved
 `test~ring5.shaping.pivot-wider~1`
 
 Verification evidence:
-- `tests/unit/test_shapers_extended.py`
+- `tests/unit/test_pivot_selective.py::test_pivot_wider_reshapes_long_table`
 
 Covers:
 - req~ring5.shaping.pivot-wider~1
@@ -2595,7 +2610,7 @@ Tags: pivot, reshape, shapers, status_approved
 `test~ring5.shaping.sort~1`
 
 Verification evidence:
-- `tests/unit/test_sort_config.py`
+- `tests/unit/test_shapers_extended.py::TestSortShaper.test_reorders_rows_by_each_configured_category_order`
 
 Covers:
 - req~ring5.shaping.sort~1
@@ -2607,7 +2622,8 @@ Tags: ordering, shapers, sort, status_approved
 `test~ring5.shaping.split-apply~1`
 
 Verification evidence:
-- `tests/unit/test_split_apply.py`
+- `tests/unit/test_split_apply.py::TestSplitApplyMean.test_mean_values_are_correct_per_axis`
+- `tests/unit/test_split_apply.py::TestSplitApplyFourGroups.test_four_groups_with_mean`
 
 Covers:
 - req~ring5.shaping.split-apply~1
@@ -2619,7 +2635,7 @@ Tags: composition, grouping, shapers, status_approved
 `test~ring5.shaping.transformer~1`
 
 Verification evidence:
-- `tests/unit/test_shapers_extended.py`
+- `tests/unit/test_shapers_extended.py::TestTransformer`
 
 Covers:
 - req~ring5.shaping.transformer~1
@@ -2631,7 +2647,9 @@ Tags: shapers, status_approved, transformation, types
 `test~ring5.shaping.derive-column~1`
 
 Verification evidence:
-- `tests/unit/test_derive_and_group_shapers.py`
+- `tests/unit/test_derive_and_group_shapers.py::test_derive_sum_skips_nan_like_pandas`
+- `tests/unit/test_derive_and_group_shapers.py::test_derive_ratio_zero_denominator_becomes_nan`
+- `tests/unit/test_derive_and_group_shapers.py::test_derive_scalar_and_concat_and_map`
 
 Covers:
 - req~ring5.shaping.derive-column~1
@@ -4384,7 +4402,7 @@ Tags: data, history, status_approved, web
 `uman~ring5.shaping.independent-pipelines~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/plotting.md`
+- `docs/user-guide/workflows/plotting.md#shape-data-for-this-plot`
 
 Covers:
 - req~ring5.shaping.independent-pipelines~1
@@ -4396,7 +4414,7 @@ Tags: pipeline, plots, shapers, status_approved
 `uman~ring5.shaping.pipeline-editor~1`
 
 User documentation evidence:
-- `docs/user-guide/workflows/plotting.md`
+- `docs/user-guide/workflows/plotting.md#shape-data-for-this-plot`
 
 Covers:
 - req~ring5.shaping.pipeline-editor~1
@@ -4408,7 +4426,7 @@ Tags: pipeline, shapers, status_approved, web
 `uman~ring5.shaping.mean~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/shapers.md`
+- `docs/user-guide/reference/shapers.md#mean`
 
 Covers:
 - req~ring5.shaping.mean~1
@@ -4420,7 +4438,7 @@ Tags: aggregation, mean, shapers, status_approved
 `uman~ring5.shaping.column-selector~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/shapers.md`
+- `docs/user-guide/reference/shapers.md#column-selector`
 
 Covers:
 - req~ring5.shaping.column-selector~1
@@ -4432,7 +4450,7 @@ Tags: selection, shapers, status_approved
 `uman~ring5.shaping.condition-selector~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/shapers.md`
+- `docs/user-guide/reference/shapers.md#condition-selector`
 
 Covers:
 - req~ring5.shaping.condition-selector~1
@@ -4444,7 +4462,7 @@ Tags: filter, selection, shapers, status_approved
 `uman~ring5.shaping.item-selector~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/shapers.md`
+- `docs/user-guide/reference/shapers.md#item-selector`
 
 Covers:
 - req~ring5.shaping.item-selector~1
@@ -4456,7 +4474,7 @@ Tags: filter, selection, shapers, status_approved
 `uman~ring5.shaping.group-cardinality-selector~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/shapers.md`
+- `docs/user-guide/reference/shapers.md#group-cardinality-selector`
 
 Covers:
 - req~ring5.shaping.group-cardinality-selector~1
@@ -4468,7 +4486,7 @@ Tags: grouping, selection, shapers, status_approved
 `uman~ring5.shaping.group-predicate-selector~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/shapers.md`
+- `docs/user-guide/reference/shapers.md#group-predicate-selector`
 
 Covers:
 - req~ring5.shaping.group-predicate-selector~1
@@ -4480,7 +4498,7 @@ Tags: grouping, selection, shapers, status_approved
 `uman~ring5.shaping.normalize~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/shapers.md`
+- `docs/user-guide/reference/shapers.md#normalize`
 
 Covers:
 - req~ring5.shaping.normalize~1
@@ -4492,7 +4510,7 @@ Tags: normalization, shapers, statistics, status_approved
 `uman~ring5.shaping.pivot-longer~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/shapers.md`
+- `docs/user-guide/reference/shapers.md#pivot-longer`
 
 Covers:
 - req~ring5.shaping.pivot-longer~1
@@ -4504,7 +4522,7 @@ Tags: pivot, reshape, shapers, status_approved
 `uman~ring5.shaping.pivot-wider~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/shapers.md`
+- `docs/user-guide/reference/shapers.md#pivot-wider`
 
 Covers:
 - req~ring5.shaping.pivot-wider~1
@@ -4516,7 +4534,7 @@ Tags: pivot, reshape, shapers, status_approved
 `uman~ring5.shaping.sort~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/shapers.md`
+- `docs/user-guide/reference/shapers.md#sort`
 
 Covers:
 - req~ring5.shaping.sort~1
@@ -4528,7 +4546,7 @@ Tags: ordering, shapers, sort, status_approved
 `uman~ring5.shaping.split-apply~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/shapers.md`
+- `docs/user-guide/reference/shapers.md#split-apply`
 
 Covers:
 - req~ring5.shaping.split-apply~1
@@ -4540,7 +4558,7 @@ Tags: composition, grouping, shapers, status_approved
 `uman~ring5.shaping.transformer~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/shapers.md`
+- `docs/user-guide/reference/shapers.md#transformer`
 
 Covers:
 - req~ring5.shaping.transformer~1
@@ -4552,7 +4570,7 @@ Tags: shapers, status_approved, transformation, types
 `uman~ring5.shaping.derive-column~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/shapers.md`
+- `docs/user-guide/reference/shapers.md#derive-column`
 
 Covers:
 - req~ring5.shaping.derive-column~1

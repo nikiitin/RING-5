@@ -2,11 +2,14 @@ import numpy as np
 import pandas as pd
 
 from src.core.services.shapers.impl.mean import Mean
+from src.core.services.shapers.impl.sort import Sort
 from src.core.services.shapers.impl.transformer import Transformer
 
 
 class TestTransformer:
     """Test Transformer shaper."""
+
+    # [test->req~ring5.shaping.transformer~1]
 
     def test_scalar_conversion(self) -> None:
         """Test converting string to scalar."""
@@ -48,6 +51,7 @@ class TestMeanExtended:
 
     def test_geometric_mean(self) -> None:
         """Test geometric mean calculation."""
+        # [test->req~ring5.shaping.mean~1]
         # 1, 10, 100 -> geomean = 10
         df = pd.DataFrame({"Group": ["A", "A", "A"], "Value": [1, 10, 100]})
 
@@ -68,6 +72,7 @@ class TestMeanExtended:
 
     def test_harmonic_mean(self) -> None:
         """Test harmonic mean calculation."""
+        # [test->req~ring5.shaping.mean~1]
         # 2, 6 -> harmean = 2 / (1/2 + 1/6) = 2 / (3/6 + 1/6) = 2 / (4/6) = 12/4 = 3
         df = pd.DataFrame({"Group": ["A", "A"], "Value": [2.0, 6.0]})
 
@@ -83,3 +88,27 @@ class TestMeanExtended:
         result = shaper(df)
         mean_row = result[result["Group"] == "hmean"]
         assert np.isclose(pd.Series(mean_row["Value"]).iloc[0], 3.0)
+
+
+class TestSortShaper:
+    """Behavioral tests for explicit multi-column category ordering."""
+
+    def test_reorders_rows_by_each_configured_category_order(self) -> None:
+        # [test->req~ring5.shaping.sort~1]
+        data = pd.DataFrame(
+            {
+                "group": ["B", "A", "B", "A"],
+                "phase": ["warm", "hot", "hot", "warm"],
+                "value": [1, 2, 3, 4],
+            }
+        )
+
+        result = Sort({"order_dict": {"group": ["A", "B"], "phase": ["hot", "warm"]}})(data)
+
+        assert list(zip(result["group"], result["phase"], strict=True)) == [
+            ("A", "hot"),
+            ("A", "warm"),
+            ("B", "hot"),
+            ("B", "warm"),
+        ]
+        assert data["group"].tolist() == ["B", "A", "B", "A"]

@@ -1,11 +1,12 @@
 import pandas as pd
 import pytest
 
-from src.core.services.shapers.impl.pivot import PivotLonger
+from src.core.services.shapers.impl.pivot import PivotLonger, PivotWider
 
 
 def test_pivot_longer_selective_discard():
     # Setup data
+    # [test->req~ring5.shaping.pivot-longer~1]
     data = pd.DataFrame(
         {
             "config": ["base", "base"],
@@ -40,6 +41,7 @@ def test_pivot_longer_selective_discard():
 
 def test_pivot_longer_selective_merge():
     # Setup data
+    # [test->req~ring5.shaping.pivot-longer~1]
     data = pd.DataFrame(
         {"config": ["base"], "tick": [100], "cpu0": [10], "cpu1": [20], "cpu2": [30], "cpu3": [40]}
     )
@@ -73,6 +75,7 @@ def test_pivot_longer_selective_merge():
 
 def test_pivot_longer_multi_group_extraction():
     # Setup data
+    # [test->req~ring5.shaping.pivot-longer~1]
     data = pd.DataFrame(
         {"config": ["base"], "l0_cntrl0": [5], "l0_cntrl1": [10], "l1_cntrl0": [15]}
     )
@@ -113,3 +116,22 @@ def test_pivot_longer_rejects_expression_that_exceeds_timeout():
 
     with pytest.raises(ValueError, match="matching exceeded"):
         PivotLonger(params)(data)
+
+
+def test_pivot_wider_reshapes_long_table():
+    # [test->req~ring5.shaping.pivot-wider~1]
+    data = pd.DataFrame(
+        {
+            "benchmark": ["mcf", "mcf", "xalanc", "xalanc"],
+            "statistic": ["ipc", "cycles", "ipc", "cycles"],
+            "value": [1.2, 100, 0.8, 140],
+        }
+    )
+
+    result = PivotWider({"index": ["benchmark"], "columns": "statistic", "values": "value"})(data)
+
+    assert list(result.columns) == ["benchmark", "cycles", "ipc"]
+    assert result.to_dict("records") == [
+        {"benchmark": "mcf", "cycles": 100.0, "ipc": 1.2},
+        {"benchmark": "xalanc", "cycles": 140.0, "ipc": 0.8},
+    ]

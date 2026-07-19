@@ -70,6 +70,7 @@ class PipelineController:
         Args:
             plot: The plot whose pipeline to edit.
         """
+        # [impl->req~ring5.shaping.pipeline-editor~1]
         PipelineComponent.render_section_header()
 
         raw_data: pd.DataFrame | None = self._api.state_manager.get_data()
@@ -113,6 +114,7 @@ class PipelineController:
             plot: The plot holding the pipeline.
             raw_data: The original uploaded data (before any shapers).
         """
+        # [impl->req~ring5.shaping.pipeline-editor~1]
         step_input: pd.DataFrame = raw_data
         for idx, shaper in enumerate(plot.pipeline):
             try:
@@ -184,6 +186,7 @@ class PipelineController:
             plot: The plot to finalize.
             raw_data: Original uploaded data.
         """
+        # [impl->req~ring5.shaping.independent-pipelines~1]
         try:
             confs: list[ShaperStepConfig] = [s["config"] for s in plot.pipeline if s["config"]]
             processed: pd.DataFrame = self._pipeline.apply_shapers(raw_data, confs)

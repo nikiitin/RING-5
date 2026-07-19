@@ -54,6 +54,8 @@ class TestShaperPipelineOperations:
     guarantee execution order.
     """
 
+    # [test->req~ring5.shaping.pipeline-editor~1]
+
     @pytest.mark.order(1)
     def test_01_create_plot_for_pipeline(self, tier1_page: Page) -> None:
         """Create a bar plot dedicated to pipeline testing."""

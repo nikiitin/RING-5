@@ -62,6 +62,7 @@ class Sort(UniDfShaper):
         """
         Applies categorical sorting to the dataframe.
         """
+        # [impl->req~ring5.shaping.sort~1]
         self._verify_preconditions(data_frame)
 
         # Avoid modifying the input dataframe

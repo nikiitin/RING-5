@@ -66,6 +66,7 @@ class GroupPredicateSelector(UniDfShaper):
 
     @override
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
+        # [impl->req~ring5.shaping.group-predicate-selector~1]
         self._verify_preconditions(data_frame)
         result = data_frame.copy()
 

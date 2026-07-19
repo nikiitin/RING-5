@@ -32,6 +32,19 @@ registry with `ring5.available_plot_types()`.
 
 ## Shape data for this plot
 
+<!--
+`uman~ring5.shaping.independent-pipelines.documentation~1`
+
+Covers:
+- req~ring5.shaping.independent-pipelines~1
+
+`uman~ring5.shaping.pipeline-editor.documentation~1`
+
+Covers:
+- req~ring5.shaping.pipeline-editor~1
+
+-->
+
 The **Data Processing Pipeline** runs before trace construction:
 
 ```mermaid

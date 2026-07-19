@@ -43,6 +43,7 @@ class PipelineService:
         Raises ``PipelineStepError`` (a ``ValueError`` carrying
         ``step_index``/``shaper_type``) if any step is malformed or fails.
         """
+        # [impl->req~ring5.shaping.independent-pipelines~1]
         t_start = time.perf_counter()
         current_data = data
 

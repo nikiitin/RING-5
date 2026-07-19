@@ -95,6 +95,7 @@ class TestPipelineControllerRender:
         mock_executor: MagicMock,
         mock_plot: MagicMock,
     ) -> None:
+        # [test->req~ring5.shaping.pipeline-editor~1]
         from src.web.controllers.plot.pipeline_controller import PipelineController
 
         mock_plot.pipeline = [{"id": 0, "type": "rename", "config": {"mapping": {"x": "X"}}}]

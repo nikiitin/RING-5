@@ -94,6 +94,7 @@ class ConditionSelector(Selector):
 
     def _apply(self, data_frame: pd.DataFrame) -> pd.DataFrame:
         """Execute the filtering logic (the result may be a view of *data_frame*)."""
+        # [impl->req~ring5.shaping.condition-selector~1]
         self._verify_preconditions(data_frame)
 
         col = self.column

@@ -23,6 +23,8 @@ def sample_data() -> pd.DataFrame:
 class TestConditionSelectorModes:
     """Test all filter modes."""
 
+    # [test->req~ring5.shaping.condition-selector~1]
+
     def test_greater_than(self, sample_data: pd.DataFrame) -> None:
         sel = ConditionSelector(
             cast(Any, {"column": "value", "mode": "greater_than", "threshold": 25})

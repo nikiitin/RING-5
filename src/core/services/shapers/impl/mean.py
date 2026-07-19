@@ -120,6 +120,7 @@ class Mean(UniDfShaper):
         Returns:
             DataFrame with mean rows appended
         """
+        # [impl->req~ring5.shaping.mean~1]
         result = data_frame.copy()
         grouped = result.groupby(self.grouping_columns)
 

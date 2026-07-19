@@ -86,6 +86,7 @@ class TestTransformationPipeline:
         2. Sort by benchmark
         3. Filter top configurations
         """
+        # [test->req~ring5.shaping.independent-pipelines~1]
         # Define pipeline
         pipeline: list[ShaperStepConfig] = [
             {

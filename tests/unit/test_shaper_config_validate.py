@@ -220,6 +220,7 @@ class TestApplyShapers:
 
     def test_does_not_mutate_original_data(self) -> None:
         """A shaper pipeline must not mutate the caller's DataFrame."""
+        # [test->req~ring5.shaping.independent-pipelines~1]
         df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         config = [cast(ShaperStepConfig, {"type": "columnSelector", "columns": ["a"]})]
         apply_shapers(df, config)
