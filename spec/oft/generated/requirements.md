@@ -2190,7 +2190,7 @@ Tags: benchmarks, performance, quality, status_approved
 `req~ring5.trace.inventory-generator~1`
 Status: approved
 
-A repository tool shall validate feature IDs, revisions, statuses, evidence paths, and deterministic generated OpenFastTrace Markdown.
+The inventory generator shall validate requirement metadata, exact evidence locators, matching source-level OFT markers, live capability bindings, and deterministic native OFT requirement Markdown.
 
 Covers:
 - feat~ring5.traceability~1
@@ -2213,12 +2213,12 @@ Needs: impl, test, uman
 
 Tags: audit, discovery, openfasttrace, status_approved
 
-### Native OFT HTML coverage report
+### Human-first native OFT HTML report
 
 `req~ring5.trace.human-html-report~1`
 Status: approved
 
-A single command shall generate native OpenFastTrace HTML, derive coverage outcomes from OFT trace results, provide requirement search and filters, and retain the complete OFT artifact graph in the standalone report.
+The report generator shall derive outcomes from native OpenFastTrace HTML, explain coverage semantics, expose each requirement's exact specification, implementation and test origins, provide search and filters, and retain the complete native artifact graph.
 
 Covers:
 - feat~ring5.traceability~1

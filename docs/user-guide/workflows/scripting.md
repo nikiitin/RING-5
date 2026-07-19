@@ -114,13 +114,6 @@ Perl, browser, and XeLaTeX dependencies without making optional tools essential.
 
 ## Use the CLI
 
-```text
-ring5 doctor
-ring5 parse STATS_PATH --variable NAME --output FILE
-ring5 render PORTFOLIO --out-dir DIRECTORY
-ring5 upgrade PORTFOLIO
-```
-
 ### Parse statistics to CSV
 
 <!--
@@ -165,3 +158,10 @@ Covers:
 `Session.shape`, `reduce_seeds`, `remove_outliers`, `apply_operation`, and `mix_columns` return a
 `Table` when given one; plot methods also accept it. Use a DataFrame when the analysis needs pandas
 operations outside the supported surface.
+
+```text
+ring5 doctor
+ring5 parse STATS_PATH --variable NAME --output FILE
+ring5 render PORTFOLIO --out-dir DIRECTORY
+ring5 upgrade PORTFOLIO
+```

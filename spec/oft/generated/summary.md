@@ -10,7 +10,7 @@ This file is informative; normative items are in the other generated files.
 - Approved current requirements: 158
 - Proposed future requirements: 0
 - Draft future requirements: 0
-- Generated OFT items: 644
+- Generated specification items: 170
 - Live capability bindings: 556
 
 ## Requirements by feature group

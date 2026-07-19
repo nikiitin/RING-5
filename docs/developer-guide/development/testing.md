@@ -28,21 +28,6 @@ Reuse fixtures from `tests/conftest.py` and existing xdist groups for shared sta
 assert public outcomes and typed errors, not implementation call order unless orchestration is the
 contract.
 
-## Commands
-
-```bash
-make test-unit        # fast unit and UI-unit tests
-make test             # non-browser tests plus serial Plotly export tests
-make test-ci          # non-browser suite with coverage enforcement
-make test-export      # serial Kaleido export tests
-make test-latex       # PGF tests; requires XeLaTeX
-make test-e2e         # Playwright workflows
-make test-visual      # local visual diagnostics
-```
-
-Use markers declared in `pyproject.toml`. Plotly/Kaleido export and other process-owning tests run
-serially. Browser tests use the Chromium installed by `make dev`.
-
 ## Performance regression checks
 
 <!--
@@ -57,6 +42,21 @@ Performance tests use repeatable fixtures and explicit thresholds for large-data
 caches, rendering, and worker-pool throughput. Treat a threshold change as a reviewed contract
 change rather than weakening it merely to accommodate a regression. They live outside the default
 test targets and run explicitly with `python_venv/bin/pytest tests/performance -n 0 --no-cov`.
+
+## Commands
+
+```bash
+make test-unit        # fast unit and UI-unit tests
+make test             # non-browser tests plus serial Plotly export tests
+make test-ci          # non-browser suite with coverage enforcement
+make test-export      # serial Kaleido export tests
+make test-latex       # PGF tests; requires XeLaTeX
+make test-e2e         # Playwright workflows
+make test-visual      # local visual diagnostics
+```
+
+Use markers declared in `pyproject.toml`. Plotly/Kaleido export and other process-owning tests run
+serially. Browser tests use the Chromium installed by `make dev`.
 
 For a public API addition, extend `tests/integration/test_ring5_public_api.py`. For serialized
 changes, test both current output and loading or migrating an older fixture.

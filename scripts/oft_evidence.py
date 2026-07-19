@@ -162,6 +162,7 @@ def collect_evidence_markers(root: Path) -> list[EvidenceMarker]:
 
 def validate_source_evidence(inventory: dict[str, Any], root: Path) -> list[str]:
     """Return validation errors for precise references and native source markers."""
+    # [impl->req~ring5.trace.inventory-generator~1]
     try:
         markers = collect_evidence_markers(root)
     except (OSError, ValueError) as exc:

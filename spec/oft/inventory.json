@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "project": "RING-5",
   "groups": [
     {
@@ -3077,12 +3077,12 @@
       "revision": 1,
       "status": "approved",
       "title": "Deterministic OFT inventory generator",
-      "description": "A repository tool shall validate feature IDs, revisions, statuses, evidence paths, and deterministic generated OpenFastTrace Markdown.",
+      "description": "The inventory generator shall validate requirement metadata, exact evidence locators, matching source-level OFT markers, live capability bindings, and deterministic native OFT requirement Markdown.",
       "tags": ["generator", "governance", "openfasttrace"],
       "evidence": {
-        "implementation": ["scripts/generate_oft_inventory.py"],
-        "tests": ["tests/unit/test_oft_inventory.py"],
-        "documentation": ["spec/oft/README.md"]
+        "implementation": ["scripts/generate_oft_inventory.py::validate_inventory", "scripts/generate_oft_inventory.py::render_inventory", "scripts/oft_evidence.py::validate_source_evidence"],
+        "tests": ["tests/unit/test_oft_inventory.py::test_repository_inventory_is_valid_and_comprehensive", "tests/unit/test_oft_inventory.py::test_rendered_inventory_is_deterministic_and_complete"],
+        "documentation": ["spec/oft/README.md#what-covered-means"]
       }
     },
     {
@@ -3094,9 +3094,9 @@
       "description": "The repository shall record independent feature-discovery passes, their accepted deltas and rejected candidates, and repeat the audit until a pass adds no current requirements.",
       "tags": ["audit", "discovery", "openfasttrace"],
       "evidence": {
-        "implementation": ["spec/oft/discovery-audit.md", "scripts/generate_oft_inventory.py"],
-        "tests": ["tests/unit/test_oft_inventory.py"],
-        "documentation": ["spec/oft/README.md", "spec/oft/discovery-audit.md"]
+        "implementation": ["scripts/generate_oft_inventory.py::discover_live_capabilities", "scripts/generate_oft_inventory.py::validate_inventory"],
+        "tests": ["tests/unit/test_oft_inventory.py::test_repository_inventory_is_valid_and_comprehensive", "tests/unit/test_oft_inventory.py::test_unbound_live_capability_is_rejected"],
+        "documentation": ["spec/oft/discovery-audit.md#convergence-runs"]
       }
     },
     {
@@ -3104,13 +3104,13 @@
       "group": "traceability",
       "revision": 1,
       "status": "approved",
-      "title": "Native OFT HTML coverage report",
-      "description": "A single command shall generate native OpenFastTrace HTML, derive coverage outcomes from OFT trace results, provide requirement search and filters, and retain the complete OFT artifact graph in the standalone report.",
+      "title": "Human-first native OFT HTML report",
+      "description": "The report generator shall derive outcomes from native OpenFastTrace HTML, explain coverage semantics, expose each requirement's exact specification, implementation and test origins, provide search and filters, and retain the complete native artifact graph.",
       "tags": ["html", "openfasttrace", "reporting"],
       "evidence": {
-        "implementation": ["Makefile", "scripts/generate_oft_html_report.py", "scripts/oft_html_report.py"],
-        "tests": ["tests/unit/test_oft_html_report.py", "tests/unit/test_oft_inventory.py"],
-        "documentation": ["spec/oft/README.md"]
+        "implementation": ["scripts/generate_oft_html_report.py::main", "scripts/oft_html_report.py::extract_oft_coverage", "scripts/oft_html_report.py::enhance_oft_html"],
+        "tests": ["tests/unit/test_oft_html_report.py::test_coverage_is_read_from_native_oft_markers", "tests/unit/test_oft_html_report.py::test_human_layer_preserves_native_trace_and_links_to_it", "tests/unit/test_oft_html_report.py::test_missing_native_requirement_is_rejected", "tests/unit/test_oft_html_report.py::test_non_oft_html_is_rejected"],
+        "documentation": ["spec/oft/README.md#html-coverage-report"]
       }
     },
     {
@@ -3122,9 +3122,9 @@
       "description": "The quality gate shall fail when navigation, registries, parser and shaper schemas, rendering models and formats, public APIs, Session methods, or CLI commands and options lack an explicit requirement binding.",
       "tags": ["discovery", "governance", "openfasttrace"],
       "evidence": {
-        "implementation": ["scripts/generate_oft_inventory.py::discover_live_capabilities", "Makefile"],
-        "tests": ["tests/unit/test_oft_inventory.py"],
-        "documentation": ["spec/oft/README.md"]
+        "implementation": ["scripts/generate_oft_inventory.py::discover_live_capabilities", "scripts/generate_oft_inventory.py::validate_inventory"],
+        "tests": ["tests/unit/test_oft_inventory.py::test_repository_inventory_is_valid_and_comprehensive", "tests/unit/test_oft_inventory.py::test_unbound_live_capability_is_rejected"],
+        "documentation": ["spec/oft/README.md#automatic-discovery"]
       }
     }
   ],

@@ -12,7 +12,13 @@ import html
 import json
 import re
 from collections.abc import Mapping
+from collections.abc import Sequence
 from typing import Any, cast
+
+if __package__:
+    from scripts.oft_evidence import EvidenceMarker
+else:
+    from oft_evidence import EvidenceMarker
 
 
 class OftHtmlReportError(ValueError):
@@ -24,6 +30,12 @@ _REQUIREMENT_RESULT = re.compile(
     r".*?<summary[^>]*>\s*<span class=\"([^\"]+)\">",
     re.DOTALL,
 )
+_ARTIFACT_SECTION = re.compile(
+    r'<section class="sitem" id="((impl|test|uman)~[^"]+)">(.*?)</section>',
+    re.DOTALL,
+)
+_ARTIFACT_ORIGIN = re.compile(r'<p class="origin">([^<]+)</p>')
+_ARTIFACT_COVER = re.compile(r'href="#req~ring5\.([^"~]+(?:\.[^"~]+)*)~(\d+)"')
 
 
 def _escape(value: object) -> str:
@@ -33,6 +45,34 @@ def _escape(value: object) -> str:
 def inventory_fingerprint(inventory: Mapping[str, Any]) -> str:
     """Return a deterministic fingerprint for report-staleness checks."""
     canonical = json.dumps(inventory, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def evidence_fingerprint(markers: Sequence[EvidenceMarker]) -> str:
+    """Return a deterministic fingerprint for exact source-marker origins."""
+    canonical = "\n".join(
+        "|".join(
+            (
+                marker.artifact_type,
+                marker.requirement_id,
+                str(marker.revision),
+                marker.path,
+                marker.locator,
+                str(marker.line),
+            )
+        )
+        for marker in sorted(
+            markers,
+            key=lambda item: (
+                item.artifact_type,
+                item.requirement_id,
+                item.revision,
+                item.path,
+                item.locator,
+                item.line,
+            ),
+        )
+    )
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
@@ -49,6 +89,7 @@ def extract_oft_coverage(native_html: str, inventory: Mapping[str, Any]) -> dict
     Raises:
         OftHtmlReportError: The document is not native OFT HTML or is incomplete.
     """
+    # [impl->req~ring5.trace.human-html-report~1]
     required_sections = ("feat", "req", "impl", "test", "uman")
     missing_sections = [
         artifact
@@ -99,7 +140,88 @@ def extract_oft_coverage(native_html: str, inventory: Mapping[str, Any]) -> dict
     return coverage
 
 
-def _requirement_card(feature: Mapping[str, Any], covered: bool) -> str:
+def _native_evidence_targets(native_html: str) -> dict[tuple[str, str, int, str], str]:
+    """Map source origins to their native OFT artifact anchors."""
+    targets: dict[tuple[str, str, int, str], str] = {}
+    for artifact_id, artifact_type, body in _ARTIFACT_SECTION.findall(native_html):
+        origin = _ARTIFACT_ORIGIN.search(body)
+        cover = _ARTIFACT_COVER.search(body)
+        if origin is None or cover is None:
+            continue
+        requirement_id, revision = cover.groups()
+        targets[(artifact_type, requirement_id, int(revision), html.unescape(origin.group(1)))] = (
+            artifact_id
+        )
+    return targets
+
+
+def _evidence_details(
+    feature: Mapping[str, Any],
+    markers: Mapping[tuple[str, str, int, str], EvidenceMarker],
+    native_targets: Mapping[tuple[str, str, int, str], str],
+) -> str:
+    """Render exact specification, implementation, and verification origins."""
+    evidence = feature.get("evidence")
+    if not isinstance(evidence, dict):
+        return ""
+
+    feature_id = str(feature["id"])
+    revision = int(feature["revision"])
+    categories = (
+        ("documentation", "uman", "Specification"),
+        ("implementation", "impl", "Implementation"),
+        ("tests", "test", "Verification"),
+    )
+    columns: list[str] = []
+    total = 0
+    for evidence_key, artifact_type, label in categories:
+        references = evidence.get(evidence_key, [])
+        if not isinstance(references, list):
+            continue
+        total += len(references)
+        items: list[str] = []
+        for reference_value in references:
+            reference = str(reference_value)
+            marker = markers.get((artifact_type, feature_id, revision, reference))
+            if marker is None:
+                location = "exact locator"
+                source_href = f"../../../{_escape(reference)}"
+                native_href = f"#req~ring5.{_escape(feature_id)}~{revision}"
+            else:
+                origin = f"{marker.path}:{marker.line}"
+                location = f"line {marker.line}"
+                source_href = f"../../../{_escape(marker.path)}#L{marker.line}"
+                target = native_targets.get((artifact_type, feature_id, revision, origin))
+                native_href = (
+                    f"#{_escape(target)}"
+                    if target is not None
+                    else f"#req~ring5.{_escape(feature_id)}~{revision}"
+                )
+            items.append(
+                '<li><a class="human-source-link" href="{source}"><code>{reference}</code>'
+                '<b>open source ↗</b></a>'
+                '<span>{location} · <a href="{native}">native OFT artifact</a></span></li>'.format(
+                    source=source_href,
+                    reference=_escape(reference),
+                    location=_escape(location),
+                    native=native_href,
+                )
+            )
+        columns.append(
+            f'<div class="human-evidence-column"><h5>{label}</h5><ul>{"".join(items)}</ul></div>'
+        )
+    return (
+        f'<details class="human-evidence"><summary>Show {total} exact evidence origins</summary>'
+        f'<div class="human-evidence-grid">{"".join(columns)}</div></details>'
+    )
+
+
+def _requirement_card(
+    feature: Mapping[str, Any],
+    covered: bool,
+    markers: Mapping[tuple[str, str, int, str], EvidenceMarker],
+    native_targets: Mapping[tuple[str, str, int, str], str],
+) -> str:
     feature_id = str(feature["id"])
     status = str(feature["status"])
     coverage = "covered" if covered else "uncovered"
@@ -114,6 +236,7 @@ def _requirement_card(feature: Mapping[str, Any], covered: bool) -> str:
     ).lower()
     tags = "".join(f'<span class="human-tag">{_escape(tag)}</span>' for tag in feature["tags"])
     native_id = f"req~ring5.{feature_id}~{feature['revision']}"
+    evidence_details = _evidence_details(feature, markers, native_targets)
     return f"""
 <article class="human-requirement" data-group="{_escape(feature['group'])}"
   data-status="{_escape(status)}" data-coverage="{coverage}"
@@ -126,6 +249,7 @@ def _requirement_card(feature: Mapping[str, Any], covered: bool) -> str:
     </div>
   </div>
   <p>{_escape(feature['description'])}</p>
+  {evidence_details}
   <div class="human-card-footer">
     <div class="human-tags">{tags}</div>
     <a href="#{_escape(native_id)}">View canonical OFT trace ↓</a>
@@ -134,7 +258,12 @@ def _requirement_card(feature: Mapping[str, Any], covered: bool) -> str:
 """
 
 
-def _human_layer(inventory: Mapping[str, Any], coverage: Mapping[str, bool]) -> str:
+def _human_layer(
+    inventory: Mapping[str, Any],
+    coverage: Mapping[str, bool],
+    evidence_markers: Sequence[EvidenceMarker],
+    native_targets: Mapping[tuple[str, str, int, str], str],
+) -> str:
     project_name = str(inventory["project"])
     groups = cast(list[dict[str, Any]], inventory["groups"])
     features = cast(list[dict[str, Any]], inventory["features"])
@@ -142,6 +271,10 @@ def _human_layer(inventory: Mapping[str, Any], coverage: Mapping[str, bool]) -> 
     by_group: dict[str, list[dict[str, Any]]] = {str(group["id"]): [] for group in groups}
     for feature in features:
         by_group[str(feature["group"])].append(feature)
+    marker_index = {
+        (marker.artifact_type, marker.requirement_id, marker.revision, marker.reference): marker
+        for marker in evidence_markers
+    }
 
     covered_count = sum(coverage.values())
     uncovered = [feature for feature in features if not coverage[str(feature["id"])]]
@@ -169,7 +302,13 @@ def _human_layer(inventory: Mapping[str, Any], coverage: Mapping[str, bool]) -> 
 </a>
 """)
         cards = "".join(
-            _requirement_card(feature, coverage[str(feature["id"])]) for feature in group_features
+            _requirement_card(
+                feature,
+                coverage[str(feature["id"])],
+                marker_index,
+                native_targets,
+            )
+            for feature in group_features
         )
         requirement_sections.append(f"""
 <section class="human-requirement-group" id="human-group-{_escape(group_id)}">
@@ -215,7 +354,8 @@ def _human_layer(inventory: Mapping[str, Any], coverage: Mapping[str, bool]) -> 
   The complete OFT artifact report follows the summary.</p></div>
 </header>
 <nav class="human-nav" aria-label="Report sections">
-  <a href="#human-overview">Overview</a><a href="#human-features">Features</a>
+  <a href="#human-overview">Overview</a><a href="#human-coverage-definition">Coverage meaning</a>
+  <a href="#human-features">Features</a>
   <a href="#human-uncovered">Uncovered</a>
   <a href="#human-requirements">Requirements</a>
   <a href="#human-discovery">Drift coverage</a>
@@ -235,6 +375,22 @@ def _human_layer(inventory: Mapping[str, Any], coverage: Mapping[str, bool]) -> 
     </div>
     <p class="human-callout"><strong>{percentage}% OFT trace coverage.</strong>
     The covered and uncovered totals use the requirement results produced by OpenFastTrace.</p>
+  </section>
+  <section id="human-coverage-definition" class="human-section">
+    <div class="human-section-heading"><small>How to read this report</small>
+      <h2>What “covered” means</h2>
+    </div>
+    <div class="human-definition">
+      <p><strong>Covered is a traceability result.</strong> Native OpenFastTrace found the
+      requirement and at least one linked implementation, verification test, and user-manual
+      specification artifact.</p>
+      <ol><li><code>impl</code> points to the Python symbol implementing the behavior.</li>
+      <li><code>test</code> points to the exact verification test or test class.</li>
+      <li><code>uman</code> points to the documentation heading that specifies the behavior.</li></ol>
+      <p>The inventory validator also checks that every displayed locator has a matching marker in
+      that source symbol or heading. <strong>Covered does not mean that tests passed in the latest
+      CI run, or by itself prove that the implementation is correct.</strong></p>
+    </div>
   </section>
   <section id="human-features" class="human-section">
     <div class="human-section-heading"><small>Catalog</small>
@@ -377,6 +533,15 @@ body { margin:0; color:var(--h-ink); background:var(--h-soft); line-height:1.5; 
   background:#eeeafe;
   border-radius:14px;
 }
+.human-definition {
+  padding:1.25rem 1.4rem;
+  background:white;
+  border:1px solid var(--h-line);
+  border-left:5px solid var(--h-brand);
+  border-radius:14px;
+}
+.human-definition p:first-child { margin-top:0; }
+.human-definition p:last-child { margin-bottom:0; }
 .human-group-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; }
 .human-group-card {
   display:flex;
@@ -506,6 +671,41 @@ body { margin:0; color:var(--h-ink); background:var(--h-soft); line-height:1.5; 
 .coverage-uncovered { color:var(--h-bad); background:var(--h-bad-soft); }
 .human-tag { color:#4f5968; background:#eef1f5; font-weight:600; }
 .human-card-footer>a { font-size:.8rem; font-weight:750; }
+.human-evidence {
+  margin:.9rem 0;
+  background:var(--h-soft);
+  border:1px solid var(--h-line);
+  border-radius:10px;
+}
+.human-evidence>summary {
+  padding:.75rem .85rem;
+  color:var(--h-brand);
+  font-size:.82rem;
+  font-weight:800;
+  cursor:pointer;
+}
+.human-evidence-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:.6rem; padding:.75rem; }
+.human-evidence-column {
+  min-width:0;
+  padding:.65rem;
+  background:white;
+  border:1px solid var(--h-line);
+  border-radius:8px;
+}
+.human-evidence-column h5 { margin:0 0 .5rem; font-size:.78rem; text-transform:uppercase; }
+.human-evidence-column ul { margin:0; padding:0; list-style:none; }
+.human-evidence-column li+li { margin-top:.65rem; padding-top:.65rem; border-top:1px solid var(--h-line); }
+.human-evidence-column li>a { display:block; overflow-wrap:anywhere; }
+.human-evidence-column li>span { display:block; margin-top:.2rem; color:var(--h-muted); font-size:.72rem; }
+.human-source-link { color:var(--h-ink); text-decoration:none; }
+.human-source-link b {
+  display:block;
+  margin-top:.2rem;
+  color:var(--h-brand);
+  font-size:.7rem;
+  text-decoration:underline;
+}
+.human-source-link:hover code { color:var(--h-brand); text-decoration:underline; }
 .human-source-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:.45rem; }
 .human-source {
   display:flex;
@@ -554,13 +754,15 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
 @media(max-width:850px) {
   .human-metrics { grid-template-columns:repeat(2,1fr); }
   .human-group-grid,
-  .human-source-grid { grid-template-columns:repeat(2,1fr); }
+  .human-source-grid,
+  .human-evidence-grid { grid-template-columns:repeat(2,1fr); }
   .human-controls { position:static; grid-template-columns:1fr 1fr; }
 }
 @media(max-width:560px) {
   .human-metrics,
   .human-group-grid,
   .human-source-grid,
+  .human-evidence-grid,
   .human-controls { grid-template-columns:1fr; }
   .human-requirement-heading,
   .human-card-footer,
@@ -612,16 +814,58 @@ _HUMAN_SCRIPT = r"""
 """
 
 
-def enhance_oft_html(native_html: str, inventory: Mapping[str, Any]) -> str:
+def enhance_oft_html(
+    native_html: str,
+    inventory: Mapping[str, Any],
+    evidence_markers: Sequence[EvidenceMarker] = (),
+) -> str:
     """Insert the RING-5 summary into native OFT HTML while retaining its trace graph."""
+    # [impl->req~ring5.trace.human-html-report~1]
     coverage = extract_oft_coverage(native_html, inventory)
     if "</style>" not in native_html or "<body>" not in native_html or "<main>" not in native_html:
         raise OftHtmlReportError("Native OFT HTML does not have the expected document structure.")
 
+    native_targets = _native_evidence_targets(native_html)
+    marker_index = {
+        (marker.artifact_type, marker.requirement_id, marker.revision, marker.reference): marker
+        for marker in evidence_markers
+    }
+    missing_targets: list[str] = []
+    evidence_types = {"implementation": "impl", "tests": "test", "documentation": "uman"}
+    for feature in cast(list[dict[str, Any]], inventory["features"]):
+        evidence = cast(dict[str, list[str]], feature.get("evidence", {}))
+        for evidence_key, artifact_type in evidence_types.items():
+            for reference in evidence.get(evidence_key, []):
+                marker = marker_index.get(
+                    (artifact_type, str(feature["id"]), int(feature["revision"]), reference)
+                )
+                if marker is None:
+                    if evidence_markers:
+                        missing_targets.append(f"{feature['id']}: {reference} (source marker)")
+                    continue
+                native_key = (
+                    artifact_type,
+                    str(feature["id"]),
+                    int(feature["revision"]),
+                    f"{marker.path}:{marker.line}",
+                )
+                if native_key not in native_targets:
+                    missing_targets.append(
+                        f"{feature['id']}: {marker.path}:{marker.line} (OFT artifact)"
+                    )
+    if missing_targets:
+        raise OftHtmlReportError(
+            "Native OFT HTML is missing exact evidence origins: " + ", ".join(missing_targets)
+        )
+
     fingerprint = inventory_fingerprint(inventory)
     report = native_html.replace(
         "</head>",
-        f'  <meta name="ring5-inventory-sha256" content="{fingerprint}">\n</head>',
+        (
+            f'  <meta name="ring5-inventory-sha256" content="{fingerprint}">\n'
+            f'  <meta name="ring5-evidence-sha256" '
+            f'content="{evidence_fingerprint(evidence_markers)}">\n</head>'
+        ),
         1,
     )
     report = report.replace("</style>", _HUMAN_CSS + "\n</style>", 1)
@@ -630,7 +874,11 @@ def enhance_oft_html(native_html: str, inventory: Mapping[str, Any]) -> str:
         "<title>RING-5 feature coverage · OpenFastTrace</title>",
         1,
     )
-    report = report.replace("<body>", "<body>\n" + _human_layer(inventory, coverage), 1)
+    report = report.replace(
+        "<body>",
+        "<body>\n" + _human_layer(inventory, coverage, evidence_markers, native_targets),
+        1,
+    )
     report = report.replace("<main>", '<main id="oft-native-report">', 1)
     report = report.replace("</body>", _HUMAN_SCRIPT + "\n</body>", 1)
     return report

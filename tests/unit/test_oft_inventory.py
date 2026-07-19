@@ -18,11 +18,15 @@ from scripts.generate_oft_inventory import (
     validate_inventory,
     write_or_check,
 )
-from scripts.oft_html_report import inventory_fingerprint
+from scripts.oft_evidence import collect_evidence_markers
+from scripts.oft_html_report import evidence_fingerprint, inventory_fingerprint
 
 
 def test_repository_inventory_is_valid_and_comprehensive() -> None:
     """Every catalog entry and live extension point has valid trace evidence."""
+    # [test->req~ring5.trace.discovery-convergence~1]
+    # [test->req~ring5.trace.inventory-generator~1]
+    # [test->req~ring5.trace.registry-drift~1]
     inventory = load_inventory()
     live_capabilities = discover_live_capabilities()
 
@@ -35,6 +39,7 @@ def test_repository_inventory_is_valid_and_comprehensive() -> None:
 
 def test_rendered_inventory_is_deterministic_and_complete() -> None:
     """Rendering emits each normative ID exactly once in the expected files."""
+    # [test->req~ring5.trace.inventory-generator~1]
     inventory = load_inventory()
 
     first = render_inventory(inventory)
@@ -73,15 +78,27 @@ def test_html_report_fingerprint_detects_missing_stale_or_non_native_output(
 
     marker = '<meta name="ring5-inventory-sha256" ' f'content="{inventory_fingerprint(inventory)}">'
     report.write_text(marker, encoding="utf-8")
+    with pytest.raises(InventoryError, match="stale source origins"):
+        check_html_report(inventory, tmp_path)
+
+    source_marker = (
+        '<meta name="ring5-evidence-sha256" '
+        f'content="{evidence_fingerprint(collect_evidence_markers(ROOT))}">'
+    )
+    report.write_text(marker + source_marker, encoding="utf-8")
     with pytest.raises(InventoryError, match="lacks the native OFT trace"):
         check_html_report(inventory, tmp_path)
 
-    report.write_text(marker + '<main id="oft-native-report">', encoding="utf-8")
+    report.write_text(
+        marker + source_marker + '<main id="oft-native-report">', encoding="utf-8"
+    )
     check_html_report(inventory, tmp_path)
 
 
 def test_unbound_live_capability_is_rejected() -> None:
     """A new registry value cannot silently bypass the feature inventory."""
+    # [test->req~ring5.trace.discovery-convergence~1]
+    # [test->req~ring5.trace.registry-drift~1]
     inventory = load_inventory()
     live_capabilities = dict(discover_live_capabilities())
     live_capabilities["plot_types"] = (*live_capabilities["plot_types"], "future_plot")
@@ -102,9 +119,12 @@ def test_tag_that_openfasttrace_cannot_parse_is_rejected() -> None:
 def test_proposed_requirement_can_expose_missing_coverage() -> None:
     """Future behavior may be cataloged before its evidence exists."""
     inventory = deepcopy(load_inventory())
-    future = inventory["features"][0]
+    future = deepcopy(inventory["features"][0])
+    future["id"] = "workspace.future-example"
+    future["title"] = "Future example"
     future["status"] = "proposed"
     future["evidence"] = {"implementation": [], "tests": [], "documentation": []}
+    inventory["features"].append(future)
 
     validate_inventory(inventory, live_capabilities=discover_live_capabilities())
     rendered = render_inventory(inventory)

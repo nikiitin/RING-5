@@ -26,16 +26,16 @@ from pathlib import Path
 from typing import Any, cast, get_args
 
 if __package__:
-    from scripts.oft_evidence import validate_source_evidence
-    from scripts.oft_html_report import inventory_fingerprint
+    from scripts.oft_evidence import collect_evidence_markers, validate_source_evidence
+    from scripts.oft_html_report import evidence_fingerprint, inventory_fingerprint
 else:
-    from oft_evidence import validate_source_evidence
-    from oft_html_report import inventory_fingerprint
+    from oft_evidence import collect_evidence_markers, validate_source_evidence
+    from oft_html_report import evidence_fingerprint, inventory_fingerprint
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_INVENTORY = ROOT / "spec" / "oft" / "inventory.json"
 DEFAULT_OUTPUT_DIR = ROOT / "spec" / "oft" / "generated"
-GENERATED_FILENAMES = ("features.md", "requirements.md", "coverage.md", "summary.md")
+GENERATED_FILENAMES = ("features.md", "requirements.md", "summary.md")
 HTML_REPORT_FILENAME = "report.html"
 ALLOWED_STATUSES = frozenset({"draft", "proposed", "approved"})
 ID_PATTERN = re.compile(r"^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$")
@@ -151,6 +151,8 @@ def discover_live_capabilities(root: Path = ROOT) -> dict[str, tuple[str, ...]]:
     Returns:
         Mapping of discovery source to sorted stable capability values.
     """
+    # [impl->req~ring5.trace.discovery-convergence~1]
+    # [impl->req~ring5.trace.registry-drift~1]
     if str(root) not in sys.path:
         sys.path.insert(0, str(root))
 
@@ -334,10 +336,13 @@ def validate_inventory(
     Raises:
         InventoryError: Any validation rule fails.
     """
+    # [impl->req~ring5.trace.discovery-convergence~1]
+    # [impl->req~ring5.trace.inventory-generator~1]
+    # [impl->req~ring5.trace.registry-drift~1]
     errors: list[str] = []
     schema_version = inventory.get("schema_version")
-    if schema_version not in (1, 2):
-        errors.append("schema_version must be 1 or 2")
+    if schema_version != 2:
+        errors.append("schema_version must be 2")
 
     groups_raw = inventory.get("groups")
     features_raw = inventory.get("features")
@@ -459,7 +464,7 @@ def validate_inventory(
                     f"requirement {feature_id!r}"
                 )
 
-    if schema_version == 2 and not errors:
+    if not errors:
         errors.extend(validate_source_evidence(cast(dict[str, Any], inventory), root))
 
     if errors:
@@ -507,6 +512,7 @@ def render_inventory(inventory: Mapping[str, Any]) -> dict[str, str]:
     Returns:
         Filename-to-content mapping.
     """
+    # [impl->req~ring5.trace.inventory-generator~1]
     groups = cast(list[dict[str, Any]], inventory["groups"])
     features = cast(list[dict[str, Any]], inventory["features"])
     by_group: dict[str, list[dict[str, Any]]] = {group["id"]: [] for group in groups}
@@ -568,49 +574,9 @@ def render_inventory(inventory: Mapping[str, Any]) -> dict[str, str]:
                 ]
             )
 
-    coverage_lines = _generated_header("RING-5 Requirement Coverage Evidence")
-    coverage_lines.extend(
-        [
-            "Evidence paths are validated by the generator before these artifacts are emitted.",
-            "",
-        ]
-    )
-    coverage_types = (
-        ("implementation", "impl", "Implementation"),
-        ("tests", "test", "Verification"),
-        ("documentation", "uman", "User documentation"),
-    )
-    for evidence_key, artifact_type, heading in coverage_types:
-        coverage_lines.extend([f"## {heading}", ""])
-        for feature in features:
-            evidence = cast(dict[str, list[str]], feature["evidence"])[evidence_key]
-            if not evidence:
-                continue
-            coverage_lines.extend(
-                [
-                    f"### {feature['title']} — {heading.lower()}",
-                    "",
-                    f"`{artifact_type}~ring5.{feature['id']}~{feature['revision']}`",
-                    "",
-                    f"{heading} evidence:",
-                    *[f"- `{reference}`" for reference in evidence],
-                    "",
-                    "Covers:",
-                    f"- {_requirement_id(feature)}",
-                    "",
-                    "Tags: " + _tags([*feature["tags"], f"status_{feature['status']}"]),
-                    "",
-                ]
-            )
-
     approved = sum(feature["status"] == "approved" for feature in features)
     proposed = sum(feature["status"] == "proposed" for feature in features)
     draft = sum(feature["status"] == "draft" for feature in features)
-    evidence_items = sum(
-        bool(references)
-        for feature in features
-        for references in cast(dict[str, list[str]], feature["evidence"]).values()
-    )
     bindings = cast(dict[str, dict[str, str]], inventory["discovery_bindings"])
     summary_lines = _generated_header("RING-5 Feature Inventory Summary")
     summary_lines.extend(
@@ -623,7 +589,7 @@ def render_inventory(inventory: Mapping[str, Any]) -> dict[str, str]:
             f"- Approved current requirements: {approved}",
             f"- Proposed future requirements: {proposed}",
             f"- Draft future requirements: {draft}",
-            f"- Generated OFT items: {len(groups) + len(features) + evidence_items}",
+            f"- Generated specification items: {len(groups) + len(features)}",
             f"- Live capability bindings: {sum(len(values) for values in bindings.values())}",
             "",
             "## Requirements by feature group",
@@ -656,7 +622,6 @@ def render_inventory(inventory: Mapping[str, Any]) -> dict[str, str]:
     return {
         "features.md": "\n".join(feature_lines).rstrip() + "\n",
         "requirements.md": "\n".join(requirement_lines).rstrip() + "\n",
-        "coverage.md": "\n".join(coverage_lines).rstrip() + "\n",
         "summary.md": "\n".join(summary_lines).rstrip() + "\n",
     }
 
@@ -706,6 +671,15 @@ def check_html_report(inventory: Mapping[str, Any], output_dir: Path) -> None:
     if expected not in report:
         raise InventoryError(
             f"OFT HTML report {_display_path(path)} is stale; run `make oft-report`."
+        )
+    source_expected = (
+        '<meta name="ring5-evidence-sha256" '
+        f'content="{evidence_fingerprint(collect_evidence_markers(ROOT))}">'
+    )
+    if source_expected not in report:
+        raise InventoryError(
+            f"OFT HTML report {_display_path(path)} has stale source origins; "
+            "run `make oft-report`."
         )
     if '<main id="oft-native-report">' not in report:
         raise InventoryError(f"OFT HTML report {_display_path(path)} lacks the native OFT trace.")

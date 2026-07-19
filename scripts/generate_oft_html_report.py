@@ -8,9 +8,11 @@ from pathlib import Path
 
 if __package__:
     from scripts.generate_oft_inventory import load_inventory, validate_inventory
+    from scripts.oft_evidence import collect_evidence_markers
     from scripts.oft_html_report import OftHtmlReportError, enhance_oft_html
 else:
     from generate_oft_inventory import load_inventory, validate_inventory
+    from oft_evidence import collect_evidence_markers
     from oft_html_report import OftHtmlReportError, enhance_oft_html
 
 
@@ -30,12 +32,15 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     """Generate the enhanced report and return a process-style status code."""
+    # [impl->req~ring5.trace.human-html-report~1]
     args = build_parser().parse_args(argv)
     try:
         inventory = load_inventory(args.inventory)
         validate_inventory(inventory)
         native_html = args.oft_html.read_text(encoding="utf-8")
-        report = enhance_oft_html(native_html, inventory)
+        repository_root = args.inventory.resolve().parents[2]
+        evidence_markers = collect_evidence_markers(repository_root)
+        report = enhance_oft_html(native_html, inventory, evidence_markers)
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(report, encoding="utf-8")
     except (OSError, OftHtmlReportError, ValueError) as exc:

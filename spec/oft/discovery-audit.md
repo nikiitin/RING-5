@@ -37,6 +37,14 @@ renamed value makes `make oft-check` fail until the inventory records a decision
 
 ## Convergence runs
 
+<!--
+`uman~ring5.trace.discovery-convergence.documentation~1`
+
+Covers:
+- req~ring5.trace.discovery-convergence~1
+
+-->
+
 | Run | Independent review route | New requirements | Inventory after run |
 | --- | --- | ---: | ---: |
 | Baseline | Existing docs, main workflows and central registries | 126 total baseline requirements | 126 |
