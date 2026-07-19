@@ -13,13 +13,22 @@ MOCK_CSV := tests/data/mock/inputs/csv/configurer/configurer_test_case01.csv
 COVERAGE_MIN := 84
 NON_BROWSER_TESTS := tests/unit tests/integration tests/ui tests/ui_logic tests/ui_unit \
 	tests/performance tests/tests_principle_compliance
+OFT_VERSION := 4.6.0
+OFT_SHA256 := 4c6194fdd59d5098edb7abd184a8c53002a139794d8a66f10997b27a140bb40a
+OFT_CACHE_DIR := .cache/openfasttrace
+OFT_JAR := $(OFT_CACHE_DIR)/openfasttrace-$(OFT_VERSION).jar
+OFT_URL := https://repo1.maven.org/maven2/org/itsallcode/openfasttrace/openfasttrace/$(OFT_VERSION)/openfasttrace-$(OFT_VERSION).jar
+OFT_SOURCES := spec/oft/generated/features.md spec/oft/generated/requirements.md \
+	spec/oft/generated/coverage.md
+OFT_NATIVE_REPORT := $(OFT_CACHE_DIR)/ring5-openfasttrace.html
+OFT_REPORT := spec/oft/generated/report.html
 
 .PHONY: help venv install dev run playwright-install install-latex check-latex \
 	test-data mock-data test test-unit test-nonbrowser test-api test-ci test-export test-latex \
 	test-e2e test-visual \
 	format format-check lint type-check arch-check comments-check docs-check dependency-check \
 	docs-build docs-audit security-audit quality-gate package-check check-outdated pre-commit-install \
-	pre-commit clean
+	pre-commit oft-generate oft-check oft-download oft-trace oft-trace-all oft-report clean
 
 help:
 	@echo "RING-5 development targets"
@@ -33,6 +42,11 @@ help:
 	@echo "  test-ci             Run tests with the coverage gate"
 	@echo "  test-e2e            Run Playwright browser tests"
 	@echo "  quality-gate        Run architecture, docs, format, lint, types, and security"
+	@echo "  oft-generate        Generate the OpenFastTrace feature catalog"
+	@echo "  oft-check           Check catalog evidence, live registries, and generated files"
+	@echo "  oft-trace           Trace the approved/current feature baseline"
+	@echo "  oft-trace-all       Trace current and proposed features, exposing future gaps"
+	@echo "  oft-report          Build the HTML traceability report from native OFT output"
 	@echo "  docs-build          Build the documentation site with Bundler"
 	@echo "  docs-audit          Audit generated routes and local site references"
 	@echo "  package-check       Build and validate wheel and source distributions"
@@ -173,7 +187,45 @@ security-audit:
 	$(VENV_BIN)/bandit -r ring5 src -c pyproject.toml -ll
 	$(VENV_BIN)/pip-audit --progress-spinner off
 
-quality-gate: arch-check comments-check docs-check dependency-check format-check lint type-check security-audit
+oft-generate:
+	$(PYTHON) scripts/generate_oft_inventory.py
+
+oft-check:
+	$(PYTHON) scripts/generate_oft_inventory.py --check
+
+oft-download:
+	@command -v java >/dev/null 2>&1 || { echo "Java 17 or newer is required."; exit 1; }
+	@command -v curl >/dev/null 2>&1 || { echo "curl is required to download OFT."; exit 1; }
+	@command -v sha256sum >/dev/null 2>&1 || { echo "sha256sum is required."; exit 1; }
+	@mkdir -p "$(OFT_CACHE_DIR)"
+	@if [ -f "$(OFT_JAR)" ] && ! echo "$(OFT_SHA256)  $(OFT_JAR)" | sha256sum --check --status; then \
+		echo "Discarding cached OFT JAR with an invalid checksum."; \
+		rm -f "$(OFT_JAR)"; \
+	fi
+	@if [ ! -f "$(OFT_JAR)" ]; then \
+		tmp_file=$$(mktemp "$(OFT_CACHE_DIR)/openfasttrace.XXXXXX"); \
+		trap 'rm -f "$$tmp_file"' EXIT INT TERM; \
+		curl --fail --location --silent --show-error "$(OFT_URL)" --output "$$tmp_file"; \
+		echo "$(OFT_SHA256)  $$tmp_file" | sha256sum --check --status; \
+		mv "$$tmp_file" "$(OFT_JAR)"; \
+		trap - EXIT INT TERM; \
+	fi
+
+oft-trace: oft-check oft-download
+	java -jar "$(OFT_JAR)" trace -t status_approved --v summary $(OFT_SOURCES)
+
+oft-trace-all: oft-check oft-download
+	java -jar "$(OFT_JAR)" trace --v summary $(OFT_SOURCES)
+
+oft-report: oft-generate oft-download
+	java -jar "$(OFT_JAR)" trace --output-format html --report-verbosity all \
+		--details-section-display collapse --output-file "$(OFT_NATIVE_REPORT)" $(OFT_SOURCES)
+	$(PYTHON) scripts/generate_oft_html_report.py \
+		--oft-html "$(OFT_NATIVE_REPORT)" --output "$(OFT_REPORT)"
+	$(PYTHON) scripts/generate_oft_inventory.py --check
+	@echo "Open $(OFT_REPORT) in a browser."
+
+quality-gate: arch-check comments-check docs-check dependency-check oft-check format-check lint type-check security-audit
 	@echo "Quality gate passed."
 
 package-check:

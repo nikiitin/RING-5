@@ -1,0 +1,2940 @@
+{
+  "schema_version": 1,
+  "project": "RING-5",
+  "groups": [
+    {
+      "id": "workspace",
+      "title": "Interactive Workspace",
+      "description": "RING-5 provides an isolated interactive workspace for navigating, inspecting, and resetting an analysis session.",
+      "tags": ["web", "workspace"]
+    },
+    {
+      "id": "ingestion",
+      "title": "Data Ingestion and Parsing",
+      "description": "RING-5 loads tabular data and discovers and parses simulator statistics without hiding incomplete or failed input.",
+      "tags": ["data", "parsing"]
+    },
+    {
+      "id": "data-management",
+      "title": "Dataset Management",
+      "description": "RING-5 inspects and transforms the shared workspace dataset through previewable, non-mutating operations.",
+      "tags": ["data", "managers"]
+    },
+    {
+      "id": "shaping",
+      "title": "Per-Plot Data Shaping",
+      "description": "RING-5 builds independent ordered transformation pipelines for each plot.",
+      "tags": ["pipeline", "shapers"]
+    },
+    {
+      "id": "plot-lifecycle",
+      "title": "Plot Lifecycle",
+      "description": "RING-5 manages multiple independently configured plots within one workspace.",
+      "tags": ["plots", "workspace"]
+    },
+    {
+      "id": "plot-types",
+      "title": "Plot Types",
+      "description": "RING-5 offers registry-backed plot types for comparisons, trends, distributions, and matrix views.",
+      "tags": ["plots", "visualization"]
+    },
+    {
+      "id": "figure-configuration",
+      "title": "Figure Configuration",
+      "description": "RING-5 exposes publication-oriented layout, styling, labeling, ordering, and annotation controls.",
+      "tags": ["figures", "styling"]
+    },
+    {
+      "id": "rendering-export",
+      "title": "Rendering and Export",
+      "description": "RING-5 renders engine-independent plot traces through Plotly or Matplotlib and exports publication artifacts.",
+      "tags": ["export", "rendering"]
+    },
+    {
+      "id": "reproducibility",
+      "title": "Reproducibility and Portfolios",
+      "description": "RING-5 snapshots, migrates, restores, and replays complete figure portfolios.",
+      "tags": ["portfolios", "reproducibility"]
+    },
+    {
+      "id": "automation",
+      "title": "Automation API and CLI",
+      "description": "RING-5 exposes supported Python and command-line workflows for headless analysis and CI.",
+      "tags": ["api", "automation", "cli"]
+    },
+    {
+      "id": "extensibility-quality",
+      "title": "Extensibility, Safety, and Quality",
+      "description": "RING-5 keeps extension points discoverable while enforcing integrity, security, lifecycle, and architecture constraints.",
+      "tags": ["architecture", "quality", "security"]
+    },
+    {
+      "id": "traceability",
+      "title": "Feature Traceability",
+      "description": "RING-5 maintains a generated OpenFastTrace catalog that detects untracked current and future capabilities.",
+      "tags": ["governance", "openfasttrace"]
+    }
+  ],
+  "features": [
+    {
+      "id": "workspace.web-app",
+      "group": "workspace",
+      "revision": 1,
+      "status": "approved",
+      "title": "Streamlit analysis workspace",
+      "description": "The application shall provide a wide-layout Streamlit workspace that composes data, plotting, portfolio, and documentation workflows.",
+      "tags": ["streamlit", "web", "workspace"],
+      "evidence": {
+        "implementation": ["app.py::run_app"],
+        "tests": ["tests/ui/test_ui_sanity.py"],
+        "documentation": ["docs/user-guide/index.md"]
+      }
+    },
+    {
+      "id": "workspace.navigation",
+      "group": "workspace",
+      "revision": 1,
+      "status": "approved",
+      "title": "Page navigation",
+      "description": "Users shall navigate between Data Source, Data Managers, Manage Plots, Save/Load Portfolio, and Documentation pages from the sidebar.",
+      "tags": ["navigation", "web"],
+      "evidence": {
+        "implementation": ["app.py::_NAV_OPTIONS"],
+        "tests": ["tests/visual/test_navigation.py"],
+        "documentation": ["docs/user-guide/workflows/index.md"]
+      }
+    },
+    {
+      "id": "workspace.session-isolation",
+      "group": "workspace",
+      "revision": 1,
+      "status": "approved",
+      "title": "Browser-session isolation",
+      "description": "Each browser session shall own independent mutable data, parser, plot, preview, and history state while sharing only explicitly thread-safe process pools.",
+      "tags": ["isolation", "state", "web"],
+      "evidence": {
+        "implementation": ["src/core/state/repository_state_manager.py", "app.py"],
+        "tests": ["tests/e2e/test_session_isolation.py"],
+        "documentation": ["docs/developer-guide/api-reference/state-manager.md"]
+      }
+    },
+    {
+      "id": "workspace.data-preview",
+      "group": "workspace",
+      "revision": 1,
+      "status": "approved",
+      "title": "Workspace data metrics",
+      "description": "When data is loaded, the workspace shall display its row count, column count, and source name.",
+      "tags": ["data", "metrics", "web"],
+      "evidence": {
+        "implementation": ["app.py::_data_preview_fragment"],
+        "tests": ["tests/ui/test_e2e_data_loaded.py"],
+        "documentation": ["docs/user-guide/getting-started/first-analysis.md"]
+      }
+    },
+    {
+      "id": "workspace.reset",
+      "group": "workspace",
+      "revision": 1,
+      "status": "approved",
+      "title": "Clear and reset session",
+      "description": "Users shall be able to clear loaded data, plots, and session state from the sidebar without affecting other browser sessions.",
+      "tags": ["reset", "state", "web"],
+      "evidence": {
+        "implementation": ["app.py", "src/core/state/repository_state_manager.py"],
+        "tests": ["tests/ui/test_e2e_data_loaded.py"],
+        "documentation": ["docs/user-guide/getting-started/concepts.md"]
+      }
+    },
+    {
+      "id": "workspace.documentation-hub",
+      "group": "workspace",
+      "revision": 1,
+      "status": "approved",
+      "title": "In-application documentation hub",
+      "description": "The application shall link users to canonical getting-started, workflow, guide, reference, and developer documentation.",
+      "tags": ["documentation", "web"],
+      "evidence": {
+        "implementation": ["src/web/pages/documentation.py"],
+        "tests": ["tests/ui_unit/test_documentation_page.py"],
+        "documentation": ["docs/index.md"]
+      }
+    },
+    {
+      "id": "ingestion.source-modes",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "Selectable data source modes",
+      "description": "Users shall choose between parsing simulator output, using existing CSV data, and loading a recent CSV-pool entry.",
+      "tags": ["csv", "parsing", "web"],
+      "evidence": {
+        "implementation": ["src/web/pages/data_source.py"],
+        "tests": ["tests/e2e/test_data_source.py"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+      }
+    },
+    {
+      "id": "ingestion.csv-load",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "CSV loading",
+      "description": "RING-5 shall load an existing CSV into the active workspace through the web application or Session API.",
+      "tags": ["api", "csv", "data"],
+      "evidence": {
+        "implementation": ["ring5/_session.py::Session.load", "src/core/application_api.py::load_data"],
+        "tests": ["tests/integration/test_ring5_public_api.py"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+      }
+    },
+    {
+      "id": "ingestion.csv-contract",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "Generic CSV contract",
+      "description": "CSV input shall have a header and at least one data row, remain simulator-independent, and report malformed or empty input explicitly.",
+      "tags": ["csv", "validation"],
+      "evidence": {
+        "implementation": ["src/core/models/csv_contract.py"],
+        "tests": ["tests/unit/test_csv_contract.py"],
+        "documentation": ["docs/user-guide/reference/troubleshooting.md"]
+      }
+    },
+    {
+      "id": "ingestion.csv-pool",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "Recent CSV pool",
+      "description": "Parsed and selected CSV files shall be discoverable in a recent-file pool that supports loading and removal.",
+      "tags": ["csv", "persistence", "web"],
+      "evidence": {
+        "implementation": ["src/core/services/data_services/csv_pool_service.py", "src/web/components/data_source/data_source_components.py"],
+        "tests": ["tests/unit/test_csv_pool_service.py"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+      }
+    },
+    {
+      "id": "ingestion.simulator-registry",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "Simulator registry",
+      "description": "Data-source labels, patterns, strategies, and variable types shall be derived from registered simulator metadata.",
+      "tags": ["extensibility", "parsing", "registry"],
+      "evidence": {
+        "implementation": ["src/parsing/registry.py::SimulatorRegistry"],
+        "tests": ["tests/unit/test_simulator_registry.py"],
+        "documentation": ["docs/developer-guide/extension-guides/adding-a-parser.md"]
+      }
+    },
+    {
+      "id": "ingestion.gem5-backend",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "gem5 parser backend",
+      "description": "RING-5 shall provide a registered gem5 backend for scanning and parsing stats.txt output.",
+      "tags": ["gem5", "parsing"],
+      "evidence": {
+        "implementation": ["src/parsing/gem5/impl/gem5_parser.py"],
+        "tests": ["tests/integration/test_gem5_parsing.py"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+      }
+    },
+    {
+      "id": "ingestion.file-discovery",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "Pattern-based statistics discovery",
+      "description": "The parser shall recursively discover regular files matching literal, glob, or regular-expression-aware statistics patterns within configured resource limits.",
+      "tags": ["discovery", "files", "parsing"],
+      "evidence": {
+        "implementation": ["src/parsing/framework/file_discovery.py"],
+        "tests": ["tests/unit/test_file_discovery.py"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+      }
+    },
+    {
+      "id": "ingestion.variable-scan",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "Statistics variable scan",
+      "description": "RING-5 shall scan selected simulator files and aggregate discovered variable names, types, metadata, ranges, and visible per-file failures.",
+      "tags": ["parsing", "scan", "variables"],
+      "evidence": {
+        "implementation": ["src/parsing/gem5/impl/gem5_parser.py::Gem5Parser.aggregate_scan_results", "src/parsing/gem5/impl/scanning/scanner.py"],
+        "tests": ["tests/integration/test_scanner_functional.py"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+      }
+    },
+    {
+      "id": "ingestion.async-scan",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "Asynchronous scan lifecycle",
+      "description": "Scanning shall support submit, finalize, strict or partial result handling, cancellation, and ownership-safe cleanup through ScanJob.",
+      "tags": ["api", "async", "scan"],
+      "evidence": {
+        "implementation": ["ring5/_scan.py", "ring5/_session.py::Session.scan_submit"],
+        "tests": ["tests/integration/test_ring5_api_completeness.py"],
+        "documentation": ["docs/user-guide/workflows/scripting.md"]
+      }
+    },
+    {
+      "id": "ingestion.scan-limits",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "Sampled and exhaustive scans",
+      "description": "Users shall select an exact positive scan sample limit or use zero for exhaustive discovery up to the global file ceiling.",
+      "tags": ["limits", "scan"],
+      "evidence": {
+        "implementation": ["ring5/_session.py::Session.scan", "src/core/common/security_limits.py"],
+        "tests": ["tests/unit/test_public_parse_limits.py"],
+        "documentation": ["docs/developer-guide/api-reference/public-python-api.md"]
+      }
+    },
+    {
+      "id": "ingestion.variable-editor",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "Scanned and manual variable configuration",
+      "description": "Users shall search scanned variables or manually add, edit, type, rename, and remove parser variable configurations before parsing.",
+      "tags": ["parsing", "variables", "web"],
+      "evidence": {
+        "implementation": ["src/web/components/data_source/variable_editor.py"],
+        "tests": ["tests/ui_unit/test_variable_editor.py"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+      }
+    },
+    {
+      "id": "ingestion.scalar",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "Scalar statistic parsing",
+      "description": "The gem5 backend shall scan and parse scalar statistics, including exact names and supported regular-expression patterns.",
+      "tags": ["gem5", "scalar", "variables"],
+      "evidence": {
+        "implementation": ["src/parsing/gem5/types/scalar.py"],
+        "tests": ["tests/unit/test_scalar_type.py"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+      }
+    },
+    {
+      "id": "ingestion.vector",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "Vector statistic parsing",
+      "description": "The gem5 backend shall scan and expand vector statistics into deterministic indexed columns.",
+      "tags": ["gem5", "vector", "variables"],
+      "evidence": {
+        "implementation": ["src/parsing/gem5/types/vector.py"],
+        "tests": ["tests/unit/test_vector_type.py"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+      }
+    },
+    {
+      "id": "ingestion.distribution",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "Distribution statistic parsing",
+      "description": "The gem5 backend shall parse distribution summaries and preserve their configured fields without inventing unavailable values.",
+      "tags": ["distribution", "gem5", "variables"],
+      "evidence": {
+        "implementation": ["src/parsing/gem5/types/distribution.py"],
+        "tests": ["tests/unit/test_distribution_type.py"],
+        "documentation": ["docs/user-guide/reference/plot-types.md"]
+      }
+    },
+    {
+      "id": "ingestion.histogram",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "Histogram statistic parsing",
+      "description": "The gem5 backend shall parse conventional ranges and pipe-delimited one-line histograms, expand buckets, and aggregate repeated matches.",
+      "tags": ["gem5", "histogram", "variables"],
+      "evidence": {
+        "implementation": ["src/parsing/gem5/types/histogram.py"],
+        "tests": ["tests/unit/test_histogram_type.py"],
+        "documentation": ["docs/user-guide/reference/plot-types.md"]
+      }
+    },
+    {
+      "id": "ingestion.configuration",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "Configuration variable parsing",
+      "description": "The gem5 backend shall extract configuration metadata derived from simulation paths using explicit path index selection.",
+      "tags": ["configuration", "gem5", "variables"],
+      "evidence": {
+        "implementation": ["src/parsing/gem5/types/configuration.py"],
+        "tests": ["tests/unit/test_configuration_type.py"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+      }
+    },
+    {
+      "id": "ingestion.pattern-aggregation",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "Pattern aggregation",
+      "description": "A regex statistic matching several simulator values shall aggregate according to the variable type while retaining traceable source semantics.",
+      "tags": ["aggregation", "parsing", "regex"],
+      "evidence": {
+        "implementation": ["src/parsing/gem5/types/base.py"],
+        "tests": ["tests/integration/test_pattern_aggregation_integration.py"],
+        "documentation": ["docs/developer-guide/subsystems/parsing.md"]
+      }
+    },
+    {
+      "id": "ingestion.simple-strategy",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "Simple parsing strategy",
+      "description": "The simple parsing strategy shall parse matching statistics files without requiring configuration metadata.",
+      "tags": ["gem5", "parsing", "strategy"],
+      "evidence": {
+        "implementation": ["src/parsing/gem5/impl/strategies/simple.py"],
+        "tests": ["tests/unit/test_parser_strategies.py"],
+        "documentation": ["docs/user-guide/workflows/scripting.md"]
+      }
+    },
+    {
+      "id": "ingestion.config-aware-strategy",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "Config-aware parsing strategy",
+      "description": "The config-aware strategy shall require valid config.ini input and add deterministic sim_path and compact key-sorted config_json columns.",
+      "tags": ["configuration", "gem5", "strategy"],
+      "evidence": {
+        "implementation": ["src/parsing/gem5/impl/strategies/config_aware.py"],
+        "tests": ["tests/unit/test_parser_strategies.py"],
+        "documentation": ["docs/user-guide/workflows/scripting.md"]
+      }
+    },
+    {
+      "id": "ingestion.async-parse",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "Asynchronous parse lifecycle",
+      "description": "Parsing shall support submit, owned futures, finalize, cancellation, strict missing-stat handling, and safe temporary-output cleanup through ParseJob.",
+      "tags": ["api", "async", "parsing"],
+      "evidence": {
+        "implementation": ["ring5/_parse.py", "ring5/_session.py::Session.parse_submit"],
+        "tests": ["tests/integration/test_ring5_api_completeness.py"],
+        "documentation": ["docs/user-guide/workflows/scripting.md"]
+      }
+    },
+    {
+      "id": "ingestion.parse-integrity",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "Visible missing and failed parse values",
+      "description": "Parsing shall expose failed files and missing statistics and represent unavailable simulator values as NaN rather than fabricating zeroes.",
+      "tags": ["errors", "integrity", "parsing"],
+      "evidence": {
+        "implementation": ["ring5/_parse.py::ParseJob.finalize", "src/parsing/gem5/impl/gem5_parser.py", "ring5/errors.py"],
+        "tests": ["tests/unit/test_missing_data_integrity.py"],
+        "documentation": ["docs/user-guide/reference/troubleshooting.md"]
+      }
+    },
+    {
+      "id": "ingestion.parse-output-provenance",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "Parse output and provenance",
+      "description": "Successful parsing shall assemble a CSV and retain stats path, pattern, selected variables, scanned variables, and strategy context for later restoration.",
+      "tags": ["csv", "parsing", "provenance"],
+      "evidence": {
+        "implementation": ["ring5/_session.py::Session.parse_submit", "src/core/state/repositories/parser_state_repository.py"],
+        "tests": ["tests/integration/test_full_parser_workflow.py"],
+        "documentation": ["docs/developer-guide/architecture/data-flow.md"]
+      }
+    },
+    {
+      "id": "data.summary",
+      "group": "data-management",
+      "revision": 1,
+      "status": "approved",
+      "title": "Dataset summary",
+      "description": "Users shall inspect row, column, memory, missing-value, type, numeric, and categorical summaries of the active dataset.",
+      "tags": ["data", "inspection", "web"],
+      "evidence": {
+        "implementation": ["src/web/components/data_managers/data_manager_components.py::render_summary_tab"],
+        "tests": ["tests/e2e/test_data_managers.py"],
+        "documentation": ["docs/user-guide/workflows/managing-datasets.md"]
+      }
+    },
+    {
+      "id": "data.table-view",
+      "group": "data-management",
+      "revision": 1,
+      "status": "approved",
+      "title": "Searchable paginated table view",
+      "description": "Users shall search literal text across one or all columns, select visible columns, paginate rows, and download the current filtered view as CSV.",
+      "tags": ["data", "filter", "web"],
+      "evidence": {
+        "implementation": ["src/web/components/data_managers/data_manager_components.py::render_visualization_tab"],
+        "tests": ["tests/e2e/test_data_managers.py"],
+        "documentation": ["docs/user-guide/workflows/managing-datasets.md"]
+      }
+    },
+    {
+      "id": "data.preview-confirm",
+      "group": "data-management",
+      "revision": 1,
+      "status": "approved",
+      "title": "Preview before dataset replacement",
+      "description": "Dataset managers shall place candidate results in an isolated preview and replace workspace data only after explicit user confirmation.",
+      "tags": ["data", "preview", "safety"],
+      "evidence": {
+        "implementation": ["src/core/state/repositories/preview_repository.py", "src/web/components/data_managers/data_manager.py"],
+        "tests": ["tests/unit/test_preview_repository.py"],
+        "documentation": ["docs/user-guide/workflows/managing-datasets.md"]
+      }
+    },
+    {
+      "id": "data.seed-reduction",
+      "group": "data-management",
+      "revision": 1,
+      "status": "approved",
+      "title": "Repeated-run reduction",
+      "description": "Users shall reduce repeated seeds or runs by selected categorical groups and numeric statistics, producing means and companion .sd columns.",
+      "tags": ["aggregation", "data", "statistics"],
+      "evidence": {
+        "implementation": ["src/core/services/managers/reduction_service.py", "src/web/components/data_managers/seeds_reducer.py"],
+        "tests": ["tests/unit/test_seeds_reducer.py"],
+        "documentation": ["docs/user-guide/workflows/managing-datasets.md"]
+      }
+    },
+    {
+      "id": "data.outlier-removal",
+      "group": "data-management",
+      "revision": 1,
+      "status": "approved",
+      "title": "Grouped IQR outlier removal",
+      "description": "Users shall remove numeric values outside 1.5-IQR fences globally or independently within selected categorical groups.",
+      "tags": ["data", "iqr", "outliers"],
+      "evidence": {
+        "implementation": ["src/core/services/managers/outlier_service.py", "src/web/components/data_managers/outlier_remover.py"],
+        "tests": ["tests/unit/test_outlier_service.py"],
+        "documentation": ["docs/user-guide/workflows/managing-datasets.md"]
+      }
+    },
+    {
+      "id": "data.arithmetic",
+      "group": "data-management",
+      "revision": 1,
+      "status": "approved",
+      "title": "Binary arithmetic columns",
+      "description": "Users shall derive a named numeric column from two existing columns using division, sum, subtraction, or multiplication.",
+      "tags": ["arithmetic", "data", "derived_column"],
+      "evidence": {
+        "implementation": ["src/core/services/managers/arithmetic_service.py", "src/web/components/data_managers/preprocessor.py"],
+        "tests": ["tests/unit/test_preprocessor.py"],
+        "documentation": ["docs/user-guide/workflows/managing-datasets.md"]
+      }
+    },
+    {
+      "id": "data.numeric-mixer",
+      "group": "data-management",
+      "revision": 1,
+      "status": "approved",
+      "title": "Numeric column mixer",
+      "description": "Users shall combine multiple numeric columns into a named sum or arithmetic mean column.",
+      "tags": ["aggregation", "data", "mixer"],
+      "evidence": {
+        "implementation": ["src/core/services/managers/arithmetic_service.py", "src/web/components/data_managers/mixer.py"],
+        "tests": ["tests/unit/test_mixer.py"],
+        "documentation": ["docs/user-guide/workflows/managing-datasets.md"]
+      }
+    },
+    {
+      "id": "data.configuration-mixer",
+      "group": "data-management",
+      "revision": 1,
+      "status": "approved",
+      "title": "Configuration label mixer",
+      "description": "Users shall concatenate multiple columns with a configurable separator to create a combined configuration label.",
+      "tags": ["configuration", "data", "mixer"],
+      "evidence": {
+        "implementation": ["src/core/services/managers/arithmetic_service.py", "src/web/components/data_managers/mixer.py"],
+        "tests": ["tests/unit/test_mixer.py"],
+        "documentation": ["docs/user-guide/workflows/managing-datasets.md"]
+      }
+    },
+    {
+      "id": "data.error-propagation",
+      "group": "data-management",
+      "revision": 1,
+      "status": "approved",
+      "title": "Mixer error propagation",
+      "description": "When source columns have .sd or _stdev companions, numeric mixing shall propagate uncertainty into a companion output standard deviation.",
+      "tags": ["data", "mixer", "statistics"],
+      "evidence": {
+        "implementation": ["src/core/services/managers/arithmetic_service.py"],
+        "tests": ["tests/unit/test_mixer.py"],
+        "documentation": ["docs/user-guide/workflows/managing-datasets.md"]
+      }
+    },
+    {
+      "id": "data.operation-history",
+      "group": "data-management",
+      "revision": 1,
+      "status": "approved",
+      "title": "Dataset operation history",
+      "description": "Confirmed manager operations shall be recorded, reviewable, reloadable into controls, and individually removable.",
+      "tags": ["data", "history", "web"],
+      "evidence": {
+        "implementation": ["src/core/state/repositories/history_repository.py", "src/web/components/common/history_components.py"],
+        "tests": ["tests/unit/test_operation_history.py"],
+        "documentation": ["docs/user-guide/workflows/managing-datasets.md"]
+      }
+    },
+    {
+      "id": "shaping.independent-pipelines",
+      "group": "shaping",
+      "revision": 1,
+      "status": "approved",
+      "title": "Independent per-plot pipelines",
+      "description": "Each plot shall own an ordered shaper pipeline whose output does not mutate workspace data or another plot.",
+      "tags": ["pipeline", "plots", "shapers"],
+      "evidence": {
+        "implementation": ["src/web/controllers/plot/pipeline_controller.py", "src/web/pages/ui/plotting/base_plot.py"],
+        "tests": ["tests/integration/test_transformation_pipeline.py"],
+        "documentation": ["docs/user-guide/workflows/plotting.md"]
+      }
+    },
+    {
+      "id": "shaping.pipeline-editor",
+      "group": "shaping",
+      "revision": 1,
+      "status": "approved",
+      "title": "Pipeline editing and finalization",
+      "description": "Users shall add, configure, reorder, remove, preview, and explicitly finalize shaper steps before plotting.",
+      "tags": ["pipeline", "shapers", "web"],
+      "evidence": {
+        "implementation": ["src/web/components/common/pipeline.py", "src/web/controllers/plot/pipeline_controller.py"],
+        "tests": ["tests/e2e/test_shaper_pipeline.py"],
+        "documentation": ["docs/user-guide/workflows/plotting.md"]
+      }
+    },
+    {
+      "id": "shaping.mean",
+      "group": "shaping",
+      "revision": 1,
+      "status": "approved",
+      "title": "Mean shaper",
+      "description": "The mean shaper shall append arithmetic, geometric, or harmonic summary rows for selected variables and groups.",
+      "tags": ["aggregation", "mean", "shapers"],
+      "evidence": {
+        "implementation": ["src/core/services/shapers/impl/mean.py"],
+        "tests": ["tests/unit/test_shapers_extended.py"],
+        "documentation": ["docs/user-guide/reference/shapers.md"]
+      }
+    },
+    {
+      "id": "shaping.column-selector",
+      "group": "shaping",
+      "revision": 1,
+      "status": "approved",
+      "title": "Column selector shaper",
+      "description": "The column selector shall retain an explicitly ordered subset of input columns.",
+      "tags": ["selection", "shapers"],
+      "evidence": {
+        "implementation": ["src/core/services/shapers/impl/selector_algorithms/column_selector.py"],
+        "tests": ["tests/unit/test_selectors.py"],
+        "documentation": ["docs/user-guide/reference/shapers.md"]
+      }
+    },
+    {
+      "id": "shaping.condition-selector",
+      "group": "shaping",
+      "revision": 1,
+      "status": "approved",
+      "title": "Condition selector shaper",
+      "description": "The condition selector shall filter rows by equality, containment, comparison, explicit values, or numeric range.",
+      "tags": ["filter", "selection", "shapers"],
+      "evidence": {
+        "implementation": ["src/core/services/shapers/impl/selector_algorithms/condition_selector.py"],
+        "tests": ["tests/unit/test_condition_selector.py"],
+        "documentation": ["docs/user-guide/reference/shapers.md"]
+      }
+    },
+    {
+      "id": "shaping.item-selector",
+      "group": "shaping",
+      "revision": 1,
+      "status": "approved",
+      "title": "Item selector shaper",
+      "description": "The item selector shall keep rows whose selected column exactly matches or contains configured string values.",
+      "tags": ["filter", "selection", "shapers"],
+      "evidence": {
+        "implementation": ["src/core/services/shapers/impl/selector_algorithms/item_selector.py"],
+        "tests": ["tests/unit/test_selectors.py"],
+        "documentation": ["docs/user-guide/reference/shapers.md"]
+      }
+    },
+    {
+      "id": "shaping.group-cardinality-selector",
+      "group": "shaping",
+      "revision": 1,
+      "status": "approved",
+      "title": "Group cardinality selector shaper",
+      "description": "The group cardinality selector shall retain groups when the distinct-value count of a configured column equals, exceeds, or falls below a configured threshold.",
+      "tags": ["grouping", "selection", "shapers"],
+      "evidence": {
+        "implementation": ["src/core/services/shapers/impl/selector_algorithms/group_cardinality_selector.py"],
+        "tests": ["tests/unit/test_derive_and_group_shapers.py"],
+        "documentation": ["docs/user-guide/reference/shapers.md"]
+      }
+    },
+    {
+      "id": "shaping.group-predicate-selector",
+      "group": "shaping",
+      "revision": 1,
+      "status": "approved",
+      "title": "Group predicate selector shaper",
+      "description": "The group predicate selector shall keep or drop whole groups according to whether a configured baseline row contains zero, NaN, or either in a selected predicate column.",
+      "tags": ["grouping", "selection", "shapers"],
+      "evidence": {
+        "implementation": ["src/core/services/shapers/impl/selector_algorithms/group_predicate_selector.py"],
+        "tests": ["tests/unit/test_derive_and_group_shapers.py"],
+        "documentation": ["docs/user-guide/reference/shapers.md"]
+      }
+    },
+    {
+      "id": "shaping.normalize",
+      "group": "shaping",
+      "revision": 1,
+      "status": "approved",
+      "title": "Normalization shaper",
+      "description": "The normalize shaper shall divide selected variables and optional .sd companions by a non-zero baseline within each configured group.",
+      "tags": ["normalization", "shapers", "statistics"],
+      "evidence": {
+        "implementation": ["src/core/services/shapers/impl/normalize.py"],
+        "tests": ["tests/unit/test_shaper_normalize.py"],
+        "documentation": ["docs/user-guide/reference/shapers.md"]
+      }
+    },
+    {
+      "id": "shaping.pivot-longer",
+      "group": "shaping",
+      "revision": 1,
+      "status": "approved",
+      "title": "Pivot-longer shaper",
+      "description": "The pivot-longer shaper shall melt selected columns and optionally extract, select, discard, or merge pattern-derived categories.",
+      "tags": ["pivot", "reshape", "shapers"],
+      "evidence": {
+        "implementation": ["src/core/services/shapers/impl/pivot.py"],
+        "tests": ["tests/unit/test_pivot_selective.py"],
+        "documentation": ["docs/user-guide/reference/shapers.md"]
+      }
+    },
+    {
+      "id": "shaping.pivot-wider",
+      "group": "shaping",
+      "revision": 1,
+      "status": "approved",
+      "title": "Pivot-wider shaper",
+      "description": "The pivot-wider shaper shall reshape a long table into indexed columns from configured names and values.",
+      "tags": ["pivot", "reshape", "shapers"],
+      "evidence": {
+        "implementation": ["src/core/services/shapers/impl/pivot.py"],
+        "tests": ["tests/unit/test_shapers_extended.py"],
+        "documentation": ["docs/user-guide/reference/shapers.md"]
+      }
+    },
+    {
+      "id": "shaping.sort",
+      "group": "shaping",
+      "revision": 1,
+      "status": "approved",
+      "title": "Explicit sort shaper",
+      "description": "The sort shaper shall reorder rows using explicit category orders for one or more columns.",
+      "tags": ["ordering", "shapers", "sort"],
+      "evidence": {
+        "implementation": ["src/core/services/shapers/impl/sort.py"],
+        "tests": ["tests/unit/test_sort_config.py"],
+        "documentation": ["docs/user-guide/reference/shapers.md"]
+      }
+    },
+    {
+      "id": "shaping.split-apply",
+      "group": "shaping",
+      "revision": 1,
+      "status": "approved",
+      "title": "Split-apply shaper",
+      "description": "The split-apply shaper shall partition data by join columns, apply independent nested pipelines, and merge the results.",
+      "tags": ["composition", "grouping", "shapers"],
+      "evidence": {
+        "implementation": ["src/core/services/shapers/impl/split_apply.py"],
+        "tests": ["tests/unit/test_split_apply.py"],
+        "documentation": ["docs/user-guide/reference/shapers.md"]
+      }
+    },
+    {
+      "id": "shaping.transformer",
+      "group": "shaping",
+      "revision": 1,
+      "status": "approved",
+      "title": "Type transformer shaper",
+      "description": "The transformer shaper shall convert a column to a supported type and optionally enforce categorical order.",
+      "tags": ["shapers", "transformation", "types"],
+      "evidence": {
+        "implementation": ["src/core/services/shapers/impl/transformer.py"],
+        "tests": ["tests/unit/test_shapers_extended.py"],
+        "documentation": ["docs/user-guide/reference/shapers.md"]
+      }
+    },
+    {
+      "id": "shaping.derive-column",
+      "group": "shaping",
+      "revision": 1,
+      "status": "approved",
+      "title": "Derived-column shaper",
+      "description": "The derive-column shaper shall create or replace a column through sum, ratio, scalar arithmetic, concatenation, or value mapping.",
+      "tags": ["derived_column", "shapers", "transformation"],
+      "evidence": {
+        "implementation": ["src/core/services/shapers/impl/derive_column.py"],
+        "tests": ["tests/unit/test_derive_and_group_shapers.py"],
+        "documentation": ["docs/user-guide/reference/shapers.md"]
+      }
+    },
+    {
+      "id": "plots.create-multiple",
+      "group": "plot-lifecycle",
+      "revision": 1,
+      "status": "approved",
+      "title": "Create and select multiple plots",
+      "description": "Users shall create named plots of registered types and select among all plots in the current workspace.",
+      "tags": ["lifecycle", "plots", "web"],
+      "evidence": {
+        "implementation": ["src/web/controllers/plot/creation_controller.py"],
+        "tests": ["tests/integration/test_plot_lifecycle.py"],
+        "documentation": ["docs/user-guide/workflows/plotting.md"]
+      }
+    },
+    {
+      "id": "plots.rename",
+      "group": "plot-lifecycle",
+      "revision": 1,
+      "status": "approved",
+      "title": "Rename plots",
+      "description": "Users shall rename an existing plot without changing its configuration, pipeline, or data.",
+      "tags": ["lifecycle", "plots"],
+      "evidence": {
+        "implementation": ["src/web/controllers/plot/creation_controller.py"],
+        "tests": ["tests/ui_logic/test_creation_controller.py"],
+        "documentation": ["docs/user-guide/workflows/plotting.md"]
+      }
+    },
+    {
+      "id": "plots.duplicate",
+      "group": "plot-lifecycle",
+      "revision": 1,
+      "status": "approved",
+      "title": "Duplicate plots",
+      "description": "Users shall duplicate a plot into independent copied configuration, pipeline, and processed data state.",
+      "tags": ["copy", "lifecycle", "plots"],
+      "evidence": {
+        "implementation": ["src/web/pages/plot_adapters.py"],
+        "tests": ["tests/integration/test_plot_lifecycle.py"],
+        "documentation": ["docs/user-guide/workflows/plotting.md"]
+      }
+    },
+    {
+      "id": "plots.delete",
+      "group": "plot-lifecycle",
+      "revision": 1,
+      "status": "approved",
+      "title": "Delete plots",
+      "description": "Users shall remove a plot and its derived state without corrupting the remaining workspace plots.",
+      "tags": ["delete", "lifecycle", "plots"],
+      "evidence": {
+        "implementation": ["src/web/controllers/plot/creation_controller.py"],
+        "tests": ["tests/ui_logic/test_creation_controller.py"],
+        "documentation": ["docs/user-guide/workflows/plotting.md"]
+      }
+    },
+    {
+      "id": "plots.independent-state",
+      "group": "plot-lifecycle",
+      "revision": 1,
+      "status": "approved",
+      "title": "Independent plot state",
+      "description": "Each plot shall retain independent data mapping, styling, pipeline, legend mapping, render engine, and cached render state.",
+      "tags": ["isolation", "plots", "state"],
+      "evidence": {
+        "implementation": ["src/web/pages/ui/plotting/base_plot.py", "src/core/state/repositories/plot_repository.py"],
+        "tests": ["tests/integration/test_engine_isolation.py"],
+        "documentation": ["docs/user-guide/getting-started/concepts.md"]
+      }
+    },
+    {
+      "id": "plots.refresh-cache",
+      "group": "plot-lifecycle",
+      "revision": 1,
+      "status": "approved",
+      "title": "Automatic refresh and render caching",
+      "description": "Users shall choose automatic or manual figure refresh, and unchanged plot inputs shall reuse an engine-aware render cache.",
+      "tags": ["cache", "plots", "refresh"],
+      "evidence": {
+        "implementation": ["src/web/controllers/plot/render_controller.py"],
+        "tests": ["tests/unit/test_auto_refresh.py"],
+        "documentation": ["docs/user-guide/workflows/plotting.md"]
+      }
+    },
+    {
+      "id": "plot.bar",
+      "group": "plot-types",
+      "revision": 1,
+      "status": "approved",
+      "title": "Bar chart",
+      "description": "RING-5 shall render one numeric measure by category as vertical bars with optional color grouping and error bars.",
+      "tags": ["bar", "plots"],
+      "evidence": {
+        "implementation": ["src/web/pages/ui/plotting/types/bar_plot.py"],
+        "tests": ["tests/unit/test_bar_line_create_figure.py"],
+        "documentation": ["docs/user-guide/reference/plot-types.md"]
+      }
+    },
+    {
+      "id": "plot.dual-axis-bar-dot",
+      "group": "plot-types",
+      "revision": 1,
+      "status": "approved",
+      "title": "Dual-axis bar and dot chart",
+      "description": "RING-5 shall combine grouped primary-axis bars with independently styled secondary-axis dots and optional connecting lines.",
+      "tags": ["dual_axis", "plots"],
+      "evidence": {
+        "implementation": ["src/web/pages/ui/plotting/types/dual_axis_bar_dot_plot.py"],
+        "tests": ["tests/unit/test_dual_axis_bar_dot_plot.py"],
+        "documentation": ["docs/user-guide/reference/plot-types.md"]
+      }
+    },
+    {
+      "id": "plot.grouped-bar",
+      "group": "plot-types",
+      "revision": 1,
+      "status": "approved",
+      "title": "Grouped bar chart",
+      "description": "RING-5 shall render side-by-side bars for comparison groups within each major category.",
+      "tags": ["bar", "grouped", "plots"],
+      "evidence": {
+        "implementation": ["src/web/pages/ui/plotting/types/grouped_bar_plot.py"],
+        "tests": ["tests/unit/test_grouped_bar_plot.py"],
+        "documentation": ["docs/user-guide/reference/plot-types.md"]
+      }
+    },
+    {
+      "id": "plot.grouped-stacked-bar",
+      "group": "plot-types",
+      "revision": 1,
+      "status": "approved",
+      "title": "Grouped stacked bar chart",
+      "description": "RING-5 shall render stacked components nested within comparison groups and support optional right-axis series.",
+      "tags": ["bar", "grouped", "plots", "stacked"],
+      "evidence": {
+        "implementation": ["src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py"],
+        "tests": ["tests/unit/test_grouped_stacked_bar_create_figure.py"],
+        "documentation": ["docs/user-guide/reference/plot-types.md"]
+      }
+    },
+    {
+      "id": "plot.heatmap",
+      "group": "plot-types",
+      "revision": 1,
+      "status": "approved",
+      "title": "Heatmap",
+      "description": "RING-5 shall render numeric values across row and column categories as a color-encoded matrix with optional facets.",
+      "tags": ["heatmap", "matrix", "plots"],
+      "evidence": {
+        "implementation": ["src/web/pages/ui/plotting/types/heatmap_plot.py"],
+        "tests": ["tests/unit/test_heatmap_plot.py"],
+        "documentation": ["docs/user-guide/reference/plot-types.md"]
+      }
+    },
+    {
+      "id": "plot.histogram",
+      "group": "plot-types",
+      "revision": 1,
+      "status": "approved",
+      "title": "Histogram",
+      "description": "RING-5 shall render observation distributions or parsed gem5 bucket columns with configurable bins, grouping, stacking, and normalization.",
+      "tags": ["distribution", "histogram", "plots"],
+      "evidence": {
+        "implementation": ["src/web/pages/ui/plotting/types/histogram_plot.py"],
+        "tests": ["tests/unit/test_histogram_plot.py"],
+        "documentation": ["docs/user-guide/reference/plot-types.md"]
+      }
+    },
+    {
+      "id": "plot.line",
+      "group": "plot-types",
+      "revision": 1,
+      "status": "approved",
+      "title": "Line chart",
+      "description": "RING-5 shall render ordered trends with configurable lines, markers, grouping, and error bars.",
+      "tags": ["line", "plots", "trend"],
+      "evidence": {
+        "implementation": ["src/web/pages/ui/plotting/types/line_plot.py"],
+        "tests": ["tests/unit/test_bar_line_create_figure.py"],
+        "documentation": ["docs/user-guide/reference/plot-types.md"]
+      }
+    },
+    {
+      "id": "plot.scatter",
+      "group": "plot-types",
+      "revision": 1,
+      "status": "approved",
+      "title": "Scatter plot",
+      "description": "RING-5 shall render the relationship between two numeric measures with optional categorical color grouping.",
+      "tags": ["plots", "scatter"],
+      "evidence": {
+        "implementation": ["src/web/pages/ui/plotting/types/scatter_plot.py"],
+        "tests": ["tests/unit/test_scatter_plot.py"],
+        "documentation": ["docs/user-guide/reference/plot-types.md"]
+      }
+    },
+    {
+      "id": "plot.stacked-bar",
+      "group": "plot-types",
+      "revision": 1,
+      "status": "approved",
+      "title": "Stacked bar chart",
+      "description": "RING-5 shall render multiple numeric components stacked into a total for each category.",
+      "tags": ["bar", "plots", "stacked"],
+      "evidence": {
+        "implementation": ["src/web/pages/ui/plotting/types/stacked_bar_plot.py"],
+        "tests": ["tests/unit/test_stacked_bar_plot.py"],
+        "documentation": ["docs/user-guide/reference/plot-types.md"]
+      }
+    },
+    {
+      "id": "figure.layout",
+      "group": "figure-configuration",
+      "revision": 1,
+      "status": "approved",
+      "title": "Figure layout and dimensions",
+      "description": "Users shall configure publication presets, width, height, DPI, margins, bar width, and group gaps.",
+      "tags": ["dimensions", "layout", "styling"],
+      "evidence": {
+        "implementation": ["src/web/components/plotting/settings/layout_settings.py"],
+        "tests": ["tests/unit/core/visualization/test_figure_spec.py"],
+        "documentation": ["docs/user-guide/reference/settings.md"]
+      }
+    },
+    {
+      "id": "figure.typography",
+      "group": "figure-configuration",
+      "revision": 1,
+      "status": "approved",
+      "title": "Typography configuration",
+      "description": "Users shall configure font family and title, axis-title, tick-label, legend, annotation, and data-label typography.",
+      "tags": ["fonts", "styling", "typography"],
+      "evidence": {
+        "implementation": ["src/web/components/plotting/settings/typography_settings.py"],
+        "tests": ["tests/unit/core/visualization/test_settings_verification.py"],
+        "documentation": ["docs/user-guide/reference/settings.md"]
+      }
+    },
+    {
+      "id": "figure.axes",
+      "group": "figure-configuration",
+      "revision": 1,
+      "status": "approved",
+      "title": "Axis configuration",
+      "description": "Users shall configure axis titles, ranges, tick steps, tick angles, tick marks, axis lines, and left or right axis styling where applicable.",
+      "tags": ["axes", "styling"],
+      "evidence": {
+        "implementation": ["src/web/components/plotting/settings/axes_settings.py"],
+        "tests": ["tests/unit/core/visualization/test_axis_spec.py"],
+        "documentation": ["docs/user-guide/reference/settings.md"]
+      }
+    },
+    {
+      "id": "figure.legends",
+      "group": "figure-configuration",
+      "revision": 1,
+      "status": "approved",
+      "title": "Legend configuration",
+      "description": "Users shall configure applicable primary, secondary, and numbered legends, including position, orientation, anchors, columns, fonts, backgrounds, borders, markers, and spacing.",
+      "tags": ["legend", "styling"],
+      "evidence": {
+        "implementation": ["src/web/components/plotting/settings/legend_settings.py"],
+        "tests": ["tests/unit/test_legend_settings.py"],
+        "documentation": ["docs/user-guide/reference/settings.md"]
+      }
+    },
+    {
+      "id": "figure.colors",
+      "group": "figure-configuration",
+      "revision": 1,
+      "status": "approved",
+      "title": "Color and palette configuration",
+      "description": "Users shall choose registered colorblind-aware palettes or explicit colors and configure plot, paper, grid, and axis colors with optional transparent backgrounds.",
+      "tags": ["colors", "palette", "styling"],
+      "evidence": {
+        "implementation": ["src/web/components/plotting/settings/colors_settings.py", "src/core/services/visualization/palette_service.py"],
+        "tests": ["tests/unit/test_colorblind_palettes.py"],
+        "documentation": ["docs/user-guide/reference/settings.md"]
+      }
+    },
+    {
+      "id": "figure.data-labels",
+      "group": "figure-configuration",
+      "revision": 1,
+      "status": "approved",
+      "title": "Data value labels",
+      "description": "Users shall show formatted data values with configurable color mode, font size, rotation, position, anchor, threshold logic, and size constraint.",
+      "tags": ["annotations", "labels", "styling"],
+      "evidence": {
+        "implementation": ["src/web/components/plotting/settings/data_labels_settings.py"],
+        "tests": ["tests/unit/test_data_labels.py"],
+        "documentation": ["docs/user-guide/reference/settings.md"]
+      }
+    },
+    {
+      "id": "figure.advanced-disclosure",
+      "group": "figure-configuration",
+      "revision": 1,
+      "status": "approved",
+      "title": "Progressive advanced settings",
+      "description": "Layout, typography, and legends shall remain directly accessible while axes, labels, colors, and advanced controls can be progressively disclosed.",
+      "tags": ["settings", "usability", "web"],
+      "evidence": {
+        "implementation": ["src/web/pages/ui/plotting/settings_pills.py"],
+        "tests": ["tests/ui_logic/test_settings_pills.py"],
+        "documentation": ["docs/user-guide/reference/settings.md"]
+      }
+    },
+    {
+      "id": "figure.error-bars",
+      "group": "figure-configuration",
+      "revision": 1,
+      "status": "approved",
+      "title": "Standard-deviation error bars",
+      "description": "Plots that support uncertainty shall optionally render error bars from companion .sd columns on both rendering engines.",
+      "tags": ["error_bars", "statistics", "styling"],
+      "evidence": {
+        "implementation": ["src/web/pages/ui/plotting/types/_trace_helpers.py"],
+        "tests": ["tests/unit/test_dual_axis_rendering.py"],
+        "documentation": ["docs/user-guide/workflows/plotting.md"]
+      }
+    },
+    {
+      "id": "figure.reference-lines",
+      "group": "figure-configuration",
+      "revision": 1,
+      "status": "approved",
+      "title": "Reference lines",
+      "description": "Users shall add and style horizontal reference lines, including normalized baselines, with position, color, width, style, and label.",
+      "tags": ["annotations", "reference_line", "styling"],
+      "evidence": {
+        "implementation": ["src/web/components/plotting/settings/reference_line_settings.py"],
+        "tests": ["tests/unit/test_reference_line.py"],
+        "documentation": ["docs/user-guide/reference/settings.md"]
+      }
+    },
+    {
+      "id": "figure.shapes-annotations",
+      "group": "figure-configuration",
+      "revision": 1,
+      "status": "approved",
+      "title": "Shapes and text annotations",
+      "description": "Users and scripts shall add engine-independent text annotations and line, rectangle, or other supported shape decorations.",
+      "tags": ["annotations", "shapes", "styling"],
+      "evidence": {
+        "implementation": ["src/web/components/plotting/settings/shapes_settings.py", "ring5/decorations.py"],
+        "tests": ["tests/ui_unit/test_shapes_settings.py"],
+        "documentation": ["docs/developer-guide/api-reference/public-python-api.md"]
+      }
+    },
+    {
+      "id": "figure.ordering-renaming",
+      "group": "figure-configuration",
+      "revision": 1,
+      "status": "approved",
+      "title": "Category ordering and relabeling",
+      "description": "Users shall reorder and rename applicable X categories, groups, legend items, stack series, Y metrics, and facets without rewriting source data.",
+      "tags": ["labels", "ordering", "styling"],
+      "evidence": {
+        "implementation": ["src/web/components/plotting/settings/ordering_settings.py"],
+        "tests": ["tests/unit/test_persistent_labels.py"],
+        "documentation": ["docs/user-guide/reference/settings.md"]
+      }
+    },
+    {
+      "id": "figure.group-separators",
+      "group": "figure-configuration",
+      "revision": 1,
+      "status": "approved",
+      "title": "Grouped-category separators",
+      "description": "Grouped plots shall optionally draw category separators and isolate the final group with a configurable gap or divider.",
+      "tags": ["grouped", "layout", "styling"],
+      "evidence": {
+        "implementation": ["src/web/pages/ui/plotting/utils/grouped_bar_utils.py"],
+        "tests": ["tests/unit/test_grouped_bar_utils.py"],
+        "documentation": ["docs/user-guide/guides/compare-configurations.md"]
+      }
+    },
+    {
+      "id": "figure.numbered-xaxis",
+      "group": "figure-configuration",
+      "revision": 1,
+      "status": "approved",
+      "title": "Numbered X-axis labels",
+      "description": "Grouped figures shall optionally replace or supplement long category labels with numbers and a separately configurable number legend.",
+      "tags": ["labels", "numbered_axis", "styling"],
+      "evidence": {
+        "implementation": ["src/web/pages/ui/plotting/utils/grouped_stacked_bar_helpers.py"],
+        "tests": ["tests/unit/test_numbered_xaxis.py"],
+        "documentation": ["docs/user-guide/guides/publication-export.md"]
+      }
+    },
+    {
+      "id": "figure.category-groups",
+      "group": "figure-configuration",
+      "revision": 1,
+      "status": "approved",
+      "title": "Category super-groups",
+      "description": "Grouped figures shall optionally combine adjacent categories into labeled super-groups with boundaries and span rules.",
+      "tags": ["category_groups", "labels", "styling"],
+      "evidence": {
+        "implementation": ["src/core/models/visualization/axis_config.py"],
+        "tests": ["tests/unit/test_category_groups.py"],
+        "documentation": ["docs/user-guide/guides/publication-export.md"]
+      }
+    },
+    {
+      "id": "figure.dual-axis-controls",
+      "group": "figure-configuration",
+      "revision": 1,
+      "status": "approved",
+      "title": "Dual-axis configuration",
+      "description": "Applicable plots shall expose right-axis mappings, range, title, dot or bar mode, marker and line styling, per-group lines, and unified or separate legends.",
+      "tags": ["dual_axis", "settings", "styling"],
+      "evidence": {
+        "implementation": ["src/web/components/plotting/config/dual_axis_settings.py"],
+        "tests": ["tests/e2e/test_dual_axis.py"],
+        "documentation": ["docs/user-guide/reference/plot-types.md"]
+      }
+    },
+    {
+      "id": "figure.histogram-controls",
+      "group": "figure-configuration",
+      "revision": 1,
+      "status": "approved",
+      "title": "Histogram configuration",
+      "description": "Histogram plots shall expose observation or pre-binned input, binning, group, stack or overlay, and count, probability, density, or percent normalization controls.",
+      "tags": ["histogram", "settings"],
+      "evidence": {
+        "implementation": ["src/web/components/plotting/config/histogram_config.py"],
+        "tests": ["tests/unit/test_histogram_rebinning.py"],
+        "documentation": ["docs/user-guide/reference/plot-types.md"]
+      }
+    },
+    {
+      "id": "figure.heatmap-controls",
+      "group": "figure-configuration",
+      "revision": 1,
+      "status": "approved",
+      "title": "Heatmap configuration",
+      "description": "Heatmap plots shall expose matrix mappings, optional facets, color scale, range, colorbar, missing-cell, and cell-label controls.",
+      "tags": ["heatmap", "settings"],
+      "evidence": {
+        "implementation": ["src/web/components/plotting/config/heatmap_config.py"],
+        "tests": ["tests/unit/test_heatmap_plot.py"],
+        "documentation": ["docs/user-guide/reference/plot-types.md"]
+      }
+    },
+    {
+      "id": "figure.interactive-editing",
+      "group": "figure-configuration",
+      "revision": 1,
+      "status": "approved",
+      "title": "Interactive Plotly editing",
+      "description": "Plotly figures shall optionally accept zoom, pan, legend movement, and editable text events and persist supported relayout changes into plot configuration.",
+      "tags": ["interactive", "plotly", "settings"],
+      "evidence": {
+        "implementation": ["src/web/components/plotting/interactive_plot.py", "src/web/rendering/relayout.py"],
+        "tests": ["tests/ui_logic/test_interactive_plot.py"],
+        "documentation": ["docs/user-guide/reference/settings.md"]
+      }
+    },
+    {
+      "id": "render.engine-independent-traces",
+      "group": "rendering-export",
+      "revision": 1,
+      "status": "approved",
+      "title": "Engine-independent trace construction",
+      "description": "Every plot type shall build typed engine-independent traces before either rendering connector is invoked.",
+      "tags": ["architecture", "rendering", "traces"],
+      "evidence": {
+        "implementation": ["src/core/models/visualization/trace_build_result.py", "src/web/pages/ui/plotting/base_plot.py"],
+        "tests": ["tests/unit/test_trace_to_plotly.py"],
+        "documentation": ["docs/developer-guide/subsystems/visualization.md"]
+      }
+    },
+    {
+      "id": "render.plotly",
+      "group": "rendering-export",
+      "revision": 1,
+      "status": "approved",
+      "title": "Plotly rendering engine",
+      "description": "RING-5 shall render all registered plot traces as interactive Plotly figures.",
+      "tags": ["plotly", "rendering"],
+      "evidence": {
+        "implementation": ["src/web/rendering/plotly_connector.py"],
+        "tests": ["tests/unit/core/visualization/test_connectors.py"],
+        "documentation": ["docs/user-guide/reference/rendering-export.md"]
+      }
+    },
+    {
+      "id": "render.matplotlib",
+      "group": "rendering-export",
+      "revision": 1,
+      "status": "approved",
+      "title": "Matplotlib rendering engine",
+      "description": "RING-5 shall render all registered plot traces as static Matplotlib figures.",
+      "tags": ["matplotlib", "rendering"],
+      "evidence": {
+        "implementation": ["src/web/rendering/matplotlib_connector.py"],
+        "tests": ["tests/integration/test_matplotlib_rendering.py"],
+        "documentation": ["docs/user-guide/reference/rendering-export.md"]
+      }
+    },
+    {
+      "id": "render.engine-selection",
+      "group": "rendering-export",
+      "revision": 1,
+      "status": "approved",
+      "title": "Per-plot engine selection",
+      "description": "Users shall switch each plot between Plotly and Matplotlib, with engine-specific controls and export formats synchronized before rendering.",
+      "tags": ["engine", "rendering", "web"],
+      "evidence": {
+        "implementation": ["src/web/components/plotting/settings/engine_settings.py", "src/web/rendering/engine_manager.py"],
+        "tests": ["tests/e2e/test_engine_comparison.py"],
+        "documentation": ["docs/user-guide/workflows/plotting.md"]
+      }
+    },
+    {
+      "id": "export.plotly-html",
+      "group": "rendering-export",
+      "revision": 1,
+      "status": "approved",
+      "title": "Self-contained Plotly HTML export",
+      "description": "Plotly figures shall export as self-contained interactive HTML without requiring a browser executable.",
+      "tags": ["export", "html", "plotly"],
+      "evidence": {
+        "implementation": ["src/web/rendering/figure_export.py::plotly_download_bytes"],
+        "tests": ["tests/unit/test_plotly_download.py"],
+        "documentation": ["docs/user-guide/reference/rendering-export.md"]
+      }
+    },
+    {
+      "id": "export.plotly-static",
+      "group": "rendering-export",
+      "revision": 1,
+      "status": "approved",
+      "title": "Static Plotly export",
+      "description": "Plotly figures shall export through Kaleido and a Chrome-family browser as PNG, SVG, or PDF with bounded retries for transient browser failures.",
+      "tags": ["export", "kaleido", "plotly"],
+      "evidence": {
+        "implementation": ["src/web/rendering/figure_export.py::plotly_download_bytes"],
+        "tests": ["tests/unit/test_plotly_download.py"],
+        "documentation": ["docs/user-guide/reference/rendering-export.md"]
+      }
+    },
+    {
+      "id": "export.matplotlib-standard",
+      "group": "rendering-export",
+      "revision": 1,
+      "status": "approved",
+      "title": "Standard Matplotlib export",
+      "description": "Matplotlib figures shall export as PDF, PNG, or SVG with appropriate physical dimensions and raster DPI.",
+      "tags": ["export", "matplotlib"],
+      "evidence": {
+        "implementation": ["src/web/rendering/figure_export.py::matplotlib_download_bytes"],
+        "tests": ["tests/unit/test_matplotlib_download.py"],
+        "documentation": ["docs/user-guide/reference/rendering-export.md"]
+      }
+    },
+    {
+      "id": "export.matplotlib-pgf",
+      "group": "rendering-export",
+      "revision": 1,
+      "status": "approved",
+      "title": "Matplotlib PGF export",
+      "description": "Matplotlib figures shall export as XeLaTeX-compatible PGF, preserving configured figure size and falling back visibly when raster content prevents PGF output.",
+      "tags": ["export", "latex", "matplotlib", "pgf"],
+      "evidence": {
+        "implementation": ["src/web/rendering/figure_export.py::matplotlib_download_bytes", "src/web/pages/ui/plotting/download_section.py"],
+        "tests": ["tests/unit/test_matplotlib_download.py"],
+        "documentation": ["docs/user-guide/reference/rendering-export.md"]
+      }
+    },
+    {
+      "id": "export.web-download",
+      "group": "rendering-export",
+      "revision": 1,
+      "status": "approved",
+      "title": "Engine-aware web downloads",
+      "description": "The plot page shall expose only formats supported by the selected engine and generate a correctly named downloadable artifact.",
+      "tags": ["download", "export", "web"],
+      "evidence": {
+        "implementation": ["src/web/pages/ui/plotting/download_section.py"],
+        "tests": ["tests/e2e/test_export_presets.py"],
+        "documentation": ["docs/user-guide/guides/publication-export.md"]
+      }
+    },
+    {
+      "id": "export.deterministic",
+      "group": "rendering-export",
+      "revision": 1,
+      "status": "approved",
+      "title": "Deterministic exports",
+      "description": "Headless exports shall optionally normalize engine-specific identifiers, timestamps, and salts so repeated exports are byte-stable where supported.",
+      "tags": ["determinism", "export", "reproducibility"],
+      "evidence": {
+        "implementation": ["src/web/rendering/figure_export.py"],
+        "tests": ["tests/unit/test_export_logic.py"],
+        "documentation": ["docs/user-guide/guides/publication-export.md"]
+      }
+    },
+    {
+      "id": "export.public-boundary",
+      "group": "rendering-export",
+      "revision": 1,
+      "status": "approved",
+      "title": "Public byte and file export API",
+      "description": "The public API shall infer a figure engine, validate formats, return bytes or write files, create parent directories, and expose typed dependency and export failures.",
+      "tags": ["api", "errors", "export"],
+      "evidence": {
+        "implementation": ["ring5/_export.py"],
+        "tests": ["tests/integration/test_ring5_public_api.py"],
+        "documentation": ["docs/user-guide/reference/rendering-export.md"]
+      }
+    },
+    {
+      "id": "portfolio.save",
+      "group": "reproducibility",
+      "revision": 1,
+      "status": "approved",
+      "title": "Portfolio save",
+      "description": "Users shall save a named snapshot containing the available workspace data, plots, processed plot data, pipelines, figure configuration, parse provenance, counters, and histories; a configuration-only snapshot shall remain valid when no data is loaded.",
+      "tags": ["persistence", "portfolios", "reproducibility"],
+      "evidence": {
+        "implementation": ["src/core/services/data_services/portfolio_service.py"],
+        "tests": ["tests/integration/test_portfolio_persistence.py"],
+        "documentation": ["docs/user-guide/workflows/portfolios.md"]
+      }
+    },
+    {
+      "id": "portfolio.safe-overwrite",
+      "group": "reproducibility",
+      "revision": 1,
+      "status": "approved",
+      "title": "Explicit portfolio overwrite",
+      "description": "Headless portfolio saving shall refuse to replace an existing named snapshot unless overwrite is explicitly requested.",
+      "tags": ["api", "portfolios", "safety"],
+      "evidence": {
+        "implementation": ["ring5/_session.py::Session.save_portfolio"],
+        "tests": ["tests/integration/test_ring5_api_completeness.py"],
+        "documentation": ["docs/user-guide/workflows/portfolios.md"]
+      }
+    },
+    {
+      "id": "portfolio.restore",
+      "group": "reproducibility",
+      "revision": 1,
+      "status": "approved",
+      "title": "Portfolio restore",
+      "description": "Users shall load a named portfolio and restore every compatible data, plot, pipeline, configuration, provenance, and history item into the current session.",
+      "tags": ["persistence", "portfolios", "restore"],
+      "evidence": {
+        "implementation": ["src/core/state/repository_state_manager.py::restore_session"],
+        "tests": ["tests/integration/test_portfolio_round_trip.py"],
+        "documentation": ["docs/user-guide/workflows/portfolios.md"]
+      }
+    },
+    {
+      "id": "portfolio.partial-report",
+      "group": "reproducibility",
+      "revision": 1,
+      "status": "approved",
+      "title": "Visible partial restoration",
+      "description": "Portfolio restoration shall return or display a structured report of data errors, skipped plots, and malformed parser variables instead of silently dropping content.",
+      "tags": ["errors", "portfolios", "restore"],
+      "evidence": {
+        "implementation": ["src/core/models/portfolio_models.py::RestoreReport", "src/web/pages/portfolio.py"],
+        "tests": ["tests/integration/test_portfolio_fix.py"],
+        "documentation": ["docs/user-guide/workflows/portfolios.md"]
+      }
+    },
+    {
+      "id": "portfolio.migration",
+      "group": "reproducibility",
+      "revision": 1,
+      "status": "approved",
+      "title": "Portfolio schema migration",
+      "description": "Older supported portfolio schemas shall migrate deterministically before restoration, while newer unknown schemas shall fail with a typed version error.",
+      "tags": ["migration", "portfolios", "schema"],
+      "evidence": {
+        "implementation": ["src/core/services/portfolio_migrator.py"],
+        "tests": ["tests/integration/test_portfolio_migration.py"],
+        "documentation": ["docs/developer-guide/subsystems/portfolios.md"]
+      }
+    },
+    {
+      "id": "portfolio.manage",
+      "group": "reproducibility",
+      "revision": 1,
+      "status": "approved",
+      "title": "Portfolio listing and deletion",
+      "description": "The web application shall list saved portfolios and allow intentional deletion of an individual snapshot.",
+      "tags": ["delete", "portfolios", "web"],
+      "evidence": {
+        "implementation": ["src/web/pages/portfolio.py"],
+        "tests": ["tests/e2e/test_portfolio.py"],
+        "documentation": ["docs/user-guide/workflows/portfolios.md"]
+      }
+    },
+    {
+      "id": "portfolio.batch-replay",
+      "group": "reproducibility",
+      "revision": 1,
+      "status": "approved",
+      "title": "Headless portfolio replay",
+      "description": "The public API and CLI shall restore, render, and export every valid plot in a portfolio through a selected engine and format.",
+      "tags": ["automation", "portfolios", "rendering"],
+      "evidence": {
+        "implementation": ["ring5/_portfolio.py::render_portfolio"],
+        "tests": ["tests/integration/test_ring5_public_api.py"],
+        "documentation": ["docs/user-guide/workflows/portfolios.md"]
+      }
+    },
+    {
+      "id": "portfolio.upgrade-protection",
+      "group": "reproducibility",
+      "revision": 1,
+      "status": "approved",
+      "title": "Safe portfolio upgrade",
+      "description": "The CLI shall refuse to re-save a partially restored portfolio because doing so would permanently discard skipped content.",
+      "tags": ["cli", "migration", "portfolios", "safety"],
+      "evidence": {
+        "implementation": ["ring5/cli.py::_cmd_upgrade"],
+        "tests": ["tests/unit/test_ring5_cli.py"],
+        "documentation": ["docs/user-guide/workflows/portfolios.md"]
+      }
+    },
+    {
+      "id": "api.session",
+      "group": "automation",
+      "revision": 1,
+      "status": "approved",
+      "title": "Headless Session workspace",
+      "description": "The supported Session context manager shall compose scan, parse, load, manage, shape, plot, render, export, and portfolio operations and release owned pending work on close.",
+      "tags": ["api", "automation", "session"],
+      "evidence": {
+        "implementation": ["ring5/_session.py::Session"],
+        "tests": ["tests/integration/test_ring5_api_completeness.py"],
+        "documentation": ["docs/user-guide/workflows/scripting.md"]
+      }
+    },
+    {
+      "id": "api.table",
+      "group": "automation",
+      "revision": 1,
+      "status": "approved",
+      "title": "Pandas-independent Table scripts",
+      "description": "The public Table and read_table surface shall provide immutable loading, selection, transformation, inspection, and export for scripts that do not import pandas.",
+      "tags": ["api", "data", "scripting"],
+      "evidence": {
+        "implementation": ["ring5/data.py"],
+        "tests": ["tests/unit/test_ring5_convenience_api.py"],
+        "documentation": ["docs/user-guide/workflows/scripting.md"]
+      }
+    },
+    {
+      "id": "api.figure-spec",
+      "group": "automation",
+      "revision": 1,
+      "status": "approved",
+      "title": "Typed FigureSpec",
+      "description": "The public API shall expose typed common figure mappings, layout, axes, grouping, legend, reference-line, and dual-axis configuration with an extra-key escape hatch.",
+      "tags": ["api", "figures", "typing"],
+      "evidence": {
+        "implementation": ["ring5/figure_spec.py::FigureSpec"],
+        "tests": ["tests/unit/test_figure_spec.py"],
+        "documentation": ["docs/developer-guide/api-reference/public-python-api.md"]
+      }
+    },
+    {
+      "id": "api.figure-builder",
+      "group": "automation",
+      "revision": 1,
+      "status": "approved",
+      "title": "Fluent FigureSpec builder",
+      "description": "Scripts shall build a FigureSpec through cohesive fluent methods for data, size, palettes, axes, grouping, legends, references, and dual-axis options.",
+      "tags": ["api", "builder", "figures"],
+      "evidence": {
+        "implementation": ["ring5/figure_spec.py::FigureSpecBuilder"],
+        "tests": ["tests/unit/test_figure_spec.py"],
+        "documentation": ["docs/developer-guide/api-reference/public-python-api.md"]
+      }
+    },
+    {
+      "id": "api.figure-decorations",
+      "group": "automation",
+      "revision": 1,
+      "status": "approved",
+      "title": "Scripted coordinates and decorations",
+      "description": "Scripts shall calculate grouped-bar coordinates and add engine-independent annotations and shapes without importing internal rendering modules.",
+      "tags": ["annotations", "api", "figures"],
+      "evidence": {
+        "implementation": ["ring5/coordinates.py", "ring5/decorations.py"],
+        "tests": ["tests/unit/test_ring5_convenience_api.py"],
+        "documentation": ["docs/developer-guide/api-reference/public-python-api.md"]
+      }
+    },
+    {
+      "id": "api.registry-discovery",
+      "group": "automation",
+      "revision": 1,
+      "status": "approved",
+      "title": "Public registry discovery",
+      "description": "Scripts shall discover current stable plot and shaper identifiers instead of copying registry inventories.",
+      "tags": ["api", "discovery", "registry"],
+      "evidence": {
+        "implementation": ["ring5/_session.py::available_plot_types", "ring5/shapers.py::available_shaper_types"],
+        "tests": ["tests/unit/test_factory_registries.py"],
+        "documentation": ["docs/user-guide/workflows/scripting.md"]
+      }
+    },
+    {
+      "id": "api.typed-errors",
+      "group": "automation",
+      "revision": 1,
+      "status": "approved",
+      "title": "Typed public errors",
+      "description": "Supported operational failures shall inherit Ring5Error and expose narrower scan, parse, pipeline, data, render, export, dependency, and portfolio error types.",
+      "tags": ["api", "errors", "typing"],
+      "evidence": {
+        "implementation": ["ring5/errors.py"],
+        "tests": ["tests/integration/test_ring5_api_completeness.py"],
+        "documentation": ["docs/user-guide/workflows/scripting.md"]
+      }
+    },
+    {
+      "id": "api.doctor",
+      "group": "automation",
+      "revision": 1,
+      "status": "approved",
+      "title": "Dependency doctor",
+      "description": "The public API and CLI shall report essential Perl and optional browser and XeLaTeX dependency availability without making optional exporters mandatory.",
+      "tags": ["api", "cli", "dependencies"],
+      "evidence": {
+        "implementation": ["ring5/_doctor.py"],
+        "tests": ["tests/unit/test_ring5_cli.py"],
+        "documentation": ["docs/user-guide/getting-started/installation.md"]
+      }
+    },
+    {
+      "id": "cli.parse",
+      "group": "automation",
+      "revision": 1,
+      "status": "approved",
+      "title": "CLI parsing",
+      "description": "The ring5 parse command shall parse repeated variable arguments from a stats tree into a requested durable CSV with strict or lenient missing-stat behavior.",
+      "tags": ["cli", "parsing"],
+      "evidence": {
+        "implementation": ["ring5/cli.py::_cmd_parse"],
+        "tests": ["tests/unit/test_ring5_cli.py"],
+        "documentation": ["docs/user-guide/workflows/scripting.md"]
+      }
+    },
+    {
+      "id": "cli.render",
+      "group": "automation",
+      "revision": 1,
+      "status": "approved",
+      "title": "CLI portfolio rendering",
+      "description": "The ring5 render command shall regenerate all portfolio figures into a target directory with selectable engine, format, and deterministic mode.",
+      "tags": ["cli", "portfolios", "rendering"],
+      "evidence": {
+        "implementation": ["ring5/cli.py::_cmd_render"],
+        "tests": ["tests/unit/test_ring5_cli.py"],
+        "documentation": ["docs/user-guide/workflows/scripting.md"]
+      }
+    },
+    {
+      "id": "api.process-lifecycle",
+      "group": "automation",
+      "revision": 1,
+      "status": "approved",
+      "title": "Reusable worker-pool lifecycle",
+      "description": "Process-wide parser and scan pools shall remain reusable across sessions, support explicit shutdown, and restart transparently when used again.",
+      "tags": ["api", "lifecycle", "workers"],
+      "evidence": {
+        "implementation": ["ring5/__init__.py::shutdown", "src/parsing/framework/work_pool.py"],
+        "tests": ["tests/integration/test_worker_pool_integration.py"],
+        "documentation": ["docs/user-guide/workflows/scripting.md"]
+      }
+    },
+    {
+      "id": "extension.plot-registry",
+      "group": "extensibility-quality",
+      "revision": 1,
+      "status": "approved",
+      "title": "Runtime plot registration",
+      "description": "New BasePlot implementations shall register stable snake-case identifiers and UI metadata through the plot factory.",
+      "tags": ["extensibility", "plots", "registry"],
+      "evidence": {
+        "implementation": ["src/web/pages/ui/plotting/plot_factory.py"],
+        "tests": ["tests/unit/test_plot_factory.py"],
+        "documentation": ["docs/developer-guide/extension-guides/adding-a-plot-type.md"]
+      }
+    },
+    {
+      "id": "extension.shaper-registry",
+      "group": "extensibility-quality",
+      "revision": 1,
+      "status": "approved",
+      "title": "Shaper factory registration",
+      "description": "New pure shapers shall register stable serialized identifiers, typed configurations, UI configuration, and pipeline validation through the shaper factory.",
+      "tags": ["extensibility", "registry", "shapers"],
+      "evidence": {
+        "implementation": ["src/core/services/shapers/factory.py"],
+        "tests": ["tests/unit/test_shaper_factory_display.py"],
+        "documentation": ["docs/developer-guide/extension-guides/adding-a-shaper.md"]
+      }
+    },
+    {
+      "id": "extension.parser-protocol",
+      "group": "extensibility-quality",
+      "revision": 1,
+      "status": "approved",
+      "title": "Simulator parser protocol",
+      "description": "Additional simulators shall integrate through the SimulationParser protocol and simulator registry without adding simulator-specific logic to core services.",
+      "tags": ["extensibility", "parsing", "protocol"],
+      "evidence": {
+        "implementation": ["src/parsing/parser_protocol.py", "src/parsing/registry.py"],
+        "tests": ["tests/unit/test_simulator_registry.py"],
+        "documentation": ["docs/developer-guide/extension-guides/adding-a-parser.md"]
+      }
+    },
+    {
+      "id": "extension.render-connector",
+      "group": "extensibility-quality",
+      "revision": 1,
+      "status": "approved",
+      "title": "Rendering connector protocol",
+      "description": "Rendering engines shall consume the canonical FigureConfig and typed traces through a common connector boundary.",
+      "tags": ["extensibility", "protocol", "rendering"],
+      "evidence": {
+        "implementation": ["src/web/rendering/_connector_protocol.py"],
+        "tests": ["tests/unit/core/visualization/test_connectors.py"],
+        "documentation": ["docs/developer-guide/extension-guides/adding-a-renderer.md"]
+      }
+    },
+    {
+      "id": "quality.immutable-data",
+      "group": "extensibility-quality",
+      "revision": 1,
+      "status": "approved",
+      "title": "Non-mutating DataFrame operations",
+      "description": "Core managers, shapers, and public table operations shall return new data objects and preserve caller-owned inputs.",
+      "tags": ["data", "immutability", "quality"],
+      "evidence": {
+        "implementation": ["src/core/common/dataframe_utils.py", "src/core/services/shapers/pipeline_service.py"],
+        "tests": ["tests/unit/test_aliasing.py"],
+        "documentation": ["docs/developer-guide/architecture/design-patterns.md"]
+      }
+    },
+    {
+      "id": "quality.architecture-boundaries",
+      "group": "extensibility-quality",
+      "revision": 1,
+      "status": "approved",
+      "title": "Layered architecture boundaries",
+      "description": "Core and parsing code shall remain independent of Streamlit, core shall not import web composition, and presentation shall depend inward through explicit facades and protocols.",
+      "tags": ["architecture", "boundaries", "quality"],
+      "evidence": {
+        "implementation": ["scripts/check_architecture.py"],
+        "tests": ["tests/unit/test_architecture_boundary.py"],
+        "documentation": ["docs/developer-guide/architecture/layer-boundaries.md"]
+      }
+    },
+    {
+      "id": "quality.input-security",
+      "group": "extensibility-quality",
+      "revision": 1,
+      "status": "approved",
+      "title": "Bounded and sanitized input",
+      "description": "File names, paths, regular expressions, text searches, uploads, and aggregate operations shall be validated, contained, and bounded before expensive or persistent work.",
+      "tags": ["limits", "security", "validation"],
+      "evidence": {
+        "implementation": ["src/core/common/security_limits.py", "src/core/common/safe_regex.py", "src/core/common/utils.py"],
+        "tests": ["tests/unit/test_safe_regex.py"],
+        "documentation": ["docs/user-guide/reference/troubleshooting.md"]
+      }
+    },
+    {
+      "id": "quality.async-ownership",
+      "group": "extensibility-quality",
+      "revision": 1,
+      "status": "approved",
+      "title": "Owned asynchronous work",
+      "description": "Scan and parse batches shall expose ownership, cancellation, timeout, resource ceilings, and cleanup without allowing one session to cancel or delete another session's work.",
+      "tags": ["async", "lifecycle", "quality"],
+      "evidence": {
+        "implementation": ["src/parsing/framework/job.py", "src/parsing/framework/work_pool.py"],
+        "tests": ["tests/unit/test_pool_future_leak.py"],
+        "documentation": ["docs/developer-guide/architecture/data-flow.md"]
+      }
+    },
+    {
+      "id": "workspace.application-data-directory",
+      "group": "workspace",
+      "revision": 1,
+      "status": "approved",
+      "title": "Configurable application-data directory",
+      "description": "RING-5 shall keep CSV-pool, saved-configuration, and portfolio files below one application-data directory that defaults to .ring5 and can be redirected with RING5_DATA_DIR.",
+      "tags": ["deployment", "persistence", "workspace"],
+      "evidence": {
+        "implementation": ["src/core/services/data_services/path_service.py"],
+        "tests": ["tests/unit/test_parsing_services.py"],
+        "documentation": ["docs/user-guide/workflows/portfolios.md"]
+      }
+    },
+    {
+      "id": "ingestion.csv-delimiter-detection",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "Automatic CSV delimiter detection",
+      "description": "CSV loading through the data service shall detect common delimiters, cache immutable copies and metadata, and expose rows, columns, types, size, and modification time for recent files.",
+      "tags": ["csv", "metadata", "usability"],
+      "evidence": {
+        "implementation": ["src/core/services/data_services/csv_pool_service.py"],
+        "tests": ["tests/unit/test_csv_pool_service.py"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+      }
+    },
+    {
+      "id": "ingestion.web-path-authorization",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "Authorized web statistics roots",
+      "description": "Browser-submitted statistics paths shall be resolved below the roots configured by RING5_ALLOWED_STATS_ROOTS, and the Data Source page shall display the active roots.",
+      "tags": ["paths", "security", "web"],
+      "evidence": {
+        "implementation": ["src/core/common/utils.py::validate_web_stats_path", "src/web/components/data_source/data_source_components.py"],
+        "tests": ["tests/unit/test_utils.py"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+      }
+    },
+    {
+      "id": "ingestion.scan-presets-progress",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "Quick and deep scan progress",
+      "description": "The web workflow shall offer bounded quick and deep scan presets, show per-file progress, surface scan failures and timeouts, and release only settled work owned by that application instance.",
+      "tags": ["progress", "scan", "web"],
+      "evidence": {
+        "implementation": ["src/web/components/data_source/data_source_components.py", "src/web/components/data_source/variable_editor.py::_show_scan_dialog"],
+        "tests": ["tests/unit/test_parser_data_source_services.py"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+      }
+    },
+    {
+      "id": "ingestion.pattern-index-selection",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "Pattern index selection and preservation",
+      "description": "For statistics containing one or more numeric pattern positions, users shall filter discovered index values and optionally preserve each selected concrete instance as an independent output column.",
+      "tags": ["patterns", "selection", "variables"],
+      "evidence": {
+        "implementation": ["src/core/models/pattern_index_service.py", "src/web/components/data_source/pattern_index_selector.py", "src/parsing/gem5/impl/gem5_parser.py"],
+        "tests": ["tests/unit/test_keep_indices.py", "tests/unit/test_pattern_index_service.py"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+      }
+    },
+    {
+      "id": "ingestion.statistics-only",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "Statistics-only structured parsing",
+      "description": "Vector, distribution, and histogram configurations shall choose statistics only, entries only, or entries plus statistics so wide bucket or entry sets can be omitted intentionally.",
+      "tags": ["parsing", "statistics", "variables"],
+      "evidence": {
+        "implementation": ["src/web/components/data_source/variable_editor.py", "src/parsing/gem5/types/type_mapper.py"],
+        "tests": ["tests/unit/test_statistics_only_mode.py", "tests/integration/test_statistics_only_integration.py"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+      }
+    },
+    {
+      "id": "ingestion.variable-entry-selection",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "Structured variable entry and summary selection",
+      "description": "Users shall select discovered or manually named vector and histogram entries and choose supported totals, means, geometric means, samples, deviations, underflows, and overflows where the variable type provides them.",
+      "tags": ["entries", "statistics", "variables"],
+      "evidence": {
+        "implementation": ["src/web/components/data_source/variable_editor.py"],
+        "tests": ["tests/unit/test_variable_service.py", "tests/ui_unit/test_variable_editor.py"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+      }
+    },
+    {
+      "id": "ingestion.distribution-range-scan",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "Deep distribution range discovery",
+      "description": "A deep scan shall aggregate the global minimum and maximum distribution bucket range across its bounded sample and make those values available to the variable configuration.",
+      "tags": ["distribution", "range", "scan"],
+      "evidence": {
+        "implementation": ["src/web/components/data_source/variable_editor.py::_show_scan_dialog", "src/core/services/data_services/variable_service.py::aggregate_distribution_range"],
+        "tests": ["tests/unit/test_deep_scan_min_max.py"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+      }
+    },
+    {
+      "id": "ingestion.histogram-rebinning",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "Histogram bucket rebinning",
+      "description": "Histogram variables shall optionally normalize inconsistent source ranges into a configured number of fixed buckets and maximum range before CSV assembly.",
+      "tags": ["histogram", "normalization", "parsing"],
+      "evidence": {
+        "implementation": ["src/parsing/gem5/types/histogram.py", "src/web/components/data_source/variable_editor.py::render_histogram_config"],
+        "tests": ["tests/unit/test_histogram_rebinning.py"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+      }
+    },
+    {
+      "id": "ingestion.persistent-workers",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "Persistent parser worker pool",
+      "description": "gem5 parsing shall reuse a bounded pool of persistent Perl workers with request timeouts, health monitoring, restart, statistics, and orderly shutdown.",
+      "tags": ["parsing", "performance", "workers"],
+      "evidence": {
+        "implementation": ["src/parsing/gem5/impl/strategies/perl_worker_pool.py"],
+        "tests": ["tests/unit/test_perl_worker_pool.py"],
+        "documentation": ["docs/developer-guide/subsystems/parsing.md"]
+      }
+    },
+    {
+      "id": "ingestion.output-aliases",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "Parser output aliases",
+      "description": "Users shall assign a logical output alias to a scalar or pattern variable without changing the source statistic used for discovery and parsing, and duplicate source or alias definitions shall fail visibly.",
+      "tags": ["alias", "parser", "variables"],
+      "evidence": {
+        "implementation": ["src/core/application_api.py", "src/parsing/gem5/impl/strategies/simple.py", "src/web/components/data_source/variable_editor.py"],
+        "tests": ["tests/unit/test_aliasing.py", "tests/unit/test_application_api_delegation.py"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+      }
+    },
+    {
+      "id": "ingestion.configuration-fallbacks",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "Configuration metadata fallbacks",
+      "description": "Configuration variables shall accept an explicit onEmpty value and use it when path-derived metadata is absent while preserving the first extracted value when content exists.",
+      "tags": ["configuration", "fallback", "parser"],
+      "evidence": {
+        "implementation": ["src/parsing/gem5/types/configuration.py", "src/parsing/gem5/impl/strategies/gem5_parse_work.py", "src/web/components/data_source/variable_editor.py"],
+        "tests": ["tests/unit/test_configuration_type.py", "tests/unit/test_gem5_parse_work.py"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md"]
+      }
+    },
+    {
+      "id": "data.saved-pipeline-configurations",
+      "group": "data-management",
+      "revision": 1,
+      "status": "approved",
+      "title": "Saved shaper configurations",
+      "description": "The application data service shall save, list, load, and delete named shaper-pipeline configurations with descriptions and an optional associated CSV path.",
+      "tags": ["configuration", "persistence", "shapers"],
+      "evidence": {
+        "implementation": ["src/core/services/data_services/config_service.py", "src/core/application_api.py::save_configuration"],
+        "tests": ["tests/unit/test_config_service.py"],
+        "documentation": ["docs/developer-guide/api-reference/services-api.md"]
+      }
+    },
+    {
+      "id": "figure.plot-filtering",
+      "group": "figure-configuration",
+      "revision": 1,
+      "status": "approved",
+      "title": "Plot-configuration category filters",
+      "description": "Applicable plot mappings shall let users restrict visible X categories and groups without changing the processed plot table or workspace dataset.",
+      "tags": ["filtering", "plots", "selection"],
+      "evidence": {
+        "implementation": ["src/web/components/plotting/config/plot_config_components.py"],
+        "tests": ["tests/unit/test_interactive_filters.py"],
+        "documentation": ["docs/user-guide/workflows/plotting.md"]
+      }
+    },
+    {
+      "id": "figure.stack-totals",
+      "group": "figure-configuration",
+      "revision": 1,
+      "status": "approved",
+      "title": "Stack total annotations",
+      "description": "Stacked and grouped-stacked plots shall optionally label stack totals with configurable numeric format, threshold, typography, position, anchor, offset, and rotation.",
+      "tags": ["annotations", "stacked", "totals"],
+      "evidence": {
+        "implementation": ["src/web/components/plotting/config/grouped_stacked_bar_theme.py::render_stack_total_options", "src/web/pages/ui/plotting/types/stacked_bar_plot.py"],
+        "tests": ["tests/unit/test_stacked_histogram_config.py", "tests/unit/test_grouped_stacked_options.py"],
+        "documentation": ["docs/user-guide/reference/settings.md"]
+      }
+    },
+    {
+      "id": "figure.heatmap-summary-controls",
+      "group": "figure-configuration",
+      "revision": 1,
+      "status": "approved",
+      "title": "Heatmap totals and threshold labels",
+      "description": "Heatmaps shall optionally add a total row, reverse their color scale, and show all, above-threshold, or below-threshold formatted cell labels with configurable missing-cell text.",
+      "tags": ["heatmap", "labels", "totals"],
+      "evidence": {
+        "implementation": ["src/web/pages/ui/plotting/types/heatmap_plot.py", "src/web/components/plotting/settings/data_labels_settings.py"],
+        "tests": ["tests/unit/test_heatmap_plot.py"],
+        "documentation": ["docs/user-guide/reference/settings.md"]
+      }
+    },
+    {
+      "id": "figure.histogram-cumulative",
+      "group": "figure-configuration",
+      "revision": 1,
+      "status": "approved",
+      "title": "Cumulative histogram display",
+      "description": "Histogram plots shall optionally accumulate bins in display order while preserving the selected count, probability, density, or percent normalization semantics.",
+      "tags": ["cumulative", "histogram", "statistics"],
+      "evidence": {
+        "implementation": ["src/web/components/plotting/config/histogram_config.py", "src/web/pages/ui/plotting/types/histogram_plot.py"],
+        "tests": ["tests/integration/test_histogram_plot_integration.py"],
+        "documentation": ["docs/user-guide/reference/plot-types.md"]
+      }
+    },
+    {
+      "id": "figure.matplotlib-tex-system",
+      "group": "figure-configuration",
+      "revision": 1,
+      "status": "approved",
+      "title": "Matplotlib TeX-system selection",
+      "description": "Matplotlib-specific advanced settings shall select XeLaTeX, pdfLaTeX, or LuaLaTeX while keeping arbitrary preamble injection disabled in the web interface.",
+      "tags": ["latex", "matplotlib", "settings"],
+      "evidence": {
+        "implementation": ["src/web/components/plotting/settings/engine_settings.py"],
+        "tests": ["tests/ui_logic/test_engine_specific_controls.py"],
+        "documentation": ["docs/user-guide/reference/rendering-export.md"]
+      }
+    },
+    {
+      "id": "figure.plotly-hovermode",
+      "group": "figure-configuration",
+      "revision": 1,
+      "status": "approved",
+      "title": "Plotly hover behavior",
+      "description": "Plotly-specific settings shall choose unified X, closest-point, X, Y, or disabled hover behavior and preserve that choice in the engine-independent figure configuration.",
+      "tags": ["hover", "plotly", "settings"],
+      "evidence": {
+        "implementation": ["src/web/components/plotting/settings/engine_settings.py", "src/web/rendering/plotly_connector.py", "src/core/models/visualization/figure_config.py"],
+        "tests": ["tests/ui_logic/test_engine_specific_controls.py", "tests/unit/core/visualization/test_connectors.py"],
+        "documentation": ["docs/user-guide/reference/rendering-export.md"]
+      }
+    },
+    {
+      "id": "plots.change-type",
+      "group": "plot-lifecycle",
+      "revision": 1,
+      "status": "approved",
+      "title": "Change an existing plot type",
+      "description": "Users shall switch an existing plot to another registered type while preserving its identity, pipeline, processed data, compatible configuration, and independent workspace state.",
+      "tags": ["lifecycle", "plots", "types"],
+      "evidence": {
+        "implementation": ["src/web/controllers/plot/render_controller.py", "src/web/pages/ui/plotting/plot_service.py"],
+        "tests": ["tests/unit/test_plot_service.py", "tests/integration/test_plot_lifecycle.py", "tests/ui/test_e2e_manage_plots.py"],
+        "documentation": ["docs/user-guide/workflows/plotting.md"]
+      }
+    },
+    {
+      "id": "figure.alternate-category-shading",
+      "group": "figure-configuration",
+      "revision": 1,
+      "status": "approved",
+      "title": "Alternate category shading",
+      "description": "Grouped and grouped-stacked bar charts shall optionally shade alternating major categories with a selected color while retaining category separators and isolation spacing.",
+      "tags": ["grouped_bar", "shading", "settings"],
+      "evidence": {
+        "implementation": ["src/web/pages/ui/plotting/utils/grouped_bar_utils.py", "src/web/pages/ui/plotting/types/grouped_bar_plot.py", "src/web/components/plotting/config/grouped_stacked_bar_theme.py"],
+        "tests": ["tests/unit/test_grouped_bar_utils.py", "tests/unit/test_grouped_stacked_options.py"],
+        "documentation": ["docs/user-guide/reference/settings.md"]
+      }
+    },
+    {
+      "id": "figure.series-styling",
+      "group": "figure-configuration",
+      "revision": 1,
+      "status": "approved",
+      "title": "Per-series visual styling",
+      "description": "Applicable plots shall style individual series with an override color, display name, bar pattern, marker symbol and size, line width, opacity, and border settings while allowing a series to return to its palette default.",
+      "tags": ["markers", "series", "styles"],
+      "evidence": {
+        "implementation": ["src/web/pages/ui/plotting/styles/base_ui.py", "src/web/pages/ui/plotting/styles/bar_ui.py", "src/web/pages/ui/plotting/styles/line_ui.py", "src/web/pages/ui/plotting/styles/applicator.py"],
+        "tests": ["tests/unit/test_style_applicator.py", "tests/ui_logic/test_style_factory.py", "tests/unit/core/visualization/test_matplotlib_connector_styling.py"],
+        "documentation": ["docs/user-guide/reference/settings.md"]
+      }
+    },
+    {
+      "id": "export.plotly-scale",
+      "group": "rendering-export",
+      "revision": 1,
+      "status": "approved",
+      "title": "Plotly raster export scale",
+      "description": "Plotly static downloads shall support one-, two-, or three-times export scale and apply the selected scale when producing the downloadable artifact.",
+      "tags": ["export", "plotly", "scale"],
+      "evidence": {
+        "implementation": ["src/web/components/plotting/settings/advanced_settings.py", "src/web/components/common/chart_display.py"],
+        "tests": ["tests/ui_unit/test_advanced_settings.py", "tests/e2e/test_export_presets.py"],
+        "documentation": ["docs/user-guide/reference/rendering-export.md"]
+      }
+    },
+    {
+      "id": "api.plot-validation",
+      "group": "automation",
+      "revision": 1,
+      "status": "approved",
+      "title": "Public plot mapping validation",
+      "description": "The public plotting boundary shall reject unknown plot types, missing or mistyped mappings, absent referenced columns, and invalid engine choices before registering or rendering a plot.",
+      "tags": ["api", "plots", "validation"],
+      "evidence": {
+        "implementation": ["ring5/_plot_validation.py", "ring5/_session.py::Session.create_plot"],
+        "tests": ["tests/unit/test_ring5_coverage_edges.py"],
+        "documentation": ["docs/developer-guide/api-reference/public-python-api.md"]
+      }
+    },
+    {
+      "id": "extension.data-manager",
+      "group": "extensibility-quality",
+      "revision": 1,
+      "status": "approved",
+      "title": "Data-manager extension contract",
+      "description": "New shared-dataset operations shall place pure validation and transformation in the managers service family, delegate through the facade, and use preview-confirm UI state before replacement.",
+      "tags": ["extension", "managers", "services"],
+      "evidence": {
+        "implementation": ["src/core/services/managers/managers_api.py", "src/web/components/data_managers/data_manager.py"],
+        "tests": ["tests/integration/test_data_manager_api_flow.py"],
+        "documentation": ["docs/developer-guide/extension-guides/adding-a-data-manager.md"]
+      }
+    },
+    {
+      "id": "extension.settings-panel",
+      "group": "extensibility-quality",
+      "revision": 1,
+      "status": "approved",
+      "title": "Figure-settings extension contract",
+      "description": "New figure controls shall use typed canonical configuration where shared, renderer resolution and both connectors, stable widget keys, and the registered settings-section composition.",
+      "tags": ["extension", "settings", "visualization"],
+      "evidence": {
+        "implementation": ["src/web/pages/ui/plotting/settings_pills.py", "src/web/components/plotting/settings/widget_factory.py"],
+        "tests": ["tests/unit/test_widget_sections.py"],
+        "documentation": ["docs/developer-guide/extension-guides/adding-a-settings-panel.md"]
+      }
+    },
+    {
+      "id": "quality.application-facade",
+      "group": "extensibility-quality",
+      "revision": 1,
+      "status": "approved",
+      "title": "Single application facade contract",
+      "description": "Web features shall reach state, managers, data services, shapers, and parser submission through one session-owned ApplicationAPI whose three focused sub-APIs delegate to concrete services.",
+      "tags": ["architecture", "facade", "services"],
+      "evidence": {
+        "implementation": ["src/core/application_api.py", "src/core/services/services_impl.py"],
+        "tests": ["tests/unit/test_application_api_delegation.py", "tests/integration/test_web_architecture.py"],
+        "documentation": ["docs/developer-guide/api-reference/application-api.md"]
+      }
+    },
+    {
+      "id": "quality.bounded-caching",
+      "group": "extensibility-quality",
+      "revision": 1,
+      "status": "approved",
+      "title": "Bounded thread-safe caching",
+      "description": "CSV metadata, loaded frames, and expensive shaper results shall use thread-safe caches with bounded size, expiry or content fingerprints, defensive result isolation, statistics, and explicit clearing.",
+      "tags": ["caching", "performance", "quality"],
+      "evidence": {
+        "implementation": ["src/core/performance.py", "src/core/services/data_services/csv_pool_service.py"],
+        "tests": ["tests/unit/test_simple_cache.py", "tests/unit/test_aliasing.py"],
+        "documentation": ["docs/developer-guide/development/code-quality.md"]
+      }
+    },
+    {
+      "id": "quality.safe-output-formatting",
+      "group": "extensibility-quality",
+      "revision": 1,
+      "status": "approved",
+      "title": "Safe numeric and LaTeX output formatting",
+      "description": "User-controlled numeric formats and figure text shall be bounded or escaped before formatting and TeX export so malformed formats and TeX commands cannot execute or exhaust resources.",
+      "tags": ["formatting", "latex", "security"],
+      "evidence": {
+        "implementation": ["src/core/common/safe_format.py", "src/web/rendering/latex_security.py"],
+        "tests": ["tests/unit/test_safe_format.py", "tests/unit/test_latex_security.py"],
+        "documentation": ["docs/user-guide/reference/rendering-export.md"]
+      }
+    },
+    {
+      "id": "quality.performance-regression-gates",
+      "group": "extensibility-quality",
+      "revision": 1,
+      "status": "approved",
+      "title": "Performance regression gates",
+      "description": "Representative large-data, cache, worker-pool, transformation, and rendering workflows shall have repeatable performance checks with explicit regression thresholds.",
+      "tags": ["benchmarks", "performance", "quality"],
+      "evidence": {
+        "implementation": ["src/core/performance.py", "tests/helpers/benchmark.py"],
+        "tests": ["tests/performance/test_performance_regression.py", "tests/performance/test_worker_pool_performance.py"],
+        "documentation": ["docs/developer-guide/development/testing.md"]
+      }
+    },
+    {
+      "id": "trace.inventory-generator",
+      "group": "traceability",
+      "revision": 1,
+      "status": "approved",
+      "title": "Deterministic OFT inventory generator",
+      "description": "A repository tool shall validate feature IDs, revisions, statuses, evidence paths, and deterministic generated OpenFastTrace Markdown.",
+      "tags": ["generator", "governance", "openfasttrace"],
+      "evidence": {
+        "implementation": ["scripts/generate_oft_inventory.py"],
+        "tests": ["tests/unit/test_oft_inventory.py"],
+        "documentation": ["spec/oft/README.md"]
+      }
+    },
+    {
+      "id": "trace.discovery-convergence",
+      "group": "traceability",
+      "revision": 1,
+      "status": "approved",
+      "title": "Repeatable discovery convergence audit",
+      "description": "The repository shall record independent feature-discovery passes, their accepted deltas and rejected candidates, and repeat the audit until a pass adds no current requirements.",
+      "tags": ["audit", "discovery", "openfasttrace"],
+      "evidence": {
+        "implementation": ["spec/oft/discovery-audit.md", "scripts/generate_oft_inventory.py"],
+        "tests": ["tests/unit/test_oft_inventory.py"],
+        "documentation": ["spec/oft/README.md", "spec/oft/discovery-audit.md"]
+      }
+    },
+    {
+      "id": "trace.human-html-report",
+      "group": "traceability",
+      "revision": 1,
+      "status": "approved",
+      "title": "Native OFT HTML coverage report",
+      "description": "A single command shall generate native OpenFastTrace HTML, derive coverage outcomes from OFT trace results, provide requirement search and filters, and retain the complete OFT artifact graph in the standalone report.",
+      "tags": ["html", "openfasttrace", "reporting"],
+      "evidence": {
+        "implementation": ["Makefile", "scripts/generate_oft_html_report.py", "scripts/oft_html_report.py"],
+        "tests": ["tests/unit/test_oft_html_report.py", "tests/unit/test_oft_inventory.py"],
+        "documentation": ["spec/oft/README.md"]
+      }
+    },
+    {
+      "id": "trace.registry-drift",
+      "group": "traceability",
+      "revision": 1,
+      "status": "approved",
+      "title": "Live capability drift detection",
+      "description": "The quality gate shall fail when navigation, registries, parser and shaper schemas, rendering models and formats, public APIs, Session methods, or CLI commands and options lack an explicit requirement binding.",
+      "tags": ["discovery", "governance", "openfasttrace"],
+      "evidence": {
+        "implementation": ["scripts/generate_oft_inventory.py::discover_live_capabilities", "Makefile"],
+        "tests": ["tests/unit/test_oft_inventory.py"],
+        "documentation": ["spec/oft/README.md"]
+      }
+    }
+  ],
+  "discovery_bindings": {
+    "navigation_pages": {
+      "Data Managers": "data.summary",
+      "Data Source": "ingestion.source-modes",
+      "Documentation": "workspace.documentation-hub",
+      "Manage Plots": "plots.create-multiple",
+      "Save/Load Portfolio": "portfolio.save"
+    },
+    "plot_types": {
+      "bar": "plot.bar",
+      "dual_axis_bar_dot": "plot.dual-axis-bar-dot",
+      "grouped_bar": "plot.grouped-bar",
+      "grouped_stacked_bar": "plot.grouped-stacked-bar",
+      "heatmap": "plot.heatmap",
+      "histogram": "plot.histogram",
+      "line": "plot.line",
+      "scatter": "plot.scatter",
+      "stacked_bar": "plot.stacked-bar"
+    },
+    "shaper_types": {
+      "columnSelector": "shaping.column-selector",
+      "conditionSelector": "shaping.condition-selector",
+      "deriveColumn": "shaping.derive-column",
+      "groupCardinalitySelector": "shaping.group-cardinality-selector",
+      "groupPredicateSelector": "shaping.group-predicate-selector",
+      "itemSelector": "shaping.item-selector",
+      "mean": "shaping.mean",
+      "normalize": "shaping.normalize",
+      "pivotLonger": "shaping.pivot-longer",
+      "pivotWider": "shaping.pivot-wider",
+      "sort": "shaping.sort",
+      "splitApply": "shaping.split-apply",
+      "transformer": "shaping.transformer"
+    },
+    "simulators": {
+      "gem5": "ingestion.gem5-backend"
+    },
+    "parser_strategies": {
+      "gem5:config_aware": "ingestion.config-aware-strategy",
+      "gem5:simple": "ingestion.simple-strategy"
+    },
+    "variable_types": {
+      "gem5:configuration": "ingestion.configuration",
+      "gem5:distribution": "ingestion.distribution",
+      "gem5:histogram": "ingestion.histogram",
+      "gem5:scalar": "ingestion.scalar",
+      "gem5:vector": "ingestion.vector"
+    },
+    "variable_type_params": {
+      "configuration:onEmpty": "ingestion.configuration-fallbacks",
+      "distribution:maximum": "ingestion.distribution",
+      "distribution:minimum": "ingestion.distribution",
+      "vector:entries": "ingestion.vector"
+    },
+    "simulator_internal_stats": {
+      "gem5:gmean": "ingestion.variable-entry-selection",
+      "gem5:max_bucket": "ingestion.variable-entry-selection",
+      "gem5:max_val": "ingestion.variable-entry-selection",
+      "gem5:mean": "ingestion.variable-entry-selection",
+      "gem5:min_bucket": "ingestion.variable-entry-selection",
+      "gem5:min_val": "ingestion.variable-entry-selection",
+      "gem5:num_buckets": "ingestion.variable-entry-selection",
+      "gem5:overflows": "ingestion.variable-entry-selection",
+      "gem5:sample_period": "ingestion.variable-entry-selection",
+      "gem5:samples": "ingestion.variable-entry-selection",
+      "gem5:stdev": "ingestion.variable-entry-selection",
+      "gem5:total": "ingestion.variable-entry-selection",
+      "gem5:underflows": "ingestion.variable-entry-selection"
+    },
+    "simulator_file_patterns": {
+      "gem5:stats.txt": "ingestion.file-discovery"
+    },
+    "shaper_config_fields": {
+      "ColumnSelectorConfig:columns,id,type": "shaping.column-selector",
+      "ConditionSelectorConfig:column,id,mode,range,threshold,type,values": "shaping.condition-selector",
+      "DeriveColumnShaperConfig:dest,id,mapping,op,scalar,scalar_op,separator,sources,type,zero_denominator": "shaping.derive-column",
+      "GroupCardinalitySelectorConfig:count,countColumn,groupBy,id,mode,type": "shaping.group-cardinality-selector",
+      "GroupPredicateSelectorConfig:action,baselineColumn,baselineValue,drop_when,groupBy,id,predicateColumn,type": "shaping.group-predicate-selector",
+      "ItemSelectorConfig:column,id,mode,strings,type": "shaping.item-selector",
+      "MeanShaperConfig:groupingColumns,id,meanAlgorithm,meanVars,replacingColumn,type": "shaping.mean",
+      "NormalizeShaperConfig:groupBy,id,normalizeSd,normalizeVars,normalizerColumn,normalizerValue,normalizerVars,type": "shaping.normalize",
+      "PivotLongerShaperConfig:extract_group_indices,extract_pattern,extract_separator,id,id_vars,merge_label,selection_filters,selection_strategy,type,value_name,value_vars,var_name": "shaping.pivot-longer",
+      "PivotWiderShaperConfig:columns,id,index,type,values": "shaping.pivot-wider",
+      "SortShaperConfig:id,order_dict,type": "shaping.sort",
+      "SplitApplyShaperConfig:groups,id,joinColumns,type": "shaping.split-apply",
+      "TransformerShaperConfig:column,id,order,target_type,type": "shaping.transformer"
+    },
+    "render_engines": {
+      "matplotlib": "render.matplotlib",
+      "plotly": "render.plotly"
+    },
+    "plotly_formats": {
+      "html": "export.plotly-html",
+      "pdf": "export.plotly-static",
+      "png": "export.plotly-static",
+      "svg": "export.plotly-static"
+    },
+    "matplotlib_formats": {
+      "pdf": "export.matplotlib-standard",
+      "pgf": "export.matplotlib-pgf",
+      "png": "export.matplotlib-standard",
+      "svg": "export.matplotlib-standard"
+    },
+    "settings_sections": {
+      "advanced": "figure.advanced-disclosure",
+      "axes": "figure.axes",
+      "colors": "figure.colors",
+      "data_labels": "figure.data-labels",
+      "layout": "figure.layout",
+      "legends": "figure.legends",
+      "typography": "figure.typography"
+    },
+    "public_exports": {
+      "ColumnNotFoundError": "api.typed-errors",
+      "DataLoadError": "api.typed-errors",
+      "DataValidationError": "api.typed-errors",
+      "DependencyMissingError": "api.typed-errors",
+      "DependencyStatus": "api.doctor",
+      "DoctorReport": "api.doctor",
+      "DualAxisOpts": "api.figure-spec",
+      "ExportError": "api.typed-errors",
+      "FigureDecorations": "api.figure-decorations",
+      "FigureSpec": "api.figure-spec",
+      "FigureSpecBuilder": "api.figure-builder",
+      "LegendOpts": "api.figure-spec",
+      "MissingStatError": "api.typed-errors",
+      "ParseError": "api.typed-errors",
+      "ParseJob": "ingestion.async-parse",
+      "ParseResult": "ingestion.async-parse",
+      "PipelineError": "api.typed-errors",
+      "PlotType": "api.registry-discovery",
+      "PortfolioError": "api.typed-errors",
+      "PortfolioVersionError": "api.typed-errors",
+      "ReferenceLineOpts": "api.figure-spec",
+      "RenderError": "api.typed-errors",
+      "RestoreReport": "portfolio.partial-report",
+      "Ring5Error": "api.typed-errors",
+      "ScanError": "api.typed-errors",
+      "ScanJob": "ingestion.async-scan",
+      "ScanResult": "ingestion.async-scan",
+      "ScannedVariable": "ingestion.variable-scan",
+      "Session": "api.session",
+      "ShaperStepConfig": "shaping.pipeline-editor",
+      "StatConfig": "ingestion.variable-editor",
+      "Table": "api.table",
+      "__version__": "api.process-lifecycle",
+      "available_plot_types": "api.registry-discovery",
+      "available_shaper_types": "api.registry-discovery",
+      "doctor": "api.doctor",
+      "export_bytes": "export.public-boundary",
+      "export_file": "export.public-boundary",
+      "grouped_bar_coordinates": "api.figure-decorations",
+      "read_table": "api.table",
+      "render_figure": "render.engine-selection",
+      "render_portfolio": "portfolio.batch-replay",
+      "shutdown": "api.process-lifecycle"
+    },
+    "session_methods": {
+      "apply_operation": "data.arithmetic",
+      "close": "api.session",
+      "create_plot": "plots.create-multiple",
+      "export": "export.public-boundary",
+      "export_bytes": "export.public-boundary",
+      "load": "ingestion.csv-load",
+      "load_portfolio": "portfolio.restore",
+      "mix_columns": "data.numeric-mixer",
+      "parse": "ingestion.async-parse",
+      "parse_submit": "ingestion.async-parse",
+      "plot": "api.session",
+      "reduce_seeds": "data.seed-reduction",
+      "remove_outliers": "data.outlier-removal",
+      "render": "render.engine-selection",
+      "save_portfolio": "portfolio.save",
+      "scan": "ingestion.async-scan",
+      "scan_submit": "ingestion.async-scan",
+      "shape": "shaping.independent-pipelines"
+    },
+    "cli_commands": {
+      "doctor": "api.doctor",
+      "parse": "cli.parse",
+      "render": "cli.render",
+      "upgrade": "portfolio.upgrade-protection"
+    },
+    "cli_options": {
+      "parse:lenient": "ingestion.parse-integrity",
+      "parse:output": "ingestion.parse-output-provenance",
+      "parse:pattern": "ingestion.file-discovery",
+      "parse:stats_path": "ingestion.file-discovery",
+      "parse:variables": "ingestion.variable-editor",
+      "render:engine": "render.engine-selection",
+      "render:format": "export.web-download",
+      "render:no_deterministic": "export.deterministic",
+      "render:out_dir": "cli.render",
+      "render:portfolio": "cli.render",
+      "upgrade:portfolio": "portfolio.upgrade-protection"
+    },
+    "application_api_members": {
+      "add_manager_history_record": "data.operation-history",
+      "add_to_csv_pool": "ingestion.csv-pool",
+      "apply_shapers": "shaping.independent-pipelines",
+      "available_simulator_info": "ingestion.simulator-registry",
+      "available_simulators": "ingestion.simulator-registry",
+      "cancel_pending_scans": "ingestion.async-scan",
+      "clear_preview": "data.preview-confirm",
+      "data_services": "quality.application-facade",
+      "delete_configuration": "data.saved-pipeline-configurations",
+      "delete_from_csv_pool": "ingestion.csv-pool",
+      "delete_from_pool": "ingestion.csv-pool",
+      "finalize_parsing": "ingestion.async-parse",
+      "finalize_scan": "ingestion.async-scan",
+      "find_stats_files": "ingestion.file-discovery",
+      "get_column_info": "data.summary",
+      "get_current_view": "workspace.data-preview",
+      "get_manager_history": "data.operation-history",
+      "get_parse_status": "ingestion.scan-presets-progress",
+      "get_portfolio_history": "data.operation-history",
+      "get_preview": "data.preview-confirm",
+      "get_scanner_status": "ingestion.scan-presets-progress",
+      "get_simulator_info": "ingestion.simulator-registry",
+      "get_visualization_config": "plots.independent-state",
+      "has_preview": "data.preview-confirm",
+      "load_configuration": "data.saved-pipeline-configurations",
+      "load_csv_file": "ingestion.csv-load",
+      "load_csv_pool": "ingestion.csv-pool",
+      "load_data": "ingestion.csv-load",
+      "load_from_pool": "ingestion.csv-pool",
+      "load_saved_configs": "data.saved-pipeline-configurations",
+      "managers": "quality.application-facade",
+      "release_settled_scans": "ingestion.scan-presets-progress",
+      "remove_manager_history_record": "data.operation-history",
+      "remove_visualization_config": "plots.delete",
+      "reset_session": "workspace.reset",
+      "save_configuration": "data.saved-pipeline-configurations",
+      "set_preview": "data.preview-confirm",
+      "set_visualization_config": "plots.independent-state",
+      "shapers": "quality.application-facade",
+      "submit_parse_async": "ingestion.async-parse",
+      "submit_scan_async": "ingestion.async-scan"
+    },
+    "managers_api_members": {
+      "apply_mixer": "data.numeric-mixer",
+      "apply_operation": "data.arithmetic",
+      "list_operators": "data.arithmetic",
+      "reduce_seeds": "data.seed-reduction",
+      "remove_outliers": "data.outlier-removal",
+      "validate_merge_inputs": "data.numeric-mixer",
+      "validate_outlier_inputs": "data.outlier-removal",
+      "validate_seeds_reducer_inputs": "data.seed-reduction"
+    },
+    "data_services_api_members": {
+      "add_to_csv_pool": "ingestion.csv-pool",
+      "add_variable": "ingestion.variable-editor",
+      "aggregate_discovered_entries": "ingestion.variable-entry-selection",
+      "aggregate_distribution_range": "ingestion.distribution-range-scan",
+      "build_statistics_list": "ingestion.variable-entry-selection",
+      "clear_caches": "quality.bounded-caching",
+      "delete_configuration": "data.saved-pipeline-configurations",
+      "delete_from_csv_pool": "ingestion.csv-pool",
+      "delete_portfolio": "portfolio.manage",
+      "delete_variable": "ingestion.variable-editor",
+      "ensure_variable_ids": "ingestion.variable-editor",
+      "filter_internal_stats": "ingestion.variable-entry-selection",
+      "find_entries_for_variable": "ingestion.variable-entry-selection",
+      "find_variable_by_name": "ingestion.variable-editor",
+      "format_entries_as_string": "ingestion.variable-entry-selection",
+      "generate_variable_id": "ingestion.variable-editor",
+      "get_cache_stats": "quality.bounded-caching",
+      "has_variable_with_name": "ingestion.variable-editor",
+      "list_portfolios": "portfolio.manage",
+      "load_configuration": "data.saved-pipeline-configurations",
+      "load_csv_file": "ingestion.csv-load",
+      "load_csv_pool": "ingestion.csv-pool",
+      "load_portfolio": "portfolio.restore",
+      "load_saved_configs": "data.saved-pipeline-configurations",
+      "parse_comma_separated_entries": "ingestion.variable-entry-selection",
+      "save_configuration": "data.saved-pipeline-configurations",
+      "save_portfolio": "portfolio.save",
+      "update_scanned_entries": "ingestion.variable-entry-selection",
+      "update_variable": "ingestion.variable-editor"
+    },
+    "shapers_api_members": {
+      "create_shaper": "extension.shaper-registry",
+      "get_available_shaper_types": "api.registry-discovery",
+      "process_pipeline": "shaping.independent-pipelines"
+    },
+    "table_members": {
+      "apply": "api.table",
+      "columns": "api.table",
+      "concat": "api.table",
+      "filter_eq": "api.table",
+      "frame": "api.table",
+      "from_csv": "api.table",
+      "from_rows": "api.table",
+      "is_empty": "api.table",
+      "rows": "api.table",
+      "sort": "api.table",
+      "sum_map": "api.table",
+      "to_csv": "api.table",
+      "value_map": "api.table",
+      "with_scalar_op": "api.table"
+    },
+    "figure_builder_members": {
+      "axes": "api.figure-builder",
+      "bars": "api.figure-builder",
+      "build": "api.figure-builder",
+      "category_groups": "api.figure-builder",
+      "category_labels": "api.figure-builder",
+      "data": "api.figure-builder",
+      "dual_axis": "api.figure-builder",
+      "extra": "api.figure-builder",
+      "grid": "api.figure-builder",
+      "legend": "api.figure-builder",
+      "number_legend": "api.figure-builder",
+      "numbered_xaxis": "api.figure-builder",
+      "palette": "api.figure-builder",
+      "reference_line": "api.figure-builder",
+      "separators": "api.figure-builder",
+      "size": "api.figure-builder",
+      "tick_marks": "api.figure-builder",
+      "title": "api.figure-builder"
+    },
+    "figure_decoration_members": {
+      "axis_below": "api.figure-decorations",
+      "clamp_bar_xlim": "api.figure-decorations",
+      "hide_spines": "api.figure-decorations",
+      "log_xaxis": "api.figure-decorations",
+      "nudge_text": "api.figure-decorations",
+      "numbered_bar_arrows": "api.figure-decorations",
+      "over_cap_labels": "api.figure-decorations",
+      "set_legends_opaque": "api.figure-decorations",
+      "set_twin_ylabel_pad": "api.figure-decorations",
+      "set_ylabel_y": "api.figure-decorations",
+      "staggered_over_cap_labels": "api.figure-decorations",
+      "tighten_y_ticks": "api.figure-decorations"
+    },
+    "parse_job_members": {
+      "cancel": "ingestion.async-parse",
+      "finalize": "ingestion.async-parse"
+    },
+    "scan_job_members": {
+      "cancel": "ingestion.async-scan",
+      "finalize": "ingestion.async-scan"
+    },
+    "figure_spec_fields": {
+      "bar_border_color": "figure.series-styling",
+      "bar_border_width": "figure.series-styling",
+      "bargap": "figure.layout",
+      "bargroupgap": "figure.layout",
+      "barmode": "api.figure-spec",
+      "category_group_label_color": "figure.category-groups",
+      "category_group_label_offset": "figure.category-groups",
+      "category_group_label_size": "figure.category-groups",
+      "category_group_rule": "figure.category-groups",
+      "category_group_rule_color": "figure.category-groups",
+      "category_group_rule_inset": "figure.category-groups",
+      "category_group_rule_width": "figure.category-groups",
+      "category_group_rule_y": "figure.category-groups",
+      "category_group_separator_color": "figure.category-groups",
+      "category_group_separator_dash": "figure.category-groups",
+      "category_group_separator_width": "figure.category-groups",
+      "category_groups": "figure.category-groups",
+      "dual_axis": "figure.dual-axis-controls",
+      "extra": "api.figure-spec",
+      "font_family": "figure.typography",
+      "group": "api.figure-spec",
+      "group_label_alt_spacing": "figure.group-separators",
+      "group_label_alternate": "figure.group-separators",
+      "group_order": "figure.ordering-renaming",
+      "height": "figure.layout",
+      "isolate_last_group": "figure.group-separators",
+      "isolation_gap": "figure.group-separators",
+      "legend": "figure.legends",
+      "major_label_offset": "figure.ordering-renaming",
+      "major_label_rotation": "figure.ordering-renaming",
+      "major_label_rotation_overrides": "figure.ordering-renaming",
+      "major_label_size": "figure.typography",
+      "margins": "figure.layout",
+      "number_legend": "figure.numbered-xaxis",
+      "numbered_xaxis_modes": "figure.numbered-xaxis",
+      "palette": "figure.colors",
+      "reference_line": "figure.reference-lines",
+      "separator_color": "figure.group-separators",
+      "show_separators": "figure.group-separators",
+      "show_x_grid": "figure.axes",
+      "show_x_tick_marks": "figure.axes",
+      "show_y_grid": "figure.axes",
+      "show_y_tick_marks": "figure.axes",
+      "tick_font_size": "figure.typography",
+      "title": "figure.typography",
+      "title_font_size": "figure.typography",
+      "width": "figure.layout",
+      "x": "api.figure-spec",
+      "x_order": "figure.ordering-renaming",
+      "xlabel": "figure.axes",
+      "y_columns": "api.figure-spec",
+      "y_dtick": "figure.axes",
+      "y_grid_alpha": "figure.axes",
+      "y_grid_color": "figure.axes",
+      "y_grid_dash": "figure.axes",
+      "y_range": "figure.axes",
+      "ylabel": "figure.axes",
+      "ylabel_font_size": "figure.typography"
+    },
+    "parse_variable_fields": {
+      "_id": "ingestion.variable-editor",
+      "alias": "ingestion.output-aliases",
+      "bins": "ingestion.histogram-rebinning",
+      "enableRebin": "ingestion.histogram-rebinning",
+      "keepIndices": "ingestion.pattern-index-selection",
+      "max_range": "ingestion.histogram-rebinning",
+      "maximum": "ingestion.distribution-range-scan",
+      "minimum": "ingestion.distribution-range-scan",
+      "name": "ingestion.variable-editor",
+      "onEmpty": "ingestion.configuration-fallbacks",
+      "parsed_ids": "ingestion.pattern-index-selection",
+      "patternSelection": "ingestion.pattern-index-selection",
+      "repeat": "ingestion.pattern-aggregation",
+      "statistics": "ingestion.variable-entry-selection",
+      "statisticsOnly": "ingestion.statistics-only",
+      "type": "ingestion.variable-editor",
+      "useSpecialMembers": "ingestion.variable-entry-selection",
+      "vectorEntries": "ingestion.variable-entry-selection"
+    },
+    "stat_config_fields": {
+      "is_regex": "ingestion.pattern-aggregation",
+      "keep_indices": "ingestion.pattern-index-selection",
+      "name": "ingestion.variable-editor",
+      "params": "ingestion.variable-editor",
+      "repeat": "ingestion.pattern-aggregation",
+      "source_name": "ingestion.output-aliases",
+      "statistics_only": "ingestion.statistics-only",
+      "type": "ingestion.variable-editor"
+    },
+    "scanned_variable_fields": {
+      "entries": "ingestion.variable-entry-selection",
+      "name": "ingestion.variable-scan",
+      "pattern_indices": "ingestion.pattern-index-selection",
+      "type": "ingestion.variable-scan"
+    },
+    "scan_result_fields": {
+      "failures": "ingestion.variable-scan",
+      "scanned_files": "ingestion.variable-scan",
+      "variables": "ingestion.variable-scan"
+    },
+    "restore_report_fields": {
+      "data_error": "portfolio.partial-report",
+      "data_restored": "portfolio.partial-report",
+      "parse_variables_skipped": "portfolio.partial-report",
+      "plots_restored": "portfolio.partial-report",
+      "plots_skipped": "portfolio.partial-report"
+    },
+    "figure_config_fields": {
+      "annotations": "figure.shapes-annotations",
+      "axes": "figure.axes",
+      "barmode": "api.figure-spec",
+      "color_palette": "figure.colors",
+      "data_labels": "figure.data-labels",
+      "dimensions": "figure.layout",
+      "enable_stripes": "figure.colors",
+      "font_family": "figure.typography",
+      "hatching_sequence": "figure.colors",
+      "hovermode": "figure.plotly-hovermode",
+      "latex_extra_preamble": "quality.safe-output-formatting",
+      "legends": "figure.legends",
+      "metadata": "render.engine-independent-traces",
+      "paper_bgcolor": "figure.colors",
+      "plot_bgcolor": "figure.colors",
+      "reference_lines": "figure.reference-lines",
+      "series_styles": "figure.series-styling",
+      "show_error_bars": "figure.error-bars",
+      "title": "figure.typography",
+      "trace_overrides": "figure.series-styling",
+      "traces": "render.engine-independent-traces",
+      "typography": "figure.typography"
+    },
+    "dimension_config_fields": {
+      "bar_width_scale": "figure.layout",
+      "bargap": "figure.layout",
+      "bargroupgap": "figure.layout",
+      "dpi": "figure.layout",
+      "height": "figure.layout",
+      "margins": "figure.layout",
+      "width": "figure.layout"
+    },
+    "margin_config_fields": {
+      "bottom": "figure.layout",
+      "left": "figure.layout",
+      "pad": "figure.layout",
+      "right": "figure.layout",
+      "top": "figure.layout"
+    },
+    "axis_config_fields": {
+      "automargin": "figure.axes",
+      "axis_color": "figure.axes",
+      "axis_line_color": "figure.axes",
+      "axis_line_width": "figure.axes",
+      "category_order": "figure.ordering-renaming",
+      "dtick": "figure.axes",
+      "grid_alpha": "figure.axes",
+      "grid_color": "figure.axes",
+      "grid_dash": "figure.axes",
+      "grid_width": "figure.axes",
+      "label": "figure.axes",
+      "label_aliases": "figure.ordering-renaming",
+      "label_pad": "figure.axes",
+      "label_position": "figure.axes",
+      "label_standoff": "figure.axes",
+      "margin": "figure.axes",
+      "range": "figure.axes",
+      "scale": "figure.axes",
+      "show_grid": "figure.axes",
+      "show_tick_labels": "figure.axes",
+      "show_ticks": "figure.axes",
+      "tick_angle": "figure.axes",
+      "tick_dash": "figure.axes",
+      "tick_font_color": "figure.axes",
+      "tick_ha": "figure.axes",
+      "tick_offset": "figure.axes",
+      "tick_pad": "figure.axes",
+      "tick_side": "figure.axes",
+      "tick_text": "figure.axes",
+      "tick_values": "figure.axes",
+      "title_vshift": "figure.axes"
+    },
+    "axes_config_fields": {
+      "group_label_alt_spacing": "figure.group-separators",
+      "group_label_alternate": "figure.group-separators",
+      "group_label_offset": "figure.group-separators",
+      "group_order": "figure.ordering-renaming",
+      "right_axis_line_color": "figure.axes",
+      "right_axis_line_width": "figure.axes",
+      "top_axis_line_color": "figure.axes",
+      "top_axis_line_width": "figure.axes",
+      "x": "figure.axes",
+      "y": "figure.axes",
+      "y2": "figure.dual-axis-controls"
+    },
+    "data_label_config_fields": {
+      "anchor": "figure.data-labels",
+      "auto_contrast": "figure.data-labels",
+      "color_mode": "figure.data-labels",
+      "custom_color": "figure.data-labels",
+      "display_logic": "figure.data-labels",
+      "enabled": "figure.data-labels",
+      "font_size": "figure.data-labels",
+      "format_string": "figure.data-labels",
+      "position": "figure.data-labels",
+      "rotation": "figure.data-labels",
+      "size_constraint": "figure.data-labels",
+      "threshold": "figure.data-labels"
+    },
+    "legend_config_fields": {
+      "anchor_x": "figure.legends",
+      "anchor_y": "figure.legends",
+      "bgalpha": "figure.legends",
+      "bgcolor": "figure.legends",
+      "bold": "figure.legends",
+      "border_color": "figure.legends",
+      "border_width": "figure.legends",
+      "col_width": "figure.legends",
+      "colorbar": "figure.heatmap-controls",
+      "custom_position": "figure.legends",
+      "entrywidth": "figure.legends",
+      "font_color": "figure.legends",
+      "font_family": "figure.legends",
+      "font_size": "figure.legends",
+      "indentation": "figure.legends",
+      "itemsizing": "figure.legends",
+      "itemwidth": "figure.legends",
+      "ncol": "figure.legends",
+      "order": "figure.ordering-renaming",
+      "orientation": "figure.legends",
+      "position_x": "figure.legends",
+      "position_y": "figure.legends",
+      "role": "figure.legends",
+      "spacing": "figure.legends",
+      "title": "figure.legends",
+      "title_font_color": "figure.legends",
+      "title_font_size": "figure.legends",
+      "tracegroupgap": "figure.legends",
+      "valign": "figure.legends",
+      "visible": "figure.legends"
+    },
+    "legend_spacing_config_fields": {
+      "borderaxespad": "figure.legends",
+      "borderpad": "figure.legends",
+      "columnspacing": "figure.legends",
+      "handleheight": "figure.legends",
+      "handlelength": "figure.legends",
+      "handletextpad": "figure.legends",
+      "labelspacing": "figure.legends"
+    },
+    "colorbar_config_fields": {
+      "nticks": "figure.heatmap-controls",
+      "range_mode": "figure.heatmap-controls",
+      "shared": "figure.heatmap-controls",
+      "tick_angle": "figure.heatmap-controls",
+      "tick_decimals": "figure.heatmap-controls",
+      "tick_side": "figure.heatmap-controls",
+      "title_side": "figure.heatmap-controls",
+      "zmax": "figure.heatmap-controls",
+      "zmin": "figure.heatmap-controls"
+    },
+    "series_style_config_fields": {
+      "bar_border_color": "figure.series-styling",
+      "bar_border_width": "figure.series-styling",
+      "color": "figure.series-styling",
+      "display_name": "figure.series-styling",
+      "hatching_pattern": "figure.series-styling",
+      "line_width": "figure.series-styling",
+      "marker_size": "figure.series-styling",
+      "opacity": "figure.series-styling",
+      "symbol": "figure.series-styling"
+    },
+    "typography_config_fields": {
+      "bold_ticks": "figure.typography",
+      "bold_title": "figure.typography",
+      "bold_xlabel": "figure.typography",
+      "bold_y2label": "figure.typography",
+      "bold_ylabel": "figure.typography",
+      "font_size_legend": "figure.typography",
+      "font_size_legend2": "figure.typography",
+      "font_size_ticks": "figure.typography",
+      "font_size_title": "figure.typography",
+      "font_size_xlabel": "figure.typography",
+      "font_size_y2label": "figure.typography",
+      "font_size_y2ticks": "figure.typography",
+      "font_size_ylabel": "figure.typography",
+      "font_size_yticks": "figure.typography"
+    },
+    "public_shaper_exports": {
+      "ColumnSelector": "shaping.column-selector",
+      "ConditionSelector": "shaping.condition-selector",
+      "DeriveColumn": "shaping.derive-column",
+      "GroupCardinalitySelector": "shaping.group-cardinality-selector",
+      "GroupPredicateSelector": "shaping.group-predicate-selector",
+      "ItemSelector": "shaping.item-selector",
+      "Mean": "shaping.mean",
+      "Normalize": "shaping.normalize",
+      "PivotLonger": "shaping.pivot-longer",
+      "PivotWider": "shaping.pivot-wider",
+      "Selector": "extension.shaper-registry",
+      "Sort": "shaping.sort",
+      "SplitApply": "shaping.split-apply",
+      "Transformer": "shaping.transformer",
+      "available_shaper_types": "api.registry-discovery"
+    }
+  }
+}
