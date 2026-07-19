@@ -11,6 +11,7 @@ from src.web.rendering.trace_to_plotly import traces_to_plotly
 
 
 def test_heatmap_plot_creates_trace_per_benchmark() -> None:
+    # [test->req~ring5.plot.heatmap~1]
     data = pd.DataFrame(
         {
             "config_abbrev": ["A", "B", "A", "B"],
@@ -410,6 +411,7 @@ def test_heatmap_data_labels_format_and_threshold() -> None:
 
 def test_heatmap_facet_ordering() -> None:
     """Facet order config controls the order of traces."""
+    # [test->req~ring5.plot.heatmap~1]
     data = pd.DataFrame(
         {
             "cfg": ["A", "A", "A"],

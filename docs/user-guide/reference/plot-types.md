@@ -23,6 +23,54 @@ print(ring5.available_plot_types())
 ## Selection guide
 
 <!--
+`uman~ring5.plot.bar.documentation~1`
+
+Covers:
+- req~ring5.plot.bar~1
+
+`uman~ring5.plot.dual-axis-bar-dot.documentation~1`
+
+Covers:
+- req~ring5.plot.dual-axis-bar-dot~1
+
+`uman~ring5.plot.grouped-bar.documentation~1`
+
+Covers:
+- req~ring5.plot.grouped-bar~1
+
+`uman~ring5.plot.grouped-stacked-bar.documentation~1`
+
+Covers:
+- req~ring5.plot.grouped-stacked-bar~1
+
+`uman~ring5.plot.heatmap.documentation~1`
+
+Covers:
+- req~ring5.plot.heatmap~1
+
+`uman~ring5.plot.histogram.documentation~1`
+
+Covers:
+- req~ring5.plot.histogram~1
+
+`uman~ring5.plot.line.documentation~1`
+
+Covers:
+- req~ring5.plot.line~1
+
+`uman~ring5.plot.scatter.documentation~1`
+
+Covers:
+- req~ring5.plot.scatter~1
+
+`uman~ring5.plot.stacked-bar.documentation~1`
+
+Covers:
+- req~ring5.plot.stacked-bar~1
+
+-->
+
+<!--
 `uman~ring5.ingestion.distribution.documentation~1`
 
 Covers:

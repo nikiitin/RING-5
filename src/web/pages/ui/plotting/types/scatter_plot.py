@@ -26,6 +26,7 @@ class ScatterPlot(BasePlot):
     @override
     def create_traces(self, data: pd.DataFrame, config: PlotConfig) -> TraceBuildResult:
         """Produce scatter traces from data and config."""
+        # [impl->req~ring5.plot.scatter~1]
         x_col: str = config["x"]
         y_col: str = config["y"]
 

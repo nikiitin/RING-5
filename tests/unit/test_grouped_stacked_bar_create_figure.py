@@ -72,6 +72,7 @@ class TestCreateFigure:
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """Standard grouped stacked bar creation."""
+        # [test->req~ring5.plot.grouped-stacked-bar~1]
         config = {
             "x": "Benchmark",
             "group": "Config",

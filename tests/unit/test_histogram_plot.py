@@ -110,6 +110,8 @@ class TestHistogramPlotConfiguration:
 class TestHistogramPlotFigureCreation:
     """Test histogram plot figure generation."""
 
+    # [test->req~ring5.plot.histogram~1]
+
     def test_create_figure_single_histogram(self) -> None:
         """Test creating figure with single histogram."""
         plot = HistogramPlot(plot_id=1, name="Test Histogram")

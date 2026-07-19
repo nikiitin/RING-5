@@ -31,6 +31,7 @@ class StackedBarPlot(BasePlot):
     @override
     def create_traces(self, data: pd.DataFrame, config: PlotConfig) -> TraceBuildResult:
         """Create stacked bar trace configurations."""
+        # [impl->req~ring5.plot.stacked-bar~1]
         x_col = config.get("x")
         y_cols = config.get("y_columns", [])
 

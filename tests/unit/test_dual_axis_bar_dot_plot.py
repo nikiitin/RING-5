@@ -83,6 +83,8 @@ class TestDualAxisBarDotPlotFactory:
 class TestDualAxisBarDotPlotCreateFigure:
     """Test figure creation logic."""
 
+    # [test->req~ring5.plot.dual-axis-bar-dot~1]
+
     def test_create_figure_returns_figure(
         self, sample_data: pd.DataFrame, base_config: dict
     ) -> None:
@@ -191,6 +193,8 @@ class TestDualAxisBarDotPlotColorGrouping:
 
 class TestDualAxisBarDotPlotDotCustomization:
     """Test dot/marker customization options."""
+
+    # [test->req~ring5.plot.dual-axis-bar-dot~1]
 
     def test_dot_size_applied(self, sample_data: pd.DataFrame, base_config: dict) -> None:
         """Test that custom dot size is applied to scatter traces."""

@@ -219,6 +219,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
     @override
     def create_traces(self, data: pd.DataFrame, config: PlotConfig) -> TraceBuildResult:
         """Create grouped stacked bar trace configurations."""
+        # [impl->req~ring5.plot.grouped-stacked-bar~1]
         x_col = config.get("x")
         group_col = config.get("group")
         y_cols = config.get("y_columns", [])
@@ -504,6 +505,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         config: PlotConfig,
     ) -> list[TraceConfig]:
         """Build traces for the secondary (right) Y-axis."""
+        # [impl->req~ring5.plot.grouped-stacked-bar~1]
         from src.web.pages.ui.plotting.utils.grouped_stacked_bar_helpers import (
             build_right_axis_traces,
         )

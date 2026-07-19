@@ -52,6 +52,7 @@ class HistogramPlot(BasePlot):
         Raises:
             ValueError: If histogram variable not found in data
         """
+        # [impl->req~ring5.plot.histogram~1]
         histogram_var = config.get("histogram_variable")
         if not histogram_var:
             raise ValueError("No histogram variable specified")
@@ -145,6 +146,7 @@ class HistogramPlot(BasePlot):
         Returns:
             Dictionary with processed bucket data
         """
+        # [impl->req~ring5.plot.histogram~1]
         # Parse bucket ranges
         buckets: list[tuple[float, float]] = []
         for col in bucket_cols:

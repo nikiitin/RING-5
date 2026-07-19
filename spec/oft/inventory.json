@@ -1154,9 +1154,15 @@
       "description": "RING-5 shall render one numeric measure by category as vertical bars with optional color grouping and error bars.",
       "tags": ["bar", "plots"],
       "evidence": {
-        "implementation": ["src/web/pages/ui/plotting/types/bar_plot.py"],
-        "tests": ["tests/unit/test_bar_line_create_figure.py"],
-        "documentation": ["docs/user-guide/reference/plot-types.md"]
+        "implementation": [
+          "src/web/pages/ui/plotting/types/bar_plot.py::BarPlot.create_traces"
+        ],
+        "tests": [
+          "tests/unit/test_bar_line_create_figure.py::TestBarPlotCreateFigure"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/plot-types.md#selection-guide"
+        ]
       }
     },
     {
@@ -1168,9 +1174,16 @@
       "description": "RING-5 shall combine grouped primary-axis bars with independently styled secondary-axis dots and optional connecting lines.",
       "tags": ["dual_axis", "plots"],
       "evidence": {
-        "implementation": ["src/web/pages/ui/plotting/types/dual_axis_bar_dot_plot.py"],
-        "tests": ["tests/unit/test_dual_axis_bar_dot_plot.py"],
-        "documentation": ["docs/user-guide/reference/plot-types.md"]
+        "implementation": [
+          "src/web/pages/ui/plotting/types/dual_axis_bar_dot_plot.py::DualAxisBarDotPlot.create_traces"
+        ],
+        "tests": [
+          "tests/unit/test_dual_axis_bar_dot_plot.py::TestDualAxisBarDotPlotCreateFigure",
+          "tests/unit/test_dual_axis_bar_dot_plot.py::TestDualAxisBarDotPlotDotCustomization"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/plot-types.md#selection-guide"
+        ]
       }
     },
     {
@@ -1182,9 +1195,16 @@
       "description": "RING-5 shall render side-by-side bars for comparison groups within each major category.",
       "tags": ["bar", "grouped", "plots"],
       "evidence": {
-        "implementation": ["src/web/pages/ui/plotting/types/grouped_bar_plot.py"],
-        "tests": ["tests/unit/test_grouped_bar_plot.py"],
-        "documentation": ["docs/user-guide/reference/plot-types.md"]
+        "implementation": [
+          "src/web/pages/ui/plotting/types/grouped_bar_plot.py::GroupedBarPlot.create_traces"
+        ],
+        "tests": [
+          "tests/unit/test_grouped_bar_plot.py::test_create_figure_basic",
+          "tests/unit/test_grouped_bar_plot.py::test_create_figure_with_error_bars_and_filters"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/plot-types.md#selection-guide"
+        ]
       }
     },
     {
@@ -1196,9 +1216,17 @@
       "description": "RING-5 shall render stacked components nested within comparison groups and support optional right-axis series.",
       "tags": ["bar", "grouped", "plots", "stacked"],
       "evidence": {
-        "implementation": ["src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py"],
-        "tests": ["tests/unit/test_grouped_stacked_bar_create_figure.py"],
-        "documentation": ["docs/user-guide/reference/plot-types.md"]
+        "implementation": [
+          "src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot.create_traces",
+          "src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot._build_right_axis_traces"
+        ],
+        "tests": [
+          "tests/unit/test_grouped_stacked_bar_create_figure.py::TestCreateFigure.test_basic_grouped_stacked",
+          "tests/unit/test_grouped_stacked_dual_axis.py::TestDualAxisCreateFigure"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/plot-types.md#selection-guide"
+        ]
       }
     },
     {
@@ -1210,9 +1238,16 @@
       "description": "RING-5 shall render numeric values across row and column categories as a color-encoded matrix with optional facets.",
       "tags": ["heatmap", "matrix", "plots"],
       "evidence": {
-        "implementation": ["src/web/pages/ui/plotting/types/heatmap_plot.py"],
-        "tests": ["tests/unit/test_heatmap_plot.py"],
-        "documentation": ["docs/user-guide/reference/plot-types.md"]
+        "implementation": [
+          "src/web/pages/ui/plotting/types/heatmap_plot.py::HeatmapPlot.create_traces"
+        ],
+        "tests": [
+          "tests/unit/test_heatmap_plot.py::test_heatmap_plot_creates_trace_per_benchmark",
+          "tests/unit/test_heatmap_plot.py::test_heatmap_facet_ordering"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/plot-types.md#selection-guide"
+        ]
       }
     },
     {
@@ -1224,9 +1259,16 @@
       "description": "RING-5 shall render observation distributions or parsed gem5 bucket columns with configurable bins, grouping, stacking, and normalization.",
       "tags": ["distribution", "histogram", "plots"],
       "evidence": {
-        "implementation": ["src/web/pages/ui/plotting/types/histogram_plot.py"],
-        "tests": ["tests/unit/test_histogram_plot.py"],
-        "documentation": ["docs/user-guide/reference/plot-types.md"]
+        "implementation": [
+          "src/web/pages/ui/plotting/types/histogram_plot.py::HistogramPlot.create_traces",
+          "src/web/pages/ui/plotting/types/histogram_plot.py::HistogramPlot._extract_bucket_data"
+        ],
+        "tests": [
+          "tests/unit/test_histogram_plot.py::TestHistogramPlotFigureCreation"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/plot-types.md#selection-guide"
+        ]
       }
     },
     {
@@ -1238,9 +1280,15 @@
       "description": "RING-5 shall render ordered trends with configurable lines, markers, grouping, and error bars.",
       "tags": ["line", "plots", "trend"],
       "evidence": {
-        "implementation": ["src/web/pages/ui/plotting/types/line_plot.py"],
-        "tests": ["tests/unit/test_bar_line_create_figure.py"],
-        "documentation": ["docs/user-guide/reference/plot-types.md"]
+        "implementation": [
+          "src/web/pages/ui/plotting/types/line_plot.py::LinePlot.create_traces"
+        ],
+        "tests": [
+          "tests/unit/test_bar_line_create_figure.py::TestLinePlotCreateFigure"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/plot-types.md#selection-guide"
+        ]
       }
     },
     {
@@ -1252,9 +1300,15 @@
       "description": "RING-5 shall render the relationship between two numeric measures with optional categorical color grouping.",
       "tags": ["plots", "scatter"],
       "evidence": {
-        "implementation": ["src/web/pages/ui/plotting/types/scatter_plot.py"],
-        "tests": ["tests/unit/test_scatter_plot.py"],
-        "documentation": ["docs/user-guide/reference/plot-types.md"]
+        "implementation": [
+          "src/web/pages/ui/plotting/types/scatter_plot.py::ScatterPlot.create_traces"
+        ],
+        "tests": [
+          "tests/unit/test_scatter_plot.py::TestScatterPlotCreateFigure"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/plot-types.md#selection-guide"
+        ]
       }
     },
     {
@@ -1266,9 +1320,15 @@
       "description": "RING-5 shall render multiple numeric components stacked into a total for each category.",
       "tags": ["bar", "plots", "stacked"],
       "evidence": {
-        "implementation": ["src/web/pages/ui/plotting/types/stacked_bar_plot.py"],
-        "tests": ["tests/unit/test_stacked_bar_plot.py"],
-        "documentation": ["docs/user-guide/reference/plot-types.md"]
+        "implementation": [
+          "src/web/pages/ui/plotting/types/stacked_bar_plot.py::StackedBarPlot.create_traces"
+        ],
+        "tests": [
+          "tests/unit/test_stacked_bar_plot.py::TestCreateFigure"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/plot-types.md#selection-guide"
+        ]
       }
     },
     {

@@ -750,7 +750,7 @@ Tags: cache, plots, refresh, status_approved
 `impl~ring5.plot.bar~1`
 
 Implementation evidence:
-- `src/web/pages/ui/plotting/types/bar_plot.py`
+- `src/web/pages/ui/plotting/types/bar_plot.py::BarPlot.create_traces`
 
 Covers:
 - req~ring5.plot.bar~1
@@ -762,7 +762,7 @@ Tags: bar, plots, status_approved
 `impl~ring5.plot.dual-axis-bar-dot~1`
 
 Implementation evidence:
-- `src/web/pages/ui/plotting/types/dual_axis_bar_dot_plot.py`
+- `src/web/pages/ui/plotting/types/dual_axis_bar_dot_plot.py::DualAxisBarDotPlot.create_traces`
 
 Covers:
 - req~ring5.plot.dual-axis-bar-dot~1
@@ -774,7 +774,7 @@ Tags: dual_axis, plots, status_approved
 `impl~ring5.plot.grouped-bar~1`
 
 Implementation evidence:
-- `src/web/pages/ui/plotting/types/grouped_bar_plot.py`
+- `src/web/pages/ui/plotting/types/grouped_bar_plot.py::GroupedBarPlot.create_traces`
 
 Covers:
 - req~ring5.plot.grouped-bar~1
@@ -786,7 +786,8 @@ Tags: bar, grouped, plots, status_approved
 `impl~ring5.plot.grouped-stacked-bar~1`
 
 Implementation evidence:
-- `src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py`
+- `src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot.create_traces`
+- `src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot._build_right_axis_traces`
 
 Covers:
 - req~ring5.plot.grouped-stacked-bar~1
@@ -798,7 +799,7 @@ Tags: bar, grouped, plots, stacked, status_approved
 `impl~ring5.plot.heatmap~1`
 
 Implementation evidence:
-- `src/web/pages/ui/plotting/types/heatmap_plot.py`
+- `src/web/pages/ui/plotting/types/heatmap_plot.py::HeatmapPlot.create_traces`
 
 Covers:
 - req~ring5.plot.heatmap~1
@@ -810,7 +811,8 @@ Tags: heatmap, matrix, plots, status_approved
 `impl~ring5.plot.histogram~1`
 
 Implementation evidence:
-- `src/web/pages/ui/plotting/types/histogram_plot.py`
+- `src/web/pages/ui/plotting/types/histogram_plot.py::HistogramPlot.create_traces`
+- `src/web/pages/ui/plotting/types/histogram_plot.py::HistogramPlot._extract_bucket_data`
 
 Covers:
 - req~ring5.plot.histogram~1
@@ -822,7 +824,7 @@ Tags: distribution, histogram, plots, status_approved
 `impl~ring5.plot.line~1`
 
 Implementation evidence:
-- `src/web/pages/ui/plotting/types/line_plot.py`
+- `src/web/pages/ui/plotting/types/line_plot.py::LinePlot.create_traces`
 
 Covers:
 - req~ring5.plot.line~1
@@ -834,7 +836,7 @@ Tags: line, plots, status_approved, trend
 `impl~ring5.plot.scatter~1`
 
 Implementation evidence:
-- `src/web/pages/ui/plotting/types/scatter_plot.py`
+- `src/web/pages/ui/plotting/types/scatter_plot.py::ScatterPlot.create_traces`
 
 Covers:
 - req~ring5.plot.scatter~1
@@ -846,7 +848,7 @@ Tags: plots, scatter, status_approved
 `impl~ring5.plot.stacked-bar~1`
 
 Implementation evidence:
-- `src/web/pages/ui/plotting/types/stacked_bar_plot.py`
+- `src/web/pages/ui/plotting/types/stacked_bar_plot.py::StackedBarPlot.create_traces`
 
 Covers:
 - req~ring5.plot.stacked-bar~1
@@ -2745,7 +2747,7 @@ Tags: cache, plots, refresh, status_approved
 `test~ring5.plot.bar~1`
 
 Verification evidence:
-- `tests/unit/test_bar_line_create_figure.py`
+- `tests/unit/test_bar_line_create_figure.py::TestBarPlotCreateFigure`
 
 Covers:
 - req~ring5.plot.bar~1
@@ -2757,7 +2759,8 @@ Tags: bar, plots, status_approved
 `test~ring5.plot.dual-axis-bar-dot~1`
 
 Verification evidence:
-- `tests/unit/test_dual_axis_bar_dot_plot.py`
+- `tests/unit/test_dual_axis_bar_dot_plot.py::TestDualAxisBarDotPlotCreateFigure`
+- `tests/unit/test_dual_axis_bar_dot_plot.py::TestDualAxisBarDotPlotDotCustomization`
 
 Covers:
 - req~ring5.plot.dual-axis-bar-dot~1
@@ -2769,7 +2772,8 @@ Tags: dual_axis, plots, status_approved
 `test~ring5.plot.grouped-bar~1`
 
 Verification evidence:
-- `tests/unit/test_grouped_bar_plot.py`
+- `tests/unit/test_grouped_bar_plot.py::test_create_figure_basic`
+- `tests/unit/test_grouped_bar_plot.py::test_create_figure_with_error_bars_and_filters`
 
 Covers:
 - req~ring5.plot.grouped-bar~1
@@ -2781,7 +2785,8 @@ Tags: bar, grouped, plots, status_approved
 `test~ring5.plot.grouped-stacked-bar~1`
 
 Verification evidence:
-- `tests/unit/test_grouped_stacked_bar_create_figure.py`
+- `tests/unit/test_grouped_stacked_bar_create_figure.py::TestCreateFigure.test_basic_grouped_stacked`
+- `tests/unit/test_grouped_stacked_dual_axis.py::TestDualAxisCreateFigure`
 
 Covers:
 - req~ring5.plot.grouped-stacked-bar~1
@@ -2793,7 +2798,8 @@ Tags: bar, grouped, plots, stacked, status_approved
 `test~ring5.plot.heatmap~1`
 
 Verification evidence:
-- `tests/unit/test_heatmap_plot.py`
+- `tests/unit/test_heatmap_plot.py::test_heatmap_plot_creates_trace_per_benchmark`
+- `tests/unit/test_heatmap_plot.py::test_heatmap_facet_ordering`
 
 Covers:
 - req~ring5.plot.heatmap~1
@@ -2805,7 +2811,7 @@ Tags: heatmap, matrix, plots, status_approved
 `test~ring5.plot.histogram~1`
 
 Verification evidence:
-- `tests/unit/test_histogram_plot.py`
+- `tests/unit/test_histogram_plot.py::TestHistogramPlotFigureCreation`
 
 Covers:
 - req~ring5.plot.histogram~1
@@ -2817,7 +2823,7 @@ Tags: distribution, histogram, plots, status_approved
 `test~ring5.plot.line~1`
 
 Verification evidence:
-- `tests/unit/test_bar_line_create_figure.py`
+- `tests/unit/test_bar_line_create_figure.py::TestLinePlotCreateFigure`
 
 Covers:
 - req~ring5.plot.line~1
@@ -2829,7 +2835,7 @@ Tags: line, plots, status_approved, trend
 `test~ring5.plot.scatter~1`
 
 Verification evidence:
-- `tests/unit/test_scatter_plot.py`
+- `tests/unit/test_scatter_plot.py::TestScatterPlotCreateFigure`
 
 Covers:
 - req~ring5.plot.scatter~1
@@ -2841,7 +2847,7 @@ Tags: plots, scatter, status_approved
 `test~ring5.plot.stacked-bar~1`
 
 Verification evidence:
-- `tests/unit/test_stacked_bar_plot.py`
+- `tests/unit/test_stacked_bar_plot.py::TestCreateFigure`
 
 Covers:
 - req~ring5.plot.stacked-bar~1
@@ -4666,7 +4672,7 @@ Tags: cache, plots, refresh, status_approved
 `uman~ring5.plot.bar~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/plot-types.md`
+- `docs/user-guide/reference/plot-types.md#selection-guide`
 
 Covers:
 - req~ring5.plot.bar~1
@@ -4678,7 +4684,7 @@ Tags: bar, plots, status_approved
 `uman~ring5.plot.dual-axis-bar-dot~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/plot-types.md`
+- `docs/user-guide/reference/plot-types.md#selection-guide`
 
 Covers:
 - req~ring5.plot.dual-axis-bar-dot~1
@@ -4690,7 +4696,7 @@ Tags: dual_axis, plots, status_approved
 `uman~ring5.plot.grouped-bar~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/plot-types.md`
+- `docs/user-guide/reference/plot-types.md#selection-guide`
 
 Covers:
 - req~ring5.plot.grouped-bar~1
@@ -4702,7 +4708,7 @@ Tags: bar, grouped, plots, status_approved
 `uman~ring5.plot.grouped-stacked-bar~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/plot-types.md`
+- `docs/user-guide/reference/plot-types.md#selection-guide`
 
 Covers:
 - req~ring5.plot.grouped-stacked-bar~1
@@ -4714,7 +4720,7 @@ Tags: bar, grouped, plots, stacked, status_approved
 `uman~ring5.plot.heatmap~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/plot-types.md`
+- `docs/user-guide/reference/plot-types.md#selection-guide`
 
 Covers:
 - req~ring5.plot.heatmap~1
@@ -4726,7 +4732,7 @@ Tags: heatmap, matrix, plots, status_approved
 `uman~ring5.plot.histogram~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/plot-types.md`
+- `docs/user-guide/reference/plot-types.md#selection-guide`
 
 Covers:
 - req~ring5.plot.histogram~1
@@ -4738,7 +4744,7 @@ Tags: distribution, histogram, plots, status_approved
 `uman~ring5.plot.line~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/plot-types.md`
+- `docs/user-guide/reference/plot-types.md#selection-guide`
 
 Covers:
 - req~ring5.plot.line~1
@@ -4750,7 +4756,7 @@ Tags: line, plots, status_approved, trend
 `uman~ring5.plot.scatter~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/plot-types.md`
+- `docs/user-guide/reference/plot-types.md#selection-guide`
 
 Covers:
 - req~ring5.plot.scatter~1
@@ -4762,7 +4768,7 @@ Tags: plots, scatter, status_approved
 `uman~ring5.plot.stacked-bar~1`
 
 User documentation evidence:
-- `docs/user-guide/reference/plot-types.md`
+- `docs/user-guide/reference/plot-types.md#selection-guide`
 
 Covers:
 - req~ring5.plot.stacked-bar~1
