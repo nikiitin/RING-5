@@ -13,6 +13,9 @@ from src.core.services.visualization.config_resolver import (  # noqa: F401
     resolve_config,
 )
 from src.core.services.visualization.drill_down_service import drill_down_rows  # noqa: F401
+from src.core.services.visualization.small_multiples_service import (  # noqa: F401
+    create_small_multiples_spec,
+)
 from src.core.services.visualization.palette_service import (  # noqa: F401
     get_palette_names,
     is_colorblind_safe,

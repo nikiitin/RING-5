@@ -3495,11 +3495,33 @@
       "id": "plots.small-multiples",
       "group": "plot-lifecycle",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Small multiples",
       "description": "Users shall facet a plot by one or more categorical variables with consistent scales, ordering, styling, and labels.",
       "tags": ["facets", "plots", "visualization"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/models/visualization/small_multiples_spec.py::SmallMultiplesSpec",
+          "src/core/services/visualization/small_multiples_service.py::create_small_multiples_spec",
+          "src/core/application_api.py::ApplicationAPI.create_small_multiples",
+          "src/web/rendering/small_multiples_builder.py::render_small_multiples",
+          "src/web/components/plotting/settings/small_multiples_settings.py::SmallMultiplesSettingsComponent.render",
+          "src/web/controllers/plot/render_controller.py::PlotRenderController._render_visualization",
+          "ring5/_session.py::Session.create_small_multiples",
+          "ring5/_session.py::Session.render_small_multiples",
+          "ring5/_small_multiples.py::render_small_multiples"
+        ],
+        "tests": [
+          "tests/unit/test_small_multiples_service.py::test_discovers_multicolumn_panels_in_stable_order_with_labels",
+          "tests/integration/test_small_multiples_public_api.py::test_small_multiples_render_both_engines_in_order_without_mutation",
+          "tests/ui_logic/test_small_multiples_settings.py::test_enabled_controls_report_panel_count_and_shared_scales",
+          "tests/ui_logic/test_render_controller.py::TestSmallMultiplesRendering.test_matplotlib_facets_build_plotly_preview_and_native_grid",
+          "tests/e2e/test_plot_small_multiples.py::test_small_multiples_keep_configuration_across_both_engines"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/small-multiples.md#compare-groups-with-small-multiples"
+        ]
+      }
     },
     {
       "id": "plots.copy-settings-pipeline",
@@ -4080,6 +4102,7 @@
       "JoinDiagnostics": "data.validated-joins",
       "LegendOpts": "api.figure-spec",
       "LinkedSelectionSpec": "plots.linked-selections",
+      "SmallMultiplesSpec": "plots.small-multiples",
       "MissingStatError": "api.typed-errors",
       "ParseError": "api.typed-errors",
       "ParseJob": "ingestion.async-parse",
@@ -4113,6 +4136,7 @@
       "read_table": "api.table",
       "render_figure": "render.engine-selection",
       "render_dashboard": "plots.multi-panel-dashboard",
+      "render_small_multiples": "plots.small-multiples",
       "render_portfolio": "portfolio.batch-replay",
       "shutdown": "api.process-lifecycle"
     },
@@ -4128,6 +4152,7 @@
       "create_plot": "plots.create-multiple",
       "create_dashboard": "plots.multi-panel-dashboard",
       "create_linked_selection": "plots.linked-selections",
+      "create_small_multiples": "plots.small-multiples",
       "dataset_lineage": "data.lineage-undo-redo",
       "diagnose_join": "data.validated-joins",
       "drill_down": "plots.drill-down",
@@ -4155,6 +4180,8 @@
       "remove_outliers": "data.outlier-removal",
       "render": "render.engine-selection",
       "render_dashboard": "plots.multi-panel-dashboard",
+      "render_small_multiples": "plots.small-multiples",
+      "small_multiples": "plots.small-multiples",
       "save_portfolio": "portfolio.save",
       "save_dataset_snapshot": "data.dataset-snapshots",
       "scan": "ingestion.async-scan",
@@ -4197,6 +4224,7 @@
       "clear_preview": "data.preview-confirm",
       "create_dashboard": "plots.multi-panel-dashboard",
       "create_linked_selection": "plots.linked-selections",
+      "create_small_multiples": "plots.small-multiples",
       "compare_datasets": "data.multi-dataset-workspace",
       "data_services": "quality.application-facade",
       "delete_configuration": "data.saved-pipeline-configurations",

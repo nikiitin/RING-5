@@ -81,6 +81,7 @@ if TYPE_CHECKING:
         JoinCardinality,
         JoinDiagnostics,
         LinkedSelectionSpec,
+        SmallMultiplesSpec,
         RestoreReport,
         ScanResult,
         ScannedVariable,
@@ -98,6 +99,7 @@ if TYPE_CHECKING:
     from ring5._render import render_figure
     from ring5._dashboard import render_dashboard
     from ring5._linked_selection import apply_linked_selection
+    from ring5._small_multiples import render_small_multiples
     from ring5._session import PlotType, Session, available_plot_types
     from ring5.shapers import available_shaper_types
     from ring5.coordinates import grouped_bar_coordinates
@@ -124,6 +126,7 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "render_figure": ("ring5._render", "render_figure"),
     "render_dashboard": ("ring5._dashboard", "render_dashboard"),
     "apply_linked_selection": ("ring5._linked_selection", "apply_linked_selection"),
+    "render_small_multiples": ("ring5._small_multiples", "render_small_multiples"),
     "export_bytes": ("ring5._export", "export_bytes"),
     "export_file": ("ring5._export", "export_file"),
     "render_portfolio": ("ring5._portfolio", "render_portfolio"),
@@ -142,6 +145,7 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "JoinCardinality": ("src.core.models", "JoinCardinality"),
     "JoinDiagnostics": ("src.core.models", "JoinDiagnostics"),
     "LinkedSelectionSpec": ("src.core.models", "LinkedSelectionSpec"),
+    "SmallMultiplesSpec": ("src.core.models", "SmallMultiplesSpec"),
     "SchemaValidationReport": ("src.core.models", "SchemaValidationReport"),
     "SchemaViolation": ("src.core.models", "SchemaViolation"),
     "ShaperStepConfig": ("src.core.models", "ShaperStepConfig"),
@@ -214,11 +218,13 @@ __all__ = [
     "JoinCardinality",
     "JoinDiagnostics",
     "LinkedSelectionSpec",
+    "SmallMultiplesSpec",
     "SchemaValidationReport",
     "SchemaViolation",
     "render_figure",
     "render_dashboard",
     "apply_linked_selection",
+    "render_small_multiples",
     "export_bytes",
     "export_file",
     "render_portfolio",

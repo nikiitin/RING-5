@@ -96,6 +96,7 @@ class TestSectionDispatch:
             result = plot.render_settings_section("layout", {"x": "a"}, None)
             assert result == {"width": 800}
             MockComp.assert_called_once_with(1, "grouped_bar")
+            MockComp.return_value.render.assert_called_once_with({"x": "a"}, None)
 
     def test_all_sections_are_handled(self) -> None:
         """Every defined section key has a handler."""

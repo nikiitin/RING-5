@@ -18,6 +18,7 @@ from src.core.models import (
     JoinCardinality,
     JoinDiagnostics,
     LinkedSelectionSpec,
+    SmallMultiplesSpec,
     ParseBatchResult,
     ScanFileResult,
     ScannedVariable,
@@ -43,6 +44,9 @@ from src.core.services.managers.managers_api import ManagersAPI
 from src.core.services.services_impl import DefaultServicesAPI
 from src.core.services.shapers.shapers_api import ShapersAPI
 from src.core.services.visualization.drill_down_service import drill_down_rows
+from src.core.services.visualization.small_multiples_service import (
+    create_small_multiples_spec as build_small_multiples_spec,
+)
 from src.core.state.repository_state_manager import RepositoryStateManager
 from src.parsing.framework.file_discovery import find_stats_files as _find_stats_files
 from src.parsing.parser_protocol import SimulationParser
@@ -730,6 +734,49 @@ class ApplicationAPI:
             shared_legend=shared_legend,
             x_title=x_title.strip(),
             y_title=y_title.strip(),
+        )
+
+    def create_small_multiples(
+        self,
+        plot_id: int,
+        facet_columns: Sequence[str],
+        *,
+        columns: int = 3,
+        order: Sequence[Any] | None = None,
+        labels: Mapping[Any, str] | None = None,
+        title: str | None = None,
+        width: int = 1200,
+        panel_height: int = 320,
+        shared_xaxes: bool = True,
+        shared_yaxes: bool = True,
+        shared_legend: bool = True,
+        x_title: str = "",
+        y_title: str = "",
+    ) -> SmallMultiplesSpec:
+        # [impl->req~ring5.plots.small-multiples~1]
+        """Resolve categorical facet panels for one registered plot."""
+        available = {plot.plot_id: plot for plot in self.state_manager.get_plots()}
+        plot = available.get(plot_id)
+        if plot is None:
+            raise ValueError(f"Small multiples references unknown plot ID: {plot_id}.")
+        if plot.processed_data is None:
+            raise ValueError(f"Plot '{plot.name}' has no processed data.")
+        effective_title = str(plot.config.get("title", plot.name)) if title is None else title
+        return build_small_multiples_spec(
+            plot_id,
+            plot.processed_data,
+            facet_columns,
+            columns=columns,
+            order=order,
+            labels=labels,
+            title=effective_title,
+            width=width,
+            panel_height=panel_height,
+            shared_xaxes=shared_xaxes,
+            shared_yaxes=shared_yaxes,
+            shared_legend=shared_legend,
+            x_title=x_title,
+            y_title=y_title,
         )
 
     def create_linked_selection(

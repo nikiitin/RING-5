@@ -379,6 +379,21 @@ class ManagePlotsPage(BasePage):
         return self.page.get_by_role("radiogroup", name="Settings")
 
     @property
+    def viz_layout_section_pill(self) -> Locator:
+        """The Layout settings pill containing dimensions and facet controls."""
+        return self.viz_settings_pills.get_by_role("radio", name="Layout")
+
+    @property
+    def small_multiples_toggle(self) -> Locator:
+        """Opt-in switch for splitting the active plot into panels."""
+        return self.page.get_by_role("switch", name="Split this plot into comparable panels")
+
+    @property
+    def small_multiples_by(self) -> Locator:
+        """Categorical columns used to form small-multiples panels."""
+        return self._by_label("stMultiSelect", "Create one panel for each combination of")
+
+    @property
     def viz_advanced_section_pill(self) -> Locator:
         """An advanced-only settings-section pill ('Colors').
 
@@ -624,6 +639,26 @@ class ManagePlotsPage(BasePage):
     def select_y_axis(self, column: str) -> None:
         """Select a column for the Y-axis."""
         self._open_and_select(self.viz_y_axis_selectbox, column)
+
+    def open_layout_settings(self) -> None:
+        """Open the Layout settings section when it is not already active."""
+        if self.viz_layout_section_pill.is_checked():
+            return
+        self.viz_layout_section_pill.click()
+        self.wait_for_streamlit(expect_rerun=True)
+
+    def enable_small_multiples(self) -> None:
+        """Enable small multiples and wait until its facet controls are committed."""
+        if self.small_multiples_toggle.is_checked():
+            return
+        self.page.get_by_text("Split this plot into comparable panels", exact=True).click()
+        self.wait_for_streamlit(expect_rerun=True)
+
+    def add_small_multiples_column(self, column: str) -> None:
+        """Add one categorical column to the small-multiples grouping."""
+        self.small_multiples_by.click()
+        self.page.get_by_role("option", name=column, exact=True).click()
+        self.wait_for_streamlit(expect_rerun=True)
 
     def enable_drill_down(self) -> None:
         """Enable point-click source-row exploration and wait for the fragment rerun."""

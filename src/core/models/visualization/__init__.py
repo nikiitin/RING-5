@@ -30,6 +30,10 @@ from src.core.models.visualization.linked_selection_spec import (
     SelectionAxis,
     SelectionMode,
 )
+from src.core.models.visualization.small_multiples_spec import (
+    FacetPanel,
+    SmallMultiplesSpec,
+)
 from src.core.models.visualization.palettes import (
     PALETTE_REGISTRY,
 )
@@ -72,6 +76,9 @@ __all__ = [
     "LinkedSelectionSpec",
     "SelectionAxis",
     "SelectionMode",
+    # Small multiples
+    "FacetPanel",
+    "SmallMultiplesSpec",
     # Palettes
     "PALETTE_REGISTRY",
     # Series style

@@ -1406,7 +1406,7 @@ Tags: data, interaction, plots, status_approved
 ### Small multiples
 
 `req~ring5.plots.small-multiples~1`
-Status: proposed
+Status: approved
 
 Users shall facet a plot by one or more categorical variables with consistent scales, ordering, styling, and labels.
 
@@ -1415,7 +1415,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: facets, plots, status_proposed, visualization
+Tags: facets, plots, status_approved, visualization
 
 ### Copy plot settings and pipelines
 

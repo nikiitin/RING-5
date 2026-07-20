@@ -22,7 +22,7 @@ import json
 import logging
 from copy import deepcopy
 from collections.abc import Mapping
-from typing import cast
+from typing import Any, cast
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -40,6 +40,7 @@ from src.web.models.plot_protocols import (
 )
 from src.web.pages.ui.plotting.settings_pills import render_settings_pills
 from src.web.rendering.engine_manager import EngineManager
+from src.web.rendering.small_multiples_builder import render_small_multiples
 from src.web.state.ui_state_manager import UIStateManager
 
 logger = logging.getLogger(__name__)
@@ -201,6 +202,7 @@ class PlotRenderController:
     def _render_visualization(self, plot: RenderablePlot, should_generate: bool) -> None:
         # [impl->req~ring5.render.engine-selection~1]
         # [impl->req~ring5.plots.drill-down~1]
+        # [impl->req~ring5.plots.small-multiples~1]
         """
         Generate figure (with caching) and delegate display to component.
 
@@ -247,14 +249,40 @@ class PlotRenderController:
             plot.last_generated_fig is not None and plot.last_figure_cache_key == cache_key
         )
 
+        multiples_spec = None
+        if plot.config.get("small_multiples_enabled"):
+            facet_columns = plot.config.get("small_multiples_by", [])
+            if isinstance(facet_columns, list) and facet_columns:
+                try:
+                    panel_columns = int(plot.config.get("small_multiples_columns", 3))
+                    multiples_spec = self._api.create_small_multiples(
+                        plot.plot_id,
+                        facet_columns,
+                        columns=panel_columns,
+                        width=max(int(plot.config.get("width", 800)), panel_columns * 360),
+                        panel_height=int(plot.config.get("small_multiples_panel_height", 320)),
+                        shared_xaxes=bool(plot.config.get("small_multiples_shared_xaxes", True)),
+                        shared_yaxes=bool(plot.config.get("small_multiples_shared_yaxes", True)),
+                        shared_legend=bool(plot.config.get("small_multiples_shared_legend", True)),
+                    )
+                except (TypeError, ValueError) as exc:
+                    ChartDisplayComponent.render_error(exc)
+                    return
+
         # Generate figure if needed
         if should_generate or not cache_matches:
             try:
                 # create_figure relabels legend names engine-agnostically
                 # (on TraceConfig.name), so both engines stay consistent — no
                 # Plotly-only for_each_trace pass here.
-                fig = plot.create_figure(plot.processed_data, plot.config)
-                fig = plot.apply_common_layout(fig, plot.config)
+                if multiples_spec is not None:
+                    fig = cast(
+                        go.Figure,
+                        render_small_multiples([cast(Any, plot)], multiples_spec, engine="plotly"),
+                    )
+                else:
+                    fig = plot.create_figure(plot.processed_data, plot.config)
+                    fig = plot.apply_common_layout(fig, plot.config)
                 plot.last_generated_fig = fig
                 plot.last_figure_cache_key = cache_key
             except Exception as e:
@@ -269,6 +297,17 @@ class PlotRenderController:
         # Branch on engine mode
         try:
             if active_engine == "matplotlib":
+                if multiples_spec is not None:
+                    mpl_fig = render_small_multiples(
+                        [cast(Any, plot)], multiples_spec, engine="matplotlib"
+                    )
+                    ChartDisplayComponent.render_prebuilt_matplotlib_chart(
+                        mpl_fig,
+                        display_fig,
+                        plot.plot_id,
+                        plot.name,
+                    )
+                    return
                 # Reuse traces computed during plot generation when available.
                 _traces_result = plot.last_traces
                 pre_traces = list(_traces_result.traces) if _traces_result is not None else None

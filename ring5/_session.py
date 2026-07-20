@@ -24,6 +24,7 @@ from src.core.models import (
     JoinCardinality,
     JoinDiagnostics,
     LinkedSelectionSpec,
+    SmallMultiplesSpec,
     RestoreReport,
     ScanResult,
     SchemaValidationReport,
@@ -36,7 +37,7 @@ from src.parsing.parser_protocol import SimulationParser
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
-from ring5 import _dashboard, _export, _parse, _render, _scan
+from ring5 import _dashboard, _export, _parse, _render, _scan, _small_multiples
 from ring5.errors import (
     ColumnNotFoundError,
     DataLoadError,
@@ -1487,6 +1488,111 @@ class Session:
             return self.api.create_linked_selection(plot_ids, axis=axis, mode=mode)
         except ValueError as exc:
             raise DataValidationError(str(exc)) from exc
+
+    def create_small_multiples(
+        self,
+        plot: BasePlot | int,
+        *,
+        by: str | Sequence[str],
+        columns: int = 3,
+        order: Sequence[Any] | None = None,
+        labels: Mapping[Any, str] | None = None,
+        title: str | None = None,
+        width: int = 1200,
+        panel_height: int = 320,
+        shared_xaxes: bool = True,
+        shared_yaxes: bool = True,
+        shared_legend: bool = True,
+        x_title: str = "",
+        y_title: str = "",
+    ) -> SmallMultiplesSpec:
+        # [impl->req~ring5.plots.small-multiples~1]
+        """Resolve ordered categorical panels for one registered plot.
+
+        Args:
+            plot: A plot registered in this session, or its integer ID.
+            by: One categorical column or an ordered sequence of columns.
+            columns: Number of panels in each grid row.
+            order: Optional leading panel order. Remaining groups retain data order.
+            labels: Optional panel-title overrides keyed by a value or value tuple.
+            title: Complete-figure title; the plot title is used when omitted.
+            width: Complete figure width in pixels.
+            panel_height: Height allocated to each grid row in pixels.
+            shared_xaxes: Keep compatible X-axis ranges aligned across panels.
+            shared_yaxes: Keep compatible Y-axis ranges aligned across panels.
+            shared_legend: Deduplicate identical series labels across panels.
+            x_title: Optional complete-figure X-axis title.
+            y_title: Optional complete-figure Y-axis title.
+
+        Returns:
+            An immutable specification accepted by :meth:`render_small_multiples`.
+
+        Raises:
+            DataValidationError: The plot, facet columns, order, labels, or layout are invalid.
+        """
+        plot_id = plot.plot_id if isinstance(plot, BasePlot) else plot
+        facet_columns = [by] if isinstance(by, str) else list(by)
+        try:
+            return self.api.create_small_multiples(
+                plot_id,
+                facet_columns,
+                columns=columns,
+                order=order,
+                labels=labels,
+                title=title,
+                width=width,
+                panel_height=panel_height,
+                shared_xaxes=shared_xaxes,
+                shared_yaxes=shared_yaxes,
+                shared_legend=shared_legend,
+                x_title=x_title,
+                y_title=y_title,
+            )
+        except (TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def render_small_multiples(
+        self,
+        spec: SmallMultiplesSpec,
+        *,
+        engine: EngineMode = "plotly",
+    ) -> _render.Figure:
+        # [impl->req~ring5.plots.small-multiples~1]
+        """Render a small-multiples specification with either figure engine.
+
+        Args:
+            spec: Specification returned by :meth:`create_small_multiples`.
+            engine: Rendering engine, ``"plotly"`` or ``"matplotlib"``.
+
+        Returns:
+            A complete Plotly or Matplotlib figure.
+
+        Raises:
+            RenderError: The source plot or a resolved panel is no longer renderable.
+        """
+        return _small_multiples.render_small_multiples(self.plots, spec, engine=engine)
+
+    def small_multiples(
+        self,
+        plot: BasePlot | int,
+        *,
+        by: str | Sequence[str],
+        engine: EngineMode = "plotly",
+        **layout: Any,
+    ) -> _render.Figure:
+        """Create and immediately render categorical facets for one plot.
+
+        Args:
+            plot: A plot registered in this session, or its integer ID.
+            by: One categorical column or an ordered sequence of columns.
+            engine: Rendering engine, ``"plotly"`` or ``"matplotlib"``.
+            **layout: Options accepted by :meth:`create_small_multiples`.
+
+        Returns:
+            A complete Plotly or Matplotlib figure.
+        """
+        spec = self.create_small_multiples(plot, by=by, **layout)
+        return self.render_small_multiples(spec, engine=engine)
 
     def drill_down(
         self,

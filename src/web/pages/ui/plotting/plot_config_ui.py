@@ -118,7 +118,7 @@ class PlotConfigUIMixin:
             return {}
 
         if section == "layout":
-            return LayoutSettingsComponent(self.plot_id, self.plot_type).render(saved_config)
+            return LayoutSettingsComponent(self.plot_id, self.plot_type).render(saved_config, data)
 
         if section == "typography":
             return TypographySettingsComponent(self.plot_id, self.plot_type).render(

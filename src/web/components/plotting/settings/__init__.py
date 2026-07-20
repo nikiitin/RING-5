@@ -23,6 +23,9 @@ from src.web.components.plotting.settings.engine_settings import (  # noqa: F401
 from src.web.components.plotting.settings.layout_settings import (  # noqa: F401
     LayoutSettingsComponent,
 )
+from src.web.components.plotting.settings.small_multiples_settings import (  # noqa: F401
+    SmallMultiplesSettingsComponent,
+)
 from src.web.components.plotting.settings.legend_settings import (  # noqa: F401
     LegendSettingsComponent,
 )

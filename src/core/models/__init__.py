@@ -54,6 +54,7 @@ from src.core.models.plot_protocol import PlotDeserializer, PlotProtocol
 from src.core.models.visualization.dashboard_spec import DashboardSpec
 from src.core.models.visualization.drill_down_result import DrillDownResult
 from src.core.models.visualization.linked_selection_spec import LinkedSelectionSpec
+from src.core.models.visualization.small_multiples_spec import FacetPanel, SmallMultiplesSpec
 from src.core.models.portfolio_models import PortfolioData, RestoreReport
 from src.core.models.shaper_models import (
     BaseShaperConfig,
@@ -90,6 +91,8 @@ __all__ = [
     "JoinDiagnostics",
     "JoinCardinality",
     "LinkedSelectionSpec",
+    "FacetPanel",
+    "SmallMultiplesSpec",
     "MeanShaperConfig",
     "NormalizeShaperConfig",
     "ParseBatchResult",

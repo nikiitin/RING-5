@@ -17,6 +17,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from src.core.models.visualization.drill_down_result import DrillDownResult
+from src.core.models.visualization.small_multiples_spec import FacetPanel, SmallMultiplesSpec
 from tests.ui_logic.conftest import StubPlotHandle
 
 _CTRL = "src.web.controllers.plot.render_controller"
@@ -483,3 +484,65 @@ class TestDrillDownInteraction:
         ctrl._render_visualization(plot, should_generate=False)
 
         assert plot.create_figure.call_count == 2
+
+
+class TestSmallMultiplesRendering:
+    """Facet settings route one plot through the shared dual-engine grid builder."""
+
+    @patch(f"{_CTRL}.render_small_multiples")
+    @patch(f"{_CTRL}.ChartDisplayComponent")
+    @patch(f"{_CTRL}.EngineManager")
+    @patch(f"{_CTRL}.st")
+    def test_matplotlib_facets_build_plotly_preview_and_native_grid(
+        self,
+        mock_st: MagicMock,
+        mock_engine: MagicMock,
+        mock_chart: MagicMock,
+        mock_render: MagicMock,
+    ) -> None:
+        # [test->req~ring5.plots.small-multiples~1]
+        data = pd.DataFrame({"benchmark": ["A", "A"], "arch": ["x86", "arm"], "ipc": [1.0, 2.0]})
+        plot = StubPlotHandle(
+            plot_id=5,
+            plot_type="bar",
+            processed_data=data,
+            config={
+                "x": "benchmark",
+                "y": "ipc",
+                "small_multiples_enabled": True,
+                "small_multiples_by": ["arch"],
+                "small_multiples_columns": 2,
+            },
+        )
+        spec = SmallMultiplesSpec(
+            plot_id=5,
+            facet_columns=("arch",),
+            panels=(FacetPanel(("x86",), "arch: x86"), FacetPanel(("arm",), "arch: arm")),
+            rows=1,
+            columns=2,
+        )
+        plotly_figure = go.Figure()
+        matplotlib_figure = MagicMock()
+        plot.create_figure = MagicMock()
+        mock_render.side_effect = [plotly_figure, matplotlib_figure]
+        api = MagicMock()
+        api.create_small_multiples.return_value = spec
+        ctrl = _make_render_controller(api=api)
+        mock_st.session_state = {}
+        mock_engine.get_engine.return_value = "matplotlib"
+        mock_chart.render_engine_selector.return_value = "matplotlib"
+
+        ctrl._render_visualization(plot, should_generate=True)
+
+        api.create_small_multiples.assert_called_once()
+        assert [call.kwargs["engine"] for call in mock_render.call_args_list] == [
+            "plotly",
+            "matplotlib",
+        ]
+        plot.create_figure.assert_not_called()
+        mock_chart.render_prebuilt_matplotlib_chart.assert_called_once_with(
+            matplotlib_figure,
+            plotly_figure,
+            5,
+            "Test Plot",
+        )

@@ -180,16 +180,36 @@ class ChartDisplayComponent:
             rule_lines,
         )
 
+        ChartDisplayComponent.render_prebuilt_matplotlib_chart(
+            mpl_fig,
+            plotly_fig,
+            plot_id,
+            plot_name,
+            spec=spec,
+        )
+
+    @staticmethod
+    def render_prebuilt_matplotlib_chart(
+        mpl_fig: Any,
+        plotly_fig: go.Figure,
+        plot_id: int,
+        plot_name: str,
+        *,
+        spec: Any = None,
+    ) -> None:
+        """Display and cache a complete Matplotlib figure built elsewhere."""
+        mpl_state_key = f"plot.{plot_id}.mpl_fig"
+        spec_state_key = f"plot.{plot_id}.mpl_spec"
+        old_fig = st.session_state.get(mpl_state_key)
+        if old_fig is not None and old_fig is not mpl_fig:
+            plt.close(old_fig)
+        st.session_state.pop(spec_state_key, None)
+
         try:
-            # 2. Display
             st.pyplot(mpl_fig)
-
-            # 3. Store for download (closed on next render or session end).
-            # The spec rides along for format-specific export settings. PGF
-            # deliberately ignores custom preambles at the security boundary.
             st.session_state[mpl_state_key] = mpl_fig
-            st.session_state[spec_state_key] = spec
-
+            resolved_spec = spec if spec is not None else getattr(mpl_fig, "_ring5_spec", None)
+            st.session_state[spec_state_key] = resolved_spec
             render_download_section(plot_id, plot_name, plotly_fig)
         except Exception:
             plt.close(mpl_fig)
