@@ -2280,7 +2280,7 @@ Tags: export, plotly, scale, status_approved
 ### Batch HTML and PDF reports
 
 `req~ring5.export.batch-reports~1`
-Status: proposed
+Status: approved
 
 Users shall generate deterministic HTML and PDF reports containing selected figures, tables, narrative text, data provenance, and environment metadata.
 
@@ -2289,7 +2289,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: export, reporting, reproducibility, status_proposed
+Tags: export, reporting, reproducibility, status_approved
 
 ## Reproducibility and Portfolios
 

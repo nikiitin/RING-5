@@ -184,6 +184,9 @@ Covers:
 
 `Session.environment_metadata` captures the current runtime without machine identity or paths, and
 `Session.compare_portfolio_environment` compares it with a saved portfolio before restoration.
+`Session.create_report` captures selected plots or dashboards, bounded tables, narrative,
+provenance, and that environment in an immutable `AnalysisReport`. `report_bytes` and
+`export_report` generate deterministic self-contained HTML or multi-page PDF output.
 `ring5.render_portfolio` restores and exports every plot. `ring5.doctor` reports parser and export
 dependencies. `ring5.shutdown` releases process-wide worker pools early; they otherwise register
 process-exit cleanup and restart on later use.

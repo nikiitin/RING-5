@@ -7,6 +7,7 @@ import shutil
 import tempfile
 import threading
 from collections.abc import Mapping, Sequence
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, cast
 
 import pandas as pd
@@ -14,6 +15,7 @@ import pandas as pd
 from src.core.application_api import ApplicationAPI
 from src.core.models import (
     AccessibilityReport,
+    AnalysisReport,
     ColumnSemantics,
     DataQualityReport,
     DashboardSpec,
@@ -34,6 +36,7 @@ from src.core.models import (
     PlotTransferMode,
     PlotTransferResult,
     PortfolioData,
+    ReportFigure,
     SmallMultiplesSpec,
     RestoreReport,
     ScanResult,
@@ -52,6 +55,7 @@ from ring5.errors import (
     ColumnNotFoundError,
     DataLoadError,
     DataValidationError,
+    ExportError,
     ParseError,
     PipelineError,
     PortfolioError,
@@ -2019,6 +2023,155 @@ class Session:
                 executable that is unavailable.
         """
         return _export.export_bytes(fig, fmt, deterministic=deterministic, **kwargs)
+
+    def create_report(
+        self,
+        title: str,
+        figures: Sequence[BasePlot | int | DashboardSpec],
+        *,
+        tables: Mapping[str, pd.DataFrame] | None = None,
+        narrative: Mapping[str, str] | None = None,
+        figure_captions: Sequence[str] | None = None,
+        table_row_limit: int = 100,
+    ) -> AnalysisReport:
+        # [impl->req~ring5.export.batch-reports~1]
+        """Create a report from selected plots, dashboards, tables, and text.
+
+        Data provenance and the current execution environment are captured
+        automatically. Tables are copied into a bounded immutable display
+        representation; input DataFrames are never mutated.
+
+        Args:
+            title: Human-readable report title.
+            figures: Registered plots, plot IDs, or dashboard specifications.
+            tables: Optional ordered mapping of table titles to DataFrames.
+            narrative: Optional ordered mapping of section headings to plain text.
+            figure_captions: Optional captions aligned with ``figures``.
+            table_row_limit: Displayed rows per table, from 1 through 500.
+
+        Returns:
+            An immutable report accepted by :meth:`report_bytes` and
+            :meth:`export_report`.
+
+        Raises:
+            DataValidationError: Content is missing, unregistered, misaligned,
+                or outside report bounds.
+        """
+        from src.core.services.environment_metadata_service import EnvironmentMetadataService
+        from src.core.services.report_service import ReportService
+
+        captions = tuple(("",) * len(figures) if figure_captions is None else figure_captions)
+        if len(captions) != len(figures):
+            raise DataValidationError("figure_captions must contain one value per figure.")
+        live = {plot.plot_id: plot for plot in self.plots}
+        resolved: list[ReportFigure] = []
+        try:
+            for value, caption in zip(figures, captions, strict=True):
+                if isinstance(value, DashboardSpec):
+                    missing = [plot_id for plot_id in value.plot_ids if plot_id not in live]
+                    if missing:
+                        raise ValueError(
+                            "Report dashboard plots are no longer available: "
+                            + ", ".join(map(str, missing))
+                            + "."
+                        )
+                    resolved.append(
+                        ReportFigure(
+                            plot_ids=value.plot_ids,
+                            title=value.title or "Multi-panel figure",
+                            caption=caption,
+                            dashboard=value,
+                        )
+                    )
+                    continue
+                plot_id = value.plot_id if isinstance(value, BasePlot) else value
+                if isinstance(plot_id, bool) or not isinstance(plot_id, int) or plot_id not in live:
+                    raise ValueError(f"Report plot {plot_id!r} is not registered in this session.")
+                resolved.append(
+                    ReportFigure(
+                        plot_ids=(plot_id,),
+                        title=live[plot_id].name,
+                        caption=caption,
+                    )
+                )
+
+            state = self.api.state_manager
+            provenance = ReportService.capture_provenance(
+                state.get_data(),
+                use_parser=state.is_using_parser(),
+                csv_path=state.get_csv_path(),
+                stats_path=state.get_stats_path(),
+                stats_pattern=state.get_stats_pattern(),
+                parse_variables=state.get_parse_variables(),
+                history=state.get_portfolio_history(),
+            )
+            return ReportService.create(
+                title,
+                resolved,
+                tables=tables,
+                narrative=narrative,
+                provenance=provenance,
+                environment=EnvironmentMetadataService.capture(),
+                table_row_limit=table_row_limit,
+            )
+        except (TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def report_bytes(self, report: AnalysisReport, fmt: Literal["html", "pdf"] = "html") -> bytes:
+        # [impl->req~ring5.export.batch-reports~1]
+        """Render a deterministic self-contained HTML or PDF report.
+
+        Args:
+            report: Specification returned by :meth:`create_report`.
+            fmt: Output format, ``"html"`` or ``"pdf"``.
+
+        Returns:
+            Deterministic report bytes.
+
+        Raises:
+            ExportError: Rendering fails or a selected plot is no longer live.
+        """
+        from src.web.rendering.report_builder import render_report
+
+        try:
+            return render_report(self.plots, report, fmt=fmt)
+        except (AttributeError, KeyError, RuntimeError, TypeError, ValueError) as exc:
+            raise ExportError(f"Could not render {fmt!r} analysis report: {exc}") from exc
+
+    def export_report(
+        self,
+        report: AnalysisReport,
+        path: str,
+        *,
+        fmt: Literal["html", "pdf"] | None = None,
+    ) -> str:
+        # [impl->req~ring5.export.batch-reports~1]
+        """Write a deterministic analysis report to a file.
+
+        Args:
+            report: Specification returned by :meth:`create_report`.
+            path: Destination file path.
+            fmt: Explicit format; inferred from the ``.html`` or ``.pdf`` suffix.
+
+        Returns:
+            The written file path.
+
+        Raises:
+            ExportError: The format is unsupported or the destination cannot be written.
+        """
+        target = Path(path)
+        selected_format = fmt or target.suffix.lower().removeprefix(".")
+        if selected_format not in {"html", "pdf"}:
+            raise ExportError("Report path or fmt must select HTML or PDF.")
+        try:
+            payload = self.report_bytes(report, cast(Literal["html", "pdf"], selected_format))
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(payload)
+        except ExportError:
+            raise
+        except OSError as exc:
+            raise ExportError(f"Could not write report to '{target}': {exc}") from exc
+        return str(target)
 
     # portfolios
     def environment_metadata(self, *, refresh: bool = False) -> EnvironmentMetadata:

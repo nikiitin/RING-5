@@ -62,6 +62,31 @@ class PortfolioPage(BasePage):
             has_text="Reproducibility environment"
         )
 
+    @property
+    def report_expander(self) -> Locator:
+        """Analysis-report composition workflow."""
+        return self.page.locator("[data-testid='stExpander']").filter(has_text="Analysis report")
+
+    @property
+    def report_title_input(self) -> Locator:
+        """Report title input."""
+        return self.page.get_by_label("Report title")
+
+    @property
+    def report_narrative_input(self) -> Locator:
+        """Plain-language report narrative input."""
+        return self.page.get_by_label("Narrative text")
+
+    @property
+    def build_report_button(self) -> Locator:
+        """Build-report action."""
+        return self.page.get_by_role("button", name="Build report")
+
+    @property
+    def download_html_report_button(self) -> Locator:
+        """HTML report download action."""
+        return self.page.get_by_role("button", name="Download HTML report")
+
     # Assertions
 
     def assert_page_header_visible(self) -> None:
@@ -77,3 +102,9 @@ class PortfolioPage(BasePage):
                 "Saved environment matches this RING-5 runtime exactly.", exact=True
             )
         ).to_be_visible(timeout=self.RENDER_TIMEOUT)
+
+    def open_report_composer(self) -> None:
+        """Open the collapsed analysis-report workflow."""
+        expect(self.report_expander).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        self.report_expander.locator("summary").click()
+        expect(self.report_title_input).to_be_visible(timeout=self.RENDER_TIMEOUT)

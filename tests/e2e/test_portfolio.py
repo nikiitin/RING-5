@@ -62,7 +62,29 @@ class TestPortfolioSaveLoad:
         pf.assert_environment_match_visible()
 
     @pytest.mark.order(3)
-    def test_03_portfolio_in_manage_list(self, tier3_page: Page) -> None:
+    def test_03_generate_batch_report(self, tier3_page: Page) -> None:
+        # [test->req~ring5.export.batch-reports~1]
+        """Build and download a self-contained report from the live workspace."""
+        pf = PortfolioPage(tier3_page)
+        pf.navigate()
+        pf.open_report_composer()
+        pf.report_title_input.fill("E2E Analysis Report")
+        pf.report_narrative_input.fill("The selected figures summarize the benchmark results.")
+        pf.build_report_button.click()
+        pf.wait_for_streamlit()
+        expect(pf.download_html_report_button).to_be_visible(timeout=E2E_TIMEOUT)
+
+        with tier3_page.expect_download(timeout=E2E_TIMEOUT) as download_info:
+            pf.download_html_report_button.click()
+        downloaded = download_info.value
+        assert downloaded.suggested_filename == "E2E Analysis Report.html"
+        payload = downloaded.path().read_bytes()
+        assert payload.startswith(b"<!doctype html>")
+        assert b"Data provenance" in payload
+        assert b"Execution environment" in payload
+
+    @pytest.mark.order(4)
+    def test_04_portfolio_in_manage_list(self, tier3_page: Page) -> None:
         """Verify saved portfolio still appears in manage section after renavigation."""
         pf = PortfolioPage(tier3_page)
         pf.navigate()
@@ -71,8 +93,8 @@ class TestPortfolioSaveLoad:
         expander = tier3_page.locator("[data-testid='stExpander']").filter(has_text=PORTFOLIO_NAME)
         expect(expander).to_be_visible(timeout=E2E_TIMEOUT)
 
-    @pytest.mark.order(4)
-    def test_04_load_portfolio(self, tier3_page: Page) -> None:
+    @pytest.mark.order(5)
+    def test_05_load_portfolio(self, tier3_page: Page) -> None:
         """Select portfolio from dropdown, click Load Portfolio, wait for reload."""
         pf = PortfolioPage(tier3_page)
         pf.navigate()
@@ -94,16 +116,16 @@ class TestPortfolioSaveLoad:
         tier3_page.wait_for_timeout(3000)
         pf.wait_for_streamlit()
 
-    @pytest.mark.order(5)
-    def test_05_data_survives_load(self, tier3_page: Page) -> None:
+    @pytest.mark.order(6)
+    def test_06_data_survives_load(self, tier3_page: Page) -> None:
         """After loading portfolio, Data Managers still shows data."""
         dm = DataManagersPage(tier3_page)
         dm.navigate()
         dm.assert_page_header_visible()
         dm.assert_has_data()
 
-    @pytest.mark.order(6)
-    def test_06_plots_survive_load(self, tier3_page: Page) -> None:
+    @pytest.mark.order(7)
+    def test_07_plots_survive_load(self, tier3_page: Page) -> None:
         """After loading portfolio, Manage Plots shows 'E2E Bar' pill."""
         mp = ManagePlotsPage(tier3_page)
         mp.navigate()

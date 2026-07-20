@@ -139,6 +139,10 @@ Covers:
 PGF export preserves physical size for LaTeX inclusion and uses the selected TeX system. The web
 download reports a visible PDF fallback when raster content prevents PGF serialization.
 
+For multi-item analysis documents rather than individual figures, use the
+[analysis report workflow](/user-guide/workflows/batch-reports/). Report HTML embeds every asset;
+report PDF uses the dependency-free Matplotlib path and includes the same provenance metadata.
+
 ## Check the environment
 
 ### Matplotlib TeX system

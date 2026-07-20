@@ -40,4 +40,5 @@ Use these pages for recurring tasks:
 - [Trace Flows with Sankey Diagrams](sankey-diagrams/) using validated weighted links and shared node positions.
 - [Compare Rows with Parallel Coordinates](parallel-coordinates/) across ordered numeric and categorical axes.
 - [Manage Portfolios](portfolios/) to save and restore a workspace.
+- [Build Analysis Reports](batch-reports/) with figures, tables, findings, provenance, and runtime metadata.
 - [Automate with Python and the CLI](scripting/) for batch and CI use.

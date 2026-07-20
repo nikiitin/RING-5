@@ -3989,11 +3989,30 @@
       "id": "export.batch-reports",
       "group": "rendering-export",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Batch HTML and PDF reports",
       "description": "Users shall generate deterministic HTML and PDF reports containing selected figures, tables, narrative text, data provenance, and environment metadata.",
       "tags": ["export", "reporting", "reproducibility"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/models/report_models.py::AnalysisReport",
+          "src/core/services/report_service.py::ReportService.capture_provenance",
+          "src/web/rendering/report_builder.py::render_report",
+          "ring5/_session.py::Session.create_report",
+          "ring5/_session.py::Session.report_bytes",
+          "ring5/_session.py::Session.export_report",
+          "src/web/components/report_composer.py::ReportComposer.render"
+        ],
+        "tests": [
+          "tests/unit/test_report_service.py::test_report_service_captures_stable_provenance_and_bounded_tables",
+          "tests/integration/test_batch_reports_public_api.py::test_report_contains_every_content_type_and_is_byte_stable",
+          "tests/unit/test_report_composer.py::test_report_composer_builds_panel_table_narrative_and_download",
+          "tests/e2e/test_portfolio.py::TestPortfolioSaveLoad.test_03_generate_batch_report"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/batch-reports.md#build-analysis-reports"
+        ]
+      }
     },
     {
       "id": "ingestion.browser-upload",
@@ -4431,6 +4450,7 @@
     "public_exports": {
       "AccessibilityFinding": "figure.accessible-themes",
       "AccessibilityReport": "figure.accessible-themes",
+      "AnalysisReport": "export.batch-reports",
       "ColumnContract": "data.schema-contracts",
       "ColumnSemantics": "data.semantic-units",
       "ColumnNotFoundError": "api.typed-errors",
@@ -4475,6 +4495,10 @@
       "PortfolioError": "api.typed-errors",
       "PortfolioVersionError": "api.typed-errors",
       "ReferenceLineOpts": "api.figure-spec",
+      "ReportFigure": "export.batch-reports",
+      "ReportNarrative": "export.batch-reports",
+      "ReportProvenance": "export.batch-reports",
+      "ReportTable": "export.batch-reports",
       "RenderError": "api.typed-errors",
       "RestoreReport": "portfolio.partial-report",
       "Ring5Error": "api.typed-errors",
@@ -4520,6 +4544,7 @@
       "compare_statistics": "analysis.statistical-comparison",
       "convert_unit": "data.semantic-units",
       "compare_plot_configurations": "plots.configuration-comparison",
+      "create_report": "export.batch-reports",
       "create_plot": "plots.create-multiple",
       "create_dashboard": "plots.multi-panel-dashboard",
       "create_linked_selection": "plots.linked-selections",
@@ -4533,6 +4558,7 @@
       "environment_metadata": "portfolio.environment-metadata",
       "export": "export.public-boundary",
       "export_bytes": "export.public-boundary",
+      "export_report": "export.batch-reports",
       "export_figure_theme": "figure.theme-presets",
       "get_dataset": "data.multi-dataset-workspace",
       "get_dataset_revision": "data.lineage-undo-redo",
@@ -4558,6 +4584,7 @@
       "render": "render.engine-selection",
       "render_dashboard": "plots.multi-panel-dashboard",
       "render_small_multiples": "plots.small-multiples",
+      "report_bytes": "export.batch-reports",
       "small_multiples": "plots.small-multiples",
       "save_portfolio": "portfolio.save",
       "save_dataset_snapshot": "data.dataset-snapshots",

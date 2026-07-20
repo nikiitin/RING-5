@@ -14,6 +14,7 @@ from src.core.application_api import ApplicationAPI
 from src.core.models import EnvironmentComparison
 from src.core.services.environment_metadata_service import EnvironmentMetadataService
 from src.core.services.portfolio_migrator import PortfolioVersionError
+from src.web.components.report_composer import ReportComposer
 from src.web.rendering.config_builder import build_figure_spec_dict
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -199,3 +200,5 @@ def show_portfolio_page(api: ApplicationAPI) -> None:
     st.markdown("---")
 
     st.fragment(_portfolio_fragment)(api)
+    st.markdown("---")
+    ReportComposer(api).render()

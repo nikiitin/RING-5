@@ -36,6 +36,13 @@ from src.core.models.environment_models import (
 from src.core.models.shaper_models import ShaperStepConfig, SplitApplyGroupConfig
 from src.core.models.history_models import OperationRecord
 from src.core.models.quality_models import ColumnQuality, DataQualityReport
+from src.core.models.report_models import (
+    AnalysisReport,
+    ReportFigure,
+    ReportNarrative,
+    ReportProvenance,
+    ReportTable,
+)
 from src.core.models.schema_contract_models import (
     ColumnContract,
     DatasetSchemaContract,
@@ -85,6 +92,7 @@ from src.core.models.shaper_models import (
 __all__ = [
     "AccessibilityFinding",
     "AccessibilityReport",
+    "AnalysisReport",
     "BaseShaperConfig",
     "CacheStatsEntry",
     "CacheStatsInfo",
@@ -142,6 +150,10 @@ __all__ = [
     "TransformerShaperConfig",
     "PortfolioData",
     "RestoreReport",
+    "ReportFigure",
+    "ReportNarrative",
+    "ReportProvenance",
+    "ReportTable",
     "PlotProtocol",
     "PlotDeserializer",
     "OperationRecord",
