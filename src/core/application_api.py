@@ -4,6 +4,7 @@ import logging
 import tempfile
 from collections.abc import Mapping, Sequence
 from concurrent.futures import Future
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, Literal, cast
 
@@ -35,6 +36,7 @@ from src.core.models import (
     StatConfig,
 )
 from src.core.models.browser_upload_models import BrowserUploadRequest
+from src.core.models.remote_source_models import RemoteSource, RemoteSourcePolicy
 from src.core.models.pattern_index_service import PatternIndexService
 from src.core.models.data_models import (
     ColumnInfoResult,
@@ -53,6 +55,7 @@ from src.core.services.data_services.data_services_api import DataServicesAPI
 from src.core.services.browser_upload_service import BrowserUploadService
 from src.core.services.managers.managers_api import ManagersAPI
 from src.core.services.import_preview_service import ImportPreviewService
+from src.core.services.remote_source_service import RemoteSourceService
 from src.core.services.services_impl import DefaultServicesAPI
 from src.core.services.shapers.shapers_api import ShapersAPI
 from src.core.services.visualization.drill_down_service import drill_down_rows
@@ -93,6 +96,7 @@ class ApplicationAPI:
         self,
         plot_deserializer: PlotDeserializer | None = None,
         parser: SimulationParser | None = None,
+        remote_source_service: RemoteSourceService | None = None,
     ) -> None:
         """
         Initialize the Application API.
@@ -104,10 +108,12 @@ class ApplicationAPI:
                 classes directly.
             parser: Optional simulator parser backend.  Defaults to the
                 gem5 parser from the ``SimulatorRegistry``.
+            remote_source_service: Optional configured remote adapter dispatcher.
         """
         self.state_manager = RepositoryStateManager(plot_deserializer=plot_deserializer)
 
         self._services = DefaultServicesAPI(self.state_manager)
+        self._remote_sources = remote_source_service or RemoteSourceService()
 
         self._parser: SimulationParser = parser or SimulatorRegistry.get_parser("gem5")
 
@@ -204,6 +210,26 @@ class ApplicationAPI:
         """Restore an explicitly confirmed, unchanged browser portfolio upload."""
         portfolio = BrowserUploadService.load_portfolio(upload)
         return self.state_manager.restore_session(portfolio)
+
+    def fetch_remote_source(
+        self,
+        source: RemoteSource,
+        policy: RemoteSourcePolicy | None = None,
+    ) -> BrowserUpload:
+        # [impl->req~ring5.ingestion.remote-sources~1]
+        """Fetch, validate, and stage one authorized remote dataset or portfolio."""
+        download = self._remote_sources.fetch(source, policy)
+        temp_dir = self.state_manager.get_temp_dir()
+        if not temp_dir:
+            temp_dir = tempfile.mkdtemp(prefix="ring5-session-")
+            self.state_manager.set_temp_dir(temp_dir)
+        upload = BrowserUploadService.inspect(
+            download.file_name,
+            download.content_type,
+            download.content,
+            Path(temp_dir) / "remote_sources",
+        )
+        return replace(upload, origin_display=download.display_uri)
 
     def get_current_view(self) -> dict[str, Any]:
         """Assemble the current data pipeline state for UI consumption."""

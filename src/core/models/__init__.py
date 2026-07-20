@@ -51,6 +51,13 @@ from src.core.models.report_models import (
     ReportProvenance,
     ReportTable,
 )
+from src.core.models.remote_source_models import (
+    HttpSource,
+    RemoteDownload,
+    RemoteSourcePolicy,
+    S3Source,
+    SshSource,
+)
 from src.core.models.schema_contract_models import (
     ColumnContract,
     DatasetSchemaContract,
@@ -119,6 +126,7 @@ __all__ = [
     "ImportOptions",
     "ImportPreview",
     "ImportRejectedRow",
+    "HttpSource",
     "BrowserUpload",
     "FigureThemeContext",
     "DashboardSpec",
@@ -168,6 +176,10 @@ __all__ = [
     "ReportNarrative",
     "ReportProvenance",
     "ReportTable",
+    "RemoteDownload",
+    "RemoteSourcePolicy",
+    "S3Source",
+    "SshSource",
     "PlotProtocol",
     "PlotDeserializer",
     "OperationRecord",

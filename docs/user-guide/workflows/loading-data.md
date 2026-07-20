@@ -184,6 +184,44 @@ as**. Portfolio uploads show their schema version, plot count, and whether data 
 **Restore uploaded portfolio** replaces the current workspace. Validation alone never changes
 workspace data or plots.
 
+### Fetch an authorized remote source
+
+<!--
+`uman~ring5.ingestion.remote-sources.documentation~1`
+
+Covers:
+- req~ring5.ingestion.remote-sources~1
+
+-->
+
+Under **Upload data or portfolio**, select **Remote source** to fetch through HTTPS, SSH, or an
+S3-compatible endpoint. Remote access is disabled until the server administrator sets an exact or
+wildcard host allowlist, for example:
+
+```bash
+export RING5_ALLOWED_REMOTE_HOSTS="data.example.org,*.objects.example.org"
+```
+
+The allowlist is applied to the original host and every HTTP redirect. Public network addresses
+are required by default, which prevents a remote URL from reaching loopback, link-local, or private
+services. A controlled on-premises deployment can set `RING5_ALLOW_PRIVATE_REMOTE_HOSTS=1`.
+HTTPS is required for HTTP and S3 endpoints; `RING5_REQUIRE_REMOTE_TLS=0` is available only for an
+explicitly authorized development endpoint.
+
+- **HTTPS** accepts a URL and an optional bearer token. URL query strings and tokens are omitted
+  from displayed provenance and errors, and credentialed requests do not follow redirects.
+- **SSH** uses the server process's SSH agent/configuration or a server-side private-key path. It
+  requires batch mode, strict host-key checking, a safe absolute remote path, and never accepts a
+  password in the source URI.
+- **S3-compatible** uses path-style object URLs and optional AWS Signature Version 4 access,
+  secret, and session credentials. Credentials are sent in headers and are not retained in the
+  staged result.
+
+Every adapter stops at the same 64 MiB boundary. The fetched bytes then undergo the same file-type,
+parsing, fingerprint, and human review checks as a browser upload. Fetching alone does not change
+workspace data or plots; select **Load accepted rows** or **Restore uploaded portfolio** only after
+reviewing the result.
+
 ### Review a tabular import before loading
 
 <!--

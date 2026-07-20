@@ -231,6 +231,26 @@ class DataSourcePage(BasePage):
         """Browser file chooser for a dataset or portfolio."""
         return self.page.locator("input[type='file']")
 
+    @property
+    def upload_origin_control(self) -> Locator:
+        """Selector between local browser and remote sources."""
+        return self.page.get_by_role("radiogroup", name="Source location")
+
+    @property
+    def remote_source_option(self) -> Locator:
+        """Remote-source option inside upload mode."""
+        return self.upload_origin_control.get_by_role("radio", name="Remote source")
+
+    @property
+    def remote_adapter_select(self) -> Locator:
+        """Remote transport adapter selector."""
+        return self.page.get_by_text("Remote adapter", exact=True)
+
+    @property
+    def remote_https_url_input(self) -> Locator:
+        """HTTPS remote-source URL input."""
+        return self.page.get_by_label("HTTPS URL")
+
     # SECTION 5: Recent CSV pool (Load from Recent mode)
 
     @property
@@ -429,6 +449,11 @@ class DataSourcePage(BasePage):
     def select_csv_mode(self) -> None:
         """Click the browser-upload option."""
         self._select_mode(self.csv_option)
+
+    def select_remote_source(self) -> None:
+        """Open the remote-source form within upload mode."""
+        self.select_csv_mode()
+        self._select_mode(self.remote_source_option)
 
     def select_recent_mode(self) -> None:
         """Click the 'Load from Recent' option."""

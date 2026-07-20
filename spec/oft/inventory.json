@@ -4046,11 +4046,30 @@
       "id": "ingestion.remote-sources",
       "group": "ingestion",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Remote data sources",
       "description": "The application shall load authorized HTTP, SSH, and S3-compatible sources through credential-safe, configurable source adapters.",
       "tags": ["ingestion", "remote", "security"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/models/remote_source_models.py::RemoteSourcePolicy",
+          "src/core/services/remote_source_service.py::HttpRemoteSourceAdapter.fetch",
+          "src/core/services/remote_source_service.py::SshRemoteSourceAdapter.fetch",
+          "src/core/services/remote_source_service.py::S3RemoteSourceAdapter.fetch",
+          "src/core/services/remote_source_service.py::RemoteSourceService.fetch",
+          "src/core/application_api.py::ApplicationAPI.fetch_remote_source",
+          "src/web/components/data_source/data_source_components.py::DataSourceComponents.render_remote_source"
+        ],
+        "tests": [
+          "tests/unit/test_remote_source_service.py::test_http_ssh_and_s3_adapters_fetch_bounded_credential_safe_sources",
+          "tests/integration/test_remote_source_application_api.py::test_remote_download_is_staged_for_review_before_load",
+          "tests/unit/test_remote_source_component.py::test_remote_source_fetches_into_existing_import_review",
+          "tests/e2e/test_data_source.py::TestDataSourceCsvLoad.test_remote_source_controls_show_the_authorization_boundary"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/loading-data.md#fetch-an-authorized-remote-source"
+        ]
+      }
     },
     {
       "id": "ingestion.incremental-parsing",
@@ -4687,6 +4706,7 @@
       "finalize_parsing": "ingestion.async-parse",
       "finalize_scan": "ingestion.async-scan",
       "find_stats_files": "ingestion.file-discovery",
+      "fetch_remote_source": "ingestion.remote-sources",
       "get_column_info": "data.summary",
       "get_current_view": "workspace.data-preview",
       "get_dataset": "data.multi-dataset-workspace",

@@ -62,6 +62,13 @@ normalized to bounded UTF-8 CSV and then enter the normal `ImportPreview` path. 
 migrated and summarized without state mutation, re-fingerprinted on confirmation, and only then
 passed to `StateManager.restore_session`.
 
+Remote sources enter that same boundary through `RemoteSourceService`. Its HTTP, system-SSH, and
+S3-compatible adapters share a deny-by-default `RemoteSourcePolicy`, DNS/private-address checks,
+bounded reads, sanitized errors, and query-free display provenance. HTTP redirects are
+re-authorized; credentialed requests do not redirect. The application facade passes only fetched
+bytes and a safe filename into `BrowserUploadService`, so remote transports cannot bypass import
+review or portfolio confirmation.
+
 ## Transform and plot
 
 ```mermaid

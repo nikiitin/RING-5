@@ -228,6 +228,16 @@ class TestDataSourceCsvLoad:
         ds.select_csv_mode()
         ds.assert_parser_config_hidden()
 
+    def test_remote_source_controls_show_the_authorization_boundary(self, tier0_page: Page) -> None:
+        # [test->req~ring5.ingestion.remote-sources~1]
+        """Remote sources expose an adapter form inside the reviewed upload path."""
+        ds = DataSourcePage(tier0_page)
+        ds.navigate()
+        ds.select_remote_source()
+
+        expect(ds.remote_adapter_select).to_be_visible(timeout=ds.RENDER_TIMEOUT)
+        expect(ds.remote_https_url_input).to_be_visible(timeout=ds.RENDER_TIMEOUT)
+
     def test_csv_load_loads_data(self, tier0_page: Page, e2e_csv_path: Path) -> None:
         # [test->req~ring5.ingestion.browser-upload~1]
         """Upload the fixture CSV in the browser and verify confirmed data is loaded."""

@@ -27,6 +27,7 @@ class BrowserUpload:
     portfolio_schema_version: int | None = None
     portfolio_plot_count: int | None = None
     portfolio_has_data: bool | None = None
+    origin_display: str | None = None
 
     def __post_init__(self) -> None:
         """Reject inconsistent results crossing the web/core boundary."""

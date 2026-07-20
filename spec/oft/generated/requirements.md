@@ -684,7 +684,7 @@ Tags: ingestion, status_approved, upload, web
 ### Remote data sources
 
 `req~ring5.ingestion.remote-sources~1`
-Status: proposed
+Status: approved
 
 The application shall load authorized HTTP, SSH, and S3-compatible sources through credential-safe, configurable source adapters.
 
@@ -693,7 +693,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: ingestion, remote, security, status_proposed
+Tags: ingestion, remote, security, status_approved
 
 ### Incremental simulator parsing
 

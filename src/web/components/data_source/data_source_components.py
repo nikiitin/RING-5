@@ -25,16 +25,21 @@ from src.core.common.security_limits import (
 )
 from src.core.common.utils import allowed_web_stats_roots, validate_web_stats_path
 from src.core.models import (
+    BrowserUpload,
+    HttpSource,
     ImportColumnCorrection,
     ImportOptions,
     ImportPreview,
     ParseBatchResult,
     ScanFileResult,
     ScanResult,
+    S3Source,
+    SshSource,
 )
 from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
 from src.core.models.import_models import ImportColumnType
 from src.core.models.browser_upload_models import BrowserUploadRequest
+from src.core.models.remote_source_models import RemoteSource, RemoteSourcePolicy
 from src.web.components.common.card_components import CardComponents
 from src.web.components.common.data_components import DataComponents
 from src.web.components.common.filtered_selector import filtered_selectbox
@@ -43,6 +48,7 @@ from src.web.components.data_source.variable_editor import VariableEditor
 logger = logging.getLogger(__name__)
 
 _IMPORT_PREVIEW_PATH_KEY = "data_source.import_preview_path"
+_REMOTE_INSPECTION_KEY = "data_source.remote_inspection"
 
 
 class DataSourceComponents:
@@ -57,6 +63,15 @@ class DataSourceComponents:
             "Files stay out of the workspace until validation finishes and you explicitly "
             "confirm loading or restoration."
         )
+        origin = st.segmented_control(
+            "Source location",
+            options=["This computer", "Remote source"],
+            default="This computer",
+            key="data_source.upload_origin",
+        )
+        if origin == "Remote source":
+            DataSourceComponents.render_remote_source(api)
+            return
         interpretation_labels: dict[str, BrowserUploadRequest] = {
             "Auto detect": "auto",
             "Dataset": "dataset",
@@ -93,6 +108,98 @@ class DataSourceComponents:
             st.error(f"Upload validation failed: {exc}")
             return
 
+        DataSourceComponents._show_validated_upload(api, inspection)
+
+    @staticmethod
+    def render_remote_source(api: ApplicationAPI) -> None:
+        # [impl->req~ring5.ingestion.remote-sources~1]
+        """Collect adapter configuration without retaining remote credentials."""
+        st.markdown("#### Fetch an authorized remote source")
+        policy = RemoteSourcePolicy.from_environment()
+        if policy.allowed_hosts:
+            st.caption("Authorized hosts: " + ", ".join(policy.allowed_hosts))
+        else:
+            st.warning(
+                "Remote access is disabled. Set RING5_ALLOWED_REMOTE_HOSTS on the server "
+                "to an explicit comma-separated host allowlist."
+            )
+
+        adapter = st.selectbox(
+            "Remote adapter",
+            options=["HTTPS", "SSH", "S3-compatible"],
+            key="data_source.remote_adapter",
+        )
+        with st.form("data_source.remote_form", clear_on_submit=True):
+            file_name = st.text_input(
+                "Downloaded filename override (optional)",
+                help="Use when the remote URL or object key does not end in .csv, .json, or .xlsx.",
+            )
+            source: RemoteSource
+            if adapter == "HTTPS":
+                url = st.text_input("HTTPS URL")
+                bearer_token = st.text_input("Bearer token (optional)", type="password")
+                source = HttpSource(
+                    url=url,
+                    file_name=file_name.strip() or None,
+                    bearer_token=bearer_token or None,
+                )
+            elif adapter == "SSH":
+                host = st.text_input("SSH host")
+                username = st.text_input("SSH username (optional)")
+                port = int(st.number_input("SSH port", min_value=1, max_value=65_535, value=22))
+                remote_path = st.text_input("Absolute remote file path")
+                identity_file = st.text_input(
+                    "Server-side identity file (optional)",
+                    help="Leave empty to use the server process's SSH agent and configuration.",
+                )
+                source = SshSource(
+                    host=host,
+                    path=remote_path,
+                    username=username or None,
+                    port=port,
+                    identity_file=identity_file or None,
+                    file_name=file_name.strip() or None,
+                )
+            else:
+                endpoint = st.text_input("S3-compatible HTTPS endpoint")
+                bucket = st.text_input("Bucket")
+                key = st.text_input("Object key")
+                region = st.text_input("Region", value="us-east-1")
+                access_key = st.text_input("Access key (optional)", type="password")
+                secret_key = st.text_input("Secret key (optional)", type="password")
+                session_token = st.text_input("Session token (optional)", type="password")
+                source = S3Source(
+                    endpoint=endpoint,
+                    bucket=bucket,
+                    key=key,
+                    region=region,
+                    access_key=access_key or None,
+                    secret_key=secret_key or None,
+                    session_token=session_token or None,
+                    file_name=file_name.strip() or None,
+                )
+            submitted = st.form_submit_button(
+                ":material/cloud_download: Fetch and validate",
+                type="primary",
+                disabled=not policy.allowed_hosts,
+                width="stretch",
+            )
+
+        if submitted:
+            try:
+                st.session_state[_REMOTE_INSPECTION_KEY] = api.fetch_remote_source(source, policy)
+            except (OSError, TypeError, UnicodeError, ValueError) as exc:
+                st.error(f"Remote source validation failed: {exc}")
+                st.session_state.pop(_REMOTE_INSPECTION_KEY, None)
+
+        inspection = st.session_state.get(_REMOTE_INSPECTION_KEY)
+        if isinstance(inspection, BrowserUpload):
+            DataSourceComponents._show_validated_upload(api, inspection)
+
+    @staticmethod
+    def _show_validated_upload(api: ApplicationAPI, inspection: BrowserUpload) -> None:
+        """Present one validated local or remote upload and its confirmation path."""
+
         kind_label = {
             "csv": "CSV dataset",
             "json": "JSON dataset",
@@ -100,6 +207,8 @@ class DataSourceComponents:
             "portfolio": "RING-5 portfolio",
         }[inspection.kind]
         st.success(f"Validated {kind_label}: {inspection.file_name}")
+        if inspection.origin_display:
+            st.caption(f"Fetched from `{inspection.origin_display}`")
         size_col, type_col, digest_col = st.columns(3)
         size_col.metric("Upload size", f"{inspection.size_bytes / 1024:.1f} KiB")
         type_col.metric("Detected type", kind_label)

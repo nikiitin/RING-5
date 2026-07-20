@@ -301,6 +301,7 @@ class BrowserUploadService:
             not clean_name
             or clean_name != file_name
             or "\x00" in clean_name
+            or any(ord(character) < 32 for character in clean_name)
             or len(clean_name) > MAX_BROWSER_UPLOAD_NAME_LENGTH
         ):
             raise ValueError("Upload filename is invalid or unsafe.")
