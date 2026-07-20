@@ -111,6 +111,58 @@ class TestRender:
         assert count.trace_count == 1
         assert ax.lines[0].get_drawstyle() == "steps-post"
 
+    def test_spline_style_connects_gaps_and_marks_only_observations(
+        self, ax: matplotlib.axes.Axes
+    ) -> None:
+        # [test->req~ring5.figure.line-styles~1]
+        trace = LineTraceConfig(
+            name="smooth",
+            x=[0, 1, 2, 3, 4],
+            y=[1, 2, float("nan"), 3, 5],
+            line_shape="spline",
+            line_dash="longdashdot",
+            line_width=3.5,
+            marker_symbol="diamond",
+            marker_size=10,
+            connect_gaps=True,
+        )
+
+        result = MatplotlibTraceRenderer.render([trace], ax)
+
+        line = ax.lines[0]
+        assert result.trace_count == 1
+        assert len(line.get_xdata()) > 4
+        assert all(np.isfinite(line.get_ydata()))
+        assert len(line.get_markevery()) == 4
+        assert line.get_linewidth() == 3.5
+        assert line.get_marker() == "D"
+        assert line.get_markersize() == 10
+
+    def test_grouped_categorical_splines_share_deterministic_positions(
+        self, ax: matplotlib.axes.Axes
+    ) -> None:
+        traces = [
+            LineTraceConfig(
+                name="partial",
+                x=["A", "C", "D"],
+                y=[1, 3, 4],
+                line_shape="spline",
+            ),
+            LineTraceConfig(
+                name="complete",
+                x=["A", "B", "C", "D"],
+                y=[2, 2.5, 3.5, 5],
+                line_shape="spline",
+            ),
+        ]
+
+        MatplotlibTraceRenderer.render(traces, ax)
+
+        assert len(ax.lines[0].get_xdata()) > 3
+        assert len(ax.lines[1].get_xdata()) > 4
+        assert 2.0 in ax.lines[0].get_xdata()
+        assert [tick.get_text() for tick in ax.get_xticklabels()] == ["A", "B", "C", "D"]
+
     def test_ecdf_line_uses_post_step_drawstyle(self, ax: matplotlib.axes.Axes) -> None:
         # [test->req~ring5.plot.ecdf~1]
         trace = LineTraceConfig(name="ECDF", x=[1.0, 2.0], y=[0.5, 1.0], line_shape="hv")

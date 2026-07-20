@@ -487,6 +487,16 @@ class ManagePlotsPage(BasePage):
         return self._by_label("stSelectbox", "Palette")
 
     @property
+    def line_connector_selectbox(self) -> Locator:
+        """Line interpolation/connector style selector."""
+        return self._by_label("stSelectbox", "Connector style")
+
+    @property
+    def line_pattern_selectbox(self) -> Locator:
+        """Line dash-pattern selector."""
+        return self._by_label("stSelectbox", "Line pattern")
+
+    @property
     def accessibility_check_success(self) -> Locator:
         """Human-readable successful figure-accessibility audit."""
         return self.page.locator("[data-testid='stAlertContentSuccess']").filter(
@@ -862,6 +872,14 @@ class ManagePlotsPage(BasePage):
     def select_figure_theme(self, name: str) -> None:
         """Select a built-in figure theme by its human-readable name."""
         self._open_and_select(self.figure_theme_selectbox, name)
+
+    def select_line_connector(self, connector: str) -> None:
+        """Select a human-readable line connector style."""
+        self._open_and_select(self.line_connector_selectbox, connector)
+
+    def select_line_pattern(self, pattern: str) -> None:
+        """Select a human-readable line dash pattern."""
+        self._open_and_select(self.line_pattern_selectbox, pattern)
 
     #  ASSERTIONS
 

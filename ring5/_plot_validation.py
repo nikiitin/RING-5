@@ -3,11 +3,17 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from numbers import Real
 from typing import Any
 
 import pandas as pd
 
 from ring5.errors import ColumnNotFoundError, DataValidationError
+from src.core.models.visualization.trace_config import (
+    LINE_DASHES,
+    LINE_MARKER_SYMBOLS,
+    LINE_SHAPES,
+)
 
 _REQUIRED_SINGLE: dict[str, tuple[str, ...]] = {
     "area": ("x", "y"),
@@ -90,6 +96,33 @@ def _columns(data: pd.DataFrame, config: Mapping[str, Any], field: str, *, requi
             raise ColumnNotFoundError(column, list(data.columns))
 
 
+def _validate_line_style(config: Mapping[str, Any]) -> None:
+    # [impl->req~ring5.figure.line-styles~1]
+    """Reject line styles that cannot be rendered consistently."""
+    choices = {
+        "line_shape": LINE_SHAPES,
+        "line_dash": LINE_DASHES,
+        "marker_symbol": LINE_MARKER_SYMBOLS,
+    }
+    for field, allowed in choices.items():
+        if field in config and config[field] not in allowed:
+            raise DataValidationError(
+                f"Plot config field {field!r} must be one of {list(allowed)}."
+            )
+
+    if "line_width" in config:
+        width = config["line_width"]
+        if isinstance(width, bool) or not isinstance(width, Real) or not 0.5 <= float(width) <= 20:
+            raise DataValidationError("Plot config field 'line_width' must be from 0.5 through 20.")
+    if "marker_size" in config:
+        size = config["marker_size"]
+        if isinstance(size, bool) or not isinstance(size, int) or not 1 <= size <= 50:
+            raise DataValidationError("Plot config field 'marker_size' must be from 1 through 50.")
+    for field in ("show_markers", "connect_gaps"):
+        if field in config and not isinstance(config[field], bool):
+            raise DataValidationError(f"Plot config field {field!r} must be a boolean.")
+
+
 def validate_plot_config(plot_type: str, data: pd.DataFrame, config: Mapping[str, Any]) -> None:
     # [impl->req~ring5.api.plot-validation~1]
     """Validate required fields, their types, and every referenced column.
@@ -130,3 +163,5 @@ def validate_plot_config(plot_type: str, data: pd.DataFrame, config: Mapping[str
         _column(data, config, field, required=False)
     for field in _OPTIONAL_LIST.get(plot_type, ()):
         _columns(data, config, field, required=False)
+    if plot_type == "line":
+        _validate_line_style(config)

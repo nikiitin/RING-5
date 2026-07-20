@@ -2096,7 +2096,7 @@ Tags: composition, figures, publication, status_approved
 ### End-to-end line styles
 
 `req~ring5.figure.line-styles~1`
-Status: proposed
+Status: approved
 
 Line-based traces shall apply user-selected interpolation, dash, width, marker, and connector styles consistently in Plotly and Matplotlib.
 
@@ -2105,7 +2105,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: figures, lines, status_proposed, styling
+Tags: figures, lines, status_approved, styling
 
 ## Rendering and Export
 

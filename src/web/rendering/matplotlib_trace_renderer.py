@@ -51,6 +51,32 @@ from src.web.rendering._render_result import MatplotlibRenderResult
 logger = logging.getLogger(__name__)
 
 
+def _spline_coordinates(
+    ax: Axes,
+    x_values: list[Any],
+    y_values: list[float],
+) -> tuple[list[float], list[float], list[int], list[float]] | None:
+    """Return a smooth curve containing every original marker coordinate."""
+    if len(x_values) < 3 or not all(np.isfinite(y_values)):
+        return None
+    try:
+        ax.xaxis.update_units(x_values)
+        source_x = np.asarray(ax.convert_xunits(x_values), dtype=float)
+    except (TypeError, ValueError):
+        return None
+    if source_x.ndim != 1 or not np.all(np.isfinite(source_x)) or np.any(np.diff(source_x) <= 0):
+        return None
+
+    from scipy.interpolate import make_interp_spline
+
+    dense_x = np.linspace(source_x[0], source_x[-1], max(80, len(source_x) * 24))
+    dense_x = np.unique(np.concatenate((dense_x, source_x)))
+    spline = make_interp_spline(source_x, np.asarray(y_values), k=min(3, len(source_x) - 1))
+    dense_y = spline(dense_x)
+    marker_indices = [int(np.searchsorted(dense_x, value)) for value in source_x]
+    return dense_x.tolist(), dense_y.tolist(), marker_indices, source_x.tolist()
+
+
 class MatplotlibTraceRenderer:
     """Draw ``TraceConfig`` instances on a matplotlib ``Axes``.
 
@@ -110,6 +136,18 @@ class MatplotlibTraceRenderer:
         categorical_labels: list[str] = []
         vertical_box_ticks: dict[int, str] = {}
         horizontal_box_ticks: dict[int, str] = {}
+
+        spline_categories = sorted(
+            {
+                value
+                for trace in traces
+                if isinstance(trace, LineTraceConfig) and trace.line_shape == "spline"
+                for value in trace.x
+                if isinstance(value, str)
+            }
+        )
+        if spline_categories:
+            ax.xaxis.update_units(spline_categories)
 
         for idx, trace in enumerate(traces):
             is_secondary = trace.yaxis == "y2"
@@ -359,6 +397,7 @@ class MatplotlibTraceRenderer:
     ) -> None:
         # [impl->req~ring5.plot.ecdf~1]
         # [impl->req~ring5.plot.area~1]
+        # [impl->req~ring5.figure.line-styles~1]
         """Draw a single line trace from its ``LineTraceConfig``."""
         props: dict[str, Any] = {}
         color = override_color or spec.color
@@ -385,10 +424,35 @@ class MatplotlibTraceRenderer:
             if spec.marker_size:
                 props["markersize"] = float(spec.marker_size)
 
-        y_clean = [float(v) if v is not None else np.nan for v in spec.y]
-        ax.plot(spec.x, y_clean, label=spec.name, **props)
+        y_clean: list[float] = []
+        for value in spec.y:
+            try:
+                y_clean.append(float(value))
+            except (TypeError, ValueError):
+                y_clean.append(float("nan"))
+        source_indices = list(range(len(y_clean)))
+        x_values: list[Any] = list(spec.x)
+        if spec.connect_gaps:
+            source_indices = [index for index, value in enumerate(y_clean) if np.isfinite(value)]
+            x_values = [x_values[index] for index in source_indices]
+            y_clean = [y_clean[index] for index in source_indices]
+
+        rendered_x: list[Any] = x_values
+        rendered_y = y_clean
+        source_x: list[float] | None = None
+        if spec.line_shape == "spline":
+            smoothed = _spline_coordinates(ax, x_values, y_clean)
+            if smoothed is not None:
+                rendered_x, rendered_y, marker_indices, source_x = smoothed
+                if spec.show_markers:
+                    props["markevery"] = marker_indices
+
+        ax.plot(rendered_x, rendered_y, label=spec.name, **props)
         if spec.fill != "none":
-            baseline = spec.fill_base or [0.0] * len(y_clean)
+            raw_baseline = spec.fill_base or [0.0] * len(spec.y)
+            baseline = [float(raw_baseline[index]) for index in source_indices]
+            if source_x is not None:
+                baseline = np.interp(rendered_x, source_x, baseline).tolist()
             step: Literal["pre", "post", "mid"] | None = None
             if spec.line_shape == "hv":
                 step = "post"
@@ -397,8 +461,8 @@ class MatplotlibTraceRenderer:
             elif spec.line_shape in ("hvh", "vhv"):
                 step = "mid"
             ax.fill_between(
-                spec.x,
-                y_clean,
+                rendered_x,
+                rendered_y,
                 baseline,
                 color=color or "#4472C4",
                 alpha=spec.opacity,
@@ -931,12 +995,12 @@ _COLORSCALE_MAP: dict[str, str] = {
 }
 
 
-_DASH_MAP: dict[str, str] = {
+_DASH_MAP: dict[str, str | tuple[int, tuple[float, ...]]] = {
     "dash": "--",
     "dot": ":",
     "dashdot": "-.",
-    "longdash": "--",
-    "longdashdot": "-.",
+    "longdash": (0, (8, 4)),
+    "longdashdot": (0, (8, 3, 1.5, 3)),
     "solid": "-",
 }
 

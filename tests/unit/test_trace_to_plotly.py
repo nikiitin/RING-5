@@ -558,6 +558,29 @@ class TestLineTrace:
         scatter = _line_trace(trace)
         assert scatter.fill == "tozeroy"
 
+    def test_complete_line_style_and_gap_connector(self) -> None:
+        # [test->req~ring5.figure.line-styles~1]
+        trace = LineTraceConfig(
+            x=[0, 1, 2],
+            y=[1, float("nan"), 3],
+            line_width=3.5,
+            line_dash="longdashdot",
+            line_shape="spline",
+            show_markers=True,
+            marker_symbol="diamond",
+            marker_size=10,
+            connect_gaps=True,
+        )
+
+        scatter = _line_trace(trace)
+
+        assert scatter.line.width == 3.5
+        assert scatter.line.dash == "longdashdot"
+        assert scatter.line.shape == "spline"
+        assert scatter.marker.symbol == "diamond"
+        assert scatter.marker.size == 10
+        assert scatter.connectgaps is True
+
     def test_line_error_y(self) -> None:
         trace = LineTraceConfig(x=["a"], y=[1], error_y=[0.2])
         scatter = _line_trace(trace)

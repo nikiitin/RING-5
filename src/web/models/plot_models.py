@@ -82,6 +82,7 @@ class TypographyConfig(TypedDict, total=False):
 
 
 class PlotDisplayConfig(TypedDict, total=False):
+    # [impl->req~ring5.figure.line-styles~1]
     """
     Complete display configuration for a plot.
 
@@ -164,6 +165,14 @@ class PlotDisplayConfig(TypedDict, total=False):
     bargap: float  # Spacing between bars
     bargroupgap: float  # Spacing between groups
     bar_border_width: float  # Border width for stacked segments
+
+    # Line-specific
+    line_shape: str
+    line_dash: str
+    line_width: float
+    show_markers: bool
+    marker_symbol: str
+    connect_gaps: bool
 
     # Box-specific
     orientation: str

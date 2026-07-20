@@ -87,6 +87,9 @@ def test_theme_json_round_trip_is_deterministic_and_excludes_live_data_config() 
             "y": "ipc",
             "title_font_size": 20,
             "paper_bgcolor": "#ffffff",
+            "line_dash": "dashdot",
+            "line_width": 3.0,
+            "marker_symbol": "diamond",
             "series_styles": {"candidate": {"color": "#ff0000"}},
         },
         context="dashboard",
@@ -100,6 +103,9 @@ def test_theme_json_round_trip_is_deterministic_and_excludes_live_data_config() 
     assert restored.config == {
         "title_font_size": 20,
         "paper_bgcolor": "#ffffff",
+        "line_dash": "dashdot",
+        "line_width": 3.0,
+        "marker_symbol": "diamond",
     }
     assert json.loads(first)["schema_version"] == 1
 
@@ -135,6 +141,22 @@ def test_theme_import_rejects_unbounded_invalid_or_unsafe_documents() -> None:
     document["config"]["width"] = 700
     document["config"]["accessibility_mode"] = "yes"
     with pytest.raises(ValueError, match="true or false"):
+        FigureThemeService.loads(json.dumps(document))
+    document["config"]["accessibility_mode"] = True
+    document["config"]["line_dash"] = "scribble"
+    with pytest.raises(ValueError, match="line pattern"):
+        FigureThemeService.loads(json.dumps(document))
+    document["config"]["line_dash"] = "solid"
+    document["config"]["marker_symbol"] = "hexagon"
+    with pytest.raises(ValueError, match="marker symbol"):
+        FigureThemeService.loads(json.dumps(document))
+    document["config"]["marker_symbol"] = "circle"
+    document["config"]["line_width"] = 0.1
+    with pytest.raises(ValueError, match="line width"):
+        FigureThemeService.loads(json.dumps(document))
+    document["config"]["line_width"] = 2
+    document["config"]["marker_size"] = 100
+    with pytest.raises(ValueError, match="marker size"):
         FigureThemeService.loads(json.dumps(document))
 
     invalid = FigureTheme("UPPER", "Bad", "paper", "", {})

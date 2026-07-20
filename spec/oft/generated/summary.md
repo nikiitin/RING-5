@@ -7,8 +7,8 @@ This file is informative; normative items are in the other generated files.
 
 - Feature groups: 13
 - Detailed requirements: 216
-- Approved current requirements: 185
-- Proposed future requirements: 31
+- Approved current requirements: 186
+- Proposed future requirements: 30
 - Draft future requirements: 0
 - Generated specification items: 229
 - Live capability bindings: 682
@@ -24,7 +24,7 @@ This file is informative; normative items are in the other generated files.
 | Comparison and Statistical Analysis | 3 | 0 | 0 | 3 |
 | Plot Lifecycle | 13 | 0 | 0 | 13 |
 | Plot Types | 17 | 0 | 0 | 17 |
-| Figure Configuration | 29 | 1 | 0 | 30 |
+| Figure Configuration | 30 | 0 | 0 | 30 |
 | Rendering and Export | 12 | 1 | 0 | 13 |
 | Reproducibility and Portfolios | 8 | 5 | 0 | 13 |
 | Automation API and CLI | 12 | 5 | 0 | 17 |

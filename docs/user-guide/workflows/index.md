@@ -26,6 +26,7 @@ Use these pages for recurring tasks:
 - [Reuse Dataset Snapshots](dataset-snapshots/) across browser and Python sessions.
 - [Create and Configure Plots](plotting/) with per-plot transformation pipelines.
 - [Build Multi-panel Dashboards](multi-panel-dashboards/) from existing plots and export one grid.
+- [Style Line Charts](line-styles/) with matching connectors, dashes, widths, and markers.
 - [Link Dashboard Selections](linked-selections/) to compare matching values across Plotly panels.
 - [Explore Rows Behind a Plot](plot-drill-down/) without losing the active figure configuration.
 - [Compare Groups with Small Multiples](small-multiples/) using aligned panels and shared styling.

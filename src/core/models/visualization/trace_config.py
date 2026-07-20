@@ -15,6 +15,29 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
+LineDash = Literal["solid", "dash", "dot", "dashdot", "longdash", "longdashdot"]
+LineShape = Literal["linear", "spline", "hv", "vh", "hvh", "vhv"]
+
+LINE_DASHES: tuple[LineDash, ...] = (
+    "solid",
+    "dash",
+    "dot",
+    "dashdot",
+    "longdash",
+    "longdashdot",
+)
+LINE_SHAPES: tuple[LineShape, ...] = ("linear", "spline", "hv", "vh", "hvh", "vhv")
+LINE_MARKER_SYMBOLS: tuple[str, ...] = (
+    "circle",
+    "square",
+    "diamond",
+    "cross",
+    "x",
+    "triangle-up",
+    "triangle-down",
+    "star",
+)
+
 TraceType = Literal[
     "bar",
     "line",
@@ -91,16 +114,18 @@ class BarTraceConfig(TraceConfig):
 
 @dataclass
 class LineTraceConfig(TraceConfig):
+    # [impl->req~ring5.figure.line-styles~1]
     """Line-specific trace parameters."""
 
     trace_type: TraceType = "line"
 
     line_width: float = 2.0
-    line_dash: Literal["solid", "dash", "dot", "dashdot", "longdash"] = "solid"
-    line_shape: Literal["linear", "spline", "hv", "vh", "hvh", "vhv"] = "linear"
+    line_dash: LineDash = "solid"
+    line_shape: LineShape = "linear"
     marker_symbol: str = "circle"
     marker_size: int = 6
     show_markers: bool = True
+    connect_gaps: bool = False
     fill: Literal["none", "tozeroy", "tonexty"] = "none"
     fill_base: list[float] | None = None
 

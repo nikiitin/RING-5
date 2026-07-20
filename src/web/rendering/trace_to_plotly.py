@@ -473,6 +473,7 @@ def _parallel_coordinates_trace(trace: ParallelCoordinatesTraceConfig) -> go.Par
 def _line_trace(trace: LineTraceConfig) -> go.Scatter:
     # [impl->req~ring5.plot.ecdf~1]
     # [impl->req~ring5.plot.area~1]
+    # [impl->req~ring5.figure.line-styles~1]
     """Convert a ``LineTraceConfig`` to ``go.Scatter`` with lines mode."""
     mode = "lines+markers" if trace.show_markers else "lines"
 
@@ -484,6 +485,7 @@ def _line_trace(trace: LineTraceConfig) -> go.Scatter:
         "opacity": trace.opacity,
         "showlegend": trace.show_in_legend,
         "visible": trace.visible,
+        "connectgaps": trace.connect_gaps,
         "legendgroup": trace.legendgroup or trace.name,
         "line": {
             "width": trace.line_width,

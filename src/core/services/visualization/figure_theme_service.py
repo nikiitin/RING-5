@@ -10,6 +10,7 @@ from dataclasses import asdict
 from typing import Any, Final, Mapping, cast
 
 from src.core.models.figure_theme_models import FigureTheme, FigureThemeContext
+from src.core.models.visualization.trace_config import LINE_DASHES, LINE_MARKER_SYMBOLS
 from src.core.services.visualization.accessibility_service import AccessibilityService
 from src.core.services.visualization.palette_service import get_palette_names
 
@@ -44,12 +45,15 @@ _THEME_CONFIG_KEYS: Final = {
     "legend_orientation",
     "legend_title_font_color",
     "legend_title_font_size",
+    "line_dash",
+    "line_width",
     "margin_b",
     "margin_l",
     "margin_pad",
     "margin_r",
     "margin_t",
     "marker_size",
+    "marker_symbol",
     "paper_bgcolor",
     "plot_bgcolor",
     "show_markers",
@@ -82,6 +86,7 @@ _POSITIVE_KEYS: Final = {
     "height_inches",
     "legend_font_size",
     "legend_title_font_size",
+    "line_width",
     "marker_size",
     "title_font_size",
     "width",
@@ -473,12 +478,20 @@ class FigureThemeService:
                 raise ValueError(f"Figure theme setting {key!r} is too long.")
             if key in _POSITIVE_KEYS and float(value) <= 0:
                 raise ValueError(f"Figure theme setting {key!r} must be positive.")
+            if key == "line_width" and not 0.5 <= float(value) <= 20:
+                raise ValueError("Figure theme line width must be from 0.5 through 20.")
+            if key == "marker_size" and not 1 <= float(value) <= 50:
+                raise ValueError("Figure theme marker size must be from 1 through 50.")
             if key in _NONNEGATIVE_KEYS and float(value) < 0:
                 raise ValueError(f"Figure theme setting {key!r} cannot be negative.")
             if key in _ALPHA_KEYS and not 0 <= float(value) <= 1:
                 raise ValueError(f"Figure theme setting {key!r} must be between zero and one.")
             if key == "legend_orientation" and value not in {"horizontal", "vertical"}:
                 raise ValueError("Figure theme legend orientation must be horizontal or vertical.")
+            if key == "line_dash" and value not in LINE_DASHES:
+                raise ValueError("Figure theme line pattern is not supported.")
+            if key == "marker_symbol" and value not in LINE_MARKER_SYMBOLS:
+                raise ValueError("Figure theme marker symbol is not supported.")
             if (
                 key != "color_palette"
                 and ("color" in key or key.endswith("bgcolor"))

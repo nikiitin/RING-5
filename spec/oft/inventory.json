@@ -3959,11 +3959,31 @@
       "id": "figure.line-styles",
       "group": "figure-configuration",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "End-to-end line styles",
       "description": "Line-based traces shall apply user-selected interpolation, dash, width, marker, and connector styles consistently in Plotly and Matplotlib.",
       "tags": ["figures", "lines", "styling"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/models/visualization/trace_config.py::LineTraceConfig",
+          "src/web/models/plot_models.py::PlotDisplayConfig",
+          "ring5/_plot_validation.py::_validate_line_style",
+          "src/web/pages/ui/plotting/types/line_plot.py::LinePlot.render_specific_advanced_options",
+          "src/web/pages/ui/plotting/types/line_plot.py::LinePlot.create_traces",
+          "src/web/rendering/trace_to_plotly.py::_line_trace",
+          "src/web/rendering/matplotlib_trace_renderer.py::MatplotlibTraceRenderer._draw_line"
+        ],
+        "tests": [
+          "tests/unit/test_simple_plots.py::TestLinePlotAdvancedOptions.test_complete_line_style",
+          "tests/unit/test_trace_to_plotly.py::TestLineTrace.test_complete_line_style_and_gap_connector",
+          "tests/unit/test_matplotlib_trace_renderer.py::TestRender.test_spline_style_connects_gaps_and_marks_only_observations",
+          "tests/integration/test_line_styles_public_api.py::test_public_line_styles_match_in_both_engines",
+          "tests/e2e/test_plot_types.py::TestPlotCreation.test_04_create_line_plot"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/line-styles.md#style-line-charts"
+        ]
+      }
     },
     {
       "id": "export.batch-reports",

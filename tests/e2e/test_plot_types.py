@@ -112,11 +112,35 @@ class TestPlotCreation:
     # -- Line ----------------------------------------------------------------
 
     def test_04_create_line_plot(self, tier1_page: Page) -> None:
+        # [test->req~ring5.figure.line-styles~1]
         """Create a line plot with benchmark_name vs simTicks."""
         mp = ManagePlotsPage(tier1_page)
         _create_and_finalize(mp, "E2E Line", "line")
         _trigger_render_fragment(mp)
         _configure_and_assert_chart(mp, x="benchmark_name", y="simTicks")
+
+        mp.toggle_advanced_settings()
+        axes_pill = mp.viz_settings_pills.get_by_role("radio", name="Axes")
+        axes_pill.click()
+        mp.wait_for_streamlit()
+        expect(mp.line_connector_selectbox).to_be_visible(timeout=E2E_TIMEOUT)
+        expect(mp.line_pattern_selectbox).to_be_visible(timeout=E2E_TIMEOUT)
+        expect(tier1_page.get_by_role("checkbox", name="Show point markers")).to_be_visible()
+        expect(tier1_page.get_by_text("Marker symbol", exact=True)).to_be_visible()
+        expect(tier1_page.get_by_text("Marker size", exact=True)).to_be_visible()
+        expect(
+            tier1_page.get_by_role("checkbox", name="Connect across missing values")
+        ).to_be_visible()
+
+        mp.select_line_connector("Smooth spline")
+        mp.select_line_pattern("Dash-dot")
+        tier1_page.get_by_text("Connect across missing values", exact=True).click()
+        mp.wait_for_streamlit()
+        expect(
+            tier1_page.get_by_role("checkbox", name="Connect across missing values")
+        ).to_be_checked(timeout=E2E_TIMEOUT)
+        mp.refresh_plot()
+        mp.assert_chart_visible(timeout=CHART_TIMEOUT)
 
     # -- Scatter -------------------------------------------------------------
 
