@@ -12,6 +12,7 @@ from typing import Literal, Protocol, runtime_checkable
 import pandas as pd
 
 from src.core.models.quality_models import DataQualityReport
+from src.core.models.schema_contract_models import DatasetSchemaContract, SchemaValidationReport
 
 
 @runtime_checkable
@@ -206,6 +207,23 @@ class ManagersAPI(Protocol):
         Returns:
             Immutable quality report with an ordered column profile.
         """
+        raise NotImplementedError
+
+    def infer_schema_contract(
+        self,
+        data: pd.DataFrame,
+        *,
+        name: str = "dataset",
+    ) -> DatasetSchemaContract:
+        """Infer editable type and nullability rules from a dataset."""
+        raise NotImplementedError
+
+    def validate_schema(
+        self,
+        data: pd.DataFrame,
+        contract: DatasetSchemaContract,
+    ) -> SchemaValidationReport:
+        """Validate a dataset against an explicit schema contract."""
         raise NotImplementedError
 
     def append_datasets(

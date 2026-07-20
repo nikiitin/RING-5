@@ -18,7 +18,7 @@ from tests.ui.helpers import (
 
 # Data Managers — data loaded
 class TestDataManagersWithData:
-    """Data Managers page renders its 10 tabs when data is available."""
+    """Data Managers page renders its 11 tabs when data is available."""
 
     def test_no_warning_when_data_loaded(self) -> None:
         """No 'no data' warning should appear when data is injected."""
@@ -30,12 +30,12 @@ class TestDataManagersWithData:
         assert len(no_data_warnings) == 0, "Should not show 'no data' warning"
 
     def test_tabs_render(self) -> None:
-        """All 9 Data Manager tabs should render."""
+        """All Data Manager tabs should render."""
         at = create_app_with_data()
         navigate_to(at, "Data Managers")
 
         assert not at.exception
-        assert len(at.tabs) >= 10, f"Expected 10 tabs, got {len(at.tabs)}"
+        assert len(at.tabs) >= 11, f"Expected 11 tabs, got {len(at.tabs)}"
 
     def test_summary_tab_has_metrics(self) -> None:
         """Summary tab should show metrics (rows, columns, etc.)."""

@@ -952,7 +952,7 @@ Tags: data, joins, status_proposed, validation
 ### Dataset schema contracts
 
 `req~ring5.data.schema-contracts~1`
-Status: proposed
+Status: approved
 
 Users shall define and validate required columns, data types, nullability, numeric ranges, and accepted categorical values.
 
@@ -961,7 +961,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: data, schema, status_proposed, validation
+Tags: data, schema, status_approved, validation
 
 ### Units and semantic metadata
 

@@ -370,6 +370,22 @@ class TestDataQualityProfile:
         expect(dm.quality_schema_metric).to_be_visible(timeout=_E2E_TIMEOUT)
 
 
+@pytest.mark.xdist_group("e2e_data_managers_schema_contract")
+class TestDatasetSchemaContract:
+    """Tier 1: Infer, edit, and validate an explicit schema contract."""
+
+    def test_validate_inferred_contract(self, tier1_page: Page) -> None:
+        # [test->req~ring5.data.schema-contracts~1]
+        dm = DataManagersPage(tier1_page)
+        dm.navigate()
+        dm.select_tab("Schema Contract")
+        dm.validate_schema_contract()
+        expect(dm.schema_contract_status_metric).to_contain_text(
+            "Valid",
+            timeout=_E2E_TIMEOUT,
+        )
+
+
 # Operations History
 
 

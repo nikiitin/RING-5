@@ -114,6 +114,64 @@ session.restore_dataset_revision(lineage.revisions[0].revision_id)
 Revision snapshots are defensive copies held only for the current session. They are not yet stored
 inside portfolios, so save an important recovered table separately before ending the session.
 
+## Define and validate a schema contract
+
+<!--
+`uman~ring5.data.schema-contracts.documentation~1`
+
+Covers:
+- req~ring5.data.schema-contracts~1
+
+-->
+
+Open **Data Managers → Schema Contract** when a dataset is about to cross an important boundary,
+such as a join, regression comparison, or shared analysis recipe. RING-5 starts with inferred data
+types and current nullability so the loaded table passes by default. Edit the table to make the
+actual agreement explicit:
+
+- mark columns required or optional;
+- choose numeric, integer, boolean, datetime, text, or unconstrained values;
+- decide whether each present column may contain missing cells;
+- set finite minimum and maximum values for numeric columns;
+- enter comma-separated accepted categorical values;
+- reject or allow columns not declared by the contract.
+
+Select **Validate Schema Contract** to see a clear valid/needs-attention result. Failures are grouped
+by rule and column with an affected-row count and up to ten zero-based row positions. Validation is
+read-only: it never coerces, removes, or replaces data.
+
+Python workflows can infer a starting point or construct an exact contract directly:
+
+```python
+contract = ring5.DatasetSchemaContract(
+    "benchmark-results-v1",
+    (
+        ring5.ColumnContract("benchmark", data_type="string"),
+        ring5.ColumnContract(
+            "ipc",
+            data_type="numeric",
+            nullable=False,
+            minimum=0.0,
+        ),
+        ring5.ColumnContract(
+            "status",
+            data_type="string",
+            accepted_values=("stable", "experimental"),
+        ),
+    ),
+    allow_extra_columns=False,
+)
+report = session.validate_schema(data, contract)
+if not report.valid:
+    print(report.to_frame())
+
+starting_point = session.infer_schema_contract(data, name="draft-contract")
+```
+
+An inferred contract describes the current table; it is not a substitute for deciding what future
+inputs are allowed. Review nullable columns and categorical values before treating it as a stable
+boundary.
+
 ## Inspect the table
 
 <!--

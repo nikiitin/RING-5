@@ -29,6 +29,12 @@ from src.core.models.data_models import (
 from src.core.models.shaper_models import ShaperStepConfig, SplitApplyGroupConfig
 from src.core.models.history_models import OperationRecord
 from src.core.models.quality_models import ColumnQuality, DataQualityReport
+from src.core.models.schema_contract_models import (
+    ColumnContract,
+    DatasetSchemaContract,
+    SchemaValidationReport,
+    SchemaViolation,
+)
 from src.core.models.dataset_workspace_models import DatasetInfo, DatasetLineage, DatasetRevision
 from src.core.models.parsing_models import (
     ParseBatchResult,
@@ -58,6 +64,7 @@ __all__ = [
     "ColumnInfoResult",
     "ColumnSelectorConfig",
     "ColumnQuality",
+    "ColumnContract",
     "ConditionSelectorConfig",
     "CsvMetadata",
     "CsvPoolEntry",
@@ -65,6 +72,7 @@ __all__ = [
     "DatasetInfo",
     "DatasetLineage",
     "DatasetRevision",
+    "DatasetSchemaContract",
     "ItemSelectorConfig",
     "MeanShaperConfig",
     "NormalizeShaperConfig",
@@ -77,6 +85,8 @@ __all__ = [
     "ScanResult",
     "ScannedVariable",
     "ScannedVariableDict",
+    "SchemaValidationReport",
+    "SchemaViolation",
     "ShaperStepConfig",
     "SortShaperConfig",
     "SplitApplyGroupConfig",

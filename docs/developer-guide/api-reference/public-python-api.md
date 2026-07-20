@@ -59,6 +59,12 @@ Dataset counts remain scalar fields; `columns` contains immutable `ColumnQuality
 `to_frame()` creates a new DataFrame for display or export. Optional expected types validate finite
 values without conflating invalid values with missing cells.
 
+`ColumnContract` declares required presence, data type, nullability, finite numeric bounds, and
+accepted scalar values. `DatasetSchemaContract` groups unique column rules and controls unexpected
+columns. `Session.infer_schema_contract` returns a conservative editable starting point;
+`Session.validate_schema` returns an immutable `SchemaValidationReport` and never coerces its input.
+Each `SchemaViolation` includes a rule, column, affected-row count, and at most ten row positions.
+
 `Session.add_dataset` retains a defensive copy in a named, in-memory workspace and returns a
 `DatasetInfo`. `list_datasets`, `get_dataset`, `select_dataset`, and `remove_dataset` manage that
 workspace. `compare_datasets` leaves both sources unchanged; `join_datasets` and `append_datasets`

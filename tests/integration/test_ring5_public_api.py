@@ -326,6 +326,67 @@ class TestDataQuality:
                 )
 
 
+class TestDatasetSchemaContracts:
+    """Define and validate explicit dataset boundaries through ``ring5``."""
+
+    def test_infer_define_and_validate_schema_contract(self) -> None:
+        # [test->req~ring5.data.schema-contracts~1]
+        data = ring5.Table.from_rows(
+            [
+                {"benchmark": "a", "ipc": 1.0, "status": "stable"},
+                {"benchmark": "b", "ipc": 3.0, "status": "unexpected"},
+            ]
+        )
+        contract = ring5.DatasetSchemaContract(
+            "results-v1",
+            (
+                ring5.ColumnContract("benchmark", data_type="string"),
+                ring5.ColumnContract(
+                    "ipc",
+                    data_type="numeric",
+                    minimum=0.0,
+                    maximum=2.0,
+                ),
+                ring5.ColumnContract(
+                    "status",
+                    data_type="string",
+                    accepted_values=("stable", "experimental"),
+                ),
+            ),
+            allow_extra_columns=False,
+        )
+
+        with ring5.Session() as session:
+            inferred = session.infer_schema_contract(data, name="inferred")
+            report = session.validate_schema(data, contract)
+
+        assert isinstance(inferred, ring5.DatasetSchemaContract)
+        assert isinstance(inferred.columns[0], ring5.ColumnContract)
+        assert isinstance(report, ring5.SchemaValidationReport)
+        assert all(isinstance(item, ring5.SchemaViolation) for item in report.violations)
+        assert report.valid is False
+        assert {(item.rule, item.column) for item in report.violations} == {
+            ("maximum", "ipc"),
+            ("accepted_values", "status"),
+        }
+
+    def test_schema_contract_errors_are_typed(self) -> None:
+        contract = ring5.DatasetSchemaContract("schema", (ring5.ColumnContract("value"),))
+        with ring5.Session() as session:
+            with pytest.raises(ring5.DataValidationError, match="pandas DataFrame"):
+                session.infer_schema_contract(42)  # type: ignore[arg-type]
+            with pytest.raises(ring5.DataValidationError, match="DatasetSchemaContract"):
+                session.validate_schema(
+                    pd.DataFrame({"value": [1]}),
+                    object(),  # type: ignore[arg-type]
+                )
+            with pytest.raises(ring5.DataValidationError, match="unique column names"):
+                session.validate_schema(
+                    pd.DataFrame([[1, 2]], columns=["value", "value"]),
+                    contract,
+                )
+
+
 class TestNamedDatasetWorkspace:
     """Retain and compose independent datasets through the public API."""
 

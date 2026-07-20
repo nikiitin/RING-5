@@ -18,6 +18,7 @@ from src.web.components.data_managers.mixer import MixerManager
 from src.web.components.data_managers.outlier_remover import OutlierRemoverManager
 from src.web.components.data_managers.preprocessor import PreprocessorManager
 from src.web.components.data_managers.quality_profile import QualityProfileManager
+from src.web.components.data_managers.schema_contract import SchemaContractManager
 
 # Import Sub-Managers
 from src.web.components.data_managers.seeds_reducer import SeedsReducerManager
@@ -39,7 +40,7 @@ def show_data_managers_page(api: ApplicationAPI) -> None:
 
     has_data: bool = api.state_manager.has_data()
 
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs(
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs(
         [
             "Summary",
             "Data Visualization",
@@ -50,6 +51,7 @@ def show_data_managers_page(api: ApplicationAPI) -> None:
             "Mixer",
             "Compare",
             "Data Quality",
+            "Schema Contract",
             "Operations History",
         ]
     )
@@ -139,4 +141,12 @@ def show_data_managers_page(api: ApplicationAPI) -> None:
         _quality_fragment()
 
     with tab10:
+
+        @st.fragment
+        def _schema_contract_fragment() -> None:
+            SchemaContractManager(api).render()
+
+        _schema_contract_fragment()
+
+    with tab11:
         HistoryComponents.render_portfolio_history(api.get_portfolio_history())

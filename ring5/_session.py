@@ -17,8 +17,10 @@ from src.core.models import (
     DatasetInfo,
     DatasetLineage,
     DatasetRevision,
+    DatasetSchemaContract,
     RestoreReport,
     ScanResult,
+    SchemaValidationReport,
     StatConfig,
 )
 from src.core.models.data_models import ParseVariableConfig
@@ -722,6 +724,55 @@ class Session:
         frame, _ = _unwrap_table(data)
         try:
             return self.api.managers.profile_data(frame, expected_types=expected_types)
+        except (TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def infer_schema_contract(
+        self,
+        data: "pd.DataFrame | Table",
+        *,
+        name: str = "dataset",
+    ) -> DatasetSchemaContract:
+        """Infer an editable schema contract from current column types and nullability.
+
+        Args:
+            data: DataFrame or :class:`ring5.Table` to inspect without mutation.
+            name: Human-readable contract name.
+
+        Returns:
+            An immutable contract with one :class:`ring5.ColumnContract` per column.
+
+        Raises:
+            DataValidationError: The dataset or contract name is invalid.
+        """
+        # [impl->req~ring5.data.schema-contracts~1]
+        frame, _ = _unwrap_table(data)
+        try:
+            return self.api.managers.infer_schema_contract(frame, name=name)
+        except (TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def validate_schema(
+        self,
+        data: "pd.DataFrame | Table",
+        contract: DatasetSchemaContract,
+    ) -> SchemaValidationReport:
+        """Validate a dataset against required columns and per-column rules.
+
+        Args:
+            data: DataFrame or :class:`ring5.Table` to validate without mutation.
+            contract: Explicit dataset schema contract.
+
+        Returns:
+            Immutable rule failures with bounded row-position evidence.
+
+        Raises:
+            DataValidationError: The dataset or contract is invalid.
+        """
+        # [impl->req~ring5.data.schema-contracts~1]
+        frame, _ = _unwrap_table(data)
+        try:
+            return self.api.managers.validate_schema(frame, contract)
         except (TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
 

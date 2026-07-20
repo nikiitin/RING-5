@@ -1,6 +1,6 @@
 """Page Object for the Data Managers page.
 
-Covers all 10 tabs:
+Covers all 11 tabs:
 - Summary
 - Data Visualization
 - Workspace
@@ -10,6 +10,7 @@ Covers all 10 tabs:
 - Mixer
 - Compare
 - Data Quality
+- Schema Contract
 - Operations History
 """
 
@@ -35,6 +36,7 @@ class DataManagersPage(BasePage):
         "Mixer",
         "Compare",
         "Data Quality",
+        "Schema Contract",
         "Operations History",
     )
 
@@ -156,7 +158,7 @@ class DataManagersPage(BasePage):
         expect(self.no_data_warning).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
     def assert_tabs_visible(self) -> None:
-        """Assert all 10 tabs are present."""
+        """Assert all 11 tabs are present."""
         expect(self.tab_bar).to_be_visible(timeout=self.RENDER_TIMEOUT)
         for tab_name in self.TAB_NAMES:
             expect(self.get_tab(tab_name)).to_be_visible()
@@ -478,6 +480,23 @@ class DataManagersPage(BasePage):
     def profile_data(self) -> None:
         """Calculate the data-quality report and wait for rendering."""
         self.quality_profile_button.click()
+        self.wait_for_streamlit()
+
+    # E2E: Dataset schema contract
+
+    @property
+    def schema_contract_validate_button(self) -> Locator:
+        """Button that validates the editable schema contract."""
+        return self.page.get_by_role("button", name="Validate Schema Contract")
+
+    @property
+    def schema_contract_status_metric(self) -> Locator:
+        """Validation status for the active schema contract."""
+        return self.page.locator("[data-testid='stMetric']").filter(has_text="Contract status")
+
+    def validate_schema_contract(self) -> None:
+        """Validate the inferred contract and wait for rendering."""
+        self.schema_contract_validate_button.click()
         self.wait_for_streamlit()
 
     # E2E: Data Visualization tab

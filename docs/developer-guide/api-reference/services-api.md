@@ -32,6 +32,11 @@ The UI renders these values and does not reimplement outcome semantics.
 measurements without mutating the input. It returns immutable records so presentation code cannot
 alter the report through a shared DataFrame.
 
+`infer_schema_contract` creates explicit type and nullability defaults from a DataFrame.
+`validate_schema` checks required columns, declared types, nullability, numeric bounds, categorical
+values, and unexpected columns through `SchemaContractService`. Both operations are stateless and
+return immutable models; row evidence is bounded independently of input size.
+
 `DatasetWorkspaceService` provides stateless join and append operations. Session retention and
 selection live in `DataRepository`; `ApplicationAPI` coordinates repository reads, manager
 operations, and storage of named outputs so the web layer does not compose workspace state itself.

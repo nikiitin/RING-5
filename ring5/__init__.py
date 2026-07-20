@@ -70,12 +70,16 @@ from ring5.figure_spec import (
 if TYPE_CHECKING:
     # Static names for mypy/IDEs; at runtime these resolve via __getattr__.
     from src.core.models import (
+        ColumnContract,
         DatasetInfo,
         DatasetLineage,
         DatasetRevision,
+        DatasetSchemaContract,
         RestoreReport,
         ScanResult,
         ScannedVariable,
+        SchemaValidationReport,
+        SchemaViolation,
         ShaperStepConfig,
     )
     from src.core.models.parsing_models import StatConfig
@@ -117,9 +121,13 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "RestoreReport": ("src.core.models", "RestoreReport"),
     "ColumnQuality": ("src.core.models", "ColumnQuality"),
     "DataQualityReport": ("src.core.models", "DataQualityReport"),
+    "ColumnContract": ("src.core.models", "ColumnContract"),
     "DatasetInfo": ("src.core.models", "DatasetInfo"),
     "DatasetLineage": ("src.core.models", "DatasetLineage"),
     "DatasetRevision": ("src.core.models", "DatasetRevision"),
+    "DatasetSchemaContract": ("src.core.models", "DatasetSchemaContract"),
+    "SchemaValidationReport": ("src.core.models", "SchemaValidationReport"),
+    "SchemaViolation": ("src.core.models", "SchemaViolation"),
     "ShaperStepConfig": ("src.core.models", "ShaperStepConfig"),
     "available_shaper_types": ("ring5.shapers", "available_shaper_types"),
     # Self-contained figure-scripting surface (so scripts import only `ring5`):
@@ -178,10 +186,14 @@ __all__ = [
     "ShaperStepConfig",
     "RestoreReport",
     "ColumnQuality",
+    "ColumnContract",
     "DataQualityReport",
     "DatasetInfo",
     "DatasetLineage",
     "DatasetRevision",
+    "DatasetSchemaContract",
+    "SchemaValidationReport",
+    "SchemaViolation",
     "render_figure",
     "export_bytes",
     "export_file",

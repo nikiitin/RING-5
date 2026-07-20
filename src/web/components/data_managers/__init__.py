@@ -10,6 +10,7 @@ from src.web.components.data_managers.comparison import ComparisonManager
 from src.web.components.data_managers.outlier_remover import OutlierRemoverManager
 from src.web.components.data_managers.preprocessor import PreprocessorManager
 from src.web.components.data_managers.quality_profile import QualityProfileManager
+from src.web.components.data_managers.schema_contract import SchemaContractManager
 from src.web.components.data_managers.dataset_workspace import DatasetWorkspaceManager
 from src.web.components.data_managers.seeds_reducer import SeedsReducerManager
 
@@ -20,6 +21,7 @@ __all__ = [
     "OutlierRemoverManager",
     "PreprocessorManager",
     "QualityProfileManager",
+    "SchemaContractManager",
     "DatasetWorkspaceManager",
     "SeedsReducerManager",
 ]
