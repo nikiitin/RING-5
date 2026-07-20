@@ -3691,11 +3691,29 @@
       "id": "plot.radar",
       "group": "plot-types",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Radar chart",
       "description": "The plot registry shall provide radar charts with category ordering, shared scales, filled areas, markers, and per-series styling controls.",
       "tags": ["comparison", "plots", "visualization"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/models/visualization/trace_config.py::RadarTraceConfig",
+          "src/web/pages/ui/plotting/types/radar_plot.py::RadarPlot.create_traces",
+          "src/web/components/plotting/config/radar_config.py::render",
+          "src/web/rendering/trace_to_plotly.py::_radar_trace",
+          "src/web/rendering/matplotlib_trace_renderer.py::MatplotlibTraceRenderer._draw_radar"
+        ],
+        "tests": [
+          "tests/unit/test_radar_plot.py::test_grouped_radar_resolves_one_scale_order_and_missing_value_without_mutation",
+          "tests/unit/test_trace_to_plotly.py::TestRadarTrace.test_radar_closes_profile_and_applies_shared_scale",
+          "tests/unit/test_matplotlib_trace_renderer.py::TestRender.test_radar_draws_shared_frame_once_and_closed_profiles",
+          "tests/integration/test_radar_plot_public_api.py::test_public_radar_renders_shared_scale_and_styles_in_both_engines",
+          "tests/e2e/test_plot_types.py::TestPlotCreation.test_11_create_radar_plot"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/radar-charts.md#compare-profiles-with-radar-charts"
+        ]
+      }
     },
     {
       "id": "plot.waterfall",
@@ -4088,6 +4106,7 @@
       "heatmap": "plot.heatmap",
       "histogram": "plot.histogram",
       "line": "plot.line",
+      "radar": "plot.radar",
       "scatter": "plot.scatter",
       "stacked_bar": "plot.stacked-bar"
     },

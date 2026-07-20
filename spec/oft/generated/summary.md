@@ -7,11 +7,11 @@ This file is informative; normative items are in the other generated files.
 
 - Feature groups: 13
 - Detailed requirements: 216
-- Approved current requirements: 177
-- Proposed future requirements: 39
+- Approved current requirements: 178
+- Proposed future requirements: 38
 - Draft future requirements: 0
 - Generated specification items: 229
-- Live capability bindings: 657
+- Live capability bindings: 658
 
 ## Requirements by feature group
 
@@ -23,7 +23,7 @@ This file is informative; normative items are in the other generated files.
 | Per-Plot Data Shaping | 15 | 1 | 0 | 16 |
 | Comparison and Statistical Analysis | 3 | 0 | 0 | 3 |
 | Plot Lifecycle | 13 | 0 | 0 | 13 |
-| Plot Types | 13 | 4 | 0 | 17 |
+| Plot Types | 14 | 3 | 0 | 17 |
 | Figure Configuration | 26 | 4 | 0 | 30 |
 | Rendering and Export | 12 | 1 | 0 | 13 |
 | Reproducibility and Portfolios | 8 | 5 | 0 | 13 |
@@ -55,7 +55,7 @@ This file is informative; normative items are in the other generated files.
 - `parse_job_members`: 2
 - `parse_variable_fields`: 18
 - `parser_strategies`: 2
-- `plot_types`: 13
+- `plot_types`: 14
 - `plotly_formats`: 4
 - `public_exports`: 65
 - `public_shaper_exports`: 15

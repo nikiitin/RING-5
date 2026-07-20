@@ -216,6 +216,7 @@ def test_public_registries_are_complete() -> None:
         ("heatmap", {"x": "x", "metric_columns": ["y", "z"], "facet_col": "group"}),
         ("histogram", {"histogram_variable": "latency", "group_by": "group"}),
         ("line", {"x": "x", "y": "y", "color": "group"}),
+        ("radar", {"x": "x", "y": "y", "color": "group", "radar_fill": True}),
         ("scatter", {"x": "x", "y": "y", "color": "group"}),
         ("stacked_bar", {"x": "x", "y_columns": ["y", "z"]}),
     ],
@@ -226,12 +227,12 @@ def test_every_registered_plot_accepts_validated_config(
     # [test->req~ring5.api.plot-validation~1]
     frame = pd.DataFrame(
         {
-            "x": ["a", "b"],
-            "group": ["one", "two"],
-            "y": [1.0, 2.0],
-            "z": [2.0, 3.0],
-            "latency..0-9": [2.0, 3.0],
-            "latency..10-19": [1.0, 4.0],
+            "x": ["a", "b", "c"],
+            "group": ["one", "two", "three"],
+            "y": [1.0, 2.0, 3.0],
+            "z": [2.0, 3.0, 4.0],
+            "latency..0-9": [2.0, 3.0, 4.0],
+            "latency..10-19": [1.0, 4.0, 2.0],
         }
     )
     with ring5.Session() as session:

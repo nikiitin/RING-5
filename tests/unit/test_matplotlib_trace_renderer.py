@@ -17,6 +17,7 @@ from src.core.models.visualization.trace_config import (
     HeatmapTraceConfig,
     HistogramTraceConfig,
     LineTraceConfig,
+    RadarTraceConfig,
     ScatterTraceConfig,
     TraceConfig,
     ViolinTraceConfig,
@@ -132,6 +133,34 @@ class TestRender:
         assert result.trace_count == 1
         assert len(ax.collections) == 1
         assert ax.lines[0].get_drawstyle() == "steps-post"
+
+    def test_radar_draws_shared_frame_once_and_closed_profiles(
+        self, ax: matplotlib.axes.Axes
+    ) -> None:
+        # [test->req~ring5.plot.radar~1]
+        traces = [
+            RadarTraceConfig(
+                name="base",
+                categories=["A", "B", "C"],
+                values=[1.0, 2.0, 3.0],
+                radial_max=4.0,
+                color="#336699",
+            ),
+            RadarTraceConfig(
+                name="new",
+                categories=["A", "B", "C"],
+                values=[2.0, 3.0, 1.0],
+                radial_max=4.0,
+                fill_area=False,
+            ),
+        ]
+
+        result = MatplotlibTraceRenderer.render(traces, ax)
+
+        assert result.trace_count == 2
+        assert len(ax.texts) == 3
+        assert len(ax.patches) == 1
+        assert not ax.axison
 
     def test_vertical_and_horizontal_violins_use_precomputed_density(
         self, ax: matplotlib.axes.Axes

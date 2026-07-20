@@ -1632,7 +1632,7 @@ Tags: plots, status_approved, trends, visualization
 ### Radar chart
 
 `req~ring5.plot.radar~1`
-Status: proposed
+Status: approved
 
 The plot registry shall provide radar charts with category ordering, shared scales, filled areas, markers, and per-series styling controls.
 
@@ -1641,7 +1641,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: comparison, plots, status_proposed, visualization
+Tags: comparison, plots, status_approved, visualization
 
 ### Waterfall chart
 

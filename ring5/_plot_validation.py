@@ -20,6 +20,7 @@ _REQUIRED_SINGLE: dict[str, tuple[str, ...]] = {
     "heatmap": ("x",),
     "histogram": ("histogram_variable",),
     "line": ("x", "y"),
+    "radar": ("x", "y"),
     "scatter": ("x", "y"),
     "stacked_bar": ("x",),
     "violin": ("x", "y"),
@@ -42,6 +43,7 @@ _OPTIONAL_SINGLE: dict[str, tuple[str, ...]] = {
     "heatmap": ("facet_col",),
     "histogram": ("group_by",),
     "line": ("color",),
+    "radar": ("color",),
     "scatter": ("color",),
     "violin": ("color",),
 }

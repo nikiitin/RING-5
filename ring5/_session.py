@@ -64,6 +64,7 @@ PlotType = Literal[
     "heatmap",
     "histogram",
     "line",
+    "radar",
     "scatter",
     "stacked_bar",
     "violin",

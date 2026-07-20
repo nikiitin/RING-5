@@ -10,6 +10,7 @@ from .grouped_stacked_bar_plot import GroupedStackedBarPlot
 from .heatmap_plot import HeatmapPlot
 from .histogram_plot import HistogramPlot
 from .line_plot import LinePlot
+from .radar_plot import RadarPlot
 from .scatter_plot import ScatterPlot
 from .stacked_bar_plot import StackedBarPlot
 from .violin_plot import ViolinPlot
@@ -26,6 +27,7 @@ __all__ = [
     "GroupedStackedBarPlot",
     "HistogramPlot",
     "LinePlot",
+    "RadarPlot",
     "ScatterPlot",
     "ViolinPlot",
 ]

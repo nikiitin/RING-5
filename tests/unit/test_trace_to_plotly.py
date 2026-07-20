@@ -13,6 +13,7 @@ from src.core.models.visualization.trace_config import (
     BoxTraceConfig,
     HistogramTraceConfig,
     LineTraceConfig,
+    RadarTraceConfig,
     ScatterTraceConfig,
     TraceConfig,
     ViolinTraceConfig,
@@ -25,6 +26,7 @@ from src.web.rendering.trace_to_plotly import (
     _convert_trace,
     _histogram_trace,
     _line_trace,
+    _radar_trace,
     _scatter_trace,
     traces_to_plotly,
     _violin_trace,
@@ -264,6 +266,34 @@ class TestAreaLineTrace:
 
         assert result.fill == "tonexty"
         assert result.line.shape == "hv"
+
+
+class TestRadarTrace:
+    """Tests for Plotly radar conversion and shared polar layout."""
+
+    def test_radar_closes_profile_and_applies_shared_scale(self) -> None:
+        # [test->req~ring5.plot.radar~1]
+        trace = RadarTraceConfig(
+            name="base",
+            categories=["A", "B", "C"],
+            values=[1.0, 2.0, 3.0],
+            radial_min=0.0,
+            radial_max=4.0,
+            start_angle=45,
+            clockwise=False,
+            fill_area=True,
+            color="#336699",
+        )
+
+        result = _radar_trace(trace)
+        figure = traces_to_plotly(TraceBuildResult(traces=[trace]))
+
+        assert list(cast(Any, result.theta)) == ["A", "B", "C", "A"]
+        assert list(cast(Any, result.r)) == [1.0, 2.0, 3.0, 1.0]
+        assert result.fill == "toself"
+        assert result.line.color == "#336699"
+        assert tuple(cast(Any, figure.layout).polar.radialaxis.range) == (0.0, 4.0)
+        assert cast(Any, figure.layout).polar.angularaxis.direction == "counterclockwise"
 
     def test_scatter_trace_dispatch(self) -> None:
         trace = ScatterTraceConfig(name="scatter", x=["a"], y=[1])

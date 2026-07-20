@@ -35,7 +35,9 @@ class TraceConfig:
     """
 
     name: str = ""
-    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap", "box", "violin"] = "bar"
+    trace_type: Literal[
+        "bar", "line", "scatter", "histogram", "heatmap", "box", "violin", "radar"
+    ] = "bar"
     x: list[str | int | float] = field(default_factory=list)
     y: list[int | float] = field(default_factory=list)
     yaxis: Literal["y", "y2"] = "y"
@@ -55,7 +57,9 @@ class BarTraceConfig(TraceConfig):
     place bars directly without reimplementing grouping logic.
     """
 
-    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap", "box", "violin"] = "bar"
+    trace_type: Literal[
+        "bar", "line", "scatter", "histogram", "heatmap", "box", "violin", "radar"
+    ] = "bar"
 
     # Bar positioning (pre-computed)
     x_positions: list[float] = field(default_factory=list)  # center of each bar
@@ -79,7 +83,9 @@ class BarTraceConfig(TraceConfig):
 class LineTraceConfig(TraceConfig):
     """Line-specific trace parameters."""
 
-    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap", "box", "violin"] = "line"
+    trace_type: Literal[
+        "bar", "line", "scatter", "histogram", "heatmap", "box", "violin", "radar"
+    ] = "line"
 
     line_width: float = 2.0
     line_dash: Literal["solid", "dash", "dot", "dashdot", "longdash"] = "solid"
@@ -98,9 +104,9 @@ class LineTraceConfig(TraceConfig):
 class ScatterTraceConfig(TraceConfig):
     """Scatter-specific trace parameters."""
 
-    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap", "box", "violin"] = (
-        "scatter"
-    )
+    trace_type: Literal[
+        "bar", "line", "scatter", "histogram", "heatmap", "box", "violin", "radar"
+    ] = "scatter"
 
     marker_symbol: str = "circle"
     marker_size: int = 8
@@ -123,9 +129,9 @@ class HistogramTraceConfig(TraceConfig):
     the binning should be done by the rendering engine.
     """
 
-    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap", "box", "violin"] = (
-        "histogram"
-    )
+    trace_type: Literal[
+        "bar", "line", "scatter", "histogram", "heatmap", "box", "violin", "radar"
+    ] = "histogram"
 
     nbins: int = 20
     normalization: Literal["", "percent", "probability", "density"] = ""
@@ -140,9 +146,9 @@ class HeatmapTraceConfig(TraceConfig):
     column and row labels respectively.
     """
 
-    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap", "box", "violin"] = (
-        "heatmap"
-    )
+    trace_type: Literal[
+        "bar", "line", "scatter", "histogram", "heatmap", "box", "violin", "radar"
+    ] = "heatmap"
 
     # Heatmap-specific label fields (base x/y are unused)
     col_labels: list[str] = field(default_factory=list)  # column (x-axis) labels
@@ -163,7 +169,9 @@ class BoxTraceConfig(TraceConfig):
     # [impl->req~ring5.plot.box~1]
     """Precomputed distribution summary shared by both rendering engines."""
 
-    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap", "box", "violin"] = "box"
+    trace_type: Literal[
+        "bar", "line", "scatter", "histogram", "heatmap", "box", "violin", "radar"
+    ] = "box"
     values: list[float] = field(default_factory=list)
     category: str = ""
     orientation: Literal["vertical", "horizontal"] = "vertical"
@@ -193,9 +201,9 @@ class ViolinTraceConfig(TraceConfig):
     # [impl->req~ring5.plot.violin~1]
     """Precomputed kernel density and summary shared by both renderers."""
 
-    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap", "box", "violin"] = (
-        "violin"
-    )
+    trace_type: Literal[
+        "bar", "line", "scatter", "histogram", "heatmap", "box", "violin", "radar"
+    ] = "violin"
     values: list[float] = field(default_factory=list)
     category: str = ""
     orientation: Literal["vertical", "horizontal"] = "vertical"
@@ -218,3 +226,23 @@ class ViolinTraceConfig(TraceConfig):
     mean: float = 0.0
     show_box: bool = True
     show_mean: bool = False
+
+
+@dataclass
+class RadarTraceConfig(TraceConfig):
+    # [impl->req~ring5.plot.radar~1]
+    """Closed radial series with a scale shared by every radar trace."""
+
+    trace_type: Literal[
+        "bar", "line", "scatter", "histogram", "heatmap", "box", "violin", "radar"
+    ] = "radar"
+    categories: list[str] = field(default_factory=list)
+    values: list[float] = field(default_factory=list)
+    radial_min: float = 0.0
+    radial_max: float = 1.0
+    start_angle: float = 90.0
+    clockwise: bool = True
+    fill_area: bool = True
+    show_markers: bool = True
+    marker_size: int = 6
+    line_width: float = 2.0

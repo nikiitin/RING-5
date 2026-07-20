@@ -22,6 +22,7 @@ from .types import (
     HeatmapPlot,
     HistogramPlot,
     LinePlot,
+    RadarPlot,
     ScatterPlot,
     StackedBarPlot,
     ViolinPlot,
@@ -51,6 +52,7 @@ class PlotFactory:
         "grouped_stacked_bar": GroupedStackedBarPlot,
         "histogram": HistogramPlot,
         "line": LinePlot,
+        "radar": RadarPlot,
         "scatter": ScatterPlot,
         "violin": ViolinPlot,
     }
@@ -60,6 +62,7 @@ class PlotFactory:
         "bar": {"display_name": "Bar Chart", "icon": "bar_chart", "category": "basic"},
         "box": {"display_name": "Box Plot", "icon": "inventory_2", "category": "distribution"},
         "line": {"display_name": "Line Chart", "icon": "show_chart", "category": "basic"},
+        "radar": {"display_name": "Radar Chart", "icon": "radar", "category": "comparison"},
         "scatter": {"display_name": "Scatter Plot", "icon": "scatter_plot", "category": "basic"},
         "grouped_bar": {
             "display_name": "Grouped Bar",

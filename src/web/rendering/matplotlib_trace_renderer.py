@@ -32,6 +32,7 @@ from src.core.models.visualization.trace_config import (
     HeatmapTraceConfig,
     HistogramTraceConfig,
     LineTraceConfig,
+    RadarTraceConfig,
     ScatterTraceConfig,
     TraceConfig,
     ViolinTraceConfig,
@@ -147,6 +148,13 @@ class MatplotlibTraceRenderer:
                     result.trace_count += 1
                 elif isinstance(trace, LineTraceConfig):
                     MatplotlibTraceRenderer._draw_line(
+                        trace,
+                        target,
+                        override_color=override_color,
+                    )
+                    result.trace_count += 1
+                elif isinstance(trace, RadarTraceConfig):
+                    MatplotlibTraceRenderer._draw_radar(
                         trace,
                         target,
                         override_color=override_color,
@@ -474,6 +482,70 @@ class MatplotlibTraceRenderer:
             vertical_ticks[spec.category_position] = spec.category
         else:
             horizontal_ticks[spec.category_position] = spec.category
+
+    @staticmethod
+    def _draw_radar(
+        spec: RadarTraceConfig,
+        ax: Axes,
+        override_color: str | None = None,
+    ) -> None:
+        # [impl->req~ring5.plot.radar~1]
+        """Draw a closed radar polygon on Cartesian axes with one shared radial scale."""
+        if not spec.categories or not spec.values:
+            return
+        count = len(spec.categories)
+        direction = -1.0 if spec.clockwise else 1.0
+        start = np.deg2rad(spec.start_angle)
+        angles = start + direction * np.arange(count) * (2 * np.pi / count)
+        span = spec.radial_max - spec.radial_min
+        radii = (np.asarray(spec.values, dtype=float) - spec.radial_min) / span
+        closed_angles = np.append(angles, angles[0])
+        closed_radii = np.append(radii, radii[0])
+        x_values = closed_radii * np.cos(closed_angles)
+        y_values = closed_radii * np.sin(closed_angles)
+        color = override_color or spec.color or "#4472C4"
+
+        if not getattr(ax, "_ring5_radar_frame", False):
+            for angle, category in zip(angles, spec.categories):
+                ax.plot(
+                    [0.0, np.cos(angle)],
+                    [0.0, np.sin(angle)],
+                    color="#cccccc",
+                    linewidth=0.8,
+                )
+                ax.text(
+                    1.12 * np.cos(angle),
+                    1.12 * np.sin(angle),
+                    category,
+                    ha="center",
+                    va="center",
+                )
+            for fraction in (0.25, 0.5, 0.75, 1.0):
+                circle_angles = np.linspace(0, 2 * np.pi, 181)
+                ax.plot(
+                    fraction * np.cos(circle_angles),
+                    fraction * np.sin(circle_angles),
+                    color="#dddddd",
+                    linewidth=0.7,
+                )
+            cast(Any, ax)._ring5_radar_frame = True
+            ax.set_aspect("equal")
+            ax.set_xlim(-1.25, 1.25)
+            ax.set_ylim(-1.25, 1.25)
+            ax.axis("off")
+
+        ax.plot(
+            x_values,
+            y_values,
+            color=color,
+            linewidth=spec.line_width,
+            marker="o" if spec.show_markers else None,
+            markersize=spec.marker_size,
+            alpha=spec.opacity,
+            label=spec.name,
+        )
+        if spec.fill_area:
+            ax.fill(x_values, y_values, color=color, alpha=spec.opacity * 0.45)
 
     # scatter
     @staticmethod

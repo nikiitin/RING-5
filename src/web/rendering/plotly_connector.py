@@ -812,6 +812,7 @@ class FigureSpecToPlotly:
                 if hasattr(trace, "line") and trace_type in (
                     "scatter",
                     "scattergl",
+                    "scatterpolar",
                 ):
                     trace.update(line=dict(color=style.color))
                 elif trace_type in ("box", "violin"):
@@ -826,6 +827,7 @@ class FigureSpecToPlotly:
             if style.line_width > 0 and trace_type in (
                 "scatter",
                 "scattergl",
+                "scatterpolar",
                 "box",
                 "violin",
             ):

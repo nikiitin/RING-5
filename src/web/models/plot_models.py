@@ -200,6 +200,17 @@ class PlotDisplayConfig(TypedDict, total=False):
     area_missing: str
     area_opacity: float
 
+    # Radar-specific
+    radar_scale_mode: str
+    radar_min: float
+    radar_max: float
+    radar_start_angle: float
+    radar_clockwise: bool
+    radar_fill: bool
+    radar_markers: bool
+    radar_opacity: float
+    radar_line_width: float
+
     # Export
     download_format: str  # "html", "png", "pdf", "svg"
     export_scale: int  # 1, 2, or 3

@@ -201,6 +201,19 @@ class TestPlotCreation:
             timeout=E2E_TIMEOUT
         )
 
+    # -- Radar ---------------------------------------------------------------
+
+    def test_11_create_radar_plot(self, tier1_page: Page) -> None:
+        # [test->req~ring5.plot.radar~1]
+        """Create a radar chart and expose its shared-scale controls."""
+        mp = ManagePlotsPage(tier1_page)
+        _create_and_finalize(mp, "E2E Radar", "radar")
+        _trigger_render_fragment(mp)
+        _configure_and_assert_chart(mp, x="benchmark_name", y="system.cpu.ipc")
+        expect(tier1_page.get_by_text("Radar scale and geometry", exact=True)).to_be_visible(
+            timeout=E2E_TIMEOUT
+        )
+
 
 # Tier 2 -- Plot management controls
 

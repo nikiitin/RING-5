@@ -25,10 +25,12 @@ PLOT_TYPES: tuple[str, ...] = (
     "dual_axis_bar_dot",
     "ecdf",
     "grouped_bar",
+    "heatmap",
     "stacked_bar",
     "grouped_stacked_bar",
     "histogram",
     "line",
+    "radar",
     "scatter",
     "violin",
 )
@@ -546,8 +548,21 @@ class ManagePlotsPage(BasePage):
         Args:
             plot_type: Exact factory key (e.g. "bar", "dual_axis_bar_dot").
         """
-        self._open_and_select(self.plot_type_selectbox, plot_type)
-        expect(self.plot_type_selectbox.get_by_role("combobox")).to_have_value(
+        combobox = self.plot_type_selectbox.get_by_role("combobox")
+        expect(combobox).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        current = combobox.input_value()
+        if current not in PLOT_TYPES or plot_type not in PLOT_TYPES:
+            self._open_and_select(self.plot_type_selectbox, plot_type)
+        else:
+            current_index = PLOT_TYPES.index(current)
+            target_index = PLOT_TYPES.index(plot_type)
+            combobox.click()
+            key = "ArrowDown" if target_index >= current_index else "ArrowUp"
+            for _ in range(abs(target_index - current_index)):
+                self.page.keyboard.press(key)
+            self.page.keyboard.press("Enter")
+            self.wait_for_streamlit()
+        expect(combobox).to_have_value(
             plot_type,
             timeout=self.RENDER_TIMEOUT,
         )

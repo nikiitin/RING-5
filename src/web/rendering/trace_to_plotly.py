@@ -22,6 +22,7 @@ from src.core.models.visualization.trace_config import (
     HeatmapTraceConfig,
     HistogramTraceConfig,
     LineTraceConfig,
+    RadarTraceConfig,
     ScatterTraceConfig,
     TraceConfig,
     ViolinTraceConfig,
@@ -87,6 +88,16 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
         layout_updates["boxmode"] = result.boxmode
     if any(isinstance(trace, ViolinTraceConfig) for trace in traces_list):
         layout_updates["violinmode"] = result.violinmode
+    radar_traces = [trace for trace in traces_list if isinstance(trace, RadarTraceConfig)]
+    if radar_traces:
+        radar = radar_traces[0]
+        layout_updates["polar"] = {
+            "radialaxis": {"range": [radar.radial_min, radar.radial_max]},
+            "angularaxis": {
+                "rotation": radar.start_angle,
+                "direction": "clockwise" if radar.clockwise else "counterclockwise",
+            },
+        }
 
     if result.custom_x_ticks:
         xaxis_update: dict[str, Any] = {
@@ -179,6 +190,8 @@ def _convert_trace(trace: TraceConfig) -> go.BaseTraceType:  # type: ignore[name
         result = _box_trace(trace)
     elif isinstance(trace, ViolinTraceConfig):
         result = _violin_trace(trace)
+    elif isinstance(trace, RadarTraceConfig):
+        result = _radar_trace(trace)
     elif isinstance(trace, LineTraceConfig):
         result = _line_trace(trace)
     elif isinstance(trace, ScatterTraceConfig):
@@ -316,6 +329,30 @@ def _violin_trace(trace: ViolinTraceConfig) -> go.Violin:
         kwargs["marker"] = {"color": trace.color}
         kwargs["line"] = {"color": trace.color}
     return go.Violin(**kwargs)
+
+
+def _radar_trace(trace: RadarTraceConfig) -> go.Scatterpolar:
+    # [impl->req~ring5.plot.radar~1]
+    """Convert a shared-scale radar trace to a closed Plotly polygon."""
+    theta = [*trace.categories, trace.categories[0]] if trace.categories else []
+    radius = [*trace.values, trace.values[0]] if trace.values else []
+    kwargs: dict[str, Any] = {
+        "theta": theta,
+        "r": radius,
+        "name": trace.name,
+        "mode": "lines+markers" if trace.show_markers else "lines",
+        "fill": "toself" if trace.fill_area else None,
+        "opacity": trace.opacity,
+        "showlegend": trace.show_in_legend,
+        "visible": trace.visible,
+        "legendgroup": trace.legendgroup or trace.name,
+        "line": {"width": trace.line_width},
+        "marker": {"size": trace.marker_size},
+    }
+    if trace.color:
+        kwargs["line"]["color"] = trace.color
+        kwargs["marker"]["color"] = trace.color
+    return go.Scatterpolar(**{key: value for key, value in kwargs.items() if value is not None})
 
 
 def _line_trace(trace: LineTraceConfig) -> go.Scatter:
