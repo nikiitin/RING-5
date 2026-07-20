@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, get_args
+from typing import Any, cast, get_args
 
 import pandas as pd
 import pytest
@@ -836,6 +836,50 @@ class TestDeterminism:
         assert pdf_a == pdf_b
         assert html_a == html_b
         assert json_a == json_b
+
+
+class TestPipelineConfigurationExchange:
+    """Portable pipeline JSON is usable through the supported public API."""
+
+    def test_versioned_round_trip_and_typed_conflict(self, tmp_path: Path) -> None:
+        # [test->req~ring5.shaping.config-import-export~1]
+        from unittest.mock import patch
+
+        config_dir = tmp_path / "saved_configs"
+        config_dir.mkdir()
+        pipeline = cast(
+            list[ring5.ShaperStepConfig],
+            [{"type": "columnSelector", "columns": ["benchmark", "ipc"]}],
+        )
+
+        with patch(
+            "src.core.services.data_services.config_service.ConfigService._config_dir",
+            config_dir,
+        ):
+            with ring5.Session() as session:
+                payload = session.export_pipeline_configuration(
+                    "Paper pipeline",
+                    pipeline,
+                    description="Reviewed column selection.",
+                )
+                result = session.import_pipeline_configuration(payload)
+                renamed = session.import_pipeline_configuration(payload, conflict="rename")
+
+                assert isinstance(result, ring5.PipelineConfigImportResult)
+                assert result.name == "Paper pipeline"
+                assert result.shapers == tuple(pipeline)
+                assert renamed.name == "Paper pipeline (2)"
+                assert renamed.conflict_resolution == "renamed"
+                with pytest.raises(ring5.PipelineError, match="already exists"):
+                    session.import_pipeline_configuration(payload)
+                with pytest.raises(ring5.PipelineError, match="columns"):
+                    session.export_pipeline_configuration(
+                        "Incomplete",
+                        cast(
+                            list[ring5.ShaperStepConfig],
+                            [{"type": "columnSelector", "columns": []}],
+                        ),
+                    )
 
 
 class TestErrorSurface:

@@ -14,7 +14,8 @@ Categories:
     - Cache monitoring: CacheStatsEntry, CacheStatsInfo
 """
 
-from typing import Required, TypedDict
+from dataclasses import dataclass
+from typing import Literal, Required, TypedDict
 
 # ShaperStepConfig is referenced by SavedConfigData and PipelineStep below.
 from src.core.models.shaper_models import ShaperStepConfig
@@ -80,10 +81,43 @@ class SavedConfigData(TypedDict, total=False):
     """
 
     name: Required[str]
+    format: str
+    schema_version: int
     description: str
     timestamp: str
     shapers: Required[list["ShaperStepConfig"]]
     csv_path: str | None
+
+
+PipelineConfigConflictPolicy = Literal["error", "rename", "replace"]
+PipelineConfigConflictResolution = Literal["none", "renamed", "replaced"]
+
+
+@dataclass(frozen=True)
+class PipelineConfigImportResult:
+    """Outcome of importing a portable shaper-pipeline configuration.
+
+    Attributes:
+        path: Path of the saved local configuration record.
+        name: Final saved name after conflict handling.
+        original_name: Name declared by the imported document.
+        description: Human-readable configuration description.
+        shapers: Validated ordered shaper configurations.
+        csv_path: Optional source CSV association carried by the document.
+        schema_version: Current portable document schema version.
+        migrated: Whether the input used the legacy unversioned shape.
+        conflict_resolution: Conflict action actually taken.
+    """
+
+    path: str
+    name: str
+    original_name: str
+    description: str
+    shapers: tuple[ShaperStepConfig, ...]
+    csv_path: str | None
+    schema_version: int
+    migrated: bool
+    conflict_resolution: PipelineConfigConflictResolution
 
 
 # Parse Variable Configuration

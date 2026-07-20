@@ -37,6 +37,8 @@ from src.core.models import (
     JoinDiagnostics,
     LinkedSelectionSpec,
     ParseBatchResult,
+    PipelineConfigConflictPolicy,
+    PipelineConfigImportResult,
     PlotConfigurationComparison,
     PlotTransferMode,
     PlotTransferResult,
@@ -1410,6 +1412,61 @@ class Session:
             return FigureThemeService.loads(payload)
         except (TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
+
+    def export_pipeline_configuration(
+        self,
+        name: str,
+        pipeline: list[ShaperStepConfig],
+        *,
+        description: str = "",
+        csv_path: str | None = None,
+    ) -> bytes:
+        """Serialize a validated shaper pipeline as portable versioned JSON.
+
+        Args:
+            name: Human-readable configuration name.
+            pipeline: Ordered flat shaper configurations.
+            description: Optional human-readable explanation.
+            csv_path: Optional source CSV association.
+
+        Returns:
+            Deterministic UTF-8 JSON bytes.
+
+        Raises:
+            PipelineError: The metadata or a pipeline step is invalid.
+        """
+        # [impl->req~ring5.shaping.config-import-export~1]
+        try:
+            return self.api.export_configuration(name, description, pipeline, csv_path)
+        except (TypeError, ValueError) as exc:
+            raise PipelineError(str(exc)) from exc
+
+    def import_pipeline_configuration(
+        self,
+        payload: str | bytes | bytearray,
+        *,
+        conflict: PipelineConfigConflictPolicy = "error",
+    ) -> PipelineConfigImportResult:
+        """Validate, migrate, and save one portable pipeline configuration.
+
+        Args:
+            payload: UTF-8 JSON text or bytes, limited to 256 KiB. Legacy
+                unversioned saved-configuration records are accepted.
+            conflict: Logical-name policy: ``"error"``, ``"rename"``, or
+                ``"replace"``.
+
+        Returns:
+            Saved configuration and migration/conflict details.
+
+        Raises:
+            PipelineError: The document is invalid, unsupported, or conflicts
+                with an existing record under the selected policy.
+        """
+        # [impl->req~ring5.shaping.config-import-export~1]
+        try:
+            return self.api.import_configuration(payload, conflict=conflict)
+        except (OSError, TypeError, ValueError) as exc:
+            raise PipelineError(str(exc)) from exc
 
     def shape(
         self, data: "pd.DataFrame | Table", pipeline: list[ShaperStepConfig]

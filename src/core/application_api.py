@@ -46,6 +46,8 @@ from src.core.models.data_models import (
     ColumnInfoResult,
     CsvPoolEntry,
     ParseVariableConfig,
+    PipelineConfigConflictPolicy,
+    PipelineConfigImportResult,
     SavedConfigData,
     SavedConfigEntry,
     ScannedVariableDict,
@@ -790,6 +792,49 @@ class ApplicationAPI:
     def load_configuration(self, config_path: str) -> SavedConfigData:
         """Load configuration from file."""
         return self._services.data_services.load_configuration(config_path)
+
+    def export_configuration(
+        self,
+        name: str,
+        description: str,
+        shapers_config: list[ShaperStepConfig],
+        csv_path: str | None = None,
+    ) -> bytes:
+        """Serialize a validated pipeline configuration as versioned JSON.
+
+        Args:
+            name: Human-readable configuration name.
+            description: Optional human-readable explanation.
+            shapers_config: Ordered flat shaper configurations.
+            csv_path: Optional source CSV association.
+
+        Returns:
+            Deterministic UTF-8 JSON bytes.
+        """
+        return self._services.data_services.export_configuration(
+            name,
+            description,
+            shapers_config,
+            csv_path,
+        )
+
+    def import_configuration(
+        self,
+        payload: str | bytes | bytearray,
+        *,
+        conflict: PipelineConfigConflictPolicy = "error",
+    ) -> PipelineConfigImportResult:
+        """Validate and save a current or legacy pipeline configuration.
+
+        Args:
+            payload: UTF-8 JSON text or bytes, limited to 256 KiB.
+            conflict: Logical-name policy: ``"error"``, ``"rename"``, or
+                ``"replace"``.
+
+        Returns:
+            Saved configuration and conflict-resolution details.
+        """
+        return self._services.data_services.import_configuration(payload, conflict=conflict)
 
     def load_csv_pool(self) -> list[CsvPoolEntry]:
         """List available CSV files in the pool."""

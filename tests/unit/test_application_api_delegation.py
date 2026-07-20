@@ -363,6 +363,18 @@ class TestConfigurationManagement:
             "/config.json"
         )
 
+    def test_export_configuration(self, api: ApplicationAPI) -> None:
+        api.export_configuration("name", "desc", [], "/path.csv")
+        cast(MagicMock, api._services.data_services.export_configuration).assert_called_once_with(
+            "name", "desc", [], "/path.csv"
+        )
+
+    def test_import_configuration(self, api: ApplicationAPI) -> None:
+        api.import_configuration(b"{}", conflict="rename")
+        cast(MagicMock, api._services.data_services.import_configuration).assert_called_once_with(
+            b"{}", conflict="rename"
+        )
+
     def test_load_csv_pool(self, api: ApplicationAPI) -> None:
         api.load_csv_pool()
         cast(MagicMock, api._services.data_services.load_csv_pool).assert_called_once()

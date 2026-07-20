@@ -65,6 +65,12 @@ reading or writing.
 
 Saved shaper configurations contain a name, description, ordered shaper configuration, and optional
 CSV path. The service supports saving, listing, loading, and deleting these path-backed records.
+`export_configuration` emits the deterministic `ring5.pipeline-configuration` schema.
+`import_configuration` accepts that current schema or the legacy unversioned record, validates
+registered shapers without executing them, and saves with explicit `error`, `rename`, or `replace`
+name-conflict behavior. `ApplicationAPI` exposes both operations to the web editor; the supported
+Python surface is `Session.export_pipeline_configuration` and
+`Session.import_pipeline_configuration`.
 
 `DatasetSnapshotService` stores reusable dataframes as versioned compressed archives containing a
 small manifest and a non-executable JSON table payload. Save performs an encode/decode exactness

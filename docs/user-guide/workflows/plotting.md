@@ -90,6 +90,56 @@ the baseline rows before normalizing only if the normalizer still receives every
 Select **Finalize Pipeline for Plotting** after the preview matches the intended table. See
 [Shapers]({{site.baseurl}}/user-guide/reference/shapers/) for configuration rules.
 
+## Share a pipeline configuration
+
+<!--
+`uman~ring5.shaping.config-import-export.documentation~1`
+
+Covers:
+- req~ring5.shaping.config-import-export~1
+
+-->
+
+Open **Import or export pipeline** below the transformation selector. Give the configuration a
+recognizable name and description, then select **Download pipeline configuration**. RING-5 checks
+every step before producing a deterministic `.ring5-pipeline.json` file; an incomplete step remains
+visible in the editor and blocks the download.
+
+To reuse a file, upload it under **Pipeline configuration JSON**, choose what should happen when its
+logical name already exists, and select **Import, save, and use**:
+
+- **Stop and keep both unchanged** leaves the saved catalog and active plot untouched.
+- **Save as a numbered copy** keeps the existing record and adds a name such as `Paper pipeline
+  (2)`.
+- **Replace the saved configuration** writes the validated import, then removes the older record
+  with the same logical name.
+
+The importer accepts current versioned files and migrates legacy unversioned saved-configuration
+JSON. It rejects unknown future versions, unregistered or incomplete shapers, non-finite values,
+unsupported fields, and files larger than 256 KiB before changing the active pipeline. A successful
+import is also saved in the local configuration catalog and reports whether migration or conflict
+handling occurred. It becomes the active editor pipeline; select **Finalize Pipeline for Plotting**
+after reviewing its previews to update the plot data.
+
+Python scripts use the same validation and conflict rules:
+
+```python
+import ring5
+
+pipeline = [
+    {"type": "columnSelector", "columns": ["benchmark", "ipc"]},
+]
+
+with ring5.Session() as session:
+    payload = session.export_pipeline_configuration(
+        "Paper pipeline",
+        pipeline,
+        description="Columns reviewed for the paper figures.",
+    )
+    result = session.import_pipeline_configuration(payload, conflict="rename")
+    print(result.name, result.path)
+```
+
 ## Map columns and configure the figure
 
 <!--

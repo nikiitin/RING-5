@@ -4368,11 +4368,32 @@
       "id": "shaping.config-import-export",
       "group": "shaping",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Pipeline configuration exchange",
       "description": "Users shall import and export versioned saved shaper configurations with validation, conflict handling, and migration support.",
       "tags": ["configuration", "shapers", "versioning"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/services/data_services/pipeline_config_exchange_service.py::PipelineConfigExchangeService.dumps",
+          "src/core/services/data_services/pipeline_config_exchange_service.py::PipelineConfigExchangeService.loads",
+          "src/core/services/data_services/config_service.py::ConfigService.export_configuration",
+          "src/core/services/data_services/config_service.py::ConfigService.import_configuration",
+          "src/web/components/common/pipeline.py::PipelineComponent.render_exchange",
+          "src/web/controllers/plot/pipeline_controller.py::PipelineController._handle_exchange_import",
+          "ring5/_session.py::Session.export_pipeline_configuration",
+          "ring5/_session.py::Session.import_pipeline_configuration"
+        ],
+        "tests": [
+          "tests/unit/test_pipeline_config_exchange.py::test_export_is_deterministic_versioned_and_validated",
+          "tests/unit/test_pipeline_config_exchange.py::test_import_migrates_legacy_record_and_preserves_content",
+          "tests/unit/test_pipeline_config_exchange.py::test_import_conflicts_can_stop_rename_or_replace",
+          "tests/integration/test_ring5_public_api.py::TestPipelineConfigurationExchange.test_versioned_round_trip_and_typed_conflict",
+          "tests/e2e/test_shaper_pipeline.py::TestPipelineConfigurationExchange.test_download_then_import_and_use"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/plotting.md#share-a-pipeline-configuration"
+        ]
+      }
     },
     {
       "id": "trace.future-status-reporting",
@@ -4606,6 +4627,7 @@
       "ParseResult": "ingestion.async-parse",
       "ParserPlaygroundJob": "ingestion.parser-playground",
       "ParserPlaygroundResult": "ingestion.parser-playground",
+      "PipelineConfigImportResult": "shaping.config-import-export",
       "PipelineError": "api.typed-errors",
       "PlotType": "api.registry-discovery",
       "PortfolioError": "api.typed-errors",
@@ -4676,11 +4698,13 @@
       "export_bytes": "export.public-boundary",
       "export_report": "export.batch-reports",
       "export_figure_theme": "figure.theme-presets",
+      "export_pipeline_configuration": "shaping.config-import-export",
       "get_dataset": "data.multi-dataset-workspace",
       "get_dataset_revision": "data.lineage-undo-redo",
       "infer_schema_contract": "data.schema-contracts",
       "inspect_semantics": "data.semantic-units",
       "import_figure_theme": "figure.theme-presets",
+      "import_pipeline_configuration": "shaping.config-import-export",
       "join_datasets": "data.multi-dataset-workspace",
       "join_datasets_validated": "data.validated-joins",
       "list_datasets": "data.multi-dataset-workspace",
@@ -4757,6 +4781,7 @@
       "delete_from_csv_pool": "ingestion.csv-pool",
       "delete_from_pool": "ingestion.csv-pool",
       "delete_dataset_snapshot": "data.dataset-snapshots",
+      "export_configuration": "shaping.config-import-export",
       "finalize_parsing": "ingestion.async-parse",
       "finalize_scan": "ingestion.async-scan",
       "find_stats_files": "ingestion.file-discovery",
@@ -4793,6 +4818,7 @@
       "managers": "quality.application-facade",
       "preview_import": "ingestion.import-preview",
       "inspect_browser_upload": "ingestion.browser-upload",
+      "import_configuration": "shaping.config-import-export",
       "restore_browser_portfolio": "ingestion.browser-upload",
       "release_settled_scans": "ingestion.scan-presets-progress",
       "redo_dataset": "data.lineage-undo-redo",
@@ -4848,6 +4874,7 @@
       "delete_configuration": "data.saved-pipeline-configurations",
       "delete_from_csv_pool": "ingestion.csv-pool",
       "delete_dataset_snapshot": "data.dataset-snapshots",
+      "export_configuration": "shaping.config-import-export",
       "delete_portfolio": "portfolio.manage",
       "delete_variable": "ingestion.variable-editor",
       "ensure_variable_ids": "ingestion.variable-editor",
@@ -4858,6 +4885,7 @@
       "generate_variable_id": "ingestion.variable-editor",
       "get_cache_stats": "quality.bounded-caching",
       "has_variable_with_name": "ingestion.variable-editor",
+      "import_configuration": "shaping.config-import-export",
       "list_portfolios": "portfolio.manage",
       "list_dataset_snapshots": "data.dataset-snapshots",
       "load_configuration": "data.saved-pipeline-configurations",

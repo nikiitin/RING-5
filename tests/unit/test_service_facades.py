@@ -83,6 +83,21 @@ class TestDefaultDataServicesAPI:
         assert result == {"name": "test"}
 
     @patch("src.core.services.data_services.data_services_impl.ConfigService")
+    def test_export_configuration(self, mock_svc: MagicMock, api: DefaultDataServicesAPI) -> None:
+        mock_svc.export_configuration.return_value = b"{}"
+        result = api.export_configuration("test", "desc", [], "/data.csv")
+        mock_svc.export_configuration.assert_called_once_with("test", "desc", [], "/data.csv")
+        assert result == b"{}"
+
+    @patch("src.core.services.data_services.data_services_impl.ConfigService")
+    def test_import_configuration(self, mock_svc: MagicMock, api: DefaultDataServicesAPI) -> None:
+        expected = MagicMock()
+        mock_svc.import_configuration.return_value = expected
+        result = api.import_configuration(b"{}", conflict="rename")
+        mock_svc.import_configuration.assert_called_once_with(b"{}", conflict="rename")
+        assert result is expected
+
+    @patch("src.core.services.data_services.data_services_impl.ConfigService")
     def test_load_saved_configs(self, mock_svc: MagicMock, api: DefaultDataServicesAPI) -> None:
         mock_svc.load_saved_configs.return_value = [{"name": "cfg1"}]
         assert api.load_saved_configs() == [{"name": "cfg1"}]

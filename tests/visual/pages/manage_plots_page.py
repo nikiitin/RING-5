@@ -13,6 +13,8 @@ Covers:
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from playwright.sync_api import Locator, Page, TimeoutError as PlaywrightTimeoutError, expect
 
 from tests.visual.pages.base_page import BasePage
@@ -181,29 +183,48 @@ class ManagePlotsPage(BasePage):
     def pipeline_steps(self) -> Locator:
         """All pipeline step expanders (numbered: '1. Sort', '2. Filter', …).
 
-        Excludes non-pipeline expanders (e.g. Download, Advanced Options,
-        View Current Data) by filtering out expanders whose summary label
-        is known to be outside the pipeline section.
+        Every top-level step owns one exact ``Del`` action. Matching that
+        structural contract excludes unrelated and nested expanders without
+        maintaining a list of their presentation labels.
         """
-        return (
-            self.page.locator("[data-testid='stExpander']")
-            .filter(has_not_text="📥 Download")
-            .filter(has_not_text="Advanced Options")
-            .filter(has_not_text="Theme & Style")
-            .filter(has_not_text="Reorder")
-            .filter(has_not_text="Rename Items")
-            .filter(has_not_text="Rename X-Axis")
-            .filter(has_not_text="Reference Line")
-            .filter(has_not_text="Marker & Line")
-            .filter(has_not_text="Add New Shape")
-            .filter(has_not_text="View Current Data")
-            .filter(has_not_text="Show Errors")
-        )
+        delete_action = self.page.get_by_role("button", name="Del", exact=True)
+        return self.page.locator("[data-testid='stExpander']").filter(has=delete_action)
 
     @property
     def finalize_button(self) -> Locator:
         """'Finalize Pipeline for Plotting' primary button."""
         return self.page.get_by_role("button", name="Finalize Pipeline for Plotting")
+
+    @property
+    def pipeline_exchange_expander(self) -> Locator:
+        """Versioned pipeline import/export panel."""
+        return self.page.locator("[data-testid='stExpander']").filter(
+            has_text="Import or export pipeline"
+        )
+
+    @property
+    def pipeline_configuration_download_button(self) -> Locator:
+        """Download the current pipeline as versioned JSON."""
+        return self.pipeline_exchange_expander.get_by_role(
+            "button", name="Download pipeline configuration"
+        )
+
+    @property
+    def pipeline_configuration_uploader(self) -> Locator:
+        """Portable pipeline JSON file input."""
+        return self.pipeline_exchange_expander.locator("input[type='file']")
+
+    @property
+    def pipeline_configuration_import_button(self) -> Locator:
+        """Validate, save, and use the uploaded pipeline."""
+        return self.pipeline_exchange_expander.get_by_role("button", name="Import, save, and use")
+
+    @property
+    def pipeline_configuration_import_success(self) -> Locator:
+        """Human-readable pipeline import confirmation."""
+        return self.page.locator("[data-testid='stAlertContentSuccess']").filter(
+            has_text="Imported and loaded"
+        )
 
     def get_pipeline_step(self, index: int) -> Locator:
         """Return the *n*-th pipeline step expander (0-based).
@@ -699,6 +720,28 @@ class ManagePlotsPage(BasePage):
         """Click 'Finalize Pipeline for Plotting' and wait."""
         self.finalize_button.click()
         self.wait_for_streamlit(expect_rerun=True)
+
+    def open_pipeline_exchange(self) -> None:
+        """Open the pipeline import/export panel when it is collapsed."""
+        if not self.pipeline_configuration_download_button.is_visible():
+            self.pipeline_exchange_expander.locator("summary").click()
+
+    def download_pipeline_configuration(self, path: str | Path) -> None:
+        """Download the active pipeline configuration to *path*."""
+        self.open_pipeline_exchange()
+        with self.page.expect_download() as download_info:
+            self.pipeline_configuration_download_button.click()
+        download_info.value.save_as(str(path))
+
+    def upload_and_use_pipeline_configuration(self, path: str | Path) -> None:
+        """Upload, validate, save, and use one portable pipeline file."""
+        self.open_pipeline_exchange()
+        self.pipeline_configuration_uploader.set_input_files(str(path))
+        self.wait_for_streamlit(expect_rerun=True)
+        self.page.wait_for_timeout(500)
+        self.pipeline_configuration_import_button.click()
+        self.wait_for_streamlit(expect_rerun=True)
+        self.page.wait_for_timeout(500)
 
     def delete_step(self, index: int) -> None:
         """Delete a pipeline step by index.

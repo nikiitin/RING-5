@@ -1206,7 +1206,7 @@ Tags: derived_column, shapers, status_approved, transformation
 ### Pipeline configuration exchange
 
 `req~ring5.shaping.config-import-export~1`
-Status: proposed
+Status: approved
 
 Users shall import and export versioned saved shaper configurations with validation, conflict handling, and migration support.
 
@@ -1215,7 +1215,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: configuration, shapers, status_proposed, versioning
+Tags: configuration, shapers, status_approved, versioning
 
 ## Comparison and Statistical Analysis
 

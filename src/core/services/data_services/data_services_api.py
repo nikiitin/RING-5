@@ -20,6 +20,8 @@ from src.core.models.data_models import (
     CacheStatsInfo,
     CsvPoolEntry,
     ParseVariableConfig,
+    PipelineConfigConflictPolicy,
+    PipelineConfigImportResult,
     SavedConfigData,
     SavedConfigEntry,
     ScannedVariableDict,
@@ -67,6 +69,25 @@ class DataServicesAPI(Protocol):
 
     def load_configuration(self, config_path: str) -> SavedConfigData:
         """Load a configuration from file."""
+        raise NotImplementedError
+
+    def export_configuration(
+        self,
+        name: str,
+        description: str,
+        shapers_config: list[ShaperStepConfig],
+        csv_path: str | None = None,
+    ) -> bytes:
+        """Serialize a validated configuration as portable versioned JSON."""
+        raise NotImplementedError
+
+    def import_configuration(
+        self,
+        payload: str | bytes | bytearray,
+        *,
+        conflict: PipelineConfigConflictPolicy = "error",
+    ) -> PipelineConfigImportResult:
+        """Validate and save a current or legacy portable configuration."""
         raise NotImplementedError
 
     def load_saved_configs(self) -> list[SavedConfigEntry]:
