@@ -42,6 +42,7 @@ from src.core.models.import_models import (
     ImportPreview,
     ImportRejectedRow,
 )
+from src.core.models.browser_upload_models import BrowserUpload
 from src.core.models.quality_models import ColumnQuality, DataQualityReport
 from src.core.models.report_models import (
     AnalysisReport,
@@ -118,6 +119,7 @@ __all__ = [
     "ImportOptions",
     "ImportPreview",
     "ImportRejectedRow",
+    "BrowserUpload",
     "FigureThemeContext",
     "DashboardSpec",
     "DrillDownResult",

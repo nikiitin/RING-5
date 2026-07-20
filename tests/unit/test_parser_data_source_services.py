@@ -1496,11 +1496,12 @@ class TestDataSourcePage:
 
         api = MagicMock()
         api.state_manager.is_using_parser.return_value = True
-        mock_st.segmented_control.return_value = "I already have CSV data"
+        mock_st.segmented_control.return_value = "Upload data or portfolio"
         page = DataSourcePage(api)
         page.render()
         api.state_manager.set_use_parser.assert_called_with(False)
         mock_st.success.assert_called()
+        mock_dsc.render_browser_upload.assert_called_once_with(api)
 
 
 # DataManager abstract contract

@@ -33,7 +33,7 @@ class TestCSVAndRecentModes:
 
         # Success message
         ds.assert_csv_mode_message_visible()
-        expect(ds.csv_success_message).to_contain_text("CSV mode selected")
+        expect(ds.csv_success_message).to_contain_text("Upload mode selected")
 
         # Parser config hidden
         ds.assert_parser_config_hidden()

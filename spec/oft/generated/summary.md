@@ -7,18 +7,18 @@ This file is informative; normative items are in the other generated files.
 
 - Feature groups: 13
 - Detailed requirements: 216
-- Approved current requirements: 189
-- Proposed future requirements: 27
+- Approved current requirements: 190
+- Proposed future requirements: 26
 - Draft future requirements: 0
 - Generated specification items: 229
-- Live capability bindings: 704
+- Live capability bindings: 706
 
 ## Requirements by feature group
 
 | Feature group | Approved | Proposed | Draft | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Interactive Workspace | 7 | 7 | 0 | 14 |
-| Data Ingestion and Parsing | 34 | 4 | 0 | 38 |
+| Data Ingestion and Parsing | 35 | 3 | 0 | 38 |
 | Dataset Management | 18 | 0 | 0 | 18 |
 | Per-Plot Data Shaping | 15 | 1 | 0 | 16 |
 | Comparison and Statistical Analysis | 3 | 0 | 0 | 3 |
@@ -33,7 +33,7 @@ This file is informative; normative items are in the other generated files.
 
 ## Drift-checked capability sources
 
-- `application_api_members`: 70
+- `application_api_members`: 72
 - `axes_config_fields`: 11
 - `axis_config_fields`: 31
 - `cli_commands`: 4

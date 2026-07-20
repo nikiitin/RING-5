@@ -18,6 +18,7 @@ import streamlit as st
 
 from src.core.application_api import ApplicationAPI
 from src.core.common.security_limits import (
+    MAX_BROWSER_UPLOAD_BYTES,
     MAX_SCAN_FILES,
     PARSE_BATCH_TIMEOUT_SECONDS,
     SCAN_BATCH_TIMEOUT_SECONDS,
@@ -33,6 +34,7 @@ from src.core.models import (
 )
 from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
 from src.core.models.import_models import ImportColumnType
+from src.core.models.browser_upload_models import BrowserUploadRequest
 from src.web.components.common.card_components import CardComponents
 from src.web.components.common.data_components import DataComponents
 from src.web.components.common.filtered_selector import filtered_selectbox
@@ -45,6 +47,103 @@ _IMPORT_PREVIEW_PATH_KEY = "data_source.import_preview_path"
 
 class DataSourceComponents:
     """UI Components for the Data Source Page."""
+
+    @staticmethod
+    def render_browser_upload(api: ApplicationAPI) -> None:
+        # [impl->req~ring5.ingestion.browser-upload~1]
+        """Validate a browser upload and route it through review or restore confirmation."""
+        st.markdown("### Upload data or a portfolio")
+        st.caption(
+            "Files stay out of the workspace until validation finishes and you explicitly "
+            "confirm loading or restoration."
+        )
+        interpretation_labels: dict[str, BrowserUploadRequest] = {
+            "Auto detect": "auto",
+            "Dataset": "dataset",
+            "RING-5 portfolio": "portfolio",
+        }
+        interpretation = st.selectbox(
+            "Interpret JSON as",
+            options=list(interpretation_labels),
+            help="Use an explicit choice when a .json file could be either records or a portfolio.",
+            key="data_source.browser_upload_interpretation",
+        )
+        uploaded = st.file_uploader(
+            "Choose CSV, JSON, Excel, or RING-5 portfolio",
+            type=["csv", "json", "xlsx"],
+            max_upload_size=MAX_BROWSER_UPLOAD_BYTES // (1024 * 1024),
+            help=(
+                "CSV and tabular JSON/Excel files enter the normal import review. "
+                "Modern .xlsx workbooks use their first visible sheet."
+            ),
+            key="data_source.browser_upload",
+        )
+        if uploaded is None:
+            st.info("Choose a file up to 64 MiB. Accepted names end in .csv, .json, or .xlsx.")
+            return
+
+        try:
+            inspection = api.inspect_browser_upload(
+                uploaded.name,
+                uploaded.type or "",
+                uploaded.getvalue(),
+                interpretation_labels[interpretation],
+            )
+        except (OSError, TypeError, UnicodeError, ValueError) as exc:
+            st.error(f"Upload validation failed: {exc}")
+            return
+
+        kind_label = {
+            "csv": "CSV dataset",
+            "json": "JSON dataset",
+            "excel": "Excel dataset",
+            "portfolio": "RING-5 portfolio",
+        }[inspection.kind]
+        st.success(f"Validated {kind_label}: {inspection.file_name}")
+        size_col, type_col, digest_col = st.columns(3)
+        size_col.metric("Upload size", f"{inspection.size_bytes / 1024:.1f} KiB")
+        type_col.metric("Detected type", kind_label)
+        digest_col.metric("SHA-256", f"{inspection.source_sha256[:12]}…")
+
+        if inspection.kind == "portfolio":
+            st.markdown("#### Review portfolio restoration")
+            st.write(
+                {
+                    "Schema version": inspection.portfolio_schema_version,
+                    "Plots": inspection.portfolio_plot_count,
+                    "Contains data": "Yes" if inspection.portfolio_has_data else "No",
+                }
+            )
+            st.warning(
+                "Restoring replaces the current workspace with the uploaded portfolio. "
+                "The upload has been validated but no state has changed yet."
+            )
+            if st.button(
+                ":material/settings_backup_restore: Restore uploaded portfolio",
+                type="primary",
+                width="stretch",
+                key=f"data_source.restore_upload.{inspection.source_sha256}",
+            ):
+                try:
+                    report = api.restore_browser_portfolio(inspection)
+                    if report.complete:
+                        st.toast("Uploaded portfolio restored.", icon="✅")
+                    else:
+                        st.toast("Portfolio restored with reported omissions.", icon="⚠️")
+                    st.rerun(scope="app")
+                except (OSError, TypeError, UnicodeError, ValueError) as exc:
+                    st.error(f"Portfolio restoration failed: {exc}")
+            return
+
+        row_count = inspection.row_count if inspection.row_count is not None else 0
+        detail = f"{row_count:,} source row(s) · {len(inspection.columns)} column(s)"
+        if inspection.sheet_name:
+            detail += f" · worksheet {inspection.sheet_name!r}"
+        st.caption(detail)
+        if inspection.import_path is None:
+            st.error("Validated dataset did not produce a reviewable table.")
+            return
+        DataSourceComponents.render_import_preview(api, inspection.import_path)
 
     @staticmethod
     def render_csv_pool(api: ApplicationAPI) -> None:

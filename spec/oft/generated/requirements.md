@@ -670,7 +670,7 @@ Tags: configuration, fallback, parser, status_approved
 ### Browser file upload
 
 `req~ring5.ingestion.browser-upload~1`
-Status: proposed
+Status: approved
 
 The web application shall accept bounded CSV, JSON, Excel, and portfolio uploads with explicit type, size, and parsing validation.
 
@@ -679,7 +679,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: ingestion, status_proposed, upload, web
+Tags: ingestion, status_approved, upload, web
 
 ### Remote data sources
 

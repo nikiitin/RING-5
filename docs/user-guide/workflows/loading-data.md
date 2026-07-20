@@ -157,6 +157,33 @@ Recent-file cards include cached row, column, and type metadata. CSV loading det
 delimiters rather than requiring comma-only input; the file must still satisfy the non-empty header
 contract.
 
+### Upload data or a portfolio from your browser
+
+<!--
+`uman~ring5.ingestion.browser-upload.documentation~1`
+
+Covers:
+- req~ring5.ingestion.browser-upload~1
+
+-->
+
+Select **Upload data or portfolio** on **Data Source** to choose a file from your computer. RING-5
+accepts CSV, tabular JSON, modern Excel (`.xlsx`), and RING-5 portfolio JSON. The browser sends the
+file contents—not its local path—and RING-5 keeps the staged copy in temporary session storage.
+
+Each upload is limited to 64 MiB. RING-5 validates the filename extension, the browser-declared
+media type, and the actual content before showing an action. It also fingerprints the original
+bytes with SHA-256. JSON tables contain one object or an array of flat objects; nested cell values
+are rejected. Excel imports use the first visible worksheet and require a unique, non-empty header
+row. Tabular uploads are additionally bounded to 100,000 rows, 500 columns, 2,000,000 cells, and
+10,000 characters per normalized cell.
+
+CSV, JSON, and Excel datasets continue into the same required import review described below. A
+JSON file that could be either data or a portfolio can be labeled explicitly with **Interpret JSON
+as**. Portfolio uploads show their schema version, plot count, and whether data is present before
+**Restore uploaded portfolio** replaces the current workspace. Validation alone never changes
+workspace data or plots.
+
 ### Review a tabular import before loading
 
 <!--

@@ -20,6 +20,8 @@ Cross-layer models live in `src/core/models/`. Prefer a dataclass for validated 
 Parsing models carry scan results, parse batches, variable configuration, and simulator metadata.
 Import models carry immutable delimiter/encoding corrections, inferred column types, accepted-row
 previews, rejected source lines, and the source fingerprint used at confirmation time.
+`BrowserUpload` records validated upload type, original-byte fingerprint, staged paths, and bounded
+dataset or portfolio summary metadata without retaining browser bytes in application state.
 Data models carry plot serialization and current-view shapes. Portfolio models define persisted
 fields and `RestoreReport`. Shaper models form a discriminated configuration union. Visualization
 models describe engines, traces, axes, legends, annotations, labels, palettes, and full figure

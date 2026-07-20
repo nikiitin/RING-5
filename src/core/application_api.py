@@ -1,14 +1,17 @@
 """Application facade used by the web presentation layer."""
 
 import logging
+import tempfile
 from collections.abc import Mapping, Sequence
 from concurrent.futures import Future
+from pathlib import Path
 from typing import Any, Literal, cast
 
 import numpy as np
 import pandas as pd
 
 from src.core.models import (
+    BrowserUpload,
     DatasetInfo,
     DatasetLineage,
     DatasetRevision,
@@ -23,6 +26,7 @@ from src.core.models import (
     PlotConfigurationComparison,
     PlotTransferMode,
     PlotTransferResult,
+    RestoreReport,
     SmallMultiplesSpec,
     ParseBatchResult,
     ScanFileResult,
@@ -30,6 +34,7 @@ from src.core.models import (
     ScanResult,
     StatConfig,
 )
+from src.core.models.browser_upload_models import BrowserUploadRequest
 from src.core.models.pattern_index_service import PatternIndexService
 from src.core.models.data_models import (
     ColumnInfoResult,
@@ -45,6 +50,7 @@ from src.core.models.parsing_models import StatParamValue
 from src.core.models.plot_protocol import PlotDeserializer
 from src.core.models.visualization import FigureConfig
 from src.core.services.data_services.data_services_api import DataServicesAPI
+from src.core.services.browser_upload_service import BrowserUploadService
 from src.core.services.managers.managers_api import ManagersAPI
 from src.core.services.import_preview_service import ImportPreviewService
 from src.core.services.services_impl import DefaultServicesAPI
@@ -170,6 +176,34 @@ class ApplicationAPI:
         self.state_manager.set_csv_path(preview.source_path)
         self.state_manager.set_use_parser(False)
         return data
+
+    def inspect_browser_upload(
+        self,
+        file_name: str,
+        content_type: str,
+        content: bytes,
+        request: BrowserUploadRequest = "auto",
+    ) -> BrowserUpload:
+        # [impl->req~ring5.ingestion.browser-upload~1]
+        """Validate and stage a browser upload without changing workspace data."""
+        temp_dir = self.state_manager.get_temp_dir()
+        if not temp_dir:
+            temp_dir = tempfile.mkdtemp(prefix="ring5-session-")
+            self.state_manager.set_temp_dir(temp_dir)
+        destination = Path(temp_dir) / "browser_uploads"
+        return BrowserUploadService.inspect(
+            file_name,
+            content_type,
+            content,
+            destination,
+            request,
+        )
+
+    def restore_browser_portfolio(self, upload: BrowserUpload) -> RestoreReport:
+        # [impl->req~ring5.ingestion.browser-upload~1]
+        """Restore an explicitly confirmed, unchanged browser portfolio upload."""
+        portfolio = BrowserUploadService.load_portfolio(upload)
+        return self.state_manager.restore_session(portfolio)
 
     def get_current_view(self) -> dict[str, Any]:
         """Assemble the current data pipeline state for UI consumption."""

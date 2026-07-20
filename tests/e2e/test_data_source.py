@@ -8,7 +8,7 @@ within the group.
 Test tiers:
 - TestDataSourcePageStructure  -- layout, segmented control, mode content
 - TestDataSourceVariableDialog -- Add Variable dialog lifecycle & validation
-- TestDataSourceCsvUpload      -- CSV upload and data verification
+- TestDataSourceCsvLoad        -- browser upload and recent-file review workflows
 """
 
 from __future__ import annotations
@@ -212,13 +212,7 @@ class TestDataSourceVariableDialog:
 
 @pytest.mark.xdist_group("e2e_data_source")
 class TestDataSourceCsvLoad:
-    """Tier 0: CSV load-from-pool workflow.
-
-    The legacy st.file_uploader was removed; CSVs are loaded via the
-    'Load from Recent' pool (``DataSourcePage.upload_csv`` stages the file into
-    the pool, then loads it). These tests cover the mode message + the real
-    load path.
-    """
+    """Tier 0: Browser-upload and recent-file review workflows."""
 
     def test_csv_mode_shows_success_message(self, tier0_page: Page) -> None:
         """CSV mode displays the mode selection success message."""
@@ -235,7 +229,8 @@ class TestDataSourceCsvLoad:
         ds.assert_parser_config_hidden()
 
     def test_csv_load_loads_data(self, tier0_page: Page, e2e_csv_path: Path) -> None:
-        """Load the fixture CSV via the Recent pool and verify data is loaded."""
+        # [test->req~ring5.ingestion.browser-upload~1]
+        """Upload the fixture CSV in the browser and verify confirmed data is loaded."""
         ds = DataSourcePage(tier0_page)
         ds.navigate()
         ds.upload_csv(e2e_csv_path)

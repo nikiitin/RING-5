@@ -2,7 +2,7 @@
 
 Covers the three data-source modes:
 - Parse gem5 Stats Files  (parser config, scan, variable editor, parse)
-- I already have CSV data  (CSV mode success message)
+- Upload data or portfolio  (validated browser-upload workflow)
 - Load from Recent  (CSV pool with Load/Preview/Delete cards)
 
 Every interactable widget on this page is exposed as a locator so that
@@ -75,8 +75,8 @@ class DataSourcePage(BasePage):
 
     @property
     def csv_option(self) -> Locator:
-        """'I already have CSV data' option."""
-        return self.segmented_control.get_by_role("radio", name="I already have CSV data")
+        """'Upload data or portfolio' option."""
+        return self.segmented_control.get_by_role("radio", name="Upload data or portfolio")
 
     @property
     def recent_option(self) -> Locator:
@@ -221,10 +221,15 @@ class DataSourcePage(BasePage):
 
     @property
     def csv_success_message(self) -> Locator:
-        """Success message shown in CSV mode."""
+        """Success message shown in upload mode."""
         return self.page.locator(
             "[data-testid='stMainBlockContainer'] " "[data-testid='stAlertContentSuccess']"
-        ).filter(has_text="CSV mode selected")
+        ).filter(has_text="Upload mode selected")
+
+    @property
+    def browser_upload_input(self) -> Locator:
+        """Browser file chooser for a dataset or portfolio."""
+        return self.page.locator("input[type='file']")
 
     # SECTION 5: Recent CSV pool (Load from Recent mode)
 
@@ -422,7 +427,7 @@ class DataSourcePage(BasePage):
         self._select_mode(self.parse_option)
 
     def select_csv_mode(self) -> None:
-        """Click the 'I already have CSV data' option."""
+        """Click the browser-upload option."""
         self._select_mode(self.csv_option)
 
     def select_recent_mode(self) -> None:
@@ -608,19 +613,17 @@ class DataSourcePage(BasePage):
         return staged.name
 
     def upload_csv(self, csv_path: str | Path) -> None:
-        """Load a CSV into the app from a local path.
-
-        The legacy ``st.file_uploader`` was removed; the canonical "bring your
-        own CSV" path is now the Recent-CSV pool. We stage the file into the
-        pool directory (shared on disk with the server process) with a fresh
-        mtime so it becomes the newest entry, then load it via the
-        'Load from Recent' UI.
+        """Upload, review, and explicitly load a CSV from a browser path.
 
         Args:
             csv_path: Absolute path to the CSV file to load.
         """
-        # Namespacing in ``stage_csv`` keeps concurrent xdist workers isolated.
-        self.load_recent_csv_by_name(self.stage_csv(csv_path))
+        self.select_csv_mode()
+        self.browser_upload_input.set_input_files(str(csv_path))
+        self.wait_for_streamlit()
+        expect(self.import_review_header).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        self.load_accepted_import_button.click()
+        self.wait_for_streamlit()
 
     # Assertions
 
@@ -695,7 +698,7 @@ class DataSourcePage(BasePage):
         expect(self.parse_button).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
     def assert_csv_mode_message_visible(self) -> None:
-        """Assert the CSV mode success message is shown."""
+        """Assert the upload-mode success message is shown."""
         expect(self.csv_success_message).to_be_visible(
             timeout=self.RENDER_TIMEOUT,
         )

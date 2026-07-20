@@ -55,6 +55,13 @@ detection, corrections, inference, and row classification do not touch session s
 re-reads the bounded source, verifies its SHA-256 fingerprint and the complete preview result, then
 stores only accepted rows through `ApplicationAPI.load_import_preview`.
 
+Browser uploads cross a separate `BrowserUploadService` trust boundary. It validates extension,
+declared media type, byte size, and parse structure before staging content below the session's
+temporary directory. CSV stays delimited text; flat JSON and the first visible Excel worksheet are
+normalized to bounded UTF-8 CSV and then enter the normal `ImportPreview` path. A portfolio is
+migrated and summarized without state mutation, re-fingerprinted on confirmation, and only then
+passed to `StateManager.restore_session`.
+
 ## Transform and plot
 
 ```mermaid

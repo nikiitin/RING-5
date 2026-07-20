@@ -4018,11 +4018,29 @@
       "id": "ingestion.browser-upload",
       "group": "ingestion",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Browser file upload",
       "description": "The web application shall accept bounded CSV, JSON, Excel, and portfolio uploads with explicit type, size, and parsing validation.",
       "tags": ["ingestion", "upload", "web"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/models/browser_upload_models.py::BrowserUpload",
+          "src/core/services/browser_upload_service.py::BrowserUploadService.inspect",
+          "src/core/services/browser_upload_service.py::BrowserUploadService.load_portfolio",
+          "src/core/application_api.py::ApplicationAPI.inspect_browser_upload",
+          "src/core/application_api.py::ApplicationAPI.restore_browser_portfolio",
+          "src/web/components/data_source/data_source_components.py::DataSourceComponents.render_browser_upload"
+        ],
+        "tests": [
+          "tests/unit/test_browser_upload_service.py::test_csv_json_and_excel_uploads_become_reviewable_tables",
+          "tests/integration/test_browser_upload_application_api.py::test_upload_is_non_mutating_until_confirmed_load_or_restore",
+          "tests/unit/test_browser_upload_component.py::test_dataset_upload_routes_to_import_review",
+          "tests/e2e/test_data_source.py::TestDataSourceCsvLoad.test_csv_load_loads_data"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/loading-data.md#upload-data-or-a-portfolio-from-your-browser"
+        ]
+      }
     },
     {
       "id": "ingestion.remote-sources",
@@ -4698,6 +4716,8 @@
       "load_saved_configs": "data.saved-pipeline-configurations",
       "managers": "quality.application-facade",
       "preview_import": "ingestion.import-preview",
+      "inspect_browser_upload": "ingestion.browser-upload",
+      "restore_browser_portfolio": "ingestion.browser-upload",
       "release_settled_scans": "ingestion.scan-presets-progress",
       "redo_dataset": "data.lineage-undo-redo",
       "remove_dataset": "data.multi-dataset-workspace",

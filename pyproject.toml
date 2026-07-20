@@ -160,6 +160,7 @@ module = [
   "scipy.*",
   "numpy.*",
   "kaleido.*",
+  "openpyxl.*",
   "regex.*",
 ]
 ignore_missing_imports = true
