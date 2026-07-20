@@ -14,6 +14,7 @@ import pandas as pd
 from src.core.application_api import ApplicationAPI
 from src.core.models import (
     DataQualityReport,
+    DashboardSpec,
     DatasetInfo,
     DatasetLineage,
     DatasetRevision,
@@ -33,7 +34,7 @@ from src.parsing.parser_protocol import SimulationParser
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
-from ring5 import _export, _parse, _render, _scan
+from ring5 import _dashboard, _export, _parse, _render, _scan
 from ring5.errors import (
     ColumnNotFoundError,
     DataLoadError,
@@ -1370,6 +1371,88 @@ class Session:
                 data.
         """
         return _render.render_figure(plot, engine=engine)
+
+    def create_dashboard(
+        self,
+        plots: Sequence[BasePlot | int],
+        *,
+        title: str = "",
+        rows: int | None = None,
+        columns: int = 2,
+        width: int = 1200,
+        height: int = 800,
+        shared_xaxes: bool = False,
+        shared_yaxes: bool = False,
+        shared_legend: bool = True,
+        x_title: str = "",
+        y_title: str = "",
+        panel_titles: Sequence[str] | None = None,
+    ) -> DashboardSpec:
+        # [impl->req~ring5.plots.multi-panel-dashboard~1]
+        """Compose two or more registered plots into an immutable grid spec.
+
+        Plot objects and integer plot IDs may be mixed.  Panel order follows
+        the input order; rows are inferred from ``columns`` when omitted.
+
+        Args:
+            plots: Registered plot objects or integer plot IDs in panel order.
+            title: Title spanning the complete dashboard.
+            rows: Explicit row count, or inferred from ``columns`` when omitted.
+            columns: Number of grid columns.
+            width: Complete dashboard width in pixels.
+            height: Complete dashboard height in pixels.
+            shared_xaxes: Link compatible X-axis ranges across panels.
+            shared_yaxes: Link compatible Y-axis ranges across panels.
+            shared_legend: Deduplicate series labels into one figure legend.
+            x_title: Optional complete-dashboard X-axis title.
+            y_title: Optional complete-dashboard Y-axis title.
+            panel_titles: Optional titles aligned with ``plots``; plot names are the default.
+
+        Returns:
+            An immutable validated dashboard specification.
+
+        Raises:
+            DataValidationError: Plot selection, grid, titles, or dimensions are invalid.
+        """
+        plot_ids = [value.plot_id if isinstance(value, BasePlot) else value for value in plots]
+        try:
+            return self.api.create_dashboard(
+                plot_ids,
+                title=title,
+                rows=rows,
+                columns=columns,
+                width=width,
+                height=height,
+                shared_xaxes=shared_xaxes,
+                shared_yaxes=shared_yaxes,
+                shared_legend=shared_legend,
+                x_title=x_title,
+                y_title=y_title,
+                panel_titles=panel_titles,
+            )
+        except ValueError as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def render_dashboard(
+        self,
+        dashboard: DashboardSpec,
+        *,
+        engine: EngineMode = "plotly",
+    ) -> _render.Figure:
+        # [impl->req~ring5.plots.multi-panel-dashboard~1]
+        """Render every live plot referenced by ``dashboard`` as one figure.
+
+        Args:
+            dashboard: Specification returned by :meth:`create_dashboard`.
+            engine: Rendering engine, ``"plotly"`` or ``"matplotlib"``.
+
+        Returns:
+            A complete figure accepted by :meth:`export` and :meth:`export_bytes`.
+
+        Raises:
+            RenderError: A plot was deleted, has no processed data, or cannot be rendered.
+        """
+        return _dashboard.render_dashboard(self.plots, dashboard, engine=engine)
 
     def export(
         self,

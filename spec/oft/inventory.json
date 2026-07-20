@@ -3404,11 +3404,29 @@
       "id": "plots.multi-panel-dashboard",
       "group": "plot-lifecycle",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Multi-panel dashboards",
       "description": "Users shall arrange multiple plots in a configurable grid with shared titles, axes, legends, dimensions, and whole-dashboard export.",
       "tags": ["dashboard", "plots", "workspace"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/models/visualization/dashboard_spec.py::DashboardSpec",
+          "src/core/application_api.py::ApplicationAPI.create_dashboard",
+          "src/web/rendering/dashboard_builder.py::render_dashboard",
+          "src/web/components/plotting/dashboard_composer.py::DashboardComposer.render",
+          "ring5/_dashboard.py::render_dashboard",
+          "ring5/_session.py::Session.create_dashboard",
+          "ring5/_session.py::Session.render_dashboard"
+        ],
+        "tests": [
+          "tests/integration/test_dashboard_public_api.py::test_public_dashboard_renders_both_engines_and_exports_whole_figure",
+          "tests/ui_logic/test_dashboard_composer.py::test_composer_builds_previews_and_exports_selected_panels",
+          "tests/e2e/test_dashboard_composer.py::test_build_and_offer_whole_dashboard_export"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/multi-panel-dashboards.md#build-multi-panel-dashboards"
+        ]
+      }
     },
     {
       "id": "plots.linked-selections",
@@ -4000,6 +4018,7 @@
       "DataLoadError": "api.typed-errors",
       "DataValidationError": "api.typed-errors",
       "DataQualityReport": "data.quality-profiler",
+      "DashboardSpec": "plots.multi-panel-dashboard",
       "DatasetInfo": "data.multi-dataset-workspace",
       "DatasetLineage": "data.lineage-undo-redo",
       "DatasetRevision": "data.lineage-undo-redo",
@@ -4047,6 +4066,7 @@
       "grouped_bar_coordinates": "api.figure-decorations",
       "read_table": "api.table",
       "render_figure": "render.engine-selection",
+      "render_dashboard": "plots.multi-panel-dashboard",
       "render_portfolio": "portfolio.batch-replay",
       "shutdown": "api.process-lifecycle"
     },
@@ -4060,6 +4080,7 @@
       "compare_datasets": "data.multi-dataset-workspace",
       "compare_statistics": "analysis.statistical-comparison",
       "create_plot": "plots.create-multiple",
+      "create_dashboard": "plots.multi-panel-dashboard",
       "dataset_lineage": "data.lineage-undo-redo",
       "diagnose_join": "data.validated-joins",
       "delete_dataset_snapshot": "data.dataset-snapshots",
@@ -4085,6 +4106,7 @@
       "remove_dataset": "data.multi-dataset-workspace",
       "remove_outliers": "data.outlier-removal",
       "render": "render.engine-selection",
+      "render_dashboard": "plots.multi-panel-dashboard",
       "save_portfolio": "portfolio.save",
       "save_dataset_snapshot": "data.dataset-snapshots",
       "scan": "ingestion.async-scan",
@@ -4125,6 +4147,7 @@
       "available_simulators": "ingestion.simulator-registry",
       "cancel_pending_scans": "ingestion.async-scan",
       "clear_preview": "data.preview-confirm",
+      "create_dashboard": "plots.multi-panel-dashboard",
       "compare_datasets": "data.multi-dataset-workspace",
       "data_services": "quality.application-facade",
       "delete_configuration": "data.saved-pipeline-configurations",

@@ -13,6 +13,7 @@ from src.core.models import (
     DatasetLineage,
     DatasetRevision,
     DatasetSnapshotInfo,
+    DashboardSpec,
     JoinCardinality,
     JoinDiagnostics,
     ParseBatchResult,
@@ -670,6 +671,63 @@ class ApplicationAPI:
     def remove_visualization_config(self, plot_id: int) -> None:
         """Remove the visualization config for a plot."""
         self.state_manager.remove_visualization_config(plot_id)
+
+    def create_dashboard(
+        self,
+        plot_ids: Sequence[int],
+        *,
+        title: str = "",
+        rows: int | None = None,
+        columns: int = 2,
+        width: int = 1200,
+        height: int = 800,
+        shared_xaxes: bool = False,
+        shared_yaxes: bool = False,
+        shared_legend: bool = True,
+        x_title: str = "",
+        y_title: str = "",
+        panel_titles: Sequence[str] | None = None,
+    ) -> DashboardSpec:
+        # [impl->req~ring5.plots.multi-panel-dashboard~1]
+        """Create a validated dashboard layout from registered plots.
+
+        The returned specification is immutable and contains stable plot IDs,
+        so both the web application and the headless API use the same layout
+        contract.  Rendering remains live: a later plot edit is reflected the
+        next time the dashboard is rendered.
+        """
+        ids = tuple(plot_ids)
+        if any(isinstance(plot_id, bool) or not isinstance(plot_id, int) for plot_id in ids):
+            raise ValueError("Dashboard plot IDs must be integers.")
+
+        available = {plot.plot_id: plot for plot in self.state_manager.get_plots()}
+        missing = [plot_id for plot_id in ids if plot_id not in available]
+        if missing:
+            missing_text = ", ".join(str(plot_id) for plot_id in missing)
+            raise ValueError(f"Dashboard references unknown plot IDs: {missing_text}.")
+
+        if columns < 1:
+            raise ValueError("Dashboard columns must be at least 1.")
+        effective_rows = rows if rows is not None else max(1, (len(ids) + columns - 1) // columns)
+        titles = (
+            tuple(str(value) for value in panel_titles)
+            if panel_titles is not None
+            else tuple(str(available[plot_id].name) for plot_id in ids)
+        )
+        return DashboardSpec(
+            plot_ids=ids,
+            rows=effective_rows,
+            columns=columns,
+            panel_titles=titles,
+            title=title.strip(),
+            width=width,
+            height=height,
+            shared_xaxes=shared_xaxes,
+            shared_yaxes=shared_yaxes,
+            shared_legend=shared_legend,
+            x_title=x_title.strip(),
+            y_title=y_title.strip(),
+        )
 
     # Previews (Delegated to StateManager)
 

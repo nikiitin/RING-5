@@ -51,6 +51,7 @@ from src.core.models.parsing_models import (
     StatConfig,
 )
 from src.core.models.plot_protocol import PlotDeserializer, PlotProtocol
+from src.core.models.visualization.dashboard_spec import DashboardSpec
 from src.core.models.portfolio_models import PortfolioData, RestoreReport
 from src.core.models.shaper_models import (
     BaseShaperConfig,
@@ -76,6 +77,7 @@ __all__ = [
     "CsvMetadata",
     "CsvPoolEntry",
     "DataQualityReport",
+    "DashboardSpec",
     "DatasetInfo",
     "DatasetLineage",
     "DatasetRevision",

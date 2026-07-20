@@ -96,7 +96,11 @@ class FigureSpecToMatplotlib:
 
     @staticmethod
     def apply(
-        spec: FigureConfig, ax: Axes, render_result: MatplotlibRenderResult | None = None
+        spec: FigureConfig,
+        ax: Axes,
+        render_result: MatplotlibRenderResult | None = None,
+        *,
+        apply_margins: bool = True,
     ) -> None:
         """Apply the full FigureConfig to a matplotlib Axes.
 
@@ -104,6 +108,8 @@ class FigureSpecToMatplotlib:
             spec: A resolved FigureConfig (no sentinel values).
             ax: A ``matplotlib.axes.Axes`` instance.
             render_result: Trace-rendering metadata, including an optional heatmap image.
+            apply_margins: Apply figure-wide margins. Dashboard panels disable
+                this because their parent grid owns the outer layout.
         """
         # [impl->req~ring5.extension.render-connector~1]
         import matplotlib as mpl
@@ -135,7 +141,8 @@ class FigureSpecToMatplotlib:
             FigureSpecToMatplotlib._apply_data_labels(spec, ax)
             FigureSpecToMatplotlib._apply_annotations(spec, ax)
             FigureSpecToMatplotlib._apply_hatching(spec, ax)
-            FigureSpecToMatplotlib._apply_margins(spec, ax)
+            if apply_margins:
+                FigureSpecToMatplotlib._apply_margins(spec, ax)
 
             if render_result and render_result.heatmap_image is not None:
                 FigureSpecToMatplotlib._apply_colorbar(spec, ax, render_result.heatmap_image)

@@ -1364,7 +1364,7 @@ Tags: lifecycle, plots, status_approved, types
 ### Multi-panel dashboards
 
 `req~ring5.plots.multi-panel-dashboard~1`
-Status: proposed
+Status: approved
 
 Users shall arrange multiple plots in a configurable grid with shared titles, axes, legends, dimensions, and whole-dashboard export.
 
@@ -1373,7 +1373,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: dashboard, plots, status_proposed, workspace
+Tags: dashboard, plots, status_approved, workspace
 
 ### Linked selection and cross-filtering
 

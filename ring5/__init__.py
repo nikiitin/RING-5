@@ -75,6 +75,7 @@ if TYPE_CHECKING:
         DatasetLineage,
         DatasetRevision,
         DatasetSnapshotInfo,
+        DashboardSpec,
         DatasetSchemaContract,
         JoinCardinality,
         JoinDiagnostics,
@@ -93,6 +94,7 @@ if TYPE_CHECKING:
     from ring5._scan import ScanJob
     from ring5._portfolio import render_portfolio
     from ring5._render import render_figure
+    from ring5._dashboard import render_dashboard
     from ring5._session import PlotType, Session, available_plot_types
     from ring5.shapers import available_shaper_types
     from ring5.coordinates import grouped_bar_coordinates
@@ -117,6 +119,7 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "ScanResult": ("src.core.models", "ScanResult"),
     "ScannedVariable": ("src.core.models", "ScannedVariable"),
     "render_figure": ("ring5._render", "render_figure"),
+    "render_dashboard": ("ring5._dashboard", "render_dashboard"),
     "export_bytes": ("ring5._export", "export_bytes"),
     "export_file": ("ring5._export", "export_file"),
     "render_portfolio": ("ring5._portfolio", "render_portfolio"),
@@ -129,6 +132,7 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "DatasetLineage": ("src.core.models", "DatasetLineage"),
     "DatasetRevision": ("src.core.models", "DatasetRevision"),
     "DatasetSnapshotInfo": ("src.core.models", "DatasetSnapshotInfo"),
+    "DashboardSpec": ("src.core.models", "DashboardSpec"),
     "DatasetSchemaContract": ("src.core.models", "DatasetSchemaContract"),
     "JoinCardinality": ("src.core.models", "JoinCardinality"),
     "JoinDiagnostics": ("src.core.models", "JoinDiagnostics"),
@@ -198,12 +202,14 @@ __all__ = [
     "DatasetLineage",
     "DatasetRevision",
     "DatasetSnapshotInfo",
+    "DashboardSpec",
     "DatasetSchemaContract",
     "JoinCardinality",
     "JoinDiagnostics",
     "SchemaValidationReport",
     "SchemaViolation",
     "render_figure",
+    "render_dashboard",
     "export_bytes",
     "export_file",
     "render_portfolio",

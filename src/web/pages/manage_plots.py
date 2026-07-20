@@ -23,6 +23,7 @@ from src.core.application_api import ApplicationAPI
 from src.web.controllers.plot.creation_controller import PlotCreationController
 from src.web.controllers.plot.pipeline_controller import PipelineController
 from src.web.controllers.plot.render_controller import PlotRenderController
+from src.web.components.plotting.dashboard_composer import DashboardComposer
 from src.web.models.plot_protocols import PlotHandle, RenderablePlot
 from src.web.pages.plot_adapters import (
     PipelineExecutorAdapter,
@@ -94,3 +95,6 @@ def show_manage_plots_page(api: ApplicationAPI) -> None:
 
         # 5. Visualization (fragmented)
         st.fragment(_render_fragment)(render, current_plot)
+
+    st.markdown("---")
+    DashboardComposer(api).render()

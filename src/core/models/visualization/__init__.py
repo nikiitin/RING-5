@@ -14,6 +14,7 @@ from src.core.models.visualization.annotation_config import (
 )
 from src.core.models.visualization.axis_config import AxesConfig, AxisConfig
 from src.core.models.visualization.data_label_config import DataLabelConfig
+from src.core.models.visualization.dashboard_spec import DashboardSpec
 from src.core.models.visualization.figure_config import (
     DimensionConfig,
     FigureConfig,
@@ -50,6 +51,8 @@ __all__ = [
     "AxesConfig",
     # Data labels
     "DataLabelConfig",
+    # Dashboards
+    "DashboardSpec",
     # Figure + dimensions
     "FigureConfig",
     "DimensionConfig",
