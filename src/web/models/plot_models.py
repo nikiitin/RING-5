@@ -188,6 +188,12 @@ class PlotDisplayConfig(TypedDict, total=False):
     summary_mode: str
     violin_width: float
 
+    # ECDF-specific
+    ecdf_complementary: bool
+    ecdf_y_mode: str
+    ecdf_markers: bool
+    marker_size: int
+
     # Export
     download_format: str  # "html", "png", "pdf", "svg"
     export_scale: int  # 1, 2, or 3

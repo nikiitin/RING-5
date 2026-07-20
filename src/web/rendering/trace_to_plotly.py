@@ -319,6 +319,7 @@ def _violin_trace(trace: ViolinTraceConfig) -> go.Violin:
 
 
 def _line_trace(trace: LineTraceConfig) -> go.Scatter:
+    # [impl->req~ring5.plot.ecdf~1]
     """Convert a ``LineTraceConfig`` to ``go.Scatter`` with lines mode."""
     mode = "lines+markers" if trace.show_markers else "lines"
 
@@ -334,6 +335,7 @@ def _line_trace(trace: LineTraceConfig) -> go.Scatter:
         "line": {
             "width": trace.line_width,
             "dash": trace.line_dash,
+            "shape": trace.line_shape,
         },
     }
 

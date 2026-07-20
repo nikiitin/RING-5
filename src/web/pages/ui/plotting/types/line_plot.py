@@ -65,6 +65,7 @@ class LinePlot(BasePlot):
                 x=grp_data[x_col].tolist(),
                 y=grp_data[y_col].tolist(),
                 show_markers=True,
+                line_shape=config.get("line_shape", "linear"),
                 error_y=grp_data[sd_col].tolist() if sd_col else None,
                 custom_data={
                     "drilldown": build_drill_down_payload(

@@ -3637,11 +3637,28 @@
       "id": "plot.ecdf",
       "group": "plot-types",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Empirical cumulative distribution plot",
       "description": "The plot registry shall provide empirical cumulative distribution plots with grouping, complementary display, markers, and normalized or count-based axes.",
       "tags": ["distribution", "plots", "statistics"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/web/pages/ui/plotting/types/ecdf_plot.py::EcdfPlot.create_traces",
+          "src/web/components/plotting/config/ecdf_config.py::render",
+          "src/web/rendering/trace_to_plotly.py::_line_trace",
+          "src/web/rendering/matplotlib_trace_renderer.py::MatplotlibTraceRenderer._draw_line"
+        ],
+        "tests": [
+          "tests/unit/test_ecdf_plot.py::test_grouped_ecdf_aggregates_duplicates_and_preserves_source",
+          "tests/unit/test_trace_to_plotly.py::TestEcdfLineTrace.test_ecdf_uses_post_threshold_step_shape",
+          "tests/unit/test_matplotlib_trace_renderer.py::TestRender.test_ecdf_line_uses_post_step_drawstyle",
+          "tests/integration/test_ecdf_plot_public_api.py::test_public_ecdf_renders_grouped_survival_counts_in_both_engines",
+          "tests/e2e/test_plot_types.py::TestPlotCreation.test_09_create_ecdf_plot"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/ecdf-plots.md#compare-cumulative-distributions-with-ecdf-plots"
+        ]
+      }
     },
     {
       "id": "plot.area",
@@ -4047,6 +4064,7 @@
       "box": "plot.box",
       "violin": "plot.violin",
       "dual_axis_bar_dot": "plot.dual-axis-bar-dot",
+      "ecdf": "plot.ecdf",
       "grouped_bar": "plot.grouped-bar",
       "grouped_stacked_bar": "plot.grouped-stacked-bar",
       "heatmap": "plot.heatmap",

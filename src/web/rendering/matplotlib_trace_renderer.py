@@ -325,6 +325,7 @@ class MatplotlibTraceRenderer:
         ax: Axes,
         override_color: str | None = None,
     ) -> None:
+        # [impl->req~ring5.plot.ecdf~1]
         """Draw a single line trace from its ``LineTraceConfig``."""
         props: dict[str, Any] = {}
         color = override_color or spec.color
@@ -334,6 +335,14 @@ class MatplotlibTraceRenderer:
             props["linewidth"] = spec.line_width
         if spec.line_dash:
             props["linestyle"] = _DASH_MAP.get(spec.line_dash, "-")
+        drawstyle = {
+            "hv": "steps-post",
+            "vh": "steps-pre",
+            "hvh": "steps-mid",
+            "vhv": "steps-mid",
+        }.get(spec.line_shape)
+        if drawstyle:
+            props["drawstyle"] = drawstyle
         # Markers: honour show_markers/marker_symbol/marker_size so the matplotlib
         # engine matches Plotly's "lines+markers" mode (dot-lines, dual-axis dots).
         if spec.show_markers:

@@ -1604,7 +1604,7 @@ Tags: distribution, plots, status_approved, visualization
 ### Empirical cumulative distribution plot
 
 `req~ring5.plot.ecdf~1`
-Status: proposed
+Status: approved
 
 The plot registry shall provide empirical cumulative distribution plots with grouping, complementary display, markers, and normalized or count-based axes.
 
@@ -1613,7 +1613,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: distribution, plots, statistics, status_proposed
+Tags: distribution, plots, statistics, status_approved
 
 ### Area chart
 

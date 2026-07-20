@@ -209,6 +209,7 @@ def test_public_registries_are_complete() -> None:
         ("box", {"x": "x", "y": "y", "color": "group", "point_mode": "all"}),
         ("violin", {"x": "x", "y": "y", "color": "group", "point_mode": "all"}),
         ("dual_axis_bar_dot", {"x": "x", "y_bar": "y", "y_dot": "z"}),
+        ("ecdf", {"x": "y", "color": "group", "ecdf_complementary": True}),
         ("grouped_bar", {"x": "x", "y": "y", "group": "group"}),
         ("grouped_stacked_bar", {"x": "x", "y_columns": ["y", "z"], "group": "group"}),
         ("heatmap", {"x": "x", "metric_columns": ["y", "z"], "facet_col": "group"}),

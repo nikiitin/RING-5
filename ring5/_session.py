@@ -57,6 +57,7 @@ PlotType = Literal[
     "bar",
     "box",
     "dual_axis_bar_dot",
+    "ecdf",
     "grouped_bar",
     "grouped_stacked_bar",
     "heatmap",

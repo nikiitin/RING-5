@@ -83,6 +83,7 @@ class LineTraceConfig(TraceConfig):
 
     line_width: float = 2.0
     line_dash: Literal["solid", "dash", "dot", "dashdot", "longdash"] = "solid"
+    line_shape: Literal["linear", "spline", "hv", "vh", "hvh", "vhv"] = "linear"
     marker_symbol: str = "circle"
     marker_size: int = 6
     show_markers: bool = True

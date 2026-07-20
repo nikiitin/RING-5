@@ -227,9 +227,23 @@ class TestViolinTrace:
         assert result.fillcolor == "#ff0000"
 
     def test_line_trace_dispatch(self) -> None:
-        trace = LineTraceConfig(name="line", x=["a"], y=[1])
+        trace = LineTraceConfig(name="line", x=["a"], y=[1], line_shape="hv")
         result = _convert_trace(trace)
         assert isinstance(result, go.Scatter)
+        assert result.line.shape == "hv"
+
+
+class TestEcdfLineTrace:
+    """Tests for the Plotly ECDF step-line contract."""
+
+    def test_ecdf_uses_post_threshold_step_shape(self) -> None:
+        # [test->req~ring5.plot.ecdf~1]
+        result = _line_trace(
+            LineTraceConfig(name="ECDF", x=[1.0, 2.0], y=[0.5, 1.0], line_shape="hv")
+        )
+
+        assert result.line.shape == "hv"
+        assert list(cast(Any, result.y)) == [0.5, 1.0]
 
     def test_scatter_trace_dispatch(self) -> None:
         trace = ScatterTraceConfig(name="scatter", x=["a"], y=[1])

@@ -101,9 +101,19 @@ class TestRender:
             plt.close(fig)
 
     def test_single_line(self, ax: matplotlib.axes.Axes) -> None:
-        trace = LineTraceConfig(name="l1", x=[0, 1], y=[1, 2])
+        trace = LineTraceConfig(name="l1", x=[0, 1], y=[1, 2], line_shape="hv")
         count = MatplotlibTraceRenderer.render([trace], ax)
         assert count.trace_count == 1
+        assert ax.lines[0].get_drawstyle() == "steps-post"
+
+    def test_ecdf_line_uses_post_step_drawstyle(self, ax: matplotlib.axes.Axes) -> None:
+        # [test->req~ring5.plot.ecdf~1]
+        trace = LineTraceConfig(name="ECDF", x=[1.0, 2.0], y=[0.5, 1.0], line_shape="hv")
+
+        result = MatplotlibTraceRenderer.render([trace], ax)
+
+        assert result.trace_count == 1
+        assert ax.lines[0].get_drawstyle() == "steps-post"
 
     def test_vertical_and_horizontal_violins_use_precomputed_density(
         self, ax: matplotlib.axes.Axes

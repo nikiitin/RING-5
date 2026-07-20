@@ -22,6 +22,7 @@ PLOT_TYPES: tuple[str, ...] = (
     "bar",
     "box",
     "dual_axis_bar_dot",
+    "ecdf",
     "grouped_bar",
     "stacked_bar",
     "grouped_stacked_bar",
