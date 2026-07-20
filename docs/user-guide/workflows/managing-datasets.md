@@ -73,6 +73,47 @@ all_runs = session.append_datasets(
 copy, so editing it cannot change the retained source accidentally. Use `select_dataset()` to make
 a named table active and `remove_dataset()` to remove it explicitly.
 
+## Trace and recover dataset changes
+
+<!--
+`uman~ring5.data.lineage-undo-redo.documentation~1`
+
+Covers:
+- req~ring5.data.lineage-undo-redo~1
+
+-->
+
+Expand **Lineage & recovery** beneath a named dataset to answer three practical questions: what
+changed, which named datasets contributed to it, and which exact table state is active. Every
+confirmed change to a named dataset creates an immutable in-session revision with:
+
+- a human-readable operation such as an append, join, seeds reduction, or arithmetic change;
+- source dataset names and parent revision IDs that expose ancestry;
+- row and column counts;
+- a SHA-256 content fingerprint for identifying the exact table state.
+
+Choose a revision to inspect its first 100 rows without changing the dataset. **Undo Last Change**
+moves to the preceding state and **Redo Change** reapplies the most recently undone state. **Restore
+This Revision** makes any inspected intermediate state current. If you confirm a new change after
+undoing, the new revision branches from that restored state and the abandoned revision remains
+inspectable, while the redo action is cleared.
+
+The public API exposes the same recovery flow:
+
+```python
+lineage = session.dataset_lineage("all_runs")
+for revision in lineage.revisions:
+    print(revision.sequence, revision.operation, revision.fingerprint)
+
+old_table = session.get_dataset_revision(lineage.revisions[0].revision_id)
+session.undo_dataset("all_runs")
+session.redo_dataset("all_runs")
+session.restore_dataset_revision(lineage.revisions[0].revision_id)
+```
+
+Revision snapshots are defensive copies held only for the current session. They are not yet stored
+inside portfolios, so save an important recovered table separately before ending the session.
+
 ## Inspect the table
 
 <!--

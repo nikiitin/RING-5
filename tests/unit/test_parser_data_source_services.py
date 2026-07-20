@@ -1545,7 +1545,7 @@ class TestDataManagerBase:
         df = pd.DataFrame({"a": [1]})
         mgr = ConcreteManager(api)
         mgr.set_data(df)
-        api.state_manager.set_data.assert_called_once_with(df)
+        api.update_selected_dataset.assert_called_once_with(df, operation="Update dataset")
 
 
 # Additional data-source actions

@@ -71,6 +71,8 @@ if TYPE_CHECKING:
     # Static names for mypy/IDEs; at runtime these resolve via __getattr__.
     from src.core.models import (
         DatasetInfo,
+        DatasetLineage,
+        DatasetRevision,
         RestoreReport,
         ScanResult,
         ScannedVariable,
@@ -116,6 +118,8 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "ColumnQuality": ("src.core.models", "ColumnQuality"),
     "DataQualityReport": ("src.core.models", "DataQualityReport"),
     "DatasetInfo": ("src.core.models", "DatasetInfo"),
+    "DatasetLineage": ("src.core.models", "DatasetLineage"),
+    "DatasetRevision": ("src.core.models", "DatasetRevision"),
     "ShaperStepConfig": ("src.core.models", "ShaperStepConfig"),
     "available_shaper_types": ("ring5.shapers", "available_shaper_types"),
     # Self-contained figure-scripting surface (so scripts import only `ring5`):
@@ -176,6 +180,8 @@ __all__ = [
     "ColumnQuality",
     "DataQualityReport",
     "DatasetInfo",
+    "DatasetLineage",
+    "DatasetRevision",
     "render_figure",
     "export_bytes",
     "export_file",

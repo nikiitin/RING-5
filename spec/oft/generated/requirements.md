@@ -896,7 +896,7 @@ Tags: configuration, persistence, shapers, status_approved
 ### Dataset lineage and undo
 
 `req~ring5.data.lineage-undo-redo~1`
-Status: proposed
+Status: approved
 
 The workspace shall retain a reproducible transformation lineage and allow users to undo, redo, inspect, and restore intermediate dataset states.
 
@@ -905,7 +905,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: data, history, lineage, status_proposed
+Tags: data, history, lineage, status_approved
 
 ### Named multi-dataset workspace
 

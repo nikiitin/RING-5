@@ -154,7 +154,10 @@ class PreprocessorManager(DataManager):
             ):
                 confirmed_data: pd.DataFrame | None = self.api.get_preview("preprocessor")
                 if confirmed_data is not None:
-                    self.set_data(confirmed_data)
+                    self.set_data(
+                        confirmed_data,
+                        operation=f"Preprocessor: {operation}",
+                    )
                     self.api.clear_preview("preprocessor")
                     record: OperationRecord = {
                         "source_columns": [src_col1, src_col2],

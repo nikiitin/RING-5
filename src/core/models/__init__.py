@@ -29,7 +29,7 @@ from src.core.models.data_models import (
 from src.core.models.shaper_models import ShaperStepConfig, SplitApplyGroupConfig
 from src.core.models.history_models import OperationRecord
 from src.core.models.quality_models import ColumnQuality, DataQualityReport
-from src.core.models.dataset_workspace_models import DatasetInfo
+from src.core.models.dataset_workspace_models import DatasetInfo, DatasetLineage, DatasetRevision
 from src.core.models.parsing_models import (
     ParseBatchResult,
     ScanFileResult,
@@ -63,6 +63,8 @@ __all__ = [
     "CsvPoolEntry",
     "DataQualityReport",
     "DatasetInfo",
+    "DatasetLineage",
+    "DatasetRevision",
     "ItemSelectorConfig",
     "MeanShaperConfig",
     "NormalizeShaperConfig",

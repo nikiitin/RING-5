@@ -94,6 +94,8 @@ class DatasetWorkspaceManager:
                 self.api.remove_dataset(chosen)
                 st.rerun(scope="app")
 
+        self._render_lineage(chosen)
+
         if len(names) < 2:
             st.caption("Retain a second dataset to compare, join, or append tables.")
             return
@@ -213,6 +215,82 @@ class DatasetWorkspaceManager:
             except (KeyError, TypeError, ValueError) as exc:
                 st.error(str(exc))
             else:
+                st.rerun(scope="app")
+
+    def _render_lineage(self, name: str) -> None:
+        """Render inspectable provenance plus bounded undo and redo controls."""
+        # [impl->req~ring5.data.lineage-undo-redo~1]
+        lineage = self.api.get_dataset_lineage(name)
+        revisions = list(lineage.revisions)
+        with st.expander("Lineage & recovery", expanded=True):
+            st.caption(
+                "Every confirmed change creates an immutable in-session snapshot. "
+                "Fingerprints identify exact table contents; sources and parent revisions "
+                "show how derived data was produced."
+            )
+            st.dataframe(
+                pd.DataFrame(
+                    {
+                        "Step": [revision.sequence for revision in revisions],
+                        "Current": ["Yes" if revision.current else "" for revision in revisions],
+                        "Operation": [revision.operation for revision in revisions],
+                        "Sources": [", ".join(revision.source_datasets) for revision in revisions],
+                        "Parents": [
+                            ", ".join(revision.parent_revision_ids) for revision in revisions
+                        ],
+                        "Rows": [revision.row_count for revision in revisions],
+                        "Columns": [revision.column_count for revision in revisions],
+                        "Fingerprint": [revision.fingerprint for revision in revisions],
+                    }
+                ),
+                width="stretch",
+                hide_index=True,
+            )
+
+            undo, redo = st.columns(2)
+            with undo:
+                if st.button(
+                    "Undo Last Change",
+                    disabled=not lineage.can_undo,
+                    key=WidgetKeyBuilder.manager_key("workspace", "lineage_undo"),
+                ):
+                    self.api.undo_dataset(name)
+                    st.rerun(scope="app")
+            with redo:
+                if st.button(
+                    "Redo Change",
+                    disabled=not lineage.can_redo,
+                    key=WidgetKeyBuilder.manager_key("workspace", "lineage_redo"),
+                ):
+                    self.api.redo_dataset(name)
+                    st.rerun(scope="app")
+
+            labels = {
+                revision.revision_id: f"Step {revision.sequence}: {revision.operation}"
+                for revision in revisions
+            }
+            selected_revision = str(
+                st.selectbox(
+                    "Inspect revision",
+                    [revision.revision_id for revision in reversed(revisions)],
+                    format_func=lambda revision_id: labels[revision_id],
+                    key=WidgetKeyBuilder.manager_key("workspace", "lineage_revision"),
+                )
+            )
+            selected_info = next(
+                revision for revision in revisions if revision.revision_id == selected_revision
+            )
+            st.code(selected_info.fingerprint, language=None)
+            snapshot = self.api.get_dataset_revision(selected_revision)
+            st.dataframe(snapshot.head(100), width="stretch")
+            if len(snapshot) > 100:
+                st.caption(f"Showing the first 100 of {len(snapshot)} stored rows.")
+            if st.button(
+                "Restore This Revision",
+                disabled=selected_revision == lineage.current_revision_id,
+                key=WidgetKeyBuilder.manager_key("workspace", "lineage_restore"),
+            ):
+                self.api.restore_dataset_revision(selected_revision)
                 st.rerun(scope="app")
 
     def _render_append(self, names: list[str]) -> None:

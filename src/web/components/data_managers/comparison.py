@@ -273,7 +273,10 @@ class ComparisonManager(DataManager):
             "Use Comparison Result",
             key=WidgetKeyBuilder.manager_key("comparison", "confirm"),
         ):
-            self.set_data(preview)
+            self.set_data(
+                preview,
+                operation=(f"{method_label} comparison: {baseline_value} with {candidate_value}"),
+            )
             self.api.clear_preview(_PREVIEW_NAME)
             record: OperationRecord = {
                 "source_columns": [group_column] + list(key_columns) + list(metric_columns),

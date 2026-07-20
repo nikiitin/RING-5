@@ -194,4 +194,4 @@ class TestDataManagerBase:
         mgr = Concrete(api)
         df = pd.DataFrame({"x": [1]})
         mgr.set_data(df)
-        api.state_manager.set_data.assert_called_once_with(df)
+        api.update_selected_dataset.assert_called_once_with(df, operation="Update dataset")

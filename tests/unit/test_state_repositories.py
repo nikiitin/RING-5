@@ -133,10 +133,13 @@ class TestDataRepository:
     ) -> None:
         repo.add_dataset("first", df)
         repo.add_dataset("second", pd.DataFrame({"b": [7]}))
+        removed_revision = repo.get_dataset_lineage("second").current_revision_id
 
         repo.remove_dataset("second")
         assert [info.name for info in repo.list_datasets()] == ["first"]
         assert repo.selected_dataset_name() == "first"
+        with pytest.raises(KeyError, match="does not exist"):
+            repo.get_dataset_revision(removed_revision)
         repo.remove_dataset("first")
         assert repo.list_datasets() == ()
         assert repo.get_data() is None
@@ -169,6 +172,91 @@ class TestDataRepository:
         repo.clear_data()
         assert repo.list_datasets() == ()
         assert repo.selected_dataset_name() is None
+
+    def test_lineage_undo_redo_inspect_and_restore(
+        self, repo: DataRepository, df: pd.DataFrame
+    ) -> None:
+        # [test->req~ring5.data.lineage-undo-redo~1]
+        repo.add_dataset("measurements", df, operation="Import measurements")
+        initial = repo.get_dataset_lineage()
+        assert initial.dataset_name == "measurements"
+        assert len(initial.revisions) == 1
+        assert initial.revisions[0].fingerprint.startswith("sha256:")
+        assert initial.revisions[0].current is True
+        assert initial.can_undo is False
+
+        changed = df.assign(c=[7, 8, 9])
+        repo.set_data(changed, operation="Add derived column")
+        changed.loc[0, "c"] = 999
+        lineage = repo.get_dataset_lineage("measurements")
+        assert [revision.operation for revision in lineage.revisions] == [
+            "Import measurements",
+            "Add derived column",
+        ]
+        assert lineage.can_undo is True
+        assert repo.get_dataset("measurements").loc[0, "c"] == 7
+
+        inspected = repo.get_dataset_revision(lineage.revisions[0].revision_id)
+        inspected.loc[0, "a"] = 999
+        assert repo.get_dataset_revision(lineage.revisions[0].revision_id).loc[0, "a"] == 1
+
+        undone = repo.undo_dataset()
+        assert undone.revision_id == lineage.revisions[0].revision_id
+        assert "c" not in repo.get_dataset().columns
+        assert repo.get_dataset_lineage().can_redo is True
+
+        redone = repo.redo_dataset("measurements")
+        assert redone.revision_id == lineage.revisions[1].revision_id
+        assert list(repo.get_dataset().columns) == ["a", "b", "c"]
+
+        restored = repo.restore_dataset_revision(lineage.revisions[0].revision_id)
+        assert restored.operation == "Import measurements"
+        assert "c" not in repo.get_dataset().columns
+
+        repo.set_data(df.assign(branch=[True, False, True]), operation="Create branch")
+        branched = repo.get_dataset_lineage()
+        assert len(branched.revisions) == 3
+        assert branched.revisions[-1].parent_revision_ids == (lineage.revisions[0].revision_id,)
+        assert branched.can_redo is False
+
+    def test_derived_dataset_lineage_links_source_revisions(
+        self, repo: DataRepository, df: pd.DataFrame
+    ) -> None:
+        repo.add_dataset("left", df)
+        repo.add_dataset("right", df.assign(a=[4, 5, 6]), select=False)
+        left_revision = repo.get_dataset_lineage("left").current_revision_id
+        right_revision = repo.get_dataset_lineage("right").current_revision_id
+
+        repo.add_dataset(
+            "joined",
+            df,
+            operation="Join datasets (inner) on a",
+            source_datasets=("left", "right"),
+        )
+
+        joined = repo.get_dataset_lineage("joined").revisions[0]
+        assert joined.source_datasets == ("left", "right")
+        assert joined.parent_revision_ids == (left_revision, right_revision)
+
+    def test_lineage_validation_and_clear(self, repo: DataRepository, df: pd.DataFrame) -> None:
+        with pytest.raises(ValueError, match="No dataset is selected"):
+            repo.get_dataset_lineage()
+        repo.add_dataset("data", df)
+        with pytest.raises(ValueError, match="no earlier revision"):
+            repo.undo_dataset()
+        with pytest.raises(ValueError, match="no revision to redo"):
+            repo.redo_dataset()
+        with pytest.raises(KeyError, match="does not exist"):
+            repo.get_dataset_revision("missing")
+        with pytest.raises(KeyError, match="Source dataset"):
+            repo.set_data(df, source_datasets=("missing",))
+        with pytest.raises(ValueError, match="operation"):
+            repo.set_data(df, operation="")
+
+        revision_id = repo.get_dataset_lineage().current_revision_id
+        repo.clear_data()
+        with pytest.raises(KeyError, match="does not exist"):
+            repo.get_dataset_revision(revision_id)
 
 
 # ConfigRepository

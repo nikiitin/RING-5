@@ -328,6 +328,34 @@ class TestNamedDatasetWorkspace:
         dm.retain_current_dataset("tier1_results")
         expect(dm.workspace_dataset_metric).to_contain_text("1", timeout=_E2E_TIMEOUT)
 
+    def test_lineage_inspection_undo_and_redo(self, tier1_page: Page) -> None:
+        # [test->req~ring5.data.lineage-undo-redo~1]
+        dm = DataManagersPage(tier1_page)
+        dm.navigate()
+        dm.select_tab("Workspace")
+        dm.retain_current_dataset("recoverable_results")
+
+        dm.select_tab("Preprocessor")
+        _select_dropdown_option(tier1_page, dm.preproc_src1_selectbox, "simTicks")
+        dm.wait_for_streamlit()
+        _select_dropdown_option(
+            tier1_page,
+            dm.preproc_src2_selectbox,
+            "system.cpu.committedInsts",
+        )
+        dm.wait_for_streamlit()
+        dm.preproc_name_input.fill("ticks_per_inst")
+        dm.apply_preprocessor_preview()
+        dm.confirm_preprocessor()
+
+        dm.select_tab("Workspace")
+        expect(dm.workspace_lineage_panel).to_be_visible(timeout=_E2E_TIMEOUT)
+        expect(dm.workspace_undo_button).to_be_enabled()
+        dm.undo_workspace_dataset()
+        expect(dm.workspace_redo_button).to_be_enabled(timeout=_E2E_TIMEOUT)
+        dm.redo_workspace_dataset()
+        expect(dm.workspace_undo_button).to_be_enabled(timeout=_E2E_TIMEOUT)
+
 
 @pytest.mark.xdist_group("e2e_data_managers_quality")
 class TestDataQualityProfile:

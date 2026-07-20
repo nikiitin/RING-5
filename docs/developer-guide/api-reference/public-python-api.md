@@ -65,6 +65,12 @@ workspace. `compare_datasets` leaves both sources unchanged; `join_datasets` and
 store their result under a separate name. The selected dataset remains the compatibility view used
 by existing plot, transformation, and portfolio APIs.
 
+`Session.dataset_lineage` returns immutable `DatasetLineage` and `DatasetRevision` records with
+operation labels, source and parent ancestry, content fingerprints, and the current undo/redo
+state. `get_dataset_revision` inspects a defensive snapshot. `undo_dataset`, `redo_dataset`, and
+`restore_dataset_revision` change the current state without mutating historical snapshots. Lineage
+is session-owned and is cleared with the named workspace; portfolio persistence is not implied.
+
 `scan_limit=0` means exhaustive variable discovery up to the global 10,000-file ceiling; a positive
 value is an exact sample cap. A scan with any failed files raises `ScanError` at the public boundary;
 pass `strict=False` to `ScanJob.finalize` or `Session.scan` only when a documented partial result is

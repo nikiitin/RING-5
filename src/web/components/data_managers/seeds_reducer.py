@@ -185,7 +185,10 @@ class SeedsReducerManager(DataManager):
             ):
                 confirmed_df: pd.DataFrame | None = self.api.get_preview("seeds_reduction")
                 if confirmed_df is not None:
-                    self.set_data(confirmed_df)
+                    self.set_data(
+                        confirmed_df,
+                        operation="Seeds Reduction (mean + stdev)",
+                    )
                     self.api.clear_preview("seeds_reduction")
                     record: OperationRecord = {
                         "source_columns": selected_categorical + selected_numeric,

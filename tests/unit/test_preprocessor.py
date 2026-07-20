@@ -222,7 +222,10 @@ class TestPreprocessorRender:
 
         mgr = PreprocessorManager(mock_api)
         mgr.render()
-        mock_api.state_manager.set_data.assert_called_once()
+        mock_api.update_selected_dataset.assert_called_once_with(
+            preview_df,
+            operation="Preprocessor: Division",
+        )
         mock_api.clear_preview.assert_called_once()
         mock_api.add_manager_history_record.assert_called_once()
 

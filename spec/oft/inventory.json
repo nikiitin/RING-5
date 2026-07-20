@@ -3204,11 +3204,35 @@
       "id": "data.lineage-undo-redo",
       "group": "data-management",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Dataset lineage and undo",
       "description": "The workspace shall retain a reproducible transformation lineage and allow users to undo, redo, inspect, and restore intermediate dataset states.",
       "tags": ["data", "history", "lineage"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/models/dataset_workspace_models.py::DatasetLineage",
+          "src/core/state/repositories/data_repository.py::DataRepository.get_dataset_lineage",
+          "src/core/application_api.py::ApplicationAPI.get_dataset_lineage",
+          "src/core/application_api.py::ApplicationAPI.get_dataset_revision",
+          "src/core/application_api.py::ApplicationAPI.undo_dataset",
+          "src/core/application_api.py::ApplicationAPI.redo_dataset",
+          "src/core/application_api.py::ApplicationAPI.restore_dataset_revision",
+          "ring5/_session.py::Session.dataset_lineage",
+          "ring5/_session.py::Session.get_dataset_revision",
+          "ring5/_session.py::Session.undo_dataset",
+          "ring5/_session.py::Session.redo_dataset",
+          "ring5/_session.py::Session.restore_dataset_revision",
+          "src/web/components/data_managers/dataset_workspace.py::DatasetWorkspaceManager._render_lineage"
+        ],
+        "tests": [
+          "tests/unit/test_state_repositories.py::TestDataRepository.test_lineage_undo_redo_inspect_and_restore",
+          "tests/integration/test_ring5_public_api.py::TestDatasetLineageAndRecovery.test_lineage_undo_redo_and_restore",
+          "tests/e2e/test_data_managers.py::TestNamedDatasetWorkspace.test_lineage_inspection_undo_and_redo"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/managing-datasets.md#trace-and-recover-dataset-changes"
+        ]
+      }
     },
     {
       "id": "data.multi-dataset-workspace",
@@ -3914,6 +3938,8 @@
       "DataValidationError": "api.typed-errors",
       "DataQualityReport": "data.quality-profiler",
       "DatasetInfo": "data.multi-dataset-workspace",
+      "DatasetLineage": "data.lineage-undo-redo",
+      "DatasetRevision": "data.lineage-undo-redo",
       "DependencyMissingError": "api.typed-errors",
       "DependencyStatus": "api.doctor",
       "DoctorReport": "api.doctor",
@@ -3965,9 +3991,11 @@
       "compare_datasets": "data.multi-dataset-workspace",
       "compare_statistics": "analysis.statistical-comparison",
       "create_plot": "plots.create-multiple",
+      "dataset_lineage": "data.lineage-undo-redo",
       "export": "export.public-boundary",
       "export_bytes": "export.public-boundary",
       "get_dataset": "data.multi-dataset-workspace",
+      "get_dataset_revision": "data.lineage-undo-redo",
       "join_datasets": "data.multi-dataset-workspace",
       "list_datasets": "data.multi-dataset-workspace",
       "load": "ingestion.csv-load",
@@ -3978,6 +4006,7 @@
       "plot": "api.session",
       "profile_data": "data.quality-profiler",
       "reduce_seeds": "data.seed-reduction",
+      "redo_dataset": "data.lineage-undo-redo",
       "remove_dataset": "data.multi-dataset-workspace",
       "remove_outliers": "data.outlier-removal",
       "render": "render.engine-selection",
@@ -3985,7 +4014,9 @@
       "scan": "ingestion.async-scan",
       "scan_submit": "ingestion.async-scan",
       "select_dataset": "data.multi-dataset-workspace",
-      "shape": "shaping.independent-pipelines"
+      "shape": "shaping.independent-pipelines",
+      "restore_dataset_revision": "data.lineage-undo-redo",
+      "undo_dataset": "data.lineage-undo-redo"
     },
     "cli_commands": {
       "doctor": "api.doctor",
@@ -4028,6 +4059,8 @@
       "get_column_info": "data.summary",
       "get_current_view": "workspace.data-preview",
       "get_dataset": "data.multi-dataset-workspace",
+      "get_dataset_lineage": "data.lineage-undo-redo",
+      "get_dataset_revision": "data.lineage-undo-redo",
       "get_manager_history": "data.operation-history",
       "get_parse_status": "ingestion.scan-presets-progress",
       "get_portfolio_history": "data.operation-history",
@@ -4046,6 +4079,7 @@
       "load_saved_configs": "data.saved-pipeline-configurations",
       "managers": "quality.application-facade",
       "release_settled_scans": "ingestion.scan-presets-progress",
+      "redo_dataset": "data.lineage-undo-redo",
       "remove_dataset": "data.multi-dataset-workspace",
       "remove_manager_history_record": "data.operation-history",
       "remove_visualization_config": "plots.delete",
@@ -4056,7 +4090,10 @@
       "set_visualization_config": "plots.independent-state",
       "shapers": "quality.application-facade",
       "submit_parse_async": "ingestion.async-parse",
-      "submit_scan_async": "ingestion.async-scan"
+      "submit_scan_async": "ingestion.async-scan",
+      "restore_dataset_revision": "data.lineage-undo-redo",
+      "undo_dataset": "data.lineage-undo-redo",
+      "update_selected_dataset": "data.lineage-undo-redo"
     },
     "managers_api_members": {
       "apply_mixer": "data.numeric-mixer",

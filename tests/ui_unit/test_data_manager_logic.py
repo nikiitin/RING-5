@@ -108,7 +108,10 @@ def test_seeds_reducer_confirm(mock_streamlit: Any, mock_api: Any, sample_data: 
     manager.render()
 
     # Check state updated via api orchestrator
-    mock_api.state_manager.set_data.assert_called_with(result_df)
+    mock_api.update_selected_dataset.assert_called_once_with(
+        result_df,
+        operation="Seeds Reduction (mean + stdev)",
+    )
     mock_api.clear_preview.assert_called_once_with("seeds_reduction")
     mock_st.rerun.assert_called_once()
 

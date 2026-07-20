@@ -26,6 +26,11 @@ State covers loaded data and source path, parser configuration and scan results,
 counters, previews, visualization configuration, and operation history. Web-only widget state
 belongs to `UIStateManager` and is not part of the core contract.
 
+Named datasets also own session-local immutable revision snapshots. `get_dataset_lineage` exposes
+metadata only; `get_dataset_revision` returns a defensive DataFrame copy. Undo, redo, and arbitrary
+restore change the named dataset's current revision without editing earlier snapshots. New changes
+after an undo create a branch and clear only the redo path.
+
 ## Restore
 
 `restore_session` accepts migrated portfolio data and restores independent items. It returns

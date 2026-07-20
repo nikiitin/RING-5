@@ -404,6 +404,70 @@ class TestNamedDatasetWorkspace:
                 session.compare_datasets("missing", "two", ["key"], ["value"])
 
 
+class TestDatasetLineageAndRecovery:
+    """Inspect and recover named dataset states through the supported API."""
+
+    def test_lineage_undo_redo_and_restore(self) -> None:
+        # [test->req~ring5.data.lineage-undo-redo~1]
+        baseline = pd.DataFrame({"benchmark": ["a"], "ipc": [1.0]})
+        candidate = pd.DataFrame({"benchmark": ["b"], "ipc": [2.0], "note": ["candidate"]})
+
+        with ring5.Session() as session:
+            session.add_dataset("baseline", baseline)
+            session.add_dataset("candidate", candidate, select=False)
+            session.append_datasets(["baseline", "candidate"], "combined", join="outer")
+            first_lineage = session.dataset_lineage()
+            first_revision = first_lineage.revisions[0]
+
+            session.append_datasets(
+                ["baseline", "candidate"],
+                "combined",
+                join="inner",
+                replace=True,
+            )
+            lineage = session.dataset_lineage("combined")
+
+            assert isinstance(lineage, ring5.DatasetLineage)
+            assert all(isinstance(item, ring5.DatasetRevision) for item in lineage.revisions)
+            assert len(lineage.revisions) == 2
+            assert lineage.revisions[-1].operation == "Append datasets (inner)"
+            assert lineage.revisions[-1].source_datasets == ("baseline", "candidate")
+            assert lineage.revisions[-1].parent_revision_ids[0] == first_revision.revision_id
+            assert lineage.can_undo is True
+            assert "note" not in session.get_dataset("combined").columns
+
+            inspected = session.get_dataset_revision(first_revision.revision_id)
+            inspected.loc[0, "ipc"] = 999.0
+            assert session.get_dataset_revision(first_revision.revision_id).loc[0, "ipc"] == 1.0
+
+            undone = session.undo_dataset()
+            assert undone.revision_id == first_revision.revision_id
+            assert "note" in session.get_dataset("combined").columns
+            assert session.dataset_lineage().can_redo is True
+
+            redone = session.redo_dataset("combined")
+            assert redone.revision_id == lineage.revisions[-1].revision_id
+            assert "note" not in session.get_dataset("combined").columns
+
+            restored = session.restore_dataset_revision(first_revision.revision_id)
+            assert restored.revision_id == first_revision.revision_id
+            assert session.dataset_lineage().current_revision_id == first_revision.revision_id
+
+    def test_lineage_errors_are_typed(self) -> None:
+        with ring5.Session() as session:
+            with pytest.raises(ring5.DataValidationError, match="No dataset is selected"):
+                session.dataset_lineage()
+            session.add_dataset("only", pd.DataFrame({"value": [1]}))
+            with pytest.raises(ring5.DataValidationError, match="no earlier revision"):
+                session.undo_dataset()
+            with pytest.raises(ring5.DataValidationError, match="no revision to redo"):
+                session.redo_dataset()
+            with pytest.raises(ring5.DataValidationError, match="does not exist"):
+                session.get_dataset_revision("missing")
+            with pytest.raises(ring5.DataValidationError, match="does not exist"):
+                session.restore_dataset_revision("missing")
+
+
 class TestPortfolioReplay:
     # [test->req~ring5.portfolio.batch-replay~1]
     """Save a session, regenerate every figure from the snapshot."""

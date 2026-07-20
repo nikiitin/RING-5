@@ -15,6 +15,8 @@ from src.core.application_api import ApplicationAPI
 from src.core.models import (
     DataQualityReport,
     DatasetInfo,
+    DatasetLineage,
+    DatasetRevision,
     RestoreReport,
     ScanResult,
     StatConfig,
@@ -478,6 +480,93 @@ class Session:
         # [impl->req~ring5.data.multi-dataset-workspace~1]
         try:
             self.api.remove_dataset(name)
+        except (KeyError, TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def dataset_lineage(self, name: str | None = None) -> DatasetLineage:
+        """Inspect the reproducible revision lineage of a named dataset.
+
+        Args:
+            name: Dataset name, or ``None`` for the selected dataset.
+
+        Returns:
+            Immutable revision metadata, fingerprints, ancestry, and recovery state.
+
+        Raises:
+            DataValidationError: No dataset is selected or the name is unknown.
+        """
+        # [impl->req~ring5.data.lineage-undo-redo~1]
+        try:
+            return self.api.get_dataset_lineage(name)
+        except (KeyError, TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def get_dataset_revision(self, revision_id: str) -> pd.DataFrame:
+        """Return a defensive copy of one immutable dataset revision.
+
+        Args:
+            revision_id: Revision identifier from :meth:`dataset_lineage`.
+
+        Raises:
+            DataValidationError: The revision identifier is invalid or unknown.
+        """
+        # [impl->req~ring5.data.lineage-undo-redo~1]
+        try:
+            return self.api.get_dataset_revision(revision_id)
+        except (KeyError, TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def undo_dataset(self, name: str | None = None) -> DatasetRevision:
+        """Restore the preceding state of a named dataset.
+
+        Args:
+            name: Dataset name, or ``None`` for the selected dataset.
+
+        Returns:
+            Metadata for the newly current revision.
+
+        Raises:
+            DataValidationError: The dataset is unknown or has nothing to undo.
+        """
+        # [impl->req~ring5.data.lineage-undo-redo~1]
+        try:
+            return self.api.undo_dataset(name)
+        except (KeyError, TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def redo_dataset(self, name: str | None = None) -> DatasetRevision:
+        """Reapply the most recently undone state of a named dataset.
+
+        Args:
+            name: Dataset name, or ``None`` for the selected dataset.
+
+        Returns:
+            Metadata for the newly current revision.
+
+        Raises:
+            DataValidationError: The dataset is unknown or has nothing to redo.
+        """
+        # [impl->req~ring5.data.lineage-undo-redo~1]
+        try:
+            return self.api.redo_dataset(name)
+        except (KeyError, TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def restore_dataset_revision(self, revision_id: str) -> DatasetRevision:
+        """Restore an inspected intermediate revision by ID.
+
+        Args:
+            revision_id: Revision identifier from :meth:`dataset_lineage`.
+
+        Returns:
+            Metadata for the restored revision.
+
+        Raises:
+            DataValidationError: The revision is invalid, unknown, or no longer retained.
+        """
+        # [impl->req~ring5.data.lineage-undo-redo~1]
+        try:
+            return self.api.restore_dataset_revision(revision_id)
         except (KeyError, TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
 

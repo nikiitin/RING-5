@@ -427,10 +427,40 @@ class DataManagersPage(BasePage):
         """Count of retained named datasets."""
         return self.page.locator("[data-testid='stMetric']").filter(has_text="Retained datasets")
 
+    @property
+    def workspace_lineage_panel(self) -> Locator:
+        """Expanded lineage and recovery panel for the selected dataset."""
+        return self.page.get_by_text("Lineage & recovery", exact=True)
+
+    @property
+    def workspace_undo_button(self) -> Locator:
+        """Restore the preceding dataset revision."""
+        return self.page.get_by_role("button", name="Undo Last Change")
+
+    @property
+    def workspace_redo_button(self) -> Locator:
+        """Reapply the most recently undone dataset revision."""
+        return self.page.get_by_role("button", name="Redo Change")
+
+    @property
+    def workspace_restore_button(self) -> Locator:
+        """Restore the revision selected for inspection."""
+        return self.page.get_by_role("button", name="Restore This Revision")
+
     def retain_current_dataset(self, name: str) -> None:
         """Retain the active dataset under ``name`` and wait for rerendering."""
         self.workspace_name_input.fill(name)
         self.workspace_retain_button.click()
+        self.wait_for_streamlit()
+
+    def undo_workspace_dataset(self) -> None:
+        """Undo one named-dataset revision and wait for the rerender."""
+        self.workspace_undo_button.click()
+        self.wait_for_streamlit()
+
+    def redo_workspace_dataset(self) -> None:
+        """Redo one named-dataset revision and wait for the rerender."""
+        self.workspace_redo_button.click()
         self.wait_for_streamlit()
 
     # E2E: Data quality

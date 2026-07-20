@@ -10,6 +10,8 @@ import pandas as pd
 
 from src.core.models import (
     DatasetInfo,
+    DatasetLineage,
+    DatasetRevision,
     ParseBatchResult,
     ScanFileResult,
     ScannedVariable,
@@ -103,7 +105,7 @@ class ApplicationAPI:
             df = self._services.data_services.load_csv_file(csv_path)
 
             # 2. Persistence: Save
-            self.state_manager.set_data(df)
+            self.state_manager.set_data(df, operation=f"Load CSV: {csv_path}")
             self.state_manager.set_processed_data(None)  # Reset derived state
             self.state_manager.set_csv_path(csv_path)
 
@@ -139,6 +141,8 @@ class ApplicationAPI:
         *,
         select: bool = True,
         replace: bool = False,
+        operation: str = "Add dataset",
+        source_datasets: tuple[str, ...] = (),
     ) -> DatasetInfo:
         """Retain a named dataset without replacing unrelated workspace data.
 
@@ -147,6 +151,8 @@ class ApplicationAPI:
             data: Dataset to retain by defensive copy.
             select: Make this dataset the active source-data view.
             replace: Permit replacement of the same name.
+            operation: Human-readable lineage operation.
+            source_datasets: Named datasets used to produce this state.
 
         Returns:
             Metadata for the stored dataset.
@@ -159,6 +165,8 @@ class ApplicationAPI:
             data,
             select=select,
             replace=replace,
+            operation=operation,
+            source_datasets=source_datasets,
         )
 
     def add_current_dataset(
@@ -172,7 +180,16 @@ class ApplicationAPI:
         data = self.state_manager.get_data()
         if data is None:
             raise ValueError("No active data is available to retain.")
-        return self.add_dataset(name, data, select=select, replace=replace)
+        selected = self.state_manager.selected_dataset_name()
+        sources = (selected,) if selected is not None else ()
+        return self.add_dataset(
+            name,
+            data,
+            select=select,
+            replace=replace,
+            operation="Retain current dataset",
+            source_datasets=sources,
+        )
 
     def list_datasets(self) -> tuple[DatasetInfo, ...]:
         """Return retained dataset metadata in insertion order."""
@@ -194,6 +211,47 @@ class ApplicationAPI:
         # [impl->req~ring5.data.multi-dataset-workspace~1]
         self.state_manager.remove_dataset(name)
 
+    def update_selected_dataset(
+        self,
+        data: pd.DataFrame,
+        *,
+        operation: str,
+        source_datasets: tuple[str, ...] = (),
+    ) -> None:
+        """Replace the active data and snapshot it when a named dataset is selected."""
+        if not isinstance(data, pd.DataFrame):
+            raise TypeError("Updated workspace data must be a pandas DataFrame.")
+        self.state_manager.set_data(
+            data,
+            operation=operation,
+            source_datasets=source_datasets,
+        )
+
+    def get_dataset_lineage(self, name: str | None = None) -> DatasetLineage:
+        """Inspect immutable revisions and recovery state for a named dataset."""
+        # [impl->req~ring5.data.lineage-undo-redo~1]
+        return self.state_manager.get_dataset_lineage(name)
+
+    def get_dataset_revision(self, revision_id: str) -> pd.DataFrame:
+        """Return a defensive copy of an immutable dataset revision."""
+        # [impl->req~ring5.data.lineage-undo-redo~1]
+        return self.state_manager.get_dataset_revision(revision_id)
+
+    def undo_dataset(self, name: str | None = None) -> DatasetRevision:
+        """Restore the preceding revision of a named dataset."""
+        # [impl->req~ring5.data.lineage-undo-redo~1]
+        return self.state_manager.undo_dataset(name)
+
+    def redo_dataset(self, name: str | None = None) -> DatasetRevision:
+        """Reapply the most recently undone revision of a named dataset."""
+        # [impl->req~ring5.data.lineage-undo-redo~1]
+        return self.state_manager.redo_dataset(name)
+
+    def restore_dataset_revision(self, revision_id: str) -> DatasetRevision:
+        """Restore any retained intermediate revision by ID."""
+        # [impl->req~ring5.data.lineage-undo-redo~1]
+        return self.state_manager.restore_dataset_revision(revision_id)
+
     def append_datasets(
         self,
         dataset_names: Sequence[str],
@@ -207,7 +265,14 @@ class ApplicationAPI:
         # [impl->req~ring5.data.multi-dataset-workspace~1]
         frames = [self.state_manager.get_dataset(name) for name in dataset_names]
         result = self.managers.append_datasets(frames, join=join)
-        self.add_dataset(output_name, result, select=select, replace=replace)
+        self.add_dataset(
+            output_name,
+            result,
+            select=select,
+            replace=replace,
+            operation=f"Append datasets ({join})",
+            source_datasets=tuple(dataset_names),
+        )
         return result.copy(deep=True)
 
     def join_datasets(
@@ -233,7 +298,14 @@ class ApplicationAPI:
             how=how,
             suffixes=suffixes,
         )
-        self.add_dataset(output_name, result, select=select, replace=replace)
+        self.add_dataset(
+            output_name,
+            result,
+            select=select,
+            replace=replace,
+            operation=f"Join datasets ({how}) on {', '.join(on)}",
+            source_datasets=(left_name, right_name),
+        )
         return result.copy(deep=True)
 
     def compare_datasets(

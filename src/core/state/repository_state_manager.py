@@ -8,7 +8,14 @@ from typing import Any
 
 import pandas as pd
 
-from src.core.models import DatasetInfo, PlotProtocol, PortfolioData, RestoreReport
+from src.core.models import (
+    DatasetInfo,
+    DatasetLineage,
+    DatasetRevision,
+    PlotProtocol,
+    PortfolioData,
+    RestoreReport,
+)
 from src.core.models.data_models import (
     CsvPoolEntry,
     ParseVariableConfig,
@@ -51,7 +58,12 @@ class RepositoryStateManager:
         return self._session_repo.data_repo.get_data()
 
     def set_data(
-        self, data: pd.DataFrame | None, on_change: Callable[[], None] | None = None
+        self,
+        data: pd.DataFrame | None,
+        on_change: Callable[[], None] | None = None,
+        *,
+        operation: str = "Update dataset",
+        source_datasets: tuple[str, ...] = (),
     ) -> None:
         """Store source data and optionally invoke a change callback."""
         # Copy + enforce configuration-column dtypes via the shared ingestion
@@ -59,7 +71,12 @@ class RepositoryStateManager:
         if data is not None:
             data = self._session_repo.enforce_config_dtypes(data)
 
-        self._session_repo.data_repo.set_data(data, on_change)
+        self._session_repo.data_repo.set_data(
+            data,
+            on_change,
+            operation=operation,
+            source_datasets=source_datasets,
+        )
 
     def get_processed_data(self) -> pd.DataFrame | None:
         """Return the current processed data."""
@@ -97,6 +114,8 @@ class RepositoryStateManager:
         *,
         select: bool = True,
         replace: bool = False,
+        operation: str = "Add dataset",
+        source_datasets: tuple[str, ...] = (),
     ) -> DatasetInfo:
         """Retain a named dataset after applying shared dtype rules."""
         normalized = self._session_repo.enforce_config_dtypes(data)
@@ -105,6 +124,8 @@ class RepositoryStateManager:
             normalized,
             select=select,
             replace=replace,
+            operation=operation,
+            source_datasets=source_datasets,
         )
 
     def list_datasets(self) -> tuple[DatasetInfo, ...]:
@@ -126,6 +147,26 @@ class RepositoryStateManager:
     def selected_dataset_name(self) -> str | None:
         """Return the selected retained dataset name."""
         return self._session_repo.data_repo.selected_dataset_name()
+
+    def get_dataset_lineage(self, name: str | None = None) -> DatasetLineage:
+        """Return revision metadata and recovery capabilities for a dataset."""
+        return self._session_repo.data_repo.get_dataset_lineage(name)
+
+    def get_dataset_revision(self, revision_id: str) -> pd.DataFrame:
+        """Return a defensive copy of a retained revision snapshot."""
+        return self._session_repo.data_repo.get_dataset_revision(revision_id)
+
+    def undo_dataset(self, name: str | None = None) -> DatasetRevision:
+        """Restore the preceding revision of a named dataset."""
+        return self._session_repo.data_repo.undo_dataset(name)
+
+    def redo_dataset(self, name: str | None = None) -> DatasetRevision:
+        """Reapply the most recently undone dataset revision."""
+        return self._session_repo.data_repo.redo_dataset(name)
+
+    def restore_dataset_revision(self, revision_id: str) -> DatasetRevision:
+        """Restore an arbitrary retained dataset revision."""
+        return self._session_repo.data_repo.restore_dataset_revision(revision_id)
 
     # ==================== Config & Parser ====================
 
