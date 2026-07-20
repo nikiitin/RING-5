@@ -49,6 +49,11 @@ returns Welch confidence intervals and p-values, Hedges' g, deterministic bootst
 intervals, and sample-quality warnings. Confidence, alpha, bootstrap count, seed, and the
 small-sample threshold are explicit parameters. Invalid options raise `DataValidationError`.
 
+`Session.profile_data` returns an immutable `DataQualityReport` for a DataFrame or `ring5.Table`.
+Dataset counts remain scalar fields; `columns` contains immutable `ColumnQuality` records and
+`to_frame()` creates a new DataFrame for display or export. Optional expected types validate finite
+values without conflating invalid values with missing cells.
+
 `scan_limit=0` means exhaustive variable discovery up to the global 10,000-file ceiling; a positive
 value is an exact sample cap. A scan with any failed files raises `ScanError` at the public boundary;
 pass `strict=False` to `ScanJob.finalize` or `Session.scan` only when a documented partial result is

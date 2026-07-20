@@ -3211,11 +3211,25 @@
       "id": "data.quality-profiler",
       "group": "data-management",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Data quality profiler",
       "description": "The application shall profile missing values, duplicate rows, inferred types, constant columns, outliers, and schema violations before analysis.",
       "tags": ["data", "profiling", "quality"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/services/managers/quality_profile_service.py::QualityProfileService.profile",
+          "src/core/models/quality_models.py::DataQualityReport",
+          "src/core/models/quality_models.py::ColumnQuality",
+          "ring5/_session.py::Session.profile_data",
+          "src/web/components/data_managers/quality_profile.py::QualityProfileManager.render"
+        ],
+        "tests": [
+          "tests/unit/test_quality_profile_service.py::test_profile_reports_dataset_and_column_issues",
+          "tests/integration/test_ring5_public_api.py::TestDataQuality.test_profile_table",
+          "tests/e2e/test_data_managers.py::TestDataQualityProfile.test_profile_dataset"
+        ],
+        "documentation": ["docs/user-guide/workflows/managing-datasets.md#profile-data-quality"]
+      }
     },
     {
       "id": "data.validated-joins",
@@ -3852,8 +3866,10 @@
     },
     "public_exports": {
       "ColumnNotFoundError": "api.typed-errors",
+      "ColumnQuality": "data.quality-profiler",
       "DataLoadError": "api.typed-errors",
       "DataValidationError": "api.typed-errors",
+      "DataQualityReport": "data.quality-profiler",
       "DependencyMissingError": "api.typed-errors",
       "DependencyStatus": "api.doctor",
       "DoctorReport": "api.doctor",
@@ -3909,6 +3925,7 @@
       "parse": "ingestion.async-parse",
       "parse_submit": "ingestion.async-parse",
       "plot": "api.session",
+      "profile_data": "data.quality-profiler",
       "reduce_seeds": "data.seed-reduction",
       "remove_outliers": "data.outlier-removal",
       "render": "render.engine-selection",
@@ -3985,6 +4002,7 @@
       "compare": "analysis.regression-comparison",
       "compare_statistics": "analysis.statistical-comparison",
       "list_operators": "data.arithmetic",
+      "profile_data": "data.quality-profiler",
       "reduce_seeds": "data.seed-reduction",
       "remove_outliers": "data.outlier-removal",
       "validate_merge_inputs": "data.numeric-mixer",

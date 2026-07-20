@@ -246,6 +246,36 @@ class TestRegressionComparison:
                 )
 
 
+class TestDataQuality:
+    """Inspect dataset quality through the supported public API."""
+
+    def test_profile_table(self) -> None:
+        # [test->req~ring5.data.quality-profiler~1]
+        data = ring5.Table.from_rows(
+            [
+                {"value": "1", "label": "a"},
+                {"value": "bad", "label": "a"},
+            ]
+        )
+
+        with ring5.Session() as session:
+            report = session.profile_data(data, expected_types={"value": "numeric"})
+
+        assert isinstance(report, ring5.DataQualityReport)
+        assert isinstance(report.columns[0], ring5.ColumnQuality)
+        assert report.duplicate_rows == 0
+        assert report.schema_violations == 1
+        assert report.to_frame().loc[0, "invalid_type_values"] == 1
+
+    def test_invalid_expected_type_raises_typed_error(self) -> None:
+        with ring5.Session() as session:
+            with pytest.raises(ring5.DataValidationError, match="Invalid expected type"):
+                session.profile_data(
+                    pd.DataFrame({"value": [1]}),
+                    expected_types={"value": "currency"},  # type: ignore[dict-item]
+                )
+
+
 class TestPortfolioReplay:
     # [test->req~ring5.portfolio.batch-replay~1]
     """Save a session, regenerate every figure from the snapshot."""

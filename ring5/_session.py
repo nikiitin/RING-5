@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 import pandas as pd
 
 from src.core.application_api import ApplicationAPI
-from src.core.models import RestoreReport, ScanResult, StatConfig
+from src.core.models import DataQualityReport, RestoreReport, ScanResult, StatConfig
 from src.core.models.data_models import ParseVariableConfig
 from src.core.models.shaper_models import ShaperStepConfig
 from src.core.models.visualization.engine import EngineMode
@@ -384,6 +384,36 @@ class Session:
         if data is None:
             raise DataLoadError(f"Loading {csv_path!r} produced no data.")
         return data
+
+    def profile_data(
+        self,
+        data: "pd.DataFrame | Table",
+        *,
+        expected_types: (
+            Mapping[str, Literal["numeric", "integer", "boolean", "datetime", "string"]] | None
+        ) = None,
+    ) -> DataQualityReport:
+        """Inspect dataset completeness, consistency, outliers, and expected types.
+
+        Args:
+            data: DataFrame or :class:`ring5.Table` to inspect without mutation.
+            expected_types: Optional expected type for selected columns. Supported
+                values are ``numeric``, ``integer``, ``boolean``, ``datetime``,
+                and ``string``.
+
+        Returns:
+            An immutable :class:`ring5.DataQualityReport`. Call ``to_frame()``
+            for the ordered per-column measurements.
+
+        Raises:
+            DataValidationError: Column names or expected types are invalid.
+        """
+        # [impl->req~ring5.data.quality-profiler~1]
+        frame, _ = _unwrap_table(data)
+        try:
+            return self.api.managers.profile_data(frame, expected_types=expected_types)
+        except (TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
 
     def shape(
         self, data: "pd.DataFrame | Table", pipeline: list[ShaperStepConfig]

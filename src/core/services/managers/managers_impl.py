@@ -12,7 +12,9 @@ import pandas as pd
 from src.core.services.managers.arithmetic_service import ArithmeticService
 from src.core.services.managers.comparison_service import ComparisonService
 from src.core.services.managers.outlier_service import OutlierService
+from src.core.services.managers.quality_profile_service import QualityProfileService
 from src.core.services.managers.reduction_service import ReductionService
+from src.core.models.quality_models import DataQualityReport
 from src.core.services.managers.statistical_comparison_service import (
     StatisticalComparisonService,
 )
@@ -159,3 +161,14 @@ class DefaultManagersAPI:
             random_seed=random_seed,
             minimum_sample_size=minimum_sample_size,
         )
+
+    def profile_data(
+        self,
+        data: pd.DataFrame,
+        *,
+        expected_types: (
+            Mapping[str, Literal["numeric", "integer", "boolean", "datetime", "string"]] | None
+        ) = None,
+    ) -> DataQualityReport:
+        """Calculate dataset and per-column quality measurements."""
+        return QualityProfileService.profile(data, expected_types=expected_types)

@@ -11,6 +11,8 @@ from typing import Literal, Protocol, runtime_checkable
 
 import pandas as pd
 
+from src.core.models.quality_models import DataQualityReport
+
 
 @runtime_checkable
 class ManagersAPI(Protocol):
@@ -165,5 +167,24 @@ class ManagersAPI(Protocol):
 
         Returns:
             Long-form statistical comparison rows.
+        """
+        raise NotImplementedError
+
+    def profile_data(
+        self,
+        data: pd.DataFrame,
+        *,
+        expected_types: (
+            Mapping[str, Literal["numeric", "integer", "boolean", "datetime", "string"]] | None
+        ) = None,
+    ) -> DataQualityReport:
+        """Calculate dataset and per-column quality measurements.
+
+        Args:
+            data: Dataset to inspect without mutation.
+            expected_types: Optional column-to-type expectations.
+
+        Returns:
+            Immutable quality report with an ordered column profile.
         """
         raise NotImplementedError

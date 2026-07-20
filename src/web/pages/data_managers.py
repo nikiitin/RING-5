@@ -16,6 +16,7 @@ from src.web.components.data_managers.comparison import ComparisonManager
 from src.web.components.data_managers.mixer import MixerManager
 from src.web.components.data_managers.outlier_remover import OutlierRemoverManager
 from src.web.components.data_managers.preprocessor import PreprocessorManager
+from src.web.components.data_managers.quality_profile import QualityProfileManager
 
 # Import Sub-Managers
 from src.web.components.data_managers.seeds_reducer import SeedsReducerManager
@@ -37,7 +38,7 @@ def show_data_managers_page(api: ApplicationAPI) -> None:
 
     has_data: bool = api.state_manager.has_data()
 
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs(
         [
             "Summary",
             "Data Visualization",
@@ -46,6 +47,7 @@ def show_data_managers_page(api: ApplicationAPI) -> None:
             "Preprocessor",
             "Mixer",
             "Compare",
+            "Data Quality",
             "Operations History",
         ]
     )
@@ -119,4 +121,12 @@ def show_data_managers_page(api: ApplicationAPI) -> None:
         _comparison_fragment()
 
     with tab8:
+
+        @st.fragment
+        def _quality_fragment() -> None:
+            QualityProfileManager(api).render()
+
+        _quality_fragment()
+
+    with tab9:
         HistoryComponents.render_portfolio_history(api.get_portfolio_history())

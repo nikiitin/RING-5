@@ -314,6 +314,19 @@ class TestStatisticalComparison:
         expect(dm.comparison_confirm_button).to_be_visible(timeout=_E2E_TIMEOUT)
 
 
+@pytest.mark.xdist_group("e2e_data_managers_quality")
+class TestDataQualityProfile:
+    """Tier 1: Inspect quality measurements without changing the dataset."""
+
+    def test_profile_dataset(self, tier1_page: Page) -> None:
+        # [test->req~ring5.data.quality-profiler~1]
+        dm = DataManagersPage(tier1_page)
+        dm.navigate()
+        dm.select_tab("Data Quality")
+        dm.profile_data()
+        expect(dm.quality_schema_metric).to_be_visible(timeout=_E2E_TIMEOUT)
+
+
 # Operations History
 
 

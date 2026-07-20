@@ -1,6 +1,6 @@
 """Page Object for the Data Managers page.
 
-Covers all 8 tabs:
+Covers all 9 tabs:
 - Summary
 - Data Visualization
 - Seeds Reducer
@@ -8,6 +8,7 @@ Covers all 8 tabs:
 - Preprocessor
 - Mixer
 - Compare
+- Data Quality
 - Operations History
 """
 
@@ -31,6 +32,7 @@ class DataManagersPage(BasePage):
         "Preprocessor",
         "Mixer",
         "Compare",
+        "Data Quality",
         "Operations History",
     )
 
@@ -152,7 +154,7 @@ class DataManagersPage(BasePage):
         expect(self.no_data_warning).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
     def assert_tabs_visible(self) -> None:
-        """Assert all 8 tabs are present."""
+        """Assert all 9 tabs are present."""
         expect(self.tab_bar).to_be_visible(timeout=self.RENDER_TIMEOUT)
         for tab_name in self.TAB_NAMES:
             expect(self.get_tab(tab_name)).to_be_visible()
@@ -399,6 +401,23 @@ class DataManagersPage(BasePage):
     def apply_comparison(self) -> None:
         """Calculate the comparison and wait for the preview."""
         self.comparison_apply_button.click()
+        self.wait_for_streamlit()
+
+    # E2E: Data quality
+
+    @property
+    def quality_profile_button(self) -> Locator:
+        """Button that calculates the data-quality report."""
+        return self.page.get_by_role("button", name="Profile Dataset")
+
+    @property
+    def quality_schema_metric(self) -> Locator:
+        """Schema-violation summary metric."""
+        return self.page.locator("[data-testid='stMetric']").filter(has_text="Schema violations")
+
+    def profile_data(self) -> None:
+        """Calculate the data-quality report and wait for rendering."""
+        self.quality_profile_button.click()
         self.wait_for_streamlit()
 
     # E2E: Data Visualization tab

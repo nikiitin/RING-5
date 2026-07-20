@@ -924,7 +924,7 @@ Tags: data, status_proposed, workspace
 ### Data quality profiler
 
 `req~ring5.data.quality-profiler~1`
-Status: proposed
+Status: approved
 
 The application shall profile missing values, duplicate rows, inferred types, constant columns, outliers, and schema violations before analysis.
 
@@ -933,7 +933,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: data, profiling, quality, status_proposed
+Tags: data, profiling, quality, status_approved
 
 ### Validated dataset joins
 

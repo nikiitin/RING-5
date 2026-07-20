@@ -39,6 +39,44 @@ the filtered view for inspection; it does not redefine the active workspace tabl
 Before changing data, verify that configuration columns are categorical and statistics are numeric.
 An incorrect inferred type usually indicates inconsistent CSV values.
 
+## Profile data quality
+
+<!--
+`uman~ring5.data.quality-profiler.documentation~1`
+
+Covers:
+- req~ring5.data.quality-profiler~1
+
+-->
+
+Open **Data Quality** to inspect the active table without changing it. Select columns that are
+expected to contain numeric, boolean, datetime, or text values, then select **Profile Dataset**.
+The report includes:
+
+- missing cells and redundant duplicate rows;
+- inferred and stored column types;
+- unique values and constant columns;
+- infinite numeric values;
+- values outside the 1.5 × IQR bounds;
+- values that cannot be interpreted as the selected expected type.
+
+Missing expected columns are reported by the public API. Type validation ignores missing cells so
+missingness and invalid values remain separate counts. IQR outliers are screening results, not
+automatic exclusions; inspect the experiment design before removing them.
+
+```python
+report = session.profile_data(
+    data,
+    expected_types={
+        "ipc": "numeric",
+        "completed": "boolean",
+        "timestamp": "datetime",
+    },
+)
+print(report.duplicate_rows, report.schema_violations)
+column_profile = report.to_frame()
+```
+
 ## Preview and confirm changes
 
 <!--

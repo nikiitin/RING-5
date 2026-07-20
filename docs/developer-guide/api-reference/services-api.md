@@ -24,6 +24,10 @@ components preview a result before replacing workspace data. `compare_statistics
 rows within each grouping key as repeated samples and returns bounded deterministic inference
 results without storing service state.
 
+`profile_data` calculates duplicate, missing, constant, infinite, IQR-outlier, and expected-type
+measurements without mutating the input. It returns immutable records so presentation code cannot
+alter the report through a shared DataFrame.
+
 ## Data services
 
 <!--

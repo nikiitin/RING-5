@@ -71,6 +71,7 @@ if TYPE_CHECKING:
     # Static names for mypy/IDEs; at runtime these resolve via __getattr__.
     from src.core.models import RestoreReport, ScanResult, ScannedVariable, ShaperStepConfig
     from src.core.models.parsing_models import StatConfig
+    from src.core.models.quality_models import ColumnQuality, DataQualityReport
 
     from ring5._export import export_bytes, export_file
     from ring5._parse import ParseJob, ParseResult
@@ -106,6 +107,8 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "render_portfolio": ("ring5._portfolio", "render_portfolio"),
     "StatConfig": ("src.core.models.parsing_models", "StatConfig"),
     "RestoreReport": ("src.core.models", "RestoreReport"),
+    "ColumnQuality": ("src.core.models", "ColumnQuality"),
+    "DataQualityReport": ("src.core.models", "DataQualityReport"),
     "ShaperStepConfig": ("src.core.models", "ShaperStepConfig"),
     "available_shaper_types": ("ring5.shapers", "available_shaper_types"),
     # Self-contained figure-scripting surface (so scripts import only `ring5`):
@@ -163,6 +166,8 @@ __all__ = [
     "ScannedVariable",
     "ShaperStepConfig",
     "RestoreReport",
+    "ColumnQuality",
+    "DataQualityReport",
     "render_figure",
     "export_bytes",
     "export_file",
