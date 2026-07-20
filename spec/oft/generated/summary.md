@@ -7,11 +7,11 @@ This file is informative; normative items are in the other generated files.
 
 - Feature groups: 13
 - Detailed requirements: 216
-- Approved current requirements: 159
-- Proposed future requirements: 57
+- Approved current requirements: 160
+- Proposed future requirements: 56
 - Draft future requirements: 0
 - Generated specification items: 229
-- Live capability bindings: 558
+- Live capability bindings: 560
 
 ## Requirements by feature group
 
@@ -21,7 +21,7 @@ This file is informative; normative items are in the other generated files.
 | Data Ingestion and Parsing | 33 | 5 | 0 | 38 |
 | Dataset Management | 11 | 7 | 0 | 18 |
 | Per-Plot Data Shaping | 15 | 1 | 0 | 16 |
-| Comparison and Statistical Analysis | 1 | 2 | 0 | 3 |
+| Comparison and Statistical Analysis | 2 | 1 | 0 | 3 |
 | Plot Lifecycle | 7 | 6 | 0 | 13 |
 | Plot Types | 9 | 8 | 0 | 17 |
 | Figure Configuration | 26 | 4 | 0 | 30 |
@@ -48,7 +48,7 @@ This file is informative; normative items are in the other generated files.
 - `figure_spec_fields`: 58
 - `legend_config_fields`: 30
 - `legend_spacing_config_fields`: 7
-- `managers_api_members`: 9
+- `managers_api_members`: 10
 - `margin_config_fields`: 5
 - `matplotlib_formats`: 4
 - `navigation_pages`: 5
@@ -65,7 +65,7 @@ This file is informative; normative items are in the other generated files.
 - `scan_result_fields`: 3
 - `scanned_variable_fields`: 4
 - `series_style_config_fields`: 9
-- `session_methods`: 19
+- `session_methods`: 20
 - `settings_sections`: 7
 - `shaper_config_fields`: 13
 - `shaper_types`: 13

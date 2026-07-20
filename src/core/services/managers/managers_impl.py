@@ -13,6 +13,9 @@ from src.core.services.managers.arithmetic_service import ArithmeticService
 from src.core.services.managers.comparison_service import ComparisonService
 from src.core.services.managers.outlier_service import OutlierService
 from src.core.services.managers.reduction_service import ReductionService
+from src.core.services.managers.statistical_comparison_service import (
+    StatisticalComparisonService,
+)
 
 
 class DefaultManagersAPI:
@@ -129,4 +132,30 @@ class DefaultManagersAPI:
             threshold_mode=threshold_mode,
             baseline_name=baseline_name,
             candidate_name=candidate_name,
+        )
+
+    def compare_statistics(
+        self,
+        baseline: pd.DataFrame,
+        candidate: pd.DataFrame,
+        group_columns: Sequence[str],
+        metric_columns: Sequence[str],
+        *,
+        confidence_level: float = 0.95,
+        alpha: float = 0.05,
+        bootstrap_samples: int = 2_000,
+        random_seed: int = 0,
+        minimum_sample_size: int = 5,
+    ) -> pd.DataFrame:
+        """Calculate repeated-sample comparison statistics."""
+        return StatisticalComparisonService.compare(
+            baseline,
+            candidate,
+            group_columns,
+            metric_columns,
+            confidence_level=confidence_level,
+            alpha=alpha,
+            bootstrap_samples=bootstrap_samples,
+            random_seed=random_seed,
+            minimum_sample_size=minimum_sample_size,
         )

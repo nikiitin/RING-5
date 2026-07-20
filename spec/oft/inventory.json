@@ -3159,11 +3159,23 @@
       "id": "analysis.statistical-comparison",
       "group": "analysis",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Statistical comparison toolkit",
       "description": "Users shall calculate confidence intervals, effect sizes, bootstrap estimates, significance tests, and sample-count warnings for experiment comparisons.",
       "tags": ["analysis", "statistics"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/services/managers/statistical_comparison_service.py::StatisticalComparisonService.compare",
+          "ring5/_session.py::Session.compare_statistics",
+          "src/web/components/data_managers/comparison.py::ComparisonManager.render"
+        ],
+        "tests": [
+          "tests/unit/test_statistical_comparison_service.py::test_statistics_include_intervals_effect_bootstrap_and_significance",
+          "tests/integration/test_ring5_public_api.py::TestRegressionComparison.test_repeated_sample_statistics",
+          "tests/e2e/test_data_managers.py::TestStatisticalComparison.test_statistical_preview"
+        ],
+        "documentation": ["docs/user-guide/guides/compare-configurations.md#estimate-statistical-evidence"]
+      }
     },
     {
       "id": "analysis.regression-annotations",
@@ -3887,6 +3899,7 @@
       "apply_operation": "data.arithmetic",
       "close": "api.session",
       "compare": "analysis.regression-comparison",
+      "compare_statistics": "analysis.statistical-comparison",
       "create_plot": "plots.create-multiple",
       "export": "export.public-boundary",
       "export_bytes": "export.public-boundary",
@@ -3970,6 +3983,7 @@
       "apply_mixer": "data.numeric-mixer",
       "apply_operation": "data.arithmetic",
       "compare": "analysis.regression-comparison",
+      "compare_statistics": "analysis.statistical-comparison",
       "list_operators": "data.arithmetic",
       "reduce_seeds": "data.seed-reduction",
       "remove_outliers": "data.outlier-removal",

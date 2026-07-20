@@ -68,6 +68,51 @@ comparison = session.compare(
 )
 ```
 
+## Estimate statistical evidence
+
+<!--
+`uman~ring5.analysis.statistical-comparison.documentation~1`
+
+Covers:
+- req~ring5.analysis.statistical-comparison~1
+
+-->
+
+Select **Statistics** as the comparison method when each baseline and candidate group contains
+repeated observations. Alignment keys define independent groups; rows within each key are samples.
+Leave the keys empty to compare all observations together.
+
+For every key and metric, RING-5 reports:
+
+- finite sample counts and arithmetic means;
+- the candidate-minus-baseline mean difference and Welch confidence interval;
+- Hedges' g standardized effect size;
+- a two-sided Welch t-test p-value and the configured significance result;
+- a deterministic bootstrap estimate and percentile confidence interval;
+- warnings for missing groups, discarded non-finite values, insufficient samples, small samples,
+  and zero variance.
+
+The confidence level, significance level, bootstrap count, and small-sample warning threshold are
+configurable. Bootstrap counts are bounded from 100 to 50,000. Statistical significance does not
+measure practical importance; review the observed difference, interval, effect size, sample design,
+and warnings together.
+
+The equivalent public API accepts DataFrames or `ring5.Table` values:
+
+```python
+statistics = session.compare_statistics(
+    baseline_runs,
+    candidate_runs,
+    group_columns=["benchmark"],
+    metric_columns=["ipc"],
+    confidence_level=0.95,
+    alpha=0.05,
+    bootstrap_samples=2_000,
+    random_seed=0,
+    minimum_sample_size=5,
+)
+```
+
 ## Reduce repeated runs
 
 On **Data Managers**, open **Seeds Reducer**. Choose `seed` as **Column to reduce over**, group by

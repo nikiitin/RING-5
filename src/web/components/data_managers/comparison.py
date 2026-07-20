@@ -23,6 +23,7 @@ class ComparisonManager(DataManager):
     def render(self) -> None:
         """Render comparison controls and the current result."""
         # [impl->req~ring5.analysis.regression-comparison~1]
+        # [impl->req~ring5.analysis.statistical-comparison~1]
         st.markdown("### Compare Baseline and Candidate")
         st.info(
             "Select two experiment groups, the columns that align their rows, and the "
@@ -65,6 +66,16 @@ class ComparisonManager(DataManager):
                 key=WidgetKeyBuilder.manager_key("comparison", "candidate"),
             )
 
+        method_label = st.selectbox(
+            "Comparison method",
+            ["Threshold", "Statistics"],
+            help=(
+                "Threshold compares one aligned value per key. Statistics treats repeated rows "
+                "within each key as samples."
+            ),
+            key=WidgetKeyBuilder.manager_key("comparison", "method"),
+        )
+
         numeric_columns = [
             column
             for column in data.select_dtypes(include="number").columns
@@ -94,31 +105,80 @@ class ComparisonManager(DataManager):
             "Alignment keys",
             key_options,
             default=default_keys,
-            help="The selected columns must identify at most one row in each group.",
+            help=(
+                "Threshold comparison requires one row per key and experiment. Statistical "
+                "comparison groups repeated samples by these columns; leave empty for one "
+                "overall comparison."
+            ),
             key=WidgetKeyBuilder.manager_key("comparison", "keys"),
         )
 
-        direction_column, mode_column, threshold_column = st.columns(3)
-        with direction_column:
-            direction_label = st.selectbox(
-                "Preferred direction",
-                ["Higher is better", "Lower is better"],
-                key=WidgetKeyBuilder.manager_key("comparison", "direction"),
-            )
-        with mode_column:
-            mode_label = st.selectbox(
-                "Threshold unit",
-                ["Percentage", "Absolute"],
-                key=WidgetKeyBuilder.manager_key("comparison", "threshold_mode"),
-            )
-        with threshold_column:
-            threshold = float(
+        if method_label == "Threshold":
+            direction_column, mode_column, threshold_column = st.columns(3)
+            with direction_column:
+                direction_label = st.selectbox(
+                    "Preferred direction",
+                    ["Higher is better", "Lower is better"],
+                    key=WidgetKeyBuilder.manager_key("comparison", "direction"),
+                )
+            with mode_column:
+                mode_label = st.selectbox(
+                    "Threshold unit",
+                    ["Percentage", "Absolute"],
+                    key=WidgetKeyBuilder.manager_key("comparison", "threshold_mode"),
+                )
+            with threshold_column:
+                threshold = float(
+                    st.number_input(
+                        "Tolerance",
+                        min_value=0.0,
+                        value=0.0,
+                        step=0.1,
+                        key=WidgetKeyBuilder.manager_key("comparison", "threshold"),
+                    )
+                )
+        else:
+            confidence_column, alpha_column, samples_column = st.columns(3)
+            with confidence_column:
+                confidence_level = float(
+                    st.number_input(
+                        "Confidence level",
+                        min_value=0.5,
+                        max_value=0.999,
+                        value=0.95,
+                        step=0.01,
+                        key=WidgetKeyBuilder.manager_key("comparison", "confidence"),
+                    )
+                )
+            with alpha_column:
+                alpha = float(
+                    st.number_input(
+                        "Significance level",
+                        min_value=0.001,
+                        max_value=0.5,
+                        value=0.05,
+                        step=0.01,
+                        key=WidgetKeyBuilder.manager_key("comparison", "alpha"),
+                    )
+                )
+            with samples_column:
+                bootstrap_samples = int(
+                    st.number_input(
+                        "Bootstrap samples",
+                        min_value=100,
+                        max_value=50_000,
+                        value=2_000,
+                        step=100,
+                        key=WidgetKeyBuilder.manager_key("comparison", "bootstrap_samples"),
+                    )
+                )
+            minimum_sample_size = int(
                 st.number_input(
-                    "Tolerance",
-                    min_value=0.0,
-                    value=0.0,
-                    step=0.1,
-                    key=WidgetKeyBuilder.manager_key("comparison", "threshold"),
+                    "Small-sample warning below",
+                    min_value=2,
+                    value=5,
+                    step=1,
+                    key=WidgetKeyBuilder.manager_key("comparison", "minimum_sample_size"),
                 )
             )
 
@@ -129,23 +189,41 @@ class ComparisonManager(DataManager):
             type="primary",
             key=WidgetKeyBuilder.manager_key("comparison", "apply"),
         ):
-            if not key_columns or not metric_columns:
-                st.error("Select at least one alignment key and one metric.")
+            if not metric_columns or (method_label == "Threshold" and not key_columns):
+                st.error(
+                    "Select at least one metric and, for threshold comparison, one alignment key."
+                )
             else:
                 baseline = data.loc[data[group_column].eq(baseline_value)].copy()
                 candidate = data.loc[data[group_column].eq(candidate_value)].copy()
                 try:
-                    result = self.api.managers.compare(
-                        baseline,
-                        candidate,
-                        key_columns,
-                        metric_columns,
-                        directions="higher" if direction_label == "Higher is better" else "lower",
-                        thresholds=threshold,
-                        threshold_mode=("percentage" if mode_label == "Percentage" else "absolute"),
-                        baseline_name=str(baseline_value),
-                        candidate_name=str(candidate_value),
-                    )
+                    if method_label == "Threshold":
+                        result = self.api.managers.compare(
+                            baseline,
+                            candidate,
+                            key_columns,
+                            metric_columns,
+                            directions=(
+                                "higher" if direction_label == "Higher is better" else "lower"
+                            ),
+                            thresholds=threshold,
+                            threshold_mode=(
+                                "percentage" if mode_label == "Percentage" else "absolute"
+                            ),
+                            baseline_name=str(baseline_value),
+                            candidate_name=str(candidate_value),
+                        )
+                    else:
+                        result = self.api.managers.compare_statistics(
+                            baseline,
+                            candidate,
+                            key_columns,
+                            metric_columns,
+                            confidence_level=confidence_level,
+                            alpha=alpha,
+                            bootstrap_samples=bootstrap_samples,
+                            minimum_sample_size=minimum_sample_size,
+                        )
                 except (TypeError, ValueError) as exc:
                     st.error(str(exc))
                 else:
@@ -155,15 +233,25 @@ class ComparisonManager(DataManager):
         if preview is None:
             return
 
-        counts = preview["outcome"].value_counts()
         summary_columns = st.columns(4)
-        for container, label in zip(
-            summary_columns,
-            ("regression", "improvement", "unchanged", "not_comparable"),
-            strict=True,
-        ):
+        if "outcome" in preview:
+            counts = preview["outcome"].value_counts()
+            labels_and_values = [
+                (label.replace("_", " ").title(), int(counts.get(label, 0)))
+                for label in ("regression", "improvement", "unchanged", "not_comparable")
+            ]
+        else:
+            significant = int(preview["significant"].fillna(False).sum())
+            warnings = int(preview["warning"].ne("").sum())
+            labels_and_values = [
+                ("Comparisons", len(preview)),
+                ("Significant", significant),
+                ("Warnings", warnings),
+                ("Bootstrap samples", int(preview["bootstrap_samples"].max())),
+            ]
+        for container, (label, value) in zip(summary_columns, labels_and_values, strict=True):
             with container:
-                st.metric(label.replace("_", " ").title(), int(counts.get(label, 0)))
+                st.metric(label, value)
         st.dataframe(preview, width="stretch")
         st.download_button(
             "Download comparison CSV",
@@ -181,7 +269,9 @@ class ComparisonManager(DataManager):
             record: OperationRecord = {
                 "source_columns": [group_column] + list(key_columns) + list(metric_columns),
                 "dest_columns": list(preview.columns),
-                "operation": f"Compare {baseline_value} with {candidate_value}",
+                "operation": (
+                    f"{method_label} comparison: {baseline_value} with {candidate_value}"
+                ),
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
             self.api.add_manager_history_record(record)

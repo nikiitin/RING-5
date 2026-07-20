@@ -44,6 +44,11 @@ metric results. Directions and non-negative tolerances can be global or keyed by
 and absolute threshold modes are supported. Missing keys and non-finite values remain in the result;
 invalid columns, duplicate keys, and invalid options raise `DataValidationError`.
 
+`Session.compare_statistics` accepts repeated observations and optional grouping columns. It
+returns Welch confidence intervals and p-values, Hedges' g, deterministic bootstrap estimates and
+intervals, and sample-quality warnings. Confidence, alpha, bootstrap count, seed, and the
+small-sample threshold are explicit parameters. Invalid options raise `DataValidationError`.
+
 `scan_limit=0` means exhaustive variable discovery up to the global 10,000-file ceiling; a positive
 value is an exact sample cap. A scan with any failed files raises `ScanError` at the public boundary;
 pass `strict=False` to `ScanJob.finalize` or `Session.scan` only when a documented partial result is

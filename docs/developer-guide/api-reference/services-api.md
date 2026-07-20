@@ -20,7 +20,9 @@ Concrete implementations compose smaller services; callers depend on the protoco
 `ManagersAPI` validates and runs arithmetic, column mixing, IQR outlier removal, repeated-run
 reduction, and aligned baseline comparison. Operations accept DataFrames and return new DataFrames.
 Comparison requires unique keys in each input and retains unmatched rows with explicit outcomes. UI
-components preview a result before replacing workspace data.
+components preview a result before replacing workspace data. `compare_statistics` instead treats
+rows within each grouping key as repeated samples and returns bounded deterministic inference
+results without storing service state.
 
 ## Data services
 

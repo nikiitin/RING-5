@@ -136,3 +136,34 @@ class ManagersAPI(Protocol):
             Long-form comparison rows with changes and outcomes.
         """
         raise NotImplementedError
+
+    def compare_statistics(
+        self,
+        baseline: pd.DataFrame,
+        candidate: pd.DataFrame,
+        group_columns: Sequence[str],
+        metric_columns: Sequence[str],
+        *,
+        confidence_level: float = 0.95,
+        alpha: float = 0.05,
+        bootstrap_samples: int = 2_000,
+        random_seed: int = 0,
+        minimum_sample_size: int = 5,
+    ) -> pd.DataFrame:
+        """Calculate repeated-sample comparison statistics.
+
+        Args:
+            baseline: Reference observations.
+            candidate: Candidate observations.
+            group_columns: Columns defining independent comparison groups.
+            metric_columns: Numeric measurements to compare.
+            confidence_level: Two-sided confidence level.
+            alpha: Significance threshold for the Welch test.
+            bootstrap_samples: Number of deterministic resamples.
+            random_seed: Seed used for resampling.
+            minimum_sample_size: Per-side count below which warnings are emitted.
+
+        Returns:
+            Long-form statistical comparison rows.
+        """
+        raise NotImplementedError

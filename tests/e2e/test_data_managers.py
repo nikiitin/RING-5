@@ -284,6 +284,36 @@ class TestRegressionComparison:
         expect(dm.comparison_confirm_button).to_be_visible(timeout=_E2E_TIMEOUT)
 
 
+@pytest.mark.xdist_group("e2e_data_managers_statistics")
+class TestStatisticalComparison:
+    """Tier 1: Compare repeated samples for two configurations."""
+
+    def test_statistical_preview(self, tier1_page: Page) -> None:
+        # [test->req~ring5.analysis.statistical-comparison~1]
+        dm = DataManagersPage(tier1_page)
+        dm.navigate()
+        dm.select_tab("Compare")
+        _select_dropdown_option(
+            tier1_page,
+            dm.comparison_group_selectbox,
+            "config_description",
+        )
+        dm.wait_for_streamlit()
+        _select_dropdown_option(
+            tier1_page,
+            dm.comparison_method_selectbox,
+            "Statistics",
+        )
+        dm.wait_for_streamlit()
+        _add_multiselect_option(tier1_page, dm.comparison_metrics_multiselect, "system.cpu.ipc")
+        dm.wait_for_streamlit()
+        _add_multiselect_option(tier1_page, dm.comparison_keys_multiselect, "benchmark_name")
+        tier1_page.keyboard.press("Escape")
+        dm.wait_for_streamlit()
+        dm.apply_comparison()
+        expect(dm.comparison_confirm_button).to_be_visible(timeout=_E2E_TIMEOUT)
+
+
 # Operations History
 
 

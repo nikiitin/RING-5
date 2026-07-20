@@ -372,6 +372,11 @@ class DataManagersPage(BasePage):
         return self._by_label("stSelectbox", "Experiment column")
 
     @property
+    def comparison_method_selectbox(self) -> Locator:
+        """Threshold or statistical comparison selector."""
+        return self._by_label("stSelectbox", "Comparison method")
+
+    @property
     def comparison_metrics_multiselect(self) -> Locator:
         """Metrics selected for comparison."""
         return self._by_label("stMultiSelect", "Metrics")

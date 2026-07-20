@@ -517,6 +517,71 @@ class Session:
             return _rewrap_table(result)
         return result
 
+    def compare_statistics(
+        self,
+        baseline: "pd.DataFrame | Table",
+        candidate: "pd.DataFrame | Table",
+        group_columns: Sequence[str],
+        metric_columns: Sequence[str],
+        *,
+        confidence_level: float = 0.95,
+        alpha: float = 0.05,
+        bootstrap_samples: int = 2_000,
+        random_seed: int = 0,
+        minimum_sample_size: int = 5,
+    ) -> "pd.DataFrame | Table":
+        """Calculate statistics for repeated baseline and candidate samples.
+
+        Results include per-side sample counts and means, a Welch confidence
+        interval and p-value, Hedges' g, a deterministic bootstrap estimate and
+        interval, and explicit sample-quality warnings. A :class:`ring5.Table`
+        is returned when both inputs are tables.
+
+        Args:
+            baseline: Reference observations.
+            candidate: Candidate observations.
+            group_columns: Columns defining independent comparison groups. An
+                empty sequence compares all observations together.
+            metric_columns: Numeric measurements to compare.
+            confidence_level: Two-sided confidence level between zero and one.
+            alpha: P-value threshold used for the significance result.
+            bootstrap_samples: Deterministic resample count from 100 to 50,000.
+            random_seed: Non-negative resampling seed.
+            minimum_sample_size: Per-side count below which a warning is emitted.
+
+        Returns:
+            Long-form statistical results. The output is a :class:`ring5.Table`
+            only when both inputs are tables.
+
+        Raises:
+            ColumnNotFoundError: A grouping or metric column is absent.
+            DataValidationError: Inputs or statistical options are invalid.
+        """
+        # [impl->req~ring5.analysis.statistical-comparison~1]
+        baseline_frame, baseline_was_table = _unwrap_table(baseline)
+        candidate_frame, candidate_was_table = _unwrap_table(candidate)
+        groups = list(group_columns)
+        metrics = list(metric_columns)
+        _require_columns(baseline_frame, groups + metrics)
+        _require_columns(candidate_frame, groups + metrics)
+        try:
+            result = self.api.managers.compare_statistics(
+                baseline_frame,
+                candidate_frame,
+                groups,
+                metrics,
+                confidence_level=confidence_level,
+                alpha=alpha,
+                bootstrap_samples=bootstrap_samples,
+                random_seed=random_seed,
+                minimum_sample_size=minimum_sample_size,
+            )
+        except (TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+        if baseline_was_table and candidate_was_table:
+            return _rewrap_table(result)
+        return result
+
     def remove_outliers(
         self,
         data: "pd.DataFrame | Table",

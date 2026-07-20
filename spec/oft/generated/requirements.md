@@ -1236,7 +1236,7 @@ Tags: analysis, comparison, regression, status_approved
 ### Statistical comparison toolkit
 
 `req~ring5.analysis.statistical-comparison~1`
-Status: proposed
+Status: approved
 
 Users shall calculate confidence intervals, effect sizes, bootstrap estimates, significance tests, and sample-count warnings for experiment comparisons.
 
@@ -1245,7 +1245,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: analysis, statistics, status_proposed
+Tags: analysis, statistics, status_approved
 
 ### Regression annotations
 

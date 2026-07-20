@@ -190,6 +190,61 @@ class TestRegressionComparison:
             with pytest.raises(ring5.DataValidationError, match="not unique"):
                 session.compare(baseline, candidate, ["benchmark"], ["ipc"])
 
+    def test_repeated_sample_statistics(self) -> None:
+        # [test->req~ring5.analysis.statistical-comparison~1]
+        baseline = ring5.Table.from_rows(
+            [
+                {"benchmark": "a", "ipc": 1.0},
+                {"benchmark": "a", "ipc": 1.1},
+                {"benchmark": "a", "ipc": 0.9},
+            ]
+        )
+        candidate = ring5.Table.from_rows(
+            [
+                {"benchmark": "a", "ipc": 1.5},
+                {"benchmark": "a", "ipc": 1.6},
+                {"benchmark": "a", "ipc": 1.4},
+            ]
+        )
+
+        with ring5.Session() as session:
+            result = session.compare_statistics(
+                baseline,
+                candidate,
+                ["benchmark"],
+                ["ipc"],
+                bootstrap_samples=100,
+                random_seed=4,
+            )
+
+        assert isinstance(result, ring5.Table)
+        row = result.rows()[0]
+        assert row["baseline_n"] == 3
+        assert row["candidate_n"] == 3
+        assert row["mean_difference"] == pytest.approx(0.5)
+
+    def test_invalid_statistics_raise_typed_error(self) -> None:
+        baseline = pd.DataFrame({"ipc": [1.0, 2.0]})
+        candidate = pd.DataFrame({"ipc": [2.0, 3.0]})
+
+        with ring5.Session() as session:
+            valid = session.compare_statistics(
+                baseline,
+                candidate,
+                [],
+                ["ipc"],
+                bootstrap_samples=100,
+            )
+            assert isinstance(valid, pd.DataFrame)
+            with pytest.raises(ring5.DataValidationError, match="confidence_level"):
+                session.compare_statistics(
+                    baseline,
+                    candidate,
+                    [],
+                    ["ipc"],
+                    confidence_level=1.0,
+                )
+
 
 class TestPortfolioReplay:
     # [test->req~ring5.portfolio.batch-replay~1]
