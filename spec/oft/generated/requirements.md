@@ -980,7 +980,7 @@ Tags: data, metadata, status_proposed, units
 ### Reusable dataset snapshots
 
 `req~ring5.data.dataset-snapshots~1`
-Status: proposed
+Status: approved
 
 Users shall save and reload fingerprinted dataset snapshots without repeating unchanged parsing and transformation work.
 
@@ -989,7 +989,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: caching, data, snapshots, status_proposed
+Tags: caching, data, snapshots, status_approved
 
 ## Per-Plot Data Shaping
 

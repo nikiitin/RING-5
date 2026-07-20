@@ -19,6 +19,22 @@ class DatasetInfo:
 
 
 @dataclass(frozen=True, slots=True)
+class DatasetSnapshotInfo:
+    """Inspectable metadata for one reusable, fingerprinted dataset snapshot."""
+
+    # [impl->req~ring5.data.dataset-snapshots~1]
+
+    name: str
+    source_dataset: str
+    created_at: str
+    row_count: int
+    column_count: int
+    fingerprint: str
+    size_bytes: int
+    format_version: int
+
+
+@dataclass(frozen=True, slots=True)
 class DatasetRevision:
     """Inspectable metadata for one immutable dataset state."""
 

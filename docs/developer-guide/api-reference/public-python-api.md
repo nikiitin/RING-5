@@ -82,6 +82,13 @@ including duplicate rows and groups on each side, unmatched input rows, and matc
 `join_datasets_validated` repeats that validation immediately before joining, refuses incompatible
 cardinality without storing output, and returns `(DataFrame, JoinDiagnostics)` on success.
 
+`Session.save_dataset_snapshot` persists the selected, active, or explicitly named dataset in a
+versioned non-executable archive. `list_dataset_snapshots` reads immutable `DatasetSnapshotInfo`
+metadata without decoding table payloads. `load_dataset_snapshot` verifies the compressed payload
+checksum and the reconstructed dataframe fingerprint before retaining it as a named dataset;
+`delete_dataset_snapshot` removes one local cache entry. Snapshot storage follows `RING5_DATA_DIR`,
+so separate processes can deliberately share the same catalog.
+
 `scan_limit=0` means exhaustive variable discovery up to the global 10,000-file ceiling; a positive
 value is an exact sample cap. A scan with any failed files raises `ScanError` at the public boundary;
 pass `strict=False` to `ScanJob.finalize` or `Session.scan` only when a documented partial result is

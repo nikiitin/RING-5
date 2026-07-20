@@ -17,6 +17,7 @@ from src.core.models import (
     DatasetInfo,
     DatasetLineage,
     DatasetRevision,
+    DatasetSnapshotInfo,
     DatasetSchemaContract,
     JoinCardinality,
     JoinDiagnostics,
@@ -572,6 +573,85 @@ class Session:
         try:
             return self.api.restore_dataset_revision(revision_id)
         except (KeyError, TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def list_dataset_snapshots(self) -> tuple[DatasetSnapshotInfo, ...]:
+        """List reusable local dataset snapshots without decoding their tables."""
+        # [impl->req~ring5.data.dataset-snapshots~1]
+        return self.api.list_dataset_snapshots()
+
+    def save_dataset_snapshot(
+        self,
+        name: str,
+        dataset_name: str | None = None,
+        *,
+        overwrite: bool = False,
+    ) -> DatasetSnapshotInfo:
+        """Persist a fingerprinted dataset for reuse in a later session.
+
+        Args:
+            name: Local snapshot name.
+            dataset_name: Named dataset to save, or the selected/active data when omitted.
+            overwrite: Permit replacing an existing snapshot of the same name.
+
+        Returns:
+            Immutable metadata including dimensions and the verified content fingerprint.
+
+        Raises:
+            DataValidationError: The dataset, name, or snapshot contents are invalid.
+        """
+        # [impl->req~ring5.data.dataset-snapshots~1]
+        try:
+            return self.api.save_dataset_snapshot(
+                name,
+                dataset_name,
+                overwrite=overwrite,
+            )
+        except (FileExistsError, KeyError, OSError, TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def load_dataset_snapshot(
+        self,
+        name: str,
+        dataset_name: str | None = None,
+        *,
+        select: bool = True,
+        replace: bool = False,
+    ) -> DatasetInfo:
+        """Verify and load a reusable snapshot into the named workspace.
+
+        Args:
+            name: Saved snapshot name.
+            dataset_name: Output workspace name; defaults to the recorded source name.
+            select: Make the restored dataset active.
+            replace: Permit replacement of an existing workspace dataset.
+
+        Raises:
+            DataValidationError: The snapshot is absent, corrupt, or conflicts with the workspace.
+        """
+        # [impl->req~ring5.data.dataset-snapshots~1]
+        try:
+            return self.api.load_dataset_snapshot(
+                name,
+                dataset_name,
+                select=select,
+                replace=replace,
+            )
+        except (FileNotFoundError, KeyError, OSError, TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def delete_dataset_snapshot(self, name: str) -> None:
+        """Delete one reusable local dataset snapshot.
+
+        Args:
+            name: Saved snapshot name.
+
+        Raises:
+            DataValidationError: The snapshot name is invalid or deletion fails.
+        """
+        try:
+            self.api.delete_dataset_snapshot(name)
+        except (OSError, TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
 
     def append_datasets(

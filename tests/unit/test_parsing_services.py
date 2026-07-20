@@ -260,6 +260,13 @@ class TestPathService:
             assert portfolios_dir.exists()
             assert portfolios_dir == tmp_path / ".ring5" / "portfolios"
 
+    def test_get_dataset_snapshots_dir_creates_directory(self, tmp_path: Path) -> None:
+        # [test->req~ring5.data.dataset-snapshots~1]
+        with patch.object(PathService, "get_root_dir", return_value=tmp_path):
+            snapshots_dir = PathService.get_dataset_snapshots_dir()
+            assert snapshots_dir.exists()
+            assert snapshots_dir == tmp_path / ".ring5" / "dataset_snapshots"
+
     def test_directories_are_idempotent(self, tmp_path: Path) -> None:
         """Calling get_*_dir twice doesn't fail."""
         with patch.object(PathService, "get_root_dir", return_value=tmp_path):

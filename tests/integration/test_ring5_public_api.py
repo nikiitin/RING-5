@@ -587,6 +587,77 @@ class TestDatasetLineageAndRecovery:
                 session.restore_dataset_revision("missing")
 
 
+class TestReusableDatasetSnapshots:
+    """Persist exact dataset contents and verify them in a later session."""
+
+    def test_save_list_reload_overwrite_and_delete(self, tmp_path: Path) -> None:
+        # [test->req~ring5.data.dataset-snapshots~1]
+        snapshots_dir = tmp_path / "dataset_snapshots"
+        snapshots_dir.mkdir()
+        data = pd.DataFrame(
+            {
+                "benchmark": pd.Series(["a", "b"], dtype="string"),
+                "ipc": [1.0, 2.0],
+                "updated": pd.to_datetime(["2026-01-01", "2026-01-02"], utc=True),
+            }
+        )
+        from unittest.mock import patch
+
+        from src.core.services.data_services.path_service import PathService
+
+        with patch.object(
+            PathService,
+            "get_dataset_snapshots_dir",
+            return_value=snapshots_dir,
+        ):
+            with ring5.Session() as first:
+                first.api.state_manager.set_data(data)
+                saved = first.save_dataset_snapshot("parsed-once")
+                assert isinstance(saved, ring5.DatasetSnapshotInfo)
+                assert saved.source_dataset == "active_data"
+                assert first.list_dataset_snapshots() == (saved,)
+                with pytest.raises(ring5.DataValidationError, match="already exists"):
+                    first.save_dataset_snapshot("parsed-once")
+                first.save_dataset_snapshot("parsed-once", overwrite=True)
+
+            with ring5.Session() as second:
+                restored = second.load_dataset_snapshot(
+                    "parsed-once",
+                    "restored-results",
+                )
+                assert isinstance(restored, ring5.DatasetInfo)
+                pd.testing.assert_frame_equal(second.get_dataset(), data)
+                revision = second.dataset_lineage().revisions[0]
+                assert revision.fingerprint == saved.fingerprint
+                assert revision.operation == "Load reusable snapshot: parsed-once"
+                with pytest.raises(ring5.DataValidationError, match="does not exist"):
+                    second.load_dataset_snapshot("missing")
+
+                second.delete_dataset_snapshot("parsed-once")
+                assert second.list_dataset_snapshots() == ()
+                with pytest.raises(ring5.DataValidationError, match="non-empty"):
+                    second.delete_dataset_snapshot("")
+
+    def test_save_named_dataset_defaults_loaded_name(self, tmp_path: Path) -> None:
+        snapshots_dir = tmp_path / "dataset_snapshots"
+        snapshots_dir.mkdir()
+        from unittest.mock import patch
+
+        from src.core.services.data_services.path_service import PathService
+
+        with patch.object(
+            PathService,
+            "get_dataset_snapshots_dir",
+            return_value=snapshots_dir,
+        ):
+            with ring5.Session() as session:
+                session.add_dataset("named-source", pd.DataFrame({"value": [7]}))
+                session.save_dataset_snapshot("named", "named-source")
+                session.remove_dataset("named-source")
+                restored = session.load_dataset_snapshot("named")
+                assert restored.name == "named-source"
+
+
 class TestPortfolioReplay:
     # [test->req~ring5.portfolio.batch-replay~1]
     """Save a session, regenerate every figure from the snapshot."""

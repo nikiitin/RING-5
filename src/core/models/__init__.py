@@ -39,6 +39,7 @@ from src.core.models.dataset_workspace_models import (
     DatasetInfo,
     DatasetLineage,
     DatasetRevision,
+    DatasetSnapshotInfo,
     JoinCardinality,
     JoinDiagnostics,
 )
@@ -78,6 +79,7 @@ __all__ = [
     "DatasetInfo",
     "DatasetLineage",
     "DatasetRevision",
+    "DatasetSnapshotInfo",
     "DatasetSchemaContract",
     "ItemSelectorConfig",
     "JoinDiagnostics",

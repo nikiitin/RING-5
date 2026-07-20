@@ -435,6 +435,31 @@ class DataManagersPage(BasePage):
         return self.workspace_dataset_metric.locator("[data-testid='stMetricValue']")
 
     @property
+    def workspace_snapshots_panel(self) -> Locator:
+        """Persistent dataset snapshot controls."""
+        return self.page.get_by_text("Reusable dataset snapshots", exact=True)
+
+    @property
+    def workspace_snapshot_name_input(self) -> Locator:
+        """Local reusable snapshot name."""
+        return self.page.get_by_role("textbox", name="Snapshot name", exact=True)
+
+    @property
+    def workspace_snapshot_save_button(self) -> Locator:
+        """Save the selected dataset as a reusable snapshot."""
+        return self.page.get_by_role("button", name="Save Reusable Snapshot")
+
+    @property
+    def workspace_snapshot_output_input(self) -> Locator:
+        """Workspace dataset name for a loaded snapshot."""
+        return self.page.get_by_role("textbox", name="Loaded dataset name", exact=True)
+
+    @property
+    def workspace_snapshot_load_button(self) -> Locator:
+        """Verify and load the selected reusable snapshot."""
+        return self.page.get_by_role("button", name="Verify and Load Snapshot")
+
+    @property
     def workspace_lineage_panel(self) -> Locator:
         """Expanded lineage and recovery panel for the selected dataset."""
         return self.page.get_by_text("Lineage & recovery", exact=True)
@@ -503,6 +528,33 @@ class DataManagersPage(BasePage):
         """Retain the active dataset under ``name`` and wait for rerendering."""
         self.workspace_name_input.fill(name)
         self.workspace_retain_button.click()
+        self.wait_for_streamlit()
+
+    def open_workspace_snapshots(self) -> None:
+        """Expand the reusable snapshot controls when collapsed."""
+        if not self.workspace_snapshot_name_input.is_visible():
+            self.workspace_snapshots_panel.click()
+            expect(self.workspace_snapshot_name_input).to_be_visible()
+        self.page.wait_for_timeout(300)
+
+    def save_workspace_snapshot(self, name: str) -> None:
+        """Save the selected workspace dataset and wait for rerendering."""
+        self.open_workspace_snapshots()
+        self.workspace_snapshot_name_input.fill(name)
+        self.page.keyboard.press("Tab")
+        self.wait_for_streamlit()
+        self.open_workspace_snapshots()
+        self.workspace_snapshot_save_button.click()
+        self.wait_for_streamlit()
+
+    def load_workspace_snapshot(self, dataset_name: str) -> None:
+        """Verify the selected snapshot, load it, and wait for rerendering."""
+        self.open_workspace_snapshots()
+        self.workspace_snapshot_output_input.fill(dataset_name)
+        self.page.keyboard.press("Tab")
+        self.wait_for_streamlit()
+        self.open_workspace_snapshots()
+        self.workspace_snapshot_load_button.click()
         self.wait_for_streamlit()
 
     def undo_workspace_dataset(self) -> None:

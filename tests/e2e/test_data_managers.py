@@ -356,6 +356,22 @@ class TestNamedDatasetWorkspace:
         dm.redo_workspace_dataset()
         expect(dm.workspace_undo_button).to_be_enabled(timeout=_E2E_TIMEOUT)
 
+    def test_save_and_reload_verified_dataset_snapshot(self, tier1_page: Page) -> None:
+        # [test->req~ring5.data.dataset-snapshots~1]
+        dm = DataManagersPage(tier1_page)
+        dm.navigate()
+        dm.select_tab("Workspace")
+        dm.retain_current_dataset("snapshot_source")
+        before_count = int(dm.workspace_dataset_metric_value.inner_text())
+
+        dm.save_workspace_snapshot("tier1_reusable_snapshot")
+        dm.load_workspace_snapshot("snapshot_restored")
+
+        expect(dm.workspace_dataset_metric_value).to_have_text(
+            str(before_count + 1),
+            timeout=_E2E_TIMEOUT,
+        )
+
     def test_join_cardinality_diagnostics_gate_output(self, tier1_page: Page) -> None:
         # [test->req~ring5.data.validated-joins~1]
         dm = DataManagersPage(tier1_page)

@@ -1,8 +1,8 @@
 """
 Default implementation of the DataServicesAPI protocol.
 
-Delegates to CsvPoolService, ConfigService, VariableService,
-and PortfolioService.
+Delegates to CsvPoolService, ConfigService, DatasetSnapshotService,
+VariableService, and PortfolioService.
 """
 
 from collections.abc import Callable
@@ -10,7 +10,7 @@ from typing import Any
 
 import pandas as pd
 
-from src.core.models import PlotProtocol, PortfolioData
+from src.core.models import DatasetSnapshotInfo, PlotProtocol, PortfolioData
 from src.core.models.data_models import (
     CacheStatsInfo,
     CsvPoolEntry,
@@ -22,6 +22,7 @@ from src.core.models.data_models import (
 from src.core.models.shaper_models import ShaperStepConfig
 from src.core.services.data_services.config_service import ConfigService
 from src.core.services.data_services.csv_pool_service import CsvPoolService
+from src.core.services.data_services.dataset_snapshot_service import DatasetSnapshotService
 from src.core.services.data_services.portfolio_service import PortfolioService
 from src.core.services.data_services.variable_service import VariableService
 from src.core.state.state_manager import StateManager
@@ -30,8 +31,8 @@ from src.core.state.state_manager import StateManager
 class DefaultDataServicesAPI:
     """Default implementation of DataServicesAPI.
 
-    Delegates to CsvPoolService, ConfigService, VariableService,
-    and PortfolioService.
+    Delegates to CsvPoolService, ConfigService, DatasetSnapshotService,
+    VariableService, and PortfolioService.
     """
 
     def __init__(self, state_manager: StateManager) -> None:
@@ -89,6 +90,36 @@ class DefaultDataServicesAPI:
     def clear_caches(self) -> None:
         """Clear all CSV pool caches."""
         CsvPoolService.clear_caches()
+
+    # -- Reusable Dataset Snapshots --
+
+    def list_dataset_snapshots(self) -> tuple[DatasetSnapshotInfo, ...]:
+        """List locally saved dataset snapshots without loading payloads."""
+        return DatasetSnapshotService.list_snapshots()
+
+    def save_dataset_snapshot(
+        self,
+        name: str,
+        data: pd.DataFrame,
+        *,
+        source_dataset: str,
+        overwrite: bool = False,
+    ) -> DatasetSnapshotInfo:
+        """Persist an exact fingerprinted dataset snapshot."""
+        return DatasetSnapshotService.save_snapshot(
+            name,
+            data,
+            source_dataset=source_dataset,
+            overwrite=overwrite,
+        )
+
+    def load_dataset_snapshot(self, name: str) -> tuple[DatasetSnapshotInfo, pd.DataFrame]:
+        """Load and verify a fingerprinted dataset snapshot."""
+        return DatasetSnapshotService.load_snapshot(name)
+
+    def delete_dataset_snapshot(self, name: str) -> None:
+        """Delete one locally saved dataset snapshot."""
+        DatasetSnapshotService.delete_snapshot(name)
 
     # -- Variable Management --
 

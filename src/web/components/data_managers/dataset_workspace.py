@@ -8,7 +8,7 @@ import pandas as pd
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
-from src.core.models.dataset_workspace_models import JoinCardinality
+from src.core.models.dataset_workspace_models import DatasetInfo, JoinCardinality
 from src.web.state.ui_state_manager import WidgetKeyBuilder
 
 _COMPARISON_PREVIEW = "workspace_dataset_comparison"
@@ -51,6 +51,7 @@ class DatasetWorkspaceManager:
                 st.rerun(scope="app")
 
         infos = self.api.list_datasets()
+        self._render_snapshots(infos)
         if not infos:
             st.caption("No named datasets yet. Retain the current data to start the workspace.")
             return
@@ -112,6 +113,105 @@ class DatasetWorkspaceManager:
             self._render_join(names)
         else:
             self._render_append(names)
+
+    def _render_snapshots(self, infos: tuple[DatasetInfo, ...]) -> None:
+        """Render persistent save and verified reload controls."""
+        # [impl->req~ring5.data.dataset-snapshots~1]
+        snapshots = self.api.list_dataset_snapshots()
+        with st.expander("Reusable dataset snapshots", expanded=True):
+            st.caption(
+                "Save an exact table once and reload it in a later session without parsing or "
+                "repeating transformations. RING-5 verifies its checksum and content fingerprint "
+                "before loading it."
+            )
+            if infos:
+                dataset_names = [str(info.name) for info in infos]
+                source_name = str(
+                    st.selectbox(
+                        "Dataset to snapshot",
+                        dataset_names,
+                        key=WidgetKeyBuilder.manager_key("workspace", "snapshot_source"),
+                    )
+                )
+                snapshot_name = st.text_input(
+                    "Snapshot name",
+                    value=f"{source_name}_snapshot",
+                    key=WidgetKeyBuilder.manager_key("workspace", "snapshot_name"),
+                )
+                overwrite = st.checkbox(
+                    "Replace an existing snapshot with this name",
+                    key=WidgetKeyBuilder.manager_key("workspace", "snapshot_overwrite"),
+                )
+                if st.button(
+                    "Save Reusable Snapshot",
+                    key=WidgetKeyBuilder.manager_key("workspace", "snapshot_save"),
+                ):
+                    try:
+                        saved = self.api.save_dataset_snapshot(
+                            snapshot_name,
+                            source_name,
+                            overwrite=overwrite,
+                        )
+                    except (KeyError, OSError, TypeError, ValueError) as exc:
+                        st.error(str(exc))
+                    else:
+                        st.toast(f"Saved {saved.name} ({saved.fingerprint[:21]}…)")
+                        st.rerun(scope="app")
+            else:
+                st.caption("Load a saved snapshot below, or retain active data before saving one.")
+
+            if not snapshots:
+                st.info("No reusable dataset snapshots have been saved yet.")
+                return
+            st.dataframe(
+                pd.DataFrame(
+                    {
+                        "Snapshot": [snapshot.name for snapshot in snapshots],
+                        "Saved from": [snapshot.source_dataset for snapshot in snapshots],
+                        "Rows": [snapshot.row_count for snapshot in snapshots],
+                        "Columns": [snapshot.column_count for snapshot in snapshots],
+                        "Fingerprint": [snapshot.fingerprint for snapshot in snapshots],
+                        "Size (KiB)": [
+                            round(snapshot.size_bytes / 1024, 1) for snapshot in snapshots
+                        ],
+                    }
+                ),
+                width="stretch",
+                hide_index=True,
+            )
+            selected_snapshot_name = str(
+                st.selectbox(
+                    "Saved snapshot",
+                    [snapshot.name for snapshot in snapshots],
+                    key=WidgetKeyBuilder.manager_key("workspace", "snapshot_selected"),
+                )
+            )
+            selected_snapshot = next(
+                snapshot for snapshot in snapshots if snapshot.name == selected_snapshot_name
+            )
+            existing_names = {str(info.name) for info in infos}
+            default_output = selected_snapshot.source_dataset
+            if default_output in existing_names:
+                default_output = f"{default_output}_restored"
+            output_name = st.text_input(
+                "Loaded dataset name",
+                value=default_output,
+                key=WidgetKeyBuilder.manager_key("workspace", "snapshot_output"),
+            )
+            if st.button(
+                "Verify and Load Snapshot",
+                type="primary" if not infos else "secondary",
+                key=WidgetKeyBuilder.manager_key("workspace", "snapshot_load"),
+            ):
+                try:
+                    self.api.load_dataset_snapshot(
+                        selected_snapshot_name,
+                        output_name,
+                    )
+                except (KeyError, OSError, TypeError, ValueError) as exc:
+                    st.error(str(exc))
+                else:
+                    st.rerun(scope="app")
 
     def _render_compare(self, names: list[str]) -> None:
         baseline, candidate = self._two_dataset_selectors(names, "compare")

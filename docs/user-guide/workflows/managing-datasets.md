@@ -111,8 +111,9 @@ session.redo_dataset("all_runs")
 session.restore_dataset_revision(lineage.revisions[0].revision_id)
 ```
 
-Revision snapshots are defensive copies held only for the current session. They are not yet stored
-inside portfolios, so save an important recovered table separately before ending the session.
+Revision snapshots are defensive copies held only for the current session. They are not stored
+inside portfolios. Save an important recovered table as a reusable dataset snapshot before ending
+the session when you need the exact table again.
 
 ## Define and validate a schema contract
 

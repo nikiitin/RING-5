@@ -12,6 +12,7 @@ from src.core.models import (
     DatasetInfo,
     DatasetLineage,
     DatasetRevision,
+    DatasetSnapshotInfo,
     JoinCardinality,
     JoinDiagnostics,
     ParseBatchResult,
@@ -253,6 +254,64 @@ class ApplicationAPI:
         """Restore any retained intermediate revision by ID."""
         # [impl->req~ring5.data.lineage-undo-redo~1]
         return self.state_manager.restore_dataset_revision(revision_id)
+
+    def list_dataset_snapshots(self) -> tuple[DatasetSnapshotInfo, ...]:
+        """List reusable local dataset snapshots without loading their tables."""
+        # [impl->req~ring5.data.dataset-snapshots~1]
+        return self.data_services.list_dataset_snapshots()
+
+    def save_dataset_snapshot(
+        self,
+        name: str,
+        dataset_name: str | None = None,
+        *,
+        overwrite: bool = False,
+    ) -> DatasetSnapshotInfo:
+        """Persist a named or active dataset for verified reuse in later sessions."""
+        # [impl->req~ring5.data.dataset-snapshots~1]
+        selected = self.state_manager.selected_dataset_name()
+        if dataset_name is not None:
+            data = self.state_manager.get_dataset(dataset_name)
+            source_name = dataset_name.strip()
+        elif selected is not None:
+            data = self.state_manager.get_dataset(selected)
+            source_name = selected
+        else:
+            active = self.state_manager.get_data()
+            if active is None:
+                raise ValueError("No active or named dataset is available to snapshot.")
+            data = active
+            source_name = "active_data"
+        return self.data_services.save_dataset_snapshot(
+            name,
+            data,
+            source_dataset=source_name,
+            overwrite=overwrite,
+        )
+
+    def load_dataset_snapshot(
+        self,
+        name: str,
+        dataset_name: str | None = None,
+        *,
+        select: bool = True,
+        replace: bool = False,
+    ) -> DatasetInfo:
+        """Verify a snapshot and retain its table in the named workspace."""
+        # [impl->req~ring5.data.dataset-snapshots~1]
+        snapshot, data = self.data_services.load_dataset_snapshot(name)
+        output_name = snapshot.source_dataset if dataset_name is None else dataset_name
+        return self.add_dataset(
+            output_name,
+            data,
+            select=select,
+            replace=replace,
+            operation=f"Load reusable snapshot: {snapshot.name}",
+        )
+
+    def delete_dataset_snapshot(self, name: str) -> None:
+        """Delete one reusable local dataset snapshot."""
+        self.data_services.delete_dataset_snapshot(name)
 
     def append_datasets(
         self,

@@ -15,7 +15,7 @@ from typing import (
 
 import pandas as pd
 
-from src.core.models import PlotProtocol, PortfolioData
+from src.core.models import DatasetSnapshotInfo, PlotProtocol, PortfolioData
 from src.core.models.data_models import (
     CacheStatsInfo,
     CsvPoolEntry,
@@ -85,6 +85,31 @@ class DataServicesAPI(Protocol):
 
     def clear_caches(self) -> None:
         """Clear all CSV pool caches."""
+        raise NotImplementedError
+
+    # -- Reusable Dataset Snapshots --
+
+    def list_dataset_snapshots(self) -> tuple[DatasetSnapshotInfo, ...]:
+        """List locally saved dataset snapshots without loading their payloads."""
+        raise NotImplementedError
+
+    def save_dataset_snapshot(
+        self,
+        name: str,
+        data: pd.DataFrame,
+        *,
+        source_dataset: str,
+        overwrite: bool = False,
+    ) -> DatasetSnapshotInfo:
+        """Persist an exact fingerprinted dataset snapshot."""
+        raise NotImplementedError
+
+    def load_dataset_snapshot(self, name: str) -> tuple[DatasetSnapshotInfo, pd.DataFrame]:
+        """Load and verify a fingerprinted dataset snapshot."""
+        raise NotImplementedError
+
+    def delete_dataset_snapshot(self, name: str) -> None:
+        """Delete one locally saved dataset snapshot."""
         raise NotImplementedError
 
     # -- Variable Management --

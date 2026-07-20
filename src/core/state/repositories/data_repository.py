@@ -1,6 +1,5 @@
 """In-memory repository for primary and processed datasets."""
 
-import hashlib
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass, replace
@@ -9,6 +8,7 @@ from datetime import datetime, timezone
 import pandas as pd
 
 from src.core.models.dataset_workspace_models import DatasetInfo, DatasetLineage, DatasetRevision
+from src.core.services.data_services.dataset_fingerprint import fingerprint_dataset
 
 logger = logging.getLogger(__name__)
 
@@ -332,7 +332,7 @@ class DataRepository:
             created_at=datetime.now(timezone.utc).isoformat(),
             row_count=len(snapshot),
             column_count=len(snapshot.columns),
-            fingerprint=self._fingerprint(snapshot),
+            fingerprint=fingerprint_dataset(snapshot),
             source_datasets=resolved_sources,
             parent_revision_ids=tuple(parents),
         )
@@ -388,18 +388,6 @@ class DataRepository:
         if not isinstance(revision_id, str) or not revision_id.strip():
             raise ValueError("Dataset revision ID must be a non-empty string.")
         return revision_id.strip()
-
-    @staticmethod
-    def _fingerprint(data: pd.DataFrame) -> str:
-        digest = hashlib.sha256()
-        digest.update(repr(tuple(data.columns)).encode("utf-8"))
-        digest.update(repr(tuple(str(dtype) for dtype in data.dtypes)).encode("utf-8"))
-        try:
-            hashes = pd.util.hash_pandas_object(data, index=True, categorize=True)
-            digest.update(hashes.to_numpy(copy=False).tobytes())
-        except (TypeError, ValueError):
-            digest.update(data.to_csv(index=True).encode("utf-8"))
-        return f"sha256:{digest.hexdigest()}"
 
     @staticmethod
     def _validate_dataset_name(name: str) -> str:

@@ -66,6 +66,12 @@ reading or writing.
 Saved shaper configurations contain a name, description, ordered shaper configuration, and optional
 CSV path. The service supports saving, listing, loading, and deleting these path-backed records.
 
+`DatasetSnapshotService` stores reusable dataframes as versioned compressed archives containing a
+small manifest and a non-executable JSON table payload. Save performs an encode/decode exactness
+check before an atomic write. Load verifies the payload SHA-256 and the shared lineage content
+fingerprint before returning data. `DataServicesAPI` exposes save, list, load, and delete operations;
+`ApplicationAPI` coordinates a verified load with named-workspace retention.
+
 ## Shapers
 
 `ShapersAPI` exposes registered identifiers and ordered pipeline execution. `PipelineService`
