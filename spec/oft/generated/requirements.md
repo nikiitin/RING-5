@@ -726,7 +726,7 @@ Tags: parsing, preview, status_proposed, validation
 ### Structured import preview
 
 `req~ring5.ingestion.import-preview~1`
-Status: proposed
+Status: approved
 
 Tabular imports shall preview encoding, delimiter, inferred types, accepted rows, rejected rows, and configurable corrections before loading.
 
@@ -735,7 +735,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: ingestion, preview, status_proposed, validation
+Tags: ingestion, preview, status_approved, validation
 
 ## Dataset Management
 

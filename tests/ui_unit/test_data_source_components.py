@@ -68,15 +68,11 @@ def test_render_csv_pool_with_files(
     with patch("pathlib.Path.exists", return_value=True):
         mock_card_components.file_info_card.return_value = (True, False, False)
 
-        mock_data = MagicMock()
-        mock_data.__len__.return_value = 10
-        mock_api.load_csv_file.return_value = mock_data
+        with patch.object(DataSourceComponents, "render_import_preview") as render_preview:
+            DataSourceComponents.render_csv_pool(mock_api)
 
-        DataSourceComponents.render_csv_pool(mock_api)
-
-        mock_api.load_csv_file.assert_called_with("/path/to/test.csv")
-        mock_api.state_manager.set_data.assert_called_with(mock_data)
-        mock_streamlit.success.assert_called()
+        render_preview.assert_called_once_with(mock_api, "/path/to/test.csv")
+        mock_api.load_csv_file.assert_not_called()
 
 
 def test_render_csv_pool_delete(

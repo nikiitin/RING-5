@@ -184,6 +184,9 @@ Covers:
 
 `Session.environment_metadata` captures the current runtime without machine identity or paths, and
 `Session.compare_portfolio_environment` compares it with a saved portfolio before restoration.
+`Session.preview_import` inspects a bounded delimited source without mutating state; its immutable
+`ImportPreview` records detected format, inferred and corrected types, row outcomes, and a source
+digest. `Session.load_import` verifies that digest and loads only the reviewed accepted rows.
 `Session.create_report` captures selected plots or dashboards, bounded tables, narrative,
 provenance, and that environment in an immutable `AnalysisReport`. `report_bytes` and
 `export_report` generate deterministic self-contained HTML or multi-page PDF output.

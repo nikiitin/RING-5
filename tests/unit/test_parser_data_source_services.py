@@ -945,8 +945,6 @@ class TestDataSourceComponents:
         mock_st: MagicMock,
         tmp_path: Path,
     ) -> None:
-        import pandas as pd
-
         from src.web.components.data_source.data_source_components import (
             DataSourceComponents,
         )
@@ -957,11 +955,13 @@ class TestDataSourceComponents:
         api = MagicMock()
         api.state_manager.get_csv_pool.return_value = [{"path": str(csv_file), "name": "test.csv"}]
         mock_card.file_info_card.return_value = (True, False, False)  # load_clicked=True
-        api.load_csv_file.return_value = pd.DataFrame({"a": [1], "b": [2]})
+        mock_st.session_state = {}
 
-        DataSourceComponents.render_csv_pool(api)
-        api.load_csv_file.assert_called_once()
-        mock_st.success.assert_called()
+        with patch.object(DataSourceComponents, "render_import_preview") as render_preview:
+            DataSourceComponents.render_csv_pool(api)
+
+        render_preview.assert_called_once_with(api, str(csv_file))
+        api.load_csv_file.assert_not_called()
 
     @patch("src.web.components.data_source.data_source_components.st")
     @patch("src.web.components.data_source.data_source_components.CardComponents")
@@ -983,10 +983,13 @@ class TestDataSourceComponents:
         api = MagicMock()
         api.state_manager.get_csv_pool.return_value = [{"path": str(csv_file), "name": "test.csv"}]
         mock_card.file_info_card.return_value = (True, False, False)
-        api.load_csv_file.side_effect = RuntimeError("read error")
+        mock_st.session_state = {}
 
-        DataSourceComponents.render_csv_pool(api)
-        mock_st.exception.assert_called()
+        with patch.object(DataSourceComponents, "render_import_preview") as render_preview:
+            DataSourceComponents.render_csv_pool(api)
+
+        render_preview.assert_called_once_with(api, str(csv_file))
+        api.load_csv_file.assert_not_called()
 
     @patch("src.web.components.data_source.data_source_components.st")
     @patch("src.web.components.data_source.data_source_components.CardComponents")
@@ -998,8 +1001,6 @@ class TestDataSourceComponents:
         mock_st: MagicMock,
         tmp_path: Path,
     ) -> None:
-        import pandas as pd
-
         from src.web.components.data_source.data_source_components import (
             DataSourceComponents,
         )
@@ -1010,10 +1011,12 @@ class TestDataSourceComponents:
         api = MagicMock()
         api.state_manager.get_csv_pool.return_value = [{"path": str(csv_file), "name": "test.csv"}]
         mock_card.file_info_card.return_value = (False, True, False)  # preview_clicked
-        api.load_csv_file.return_value = pd.DataFrame({"a": [1]})
+        mock_st.session_state = {}
 
-        DataSourceComponents.render_csv_pool(api)
-        mock_st.dataframe.assert_called()
+        with patch.object(DataSourceComponents, "render_import_preview") as render_preview:
+            DataSourceComponents.render_csv_pool(api)
+
+        render_preview.assert_called_once_with(api, str(csv_file))
 
     @patch("src.web.components.data_source.data_source_components.st")
     @patch("src.web.components.data_source.data_source_components.CardComponents")
@@ -1574,10 +1577,15 @@ class TestDataSourceComponentsExtra:
         api = MagicMock()
         api.state_manager.get_csv_pool.return_value = [{"path": str(csv_file), "name": "test.csv"}]
         mock_card.file_info_card.return_value = (False, True, False)
-        api.load_csv_file.side_effect = RuntimeError("preview error")
+        mock_st.session_state = {}
 
-        DataSourceComponents.render_csv_pool(api)
-        mock_st.exception.assert_called()
+        with patch.object(
+            DataSourceComponents,
+            "render_import_preview",
+            side_effect=RuntimeError("preview error"),
+        ):
+            with pytest.raises(RuntimeError, match="preview error"):
+                DataSourceComponents.render_csv_pool(api)
 
     @patch("src.web.components.data_source.data_source_components.st")
     @patch("src.web.components.data_source.data_source_components.VariableEditor")

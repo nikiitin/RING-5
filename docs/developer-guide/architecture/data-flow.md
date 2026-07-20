@@ -50,6 +50,11 @@ or fabricate a placeholder value after a parser error.
 the session repository. The generic CSV contract requires a header and rows; individual services
 validate operation-specific columns and types.
 
+The review-before-load path first creates an immutable `ImportPreview` in the core service. Format
+detection, corrections, inference, and row classification do not touch session state. Loading
+re-reads the bounded source, verifies its SHA-256 fingerprint and the complete preview result, then
+stores only accepted rows through `ApplicationAPI.load_import_preview`.
+
 ## Transform and plot
 
 ```mermaid

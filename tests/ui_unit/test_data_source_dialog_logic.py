@@ -1,28 +1,17 @@
-import importlib
 from collections.abc import Generator
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-# Defer import of DataSourceComponents to fixture to ensure patching works
 import src.web.components.data_source.data_source_components as ds_module
 from tests.conftest import columns_side_effect
 
 
 @pytest.fixture
-def components_bundle() -> Generator[tuple[Any, type[Any]], None, None]:
-    """Patch st and reload module to capture decorator."""
-
-    # Patch streamlit.dialog globally so the decorator is intercepted during reload
-    # Accept both positional and keyword arguments to handle dismissible parameter
-    with patch("streamlit.dialog", side_effect=lambda title=None, **kwargs: lambda func: func):
-        import src.web.components.data_source.variable_editor as ve_module
-
-        importlib.reload(ve_module)
-        importlib.reload(ds_module)
-
-    # Patch the module's st attribute for runtime widget mocking
+def components_bundle() -> Generator[tuple[Any, Any], None, None]:
+    """Patch dialog dependencies without replacing the imported component class."""
     with (
         patch("src.web.components.data_source.data_source_components.st") as mock_st,
         patch("src.web.components.data_source.variable_editor.st", new=mock_st),
@@ -40,9 +29,9 @@ def components_bundle() -> Generator[tuple[Any, type[Any]], None, None]:
         mock_st.number_input.return_value = 1
         mock_st.checkbox.return_value = False
 
-        # We don't need to patch dialog here, as the function is already undecorated
-
-        yield mock_st, ds_module.DataSourceComponents
+        decorated = ds_module.DataSourceComponents.variable_config_dialog
+        dialog = getattr(decorated, "__wrapped__", decorated)
+        yield mock_st, SimpleNamespace(variable_config_dialog=dialog)
 
 
 @pytest.fixture

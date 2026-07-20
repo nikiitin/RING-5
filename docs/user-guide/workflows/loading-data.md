@@ -157,6 +157,32 @@ Recent-file cards include cached row, column, and type metadata. CSV loading det
 delimiters rather than requiring comma-only input; the file must still satisfy the non-empty header
 contract.
 
+### Review a tabular import before loading
+
+<!--
+`uman~ring5.ingestion.import-preview.documentation~1`
+
+Covers:
+- req~ring5.ingestion.import-preview~1
+
+-->
+
+Select **Review & Load** or **Preview** on a recent-file card to inspect the source without changing
+the workspace. Both actions open the same required review; no web import enters the workspace
+directly. RING-5 shows the detected encoding and delimiter, every inferred column type, accepted
+and rejected row counts, a bounded accepted-row preview, and the physical source line and reason
+for each shown rejection.
+
+Use the controls above the preview to correct the encoding, delimiter, one-based header row,
+surrounding whitespace, and missing-value tokens. Set **Import as** for a column when its inferred
+type is unsuitable. The preview is recalculated immediately, so a type mismatch becomes a visible
+rejected row before loading. Select **Load accepted rows** only after those outcomes are correct.
+
+The source is fingerprinted when previewed. If it changes before loading, RING-5 refuses the load
+and asks for another review. Files, row counts, column counts, displayed rows, missing-value tokens,
+and rejection details are bounded; accepted and rejected totals still describe the complete
+reviewed source within those limits.
+
 ## Load an existing CSV in Python
 
 <!--
@@ -179,6 +205,27 @@ with ring5.Session() as session:
 
 An operation may still require categorical or numeric columns appropriate to that task. Loading
 raises `ring5.DataLoadError` for missing, unreadable, malformed, or empty input.
+
+For review-before-load automation, call `preview_import`, inspect its immutable result, then pass
+that exact result to `load_import`:
+
+```python
+with ring5.Session() as session:
+    preview = session.preview_import(
+        "instrument.txt",
+        header_row=2,
+        column_types={"ipc": "number", "stable": "boolean"},
+    )
+    print(preview.encoding, preview.delimiter)
+    print(preview.accepted_row_count, preview.rejected_row_count)
+    for row in preview.rejected_rows:
+        print(row.line_number, row.reason)
+    data = session.load_import(preview)
+```
+
+Supported corrections are UTF-8, UTF-8 with BOM, Windows-1252, or Latin-1 text; comma, semicolon,
+tab, or pipe delimiters; and text, integer, number, boolean, or ISO datetime column types. Loading
+uses nullable pandas dtypes where a reviewed numeric or boolean column contains missing values.
 
 ## Parse from Python
 

@@ -13,6 +13,7 @@ from concurrent.futures import as_completed
 from pathlib import Path
 from typing import Any, cast
 
+import pandas as pd
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
@@ -22,14 +23,24 @@ from src.core.common.security_limits import (
     SCAN_BATCH_TIMEOUT_SECONDS,
 )
 from src.core.common.utils import allowed_web_stats_roots, validate_web_stats_path
-from src.core.models import ParseBatchResult, ScanFileResult, ScanResult
+from src.core.models import (
+    ImportColumnCorrection,
+    ImportOptions,
+    ImportPreview,
+    ParseBatchResult,
+    ScanFileResult,
+    ScanResult,
+)
 from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
+from src.core.models.import_models import ImportColumnType
 from src.web.components.common.card_components import CardComponents
 from src.web.components.common.data_components import DataComponents
 from src.web.components.common.filtered_selector import filtered_selectbox
 from src.web.components.data_source.variable_editor import VariableEditor
 
 logger = logging.getLogger(__name__)
+
+_IMPORT_PREVIEW_PATH_KEY = "data_source.import_preview_path"
 
 
 class DataSourceComponents:
@@ -39,6 +50,7 @@ class DataSourceComponents:
     def render_csv_pool(api: ApplicationAPI) -> None:
         """Display and manage the CSV pool."""
         # [impl->req~ring5.ingestion.csv-pool~1]
+        # [impl->req~ring5.ingestion.import-preview~1]
         st.markdown("---")
         st.markdown("### Recent CSV Files")
 
@@ -54,6 +66,7 @@ class DataSourceComponents:
 
         st.info(f"Found {len(csv_pool)} CSV file(s) in the pool")
 
+        requested_preview: str | None = None
         for idx, csv_info in enumerate(csv_pool):
             csv_path = Path(csv_info["path"])
 
@@ -66,30 +79,9 @@ class DataSourceComponents:
                 csv_info, idx
             )
 
-            if load_clicked:
-                try:
-                    data = api.load_csv_file(str(csv_path))
-                    api.state_manager.set_data(data)
-                    api.state_manager.set_csv_path(str(csv_path))
-                    api.state_manager.set_use_parser(False)
-                    st.success(f"Loaded {len(data)} rows!")
-
-                    # Show data preview
-                    DataComponents.show_data_preview(data, "Loaded CSV Preview")
-                    DataComponents.show_column_details(data)
-                    st.info("Data loaded! Proceed to **Configure Pipeline** to process it.")
-                except Exception as e:
-                    st.exception(e)
-                    logger.error(
-                        "CSV POOL: Failed to load CSV file '%s': %s", csv_path, e, exc_info=True
-                    )
-
-            if preview_clicked:
-                try:
-                    preview_data = api.load_csv_file(str(csv_path))
-                    st.dataframe(preview_data.head(5))
-                except Exception as e:
-                    st.exception(e)
+            if load_clicked or preview_clicked:
+                requested_preview = str(csv_path)
+                st.session_state[_IMPORT_PREVIEW_PATH_KEY] = requested_preview
 
             if delete_clicked:
                 if api.delete_from_csv_pool(str(csv_path)):
@@ -98,6 +90,215 @@ class DataSourceComponents:
                 else:
                     st.error("Error deleting file")
                     logger.error("CSV POOL: Failed to delete metadata for: %s", csv_path)
+
+        preview_path = requested_preview or st.session_state.get(_IMPORT_PREVIEW_PATH_KEY)
+        if isinstance(preview_path, str):
+            available_paths = {str(Path(entry["path"])) for entry in csv_pool}
+            if preview_path in available_paths and Path(preview_path).exists():
+                DataSourceComponents.render_import_preview(api, preview_path)
+            else:
+                st.session_state.pop(_IMPORT_PREVIEW_PATH_KEY, None)
+
+    @staticmethod
+    def render_import_preview(api: ApplicationAPI, file_path: str) -> None:
+        # [impl->req~ring5.ingestion.import-preview~1]
+        """Render detected structure, corrections, row outcomes, and reviewed loading."""
+        st.markdown("---")
+        st.markdown("### Review tabular import")
+        st.caption(
+            "Inspect the detected format and row outcomes. Corrections are applied to the "
+            "preview before any data enters the workspace."
+        )
+
+        encoding_labels: dict[str, str | None] = {
+            "Auto detect": None,
+            "UTF-8": "utf-8",
+            "UTF-8 with BOM": "utf-8-sig",
+            "Windows-1252": "cp1252",
+            "Latin-1": "latin-1",
+        }
+        delimiter_labels: dict[str, str | None] = {
+            "Auto detect": None,
+            "Comma (,)": ",",
+            "Semicolon (;)": ";",
+            "Tab": "\t",
+            "Pipe (|)": "|",
+        }
+        format_col, delimiter_col, header_col = st.columns(3)
+        with format_col:
+            encoding_label = st.selectbox(
+                "Text encoding",
+                options=list(encoding_labels),
+                key="data_source.import_encoding",
+            )
+        with delimiter_col:
+            delimiter_label = st.selectbox(
+                "Delimiter",
+                options=list(delimiter_labels),
+                key="data_source.import_delimiter",
+            )
+        with header_col:
+            header_row = int(
+                st.number_input(
+                    "Header row",
+                    min_value=1,
+                    max_value=100,
+                    value=1,
+                    key="data_source.import_header_row",
+                )
+            )
+        trim_whitespace = st.checkbox(
+            "Trim surrounding whitespace",
+            value=True,
+            key="data_source.import_trim",
+        )
+        missing_text = st.text_input(
+            "Missing-value tokens (comma-separated)",
+            value=",NA,N/A,null,None",
+            key="data_source.import_null_values",
+        )
+        preview_rows = int(
+            st.number_input(
+                "Accepted rows to display",
+                min_value=1,
+                max_value=500,
+                value=50,
+                key="data_source.import_preview_rows",
+            )
+        )
+        null_values = tuple(value.strip() for value in missing_text.split(","))
+
+        try:
+            base_options = ImportOptions(
+                encoding=encoding_labels[encoding_label],
+                delimiter=delimiter_labels[delimiter_label],
+                header_row=header_row,
+                trim_whitespace=trim_whitespace,
+                null_values=null_values,
+                preview_rows=preview_rows,
+            )
+            base_preview = api.preview_import(file_path, base_options)
+            type_table = pd.DataFrame(
+                {
+                    "Column": [column.name for column in base_preview.columns],
+                    "Inferred": [column.inferred_type.title() for column in base_preview.columns],
+                    "Import as": ["Auto" for _column in base_preview.columns],
+                    "Allows missing": [column.nullable for column in base_preview.columns],
+                }
+            )
+            edited_types = st.data_editor(
+                type_table,
+                hide_index=True,
+                width="stretch",
+                disabled=["Column", "Inferred", "Allows missing"],
+                column_config={
+                    "Import as": st.column_config.SelectboxColumn(
+                        options=["Auto", "Text", "Integer", "Number", "Boolean", "Datetime"],
+                        required=True,
+                    )
+                },
+                key=f"data_source.import_types.{base_preview.source_sha256}",
+            )
+            corrections = tuple(
+                ImportColumnCorrection(
+                    str(row["Column"]),
+                    cast(ImportColumnType, str(row["Import as"]).lower()),
+                )
+                for row in edited_types.to_dict("records")
+                if str(row["Import as"]) != "Auto"
+            )
+            options = ImportOptions(
+                encoding=base_options.encoding,
+                delimiter=base_options.delimiter,
+                header_row=base_options.header_row,
+                trim_whitespace=base_options.trim_whitespace,
+                null_values=base_options.null_values,
+                column_types=corrections,
+                preview_rows=base_options.preview_rows,
+            )
+            preview = api.preview_import(file_path, options) if corrections else base_preview
+        except Exception as exc:
+            st.exception(exc)
+            return
+
+        DataSourceComponents._show_import_preview_result(api, preview)
+
+    @staticmethod
+    def _show_import_preview_result(api: ApplicationAPI, preview: ImportPreview) -> None:
+        """Present one corrected preview and its explicit load action."""
+        delimiter_name = {",": "comma", ";": "semicolon", "\t": "tab", "|": "pipe"}[
+            preview.delimiter
+        ]
+        st.info(
+            f"Detected **{preview.encoding}** text with a **{delimiter_name}** delimiter · "
+            f"SHA-256 `{preview.source_sha256[:12]}…`"
+        )
+        accepted_col, rejected_col, total_col = st.columns(3)
+        accepted_col.metric("Accepted rows", preview.accepted_row_count)
+        rejected_col.metric("Rejected rows", preview.rejected_row_count)
+        total_col.metric("Total rows", preview.total_row_count)
+
+        st.markdown("#### Accepted-row preview")
+        accepted_table = pd.DataFrame(
+            preview.rows,
+            columns=[column.name for column in preview.columns],
+        )
+        st.dataframe(accepted_table, width="stretch", hide_index=True)
+        if preview.preview_truncated:
+            st.caption(
+                f"Showing {len(preview.rows)} of {preview.accepted_row_count} accepted rows."
+            )
+
+        if preview.rejected_row_count:
+            st.markdown("#### Rejected rows")
+            st.warning(
+                f"{preview.rejected_row_count} row(s) will not be loaded. "
+                "Correct their source values or adjust the reviewed types."
+            )
+            st.dataframe(
+                pd.DataFrame(
+                    {
+                        "Line": [row.line_number for row in preview.rejected_rows],
+                        "Reason": [row.reason for row in preview.rejected_rows],
+                        "Source values": [" | ".join(row.values) for row in preview.rejected_rows],
+                    }
+                ),
+                width="stretch",
+                hide_index=True,
+            )
+            if preview.rejection_details_truncated:
+                st.caption(
+                    f"Showing {len(preview.rejected_rows)} of "
+                    f"{preview.rejected_row_count} rejected rows."
+                )
+        else:
+            st.success("Every data row is accepted by the reviewed import settings.")
+
+        load_col, close_col = st.columns(2)
+        with load_col:
+            if st.button(
+                ":material/download: Load accepted rows",
+                type="primary",
+                disabled=preview.accepted_row_count == 0,
+                width="stretch",
+                key="data_source.import_load",
+            ):
+                try:
+                    data = api.load_import_preview(preview)
+                    st.success(f"Loaded {len(data)} reviewed rows!")
+                    DataComponents.show_data_preview(data, "Loaded import preview")
+                    DataComponents.show_column_details(data)
+                    st.info("Data loaded! Proceed to **Configure Pipeline** to process it.")
+                except Exception as exc:
+                    st.exception(exc)
+        with close_col:
+            if st.button(
+                "Close review",
+                width="stretch",
+                key="data_source.import_close",
+            ):
+                st.session_state.pop(_IMPORT_PREVIEW_PATH_KEY, None)
+                st.rerun()
 
     @staticmethod
     def render_parser_config(api: ApplicationAPI) -> None:

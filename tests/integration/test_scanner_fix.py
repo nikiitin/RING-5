@@ -158,52 +158,38 @@ class TestScannerFix:
         # Wrap in ParseBatchResult
         batch = ParseBatchResult(futures=futures, var_names=["test_var"])
 
-        # Patch streamlit imports and dialog decorator at module level
-        with patch("streamlit.dialog", lambda *a, **k: lambda f: f):
-            # Re-import to get fresh version with patched decorator
-            import importlib
-            import sys
+        with (
+            patch(
+                "src.web.components.data_source.data_source_components.as_completed",
+                return_value=futures,
+            ),
+            patch("pathlib.Path.exists", return_value=True),
+        ):
+            mock_progress = MagicMock()
+            mock_status_text = MagicMock()
+            mock_status_ctx = MagicMock()
+            mock_status_ctx.__enter__ = MagicMock(return_value=mock_status_ctx)
+            mock_status_ctx.__exit__ = MagicMock(return_value=False)
 
-            dsc_module = sys.modules["src.web.components.data_source.data_source_components"]
-
-            importlib.reload(dsc_module)
-
-            # Patch as_completed and Path.exists
-            # Note: as_completed is now imported at module level, so patch it in the module
-            # namespace
             with (
                 patch(
-                    "src.web.components.data_source.data_source_components.as_completed",
-                    return_value=futures,
+                    "src.web.components.data_source.data_source_components.st.progress",
+                    return_value=mock_progress,
                 ),
-                patch("pathlib.Path.exists", return_value=True),
+                patch(
+                    "src.web.components.data_source.data_source_components.st.empty",
+                    return_value=mock_status_text,
+                ),
+                patch(
+                    "src.web.components.data_source.data_source_components.st.status",
+                    return_value=mock_status_ctx,
+                ),
+                patch("src.web.components.data_source.data_source_components.st.write"),
+                patch("src.web.components.data_source.data_source_components.st.success"),
             ):
-
-                # Mock Streamlit objects
-                mock_progress = MagicMock()
-                mock_status_text = MagicMock()
-                mock_status_ctx = MagicMock()
-                mock_status_ctx.__enter__ = MagicMock(return_value=mock_status_ctx)
-                mock_status_ctx.__exit__ = MagicMock(return_value=False)
-
-                with (
-                    patch(
-                        "src.web.components.data_source.data_source_components.st.progress",
-                        return_value=mock_progress,
-                    ),
-                    patch(
-                        "src.web.components.data_source.data_source_components.st.empty",
-                        return_value=mock_status_text,
-                    ),
-                    patch(
-                        "src.web.components.data_source.data_source_components.st.status",
-                        return_value=mock_status_ctx,
-                    ),
-                    patch("src.web.components.data_source.data_source_components.st.write"),
-                    patch("src.web.components.data_source.data_source_components.st.success"),
-                ):
-
-                    dsc_module.DataSourceComponents._show_parse_dialog(mock_api, batch, output_dir)
+                decorated = DataSourceComponents._show_parse_dialog
+                dialog = getattr(decorated, "__wrapped__", decorated)
+                dialog(mock_api, batch, output_dir)
 
         # Verify finalize_parsing called with correct arguments
         mock_api.finalize_parsing.assert_called_once()

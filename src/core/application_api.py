@@ -15,6 +15,8 @@ from src.core.models import (
     DatasetSnapshotInfo,
     DashboardSpec,
     DrillDownResult,
+    ImportOptions,
+    ImportPreview,
     JoinCardinality,
     JoinDiagnostics,
     LinkedSelectionSpec,
@@ -44,6 +46,7 @@ from src.core.models.plot_protocol import PlotDeserializer
 from src.core.models.visualization import FigureConfig
 from src.core.services.data_services.data_services_api import DataServicesAPI
 from src.core.services.managers.managers_api import ManagersAPI
+from src.core.services.import_preview_service import ImportPreviewService
 from src.core.services.services_impl import DefaultServicesAPI
 from src.core.services.shapers.shapers_api import ShapersAPI
 from src.core.services.visualization.drill_down_service import drill_down_rows
@@ -149,6 +152,24 @@ class ApplicationAPI:
         """Load a dataset from the CSV pool."""
         # Using pure string path from pool
         self.load_data(csv_path)
+
+    def preview_import(self, file_path: str, options: ImportOptions | None = None) -> ImportPreview:
+        # [impl->req~ring5.ingestion.import-preview~1]
+        """Inspect a delimited table without changing workspace state."""
+        return ImportPreviewService.preview(file_path, options)
+
+    def load_import_preview(self, preview: ImportPreview) -> pd.DataFrame:
+        # [impl->req~ring5.ingestion.import-preview~1]
+        """Load accepted rows from an unchanged, previously reviewed import."""
+        data = ImportPreviewService.load(preview)
+        self.state_manager.set_data(
+            data,
+            operation=f"Load reviewed import: {preview.source_path}",
+        )
+        self.state_manager.set_processed_data(None)
+        self.state_manager.set_csv_path(preview.source_path)
+        self.state_manager.set_use_parser(False)
+        return data
 
     def get_current_view(self) -> dict[str, Any]:
         """Assemble the current data pipeline state for UI consumption."""

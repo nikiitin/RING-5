@@ -4058,11 +4058,32 @@
       "id": "ingestion.import-preview",
       "group": "ingestion",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Structured import preview",
       "description": "Tabular imports shall preview encoding, delimiter, inferred types, accepted rows, rejected rows, and configurable corrections before loading.",
       "tags": ["ingestion", "preview", "validation"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/models/import_models.py::ImportPreview",
+          "src/core/services/import_preview_service.py::ImportPreviewService.preview",
+          "src/core/services/import_preview_service.py::ImportPreviewService.load",
+          "src/core/application_api.py::ApplicationAPI.preview_import",
+          "src/core/application_api.py::ApplicationAPI.load_import_preview",
+          "ring5/_session.py::Session.preview_import",
+          "ring5/_session.py::Session.load_import",
+          "src/web/components/data_source/data_source_components.py::DataSourceComponents.render_csv_pool",
+          "src/web/components/data_source/data_source_components.py::DataSourceComponents.render_import_preview"
+        ],
+        "tests": [
+          "tests/unit/test_import_preview_service.py::test_preview_detects_structure_types_and_explains_rejected_rows",
+          "tests/integration/test_import_preview_public_api.py::test_preview_is_non_mutating_and_loads_only_reviewed_rows",
+          "tests/unit/test_import_preview_component.py::test_review_applies_type_correction_and_loads_only_after_confirmation",
+          "tests/e2e/test_data_source.py::TestDataSourceCsvLoad.test_csv_review_detects_format_before_loading"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/loading-data.md#review-a-tabular-import-before-loading"
+        ]
+      }
     },
     {
       "id": "portfolio.analysis-recipes",
@@ -4478,6 +4499,11 @@
       "FigureSpec": "api.figure-spec",
       "FigureSpecBuilder": "api.figure-builder",
       "FigureTheme": "figure.theme-presets",
+      "ImportColumn": "ingestion.import-preview",
+      "ImportColumnCorrection": "ingestion.import-preview",
+      "ImportOptions": "ingestion.import-preview",
+      "ImportPreview": "ingestion.import-preview",
+      "ImportRejectedRow": "ingestion.import-preview",
       "JoinCardinality": "data.validated-joins",
       "JoinDiagnostics": "data.validated-joins",
       "LegendOpts": "api.figure-spec",
@@ -4570,12 +4596,14 @@
       "list_datasets": "data.multi-dataset-workspace",
       "list_dataset_snapshots": "data.dataset-snapshots",
       "load": "ingestion.csv-load",
+      "load_import": "ingestion.import-preview",
       "load_dataset_snapshot": "data.dataset-snapshots",
       "load_portfolio": "portfolio.restore",
       "mix_columns": "data.numeric-mixer",
       "parse": "ingestion.async-parse",
       "parse_submit": "ingestion.async-parse",
       "plot": "api.session",
+      "preview_import": "ingestion.import-preview",
       "profile_data": "data.quality-profiler",
       "reduce_seeds": "data.seed-reduction",
       "redo_dataset": "data.lineage-undo-redo",
@@ -4665,9 +4693,11 @@
       "load_csv_pool": "ingestion.csv-pool",
       "load_data": "ingestion.csv-load",
       "load_from_pool": "ingestion.csv-pool",
+      "load_import_preview": "ingestion.import-preview",
       "load_dataset_snapshot": "data.dataset-snapshots",
       "load_saved_configs": "data.saved-pipeline-configurations",
       "managers": "quality.application-facade",
+      "preview_import": "ingestion.import-preview",
       "release_settled_scans": "ingestion.scan-presets-progress",
       "redo_dataset": "data.lineage-undo-redo",
       "remove_dataset": "data.multi-dataset-workspace",

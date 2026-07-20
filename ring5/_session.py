@@ -29,6 +29,9 @@ from src.core.models import (
     EnvironmentComparison,
     EnvironmentMetadata,
     FigureTheme,
+    ImportColumnCorrection,
+    ImportOptions,
+    ImportPreview,
     JoinCardinality,
     JoinDiagnostics,
     LinkedSelectionSpec,
@@ -423,6 +426,74 @@ class Session:
         if data is None:
             raise DataLoadError(f"Loading {csv_path!r} produced no data.")
         return data
+
+    def preview_import(
+        self,
+        file_path: str,
+        *,
+        encoding: str | None = None,
+        delimiter: str | None = None,
+        header_row: int = 1,
+        trim_whitespace: bool = True,
+        null_values: Sequence[str] = ("", "NA", "N/A", "null", "None"),
+        column_types: (
+            Mapping[str, Literal["auto", "text", "integer", "number", "boolean", "datetime"]] | None
+        ) = None,
+        preview_rows: int = 50,
+    ) -> ImportPreview:
+        # [impl->req~ring5.ingestion.import-preview~1]
+        """Inspect and correct a delimited table without loading it.
+
+        Args:
+            file_path: CSV or other delimited-text source.
+            encoding: Explicit supported encoding, or ``None`` to detect it.
+            delimiter: Explicit comma, semicolon, tab, or pipe, or ``None`` to detect it.
+            header_row: One-based record containing column names.
+            trim_whitespace: Strip surrounding whitespace from headers and cells.
+            null_values: Source tokens interpreted as missing values.
+            column_types: Optional per-column type overrides.
+            preview_rows: Maximum accepted rows retained for display, from 1 through 500.
+
+        Returns:
+            An immutable result with detected format, types, accepted rows, and rejections.
+
+        Raises:
+            DataLoadError: The source or corrections cannot be inspected safely.
+        """
+        try:
+            options = ImportOptions(
+                encoding=encoding,
+                delimiter=delimiter,
+                header_row=header_row,
+                trim_whitespace=trim_whitespace,
+                null_values=tuple(null_values),
+                column_types=tuple(
+                    ImportColumnCorrection(column, import_as)
+                    for column, import_as in (column_types or {}).items()
+                ),
+                preview_rows=preview_rows,
+            )
+            return self.api.preview_import(file_path, options)
+        except (OSError, TypeError, UnicodeError, ValueError) as exc:
+            raise DataLoadError(f"Could not preview import {file_path!r}: {exc}") from exc
+
+    def load_import(self, preview: ImportPreview) -> pd.DataFrame:
+        # [impl->req~ring5.ingestion.import-preview~1]
+        """Load accepted rows from an unchanged import preview.
+
+        Args:
+            preview: Result returned by :meth:`preview_import`.
+
+        Returns:
+            Loaded accepted rows with reviewed column types.
+
+        Raises:
+            DataLoadError: The source changed, has no accepted rows, or cannot be loaded.
+        """
+        try:
+            return self.api.load_import_preview(preview)
+        except (OSError, TypeError, UnicodeError, ValueError) as exc:
+            raise DataLoadError(f"Could not load reviewed import: {exc}") from exc
 
     def add_dataset(
         self,

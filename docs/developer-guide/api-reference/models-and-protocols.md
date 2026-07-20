@@ -18,6 +18,8 @@ Cross-layer models live in `src/core/models/`. Prefer a dataclass for validated 
 `TypedDict` for JSON-compatible mappings, and a protocol for behavior owned by another layer.
 
 Parsing models carry scan results, parse batches, variable configuration, and simulator metadata.
+Import models carry immutable delimiter/encoding corrections, inferred column types, accepted-row
+previews, rejected source lines, and the source fingerprint used at confirmation time.
 Data models carry plot serialization and current-view shapes. Portfolio models define persisted
 fields and `RestoreReport`. Shaper models form a discriminated configuration union. Visualization
 models describe engines, traces, axes, legends, annotations, labels, palettes, and full figure

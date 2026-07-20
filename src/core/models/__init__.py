@@ -35,6 +35,13 @@ from src.core.models.environment_models import (
 )
 from src.core.models.shaper_models import ShaperStepConfig, SplitApplyGroupConfig
 from src.core.models.history_models import OperationRecord
+from src.core.models.import_models import (
+    ImportColumn,
+    ImportColumnCorrection,
+    ImportOptions,
+    ImportPreview,
+    ImportRejectedRow,
+)
 from src.core.models.quality_models import ColumnQuality, DataQualityReport
 from src.core.models.report_models import (
     AnalysisReport,
@@ -106,6 +113,11 @@ __all__ = [
     "CsvPoolEntry",
     "DataQualityReport",
     "FigureTheme",
+    "ImportColumn",
+    "ImportColumnCorrection",
+    "ImportOptions",
+    "ImportPreview",
+    "ImportRejectedRow",
     "FigureThemeContext",
     "DashboardSpec",
     "DrillDownResult",

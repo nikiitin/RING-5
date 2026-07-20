@@ -248,3 +248,22 @@ class TestDataSourceCsvLoad:
         ds.navigate()
         ds.upload_csv(e2e_csv_path)
         ds.assert_data_loaded(row_count=18)
+
+    def test_csv_review_detects_format_before_loading(
+        self, tier0_page: Page, e2e_csv_path: Path
+    ) -> None:
+        # [test->req~ring5.ingestion.import-preview~1]
+        """Review detected structure and accepted rows before explicit loading."""
+        ds = DataSourcePage(tier0_page)
+        ds.navigate()
+        filename = ds.stage_csv(e2e_csv_path)
+        ds.review_recent_csv_by_name(filename)
+
+        expect(ds.import_detection_summary).to_contain_text("utf-8")
+        expect(ds.import_detection_summary).to_contain_text("comma")
+        expect(ds.import_accepted_metric).to_contain_text("18")
+        expect(ds.load_accepted_import_button).to_be_visible()
+
+        ds.load_accepted_import_button.click()
+        ds.wait_for_streamlit()
+        ds.assert_data_loaded(row_count=18)
