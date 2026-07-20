@@ -143,6 +143,54 @@ class TestFullWorkflow:
                 s.parse(str(empty), variables=["simTicks"])
 
 
+class TestRegressionComparison:
+    """Compare experiment measurements through the supported public API."""
+
+    def test_dataframe_comparison(self) -> None:
+        # [test->req~ring5.analysis.regression-comparison~1]
+        baseline = pd.DataFrame({"benchmark": ["a", "b"], "ipc": [1.0, 2.0]})
+        candidate = pd.DataFrame({"benchmark": ["a", "b"], "ipc": [1.1, 1.7]})
+
+        with ring5.Session() as session:
+            result = session.compare(
+                baseline,
+                candidate,
+                ["benchmark"],
+                ["ipc"],
+                thresholds=5.0,
+                baseline_name="main",
+                candidate_name="change",
+            )
+
+        assert isinstance(result, pd.DataFrame)
+        assert result["outcome"].tolist() == ["improvement", "regression"]
+        assert result["baseline_name"].tolist() == ["main", "main"]
+
+    def test_table_comparison_returns_table(self) -> None:
+        baseline = ring5.Table.from_rows([{"benchmark": "a", "ipc": 1.0}])
+        candidate = ring5.Table.from_rows([{"benchmark": "a", "ipc": 0.9}])
+
+        with ring5.Session() as session:
+            result = session.compare(
+                baseline,
+                candidate,
+                ["benchmark"],
+                ["ipc"],
+                directions="lower",
+            )
+
+        assert isinstance(result, ring5.Table)
+        assert result.rows()[0]["outcome"] == "improvement"
+
+    def test_invalid_comparison_raises_typed_error(self) -> None:
+        baseline = pd.DataFrame({"benchmark": ["a", "a"], "ipc": [1.0, 2.0]})
+        candidate = pd.DataFrame({"benchmark": ["a"], "ipc": [1.1]})
+
+        with ring5.Session() as session:
+            with pytest.raises(ring5.DataValidationError, match="not unique"):
+                session.compare(baseline, candidate, ["benchmark"], ["ipc"])
+
+
 class TestPortfolioReplay:
     # [test->req~ring5.portfolio.batch-replay~1]
     """Save a session, regenerate every figure from the snapshot."""

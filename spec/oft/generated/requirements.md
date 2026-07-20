@@ -1222,7 +1222,7 @@ Tags: configuration, shapers, status_proposed, versioning
 ### Baseline and candidate comparison
 
 `req~ring5.analysis.regression-comparison~1`
-Status: proposed
+Status: approved
 
 Users shall compare aligned baseline and candidate measurements with absolute change, percentage change, configurable direction, and regression thresholds.
 
@@ -1231,7 +1231,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: analysis, comparison, regression, status_proposed
+Tags: analysis, comparison, regression, status_approved
 
 ### Statistical comparison toolkit
 

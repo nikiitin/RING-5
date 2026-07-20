@@ -3137,11 +3137,23 @@
       "id": "analysis.regression-comparison",
       "group": "analysis",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Baseline and candidate comparison",
       "description": "Users shall compare aligned baseline and candidate measurements with absolute change, percentage change, configurable direction, and regression thresholds.",
       "tags": ["analysis", "comparison", "regression"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/services/managers/comparison_service.py::ComparisonService.compare",
+          "ring5/_session.py::Session.compare",
+          "src/web/components/data_managers/comparison.py::ComparisonManager.render"
+        ],
+        "tests": [
+          "tests/unit/test_comparison_service.py::test_compare_calculates_changes_and_directional_outcomes",
+          "tests/integration/test_ring5_public_api.py::TestRegressionComparison.test_dataframe_comparison",
+          "tests/e2e/test_data_managers.py::TestRegressionComparison.test_02_comparison_preview"
+        ],
+        "documentation": ["docs/user-guide/guides/compare-configurations.md#calculate-regressions"]
+      }
     },
     {
       "id": "analysis.statistical-comparison",
@@ -3874,6 +3886,7 @@
     "session_methods": {
       "apply_operation": "data.arithmetic",
       "close": "api.session",
+      "compare": "analysis.regression-comparison",
       "create_plot": "plots.create-multiple",
       "export": "export.public-boundary",
       "export_bytes": "export.public-boundary",
@@ -3956,6 +3969,7 @@
     "managers_api_members": {
       "apply_mixer": "data.numeric-mixer",
       "apply_operation": "data.arithmetic",
+      "compare": "analysis.regression-comparison",
       "list_operators": "data.arithmetic",
       "reduce_seeds": "data.seed-reduction",
       "remove_outliers": "data.outlier-removal",

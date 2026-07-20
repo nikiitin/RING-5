@@ -23,6 +23,51 @@ names produced by your results tree.
 Before transforming data, verify that each benchmark and configuration has the intended seed set.
 Missing or duplicated runs bias the mean and standard deviation. Keep the raw table for this check.
 
+## Calculate regressions
+
+<!--
+`uman~ring5.analysis.regression-comparison.documentation~1`
+
+Covers:
+- req~ring5.analysis.regression-comparison~1
+
+-->
+
+Open **Data Managers**, select **Compare**, and configure:
+
+1. the column containing the baseline and candidate groups;
+2. two different group values;
+3. the columns that uniquely align their rows;
+4. one or more numeric metrics;
+5. whether higher or lower values are preferable;
+6. a non-negative percentage or absolute tolerance.
+
+The preview contains one row per alignment key and metric. It reports the source values, absolute
+change, percentage change, threshold, and one of `improvement`, `regression`, `unchanged`,
+`missing_baseline`, `missing_candidate`, `missing_value`, or `not_comparable`. Percentage change is
+`(candidate - baseline) / abs(baseline) × 100`. A nonzero value cannot be compared by percentage
+against a zero baseline; use an absolute threshold when that comparison is meaningful.
+
+Duplicate alignment keys are rejected. Reduce repeated runs first or include the run identifier in
+the alignment keys. The preview can be downloaded without changing the dataset. **Use Comparison
+Result** replaces the active table with the long-form result so it can be plotted.
+
+The public API compares separate tables and supports per-metric directions and thresholds:
+
+```python
+comparison = session.compare(
+    baseline,
+    candidate,
+    key_columns=["benchmark"],
+    metric_columns=["ipc", "latency"],
+    directions={"ipc": "higher", "latency": "lower"},
+    thresholds={"ipc": 2.0, "latency": 5.0},
+    threshold_mode="percentage",
+    baseline_name="main",
+    candidate_name="change",
+)
+```
+
 ## Reduce repeated runs
 
 On **Data Managers**, open **Seeds Reducer**. Choose `seed` as **Column to reduce over**, group by

@@ -12,6 +12,7 @@ from src.web.components.common.history_components import HistoryComponents
 from src.web.components.data_managers.data_manager_components import (
     DataManagerComponents,
 )
+from src.web.components.data_managers.comparison import ComparisonManager
 from src.web.components.data_managers.mixer import MixerManager
 from src.web.components.data_managers.outlier_remover import OutlierRemoverManager
 from src.web.components.data_managers.preprocessor import PreprocessorManager
@@ -36,7 +37,7 @@ def show_data_managers_page(api: ApplicationAPI) -> None:
 
     has_data: bool = api.state_manager.has_data()
 
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(
         [
             "Summary",
             "Data Visualization",
@@ -44,6 +45,7 @@ def show_data_managers_page(api: ApplicationAPI) -> None:
             "Outlier Remover",
             "Preprocessor",
             "Mixer",
+            "Compare",
             "Operations History",
         ]
     )
@@ -109,4 +111,12 @@ def show_data_managers_page(api: ApplicationAPI) -> None:
         _mixer_fragment()
 
     with tab7:
+
+        @st.fragment
+        def _comparison_fragment() -> None:
+            ComparisonManager(api).render()
+
+        _comparison_fragment()
+
+    with tab8:
         HistoryComponents.render_portfolio_history(api.get_portfolio_history())

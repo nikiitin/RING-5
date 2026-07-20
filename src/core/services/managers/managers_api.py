@@ -6,7 +6,8 @@ the data-manager UI components: arithmetic operations, outlier removal,
 and seed reduction.
 """
 
-from typing import Protocol, runtime_checkable
+from collections.abc import Mapping, Sequence
+from typing import Literal, Protocol, runtime_checkable
 
 import pandas as pd
 
@@ -99,4 +100,39 @@ class ManagersAPI(Protocol):
         statistic_cols: list[str],
     ) -> list[str]:
         """Validate inputs for seeds reduction."""
+        raise NotImplementedError
+
+    # -- Baseline comparison --
+
+    def compare(
+        self,
+        baseline: pd.DataFrame,
+        candidate: pd.DataFrame,
+        key_columns: Sequence[str],
+        metric_columns: Sequence[str],
+        *,
+        directions: (
+            Literal["higher", "lower"] | Mapping[str, Literal["higher", "lower"]]
+        ) = "higher",
+        thresholds: float | Mapping[str, float] = 0.0,
+        threshold_mode: Literal["percentage", "absolute"] = "percentage",
+        baseline_name: str = "baseline",
+        candidate_name: str = "candidate",
+    ) -> pd.DataFrame:
+        """Compare aligned baseline and candidate metrics.
+
+        Args:
+            baseline: Reference measurements with unique alignment keys.
+            candidate: Measurements evaluated against the reference.
+            key_columns: Columns identifying corresponding rows.
+            metric_columns: Numeric columns to compare.
+            directions: Global or per-metric optimization direction.
+            thresholds: Global or per-metric non-negative tolerance.
+            threshold_mode: Interpret tolerances as percentages or absolute values.
+            baseline_name: Label stored with reference values.
+            candidate_name: Label stored with candidate values.
+
+        Returns:
+            Long-form comparison rows with changes and outcomes.
+        """
         raise NotImplementedError

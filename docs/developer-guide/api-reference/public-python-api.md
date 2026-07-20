@@ -36,7 +36,13 @@ are released.
 Likewise, `parse_submit` returns `ParseJob` and `parse` returns `ParseResult`. A job can be cancelled
 without touching work from another handle. `Session.load` returns a DataFrame. `shape`,
 `reduce_seeds`, `remove_outliers`, `apply_operation`, and `mix_columns` preserve `ring5.Table` when
-given one.
+given one. `Session.compare` returns a `Table` when both baseline and candidate inputs are tables;
+otherwise it returns a DataFrame.
+
+`Session.compare` aligns baseline and candidate rows by unique key columns and emits long-form
+metric results. Directions and non-negative tolerances can be global or keyed by metric. Percentage
+and absolute threshold modes are supported. Missing keys and non-finite values remain in the result;
+invalid columns, duplicate keys, and invalid options raise `DataValidationError`.
 
 `scan_limit=0` means exhaustive variable discovery up to the global 10,000-file ceiling; a positive
 value is an exact sample cap. A scan with any failed files raises `ScanError` at the public boundary;

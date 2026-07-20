@@ -4,9 +4,13 @@ Default implementation of the ManagersAPI protocol.
 Delegates to ArithmeticService, OutlierService, and ReductionService.
 """
 
+from collections.abc import Mapping, Sequence
+from typing import Literal
+
 import pandas as pd
 
 from src.core.services.managers.arithmetic_service import ArithmeticService
+from src.core.services.managers.comparison_service import ComparisonService
 from src.core.services.managers.outlier_service import OutlierService
 from src.core.services.managers.reduction_service import ReductionService
 
@@ -96,3 +100,33 @@ class DefaultManagersAPI:
     ) -> list[str]:
         """Validate inputs for seeds reduction."""
         return ReductionService.validate_seeds_reducer_inputs(df, categorical_cols, statistic_cols)
+
+    # -- Baseline comparison --
+
+    def compare(
+        self,
+        baseline: pd.DataFrame,
+        candidate: pd.DataFrame,
+        key_columns: Sequence[str],
+        metric_columns: Sequence[str],
+        *,
+        directions: (
+            Literal["higher", "lower"] | Mapping[str, Literal["higher", "lower"]]
+        ) = "higher",
+        thresholds: float | Mapping[str, float] = 0.0,
+        threshold_mode: Literal["percentage", "absolute"] = "percentage",
+        baseline_name: str = "baseline",
+        candidate_name: str = "candidate",
+    ) -> pd.DataFrame:
+        """Compare aligned baseline and candidate metrics."""
+        return ComparisonService.compare(
+            baseline,
+            candidate,
+            key_columns,
+            metric_columns,
+            directions=directions,
+            thresholds=thresholds,
+            threshold_mode=threshold_mode,
+            baseline_name=baseline_name,
+            candidate_name=candidate_name,
+        )

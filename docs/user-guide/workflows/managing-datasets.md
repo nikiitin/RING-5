@@ -49,7 +49,7 @@ Covers:
 
 -->
 
-Seeds Reducer, Outlier Remover, Preprocessor, and Mixer calculate into an isolated preview. The
+Seeds Reducer, Outlier Remover, Preprocessor, Mixer, and Compare calculate into an isolated preview. The
 active workspace table changes only after the corresponding confirmation control is selected.
 Discarding or replacing a preview leaves the active table unchanged.
 

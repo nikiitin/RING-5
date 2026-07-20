@@ -1,12 +1,13 @@
 """Page Object for the Data Managers page.
 
-Covers all 7 tabs:
+Covers all 8 tabs:
 - Summary
 - Data Visualization
 - Seeds Reducer
 - Outlier Remover
 - Preprocessor
 - Mixer
+- Compare
 - Operations History
 """
 
@@ -29,6 +30,7 @@ class DataManagersPage(BasePage):
         "Outlier Remover",
         "Preprocessor",
         "Mixer",
+        "Compare",
         "Operations History",
     )
 
@@ -150,7 +152,7 @@ class DataManagersPage(BasePage):
         expect(self.no_data_warning).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
     def assert_tabs_visible(self) -> None:
-        """Assert all 7 tabs are present."""
+        """Assert all 8 tabs are present."""
         expect(self.tab_bar).to_be_visible(timeout=self.RENDER_TIMEOUT)
         for tab_name in self.TAB_NAMES:
             expect(self.get_tab(tab_name)).to_be_visible()
@@ -360,6 +362,38 @@ class DataManagersPage(BasePage):
     def confirm_mixer(self) -> None:
         """Click 'Confirm and Merge' and wait."""
         self.mixer_confirm_button.click()
+        self.wait_for_streamlit()
+
+    # E2E: Baseline comparison
+
+    @property
+    def comparison_group_selectbox(self) -> Locator:
+        """Experiment-group column selector."""
+        return self._by_label("stSelectbox", "Experiment column")
+
+    @property
+    def comparison_metrics_multiselect(self) -> Locator:
+        """Metrics selected for comparison."""
+        return self._by_label("stMultiSelect", "Metrics")
+
+    @property
+    def comparison_keys_multiselect(self) -> Locator:
+        """Columns used to align baseline and candidate rows."""
+        return self._by_label("stMultiSelect", "Alignment keys")
+
+    @property
+    def comparison_apply_button(self) -> Locator:
+        """Button that calculates the comparison preview."""
+        return self.page.get_by_role("button", name="Compare", exact=True)
+
+    @property
+    def comparison_confirm_button(self) -> Locator:
+        """Button that replaces the active data with the comparison result."""
+        return self.page.get_by_role("button", name="Use Comparison Result")
+
+    def apply_comparison(self) -> None:
+        """Calculate the comparison and wait for the preview."""
+        self.comparison_apply_button.click()
         self.wait_for_streamlit()
 
     # E2E: Data Visualization tab

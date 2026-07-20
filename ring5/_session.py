@@ -6,7 +6,7 @@ import copy
 import shutil
 import tempfile
 import threading
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any, Literal, cast
 
 import pandas as pd
@@ -449,6 +449,73 @@ class Session:
         except (ValueError, TypeError) as exc:
             raise DataValidationError(str(exc)) from exc
         return _rewrap_table(reduced) if was_table else reduced
+
+    def compare(
+        self,
+        baseline: "pd.DataFrame | Table",
+        candidate: "pd.DataFrame | Table",
+        key_columns: Sequence[str],
+        metric_columns: Sequence[str],
+        *,
+        directions: (
+            Literal["higher", "lower"] | Mapping[str, Literal["higher", "lower"]]
+        ) = "higher",
+        thresholds: float | Mapping[str, float] = 0.0,
+        threshold_mode: Literal["percentage", "absolute"] = "percentage",
+        baseline_name: str = "baseline",
+        candidate_name: str = "candidate",
+    ) -> "pd.DataFrame | Table":
+        """Compare aligned baseline and candidate measurements.
+
+        The result contains one row per key and metric with baseline and
+        candidate values, absolute and percentage changes, the configured
+        threshold, and an outcome. Candidate-only and baseline-only keys remain
+        visible. A :class:`ring5.Table` is returned when both inputs are tables.
+
+        Args:
+            baseline: Reference measurements with one row per alignment key.
+            candidate: Measurements evaluated against the reference.
+            key_columns: Columns that uniquely identify corresponding rows.
+            metric_columns: Numeric columns to compare.
+            directions: ``"higher"`` or ``"lower"`` globally, or by metric.
+            thresholds: Non-negative global or per-metric tolerance.
+            threshold_mode: Interpret thresholds as ``"percentage"`` or
+                ``"absolute"`` values.
+            baseline_name: Label stored with reference values.
+            candidate_name: Label stored with candidate values.
+
+        Returns:
+            Long-form comparison data. The output type matches table inputs only
+            when both inputs are :class:`ring5.Table` instances.
+
+        Raises:
+            ColumnNotFoundError: An alignment key or metric is absent.
+            DataValidationError: Keys, metrics, directions, or thresholds are invalid.
+        """
+        # [impl->req~ring5.analysis.regression-comparison~1]
+        baseline_frame, baseline_was_table = _unwrap_table(baseline)
+        candidate_frame, candidate_was_table = _unwrap_table(candidate)
+        keys = list(key_columns)
+        metrics = list(metric_columns)
+        _require_columns(baseline_frame, keys + metrics)
+        _require_columns(candidate_frame, keys + metrics)
+        try:
+            result = self.api.managers.compare(
+                baseline_frame,
+                candidate_frame,
+                keys,
+                metrics,
+                directions=directions,
+                thresholds=thresholds,
+                threshold_mode=threshold_mode,
+                baseline_name=baseline_name,
+                candidate_name=candidate_name,
+            )
+        except (TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+        if baseline_was_table and candidate_was_table:
+            return _rewrap_table(result)
+        return result
 
     def remove_outliers(
         self,

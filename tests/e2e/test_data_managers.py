@@ -1,7 +1,7 @@
 """E2E tests for the Data Managers page.
 
 Covers page structure, Outlier Remover, Seeds Reducer, Mixer,
-Preprocessor, and Operations History using the ``tier1_page`` fixture
+Preprocessor, baseline comparison, and Operations History using the ``tier1_page`` fixture
 (18 rows of CSV data pre-loaded: 3 benchmarks x 3 configs x 2 seeds).
 
 Columns: benchmark_name, config_description, seed, system.cpu.ipc,
@@ -246,6 +246,42 @@ class TestPreprocessor:
         dm = DataManagersPage(tier1_page)
         dm.confirm_preprocessor()
         dm.assert_success_message_visible()
+
+
+# Baseline comparison
+
+
+@pytest.mark.xdist_group("e2e_data_managers_comparison")
+class TestRegressionComparison:
+    """Tier 1: Compare two configurations without dropping alignment failures."""
+
+    @pytest.mark.order(1)
+    def test_01_tab_loads(self, tier1_page: Page) -> None:
+        dm = DataManagersPage(tier1_page)
+        dm.navigate()
+        dm.select_tab("Compare")
+        dm.assert_tab_active("Compare")
+        expect(dm.comparison_group_selectbox).to_be_visible(timeout=_E2E_TIMEOUT)
+
+    @pytest.mark.order(2)
+    def test_02_comparison_preview(self, tier1_page: Page) -> None:
+        # [test->req~ring5.analysis.regression-comparison~1]
+        dm = DataManagersPage(tier1_page)
+        _select_dropdown_option(
+            tier1_page,
+            dm.comparison_group_selectbox,
+            "config_description",
+        )
+        dm.wait_for_streamlit()
+        _add_multiselect_option(tier1_page, dm.comparison_metrics_multiselect, "system.cpu.ipc")
+        dm.wait_for_streamlit()
+        _add_multiselect_option(tier1_page, dm.comparison_keys_multiselect, "benchmark_name")
+        dm.wait_for_streamlit()
+        _add_multiselect_option(tier1_page, dm.comparison_keys_multiselect, "seed")
+        tier1_page.keyboard.press("Escape")
+        dm.wait_for_streamlit()
+        dm.apply_comparison()
+        expect(dm.comparison_confirm_button).to_be_visible(timeout=_E2E_TIMEOUT)
 
 
 # Operations History
