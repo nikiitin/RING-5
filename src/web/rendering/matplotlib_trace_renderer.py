@@ -24,7 +24,10 @@ from collections.abc import Sequence
 from typing import Any, Literal, cast
 
 import numpy as np
+from matplotlib import colormaps
 from matplotlib.axes import Axes
+from matplotlib.cm import ScalarMappable
+from matplotlib.colors import Normalize
 from matplotlib.patches import PathPatch, Rectangle
 from matplotlib.path import Path
 
@@ -34,6 +37,7 @@ from src.core.models.visualization.trace_config import (
     HeatmapTraceConfig,
     HistogramTraceConfig,
     LineTraceConfig,
+    ParallelCoordinatesTraceConfig,
     RadarTraceConfig,
     SankeyTraceConfig,
     ScatterTraceConfig,
@@ -173,6 +177,9 @@ class MatplotlibTraceRenderer:
                     result.trace_count += 1
                 elif isinstance(trace, SankeyTraceConfig):
                     MatplotlibTraceRenderer._draw_sankey(trace, target)
+                    result.trace_count += 1
+                elif isinstance(trace, ParallelCoordinatesTraceConfig):
+                    MatplotlibTraceRenderer._draw_parallel_coordinates(trace, target)
                     result.trace_count += 1
                 elif isinstance(trace, ScatterTraceConfig):
                     MatplotlibTraceRenderer._draw_scatter(
@@ -689,6 +696,76 @@ class MatplotlibTraceRenderer:
                 )
         ax.set_xlim(-0.12, 1.12)
         ax.set_ylim(-0.05, 1.05)
+        ax.axis("off")
+
+    @staticmethod
+    def _draw_parallel_coordinates(spec: ParallelCoordinatesTraceConfig, ax: Axes) -> None:
+        # [impl->req~ring5.plot.parallel-coordinates~1]
+        """Draw normalized row paths, encoded axes, brushes, and a shared color scale."""
+        if len(spec.dimensions) < 2:
+            return
+        row_count = len(spec.dimensions[0].values)
+        x_positions = np.arange(len(spec.dimensions), dtype=float)
+        normalized = np.zeros((row_count, len(spec.dimensions)), dtype=float)
+        selected = np.ones(row_count, dtype=bool)
+        for index, dimension in enumerate(spec.dimensions):
+            lower, upper = dimension.range
+            values = np.asarray(dimension.values, dtype=float)
+            normalized[:, index] = (values - lower) / (upper - lower)
+            if dimension.constraintrange is not None:
+                brush_min, brush_max = dimension.constraintrange
+                selected &= (values >= brush_min) & (values <= brush_max)
+
+        cmap_name = {
+            "Viridis": "viridis",
+            "Cividis": "cividis",
+            "Plasma": "plasma",
+            "Inferno": "inferno",
+            "Magma": "magma",
+            "Turbo": "turbo",
+            "RdBu": "RdBu",
+        }.get(spec.colorscale, "viridis")
+        if spec.reverse_colorscale:
+            cmap_name += "_r"
+        cmap = colormaps[cmap_name]
+        normalization = Normalize(vmin=spec.color_min, vmax=spec.color_max)
+        color_values = (
+            np.asarray(spec.line_color_values, dtype=float)
+            if spec.line_color_values is not None
+            else None
+        )
+        for is_selected in (False, True):
+            alpha = 0.8 if is_selected else spec.unselected_opacity
+            if alpha <= 0:
+                continue
+            for row in np.flatnonzero(selected == is_selected):
+                color = (
+                    cmap(normalization(color_values[row]))
+                    if color_values is not None
+                    else spec.line_color
+                )
+                ax.plot(x_positions, normalized[row], color=color, alpha=alpha, zorder=2)
+
+        for index, dimension in enumerate(spec.dimensions):
+            ax.plot([index, index], [0, 1], color="#777777", linewidth=1.0, zorder=1)
+            ax.text(index, 1.04, dimension.label, ha="center", va="bottom", fontweight="bold")
+            lower, upper = dimension.range
+            if dimension.tick_values:
+                for tick, label in zip(dimension.tick_values, dimension.tick_labels):
+                    y_position = (tick - lower) / (upper - lower)
+                    ax.text(index - 0.03, y_position, label, ha="right", va="center")
+            else:
+                ax.text(index - 0.03, 0, f"{lower:.4g}", ha="right", va="center")
+                ax.text(index - 0.03, 1, f"{upper:.4g}", ha="right", va="center")
+
+        if color_values is not None and spec.show_colorbar:
+            mappable = ScalarMappable(norm=normalization, cmap=cmap)
+            colorbar = ax.figure.colorbar(mappable, ax=ax, pad=0.08)
+            colorbar.set_label(spec.colorbar_title)
+            if spec.color_tick_values:
+                colorbar.set_ticks(spec.color_tick_values, labels=spec.color_tick_labels)
+        ax.set_xlim(-0.25, len(spec.dimensions) - 0.75)
+        ax.set_ylim(-0.08, 1.1)
         ax.axis("off")
 
     # scatter

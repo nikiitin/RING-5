@@ -22,6 +22,7 @@ from src.core.models.visualization.trace_config import (
     HeatmapTraceConfig,
     HistogramTraceConfig,
     LineTraceConfig,
+    ParallelCoordinatesTraceConfig,
     RadarTraceConfig,
     SankeyTraceConfig,
     ScatterTraceConfig,
@@ -198,6 +199,8 @@ def _convert_trace(trace: TraceConfig) -> go.BaseTraceType:  # type: ignore[name
         result = _waterfall_trace(trace)
     elif isinstance(trace, SankeyTraceConfig):
         result = _sankey_trace(trace)
+    elif isinstance(trace, ParallelCoordinatesTraceConfig):
+        result = _parallel_coordinates_trace(trace)
     elif isinstance(trace, LineTraceConfig):
         result = _line_trace(trace)
     elif isinstance(trace, ScatterTraceConfig):
@@ -421,6 +424,49 @@ def _sankey_trace(trace: SankeyTraceConfig) -> go.Sankey:
             "label": trace.link_labels if trace.show_link_labels else [""] * len(trace.values),
             "color": [_with_opacity(color, trace.link_opacity) for color in trace.link_colors],
         },
+    )
+
+
+def _parallel_coordinates_trace(trace: ParallelCoordinatesTraceConfig) -> go.Parcoords:
+    # [impl->req~ring5.plot.parallel-coordinates~1]
+    """Convert encoded dimensions, brushes, and color scale to Plotly Parcoords."""
+    dimensions: list[dict[str, Any]] = []
+    for dimension in trace.dimensions:
+        item: dict[str, Any] = {
+            "label": dimension.label,
+            "values": dimension.values,
+            "range": list(dimension.range),
+        }
+        if dimension.tick_values:
+            item["tickvals"] = dimension.tick_values
+            item["ticktext"] = dimension.tick_labels
+        if dimension.constraintrange is not None:
+            item["constraintrange"] = list(dimension.constraintrange)
+        dimensions.append(item)
+
+    line: dict[str, Any]
+    if trace.line_color_values is None:
+        line = {"color": trace.line_color}
+    else:
+        colorbar: dict[str, Any] = {"title": {"text": trace.colorbar_title}}
+        if trace.color_tick_values:
+            colorbar["tickvals"] = trace.color_tick_values
+            colorbar["ticktext"] = trace.color_tick_labels
+        line = {
+            "color": trace.line_color_values,
+            "colorscale": trace.colorscale,
+            "reversescale": trace.reverse_colorscale,
+            "cmin": trace.color_min,
+            "cmax": trace.color_max,
+            "showscale": trace.show_colorbar,
+            "colorbar": colorbar,
+        }
+    return go.Parcoords(
+        name=trace.name,
+        dimensions=dimensions,
+        line=line,
+        visible=trace.visible,
+        unselected={"line": {"opacity": trace.unselected_opacity}},
     )
 
 

@@ -20,6 +20,7 @@ _REQUIRED_SINGLE: dict[str, tuple[str, ...]] = {
     "heatmap": ("x",),
     "histogram": ("histogram_variable",),
     "line": ("x", "y"),
+    "parallel_coordinates": (),
     "radar": ("x", "y"),
     "sankey": ("sankey_source", "sankey_target", "sankey_value"),
     "scatter": ("x", "y"),
@@ -31,6 +32,7 @@ _REQUIRED_SINGLE: dict[str, tuple[str, ...]] = {
 _REQUIRED_LIST: dict[str, tuple[str, ...]] = {
     "grouped_stacked_bar": ("y_columns",),
     "heatmap": ("metric_columns",),
+    "parallel_coordinates": ("parallel_dimensions",),
     "stacked_bar": ("y_columns",),
 }
 
@@ -45,6 +47,7 @@ _OPTIONAL_SINGLE: dict[str, tuple[str, ...]] = {
     "heatmap": ("facet_col",),
     "histogram": ("group_by",),
     "line": ("color",),
+    "parallel_coordinates": ("parallel_color",),
     "radar": ("color",),
     "sankey": ("sankey_label",),
     "scatter": ("color",),

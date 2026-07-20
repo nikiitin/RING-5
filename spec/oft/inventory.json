@@ -3775,11 +3775,29 @@
       "id": "plot.parallel-coordinates",
       "group": "plot-types",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Parallel-coordinates plot",
       "description": "The plot registry shall provide parallel-coordinate plots with ordered dimensions, categorical encoding, ranges, brushing, and color-scale controls.",
       "tags": ["multivariate", "plots", "visualization"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/models/visualization/trace_config.py::ParallelCoordinatesTraceConfig",
+          "src/web/pages/ui/plotting/types/parallel_coordinates_plot.py::ParallelCoordinatesPlot.create_traces",
+          "src/web/components/plotting/config/parallel_coordinates_config.py::render",
+          "src/web/rendering/trace_to_plotly.py::_parallel_coordinates_trace",
+          "src/web/rendering/matplotlib_trace_renderer.py::MatplotlibTraceRenderer._draw_parallel_coordinates"
+        ],
+        "tests": [
+          "tests/unit/test_parallel_coordinates_plot.py::test_parallel_coordinates_preserve_order_encoding_ranges_and_brushes",
+          "tests/unit/test_trace_to_plotly.py::TestParallelCoordinatesTrace.test_parallel_coordinates_preserve_order_encoding_brush_and_color_scale",
+          "tests/unit/test_matplotlib_trace_renderer.py::TestRender.test_parallel_coordinates_draw_encoded_axes_brushed_rows_and_color_scale",
+          "tests/integration/test_parallel_coordinates_plot_public_api.py::test_public_parallel_coordinates_render_order_encoding_brushes_and_colors",
+          "tests/e2e/test_plot_types.py::TestPlotCreation.test_14_create_parallel_coordinates_plot"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/parallel-coordinates.md#compare-rows-with-parallel-coordinates"
+        ]
+      }
     },
     {
       "id": "figure.accessible-themes",
@@ -4143,6 +4161,7 @@
       "heatmap": "plot.heatmap",
       "histogram": "plot.histogram",
       "line": "plot.line",
+      "parallel_coordinates": "plot.parallel-coordinates",
       "radar": "plot.radar",
       "sankey": "plot.sankey",
       "scatter": "plot.scatter",

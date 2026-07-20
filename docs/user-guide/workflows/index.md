@@ -37,5 +37,6 @@ Use these pages for recurring tasks:
 - [Compare Profiles with Radar Charts](radar-charts/) on one explicit shared radial scale.
 - [Explain Changes with Waterfall Charts](waterfall-charts/) using explicit step meanings and running totals.
 - [Trace Flows with Sankey Diagrams](sankey-diagrams/) using validated weighted links and shared node positions.
+- [Compare Rows with Parallel Coordinates](parallel-coordinates/) across ordered numeric and categorical axes.
 - [Manage Portfolios](portfolios/) to save and restore a workspace.
 - [Automate with Python and the CLI](scripting/) for batch and CI use.

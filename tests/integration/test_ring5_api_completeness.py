@@ -217,6 +217,10 @@ def test_public_registries_are_complete() -> None:
         ("heatmap", {"x": "x", "metric_columns": ["y", "z"], "facet_col": "group"}),
         ("histogram", {"histogram_variable": "latency", "group_by": "group"}),
         ("line", {"x": "x", "y": "y", "color": "group"}),
+        (
+            "parallel_coordinates",
+            {"parallel_dimensions": ["x", "group", "y"], "parallel_color": "y"},
+        ),
         ("radar", {"x": "x", "y": "y", "color": "group", "radar_fill": True}),
         (
             "sankey",

@@ -30,6 +30,7 @@ PLOT_TYPES: tuple[str, ...] = (
     "grouped_stacked_bar",
     "histogram",
     "line",
+    "parallel_coordinates",
     "radar",
     "sankey",
     "scatter",

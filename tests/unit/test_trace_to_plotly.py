@@ -13,6 +13,8 @@ from src.core.models.visualization.trace_config import (
     BoxTraceConfig,
     HistogramTraceConfig,
     LineTraceConfig,
+    ParallelCoordinatesTraceConfig,
+    ParallelDimensionConfig,
     RadarTraceConfig,
     SankeyTraceConfig,
     ScatterTraceConfig,
@@ -28,6 +30,7 @@ from src.web.rendering.trace_to_plotly import (
     _convert_trace,
     _histogram_trace,
     _line_trace,
+    _parallel_coordinates_trace,
     _radar_trace,
     _sankey_trace,
     _scatter_trace,
@@ -369,6 +372,53 @@ class TestSankeyTrace:
             "rgba(17,17,17,0.400)",
             "rgba(34,34,34,0.400)",
         ]
+
+
+class TestParallelCoordinatesTrace:
+    """Tests for native Plotly parallel-coordinate conversion."""
+
+    def test_parallel_coordinates_preserve_order_encoding_brush_and_color_scale(self) -> None:
+        # [test->req~ring5.plot.parallel-coordinates~1]
+        trace = ParallelCoordinatesTraceConfig(
+            name="Score",
+            dimensions=[
+                ParallelDimensionConfig(
+                    column="kind",
+                    label="Kind",
+                    values=[0.0, 1.0],
+                    range=(0.0, 1.0),
+                    tick_values=[0.0, 1.0],
+                    tick_labels=["A", "B"],
+                ),
+                ParallelDimensionConfig(
+                    column="score",
+                    label="Score",
+                    values=[2.0, 3.0],
+                    range=(1.0, 4.0),
+                    constraintrange=(2.5, 4.0),
+                ),
+            ],
+            line_color_values=[2.0, 3.0],
+            colorscale="Cividis",
+            reverse_colorscale=True,
+            color_min=2.0,
+            color_max=3.0,
+            colorbar_title="Score",
+            unselected_opacity=0.1,
+        )
+
+        result = _parallel_coordinates_trace(trace)
+
+        assert isinstance(result, go.Parcoords)
+        assert [dimension.label for dimension in cast(Any, result.dimensions)] == [
+            "Kind",
+            "Score",
+        ]
+        assert list(cast(Any, result.dimensions[0].ticktext)) == ["A", "B"]
+        assert tuple(cast(Any, result.dimensions[1].constraintrange)) == (2.5, 4.0)
+        assert result.line.reversescale
+        assert result.line.cmin == 2.0 and result.line.cmax == 3.0
+        assert cast(Any, result.unselected).line.opacity == 0.1
 
     def test_scatter_trace_dispatch(self) -> None:
         trace = ScatterTraceConfig(name="scatter", x=["a"], y=[1])

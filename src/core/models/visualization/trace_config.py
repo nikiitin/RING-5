@@ -26,6 +26,7 @@ TraceType = Literal[
     "radar",
     "waterfall",
     "sankey",
+    "parallel_coordinates",
 ]
 
 
@@ -289,3 +290,36 @@ class SankeyTraceConfig(TraceConfig):
     link_opacity: float = 0.35
     show_node_labels: bool = True
     show_link_labels: bool = False
+
+
+@dataclass
+class ParallelDimensionConfig:
+    """One encoded parallel-coordinate axis with range and optional brush."""
+
+    column: str = ""
+    label: str = ""
+    values: list[float] = field(default_factory=list)
+    range: tuple[float, float] = (0.0, 1.0)
+    tick_values: list[float] = field(default_factory=list)
+    tick_labels: list[str] = field(default_factory=list)
+    constraintrange: tuple[float, float] | None = None
+
+
+@dataclass
+class ParallelCoordinatesTraceConfig(TraceConfig):
+    # [impl->req~ring5.plot.parallel-coordinates~1]
+    """Ordered numeric/categorical dimensions and shared brushing/color semantics."""
+
+    trace_type: TraceType = "parallel_coordinates"
+    dimensions: list[ParallelDimensionConfig] = field(default_factory=list)
+    line_color_values: list[float] | None = None
+    line_color: str = "#4c78a8"
+    colorscale: str = "Viridis"
+    reverse_colorscale: bool = False
+    color_min: float = 0.0
+    color_max: float = 1.0
+    show_colorbar: bool = True
+    colorbar_title: str = ""
+    color_tick_values: list[float] = field(default_factory=list)
+    color_tick_labels: list[str] = field(default_factory=list)
+    unselected_opacity: float = 0.08

@@ -246,6 +246,24 @@ class PlotDisplayConfig(TypedDict, total=False):
     sankey_node_line_color: str
     sankey_node_line_width: float
 
+    # Parallel-coordinates-specific
+    parallel_dimensions: list[str]
+    parallel_color: str | None
+    parallel_labels: dict[str, str]
+    parallel_range_mode: str
+    parallel_ranges: dict[str, list[float]]
+    parallel_brush_dimension: str | None
+    parallel_brush_range: list[float] | None
+    parallel_brushes: dict[str, list[float]]
+    parallel_colorscale: str
+    parallel_reverse_colorscale: bool
+    parallel_color_min: float
+    parallel_color_max: float
+    parallel_show_colorbar: bool
+    parallel_colorbar_title: str
+    parallel_line_color: str
+    parallel_unselected_opacity: float
+
     # Export
     download_format: str  # "html", "png", "pdf", "svg"
     export_scale: int  # 1, 2, or 3

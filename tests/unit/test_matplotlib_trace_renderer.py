@@ -17,6 +17,8 @@ from src.core.models.visualization.trace_config import (
     HeatmapTraceConfig,
     HistogramTraceConfig,
     LineTraceConfig,
+    ParallelCoordinatesTraceConfig,
+    ParallelDimensionConfig,
     RadarTraceConfig,
     SankeyTraceConfig,
     ScatterTraceConfig,
@@ -211,6 +213,45 @@ class TestRender:
         assert result.trace_count == 1
         assert len(ax.patches) == 5
         assert [text.get_text() for text in ax.texts] == ["first", "second", "A", "B", "C"]
+        assert not ax.axison
+
+    def test_parallel_coordinates_draw_encoded_axes_brushed_rows_and_color_scale(
+        self, ax: matplotlib.axes.Axes
+    ) -> None:
+        # [test->req~ring5.plot.parallel-coordinates~1]
+        trace = ParallelCoordinatesTraceConfig(
+            name="Score",
+            dimensions=[
+                ParallelDimensionConfig(
+                    column="kind",
+                    label="Kind",
+                    values=[0.0, 1.0],
+                    range=(0.0, 1.0),
+                    tick_values=[0.0, 1.0],
+                    tick_labels=["A", "B"],
+                ),
+                ParallelDimensionConfig(
+                    column="score",
+                    label="Score",
+                    values=[2.0, 3.0],
+                    range=(1.0, 4.0),
+                    constraintrange=(2.5, 4.0),
+                ),
+            ],
+            line_color_values=[2.0, 3.0],
+            colorscale="Cividis",
+            color_min=2.0,
+            color_max=3.0,
+            show_colorbar=False,
+            unselected_opacity=0.1,
+        )
+
+        result = MatplotlibTraceRenderer.render([trace], ax)
+
+        assert result.trace_count == 1
+        assert len(ax.lines) == 4
+        assert {text.get_text() for text in ax.texts} >= {"Kind", "Score", "A", "B"}
+        assert sorted(line.get_alpha() for line in ax.lines[:2]) == [0.1, 0.8]
         assert not ax.axison
 
     def test_vertical_and_horizontal_violins_use_precomputed_density(

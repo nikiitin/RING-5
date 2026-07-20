@@ -1674,7 +1674,7 @@ Tags: flows, plots, status_approved, visualization
 ### Parallel-coordinates plot
 
 `req~ring5.plot.parallel-coordinates~1`
-Status: proposed
+Status: approved
 
 The plot registry shall provide parallel-coordinate plots with ordered dimensions, categorical encoding, ranges, brushing, and color-scale controls.
 
@@ -1683,7 +1683,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: multivariate, plots, status_proposed, visualization
+Tags: multivariate, plots, status_approved, visualization
 
 ## Figure Configuration
 

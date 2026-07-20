@@ -242,6 +242,20 @@ class TestPlotCreation:
         mp.refresh_plot()
         mp.assert_chart_visible(timeout=CHART_TIMEOUT)
 
+    # -- Parallel coordinates ------------------------------------------------
+
+    def test_14_create_parallel_coordinates_plot(self, tier1_page: Page) -> None:
+        # [test->req~ring5.plot.parallel-coordinates~1]
+        """Create parallel coordinates and expose range, brush, and color controls."""
+        mp = ManagePlotsPage(tier1_page)
+        _create_and_finalize(mp, "E2E Parallel Coordinates", "parallel_coordinates")
+        _trigger_render_fragment(mp)
+        expect(tier1_page.get_by_text("Dimensions and ranges", exact=True)).to_be_visible(
+            timeout=E2E_TIMEOUT
+        )
+        mp.refresh_plot()
+        mp.assert_chart_visible(timeout=CHART_TIMEOUT)
+
 
 # Tier 2 -- Plot management controls
 

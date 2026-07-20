@@ -22,6 +22,7 @@ from .types import (
     HeatmapPlot,
     HistogramPlot,
     LinePlot,
+    ParallelCoordinatesPlot,
     RadarPlot,
     SankeyPlot,
     ScatterPlot,
@@ -54,6 +55,7 @@ class PlotFactory:
         "grouped_stacked_bar": GroupedStackedBarPlot,
         "histogram": HistogramPlot,
         "line": LinePlot,
+        "parallel_coordinates": ParallelCoordinatesPlot,
         "radar": RadarPlot,
         "sankey": SankeyPlot,
         "scatter": ScatterPlot,
@@ -66,6 +68,11 @@ class PlotFactory:
         "bar": {"display_name": "Bar Chart", "icon": "bar_chart", "category": "basic"},
         "box": {"display_name": "Box Plot", "icon": "inventory_2", "category": "distribution"},
         "line": {"display_name": "Line Chart", "icon": "show_chart", "category": "basic"},
+        "parallel_coordinates": {
+            "display_name": "Parallel Coordinates",
+            "icon": "multiline_chart",
+            "category": "comparison",
+        },
         "radar": {"display_name": "Radar Chart", "icon": "radar", "category": "comparison"},
         "sankey": {
             "display_name": "Sankey Diagram",

@@ -64,6 +64,7 @@ PlotType = Literal[
     "heatmap",
     "histogram",
     "line",
+    "parallel_coordinates",
     "radar",
     "sankey",
     "scatter",
