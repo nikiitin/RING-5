@@ -2082,7 +2082,7 @@ Tags: figures, presets, status_approved, themes
 ### Publication panel composition
 
 `req~ring5.figure.panel-composition~1`
-Status: proposed
+Status: approved
 
 Users shall compose figures with panel labels, captions, common titles, shared legends, and deterministic panel spacing.
 
@@ -2091,7 +2091,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: composition, figures, publication, status_proposed
+Tags: composition, figures, publication, status_approved
 
 ### End-to-end line styles
 

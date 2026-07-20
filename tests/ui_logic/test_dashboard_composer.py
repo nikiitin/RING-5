@@ -42,7 +42,7 @@ def test_composer_builds_previews_and_exports_selected_panels(
     mock_st.multiselect.return_value = [1, 2]
     mock_st.text_input.side_effect = ["Analysis dashboard", "", ""]
     mock_st.number_input.side_effect = [2, 1200, 480]
-    mock_st.toggle.side_effect = [False, False, True, False]
+    mock_st.toggle.side_effect = [False, False, True, False, False]
     mock_st.pills.side_effect = ["plotly", "html"]
     mock_st.button.return_value = True
 
@@ -68,6 +68,80 @@ def test_composer_builds_previews_and_exports_selected_panels(
     mock_render_dashboard.assert_called_once_with([first, second], spec, engine="plotly")
     mock_st.plotly_chart.assert_called_once()
     mock_st.download_button.assert_called_once()
+
+
+@patch(f"{_MODULE}.plotly_download_bytes", return_value=b"<html></html>")
+@patch(f"{_MODULE}.render_dashboard", return_value=go.Figure())
+@patch(f"{_MODULE}.st")
+def test_composer_exposes_publication_labels_captions_and_spacing(
+    mock_st: MagicMock,
+    _mock_render_dashboard: MagicMock,
+    _mock_export: MagicMock,
+) -> None:
+    # [test->req~ring5.figure.panel-composition~1]
+    first = StubPlotHandle(plot_id=1, name="First", plot_type="bar")
+    second = StubPlotHandle(plot_id=2, name="Second", plot_type="line")
+    api = MagicMock()
+    api.state_manager.get_plots.return_value = [first, second]
+    spec = DashboardSpec(
+        plot_ids=(1, 2),
+        rows=1,
+        columns=2,
+        panel_titles=("First", "Second"),
+        title="Analysis dashboard",
+        panel_labels=("(a)", "(b)"),
+        panel_captions=("Baseline", "Optimized"),
+        horizontal_spacing=0.05,
+        vertical_spacing=0.12,
+    )
+    api.create_dashboard.return_value = spec
+
+    mock_st.session_state = {
+        "dashboard.composer.horizontal_spacing": 30,
+        "dashboard.composer.vertical_spacing": 30,
+    }
+    mock_st.columns.side_effect = lambda count: [MagicMock() for _ in range(count)]
+    mock_st.multiselect.return_value = [1, 2]
+    mock_st.text_input.side_effect = ["Analysis dashboard", "", ""]
+    mock_st.text_area.return_value = "Baseline\nOptimized"
+    mock_st.number_input.side_effect = [2, 1200, 480]
+    mock_st.toggle.side_effect = [False, False, True, True, False]
+    mock_st.pills.side_effect = ["automatic", "plotly", "html"]
+    mock_st.slider.side_effect = [5, 12]
+    mock_st.button.return_value = True
+
+    with (
+        patch(f"{_MODULE}.EngineManager.get_engine", return_value="plotly"),
+        patch(f"{_MODULE}.EngineManager.set_engine"),
+    ):
+        DashboardComposer(api).render()
+
+    api.create_dashboard.assert_called_once_with(
+        [1, 2],
+        title="Analysis dashboard",
+        rows=1,
+        columns=2,
+        width=1200,
+        height=480,
+        shared_xaxes=False,
+        shared_yaxes=False,
+        shared_legend=True,
+        x_title="",
+        y_title="",
+        panel_labels="auto",
+        panel_captions=("Baseline", "Optimized"),
+        horizontal_spacing=0.05,
+        vertical_spacing=0.12,
+    )
+    assert mock_st.session_state["dashboard.composer.horizontal_spacing"] == 20
+    assert mock_st.session_state["dashboard.composer.vertical_spacing"] == 20
+
+
+def test_publication_text_helpers_preserve_alignment_and_bound_spacing() -> None:
+    assert DashboardComposer._panel_lines("", 3) == ("", "", "")
+    assert DashboardComposer._panel_lines("One\n\nThree", 3) == ("One", "", "Three")
+    assert DashboardComposer._maximum_gap_percent(1) == 20
+    assert DashboardComposer._maximum_gap_percent(6) == 19
 
 
 @patch(f"{_MODULE}.st")

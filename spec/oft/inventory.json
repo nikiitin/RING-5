@@ -3932,11 +3932,28 @@
       "id": "figure.panel-composition",
       "group": "figure-configuration",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Publication panel composition",
       "description": "Users shall compose figures with panel labels, captions, common titles, shared legends, and deterministic panel spacing.",
       "tags": ["composition", "figures", "publication"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/models/visualization/dashboard_spec.py::DashboardSpec",
+          "src/core/application_api.py::ApplicationAPI.create_dashboard",
+          "src/web/rendering/dashboard_builder.py::render_dashboard",
+          "src/web/components/plotting/dashboard_composer.py::DashboardComposer.render",
+          "ring5/_session.py::Session.create_dashboard"
+        ],
+        "tests": [
+          "tests/unit/core/visualization/test_dashboard_spec.py::test_publication_fields_align_panels_and_resolve_legacy_spacing",
+          "tests/integration/test_dashboard_public_api.py::test_publication_panel_composition_is_consistent_across_engines",
+          "tests/ui_logic/test_dashboard_composer.py::test_composer_exposes_publication_labels_captions_and_spacing",
+          "tests/e2e/test_dashboard_composer.py::test_build_and_offer_whole_dashboard_export"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/publication-panel-composition.md#compose-publication-panels"
+        ]
+      }
     },
     {
       "id": "figure.line-styles",

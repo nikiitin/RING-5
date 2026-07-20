@@ -1661,8 +1661,13 @@ class Session:
         x_title: str = "",
         y_title: str = "",
         panel_titles: Sequence[str] | None = None,
+        panel_labels: Sequence[str] | Literal["auto"] | None = None,
+        panel_captions: Sequence[str] | None = None,
+        horizontal_spacing: float | None = None,
+        vertical_spacing: float | None = None,
     ) -> DashboardSpec:
         # [impl->req~ring5.plots.multi-panel-dashboard~1]
+        # [impl->req~ring5.figure.panel-composition~1]
         """Compose two or more registered plots into an immutable grid spec.
 
         Plot objects and integer plot IDs may be mixed.  Panel order follows
@@ -1681,6 +1686,11 @@ class Session:
             x_title: Optional complete-dashboard X-axis title.
             y_title: Optional complete-dashboard Y-axis title.
             panel_titles: Optional titles aligned with ``plots``; plot names are the default.
+            panel_labels: Optional custom labels aligned with ``plots``, or ``"auto"`` for
+                publication labels ``(a)``, ``(b)``, and so on.
+            panel_captions: Optional captions aligned with ``plots`` and rendered below each panel.
+            horizontal_spacing: Optional normalized horizontal gap from 0 through 0.2.
+            vertical_spacing: Optional normalized vertical gap from 0 through 0.2.
 
         Returns:
             An immutable validated dashboard specification.
@@ -1703,6 +1713,10 @@ class Session:
                 x_title=x_title,
                 y_title=y_title,
                 panel_titles=panel_titles,
+                panel_labels=panel_labels,
+                panel_captions=panel_captions,
+                horizontal_spacing=horizontal_spacing,
+                vertical_spacing=vertical_spacing,
             )
         except ValueError as exc:
             raise DataValidationError(str(exc)) from exc

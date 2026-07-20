@@ -62,6 +62,19 @@ from src.parsing.registry import SimulatorInfo, SimulatorRegistry
 logger = logging.getLogger(__name__)
 
 
+def _automatic_panel_labels(count: int) -> tuple[str, ...]:
+    """Return deterministic publication labels ``(a)`` through ``(zz...)``."""
+    labels: list[str] = []
+    for index in range(count):
+        value = index + 1
+        letters = ""
+        while value:
+            value, remainder = divmod(value - 1, 26)
+            letters = chr(ord("a") + remainder) + letters
+        labels.append(f"({letters})")
+    return tuple(labels)
+
+
 class ApplicationAPI:
     """Coordinate parsers, domain services, and repository state for the UI."""
 
@@ -701,8 +714,13 @@ class ApplicationAPI:
         x_title: str = "",
         y_title: str = "",
         panel_titles: Sequence[str] | None = None,
+        panel_labels: Sequence[str] | Literal["auto"] | None = None,
+        panel_captions: Sequence[str] | None = None,
+        horizontal_spacing: float | None = None,
+        vertical_spacing: float | None = None,
     ) -> DashboardSpec:
         # [impl->req~ring5.plots.multi-panel-dashboard~1]
+        # [impl->req~ring5.figure.panel-composition~1]
         """Create a validated dashboard layout from registered plots.
 
         The returned specification is immutable and contains stable plot IDs,
@@ -728,6 +746,21 @@ class ApplicationAPI:
             if panel_titles is not None
             else tuple(str(available[plot_id].name) for plot_id in ids)
         )
+        if panel_labels == "auto":
+            labels = _automatic_panel_labels(len(ids))
+        elif isinstance(panel_labels, str):
+            raise ValueError("Dashboard panel_labels must be 'auto', a sequence, or None.")
+        else:
+            raw_labels = tuple(panel_labels or ())
+            if any(not isinstance(value, str) for value in raw_labels):
+                raise ValueError("Dashboard panel labels must be strings.")
+            labels = tuple(value.strip() for value in raw_labels)
+        if isinstance(panel_captions, str):
+            raise ValueError("Dashboard panel_captions must be a sequence or None.")
+        raw_captions = tuple(panel_captions or ())
+        if any(not isinstance(value, str) for value in raw_captions):
+            raise ValueError("Dashboard panel captions must be strings.")
+        captions = tuple(value.strip() for value in raw_captions)
         return DashboardSpec(
             plot_ids=ids,
             rows=effective_rows,
@@ -741,6 +774,10 @@ class ApplicationAPI:
             shared_legend=shared_legend,
             x_title=x_title.strip(),
             y_title=y_title.strip(),
+            panel_labels=labels,
+            panel_captions=captions,
+            horizontal_spacing=horizontal_spacing,
+            vertical_spacing=vertical_spacing,
         )
 
     def create_small_multiples(

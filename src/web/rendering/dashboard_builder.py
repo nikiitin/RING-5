@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 from collections.abc import Sequence
+from html import escape
 from typing import Any, Literal, cast
 
 import plotly.graph_objects as go
@@ -45,6 +46,7 @@ def render_dashboard(
     engine: DashboardEngine = "plotly",
 ) -> DashboardFigure:
     # [impl->req~ring5.plots.multi-panel-dashboard~1]
+    # [impl->req~ring5.figure.panel-composition~1]
     """Render registered plots into the dashboard's configured grid."""
     by_id = {plot.plot_id: plot for plot in plots}
     missing = [plot_id for plot_id in spec.plot_ids if plot_id not in by_id]
@@ -170,6 +172,44 @@ def _copy_panel_decorations(
         dashboard.add_shape(shape)
 
 
+def _add_plotly_panel_text(
+    dashboard: go.Figure,
+    *,
+    target_x: Any,
+    target_y: Any,
+    label: str,
+    caption: str,
+) -> None:
+    """Place publication text relative to one exact subplot domain."""
+    x_domain_ref = f"{_trace_axis_ref(target_x)} domain"
+    y_domain_ref = f"{_trace_axis_ref(target_y)} domain"
+    if label:
+        dashboard.add_annotation(
+            text=f"<b>{escape(label)}</b>",
+            x=0,
+            y=1,
+            xref=x_domain_ref,
+            yref=y_domain_ref,
+            xanchor="left",
+            yanchor="bottom",
+            yshift=22,
+            showarrow=False,
+        )
+    if caption:
+        dashboard.add_annotation(
+            text=escape(caption),
+            x=0.5,
+            y=0,
+            xref=x_domain_ref,
+            yref=y_domain_ref,
+            xanchor="center",
+            yanchor="top",
+            yshift=-34,
+            showarrow=False,
+            font={"size": 11},
+        )
+
+
 def _render_plotly_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec) -> go.Figure:
     child_figures: list[go.Figure] = []
     secondary_flags: list[bool] = []
@@ -208,8 +248,8 @@ def _render_plotly_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec) -> 
         subplot_titles=subplot_titles,
         shared_xaxes=spec.shared_xaxes,
         shared_yaxes=spec.shared_yaxes,
-        horizontal_spacing=min(0.12, 0.18 / spec.columns),
-        vertical_spacing=min(0.16, 0.24 / spec.rows),
+        horizontal_spacing=spec.resolved_horizontal_spacing,
+        vertical_spacing=spec.resolved_vertical_spacing,
     )
 
     legend_names: set[str] = set()
@@ -259,6 +299,13 @@ def _render_plotly_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec) -> 
             target_y=target_y,
             target_y2=target_y2,
         )
+        _add_plotly_panel_text(
+            dashboard,
+            target_x=target_x,
+            target_y=target_y,
+            label=spec.resolved_panel_labels[index],
+            caption=spec.resolved_panel_captions[index],
+        )
 
         if not spec.shared_legend:
             domain_x = cast(Sequence[float], target_x.domain)
@@ -285,8 +332,11 @@ def _render_plotly_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec) -> 
         margin={
             "l": 72,
             "r": 36,
-            "t": 84 if spec.title else 56,
-            "b": 110 if (spec.shared_legend and (spec.x_title or inferred_x_title)) else 82,
+            "t": max(84 if spec.title else 56, 92 if any(spec.panel_labels) else 0),
+            "b": max(
+                110 if (spec.shared_legend and (spec.x_title or inferred_x_title)) else 82,
+                126 if any(spec.panel_captions) else 0,
+            ),
         },
     )
     if spec.shared_legend:
@@ -322,6 +372,13 @@ def _render_plotly_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec) -> 
             showarrow=False,
         )
     return dashboard
+
+
+def _matplotlib_relative_spacing(normalized_gap: float, panel_count: int) -> float:
+    """Convert a normalized inter-panel gap to Matplotlib's axis-relative unit."""
+    if panel_count <= 1:
+        return 0.0
+    return normalized_gap * panel_count / (1 - normalized_gap * (panel_count - 1))
 
 
 def _render_matplotlib_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec) -> MplFigure:
@@ -390,6 +447,32 @@ def _render_matplotlib_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec)
             if twin is not None:
                 apply_dual_axis(twin, plot.config, figure_spec)
             ax.set_title(panel_title)
+            panel_label = spec.resolved_panel_labels[index]
+            if panel_label:
+                label_artist = ax.text(
+                    0,
+                    1.02,
+                    panel_label,
+                    transform=ax.transAxes,
+                    ha="left",
+                    va="bottom",
+                    fontweight="bold",
+                    clip_on=False,
+                )
+                label_artist.set_gid("ring5-panel-label")
+            panel_caption = spec.resolved_panel_captions[index]
+            if panel_caption:
+                caption_artist = ax.text(
+                    0.5,
+                    -0.20,
+                    panel_caption,
+                    transform=ax.transAxes,
+                    ha="center",
+                    va="top",
+                    fontsize="small",
+                    clip_on=False,
+                )
+                caption_artist.set_gid("ring5-panel-caption")
             if spec.shared_xaxes:
                 ax.set_xlabel("")
             if spec.shared_yaxes:
@@ -443,13 +526,29 @@ def _render_matplotlib_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec)
             figure.supylabel(spec.y_title or inferred_y, **font_kwargs)
         if first_figure_spec and first_figure_spec.paper_bgcolor:
             figure.patch.set_facecolor(first_figure_spec.paper_bgcolor)
+        wspace = (
+            0.26
+            if spec.horizontal_spacing is None
+            else _matplotlib_relative_spacing(float(spec.horizontal_spacing), spec.columns)
+        )
+        hspace = (
+            0.36
+            if spec.vertical_spacing is None
+            else _matplotlib_relative_spacing(float(spec.vertical_spacing), spec.rows)
+        )
         figure.subplots_adjust(
             left=0.08,
             right=0.97,
-            top=0.90 if spec.title else 0.95,
-            bottom=0.14 if spec.shared_legend else 0.09,
-            wspace=0.26,
-            hspace=0.36,
+            top=(
+                (0.86 if spec.title else 0.91)
+                if any(spec.panel_labels)
+                else (0.90 if spec.title else 0.95)
+            ),
+            bottom=max(
+                0.14 if spec.shared_legend else 0.09, 0.18 if any(spec.panel_captions) else 0
+            ),
+            wspace=wspace,
+            hspace=hspace,
         )
         figure._ring5_spec = first_figure_spec  # type: ignore[attr-defined]
         return figure

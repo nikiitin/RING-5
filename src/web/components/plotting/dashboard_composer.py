@@ -50,6 +50,7 @@ class DashboardComposer:
 
     def render(self) -> None:
         # [impl->req~ring5.plots.multi-panel-dashboard~1]
+        # [impl->req~ring5.figure.panel-composition~1]
         """Render the complete dashboard workflow."""
         with st.expander(":material/dashboard: Multi-panel dashboard", expanded=False):
             st.caption(
@@ -75,7 +76,9 @@ class DashboardComposer:
                 return
 
             title = st.text_input(
-                "Dashboard title", value="Analysis dashboard", key="dashboard.composer.title"
+                "Common figure title",
+                value="Analysis dashboard",
+                key="dashboard.composer.title",
             )
             grid_col, width_col, height_col = st.columns(3)
             maximum_columns = min(6, len(selected_ids))
@@ -149,6 +152,80 @@ class DashboardComposer:
                     disabled=not shared_yaxes,
                 )
 
+            publication_options: dict[str, Any] = {}
+            publication_layout = st.toggle(
+                "Publication layout",
+                value=False,
+                key="dashboard.composer.publication_layout",
+                help=(
+                    "Add panel identifiers and captions, then control the exact normalized "
+                    "gap between panels."
+                ),
+            )
+            if publication_layout:
+                label_mode = st.pills(
+                    "Panel labels",
+                    options=["automatic", "custom", "none"],
+                    default="automatic",
+                    format_func=lambda value: value.capitalize(),
+                    key="dashboard.composer.panel_label_mode",
+                    help="Automatic labels use the publication convention (a), (b), and so on.",
+                )
+                panel_labels: Any = None
+                if label_mode == "automatic":
+                    panel_labels = "auto"
+                elif label_mode == "custom":
+                    panel_labels = self._panel_lines(
+                        st.text_area(
+                            "Custom panel labels (one per line)",
+                            value="",
+                            key="dashboard.composer.panel_labels",
+                        ),
+                        len(selected_ids),
+                    )
+
+                panel_captions = self._panel_lines(
+                    st.text_area(
+                        "Panel captions (one per line)",
+                        value="",
+                        key="dashboard.composer.panel_captions",
+                        help="Keep a blank line for a panel that does not need a caption.",
+                    ),
+                    len(selected_ids),
+                )
+                horizontal_gap_col, vertical_gap_col = st.columns(2)
+                horizontal_maximum = self._maximum_gap_percent(columns)
+                vertical_maximum = self._maximum_gap_percent(rows)
+                for key, maximum in (
+                    ("dashboard.composer.horizontal_spacing", horizontal_maximum),
+                    ("dashboard.composer.vertical_spacing", vertical_maximum),
+                ):
+                    saved_gap = st.session_state.get(key)
+                    if isinstance(saved_gap, int) and saved_gap > maximum:
+                        st.session_state[key] = maximum
+                with horizontal_gap_col:
+                    horizontal_gap = st.slider(
+                        "Horizontal gap (%)",
+                        min_value=0,
+                        max_value=horizontal_maximum,
+                        value=min(6, horizontal_maximum),
+                        key="dashboard.composer.horizontal_spacing",
+                    )
+                with vertical_gap_col:
+                    vertical_gap = st.slider(
+                        "Vertical gap (%)",
+                        min_value=0,
+                        max_value=vertical_maximum,
+                        value=min(10, vertical_maximum),
+                        key="dashboard.composer.vertical_spacing",
+                    )
+                publication_options = {
+                    "panel_labels": panel_labels,
+                    "panel_captions": panel_captions,
+                    "horizontal_spacing": horizontal_gap / 100,
+                    "vertical_spacing": vertical_gap / 100,
+                }
+
             engine_choice = st.pills(
                 "Engine",
                 options=["plotly", "matplotlib"],
@@ -215,6 +292,7 @@ class DashboardComposer:
                     shared_legend=shared_legend,
                     x_title=x_title,
                     y_title=y_title,
+                    **publication_options,
                 )
             except ValueError as exc:
                 st.error(str(exc))
@@ -262,6 +340,20 @@ class DashboardComposer:
             elif isinstance(rendered_figure, MplFigure):
                 st.pyplot(rendered_figure)
             self._render_export(rendered_figure, rendered_spec)
+
+    @staticmethod
+    def _panel_lines(value: str, panel_count: int) -> tuple[str, ...]:
+        """Align human-entered lines while retaining intentional interior blanks."""
+        if not value:
+            return ("",) * panel_count
+        return tuple(value.split("\n"))
+
+    @staticmethod
+    def _maximum_gap_percent(panel_count: int) -> int:
+        """Return a safe, readable spacing limit for the current grid dimension."""
+        if panel_count <= 1:
+            return 20
+        return min(20, 99 // (panel_count - 1))
 
     @staticmethod
     def _clear_linked_selection() -> None:

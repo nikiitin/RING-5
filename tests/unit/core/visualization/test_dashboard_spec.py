@@ -40,3 +40,44 @@ def test_dashboard_spec_is_immutable() -> None:
 
     with pytest.raises(AttributeError):
         spec.title = "Changed"  # type: ignore[misc]
+
+
+def test_publication_fields_align_panels_and_resolve_legacy_spacing() -> None:
+    # [test->req~ring5.figure.panel-composition~1]
+    spec = _spec(
+        panel_labels=("(a)", "(b)"),
+        panel_captions=("Baseline", "Optimized"),
+        horizontal_spacing=0.05,
+        vertical_spacing=0.1,
+    )
+
+    assert spec.resolved_panel_labels == ("(a)", "(b)")
+    assert spec.resolved_panel_captions == ("Baseline", "Optimized")
+    assert spec.resolved_horizontal_spacing == 0.05
+    assert spec.resolved_vertical_spacing == 0.1
+    assert _spec().resolved_panel_labels == ("", "")
+    assert _spec().resolved_panel_captions == ("", "")
+    assert _spec().resolved_horizontal_spacing == pytest.approx(0.09)
+    assert _spec().resolved_vertical_spacing == pytest.approx(0.16)
+
+
+@pytest.mark.parametrize(
+    ("overrides", "message"),
+    [
+        ({"panel_labels": ("(a)",)}, "panel_labels"),
+        ({"panel_captions": ("Only one",)}, "panel_captions"),
+        ({"panel_labels": ("(a)", 2)}, "panel labels must be strings"),
+        ({"horizontal_spacing": -0.01}, "between 0 and 0.2"),
+        ({"vertical_spacing": float("nan")}, "between 0 and 0.2"),
+        ({"horizontal_spacing": True}, "number or None"),
+        (
+            {"columns": 6, "horizontal_spacing": 0.2},
+            "leaves no room for panel content",
+        ),
+    ],
+)
+def test_publication_fields_reject_ambiguous_values(
+    overrides: dict[str, object], message: str
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        _spec(**overrides)

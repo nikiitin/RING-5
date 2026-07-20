@@ -126,3 +126,77 @@ def test_dashboard_can_keep_panel_titles_and_legends_independent() -> None:
         matplotlib_figure = session.render_dashboard(dashboard, engine="matplotlib")
         assert [axis.get_title() for axis in matplotlib_figure.axes] == ["Panel A", "Panel B"]
         assert all(axis.get_legend() is not None for axis in matplotlib_figure.axes)
+
+
+def test_publication_panel_composition_is_consistent_across_engines() -> None:
+    # [test->req~ring5.figure.panel-composition~1]
+    with ring5.Session() as session:
+        plots = _plots(session)
+        dashboard = session.create_dashboard(
+            plots,
+            title="Common publication title",
+            columns=2,
+            panel_labels="auto",
+            panel_captions=["Baseline", "Optimized", "Validation"],
+            horizontal_spacing=0.05,
+            vertical_spacing=0.12,
+            shared_legend=True,
+        )
+
+        assert dashboard.panel_labels == ("(a)", "(b)", "(c)")
+        assert dashboard.panel_captions == ("Baseline", "Optimized", "Validation")
+
+        plotly_figure = session.render_dashboard(dashboard, engine="plotly")
+        annotation_text = {
+            annotation.text.replace("<b>", "").replace("</b>", "")
+            for annotation in plotly_figure.layout.annotations
+        }
+        assert {
+            "(a)",
+            "(b)",
+            "(c)",
+            "Baseline",
+            "Optimized",
+            "Validation",
+        } <= annotation_text
+        assert plotly_figure.layout.title.text == "Common publication title"
+        assert plotly_figure.layout.xaxis2.domain[0] - plotly_figure.layout.xaxis.domain[1] == (
+            pytest.approx(0.05)
+        )
+        assert plotly_figure.layout.yaxis.domain[0] - plotly_figure.layout.yaxis3.domain[1] == (
+            pytest.approx(0.12)
+        )
+        assert sum(trace.showlegend is not False for trace in plotly_figure.data) == 1
+
+        matplotlib_figure = session.render_dashboard(dashboard, engine="matplotlib")
+        labels: list[str] = []
+        captions: list[str] = []
+        for axis in matplotlib_figure.axes[:3]:
+            labels.extend(
+                text.get_text() for text in axis.texts if text.get_gid() == "ring5-panel-label"
+            )
+            captions.extend(
+                text.get_text() for text in axis.texts if text.get_gid() == "ring5-panel-caption"
+            )
+        assert labels == ["(a)", "(b)", "(c)"]
+        assert captions == ["Baseline", "Optimized", "Validation"]
+        assert matplotlib_figure._suptitle.get_text() == "Common publication title"
+        horizontal_extent = matplotlib_figure.subplotpars.right - matplotlib_figure.subplotpars.left
+        vertical_extent = matplotlib_figure.subplotpars.top - matplotlib_figure.subplotpars.bottom
+        axes = matplotlib_figure.axes
+        assert (axes[1].get_position().x0 - axes[0].get_position().x1) / horizontal_extent == (
+            pytest.approx(0.05)
+        )
+        assert (axes[0].get_position().y0 - axes[2].get_position().y1) / vertical_extent == (
+            pytest.approx(0.12)
+        )
+        assert len(matplotlib_figure.legends) == 1
+
+
+def test_publication_panel_composition_rejects_misaligned_text() -> None:
+    with ring5.Session() as session:
+        plots = _plots(session)[:2]
+        with pytest.raises(ring5.DataValidationError, match="panel_captions"):
+            session.create_dashboard(plots, panel_captions=["Only one"])
+        with pytest.raises(ring5.DataValidationError, match="panel_labels"):
+            session.create_dashboard(plots, panel_labels="letters")  # type: ignore[arg-type]

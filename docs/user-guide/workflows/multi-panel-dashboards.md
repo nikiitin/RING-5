@@ -84,3 +84,6 @@ with ring5.Session() as session:
 dimensions. It deliberately retains plot IDs instead of copying plots, so every later render uses
 the current source-plot data and configuration. If a referenced plot has been deleted, rendering
 fails with `ring5.RenderError` instead of silently omitting a panel.
+
+For panel identifiers, captions, and reproducible gaps, continue with
+[Compose publication panels]({{site.baseurl}}/user-guide/workflows/publication-panel-composition/).
