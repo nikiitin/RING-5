@@ -48,6 +48,17 @@ Needs: req
 
 Tags: pipeline, shapers, status_approved
 
+## Comparison and Statistical Analysis
+
+`feat~ring5.analysis~1`
+Status: proposed
+
+RING-5 compares experiment groups and calculates statistical evidence for observed differences.
+
+Needs: req
+
+Tags: analysis, comparison, statistics, status_proposed
+
 ## Plot Lifecycle
 
 `feat~ring5.plot-lifecycle~1`

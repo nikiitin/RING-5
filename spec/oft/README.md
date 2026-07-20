@@ -116,6 +116,7 @@ evidence review.
 
 See `discovery-audit.md` for the reviewed source surfaces, accepted deltas,
 rejected candidates, and the zero-delta pass that established convergence.
+See `future-roadmap.md` for proposed requirements, their feature branches, and dependency order.
 
 Approved items receive the generated tag `status_approved`; future items use
 `status_draft` or `status_proposed`. The default trace filters by the native OFT

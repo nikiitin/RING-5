@@ -220,8 +220,10 @@ oft-trace-all: oft-check oft-download
 	java -jar "$(OFT_JAR)" trace --v summary $(OFT_SOURCES)
 
 oft-report: oft-generate oft-download
-	java -jar "$(OFT_JAR)" trace --output-format html --report-verbosity all \
+	$(RM) "$(OFT_NATIVE_REPORT)"
+	-java -jar "$(OFT_JAR)" trace --output-format html --report-verbosity all \
 		--details-section-display collapse --output-file "$(OFT_NATIVE_REPORT)" $(OFT_SOURCES)
+	@test -s "$(OFT_NATIVE_REPORT)"
 	$(PYTHON) scripts/generate_oft_html_report.py \
 		--oft-html "$(OFT_NATIVE_REPORT)" --output "$(OFT_REPORT)"
 	$(PYTHON) scripts/generate_oft_inventory.py --check

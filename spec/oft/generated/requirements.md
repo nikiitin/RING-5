@@ -105,6 +105,104 @@ Needs: impl, test, uman
 
 Tags: deployment, persistence, status_approved, workspace
 
+### Background job center
+
+`req~ring5.workspace.background-jobs~1`
+Status: proposed
+
+The workspace shall track non-blocking scan, parse, transformation, and export jobs with progress, cancellation, retry, completion, and bounded error logs.
+
+Covers:
+- feat~ring5.workspace~1
+
+Needs: impl, test, uman
+
+Tags: jobs, progress, status_proposed, workspace
+
+### Workspace search
+
+`req~ring5.workspace.global-search~1`
+Status: proposed
+
+Users shall search variables, datasets, plots, pipelines, portfolios, commands, and documentation from one bounded indexed interface.
+
+Covers:
+- feat~ring5.workspace~1
+
+Needs: impl, test, uman
+
+Tags: search, status_proposed, workspace
+
+### Command palette and shortcuts
+
+`req~ring5.workspace.command-palette~1`
+Status: proposed
+
+The web application shall expose discoverable keyboard shortcuts and a searchable command palette for common workspace operations.
+
+Covers:
+- feat~ring5.workspace~1
+
+Needs: impl, test, uman
+
+Tags: commands, keyboard, status_proposed, workspace
+
+### Favorites and tags
+
+`req~ring5.workspace.favorites-tags~1`
+Status: proposed
+
+Users shall assign validated tags and favorites to variables, datasets, plots, pipelines, and portfolios for filtering and reuse.
+
+Covers:
+- feat~ring5.workspace~1
+
+Needs: impl, test, uman
+
+Tags: metadata, organization, status_proposed, workspace
+
+### Analysis comments and review status
+
+`req~ring5.workspace.collaborative-review~1`
+Status: proposed
+
+Portable analyses shall retain comments, author identifiers, timestamps, and review statuses attached to plots and portfolio revisions.
+
+Covers:
+- feat~ring5.workspace~1
+
+Needs: impl, test, uman
+
+Tags: collaboration, review, status_proposed, workspace
+
+### Autosave and crash recovery
+
+`req~ring5.workspace.autosave-recovery~1`
+Status: proposed
+
+The application shall keep bounded local drafts and offer explicit recovery after an interrupted or expired browser session.
+
+Covers:
+- feat~ring5.workspace~1
+
+Needs: impl, test, uman
+
+Tags: recovery, reliability, status_proposed, workspace
+
+### Guided analysis workflow
+
+`req~ring5.workspace.guided-analysis~1`
+Status: proposed
+
+The web application shall guide users through source selection, validation, comparison setup, visualization, and export while preserving access to advanced controls.
+
+Covers:
+- feat~ring5.workspace~1
+
+Needs: impl, test, uman
+
+Tags: guidance, status_proposed, usability, workspace
+
 ## Data Ingestion and Parsing
 
 ### Selectable data source modes
@@ -569,6 +667,76 @@ Needs: impl, test, uman
 
 Tags: configuration, fallback, parser, status_approved
 
+### Browser file upload
+
+`req~ring5.ingestion.browser-upload~1`
+Status: proposed
+
+The web application shall accept bounded CSV, JSON, Excel, and portfolio uploads with explicit type, size, and parsing validation.
+
+Covers:
+- feat~ring5.ingestion~1
+
+Needs: impl, test, uman
+
+Tags: ingestion, status_proposed, upload, web
+
+### Remote data sources
+
+`req~ring5.ingestion.remote-sources~1`
+Status: proposed
+
+The application shall load authorized HTTP, SSH, and S3-compatible sources through credential-safe, configurable source adapters.
+
+Covers:
+- feat~ring5.ingestion~1
+
+Needs: impl, test, uman
+
+Tags: ingestion, remote, security, status_proposed
+
+### Incremental simulator parsing
+
+`req~ring5.ingestion.incremental-parsing~1`
+Status: proposed
+
+Parsing shall detect new or changed simulator outputs and update prior results without reparsing unchanged files.
+
+Covers:
+- feat~ring5.ingestion~1
+
+Needs: impl, test, uman
+
+Tags: incremental, parsing, performance, status_proposed
+
+### Parser configuration playground
+
+`req~ring5.ingestion.parser-playground~1`
+Status: proposed
+
+Users shall test file patterns, parser strategies, statistic patterns, and variable definitions against a bounded sample before submitting a full parse.
+
+Covers:
+- feat~ring5.ingestion~1
+
+Needs: impl, test, uman
+
+Tags: parsing, preview, status_proposed, validation
+
+### Structured import preview
+
+`req~ring5.ingestion.import-preview~1`
+Status: proposed
+
+Tabular imports shall preview encoding, delimiter, inferred types, accepted rows, rejected rows, and configurable corrections before loading.
+
+Covers:
+- feat~ring5.ingestion~1
+
+Needs: impl, test, uman
+
+Tags: ingestion, preview, status_proposed, validation
+
 ## Dataset Management
 
 ### Dataset summary
@@ -724,6 +892,104 @@ Covers:
 Needs: impl, test, uman
 
 Tags: configuration, persistence, shapers, status_approved
+
+### Dataset lineage and undo
+
+`req~ring5.data.lineage-undo-redo~1`
+Status: proposed
+
+The workspace shall retain a reproducible transformation lineage and allow users to undo, redo, inspect, and restore intermediate dataset states.
+
+Covers:
+- feat~ring5.data-management~1
+
+Needs: impl, test, uman
+
+Tags: data, history, lineage, status_proposed
+
+### Named multi-dataset workspace
+
+`req~ring5.data.multi-dataset-workspace~1`
+Status: proposed
+
+A session shall retain multiple named datasets and let users select, compare, join, append, or remove them without replacing unrelated data.
+
+Covers:
+- feat~ring5.data-management~1
+
+Needs: impl, test, uman
+
+Tags: data, status_proposed, workspace
+
+### Data quality profiler
+
+`req~ring5.data.quality-profiler~1`
+Status: proposed
+
+The application shall profile missing values, duplicate rows, inferred types, constant columns, outliers, and schema violations before analysis.
+
+Covers:
+- feat~ring5.data-management~1
+
+Needs: impl, test, uman
+
+Tags: data, profiling, quality, status_proposed
+
+### Validated dataset joins
+
+`req~ring5.data.validated-joins~1`
+Status: proposed
+
+Users shall join named datasets with explicit cardinality validation and diagnostics for duplicate keys and unmatched rows.
+
+Covers:
+- feat~ring5.data-management~1
+
+Needs: impl, test, uman
+
+Tags: data, joins, status_proposed, validation
+
+### Dataset schema contracts
+
+`req~ring5.data.schema-contracts~1`
+Status: proposed
+
+Users shall define and validate required columns, data types, nullability, numeric ranges, and accepted categorical values.
+
+Covers:
+- feat~ring5.data-management~1
+
+Needs: impl, test, uman
+
+Tags: data, schema, status_proposed, validation
+
+### Units and semantic metadata
+
+`req~ring5.data.semantic-units~1`
+Status: proposed
+
+Datasets shall retain column units and semantic labels, support compatible unit conversion, and use that metadata in figures and exports.
+
+Covers:
+- feat~ring5.data-management~1
+
+Needs: impl, test, uman
+
+Tags: data, metadata, status_proposed, units
+
+### Reusable dataset snapshots
+
+`req~ring5.data.dataset-snapshots~1`
+Status: proposed
+
+Users shall save and reload fingerprinted dataset snapshots without repeating unchanged parsing and transformation work.
+
+Covers:
+- feat~ring5.data-management~1
+
+Needs: impl, test, uman
+
+Tags: caching, data, snapshots, status_proposed
 
 ## Per-Plot Data Shaping
 
@@ -937,6 +1203,64 @@ Needs: impl, test, uman
 
 Tags: derived_column, shapers, status_approved, transformation
 
+### Pipeline configuration exchange
+
+`req~ring5.shaping.config-import-export~1`
+Status: proposed
+
+Users shall import and export versioned saved shaper configurations with validation, conflict handling, and migration support.
+
+Covers:
+- feat~ring5.shaping~1
+
+Needs: impl, test, uman
+
+Tags: configuration, shapers, status_proposed, versioning
+
+## Comparison and Statistical Analysis
+
+### Baseline and candidate comparison
+
+`req~ring5.analysis.regression-comparison~1`
+Status: proposed
+
+Users shall compare aligned baseline and candidate measurements with absolute change, percentage change, configurable direction, and regression thresholds.
+
+Covers:
+- feat~ring5.analysis~1
+
+Needs: impl, test, uman
+
+Tags: analysis, comparison, regression, status_proposed
+
+### Statistical comparison toolkit
+
+`req~ring5.analysis.statistical-comparison~1`
+Status: proposed
+
+Users shall calculate confidence intervals, effect sizes, bootstrap estimates, significance tests, and sample-count warnings for experiment comparisons.
+
+Covers:
+- feat~ring5.analysis~1
+
+Needs: impl, test, uman
+
+Tags: analysis, statistics, status_proposed
+
+### Regression annotations
+
+`req~ring5.analysis.regression-annotations~1`
+Status: proposed
+
+Plots shall identify improvements and regressions from comparison results using configurable thresholds and metric direction.
+
+Covers:
+- feat~ring5.analysis~1
+
+Needs: impl, test, uman
+
+Tags: annotations, comparison, regression, status_proposed
+
 ## Plot Lifecycle
 
 ### Create and select multiple plots
@@ -1036,6 +1360,90 @@ Covers:
 Needs: impl, test, uman
 
 Tags: lifecycle, plots, status_approved, types
+
+### Multi-panel dashboards
+
+`req~ring5.plots.multi-panel-dashboard~1`
+Status: proposed
+
+Users shall arrange multiple plots in a configurable grid with shared titles, axes, legends, dimensions, and whole-dashboard export.
+
+Covers:
+- feat~ring5.plot-lifecycle~1
+
+Needs: impl, test, uman
+
+Tags: dashboard, plots, status_proposed, workspace
+
+### Linked selection and cross-filtering
+
+`req~ring5.plots.linked-selections~1`
+Status: proposed
+
+Interactive selections in one plot shall filter or highlight related data in other linked plots without modifying the source dataset.
+
+Covers:
+- feat~ring5.plot-lifecycle~1
+
+Needs: impl, test, uman
+
+Tags: filtering, interaction, plots, status_proposed
+
+### Interactive plot drill-down
+
+`req~ring5.plots.drill-down~1`
+Status: proposed
+
+Users shall move from an aggregate plot value to its grouped source rows and return without losing the active figure configuration.
+
+Covers:
+- feat~ring5.plot-lifecycle~1
+
+Needs: impl, test, uman
+
+Tags: data, interaction, plots, status_proposed
+
+### Small multiples
+
+`req~ring5.plots.small-multiples~1`
+Status: proposed
+
+Users shall facet a plot by one or more categorical variables with consistent scales, ordering, styling, and labels.
+
+Covers:
+- feat~ring5.plot-lifecycle~1
+
+Needs: impl, test, uman
+
+Tags: facets, plots, status_proposed, visualization
+
+### Copy plot settings and pipelines
+
+`req~ring5.plots.copy-settings-pipeline~1`
+Status: proposed
+
+Users shall copy selected figure settings, a complete plot configuration, or a shaping pipeline between compatible plots.
+
+Covers:
+- feat~ring5.plot-lifecycle~1
+
+Needs: impl, test, uman
+
+Tags: plots, settings, shapers, status_proposed
+
+### Side-by-side plot configuration
+
+`req~ring5.plots.configuration-comparison~1`
+Status: proposed
+
+Users shall compare two plot configurations and inspect field-level differences before copying or replacing settings.
+
+Covers:
+- feat~ring5.plot-lifecycle~1
+
+Needs: impl, test, uman
+
+Tags: comparison, plots, settings, status_proposed
 
 ## Plot Types
 
@@ -1164,6 +1572,118 @@ Covers:
 Needs: impl, test, uman
 
 Tags: bar, plots, stacked, status_approved
+
+### Box plot
+
+`req~ring5.plot.box~1`
+Status: proposed
+
+The plot registry shall provide box plots with grouping, orientation, quartile, whisker, outlier, and per-series styling controls.
+
+Covers:
+- feat~ring5.plot-types~1
+
+Needs: impl, test, uman
+
+Tags: distribution, plots, status_proposed, visualization
+
+### Violin plot
+
+`req~ring5.plot.violin~1`
+Status: proposed
+
+The plot registry shall provide violin plots with grouping, orientation, density, summary, and per-series styling controls.
+
+Covers:
+- feat~ring5.plot-types~1
+
+Needs: impl, test, uman
+
+Tags: distribution, plots, status_proposed, visualization
+
+### Empirical cumulative distribution plot
+
+`req~ring5.plot.ecdf~1`
+Status: proposed
+
+The plot registry shall provide empirical cumulative distribution plots with grouping, complementary display, markers, and normalized or count-based axes.
+
+Covers:
+- feat~ring5.plot-types~1
+
+Needs: impl, test, uman
+
+Tags: distribution, plots, statistics, status_proposed
+
+### Area chart
+
+`req~ring5.plot.area~1`
+Status: proposed
+
+The plot registry shall provide area charts with grouped, stacked, normalized, interpolated, and per-series styling controls.
+
+Covers:
+- feat~ring5.plot-types~1
+
+Needs: impl, test, uman
+
+Tags: plots, status_proposed, trends, visualization
+
+### Radar chart
+
+`req~ring5.plot.radar~1`
+Status: proposed
+
+The plot registry shall provide radar charts with category ordering, shared scales, filled areas, markers, and per-series styling controls.
+
+Covers:
+- feat~ring5.plot-types~1
+
+Needs: impl, test, uman
+
+Tags: comparison, plots, status_proposed, visualization
+
+### Waterfall chart
+
+`req~ring5.plot.waterfall~1`
+Status: proposed
+
+The plot registry shall provide waterfall charts with relative, absolute, subtotal, total, connector, and value-label controls.
+
+Covers:
+- feat~ring5.plot-types~1
+
+Needs: impl, test, uman
+
+Tags: comparison, plots, status_proposed, visualization
+
+### Sankey diagram
+
+`req~ring5.plot.sankey~1`
+Status: proposed
+
+The plot registry shall provide Sankey diagrams with validated source, target, value, label, color, and arrangement controls.
+
+Covers:
+- feat~ring5.plot-types~1
+
+Needs: impl, test, uman
+
+Tags: flows, plots, status_proposed, visualization
+
+### Parallel-coordinates plot
+
+`req~ring5.plot.parallel-coordinates~1`
+Status: proposed
+
+The plot registry shall provide parallel-coordinate plots with ordered dimensions, categorical encoding, ranges, brushing, and color-scale controls.
+
+Covers:
+- feat~ring5.plot-types~1
+
+Needs: impl, test, uman
+
+Tags: multivariate, plots, status_proposed, visualization
 
 ## Figure Configuration
 
@@ -1531,6 +2051,62 @@ Needs: impl, test, uman
 
 Tags: markers, series, status_approved, styles
 
+### Accessible figure themes
+
+`req~ring5.figure.accessible-themes~1`
+Status: proposed
+
+Figure configuration shall provide color-vision-safe palettes, contrast validation, non-color encodings, and accessible defaults for text and marks.
+
+Covers:
+- feat~ring5.figure-configuration~1
+
+Needs: impl, test, uman
+
+Tags: accessibility, figures, status_proposed, themes
+
+### Figure theme presets
+
+`req~ring5.figure.theme-presets~1`
+Status: proposed
+
+Users shall apply, customize, import, and export coherent figure themes for papers, presentations, dashboards, and dark backgrounds.
+
+Covers:
+- feat~ring5.figure-configuration~1
+
+Needs: impl, test, uman
+
+Tags: figures, presets, status_proposed, themes
+
+### Publication panel composition
+
+`req~ring5.figure.panel-composition~1`
+Status: proposed
+
+Users shall compose figures with panel labels, captions, common titles, shared legends, and deterministic panel spacing.
+
+Covers:
+- feat~ring5.figure-configuration~1
+
+Needs: impl, test, uman
+
+Tags: composition, figures, publication, status_proposed
+
+### End-to-end line styles
+
+`req~ring5.figure.line-styles~1`
+Status: proposed
+
+Line-based traces shall apply user-selected interpolation, dash, width, marker, and connector styles consistently in Plotly and Matplotlib.
+
+Covers:
+- feat~ring5.figure-configuration~1
+
+Needs: impl, test, uman
+
+Tags: figures, lines, status_proposed, styling
+
 ## Rendering and Export
 
 ### Engine-independent trace construction
@@ -1701,6 +2277,20 @@ Needs: impl, test, uman
 
 Tags: export, plotly, scale, status_approved
 
+### Batch HTML and PDF reports
+
+`req~ring5.export.batch-reports~1`
+Status: proposed
+
+Users shall generate deterministic HTML and PDF reports containing selected figures, tables, narrative text, data provenance, and environment metadata.
+
+Covers:
+- feat~ring5.rendering-export~1
+
+Needs: impl, test, uman
+
+Tags: export, reporting, reproducibility, status_proposed
+
 ## Reproducibility and Portfolios
 
 ### Portfolio save
@@ -1814,6 +2404,76 @@ Covers:
 Needs: impl, test, uman
 
 Tags: cli, migration, portfolios, safety, status_approved
+
+### Parameterized analysis recipes
+
+`req~ring5.portfolio.analysis-recipes~1`
+Status: proposed
+
+Users shall save reusable recipes that combine data sources, parser variables, transformations, plots, exports, and typed runtime parameters.
+
+Covers:
+- feat~ring5.reproducibility~1
+
+Needs: impl, test, uman
+
+Tags: portfolios, recipes, reproducibility, status_proposed
+
+### Portfolio history and diff
+
+`req~ring5.portfolio.history-diff~1`
+Status: proposed
+
+The application shall retain portfolio revisions and display field-level differences in data sources, pipelines, plots, and figure settings.
+
+Covers:
+- feat~ring5.reproducibility~1
+
+Needs: impl, test, uman
+
+Tags: diff, history, portfolios, status_proposed
+
+### Portable analysis bundles
+
+`req~ring5.portfolio.portable-bundles~1`
+Status: proposed
+
+Users shall export and import a portable bundle containing a portfolio, source manifests, optional data snapshots, requirements, and generated results.
+
+Covers:
+- feat~ring5.reproducibility~1
+
+Needs: impl, test, uman
+
+Tags: bundles, portfolios, reproducibility, status_proposed
+
+### Signed portfolio manifests
+
+`req~ring5.portfolio.signed-manifests~1`
+Status: proposed
+
+Portable portfolios shall support checksummed manifests and optional signatures for detecting modified inputs, configuration, and outputs.
+
+Covers:
+- feat~ring5.reproducibility~1
+
+Needs: impl, test, uman
+
+Tags: integrity, portfolios, security, status_proposed
+
+### Captured execution environment
+
+`req~ring5.portfolio.environment-metadata~1`
+Status: proposed
+
+Saved analyses shall record RING-5, Python, dependency, operating-system, renderer, and external-tool versions needed to interpret or reproduce results.
+
+Covers:
+- feat~ring5.reproducibility~1
+
+Needs: impl, test, uman
+
+Tags: environment, metadata, reproducibility, status_proposed
 
 ## Automation API and CLI
 
@@ -1984,6 +2644,76 @@ Covers:
 Needs: impl, test, uman
 
 Tags: api, plots, status_approved, validation
+
+### Python script and notebook export
+
+`req~ring5.automation.script-notebook-export~1`
+Status: proposed
+
+The interactive workspace shall export an equivalent documented Python script or notebook that uses only the supported ring5 public API.
+
+Covers:
+- feat~ring5.automation~1
+
+Needs: impl, test, uman
+
+Tags: api, automation, notebook, status_proposed
+
+### Parameterized batch matrices
+
+`req~ring5.automation.batch-matrices~1`
+Status: proposed
+
+The Python API and CLI shall execute an analysis recipe across a typed parameter matrix with bounded concurrency and deterministic output paths.
+
+Covers:
+- feat~ring5.automation~1
+
+Needs: impl, test, uman
+
+Tags: automation, batch, cli, status_proposed
+
+### Machine-readable regression results
+
+`req~ring5.automation.machine-readable-regression~1`
+Status: proposed
+
+Regression comparisons shall export versioned JSON and JUnit XML with metric values, thresholds, outcomes, and source identifiers.
+
+Covers:
+- feat~ring5.automation~1
+
+Needs: impl, test, uman
+
+Tags: automation, ci, regression, status_proposed
+
+### Continuous-integration regression gates
+
+`req~ring5.automation.ci-regression-gates~1`
+Status: proposed
+
+The CLI shall return documented exit statuses when configured metrics exceed regression thresholds, comparison data is incomplete, or execution fails.
+
+Covers:
+- feat~ring5.automation~1
+
+Needs: impl, test, uman
+
+Tags: automation, ci, regression, status_proposed
+
+### Scheduled and watched reporting
+
+`req~ring5.automation.scheduled-reporting~1`
+Status: proposed
+
+Headless workflows shall watch configured sources or run on a schedule and generate reports only for stable, changed inputs.
+
+Covers:
+- feat~ring5.automation~1
+
+Needs: impl, test, uman
+
+Tags: automation, reporting, scheduling, status_proposed
 
 ## Extensibility, Safety, and Quality
 
@@ -2240,3 +2970,87 @@ Covers:
 Needs: impl, test, uman
 
 Tags: discovery, governance, openfasttrace, status_approved
+
+### Future requirement status views
+
+`req~ring5.trace.future-status-reporting~1`
+Status: proposed
+
+The OFT report shall expose separate approved, proposed, draft, in-development, and blocked views without changing native OFT artifact semantics.
+
+Covers:
+- feat~ring5.traceability~1
+
+Needs: impl, test, uman
+
+Tags: openfasttrace, reporting, status, status_proposed
+
+### Requirement history
+
+`req~ring5.trace.requirement-history~1`
+Status: proposed
+
+The feature catalog shall retain reviewable requirement revisions and distinguish semantic changes from evidence-only updates.
+
+Covers:
+- feat~ring5.traceability~1
+
+Needs: impl, test, uman
+
+Tags: history, openfasttrace, requirements, status_proposed
+
+### Requirement branch association
+
+`req~ring5.trace.branch-association~1`
+Status: proposed
+
+Future requirements shall record their implementation branch and expose that association in generated summaries and HTML reports.
+
+Covers:
+- feat~ring5.traceability~1
+
+Needs: impl, test, uman
+
+Tags: branches, openfasttrace, requirements, status_proposed
+
+### Requirement diff
+
+`req~ring5.trace.requirement-diff~1`
+Status: proposed
+
+The trace tooling shall compare the current catalog and evidence graph with another Git revision and report added, removed, changed, covered, and uncovered requirements.
+
+Covers:
+- feat~ring5.traceability~1
+
+Needs: impl, test, uman
+
+Tags: diff, git, openfasttrace, status_proposed
+
+### Requirement readiness checklist
+
+`req~ring5.trace.readiness-checklist~1`
+Status: proposed
+
+The human report shall display specification, implementation, test, documentation, native trace, and execution readiness separately for every requirement.
+
+Covers:
+- feat~ring5.traceability~1
+
+Needs: impl, test, uman
+
+Tags: openfasttrace, readiness, reporting, status_proposed
+
+### Requirement approval gate
+
+`req~ring5.trace.approval-gate~1`
+Status: proposed
+
+The inventory validator shall reject promotion to approved unless all required exact evidence resolves and native OFT reports the requirement as covered.
+
+Covers:
+- feat~ring5.traceability~1
+
+Needs: impl, test, uman
+
+Tags: approval, governance, openfasttrace, status_proposed

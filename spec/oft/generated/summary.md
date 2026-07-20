@@ -5,30 +5,31 @@
 <!-- oft:off -->
 This file is informative; normative items are in the other generated files.
 
-- Feature groups: 12
-- Detailed requirements: 158
+- Feature groups: 13
+- Detailed requirements: 216
 - Approved current requirements: 158
-- Proposed future requirements: 0
+- Proposed future requirements: 58
 - Draft future requirements: 0
-- Generated specification items: 170
+- Generated specification items: 229
 - Live capability bindings: 556
 
 ## Requirements by feature group
 
 | Feature group | Approved | Proposed | Draft | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Interactive Workspace | 7 | 0 | 0 | 7 |
-| Data Ingestion and Parsing | 33 | 0 | 0 | 33 |
-| Dataset Management | 11 | 0 | 0 | 11 |
-| Per-Plot Data Shaping | 15 | 0 | 0 | 15 |
-| Plot Lifecycle | 7 | 0 | 0 | 7 |
-| Plot Types | 9 | 0 | 0 | 9 |
-| Figure Configuration | 26 | 0 | 0 | 26 |
-| Rendering and Export | 12 | 0 | 0 | 12 |
-| Reproducibility and Portfolios | 8 | 0 | 0 | 8 |
-| Automation API and CLI | 12 | 0 | 0 | 12 |
+| Interactive Workspace | 7 | 7 | 0 | 14 |
+| Data Ingestion and Parsing | 33 | 5 | 0 | 38 |
+| Dataset Management | 11 | 7 | 0 | 18 |
+| Per-Plot Data Shaping | 15 | 1 | 0 | 16 |
+| Comparison and Statistical Analysis | 0 | 3 | 0 | 3 |
+| Plot Lifecycle | 7 | 6 | 0 | 13 |
+| Plot Types | 9 | 8 | 0 | 17 |
+| Figure Configuration | 26 | 4 | 0 | 30 |
+| Rendering and Export | 12 | 1 | 0 | 13 |
+| Reproducibility and Portfolios | 8 | 5 | 0 | 13 |
+| Automation API and CLI | 12 | 5 | 0 | 17 |
 | Extensibility, Safety, and Quality | 14 | 0 | 0 | 14 |
-| Feature Traceability | 4 | 0 | 0 | 4 |
+| Feature Traceability | 4 | 6 | 0 | 10 |
 
 ## Drift-checked capability sources
 

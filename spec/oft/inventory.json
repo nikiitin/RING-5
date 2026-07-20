@@ -27,6 +27,12 @@
       "tags": ["pipeline", "shapers"]
     },
     {
+      "id": "analysis",
+      "title": "Comparison and Statistical Analysis",
+      "description": "RING-5 compares experiment groups and calculates statistical evidence for observed differences.",
+      "tags": ["analysis", "comparison", "statistics"]
+    },
+    {
       "id": "plot-lifecycle",
       "title": "Plot Lifecycle",
       "description": "RING-5 manages multiple independently configured plots within one workspace.",
@@ -3126,6 +3132,586 @@
         "tests": ["tests/unit/test_oft_inventory.py::test_repository_inventory_is_valid_and_comprehensive", "tests/unit/test_oft_inventory.py::test_unbound_live_capability_is_rejected"],
         "documentation": ["spec/oft/README.md#automatic-discovery"]
       }
+    },
+    {
+      "id": "analysis.regression-comparison",
+      "group": "analysis",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Baseline and candidate comparison",
+      "description": "Users shall compare aligned baseline and candidate measurements with absolute change, percentage change, configurable direction, and regression thresholds.",
+      "tags": ["analysis", "comparison", "regression"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "analysis.statistical-comparison",
+      "group": "analysis",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Statistical comparison toolkit",
+      "description": "Users shall calculate confidence intervals, effect sizes, bootstrap estimates, significance tests, and sample-count warnings for experiment comparisons.",
+      "tags": ["analysis", "statistics"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "analysis.regression-annotations",
+      "group": "analysis",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Regression annotations",
+      "description": "Plots shall identify improvements and regressions from comparison results using configurable thresholds and metric direction.",
+      "tags": ["annotations", "comparison", "regression"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "data.lineage-undo-redo",
+      "group": "data-management",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Dataset lineage and undo",
+      "description": "The workspace shall retain a reproducible transformation lineage and allow users to undo, redo, inspect, and restore intermediate dataset states.",
+      "tags": ["data", "history", "lineage"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "data.multi-dataset-workspace",
+      "group": "data-management",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Named multi-dataset workspace",
+      "description": "A session shall retain multiple named datasets and let users select, compare, join, append, or remove them without replacing unrelated data.",
+      "tags": ["data", "workspace"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "data.quality-profiler",
+      "group": "data-management",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Data quality profiler",
+      "description": "The application shall profile missing values, duplicate rows, inferred types, constant columns, outliers, and schema violations before analysis.",
+      "tags": ["data", "profiling", "quality"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "data.validated-joins",
+      "group": "data-management",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Validated dataset joins",
+      "description": "Users shall join named datasets with explicit cardinality validation and diagnostics for duplicate keys and unmatched rows.",
+      "tags": ["data", "joins", "validation"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "data.schema-contracts",
+      "group": "data-management",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Dataset schema contracts",
+      "description": "Users shall define and validate required columns, data types, nullability, numeric ranges, and accepted categorical values.",
+      "tags": ["data", "schema", "validation"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "data.semantic-units",
+      "group": "data-management",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Units and semantic metadata",
+      "description": "Datasets shall retain column units and semantic labels, support compatible unit conversion, and use that metadata in figures and exports.",
+      "tags": ["data", "metadata", "units"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "data.dataset-snapshots",
+      "group": "data-management",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Reusable dataset snapshots",
+      "description": "Users shall save and reload fingerprinted dataset snapshots without repeating unchanged parsing and transformation work.",
+      "tags": ["caching", "data", "snapshots"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "plots.multi-panel-dashboard",
+      "group": "plot-lifecycle",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Multi-panel dashboards",
+      "description": "Users shall arrange multiple plots in a configurable grid with shared titles, axes, legends, dimensions, and whole-dashboard export.",
+      "tags": ["dashboard", "plots", "workspace"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "plots.linked-selections",
+      "group": "plot-lifecycle",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Linked selection and cross-filtering",
+      "description": "Interactive selections in one plot shall filter or highlight related data in other linked plots without modifying the source dataset.",
+      "tags": ["filtering", "interaction", "plots"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "plots.drill-down",
+      "group": "plot-lifecycle",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Interactive plot drill-down",
+      "description": "Users shall move from an aggregate plot value to its grouped source rows and return without losing the active figure configuration.",
+      "tags": ["data", "interaction", "plots"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "plots.small-multiples",
+      "group": "plot-lifecycle",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Small multiples",
+      "description": "Users shall facet a plot by one or more categorical variables with consistent scales, ordering, styling, and labels.",
+      "tags": ["facets", "plots", "visualization"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "plots.copy-settings-pipeline",
+      "group": "plot-lifecycle",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Copy plot settings and pipelines",
+      "description": "Users shall copy selected figure settings, a complete plot configuration, or a shaping pipeline between compatible plots.",
+      "tags": ["plots", "settings", "shapers"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "plots.configuration-comparison",
+      "group": "plot-lifecycle",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Side-by-side plot configuration",
+      "description": "Users shall compare two plot configurations and inspect field-level differences before copying or replacing settings.",
+      "tags": ["comparison", "plots", "settings"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "plot.box",
+      "group": "plot-types",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Box plot",
+      "description": "The plot registry shall provide box plots with grouping, orientation, quartile, whisker, outlier, and per-series styling controls.",
+      "tags": ["distribution", "plots", "visualization"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "plot.violin",
+      "group": "plot-types",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Violin plot",
+      "description": "The plot registry shall provide violin plots with grouping, orientation, density, summary, and per-series styling controls.",
+      "tags": ["distribution", "plots", "visualization"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "plot.ecdf",
+      "group": "plot-types",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Empirical cumulative distribution plot",
+      "description": "The plot registry shall provide empirical cumulative distribution plots with grouping, complementary display, markers, and normalized or count-based axes.",
+      "tags": ["distribution", "plots", "statistics"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "plot.area",
+      "group": "plot-types",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Area chart",
+      "description": "The plot registry shall provide area charts with grouped, stacked, normalized, interpolated, and per-series styling controls.",
+      "tags": ["plots", "trends", "visualization"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "plot.radar",
+      "group": "plot-types",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Radar chart",
+      "description": "The plot registry shall provide radar charts with category ordering, shared scales, filled areas, markers, and per-series styling controls.",
+      "tags": ["comparison", "plots", "visualization"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "plot.waterfall",
+      "group": "plot-types",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Waterfall chart",
+      "description": "The plot registry shall provide waterfall charts with relative, absolute, subtotal, total, connector, and value-label controls.",
+      "tags": ["comparison", "plots", "visualization"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "plot.sankey",
+      "group": "plot-types",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Sankey diagram",
+      "description": "The plot registry shall provide Sankey diagrams with validated source, target, value, label, color, and arrangement controls.",
+      "tags": ["flows", "plots", "visualization"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "plot.parallel-coordinates",
+      "group": "plot-types",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Parallel-coordinates plot",
+      "description": "The plot registry shall provide parallel-coordinate plots with ordered dimensions, categorical encoding, ranges, brushing, and color-scale controls.",
+      "tags": ["multivariate", "plots", "visualization"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "figure.accessible-themes",
+      "group": "figure-configuration",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Accessible figure themes",
+      "description": "Figure configuration shall provide color-vision-safe palettes, contrast validation, non-color encodings, and accessible defaults for text and marks.",
+      "tags": ["accessibility", "figures", "themes"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "figure.theme-presets",
+      "group": "figure-configuration",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Figure theme presets",
+      "description": "Users shall apply, customize, import, and export coherent figure themes for papers, presentations, dashboards, and dark backgrounds.",
+      "tags": ["figures", "presets", "themes"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "figure.panel-composition",
+      "group": "figure-configuration",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Publication panel composition",
+      "description": "Users shall compose figures with panel labels, captions, common titles, shared legends, and deterministic panel spacing.",
+      "tags": ["composition", "figures", "publication"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "figure.line-styles",
+      "group": "figure-configuration",
+      "revision": 1,
+      "status": "proposed",
+      "title": "End-to-end line styles",
+      "description": "Line-based traces shall apply user-selected interpolation, dash, width, marker, and connector styles consistently in Plotly and Matplotlib.",
+      "tags": ["figures", "lines", "styling"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "export.batch-reports",
+      "group": "rendering-export",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Batch HTML and PDF reports",
+      "description": "Users shall generate deterministic HTML and PDF reports containing selected figures, tables, narrative text, data provenance, and environment metadata.",
+      "tags": ["export", "reporting", "reproducibility"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "ingestion.browser-upload",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Browser file upload",
+      "description": "The web application shall accept bounded CSV, JSON, Excel, and portfolio uploads with explicit type, size, and parsing validation.",
+      "tags": ["ingestion", "upload", "web"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "ingestion.remote-sources",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Remote data sources",
+      "description": "The application shall load authorized HTTP, SSH, and S3-compatible sources through credential-safe, configurable source adapters.",
+      "tags": ["ingestion", "remote", "security"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "ingestion.incremental-parsing",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Incremental simulator parsing",
+      "description": "Parsing shall detect new or changed simulator outputs and update prior results without reparsing unchanged files.",
+      "tags": ["incremental", "parsing", "performance"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "ingestion.parser-playground",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Parser configuration playground",
+      "description": "Users shall test file patterns, parser strategies, statistic patterns, and variable definitions against a bounded sample before submitting a full parse.",
+      "tags": ["parsing", "preview", "validation"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "ingestion.import-preview",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Structured import preview",
+      "description": "Tabular imports shall preview encoding, delimiter, inferred types, accepted rows, rejected rows, and configurable corrections before loading.",
+      "tags": ["ingestion", "preview", "validation"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "portfolio.analysis-recipes",
+      "group": "reproducibility",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Parameterized analysis recipes",
+      "description": "Users shall save reusable recipes that combine data sources, parser variables, transformations, plots, exports, and typed runtime parameters.",
+      "tags": ["portfolios", "recipes", "reproducibility"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "portfolio.history-diff",
+      "group": "reproducibility",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Portfolio history and diff",
+      "description": "The application shall retain portfolio revisions and display field-level differences in data sources, pipelines, plots, and figure settings.",
+      "tags": ["diff", "history", "portfolios"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "portfolio.portable-bundles",
+      "group": "reproducibility",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Portable analysis bundles",
+      "description": "Users shall export and import a portable bundle containing a portfolio, source manifests, optional data snapshots, requirements, and generated results.",
+      "tags": ["bundles", "portfolios", "reproducibility"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "portfolio.signed-manifests",
+      "group": "reproducibility",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Signed portfolio manifests",
+      "description": "Portable portfolios shall support checksummed manifests and optional signatures for detecting modified inputs, configuration, and outputs.",
+      "tags": ["integrity", "portfolios", "security"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "portfolio.environment-metadata",
+      "group": "reproducibility",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Captured execution environment",
+      "description": "Saved analyses shall record RING-5, Python, dependency, operating-system, renderer, and external-tool versions needed to interpret or reproduce results.",
+      "tags": ["environment", "metadata", "reproducibility"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "automation.script-notebook-export",
+      "group": "automation",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Python script and notebook export",
+      "description": "The interactive workspace shall export an equivalent documented Python script or notebook that uses only the supported ring5 public API.",
+      "tags": ["api", "automation", "notebook"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "automation.batch-matrices",
+      "group": "automation",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Parameterized batch matrices",
+      "description": "The Python API and CLI shall execute an analysis recipe across a typed parameter matrix with bounded concurrency and deterministic output paths.",
+      "tags": ["automation", "batch", "cli"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "automation.machine-readable-regression",
+      "group": "automation",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Machine-readable regression results",
+      "description": "Regression comparisons shall export versioned JSON and JUnit XML with metric values, thresholds, outcomes, and source identifiers.",
+      "tags": ["automation", "ci", "regression"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "automation.ci-regression-gates",
+      "group": "automation",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Continuous-integration regression gates",
+      "description": "The CLI shall return documented exit statuses when configured metrics exceed regression thresholds, comparison data is incomplete, or execution fails.",
+      "tags": ["automation", "ci", "regression"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "automation.scheduled-reporting",
+      "group": "automation",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Scheduled and watched reporting",
+      "description": "Headless workflows shall watch configured sources or run on a schedule and generate reports only for stable, changed inputs.",
+      "tags": ["automation", "reporting", "scheduling"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "workspace.background-jobs",
+      "group": "workspace",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Background job center",
+      "description": "The workspace shall track non-blocking scan, parse, transformation, and export jobs with progress, cancellation, retry, completion, and bounded error logs.",
+      "tags": ["jobs", "progress", "workspace"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "workspace.global-search",
+      "group": "workspace",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Workspace search",
+      "description": "Users shall search variables, datasets, plots, pipelines, portfolios, commands, and documentation from one bounded indexed interface.",
+      "tags": ["search", "workspace"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "workspace.command-palette",
+      "group": "workspace",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Command palette and shortcuts",
+      "description": "The web application shall expose discoverable keyboard shortcuts and a searchable command palette for common workspace operations.",
+      "tags": ["commands", "keyboard", "workspace"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "workspace.favorites-tags",
+      "group": "workspace",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Favorites and tags",
+      "description": "Users shall assign validated tags and favorites to variables, datasets, plots, pipelines, and portfolios for filtering and reuse.",
+      "tags": ["metadata", "organization", "workspace"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "workspace.collaborative-review",
+      "group": "workspace",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Analysis comments and review status",
+      "description": "Portable analyses shall retain comments, author identifiers, timestamps, and review statuses attached to plots and portfolio revisions.",
+      "tags": ["collaboration", "review", "workspace"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "workspace.autosave-recovery",
+      "group": "workspace",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Autosave and crash recovery",
+      "description": "The application shall keep bounded local drafts and offer explicit recovery after an interrupted or expired browser session.",
+      "tags": ["recovery", "reliability", "workspace"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "workspace.guided-analysis",
+      "group": "workspace",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Guided analysis workflow",
+      "description": "The web application shall guide users through source selection, validation, comparison setup, visualization, and export while preserving access to advanced controls.",
+      "tags": ["guidance", "usability", "workspace"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "shaping.config-import-export",
+      "group": "shaping",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Pipeline configuration exchange",
+      "description": "Users shall import and export versioned saved shaper configurations with validation, conflict handling, and migration support.",
+      "tags": ["configuration", "shapers", "versioning"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "trace.future-status-reporting",
+      "group": "traceability",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Future requirement status views",
+      "description": "The OFT report shall expose separate approved, proposed, draft, in-development, and blocked views without changing native OFT artifact semantics.",
+      "tags": ["openfasttrace", "reporting", "status"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "trace.requirement-history",
+      "group": "traceability",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Requirement history",
+      "description": "The feature catalog shall retain reviewable requirement revisions and distinguish semantic changes from evidence-only updates.",
+      "tags": ["history", "openfasttrace", "requirements"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "trace.branch-association",
+      "group": "traceability",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Requirement branch association",
+      "description": "Future requirements shall record their implementation branch and expose that association in generated summaries and HTML reports.",
+      "tags": ["branches", "openfasttrace", "requirements"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "trace.requirement-diff",
+      "group": "traceability",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Requirement diff",
+      "description": "The trace tooling shall compare the current catalog and evidence graph with another Git revision and report added, removed, changed, covered, and uncovered requirements.",
+      "tags": ["diff", "git", "openfasttrace"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "trace.readiness-checklist",
+      "group": "traceability",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Requirement readiness checklist",
+      "description": "The human report shall display specification, implementation, test, documentation, native trace, and execution readiness separately for every requirement.",
+      "tags": ["openfasttrace", "readiness", "reporting"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
+    },
+    {
+      "id": "trace.approval-gate",
+      "group": "traceability",
+      "revision": 1,
+      "status": "proposed",
+      "title": "Requirement approval gate",
+      "description": "The inventory validator shall reject promotion to approved unless all required exact evidence resolves and native OFT reports the requirement as covered.",
+      "tags": ["approval", "governance", "openfasttrace"],
+      "evidence": {"implementation": [], "tests": [], "documentation": []}
     }
   ],
   "discovery_bindings": {
