@@ -68,6 +68,7 @@ PlotType = Literal[
     "scatter",
     "stacked_bar",
     "violin",
+    "waterfall",
 ]
 
 if TYPE_CHECKING:

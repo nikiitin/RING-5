@@ -24,6 +24,7 @@ _REQUIRED_SINGLE: dict[str, tuple[str, ...]] = {
     "scatter": ("x", "y"),
     "stacked_bar": ("x",),
     "violin": ("x", "y"),
+    "waterfall": ("x", "y"),
 }
 
 _REQUIRED_LIST: dict[str, tuple[str, ...]] = {

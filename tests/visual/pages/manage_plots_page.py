@@ -33,6 +33,7 @@ PLOT_TYPES: tuple[str, ...] = (
     "radar",
     "scatter",
     "violin",
+    "waterfall",
 )
 
 # Available shapers (Add transformation selectbox options)

@@ -36,6 +36,7 @@ from src.core.models.visualization.trace_config import (
     ScatterTraceConfig,
     TraceConfig,
     ViolinTraceConfig,
+    WaterfallTraceConfig,
 )
 from src.web.rendering._heatmap_utils import is_dark_cell
 from src.web.rendering._render_result import MatplotlibRenderResult
@@ -155,6 +156,13 @@ class MatplotlibTraceRenderer:
                     result.trace_count += 1
                 elif isinstance(trace, RadarTraceConfig):
                     MatplotlibTraceRenderer._draw_radar(
+                        trace,
+                        target,
+                        override_color=override_color,
+                    )
+                    result.trace_count += 1
+                elif isinstance(trace, WaterfallTraceConfig):
+                    MatplotlibTraceRenderer._draw_waterfall(
                         trace,
                         target,
                         override_color=override_color,
@@ -546,6 +554,53 @@ class MatplotlibTraceRenderer:
         )
         if spec.fill_area:
             ax.fill(x_values, y_values, color=color, alpha=spec.opacity * 0.45)
+
+    @staticmethod
+    def _draw_waterfall(
+        spec: WaterfallTraceConfig,
+        ax: Axes,
+        override_color: str | None = None,
+    ) -> None:
+        # [impl->req~ring5.plot.waterfall~1]
+        """Draw explicit waterfall starts, ends, connectors, and value labels."""
+        positions = np.arange(len(spec.categories), dtype=float)
+        for index, (start, end, kind) in enumerate(zip(spec.starts, spec.ends, spec.kinds)):
+            if kind in ("subtotal", "total", "absolute"):
+                color = override_color or spec.total_color
+            elif end >= start:
+                color = override_color or spec.increasing_color
+            else:
+                color = override_color or spec.decreasing_color
+            bottom = min(start, end)
+            height = abs(end - start)
+            ax.bar(
+                positions[index],
+                height,
+                bottom=bottom,
+                width=spec.bar_width,
+                color=color,
+                alpha=spec.opacity,
+                label=spec.name if index == 0 else "_nolegend_",
+            )
+            if spec.show_values and index < len(spec.value_labels):
+                ax.text(
+                    positions[index],
+                    max(start, end),
+                    spec.value_labels[index],
+                    ha="center",
+                    va="bottom",
+                )
+            if spec.connector_visible and index < len(spec.categories) - 1:
+                ax.plot(
+                    [
+                        positions[index] + spec.bar_width / 2,
+                        positions[index + 1] - spec.bar_width / 2,
+                    ],
+                    [end, end],
+                    color=spec.connector_color,
+                    linewidth=spec.connector_width,
+                )
+        ax.set_xticks(positions, spec.categories)
 
     # scatter
     @staticmethod

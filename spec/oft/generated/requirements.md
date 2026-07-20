@@ -1646,7 +1646,7 @@ Tags: comparison, plots, status_approved, visualization
 ### Waterfall chart
 
 `req~ring5.plot.waterfall~1`
-Status: proposed
+Status: approved
 
 The plot registry shall provide waterfall charts with relative, absolute, subtotal, total, connector, and value-label controls.
 
@@ -1655,7 +1655,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: comparison, plots, status_proposed, visualization
+Tags: comparison, plots, status_approved, visualization
 
 ### Sankey diagram
 

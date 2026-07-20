@@ -17,6 +17,7 @@ from src.core.models.visualization.trace_config import (
     ScatterTraceConfig,
     TraceConfig,
     ViolinTraceConfig,
+    WaterfallTraceConfig,
 )
 from src.web.rendering.trace_to_plotly import (
     _bar_trace,
@@ -30,6 +31,7 @@ from src.web.rendering.trace_to_plotly import (
     _scatter_trace,
     traces_to_plotly,
     _violin_trace,
+    _waterfall_trace,
 )
 
 # traces_to_plotly (main entry)
@@ -294,6 +296,41 @@ class TestRadarTrace:
         assert result.line.color == "#336699"
         assert tuple(cast(Any, figure.layout).polar.radialaxis.range) == (0.0, 4.0)
         assert cast(Any, figure.layout).polar.angularaxis.direction == "counterclockwise"
+
+
+class TestWaterfallTrace:
+    """Tests for native Plotly waterfall conversion."""
+
+    def test_waterfall_preserves_measures_connectors_colors_and_labels(self) -> None:
+        # [test->req~ring5.plot.waterfall~1]
+        trace = WaterfallTraceConfig(
+            name="Change",
+            categories=["Start", "Loss", "Subtotal", "Total"],
+            values=[10.0, -3.0, 0.0, 0.0],
+            measures=["absolute", "relative", "total", "total"],
+            kinds=["absolute", "relative", "subtotal", "total"],
+            starts=[0.0, 10.0, 0.0, 0.0],
+            ends=[10.0, 7.0, 7.0, 7.0],
+            connector_color="#123456",
+            connector_width=2.0,
+            increasing_color="#00aa00",
+            decreasing_color="#aa0000",
+            total_color="#0000aa",
+            show_values=True,
+            value_labels=["10", "-3", "7", "7"],
+        )
+
+        result = _waterfall_trace(trace)
+
+        assert isinstance(result, go.Waterfall)
+        assert list(cast(Any, result.measure)) == trace.measures
+        assert cast(Any, result.connector).visible
+        assert cast(Any, result.connector).line.color == "#123456"
+        assert cast(Any, result.connector).line.width == 2.0
+        assert cast(Any, result.increasing).marker.color == "#00aa00"
+        assert cast(Any, result.decreasing).marker.color == "#aa0000"
+        assert cast(Any, result.totals).marker.color == "#0000aa"
+        assert list(cast(Any, result.text)) == trace.value_labels
 
     def test_scatter_trace_dispatch(self) -> None:
         trace = ScatterTraceConfig(name="scatter", x=["a"], y=[1])

@@ -14,6 +14,7 @@ from .radar_plot import RadarPlot
 from .scatter_plot import ScatterPlot
 from .stacked_bar_plot import StackedBarPlot
 from .violin_plot import ViolinPlot
+from .waterfall_plot import WaterfallPlot
 
 __all__ = [
     "AreaPlot",
@@ -30,4 +31,5 @@ __all__ = [
     "RadarPlot",
     "ScatterPlot",
     "ViolinPlot",
+    "WaterfallPlot",
 ]

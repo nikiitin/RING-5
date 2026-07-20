@@ -211,6 +211,22 @@ class PlotDisplayConfig(TypedDict, total=False):
     radar_opacity: float
     radar_line_width: float
 
+    # Waterfall-specific
+    waterfall_absolute: list[str]
+    waterfall_subtotals: list[str]
+    waterfall_final_total: bool
+    waterfall_total_label: str
+    waterfall_connectors: bool
+    waterfall_connector_color: str
+    waterfall_connector_width: float
+    waterfall_increasing_color: str
+    waterfall_decreasing_color: str
+    waterfall_total_color: str
+    waterfall_bar_width: float
+    waterfall_opacity: float
+    waterfall_show_values: bool
+    waterfall_number_format: str
+
     # Export
     download_format: str  # "html", "png", "pdf", "svg"
     export_scale: int  # 1, 2, or 3

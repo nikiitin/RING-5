@@ -21,6 +21,7 @@ from src.core.models.visualization.trace_config import (
     ScatterTraceConfig,
     TraceConfig,
     ViolinTraceConfig,
+    WaterfallTraceConfig,
 )
 from src.web.rendering._heatmap_utils import is_dark_cell
 from src.web.rendering.matplotlib_trace_renderer import (
@@ -161,6 +162,30 @@ class TestRender:
         assert len(ax.texts) == 3
         assert len(ax.patches) == 1
         assert not ax.axison
+
+    def test_waterfall_draws_explicit_geometry_connectors_and_labels(
+        self, ax: matplotlib.axes.Axes
+    ) -> None:
+        # [test->req~ring5.plot.waterfall~1]
+        trace = WaterfallTraceConfig(
+            name="Change",
+            categories=["Start", "Loss", "Subtotal"],
+            values=[10.0, -3.0, 0.0],
+            measures=["absolute", "relative", "total"],
+            kinds=["absolute", "relative", "subtotal"],
+            starts=[0.0, 10.0, 0.0],
+            ends=[10.0, 7.0, 7.0],
+            connector_visible=True,
+            value_labels=["10", "-3", "7"],
+        )
+
+        result = MatplotlibTraceRenderer.render([trace], ax)
+
+        assert result.trace_count == 1
+        assert [tick.get_text() for tick in ax.get_xticklabels()] == trace.categories
+        assert len(ax.patches) == 3
+        assert len(ax.lines) == 2
+        assert [text.get_text() for text in ax.texts] == trace.value_labels
 
     def test_vertical_and_horizontal_violins_use_precomputed_density(
         self, ax: matplotlib.axes.Axes

@@ -35,5 +35,6 @@ Use these pages for recurring tasks:
 - [Compare Cumulative Distributions with ECDF Plots](ecdf-plots/) without bins or smoothing.
 - [Show Composition with Area Charts](area-charts/) using overlay, stacked, or normalized fills.
 - [Compare Profiles with Radar Charts](radar-charts/) on one explicit shared radial scale.
+- [Explain Changes with Waterfall Charts](waterfall-charts/) using explicit step meanings and running totals.
 - [Manage Portfolios](portfolios/) to save and restore a workspace.
 - [Automate with Python and the CLI](scripting/) for batch and CI use.

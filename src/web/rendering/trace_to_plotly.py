@@ -26,6 +26,7 @@ from src.core.models.visualization.trace_config import (
     ScatterTraceConfig,
     TraceConfig,
     ViolinTraceConfig,
+    WaterfallTraceConfig,
 )
 from src.web.rendering._heatmap_utils import is_dark_cell
 
@@ -192,6 +193,8 @@ def _convert_trace(trace: TraceConfig) -> go.BaseTraceType:  # type: ignore[name
         result = _violin_trace(trace)
     elif isinstance(trace, RadarTraceConfig):
         result = _radar_trace(trace)
+    elif isinstance(trace, WaterfallTraceConfig):
+        result = _waterfall_trace(trace)
     elif isinstance(trace, LineTraceConfig):
         result = _line_trace(trace)
     elif isinstance(trace, ScatterTraceConfig):
@@ -353,6 +356,31 @@ def _radar_trace(trace: RadarTraceConfig) -> go.Scatterpolar:
         kwargs["line"]["color"] = trace.color
         kwargs["marker"]["color"] = trace.color
     return go.Scatterpolar(**{key: value for key, value in kwargs.items() if value is not None})
+
+
+def _waterfall_trace(trace: WaterfallTraceConfig) -> go.Waterfall:
+    # [impl->req~ring5.plot.waterfall~1]
+    """Convert precomputed waterfall semantics to Plotly."""
+    return go.Waterfall(
+        name=trace.name,
+        x=trace.categories,
+        y=trace.values,
+        measure=trace.measures,
+        width=trace.bar_width,
+        opacity=trace.opacity,
+        showlegend=trace.show_in_legend,
+        visible=trace.visible,
+        legendgroup=trace.legendgroup or trace.name,
+        connector={
+            "visible": trace.connector_visible,
+            "line": {"color": trace.connector_color, "width": trace.connector_width},
+        },
+        increasing={"marker": {"color": trace.increasing_color}},
+        decreasing={"marker": {"color": trace.decreasing_color}},
+        totals={"marker": {"color": trace.total_color}},
+        text=trace.value_labels if trace.show_values else None,
+        textposition="outside" if trace.show_values else None,
+    )
 
 
 def _line_trace(trace: LineTraceConfig) -> go.Scatter:

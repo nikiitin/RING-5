@@ -214,6 +214,19 @@ class TestPlotCreation:
             timeout=E2E_TIMEOUT
         )
 
+    # -- Waterfall -----------------------------------------------------------
+
+    def test_12_create_waterfall_plot(self, tier1_page: Page) -> None:
+        # [test->req~ring5.plot.waterfall~1]
+        """Create a waterfall chart and expose step-meaning controls."""
+        mp = ManagePlotsPage(tier1_page)
+        _create_and_finalize(mp, "E2E Waterfall", "waterfall")
+        _trigger_render_fragment(mp)
+        _configure_and_assert_chart(mp, x="benchmark_name", y="system.cpu.ipc")
+        expect(tier1_page.get_by_text("Waterfall steps", exact=True)).to_be_visible(
+            timeout=E2E_TIMEOUT
+        )
+
 
 # Tier 2 -- Plot management controls
 

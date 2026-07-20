@@ -209,6 +209,7 @@ def test_public_registries_are_complete() -> None:
         ("bar", {"x": "x", "y": "y", "color": "group"}),
         ("box", {"x": "x", "y": "y", "color": "group", "point_mode": "all"}),
         ("violin", {"x": "x", "y": "y", "color": "group", "point_mode": "all"}),
+        ("waterfall", {"x": "x", "y": "y", "waterfall_final_total": True}),
         ("dual_axis_bar_dot", {"x": "x", "y_bar": "y", "y_dot": "z"}),
         ("ecdf", {"x": "y", "color": "group", "ecdf_complementary": True}),
         ("grouped_bar", {"x": "x", "y": "y", "group": "group"}),

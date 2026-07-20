@@ -3719,11 +3719,29 @@
       "id": "plot.waterfall",
       "group": "plot-types",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Waterfall chart",
       "description": "The plot registry shall provide waterfall charts with relative, absolute, subtotal, total, connector, and value-label controls.",
       "tags": ["comparison", "plots", "visualization"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/models/visualization/trace_config.py::WaterfallTraceConfig",
+          "src/web/pages/ui/plotting/types/waterfall_plot.py::WaterfallPlot.create_traces",
+          "src/web/components/plotting/config/waterfall_config.py::render",
+          "src/web/rendering/trace_to_plotly.py::_waterfall_trace",
+          "src/web/rendering/matplotlib_trace_renderer.py::MatplotlibTraceRenderer._draw_waterfall"
+        ],
+        "tests": [
+          "tests/unit/test_waterfall_plot.py::test_waterfall_resolves_relative_absolute_subtotal_and_total_without_mutation",
+          "tests/unit/test_trace_to_plotly.py::TestWaterfallTrace.test_waterfall_preserves_measures_connectors_colors_and_labels",
+          "tests/unit/test_matplotlib_trace_renderer.py::TestRender.test_waterfall_draws_explicit_geometry_connectors_and_labels",
+          "tests/integration/test_waterfall_plot_public_api.py::test_public_waterfall_renders_exact_semantics_in_both_engines",
+          "tests/e2e/test_plot_types.py::TestPlotCreation.test_12_create_waterfall_plot"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/waterfall-charts.md#explain-changes-with-waterfall-charts"
+        ]
+      }
     },
     {
       "id": "plot.sankey",
@@ -4099,6 +4117,7 @@
       "bar": "plot.bar",
       "box": "plot.box",
       "violin": "plot.violin",
+      "waterfall": "plot.waterfall",
       "dual_axis_bar_dot": "plot.dual-axis-bar-dot",
       "ecdf": "plot.ecdf",
       "grouped_bar": "plot.grouped-bar",
