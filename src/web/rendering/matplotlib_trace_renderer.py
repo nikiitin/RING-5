@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 import numpy as np
 from matplotlib.axes import Axes
@@ -326,6 +326,7 @@ class MatplotlibTraceRenderer:
         override_color: str | None = None,
     ) -> None:
         # [impl->req~ring5.plot.ecdf~1]
+        # [impl->req~ring5.plot.area~1]
         """Draw a single line trace from its ``LineTraceConfig``."""
         props: dict[str, Any] = {}
         color = override_color or spec.color
@@ -335,6 +336,8 @@ class MatplotlibTraceRenderer:
             props["linewidth"] = spec.line_width
         if spec.line_dash:
             props["linestyle"] = _DASH_MAP.get(spec.line_dash, "-")
+        if spec.opacity != 1.0:
+            props["alpha"] = spec.opacity
         drawstyle = {
             "hv": "steps-post",
             "vh": "steps-pre",
@@ -352,6 +355,24 @@ class MatplotlibTraceRenderer:
 
         y_clean = [float(v) if v is not None else np.nan for v in spec.y]
         ax.plot(spec.x, y_clean, label=spec.name, **props)
+        if spec.fill != "none":
+            baseline = spec.fill_base or [0.0] * len(y_clean)
+            step: Literal["pre", "post", "mid"] | None = None
+            if spec.line_shape == "hv":
+                step = "post"
+            elif spec.line_shape == "vh":
+                step = "pre"
+            elif spec.line_shape in ("hvh", "vhv"):
+                step = "mid"
+            ax.fill_between(
+                spec.x,
+                y_clean,
+                baseline,
+                color=color or "#4472C4",
+                alpha=spec.opacity,
+                step=step,
+                label="_nolegend_",
+            )
 
     @staticmethod
     def _draw_violin(

@@ -54,6 +54,7 @@ from ring5.figure_spec import FigureSpec
 from ring5._plot_validation import validate_plot_config
 
 PlotType = Literal[
+    "area",
     "bar",
     "box",
     "dual_axis_bar_dot",

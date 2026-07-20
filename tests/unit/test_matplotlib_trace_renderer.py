@@ -115,6 +115,24 @@ class TestRender:
         assert result.trace_count == 1
         assert ax.lines[0].get_drawstyle() == "steps-post"
 
+    def test_area_line_fills_against_precomputed_baseline(self, ax: matplotlib.axes.Axes) -> None:
+        # [test->req~ring5.plot.area~1]
+        trace = LineTraceConfig(
+            name="Area",
+            x=[1.0, 2.0, 3.0],
+            y=[2.0, 4.0, 5.0],
+            fill="tonexty",
+            fill_base=[1.0, 1.5, 2.0],
+            line_shape="hv",
+            color="#336699",
+        )
+
+        result = MatplotlibTraceRenderer.render([trace], ax)
+
+        assert result.trace_count == 1
+        assert len(ax.collections) == 1
+        assert ax.lines[0].get_drawstyle() == "steps-post"
+
     def test_vertical_and_horizontal_violins_use_precomputed_density(
         self, ax: matplotlib.axes.Axes
     ) -> None:

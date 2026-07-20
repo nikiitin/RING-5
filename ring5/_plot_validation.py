@@ -10,6 +10,7 @@ import pandas as pd
 from ring5.errors import ColumnNotFoundError, DataValidationError
 
 _REQUIRED_SINGLE: dict[str, tuple[str, ...]] = {
+    "area": ("x", "y"),
     "bar": ("x", "y"),
     "box": ("x", "y"),
     "dual_axis_bar_dot": ("x", "y_bar", "y_dot"),
@@ -31,6 +32,7 @@ _REQUIRED_LIST: dict[str, tuple[str, ...]] = {
 }
 
 _OPTIONAL_SINGLE: dict[str, tuple[str, ...]] = {
+    "area": ("color",),
     "bar": ("color",),
     "box": ("color",),
     "dual_axis_bar_dot": ("color",),

@@ -320,6 +320,7 @@ def _violin_trace(trace: ViolinTraceConfig) -> go.Violin:
 
 def _line_trace(trace: LineTraceConfig) -> go.Scatter:
     # [impl->req~ring5.plot.ecdf~1]
+    # [impl->req~ring5.plot.area~1]
     """Convert a ``LineTraceConfig`` to ``go.Scatter`` with lines mode."""
     mode = "lines+markers" if trace.show_markers else "lines"
 

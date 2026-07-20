@@ -33,5 +33,6 @@ Use these pages for recurring tasks:
 - [Compare Distributions with Box Plots](box-plots/) with explicit quartile and outlier controls.
 - [Compare Density Shapes with Violin Plots](violin-plots/) with shared density and summary controls.
 - [Compare Cumulative Distributions with ECDF Plots](ecdf-plots/) without bins or smoothing.
+- [Show Composition with Area Charts](area-charts/) using overlay, stacked, or normalized fills.
 - [Manage Portfolios](portfolios/) to save and restore a workspace.
 - [Automate with Python and the CLI](scripting/) for batch and CI use.

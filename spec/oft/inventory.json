@@ -3664,11 +3664,28 @@
       "id": "plot.area",
       "group": "plot-types",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Area chart",
       "description": "The plot registry shall provide area charts with grouped, stacked, normalized, interpolated, and per-series styling controls.",
       "tags": ["plots", "trends", "visualization"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/web/pages/ui/plotting/types/area_plot.py::AreaPlot.create_traces",
+          "src/web/components/plotting/config/area_config.py::render",
+          "src/web/rendering/trace_to_plotly.py::_line_trace",
+          "src/web/rendering/matplotlib_trace_renderer.py::MatplotlibTraceRenderer._draw_line"
+        ],
+        "tests": [
+          "tests/unit/test_area_plot.py::test_normalized_area_precomputes_cumulative_baselines_without_mutation",
+          "tests/unit/test_trace_to_plotly.py::TestAreaLineTrace.test_area_fill_and_step_interpolation_are_preserved",
+          "tests/unit/test_matplotlib_trace_renderer.py::TestRender.test_area_line_fills_against_precomputed_baseline",
+          "tests/integration/test_area_plot_public_api.py::test_public_normalized_area_renders_both_engines_with_series_style",
+          "tests/e2e/test_plot_types.py::TestPlotCreation.test_10_create_area_plot"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/area-charts.md#show-composition-over-an-axis-with-area-charts"
+        ]
+      }
     },
     {
       "id": "plot.radar",
@@ -4060,6 +4077,7 @@
       "Save/Load Portfolio": "portfolio.save"
     },
     "plot_types": {
+      "area": "plot.area",
       "bar": "plot.bar",
       "box": "plot.box",
       "violin": "plot.violin",

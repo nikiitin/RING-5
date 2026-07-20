@@ -194,6 +194,12 @@ class PlotDisplayConfig(TypedDict, total=False):
     ecdf_markers: bool
     marker_size: int
 
+    # Area-specific
+    area_mode: str
+    area_interpolation: str
+    area_missing: str
+    area_opacity: float
+
     # Export
     download_format: str  # "html", "png", "pdf", "svg"
     export_scale: int  # 1, 2, or 3

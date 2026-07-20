@@ -245,6 +245,26 @@ class TestEcdfLineTrace:
         assert result.line.shape == "hv"
         assert list(cast(Any, result.y)) == [0.5, 1.0]
 
+
+class TestAreaLineTrace:
+    """Tests for the Plotly filled-area line contract."""
+
+    def test_area_fill_and_step_interpolation_are_preserved(self) -> None:
+        # [test->req~ring5.plot.area~1]
+        result = _line_trace(
+            LineTraceConfig(
+                name="Area",
+                x=[1.0, 2.0],
+                y=[3.0, 4.0],
+                fill="tonexty",
+                fill_base=[1.0, 2.0],
+                line_shape="hv",
+            )
+        )
+
+        assert result.fill == "tonexty"
+        assert result.line.shape == "hv"
+
     def test_scatter_trace_dispatch(self) -> None:
         trace = ScatterTraceConfig(name="scatter", x=["a"], y=[1])
         result = _convert_trace(trace)

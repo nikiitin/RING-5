@@ -188,6 +188,19 @@ class TestPlotCreation:
             timeout=E2E_TIMEOUT
         )
 
+    # -- Area ----------------------------------------------------------------
+
+    def test_10_create_area_plot(self, tier1_page: Page) -> None:
+        # [test->req~ring5.plot.area~1]
+        """Create an area chart and expose arrangement and interpolation controls."""
+        mp = ManagePlotsPage(tier1_page)
+        _create_and_finalize(mp, "E2E Area", "area")
+        _trigger_render_fragment(mp)
+        _configure_and_assert_chart(mp, x="benchmark_name", y="system.cpu.ipc")
+        expect(tier1_page.get_by_text("Area display", exact=True)).to_be_visible(
+            timeout=E2E_TIMEOUT
+        )
+
 
 # Tier 2 -- Plot management controls
 

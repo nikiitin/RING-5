@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from .base_plot import BasePlot
 
 from .types import (
+    AreaPlot,
     BarPlot,
     BoxPlot,
     DualAxisBarDotPlot,
@@ -39,6 +40,7 @@ class PlotFactory:
     """Create plots from a registry that supports runtime extension."""
 
     _plot_classes: dict[str, Callable[[int, str], BasePlot]] = {
+        "area": AreaPlot,
         "bar": BarPlot,
         "box": BoxPlot,
         "dual_axis_bar_dot": DualAxisBarDotPlot,
@@ -54,6 +56,7 @@ class PlotFactory:
     }
 
     _plot_metadata: dict[str, PlotTypeMetadata] = {
+        "area": {"display_name": "Area Chart", "icon": "area_chart", "category": "basic"},
         "bar": {"display_name": "Bar Chart", "icon": "bar_chart", "category": "basic"},
         "box": {"display_name": "Box Plot", "icon": "inventory_2", "category": "distribution"},
         "line": {"display_name": "Line Chart", "icon": "show_chart", "category": "basic"},

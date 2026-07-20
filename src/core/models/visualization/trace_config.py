@@ -88,6 +88,7 @@ class LineTraceConfig(TraceConfig):
     marker_size: int = 6
     show_markers: bool = True
     fill: Literal["none", "tozeroy", "tonexty"] = "none"
+    fill_base: list[float] | None = None
 
     # Error bars
     error_y: list[float] | None = None

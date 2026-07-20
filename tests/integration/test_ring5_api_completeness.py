@@ -205,6 +205,7 @@ def test_public_registries_are_complete() -> None:
 @pytest.mark.parametrize(
     ("plot_type", "config"),
     [
+        ("area", {"x": "x", "y": "y", "color": "group", "area_mode": "stack"}),
         ("bar", {"x": "x", "y": "y", "color": "group"}),
         ("box", {"x": "x", "y": "y", "color": "group", "point_mode": "all"}),
         ("violin", {"x": "x", "y": "y", "color": "group", "point_mode": "all"}),

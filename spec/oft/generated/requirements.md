@@ -1618,7 +1618,7 @@ Tags: distribution, plots, statistics, status_approved
 ### Area chart
 
 `req~ring5.plot.area~1`
-Status: proposed
+Status: approved
 
 The plot registry shall provide area charts with grouped, stacked, normalized, interpolated, and per-series styling controls.
 
@@ -1627,7 +1627,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: plots, status_proposed, trends, visualization
+Tags: plots, status_approved, trends, visualization
 
 ### Radar chart
 

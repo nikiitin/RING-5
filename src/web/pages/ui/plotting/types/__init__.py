@@ -1,5 +1,6 @@
 """Plot types package."""
 
+from .area_plot import AreaPlot
 from .bar_plot import BarPlot
 from .box_plot import BoxPlot
 from .dual_axis_bar_dot_plot import DualAxisBarDotPlot
@@ -14,6 +15,7 @@ from .stacked_bar_plot import StackedBarPlot
 from .violin_plot import ViolinPlot
 
 __all__ = [
+    "AreaPlot",
     "BarPlot",
     "BoxPlot",
     "DualAxisBarDotPlot",
