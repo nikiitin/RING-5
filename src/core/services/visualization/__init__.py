@@ -16,6 +16,10 @@ from src.core.services.visualization.drill_down_service import drill_down_rows  
 from src.core.services.visualization.small_multiples_service import (  # noqa: F401
     create_small_multiples_spec,
 )
+from src.core.services.visualization.plot_transfer_service import (  # noqa: F401
+    SETTING_SECTIONS,
+    copy_plot_content,
+)
 from src.core.services.visualization.palette_service import (  # noqa: F401
     get_palette_names,
     is_colorblind_safe,

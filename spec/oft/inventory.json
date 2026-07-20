@@ -3527,11 +3527,28 @@
       "id": "plots.copy-settings-pipeline",
       "group": "plot-lifecycle",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Copy plot settings and pipelines",
       "description": "Users shall copy selected figure settings, a complete plot configuration, or a shaping pipeline between compatible plots.",
       "tags": ["plots", "settings", "shapers"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/models/visualization/plot_transfer_result.py::PlotTransferResult",
+          "src/core/services/visualization/plot_transfer_service.py::copy_plot_content",
+          "src/core/application_api.py::ApplicationAPI.copy_plot_content",
+          "src/web/components/plotting/plot_transfer_panel.py::PlotTransferPanel.render",
+          "ring5/_session.py::Session.copy_plot_content"
+        ],
+        "tests": [
+          "tests/unit/test_plot_transfer_service.py::test_selected_settings_copy_only_requested_presentation_values",
+          "tests/integration/test_plot_transfer_public_api.py::test_public_copy_supports_sections_configuration_and_pipeline",
+          "tests/ui_logic/test_plot_transfer_panel.py::test_selected_sections_copy_into_current_plot",
+          "tests/e2e/test_plot_transfer.py::test_copy_selected_settings_reloads_destination_widgets"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/copy-plot-settings.md#copy-plot-settings-and-pipelines"
+        ]
+      }
     },
     {
       "id": "plots.configuration-comparison",
@@ -4102,6 +4119,7 @@
       "JoinDiagnostics": "data.validated-joins",
       "LegendOpts": "api.figure-spec",
       "LinkedSelectionSpec": "plots.linked-selections",
+      "PlotTransferResult": "plots.copy-settings-pipeline",
       "SmallMultiplesSpec": "plots.small-multiples",
       "MissingStatError": "api.typed-errors",
       "ParseError": "api.typed-errors",
@@ -4152,6 +4170,7 @@
       "create_plot": "plots.create-multiple",
       "create_dashboard": "plots.multi-panel-dashboard",
       "create_linked_selection": "plots.linked-selections",
+      "copy_plot_content": "plots.copy-settings-pipeline",
       "create_small_multiples": "plots.small-multiples",
       "dataset_lineage": "data.lineage-undo-redo",
       "diagnose_join": "data.validated-joins",
@@ -4224,6 +4243,7 @@
       "clear_preview": "data.preview-confirm",
       "create_dashboard": "plots.multi-panel-dashboard",
       "create_linked_selection": "plots.linked-selections",
+      "copy_plot_content": "plots.copy-settings-pipeline",
       "create_small_multiples": "plots.small-multiples",
       "compare_datasets": "data.multi-dataset-workspace",
       "data_services": "quality.application-facade",

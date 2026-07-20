@@ -24,6 +24,8 @@ from src.core.models import (
     JoinCardinality,
     JoinDiagnostics,
     LinkedSelectionSpec,
+    PlotTransferMode,
+    PlotTransferResult,
     SmallMultiplesSpec,
     RestoreReport,
     ScanResult,
@@ -1615,6 +1617,41 @@ class Session:
         plot_id = plot.plot_id if isinstance(plot, BasePlot) else plot
         try:
             return self.api.drill_down_plot(plot_id, filters)
+        except (TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def copy_plot_content(
+        self,
+        source: BasePlot | int,
+        target: BasePlot | int,
+        mode: PlotTransferMode,
+        *,
+        sections: Sequence[str] = (),
+    ) -> PlotTransferResult:
+        # [impl->req~ring5.plots.copy-settings-pipeline~1]
+        """Copy selected settings, a complete configuration, or a pipeline.
+
+        Args:
+            source: Registered source plot or integer plot ID.
+            target: Registered destination plot or integer plot ID.
+            mode: ``"settings"``, ``"configuration"``, or ``"pipeline"``.
+            sections: Figure sections used only by ``"settings"`` mode.
+
+        Returns:
+            A summary of copied keys or pipeline steps and whether finalization is required.
+
+        Raises:
+            DataValidationError: The plots or requested transfer are incompatible.
+        """
+        source_id = source.plot_id if isinstance(source, BasePlot) else source
+        target_id = target.plot_id if isinstance(target, BasePlot) else target
+        try:
+            return self.api.copy_plot_content(
+                source_id,
+                target_id,
+                mode,
+                sections=sections,
+            )
         except (TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
 

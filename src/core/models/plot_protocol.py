@@ -36,6 +36,14 @@ class PlotProtocol(Protocol):
         """Serialize the plot to a dictionary."""
         raise NotImplementedError
 
+    def invalidate_figure(self) -> None:
+        """Discard derived figure artifacts after a configuration change."""
+        raise NotImplementedError
+
+    def replace_processed_data(self, data: pd.DataFrame | None) -> None:
+        """Replace processed data and discard derived figure artifacts."""
+        raise NotImplementedError
+
 
 # Type alias: a callable that deserializes a dict into a PlotProtocol.
 # Injected at startup so the core layer never imports web-layer classes.

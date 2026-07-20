@@ -1420,7 +1420,7 @@ Tags: facets, plots, status_approved, visualization
 ### Copy plot settings and pipelines
 
 `req~ring5.plots.copy-settings-pipeline~1`
-Status: proposed
+Status: approved
 
 Users shall copy selected figure settings, a complete plot configuration, or a shaping pipeline between compatible plots.
 
@@ -1429,7 +1429,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: plots, settings, shapers, status_proposed
+Tags: plots, settings, shapers, status_approved
 
 ### Side-by-side plot configuration
 

@@ -34,6 +34,10 @@ from src.core.models.visualization.small_multiples_spec import (
     FacetPanel,
     SmallMultiplesSpec,
 )
+from src.core.models.visualization.plot_transfer_result import (
+    PlotTransferMode,
+    PlotTransferResult,
+)
 from src.core.models.visualization.palettes import (
     PALETTE_REGISTRY,
 )
@@ -79,6 +83,9 @@ __all__ = [
     # Small multiples
     "FacetPanel",
     "SmallMultiplesSpec",
+    # Plot transfers
+    "PlotTransferMode",
+    "PlotTransferResult",
     # Palettes
     "PALETTE_REGISTRY",
     # Series style

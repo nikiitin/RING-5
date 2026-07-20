@@ -134,6 +134,18 @@ class ManagePlotsPage(BasePage):
         """'Duplicate' plot button."""
         return self.page.get_by_role("button", name="Duplicate")
 
+    @property
+    def plot_transfer_expander(self) -> Locator:
+        """Expander for copying settings or a pipeline into the active plot."""
+        return self.page.locator("[data-testid='stExpander']").filter(
+            has_text="Copy from another plot"
+        )
+
+    @property
+    def plot_transfer_button(self) -> Locator:
+        """Apply the selected source-to-current-plot transfer."""
+        return self.page.get_by_role("button", name="Copy into current plot")
+
     #  5. Pipeline editor (st.fragment)
 
     @property
@@ -562,6 +574,12 @@ class ManagePlotsPage(BasePage):
     def duplicate_plot(self) -> None:
         """Duplicate the currently selected plot."""
         self.duplicate_button.click()
+        self.wait_for_streamlit(expect_rerun=True)
+
+    def copy_default_settings_from_other_plot(self) -> None:
+        """Open the transfer panel and apply its default selected settings."""
+        self.plot_transfer_expander.locator("summary").click()
+        self.plot_transfer_button.click()
         self.wait_for_streamlit(expect_rerun=True)
 
     #  ACTIONS — Pipeline editor

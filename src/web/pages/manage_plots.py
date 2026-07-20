@@ -24,6 +24,7 @@ from src.web.controllers.plot.creation_controller import PlotCreationController
 from src.web.controllers.plot.pipeline_controller import PipelineController
 from src.web.controllers.plot.render_controller import PlotRenderController
 from src.web.components.plotting.dashboard_composer import DashboardComposer
+from src.web.components.plotting.plot_transfer_panel import PlotTransferPanel
 from src.web.models.plot_protocols import PlotHandle, RenderablePlot
 from src.web.pages.plot_adapters import (
     PipelineExecutorAdapter,
@@ -86,8 +87,10 @@ def show_manage_plots_page(api: ApplicationAPI) -> None:
     current_plot = creation.render_selector()
 
     if current_plot:
+        PlotTransferPanel.apply_pending_widget_reset(current_plot.plot_id)
         # 3. Controls (rename, delete, duplicate)
         creation.render_controls(current_plot)
+        PlotTransferPanel(api).render(current_plot, api.state_manager.get_plots())
         st.markdown("---")
 
         # 4. Pipeline Editor (fragmented)

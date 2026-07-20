@@ -18,6 +18,8 @@ from src.core.models import (
     JoinCardinality,
     JoinDiagnostics,
     LinkedSelectionSpec,
+    PlotTransferMode,
+    PlotTransferResult,
     SmallMultiplesSpec,
     ParseBatchResult,
     ScanFileResult,
@@ -47,6 +49,7 @@ from src.core.services.visualization.drill_down_service import drill_down_rows
 from src.core.services.visualization.small_multiples_service import (
     create_small_multiples_spec as build_small_multiples_spec,
 )
+from src.core.services.visualization.plot_transfer_service import copy_plot_content
 from src.core.state.repository_state_manager import RepositoryStateManager
 from src.parsing.framework.file_discovery import find_stats_files as _find_stats_files
 from src.parsing.parser_protocol import SimulationParser
@@ -798,6 +801,29 @@ class ApplicationAPI:
                 + "."
             )
         return LinkedSelectionSpec(plot_ids=ids, axis=axis, mode=mode)
+
+    def copy_plot_content(
+        self,
+        source_plot_id: int,
+        target_plot_id: int,
+        mode: PlotTransferMode,
+        *,
+        sections: Sequence[str] = (),
+    ) -> PlotTransferResult:
+        # [impl->req~ring5.plots.copy-settings-pipeline~1]
+        """Copy validated configuration or pipeline content between live plots."""
+        available = {plot.plot_id: plot for plot in self.state_manager.get_plots()}
+        missing = [value for value in (source_plot_id, target_plot_id) if value not in available]
+        if missing:
+            raise ValueError(
+                "Copy references unknown plot IDs: " + ", ".join(map(str, missing)) + "."
+            )
+        return copy_plot_content(
+            available[source_plot_id],
+            available[target_plot_id],
+            mode,
+            sections=sections,
+        )
 
     def drill_down_plot(
         self,
