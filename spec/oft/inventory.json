@@ -2112,7 +2112,7 @@
         ],
         "tests": [
           "tests/integration/test_portfolio_migration.py::TestV1LoadAndMigrate",
-          "tests/integration/test_portfolio_migration.py::TestV2Passthrough",
+          "tests/integration/test_portfolio_migration.py::TestV2Migration",
           "tests/integration/test_ring5_public_api.py::TestPortfolioReplay.test_future_portfolio_refused"
         ],
         "documentation": [
@@ -4089,11 +4089,32 @@
       "id": "portfolio.environment-metadata",
       "group": "reproducibility",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Captured execution environment",
       "description": "Saved analyses shall record RING-5, Python, dependency, operating-system, renderer, and external-tool versions needed to interpret or reproduce results.",
       "tags": ["environment", "metadata", "reproducibility"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/models/environment_models.py::EnvironmentMetadata",
+          "src/core/services/environment_metadata_service.py::EnvironmentMetadataService.capture",
+          "src/core/services/environment_metadata_service.py::EnvironmentMetadataService.compare",
+          "src/core/services/data_services/portfolio_service.py::PortfolioService.save_portfolio",
+          "src/core/services/portfolio_migrator.py::PortfolioMigrator._migrate_v2_to_v3",
+          "ring5/_session.py::Session.environment_metadata",
+          "ring5/_session.py::Session.compare_portfolio_environment",
+          "src/web/pages/portfolio.py::_render_environment_comparison"
+        ],
+        "tests": [
+          "tests/unit/test_environment_metadata_service.py::test_capture_is_complete_stable_and_privacy_conscious",
+          "tests/integration/test_portfolio_service_integration.py::test_save_and_load_portfolio",
+          "tests/integration/test_environment_metadata_public_api.py::test_saved_environment_is_public_and_matches_same_runtime",
+          "tests/unit/test_portfolio_page.py::TestPortfolioEnvironment.test_environment_comparison_is_human_first",
+          "tests/e2e/test_portfolio.py::TestPortfolioSaveLoad.test_02_save_portfolio"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/portfolios.md#review-the-saved-environment"
+        ]
+      }
     },
     {
       "id": "automation.script-notebook-export",
@@ -4429,6 +4450,9 @@
       "DoctorReport": "api.doctor",
       "DualAxisOpts": "api.figure-spec",
       "DrillDownResult": "plots.drill-down",
+      "EnvironmentComparison": "portfolio.environment-metadata",
+      "EnvironmentDifference": "portfolio.environment-metadata",
+      "EnvironmentMetadata": "portfolio.environment-metadata",
       "ExportError": "api.typed-errors",
       "FigureDecorations": "api.figure-decorations",
       "FigureSpec": "api.figure-spec",
@@ -4492,6 +4516,7 @@
       "close": "api.session",
       "compare": "analysis.regression-comparison",
       "compare_datasets": "data.multi-dataset-workspace",
+      "compare_portfolio_environment": "portfolio.environment-metadata",
       "compare_statistics": "analysis.statistical-comparison",
       "convert_unit": "data.semantic-units",
       "compare_plot_configurations": "plots.configuration-comparison",
@@ -4505,6 +4530,7 @@
       "diagnose_join": "data.validated-joins",
       "drill_down": "plots.drill-down",
       "delete_dataset_snapshot": "data.dataset-snapshots",
+      "environment_metadata": "portfolio.environment-metadata",
       "export": "export.public-boundary",
       "export_bytes": "export.public-boundary",
       "export_figure_theme": "figure.theme-presets",

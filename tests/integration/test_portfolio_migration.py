@@ -1,6 +1,6 @@
 """Integration tests for portfolio migration.
 
-Tests end-to-end migration scenarios: V1 load, V2 passthrough,
+Tests end-to-end migration scenarios: V1 load, V2 migration, V3 passthrough,
 roundtrip save → load → verify.
 """
 
@@ -18,8 +18,8 @@ class TestV1LoadAndMigrate:
     # [test->req~ring5.portfolio.migration~1]
     """Load a V1-shaped portfolio, migrate, verify valid structure."""
 
-    def test_v1_portfolio_produces_valid_v2(self) -> None:
-        """V1 portfolio migrates to V2 with engine and no export keys."""
+    def test_v1_portfolio_produces_valid_current_schema(self) -> None:
+        """V1 portfolio migrates with an engine and honest missing provenance."""
         v1: Dict[str, Any] = {
             "version": "1.0",
             "plots": [
@@ -37,7 +37,8 @@ class TestV1LoadAndMigrate:
             ],
         }
         result = PortfolioMigrator.migrate(v1)
-        assert result["schema_version"] == 2
+        assert result["schema_version"] == 3
+        assert result["environment_metadata"] is None
         cfg = result["plots"][0]["config"]
         assert cfg["engine"] == "plotly"
         assert "export_format" not in cfg
@@ -67,11 +68,11 @@ class TestV1LoadAndMigrate:
         assert spec.dimensions.width == 800.0
 
 
-class TestV2Passthrough:
+class TestV2Migration:
     # [test->req~ring5.portfolio.migration~1]
-    """V2 portfolio needs no migration, passes through unchanged."""
+    """V2 portfolio gains the optional V3 environment field."""
 
-    def test_v2_no_modification(self) -> None:
+    def test_v2_adds_environment_without_touching_plots(self) -> None:
         original: Dict[str, Any] = {
             "schema_version": 2,
             "plots": [
@@ -82,6 +83,8 @@ class TestV2Passthrough:
             ],
         }
         result = PortfolioMigrator.migrate(original)
+        assert result["schema_version"] == 3
+        assert result["environment_metadata"] is None
         assert result["plots"][0]["config"]["engine"] == "matplotlib"
         assert result["plots"][0]["figure_spec"]["dimensions"]["width"] == 600
 
@@ -109,7 +112,8 @@ class TestRoundtrip:
     def test_portfolio_save_load_roundtrip(self) -> None:
         """Serialize portfolio → JSON → deserialize → migrate → verify."""
         portfolio: Dict[str, Any] = {
-            "schema_version": 2,
+            "schema_version": 3,
+            "environment_metadata": None,
             "plots": [
                 {
                     "name": "test",
@@ -123,7 +127,7 @@ class TestRoundtrip:
         loaded: Dict[str, Any] = json.loads(json_str)
         migrated = PortfolioMigrator.migrate(loaded)
 
-        assert migrated["schema_version"] == 2
+        assert migrated["schema_version"] == 3
         assert migrated["plots"][0]["config"]["width"] == 800
         assert migrated["plots"][0]["config"]["engine"] == "plotly"
 

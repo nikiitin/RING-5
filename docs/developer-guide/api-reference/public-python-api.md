@@ -182,6 +182,8 @@ Covers:
 
 -->
 
+`Session.environment_metadata` captures the current runtime without machine identity or paths, and
+`Session.compare_portfolio_environment` compares it with a saved portfolio before restoration.
 `ring5.render_portfolio` restores and exports every plot. `ring5.doctor` reports parser and export
 dependencies. `ring5.shutdown` releases process-wide worker pools early; they otherwise register
 process-exit cleanup and restart on later use.

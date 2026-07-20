@@ -36,6 +36,7 @@ def test_save_and_load_portfolio(
     portfolio_service: Any, tmp_path: Any, portfolios_dir: Any, state_manager: Any
 ) -> None:
     # [test->req~ring5.portfolio.save~1]
+    # [test->req~ring5.portfolio.environment-metadata~1]
     """Test saving a portfolio and then loading it back to verify data integrity."""
 
     # Setup Test Data
@@ -81,7 +82,15 @@ def test_save_and_load_portfolio(
     loaded_data = portfolio_service.load_portfolio("test_portfolio")
 
     # Verify Content
-    assert loaded_data["version"] == "2.0"
+    assert loaded_data["schema_version"] == 3
+    assert loaded_data["version"] == "3.0"
+    environment = loaded_data["environment_metadata"]
+    assert environment is not None
+    assert environment["format_version"] == 1
+    assert environment["ring5_version"]
+    assert environment["python_version"]
+    assert set(environment["renderers"]) == {"matplotlib", "plotly"}
+    assert set(environment["external_tools"]) == {"chrome", "perl", "xelatex"}
     assert loaded_data["csv_path"] == str(tmp_path / "original.csv")
     assert loaded_data["plot_counter"] == 1
     assert loaded_data["config"] == config_state

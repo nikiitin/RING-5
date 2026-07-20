@@ -13,7 +13,7 @@ redirect_from:
 
 `PortfolioService` serializes workspace state to JSON under the application data directory. The
 embedded DataFrame is stored as CSV text; plots serialize through `BasePlot.to_dict`; configuration,
-parser provenance, and histories remain plain JSON-compatible data.
+parser provenance, histories, and save-time environment metadata remain plain JSON-compatible data.
 
 `PortfolioMigrator` upgrades older schema versions before restore. `StateManager.restore_session`
 restores items independently and returns `RestoreReport`, which makes skipped plots, malformed parse
@@ -33,6 +33,8 @@ Covers:
 -->
 
 - Increment and migrate the schema for a breaking serialized change.
+- Schema V3 adds environment metadata. V1/V2 migration records it as `null`; historical values must
+  never be inferred from the machine performing migration.
 - Preserve plot and shaper identifiers or translate them during migration.
 - Keep plot configuration JSON-compatible and retain figure-config enrichment where required.
 - Treat portfolio JSON as untrusted input: sanitize names, validate paths, and validate fields.

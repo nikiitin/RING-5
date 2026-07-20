@@ -24,6 +24,8 @@ from src.core.models import (
     DatasetSnapshotInfo,
     DatasetSchemaContract,
     DatasetSemantics,
+    EnvironmentComparison,
+    EnvironmentMetadata,
     FigureTheme,
     JoinCardinality,
     JoinDiagnostics,
@@ -31,6 +33,7 @@ from src.core.models import (
     PlotConfigurationComparison,
     PlotTransferMode,
     PlotTransferResult,
+    PortfolioData,
     SmallMultiplesSpec,
     RestoreReport,
     ScanResult,
@@ -2018,6 +2021,72 @@ class Session:
         return _export.export_bytes(fig, fmt, deterministic=deterministic, **kwargs)
 
     # portfolios
+    def environment_metadata(self, *, refresh: bool = False) -> EnvironmentMetadata:
+        # [impl->req~ring5.portfolio.environment-metadata~1]
+        """Return privacy-conscious metadata for the current runtime.
+
+        Args:
+            refresh: Re-probe dependency and external-tool versions instead
+                of using the process-level cache.
+
+        Returns:
+            RING-5, Python, platform, dependency, renderer, and tool versions.
+        """
+        from src.core.services.environment_metadata_service import EnvironmentMetadataService
+
+        return EnvironmentMetadataService.capture(refresh=refresh)
+
+    def _read_portfolio_data(self, name: str) -> PortfolioData:
+        """Read a portfolio while translating storage errors to public errors."""
+        from src.core.services.portfolio_migrator import (
+            PortfolioVersionError as CoreVersionError,
+        )
+
+        from ring5.errors import PortfolioVersionError
+
+        try:
+            return self.api.data_services.load_portfolio(name)
+        except FileNotFoundError as exc:
+            raise PortfolioError(str(exc)) from exc
+        except CoreVersionError as exc:
+            raise PortfolioVersionError(str(exc)) from exc
+        except (OSError, TypeError, ValueError) as exc:
+            raise PortfolioError(f"Portfolio '{name}' could not be read: {exc}") from exc
+
+    def compare_portfolio_environment(
+        self, name: str, *, refresh: bool = False
+    ) -> EnvironmentComparison:
+        # [impl->req~ring5.portfolio.environment-metadata~1]
+        """Compare a portfolio's save-time environment with this runtime.
+
+        Exact version differences are reported without claiming that a
+        changed environment is necessarily incompatible.
+
+        Args:
+            name: Saved portfolio name.
+            refresh: Re-probe current versions instead of using the cache.
+
+        Returns:
+            A component-level saved-versus-current comparison.
+
+        Raises:
+            PortfolioError: The portfolio or its environment metadata is invalid.
+            PortfolioVersionError: The portfolio uses a newer schema.
+        """
+        from src.core.services.environment_metadata_service import EnvironmentMetadataService
+
+        data = self._read_portfolio_data(name)
+        try:
+            recorded = EnvironmentMetadataService.from_payload(data.get("environment_metadata"))
+        except ValueError as exc:
+            raise PortfolioError(
+                f"Portfolio '{name}' has invalid environment metadata: {exc}"
+            ) from exc
+        return EnvironmentMetadataService.compare(
+            recorded,
+            current=EnvironmentMetadataService.capture(refresh=refresh),
+        )
+
     @property
     def plots(self) -> list[BasePlot]:
         """The session's plots (created here or restored from a portfolio)."""
@@ -2071,22 +2140,7 @@ class Session:
             PortfolioError: The portfolio does not exist.
             PortfolioVersionError: It was written by a newer RING-5.
         """
-        from src.core.services.portfolio_migrator import (
-            PortfolioVersionError as CoreVersionError,
-        )
-
-        from ring5.errors import PortfolioVersionError
-
-        try:
-            data = self.api.data_services.load_portfolio(name)
-        except FileNotFoundError as exc:
-            raise PortfolioError(str(exc)) from exc
-        except CoreVersionError as exc:
-            # Keep errors from the public API within the ``Ring5Error`` hierarchy.
-            raise PortfolioVersionError(str(exc)) from exc
-        except ValueError as exc:
-            # JSON and schema validation errors both surface as ``ValueError`` here.
-            raise PortfolioError(f"Portfolio '{name}' could not be read: {exc}") from exc
+        data = self._read_portfolio_data(name)
         try:
             return self.api.state_manager.restore_session(data)
         except (KeyError, TypeError, ValueError) as exc:

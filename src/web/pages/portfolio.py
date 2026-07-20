@@ -11,10 +11,66 @@ import logging
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
+from src.core.models import EnvironmentComparison
+from src.core.services.environment_metadata_service import EnvironmentMetadataService
 from src.core.services.portfolio_migrator import PortfolioVersionError
 from src.web.rendering.config_builder import build_figure_spec_dict
 
 logger: logging.Logger = logging.getLogger(__name__)
+
+
+def _display_version(value: str | None) -> str:
+    """Return a human label for an optional captured version."""
+    return value or "Not available"
+
+
+def _render_environment_comparison(api: ApplicationAPI, portfolio_name: str) -> None:
+    # [impl->req~ring5.portfolio.environment-metadata~1]
+    """Show save-time environment evidence before a portfolio is restored."""
+    try:
+        portfolio = api.data_services.load_portfolio(portfolio_name)
+        comparison = EnvironmentMetadataService.compare(portfolio.get("environment_metadata"))
+    except Exception as exc:
+        logger.warning(
+            "PORTFOLIO: environment metadata for '%s' could not be inspected: %s",
+            portfolio_name,
+            exc,
+        )
+        st.warning("The saved environment could not be inspected.")
+        return
+
+    with st.expander("Reproducibility environment", expanded=False):
+        _render_environment_status(comparison)
+        st.dataframe(
+            [
+                {
+                    "Area": item.section,
+                    "Component": item.component,
+                    "Saved": _display_version(item.recorded),
+                    "Current": _display_version(item.current),
+                    "Status": item.status.replace("-", " ").title(),
+                }
+                for item in comparison.differences
+            ],
+            hide_index=True,
+            width="stretch",
+        )
+        st.caption(
+            "This comparison reports exact versions. A difference is evidence to review, "
+            "not proof that the portfolio is incompatible."
+        )
+
+
+def _render_environment_status(comparison: EnvironmentComparison) -> None:
+    """Render one concise interpretation above environment details."""
+    if not comparison.recorded_available:
+        st.info("Environment not recorded — this portfolio predates environment capture.")
+    elif comparison.exact_match:
+        st.success("Saved environment matches this RING-5 runtime exactly.")
+    else:
+        st.warning(
+            f"{comparison.review_count} saved environment value(s) differ or were not recorded."
+        )
 
 
 def _portfolio_fragment(api: ApplicationAPI) -> None:
@@ -67,6 +123,7 @@ def _portfolio_fragment(api: ApplicationAPI) -> None:
             selected_portfolio = st.selectbox(
                 "Select Portfolio", portfolios, key="portfolio_load_select"
             )
+            _render_environment_comparison(api, str(selected_portfolio))
 
             if st.button("Load Portfolio", type="primary", width="stretch"):
                 try:

@@ -5,7 +5,8 @@ saved under older schemas can be loaded by the current application.
 
 Schema versions:
     - **V1** (original): flat config dicts, ``export_*`` keys for LaTeX.
-    - **V2** (current): ``engine`` field per plot, no ``export_*`` keys.
+    - **V2**: ``engine`` field per plot, no ``export_*`` keys.
+    - **V3** (current): optional save-time execution-environment metadata.
 """
 
 from __future__ import annotations
@@ -36,7 +37,7 @@ class PortfolioMigrator:
         migrated = PortfolioMigrator.migrate(raw)
     """
 
-    CURRENT_VERSION: int = 2
+    CURRENT_VERSION: int = 3
 
     @staticmethod
     def migrate(portfolio_data: dict[str, Any]) -> dict[str, Any]:
@@ -66,10 +67,12 @@ class PortfolioMigrator:
 
         if version < 2:
             portfolio_data = PortfolioMigrator._migrate_v1_to_v2(portfolio_data)
-        else:
+        elif version == PortfolioMigrator.CURRENT_VERSION:
             # Shallow-copy so the already-current path never mutates the
             # caller's dict (only the top-level schema_version key is written).
             portfolio_data = dict(portfolio_data)
+        if version < 3:
+            portfolio_data = PortfolioMigrator._migrate_v2_to_v3(portfolio_data)
 
         portfolio_data["schema_version"] = PortfolioMigrator.CURRENT_VERSION
         return portfolio_data
@@ -106,4 +109,18 @@ class PortfolioMigrator:
             keys_to_remove: list[str] = [k for k in config if k.startswith("export_")]
             for k in keys_to_remove:
                 del config[k]
+        return data
+
+    @staticmethod
+    def _migrate_v2_to_v3(data: dict[str, Any]) -> dict[str, Any]:
+        # [impl->req~ring5.portfolio.environment-metadata~1]
+        """V2 → V3: represent unavailable historical environment honestly.
+
+        Environment details cannot be reconstructed after the analysis was
+        saved. Older portfolios therefore receive ``None`` rather than the
+        current machine's values, which would create false provenance.
+        """
+        data = dict(data)
+        data.setdefault("environment_metadata", None)
+        data["version"] = "3.0"
         return data

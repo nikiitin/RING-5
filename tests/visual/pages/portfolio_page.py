@@ -55,8 +55,25 @@ class PortfolioPage(BasePage):
         """'Load Portfolio' button."""
         return self.page.get_by_role("button", name="Load Portfolio")
 
+    @property
+    def environment_expander(self) -> Locator:
+        """Saved-versus-current reproducibility environment details."""
+        return self.page.locator("[data-testid='stExpander']").filter(
+            has_text="Reproducibility environment"
+        )
+
     # Assertions
 
     def assert_page_header_visible(self) -> None:
         """Assert the portfolio heading is displayed."""
         expect(self.page_header).to_be_visible(timeout=self.RENDER_TIMEOUT)
+
+    def assert_environment_match_visible(self) -> None:
+        """Expand and verify the exact save-time environment match."""
+        expect(self.environment_expander).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        self.environment_expander.get_by_text("Reproducibility environment", exact=True).click()
+        expect(
+            self.environment_expander.get_by_text(
+                "Saved environment matches this RING-5 runtime exactly.", exact=True
+            )
+        ).to_be_visible(timeout=self.RENDER_TIMEOUT)

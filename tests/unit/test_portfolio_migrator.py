@@ -8,7 +8,7 @@ from src.core.services.portfolio_migrator import PortfolioMigrator
 
 
 class TestV1Migration:
-    """V1 → V2 migration adds engine and removes export_ keys."""
+    """V1 migration adds engine, removes export keys, and marks missing provenance."""
 
     def test_adds_engine_field(self) -> None:
         """Each plot config gets engine='plotly' if absent."""
@@ -40,11 +40,13 @@ class TestV1Migration:
         assert "export_path" not in config
         assert config["width"] == 800
 
-    def test_sets_schema_version_2(self) -> None:
-        """Migrated portfolio has schema_version=2."""
+    def test_sets_current_schema_and_honest_missing_environment(self) -> None:
+        """Old portfolios cannot retroactively claim current-machine provenance."""
         v1: Dict[str, Any] = {"plots": [{"config": {}}]}
         result = PortfolioMigrator.migrate(v1)
-        assert result["schema_version"] == 2
+        assert result["schema_version"] == 3
+        assert result["version"] == "3.0"
+        assert result["environment_metadata"] is None
 
 
 class TestUnknownKeysPreserved:
@@ -61,17 +63,25 @@ class TestUnknownKeysPreserved:
 
 
 class TestIdempotent:
-    """Migrating an already V2 portfolio is a no-op."""
+    """Migrating an already-current portfolio is a no-op."""
 
-    def test_already_v2_no_change(self) -> None:
-        v2: Dict[str, Any] = {
-            "schema_version": 2,
+    def test_already_v3_no_change(self) -> None:
+        v3: Dict[str, Any] = {
+            "schema_version": 3,
+            "environment_metadata": {"custom": "preserved"},
             "plots": [{"config": {"engine": "matplotlib", "width": 800}}],
         }
-        result = PortfolioMigrator.migrate(v2)
-        assert result["schema_version"] == 2
+        result = PortfolioMigrator.migrate(v3)
+        assert result["schema_version"] == 3
+        assert result["environment_metadata"] == {"custom": "preserved"}
         assert result["plots"][0]["config"]["engine"] == "matplotlib"
         assert result["plots"][0]["config"]["width"] == 800
+
+    def test_v2_records_environment_as_unavailable(self) -> None:
+        v2: Dict[str, Any] = {"schema_version": 2, "plots": []}
+        result = PortfolioMigrator.migrate(v2)
+        assert result["schema_version"] == 3
+        assert result["environment_metadata"] is None
 
     def test_double_migration_identical(self) -> None:
         v1: Dict[str, Any] = {
@@ -88,18 +98,18 @@ class TestEdgeCases:
     def test_empty_plots_list(self) -> None:
         data: Dict[str, Any] = {"plots": []}
         result = PortfolioMigrator.migrate(data)
-        assert result["schema_version"] == 2
+        assert result["schema_version"] == 3
         assert result["plots"] == []
 
     def test_missing_plots_key(self) -> None:
         data: Dict[str, Any] = {}
         result = PortfolioMigrator.migrate(data)
-        assert result["schema_version"] == 2
+        assert result["schema_version"] == 3
 
     def test_plot_without_config(self) -> None:
         data: Dict[str, Any] = {"plots": [{"name": "test"}]}
         result = PortfolioMigrator.migrate(data)
-        assert result["schema_version"] == 2
+        assert result["schema_version"] == 3
 
     def test_preserves_engine_if_already_set(self) -> None:
         """V1 portfolio with explicit engine keeps it."""
@@ -118,15 +128,15 @@ class TestForwardVersionGuard:
 
         from src.core.services.portfolio_migrator import PortfolioVersionError
 
-        v3: Dict[str, Any] = {
-            "schema_version": 3,
+        v4: Dict[str, Any] = {
+            "schema_version": 4,
             "plots": [{"plot_type": "sankey_3d", "config": {}}],
-            "v3_only_key": {"future": "data"},
+            "v4_only_key": {"future": "data"},
         }
         with pytest.raises(PortfolioVersionError, match="newer than this RING-5"):
-            PortfolioMigrator.migrate(v3)
+            PortfolioMigrator.migrate(v4)
 
     def test_current_version_still_loads(self) -> None:
-        data: Dict[str, Any] = {"schema_version": 2, "plots": []}
+        data: Dict[str, Any] = {"schema_version": 3, "plots": []}
         result = PortfolioMigrator.migrate(data)
-        assert result["schema_version"] == 2
+        assert result["schema_version"] == 3

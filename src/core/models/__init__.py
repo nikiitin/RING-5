@@ -28,6 +28,11 @@ from src.core.models.data_models import (
 )
 from src.core.models.accessibility_models import AccessibilityFinding, AccessibilityReport
 from src.core.models.figure_theme_models import FigureTheme, FigureThemeContext
+from src.core.models.environment_models import (
+    EnvironmentComparison,
+    EnvironmentDifference,
+    EnvironmentMetadata,
+)
 from src.core.models.shaper_models import ShaperStepConfig, SplitApplyGroupConfig
 from src.core.models.history_models import OperationRecord
 from src.core.models.quality_models import ColumnQuality, DataQualityReport
@@ -96,6 +101,9 @@ __all__ = [
     "FigureThemeContext",
     "DashboardSpec",
     "DrillDownResult",
+    "EnvironmentComparison",
+    "EnvironmentDifference",
+    "EnvironmentMetadata",
     "DatasetInfo",
     "DatasetLineage",
     "DatasetRevision",

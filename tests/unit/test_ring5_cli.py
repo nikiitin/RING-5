@@ -143,7 +143,8 @@ class TestUpgradeCommand:
         assert code == 0
 
         upgraded = json.loads((portfolios_dir / "old.json").read_text())
-        assert upgraded["schema_version"] == 2
+        assert upgraded["schema_version"] == 3
+        assert upgraded["environment_metadata"] is not None
         assert "export_format" not in upgraded["plots"][0]["config"]
 
 

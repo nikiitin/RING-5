@@ -45,6 +45,7 @@ class TestPortfolioSaveLoad:
 
     @pytest.mark.order(2)
     def test_02_save_portfolio(self, tier3_page: Page) -> None:
+        # [test->req~ring5.portfolio.environment-metadata~1]
         """Fill portfolio name, click save, verify expander appears."""
         pf = PortfolioPage(tier3_page)
         pf.navigate()
@@ -58,6 +59,7 @@ class TestPortfolioSaveLoad:
         # Saved portfolio should appear as an expander in the manage section
         expander = tier3_page.locator("[data-testid='stExpander']").filter(has_text=PORTFOLIO_NAME)
         expect(expander).to_be_visible(timeout=E2E_TIMEOUT)
+        pf.assert_environment_match_visible()
 
     @pytest.mark.order(3)
     def test_03_portfolio_in_manage_list(self, tier3_page: Page) -> None:

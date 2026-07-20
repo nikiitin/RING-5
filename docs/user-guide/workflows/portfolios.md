@@ -50,6 +50,39 @@ Under **Load Portfolio**, choose a saved name and select **Load Portfolio**. Res
 best-effort: compatible data and plots can load even when another item is invalid. Review every
 warning before trusting a restored workspace.
 
+## Review the saved environment
+
+<!--
+`uman~ring5.portfolio.environment-metadata.documentation~1`
+
+Covers:
+- req~ring5.portfolio.environment-metadata~1
+
+-->
+
+Choose a portfolio under **Load Portfolio**, then open **Reproducibility environment** before
+restoring it. RING-5 compares the versions recorded when the portfolio was saved with the current
+runtime. The table covers RING-5, Python, the operating system and architecture, direct Python
+dependencies, Plotly and Matplotlib, and the optional Perl, Chrome, and XeLaTeX tools.
+
+An exact match means every recorded value is the same. A difference is evidence to review, not an
+automatic incompatibility verdict. **Not available** means an optional tool was absent; **Not
+recorded** means the portfolio predates environment capture. RING-5 never substitutes the current
+machine's versions for missing historical provenance.
+
+The environment record intentionally excludes hostnames, usernames, executable paths, and
+environment-variable values. Python callers can make the same comparison without restoring the
+portfolio:
+
+```python
+with ring5.Session() as session:
+    current = session.environment_metadata()
+    comparison = session.compare_portfolio_environment("paper-a")
+    for difference in comparison.differences:
+        if difference.status == "changed":
+            print(difference.component, difference.recorded, difference.current)
+```
+
 Portfolios are JSON files under the RING-5 application data directory. It defaults to
 `.ring5/portfolios/` in the checkout. Set `RING5_DATA_DIR` before starting RING-5 to use an isolated
 or backed-up location.
@@ -107,7 +140,8 @@ with ring5.Session() as session:
 
 `Session.save_portfolio` refuses to overwrite by default. Pass `overwrite=True` only when replacing
 the named snapshot is intentional. `load_portfolio` returns a `RestoreReport` with data, plot, and
-parse-variable outcomes.
+parse-variable outcomes. Every newly saved schema-V3 portfolio also captures its execution
+environment.
 
 ## Render every saved plot
 

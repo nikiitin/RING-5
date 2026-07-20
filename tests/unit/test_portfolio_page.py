@@ -243,3 +243,84 @@ class TestShowPortfolioPage:
 
     # NOTE: test_save_pipeline and test_apply_pipeline removed —
     # Pipeline save/load is no longer part of the page.
+
+
+class TestPortfolioEnvironment:
+    """Tests for the pre-restore reproducibility comparison."""
+
+    @patch("src.web.pages.portfolio.EnvironmentMetadataService.compare")
+    @patch("src.web.pages.portfolio.st")
+    def test_environment_comparison_is_human_first(
+        self, mock_st: MagicMock, mock_compare: MagicMock
+    ) -> None:
+        # [test->req~ring5.portfolio.environment-metadata~1]
+        from src.core.models import (
+            EnvironmentComparison,
+            EnvironmentDifference,
+            EnvironmentMetadata,
+        )
+        from src.web.pages.portfolio import _render_environment_comparison
+
+        metadata = EnvironmentMetadata(
+            format_version=1,
+            ring5_version="1.0.0",
+            python_version="3.12.9",
+            python_implementation="CPython",
+            operating_system="Linux 6.8",
+            architecture="x86_64",
+        )
+        mock_compare.return_value = EnvironmentComparison(
+            recorded=metadata,
+            current=metadata,
+            differences=(EnvironmentDifference("Runtime", "RING-5", "1.0.0", "1.0.0", "match"),),
+        )
+        expander = _make_col_mock()
+        mock_st.expander.return_value = expander
+        api = MagicMock()
+        api.data_services.load_portfolio.return_value = {"environment_metadata": metadata.to_dict()}
+
+        _render_environment_comparison(api, "paper")
+
+        mock_st.success.assert_called_once_with(
+            "Saved environment matches this RING-5 runtime exactly."
+        )
+        rows = mock_st.dataframe.call_args.args[0]
+        assert rows == [
+            {
+                "Area": "Runtime",
+                "Component": "RING-5",
+                "Saved": "1.0.0",
+                "Current": "1.0.0",
+                "Status": "Match",
+            }
+        ]
+
+    @patch("src.web.pages.portfolio.st")
+    def test_environment_status_distinguishes_legacy_and_changed(self, mock_st: MagicMock) -> None:
+        from src.core.models import (
+            EnvironmentComparison,
+            EnvironmentDifference,
+            EnvironmentMetadata,
+        )
+        from src.web.pages.portfolio import _render_environment_status
+
+        current = EnvironmentMetadata(1, "1", "3.12", "CPython", "Linux", "x86_64")
+        _render_environment_status(EnvironmentComparison(None, current, ()))
+        mock_st.info.assert_called_once()
+
+        changed = EnvironmentDifference("Runtime", "RING-5", "0.9", "1", "changed")
+        _render_environment_status(EnvironmentComparison(current, current, (changed,)))
+        mock_st.warning.assert_called_once_with(
+            "1 saved environment value(s) differ or were not recorded."
+        )
+
+    @patch("src.web.pages.portfolio.st")
+    def test_unreadable_environment_is_reported(self, mock_st: MagicMock) -> None:
+        from src.web.pages.portfolio import _render_environment_comparison
+
+        api = MagicMock()
+        api.data_services.load_portfolio.side_effect = ValueError("invalid")
+
+        _render_environment_comparison(api, "broken")
+
+        mock_st.warning.assert_called_once_with("The saved environment could not be inspected.")

@@ -2464,7 +2464,7 @@ Tags: integrity, portfolios, security, status_proposed
 ### Captured execution environment
 
 `req~ring5.portfolio.environment-metadata~1`
-Status: proposed
+Status: approved
 
 Saved analyses shall record RING-5, Python, dependency, operating-system, renderer, and external-tool versions needed to interpret or reproduce results.
 
@@ -2473,7 +2473,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: environment, metadata, reproducibility, status_proposed
+Tags: environment, metadata, reproducibility, status_approved
 
 ## Automation API and CLI
 
