@@ -22,6 +22,7 @@ from src.core.common.utils import sanitize_filename, validate_path_within
 from src.core.models import DatasetSnapshotInfo
 from src.core.services.data_services.dataset_fingerprint import fingerprint_dataset
 from src.core.services.data_services.path_service import PathService
+from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
 
 logger = logging.getLogger(__name__)
 
@@ -237,6 +238,7 @@ class DatasetSnapshotService:
 
     @classmethod
     def _encode_frame(cls, data: pd.DataFrame) -> dict[str, Any]:
+        # [impl->req~ring5.data.semantic-units~1]
         columns = [cls._encode_scalar(column) for column in data.columns]
         column_kind = "multi" if isinstance(data.columns, pd.MultiIndex) else "single"
         column_names = [cls._encode_scalar(name) for name in data.columns.names]
@@ -271,10 +273,14 @@ class DatasetSnapshotService:
             "dtypes": dtypes,
             "index": index,
             "rows": rows,
+            "semantic_columns": SemanticMetadataService.to_payload(
+                SemanticMetadataService.inspect(data)
+            ),
         }
 
     @classmethod
     def _decode_frame(cls, payload: dict[str, Any]) -> pd.DataFrame:
+        # [impl->req~ring5.data.semantic-units~1]
         raw_columns = payload["columns"]
         column_kind = payload["column_kind"]
         raw_column_names = payload["column_names"]
@@ -314,7 +320,11 @@ class DatasetSnapshotService:
         else:
             raise ValueError("Snapshot column index kind is invalid.")
         frame.index = cls._decode_index(payload["index"])
-        return frame
+        semantics = SemanticMetadataService.from_payload(
+            payload.get("semantic_columns", {}),
+            available_columns=tuple(str(column) for column in frame.columns),
+        )
+        return SemanticMetadataService.attach(frame, semantics) if semantics.columns else frame
 
     @classmethod
     def _decode_index(cls, spec: Any) -> pd.Index[Any]:

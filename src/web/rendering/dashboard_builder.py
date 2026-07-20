@@ -325,6 +325,7 @@ def _render_plotly_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec) -> 
 
 
 def _render_matplotlib_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec) -> MplFigure:
+    from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
     import matplotlib.pyplot as plt
 
     figure, raw_axes = plt.subplots(
@@ -341,6 +342,9 @@ def _render_matplotlib_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec)
     try:
         for index, (plot, panel_title) in enumerate(zip(plots, spec.panel_titles)):
             ax = axes[index]
+            plot.config = SemanticMetadataService.enrich_figure_config(
+                cast(Any, plot.processed_data), plot.config
+            )
             result = plot.create_traces(cast(Any, plot.processed_data), plot.config)
             result = _relabel_traces(result, plot.config.get("legend_labels"))
             plot.last_traces = result

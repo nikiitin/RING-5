@@ -8,7 +8,12 @@ from typing import cast
 import pandas as pd
 import streamlit as st
 
-from src.core.models import ColumnContract, DatasetSchemaContract
+from src.core.models import (
+    ColumnContract,
+    ColumnSemantics,
+    DatasetSchemaContract,
+    DatasetSemantics,
+)
 from src.core.models.schema_contract_models import ContractValue, SchemaDataType
 from src.web.components.data_managers.data_manager import DataManager
 from src.web.state.ui_state_manager import WidgetKeyBuilder
@@ -27,11 +32,13 @@ class SchemaContractManager(DataManager):
     def render(self) -> None:
         """Render an inferred contract as an editable validation table."""
         # [impl->req~ring5.data.schema-contracts~1]
+        # [impl->req~ring5.data.semantic-units~1]
         st.markdown("### Dataset Schema Contract")
         st.info(
             "Define the table shape that downstream analysis may rely on. Start from inferred "
             "rules, then make required columns, nullability, numeric bounds, and accepted "
-            "categories explicit. Validation never changes the dataset."
+            "categories explicit. Add semantic labels and units once here; figures and exports "
+            "then reuse them automatically. Validation never changes the dataset."
         )
         data = self.get_data()
         if data is None:
@@ -69,6 +76,14 @@ class SchemaContractManager(DataManager):
                     "Accepted values",
                     help="Optional comma-separated categorical values",
                 ),
+                "semantic_label": st.column_config.TextColumn(
+                    "Semantic label",
+                    help="Human-facing meaning used for figure labels and exports",
+                ),
+                "unit": st.column_config.TextColumn(
+                    "Unit",
+                    help="Canonical unit such as ms, GHz, MB, W, °C, or %",
+                ),
             },
             key=WidgetKeyBuilder.manager_key("schema_contract", "rules"),
         )
@@ -77,14 +92,33 @@ class SchemaContractManager(DataManager):
             "are zero-based positions, so duplicate dataframe indexes remain unambiguous."
         )
 
-        if not st.button(
+        validate = st.button(
             "Validate Schema Contract",
             type="primary",
             key=WidgetKeyBuilder.manager_key("schema_contract", "validate"),
-        ):
+        )
+        apply_semantics = st.button(
+            "Apply Labels and Units",
+            key=WidgetKeyBuilder.manager_key("schema_contract", "apply_semantics"),
+        )
+        if not validate and not apply_semantics:
+            self._render_conversion(data)
             return
         try:
             contract = self._build_contract(contract_name, bool(allow_extra), edited)
+            if apply_semantics and not validate:
+                semantics = DatasetSemantics(
+                    tuple(
+                        ColumnSemantics(column.name, column.semantic_label, column.unit)
+                        for column in contract.columns
+                        if column.semantic_label or column.unit
+                    )
+                )
+                annotated = self.api.managers.attach_semantics(data, semantics)
+                self.set_data(annotated, operation="Apply semantic labels and units")
+                st.success("Semantic labels and units are retained with the active dataset.")
+                self._render_conversion(annotated)
+                return
             report = self.api.managers.validate_schema(data, contract)
         except (TypeError, ValueError) as exc:
             st.error(str(exc))
@@ -102,6 +136,39 @@ class SchemaContractManager(DataManager):
             return
         st.error("The active dataset does not satisfy this contract.")
         st.dataframe(report.to_frame(), width="stretch", hide_index=True)
+
+    def _render_conversion(self, data: pd.DataFrame) -> None:
+        # [impl->req~ring5.data.semantic-units~1]
+        semantics = self.api.managers.inspect_semantics(data)
+        declared = [column for column in semantics.columns if column.unit]
+        if not semantics.columns:
+            return
+        st.markdown("#### Retained semantic metadata")
+        st.dataframe(semantics.to_frame(), width="stretch", hide_index=True)
+        if not declared:
+            return
+        st.markdown("#### Convert compatible units")
+        column = st.selectbox(
+            "Column to convert",
+            [item.name for item in declared],
+            key=WidgetKeyBuilder.manager_key("schema_contract", "convert_column"),
+        )
+        current = semantics.for_column(column)
+        target = st.selectbox(
+            f"Target unit (currently {current.unit if current else ''})",
+            self.api.managers.supported_units(),
+            key=WidgetKeyBuilder.manager_key("schema_contract", "convert_target"),
+        )
+        if st.button(
+            "Convert Unit",
+            key=WidgetKeyBuilder.manager_key("schema_contract", "convert"),
+        ):
+            try:
+                converted = self.api.managers.convert_unit(data, column, target)
+                self.set_data(converted, operation=f"Convert {column} to {target}")
+                st.success(f"Converted {column} to {target}; the prior revision remains undoable.")
+            except (KeyError, TypeError, ValueError) as exc:
+                st.error(str(exc))
 
     @classmethod
     def _build_contract(
@@ -128,7 +195,15 @@ class SchemaContractManager(DataManager):
             minimum=cls._optional_number(row["minimum"]),
             maximum=cls._optional_number(row["maximum"]),
             accepted_values=cls._accepted_values(row["accepted_values"], data_type),
+            semantic_label=cls._optional_text(row.get("semantic_label")),
+            unit=cls._optional_text(row.get("unit")),
         )
+
+    @staticmethod
+    def _optional_text(value: object) -> str:
+        if value is None or (isinstance(value, float) and math.isnan(value)):
+            return ""
+        return str(value).strip()
 
     @staticmethod
     def _optional_number(value: object) -> float | None:

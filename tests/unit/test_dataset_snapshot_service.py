@@ -9,8 +9,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from src.core.models import ColumnSemantics, DatasetSemantics
 from src.core.services.data_services.dataset_snapshot_service import DatasetSnapshotService
 from src.core.services.data_services.path_service import PathService
+from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
 
 
 @pytest.fixture
@@ -96,6 +98,21 @@ def test_save_list_load_overwrite_and_delete_exact_snapshot(snapshots_dir: Path)
 
         DatasetSnapshotService.delete_snapshot("parsed/results")
         assert DatasetSnapshotService.list_snapshots() == ()
+
+
+def test_snapshot_retains_semantic_labels_and_units(snapshots_dir: Path) -> None:
+    # [test->req~ring5.data.semantic-units~1]
+    data = SemanticMetadataService.attach(
+        pd.DataFrame({"latency": [1.0, 2.0]}),
+        DatasetSemantics((ColumnSemantics("latency", "Mean latency", "ms"),)),
+    )
+    with patch.object(PathService, "get_dataset_snapshots_dir", return_value=snapshots_dir):
+        DatasetSnapshotService.save_snapshot("semantic", data, source_dataset="results")
+        _, loaded = DatasetSnapshotService.load_snapshot("semantic")
+
+    assert SemanticMetadataService.inspect(loaded) == DatasetSemantics(
+        (ColumnSemantics("latency", "Mean latency", "ms"),)
+    )
 
 
 def test_load_rejects_checksum_and_fingerprint_tampering(snapshots_dir: Path) -> None:

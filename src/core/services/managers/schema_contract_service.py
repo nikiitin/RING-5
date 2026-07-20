@@ -12,6 +12,7 @@ from src.core.models.schema_contract_models import (
     SchemaValidationReport,
     SchemaViolation,
 )
+from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
 
 _BOOLEAN_VALUES = frozenset({"true", "false", "1", "0", "yes", "no"})
 
@@ -23,6 +24,7 @@ class SchemaContractService:
     def infer(cls, data: pd.DataFrame, *, name: str = "dataset") -> DatasetSchemaContract:
         """Infer conservative type and nullability rules from a dataframe."""
         cls._validate_data(data)
+        semantics = SemanticMetadataService.inspect(data)
         return DatasetSchemaContract(
             name=name,
             columns=tuple(
@@ -30,8 +32,11 @@ class SchemaContractService:
                     name=column,
                     data_type=cls._inferred_type(data[column]),
                     nullable=bool(data[column].isna().any()),
+                    semantic_label=semantic.label if semantic is not None else "",
+                    unit=semantic.unit if semantic is not None else "",
                 )
                 for column in data.columns
+                for semantic in (semantics.for_column(column),)
             ),
         )
 

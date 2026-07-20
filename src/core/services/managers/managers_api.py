@@ -14,6 +14,7 @@ import pandas as pd
 from src.core.models.dataset_workspace_models import JoinCardinality, JoinDiagnostics
 from src.core.models.quality_models import DataQualityReport
 from src.core.models.schema_contract_models import DatasetSchemaContract, SchemaValidationReport
+from src.core.models.semantic_metadata_models import DatasetSemantics
 
 
 @runtime_checkable
@@ -225,6 +226,31 @@ class ManagersAPI(Protocol):
         contract: DatasetSchemaContract,
     ) -> SchemaValidationReport:
         """Validate a dataset against an explicit schema contract."""
+        raise NotImplementedError
+
+    def attach_semantics(
+        self,
+        data: pd.DataFrame,
+        semantics: DatasetSemantics,
+    ) -> pd.DataFrame:
+        """Return a copy retaining validated semantic labels and units."""
+        raise NotImplementedError
+
+    def inspect_semantics(self, data: pd.DataFrame) -> DatasetSemantics:
+        """Return ordered semantic metadata retained by a dataset."""
+        raise NotImplementedError
+
+    def convert_unit(
+        self,
+        data: pd.DataFrame,
+        column: str,
+        target_unit: str,
+    ) -> pd.DataFrame:
+        """Convert one numeric column between compatible declared units."""
+        raise NotImplementedError
+
+    def supported_units(self) -> tuple[str, ...]:
+        """Return canonical units accepted by semantic conversion."""
         raise NotImplementedError
 
     def append_datasets(

@@ -4,7 +4,12 @@ from unittest.mock import MagicMock, patch
 
 import pandas as pd
 
-from src.core.models import DatasetSchemaContract, SchemaValidationReport
+from src.core.models import (
+    ColumnSemantics,
+    DatasetSchemaContract,
+    DatasetSemantics,
+    SchemaValidationReport,
+)
 from src.web.components.data_managers.schema_contract import SchemaContractManager
 
 
@@ -18,6 +23,8 @@ def test_build_contract_parses_editor_values() -> None:
             "minimum": [0.0, None, None],
             "maximum": [10.0, None, None],
             "accepted_values": ["1.5, 2", "stable, experimental", "true, false"],
+            "semantic_label": ["Score", "Release status", "Enabled"],
+            "unit": ["%", "", ""],
         }
     )
 
@@ -29,6 +36,8 @@ def test_build_contract_parses_editor_values() -> None:
     assert contract.columns[0].accepted_values == (1.5, 2.0)
     assert contract.columns[1].accepted_values == ("stable", "experimental")
     assert contract.columns[2].accepted_values == (True, False)
+    assert contract.columns[0].semantic_label == "Score"
+    assert contract.columns[0].unit == "%"
 
 
 @patch("src.web.components.data_managers.schema_contract.st")
@@ -70,4 +79,48 @@ def test_render_validates_edited_contract(mock_st: MagicMock) -> None:
     api.managers.validate_schema.assert_called_once()
     built = api.managers.validate_schema.call_args.args[1]
     assert isinstance(built, DatasetSchemaContract)
+    mock_st.success.assert_called_once()
+
+
+@patch("src.web.components.data_managers.schema_contract.st")
+def test_render_applies_semantic_metadata_to_active_data(mock_st: MagicMock) -> None:
+    # [test->req~ring5.data.semantic-units~1]
+    data = pd.DataFrame({"latency": [1.0, 2.0]})
+    edited = pd.DataFrame(
+        {
+            "column": ["latency"],
+            "required": [True],
+            "data_type": ["numeric"],
+            "nullable": [False],
+            "minimum": [None],
+            "maximum": [None],
+            "accepted_values": [""],
+            "semantic_label": ["Mean latency"],
+            "unit": ["ms"],
+        }
+    )
+    api = MagicMock()
+    api.state_manager.get_data.return_value = data
+    inferred = MagicMock()
+    inferred.to_frame.return_value = edited
+    api.managers.infer_schema_contract.return_value = inferred
+    api.managers.attach_semantics.return_value = data
+    api.managers.inspect_semantics.return_value = DatasetSemantics(
+        (ColumnSemantics("latency", "Mean latency", "ms"),)
+    )
+    api.managers.supported_units.return_value = ("ms", "s")
+    mock_st.text_input.return_value = "latency"
+    mock_st.toggle.return_value = True
+    mock_st.data_editor.return_value = edited
+    mock_st.selectbox.side_effect = ["latency", "ms"]
+    mock_st.button.side_effect = lambda label, **_: label == "Apply Labels and Units"
+
+    SchemaContractManager(api).render()
+
+    applied = api.managers.attach_semantics.call_args.args[1]
+    assert applied == DatasetSemantics((ColumnSemantics("latency", "Mean latency", "ms"),))
+    api.update_selected_dataset.assert_called_once_with(
+        data,
+        operation="Apply semantic labels and units",
+    )
     mock_st.success.assert_called_once()

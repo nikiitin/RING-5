@@ -966,7 +966,7 @@ Tags: data, schema, status_approved, validation
 ### Units and semantic metadata
 
 `req~ring5.data.semantic-units~1`
-Status: proposed
+Status: approved
 
 Datasets shall retain column units and semantic labels, support compatible unit conversion, and use that metadata in figures and exports.
 
@@ -975,7 +975,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: data, metadata, status_proposed, units
+Tags: data, metadata, status_approved, units
 
 ### Reusable dataset snapshots
 

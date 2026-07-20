@@ -26,6 +26,8 @@ Design notes:
 from __future__ import annotations
 
 from typing import Any, Callable
+import json
+from pathlib import Path
 
 import pandas as pd
 
@@ -111,11 +113,14 @@ class Table:
         return [{str(k): _to_py(v) for k, v in rec.items()} for rec in self._df.to_dict("records")]
 
     # I/O
-    def to_csv(self, path: str) -> str:
+    def to_csv(self, path: str, *, include_metadata: bool = True) -> str:
+        # [impl->req~ring5.data.semantic-units~1]
         """Write the table without an index column.
 
         Args:
             path: Destination CSV path.
+            include_metadata: Write ``<path>.metadata.json`` when semantic
+                labels or units are retained. The CSV remains standards-compliant.
 
         Returns:
             The destination path.
@@ -125,6 +130,27 @@ class Table:
         """
         try:
             self._df.to_csv(path, index=False)
+            if include_metadata:
+                from src.core.services.managers.semantic_metadata_service import (
+                    SemanticMetadataService,
+                )
+
+                semantics = SemanticMetadataService.inspect(self._df)
+                if semantics.columns:
+                    metadata_path = Path(f"{path}.metadata.json")
+                    metadata_path.write_text(
+                        json.dumps(
+                            {
+                                "format": "ring5.semantic-columns",
+                                "version": 1,
+                                "columns": SemanticMetadataService.to_payload(semantics),
+                            },
+                            indent=2,
+                            ensure_ascii=False,
+                        )
+                        + "\n",
+                        encoding="utf-8",
+                    )
         except OSError as exc:
             raise ExportError(f"Could not write table to {path!r}: {exc}") from exc
         return path

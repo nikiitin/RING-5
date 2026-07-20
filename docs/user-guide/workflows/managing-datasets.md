@@ -173,6 +173,57 @@ An inferred contract describes the current table; it is not a substitute for dec
 inputs are allowed. Review nullable columns and categorical values before treating it as a stable
 boundary.
 
+## Retain semantic labels and units
+
+<!--
+`uman~ring5.data.semantic-units.documentation~1`
+
+Covers:
+- req~ring5.data.semantic-units~1
+
+-->
+
+Column names are often optimized for machines (`system.cpu.temp`, `avg_ns`) rather than readers.
+In **Data Managers → Schema Contract**, fill **Semantic label** with the meaning readers should see
+and **Unit** with the measurement unit, then select **Apply Labels and Units**. This metadata becomes
+part of the active dataset and its lineage revision. It is retained by reusable dataset snapshots,
+portfolios, and plot snapshots.
+
+When a figure has no explicit axis label, RING-5 uses `Semantic label (unit)`. A label entered in the
+figure controls always wins. Parallel-coordinate dimensions receive the same labels. Consequently,
+Plotly, Matplotlib, and exported figure files describe the measurement consistently without copying
+labels into every plot.
+
+The same schema contract is the source of truth in Python:
+
+```python
+contract = ring5.DatasetSchemaContract(
+    "latency-results",
+    (
+        ring5.ColumnContract("benchmark", semantic_label="Workload"),
+        ring5.ColumnContract(
+            "latency",
+            data_type="numeric",
+            semantic_label="Mean latency",
+            unit="ms",
+        ),
+    ),
+)
+annotated = session.apply_semantics(data, contract)
+converted = session.convert_unit(annotated, "latency", "us")
+print(session.inspect_semantics(converted).to_frame())
+```
+
+Conversions return a new table and require a declared source unit. Only compatible dimensions are
+accepted: time, frequency, length, data size, power, energy, voltage, current, temperature, and
+ratio/percent. `supported_units()` returns the exact canonical spellings. Temperature conversion
+handles offsets as well as scale; incompatible or non-numeric conversions raise
+`DataValidationError` before changing data.
+
+`Table.to_csv()` keeps the CSV standards-compliant and, when metadata is present, writes a
+neighboring `<filename>.metadata.json` sidecar. Pass `include_metadata=False` when a downstream
+consumer requires the CSV alone.
+
 ## Validate joins before creating output
 
 <!--

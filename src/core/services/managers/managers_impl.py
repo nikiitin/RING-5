@@ -12,6 +12,7 @@ import pandas as pd
 from src.core.models.dataset_workspace_models import JoinCardinality, JoinDiagnostics
 from src.core.models.quality_models import DataQualityReport
 from src.core.models.schema_contract_models import DatasetSchemaContract, SchemaValidationReport
+from src.core.models.semantic_metadata_models import DatasetSemantics
 from src.core.services.managers.arithmetic_service import ArithmeticService
 from src.core.services.managers.comparison_annotation_service import (
     ComparisonAnnotationService,
@@ -21,6 +22,7 @@ from src.core.services.managers.dataset_workspace_service import DatasetWorkspac
 from src.core.services.managers.outlier_service import OutlierService
 from src.core.services.managers.quality_profile_service import QualityProfileService
 from src.core.services.managers.schema_contract_service import SchemaContractService
+from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
 from src.core.services.managers.reduction_service import ReductionService
 from src.core.services.managers.statistical_comparison_service import (
     StatisticalComparisonService,
@@ -210,6 +212,31 @@ class DefaultManagersAPI:
     ) -> SchemaValidationReport:
         """Validate a dataset against an explicit schema contract."""
         return SchemaContractService.validate(data, contract)
+
+    def attach_semantics(
+        self,
+        data: pd.DataFrame,
+        semantics: DatasetSemantics,
+    ) -> pd.DataFrame:
+        """Return a copy retaining validated semantic labels and units."""
+        return SemanticMetadataService.attach(data, semantics)
+
+    def inspect_semantics(self, data: pd.DataFrame) -> DatasetSemantics:
+        """Return ordered semantic metadata retained by a dataset."""
+        return SemanticMetadataService.inspect(data)
+
+    def convert_unit(
+        self,
+        data: pd.DataFrame,
+        column: str,
+        target_unit: str,
+    ) -> pd.DataFrame:
+        """Convert one numeric column between compatible declared units."""
+        return SemanticMetadataService.convert(data, column, target_unit)
+
+    def supported_units(self) -> tuple[str, ...]:
+        """Return canonical units accepted by semantic conversion."""
+        return SemanticMetadataService.supported_units()
 
     def append_datasets(
         self,

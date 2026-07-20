@@ -35,6 +35,7 @@ from src.core.models.schema_contract_models import (
     SchemaValidationReport,
     SchemaViolation,
 )
+from src.core.models.semantic_metadata_models import ColumnSemantics, DatasetSemantics
 from src.core.models.dataset_workspace_models import (
     DatasetInfo,
     DatasetLineage,
@@ -82,6 +83,7 @@ __all__ = [
     "ColumnSelectorConfig",
     "ColumnQuality",
     "ColumnContract",
+    "ColumnSemantics",
     "ConditionSelectorConfig",
     "CsvMetadata",
     "CsvPoolEntry",
@@ -93,6 +95,7 @@ __all__ = [
     "DatasetRevision",
     "DatasetSnapshotInfo",
     "DatasetSchemaContract",
+    "DatasetSemantics",
     "ItemSelectorConfig",
     "JoinDiagnostics",
     "JoinCardinality",

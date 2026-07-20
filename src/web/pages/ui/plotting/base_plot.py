@@ -9,6 +9,7 @@ import plotly.graph_objects as go
 
 from src.core.models.data_models import PipelineStep
 from src.core.models.visualization.trace_build_result import TraceBuildResult
+from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
 from src.web.models.plot_models import PlotConfig
 from src.web.rendering.relayout import update_config_from_relayout
 from src.web.pages.ui.plotting.plot_config_ui import PlotConfigUIMixin
@@ -82,6 +83,7 @@ class BasePlot(PlotConfigUIMixin, ABC):
 
     def create_figure(self, data: pd.DataFrame, config: PlotConfig) -> go.Figure:
         # [impl->req~ring5.render.engine-independent-traces~1]
+        # [impl->req~ring5.data.semantic-units~1]
         """
         Create the Plotly figure from data and configuration.
 
@@ -97,6 +99,10 @@ class BasePlot(PlotConfigUIMixin, ABC):
         """
         from src.web.rendering.trace_to_plotly import traces_to_plotly
 
+        effective_config = SemanticMetadataService.enrich_figure_config(data, config)
+        if effective_config is not config:
+            self.config = effective_config
+            config = self.config
         result = self.create_traces(data, config)
         # Apply legend relabeling once, engine-agnostically, so both Plotly and
         # Matplotlib (which renders from ``last_traces``) show the custom names.
@@ -192,6 +198,7 @@ class BasePlot(PlotConfigUIMixin, ABC):
 
     def to_dict(self) -> dict[str, Any]:
         # [impl->req~ring5.portfolio.save~1]
+        # [impl->req~ring5.data.semantic-units~1]
         """
         Convert plot to dictionary for serialization.
 
@@ -207,6 +214,13 @@ class BasePlot(PlotConfigUIMixin, ABC):
                 self.processed_data.to_csv(index=False)
                 if isinstance(self.processed_data, pd.DataFrame)
                 else None
+            ),
+            "processed_semantics": (
+                SemanticMetadataService.to_payload(
+                    SemanticMetadataService.inspect(self.processed_data)
+                )
+                if isinstance(self.processed_data, pd.DataFrame)
+                else {}
             ),
             "pipeline": self.pipeline,
             "pipeline_counter": self.pipeline_counter,

@@ -59,6 +59,7 @@ class PortfolioData(TypedDict, total=False):
         use_parser: Whether parser mode is enabled
         scanned_variables: List of variables discovered by scanner
         data_csv: CSV string representation of data
+        data_semantics: Semantic labels and units retained with data
         plots: List of plot configurations
         plot_counter: Current plot ID counter
         config: Application configuration dictionary
@@ -73,6 +74,7 @@ class PortfolioData(TypedDict, total=False):
     use_parser: bool
     scanned_variables: list[ScannedVariableDict]
     data_csv: str
+    data_semantics: dict[str, dict[str, str]]
     plots: list[dict[str, Any]]
     plot_counter: int
     config: dict[str, Any]

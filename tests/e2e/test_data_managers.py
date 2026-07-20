@@ -439,6 +439,15 @@ class TestDatasetSchemaContract:
             timeout=_E2E_TIMEOUT,
         )
 
+    def test_apply_semantic_metadata_from_human_first_editor(self, tier1_page: Page) -> None:
+        # [test->req~ring5.data.semantic-units~1]
+        dm = DataManagersPage(tier1_page)
+        dm.navigate()
+        dm.select_tab("Schema Contract")
+        expect(dm.schema_semantics_apply_button).to_be_visible(timeout=_E2E_TIMEOUT)
+        dm.apply_schema_semantics()
+        expect(dm.schema_semantics_success).to_be_visible(timeout=_E2E_TIMEOUT)
+
 
 # Operations History
 

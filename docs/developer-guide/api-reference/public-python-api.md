@@ -63,6 +63,10 @@ values without conflating invalid values with missing cells.
 accepted scalar values. `DatasetSchemaContract` groups unique column rules and controls unexpected
 columns. `Session.infer_schema_contract` returns a conservative editable starting point;
 `Session.validate_schema` returns an immutable `SchemaValidationReport` and never coerces its input.
+`ColumnContract.semantic_label` and `ColumnContract.unit` can also declare reader-facing metadata.
+`Session.apply_semantics`, `inspect_semantics`, and `convert_unit` retain and transform that metadata
+without mutating caller data. Missing plot labels are inferred from it for both render engines;
+explicit figure labels take precedence.
 Each `SchemaViolation` includes a rule, column, affected-row count, and at most ten row positions.
 
 `Session.add_dataset` retains a defensive copy in a named, in-memory workspace and returns a

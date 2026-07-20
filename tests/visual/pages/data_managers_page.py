@@ -601,9 +601,26 @@ class DataManagersPage(BasePage):
         """Validation status for the active schema contract."""
         return self.page.locator("[data-testid='stMetric']").filter(has_text="Contract status")
 
+    @property
+    def schema_semantics_apply_button(self) -> Locator:
+        """Button that retains semantic labels and units with active data."""
+        return self.page.get_by_role("button", name="Apply Labels and Units")
+
+    @property
+    def schema_semantics_success(self) -> Locator:
+        """Confirmation that semantic metadata entered the data lifecycle."""
+        return self.page.get_by_text(
+            "Semantic labels and units are retained with the active dataset."
+        )
+
     def validate_schema_contract(self) -> None:
         """Validate the inferred contract and wait for rendering."""
         self.schema_contract_validate_button.click()
+        self.wait_for_streamlit()
+
+    def apply_schema_semantics(self) -> None:
+        """Apply the current labels/units and wait for the rerender."""
+        self.schema_semantics_apply_button.click()
         self.wait_for_streamlit()
 
     # E2E: Data Visualization tab

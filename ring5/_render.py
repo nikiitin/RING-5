@@ -16,6 +16,7 @@ import plotly.graph_objects as go
 from matplotlib.figure import Figure as MplFigure
 
 from src.core.models.visualization.engine import VALID_ENGINES, EngineMode
+from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from ring5.errors import RenderError
 
@@ -51,6 +52,11 @@ def render_figure(plot: BasePlot, *, engine: EngineMode = "plotly") -> Figure:
         raise RenderError(f"Plot '{plot.name}' has no processed data to render.")
 
     try:
+        effective_config = SemanticMetadataService.enrich_figure_config(
+            plot.processed_data, plot.config
+        )
+        if effective_config is not plot.config:
+            plot.config = effective_config
         if engine == "plotly":
             # UI sequence (render_controller.py): create_figure + apply_common_layout.
             plotly_fig = plot.create_figure(plot.processed_data, plot.config)

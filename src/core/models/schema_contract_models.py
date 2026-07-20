@@ -19,6 +19,7 @@ class ColumnContract:
     """Validation rules for one named dataset column."""
 
     # [impl->req~ring5.data.schema-contracts~1]
+    # [impl->req~ring5.data.semantic-units~1]
 
     name: str
     data_type: SchemaDataType = "any"
@@ -27,6 +28,8 @@ class ColumnContract:
     minimum: float | None = None
     maximum: float | None = None
     accepted_values: tuple[ContractValue, ...] = ()
+    semantic_label: str = ""
+    unit: str = ""
 
     def __post_init__(self) -> None:
         if not isinstance(self.name, str) or not self.name.strip():
@@ -65,6 +68,16 @@ class ColumnContract:
         if len({(type(value).__name__, repr(value)) for value in accepted}) != len(accepted):
             raise ValueError("Accepted categorical values must be unique.")
         object.__setattr__(self, "accepted_values", accepted)
+        for field_name, text_value in (
+            ("semantic_label", self.semantic_label),
+            ("unit", self.unit),
+        ):
+            if not isinstance(text_value, str):
+                raise TypeError(f"Column {field_name} must be a string.")
+            resolved = text_value.strip()
+            if len(resolved) > 100 or any(ord(character) < 32 for character in resolved):
+                raise ValueError(f"Column {field_name} must be at most 100 printable characters.")
+            object.__setattr__(self, field_name, resolved)
 
 
 @dataclass(frozen=True, slots=True)
@@ -109,6 +122,8 @@ class DatasetSchemaContract:
                     ", ".join(str(value) for value in column.accepted_values)
                     for column in self.columns
                 ],
+                "semantic_label": [column.semantic_label for column in self.columns],
+                "unit": [column.unit for column in self.columns],
             }
         )
 

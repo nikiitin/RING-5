@@ -387,6 +387,82 @@ class TestDatasetSchemaContracts:
                 )
 
 
+class TestDatasetSemanticMetadata:
+    """Retain human labels and units through conversion, figures, and exports."""
+
+    def test_semantics_drive_conversion_figure_labels_and_csv_export(self, tmp_path: Path) -> None:
+        # [test->req~ring5.data.semantic-units~1]
+        source = ring5.Table.from_rows(
+            [
+                {"benchmark": "a", "latency": 1.0},
+                {"benchmark": "b", "latency": 2.5},
+            ]
+        )
+        contract = ring5.DatasetSchemaContract(
+            "latency-results",
+            (
+                ring5.ColumnContract("benchmark", semantic_label="Workload"),
+                ring5.ColumnContract(
+                    "latency",
+                    data_type="numeric",
+                    semantic_label="Mean latency",
+                    unit="ms",
+                ),
+            ),
+        )
+
+        with ring5.Session() as session:
+            annotated = session.apply_semantics(source, contract)
+            assert isinstance(annotated, ring5.Table)
+            converted = session.convert_unit(annotated, "latency", "us")
+            semantics = session.inspect_semantics(converted)
+            plot = session.create_plot(
+                "line",
+                data=converted,
+                config={"x": "benchmark", "y": "latency"},
+            )
+            plotly_figure = session.render(plot, engine="plotly")
+            matplotlib_figure = session.render(plot, engine="matplotlib")
+
+        latency = semantics.for_column("latency")
+        assert isinstance(latency, ring5.ColumnSemantics)
+        assert latency.display_label == "Mean latency (us)"
+        assert converted.rows()[1]["latency"] == pytest.approx(2500.0)
+        assert plotly_figure.layout.xaxis.title.text == "Workload"
+        assert plotly_figure.layout.yaxis.title.text == "Mean latency (us)"
+        assert matplotlib_figure.axes[0].get_xlabel() == "Workload"
+        assert matplotlib_figure.axes[0].get_ylabel() == "Mean latency (us)"
+
+        csv_path = tmp_path / "latency.csv"
+        converted.to_csv(str(csv_path))
+        sidecar = json.loads(Path(f"{csv_path}.metadata.json").read_text())
+        assert sidecar["format"] == "ring5.semantic-columns"
+        assert sidecar["columns"]["latency"] == {
+            "label": "Mean latency",
+            "unit": "us",
+        }
+        plain_path = tmp_path / "plain.csv"
+        converted.to_csv(str(plain_path), include_metadata=False)
+        assert not Path(f"{plain_path}.metadata.json").exists()
+
+    def test_semantic_errors_use_the_public_validation_type(self) -> None:
+        # [test->req~ring5.data.semantic-units~1]
+        data = pd.DataFrame({"latency": [1.0]})
+        semantics = ring5.DatasetSemantics((ring5.ColumnSemantics("latency", "Latency", "ms"),))
+        with ring5.Session() as session:
+            annotated = session.apply_semantics(data, semantics)
+            assert "ms" in session.supported_units()
+            with pytest.raises(ring5.DataValidationError, match="not compatible"):
+                session.convert_unit(annotated, "latency", "MB")
+            with pytest.raises(ring5.DataValidationError, match="does not exist"):
+                session.apply_semantics(
+                    data,
+                    ring5.DatasetSemantics((ring5.ColumnSemantics("missing", "Missing"),)),
+                )
+            with pytest.raises(ring5.DataValidationError, match="pandas DataFrame"):
+                session.inspect_semantics(42)  # type: ignore[arg-type]
+
+
 class TestNamedDatasetWorkspace:
     """Retain and compose independent datasets through the public API."""
 

@@ -6,7 +6,9 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
+from src.core.models import ColumnSemantics, DatasetSemantics
 from src.core.services.data_services.portfolio_service import PortfolioService
+from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
 from src.core.state.repository_state_manager import RepositoryStateManager
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
@@ -105,6 +107,41 @@ def test_save_and_load_portfolio(
     assert pd.read_csv(io.StringIO(loaded_plot["processed_data"])).equals(df)
     assert loaded_plot["pipeline"] == []
     assert loaded_plot["pipeline_counter"] == 0
+
+
+def test_portfolio_retains_data_and_plot_semantics(
+    portfolio_service: PortfolioService,
+    state_manager: RepositoryStateManager,
+    portfolios_dir: Any,
+) -> None:
+    # [test->req~ring5.data.semantic-units~1]
+    semantics = DatasetSemantics((ColumnSemantics("latency", "Mean latency", "ms"),))
+    data = SemanticMetadataService.attach(pd.DataFrame({"latency": [1.0]}), semantics)
+    plot = PlotFactory.create_plot("line", 3, "Latency")
+    plot.processed_data = data
+    plot.config = {"x": "latency", "y": "latency"}
+
+    portfolio_service.save_portfolio(
+        "semantic_portfolio",
+        data,
+        [plot],
+        {},
+        4,
+    )
+    loaded = portfolio_service.load_portfolio("semantic_portfolio")
+    restored = RepositoryStateManager(plot_deserializer=PlotFactory.from_dict)
+    report = restored.restore_session(loaded)
+
+    assert report.complete
+    assert loaded["data_semantics"]["latency"] == {
+        "label": "Mean latency",
+        "unit": "ms",
+    }
+    assert SemanticMetadataService.inspect(restored.get_data()).for_column(
+        "latency"
+    ) == ColumnSemantics("latency", "Mean latency", "ms")
+    restored_plot = restored.get_plots()[0]
+    assert SemanticMetadataService.inspect(restored_plot.processed_data) == semantics
 
 
 def test_list_portfolios(portfolio_service: Any, portfolios_dir: Any) -> None:

@@ -12,6 +12,7 @@ from src.core.models import ParseVariableConfig, PlotProtocol, PortfolioData
 from src.core.services.data_services.path_service import PathService
 from src.core.services.portfolio_migrator import PortfolioMigrator
 from src.core.state.state_manager import StateManager
+from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
 
 
 class PortfolioService:
@@ -47,6 +48,7 @@ class PortfolioService:
         overwrite: bool = True,
     ) -> None:
         # [impl->req~ring5.portfolio.save~1]
+        # [impl->req~ring5.data.semantic-units~1]
         """Serialize and save the current workspace state.
 
         Args:
@@ -87,12 +89,18 @@ class PortfolioService:
             serialized_plots.append(plot_dict)
 
         data_csv = data.to_csv(index=False) if data is not None and not data.empty else ""
+        data_semantics = (
+            SemanticMetadataService.to_payload(SemanticMetadataService.inspect(data))
+            if data is not None
+            else {}
+        )
 
         portfolio_data: dict[str, Any] = {
             "schema_version": PortfolioMigrator.CURRENT_VERSION,
             "version": "2.0",
             "timestamp": pd.Timestamp.now().isoformat(),
             "data_csv": data_csv,
+            "data_semantics": data_semantics,
             "csv_path": str(csv_path) if csv_path else None,
             "plots": serialized_plots,
             "plot_counter": plot_counter,

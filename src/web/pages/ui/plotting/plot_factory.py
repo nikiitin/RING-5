@@ -138,6 +138,7 @@ class PlotFactory:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> BasePlot:
+        # [impl->req~ring5.data.semantic-units~1]
         """Restore a plot and its state from :meth:`BasePlot.to_dict` output.
 
         Args:
@@ -159,7 +160,16 @@ class PlotFactory:
 
         processed_data = data.get("processed_data")
         if processed_data:
-            plot.replace_processed_data(pd.read_csv(StringIO(processed_data)))
+            from src.core.services.managers.semantic_metadata_service import (
+                SemanticMetadataService,
+            )
+
+            frame = pd.read_csv(StringIO(processed_data))
+            semantics = SemanticMetadataService.from_payload(
+                data.get("processed_semantics", {}),
+                available_columns=tuple(str(column) for column in frame.columns),
+            )
+            plot.replace_processed_data(SemanticMetadataService.attach(frame, semantics))
         return plot
 
     @classmethod

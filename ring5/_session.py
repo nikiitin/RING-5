@@ -13,6 +13,7 @@ import pandas as pd
 
 from src.core.application_api import ApplicationAPI
 from src.core.models import (
+    ColumnSemantics,
     DataQualityReport,
     DashboardSpec,
     DrillDownResult,
@@ -21,6 +22,7 @@ from src.core.models import (
     DatasetRevision,
     DatasetSnapshotInfo,
     DatasetSchemaContract,
+    DatasetSemantics,
     JoinCardinality,
     JoinDiagnostics,
     LinkedSelectionSpec,
@@ -954,6 +956,97 @@ class Session:
             return self.api.managers.validate_schema(frame, contract)
         except (TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
+
+    def apply_semantics(
+        self,
+        data: "pd.DataFrame | Table",
+        semantics: DatasetSemantics | DatasetSchemaContract,
+    ) -> "pd.DataFrame | Table":
+        """Return a table that retains human labels and physical units.
+
+        A schema contract may be supplied directly; its ``semantic_label`` and
+        ``unit`` fields become the retained metadata. This operation does not
+        run contract validation or mutate the input.
+
+        Args:
+            data: DataFrame or :class:`ring5.Table` to annotate.
+            semantics: Explicit metadata or the schema contract that declares it.
+
+        Raises:
+            DataValidationError: Metadata names or units are invalid.
+        """
+        # [impl->req~ring5.data.semantic-units~1]
+        frame, was_table = _unwrap_table(data)
+        if isinstance(semantics, DatasetSchemaContract):
+            semantics = DatasetSemantics(
+                tuple(
+                    ColumnSemantics(column.name, column.semantic_label, column.unit)
+                    for column in semantics.columns
+                    if column.semantic_label or column.unit
+                )
+            )
+        try:
+            result = self.api.managers.attach_semantics(frame, semantics)
+        except (KeyError, TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+        return _rewrap_table(result) if was_table else result
+
+    def inspect_semantics(
+        self,
+        data: "pd.DataFrame | Table",
+    ) -> DatasetSemantics:
+        """Return the ordered semantic labels and units retained by a table.
+
+        Args:
+            data: DataFrame or :class:`ring5.Table` to inspect without mutation.
+
+        Returns:
+            Immutable ordered semantic metadata.
+
+        Raises:
+            DataValidationError: Retained external metadata is malformed.
+        """
+        # [impl->req~ring5.data.semantic-units~1]
+        frame, _ = _unwrap_table(data)
+        try:
+            return self.api.managers.inspect_semantics(frame)
+        except (TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def convert_unit(
+        self,
+        data: "pd.DataFrame | Table",
+        column: str,
+        target_unit: str,
+    ) -> "pd.DataFrame | Table":
+        """Convert one numeric column and retain its new canonical unit.
+
+        Conversion is allowed only when the source unit is declared and both
+        units describe the same dimension. The input remains unchanged.
+
+        Args:
+            data: DataFrame or :class:`ring5.Table` carrying source-unit metadata.
+            column: Numeric column to convert.
+            target_unit: Compatible canonical unit or documented alias.
+
+        Returns:
+            Converted data of the same public type as ``data``.
+
+        Raises:
+            DataValidationError: The column, source unit, target unit, or values are invalid.
+        """
+        # [impl->req~ring5.data.semantic-units~1]
+        frame, was_table = _unwrap_table(data)
+        try:
+            result = self.api.managers.convert_unit(frame, column, target_unit)
+        except (KeyError, TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+        return _rewrap_table(result) if was_table else result
+
+    def supported_units(self) -> tuple[str, ...]:
+        """Return canonical unit symbols accepted by :meth:`convert_unit`."""
+        # [impl->req~ring5.data.semantic-units~1]
+        return self.api.managers.supported_units()
 
     def shape(
         self, data: "pd.DataFrame | Table", pipeline: list[ShaperStepConfig]
