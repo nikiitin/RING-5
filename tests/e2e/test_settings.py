@@ -173,3 +173,31 @@ class TestAccessibleTheme:
         expect(mp.accessibility_check_success).to_be_visible(timeout=E2E_TIMEOUT)
         mp.refresh_plot()
         mp.assert_chart_visible(timeout=CHART_TIMEOUT)
+
+
+@pytest.mark.xdist_group("e2e_figure_theme")
+class TestFigureThemePreset:
+    """Human-facing built-in theme and exchange controls."""
+
+    def test_apply_dark_theme_keeps_plot_and_exposes_import_export(
+        self,
+        tier2_page: Page,
+    ) -> None:
+        # [test->req~ring5.figure.theme-presets~1]
+        mp = ManagePlotsPage(tier2_page)
+        expect(mp.viz_theme_section_pill).to_be_visible(timeout=E2E_TIMEOUT)
+        mp.viz_theme_section_pill.click()
+        mp.wait_for_streamlit()
+
+        mp.select_figure_theme("Dark background")
+        mp.apply_figure_theme_button.click()
+        mp.wait_for_streamlit(timeout=E2E_TIMEOUT, expect_rerun=True)
+
+        expect(mp.figure_theme_selectbox.get_by_role("combobox")).to_have_value(
+            "Dark background",
+            timeout=E2E_TIMEOUT,
+        )
+        expect(mp.figure_theme_applied_success).to_be_visible(timeout=E2E_TIMEOUT)
+        expect(mp.import_figure_theme_uploader).to_be_visible(timeout=E2E_TIMEOUT)
+        expect(mp.export_figure_theme_button).to_be_visible(timeout=E2E_TIMEOUT)
+        mp.assert_chart_visible(timeout=CHART_TIMEOUT)

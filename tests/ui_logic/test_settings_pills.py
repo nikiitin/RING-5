@@ -13,8 +13,8 @@ class TestRenderSettingsPills:
     """Verify render_settings_pills filters sections by advanced flag."""
 
     @patch("src.web.pages.ui.plotting.settings_pills.st")
-    def test_basic_only_shows_three(self, mock_st: MagicMock) -> None:
-        """When show_advanced=False, only 3 basic sections are offered."""
+    def test_basic_only_shows_four(self, mock_st: MagicMock) -> None:
+        """When show_advanced=False, only 4 basic sections are offered."""
         # [test->req~ring5.figure.advanced-disclosure~1]
         from src.web.pages.ui.plotting.settings_pills import render_settings_pills
 
@@ -23,11 +23,11 @@ class TestRenderSettingsPills:
 
         call_args = mock_st.pills.call_args
         options = call_args.kwargs.get("options") or call_args[1].get("options")
-        assert options == ["layout", "typography", "legends"]
+        assert options == ["layout", "themes", "typography", "legends"]
 
     @patch("src.web.pages.ui.plotting.settings_pills.st")
-    def test_advanced_shows_all_seven(self, mock_st: MagicMock) -> None:
-        """When show_advanced=True, all 7 sections are offered."""
+    def test_advanced_shows_all_eight(self, mock_st: MagicMock) -> None:
+        """When show_advanced=True, all 8 sections are offered."""
         # [test->req~ring5.figure.advanced-disclosure~1]
         from src.web.pages.ui.plotting.settings_pills import render_settings_pills
 
@@ -36,7 +36,7 @@ class TestRenderSettingsPills:
 
         call_args = mock_st.pills.call_args
         options = call_args.kwargs.get("options") or call_args[1].get("options")
-        assert len(options) == 7
+        assert len(options) == 8
         assert "axes" in options
         assert "data_labels" in options
         assert "colors" in options
@@ -98,6 +98,19 @@ class TestSectionDispatch:
             MockComp.assert_called_once_with(1, "grouped_bar")
             MockComp.return_value.render.assert_called_once_with({"x": "a"}, None)
 
+    def test_themes_dispatches_to_component(self) -> None:
+        """The Themes pill dispatches the current plot and configuration."""
+        # [test->req~ring5.figure.theme-presets~1]
+        plot = self._make_plot()
+        with patch(
+            "src.web.pages.ui.plotting.plot_config_ui.ThemePresetsSettingsComponent"
+        ) as mock_component:
+            mock_component.return_value.render.return_value = {"figure_theme_id": "paper"}
+            result = plot.render_settings_section("themes", {"x": "a"}, None)
+            assert result == {"figure_theme_id": "paper"}
+            mock_component.assert_called_once_with(1, "grouped_bar")
+            mock_component.return_value.render.assert_called_once_with({"x": "a"})
+
     def test_all_sections_are_handled(self) -> None:
         """Every defined section key has a handler."""
         from src.web.pages.ui.plotting.settings_pills import SETTINGS_SECTIONS
@@ -106,6 +119,7 @@ class TestSectionDispatch:
         # Mock all component classes used by render_settings_section
         comp_patches = [
             "src.web.pages.ui.plotting.plot_config_ui.LayoutSettingsComponent",
+            "src.web.pages.ui.plotting.plot_config_ui.ThemePresetsSettingsComponent",
             "src.web.pages.ui.plotting.plot_config_ui.TypographySettingsComponent",
             "src.web.pages.ui.plotting.plot_config_ui.LegendSettingsComponent",
             "src.web.pages.ui.plotting.plot_config_ui.AxesSettingsComponent",

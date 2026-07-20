@@ -11,13 +11,14 @@ redirect_from:
 
 # Figure settings
 
-Settings change figure presentation after a plot maps processed columns. **Layout**, **Typography**,
-and **Legends** are always visible. **Show advanced settings** reveals **Axes**, **Data Labels**,
-**Colors**, and **Advanced**.
+Settings change figure presentation after a plot maps processed columns. **Layout**, **Themes**,
+**Typography**, and **Legends** are always visible. **Show advanced settings** reveals **Axes**,
+**Data Labels**, **Colors**, and **Advanced**.
 
 | Section | Use it for |
 | --- | --- |
 | Layout | Physical or preview dimensions and automatic margins |
+| Themes | Coherent built-ins plus customized theme import and export |
 | Typography | Title, axis-title, and tick-label sizes and colors |
 | Legends | Visibility, placement, orientation, labels, and spacing |
 | Axes | Ranges, scales, ticks, grids, label rotation, and axis-specific controls |
@@ -40,8 +41,8 @@ Covers:
 
 -->
 
-Layout, Typography, and Legends remain available in the basic settings view. **Show advanced
-settings** adds Axes, Data Labels, Colors, and Advanced without changing the saved plot
+Layout, Themes, Typography, and Legends remain available in the basic settings view. **Show
+advanced settings** adds Axes, Data Labels, Colors, and Advanced without changing the saved plot
 configuration by itself.
 
 ### Layout
@@ -56,6 +57,59 @@ Covers:
 
 Choose a single-column, double-column, or custom publication width and set the height in inches.
 RING-5 derives the Plotly preview dimensions at 100 pixels per inch and uses automatic zero margins.
+
+### Reuse a figure theme
+
+<!--
+`uman~ring5.figure.theme-presets.documentation~1`
+
+Covers:
+- req~ring5.figure.theme-presets~1
+
+-->
+
+Open **Themes**, choose a profile, review its description and canvas size, then select **Apply
+theme**. The built-ins are starting points with consistent dimensions, typography, surfaces,
+palette, legend treatment, and accessible mark defaults:
+
+| Theme | Intended use |
+| --- | --- |
+| Publication paper | Compact double-column print figures |
+| Presentation slide | A 16:9 canvas with large text and marks |
+| Dashboard panel | Balanced screen dimensions for repeated panels |
+| Dark background | Dark surfaces, light text, visible grids, and a contrast-checked palette |
+
+Applying a theme changes appearance keys only. X/Y mappings, grouping, filters, annotations,
+plot-specific meaning, and processed data are retained. The chart refreshes once even when
+auto-refresh is off. Existing per-series overrides remain deliberate customizations.
+
+After applying a starting point, adjust **Layout**, **Typography**, **Legends**, **Axes**, or
+**Colors**. Return to **Themes**, enter a **Theme name**, and select **Download current theme**.
+This exports a JSON file containing only portable appearance settings; it never contains column names,
+filters, data, or per-series identities. To reuse it, choose the file under **Theme JSON**, review
+the imported name and description, and select **Apply imported theme**. Imports accept one
+versioned RING-5 theme object up to 256 KiB and reject unsupported fields, invalid colors, unsafe
+dimensions, and unknown palettes before changing the plot.
+
+The same workflow is available to scripts:
+
+```python
+import ring5
+
+with ring5.Session() as session:
+    custom = session.customize_figure_theme(
+        "paper",
+        {"title_font_size": 20, "height": 450},
+        name="Lab paper",
+    )
+    payload = session.export_figure_theme(custom)
+    restored = session.import_figure_theme(payload)
+    config = session.apply_figure_theme(
+        {"x": "phase", "y": "ipc", "color": "variant"},
+        restored,
+        "bar",
+    )
+```
 
 ### Typography
 

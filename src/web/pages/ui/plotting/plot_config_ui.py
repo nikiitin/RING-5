@@ -25,6 +25,7 @@ from src.web.components.plotting.settings import (
     DataLabelsSettingsComponent,
     LayoutSettingsComponent,
     LegendSettingsComponent,
+    ThemePresetsSettingsComponent,
     TypographySettingsComponent,
 )
 from src.web.models.plot_models import PlotConfig
@@ -114,11 +115,15 @@ class PlotConfigUIMixin:
         Returns:
             Configuration dictionary produced by the selected section.
         """
+        # [impl->req~ring5.figure.theme-presets~1]
         if section is None:
             return {}
 
         if section == "layout":
             return LayoutSettingsComponent(self.plot_id, self.plot_type).render(saved_config, data)
+
+        if section == "themes":
+            return ThemePresetsSettingsComponent(self.plot_id, self.plot_type).render(saved_config)
 
         if section == "typography":
             return TypographySettingsComponent(self.plot_id, self.plot_type).render(

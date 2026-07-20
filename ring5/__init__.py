@@ -82,6 +82,7 @@ if TYPE_CHECKING:
         DrillDownResult,
         DatasetSchemaContract,
         DatasetSemantics,
+        FigureTheme,
         JoinCardinality,
         JoinDiagnostics,
         LinkedSelectionSpec,
@@ -124,6 +125,7 @@ except PackageNotFoundError:  # not installed (e.g. vendored checkout)
 _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "AccessibilityFinding": ("src.core.models", "AccessibilityFinding"),
     "AccessibilityReport": ("src.core.models", "AccessibilityReport"),
+    "FigureTheme": ("src.core.models", "FigureTheme"),
     "Session": ("ring5._session", "Session"),
     "PlotType": ("ring5._session", "PlotType"),
     "available_plot_types": ("ring5._session", "available_plot_types"),
@@ -210,6 +212,7 @@ __all__ = [
     "Session",
     "AccessibilityFinding",
     "AccessibilityReport",
+    "FigureTheme",
     "PlotType",
     "available_plot_types",
     "available_shaper_types",

@@ -24,6 +24,7 @@ from src.core.models import (
     DatasetSnapshotInfo,
     DatasetSchemaContract,
     DatasetSemantics,
+    FigureTheme,
     JoinCardinality,
     JoinDiagnostics,
     LinkedSelectionSpec,
@@ -1108,6 +1109,108 @@ class Session:
                 plot_type,
                 series_count=series_count,
             )
+        except (TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def available_figure_themes(self) -> tuple[FigureTheme, ...]:
+        """Return isolated built-in themes for paper, slides, dashboards, and dark use."""
+        # [impl->req~ring5.figure.theme-presets~1]
+        from src.core.services.visualization.figure_theme_service import FigureThemeService
+
+        return FigureThemeService.available_themes()
+
+    def apply_figure_theme(
+        self,
+        config: Mapping[str, Any],
+        theme: str | FigureTheme,
+        plot_type: str,
+    ) -> dict[str, Any]:
+        """Apply a theme's appearance while retaining data and plot-type configuration.
+
+        Args:
+            config: Existing figure configuration to copy.
+            theme: Built-in identifier or an imported/customized theme.
+            plot_type: Plot type used to resolve accessible mark defaults.
+
+        Returns:
+            A newly allocated themed configuration.
+
+        Raises:
+            DataValidationError: The theme or inputs are invalid.
+        """
+        # [impl->req~ring5.figure.theme-presets~1]
+        from src.core.services.visualization.figure_theme_service import FigureThemeService
+
+        try:
+            return FigureThemeService.apply(config, theme, plot_type)
+        except (TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def customize_figure_theme(
+        self,
+        theme: str | FigureTheme,
+        overrides: Mapping[str, Any],
+        *,
+        name: str,
+    ) -> FigureTheme:
+        """Create a portable theme from a base plus appearance-only overrides.
+
+        Args:
+            theme: Built-in identifier or existing theme to customize.
+            overrides: Appearance-only configuration values to replace.
+            name: Human-readable name for the new theme.
+
+        Returns:
+            A validated customized theme that can be applied or exported.
+
+        Raises:
+            DataValidationError: The base, name, or overrides are invalid.
+        """
+        # [impl->req~ring5.figure.theme-presets~1]
+        from src.core.services.visualization.figure_theme_service import FigureThemeService
+
+        try:
+            return FigureThemeService.customize(theme, overrides, name=name)
+        except (TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def export_figure_theme(self, theme: FigureTheme) -> bytes:
+        """Serialize one validated figure theme as deterministic versioned JSON.
+
+        Args:
+            theme: Theme to validate and serialize.
+
+        Returns:
+            Stable UTF-8 JSON bytes.
+
+        Raises:
+            DataValidationError: The theme is invalid.
+        """
+        # [impl->req~ring5.figure.theme-presets~1]
+        from src.core.services.visualization.figure_theme_service import FigureThemeService
+
+        try:
+            return FigureThemeService.dumps(theme)
+        except (TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def import_figure_theme(self, payload: str | bytes | bytearray) -> FigureTheme:
+        """Load one bounded, versioned figure theme JSON document.
+
+        Args:
+            payload: UTF-8 JSON text or bytes, limited to 256 KiB.
+
+        Returns:
+            A validated portable figure theme.
+
+        Raises:
+            DataValidationError: The payload is malformed, unsafe, or unsupported.
+        """
+        # [impl->req~ring5.figure.theme-presets~1]
+        from src.core.services.visualization.figure_theme_service import FigureThemeService
+
+        try:
+            return FigureThemeService.loads(payload)
         except (TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
 

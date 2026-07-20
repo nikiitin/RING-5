@@ -44,3 +44,6 @@ from src.web.components.plotting.settings.shapes_settings import (  # noqa: F401
 from src.web.components.plotting.settings.typography_settings import (  # noqa: F401
     TypographySettingsComponent,
 )
+from src.web.components.plotting.settings.theme_presets_settings import (  # noqa: F401
+    ThemePresetsSettingsComponent,
+)

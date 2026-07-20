@@ -108,6 +108,7 @@ class PlotRenderController:
         """
         # [impl->req~ring5.plots.change-type~1]
         # [impl->req~ring5.plots.refresh-cache~1]
+        # [impl->req~ring5.figure.theme-presets~1]
         if plot.processed_data is None:
             st.warning("No processed data available.")
             return
@@ -154,6 +155,7 @@ class PlotRenderController:
             config_error = True
 
         # 3. Advanced & Theme (inline)
+        refresh_requested = False
         try:
             show_adv: bool = st.toggle(
                 "Show advanced settings",
@@ -164,6 +166,7 @@ class PlotRenderController:
             extra_config: PlotConfig = plot.render_settings_section(
                 selected_section, current_config, data
             )
+            refresh_requested = bool(extra_config.pop("_ring5_request_refresh", False))
             current_config.update(extra_config)
         except Exception as e:
             st.exception(e)
@@ -188,7 +191,7 @@ class PlotRenderController:
         # Update auto-refresh in UI state
         self._ui.plot.set_auto_refresh(plot.plot_id, controls["auto_refresh"])
 
-        should_gen: bool = controls["should_generate"] and not config_error
+        should_gen: bool = (controls["should_generate"] or refresh_requested) and not config_error
         # With auto-refresh disabled, keep the persisted config paired with the
         # visible figure until the user explicitly refreshes. Widget values
         # remain in Streamlit state and are gathered again on that refresh.

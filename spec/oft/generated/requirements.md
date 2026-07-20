@@ -2068,7 +2068,7 @@ Tags: accessibility, figures, status_approved, themes
 ### Figure theme presets
 
 `req~ring5.figure.theme-presets~1`
-Status: proposed
+Status: approved
 
 Users shall apply, customize, import, and export coherent figure themes for papers, presentations, dashboards, and dark backgrounds.
 
@@ -2077,7 +2077,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: figures, presets, status_proposed, themes
+Tags: figures, presets, status_approved, themes
 
 ### Publication panel composition
 

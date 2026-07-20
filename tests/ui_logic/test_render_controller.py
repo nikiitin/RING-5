@@ -231,6 +231,38 @@ class TestRefreshLogic:
     @patch(f"{_CTRL}.ChartDisplayComponent.render_refresh_controls")
     @patch(f"{_CTRL}.render_settings_pills")
     @patch(f"{_CTRL}.st")
+    def test_theme_apply_requests_one_refresh_even_when_auto_refresh_is_off(
+        self,
+        mock_st: MagicMock,
+        mock_pills: MagicMock,
+        mock_refresh: MagicMock,
+        mock_viz: MagicMock,
+    ) -> None:
+        # [test->req~ring5.figure.theme-presets~1]
+        mock_st.selectbox.return_value = "bar"
+        mock_st.toggle.return_value = False
+        mock_pills.return_value = "themes"
+        mock_refresh.return_value = _default_refresh_controls(
+            should_generate=False,
+            auto_refresh=False,
+        )
+
+        data = pd.DataFrame({"a": [1]})
+        plot = StubPlotHandle(processed_data=data, config={"x": "a"})
+        plot.render_settings_section = lambda section, saved_config, data=None: {
+            "figure_theme_id": "paper",
+            "_ring5_request_refresh": True,
+        }
+        ctrl = _make_render_controller()
+        ctrl.render(plot)
+
+        assert plot.config == {"x": "a", "figure_theme_id": "paper"}
+        mock_viz.assert_called_once_with(plot, True)
+
+    @patch(f"{_CTRL}.PlotRenderController._render_visualization")
+    @patch(f"{_CTRL}.ChartDisplayComponent.render_refresh_controls")
+    @patch(f"{_CTRL}.render_settings_pills")
+    @patch(f"{_CTRL}.st")
     def test_auto_refresh_stored_in_ui_state(
         self,
         mock_st: MagicMock,

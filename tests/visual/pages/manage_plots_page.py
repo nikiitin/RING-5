@@ -408,7 +408,7 @@ class ManagePlotsPage(BasePage):
     def viz_settings_pills(self) -> Locator:
         """Settings navigation pills (key=settings_nav).
 
-        The basic sections (Layout / Typography / Legends) are ALWAYS rendered
+        The basic sections (Layout / Themes / Typography / Legends) are ALWAYS rendered
         whenever a plot's visualization section is shown — they are not gated by
         the 'Show advanced settings' toggle (only the advanced sections are).
         """
@@ -418,6 +418,38 @@ class ManagePlotsPage(BasePage):
     def viz_layout_section_pill(self) -> Locator:
         """The Layout settings pill containing dimensions and facet controls."""
         return self.viz_settings_pills.get_by_role("radio", name="Layout")
+
+    @property
+    def viz_theme_section_pill(self) -> Locator:
+        """The always-visible Themes settings pill."""
+        return self.viz_settings_pills.get_by_role("radio", name="Themes")
+
+    @property
+    def figure_theme_selectbox(self) -> Locator:
+        """Built-in figure-theme selector."""
+        return self._by_label("stSelectbox", "Theme preset")
+
+    @property
+    def apply_figure_theme_button(self) -> Locator:
+        """Button that applies the selected theme to the active plot."""
+        return self.page.get_by_role("button", name="Apply theme", exact=True)
+
+    @property
+    def export_figure_theme_button(self) -> Locator:
+        """Download button for the current customized theme."""
+        return self.page.get_by_role("button", name="Download current theme")
+
+    @property
+    def import_figure_theme_uploader(self) -> Locator:
+        """Theme JSON file uploader."""
+        return self._by_label("stFileUploader", "Theme JSON")
+
+    @property
+    def figure_theme_applied_success(self) -> Locator:
+        """Human confirmation that a built-in theme retained data mappings."""
+        return self.page.locator("[data-testid='stAlertContentSuccess']").filter(
+            has_text="Data mappings and filters were kept"
+        )
 
     @property
     def small_multiples_toggle(self) -> Locator:
@@ -826,6 +858,10 @@ class ManagePlotsPage(BasePage):
             expect(pill).to_be_checked(timeout=60_000)
             return
         expect(pill).to_be_checked(timeout=60_000)
+
+    def select_figure_theme(self, name: str) -> None:
+        """Select a built-in figure theme by its human-readable name."""
+        self._open_and_select(self.figure_theme_selectbox, name)
 
     #  ASSERTIONS
 

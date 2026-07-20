@@ -20,6 +20,7 @@ class TestPaletteRegistry:
     def test_registry_has_colorblind_palettes(self) -> None:
         for name in (
             "ring5_accessible",
+            "ring5_accessible_dark",
             "wong",
             "okabe_ito",
             "tol_bright",
@@ -55,7 +56,7 @@ class TestPaletteRegistry:
                 assert _HEX_RE.match(c), f"Non-hex color '{c}' in palette {name}"
 
     def test_registry_total_count(self) -> None:
-        assert len(PALETTE_REGISTRY) == 20  # 6 colorblind + 14 plotly
+        assert len(PALETTE_REGISTRY) == 21  # 7 colorblind + 14 plotly
 
 
 class TestResolvePalette:
@@ -116,14 +117,15 @@ class TestGetPaletteNames:
         names = get_palette_names()
         cb_names = {
             "ring5_accessible",
+            "ring5_accessible_dark",
             "wong",
             "okabe_ito",
             "tol_bright",
             "viridis_8",
             "seaborn_cb",
         }
-        first_six = set(names[:6])
-        assert first_six == cb_names
+        first_seven = set(names[:7])
+        assert first_seven == cb_names
 
     def test_no_duplicates(self) -> None:
         names = get_palette_names()

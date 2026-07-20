@@ -37,8 +37,25 @@ class _AccessiblePalette:
     )
 
 
+class _DarkThemePalette:
+    """Color-vision-safe marks with at least 3:1 contrast on dark theme surfaces."""
+
+    # [impl->req~ring5.figure.theme-presets~1]
+    COLORS: Final = (
+        "#4477AA",
+        "#EE6677",
+        "#228833",
+        "#CCBB44",
+        "#66CCEE",
+        "#CC79A7",
+        "#BBBBBB",
+        "#E69F00",
+    )
+
+
 _COLORBLIND_PALETTES: dict[str, list[str]] = {
     "ring5_accessible": list(_AccessiblePalette.COLORS),
+    "ring5_accessible_dark": list(_DarkThemePalette.COLORS),
     "wong": [
         "#000000",
         "#E69F00",

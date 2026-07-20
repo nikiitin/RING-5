@@ -52,12 +52,12 @@ class TestSettingsSections:
     """Validate the predefined section registry."""
 
     def test_total_count(self) -> None:
-        assert len(SETTINGS_SECTIONS) == 7
+        assert len(SETTINGS_SECTIONS) == 8
 
     def test_basic_sections(self) -> None:
         basic: list[SettingsSection] = [s for s in SETTINGS_SECTIONS if not s.advanced]
-        assert len(basic) == 3
-        assert [s.key for s in basic] == ["layout", "typography", "legends"]
+        assert len(basic) == 4
+        assert [s.key for s in basic] == ["layout", "themes", "typography", "legends"]
 
     def test_advanced_sections(self) -> None:
         adv: list[SettingsSection] = [s for s in SETTINGS_SECTIONS if s.advanced]
@@ -92,18 +92,19 @@ class TestProgressiveDisclosure:
         """When show_advanced=False, only basic sections are visible."""
         visible = [s for s in SETTINGS_SECTIONS if not s.advanced]
         assert all(not s.advanced for s in visible)
-        assert len(visible) == 3
+        assert len(visible) == 4
 
     def test_all_visible(self) -> None:
         """When show_advanced=True, all sections are visible."""
         visible = [s for s in SETTINGS_SECTIONS if not s.advanced or True]
-        assert len(visible) == 7
+        assert len(visible) == 8
 
     def test_basic_ordering_preserved(self) -> None:
         basic = [s for s in SETTINGS_SECTIONS if not s.advanced]
         assert basic[0].key == "layout"
-        assert basic[1].key == "typography"
-        assert basic[2].key == "legends"
+        assert basic[1].key == "themes"
+        assert basic[2].key == "typography"
+        assert basic[3].key == "legends"
 
     def test_advanced_ordering_preserved(self) -> None:
         adv = [s for s in SETTINGS_SECTIONS if s.advanced]
@@ -121,8 +122,8 @@ class TestRenderSettingsPills:
 
     """Test the render function with mocked Streamlit."""
 
-    def test_basic_mode_passes_three_options(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """In basic mode only three option keys are passed to st.pills."""
+    def test_basic_mode_passes_four_options(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """In basic mode only four option keys are passed to st.pills."""
         captured_kwargs: dict = {}  # type: ignore[type-arg]
 
         def fake_pills(label: object, **kwargs: object) -> str:  # type: ignore[no-untyped-def]
@@ -134,9 +135,9 @@ class TestRenderSettingsPills:
         result = render_settings_pills(show_advanced=False)
 
         assert result == "layout"
-        assert captured_kwargs["options"] == ["layout", "typography", "legends"]
+        assert captured_kwargs["options"] == ["layout", "themes", "typography", "legends"]
 
-    def test_advanced_mode_passes_seven_options(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_advanced_mode_passes_eight_options(self, monkeypatch: pytest.MonkeyPatch) -> None:
         captured_kwargs: dict = {}  # type: ignore[type-arg]
 
         def fake_pills(label: object, **kwargs: object) -> str:  # type: ignore[no-untyped-def]
@@ -148,7 +149,7 @@ class TestRenderSettingsPills:
         result = render_settings_pills(show_advanced=True)
 
         assert result == "axes"
-        assert len(captured_kwargs["options"]) == 7
+        assert len(captured_kwargs["options"]) == 8
 
     def test_format_func_produces_material_icons(self, monkeypatch: pytest.MonkeyPatch) -> None:
         captured_kwargs: dict = {}  # type: ignore[type-arg]
@@ -163,6 +164,7 @@ class TestRenderSettingsPills:
 
         fmt = captured_kwargs["format_func"]
         assert fmt("layout") == ":material/dashboard: Layout"
+        assert fmt("themes") == ":material/style: Themes"
         assert fmt("typography") == ":material/text_fields: Typography"
         assert fmt("legends") == ":material/legend_toggle: Legends"
 

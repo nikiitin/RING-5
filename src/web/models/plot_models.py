@@ -323,6 +323,9 @@ class PlotDisplayConfig(TypedDict, total=False):
     color_palette: str
     accessibility_mode: bool
     enable_stripes: bool
+    figure_theme_id: str
+    figure_theme_name: str
+    figure_theme_context: str
 
     # Reference line
     reference_line_enabled: bool

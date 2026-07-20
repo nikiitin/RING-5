@@ -1499,8 +1499,8 @@
           "src/web/pages/ui/plotting/settings_pills.py::render_settings_pills"
         ],
         "tests": [
-          "tests/ui_logic/test_settings_pills.py::TestRenderSettingsPills.test_basic_only_shows_three",
-          "tests/ui_logic/test_settings_pills.py::TestRenderSettingsPills.test_advanced_shows_all_seven"
+          "tests/ui_logic/test_settings_pills.py::TestRenderSettingsPills.test_basic_only_shows_four",
+          "tests/ui_logic/test_settings_pills.py::TestRenderSettingsPills.test_advanced_shows_all_eight"
         ],
         "documentation": [
           "docs/user-guide/reference/settings.md#progressive-disclosure"
@@ -3884,11 +3884,49 @@
       "id": "figure.theme-presets",
       "group": "figure-configuration",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Figure theme presets",
       "description": "Users shall apply, customize, import, and export coherent figure themes for papers, presentations, dashboards, and dark backgrounds.",
       "tags": ["figures", "presets", "themes"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "ring5/_session.py::Session.available_figure_themes",
+          "ring5/_session.py::Session.apply_figure_theme",
+          "ring5/_session.py::Session.customize_figure_theme",
+          "ring5/_session.py::Session.export_figure_theme",
+          "ring5/_session.py::Session.import_figure_theme",
+          "src/core/models/figure_theme_models.py::FigureTheme",
+          "src/core/models/visualization/palettes.py::_DarkThemePalette",
+          "src/core/services/visualization/figure_theme_service.py::FigureThemeService.available_themes",
+          "src/core/services/visualization/figure_theme_service.py::FigureThemeService.apply",
+          "src/core/services/visualization/figure_theme_service.py::FigureThemeService.customize",
+          "src/core/services/visualization/figure_theme_service.py::FigureThemeService.from_config",
+          "src/core/services/visualization/figure_theme_service.py::FigureThemeService.dumps",
+          "src/core/services/visualization/figure_theme_service.py::FigureThemeService.loads",
+          "src/web/components/plotting/settings/theme_presets_settings.py::ThemePresetsSettingsComponent.render",
+          "src/web/controllers/plot/render_controller.py::PlotRenderController.render",
+          "src/web/pages/ui/plotting/plot_config_ui.py::PlotConfigUIMixin.render_settings_section",
+          "src/web/pages/ui/plotting/settings_pills.py::render_settings_pills"
+        ],
+        "tests": [
+          "tests/e2e/test_settings.py::TestFigureThemePreset.test_apply_dark_theme_keeps_plot_and_exposes_import_export",
+          "tests/integration/test_figure_theme_public_api.py::test_public_theme_round_trip_preserves_data_and_renders_dark_bars_in_both_engines",
+          "tests/integration/test_figure_theme_public_api.py::test_public_theme_errors_are_typed_and_do_not_accept_data_bindings",
+          "tests/ui_logic/test_render_controller.py::TestRefreshLogic.test_theme_apply_requests_one_refresh_even_when_auto_refresh_is_off",
+          "tests/ui_logic/test_settings_pills.py::TestSectionDispatch.test_themes_dispatches_to_component",
+          "tests/unit/test_figure_theme_service.py::test_built_in_themes_cover_each_context_and_pass_accessibility_audit",
+          "tests/unit/test_figure_theme_service.py::test_apply_changes_only_appearance_and_does_not_mutate_inputs",
+          "tests/unit/test_figure_theme_service.py::test_customize_accepts_appearance_overrides_and_rejects_data_keys",
+          "tests/unit/test_figure_theme_service.py::test_theme_json_round_trip_is_deterministic_and_excludes_live_data_config",
+          "tests/unit/test_figure_theme_service.py::test_theme_import_rejects_unbounded_invalid_or_unsafe_documents",
+          "tests/unit/test_theme_presets_settings.py::test_apply_dark_theme_refreshes_and_clears_only_stale_appearance_widgets",
+          "tests/unit/test_theme_presets_settings.py::test_imported_theme_can_be_reviewed_and_applied",
+          "tests/unit/test_theme_presets_settings.py::test_invalid_import_is_explained_without_changing_the_plot"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/settings.md#reuse-a-figure-theme"
+        ]
+      }
     },
     {
       "id": "figure.panel-composition",
@@ -4329,6 +4367,7 @@
       "data_labels": "figure.data-labels",
       "layout": "figure.layout",
       "legends": "figure.legends",
+      "themes": "figure.theme-presets",
       "typography": "figure.typography"
     },
     "public_exports": {
@@ -4357,6 +4396,7 @@
       "FigureDecorations": "api.figure-decorations",
       "FigureSpec": "api.figure-spec",
       "FigureSpecBuilder": "api.figure-builder",
+      "FigureTheme": "figure.theme-presets",
       "JoinCardinality": "data.validated-joins",
       "JoinDiagnostics": "data.validated-joins",
       "LegendOpts": "api.figure-spec",
@@ -4405,11 +4445,13 @@
     "session_methods": {
       "add_dataset": "data.multi-dataset-workspace",
       "apply_accessible_theme": "figure.accessible-themes",
+      "apply_figure_theme": "figure.theme-presets",
       "apply_semantics": "data.semantic-units",
       "apply_operation": "data.arithmetic",
       "annotate_comparison": "analysis.regression-annotations",
       "append_datasets": "data.multi-dataset-workspace",
       "audit_figure_accessibility": "figure.accessible-themes",
+      "available_figure_themes": "figure.theme-presets",
       "close": "api.session",
       "compare": "analysis.regression-comparison",
       "compare_datasets": "data.multi-dataset-workspace",
@@ -4421,16 +4463,19 @@
       "create_linked_selection": "plots.linked-selections",
       "copy_plot_content": "plots.copy-settings-pipeline",
       "create_small_multiples": "plots.small-multiples",
+      "customize_figure_theme": "figure.theme-presets",
       "dataset_lineage": "data.lineage-undo-redo",
       "diagnose_join": "data.validated-joins",
       "drill_down": "plots.drill-down",
       "delete_dataset_snapshot": "data.dataset-snapshots",
       "export": "export.public-boundary",
       "export_bytes": "export.public-boundary",
+      "export_figure_theme": "figure.theme-presets",
       "get_dataset": "data.multi-dataset-workspace",
       "get_dataset_revision": "data.lineage-undo-redo",
       "infer_schema_contract": "data.schema-contracts",
       "inspect_semantics": "data.semantic-units",
+      "import_figure_theme": "figure.theme-presets",
       "join_datasets": "data.multi-dataset-workspace",
       "join_datasets_validated": "data.validated-joins",
       "list_datasets": "data.multi-dataset-workspace",

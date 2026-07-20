@@ -29,6 +29,7 @@ class TestDefaultPalette:
 
     def test_builtin_palettes_exist(self) -> None:
         assert "ring5_accessible" in PALETTE_REGISTRY
+        assert "ring5_accessible_dark" in PALETTE_REGISTRY
         assert "wong" in PALETTE_REGISTRY
         assert "viridis_8" in PALETTE_REGISTRY
         assert "seaborn_cb" in PALETTE_REGISTRY
@@ -38,6 +39,7 @@ class TestDefaultPalette:
     def test_all_palettes_have_at_least_7_colors(self) -> None:
         for name in (
             "ring5_accessible",
+            "ring5_accessible_dark",
             "wong",
             "viridis_8",
             "seaborn_cb",
@@ -53,6 +55,7 @@ class TestDefaultPalette:
         pattern = re.compile(r"^#[0-9A-Fa-f]{6}$")
         for name in (
             "ring5_accessible",
+            "ring5_accessible_dark",
             "wong",
             "viridis_8",
             "seaborn_cb",

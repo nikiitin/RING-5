@@ -7,11 +7,11 @@ This file is informative; normative items are in the other generated files.
 
 - Feature groups: 13
 - Detailed requirements: 216
-- Approved current requirements: 183
-- Proposed future requirements: 33
+- Approved current requirements: 184
+- Proposed future requirements: 32
 - Draft future requirements: 0
 - Generated specification items: 229
-- Live capability bindings: 675
+- Live capability bindings: 682
 
 ## Requirements by feature group
 
@@ -24,7 +24,7 @@ This file is informative; normative items are in the other generated files.
 | Comparison and Statistical Analysis | 3 | 0 | 0 | 3 |
 | Plot Lifecycle | 13 | 0 | 0 | 13 |
 | Plot Types | 17 | 0 | 0 | 17 |
-| Figure Configuration | 27 | 3 | 0 | 30 |
+| Figure Configuration | 28 | 2 | 0 | 30 |
 | Rendering and Export | 12 | 1 | 0 | 13 |
 | Reproducibility and Portfolios | 8 | 5 | 0 | 13 |
 | Automation API and CLI | 12 | 5 | 0 | 17 |
@@ -57,7 +57,7 @@ This file is informative; normative items are in the other generated files.
 - `parser_strategies`: 2
 - `plot_types`: 17
 - `plotly_formats`: 4
-- `public_exports`: 69
+- `public_exports`: 70
 - `public_shaper_exports`: 15
 - `render_engines`: 2
 - `restore_report_fields`: 5
@@ -65,8 +65,8 @@ This file is informative; normative items are in the other generated files.
 - `scan_result_fields`: 3
 - `scanned_variable_fields`: 4
 - `series_style_config_fields`: 9
-- `session_methods`: 58
-- `settings_sections`: 7
+- `session_methods`: 63
+- `settings_sections`: 8
 - `shaper_config_fields`: 13
 - `shaper_types`: 13
 - `shapers_api_members`: 3
