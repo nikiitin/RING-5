@@ -24,6 +24,10 @@ components preview a result before replacing workspace data. `compare_statistics
 rows within each grouping key as repeated samples and returns bounded deterministic inference
 results without storing service state.
 
+`annotate_comparison` validates a threshold-comparison result and returns a new DataFrame with
+redundant text, shape, and color encodings for improvements, regressions, and tolerated changes.
+The UI renders these values and does not reimplement outcome semantics.
+
 `profile_data` calculates duplicate, missing, constant, infinite, IQR-outlier, and expected-type
 measurements without mutating the input. It returns immutable records so presentation code cannot
 alter the report through a shared DataFrame.

@@ -3181,11 +3181,24 @@
       "id": "analysis.regression-annotations",
       "group": "analysis",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Regression annotations",
       "description": "Plots shall identify improvements and regressions from comparison results using configurable thresholds and metric direction.",
       "tags": ["annotations", "comparison", "regression"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/services/managers/comparison_annotation_service.py::ComparisonAnnotationService.annotate",
+          "ring5/_session.py::Session.annotate_comparison",
+          "src/web/components/data_managers/comparison.py::ComparisonManager.render",
+          "src/web/components/data_managers/comparison.py::ComparisonManager._render_regression_plot"
+        ],
+        "tests": [
+          "tests/unit/test_comparison_annotation_service.py::test_annotations_encode_outcomes_with_text_shape_and_color",
+          "tests/integration/test_ring5_public_api.py::TestRegressionComparison.test_comparison_annotations_are_plot_ready",
+          "tests/e2e/test_data_managers.py::TestRegressionComparison.test_02_comparison_preview"
+        ],
+        "documentation": ["docs/user-guide/guides/compare-configurations.md#read-regression-annotations"]
+      }
     },
     {
       "id": "data.lineage-undo-redo",
@@ -3913,6 +3926,7 @@
     },
     "session_methods": {
       "apply_operation": "data.arithmetic",
+      "annotate_comparison": "analysis.regression-annotations",
       "close": "api.session",
       "compare": "analysis.regression-comparison",
       "compare_statistics": "analysis.statistical-comparison",
@@ -3999,6 +4013,7 @@
     "managers_api_members": {
       "apply_mixer": "data.numeric-mixer",
       "apply_operation": "data.arithmetic",
+      "annotate_comparison": "analysis.regression-annotations",
       "compare": "analysis.regression-comparison",
       "compare_statistics": "analysis.statistical-comparison",
       "list_operators": "data.arithmetic",

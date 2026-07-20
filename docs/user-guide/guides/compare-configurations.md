@@ -68,6 +68,43 @@ comparison = session.compare(
 )
 ```
 
+## Read regression annotations
+
+<!--
+`uman~ring5.analysis.regression-annotations.documentation~1`
+
+Covers:
+- req~ring5.analysis.regression-annotations~1
+
+-->
+
+Threshold comparisons include a **Regression Map** above the result table. Every comparable point
+uses redundant cues so the outcome is not conveyed by color alone:
+
+- ▲ and blue identify an improvement;
+- ▼ and vermillion identify a regression;
+- ● and gray identify a change within the configured tolerance.
+
+The displayed outcome comes from the chosen preferred direction and tolerance. For example, a
+negative change is an improvement when lower values are preferable. Hover a point for its signed
+change and outcome. Missing or non-comparable rows remain in the table but are not placed at a
+misleading zero position on the chart.
+
+For another plotting library, add the same labels and accessible styles to a comparison result:
+
+```python
+annotated = session.annotate_comparison(
+    comparison,
+    label_columns=["benchmark"],
+    change_mode="threshold",
+)
+```
+
+`annotation_label` identifies the point. `annotation_change` is the numeric plotting value, while
+`annotation_text`, `annotation_symbol`, `annotation_marker`, and `annotation_color` provide display
+cues. `change_mode="threshold"` follows the threshold unit stored in each comparison row; use
+`"percentage"` or `"absolute"` to force one scale.
+
 ## Estimate statistical evidence
 
 <!--

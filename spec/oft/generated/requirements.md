@@ -1250,7 +1250,7 @@ Tags: analysis, statistics, status_approved
 ### Regression annotations
 
 `req~ring5.analysis.regression-annotations~1`
-Status: proposed
+Status: approved
 
 Plots shall identify improvements and regressions from comparison results using configurable thresholds and metric direction.
 
@@ -1259,7 +1259,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: annotations, comparison, regression, status_proposed
+Tags: annotations, comparison, regression, status_approved
 
 ## Plot Lifecycle
 

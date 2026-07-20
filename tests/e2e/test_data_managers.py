@@ -266,6 +266,7 @@ class TestRegressionComparison:
     @pytest.mark.order(2)
     def test_02_comparison_preview(self, tier1_page: Page) -> None:
         # [test->req~ring5.analysis.regression-comparison~1]
+        # [test->req~ring5.analysis.regression-annotations~1]
         dm = DataManagersPage(tier1_page)
         _select_dropdown_option(
             tier1_page,
@@ -282,6 +283,7 @@ class TestRegressionComparison:
         dm.wait_for_streamlit()
         dm.apply_comparison()
         expect(dm.comparison_confirm_button).to_be_visible(timeout=_E2E_TIMEOUT)
+        expect(dm.regression_plot).to_be_visible(timeout=_E2E_TIMEOUT)
 
 
 @pytest.mark.xdist_group("e2e_data_managers_statistics")

@@ -44,6 +44,11 @@ metric results. Directions and non-negative tolerances can be global or keyed by
 and absolute threshold modes are supported. Missing keys and non-finite values remain in the result;
 invalid columns, duplicate keys, and invalid options raise `DataValidationError`.
 
+`Session.annotate_comparison` copies a threshold-comparison result and adds plot-ready labels,
+signed changes, outcome text, accessible symbols, Plotly marker names, and color-blind-safe colors.
+It preserves `ring5.Table` inputs. Callers can follow the stored threshold mode or explicitly select
+percentage or absolute changes; malformed comparison schemas raise `DataValidationError`.
+
 `Session.compare_statistics` accepts repeated observations and optional grouping columns. It
 returns Welch confidence intervals and p-values, Hedges' g, deterministic bootstrap estimates and
 intervals, and sample-quality warnings. Confidence, alpha, bootstrap count, seed, and the

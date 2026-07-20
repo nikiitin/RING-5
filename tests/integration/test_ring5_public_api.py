@@ -245,6 +245,56 @@ class TestRegressionComparison:
                     confidence_level=1.0,
                 )
 
+    def test_comparison_annotations_are_plot_ready(self) -> None:
+        # [test->req~ring5.analysis.regression-annotations~1]
+        baseline = pd.DataFrame({"benchmark": ["a"], "ipc": [1.0]})
+        candidate = pd.DataFrame({"benchmark": ["a"], "ipc": [1.2]})
+
+        with ring5.Session() as session:
+            comparison = session.compare(
+                baseline,
+                candidate,
+                ["benchmark"],
+                ["ipc"],
+                thresholds=5.0,
+            )
+            assert isinstance(comparison, pd.DataFrame)
+            annotated = session.annotate_comparison(
+                comparison,
+                label_columns=["benchmark"],
+            )
+
+        assert isinstance(annotated, pd.DataFrame)
+        assert annotated.loc[0, "annotation_label"] == "a · ipc"
+        assert annotated.loc[0, "annotation_text"] == "▲ Improvement: +20.00%"
+
+    def test_comparison_annotations_preserve_table_and_typed_errors(self) -> None:
+        comparison = ring5.Table.from_rows(
+            [
+                {
+                    "benchmark": "a",
+                    "metric": "ipc",
+                    "baseline_name": "main",
+                    "candidate_name": "change",
+                    "baseline_value": 1.0,
+                    "candidate_value": 0.9,
+                    "absolute_change": -0.1,
+                    "percentage_change": -10.0,
+                    "direction": "higher",
+                    "threshold": 2.0,
+                    "threshold_mode": "percentage",
+                    "outcome": "regression",
+                }
+            ]
+        )
+
+        with ring5.Session() as session:
+            annotated = session.annotate_comparison(comparison)
+            assert isinstance(annotated, ring5.Table)
+            assert annotated.rows()[0]["annotation_symbol"] == "▼"
+            with pytest.raises(ring5.DataValidationError, match="missing columns"):
+                session.annotate_comparison(pd.DataFrame({"outcome": ["regression"]}))
+
 
 class TestDataQuality:
     """Inspect dataset quality through the supported public API."""

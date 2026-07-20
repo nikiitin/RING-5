@@ -398,6 +398,11 @@ class DataManagersPage(BasePage):
         """Button that replaces the active data with the comparison result."""
         return self.page.get_by_role("button", name="Use Comparison Result")
 
+    @property
+    def regression_plot(self) -> Locator:
+        """Accessible regression-outcome chart in the comparison preview."""
+        return self.page.locator("[data-testid='stCustomComponentV1']:visible")
+
     def apply_comparison(self) -> None:
         """Calculate the comparison and wait for the preview."""
         self.comparison_apply_button.click()

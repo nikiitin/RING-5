@@ -3,10 +3,12 @@
 from datetime import datetime, timezone
 
 import pandas as pd
+import plotly.graph_objects as go
 import streamlit as st
 
 from src.core.models.history_models import OperationRecord
 from src.web.components.data_managers.data_manager import DataManager
+from src.web.components.plotting.interactive_plot import interactive_plotly_chart
 from src.web.state.ui_state_manager import WidgetKeyBuilder
 
 _PREVIEW_NAME = "regression_comparison"
@@ -24,6 +26,7 @@ class ComparisonManager(DataManager):
         """Render comparison controls and the current result."""
         # [impl->req~ring5.analysis.regression-comparison~1]
         # [impl->req~ring5.analysis.statistical-comparison~1]
+        # [impl->req~ring5.analysis.regression-annotations~1]
         st.markdown("### Compare Baseline and Candidate")
         st.info(
             "Select two experiment groups, the columns that align their rows, and the "
@@ -252,6 +255,12 @@ class ComparisonManager(DataManager):
         for container, (label, value) in zip(summary_columns, labels_and_values, strict=True):
             with container:
                 st.metric(label, value)
+        if "outcome" in preview:
+            annotated = self.api.managers.annotate_comparison(
+                preview,
+                label_columns=key_columns,
+            )
+            self._render_regression_plot(annotated)
         st.dataframe(preview, width="stretch")
         st.download_button(
             "Download comparison CSV",
@@ -276,3 +285,61 @@ class ComparisonManager(DataManager):
             }
             self.api.add_manager_history_record(record)
             st.rerun(scope="app")
+
+    @staticmethod
+    def _render_regression_plot(annotated: pd.DataFrame) -> None:
+        """Render outcome labels with redundant color, shape, text, and legend cues."""
+        # [impl->req~ring5.analysis.regression-annotations~1]
+        finite = pd.to_numeric(annotated["annotation_change"], errors="coerce").replace(
+            [float("inf"), float("-inf")], pd.NA
+        )
+        visible = annotated.loc[finite.notna()].copy()
+        if visible.empty:
+            st.caption("No comparable changes are available for the regression plot.")
+            return
+
+        st.markdown("#### Regression Map")
+        st.caption(
+            "Outcome is encoded redundantly: ▲ blue is improvement, ▼ vermillion is "
+            "regression, and ● gray is within tolerance. Hover a point for its exact result."
+        )
+        figure = go.Figure()
+        for outcome in ("regression", "improvement", "unchanged"):
+            rows = visible.loc[visible["outcome"].eq(outcome)]
+            if rows.empty:
+                continue
+            figure.add_trace(
+                go.Scatter(
+                    x=rows["annotation_label"],
+                    y=rows["annotation_change"],
+                    customdata=rows["annotation_text"].tolist(),
+                    mode="markers+text",
+                    name=outcome.title(),
+                    marker={
+                        "color": rows["annotation_color"].iloc[0],
+                        "size": 12,
+                        "symbol": rows["annotation_marker"].iloc[0],
+                    },
+                    text=rows["annotation_symbol"].astype(str).tolist(),
+                    textposition="top center",
+                    hovertemplate="%{x}<br>%{customdata}<extra></extra>",
+                )
+            )
+        figure.add_hline(y=0.0, line_color="#4B5563", line_width=1)
+        figure.update_layout(
+            title="Candidate change by comparison",
+            xaxis_title="Alignment key and metric",
+            yaxis_title=(
+                "Percentage change (%)"
+                if annotated["threshold_mode"].eq("percentage").all()
+                else "Absolute change"
+            ),
+            legend_title="Outcome",
+            height=480,
+            margin={"l": 60, "r": 20, "t": 60, "b": 120},
+        )
+        interactive_plotly_chart(
+            figure,
+            config={"responsive": True, "displaylogo": False},
+            key=WidgetKeyBuilder.manager_key("comparison", "regression_plot"),
+        )

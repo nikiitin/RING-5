@@ -170,6 +170,25 @@ class ManagersAPI(Protocol):
         """
         raise NotImplementedError
 
+    def annotate_comparison(
+        self,
+        comparison: pd.DataFrame,
+        *,
+        label_columns: Sequence[str] | None = None,
+        change_mode: Literal["threshold", "percentage", "absolute"] = "threshold",
+    ) -> pd.DataFrame:
+        """Prepare accessible plot annotations for comparison rows.
+
+        Args:
+            comparison: Long-form threshold comparison result.
+            label_columns: Columns combined with the metric for point labels.
+            change_mode: Change measurement to expose for plotting.
+
+        Returns:
+            A new DataFrame with annotation labels, text, symbols, and colors.
+        """
+        raise NotImplementedError
+
     def profile_data(
         self,
         data: pd.DataFrame,

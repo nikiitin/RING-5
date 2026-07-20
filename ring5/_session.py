@@ -612,6 +612,41 @@ class Session:
             return _rewrap_table(result)
         return result
 
+    def annotate_comparison(
+        self,
+        comparison: "pd.DataFrame | Table",
+        *,
+        label_columns: Sequence[str] | None = None,
+        change_mode: Literal["threshold", "percentage", "absolute"] = "threshold",
+    ) -> "pd.DataFrame | Table":
+        """Add accessible, plot-ready outcome annotations to comparison rows.
+
+        Args:
+            comparison: Long-form result from :meth:`compare`.
+            label_columns: Columns combined with the metric for point labels.
+                By default, all alignment-key columns are used.
+            change_mode: Use each row's threshold mode, force percentage
+                change, or force absolute change.
+
+        Returns:
+            A copy with annotation label, change, symbol, marker, color, and
+            text columns. A :class:`ring5.Table` input produces a table.
+
+        Raises:
+            DataValidationError: The comparison schema, labels, or mode are invalid.
+        """
+        # [impl->req~ring5.analysis.regression-annotations~1]
+        frame, was_table = _unwrap_table(comparison)
+        try:
+            result = self.api.managers.annotate_comparison(
+                frame,
+                label_columns=label_columns,
+                change_mode=change_mode,
+            )
+        except (TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+        return _rewrap_table(result) if was_table else result
+
     def remove_outliers(
         self,
         data: "pd.DataFrame | Table",

@@ -9,12 +9,15 @@ from typing import Literal
 
 import pandas as pd
 
+from src.core.models.quality_models import DataQualityReport
 from src.core.services.managers.arithmetic_service import ArithmeticService
+from src.core.services.managers.comparison_annotation_service import (
+    ComparisonAnnotationService,
+)
 from src.core.services.managers.comparison_service import ComparisonService
 from src.core.services.managers.outlier_service import OutlierService
 from src.core.services.managers.quality_profile_service import QualityProfileService
 from src.core.services.managers.reduction_service import ReductionService
-from src.core.models.quality_models import DataQualityReport
 from src.core.services.managers.statistical_comparison_service import (
     StatisticalComparisonService,
 )
@@ -160,6 +163,20 @@ class DefaultManagersAPI:
             bootstrap_samples=bootstrap_samples,
             random_seed=random_seed,
             minimum_sample_size=minimum_sample_size,
+        )
+
+    def annotate_comparison(
+        self,
+        comparison: pd.DataFrame,
+        *,
+        label_columns: Sequence[str] | None = None,
+        change_mode: Literal["threshold", "percentage", "absolute"] = "threshold",
+    ) -> pd.DataFrame:
+        """Prepare accessible plot annotations for comparison rows."""
+        return ComparisonAnnotationService.annotate(
+            comparison,
+            label_columns=label_columns,
+            change_mode=change_mode,
         )
 
     def profile_data(
