@@ -26,6 +26,7 @@ from src.core.models.data_models import (
     SavedConfigEntry,
     ScannedVariableDict,
 )
+from src.core.models.accessibility_models import AccessibilityFinding, AccessibilityReport
 from src.core.models.shaper_models import ShaperStepConfig, SplitApplyGroupConfig
 from src.core.models.history_models import OperationRecord
 from src.core.models.quality_models import ColumnQuality, DataQualityReport
@@ -76,6 +77,8 @@ from src.core.models.shaper_models import (
 )
 
 __all__ = [
+    "AccessibilityFinding",
+    "AccessibilityReport",
     "BaseShaperConfig",
     "CacheStatsEntry",
     "CacheStatsInfo",

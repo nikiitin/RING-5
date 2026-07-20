@@ -321,6 +321,7 @@ class PlotDisplayConfig(TypedDict, total=False):
 
     # Color palette
     color_palette: str
+    accessibility_mode: bool
     enable_stripes: bool
 
     # Reference line

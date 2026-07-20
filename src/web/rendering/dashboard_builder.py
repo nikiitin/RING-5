@@ -325,7 +325,9 @@ def _render_plotly_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec) -> 
 
 
 def _render_matplotlib_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec) -> MplFigure:
+    # [impl->req~ring5.figure.accessible-themes~1]
     from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
+    from src.core.services.visualization.accessibility_service import AccessibilityService
     import matplotlib.pyplot as plt
 
     figure, raw_axes = plt.subplots(
@@ -345,7 +347,9 @@ def _render_matplotlib_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec)
             plot.config = SemanticMetadataService.enrich_figure_config(
                 cast(Any, plot.processed_data), plot.config
             )
+            plot.config = AccessibilityService.apply_defaults(plot.config, plot.plot_type)
             result = plot.create_traces(cast(Any, plot.processed_data), plot.config)
+            result = AccessibilityService.apply_non_color_encodings(result, plot.config)
             result = _relabel_traces(result, plot.config.get("legend_labels"))
             plot.last_traces = result
             if sum(isinstance(trace, HeatmapTraceConfig) for trace in result.traces) > 1:

@@ -1003,12 +1003,18 @@ class FigureSpecToMatplotlib:
     @staticmethod
     def _apply_hatching(spec: FigureConfig, ax: Axes) -> None:
         """Apply hatching patterns from hatching_sequence to bar patches."""
+        # [impl->req~ring5.figure.accessible-themes~1]
         if not spec.enable_stripes or not spec.hatching_sequence:
             return
 
-        for i, container in enumerate(ax.containers):
+        from matplotlib.container import BarContainer
+
+        containers = [
+            container for container in ax.containers if isinstance(container, BarContainer)
+        ]
+        for i, container in enumerate(containers):
             pattern = spec.hatching_sequence[i % len(spec.hatching_sequence)]
-            for patch in container:
+            for patch in container.patches:
                 patch.set_hatch(pattern)
 
     @staticmethod

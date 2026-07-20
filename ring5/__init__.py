@@ -70,6 +70,8 @@ from ring5.figure_spec import (
 if TYPE_CHECKING:
     # Static names for mypy/IDEs; at runtime these resolve via __getattr__.
     from src.core.models import (
+        AccessibilityFinding,
+        AccessibilityReport,
         ColumnContract,
         ColumnSemantics,
         DatasetInfo,
@@ -120,6 +122,8 @@ except PackageNotFoundError:  # not installed (e.g. vendored checkout)
 # Heavy exports (they pull pandas/matplotlib/plotly/the web rendering stack)
 # resolved lazily: attribute name -> (module, attribute).
 _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
+    "AccessibilityFinding": ("src.core.models", "AccessibilityFinding"),
+    "AccessibilityReport": ("src.core.models", "AccessibilityReport"),
     "Session": ("ring5._session", "Session"),
     "PlotType": ("ring5._session", "PlotType"),
     "available_plot_types": ("ring5._session", "available_plot_types"),
@@ -204,6 +208,8 @@ __all__ = [
     "__version__",
     # workflow
     "Session",
+    "AccessibilityFinding",
+    "AccessibilityReport",
     "PlotType",
     "available_plot_types",
     "available_shaper_types",

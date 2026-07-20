@@ -111,6 +111,49 @@ Covers:
 Choose a named palette or explicit per-series colors. Colorblind-safe palettes are identified in
 the selector. Background, grid, axis, and transparent paper or plot colors are stored with the plot.
 
+### Accessible figure themes
+
+<!--
+`uman~ring5.figure.accessible-themes.documentation~1`
+
+Covers:
+- req~ring5.figure.accessible-themes~1
+
+-->
+
+In **Manage Plots**, turn on **Show advanced settings**, open **Colors**, and enable
+**Accessible Theme**. On first activation, RING-5 selects **RING-5 Accessible**, a
+color-vision-safe palette whose marks meet a 3:1 contrast target on the default white plot
+background. The theme also supplies dark text, readable font-size defaults, visible mark borders,
+marker symbols for line and scatter series, and hatch patterns for bar series. Those redundant
+symbols and patterns ensure that readers do not have to distinguish series by color alone. The same
+encodings are used by Plotly and Matplotlib.
+
+The **Accessibility Check** immediately reports whether the effective settings pass. It checks the
+palette's color-vision-safe designation, mark-to-background contrast of at least 3:1, text contrast
+of at least 4.5:1, essential text below 10 pt, and non-color encodings when the figure has multiple
+series. A green result means those concrete checks passed; it is not a claim that every reader or
+assistive technology can interpret the final figure. If a custom palette, background, or text color
+breaks a check, the panel lists the affected component, measured ratio where available, and the
+action needed.
+For a multi-series plot without a verified redundant encoding, or for more than eight series, the
+check fails instead of claiming coverage that the rendered marks do not provide.
+
+Scripts can apply and inspect the same profile before rendering:
+
+```python
+import ring5
+
+with ring5.Session() as session:
+    config = session.apply_accessible_theme(
+        {"x": "phase", "y": "ipc", "color": "variant"},
+        "line",
+    )
+    report = session.audit_figure_accessibility(config, "line", series_count=2)
+    if not report.passed:
+        print(report.to_frame())
+```
+
 ### Data labels
 
 <!--

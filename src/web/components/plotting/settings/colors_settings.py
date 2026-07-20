@@ -21,6 +21,7 @@ from src.core.services.visualization.palette_service import (
     is_colorblind_safe,
     resolve_palette,
 )
+from src.core.services.visualization.accessibility_service import AccessibilityService
 from src.web.components.common.bounded_options import (
     bounded_unique_strings,
     stable_widget_suffix,
@@ -73,19 +74,56 @@ class ColorsSettingsComponent:
             keys.
         """
         # [impl->req~ring5.figure.colors~1]
+        # [impl->req~ring5.figure.accessible-themes~1]
+        transition_key = f"_ring5_accessibility_mode_seen_{self.plot_id}"
+        previous_accessibility_mode = bool(
+            st.session_state.get(
+                transition_key,
+                saved_config.get("accessibility_mode", False),
+            )
+        )
+        accessibility_mode = (
+            toggle(
+                "Accessible Theme",
+                saved_config,
+                "accessibility_mode",
+                self.plot_id,
+                widget_key=f"accessible_theme_{self.plot_id}",
+                help=(
+                    "Use color-vision-safe defaults and add patterns or marker symbols so "
+                    "series do not rely on color alone."
+                ),
+            )
+            is True
+        )
+        accessibility_just_enabled = accessibility_mode and not previous_accessibility_mode
+        st.session_state[transition_key] = accessibility_mode
+        if accessibility_mode:
+            st.info(
+                "Accessible theme is active. Contrast and redundant encodings are checked below."
+            )
+
         # Palette selector
         st.markdown("#### :material/palette: Color Palette")
         palette_names = get_palette_names()
-        saved_palette = saved_config.get("color_palette", "wong")
+        default_palette = "ring5_accessible" if accessibility_mode else "wong"
+        palette_widget_key = f"palette_select_{self.plot_id}"
+        if accessibility_just_enabled:
+            st.session_state[palette_widget_key] = default_palette
+        saved_palette = (
+            default_palette
+            if accessibility_just_enabled
+            else saved_config.get("color_palette", default_palette)
+        )
         if isinstance(saved_palette, list):
             current_palette = next(
                 (name for name, colors in PALETTE_REGISTRY.items() if colors == saved_palette),
-                "wong",
+                default_palette,
             )
         elif isinstance(saved_palette, str):
             current_palette = saved_palette
         else:
-            current_palette = "wong"
+            current_palette = default_palette
         palette_config = {**saved_config, "color_palette": current_palette}
 
         def _fmt_palette(name: str) -> str:
@@ -100,10 +138,13 @@ class ColorsSettingsComponent:
             palette_config,
             "color_palette",
             self.plot_id,
-            widget_key=f"palette_select_{self.plot_id}",
-            default="wong",
+            widget_key=palette_widget_key,
+            default=default_palette,
             format_func=_fmt_palette,
-            help=("Palettes marked \u2713 are colorblind-safe." " Wong (default) is recommended."),
+            help=(
+                "Palettes marked ✓ are color-vision-safe. RING-5 Accessible also meets the "
+                "3:1 mark-contrast target on white."
+            ),
         )
 
         palette_colors = resolve_palette(selected_palette)
@@ -117,7 +158,10 @@ class ColorsSettingsComponent:
         )
         st.markdown(swatch_html, unsafe_allow_html=True)
 
-        config: PlotConfig = {"color_palette": selected_palette}
+        config: PlotConfig = {
+            "color_palette": selected_palette,
+            "accessibility_mode": accessibility_mode,
+        }
 
         st.markdown("---")
 
@@ -142,6 +186,32 @@ class ColorsSettingsComponent:
         # Backgrounds & Grid
         bg_config = self._render_backgrounds_section(saved_config, key_prefix="theme_")
         config.update(bg_config)
+
+        if accessibility_mode:
+            config = AccessibilityService.apply_defaults(config, self.plot_type)
+            series_count = max(
+                1,
+                len(self._get_unique_values(saved_config, data, items)),
+            )
+            report = AccessibilityService.audit(
+                {**saved_config, **config},
+                self.plot_type,
+                series_count=series_count,
+            )
+            st.markdown("#### Accessibility Check")
+            if report.passed:
+                st.success(
+                    "Accessibility check passed: palette, contrast, text, and non-color "
+                    "encodings are ready."
+                )
+            else:
+                st.error(f"Accessibility check found {report.issue_count} item(s) to resolve.")
+            if report.findings:
+                st.dataframe(report.to_frame(), width="stretch", hide_index=True)
+        else:
+            st.caption(
+                "Turn on Accessible Theme to validate contrast and add redundant mark encodings."
+            )
 
         return config
 

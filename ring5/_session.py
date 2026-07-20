@@ -13,6 +13,7 @@ import pandas as pd
 
 from src.core.application_api import ApplicationAPI
 from src.core.models import (
+    AccessibilityReport,
     ColumnSemantics,
     DataQualityReport,
     DashboardSpec,
@@ -1047,6 +1048,68 @@ class Session:
         """Return canonical unit symbols accepted by :meth:`convert_unit`."""
         # [impl->req~ring5.data.semantic-units~1]
         return self.api.managers.supported_units()
+
+    def apply_accessible_theme(
+        self,
+        config: Mapping[str, Any],
+        plot_type: str,
+    ) -> dict[str, Any]:
+        """Enable cross-engine accessible defaults for a figure configuration.
+
+        Args:
+            config: Flat figure configuration to copy and enrich.
+            plot_type: Registered plot type whose marks determine redundant encodings.
+
+        Returns:
+            A newly allocated configuration with accessibility mode enabled.
+
+        Raises:
+            DataValidationError: The configuration or plot type is invalid.
+        """
+        # [impl->req~ring5.figure.accessible-themes~1]
+        from src.core.services.visualization.accessibility_service import AccessibilityService
+
+        if not isinstance(config, Mapping):
+            raise DataValidationError("Figure accessibility configuration must be a mapping.")
+        if not isinstance(plot_type, str) or not plot_type.strip():
+            raise DataValidationError("Figure accessibility requires a plot type.")
+        enabled = copy.deepcopy(dict(config))
+        enabled["accessibility_mode"] = True
+        return AccessibilityService.apply_defaults(enabled, plot_type.strip())
+
+    def audit_figure_accessibility(
+        self,
+        config: Mapping[str, Any],
+        plot_type: str,
+        *,
+        series_count: int = 1,
+    ) -> AccessibilityReport:
+        """Audit palette safety, contrast, text sizes, and redundant encodings.
+
+        Args:
+            config: Flat figure configuration to audit without mutation.
+            plot_type: Plot type whose marks determine redundant encodings.
+            series_count: Number of independently identified visual series.
+
+        Returns:
+            Immutable findings with ratios and a pass/fail summary.
+
+        Raises:
+            DataValidationError: Inputs or colors cannot be validated.
+        """
+        # [impl->req~ring5.figure.accessible-themes~1]
+        from src.core.services.visualization.accessibility_service import AccessibilityService
+
+        if not isinstance(config, Mapping):
+            raise DataValidationError("Figure accessibility configuration must be a mapping.")
+        try:
+            return AccessibilityService.audit(
+                dict(config),
+                plot_type,
+                series_count=series_count,
+            )
+        except (TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
 
     def shape(
         self, data: "pd.DataFrame | Table", pipeline: list[ShaperStepConfig]

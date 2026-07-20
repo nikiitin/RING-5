@@ -145,3 +145,31 @@ class TestSettingsPills:
         mp = ManagePlotsPage(tier2_page)
         mp.toggle_advanced_settings()
         expect(mp.viz_advanced_section_pill).to_be_visible(timeout=E2E_TIMEOUT)
+
+
+@pytest.mark.xdist_group("e2e_accessible_theme")
+class TestAccessibleTheme:
+    """Human-facing accessible-theme workflow."""
+
+    def test_enable_theme_selects_safe_palette_and_passes_visible_audit(
+        self,
+        tier2_page: Page,
+    ) -> None:
+        # [test->req~ring5.figure.accessible-themes~1]
+        mp = ManagePlotsPage(tier2_page)
+        mp.toggle_advanced_settings()
+        mp.viz_advanced_section_pill.click()
+        mp.wait_for_streamlit()
+
+        expect(mp.accessible_theme_checkbox).to_be_visible(timeout=E2E_TIMEOUT)
+        mp.accessible_theme_control.locator("label").click()
+        mp.wait_for_streamlit(timeout=E2E_TIMEOUT, expect_rerun=True)
+
+        expect(mp.accessible_theme_checkbox).to_be_checked(timeout=E2E_TIMEOUT)
+        expect(mp.color_palette_selectbox.get_by_role("combobox")).to_have_value(
+            "✓ Ring5 Accessible",
+            timeout=E2E_TIMEOUT,
+        )
+        expect(mp.accessibility_check_success).to_be_visible(timeout=E2E_TIMEOUT)
+        mp.refresh_plot()
+        mp.assert_chart_visible(timeout=CHART_TIMEOUT)

@@ -2054,7 +2054,7 @@ Tags: markers, series, status_approved, styles
 ### Accessible figure themes
 
 `req~ring5.figure.accessible-themes~1`
-Status: proposed
+Status: approved
 
 Figure configuration shall provide color-vision-safe palettes, contrast validation, non-color encodings, and accessible defaults for text and marks.
 
@@ -2063,7 +2063,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: accessibility, figures, status_proposed, themes
+Tags: accessibility, figures, status_approved, themes
 
 ### Figure theme presets
 

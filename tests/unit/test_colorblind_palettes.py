@@ -28,6 +28,7 @@ class TestDefaultPalette:
         assert spec.color_palette == expected_wong
 
     def test_builtin_palettes_exist(self) -> None:
+        assert "ring5_accessible" in PALETTE_REGISTRY
         assert "wong" in PALETTE_REGISTRY
         assert "viridis_8" in PALETTE_REGISTRY
         assert "seaborn_cb" in PALETTE_REGISTRY
@@ -35,7 +36,14 @@ class TestDefaultPalette:
         assert "okabe_ito" in PALETTE_REGISTRY
 
     def test_all_palettes_have_at_least_7_colors(self) -> None:
-        for name in ("wong", "viridis_8", "seaborn_cb", "tol_bright", "okabe_ito"):
+        for name in (
+            "ring5_accessible",
+            "wong",
+            "viridis_8",
+            "seaborn_cb",
+            "tol_bright",
+            "okabe_ito",
+        ):
             colors = PALETTE_REGISTRY[name]
             assert len(colors) >= 7, f"Palette {name} has only {len(colors)} colors"
 
@@ -43,7 +51,14 @@ class TestDefaultPalette:
         import re
 
         pattern = re.compile(r"^#[0-9A-Fa-f]{6}$")
-        for name in ("wong", "viridis_8", "seaborn_cb", "tol_bright", "okabe_ito"):
+        for name in (
+            "ring5_accessible",
+            "wong",
+            "viridis_8",
+            "seaborn_cb",
+            "tol_bright",
+            "okabe_ito",
+        ):
             for c in PALETTE_REGISTRY[name]:
                 assert pattern.match(c), f"Invalid hex in {name}: {c}"
 
@@ -112,6 +127,33 @@ class TestPaletteSelector:
         assert len(html_calls) >= 1
         html = html_calls[0].args[0]
         assert "background:#000000" in html or "background: #000000" in html
+
+    @patch("src.web.components.plotting.settings.colors_settings.select_option")
+    @patch("src.web.components.plotting.settings.colors_settings.toggle")
+    @patch("src.web.components.plotting.settings.colors_settings.st")
+    def test_accessible_theme_selects_safe_defaults_and_shows_audit_result(
+        self,
+        mock_st: MagicMock,
+        mock_toggle: MagicMock,
+        mock_select_option: MagicMock,
+    ) -> None:
+        # [test->req~ring5.figure.accessible-themes~1]
+        mock_toggle.return_value = True
+        mock_select_option.return_value = "ring5_accessible"
+        mock_st.session_state = {}
+        comp = self._make_component()
+        comp._render_series_section = MagicMock(return_value={})
+        comp._render_backgrounds_section = MagicMock(return_value={})
+
+        result = comp.render({"color_palette": "Pastel"})
+
+        assert result["accessibility_mode"] is True
+        assert result["color_palette"] == "ring5_accessible"
+        assert result["enable_stripes"] is True
+        assert result["xaxis_tickfont_size"] == 12
+        assert mock_st.session_state["palette_select_1"] == "ring5_accessible"
+        assert mock_select_option.call_args.args[2]["color_palette"] == "ring5_accessible"
+        mock_st.success.assert_called_once()
 
 
 class TestCssRgbToHex:

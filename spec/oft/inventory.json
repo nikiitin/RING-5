@@ -3843,11 +3843,42 @@
       "id": "figure.accessible-themes",
       "group": "figure-configuration",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Accessible figure themes",
       "description": "Figure configuration shall provide color-vision-safe palettes, contrast validation, non-color encodings, and accessible defaults for text and marks.",
       "tags": ["accessibility", "figures", "themes"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "ring5/_render.py::render_figure",
+          "ring5/_session.py::Session.apply_accessible_theme",
+          "ring5/_session.py::Session.audit_figure_accessibility",
+          "src/core/models/accessibility_models.py::AccessibilityFinding",
+          "src/core/models/accessibility_models.py::AccessibilityReport",
+          "src/core/models/visualization/palettes.py::_AccessiblePalette",
+          "src/core/services/visualization/accessibility_service.py::AccessibilityService.apply_defaults",
+          "src/core/services/visualization/accessibility_service.py::AccessibilityService.apply_non_color_encodings",
+          "src/core/services/visualization/accessibility_service.py::AccessibilityService.audit",
+          "src/web/components/plotting/settings/colors_settings.py::ColorsSettingsComponent.render",
+          "src/web/pages/ui/plotting/base_plot.py::BasePlot.create_figure",
+          "src/web/rendering/dashboard_builder.py::_render_matplotlib_dashboard",
+          "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_hatching",
+          "src/web/rendering/matplotlib_trace_renderer.py::MatplotlibTraceRenderer._draw_bar"
+        ],
+        "tests": [
+          "tests/e2e/test_settings.py::TestAccessibleTheme.test_enable_theme_selects_safe_palette_and_passes_visible_audit",
+          "tests/integration/test_accessible_theme_public_api.py::test_accessible_theme_passes_audit_and_encodes_lines_and_bars_without_color_alone",
+          "tests/integration/test_accessible_theme_public_api.py::test_accessibility_public_errors_are_typed",
+          "tests/unit/test_accessibility_service.py::test_accessible_defaults_are_explicit_and_do_not_mutate_input",
+          "tests/unit/test_accessibility_service.py::test_accessible_profile_passes_color_contrast_and_redundancy_audit",
+          "tests/unit/test_accessibility_service.py::test_audit_exposes_unsafe_palette_contrast_text_and_encoding_issues",
+          "tests/unit/test_accessibility_service.py::test_non_color_encodings_are_engine_independent_and_non_mutating",
+          "tests/unit/test_accessibility_service.py::test_wcag_contrast_and_audit_input_validation",
+          "tests/unit/test_colorblind_palettes.py::TestPaletteSelector.test_accessible_theme_selects_safe_defaults_and_shows_audit_result"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/settings.md#accessible-figure-themes"
+        ]
+      }
     },
     {
       "id": "figure.theme-presets",
@@ -4301,6 +4332,8 @@
       "typography": "figure.typography"
     },
     "public_exports": {
+      "AccessibilityFinding": "figure.accessible-themes",
+      "AccessibilityReport": "figure.accessible-themes",
       "ColumnContract": "data.schema-contracts",
       "ColumnSemantics": "data.semantic-units",
       "ColumnNotFoundError": "api.typed-errors",
@@ -4371,10 +4404,12 @@
     },
     "session_methods": {
       "add_dataset": "data.multi-dataset-workspace",
+      "apply_accessible_theme": "figure.accessible-themes",
       "apply_semantics": "data.semantic-units",
       "apply_operation": "data.arithmetic",
       "annotate_comparison": "analysis.regression-annotations",
       "append_datasets": "data.multi-dataset-workspace",
+      "audit_figure_accessibility": "figure.accessible-themes",
       "close": "api.session",
       "compare": "analysis.regression-comparison",
       "compare_datasets": "data.multi-dataset-workspace",

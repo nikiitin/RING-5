@@ -10,6 +10,7 @@ import plotly.graph_objects as go
 from src.core.models.data_models import PipelineStep
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
+from src.core.services.visualization.accessibility_service import AccessibilityService
 from src.web.models.plot_models import PlotConfig
 from src.web.rendering.relayout import update_config_from_relayout
 from src.web.pages.ui.plotting.plot_config_ui import PlotConfigUIMixin
@@ -84,6 +85,7 @@ class BasePlot(PlotConfigUIMixin, ABC):
     def create_figure(self, data: pd.DataFrame, config: PlotConfig) -> go.Figure:
         # [impl->req~ring5.render.engine-independent-traces~1]
         # [impl->req~ring5.data.semantic-units~1]
+        # [impl->req~ring5.figure.accessible-themes~1]
         """
         Create the Plotly figure from data and configuration.
 
@@ -100,10 +102,12 @@ class BasePlot(PlotConfigUIMixin, ABC):
         from src.web.rendering.trace_to_plotly import traces_to_plotly
 
         effective_config = SemanticMetadataService.enrich_figure_config(data, config)
+        effective_config = AccessibilityService.apply_defaults(effective_config, self.plot_type)
         if effective_config is not config:
             self.config = effective_config
             config = self.config
         result = self.create_traces(data, config)
+        result = AccessibilityService.apply_non_color_encodings(result, config)
         # Apply legend relabeling once, engine-agnostically, so both Plotly and
         # Matplotlib (which renders from ``last_traces``) show the custom names.
         result = _relabel_traces(result, config.get("legend_labels"))

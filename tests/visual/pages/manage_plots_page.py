@@ -440,6 +440,28 @@ class ManagePlotsPage(BasePage):
         return self.viz_settings_pills.get_by_role("radio", name="Colors")
 
     @property
+    def accessible_theme_control(self) -> Locator:
+        """Opt-in accessible figure theme widget in the Colors settings section."""
+        return self._by_label("stCheckbox", "Accessible Theme")
+
+    @property
+    def accessible_theme_checkbox(self) -> Locator:
+        """Accessible-theme checkbox input used to assert its current state."""
+        return self.accessible_theme_control.get_by_role("checkbox", name="Accessible Theme")
+
+    @property
+    def color_palette_selectbox(self) -> Locator:
+        """Palette selector in the Colors settings section."""
+        return self._by_label("stSelectbox", "Palette")
+
+    @property
+    def accessibility_check_success(self) -> Locator:
+        """Human-readable successful figure-accessibility audit."""
+        return self.page.locator("[data-testid='stAlertContentSuccess']").filter(
+            has_text="Accessibility check passed"
+        )
+
+    @property
     def viz_engine_pills(self) -> Locator:
         """Engine selector pills (plotly / matplotlib)."""
         return self.page.get_by_role("radiogroup", name="Engine")
