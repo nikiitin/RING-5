@@ -8,6 +8,7 @@ import pandas as pd
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
+from src.core.models.dataset_workspace_models import JoinCardinality
 from src.web.state.ui_state_manager import WidgetKeyBuilder
 
 _COMPARISON_PREVIEW = "workspace_dataset_comparison"
@@ -181,6 +182,7 @@ class DatasetWorkspaceManager:
             st.dataframe(preview, width="stretch")
 
     def _render_join(self, names: list[str]) -> None:
+        # [impl->req~ring5.data.validated-joins~1]
         left_name, right_name = self._two_dataset_selectors(names, "join")
         left = self.api.get_dataset(left_name)
         right = self.api.get_dataset(right_name)
@@ -201,17 +203,86 @@ class DatasetWorkspaceManager:
                 key=WidgetKeyBuilder.manager_key("workspace", "join_mode"),
             ),
         )
+        cardinality_labels: dict[str, JoinCardinality] = {
+            "One left row to one right row": "one_to_one",
+            "One left row to many right rows": "one_to_many",
+            "Many left rows to one right row": "many_to_one",
+            "Many rows on both sides": "many_to_many",
+        }
+        cardinality_label = str(
+            st.selectbox(
+                "Expected key relationship",
+                list(cardinality_labels),
+                key=WidgetKeyBuilder.manager_key("workspace", "join_cardinality"),
+            )
+        )
+        cardinality = cardinality_labels[cardinality_label]
         output = st.text_input(
             "Joined dataset name",
             value=f"{left_name}_{right_name}_joined",
             key=WidgetKeyBuilder.manager_key("workspace", "join_output"),
         )
+
+        diagnostics = None
+        if keys:
+            try:
+                diagnostics = self.api.diagnose_join(
+                    left_name,
+                    right_name,
+                    keys,
+                    cardinality=cardinality,
+                )
+            except (KeyError, TypeError, ValueError) as exc:
+                st.error(str(exc))
+            else:
+                status, duplicates, unmatched = st.columns(3)
+                with status:
+                    st.metric(
+                        "Cardinality",
+                        "Valid" if diagnostics.cardinality_valid else "Conflict",
+                    )
+                with duplicates:
+                    st.metric(
+                        "Duplicate-key rows",
+                        diagnostics.left_duplicate_key_rows + diagnostics.right_duplicate_key_rows,
+                        help=(
+                            f"Left: {diagnostics.left_duplicate_key_rows}; "
+                            f"right: {diagnostics.right_duplicate_key_rows}"
+                        ),
+                    )
+                with unmatched:
+                    st.metric(
+                        "Unmatched rows",
+                        diagnostics.left_unmatched_rows + diagnostics.right_unmatched_rows,
+                        help=(
+                            f"Left: {diagnostics.left_unmatched_rows}; "
+                            f"right: {diagnostics.right_unmatched_rows}"
+                        ),
+                    )
+                if diagnostics.cardinality_valid:
+                    st.success(
+                        f"Key relationship is valid; {diagnostics.matched_key_count} distinct "
+                        "keys match on both sides."
+                    )
+                else:
+                    st.warning(
+                        "Duplicate keys conflict with the selected relationship. Choose the "
+                        "intended relationship or correct the source keys before joining."
+                    )
         if st.button(
-            "Join Retained Datasets",
+            "Validate and Join Datasets",
+            disabled=diagnostics is None or not diagnostics.cardinality_valid,
             key=WidgetKeyBuilder.manager_key("workspace", "join_apply"),
         ):
             try:
-                self.api.join_datasets(left_name, right_name, output, keys, how=how)
+                self.api.join_datasets_validated(
+                    left_name,
+                    right_name,
+                    output,
+                    keys,
+                    cardinality=cardinality,
+                    how=how,
+                )
             except (KeyError, TypeError, ValueError) as exc:
                 st.error(str(exc))
             else:

@@ -3302,11 +3302,30 @@
       "id": "data.validated-joins",
       "group": "data-management",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Validated dataset joins",
       "description": "Users shall join named datasets with explicit cardinality validation and diagnostics for duplicate keys and unmatched rows.",
       "tags": ["data", "joins", "validation"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/models/dataset_workspace_models.py::JoinDiagnostics",
+          "src/core/services/managers/dataset_workspace_service.py::DatasetWorkspaceService.diagnose_join",
+          "src/core/services/managers/dataset_workspace_service.py::DatasetWorkspaceService.validated_join",
+          "src/core/application_api.py::ApplicationAPI.diagnose_join",
+          "src/core/application_api.py::ApplicationAPI.join_datasets_validated",
+          "ring5/_session.py::Session.diagnose_join",
+          "ring5/_session.py::Session.join_datasets_validated",
+          "src/web/components/data_managers/dataset_workspace.py::DatasetWorkspaceManager._render_join"
+        ],
+        "tests": [
+          "tests/unit/test_dataset_workspace_service.py::test_validated_join_reports_duplicates_unmatched_rows_and_cardinality",
+          "tests/integration/test_ring5_public_api.py::TestValidatedDatasetJoins.test_diagnose_and_execute_validated_join",
+          "tests/e2e/test_data_managers.py::TestNamedDatasetWorkspace.test_join_cardinality_diagnostics_gate_output"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/managing-datasets.md#validate-joins-before-creating-output"
+        ]
+      }
     },
     {
       "id": "data.schema-contracts",
@@ -3967,6 +3986,8 @@
       "FigureDecorations": "api.figure-decorations",
       "FigureSpec": "api.figure-spec",
       "FigureSpecBuilder": "api.figure-builder",
+      "JoinCardinality": "data.validated-joins",
+      "JoinDiagnostics": "data.validated-joins",
       "LegendOpts": "api.figure-spec",
       "MissingStatError": "api.typed-errors",
       "ParseError": "api.typed-errors",
@@ -4013,12 +4034,14 @@
       "compare_statistics": "analysis.statistical-comparison",
       "create_plot": "plots.create-multiple",
       "dataset_lineage": "data.lineage-undo-redo",
+      "diagnose_join": "data.validated-joins",
       "export": "export.public-boundary",
       "export_bytes": "export.public-boundary",
       "get_dataset": "data.multi-dataset-workspace",
       "get_dataset_revision": "data.lineage-undo-redo",
       "infer_schema_contract": "data.schema-contracts",
       "join_datasets": "data.multi-dataset-workspace",
+      "join_datasets_validated": "data.validated-joins",
       "list_datasets": "data.multi-dataset-workspace",
       "load": "ingestion.csv-load",
       "load_portfolio": "portfolio.restore",
@@ -4092,7 +4115,9 @@
       "get_simulator_info": "ingestion.simulator-registry",
       "get_visualization_config": "plots.independent-state",
       "has_preview": "data.preview-confirm",
+      "diagnose_join": "data.validated-joins",
       "join_datasets": "data.multi-dataset-workspace",
+      "join_datasets_validated": "data.validated-joins",
       "list_datasets": "data.multi-dataset-workspace",
       "load_configuration": "data.saved-pipeline-configurations",
       "load_csv_file": "ingestion.csv-load",
@@ -4125,6 +4150,7 @@
       "append_datasets": "data.multi-dataset-workspace",
       "compare": "analysis.regression-comparison",
       "compare_statistics": "analysis.statistical-comparison",
+      "diagnose_join": "data.validated-joins",
       "infer_schema_contract": "data.schema-contracts",
       "list_operators": "data.arithmetic",
       "join_datasets": "data.multi-dataset-workspace",
@@ -4134,7 +4160,8 @@
       "validate_merge_inputs": "data.numeric-mixer",
       "validate_outlier_inputs": "data.outlier-removal",
       "validate_schema": "data.schema-contracts",
-      "validate_seeds_reducer_inputs": "data.seed-reduction"
+      "validate_seeds_reducer_inputs": "data.seed-reduction",
+      "validated_join": "data.validated-joins"
     },
     "data_services_api_members": {
       "add_to_csv_pool": "ingestion.csv-pool",

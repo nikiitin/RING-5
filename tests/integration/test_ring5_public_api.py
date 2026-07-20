@@ -465,6 +465,64 @@ class TestNamedDatasetWorkspace:
                 session.compare_datasets("missing", "two", ["key"], ["value"])
 
 
+class TestValidatedDatasetJoins:
+    """Diagnose and enforce named-dataset join relationships."""
+
+    def test_diagnose_and_execute_validated_join(self) -> None:
+        # [test->req~ring5.data.validated-joins~1]
+        left = pd.DataFrame({"key": [1, 2, 4], "name": ["a", "b", "d"]})
+        right = pd.DataFrame({"key": [1, 1, 3], "value": [10, 11, 30]})
+
+        with ring5.Session() as session:
+            session.add_dataset("left", left)
+            session.add_dataset("right", right, select=False)
+            diagnostics = session.diagnose_join(
+                "left",
+                "right",
+                ["key"],
+                cardinality="one_to_many",
+            )
+            joined, confirmed = session.join_datasets_validated(
+                "left",
+                "right",
+                "joined",
+                ["key"],
+                cardinality="one_to_many",
+            )
+
+            assert isinstance(diagnostics, ring5.JoinDiagnostics)
+            assert diagnostics.cardinality_valid is True
+            assert diagnostics.right_duplicate_key_rows == 2
+            assert diagnostics.left_unmatched_rows == 2
+            assert diagnostics.right_unmatched_rows == 1
+            assert diagnostics.matched_key_count == 1
+            assert confirmed == diagnostics
+            assert joined["value"].tolist() == [10, 11]
+            pd.testing.assert_frame_equal(joined, session.get_dataset("joined"))
+            assert "one-to-many" in session.dataset_lineage("joined").revisions[0].operation
+
+    def test_cardinality_conflicts_are_typed_and_do_not_store_output(self) -> None:
+        with ring5.Session() as session:
+            session.add_dataset("left", pd.DataFrame({"key": [1, 2]}))
+            session.add_dataset("right", pd.DataFrame({"key": [1, 1]}), select=False)
+            with pytest.raises(ring5.DataValidationError, match="Expected a one-to-one join"):
+                session.join_datasets_validated(
+                    "left",
+                    "right",
+                    "invalid",
+                    ["key"],
+                    cardinality="one_to_one",
+                )
+            assert "invalid" not in {info.name for info in session.list_datasets()}
+            with pytest.raises(ring5.DataValidationError, match="Invalid join cardinality"):
+                session.diagnose_join(
+                    "left",
+                    "right",
+                    ["key"],
+                    cardinality="invalid",  # type: ignore[arg-type]
+                )
+
+
 class TestDatasetLineageAndRecovery:
     """Inspect and recover named dataset states through the supported API."""
 

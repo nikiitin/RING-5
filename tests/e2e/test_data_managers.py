@@ -356,6 +356,44 @@ class TestNamedDatasetWorkspace:
         dm.redo_workspace_dataset()
         expect(dm.workspace_undo_button).to_be_enabled(timeout=_E2E_TIMEOUT)
 
+    def test_join_cardinality_diagnostics_gate_output(self, tier1_page: Page) -> None:
+        # [test->req~ring5.data.validated-joins~1]
+        dm = DataManagersPage(tier1_page)
+        dm.navigate()
+        dm.select_tab("Workspace")
+        dm.retain_current_dataset("join_left")
+        dm.retain_current_dataset("join_right")
+        before_count = int(dm.workspace_dataset_metric_value.inner_text())
+
+        _select_dropdown_option(tier1_page, dm.workspace_operation_selectbox, "Join")
+        dm.wait_for_streamlit()
+        _select_dropdown_option(tier1_page, dm.workspace_join_left, "join_left")
+        dm.wait_for_streamlit()
+        _select_dropdown_option(tier1_page, dm.workspace_join_right, "join_right")
+        dm.wait_for_streamlit()
+        dm.workspace_join_output_input.fill("validated_join_output")
+        _add_multiselect_option(tier1_page, dm.workspace_join_keys, "benchmark_name")
+        dm.wait_for_streamlit()
+        expect(dm.workspace_cardinality_metric).to_contain_text(
+            "Conflict",
+            timeout=_E2E_TIMEOUT,
+        )
+        expect(dm.workspace_join_button).to_be_disabled()
+
+        _select_dropdown_option(
+            tier1_page,
+            dm.workspace_join_cardinality,
+            "Many rows on both sides",
+        )
+        dm.wait_for_streamlit()
+        expect(dm.workspace_cardinality_metric).to_contain_text("Valid", timeout=_E2E_TIMEOUT)
+        expect(dm.workspace_join_button).to_be_enabled()
+        dm.join_workspace_datasets()
+        expect(dm.workspace_dataset_metric_value).to_have_text(
+            str(before_count + 1),
+            timeout=_E2E_TIMEOUT,
+        )
+
 
 @pytest.mark.xdist_group("e2e_data_managers_quality")
 class TestDataQualityProfile:

@@ -12,6 +12,8 @@ from src.core.models import (
     DatasetInfo,
     DatasetLineage,
     DatasetRevision,
+    JoinCardinality,
+    JoinDiagnostics,
     ParseBatchResult,
     ScanFileResult,
     ScannedVariable,
@@ -307,6 +309,60 @@ class ApplicationAPI:
             source_datasets=(left_name, right_name),
         )
         return result.copy(deep=True)
+
+    def diagnose_join(
+        self,
+        left_name: str,
+        right_name: str,
+        on: Sequence[str],
+        *,
+        cardinality: JoinCardinality,
+    ) -> JoinDiagnostics:
+        """Diagnose named-dataset join keys without changing workspace data."""
+        # [impl->req~ring5.data.validated-joins~1]
+        left = self.state_manager.get_dataset(left_name)
+        right = self.state_manager.get_dataset(right_name)
+        return self.managers.diagnose_join(
+            left,
+            right,
+            on,
+            cardinality=cardinality,
+        )
+
+    def join_datasets_validated(
+        self,
+        left_name: str,
+        right_name: str,
+        output_name: str,
+        on: Sequence[str],
+        *,
+        cardinality: JoinCardinality,
+        how: Literal["inner", "left", "right", "outer"] = "inner",
+        suffixes: tuple[str, str] = ("_left", "_right"),
+        select: bool = True,
+        replace: bool = False,
+    ) -> tuple[pd.DataFrame, JoinDiagnostics]:
+        """Validate cardinality, join named datasets, and retain the result."""
+        # [impl->req~ring5.data.validated-joins~1]
+        left = self.state_manager.get_dataset(left_name)
+        right = self.state_manager.get_dataset(right_name)
+        result, diagnostics = self.managers.validated_join(
+            left,
+            right,
+            on,
+            cardinality=cardinality,
+            how=how,
+            suffixes=suffixes,
+        )
+        self.add_dataset(
+            output_name,
+            result,
+            select=select,
+            replace=replace,
+            operation=(f"Validated {cardinality.replace('_', '-')} {how} join on {', '.join(on)}"),
+            source_datasets=(left_name, right_name),
+        )
+        return result.copy(deep=True), diagnostics
 
     def compare_datasets(
         self,

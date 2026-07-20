@@ -35,7 +35,13 @@ from src.core.models.schema_contract_models import (
     SchemaValidationReport,
     SchemaViolation,
 )
-from src.core.models.dataset_workspace_models import DatasetInfo, DatasetLineage, DatasetRevision
+from src.core.models.dataset_workspace_models import (
+    DatasetInfo,
+    DatasetLineage,
+    DatasetRevision,
+    JoinCardinality,
+    JoinDiagnostics,
+)
 from src.core.models.parsing_models import (
     ParseBatchResult,
     ScanFileResult,
@@ -74,6 +80,8 @@ __all__ = [
     "DatasetRevision",
     "DatasetSchemaContract",
     "ItemSelectorConfig",
+    "JoinDiagnostics",
+    "JoinCardinality",
     "MeanShaperConfig",
     "NormalizeShaperConfig",
     "ParseBatchResult",

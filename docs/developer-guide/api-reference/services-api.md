@@ -44,6 +44,11 @@ Named-state changes are captured by `DataRepository` as immutable revision snaps
 adds operation and source labels, while repository-owned fingerprints, parent links, and recovery
 stacks keep lineage semantics identical for the web and public Python API.
 
+`DatasetWorkspaceService.diagnose_join` measures duplicate-key rows and groups, unmatched rows, and
+matched distinct keys before materialization. `validated_join` enforces pandas-compatible
+one-to-one, one-to-many, many-to-one, or explicitly many-to-many relationships and returns the exact
+diagnostics used for the decision beside the new DataFrame.
+
 ## Data services
 
 <!--

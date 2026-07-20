@@ -1,6 +1,9 @@
 """Immutable summaries for named datasets in a session workspace."""
 
 from dataclasses import dataclass
+from typing import Literal, TypeAlias
+
+JoinCardinality: TypeAlias = Literal["one_to_one", "one_to_many", "many_to_one", "many_to_many"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,3 +46,23 @@ class DatasetLineage:
     current_revision_id: str
     can_undo: bool
     can_redo: bool
+
+
+@dataclass(frozen=True, slots=True)
+class JoinDiagnostics:
+    """Pre-join key cardinality, duplication, and match diagnostics."""
+
+    # [impl->req~ring5.data.validated-joins~1]
+
+    key_columns: tuple[str, ...]
+    expected_cardinality: JoinCardinality
+    cardinality_valid: bool
+    left_rows: int
+    right_rows: int
+    left_duplicate_key_rows: int
+    right_duplicate_key_rows: int
+    left_duplicate_key_groups: int
+    right_duplicate_key_groups: int
+    left_unmatched_rows: int
+    right_unmatched_rows: int
+    matched_key_count: int

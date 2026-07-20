@@ -77,6 +77,11 @@ state. `get_dataset_revision` inspects a defensive snapshot. `undo_dataset`, `re
 `restore_dataset_revision` change the current state without mutating historical snapshots. Lineage
 is session-owned and is cleared with the named workspace; portfolio persistence is not implied.
 
+`Session.diagnose_join` returns immutable `JoinDiagnostics` for an explicit key relationship,
+including duplicate rows and groups on each side, unmatched input rows, and matched distinct keys.
+`join_datasets_validated` repeats that validation immediately before joining, refuses incompatible
+cardinality without storing output, and returns `(DataFrame, JoinDiagnostics)` on success.
+
 `scan_limit=0` means exhaustive variable discovery up to the global 10,000-file ceiling; a positive
 value is an exact sample cap. A scan with any failed files raises `ScanError` at the public boundary;
 pass `strict=False` to `ScanJob.finalize` or `Session.scan` only when a documented partial result is

@@ -18,6 +18,8 @@ from src.core.models import (
     DatasetLineage,
     DatasetRevision,
     DatasetSchemaContract,
+    JoinCardinality,
+    JoinDiagnostics,
     RestoreReport,
     ScanResult,
     SchemaValidationReport,
@@ -645,6 +647,88 @@ class Session:
                 right_name,
                 output_name,
                 list(on),
+                how=how,
+                suffixes=suffixes,
+                select=select,
+                replace=replace,
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def diagnose_join(
+        self,
+        left_name: str,
+        right_name: str,
+        on: Sequence[str],
+        *,
+        cardinality: JoinCardinality,
+    ) -> JoinDiagnostics:
+        """Inspect duplicate keys, unmatched rows, and join cardinality.
+
+        Args:
+            left_name: Left-side retained dataset.
+            right_name: Right-side retained dataset.
+            on: Shared key columns.
+            cardinality: Expected one-to-one, one-to-many, many-to-one, or many-to-many shape.
+
+        Returns:
+            Immutable diagnostics without modifying either dataset.
+
+        Raises:
+            DataValidationError: A dataset, key, or cardinality is invalid.
+        """
+        # [impl->req~ring5.data.validated-joins~1]
+        try:
+            return self.api.diagnose_join(
+                left_name,
+                right_name,
+                list(on),
+                cardinality=cardinality,
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def join_datasets_validated(
+        self,
+        left_name: str,
+        right_name: str,
+        output_name: str,
+        on: Sequence[str],
+        *,
+        cardinality: JoinCardinality,
+        how: Literal["inner", "left", "right", "outer"] = "inner",
+        suffixes: tuple[str, str] = ("_left", "_right"),
+        select: bool = True,
+        replace: bool = False,
+    ) -> tuple[pd.DataFrame, JoinDiagnostics]:
+        """Join retained datasets only when the expected cardinality holds.
+
+        Args:
+            left_name: Left-side retained dataset.
+            right_name: Right-side retained dataset.
+            output_name: Name for the retained result.
+            on: Shared key columns.
+            cardinality: Required one-to-one, one-to-many, many-to-one, or many-to-many shape.
+            how: Row-retention strategy.
+            suffixes: Distinct suffixes for overlapping non-key columns.
+            select: Make the result the active source-data view.
+            replace: Permit replacement of ``output_name``.
+
+        Returns:
+            The new table and the diagnostics used to authorize it. Source datasets remain
+            unchanged and the output receives lineage ancestry.
+
+        Raises:
+            DataValidationError: Inputs are invalid or key duplication violates cardinality.
+        """
+        # [impl->req~ring5.data.validated-joins~1]
+        try:
+            return self.api.join_datasets_validated(
+                left_name,
+                right_name,
+                output_name,
+                list(on),
+                cardinality=cardinality,
                 how=how,
                 suffixes=suffixes,
                 select=select,

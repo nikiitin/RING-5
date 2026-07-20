@@ -430,6 +430,11 @@ class DataManagersPage(BasePage):
         return self.page.locator("[data-testid='stMetric']").filter(has_text="Retained datasets")
 
     @property
+    def workspace_dataset_metric_value(self) -> Locator:
+        """Numeric retained-dataset count inside the workspace metric."""
+        return self.workspace_dataset_metric.locator("[data-testid='stMetricValue']")
+
+    @property
     def workspace_lineage_panel(self) -> Locator:
         """Expanded lineage and recovery panel for the selected dataset."""
         return self.page.get_by_text("Lineage & recovery", exact=True)
@@ -449,6 +454,51 @@ class DataManagersPage(BasePage):
         """Restore the revision selected for inspection."""
         return self.page.get_by_role("button", name="Restore This Revision")
 
+    @property
+    def workspace_operation_selectbox(self) -> Locator:
+        """Workspace compare, join, or append operation selector."""
+        return self._by_label("stSelectbox", "Workspace operation")
+
+    @property
+    def workspace_dataset_selectbox(self) -> Locator:
+        """Currently inspected named dataset selector."""
+        return self._by_label("stSelectbox", "Workspace dataset")
+
+    @property
+    def workspace_join_left(self) -> Locator:
+        """Left named dataset selector."""
+        return self._by_label("stSelectbox", "Left dataset")
+
+    @property
+    def workspace_join_right(self) -> Locator:
+        """Right named dataset selector."""
+        return self._by_label("stSelectbox", "Right dataset")
+
+    @property
+    def workspace_join_keys(self) -> Locator:
+        """Shared key-column selector for retained-dataset joins."""
+        return self._by_label("stMultiSelect", "Join keys")
+
+    @property
+    def workspace_join_cardinality(self) -> Locator:
+        """Expected left/right key relationship selector."""
+        return self._by_label("stSelectbox", "Expected key relationship")
+
+    @property
+    def workspace_join_button(self) -> Locator:
+        """Cardinality-gated join action."""
+        return self.page.get_by_role("button", name="Validate and Join Datasets")
+
+    @property
+    def workspace_join_output_input(self) -> Locator:
+        """Name for the validated join output."""
+        return self._by_label("stTextInput", "Joined dataset name").locator("input")
+
+    @property
+    def workspace_cardinality_metric(self) -> Locator:
+        """Current join-cardinality diagnostic status."""
+        return self.page.locator("[data-testid='stMetric']").filter(has_text="Cardinality")
+
     def retain_current_dataset(self, name: str) -> None:
         """Retain the active dataset under ``name`` and wait for rerendering."""
         self.workspace_name_input.fill(name)
@@ -463,6 +513,11 @@ class DataManagersPage(BasePage):
     def redo_workspace_dataset(self) -> None:
         """Redo one named-dataset revision and wait for the rerender."""
         self.workspace_redo_button.click()
+        self.wait_for_streamlit()
+
+    def join_workspace_datasets(self) -> None:
+        """Execute the validated join and wait for the workspace rerender."""
+        self.workspace_join_button.click()
         self.wait_for_streamlit()
 
     # E2E: Data quality

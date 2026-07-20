@@ -172,6 +172,55 @@ An inferred contract describes the current table; it is not a substitute for dec
 inputs are allowed. Review nullable columns and categorical values before treating it as a stable
 boundary.
 
+## Validate joins before creating output
+
+<!--
+`uman~ring5.data.validated-joins.documentation~1`
+
+Covers:
+- req~ring5.data.validated-joins~1
+
+-->
+
+In **Data Managers → Workspace**, select **Join** and choose the key columns before creating an
+output. Then state the relationship you expect:
+
+- **one left row to one right row** requires unique keys on both sides;
+- **one left row to many right rows** requires unique left keys;
+- **many left rows to one right row** requires unique right keys;
+- **many rows on both sides** permits duplicate keys explicitly.
+
+RING-5 shows the number of duplicate-key rows, duplicate-key groups, unmatched rows on each side,
+and distinct keys that match. **Validate and Join Datasets** remains disabled when duplicates
+conflict with the selected relationship. Unmatched rows are diagnostics rather than an automatic
+failure because the selected inner, left, right, or outer join mode determines whether they belong
+in the result. A many-to-many join is allowed only when you choose it explicitly; remember that it
+can multiply rows within every duplicated key group.
+
+Python workflows can diagnose first and then reuse the same explicit relationship for execution:
+
+```python
+diagnostics = session.diagnose_join(
+    "benchmarks",
+    "metadata",
+    on=["benchmark"],
+    cardinality="many_to_one",
+)
+print(diagnostics.left_unmatched_rows, diagnostics.right_unmatched_rows)
+
+joined, confirmed = session.join_datasets_validated(
+    "benchmarks",
+    "metadata",
+    "benchmarks_with_metadata",
+    on=["benchmark"],
+    cardinality="many_to_one",
+    how="left",
+)
+```
+
+The validated output is a new named dataset with lineage links to both sources. A cardinality
+conflict raises `DataValidationError` and does not create the output.
+
 ## Inspect the table
 
 <!--

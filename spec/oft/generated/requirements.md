@@ -938,7 +938,7 @@ Tags: data, profiling, quality, status_approved
 ### Validated dataset joins
 
 `req~ring5.data.validated-joins~1`
-Status: proposed
+Status: approved
 
 Users shall join named datasets with explicit cardinality validation and diagnostics for duplicate keys and unmatched rows.
 
@@ -947,7 +947,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: data, joins, status_proposed, validation
+Tags: data, joins, status_approved, validation
 
 ### Dataset schema contracts
 

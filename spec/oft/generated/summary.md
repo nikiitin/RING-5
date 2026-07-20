@@ -7,11 +7,11 @@ This file is informative; normative items are in the other generated files.
 
 - Feature groups: 13
 - Detailed requirements: 216
-- Approved current requirements: 165
-- Proposed future requirements: 51
+- Approved current requirements: 166
+- Proposed future requirements: 50
 - Draft future requirements: 0
 - Generated specification items: 229
-- Live capability bindings: 607
+- Live capability bindings: 615
 
 ## Requirements by feature group
 
@@ -19,7 +19,7 @@ This file is informative; normative items are in the other generated files.
 | --- | ---: | ---: | ---: | ---: |
 | Interactive Workspace | 7 | 7 | 0 | 14 |
 | Data Ingestion and Parsing | 33 | 5 | 0 | 38 |
-| Dataset Management | 15 | 3 | 0 | 18 |
+| Dataset Management | 16 | 2 | 0 | 18 |
 | Per-Plot Data Shaping | 15 | 1 | 0 | 16 |
 | Comparison and Statistical Analysis | 3 | 0 | 0 | 3 |
 | Plot Lifecycle | 7 | 6 | 0 | 13 |
@@ -33,7 +33,7 @@ This file is informative; normative items are in the other generated files.
 
 ## Drift-checked capability sources
 
-- `application_api_members`: 56
+- `application_api_members`: 58
 - `axes_config_fields`: 11
 - `axis_config_fields`: 31
 - `cli_commands`: 4
@@ -48,7 +48,7 @@ This file is informative; normative items are in the other generated files.
 - `figure_spec_fields`: 58
 - `legend_config_fields`: 30
 - `legend_spacing_config_fields`: 7
-- `managers_api_members`: 16
+- `managers_api_members`: 18
 - `margin_config_fields`: 5
 - `matplotlib_formats`: 4
 - `navigation_pages`: 5
@@ -57,7 +57,7 @@ This file is informative; normative items are in the other generated files.
 - `parser_strategies`: 2
 - `plot_types`: 9
 - `plotly_formats`: 4
-- `public_exports`: 52
+- `public_exports`: 54
 - `public_shaper_exports`: 15
 - `render_engines`: 2
 - `restore_report_fields`: 5
@@ -65,7 +65,7 @@ This file is informative; normative items are in the other generated files.
 - `scan_result_fields`: 3
 - `scanned_variable_fields`: 4
 - `series_style_config_fields`: 9
-- `session_methods`: 37
+- `session_methods`: 39
 - `settings_sections`: 7
 - `shaper_config_fields`: 13
 - `shaper_types`: 13

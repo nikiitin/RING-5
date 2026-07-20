@@ -9,6 +9,7 @@ from typing import Literal
 
 import pandas as pd
 
+from src.core.models.dataset_workspace_models import JoinCardinality, JoinDiagnostics
 from src.core.models.quality_models import DataQualityReport
 from src.core.models.schema_contract_models import DatasetSchemaContract, SchemaValidationReport
 from src.core.services.managers.arithmetic_service import ArithmeticService
@@ -233,6 +234,42 @@ class DefaultManagersAPI:
             left,
             right,
             on,
+            how=how,
+            suffixes=suffixes,
+        )
+
+    def diagnose_join(
+        self,
+        left: pd.DataFrame,
+        right: pd.DataFrame,
+        on: Sequence[str],
+        *,
+        cardinality: JoinCardinality,
+    ) -> JoinDiagnostics:
+        """Diagnose key duplication, unmatched rows, and cardinality."""
+        return DatasetWorkspaceService.diagnose_join(
+            left,
+            right,
+            on,
+            cardinality=cardinality,
+        )
+
+    def validated_join(
+        self,
+        left: pd.DataFrame,
+        right: pd.DataFrame,
+        on: Sequence[str],
+        *,
+        cardinality: JoinCardinality,
+        how: Literal["inner", "left", "right", "outer"] = "inner",
+        suffixes: tuple[str, str] = ("_left", "_right"),
+    ) -> tuple[pd.DataFrame, JoinDiagnostics]:
+        """Join only when the explicit key cardinality is satisfied."""
+        return DatasetWorkspaceService.validated_join(
+            left,
+            right,
+            on,
+            cardinality=cardinality,
             how=how,
             suffixes=suffixes,
         )
