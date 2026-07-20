@@ -19,6 +19,7 @@ from src.core.models.visualization.trace_config import (
     LineTraceConfig,
     ScatterTraceConfig,
     TraceConfig,
+    ViolinTraceConfig,
 )
 from src.web.rendering._heatmap_utils import is_dark_cell
 from src.web.rendering.matplotlib_trace_renderer import (
@@ -103,6 +104,47 @@ class TestRender:
         trace = LineTraceConfig(name="l1", x=[0, 1], y=[1, 2])
         count = MatplotlibTraceRenderer.render([trace], ax)
         assert count.trace_count == 1
+
+    def test_vertical_and_horizontal_violins_use_precomputed_density(
+        self, ax: matplotlib.axes.Axes
+    ) -> None:
+        # [test->req~ring5.plot.violin~1]
+        vertical = ViolinTraceConfig(
+            name="A",
+            category="A",
+            values=[1.0, 2.0, 3.0],
+            density_coordinates=[0.5, 1.5, 2.5, 3.5],
+            density=[0.1, 1.0, 0.8, 0.1],
+            q1=1.5,
+            median=2.0,
+            q3=2.5,
+            mean=2.0,
+            show_box=True,
+            show_mean=True,
+            point_mode="all",
+        )
+        result = MatplotlibTraceRenderer.render([vertical], ax)
+        assert result.trace_count == 1
+        assert [tick.get_text() for tick in ax.get_xticklabels()] == ["A"]
+        assert ax.collections
+
+        fig, horizontal_ax = plt.subplots()
+        try:
+            horizontal = ViolinTraceConfig(
+                name="B",
+                category="B",
+                values=[2.0, 3.0],
+                density_coordinates=[1.5, 2.5, 3.5],
+                density=[0.1, 1.0, 0.1],
+                orientation="horizontal",
+                side="negative",
+                show_box=False,
+            )
+            horizontal_result = MatplotlibTraceRenderer.render([horizontal], horizontal_ax)
+            assert horizontal_result.trace_count == 1
+            assert [tick.get_text() for tick in horizontal_ax.get_yticklabels()] == ["B"]
+        finally:
+            plt.close(fig)
 
     def test_single_scatter(self, ax: matplotlib.axes.Axes) -> None:
         trace = ScatterTraceConfig(name="sc", x=[0, 1], y=[1, 2])

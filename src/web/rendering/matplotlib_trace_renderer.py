@@ -4,7 +4,7 @@ Matplotlib trace renderer — draws ``TraceConfig`` instances on matplotlib axes
 This module is the **engine-agnostic** trace renderer for the matplotlib
 connector.  It reads from ``TraceConfig`` sub-classes (``BarTraceConfig``,
 ``BoxTraceConfig``, ``LineTraceConfig``, ``ScatterTraceConfig``, ``HistogramTraceConfig``,
-``HeatmapTraceConfig``) and draws the equivalent matplotlib artists.
+``HeatmapTraceConfig``, ``ViolinTraceConfig``) and draws the equivalent matplotlib artists.
 
 **No Plotly dependency** — this module does not import or reference
 ``plotly.graph_objects`` or any Plotly types.
@@ -34,6 +34,7 @@ from src.core.models.visualization.trace_config import (
     LineTraceConfig,
     ScatterTraceConfig,
     TraceConfig,
+    ViolinTraceConfig,
 )
 from src.web.rendering._heatmap_utils import is_dark_cell
 from src.web.rendering._render_result import MatplotlibRenderResult
@@ -128,6 +129,15 @@ class MatplotlibTraceRenderer:
                     result.trace_count += 1
                 elif isinstance(trace, BoxTraceConfig):
                     MatplotlibTraceRenderer._draw_box(
+                        trace,
+                        target,
+                        vertical_box_ticks,
+                        horizontal_box_ticks,
+                        override_color=override_color,
+                    )
+                    result.trace_count += 1
+                elif isinstance(trace, ViolinTraceConfig):
+                    MatplotlibTraceRenderer._draw_violin(
                         trace,
                         target,
                         vertical_box_ticks,
@@ -333,6 +343,107 @@ class MatplotlibTraceRenderer:
 
         y_clean = [float(v) if v is not None else np.nan for v in spec.y]
         ax.plot(spec.x, y_clean, label=spec.name, **props)
+
+    @staticmethod
+    def _draw_violin(
+        spec: ViolinTraceConfig,
+        ax: Axes,
+        vertical_ticks: dict[int, str],
+        horizontal_ticks: dict[int, str],
+        override_color: str | None = None,
+    ) -> None:
+        # [impl->req~ring5.plot.violin~1]
+        """Draw one precomputed density, optional inner summary, and observations."""
+        if not spec.density_coordinates or not spec.density:
+            return
+        color = spec.color or override_color or "#4472C4"
+        coordinates = np.asarray(spec.density_coordinates, dtype=float)
+        half_width = spec.violin_width * spec.width_scale / 2
+        density_width = np.asarray(spec.density, dtype=float) * half_width
+        if spec.side == "positive":
+            lower = np.full_like(density_width, spec.position)
+            upper = spec.position + density_width
+        elif spec.side == "negative":
+            lower = spec.position - density_width
+            upper = np.full_like(density_width, spec.position)
+        else:
+            lower = spec.position - density_width
+            upper = spec.position + density_width
+        label = spec.name if spec.show_in_legend else "_nolegend_"
+        if spec.orientation == "vertical":
+            ax.fill_betweenx(
+                coordinates,
+                lower,
+                upper,
+                facecolor=color,
+                edgecolor=color,
+                alpha=spec.opacity,
+                label=label,
+            )
+        else:
+            ax.fill_between(
+                coordinates,
+                lower,
+                upper,
+                facecolor=color,
+                edgecolor=color,
+                alpha=spec.opacity,
+                label=label,
+            )
+
+        if spec.show_box:
+            stats: dict[str, Any] = {
+                "label": "_nolegend_",
+                "med": spec.median,
+                "q1": spec.q1,
+                "q3": spec.q3,
+                "whislo": min(spec.values),
+                "whishi": max(spec.values),
+                "fliers": [],
+            }
+            ax.bxp(
+                [stats],
+                positions=[spec.position],
+                widths=[max(half_width * 0.2, 0.01)],
+                orientation=spec.orientation,
+                patch_artist=True,
+                showfliers=False,
+                boxprops={"facecolor": "white", "edgecolor": color, "alpha": 0.8},
+                medianprops={"color": "black"},
+                whiskerprops={"color": color},
+                capprops={"color": color},
+            )
+        if spec.show_mean:
+            extent = max(half_width * 0.3, 0.01)
+            if spec.orientation == "vertical":
+                ax.plot(
+                    [spec.position - extent, spec.position + extent],
+                    [spec.mean, spec.mean],
+                    color="black",
+                    linewidth=1.5,
+                )
+            else:
+                ax.plot(
+                    [spec.mean, spec.mean],
+                    [spec.position - extent, spec.position + extent],
+                    color="black",
+                    linewidth=1.5,
+                )
+        if spec.point_mode == "all" and spec.values:
+            spread = (
+                np.linspace(-spec.jitter, spec.jitter, len(spec.values)) * spec.violin_width
+                if len(spec.values) > 1
+                else np.array([0.0])
+            )
+            point_positions = spec.position + spread
+            if spec.orientation == "vertical":
+                ax.scatter(point_positions, spec.values, color=color, s=12, alpha=spec.opacity)
+            else:
+                ax.scatter(spec.values, point_positions, color=color, s=12, alpha=spec.opacity)
+        if spec.orientation == "vertical":
+            vertical_ticks[spec.category_position] = spec.category
+        else:
+            horizontal_ticks[spec.category_position] = spec.category
 
     # scatter
     @staticmethod

@@ -15,6 +15,7 @@ from src.core.models.visualization.trace_config import (
     LineTraceConfig,
     ScatterTraceConfig,
     TraceConfig,
+    ViolinTraceConfig,
 )
 from src.web.rendering.trace_to_plotly import (
     _bar_trace,
@@ -26,6 +27,7 @@ from src.web.rendering.trace_to_plotly import (
     _line_trace,
     _scatter_trace,
     traces_to_plotly,
+    _violin_trace,
 )
 
 # traces_to_plotly (main entry)
@@ -55,6 +57,12 @@ class TestTracesToPlotly:
         fig = traces_to_plotly(TraceBuildResult(traces=[trace], boxmode="group"))
         assert isinstance(fig.data[0], go.Box)
         assert cast(Any, fig.layout).boxmode == "group"
+
+    def test_violin_trace_sets_grouped_violin_layout(self) -> None:
+        trace = ViolinTraceConfig(name="A", category="A", values=[1.0, 2.0, 3.0])
+        fig = traces_to_plotly(TraceBuildResult(traces=[trace], violinmode="group"))
+        assert isinstance(fig.data[0], go.Violin)
+        assert cast(Any, fig.layout).violinmode == "group"
 
     def test_secondary_y_creates_subplots(self) -> None:
         t1 = BarTraceConfig(name="left", x=["a"], y=[1], yaxis="y")
@@ -144,6 +152,10 @@ class TestConvertTrace:
         result = _convert_trace(BoxTraceConfig(name="box", category="A", values=[1.0]))
         assert isinstance(result, go.Box)
 
+    def test_violin_trace_dispatch(self) -> None:
+        result = _convert_trace(ViolinTraceConfig(name="violin", category="A", values=[1.0]))
+        assert isinstance(result, go.Violin)
+
 
 class TestBoxTrace:
     """Tests for the Plotly box-trace conversion contract."""
@@ -176,6 +188,42 @@ class TestBoxTrace:
         assert result.boxpoints == "all"
         assert result.notched
         assert result.boxmean
+        assert result.fillcolor == "#ff0000"
+
+
+class TestViolinTrace:
+    """Tests for the Plotly violin-trace conversion contract."""
+
+    def test_horizontal_density_summary_and_style_controls(self) -> None:
+        # [test->req~ring5.plot.violin~1]
+        trace = ViolinTraceConfig(
+            name="base",
+            category="A",
+            values=[1.0, 2.0, 3.0],
+            orientation="horizontal",
+            bandwidth=0.4,
+            density_span="hard",
+            density_scale="count",
+            side="negative",
+            point_mode="all",
+            jitter=0.3,
+            violin_width=0.5,
+            show_box=True,
+            show_mean=True,
+            color="#ff0000",
+        )
+
+        result = _violin_trace(trace)
+
+        assert result.orientation == "h"
+        assert list(cast(Any, result.x)) == trace.values
+        assert result.bandwidth == 0.4
+        assert result.spanmode == "hard"
+        assert result.scalemode == "count"
+        assert result.side == "negative"
+        assert result.points == "all"
+        assert cast(Any, result.box).visible
+        assert cast(Any, result.meanline).visible
         assert result.fillcolor == "#ff0000"
 
     def test_line_trace_dispatch(self) -> None:

@@ -35,7 +35,7 @@ class TraceConfig:
     """
 
     name: str = ""
-    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap", "box"] = "bar"
+    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap", "box", "violin"] = "bar"
     x: list[str | int | float] = field(default_factory=list)
     y: list[int | float] = field(default_factory=list)
     yaxis: Literal["y", "y2"] = "y"
@@ -55,7 +55,7 @@ class BarTraceConfig(TraceConfig):
     place bars directly without reimplementing grouping logic.
     """
 
-    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap", "box"] = "bar"
+    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap", "box", "violin"] = "bar"
 
     # Bar positioning (pre-computed)
     x_positions: list[float] = field(default_factory=list)  # center of each bar
@@ -79,7 +79,7 @@ class BarTraceConfig(TraceConfig):
 class LineTraceConfig(TraceConfig):
     """Line-specific trace parameters."""
 
-    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap", "box"] = "line"
+    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap", "box", "violin"] = "line"
 
     line_width: float = 2.0
     line_dash: Literal["solid", "dash", "dot", "dashdot", "longdash"] = "solid"
@@ -96,7 +96,9 @@ class LineTraceConfig(TraceConfig):
 class ScatterTraceConfig(TraceConfig):
     """Scatter-specific trace parameters."""
 
-    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap", "box"] = "scatter"
+    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap", "box", "violin"] = (
+        "scatter"
+    )
 
     marker_symbol: str = "circle"
     marker_size: int = 8
@@ -119,7 +121,9 @@ class HistogramTraceConfig(TraceConfig):
     the binning should be done by the rendering engine.
     """
 
-    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap", "box"] = "histogram"
+    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap", "box", "violin"] = (
+        "histogram"
+    )
 
     nbins: int = 20
     normalization: Literal["", "percent", "probability", "density"] = ""
@@ -134,7 +138,9 @@ class HeatmapTraceConfig(TraceConfig):
     column and row labels respectively.
     """
 
-    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap", "box"] = "heatmap"
+    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap", "box", "violin"] = (
+        "heatmap"
+    )
 
     # Heatmap-specific label fields (base x/y are unused)
     col_labels: list[str] = field(default_factory=list)  # column (x-axis) labels
@@ -155,7 +161,7 @@ class BoxTraceConfig(TraceConfig):
     # [impl->req~ring5.plot.box~1]
     """Precomputed distribution summary shared by both rendering engines."""
 
-    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap", "box"] = "box"
+    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap", "box", "violin"] = "box"
     values: list[float] = field(default_factory=list)
     category: str = ""
     orientation: Literal["vertical", "horizontal"] = "vertical"
@@ -177,4 +183,36 @@ class BoxTraceConfig(TraceConfig):
     box_width: float = 0.6
     whisker_cap_width: float = 0.5
     notched: bool = False
+    show_mean: bool = False
+
+
+@dataclass
+class ViolinTraceConfig(TraceConfig):
+    # [impl->req~ring5.plot.violin~1]
+    """Precomputed kernel density and summary shared by both renderers."""
+
+    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap", "box", "violin"] = (
+        "violin"
+    )
+    values: list[float] = field(default_factory=list)
+    category: str = ""
+    orientation: Literal["vertical", "horizontal"] = "vertical"
+    density_coordinates: list[float] = field(default_factory=list)
+    density: list[float] = field(default_factory=list)
+    bandwidth: float = 1.0
+    bandwidth_method: Literal["scott", "silverman"] = "scott"
+    density_span: Literal["soft", "hard"] = "soft"
+    density_scale: Literal["width", "count"] = "width"
+    side: Literal["both", "positive", "negative"] = "both"
+    point_mode: Literal["all", "none"] = "none"
+    jitter: float = 0.15
+    position: float = 0.0
+    category_position: int = 0
+    violin_width: float = 0.8
+    width_scale: float = 1.0
+    q1: float = 0.0
+    median: float = 0.0
+    q3: float = 0.0
+    mean: float = 0.0
+    show_box: bool = True
     show_mean: bool = False

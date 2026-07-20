@@ -55,6 +55,7 @@ from src.core.models.visualization.trace_config import (
     LineTraceConfig,
     ScatterTraceConfig,
     TraceConfig,
+    ViolinTraceConfig,
 )
 from src.core.models.visualization.typography_config import TypographyConfig
 
@@ -106,6 +107,7 @@ __all__ = [
     "LineTraceConfig",
     "ScatterTraceConfig",
     "HistogramTraceConfig",
+    "ViolinTraceConfig",
     "TraceBuildResult",
     # Typography
     "TypographyConfig",

@@ -10,6 +10,7 @@ from .histogram_plot import HistogramPlot
 from .line_plot import LinePlot
 from .scatter_plot import ScatterPlot
 from .stacked_bar_plot import StackedBarPlot
+from .violin_plot import ViolinPlot
 
 __all__ = [
     "BarPlot",
@@ -22,4 +23,5 @@ __all__ = [
     "HistogramPlot",
     "LinePlot",
     "ScatterPlot",
+    "ViolinPlot",
 ]

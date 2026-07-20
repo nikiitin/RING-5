@@ -24,6 +24,7 @@ from src.core.models.visualization.trace_config import (
     LineTraceConfig,
     ScatterTraceConfig,
     TraceConfig,
+    ViolinTraceConfig,
 )
 from src.web.rendering._heatmap_utils import is_dark_cell
 
@@ -84,6 +85,8 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
     layout_updates: dict[str, Any] = {"barmode": result.barmode}
     if any(isinstance(trace, BoxTraceConfig) for trace in traces_list):
         layout_updates["boxmode"] = result.boxmode
+    if any(isinstance(trace, ViolinTraceConfig) for trace in traces_list):
+        layout_updates["violinmode"] = result.violinmode
 
     if result.custom_x_ticks:
         xaxis_update: dict[str, Any] = {
@@ -174,6 +177,8 @@ def _convert_trace(trace: TraceConfig) -> go.BaseTraceType:  # type: ignore[name
         result = _bar_trace(trace)
     elif isinstance(trace, BoxTraceConfig):
         result = _box_trace(trace)
+    elif isinstance(trace, ViolinTraceConfig):
+        result = _violin_trace(trace)
     elif isinstance(trace, LineTraceConfig):
         result = _line_trace(trace)
     elif isinstance(trace, ScatterTraceConfig):
@@ -279,6 +284,38 @@ def _box_trace(trace: BoxTraceConfig) -> go.Box:
         kwargs["marker"] = {"color": trace.color}
         kwargs["line"] = {"color": trace.color}
     return go.Box(**kwargs)
+
+
+def _violin_trace(trace: ViolinTraceConfig) -> go.Violin:
+    # [impl->req~ring5.plot.violin~1]
+    """Convert an engine-neutral violin distribution to Plotly."""
+    vertical = trace.orientation == "vertical"
+    kwargs: dict[str, Any] = {
+        "x": [trace.category] * len(trace.values) if vertical else trace.values,
+        "y": trace.values if vertical else [trace.category] * len(trace.values),
+        "name": trace.name,
+        "orientation": "v" if vertical else "h",
+        "bandwidth": trace.bandwidth,
+        "spanmode": trace.density_span,
+        "scalemode": trace.density_scale,
+        "scalegroup": "ring5-violins",
+        "side": trace.side,
+        "points": "all" if trace.point_mode == "all" else False,
+        "jitter": trace.jitter,
+        "width": trace.violin_width,
+        "box": {"visible": trace.show_box},
+        "meanline": {"visible": trace.show_mean},
+        "opacity": trace.opacity,
+        "showlegend": trace.show_in_legend,
+        "visible": trace.visible,
+        "legendgroup": trace.legendgroup or trace.name,
+        "offsetgroup": trace.legendgroup or trace.name,
+    }
+    if trace.color:
+        kwargs["fillcolor"] = trace.color
+        kwargs["marker"] = {"color": trace.color}
+        kwargs["line"] = {"color": trace.color}
+    return go.Violin(**kwargs)
 
 
 def _line_trace(trace: LineTraceConfig) -> go.Scatter:

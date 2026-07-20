@@ -20,6 +20,7 @@ _REQUIRED_SINGLE: dict[str, tuple[str, ...]] = {
     "line": ("x", "y"),
     "scatter": ("x", "y"),
     "stacked_bar": ("x",),
+    "violin": ("x", "y"),
 }
 
 _REQUIRED_LIST: dict[str, tuple[str, ...]] = {
@@ -38,6 +39,7 @@ _OPTIONAL_SINGLE: dict[str, tuple[str, ...]] = {
     "histogram": ("group_by",),
     "line": ("color",),
     "scatter": ("color",),
+    "violin": ("color",),
 }
 
 _OPTIONAL_LIST: dict[str, tuple[str, ...]] = {

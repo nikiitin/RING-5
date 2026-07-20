@@ -3609,11 +3609,29 @@
       "id": "plot.violin",
       "group": "plot-types",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Violin plot",
       "description": "The plot registry shall provide violin plots with grouping, orientation, density, summary, and per-series styling controls.",
       "tags": ["distribution", "plots", "visualization"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/models/visualization/trace_config.py::ViolinTraceConfig",
+          "src/web/pages/ui/plotting/types/violin_plot.py::ViolinPlot.create_traces",
+          "src/web/components/plotting/config/violin_config.py::render",
+          "src/web/rendering/trace_to_plotly.py::_violin_trace",
+          "src/web/rendering/matplotlib_trace_renderer.py::MatplotlibTraceRenderer._draw_violin"
+        ],
+        "tests": [
+          "tests/unit/test_violin_plot.py::test_grouped_violin_precomputes_density_and_count_width_without_mutation",
+          "tests/unit/test_trace_to_plotly.py::TestViolinTrace.test_horizontal_density_summary_and_style_controls",
+          "tests/unit/test_matplotlib_trace_renderer.py::TestRender.test_vertical_and_horizontal_violins_use_precomputed_density",
+          "tests/integration/test_violin_plot_public_api.py::test_public_violin_plot_renders_both_engines_with_density_controls",
+          "tests/e2e/test_plot_types.py::TestPlotCreation.test_08_create_violin_plot"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/violin-plots.md#compare-density-shapes-with-violin-plots"
+        ]
+      }
     },
     {
       "id": "plot.ecdf",
@@ -4027,6 +4045,7 @@
     "plot_types": {
       "bar": "plot.bar",
       "box": "plot.box",
+      "violin": "plot.violin",
       "dual_axis_bar_dot": "plot.dual-axis-bar-dot",
       "grouped_bar": "plot.grouped-bar",
       "grouped_stacked_bar": "plot.grouped-stacked-bar",

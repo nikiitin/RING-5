@@ -1590,7 +1590,7 @@ Tags: distribution, plots, status_approved, visualization
 ### Violin plot
 
 `req~ring5.plot.violin~1`
-Status: proposed
+Status: approved
 
 The plot registry shall provide violin plots with grouping, orientation, density, summary, and per-series styling controls.
 
@@ -1599,7 +1599,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: distribution, plots, status_proposed, visualization
+Tags: distribution, plots, status_approved, visualization
 
 ### Empirical cumulative distribution plot
 

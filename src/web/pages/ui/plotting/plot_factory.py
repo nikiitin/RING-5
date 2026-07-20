@@ -22,6 +22,7 @@ from .types import (
     LinePlot,
     ScatterPlot,
     StackedBarPlot,
+    ViolinPlot,
 )
 
 
@@ -47,6 +48,7 @@ class PlotFactory:
         "histogram": HistogramPlot,
         "line": LinePlot,
         "scatter": ScatterPlot,
+        "violin": ViolinPlot,
     }
 
     _plot_metadata: dict[str, PlotTypeMetadata] = {
@@ -76,6 +78,7 @@ class PlotFactory:
         },
         "heatmap": {"display_name": "Heatmap", "icon": "grid_on", "category": "distribution"},
         "histogram": {"display_name": "Histogram", "icon": "bar_chart", "category": "distribution"},
+        "violin": {"display_name": "Violin Plot", "icon": "graphic_eq", "category": "distribution"},
     }
 
     @classmethod

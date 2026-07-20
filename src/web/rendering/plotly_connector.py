@@ -584,7 +584,7 @@ class FigureSpecToPlotly:
         for trace in _fig_traces(fig):
             # Heatmap traces don't support textposition/texttemplate —
             # their cell labels are handled separately via annotations.
-            if isinstance(trace, (go.Heatmap, go.Box)):
+            if isinstance(trace, (go.Heatmap, go.Box, go.Violin)):
                 continue
 
             update: dict[str, Any] = {
@@ -814,7 +814,7 @@ class FigureSpecToPlotly:
                     "scattergl",
                 ):
                     trace.update(line=dict(color=style.color))
-                elif trace_type == "box":
+                elif trace_type in ("box", "violin"):
                     trace.update(fillcolor=style.color, line=dict(color=style.color))
 
             if style.symbol and trace_type != "heatmap":
@@ -823,7 +823,12 @@ class FigureSpecToPlotly:
             if style.marker_size > 0 and trace_type != "heatmap":
                 trace.update(marker=dict(size=style.marker_size))
 
-            if style.line_width > 0 and trace_type in ("scatter", "scattergl", "box"):
+            if style.line_width > 0 and trace_type in (
+                "scatter",
+                "scattergl",
+                "box",
+                "violin",
+            ):
                 trace.update(line=dict(width=style.line_width))
 
             if style.hatching_pattern and trace_type in ("bar", "histogram"):

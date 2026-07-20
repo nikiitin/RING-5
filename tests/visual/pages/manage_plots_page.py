@@ -28,6 +28,7 @@ PLOT_TYPES: tuple[str, ...] = (
     "histogram",
     "line",
     "scatter",
+    "violin",
 )
 
 # Available shapers (Add transformation selectbox options)

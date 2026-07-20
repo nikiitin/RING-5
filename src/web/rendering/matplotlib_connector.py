@@ -177,7 +177,7 @@ class FigureSpecToMatplotlib:
         hatch: str | None = None,
     ) -> None:
         """Apply styling to a single matplotlib artist, dispatching by its type."""
-        from matplotlib.collections import PathCollection
+        from matplotlib.collections import PathCollection, PolyCollection
         from matplotlib.container import BarContainer
         from matplotlib.lines import Line2D
         from matplotlib.patches import Patch
@@ -215,6 +215,16 @@ class FigureSpecToMatplotlib:
                 handle.set_alpha(alpha)
             if marker_size is not None:
                 handle.set_sizes([float(marker_size)])
+        elif isinstance(handle, PolyCollection):
+            if fill:
+                handle.set_facecolor(fill)
+                handle.set_edgecolor(fill)
+            if alpha is not None:
+                handle.set_alpha(alpha)
+            if edge:
+                handle.set_edgecolor(edge)
+            if edge_width is not None:
+                handle.set_linewidth(edge_width)
         elif isinstance(handle, Patch):
             if fill:
                 handle.set_facecolor(fill)

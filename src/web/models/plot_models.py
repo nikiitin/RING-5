@@ -179,6 +179,15 @@ class PlotDisplayConfig(TypedDict, total=False):
     notched: bool
     show_mean: bool
 
+    # Violin-specific
+    bandwidth_method: str
+    bandwidth_scale: float
+    density_span: str
+    density_scale: str
+    violin_side: str
+    summary_mode: str
+    violin_width: float
+
     # Export
     download_format: str  # "html", "png", "pdf", "svg"
     export_scale: int  # 1, 2, or 3

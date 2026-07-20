@@ -31,5 +31,6 @@ Use these pages for recurring tasks:
 - [Compare Groups with Small Multiples](small-multiples/) using aligned panels and shared styling.
 - [Compare and Copy Plot Settings and Pipelines](copy-plot-settings/) with a field-level preview.
 - [Compare Distributions with Box Plots](box-plots/) with explicit quartile and outlier controls.
+- [Compare Density Shapes with Violin Plots](violin-plots/) with shared density and summary controls.
 - [Manage Portfolios](portfolios/) to save and restore a workspace.
 - [Automate with Python and the CLI](scripting/) for batch and CI use.
