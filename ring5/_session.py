@@ -22,6 +22,7 @@ from src.core.models import (
     DatasetSchemaContract,
     JoinCardinality,
     JoinDiagnostics,
+    LinkedSelectionSpec,
     RestoreReport,
     ScanResult,
     SchemaValidationReport,
@@ -1453,6 +1454,37 @@ class Session:
             RenderError: A plot was deleted, has no processed data, or cannot be rendered.
         """
         return _dashboard.render_dashboard(self.plots, dashboard, engine=engine)
+
+    def create_linked_selection(
+        self,
+        plots: Sequence[BasePlot | int] | DashboardSpec,
+        *,
+        axis: Literal["x", "y"] = "x",
+        mode: Literal["highlight", "filter"] = "highlight",
+    ) -> LinkedSelectionSpec:
+        # [impl->req~ring5.plots.linked-selections~1]
+        """Link visible axis values across two or more registered plots.
+
+        Args:
+            plots: Dashboard specification, registered plots, or plot IDs.
+            axis: Visible values to relate, ``"x"`` or ``"y"``.
+            mode: Fade unrelated points with ``"highlight"`` or remove them
+                from the returned view with ``"filter"``.
+
+        Returns:
+            An immutable linked-selection specification.
+
+        Raises:
+            DataValidationError: The plots, axis, or mode are invalid.
+        """
+        if isinstance(plots, DashboardSpec):
+            plot_ids = list(plots.plot_ids)
+        else:
+            plot_ids = [value.plot_id if isinstance(value, BasePlot) else value for value in plots]
+        try:
+            return self.api.create_linked_selection(plot_ids, axis=axis, mode=mode)
+        except ValueError as exc:
+            raise DataValidationError(str(exc)) from exc
 
     def export(
         self,

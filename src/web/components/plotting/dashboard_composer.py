@@ -13,6 +13,8 @@ from src.core.application_api import ApplicationAPI
 from src.core.common.utils import sanitize_filename
 from src.core.models.visualization.dashboard_spec import DashboardSpec
 from src.core.models.visualization.engine import EngineMode
+from src.core.models.visualization.linked_selection_spec import LinkedSelectionSpec
+from src.web.components.plotting.interactive_plot import interactive_plotly_chart
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.rendering.dashboard_builder import render_dashboard
 from src.web.rendering.engine_manager import EngineManager
@@ -26,10 +28,18 @@ from src.web.rendering.figure_export import (
     matplotlib_download_bytes,
     plotly_download_bytes,
 )
+from src.web.rendering.linked_selection import (
+    apply_linked_selection,
+    selection_values_from_event,
+)
 
 _FIGURE_KEY = "dashboard.composer.figure"
 _SPEC_KEY = "dashboard.composer.spec"
 _ENGINE_KEY = "dashboard.composer.rendered_engine"
+_SELECTION_VALUES_KEY = "dashboard.composer.selection.values"
+_SELECTION_EVENT_KEY = "dashboard.composer.selection.event"
+_SELECTION_CONFIG_KEY = "dashboard.composer.selection.config"
+_SELECTION_GENERATION_KEY = "dashboard.composer.selection.generation"
 
 
 class DashboardComposer:
@@ -150,6 +160,48 @@ class DashboardComposer:
             )
             engine = cast(EngineMode, engine_choice or EngineManager.get_engine())
 
+            link_enabled = st.toggle(
+                "Link panel selections",
+                value=False,
+                disabled=engine != "plotly",
+                key="dashboard.composer.link_enabled",
+                help="Box- or lasso-select visible values in one panel to update every panel.",
+            )
+            linked_spec: LinkedSelectionSpec | None = None
+            if link_enabled and engine == "plotly":
+                link_axis_col, link_mode_col = st.columns(2)
+                with link_axis_col:
+                    link_axis = st.pills(
+                        "Relate values on",
+                        options=["x", "y"],
+                        default="x",
+                        format_func=lambda value: f"{value.upper()} axis",
+                        key="dashboard.composer.link_axis",
+                    )
+                with link_mode_col:
+                    link_mode = st.pills(
+                        "Linked behavior",
+                        options=["highlight", "filter"],
+                        default="highlight",
+                        format_func=lambda value: value.capitalize(),
+                        key="dashboard.composer.link_mode",
+                    )
+                try:
+                    linked_spec = self._api.create_linked_selection(
+                        selected_ids,
+                        axis=cast(Any, link_axis or "x"),
+                        mode=cast(Any, link_mode or "highlight"),
+                    )
+                except ValueError as exc:
+                    st.error(str(exc))
+                    return
+                st.caption(
+                    "Use box or lasso selection in any panel. Clear the selection to restore "
+                    "the complete dashboard. Source plot data is never changed."
+                )
+            elif _SELECTION_CONFIG_KEY in st.session_state:
+                self._clear_linked_selection()
+
             try:
                 current_spec = self._api.create_dashboard(
                     selected_ids,
@@ -180,6 +232,7 @@ class DashboardComposer:
                 st.session_state.pop(_FIGURE_KEY, None)
                 st.session_state.pop(_SPEC_KEY, None)
                 st.session_state.pop(_ENGINE_KEY, None)
+                self._clear_linked_selection()
                 try:
                     figure = render_dashboard(plots, current_spec, engine=engine)
                 except Exception as exc:
@@ -199,15 +252,90 @@ class DashboardComposer:
                 st.info("Settings changed. Build the dashboard again to update the preview.")
 
             if isinstance(rendered_figure, go.Figure):
-                st.plotly_chart(
-                    rendered_figure,
-                    config={"responsive": False, "displaylogo": False},
-                    width="content",
-                    key="dashboard.composer.plotly_preview",
+                applicable_link = (
+                    linked_spec
+                    if linked_spec is not None
+                    and tuple(linked_spec.plot_ids) == tuple(rendered_spec.plot_ids)
+                    else None
                 )
+                self._render_plotly_preview(rendered_figure, applicable_link)
             elif isinstance(rendered_figure, MplFigure):
                 st.pyplot(rendered_figure)
             self._render_export(rendered_figure, rendered_spec)
+
+    @staticmethod
+    def _clear_linked_selection() -> None:
+        """Clear transient selection values without touching plot or dataset state."""
+        generation = st.session_state.get(_SELECTION_GENERATION_KEY, 0)
+        st.session_state.pop(_SELECTION_VALUES_KEY, None)
+        st.session_state.pop(_SELECTION_EVENT_KEY, None)
+        st.session_state.pop(_SELECTION_CONFIG_KEY, None)
+        st.session_state[_SELECTION_GENERATION_KEY] = generation + 1
+
+    @staticmethod
+    def _render_plotly_preview(
+        figure: go.Figure,
+        linked_spec: LinkedSelectionSpec | None,
+    ) -> None:
+        # [impl->req~ring5.plots.linked-selections~1]
+        """Render a normal preview or consume linked box/lasso events."""
+        if linked_spec is None:
+            st.plotly_chart(
+                figure,
+                config={"responsive": False, "displaylogo": False},
+                width="content",
+                key="dashboard.composer.plotly_preview",
+            )
+            return
+
+        identity = (linked_spec.plot_ids, linked_spec.axis, linked_spec.mode)
+        if st.session_state.get(_SELECTION_CONFIG_KEY) != identity:
+            DashboardComposer._clear_linked_selection()
+            st.session_state[_SELECTION_CONFIG_KEY] = identity
+
+        values = tuple(st.session_state.get(_SELECTION_VALUES_KEY, ()))
+        display_figure = apply_linked_selection(figure, linked_spec, values)
+        display_figure.update_layout(dragmode="select")
+
+        if values:
+            shown = ", ".join(str(value) for value in values[:5])
+            if len(values) > 5:
+                shown += f", +{len(values) - 5} more"
+            status_col, clear_col = st.columns([4, 1])
+            with status_col:
+                st.caption(f"Linked {linked_spec.axis.upper()} selection: {shown}")
+            with clear_col:
+                if st.button(
+                    "Clear selection",
+                    width="stretch",
+                    key="dashboard.composer.clear_selection",
+                ):
+                    DashboardComposer._clear_linked_selection()
+                    st.rerun()
+                    return
+
+        event = interactive_plotly_chart(
+            display_figure,
+            config={
+                "responsive": False,
+                "displaylogo": False,
+                "modeBarButtonsToAdd": ["select2d", "lasso2d"],
+            },
+            key=(
+                f"dashboard.linked.{linked_spec.axis}.{linked_spec.mode}."
+                f"{st.session_state.get(_SELECTION_GENERATION_KEY, 0)}"
+            ),
+            capture_selection=True,
+        )
+        if not event or event.get("kind") != "selection":
+            return
+        if event == st.session_state.get(_SELECTION_EVENT_KEY):
+            return
+        st.session_state[_SELECTION_EVENT_KEY] = event
+        st.session_state[_SELECTION_VALUES_KEY] = selection_values_from_event(
+            event, linked_spec.axis
+        )
+        st.rerun()
 
     @staticmethod
     def _render_export(figure: Any, spec: DashboardSpec) -> None:

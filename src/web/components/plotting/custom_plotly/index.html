@@ -61,10 +61,17 @@
 
         // Render or Update
         Plotly.react(divId, spec.data, spec.layout, config).then(function (gd) {
+          gd._streamlit_capture_selection = Boolean(args.capture_selection);
           // Attach listeners only once if possible, but React handles it.
           if (!gd._streamlit_listeners_attached) {
             gd.on("plotly_relayout", function (eventData) {
               handleRelayout(eventData);
+            });
+            gd.on("plotly_selected", function (eventData) {
+              handleSelection(gd, eventData);
+            });
+            gd.on("plotly_deselect", function () {
+              handleSelection(gd, { points: [] });
             });
             gd._streamlit_listeners_attached = true;
           }
@@ -86,6 +93,22 @@
         debounceTimer = setTimeout(function () {
           Streamlit.setComponentValue(eventData);
         }, 400); // 400ms debounce to avoid rapid updates during drag
+      }
+
+      function handleSelection(graphDiv, eventData) {
+        if (!graphDiv._streamlit_capture_selection) return;
+        var points = eventData && Array.isArray(eventData.points) ? eventData.points : [];
+        var cleanPoints = points.map(function (point) {
+          return {
+            curveNumber: point.curveNumber,
+            pointNumber: point.pointNumber,
+            pointIndex: point.pointIndex,
+            x: point.x,
+            y: point.y,
+            customdata: point.customdata,
+          };
+        });
+        Streamlit.setComponentValue({ kind: "selection", points: cleanPoints });
       }
 
       // Hook into Streamlit events

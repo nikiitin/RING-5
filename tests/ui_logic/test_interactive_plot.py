@@ -96,6 +96,19 @@ class TestInteractivePlotlyChart:
         assert key_arg == "my_chart"
 
     @patch(f"{MODULE}._component_func")
+    def test_selection_capture_flag_is_forwarded(self, mock_func: MagicMock) -> None:
+        """The browser bridge receives the opt-in selection flag."""
+        mock_func.return_value = None
+
+        from src.web.components.plotting.interactive_plot import (
+            interactive_plotly_chart,
+        )
+
+        interactive_plotly_chart(go.Figure(), capture_selection=True)
+
+        assert mock_func.call_args.kwargs["capture_selection"] is True
+
+    @patch(f"{MODULE}._component_func")
     def test_returns_component_value(self, mock_func: MagicMock) -> None:
         """Return value from the component function is passed through."""
         expected: Dict[str, Any] = {"relayoutData": {"xaxis.range": [0, 10]}}

@@ -24,6 +24,11 @@ from src.core.models.visualization.legend_config import (
     LegendConfig,
     LegendSpacingConfig,
 )
+from src.core.models.visualization.linked_selection_spec import (
+    LinkedSelectionSpec,
+    SelectionAxis,
+    SelectionMode,
+)
 from src.core.models.visualization.palettes import (
     PALETTE_REGISTRY,
 )
@@ -60,6 +65,10 @@ __all__ = [
     # Legend
     "LegendConfig",
     "LegendSpacingConfig",
+    # Linked selection
+    "LinkedSelectionSpec",
+    "SelectionAxis",
+    "SelectionMode",
     # Palettes
     "PALETTE_REGISTRY",
     # Series style

@@ -16,6 +16,7 @@ from src.core.models import (
     DashboardSpec,
     JoinCardinality,
     JoinDiagnostics,
+    LinkedSelectionSpec,
     ParseBatchResult,
     ScanFileResult,
     ScannedVariable,
@@ -728,6 +729,26 @@ class ApplicationAPI:
             x_title=x_title.strip(),
             y_title=y_title.strip(),
         )
+
+    def create_linked_selection(
+        self,
+        plot_ids: Sequence[int],
+        *,
+        axis: Literal["x", "y"] = "x",
+        mode: Literal["highlight", "filter"] = "highlight",
+    ) -> LinkedSelectionSpec:
+        # [impl->req~ring5.plots.linked-selections~1]
+        """Create a validated, non-mutating selection link for registered plots."""
+        ids = tuple(plot_ids)
+        available = {plot.plot_id for plot in self.state_manager.get_plots()}
+        missing = [plot_id for plot_id in ids if plot_id not in available]
+        if missing:
+            raise ValueError(
+                "Linked selection references unknown plot IDs: "
+                + ", ".join(map(str, missing))
+                + "."
+            )
+        return LinkedSelectionSpec(plot_ids=ids, axis=axis, mode=mode)
 
     # Previews (Delegated to StateManager)
 

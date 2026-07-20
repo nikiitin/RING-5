@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 import plotly.graph_objects as go
 
 from src.core.models.visualization.dashboard_spec import DashboardSpec
+from src.core.models.visualization.linked_selection_spec import LinkedSelectionSpec
 from src.web.components.plotting.dashboard_composer import DashboardComposer
 from tests.ui_logic.conftest import StubPlotHandle
 
@@ -41,7 +42,7 @@ def test_composer_builds_previews_and_exports_selected_panels(
     mock_st.multiselect.return_value = [1, 2]
     mock_st.text_input.side_effect = ["Analysis dashboard", "", ""]
     mock_st.number_input.side_effect = [2, 1200, 480]
-    mock_st.toggle.side_effect = [False, False, True]
+    mock_st.toggle.side_effect = [False, False, True, False]
     mock_st.pills.side_effect = ["plotly", "html"]
     mock_st.button.return_value = True
 
@@ -78,3 +79,55 @@ def test_composer_explains_that_two_plots_are_required(mock_st: MagicMock) -> No
 
     mock_st.info.assert_called_once_with("Create at least two plots to build a dashboard.")
     api.create_dashboard.assert_not_called()
+
+
+@patch(f"{_MODULE}.interactive_plotly_chart")
+@patch(f"{_MODULE}.st")
+def test_linked_preview_consumes_selection_and_keeps_base_figure(
+    mock_st: MagicMock,
+    mock_chart: MagicMock,
+) -> None:
+    # [test->req~ring5.plots.linked-selections~1]
+    figure = go.Figure(
+        data=[
+            go.Bar(x=["A", "B"], y=[1, 2]),
+            go.Scatter(x=["A", "B"], y=[3, 4], mode="markers"),
+        ]
+    )
+    snapshot = figure.to_plotly_json()
+    event = {"kind": "selection", "points": [{"x": "B", "y": 2}]}
+    mock_chart.return_value = event
+    mock_st.session_state = {}
+    spec = LinkedSelectionSpec((1, 2), axis="x", mode="highlight")
+
+    DashboardComposer._render_plotly_preview(figure, spec)
+
+    rendered = mock_chart.call_args.args[0]
+    assert rendered.layout.dragmode == "select"
+    assert mock_chart.call_args.kwargs["capture_selection"] is True
+    assert mock_st.session_state["dashboard.composer.selection.values"] == ("B",)
+    assert figure.to_plotly_json() == snapshot
+    mock_st.rerun.assert_called_once()
+
+
+@patch(f"{_MODULE}.interactive_plotly_chart")
+@patch(f"{_MODULE}.st")
+def test_linked_preview_clear_rotates_component_identity(
+    mock_st: MagicMock,
+    mock_chart: MagicMock,
+) -> None:
+    mock_st.session_state = {
+        "dashboard.composer.selection.values": ("A",),
+        "dashboard.composer.selection.config": ((1, 2), "x", "highlight"),
+        "dashboard.composer.selection.generation": 2,
+    }
+    mock_st.columns.return_value = [MagicMock(), MagicMock()]
+    mock_st.button.return_value = True
+    spec = LinkedSelectionSpec((1, 2))
+
+    DashboardComposer._render_plotly_preview(go.Figure(go.Bar(x=["A"], y=[1])), spec)
+
+    assert "dashboard.composer.selection.values" not in mock_st.session_state
+    assert mock_st.session_state["dashboard.composer.selection.generation"] == 3
+    mock_st.rerun.assert_called_once()
+    mock_chart.assert_not_called()

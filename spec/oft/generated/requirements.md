@@ -1378,7 +1378,7 @@ Tags: dashboard, plots, status_approved, workspace
 ### Linked selection and cross-filtering
 
 `req~ring5.plots.linked-selections~1`
-Status: proposed
+Status: approved
 
 Interactive selections in one plot shall filter or highlight related data in other linked plots without modifying the source dataset.
 
@@ -1387,7 +1387,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: filtering, interaction, plots, status_proposed
+Tags: filtering, interaction, plots, status_approved
 
 ### Interactive plot drill-down
 

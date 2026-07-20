@@ -79,6 +79,7 @@ if TYPE_CHECKING:
         DatasetSchemaContract,
         JoinCardinality,
         JoinDiagnostics,
+        LinkedSelectionSpec,
         RestoreReport,
         ScanResult,
         ScannedVariable,
@@ -95,6 +96,7 @@ if TYPE_CHECKING:
     from ring5._portfolio import render_portfolio
     from ring5._render import render_figure
     from ring5._dashboard import render_dashboard
+    from ring5._linked_selection import apply_linked_selection
     from ring5._session import PlotType, Session, available_plot_types
     from ring5.shapers import available_shaper_types
     from ring5.coordinates import grouped_bar_coordinates
@@ -120,6 +122,7 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "ScannedVariable": ("src.core.models", "ScannedVariable"),
     "render_figure": ("ring5._render", "render_figure"),
     "render_dashboard": ("ring5._dashboard", "render_dashboard"),
+    "apply_linked_selection": ("ring5._linked_selection", "apply_linked_selection"),
     "export_bytes": ("ring5._export", "export_bytes"),
     "export_file": ("ring5._export", "export_file"),
     "render_portfolio": ("ring5._portfolio", "render_portfolio"),
@@ -136,6 +139,7 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "DatasetSchemaContract": ("src.core.models", "DatasetSchemaContract"),
     "JoinCardinality": ("src.core.models", "JoinCardinality"),
     "JoinDiagnostics": ("src.core.models", "JoinDiagnostics"),
+    "LinkedSelectionSpec": ("src.core.models", "LinkedSelectionSpec"),
     "SchemaValidationReport": ("src.core.models", "SchemaValidationReport"),
     "SchemaViolation": ("src.core.models", "SchemaViolation"),
     "ShaperStepConfig": ("src.core.models", "ShaperStepConfig"),
@@ -206,10 +210,12 @@ __all__ = [
     "DatasetSchemaContract",
     "JoinCardinality",
     "JoinDiagnostics",
+    "LinkedSelectionSpec",
     "SchemaValidationReport",
     "SchemaViolation",
     "render_figure",
     "render_dashboard",
+    "apply_linked_selection",
     "export_bytes",
     "export_file",
     "render_portfolio",

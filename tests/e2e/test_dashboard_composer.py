@@ -13,6 +13,7 @@ pytestmark = [pytest.mark.requires_browser, pytest.mark.xdist_group("e2e_dashboa
 
 def test_build_and_offer_whole_dashboard_export(tier2_page: Page) -> None:
     # [test->req~ring5.plots.multi-panel-dashboard~1]
+    # [test->req~ring5.plots.linked-selections~1]
     manager = ManagePlotsPage(tier2_page)
     manager.navigate()
     manager.select_plot("E2E Bar")
@@ -22,6 +23,14 @@ def test_build_and_offer_whole_dashboard_export(tier2_page: Page) -> None:
     composer = tier2_page.get_by_text("Multi-panel dashboard").last
     expect(composer).to_be_visible(timeout=E2E_TIMEOUT)
     composer.click()
+
+    tier2_page.get_by_text("Link panel selections", exact=True).click()
+    expect(tier2_page.get_by_role("radiogroup", name="Relate values on")).to_be_visible(
+        timeout=E2E_TIMEOUT
+    )
+    expect(tier2_page.get_by_role("radiogroup", name="Linked behavior")).to_be_visible(
+        timeout=E2E_TIMEOUT
+    )
 
     tier2_page.get_by_role("button", name="Build dashboard").click()
     expect(tier2_page.get_by_role("button", name="Download complete HTML")).to_be_visible(

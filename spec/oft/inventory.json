@@ -3432,11 +3432,30 @@
       "id": "plots.linked-selections",
       "group": "plot-lifecycle",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Linked selection and cross-filtering",
       "description": "Interactive selections in one plot shall filter or highlight related data in other linked plots without modifying the source dataset.",
       "tags": ["filtering", "interaction", "plots"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/models/visualization/linked_selection_spec.py::LinkedSelectionSpec",
+          "src/core/application_api.py::ApplicationAPI.create_linked_selection",
+          "src/web/rendering/linked_selection.py::apply_linked_selection",
+          "src/web/components/plotting/interactive_plot.py::interactive_plotly_chart",
+          "src/web/components/plotting/dashboard_composer.py::DashboardComposer._render_plotly_preview",
+          "ring5/_linked_selection.py::apply_linked_selection",
+          "ring5/_session.py::Session.create_linked_selection"
+        ],
+        "tests": [
+          "tests/unit/test_linked_selection.py::test_highlight_links_matching_values_without_mutating_figure",
+          "tests/integration/test_linked_selection_public_api.py::test_public_linked_selection_highlights_dashboard_copy",
+          "tests/ui_logic/test_dashboard_composer.py::test_linked_preview_consumes_selection_and_keeps_base_figure",
+          "tests/e2e/test_dashboard_composer.py::test_build_and_offer_whole_dashboard_export"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/linked-selections.md#link-dashboard-selections"
+        ]
+      }
     },
     {
       "id": "plots.drill-down",
@@ -4035,6 +4054,7 @@
       "JoinCardinality": "data.validated-joins",
       "JoinDiagnostics": "data.validated-joins",
       "LegendOpts": "api.figure-spec",
+      "LinkedSelectionSpec": "plots.linked-selections",
       "MissingStatError": "api.typed-errors",
       "ParseError": "api.typed-errors",
       "ParseJob": "ingestion.async-parse",
@@ -4060,6 +4080,7 @@
       "__version__": "api.process-lifecycle",
       "available_plot_types": "api.registry-discovery",
       "available_shaper_types": "api.registry-discovery",
+      "apply_linked_selection": "plots.linked-selections",
       "doctor": "api.doctor",
       "export_bytes": "export.public-boundary",
       "export_file": "export.public-boundary",
@@ -4081,6 +4102,7 @@
       "compare_statistics": "analysis.statistical-comparison",
       "create_plot": "plots.create-multiple",
       "create_dashboard": "plots.multi-panel-dashboard",
+      "create_linked_selection": "plots.linked-selections",
       "dataset_lineage": "data.lineage-undo-redo",
       "diagnose_join": "data.validated-joins",
       "delete_dataset_snapshot": "data.dataset-snapshots",
@@ -4148,6 +4170,7 @@
       "cancel_pending_scans": "ingestion.async-scan",
       "clear_preview": "data.preview-confirm",
       "create_dashboard": "plots.multi-panel-dashboard",
+      "create_linked_selection": "plots.linked-selections",
       "compare_datasets": "data.multi-dataset-workspace",
       "data_services": "quality.application-facade",
       "delete_configuration": "data.saved-pipeline-configurations",
