@@ -67,6 +67,7 @@ class PlotService:
         new_plot = PlotFactory.create_plot(new_type, plot.plot_id, plot.name)
         new_plot.pipeline = plot.pipeline
         new_plot.pipeline_counter = plot.pipeline_counter
+        new_plot.replace_source_data(plot.source_data)
         new_plot.replace_processed_data(plot.processed_data)
         new_plot.config = {}  # Reset config when type changes
 

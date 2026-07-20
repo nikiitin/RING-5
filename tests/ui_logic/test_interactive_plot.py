@@ -8,6 +8,7 @@ Verifies:
 """
 
 import json
+from pathlib import Path
 from typing import Any, Dict
 from unittest.mock import MagicMock, patch
 
@@ -109,6 +110,19 @@ class TestInteractivePlotlyChart:
         assert mock_func.call_args.kwargs["capture_selection"] is True
 
     @patch(f"{MODULE}._component_func")
+    def test_drill_down_click_flag_is_forwarded(self, mock_func: MagicMock) -> None:
+        """The browser bridge receives the opt-in point-click flag."""
+        mock_func.return_value = None
+
+        from src.web.components.plotting.interactive_plot import (
+            interactive_plotly_chart,
+        )
+
+        interactive_plotly_chart(go.Figure(), capture_click=True)
+
+        assert mock_func.call_args.kwargs["capture_click"] is True
+
+    @patch(f"{MODULE}._component_func")
     def test_returns_component_value(self, mock_func: MagicMock) -> None:
         """Return value from the component function is passed through."""
         expected: Dict[str, Any] = {"relayoutData": {"xaxis.range": [0, 10]}}
@@ -136,3 +150,13 @@ class TestInteractivePlotlyChart:
         result = interactive_plotly_chart(fig)
 
         assert result is None
+
+
+def test_browser_component_sanitizes_plotly_click_payloads() -> None:
+    html = (
+        Path(__file__).parents[2] / "src/web/components/plotting/custom_plotly/index.html"
+    ).read_text(encoding="utf-8")
+
+    assert 'gd.on("plotly_click"' in html
+    assert 'kind: "drill_down"' in html
+    assert "ring5_drilldown" in html

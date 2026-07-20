@@ -1392,7 +1392,7 @@ Tags: filtering, interaction, plots, status_approved
 ### Interactive plot drill-down
 
 `req~ring5.plots.drill-down~1`
-Status: proposed
+Status: approved
 
 Users shall move from an aggregate plot value to its grouped source rows and return without losing the active figure configuration.
 
@@ -1401,7 +1401,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: data, interaction, plots, status_proposed
+Tags: data, interaction, plots, status_approved
 
 ### Small multiples
 

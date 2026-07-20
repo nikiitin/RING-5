@@ -14,7 +14,9 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
+import plotly.graph_objects as go
 
+from src.core.models.visualization.drill_down_result import DrillDownResult
 from tests.ui_logic.conftest import StubPlotHandle
 
 _CTRL = "src.web.controllers.plot.render_controller"
@@ -406,6 +408,61 @@ class TestFigureIdentity:
         assert plot.create_figure.call_count == 2
         mock_engine.set_engine.assert_called_once_with("matplotlib")
         mock_st.rerun.assert_called_once_with()
+
+
+class TestDrillDownInteraction:
+    """Point clicks resolve source rows without changing figure configuration."""
+
+    @patch(f"{_CTRL}.DrillDownPanel")
+    @patch(f"{_CTRL}.ChartDisplayComponent")
+    @patch(f"{_CTRL}.EngineManager")
+    @patch(f"{_CTRL}.st")
+    def test_click_resolves_rows_and_preserves_config(
+        self,
+        mock_st: MagicMock,
+        mock_engine: MagicMock,
+        mock_chart: MagicMock,
+        mock_panel: MagicMock,
+    ) -> None:
+        # [test->req~ring5.plots.drill-down~1]
+        data = pd.DataFrame({"workload": ["A"], "ipc": [1.0]})
+        figure = go.Figure(go.Bar(x=["A"], y=[1.0]))
+        figure.data[0].meta = {"ring5_drilldown": [{"workload": "A"}]}
+        plot = StubPlotHandle(
+            plot_id=3,
+            plot_type="bar",
+            config={"x": "workload", "y": "ipc", "title": "Keep me"},
+            processed_data=data,
+        )
+        plot.create_figure = MagicMock(return_value=figure)
+        plot.apply_common_layout = MagicMock(return_value=figure)
+        config_snapshot = dict(plot.config)
+        result = DrillDownResult(3, (("workload", "A"),), data)
+        api = MagicMock()
+        api.drill_down_plot.return_value = result
+        ctrl = _make_render_controller(api=api)
+
+        mock_st.session_state = {}
+        mock_engine.get_engine.return_value = "plotly"
+        mock_chart.render_engine_selector.return_value = "plotly"
+        mock_chart.render_plotly_chart.return_value = {
+            "kind": "drill_down",
+            "x": "A",
+            "y": 1.0,
+            "traceName": "ipc",
+            "filters": {"workload": "A"},
+        }
+        mock_panel.render_toggle.return_value = True
+
+        ctrl._render_visualization(plot, should_generate=True)
+
+        api.drill_down_plot.assert_called_once_with(3, {"workload": "A"})
+        stored = mock_st.session_state["plot.3.drill_down.result"]
+        assert stored["result"] is result
+        assert plot.config == config_snapshot
+        mock_chart.render_plotly_chart.assert_called_once()
+        assert mock_chart.render_plotly_chart.call_args.kwargs["capture_click"] is True
+        mock_st.rerun.assert_called_once()
 
     @patch(f"{_CTRL}.EngineManager")
     @patch(f"{_CTRL}.ChartDisplayComponent")

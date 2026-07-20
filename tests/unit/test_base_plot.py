@@ -88,6 +88,17 @@ def test_serialization(concrete_plot: Any) -> None:
         assert len(loaded_plot.processed_data) == 3
 
 
+def test_source_snapshot_is_defensive_and_not_serialized(concrete_plot: Any) -> None:
+    source = pd.DataFrame({"seed": [0, 1]})
+
+    concrete_plot.replace_source_data(source)
+    source.loc[0, "seed"] = 99
+
+    assert concrete_plot.source_data is not None
+    assert concrete_plot.source_data["seed"].tolist() == [0, 1]
+    assert "source_data" not in concrete_plot.to_dict()
+
+
 @patch("src.web.components.plotting.config.base_plot_config.st")
 @patch("src.web.components.plotting.config.base_plot_config.PlotConfigComponents")
 def test_render_common_config(mock_plc: Any, mock_st: Any, concrete_plot: Any) -> None:

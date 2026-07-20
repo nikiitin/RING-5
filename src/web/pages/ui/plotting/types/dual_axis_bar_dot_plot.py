@@ -21,6 +21,7 @@ from src.web.components.plotting.config import dual_axis_config
 from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.types._trace_helpers import (
+    build_drill_down_payload,
     extract_error_bars,
     prepare_categorical_data,
 )
@@ -70,6 +71,10 @@ class DualAxisBarDotPlot(BasePlot):
         dot_color: str | None = config.get("dot_color")
         line_width: int = config.get("line_width", 2)
 
+        def drilldown(df: pd.DataFrame) -> dict[str, Any]:
+            columns = [x_col, *([color_col] if color_col else [])]
+            return {"drilldown": build_drill_down_payload(df, columns)}
+
         # Categorical x (+ optional color) axis; copies so input is never mutated.
         data = prepare_categorical_data(data, [x_col, color_col])
 
@@ -94,6 +99,7 @@ class DualAxisBarDotPlot(BasePlot):
                 legendgroup=legendgroup,
                 error_y=df[bar_sd_col].tolist() if bar_sd_col else None,
                 yaxis="y",
+                custom_data=drilldown(df),
             )
 
         def dot_traces(
@@ -118,6 +124,7 @@ class DualAxisBarDotPlot(BasePlot):
                     line_width=float(line_width),
                     error_y=sub[dot_sd_col].tolist() if dot_sd_col else None,
                     yaxis="y2",
+                    custom_data=drilldown(sub),
                 )
 
             def scatter(sub: pd.DataFrame, *, in_legend: bool) -> ScatterTraceConfig:
@@ -132,6 +139,7 @@ class DualAxisBarDotPlot(BasePlot):
                     marker_size=dot_size,
                     error_y=sub[dot_sd_col].tolist() if dot_sd_col else None,
                     yaxis="y2",
+                    custom_data=drilldown(sub),
                 )
 
             out: list[TraceConfig] = []

@@ -9,6 +9,7 @@ from src.core.models.visualization.trace_config import BarTraceConfig
 from src.web.components.plotting.config import histogram_config
 from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
+from src.web.pages.ui.plotting.types._trace_helpers import build_drill_down_payload
 
 
 class HistogramPlot(BasePlot):
@@ -178,6 +179,7 @@ class HistogramPlot(BasePlot):
                 "buckets": buckets,
                 "groups": groups,
                 "data": {},
+                "drilldown": {},
             }
 
             for group in groups:
@@ -186,12 +188,21 @@ class HistogramPlot(BasePlot):
                     group_data[col].sum() if col in group_data.columns else 0 for col in bucket_cols
                 ]
                 result["data"][str(group)] = values
+                group_filters = build_drill_down_payload(group_data.head(1), [str(group_by)])
+                result["drilldown"][str(group)] = [
+                    group_filters[0] if group_filters else {} for _ in buckets
+                ]
 
             return result
         else:
             # Single histogram
             values = [data[col].sum() if col in data.columns else 0 for col in bucket_cols]
-            return {"buckets": buckets, "groups": None, "data": {"": values}}
+            return {
+                "buckets": buckets,
+                "groups": None,
+                "data": {"": values},
+                "drilldown": {"": [{} for _ in buckets]},
+            }
 
     def _add_single_histogram(
         self,
@@ -224,6 +235,7 @@ class HistogramPlot(BasePlot):
             x_positions=x_centers,
             border_width=1.0,
             border_color="white",
+            custom_data={"drilldown": bucket_data["drilldown"][""]},
         )
         return [trace]
 
@@ -260,6 +272,7 @@ class HistogramPlot(BasePlot):
                 opacity=0.7,
                 border_width=1.0,
                 border_color="white",
+                custom_data={"drilldown": bucket_data["drilldown"][str(group)]},
             )
             traces.append(trace)
 

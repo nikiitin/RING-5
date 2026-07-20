@@ -164,20 +164,26 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
 
 
 def _convert_trace(trace: TraceConfig) -> go.BaseTraceType:  # type: ignore[name-defined]
+    # [impl->req~ring5.plots.drill-down~1]
     """Dispatch to the appropriate trace converter."""
+    result: Any
     if isinstance(trace, BarTraceConfig):
-        return _bar_trace(trace)
+        result = _bar_trace(trace)
     elif isinstance(trace, LineTraceConfig):
-        return _line_trace(trace)
+        result = _line_trace(trace)
     elif isinstance(trace, ScatterTraceConfig):
-        return _scatter_trace(trace)
+        result = _scatter_trace(trace)
     elif isinstance(trace, HistogramTraceConfig):
-        return _histogram_trace(trace)
+        result = _histogram_trace(trace)
     elif isinstance(trace, HeatmapTraceConfig):
-        return _heatmap_trace(trace)
+        result = _heatmap_trace(trace)
     else:
         # Fallback for base TraceConfig — render as bar
-        return _bar_trace_from_base(trace)
+        result = _bar_trace_from_base(trace)
+    drilldown = trace.custom_data.get("drilldown")
+    if drilldown is not None:
+        result.meta = {"ring5_drilldown": drilldown}
+    return result
 
 
 def _bar_trace(trace: BarTraceConfig) -> go.Bar:

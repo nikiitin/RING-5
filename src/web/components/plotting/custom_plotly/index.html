@@ -62,6 +62,7 @@
         // Render or Update
         Plotly.react(divId, spec.data, spec.layout, config).then(function (gd) {
           gd._streamlit_capture_selection = Boolean(args.capture_selection);
+          gd._streamlit_capture_click = Boolean(args.capture_click);
           // Attach listeners only once if possible, but React handles it.
           if (!gd._streamlit_listeners_attached) {
             gd.on("plotly_relayout", function (eventData) {
@@ -72,6 +73,9 @@
             });
             gd.on("plotly_deselect", function () {
               handleSelection(gd, { points: [] });
+            });
+            gd.on("plotly_click", function (eventData) {
+              handlePlotClick(gd, eventData);
             });
             gd._streamlit_listeners_attached = true;
           }
@@ -109,6 +113,41 @@
           };
         });
         Streamlit.setComponentValue({ kind: "selection", points: cleanPoints });
+      }
+
+      function drillDownFilters(point) {
+        var meta = point && point.data ? point.data.meta : null;
+        var payload = meta && meta.ring5_drilldown;
+        if (!Array.isArray(payload)) return null;
+        var pointNumber = point.pointNumber;
+        if (Array.isArray(pointNumber)) {
+          for (var index of pointNumber) {
+            payload = Array.isArray(payload) ? payload[index] : null;
+          }
+        } else {
+          var position = Number.isInteger(pointNumber) ? pointNumber : point.pointIndex;
+          payload = Array.isArray(payload) ? payload[position] : null;
+        }
+        return payload && typeof payload === "object" && !Array.isArray(payload)
+          ? payload
+          : null;
+      }
+
+      function handlePlotClick(graphDiv, eventData) {
+        if (!graphDiv._streamlit_capture_click) return;
+        var point = eventData && Array.isArray(eventData.points) ? eventData.points[0] : null;
+        var filters = drillDownFilters(point);
+        if (!point || filters === null) return;
+        Streamlit.setComponentValue({
+          kind: "drill_down",
+          curveNumber: point.curveNumber,
+          pointNumber: point.pointNumber,
+          pointIndex: point.pointIndex,
+          x: point.x,
+          y: point.y,
+          traceName: point.data ? point.data.name : "",
+          filters: filters,
+        });
       }
 
       // Hook into Streamlit events

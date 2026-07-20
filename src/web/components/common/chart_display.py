@@ -94,6 +94,9 @@ class ChartDisplayComponent:
         plot_id: int,
         plot_name: str,
         config: dict[str, Any],
+        *,
+        capture_click: bool = False,
+        component_generation: int = 0,
     ) -> dict[str, Any] | None:
         # [impl->req~ring5.export.plotly-scale~1]
         """Render an interactive Plotly chart with relayout feedback."""
@@ -126,7 +129,10 @@ class ChartDisplayComponent:
         }
 
         relayout_data: dict[str, Any] | None = interactive_plotly_chart(
-            fig, config=plotly_config, key=f"chart_{plot_id}"
+            fig,
+            config=plotly_config,
+            key=f"chart_{plot_id}_{component_generation}",
+            capture_click=capture_click,
         )
 
         render_download_section(plot_id, plot_name, fig)

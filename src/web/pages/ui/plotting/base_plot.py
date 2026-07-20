@@ -49,6 +49,7 @@ class BasePlot(PlotConfigUIMixin, ABC):
         self.name: str = name
         self.plot_type: str = plot_type
         self.config: PlotConfig = {}
+        self.source_data: pd.DataFrame | None = None
         self.processed_data: pd.DataFrame | None = None
         self.last_generated_fig: go.Figure | None = None
         self.last_traces: TraceBuildResult | None = None
@@ -147,6 +148,15 @@ class BasePlot(PlotConfigUIMixin, ABC):
         """
         self.processed_data = data
         self.invalidate_figure()
+
+    def replace_source_data(self, data: pd.DataFrame | None) -> None:
+        # [impl->req~ring5.plots.drill-down~1]
+        """Store a private source snapshot for reversible row exploration.
+
+        The snapshot is deliberately excluded from portfolio serialization;
+        restored legacy plots fall back to their saved processed data.
+        """
+        self.source_data = data.copy(deep=True) if data is not None else None
 
     @abstractmethod
     def get_legend_column(self, config: PlotConfig) -> str | None:

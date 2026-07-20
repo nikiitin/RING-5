@@ -21,14 +21,17 @@ import hashlib
 import json
 import logging
 from copy import deepcopy
+from collections.abc import Mapping
 from typing import cast
 
 import pandas as pd
+import plotly.graph_objects as go
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
 from src.core.models.visualization.engine import EngineMode
 from src.web.components.common.chart_display import ChartDisplayComponent
+from src.web.components.plotting.drill_down_panel import DrillDownPanel, point_label
 from src.web.models.plot_models import PlotConfig
 from src.web.models.plot_protocols import (
     PlotLifecycleService,
@@ -40,6 +43,20 @@ from src.web.rendering.engine_manager import EngineManager
 from src.web.state.ui_state_manager import UIStateManager
 
 logger = logging.getLogger(__name__)
+
+
+def _drill_down_key(plot_id: int, suffix: str) -> str:
+    """Return a plot-scoped key for transient drill-down browser state."""
+    return f"plot.{plot_id}.drill_down.{suffix}"
+
+
+def _supports_drill_down(figure: go.Figure) -> bool:
+    """Return whether any trace carries point-aligned source filters."""
+    for trace in figure.data:
+        meta = getattr(trace, "meta", None)
+        if isinstance(meta, Mapping) and isinstance(meta.get("ring5_drilldown"), list):
+            return True
+    return False
 
 
 class PlotRenderController:
@@ -183,6 +200,7 @@ class PlotRenderController:
     # Private helpers
     def _render_visualization(self, plot: RenderablePlot, should_generate: bool) -> None:
         # [impl->req~ring5.render.engine-selection~1]
+        # [impl->req~ring5.plots.drill-down~1]
         """
         Generate figure (with caching) and delegate display to component.
 
@@ -269,20 +287,77 @@ class PlotRenderController:
                     rule_lines=rules,
                 )
             else:
-                relayout_data = ChartDisplayComponent.render_plotly_chart(
+                drill_enabled = False
+                generation_key = _drill_down_key(plot.plot_id, "generation")
+                generation = int(st.session_state.get(generation_key, 0))
+                result_key = _drill_down_key(plot.plot_id, "result")
+                event_key = _drill_down_key(plot.plot_id, "last_event")
+
+                if _supports_drill_down(display_fig):
+                    drill_enabled = DrillDownPanel.render_toggle(plot.plot_id)
+                stored = st.session_state.get(result_key)
+                if isinstance(stored, dict) and stored.get("cache_key") != cache_key:
+                    st.session_state.pop(result_key, None)
+                    st.session_state.pop(event_key, None)
+                    generation += 1
+                    st.session_state[generation_key] = generation
+                    stored = None
+                if not drill_enabled and stored is not None:
+                    st.session_state.pop(result_key, None)
+                    st.session_state.pop(event_key, None)
+                    generation += 1
+                    st.session_state[generation_key] = generation
+                    stored = None
+
+                interaction_data = ChartDisplayComponent.render_plotly_chart(
                     display_fig,
                     plot.plot_id,
                     plot.name,
                     plot.config,
+                    capture_click=drill_enabled,
+                    component_generation=generation,
                 )
+                if (
+                    drill_enabled
+                    and interaction_data
+                    and interaction_data.get("kind") == "drill_down"
+                ):
+                    last_event = st.session_state.get(event_key)
+                    if interaction_data != last_event:
+                        filters = interaction_data.get("filters")
+                        if isinstance(filters, Mapping):
+                            st.session_state[event_key] = interaction_data
+                            try:
+                                result = self._api.drill_down_plot(plot.plot_id, filters)
+                            except (TypeError, ValueError) as exc:
+                                DrillDownPanel.render_error(exc)
+                            else:
+                                st.session_state[result_key] = {
+                                    "cache_key": cache_key,
+                                    "point_label": point_label(interaction_data),
+                                    "result": result,
+                                }
+                                st.rerun()
+                                return
                 # Handle relayout events (zoom, pan, legend drag)
-                if relayout_data:
+                elif interaction_data:
                     last_event_key = f"plot.{plot.plot_id}.last_relayout"
                     last_event = st.session_state.get(last_event_key)
-                    if relayout_data != last_event:
-                        if plot.update_from_relayout(relayout_data):
-                            st.session_state[last_event_key] = relayout_data
+                    if interaction_data != last_event:
+                        if plot.update_from_relayout(interaction_data):
+                            st.session_state[last_event_key] = interaction_data
                             st.rerun()
+
+                stored = st.session_state.get(result_key)
+                if isinstance(stored, dict) and stored.get("cache_key") == cache_key:
+                    stored_result = stored.get("result")
+                    if stored_result is not None and DrillDownPanel.render_result(
+                        stored_result, str(stored.get("point_label", ""))
+                    ):
+                        st.session_state.pop(result_key, None)
+                        st.session_state.pop(event_key, None)
+                        st.session_state[generation_key] = generation + 1
+                        st.rerun()
         except Exception as e:
             ChartDisplayComponent.render_error(e)
 

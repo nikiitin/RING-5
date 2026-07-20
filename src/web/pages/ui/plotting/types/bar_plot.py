@@ -10,6 +10,7 @@ from src.web.components.plotting.config.base_plot_config import render_common_wi
 from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.types._trace_helpers import (
+    build_drill_down_payload,
     build_color_grouped_traces,
     prepare_categorical_data,
 )
@@ -60,6 +61,12 @@ class BarPlot(BasePlot):
                 x=grp_data[x_col].tolist(),
                 y=grp_data[y_col].tolist(),
                 error_y=grp_data[sd_col].tolist() if sd_col else None,
+                custom_data={
+                    "drilldown": build_drill_down_payload(
+                        grp_data,
+                        [x_col, *([str(config["color"])] if config.get("color") else [])],
+                    )
+                },
             )
 
         traces = build_color_grouped_traces(data, config, _make_trace)

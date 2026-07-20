@@ -11,6 +11,7 @@ from src.web.components.plotting.config import grouped_bar_config
 from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.types._trace_helpers import (
+    build_drill_down_payload,
     extract_error_bars,
     prepare_categorical_data,
 )
@@ -158,6 +159,9 @@ class GroupedBarPlot(BasePlot):
                         x_positions=x_coords,
                         y=grp_data[config["y"]].tolist(),
                         error_y=error_y_vals,
+                        custom_data={
+                            "drilldown": build_drill_down_payload(grp_data, [x_col, group_col])
+                        },
                     )
                 )
         else:
@@ -172,6 +176,7 @@ class GroupedBarPlot(BasePlot):
                     x_positions=x_coords,
                     y=data[config["y"]].tolist(),
                     error_y=error_y_vals,
+                    custom_data={"drilldown": build_drill_down_payload(data, [x_col])},
                 )
             )
 

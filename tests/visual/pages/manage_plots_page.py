@@ -354,6 +354,21 @@ class ManagePlotsPage(BasePage):
         return self.page.get_by_text("Show advanced settings")
 
     @property
+    def viz_drill_down_toggle(self) -> Locator:
+        """Opt-in source-row exploration toggle."""
+        return self.page.get_by_text("Explore source rows", exact=True)
+
+    @property
+    def drill_down_panel(self) -> Locator:
+        """The source-row detail panel shown after a point click."""
+        return self.page.get_by_text("Source rows", exact=True)
+
+    @property
+    def drill_down_back_button(self) -> Locator:
+        """Button that closes the source-row detail panel."""
+        return self.page.get_by_role("button", name="Back to full plot")
+
+    @property
     def viz_settings_pills(self) -> Locator:
         """Settings navigation pills (key=settings_nav).
 
@@ -609,6 +624,20 @@ class ManagePlotsPage(BasePage):
     def select_y_axis(self, column: str) -> None:
         """Select a column for the Y-axis."""
         self._open_and_select(self.viz_y_axis_selectbox, column)
+
+    def enable_drill_down(self) -> None:
+        """Enable point-click source-row exploration and wait for the fragment rerun."""
+        self.viz_drill_down_toggle.click()
+        self.wait_for_streamlit(expect_rerun=True)
+        self.page.wait_for_timeout(500)
+
+    def click_first_plot_point(self) -> None:
+        """Click the first rendered Plotly point inside the custom-component frame."""
+        self.assert_chart_visible()
+        frame = self.plotly_chart.first.content_frame
+        frame.locator(".plotly .point").first.click(force=True)
+        self.wait_for_streamlit(expect_rerun=True)
+        self.page.wait_for_timeout(500)
 
     def select_y_bar(self, column: str) -> None:
         """Select the bars (left Y-axis) column for a dual-axis bar+dot plot."""

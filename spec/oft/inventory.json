@@ -3461,11 +3461,35 @@
       "id": "plots.drill-down",
       "group": "plot-lifecycle",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Interactive plot drill-down",
       "description": "Users shall move from an aggregate plot value to its grouped source rows and return without losing the active figure configuration.",
       "tags": ["data", "interaction", "plots"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/models/visualization/drill_down_result.py::DrillDownResult",
+          "src/core/services/visualization/drill_down_service.py::drill_down_rows",
+          "src/core/application_api.py::ApplicationAPI.drill_down_plot",
+          "src/web/pages/ui/plotting/base_plot.py::BasePlot.replace_source_data",
+          "src/web/controllers/plot/pipeline_controller.py::PipelineController._handle_finalize",
+          "src/web/pages/ui/plotting/types/_trace_helpers.py::build_drill_down_payload",
+          "src/web/rendering/trace_to_plotly.py::_convert_trace",
+          "src/web/components/plotting/interactive_plot.py::interactive_plotly_chart",
+          "src/web/controllers/plot/render_controller.py::PlotRenderController._render_visualization",
+          "src/web/components/plotting/drill_down_panel.py::DrillDownPanel.render_result",
+          "ring5/_session.py::Session.drill_down"
+        ],
+        "tests": [
+          "tests/unit/test_drill_down_service.py::test_drill_down_matches_grouped_source_rows_and_returns_defensive_copies",
+          "tests/unit/test_drill_down_metadata.py::test_every_plot_family_embeds_source_filters_without_mutating_data",
+          "tests/integration/test_drill_down_public_api.py::test_public_drill_down_recovers_aggregate_source_rows_without_mutation",
+          "tests/ui_logic/test_render_controller.py::TestDrillDownInteraction.test_click_resolves_rows_and_preserves_config",
+          "tests/e2e/test_plot_drill_down.py::test_point_drill_down_shows_source_rows_and_returns_with_config"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/plot-drill-down.md#explore-rows-behind-a-plot"
+        ]
+      }
     },
     {
       "id": "plots.small-multiples",
@@ -4047,6 +4071,7 @@
       "DependencyStatus": "api.doctor",
       "DoctorReport": "api.doctor",
       "DualAxisOpts": "api.figure-spec",
+      "DrillDownResult": "plots.drill-down",
       "ExportError": "api.typed-errors",
       "FigureDecorations": "api.figure-decorations",
       "FigureSpec": "api.figure-spec",
@@ -4105,6 +4130,7 @@
       "create_linked_selection": "plots.linked-selections",
       "dataset_lineage": "data.lineage-undo-redo",
       "diagnose_join": "data.validated-joins",
+      "drill_down": "plots.drill-down",
       "delete_dataset_snapshot": "data.dataset-snapshots",
       "export": "export.public-boundary",
       "export_bytes": "export.public-boundary",
@@ -4194,6 +4220,7 @@
       "get_visualization_config": "plots.independent-state",
       "has_preview": "data.preview-confirm",
       "diagnose_join": "data.validated-joins",
+      "drill_down_plot": "plots.drill-down",
       "join_datasets": "data.multi-dataset-workspace",
       "join_datasets_validated": "data.validated-joins",
       "list_datasets": "data.multi-dataset-workspace",

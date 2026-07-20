@@ -284,6 +284,7 @@ class TestChartDisplayComponent:
             "width": 900,
             "scale": 3,
         }
+        assert mock_chart.call_args.kwargs["capture_click"] is False
         mock_download.assert_called_once()
 
     @patch("src.web.components.common.chart_display.st")

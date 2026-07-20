@@ -15,6 +15,7 @@ from src.core.application_api import ApplicationAPI
 from src.core.models import (
     DataQualityReport,
     DashboardSpec,
+    DrillDownResult,
     DatasetInfo,
     DatasetLineage,
     DatasetRevision,
@@ -1322,6 +1323,7 @@ class Session:
         if name is None:
             plot.name = f"{resolved_type}_{plot.plot_id}"
         plot.replace_processed_data(frame.copy())
+        plot.replace_source_data(frame)
         # Plot configuration contains nested lists and dictionaries. Copy it so a
         # later caller mutation cannot silently change an already registered plot.
         plot.config = copy.deepcopy(raw_config)
@@ -1484,6 +1486,30 @@ class Session:
         try:
             return self.api.create_linked_selection(plot_ids, axis=axis, mode=mode)
         except ValueError as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def drill_down(
+        self,
+        plot: BasePlot | int,
+        filters: Mapping[str, Any],
+    ) -> DrillDownResult:
+        # [impl->req~ring5.plots.drill-down~1]
+        """Return source rows represented by a plotted aggregate or point.
+
+        Args:
+            plot: A plot registered in this session, or its integer ID.
+            filters: Exact source dimensions attached to the plotted point.
+
+        Returns:
+            A defensive source-row snapshot. Reading :attr:`rows` returns a copy.
+
+        Raises:
+            DataValidationError: The plot, source data, or filters are invalid.
+        """
+        plot_id = plot.plot_id if isinstance(plot, BasePlot) else plot
+        try:
+            return self.api.drill_down_plot(plot_id, filters)
+        except (TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
 
     def export(

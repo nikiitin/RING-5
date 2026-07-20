@@ -179,6 +179,7 @@ class PipelineController:
                 )
 
     def _handle_finalize(self, plot: PlotHandle, raw_data: pd.DataFrame) -> None:
+        # [impl->req~ring5.plots.drill-down~1]
         """
         Apply the full pipeline to raw data and store the result.
 
@@ -190,6 +191,7 @@ class PipelineController:
         try:
             confs: list[ShaperStepConfig] = [s["config"] for s in plot.pipeline if s["config"]]
             processed: pd.DataFrame = self._pipeline.apply_shapers(raw_data, confs)
+            plot.replace_source_data(raw_data)
             plot.replace_processed_data(processed)
             PipelineStepComponent.render_finalize_result(processed)
             # Finalization runs inside a fragment. An app rerun refreshes the

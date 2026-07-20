@@ -10,7 +10,10 @@ from src.core.models.visualization.trace_config import LineTraceConfig
 from src.web.components.plotting.config.base_plot_config import render_common_with_color
 from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
-from src.web.pages.ui.plotting.types._trace_helpers import build_color_grouped_traces
+from src.web.pages.ui.plotting.types._trace_helpers import (
+    build_color_grouped_traces,
+    build_drill_down_payload,
+)
 
 
 class LinePlot(BasePlot):
@@ -63,6 +66,12 @@ class LinePlot(BasePlot):
                 y=grp_data[y_col].tolist(),
                 show_markers=True,
                 error_y=grp_data[sd_col].tolist() if sd_col else None,
+                custom_data={
+                    "drilldown": build_drill_down_payload(
+                        grp_data,
+                        [x_col, *([str(config["color"])] if config.get("color") else [])],
+                    )
+                },
             )
 
         traces = build_color_grouped_traces(data, config, _make_trace)

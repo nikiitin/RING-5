@@ -14,6 +14,7 @@ from src.core.models import (
     DatasetRevision,
     DatasetSnapshotInfo,
     DashboardSpec,
+    DrillDownResult,
     JoinCardinality,
     JoinDiagnostics,
     LinkedSelectionSpec,
@@ -41,6 +42,7 @@ from src.core.services.data_services.data_services_api import DataServicesAPI
 from src.core.services.managers.managers_api import ManagersAPI
 from src.core.services.services_impl import DefaultServicesAPI
 from src.core.services.shapers.shapers_api import ShapersAPI
+from src.core.services.visualization.drill_down_service import drill_down_rows
 from src.core.state.repository_state_manager import RepositoryStateManager
 from src.parsing.framework.file_discovery import find_stats_files as _find_stats_files
 from src.parsing.parser_protocol import SimulationParser
@@ -749,6 +751,30 @@ class ApplicationAPI:
                 + "."
             )
         return LinkedSelectionSpec(plot_ids=ids, axis=axis, mode=mode)
+
+    def drill_down_plot(
+        self,
+        plot_id: int,
+        filters: Mapping[str, Any],
+    ) -> DrillDownResult:
+        # [impl->req~ring5.plots.drill-down~1]
+        """Resolve the private source rows represented by one registered plot point."""
+        if isinstance(plot_id, bool) or not isinstance(plot_id, int):
+            raise ValueError("Drill-down plot ID must be an integer.")
+        plot = next(
+            (
+                candidate
+                for candidate in self.state_manager.get_plots()
+                if candidate.plot_id == plot_id
+            ),
+            None,
+        )
+        if plot is None:
+            raise ValueError(f"Drill-down references unknown plot ID: {plot_id}.")
+        source_data = plot.source_data if plot.source_data is not None else plot.processed_data
+        if source_data is None:
+            raise ValueError(f"Plot {plot_id} has no source data to inspect.")
+        return drill_down_rows(plot_id, source_data, filters)
 
     # Previews (Delegated to StateManager)
 

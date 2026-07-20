@@ -9,7 +9,7 @@ Optionally generates one heatmap per facet value (e.g. benchmark_name).
 """
 
 from collections.abc import Callable
-from typing import Literal, cast, override
+from typing import Any, Literal, cast, override
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -211,15 +211,21 @@ class HeatmapPlot(BasePlot):
         for facet_value, group_df in grouped_frames:
             z_values: list[list[float | None]] = []
             text_values: list[list[str]] | None = [] if show_values else None
+            drilldown_values: list[list[dict[str, Any]]] = []
 
             for metric in metric_columns:
                 row: list[float | None] = []
                 text_row: list[str] = []
+                drilldown_row: list[dict[str, Any]] = []
 
                 for x_value in x_labels_internal:
                     cell_series = group_df.loc[group_df[x_col] == x_value, metric]
                     cell_val = _aggregate_series(cell_series, agg_func)
                     row.append(cell_val)
+                    filters: dict[str, Any] = {x_col: x_value}
+                    if facet_col:
+                        filters[facet_col] = facet_value
+                    drilldown_row.append(filters)
 
                     if show_values:
                         cell_text = ""
@@ -236,6 +242,7 @@ class HeatmapPlot(BasePlot):
                         text_row.append(cell_text)
 
                 z_values.append(row)
+                drilldown_values.append(drilldown_row)
                 if text_values is not None:
                     text_values.append(text_row)
 
@@ -250,6 +257,9 @@ class HeatmapPlot(BasePlot):
                         non_null = [v for v in z_row if v is not None]
                         total = _compute_total(non_null, totals_agg)
                         z_row.append(total)
+                        drilldown_values[row_idx].append(
+                            {facet_col: facet_value} if facet_col else {}
+                        )
                         if text_values is not None:
                             text_values[row_idx].append(
                                 "" if total is None else _format_value(total, text_format)
@@ -270,6 +280,13 @@ class HeatmapPlot(BasePlot):
                             "" if total is None else _format_value(total, text_format)
                         )
                     z_values.insert(0, total_row)
+                    total_drilldown: list[dict[str, Any]] = []
+                    for x_value in x_labels_internal:
+                        filters = {x_col: x_value}
+                        if facet_col:
+                            filters[facet_col] = facet_value
+                        total_drilldown.append(filters)
+                    drilldown_values.insert(0, total_drilldown)
                     if text_values is not None:
                         text_values.insert(0, total_text)
                     facet_display_metrics.insert(0, "Total")
@@ -295,6 +312,7 @@ class HeatmapPlot(BasePlot):
                         config.get("totals_position", "") if config.get("show_totals") else ""
                     ),
                     totals_count=1 if config.get("show_totals") else 0,
+                    custom_data={"drilldown": drilldown_values},
                 )
             )
 

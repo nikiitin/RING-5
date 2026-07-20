@@ -6,13 +6,52 @@ BarPlot, LinePlot, and ScatterPlot.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
+from datetime import date, datetime
+from typing import Any
 
 import pandas as pd
 
 from src.core.models.visualization.trace_config import TraceConfig
 from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.utils.ordering import order_with_overrides
+
+
+def _browser_scalar(value: Any) -> Any:
+    """Normalize a DataFrame scalar for Plotly metadata and browser messaging."""
+    if value is None:
+        return None
+    missing = pd.isna(value)
+    if not hasattr(missing, "__len__") and bool(missing):
+        return None
+    if hasattr(value, "item"):
+        try:
+            value = value.item()
+        except (TypeError, ValueError):
+            pass
+    if isinstance(value, (date, datetime)):
+        return value.isoformat()
+    return value
+
+
+def build_drill_down_payload(
+    data: pd.DataFrame,
+    columns: Sequence[str] | Mapping[str, str],
+) -> list[dict[str, Any]]:
+    # [impl->req~ring5.plots.drill-down~1]
+    """Build point-aligned source filters without exposing whole rows to the browser."""
+    mapping = (
+        dict(columns) if isinstance(columns, Mapping) else {column: column for column in columns}
+    )
+    if any(frame_column not in data.columns for frame_column in mapping.values()):
+        return []
+    return [
+        {
+            source_column: _browser_scalar(row[frame_column])
+            for source_column, frame_column in mapping.items()
+        }
+        for row in data.to_dict(orient="records")
+    ]
 
 
 def prepare_categorical_data(
