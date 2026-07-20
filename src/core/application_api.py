@@ -32,6 +32,8 @@ from src.core.models import (
     RestoreReport,
     SmallMultiplesSpec,
     ParseBatchResult,
+    ParserPlaygroundBatchResult,
+    ParserPlaygroundResult,
     ScanFileResult,
     ScannedVariable,
     ScanResult,
@@ -698,6 +700,36 @@ class ApplicationAPI:
         # [impl->req~ring5.ingestion.incremental-parsing~1]
         """Merge changed parser results with unchanged cached rows."""
         return self._parser.finalize_incremental_parsing(batch, results)
+
+    def submit_parser_playground_async(
+        self,
+        stats_path: str,
+        stats_pattern: str,
+        variables: Sequence[ParseVariableConfig | StatConfig],
+        output_dir: str,
+        strategy_type: str = "simple",
+        scanned_vars: list[ScannedVariable] | list[ScannedVariableDict] | None = None,
+    ) -> ParserPlaygroundBatchResult:
+        # [impl->req~ring5.ingestion.parser-playground~1]
+        """Test parser settings against a bounded sample without changing workspace data."""
+        stat_configs, resolved_scanned = self._normalize_parse_request(variables, scanned_vars)
+        return self._parser.submit_parser_playground_async(
+            stats_path,
+            stats_pattern,
+            stat_configs,
+            output_dir,
+            strategy_type,
+            resolved_scanned,
+        )
+
+    def finalize_parser_playground(
+        self,
+        batch: ParserPlaygroundBatchResult,
+        results: list[dict[str, Any]],
+    ) -> ParserPlaygroundResult:
+        # [impl->req~ring5.ingestion.parser-playground~1]
+        """Finalize a parser configuration test into an immutable bounded preview."""
+        return self._parser.finalize_parser_playground(batch, results)
 
     def submit_scan_async(
         self, stats_path: str, stats_pattern: str = "stats.txt", limit: int = 5

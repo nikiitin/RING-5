@@ -20,9 +20,13 @@ from src.core.common.safe_regex import (
 )
 from src.core.common.utils import normalize_user_path
 from src.core.common.security_limits import (
-    MAX_INCREMENTAL_CACHE_COLUMNS,
     MAX_DISCOVERED_FILES,
+    MAX_INCREMENTAL_CACHE_COLUMNS,
+    MAX_PARSE_FILES,
     MAX_PARSE_VARIABLES,
+    MAX_PARSER_PLAYGROUND_CELLS,
+    MAX_PARSER_PLAYGROUND_FILES,
+    MAX_PARSER_PLAYGROUND_VARIABLES,
     MAX_REGEX_CANDIDATES,
     MAX_REGEX_EXPANSION_SECONDS,
     MAX_REGEX_MATCH_ATTEMPTS,
@@ -31,6 +35,8 @@ from src.core.models import (
     IncrementalParseBatchResult,
     IncrementalParseResult,
     ParseBatchResult,
+    ParserPlaygroundBatchResult,
+    ParserPlaygroundResult,
     ScanFileResult,
     ScannedVariable,
     ScanResult,
@@ -390,6 +396,54 @@ class Gem5Parser(SimulationParser):
             removed_files=removed_files,
         )
 
+    @staticmethod
+    def submit_parser_playground_async(
+        stats_path: str,
+        stats_pattern: str,
+        variables: list[StatConfig],
+        output_dir: str,
+        strategy_type: str = "simple",
+        scanned_vars: list[ScannedVariable] | None = None,
+    ) -> ParserPlaygroundBatchResult:
+        # [impl->req~ring5.ingestion.parser-playground~1]
+        """Submit the real parser for a deterministic, bounded sample of matching files."""
+        if not variables:
+            raise ValueError("PARSER: add at least one variable before testing the configuration.")
+        if len(variables) > MAX_PARSER_PLAYGROUND_VARIABLES:
+            raise ValueError(
+                "PARSER: configuration tests accept at most "
+                f"{MAX_PARSER_PLAYGROUND_VARIABLES} variables; narrow the test first."
+            )
+        files = find_stats_files(stats_path, stats_pattern, sort=True, raise_if_empty=True)
+        sampled_files = tuple(files[:MAX_PARSER_PLAYGROUND_FILES])
+        parse_batch = Gem5Parser.submit_parse_async(
+            stats_path,
+            stats_pattern,
+            variables,
+            output_dir,
+            strategy_type,
+            scanned_vars,
+            file_paths=list(sampled_files),
+        )
+        diagnostics: list[str] = []
+        if len(files) > len(sampled_files):
+            diagnostics.append(
+                f"Previewed {len(sampled_files)} of {len(files)} matching files in lexical order."
+            )
+        if len(files) > MAX_PARSE_FILES:
+            diagnostics.append(
+                f"A full parse would exceed the {MAX_PARSE_FILES}-file safety limit."
+            )
+        return ParserPlaygroundBatchResult(
+            futures=list(parse_batch.futures),
+            var_names=list(parse_batch.var_names),
+            output_dir=str(Path(output_dir).expanduser().resolve()),
+            strategy_type=strategy_type,
+            matched_file_count=len(files),
+            sampled_files=sampled_files,
+            diagnostics=tuple(diagnostics),
+        )
+
     # ------------------------------------------------------------------ scanning
 
     @staticmethod
@@ -711,6 +765,73 @@ class Gem5Parser(SimulationParser):
             reused_files=batch.reused_file_count,
             removed_files=batch.removed_file_count,
             total_files=batch.total_file_count,
+        )
+
+    @staticmethod
+    def finalize_parser_playground(
+        batch: ParserPlaygroundBatchResult,
+        results: list[dict[str, Any]],
+    ) -> ParserPlaygroundResult:
+        # [impl->req~ring5.ingestion.parser-playground~1]
+        """Finalize a bounded dry run into cells and diagnostics without retaining a CSV."""
+        if len(results) != len(batch.sampled_files):
+            raise RuntimeError(
+                "PARSER: configuration test received "
+                f"{len(results)} results for {len(batch.sampled_files)} sampled files."
+            )
+
+        output_dir = Path(batch.output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix="ring5-playground-", dir=output_dir) as scratch:
+            csv_path = Gem5Parser.finalize_parsing(
+                scratch,
+                results,
+                strategy_type=batch.strategy_type,
+                var_names=batch.var_names,
+            )
+            if csv_path is None:
+                raise RuntimeError("PARSER: configuration test produced no preview table.")
+            with Path(csv_path).open("r", encoding="utf-8", newline="") as handle:
+                reader = csv.reader(handle)
+                try:
+                    columns = tuple(next(reader))
+                except StopIteration as exc:
+                    raise RuntimeError("PARSER: configuration test produced an empty CSV.") from exc
+                rows = tuple(tuple(value for value in row) for row in reader)
+
+        if len(columns) * max(len(rows), 1) > MAX_PARSER_PLAYGROUND_CELLS:
+            raise RuntimeError(
+                "PARSER: configuration preview exceeds the "
+                f"{MAX_PARSER_PLAYGROUND_CELLS}-cell limit."
+            )
+        missing_variables: list[str] = []
+        for variable in batch.var_names:
+            indices = [
+                index
+                for index, column in enumerate(columns)
+                if column == variable or column.startswith(f"{variable}..")
+            ]
+            if not indices or all(
+                not row[index] or row[index] == MISSING_VALUE for row in rows for index in indices
+            ):
+                missing_variables.append(variable)
+
+        diagnostics = list(batch.diagnostics)
+        if missing_variables:
+            diagnostics.append(
+                "No sampled value was produced for: " + ", ".join(missing_variables) + "."
+            )
+        ready = not missing_variables and batch.matched_file_count <= MAX_PARSE_FILES
+        if ready:
+            diagnostics.append("The sampled configuration is ready for a full parse.")
+        return ParserPlaygroundResult(
+            matched_file_count=batch.matched_file_count,
+            sampled_files=batch.sampled_files,
+            columns=columns,
+            rows=rows,
+            missing_variables=tuple(missing_variables),
+            diagnostics=tuple(diagnostics),
+            ready_for_full_parse=ready,
         )
 
     @staticmethod

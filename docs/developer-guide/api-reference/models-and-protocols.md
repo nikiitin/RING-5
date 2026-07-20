@@ -21,8 +21,10 @@ Parsing models carry scan results, parse batches, variable configuration, and si
 `IncrementalParseBatchResult` is the immutable handoff between submission and finalization: it
 contains owned changed-file futures plus content fingerprints and plain scalar cached rows.
 `IncrementalParseResult` reports the output path and parsed, reused, removed, and total file counts.
-The `SimulationParser` protocol keeps both full and incremental work in asynchronous
-submit/finalize pairs.
+`ParserPlaygroundBatchResult` owns the bounded sample futures and exact matched-file context;
+`ParserPlaygroundResult` carries immutable display cells, sampled source paths, missing variables,
+diagnostics, and readiness. The `SimulationParser` protocol keeps full, incremental, and playground
+work in asynchronous submit/finalize pairs.
 Import models carry immutable delimiter/encoding corrections, inferred column types, accepted-row
 previews, rejected source lines, and the source fingerprint used at confirmation time.
 `BrowserUpload` records validated upload type, original-byte fingerprint, staged paths, and bounded

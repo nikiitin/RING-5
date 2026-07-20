@@ -26,7 +26,13 @@ from ring5 import _doctor, _export, _parse, _plot_validation, _portfolio
 from ring5._session import Session, _remove_directory_when_settled
 from ring5.errors import Ring5Error
 from ring5.figure_spec import DualAxisOpts, FigureSpec, FigureSpecBuilder, LegendOpts
-from src.core.models import RestoreReport, ScanFileResult, ScanResult, StatConfig
+from src.core.models import (
+    IncrementalParseBatchResult,
+    RestoreReport,
+    ScanFileResult,
+    ScanResult,
+    StatConfig,
+)
 from src.parsing.gem5.models import Gem5ScannedVariable
 
 pytestmark = pytest.mark.public_api
@@ -271,6 +277,16 @@ def test_session_lifecycle_and_submission_edges(tmp_path: Path) -> None:
 
     with patch("ring5._session._parse.build_stat_configs", return_value=([], [])):
         with patch.object(
+            session.api,
+            "submit_parser_playground_async",
+            side_effect=ValueError("playground submit"),
+        ):
+            with pytest.raises(ring5.ParseError, match="playground submit"):
+                session.parser_playground_submit(
+                    "runs", [], output_dir=str(tmp_path / "user-playground")
+                )
+
+        with patch.object(
             session.api, "submit_parse_async", side_effect=ValueError("parse submit")
         ):
             with pytest.raises(ring5.ParseError, match="parse submit"):
@@ -278,6 +294,38 @@ def test_session_lifecycle_and_submission_edges(tmp_path: Path) -> None:
             user_output = tmp_path / "user-output"
             with pytest.raises(ring5.ParseError, match="parse submit"):
                 session.parse_submit("runs", [], output_dir=str(user_output))
+
+        with patch.object(
+            session.api,
+            "submit_incremental_parse_async",
+            side_effect=ValueError("incremental submit"),
+        ):
+            unrelated_key = ("other-runs", "stats.txt", "simple", "")
+            session._incremental_output_dirs[unrelated_key] = "other-output"
+            with pytest.raises(ring5.ParseError, match="incremental submit"):
+                session.parse_submit("runs", [], incremental=True)
+            assert session._incremental_output_dirs[unrelated_key] == "other-output"
+
+        incremental_batch = IncrementalParseBatchResult(
+            futures=[],
+            var_names=["x"],
+            output_dir="/unused",
+            strategy_type="simple",
+            cache_path="/unused/cache.json",
+            configuration_hash="a" * 64,
+            fingerprints=(),
+            cached_rows=(),
+            changed_files=(),
+            removed_files=(),
+        )
+        with patch.object(
+            session.api,
+            "submit_incremental_parse_async",
+            return_value=incremental_batch,
+        ):
+            first_incremental = session.parse_submit("runs", [], incremental=True)
+            second_incremental = session.parse_submit("runs", [], incremental=True)
+        assert first_incremental.output_dir == second_incremental.output_dir
 
     with patch.object(session.api, "load_data", return_value=None):
         with patch.object(session.api.state_manager, "get_data", return_value=None):

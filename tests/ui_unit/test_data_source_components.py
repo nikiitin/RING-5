@@ -4,7 +4,7 @@ from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 
-from src.core.models import ScanResult
+from src.core.models import ParserPlaygroundBatchResult, ScanResult
 from src.web.components.data_source.data_source_components import DataSourceComponents
 from tests.conftest import columns_side_effect
 
@@ -113,3 +113,53 @@ def test_render_parser_config(mock_streamlit: Any, mock_api: Any) -> None:
 
     mock_api.submit_scan_async.assert_called()
     mock_streamlit.rerun.assert_called()
+
+
+def test_render_parser_config_submits_the_bounded_playground(
+    mock_streamlit: Any,
+    mock_api: Any,
+    tmp_path: Any,
+) -> None:
+    # [test->req~ring5.ingestion.parser-playground~1]
+    mock_streamlit.button.side_effect = lambda label, **kwargs: "Test configuration" in label
+    mock_streamlit.pills.return_value = "gem5"
+    mock_streamlit.text_input.side_effect = ["/allowed/stats", "custom*.txt"]
+    mock_streamlit.segmented_control.return_value = "simple"
+    mock_api.state_manager.get_simulator.return_value = "gem5"
+    mock_api.state_manager.get_stats_path.return_value = "/allowed/stats"
+    mock_api.state_manager.get_stats_pattern.return_value = "custom*.txt"
+    mock_api.state_manager.get_temp_dir.return_value = str(tmp_path)
+    variables = [{"name": "simTicks", "type": "scalar"}]
+    mock_api.state_manager.get_parse_variables.return_value = variables
+    batch = ParserPlaygroundBatchResult(
+        futures=[],
+        var_names=["simTicks"],
+        output_dir=str(tmp_path / "parser_playground"),
+        strategy_type="simple",
+        matched_file_count=1,
+        sampled_files=("/allowed/stats/run/stats.txt",),
+    )
+    mock_api.submit_parser_playground_async.return_value = batch
+
+    with (
+        patch(
+            "src.web.components.data_source.data_source_components.validate_web_stats_path",
+            return_value=tmp_path / "stats",
+        ),
+        patch.object(DataSourceComponents, "_show_parser_playground_dialog") as show_dialog,
+        patch(
+            "src.web.components.data_source.data_source_components.VariableEditor.render",
+            return_value=variables,
+        ),
+    ):
+        DataSourceComponents.render_parser_config(mock_api)
+
+    mock_api.submit_parser_playground_async.assert_called_once_with(
+        str(tmp_path / "stats"),
+        "custom*.txt",
+        [{"name": "simTicks", "type": "scalar"}],
+        str(tmp_path / "parser_playground"),
+        scanned_vars=[],
+        strategy_type="simple",
+    )
+    show_dialog.assert_called_once_with(mock_api, batch)

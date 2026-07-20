@@ -39,6 +39,11 @@ without touching work from another handle. `Session.load` returns a DataFrame. `
 given one. `Session.compare` returns a `Table` when both baseline and candidate inputs are tables;
 otherwise it returns a DataFrame.
 
+`Session.parser_playground_submit` returns a `ParserPlaygroundJob` that runs the registered parser
+against at most three lexically selected files. Finalization returns `ParserPlaygroundResult`
+without retaining a CSV or changing workspace data. The result exposes exact sampled paths, output
+cells, missing variables, diagnostics, and whether the configuration is ready for a full parse.
+
 `Session.compare` aligns baseline and candidate rows by unique key columns and emits long-form
 metric results. Directions and non-negative tolerances can be global or keyed by metric. Percentage
 and absolute threshold modes are supported. Missing keys and non-finite values remain in the result;

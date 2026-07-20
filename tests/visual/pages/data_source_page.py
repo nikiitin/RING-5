@@ -199,6 +199,11 @@ class DataSourcePage(BasePage):
     # 3e — Parse button (outside fragment)
 
     @property
+    def test_parser_configuration_button(self) -> Locator:
+        """Bounded parser playground action."""
+        return self.page.get_by_role("button", name="Test configuration")
+
+    @property
     def parse_button(self) -> Locator:
         """'Parse gem5 Stats Files' primary action button."""
         return self.page.locator(

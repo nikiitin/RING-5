@@ -712,7 +712,7 @@ Tags: incremental, parsing, performance, status_approved
 ### Parser configuration playground
 
 `req~ring5.ingestion.parser-playground~1`
-Status: proposed
+Status: approved
 
 Users shall test file patterns, parser strategies, statistic patterns, and variable definitions against a bounded sample before submitting a full parse.
 
@@ -721,7 +721,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: parsing, preview, status_proposed, validation
+Tags: parsing, preview, status_approved, validation
 
 ### Structured import preview
 

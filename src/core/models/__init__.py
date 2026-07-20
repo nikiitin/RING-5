@@ -76,6 +76,8 @@ from src.core.models.dataset_workspace_models import (
 from src.core.models.parsing_models import (
     IncrementalParseBatchResult,
     IncrementalParseResult,
+    ParserPlaygroundBatchResult,
+    ParserPlaygroundResult,
     ParseBatchResult,
     ScanFileResult,
     ScannedVariable,
@@ -157,6 +159,8 @@ __all__ = [
     "NormalizeShaperConfig",
     "IncrementalParseBatchResult",
     "IncrementalParseResult",
+    "ParserPlaygroundBatchResult",
+    "ParserPlaygroundResult",
     "ParseBatchResult",
     "ParseVariableConfig",
     "PipelineStep",

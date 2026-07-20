@@ -98,6 +98,7 @@ if TYPE_CHECKING:
         ConfigurationDifference,
         PlotConfigurationComparison,
         PlotTransferResult,
+        ParserPlaygroundResult,
         ReportFigure,
         ReportNarrative,
         ReportProvenance,
@@ -114,7 +115,7 @@ if TYPE_CHECKING:
     from src.core.models.quality_models import ColumnQuality, DataQualityReport
 
     from ring5._export import export_bytes, export_file
-    from ring5._parse import ParseJob, ParseResult
+    from ring5._parse import ParseJob, ParseResult, ParserPlaygroundJob
     from ring5._scan import ScanJob
     from ring5._portfolio import render_portfolio
     from ring5._render import render_figure
@@ -153,6 +154,8 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "available_plot_types": ("ring5._session", "available_plot_types"),
     "ParseJob": ("ring5._parse", "ParseJob"),
     "ParseResult": ("ring5._parse", "ParseResult"),
+    "ParserPlaygroundJob": ("ring5._parse", "ParserPlaygroundJob"),
+    "ParserPlaygroundResult": ("src.core.models", "ParserPlaygroundResult"),
     "ScanJob": ("ring5._scan", "ScanJob"),
     "ScanResult": ("src.core.models", "ScanResult"),
     "ScannedVariable": ("src.core.models", "ScannedVariable"),
@@ -254,6 +257,8 @@ __all__ = [
     "StatConfig",
     "ParseJob",
     "ParseResult",
+    "ParserPlaygroundJob",
+    "ParserPlaygroundResult",
     "ScanJob",
     "ScanResult",
     "ScannedVariable",

@@ -191,7 +191,7 @@ class Session:
         self.api = ApplicationAPI(plot_deserializer=PlotFactory.from_dict, parser=parser)
         # Temporary parse output is removed when the session closes.
         self._owned_tmpdirs: list[str] = []
-        self._parse_jobs: list[_parse.ParseJob] = []
+        self._parse_jobs: list[_parse.ParseJob | _parse.ParserPlaygroundJob] = []
         self._incremental_output_dirs: dict[tuple[str, str, str, str], str] = {}
 
     # lifecycle
@@ -274,6 +274,76 @@ class Session:
         return self.scan_submit(stats_path, pattern=pattern, limit=limit).finalize(strict=strict)
 
     # parse
+    def parser_playground_submit(
+        self,
+        stats_path: str,
+        variables: list[str | StatConfig],
+        *,
+        pattern: str = "stats.txt",
+        strategy: str = "simple",
+        output_dir: str | None = None,
+        scan_limit: int = 10,
+    ) -> _parse.ParserPlaygroundJob:
+        # [impl->req~ring5.ingestion.parser-playground~1]
+        """Test parser settings against a deterministic three-file sample.
+
+        This submits the same asynchronous parser used by a full run. It only
+        retains scratch output until :meth:`ParserPlaygroundJob.finalize`
+        returns the immutable preview, and it does not change workspace data
+        or parse provenance.
+
+        Args:
+            stats_path: Root directory containing simulator statistics.
+            variables: Statistic names or explicit statistic configurations.
+            pattern: Statistics filename pattern.
+            strategy: Registered parser strategy.
+            output_dir: Directory for temporary preview assembly. A session-owned
+                temporary directory is used when omitted.
+            scan_limit: Maximum files used to resolve plain statistic names.
+
+        Returns:
+            A submitted configuration-test job that can be finalized or cancelled.
+
+        Raises:
+            ScanError: Variable discovery failed.
+            ParseError: The parser rejected the bounded submission.
+        """
+        configs, scanned = _parse.build_stat_configs(
+            self.api, stats_path, variables, pattern=pattern, scan_limit=scan_limit
+        )
+        created_output = output_dir is None
+        if created_output:
+            out_dir = tempfile.mkdtemp(prefix="ring5_parser_playground_")
+            self._owned_tmpdirs.append(out_dir)
+        else:
+            out_dir = cast(str, output_dir)
+
+        try:
+            batch = self.api.submit_parser_playground_async(
+                stats_path,
+                pattern,
+                cast(list[ParseVariableConfig | StatConfig], list(configs)),
+                out_dir,
+                strategy_type=strategy,
+                scanned_vars=scanned,
+            )
+        except (FileNotFoundError, OSError, RuntimeError, ValueError) as exc:
+            if created_output:
+                shutil.rmtree(out_dir, ignore_errors=True)
+                self._owned_tmpdirs.remove(out_dir)
+            raise ParseError(f"Parser configuration test submission failed: {exc}") from exc
+
+        job = _parse.ParserPlaygroundJob(
+            api=self.api,
+            batch=batch,
+            futures=list(batch.futures),
+            output_dir=out_dir,
+            stats_path=stats_path,
+            stats_pattern=pattern,
+        )
+        self._parse_jobs.append(job)
+        return job
+
     def parse_submit(
         self,
         stats_path: str,

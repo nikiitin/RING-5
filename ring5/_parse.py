@@ -14,7 +14,10 @@ from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
-from src.core.common.security_limits import PARSE_BATCH_TIMEOUT_SECONDS
+from src.core.common.security_limits import (
+    PARSE_BATCH_TIMEOUT_SECONDS,
+    PARSER_PLAYGROUND_TIMEOUT_SECONDS,
+)
 from src.core.models import StatConfig
 
 from ring5._scan import ScanJob
@@ -24,7 +27,11 @@ if TYPE_CHECKING:
     from concurrent.futures import Future
 
     from src.core.application_api import ApplicationAPI
-    from src.core.models import IncrementalParseBatchResult
+    from src.core.models import (
+        IncrementalParseBatchResult,
+        ParserPlaygroundBatchResult,
+        ParserPlaygroundResult,
+    )
 
 
 @dataclass(frozen=True)
@@ -140,6 +147,53 @@ class ParseJob:
             reused_files=reused_files,
             removed_files=removed_files,
         )
+
+
+@dataclass
+class ParserPlaygroundJob:
+    """Owned asynchronous dry run for a bounded parser configuration sample."""
+
+    # [impl->req~ring5.ingestion.parser-playground~1]
+
+    api: "ApplicationAPI"
+    batch: "ParserPlaygroundBatchResult"
+    futures: list["Future[dict[str, Any]]"]
+    output_dir: str
+    stats_path: str
+    stats_pattern: str
+
+    def cancel(self) -> None:
+        """Cancel only this configuration test's pending work."""
+        for future in self.futures:
+            future.cancel()
+
+    def finalize(self) -> "ParserPlaygroundResult":
+        """Collect the bounded sample and return an immutable parser preview.
+
+        Returns:
+            The sampled rows, matching-file context, and readiness diagnostics.
+
+        Raises:
+            ParseError: A worker failed, timed out, or produced invalid preview output.
+        """
+        from concurrent.futures import wait
+
+        _done, pending = wait(self.futures, timeout=PARSER_PLAYGROUND_TIMEOUT_SECONDS)
+        if pending:
+            cancelled = sum(future.cancel() for future in pending)
+            raise ParseError(
+                "Parser configuration test exceeded "
+                f"{PARSER_PLAYGROUND_TIMEOUT_SECONDS:g} seconds; {len(pending)} file(s) "
+                f"remained unfinished and {cancelled} pending file(s) were cancelled."
+            )
+        try:
+            results = [future.result() for future in self.futures]
+        except Exception as exc:
+            raise ParseError(f"Parser configuration test worker failed: {exc}") from exc
+        try:
+            return self.api.finalize_parser_playground(self.batch, results)
+        except (OSError, RuntimeError, TypeError, ValueError) as exc:
+            raise ParseError(f"Parser configuration test failed: {exc}") from exc
 
 
 def _find_missing_stats(csv_path: str, var_names: list[str]) -> list[str]:

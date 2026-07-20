@@ -70,6 +70,14 @@ class TestDataSourcePageStructure:
         expect(ds.incremental_parse_checkbox).to_be_visible()
         expect(ds.incremental_parse_checkbox).to_be_checked()
 
+    def test_parser_playground_action_is_visible(self, tier0_page: Page) -> None:
+        # [test->req~ring5.ingestion.parser-playground~1]
+        """Parser settings can be tested before the primary full-parse action."""
+        ds = DataSourcePage(tier0_page)
+        ds.ensure_parse_mode()
+        expect(ds.test_parser_configuration_button).to_be_visible()
+        expect(ds.parse_button).to_be_visible()
+
     def test_parser_variables_section_visible(self, tier0_page: Page) -> None:
         """Variables to Extract section with scan and add buttons is visible."""
         ds = DataSourcePage(tier0_page)

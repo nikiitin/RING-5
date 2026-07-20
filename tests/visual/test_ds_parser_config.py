@@ -175,6 +175,7 @@ class TestParserConfig:
         - Parse button NOT visible in CSV mode
         - Parse button NOT visible in Recent mode
         """
+        # [test->req~ring5.ingestion.parser-playground~1]
         ds = DataSourcePage(shared_page)
         ds.goto_and_wait(live_server_url)
         ds.assert_step_header_visible()
@@ -182,6 +183,7 @@ class TestParserConfig:
         # Parse button visible with correct text
         ds.assert_parse_button_visible()
         expect(ds.parse_button).to_contain_text("Parse gem5 Stats Files")
+        expect(ds.test_parser_configuration_button).to_be_visible()
 
         # Empty path shows error
         ds.stats_path_input.fill("")

@@ -271,6 +271,51 @@ class TestIncrementalParsing:
         cast(MagicMock, api._parser.finalize_incremental_parsing).assert_called_once_with(batch, [])
 
 
+class TestParserPlayground:
+    """Configuration tests normalize once and preserve the async parser contract."""
+
+    def test_submit_and_finalize_delegate_to_parser(self, api: ApplicationAPI) -> None:
+        # [test->req~ring5.ingestion.parser-playground~1]
+        from src.core.models import ParserPlaygroundBatchResult, ParserPlaygroundResult
+
+        batch = ParserPlaygroundBatchResult(
+            futures=[],
+            var_names=["IPC"],
+            output_dir="/out",
+            strategy_type="simple",
+            matched_file_count=2,
+            sampled_files=("/inputs/a/stats.txt", "/inputs/b/stats.txt"),
+        )
+        result = ParserPlaygroundResult(
+            matched_file_count=2,
+            sampled_files=batch.sampled_files,
+            columns=("IPC",),
+            rows=(("1.0",), ("2.0",)),
+            missing_variables=(),
+            diagnostics=("The sampled configuration is ready for a full parse.",),
+            ready_for_full_parse=True,
+        )
+        cast(Any, api._parser.submit_parser_playground_async).return_value = batch
+        cast(Any, api._parser.finalize_parser_playground).return_value = result
+
+        submitted = api.submit_parser_playground_async(
+            "/inputs",
+            "stats.txt",
+            [cast(ParseVariableConfig, {"name": "cpu.ipc", "alias": "IPC"})],
+            "/out",
+        )
+        finalized = api.finalize_parser_playground(submitted, [{"IPC": 1.0}])
+
+        assert submitted is batch
+        assert finalized is result
+        configs = cast(MagicMock, api._parser.submit_parser_playground_async).call_args.args[2]
+        assert configs[0].name == "IPC"
+        assert configs[0].source_name == "cpu.ipc"
+        cast(MagicMock, api._parser.finalize_parser_playground).assert_called_once_with(
+            batch, [{"IPC": 1.0}]
+        )
+
+
 class TestScanMethods:
     """Test scan delegation."""
 

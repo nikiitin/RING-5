@@ -93,6 +93,36 @@ class IncrementalParseResult:
 
 
 @dataclass(frozen=True)
+class ParserPlaygroundBatchResult:
+    """Bounded real-parser work and discovery context for a configuration test."""
+
+    # [impl->req~ring5.ingestion.parser-playground~1]
+
+    futures: list[Future[dict[str, Any]]]
+    var_names: list[str]
+    output_dir: str
+    strategy_type: str
+    matched_file_count: int
+    sampled_files: tuple[str, ...]
+    diagnostics: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class ParserPlaygroundResult:
+    """Human-readable result of testing parser settings against a bounded sample."""
+
+    # [impl->req~ring5.ingestion.parser-playground~1]
+
+    matched_file_count: int
+    sampled_files: tuple[str, ...]
+    columns: tuple[str, ...]
+    rows: tuple[tuple[str, ...], ...]
+    missing_variables: tuple[str, ...]
+    diagnostics: tuple[str, ...]
+    ready_for_full_parse: bool
+
+
+@dataclass(frozen=True)
 class ScannedVariable:
     """
     Base metadata for a variable discovered by a simulator parser.

@@ -134,6 +134,48 @@ selected path position contains no metadata; otherwise the first extracted value
 The parser records missing values as `NaN`. It reports file failures instead of substituting
 simulator values. Investigate missing variables before reducing or normalizing the data.
 
+### Test parser settings before a full run
+
+<!--
+`uman~ring5.ingestion.parser-playground.documentation~1`
+
+Covers:
+- req~ring5.ingestion.parser-playground~1
+
+-->
+
+Select **Test configuration** after choosing the file pattern, parser strategy, and variables. The
+test runs the real asynchronous parser on the first three matching files in lexical path order. It
+also counts every matching file, so the dialog explains both the full-run scope and exactly which
+files supplied the sample.
+
+Review the sampled output table, exact source paths, missing-variable warning, and readiness
+message. Vector and histogram entries appear as the same output columns a full parse would create.
+A missing value remains `NaN`; it is never replaced with a plausible-looking value. The test also
+warns when the full match count exceeds the parser's 4,096-file safety limit.
+
+The preview is limited to 3 files, 64 configured variables, 50,000 displayed cells, and two minutes.
+It uses scratch CSV assembly only: finalization removes that CSV, does not add anything to Recent,
+and does not replace the workspace's current data. Fix the settings and test again, or select
+**Parse gem5 Stats Files** when the evidence is ready.
+
+Headless callers use the same submit/finalize lifecycle; there is deliberately no synchronous
+playground wrapper:
+
+```python
+with ring5.Session() as session:
+    job = session.parser_playground_submit(
+        "results/",
+        variables=["simTicks", "system.cpu.ipc"],
+        pattern="stats.txt",
+        scan_limit=0,
+    )
+    preview = job.finalize()
+    print(preview.sampled_files)
+    print(preview.columns, preview.rows)
+    print(preview.missing_variables, preview.ready_for_full_parse)
+```
+
 ### Reuse unchanged simulator files
 
 <!--

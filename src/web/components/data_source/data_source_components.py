@@ -21,6 +21,7 @@ from src.core.common.security_limits import (
     MAX_BROWSER_UPLOAD_BYTES,
     MAX_SCAN_FILES,
     PARSE_BATCH_TIMEOUT_SECONDS,
+    PARSER_PLAYGROUND_TIMEOUT_SECONDS,
     SCAN_BATCH_TIMEOUT_SECONDS,
 )
 from src.core.common.utils import allowed_web_stats_roots, validate_web_stats_path
@@ -32,6 +33,7 @@ from src.core.models import (
     ImportPreview,
     IncrementalParseBatchResult,
     ParseBatchResult,
+    ParserPlaygroundBatchResult,
     ScanFileResult,
     ScanResult,
     S3Source,
@@ -512,6 +514,7 @@ class DataSourceComponents:
     @staticmethod
     def render_parser_config(api: ApplicationAPI) -> None:
         """Display parser configuration interface."""
+        # [impl->req~ring5.ingestion.parser-playground~1]
         # [impl->req~ring5.ingestion.incremental-parsing~1]
         # [impl->req~ring5.ingestion.scan-presets-progress~1]
         # [impl->req~ring5.ingestion.web-path-authorization~1]
@@ -730,11 +733,56 @@ class DataSourceComponents:
 
         _parser_config_fragment()
 
-        # Parse button — sits outside the fragment so that clicking it causes
-        # a full rerun (other page sections can react). Read widget values
-        # from session_state because locals from the fragment are not in scope.
+        # Actions sit outside the fragment so their dialogs can own the complete
+        # async lifecycle. Read widget values from session_state because locals
+        # from the fragment are not in scope.
         st.markdown("---")
-        if st.button(f"Parse {sim_label} Stats Files", type="primary", use_container_width=True):
+        test_col, parse_col = st.columns(2)
+        with test_col:
+            test_configuration = st.button(
+                ":material/science: Test configuration",
+                help="Run the real parser on up to three matching files without loading data.",
+                use_container_width=True,
+                key="parser_test_configuration",
+            )
+        with parse_col:
+            parse_configuration = st.button(
+                f"Parse {sim_label} Stats Files",
+                type="primary",
+                use_container_width=True,
+            )
+
+        if test_configuration:
+            _stats_path = st.session_state.get(
+                "stats_path_input", api.state_manager.get_stats_path()
+            )
+            _stats_pattern = st.session_state.get(
+                "stats_pattern_input", api.state_manager.get_stats_pattern()
+            )
+            if not _stats_path:
+                st.error("Please specify a stats directory path.")
+            else:
+                try:
+                    safe_stats_path = str(validate_web_stats_path(str(_stats_path)))
+                    session_dir = api.state_manager.get_temp_dir()
+                    if not session_dir:
+                        session_dir = tempfile.mkdtemp(prefix="ring5-session-")
+                        api.state_manager.set_temp_dir(session_dir)
+                    output_path = Path(session_dir) / "parser_playground"
+                    output_path.mkdir(parents=True, exist_ok=True)
+                    playground_batch = api.submit_parser_playground_async(
+                        safe_stats_path,
+                        str(_stats_pattern),
+                        api.state_manager.get_parse_variables(),
+                        str(output_path),
+                        scanned_vars=api.state_manager.get_scanned_variables(),
+                        strategy_type=api.state_manager.get_parser_strategy(),
+                    )
+                    DataSourceComponents._show_parser_playground_dialog(api, playground_batch)
+                except Exception as exc:
+                    st.exception(exc)
+
+        if parse_configuration:
             _stats_path = st.session_state.get(
                 "stats_path_input", api.state_manager.get_stats_path()
             )
@@ -747,7 +795,7 @@ class DataSourceComponents:
                 try:
                     safe_stats_path = str(validate_web_stats_path(str(_stats_path)))
                     incremental = bool(st.session_state.get("parser_incremental_enabled", True))
-                    batch: ParseBatchResult | IncrementalParseBatchResult
+                    parse_batch: ParseBatchResult | IncrementalParseBatchResult
                     if incremental:
                         session_dir = api.state_manager.get_temp_dir()
                         if not session_dir:
@@ -756,7 +804,7 @@ class DataSourceComponents:
                         output_path = Path(session_dir) / "incremental_parser"
                         output_path.mkdir(parents=True, exist_ok=True)
                         output_dir = str(output_path)
-                        batch = api.submit_incremental_parse_async(
+                        parse_batch = api.submit_incremental_parse_async(
                             safe_stats_path,
                             _stats_pattern,
                             api.state_manager.get_parse_variables(),
@@ -767,7 +815,7 @@ class DataSourceComponents:
                     else:
                         output_dir = tempfile.mkdtemp()
                         api.state_manager.set_temp_dir(output_dir)
-                        batch = api.submit_parse_async(
+                        parse_batch = api.submit_parse_async(
                             safe_stats_path,
                             _stats_pattern,
                             api.state_manager.get_parse_variables(),
@@ -775,10 +823,83 @@ class DataSourceComponents:
                             scanned_vars=api.state_manager.get_scanned_variables(),
                             strategy_type=api.state_manager.get_parser_strategy(),
                         )
-                    DataSourceComponents._show_parse_dialog(api, batch, output_dir)
+                    DataSourceComponents._show_parse_dialog(api, parse_batch, output_dir)
                 except Exception as e:
                     st.exception(e)
                     logger.error("UI: Parsing submission failed: %s", e, exc_info=True)
+
+    @staticmethod
+    @st.dialog("Parser configuration test", dismissible=True)
+    def _show_parser_playground_dialog(
+        api: ApplicationAPI,
+        batch: ParserPlaygroundBatchResult,
+    ) -> None:
+        # [impl->req~ring5.ingestion.parser-playground~1]
+        """Show bounded real-parser output without loading or retaining it."""
+        futures = batch.futures
+        st.write(
+            f"Testing {len(futures)} of {batch.matched_file_count} matching files "
+            "in lexical order."
+        )
+        progress = st.progress(0, text="Starting parser workers...")
+        errors: list[str] = []
+        try:
+            for completed_count, future in enumerate(
+                as_completed(futures, timeout=PARSER_PLAYGROUND_TIMEOUT_SECONDS), start=1
+            ):
+                try:
+                    future.result()
+                except Exception as exc:
+                    errors.append(str(exc))
+                progress.progress(
+                    completed_count / len(futures),
+                    text=f"Processed {completed_count}/{len(futures)} sampled files",
+                )
+        except FuturesTimeoutError:
+            cancelled = sum(future.cancel() for future in futures if not future.done())
+            st.error(
+                "Configuration test exceeded the two-minute limit; cancellation was requested "
+                f"for unfinished work ({cancelled} pending task(s) cancelled)."
+            )
+            return
+
+        if errors:
+            st.error(f"The sampled parser run encountered {len(errors)} error(s).")
+            with st.expander("Show parser errors"):
+                for error in errors:
+                    st.write(error)
+            return
+
+        try:
+            ordered_results = [future.result() for future in futures]
+            result = api.finalize_parser_playground(batch, ordered_results)
+        except Exception as exc:
+            st.exception(exc)
+            return
+
+        matched_col, sampled_col, columns_col = st.columns(3)
+        matched_col.metric("Matching files", result.matched_file_count)
+        sampled_col.metric("Files tested", len(result.sampled_files))
+        columns_col.metric("Output columns", len(result.columns))
+
+        with st.expander("Sampled files", expanded=False):
+            for file_path in result.sampled_files:
+                st.code(file_path, language=None)
+
+        st.markdown("#### Sample output")
+        st.dataframe(
+            pd.DataFrame(result.rows, columns=result.columns),
+            hide_index=True,
+            use_container_width=True,
+        )
+        if result.missing_variables:
+            st.warning("Missing sampled values: " + ", ".join(result.missing_variables))
+        for diagnostic in result.diagnostics:
+            st.caption(diagnostic)
+        if result.ready_for_full_parse:
+            st.success("Ready for a full parse.")
+        else:
+            st.warning("Review the diagnostics before starting a full parse.")
 
     @staticmethod
     @st.dialog("Add Variable")

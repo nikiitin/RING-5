@@ -4,6 +4,8 @@ from typing import Any, Protocol, runtime_checkable
 from src.core.models import (
     IncrementalParseBatchResult,
     IncrementalParseResult,
+    ParserPlaygroundBatchResult,
+    ParserPlaygroundResult,
     ParseBatchResult,
     ScanFileResult,
     ScannedVariable,
@@ -70,6 +72,28 @@ class SimulationParser(Protocol):
         results: list[dict[str, Any]],
     ) -> IncrementalParseResult:
         """Merge changed results with reviewed cache rows and atomically update the cache."""
+        raise NotImplementedError
+
+    def submit_parser_playground_async(
+        self,
+        stats_path: str,
+        stats_pattern: str,
+        variables: list[StatConfig],
+        output_dir: str,
+        strategy_type: str = "simple",
+        scanned_vars: list[ScannedVariable] | None = None,
+    ) -> ParserPlaygroundBatchResult:
+        # [impl->req~ring5.ingestion.parser-playground~1]
+        """Submit a bounded real-parser sample for configuration review."""
+        raise NotImplementedError
+
+    def finalize_parser_playground(
+        self,
+        batch: ParserPlaygroundBatchResult,
+        results: list[dict[str, Any]],
+    ) -> ParserPlaygroundResult:
+        # [impl->req~ring5.ingestion.parser-playground~1]
+        """Turn bounded parser results into a non-mutating human preview."""
         raise NotImplementedError
 
     def submit_scan_async(

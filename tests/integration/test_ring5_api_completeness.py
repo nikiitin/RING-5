@@ -12,9 +12,14 @@ import pandas as pd
 import pytest
 
 import ring5
-from ring5._parse import ParseJob
+from ring5._parse import ParseJob, ParserPlaygroundJob
 from ring5._scan import ScanJob
-from src.core.models import ScanFileResult, ScannedVariable, ScanResult
+from src.core.models import (
+    ParserPlaygroundBatchResult,
+    ScanFileResult,
+    ScannedVariable,
+    ScanResult,
+)
 
 pytestmark = pytest.mark.public_api
 
@@ -127,6 +132,49 @@ def test_scan_job_partial_and_timeout_are_typed(monkeypatch: pytest.MonkeyPatch)
     assert pending.cancelled()
 
 
+def test_parser_playground_job_timeout_and_failures_are_typed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def make_job(
+        future: Future[dict[str, Any]], api: MagicMock | None = None
+    ) -> ParserPlaygroundJob:
+        playground_api = api or MagicMock()
+        batch = ParserPlaygroundBatchResult(
+            futures=[future],
+            var_names=["simTicks"],
+            output_dir="/preview",
+            strategy_type="simple",
+            matched_file_count=1,
+            sampled_files=("/inputs/run/stats.txt",),
+        )
+        return ParserPlaygroundJob(
+            playground_api,
+            batch,
+            [future],
+            "/preview",
+            "/inputs",
+            "stats.txt",
+        )
+
+    pending: Future[dict[str, Any]] = Future()
+    monkeypatch.setattr("ring5._parse.PARSER_PLAYGROUND_TIMEOUT_SECONDS", 0)
+    with pytest.raises(ring5.ParseError, match=r"1 pending file\(s\) were cancelled"):
+        make_job(pending).finalize()
+    assert pending.cancelled()
+
+    failed: Future[dict[str, Any]] = Future()
+    failed.set_exception(KeyError("bad sample"))
+    with pytest.raises(ring5.ParseError, match="worker failed"):
+        make_job(failed).finalize()
+
+    finished: Future[dict[str, Any]] = Future()
+    finished.set_result({"simTicks": 1})
+    failing_api = MagicMock()
+    failing_api.finalize_parser_playground.side_effect = RuntimeError("bad preview")
+    with pytest.raises(ring5.ParseError, match="configuration test failed"):
+        make_job(finished, failing_api).finalize()
+
+
 def test_session_close_defers_cleanup_for_running_parse(tmp_path: Path) -> None:
     # [test->req~ring5.api.session~1]
     # [test->req~ring5.ingestion.async-parse~1]
@@ -197,6 +245,8 @@ def test_public_registries_are_complete() -> None:
         "groupPredicateSelector",
     }
     assert ring5.ScanJob is ScanJob
+    assert ring5.ParserPlaygroundJob is not None
+    assert ring5.ParserPlaygroundResult is not None
     assert ring5.ScanResult is ScanResult
     assert ring5.ScannedVariable is ScannedVariable
     assert ring5.ShaperStepConfig is not None
