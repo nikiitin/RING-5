@@ -15,7 +15,7 @@ import re
 import shutil
 from pathlib import Path
 
-from playwright.sync_api import Locator, Page, expect
+from playwright.sync_api import Locator, Page, TimeoutError as PlaywrightTimeoutError, expect
 
 from tests.visual.pages.base_page import BasePage
 
@@ -206,6 +206,11 @@ class DataSourcePage(BasePage):
         ).filter(has_text="Parse gem5 Stats Files")
 
     @property
+    def incremental_parse_checkbox(self) -> Locator:
+        """The human-facing changed-file reuse control."""
+        return self.page.get_by_role("checkbox", name="Reuse unchanged simulator files")
+
+    @property
     def parser_config_section(self) -> Locator:
         """The entire parser config region (markdown separator to bottom)."""
         return self.page.get_by_text("gem5 Stats Parser Configuration")
@@ -240,6 +245,11 @@ class DataSourcePage(BasePage):
     def remote_source_option(self) -> Locator:
         """Remote-source option inside upload mode."""
         return self.upload_origin_control.get_by_role("radio", name="Remote source")
+
+    @property
+    def local_source_option(self) -> Locator:
+        """Browser-local source option inside upload mode."""
+        return self.upload_origin_control.get_by_role("radio", name="This computer")
 
     @property
     def remote_adapter_select(self) -> Locator:
@@ -448,7 +458,13 @@ class DataSourcePage(BasePage):
 
     def select_csv_mode(self) -> None:
         """Click the browser-upload option."""
+        # A completed fragment rerun can leave the top-level radio checked while its previous
+        # parser body is still mounted. A Parse round-trip gives the mode switch a full rerun.
+        if self.csv_option.is_checked() and not self.csv_success_message.is_visible():
+            self.parse_option.click()
+            self.wait_for_streamlit(expect_rerun=True)
         self._select_mode(self.csv_option)
+        expect(self.csv_success_message).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
     def select_remote_source(self) -> None:
         """Open the remote-source form within upload mode."""
@@ -643,10 +659,26 @@ class DataSourcePage(BasePage):
         Args:
             csv_path: Absolute path to the CSV file to load.
         """
-        self.select_csv_mode()
-        self.browser_upload_input.set_input_files(str(csv_path))
-        self.wait_for_streamlit()
-        expect(self.import_review_header).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        for attempt in range(2):
+            try:
+                self.select_csv_mode()
+                self.upload_origin_control.wait_for(
+                    state="visible",
+                    timeout=self.RENDER_TIMEOUT,
+                )
+                self._select_mode(self.local_source_option)
+                self.browser_upload_input.set_input_files(str(csv_path))
+                self.wait_for_streamlit()
+                self.import_review_header.wait_for(
+                    state="visible",
+                    timeout=self.RENDER_TIMEOUT,
+                )
+                break
+            except PlaywrightTimeoutError:
+                if attempt:
+                    raise
+                self.parse_option.click()
+                self.wait_for_streamlit(expect_rerun=True)
         self.load_accepted_import_button.click()
         self.wait_for_streamlit()
 

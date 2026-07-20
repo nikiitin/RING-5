@@ -2,6 +2,8 @@ from concurrent.futures import Future
 from typing import Any, Protocol, runtime_checkable
 
 from src.core.models import (
+    IncrementalParseBatchResult,
+    IncrementalParseResult,
     ParseBatchResult,
     ScanFileResult,
     ScannedVariable,
@@ -29,10 +31,25 @@ class SimulationParser(Protocol):
         output_dir: str,
         strategy_type: str = "simple",
         scanned_vars: list[ScannedVariable] | None = None,
+        *,
+        file_paths: list[str] | None = None,
     ) -> ParseBatchResult:
         """
         Submit an asynchronous parsing job over the simulation output files.
         """
+        raise NotImplementedError
+
+    def submit_incremental_parse_async(
+        self,
+        stats_path: str,
+        stats_pattern: str,
+        variables: list[StatConfig],
+        output_dir: str,
+        strategy_type: str = "simple",
+        scanned_vars: list[ScannedVariable] | None = None,
+        cache_path: str | None = None,
+    ) -> IncrementalParseBatchResult:
+        """Submit only new or changed files while retaining an explicit reuse plan."""
         raise NotImplementedError
 
     def finalize_parsing(
@@ -45,6 +62,14 @@ class SimulationParser(Protocol):
         """
         Post-process and aggregate internal parsing results into a canonical format (e.g. CSV).
         """
+        raise NotImplementedError
+
+    def finalize_incremental_parsing(
+        self,
+        batch: IncrementalParseBatchResult,
+        results: list[dict[str, Any]],
+    ) -> IncrementalParseResult:
+        """Merge changed results with reviewed cache rows and atomically update the cache."""
         raise NotImplementedError
 
     def submit_scan_async(

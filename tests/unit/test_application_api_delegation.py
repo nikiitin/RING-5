@@ -231,6 +231,46 @@ class TestFinalizeParsing:
         assert call_kwargs["var_names"] == ["a", "b"]
 
 
+class TestIncrementalParsing:
+    """Incremental requests share normalization and delegate their complete plan."""
+
+    def test_submit_and_finalize_delegate_to_parser(self, api: ApplicationAPI) -> None:
+        # [test->req~ring5.ingestion.incremental-parsing~1]
+        from src.core.models import IncrementalParseBatchResult, IncrementalParseResult
+
+        batch = IncrementalParseBatchResult(
+            futures=[],
+            var_names=["IPC"],
+            output_dir="/out",
+            strategy_type="simple",
+            cache_path="/out/cache.json",
+            configuration_hash="a" * 64,
+            fingerprints=(),
+            cached_rows=(),
+            changed_files=(),
+            removed_files=(),
+        )
+        result = IncrementalParseResult("/out/results.csv", 0, 1, 0, 1)
+        cast(Any, api._parser.submit_incremental_parse_async).return_value = batch
+        cast(Any, api._parser.finalize_incremental_parsing).return_value = result
+
+        submitted = api.submit_incremental_parse_async(
+            "/inputs",
+            "stats.txt",
+            [cast(ParseVariableConfig, {"name": "cpu.ipc", "alias": "IPC"})],
+            "/out",
+            cache_path="/out/cache.json",
+        )
+        finalized = api.finalize_incremental_parsing(submitted, [])
+
+        assert submitted is batch
+        assert finalized is result
+        configs = cast(MagicMock, api._parser.submit_incremental_parse_async).call_args.args[2]
+        assert configs[0].name == "IPC"
+        assert configs[0].source_name == "cpu.ipc"
+        cast(MagicMock, api._parser.finalize_incremental_parsing).assert_called_once_with(batch, [])
+
+
 class TestScanMethods:
     """Test scan delegation."""
 

@@ -40,6 +40,59 @@ class ParseBatchResult:
 
 
 @dataclass(frozen=True)
+class IncrementalParseBatchResult:
+    """Submitted changed-file work plus the immutable reuse plan needed to finalize it.
+
+    ``cached_rows`` stores finalized scalar CSV cells, never parser objects or executable
+    serialization.  This keeps the on-disk cache inspectable and safe to load as JSON.
+    """
+
+    # [impl->req~ring5.ingestion.incremental-parsing~1]
+
+    futures: list[Future[dict[str, Any]]]
+    var_names: list[str]
+    output_dir: str
+    strategy_type: str
+    cache_path: str
+    configuration_hash: str
+    fingerprints: tuple[tuple[str, str], ...]
+    cached_rows: tuple[tuple[str, tuple[tuple[str, str], ...]], ...]
+    changed_files: tuple[str, ...]
+    removed_files: tuple[str, ...]
+
+    @property
+    def parsed_file_count(self) -> int:
+        """Number of new or changed files submitted to workers."""
+        return len(self.changed_files)
+
+    @property
+    def reused_file_count(self) -> int:
+        """Number of unchanged files whose finalized row can be reused."""
+        return len(self.cached_rows)
+
+    @property
+    def removed_file_count(self) -> int:
+        """Number of cached files no longer present in the input tree."""
+        return len(self.removed_files)
+
+    @property
+    def total_file_count(self) -> int:
+        """Number of rows expected in the updated parser output."""
+        return len(self.fingerprints)
+
+
+@dataclass(frozen=True)
+class IncrementalParseResult:
+    """Final CSV and human-readable incremental update counts."""
+
+    csv_path: str
+    parsed_files: int
+    reused_files: int
+    removed_files: int
+    total_files: int
+
+
+@dataclass(frozen=True)
 class ScannedVariable:
     """
     Base metadata for a variable discovered by a simulator parser.

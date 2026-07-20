@@ -32,9 +32,11 @@ from src.core.models import (
     ImportColumnCorrection,
     ImportOptions,
     ImportPreview,
+    IncrementalParseBatchResult,
     JoinCardinality,
     JoinDiagnostics,
     LinkedSelectionSpec,
+    ParseBatchResult,
     PlotConfigurationComparison,
     PlotTransferMode,
     PlotTransferResult,
@@ -190,6 +192,7 @@ class Session:
         # Temporary parse output is removed when the session closes.
         self._owned_tmpdirs: list[str] = []
         self._parse_jobs: list[_parse.ParseJob] = []
+        self._incremental_output_dirs: dict[tuple[str, str, str, str], str] = {}
 
     # lifecycle
     def __enter__(self) -> "Session":
@@ -211,6 +214,7 @@ class Session:
             _remove_directory_when_settled(tmp, futures)
         self._owned_tmpdirs.clear()
         self._parse_jobs.clear()
+        self._incremental_output_dirs.clear()
 
     # scan
     def scan_submit(
@@ -279,6 +283,8 @@ class Session:
         strategy: str = "simple",
         output_dir: str | None = None,
         scan_limit: int = 10,
+        incremental: bool = False,
+        cache_path: str | None = None,
     ) -> _parse.ParseJob:
         """Scan the tree, resolve *variables*, and submit an async parse.
 
@@ -300,6 +306,9 @@ class Session:
                 when omitted and is removed when the session closes.
             scan_limit: Maximum files to scan; zero scans every matching file
                 up to the global discovery ceiling.
+            incremental: Parse only new or changed inputs and reuse unchanged finalized rows.
+            cache_path: Optional JSON cache location for incremental mode. By default the cache
+                lives beside ``results.csv`` in ``output_dir``.
 
         Returns:
             A submitted parse job that can be finalized or cancelled.
@@ -309,29 +318,62 @@ class Session:
                 discovery failed.
             ParseError: The parser rejected the submission.
         """
+        # [impl->req~ring5.ingestion.incremental-parsing~1]
         # [impl->req~ring5.ingestion.async-parse~1]
         # [impl->req~ring5.ingestion.parse-output-provenance~1]
         configs, scanned = _parse.build_stat_configs(
             self.api, stats_path, variables, pattern=pattern, scan_limit=scan_limit
         )
-        if output_dir is None:
+        created_output = False
+        if output_dir is None and incremental:
+            cache_key = (
+                str(Path(stats_path).expanduser().resolve()),
+                pattern,
+                strategy,
+                str(Path(cache_path).expanduser().resolve()) if cache_path else "",
+            )
+            existing_output = self._incremental_output_dirs.get(cache_key)
+            if existing_output is None:
+                out_dir = tempfile.mkdtemp(prefix="ring5_incremental_parse_")
+                self._owned_tmpdirs.append(out_dir)
+                self._incremental_output_dirs[cache_key] = out_dir
+                created_output = True
+            else:
+                out_dir = existing_output
+        elif output_dir is None:
             out_dir = tempfile.mkdtemp(prefix="ring5_parse_")
             self._owned_tmpdirs.append(out_dir)
+            created_output = True
         else:
             out_dir = output_dir
+        batch: ParseBatchResult | IncrementalParseBatchResult
         try:
-            batch = self.api.submit_parse_async(
-                stats_path,
-                pattern,
-                cast(list[ParseVariableConfig | StatConfig], list(configs)),
-                out_dir,
-                strategy_type=strategy,
-                scanned_vars=scanned,
-            )
+            if incremental:
+                batch = self.api.submit_incremental_parse_async(
+                    stats_path,
+                    pattern,
+                    cast(list[ParseVariableConfig | StatConfig], list(configs)),
+                    out_dir,
+                    strategy_type=strategy,
+                    scanned_vars=scanned,
+                    cache_path=cache_path,
+                )
+            else:
+                batch = self.api.submit_parse_async(
+                    stats_path,
+                    pattern,
+                    cast(list[ParseVariableConfig | StatConfig], list(configs)),
+                    out_dir,
+                    strategy_type=strategy,
+                    scanned_vars=scanned,
+                )
         except (FileNotFoundError, ValueError, RuntimeError) as exc:
-            if output_dir is None:
+            if created_output:
                 shutil.rmtree(out_dir, ignore_errors=True)
                 self._owned_tmpdirs.remove(out_dir)
+                for key, value in tuple(self._incremental_output_dirs.items()):
+                    if value == out_dir:
+                        self._incremental_output_dirs.pop(key)
             raise ParseError(f"Parse submission failed: {exc}") from exc
 
         # Store parse provenance for portfolio restoration and replay.
@@ -356,6 +398,7 @@ class Session:
             strategy=strategy,
             stats_path=stats_path,
             stats_pattern=pattern,
+            incremental_batch=(batch if isinstance(batch, IncrementalParseBatchResult) else None),
         )
         self._parse_jobs.append(job)
         return job
@@ -370,6 +413,8 @@ class Session:
         output_dir: str | None = None,
         scan_limit: int = 10,
         strict: bool = True,
+        incremental: bool = False,
+        cache_path: str | None = None,
     ) -> _parse.ParseResult:
         """Parse simulator statistics and wait for completion.
 
@@ -383,6 +428,8 @@ class Session:
             scan_limit: Maximum files to scan; zero scans every matching file
                 up to the global discovery ceiling.
             strict: Raise when a requested statistic produces no values.
+            incremental: Parse only new or changed files and reuse unchanged finalized rows.
+            cache_path: Optional JSON cache location for incremental mode.
 
         Returns:
             The assembled CSV path and any missing statistic names.
@@ -400,6 +447,8 @@ class Session:
             strategy=strategy,
             output_dir=output_dir,
             scan_limit=scan_limit,
+            incremental=incremental,
+            cache_path=cache_path,
         )
         return job.finalize(strict=strict)
 

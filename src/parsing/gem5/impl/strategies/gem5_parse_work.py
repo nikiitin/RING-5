@@ -62,6 +62,11 @@ class Gem5ParseWork(ParseWork):
     def __str__(self) -> str:
         return f"Gem5ParseWork({self._fileToParse})"
 
+    @property
+    def source_path(self) -> str:
+        """Return the exact statistics file parsed by this worker."""
+        return self._fileToParse
+
     # ========== Entry Buffering ==========
 
     def _bufferEntry(self, varID: str, varValue: str) -> None:

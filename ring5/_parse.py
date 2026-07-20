@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from concurrent.futures import Future
 
     from src.core.application_api import ApplicationAPI
+    from src.core.models import IncrementalParseBatchResult
 
 
 @dataclass(frozen=True)
@@ -34,10 +35,17 @@ class ParseResult:
         csv_path: The assembled CSV.
         missing_stats: Requested variables that produced no value in any
             file (the parser writes NaN for these — never a fabricated 0).
+        parsed_files: Files parsed by workers. ``None`` is reserved for results from older
+            integrations that do not report a count.
+        reused_files: Unchanged finalized rows reused by incremental mode.
+        removed_files: Cached source rows removed because their inputs disappeared.
     """
 
     csv_path: str
     missing_stats: list[str] = field(default_factory=list)
+    parsed_files: int | None = None
+    reused_files: int = 0
+    removed_files: int = 0
 
 
 @dataclass
@@ -53,6 +61,7 @@ class ParseJob:
     strategy: str
     stats_path: str
     stats_pattern: str
+    incremental_batch: "IncrementalParseBatchResult | None" = None
 
     def cancel(self) -> None:
         """Cancel this job's pending work (only this job's — handle-based)."""
@@ -85,18 +94,32 @@ class ParseJob:
                 f"succeeded for {cancelled} not-yet-running file(s)."
             )
 
+        csv_path: str | None
         try:
             results = [f.result() for f in self.futures]
         except Exception as exc:
             raise ParseError(f"Parse worker failed: {exc}") from exc
 
         try:
-            csv_path = self.api.finalize_parsing(
-                self.output_dir,
-                results,
-                strategy_type=self.strategy,
-                var_names=self.var_names,
-            )
+            if self.incremental_batch is not None:
+                incremental = self.api.finalize_incremental_parsing(
+                    self.incremental_batch,
+                    results,
+                )
+                csv_path = incremental.csv_path
+                parsed_files = incremental.parsed_files
+                reused_files = incremental.reused_files
+                removed_files = incremental.removed_files
+            else:
+                csv_path = self.api.finalize_parsing(
+                    self.output_dir,
+                    results,
+                    strategy_type=self.strategy,
+                    var_names=self.var_names,
+                )
+                parsed_files = len(results)
+                reused_files = 0
+                removed_files = 0
         except (OSError, RuntimeError, TypeError, ValueError) as exc:
             raise ParseError(f"Could not assemble parser output: {exc}") from exc
         if csv_path is None:
@@ -110,7 +133,13 @@ class ParseJob:
             raise ParseError(f"Could not validate parser output {csv_path!r}: {exc}") from exc
         if missing and strict:
             raise MissingStatError(missing)
-        return ParseResult(csv_path=csv_path, missing_stats=missing)
+        return ParseResult(
+            csv_path=csv_path,
+            missing_stats=missing,
+            parsed_files=parsed_files,
+            reused_files=reused_files,
+            removed_files=removed_files,
+        )
 
 
 def _find_missing_stats(csv_path: str, var_names: list[str]) -> list[str]:

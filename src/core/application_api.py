@@ -21,6 +21,8 @@ from src.core.models import (
     DrillDownResult,
     ImportOptions,
     ImportPreview,
+    IncrementalParseBatchResult,
+    IncrementalParseResult,
     JoinCardinality,
     JoinDiagnostics,
     LinkedSelectionSpec,
@@ -592,6 +594,17 @@ class ApplicationAPI:
         Repetition and regex expansion are handled by the parsing module.
         """
         # [impl->req~ring5.ingestion.output-aliases~1]
+        stat_configs, resolved_scanned = self._normalize_parse_request(variables, scanned_vars)
+        return self._parser.submit_parse_async(
+            stats_path, stats_pattern, stat_configs, output_dir, strategy_type, resolved_scanned
+        )
+
+    @staticmethod
+    def _normalize_parse_request(
+        variables: Sequence[ParseVariableConfig | StatConfig],
+        scanned_vars: list[ScannedVariable] | list[ScannedVariableDict] | None,
+    ) -> tuple[list[StatConfig], list[ScannedVariable] | None]:
+        """Normalize UI/public parser configurations for either submission mode."""
         stat_configs: list[StatConfig] = []
         for var in variables:
             if isinstance(var, dict):
@@ -640,8 +653,29 @@ class ApplicationAPI:
                 ScannedVariable.from_dict(sv) if isinstance(sv, dict) else sv for sv in scanned_vars
             ]
 
-        return self._parser.submit_parse_async(
-            stats_path, stats_pattern, stat_configs, output_dir, strategy_type, resolved_scanned
+        return stat_configs, resolved_scanned
+
+    def submit_incremental_parse_async(
+        self,
+        stats_path: str,
+        stats_pattern: str,
+        variables: Sequence[ParseVariableConfig | StatConfig],
+        output_dir: str,
+        strategy_type: str = "simple",
+        scanned_vars: list[ScannedVariable] | list[ScannedVariableDict] | None = None,
+        cache_path: str | None = None,
+    ) -> IncrementalParseBatchResult:
+        # [impl->req~ring5.ingestion.incremental-parsing~1]
+        """Submit only new or changed simulator inputs and retain unchanged rows."""
+        stat_configs, resolved_scanned = self._normalize_parse_request(variables, scanned_vars)
+        return self._parser.submit_incremental_parse_async(
+            stats_path,
+            stats_pattern,
+            stat_configs,
+            output_dir,
+            strategy_type,
+            resolved_scanned,
+            cache_path,
         )
 
     def finalize_parsing(
@@ -655,6 +689,15 @@ class ApplicationAPI:
         return self._parser.finalize_parsing(
             output_dir, results, strategy_type, var_names=var_names
         )
+
+    def finalize_incremental_parsing(
+        self,
+        batch: IncrementalParseBatchResult,
+        results: list[dict[str, Any]],
+    ) -> IncrementalParseResult:
+        # [impl->req~ring5.ingestion.incremental-parsing~1]
+        """Merge changed parser results with unchanged cached rows."""
+        return self._parser.finalize_incremental_parsing(batch, results)
 
     def submit_scan_async(
         self, stats_path: str, stats_pattern: str = "stats.txt", limit: int = 5

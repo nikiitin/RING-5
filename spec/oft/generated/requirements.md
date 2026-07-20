@@ -698,7 +698,7 @@ Tags: ingestion, remote, security, status_approved
 ### Incremental simulator parsing
 
 `req~ring5.ingestion.incremental-parsing~1`
-Status: proposed
+Status: approved
 
 Parsing shall detect new or changed simulator outputs and update prior results without reparsing unchanged files.
 
@@ -707,7 +707,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: incremental, parsing, performance, status_proposed
+Tags: incremental, parsing, performance, status_approved
 
 ### Parser configuration playground
 

@@ -32,12 +32,17 @@ sequenceDiagram
     participant API as ApplicationAPI
     participant Parser as SimulationParser
     participant Pool as Work pools
+    participant Cache as Incremental JSON cache
     participant State as StateManager
     UI->>API: submit scan or parse
     API->>Parser: validate and create work
     Parser->>Pool: submit independent files
     Pool-->>API: results and visible failures
     UI->>API: finalize batch
+    opt incremental parse
+        Parser->>Cache: reuse fingerprint-matched scalar rows
+        Parser->>Cache: atomically replace successful merged rows
+    end
     API->>Parser: assemble and validate CSV
     API->>State: store table and provenance
 ```
@@ -45,6 +50,14 @@ sequenceDiagram
 Scan and parse work follows submit/finalize contracts. Submission returns owned futures; finalization
 aggregates results and preserves per-file failures. Do not hide asynchronous work inside a component
 or fabricate a placeholder value after a parser error.
+
+Incremental submission first discovers the same bounded file set and hashes complete input
+contents. It filters the normal strategy work items to new or changed paths; it does not introduce
+a synchronous parser or bypass the shared worker pool. Finalization uses each worker result's
+internal source provenance to replace exactly that file's finalized row, retains unchanged rows,
+and omits deleted paths. The JSON cache contains strings and fingerprints rather than pickles or
+live parser objects. The final CSV and cache are each replaced atomically, and the cache is written
+only after every changed worker succeeds.
 
 `Session.load` and the CSV pool converge on `ApplicationAPI.load_data`, which stores a DataFrame in
 the session repository. The generic CSV contract requires a header and rows; individual services

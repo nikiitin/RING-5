@@ -134,6 +134,48 @@ selected path position contains no metadata; otherwise the first extracted value
 The parser records missing values as `NaN`. It reports file failures instead of substituting
 simulator values. Investigate missing variables before reducing or normalizing the data.
 
+### Reuse unchanged simulator files
+
+<!--
+`uman~ring5.ingestion.incremental-parsing.documentation~1`
+
+Covers:
+- req~ring5.ingestion.incremental-parsing~1
+
+-->
+
+Keep **Reuse unchanged simulator files** selected when a results tree grows over time. Before
+submitting work, RING-5 computes a SHA-256 content fingerprint for every matching statistics file.
+The configuration-aware strategy also fingerprints the adjacent `config.ini`. The progress dialog
+then states exactly how many files are new or changed, unchanged, and removed.
+
+- New and changed files run through the normal asynchronous parser workers.
+- Unchanged files reuse their previously finalized CSV cells; no executable parser objects are
+  deserialized.
+- Files that disappeared from the results tree lose their cached row in the next output.
+- A change to the file pattern, strategy, variable definitions, aliases, or scanned pattern
+  expansion invalidates the prior cache and reparses the current tree.
+
+RING-5 writes the merged `results.csv` atomically, then writes an inspectable
+`.ring5-incremental-parse.json` beside it. A malformed, incompatible, or stale cache is ignored and
+rebuilt from simulator inputs. Parser failures remain visible and never become successful cache
+entries. Clear the checkbox when you explicitly want a full parse without reuse.
+
+The Python API uses the same contract. Reuse the same `output_dir` (or pass `cache_path`) between
+calls and inspect the returned counts:
+
+```python
+with ring5.Session() as session:
+    result = session.parse(
+        "results/",
+        variables=["simTicks", "system.cpu.ipc"],
+        output_dir="parsed/",
+        scan_limit=0,
+        incremental=True,
+    )
+    print(result.parsed_files, result.reused_files, result.removed_files)
+```
+
 ## Reopen parser output in the web application
 
 <!--

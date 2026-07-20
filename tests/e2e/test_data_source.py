@@ -62,6 +62,14 @@ class TestDataSourcePageStructure:
         ds.ensure_parse_mode()
         ds.assert_strategy_section_visible()
 
+    def test_incremental_parse_control_is_visible_and_enabled(self, tier0_page: Page) -> None:
+        # [test->req~ring5.ingestion.incremental-parsing~1]
+        """The default parser path explains and enables unchanged-file reuse."""
+        ds = DataSourcePage(tier0_page)
+        ds.ensure_parse_mode()
+        expect(ds.incremental_parse_checkbox).to_be_visible()
+        expect(ds.incremental_parse_checkbox).to_be_checked()
+
     def test_parser_variables_section_visible(self, tier0_page: Page) -> None:
         """Variables to Extract section with scan and add buttons is visible."""
         ds = DataSourcePage(tier0_page)

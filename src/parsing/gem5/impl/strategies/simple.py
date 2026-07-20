@@ -64,7 +64,12 @@ class SimpleStatsStrategy:
     # [impl->req~ring5.ingestion.simple-strategy~1]
 
     def get_work_items(
-        self, stats_path: str, stats_pattern: str, variables: Sequence[StatConfig]
+        self,
+        stats_path: str,
+        stats_pattern: str,
+        variables: Sequence[StatConfig],
+        *,
+        file_paths: list[str] | None = None,
     ) -> Sequence[Gem5ParseWork]:
         """Return a list of work items for parallel execution.
 
@@ -73,9 +78,13 @@ class SimpleStatsStrategy:
         ``StatType`` objects.
         """
         t_start = time.perf_counter()
-        files = self._get_files(stats_path, stats_pattern)
+        if file_paths is None:
+            files = self._get_files(stats_path, stats_pattern)
+        else:
+            files = file_paths
+            self._validate_files(files, stats_path)
         t_files = time.perf_counter()
-        logger.info(f"PERF: File discovery (glob) took {t_files - t_start:.4f}s")
+        logger.info(f"PERF: File discovery/selection took {t_files - t_start:.4f}s")
 
         # Build one template map, then deep-copy per file so that each
         # thread-based worker operates on its own mutable StatType set.
@@ -122,6 +131,12 @@ class SimpleStatsStrategy:
                 whole parse run "succeed" while producing nothing.
         """
         files = find_stats_files(stats_path, stats_pattern, raise_if_empty=True)
+        self._validate_files(files, stats_path)
+        return files
+
+    @staticmethod
+    def _validate_files(files: Sequence[str], stats_path: str) -> None:
+        """Enforce parser byte and file-count limits for the selected work set."""
         if len(files) > MAX_PARSE_FILES:
             raise RuntimeError(
                 f"PARSER: {len(files)} files exceed the {MAX_PARSE_FILES}-file parse limit."
@@ -146,7 +161,6 @@ class SimpleStatsStrategy:
             len(files),
             sanitize_log_value(stats_path),
         )
-        return files
 
     def _map_variables(self, variables: Sequence[StatConfig]) -> dict[str, StatType]:
         """

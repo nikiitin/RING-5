@@ -43,6 +43,11 @@ class ParseWork(Job):
         """
         raise NotImplementedError("Subclass must implement __call__")
 
+    @property
+    def source_path(self) -> str:
+        """Return the simulator input owned by this work item."""
+        raise NotImplementedError("Subclass must expose its source path")
+
     def __str__(self) -> str:
         """
         Get string representation of the work unit.

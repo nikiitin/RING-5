@@ -74,6 +74,8 @@ from src.core.models.dataset_workspace_models import (
     JoinDiagnostics,
 )
 from src.core.models.parsing_models import (
+    IncrementalParseBatchResult,
+    IncrementalParseResult,
     ParseBatchResult,
     ScanFileResult,
     ScannedVariable,
@@ -153,6 +155,8 @@ __all__ = [
     "PlotConfigurationComparison",
     "MeanShaperConfig",
     "NormalizeShaperConfig",
+    "IncrementalParseBatchResult",
+    "IncrementalParseResult",
     "ParseBatchResult",
     "ParseVariableConfig",
     "PipelineStep",

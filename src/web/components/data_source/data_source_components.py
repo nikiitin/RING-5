@@ -30,6 +30,7 @@ from src.core.models import (
     ImportColumnCorrection,
     ImportOptions,
     ImportPreview,
+    IncrementalParseBatchResult,
     ParseBatchResult,
     ScanFileResult,
     ScanResult,
@@ -511,6 +512,7 @@ class DataSourceComponents:
     @staticmethod
     def render_parser_config(api: ApplicationAPI) -> None:
         """Display parser configuration interface."""
+        # [impl->req~ring5.ingestion.incremental-parsing~1]
         # [impl->req~ring5.ingestion.scan-presets-progress~1]
         # [impl->req~ring5.ingestion.web-path-authorization~1]
         # Get simulator info for dynamic labels
@@ -537,6 +539,17 @@ class DataSourceComponents:
             st.rerun()
 
         st.markdown(f"### {sim_label} Stats Parser Configuration")
+
+        incremental_enabled = st.checkbox(
+            "Reuse unchanged simulator files",
+            value=True,
+            help=(
+                "Fingerprint all matching inputs, parse only new or changed files, and remove "
+                "rows whose source files were deleted. The cache stays beside the generated "
+                "CSV and is invalidated when parser settings change."
+            ),
+            key="parser_incremental_enabled",
+        )
 
         # The entire parser config section (file inputs, strategy radio,
         # variable editor, scan button, config preview) is wrapped in a
@@ -710,6 +723,7 @@ class DataSourceComponents:
                 "statsPath": stats_path,
                 "statsPattern": stats_pattern,
                 "strategy": api.state_manager.get_parser_strategy(),
+                "incremental": incremental_enabled,
                 "variables": api.state_manager.get_parse_variables(),
             }
             st.json(parse_config)
@@ -732,17 +746,35 @@ class DataSourceComponents:
             else:
                 try:
                     safe_stats_path = str(validate_web_stats_path(str(_stats_path)))
-                    # Reset state for new run only after validating the source path.
-                    output_dir = tempfile.mkdtemp()
-                    api.state_manager.set_temp_dir(output_dir)
-                    batch = api.submit_parse_async(
-                        safe_stats_path,
-                        _stats_pattern,
-                        api.state_manager.get_parse_variables(),
-                        output_dir,
-                        scanned_vars=api.state_manager.get_scanned_variables(),
-                        strategy_type=api.state_manager.get_parser_strategy(),
-                    )
+                    incremental = bool(st.session_state.get("parser_incremental_enabled", True))
+                    batch: ParseBatchResult | IncrementalParseBatchResult
+                    if incremental:
+                        session_dir = api.state_manager.get_temp_dir()
+                        if not session_dir:
+                            session_dir = tempfile.mkdtemp(prefix="ring5-session-")
+                            api.state_manager.set_temp_dir(session_dir)
+                        output_path = Path(session_dir) / "incremental_parser"
+                        output_path.mkdir(parents=True, exist_ok=True)
+                        output_dir = str(output_path)
+                        batch = api.submit_incremental_parse_async(
+                            safe_stats_path,
+                            _stats_pattern,
+                            api.state_manager.get_parse_variables(),
+                            output_dir,
+                            scanned_vars=api.state_manager.get_scanned_variables(),
+                            strategy_type=api.state_manager.get_parser_strategy(),
+                        )
+                    else:
+                        output_dir = tempfile.mkdtemp()
+                        api.state_manager.set_temp_dir(output_dir)
+                        batch = api.submit_parse_async(
+                            safe_stats_path,
+                            _stats_pattern,
+                            api.state_manager.get_parse_variables(),
+                            output_dir,
+                            scanned_vars=api.state_manager.get_scanned_variables(),
+                            strategy_type=api.state_manager.get_parser_strategy(),
+                        )
                     DataSourceComponents._show_parse_dialog(api, batch, output_dir)
                 except Exception as e:
                     st.exception(e)
@@ -885,10 +917,22 @@ class DataSourceComponents:
 
     @staticmethod
     @st.dialog("Parsing Stats", dismissible=True)
-    def _show_parse_dialog(api: ApplicationAPI, batch: ParseBatchResult, output_dir: str) -> None:
+    def _show_parse_dialog(
+        api: ApplicationAPI,
+        batch: ParseBatchResult | IncrementalParseBatchResult,
+        output_dir: str,
+    ) -> None:
+        # [impl->req~ring5.ingestion.incremental-parsing~1]
         """Render the parsing progress dialog using blocking futures."""
         futures = batch.futures
-        st.write(f"Processing {len(futures)} files...")
+        if isinstance(batch, IncrementalParseBatchResult):
+            st.write(
+                f"Incremental update: {batch.parsed_file_count} new or changed, "
+                f"{batch.reused_file_count} unchanged, "
+                f"{batch.removed_file_count} removed."
+            )
+        else:
+            st.write(f"Processing {len(futures)} files...")
         progress_bar = st.progress(0, text="Starting...")
         status_text = st.empty()
 
@@ -933,7 +977,7 @@ class DataSourceComponents:
                 for err in errors:
                     st.write(err)
 
-        if not results and not errors:
+        if not results and not errors and not isinstance(batch, IncrementalParseBatchResult):
             st.warning("No results generated.")
             return
 
@@ -945,12 +989,23 @@ class DataSourceComponents:
             try:
                 st.write("Generating CSV output...")
                 strategy = api.state_manager.get_parser_strategy()
-                csv_path = api.finalize_parsing(
-                    output_dir,
-                    results,
-                    strategy_type=strategy,
-                    var_names=batch.var_names,
-                )
+                csv_path: str | None
+                if isinstance(batch, IncrementalParseBatchResult):
+                    incremental_result = api.finalize_incremental_parsing(batch, results)
+                    csv_path = incremental_result.csv_path
+                    st.write(
+                        f"Updated {incremental_result.total_files} rows: "
+                        f"parsed {incremental_result.parsed_files}, "
+                        f"reused {incremental_result.reused_files}, "
+                        f"removed {incremental_result.removed_files}."
+                    )
+                else:
+                    csv_path = api.finalize_parsing(
+                        output_dir,
+                        results,
+                        strategy_type=strategy,
+                        var_names=batch.var_names,
+                    )
                 if csv_path and Path(csv_path).exists():
                     st.write("Adding to data pool...")
                     pool_path = api.add_to_csv_pool(csv_path)

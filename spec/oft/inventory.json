@@ -4075,11 +4075,34 @@
       "id": "ingestion.incremental-parsing",
       "group": "ingestion",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Incremental simulator parsing",
       "description": "Parsing shall detect new or changed simulator outputs and update prior results without reparsing unchanged files.",
       "tags": ["incremental", "parsing", "performance"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/models/parsing_models.py::IncrementalParseBatchResult",
+          "src/parsing/framework/incremental_cache.py::fingerprint_inputs",
+          "src/parsing/framework/incremental_cache.py::write_cache",
+          "src/parsing/gem5/impl/gem5_parser.py::Gem5Parser.submit_incremental_parse_async",
+          "src/parsing/gem5/impl/gem5_parser.py::Gem5Parser.finalize_incremental_parsing",
+          "src/core/application_api.py::ApplicationAPI.submit_incremental_parse_async",
+          "src/core/application_api.py::ApplicationAPI.finalize_incremental_parsing",
+          "ring5/_session.py::Session.parse_submit",
+          "src/web/components/data_source/data_source_components.py::DataSourceComponents.render_parser_config",
+          "src/web/components/data_source/data_source_components.py::DataSourceComponents._show_parse_dialog"
+        ],
+        "tests": [
+          "tests/unit/test_incremental_parse_cache.py::test_cache_is_plain_json_and_rejects_stale_or_malformed_records",
+          "tests/integration/test_incremental_parsing.py::test_incremental_parse_reuses_updates_and_removes_exact_source_rows",
+          "tests/unit/test_incremental_parse_component.py::test_incremental_dialog_finalizes_an_all_reused_batch",
+          "tests/unit/test_application_api_delegation.py::TestIncrementalParsing.test_submit_and_finalize_delegate_to_parser",
+          "tests/e2e/test_data_source.py::TestDataSourcePageStructure.test_incremental_parse_control_is_visible_and_enabled"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/loading-data.md#reuse-unchanged-simulator-files"
+        ]
+      }
     },
     {
       "id": "ingestion.parser-playground",
@@ -4707,6 +4730,7 @@
       "finalize_scan": "ingestion.async-scan",
       "find_stats_files": "ingestion.file-discovery",
       "fetch_remote_source": "ingestion.remote-sources",
+      "finalize_incremental_parsing": "ingestion.incremental-parsing",
       "get_column_info": "data.summary",
       "get_current_view": "workspace.data-preview",
       "get_dataset": "data.multi-dataset-workspace",
@@ -4751,6 +4775,7 @@
       "set_visualization_config": "plots.independent-state",
       "shapers": "quality.application-facade",
       "submit_parse_async": "ingestion.async-parse",
+      "submit_incremental_parse_async": "ingestion.incremental-parsing",
       "submit_scan_async": "ingestion.async-scan",
       "restore_dataset_revision": "data.lineage-undo-redo",
       "undo_dataset": "data.lineage-undo-redo",

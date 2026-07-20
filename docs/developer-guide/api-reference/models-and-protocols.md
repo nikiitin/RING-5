@@ -18,6 +18,11 @@ Cross-layer models live in `src/core/models/`. Prefer a dataclass for validated 
 `TypedDict` for JSON-compatible mappings, and a protocol for behavior owned by another layer.
 
 Parsing models carry scan results, parse batches, variable configuration, and simulator metadata.
+`IncrementalParseBatchResult` is the immutable handoff between submission and finalization: it
+contains owned changed-file futures plus content fingerprints and plain scalar cached rows.
+`IncrementalParseResult` reports the output path and parsed, reused, removed, and total file counts.
+The `SimulationParser` protocol keeps both full and incremental work in asynchronous
+submit/finalize pairs.
 Import models carry immutable delimiter/encoding corrections, inferred column types, accepted-row
 previews, rejected source lines, and the source fingerprint used at confirmation time.
 `BrowserUpload` records validated upload type, original-byte fingerprint, staged paths, and bounded
