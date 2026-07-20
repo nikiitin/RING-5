@@ -38,6 +38,11 @@ from src.core.models.visualization.plot_transfer_result import (
     PlotTransferMode,
     PlotTransferResult,
 )
+from src.core.models.visualization.plot_configuration_comparison import (
+    ConfigurationChange,
+    ConfigurationDifference,
+    PlotConfigurationComparison,
+)
 from src.core.models.visualization.palettes import (
     PALETTE_REGISTRY,
 )
@@ -86,6 +91,9 @@ __all__ = [
     # Plot transfers
     "PlotTransferMode",
     "PlotTransferResult",
+    "ConfigurationChange",
+    "ConfigurationDifference",
+    "PlotConfigurationComparison",
     # Palettes
     "PALETTE_REGISTRY",
     # Series style

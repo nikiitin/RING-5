@@ -24,6 +24,14 @@ def test_copy_selected_settings_reloads_destination_widgets(tier2_page: Page) ->
     manager.refresh_plot()
     expect(manager.viz_title_input).to_have_value("Destination title", timeout=E2E_TIMEOUT)
 
+    manager.plot_transfer_expander.locator("summary").click()
+    expect(manager.plot_configuration_comparison).to_be_visible(timeout=E2E_TIMEOUT)
+    expect(manager.plot_configuration_difference_summary).to_contain_text("differences")
+    expect(
+        tier2_page.get_by_text("A complete configuration replacement is compatible.")
+    ).to_be_visible()
+    # [test->req~ring5.plots.configuration-comparison~1]
+    manager.plot_transfer_expander.locator("summary").click()
     manager.copy_default_settings_from_other_plot()
 
     expect(manager.viz_title_input).to_have_value(source_title, timeout=5_000)

@@ -24,6 +24,7 @@ from src.core.models import (
     JoinCardinality,
     JoinDiagnostics,
     LinkedSelectionSpec,
+    PlotConfigurationComparison,
     PlotTransferMode,
     PlotTransferResult,
     SmallMultiplesSpec,
@@ -1652,6 +1653,31 @@ class Session:
                 mode,
                 sections=sections,
             )
+        except (TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def compare_plot_configurations(
+        self,
+        source: BasePlot | int,
+        destination: BasePlot | int,
+    ) -> PlotConfigurationComparison:
+        # [impl->req~ring5.plots.configuration-comparison~1]
+        """Inspect field-level differences before replacing plot configuration.
+
+        Args:
+            source: Registered source plot or integer plot ID.
+            destination: Registered destination plot or integer plot ID.
+
+        Returns:
+            An immutable difference summary including replacement compatibility.
+
+        Raises:
+            DataValidationError: Either plot is unknown or both references are the same.
+        """
+        source_id = source.plot_id if isinstance(source, BasePlot) else source
+        destination_id = destination.plot_id if isinstance(destination, BasePlot) else destination
+        try:
+            return self.api.compare_plot_configurations(source_id, destination_id)
         except (TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
 

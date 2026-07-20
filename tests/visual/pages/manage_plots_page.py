@@ -146,6 +146,16 @@ class ManagePlotsPage(BasePage):
         """Apply the selected source-to-current-plot transfer."""
         return self.page.get_by_role("button", name="Copy into current plot")
 
+    @property
+    def plot_configuration_comparison(self) -> Locator:
+        """Human-readable field comparison shown before transfer controls."""
+        return self.plot_transfer_expander.get_by_text("Configuration comparison", exact=True)
+
+    @property
+    def plot_configuration_difference_summary(self) -> Locator:
+        """Summary containing the number of source-to-current differences."""
+        return self.plot_transfer_expander.get_by_text("differences", exact=False)
+
     #  5. Pipeline editor (st.fragment)
 
     @property

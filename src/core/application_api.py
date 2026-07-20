@@ -18,6 +18,7 @@ from src.core.models import (
     JoinCardinality,
     JoinDiagnostics,
     LinkedSelectionSpec,
+    PlotConfigurationComparison,
     PlotTransferMode,
     PlotTransferResult,
     SmallMultiplesSpec,
@@ -50,6 +51,9 @@ from src.core.services.visualization.small_multiples_service import (
     create_small_multiples_spec as build_small_multiples_spec,
 )
 from src.core.services.visualization.plot_transfer_service import copy_plot_content
+from src.core.services.visualization.plot_configuration_comparison_service import (
+    compare_plot_configurations,
+)
 from src.core.state.repository_state_manager import RepositoryStateManager
 from src.parsing.framework.file_discovery import find_stats_files as _find_stats_files
 from src.parsing.parser_protocol import SimulationParser
@@ -823,6 +827,26 @@ class ApplicationAPI:
             available[target_plot_id],
             mode,
             sections=sections,
+        )
+
+    def compare_plot_configurations(
+        self,
+        source_plot_id: int,
+        destination_plot_id: int,
+    ) -> PlotConfigurationComparison:
+        # [impl->req~ring5.plots.configuration-comparison~1]
+        """Return field-level differences for two registered plot configurations."""
+        available = {plot.plot_id: plot for plot in self.state_manager.get_plots()}
+        missing = [
+            value for value in (source_plot_id, destination_plot_id) if value not in available
+        ]
+        if missing:
+            raise ValueError(
+                "Comparison references unknown plot IDs: " + ", ".join(map(str, missing)) + "."
+            )
+        return compare_plot_configurations(
+            available[source_plot_id],
+            available[destination_plot_id],
         )
 
     def drill_down_plot(

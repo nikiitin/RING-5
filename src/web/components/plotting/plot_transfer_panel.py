@@ -9,6 +9,9 @@ from typing import Any, Protocol
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
+from src.core.models.visualization.plot_configuration_comparison import (
+    PlotConfigurationComparison,
+)
 from src.core.models.visualization.plot_transfer_result import PlotTransferMode
 
 
@@ -32,6 +35,11 @@ _SECTION_LABELS: dict[str, str] = {
     "legends": "Legends",
     "colors": "Colors and series styles",
     "annotations": "Annotations and data labels",
+}
+_CHANGE_LABELS = {
+    "changed": "Changed",
+    "source_only": "Added by source",
+    "destination_only": "Removed by source",
 }
 
 
@@ -64,6 +72,40 @@ class PlotTransferPanel:
                     copied_config[config_key]
                 )
 
+    @staticmethod
+    def _render_comparison(comparison: PlotConfigurationComparison) -> None:
+        # [impl->req~ring5.plots.configuration-comparison~1]
+        """Render a concise, source-to-destination configuration diff."""
+        st.markdown("#### Configuration comparison")
+        st.caption(
+            f"{comparison.source_name} → {comparison.destination_name} · "
+            f"{comparison.matching_fields} of {comparison.total_fields} fields match · "
+            f"{comparison.difference_count} differences"
+        )
+        if comparison.identical:
+            st.success("The plot configurations are identical.")
+        else:
+            rows = [
+                {
+                    "Section": difference.section,
+                    "Setting": difference.path,
+                    "Change": _CHANGE_LABELS[difference.change],
+                    "Source value": difference.source_value,
+                    "Current value": difference.destination_value,
+                }
+                for difference in comparison.differences
+            ]
+            st.dataframe(
+                rows,
+                hide_index=True,
+                use_container_width=True,
+                height=min(420, 38 + 35 * len(rows)),
+            )
+        if comparison.can_replace:
+            st.info("A complete configuration replacement is compatible.")
+        else:
+            st.warning(comparison.replacement_reason)
+
     def render(self, target: _TransferPlot, plots: Sequence[_TransferPlot]) -> None:
         # [impl->req~ring5.plots.copy-settings-pipeline~1]
         """Offer compatible transfer modes when another plot is available."""
@@ -84,6 +126,8 @@ class PlotTransferPanel:
                 format_func=lambda value: f"{by_id[value].name} ({by_id[value].plot_type})",
                 key=f"plot_transfer_source_{target.plot_id}",
             )
+            comparison = self._api.compare_plot_configurations(int(source_id), target.plot_id)
+            self._render_comparison(comparison)
             mode_label = st.radio(
                 "What to copy",
                 options=list(_MODE_LABELS.values()),
@@ -114,6 +158,7 @@ class PlotTransferPanel:
                 "Copy into current plot",
                 type="primary",
                 key=f"plot_transfer_apply_{target.plot_id}",
+                disabled=mode == "configuration" and not comparison.can_replace,
             ):
                 try:
                     result = self._api.copy_plot_content(

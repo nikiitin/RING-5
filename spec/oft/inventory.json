@@ -3554,11 +3554,28 @@
       "id": "plots.configuration-comparison",
       "group": "plot-lifecycle",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Side-by-side plot configuration",
       "description": "Users shall compare two plot configurations and inspect field-level differences before copying or replacing settings.",
       "tags": ["comparison", "plots", "settings"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/models/visualization/plot_configuration_comparison.py::PlotConfigurationComparison",
+          "src/core/services/visualization/plot_configuration_comparison_service.py::compare_plot_configurations",
+          "src/core/application_api.py::ApplicationAPI.compare_plot_configurations",
+          "src/web/components/plotting/plot_transfer_panel.py::PlotTransferPanel._render_comparison",
+          "ring5/_session.py::Session.compare_plot_configurations"
+        ],
+        "tests": [
+          "tests/unit/test_plot_configuration_comparison_service.py::test_comparison_reports_nested_leaves_sections_and_replacement_safety",
+          "tests/integration/test_plot_configuration_comparison_public_api.py::test_public_comparison_accepts_plot_objects_and_ids_without_mutation",
+          "tests/ui_logic/test_plot_transfer_panel.py::test_incompatible_complete_replacement_is_explained_and_disabled",
+          "tests/e2e/test_plot_transfer.py::test_copy_selected_settings_reloads_destination_widgets"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/copy-plot-settings.md#compare-before-copying"
+        ]
+      }
     },
     {
       "id": "plot.box",
@@ -4119,6 +4136,8 @@
       "JoinDiagnostics": "data.validated-joins",
       "LegendOpts": "api.figure-spec",
       "LinkedSelectionSpec": "plots.linked-selections",
+      "ConfigurationDifference": "plots.configuration-comparison",
+      "PlotConfigurationComparison": "plots.configuration-comparison",
       "PlotTransferResult": "plots.copy-settings-pipeline",
       "SmallMultiplesSpec": "plots.small-multiples",
       "MissingStatError": "api.typed-errors",
@@ -4167,6 +4186,7 @@
       "compare": "analysis.regression-comparison",
       "compare_datasets": "data.multi-dataset-workspace",
       "compare_statistics": "analysis.statistical-comparison",
+      "compare_plot_configurations": "plots.configuration-comparison",
       "create_plot": "plots.create-multiple",
       "create_dashboard": "plots.multi-panel-dashboard",
       "create_linked_selection": "plots.linked-selections",
@@ -4241,6 +4261,7 @@
       "available_simulators": "ingestion.simulator-registry",
       "cancel_pending_scans": "ingestion.async-scan",
       "clear_preview": "data.preview-confirm",
+      "compare_plot_configurations": "plots.configuration-comparison",
       "create_dashboard": "plots.multi-panel-dashboard",
       "create_linked_selection": "plots.linked-selections",
       "copy_plot_content": "plots.copy-settings-pipeline",

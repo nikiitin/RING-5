@@ -18,7 +18,11 @@ from src.core.services.visualization.small_multiples_service import (  # noqa: F
 )
 from src.core.services.visualization.plot_transfer_service import (  # noqa: F401
     SETTING_SECTIONS,
+    configuration_replacement_reason,
     copy_plot_content,
+)
+from src.core.services.visualization.plot_configuration_comparison_service import (  # noqa: F401
+    compare_plot_configurations,
 )
 from src.core.services.visualization.palette_service import (  # noqa: F401
     get_palette_names,

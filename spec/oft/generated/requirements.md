@@ -1434,7 +1434,7 @@ Tags: plots, settings, shapers, status_approved
 ### Side-by-side plot configuration
 
 `req~ring5.plots.configuration-comparison~1`
-Status: proposed
+Status: approved
 
 Users shall compare two plot configurations and inspect field-level differences before copying or replacing settings.
 
@@ -1443,7 +1443,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: comparison, plots, settings, status_proposed
+Tags: comparison, plots, settings, status_approved
 
 ## Plot Types
 

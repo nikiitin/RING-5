@@ -113,6 +113,25 @@ def _require_schema(source: PlotProtocol, target: PlotProtocol, *, source_data: 
         )
 
 
+def configuration_replacement_reason(
+    source: PlotProtocol,
+    target: PlotProtocol,
+) -> str | None:
+    """Return why a complete configuration replacement is unsafe, if anything."""
+    if source.plot_type != target.plot_type:
+        return "Complete configurations can only be copied between the same plot type."
+    source_columns = _columns(source, source=False)
+    target_columns = _columns(target, source=False)
+    missing = sorted(source_columns - target_columns)
+    if missing:
+        return (
+            "Destination plot is missing processed columns required by the source: "
+            + ", ".join(missing)
+            + "."
+        )
+    return None
+
+
 def copy_plot_content(
     source: PlotProtocol,
     target: PlotProtocol,
@@ -146,11 +165,9 @@ def copy_plot_content(
         return PlotTransferResult(source.plot_id, target.plot_id, mode, copied_keys=copied)
 
     if mode == "configuration":
-        if source.plot_type != target.plot_type:
-            raise ValueError(
-                "Complete configurations can only be copied between the same plot type."
-            )
-        _require_schema(source, target, source_data=False)
+        replacement_reason = configuration_replacement_reason(source, target)
+        if replacement_reason is not None:
+            raise ValueError(replacement_reason)
         target.config = copy.deepcopy(source.config)
         target.legend_mappings = copy.deepcopy(source.legend_mappings)
         target.legend_mappings_by_column = copy.deepcopy(source.legend_mappings_by_column)
@@ -175,4 +192,8 @@ def copy_plot_content(
     )
 
 
-__all__ = ["SETTING_SECTIONS", "copy_plot_content"]
+__all__ = [
+    "SETTING_SECTIONS",
+    "configuration_replacement_reason",
+    "copy_plot_content",
+]
