@@ -15,6 +15,7 @@ from src.core.services.managers.comparison_annotation_service import (
     ComparisonAnnotationService,
 )
 from src.core.services.managers.comparison_service import ComparisonService
+from src.core.services.managers.dataset_workspace_service import DatasetWorkspaceService
 from src.core.services.managers.outlier_service import OutlierService
 from src.core.services.managers.quality_profile_service import QualityProfileService
 from src.core.services.managers.reduction_service import ReductionService
@@ -189,3 +190,30 @@ class DefaultManagersAPI:
     ) -> DataQualityReport:
         """Calculate dataset and per-column quality measurements."""
         return QualityProfileService.profile(data, expected_types=expected_types)
+
+    def append_datasets(
+        self,
+        datasets: Sequence[pd.DataFrame],
+        *,
+        join: Literal["outer", "inner"] = "outer",
+    ) -> pd.DataFrame:
+        """Append datasets by matching column names."""
+        return DatasetWorkspaceService.append(datasets, join=join)
+
+    def join_datasets(
+        self,
+        left: pd.DataFrame,
+        right: pd.DataFrame,
+        on: Sequence[str],
+        *,
+        how: Literal["inner", "left", "right", "outer"] = "inner",
+        suffixes: tuple[str, str] = ("_left", "_right"),
+    ) -> pd.DataFrame:
+        """Join two datasets on shared key columns."""
+        return DatasetWorkspaceService.join(
+            left,
+            right,
+            on,
+            how=how,
+            suffixes=suffixes,
+        )

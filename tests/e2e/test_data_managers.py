@@ -316,6 +316,19 @@ class TestStatisticalComparison:
         expect(dm.comparison_confirm_button).to_be_visible(timeout=_E2E_TIMEOUT)
 
 
+@pytest.mark.xdist_group("e2e_data_managers_workspace")
+class TestNamedDatasetWorkspace:
+    """Tier 1: Retain the active table without losing it on workspace reruns."""
+
+    def test_retain_current_dataset(self, tier1_page: Page) -> None:
+        # [test->req~ring5.data.multi-dataset-workspace~1]
+        dm = DataManagersPage(tier1_page)
+        dm.navigate()
+        dm.select_tab("Workspace")
+        dm.retain_current_dataset("tier1_results")
+        expect(dm.workspace_dataset_metric).to_contain_text("1", timeout=_E2E_TIMEOUT)
+
+
 @pytest.mark.xdist_group("e2e_data_managers_quality")
 class TestDataQualityProfile:
     """Tier 1: Inspect quality measurements without changing the dataset."""

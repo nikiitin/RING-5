@@ -17,6 +17,62 @@ Pipeline** for filtering, normalization, sorting, and reshaping that belongs to 
 Keep an unchanged source CSV outside the application. Data-manager confirmations replace the active
 workspace table, while the implementation returns a new DataFrame rather than mutating its input.
 
+## Keep multiple named datasets
+
+<!--
+`uman~ring5.data.multi-dataset-workspace.documentation~1`
+
+Covers:
+- req~ring5.data.multi-dataset-workspace~1
+
+-->
+
+Open **Data Managers → Workspace** and choose **Retain Current Dataset** to keep the active table
+under a session-unique name. Retained tables appear with their row count, column count, and active
+state. Activating another table updates the existing Summary, transformation, and plotting pages;
+it does not delete or overwrite the other retained tables.
+
+With at least two named datasets, the workspace can:
+
+- compare aligned numeric metrics while leaving both sources untouched;
+- join tables on one or more shared key columns and retain the result under a new name;
+- append rows using the union or intersection of columns and retain the result;
+- remove one retained table without removing unrelated tables.
+
+Joined and appended results become independent named datasets. Transformations made through the
+existing data managers update only the active named dataset. Named datasets are held in the current
+session; a portfolio continues to snapshot its active dataset.
+
+The public API supports the same workflow:
+
+```python
+session.add_dataset("main", baseline)
+session.add_dataset("candidate", candidate, select=False)
+
+comparison = session.compare_datasets(
+    "main",
+    "candidate",
+    key_columns=["benchmark"],
+    metric_columns=["ipc"],
+    thresholds=2.0,
+)
+paired = session.join_datasets(
+    "main",
+    "candidate",
+    "paired",
+    on=["benchmark"],
+)
+all_runs = session.append_datasets(
+    ["main", "candidate"],
+    "all_runs",
+    select=False,
+)
+```
+
+`list_datasets()` returns immutable `DatasetInfo` summaries. `get_dataset()` returns a defensive
+copy, so editing it cannot change the retained source accidentally. Use `select_dataset()` to make
+a named table active and `remove_dataset()` to remove it explicitly.
+
 ## Inspect the table
 
 <!--

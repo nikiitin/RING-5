@@ -207,3 +207,43 @@ class ManagersAPI(Protocol):
             Immutable quality report with an ordered column profile.
         """
         raise NotImplementedError
+
+    def append_datasets(
+        self,
+        datasets: Sequence[pd.DataFrame],
+        *,
+        join: Literal["outer", "inner"] = "outer",
+    ) -> pd.DataFrame:
+        """Append datasets by the union or intersection of columns.
+
+        Args:
+            datasets: Ordered datasets to append.
+            join: Keep the column union or intersection.
+
+        Returns:
+            A new DataFrame with a fresh range index.
+        """
+        raise NotImplementedError
+
+    def join_datasets(
+        self,
+        left: pd.DataFrame,
+        right: pd.DataFrame,
+        on: Sequence[str],
+        *,
+        how: Literal["inner", "left", "right", "outer"] = "inner",
+        suffixes: tuple[str, str] = ("_left", "_right"),
+    ) -> pd.DataFrame:
+        """Join two datasets on shared key columns.
+
+        Args:
+            left: Left-side dataset.
+            right: Right-side dataset.
+            on: Shared key columns.
+            how: Row-retention strategy.
+            suffixes: Distinct suffixes for overlapping non-key columns.
+
+        Returns:
+            A newly allocated joined DataFrame.
+        """
+        raise NotImplementedError

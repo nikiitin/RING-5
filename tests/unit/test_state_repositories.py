@@ -100,6 +100,76 @@ class TestDataRepository:
         assert repo.get_data() is None
         assert repo.get_processed_data() is None
 
+    def test_named_datasets_are_isolated_and_follow_selection(
+        self, repo: DataRepository, df: pd.DataFrame
+    ) -> None:
+        first = repo.add_dataset(" first ", df)
+        second_data = pd.DataFrame({"value": [10, 20]})
+        second = repo.add_dataset("second", second_data, select=False)
+        df.loc[0, "a"] = 999
+        second_data.loc[0, "value"] = 999
+
+        assert first.name == "first"
+        assert first.selected is True
+        assert second.selected is False
+        assert [info.name for info in repo.list_datasets()] == ["first", "second"]
+        assert repo.get_dataset("first").loc[0, "a"] == 1
+        assert repo.get_dataset("second").loc[0, "value"] == 10
+
+        active = repo.select_dataset("second")
+        assert active.loc[0, "value"] == 10
+        assert repo.selected_dataset_name() == "second"
+        assert repo.list_datasets()[1].selected is True
+
+        repo.set_data(pd.DataFrame({"value": [42]}))
+        assert repo.get_dataset("second").loc[0, "value"] == 42
+        assert repo.get_dataset("first").loc[0, "a"] == 1
+        repo.set_data(None)
+        assert repo.get_data() is None
+        assert [info.name for info in repo.list_datasets()] == ["first", "second"]
+
+    def test_named_dataset_removal_preserves_others(
+        self, repo: DataRepository, df: pd.DataFrame
+    ) -> None:
+        repo.add_dataset("first", df)
+        repo.add_dataset("second", pd.DataFrame({"b": [7]}))
+
+        repo.remove_dataset("second")
+        assert [info.name for info in repo.list_datasets()] == ["first"]
+        assert repo.selected_dataset_name() == "first"
+        repo.remove_dataset("first")
+        assert repo.list_datasets() == ()
+        assert repo.get_data() is None
+
+    def test_named_dataset_replace_and_validation(
+        self, repo: DataRepository, df: pd.DataFrame
+    ) -> None:
+        repo.add_dataset("data", df)
+        with pytest.raises(ValueError, match="already exists"):
+            repo.add_dataset("data", df)
+        replaced = repo.add_dataset("data", pd.DataFrame({"new": [1]}), replace=True)
+        assert replaced.column_count == 1
+
+        for invalid in ("", "   ", "bad\nname", "x" * 101):
+            with pytest.raises(ValueError):
+                repo.add_dataset(invalid, df)
+        with pytest.raises(KeyError, match="does not exist"):
+            repo.get_dataset("missing")
+        with pytest.raises(KeyError, match="does not exist"):
+            repo.select_dataset("missing")
+        with pytest.raises(KeyError, match="does not exist"):
+            repo.remove_dataset("missing")
+
+    def test_get_dataset_requires_selection(self, repo: DataRepository) -> None:
+        with pytest.raises(ValueError, match="No dataset is selected"):
+            repo.get_dataset()
+
+    def test_clear_data_clears_named_datasets(self, repo: DataRepository, df: pd.DataFrame) -> None:
+        repo.add_dataset("data", df)
+        repo.clear_data()
+        assert repo.list_datasets() == ()
+        assert repo.selected_dataset_name() is None
+
 
 # ConfigRepository
 

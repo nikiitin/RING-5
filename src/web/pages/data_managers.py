@@ -13,6 +13,7 @@ from src.web.components.data_managers.data_manager_components import (
     DataManagerComponents,
 )
 from src.web.components.data_managers.comparison import ComparisonManager
+from src.web.components.data_managers.dataset_workspace import DatasetWorkspaceManager
 from src.web.components.data_managers.mixer import MixerManager
 from src.web.components.data_managers.outlier_remover import OutlierRemoverManager
 from src.web.components.data_managers.preprocessor import PreprocessorManager
@@ -38,10 +39,11 @@ def show_data_managers_page(api: ApplicationAPI) -> None:
 
     has_data: bool = api.state_manager.has_data()
 
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs(
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs(
         [
             "Summary",
             "Data Visualization",
+            "Workspace",
             "Seeds Reducer",
             "Outlier Remover",
             "Preprocessor",
@@ -83,12 +85,20 @@ def show_data_managers_page(api: ApplicationAPI) -> None:
     with tab3:
 
         @st.fragment
+        def _workspace_fragment() -> None:
+            DatasetWorkspaceManager(api).render()
+
+        _workspace_fragment()
+
+    with tab4:
+
+        @st.fragment
         def _seeds_fragment() -> None:
             SeedsReducerManager(api).render()
 
         _seeds_fragment()
 
-    with tab4:
+    with tab5:
 
         @st.fragment
         def _outlier_fragment() -> None:
@@ -96,7 +106,7 @@ def show_data_managers_page(api: ApplicationAPI) -> None:
 
         _outlier_fragment()
 
-    with tab5:
+    with tab6:
 
         @st.fragment
         def _preproc_fragment() -> None:
@@ -104,7 +114,7 @@ def show_data_managers_page(api: ApplicationAPI) -> None:
 
         _preproc_fragment()
 
-    with tab6:
+    with tab7:
 
         @st.fragment
         def _mixer_fragment() -> None:
@@ -112,7 +122,7 @@ def show_data_managers_page(api: ApplicationAPI) -> None:
 
         _mixer_fragment()
 
-    with tab7:
+    with tab8:
 
         @st.fragment
         def _comparison_fragment() -> None:
@@ -120,7 +130,7 @@ def show_data_managers_page(api: ApplicationAPI) -> None:
 
         _comparison_fragment()
 
-    with tab8:
+    with tab9:
 
         @st.fragment
         def _quality_fragment() -> None:
@@ -128,5 +138,5 @@ def show_data_managers_page(api: ApplicationAPI) -> None:
 
         _quality_fragment()
 
-    with tab9:
+    with tab10:
         HistoryComponents.render_portfolio_history(api.get_portfolio_history())

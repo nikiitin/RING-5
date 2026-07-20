@@ -256,7 +256,7 @@ class TestMixerTab:
         assert len(preview_buttons) > 0
 
 
-# Operations History tab (tab index 6)
+# Operations History tab
 class TestOperationsHistoryTab:
     """Tests for the Operations History tab."""
 

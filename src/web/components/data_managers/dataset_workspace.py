@@ -1,0 +1,273 @@
+"""Human-first controls for retaining and composing named datasets."""
+
+from __future__ import annotations
+
+from typing import Literal, cast
+
+import pandas as pd
+import streamlit as st
+
+from src.core.application_api import ApplicationAPI
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
+_COMPARISON_PREVIEW = "workspace_dataset_comparison"
+
+
+class DatasetWorkspaceManager:
+    """Manage multiple named datasets without replacing unrelated data."""
+
+    def __init__(self, api: ApplicationAPI) -> None:
+        """Initialize with the application facade."""
+        self.api = api
+
+    def render(self) -> None:
+        """Render retention, selection, comparison, join, append, and removal."""
+        # [impl->req~ring5.data.multi-dataset-workspace~1]
+        st.markdown("### Named Dataset Workspace")
+        st.info(
+            "Keep independent tables in this session, switch the active table, or create a new "
+            "table by comparing, joining, or appending retained datasets. Source tables remain "
+            "unchanged."
+        )
+
+        infos = self.api.list_datasets()
+        default_name = f"dataset_{len(infos) + 1}"
+        retain_name = st.text_input(
+            "Name for current data",
+            value=default_name,
+            key=WidgetKeyBuilder.manager_key("workspace", "retain_name"),
+        )
+        if st.button(
+            "Retain Current Dataset",
+            type="primary" if not infos else "secondary",
+            key=WidgetKeyBuilder.manager_key("workspace", "retain"),
+        ):
+            try:
+                self.api.add_current_dataset(retain_name)
+            except (KeyError, TypeError, ValueError) as exc:
+                st.error(str(exc))
+            else:
+                st.rerun(scope="app")
+
+        infos = self.api.list_datasets()
+        if not infos:
+            st.caption("No named datasets yet. Retain the current data to start the workspace.")
+            return
+
+        st.metric("Retained datasets", len(infos))
+        st.dataframe(
+            pd.DataFrame(
+                {
+                    "Name": [info.name for info in infos],
+                    "Rows": [info.row_count for info in infos],
+                    "Columns": [info.column_count for info in infos],
+                    "Active": ["Yes" if info.selected else "" for info in infos],
+                }
+            ),
+            width="stretch",
+            hide_index=True,
+        )
+
+        names = [info.name for info in infos]
+        selected_index = next((index for index, info in enumerate(infos) if info.selected), 0)
+        chosen = str(
+            st.selectbox(
+                "Workspace dataset",
+                names,
+                index=selected_index,
+                key=WidgetKeyBuilder.manager_key("workspace", "selected"),
+            )
+        )
+        activate, remove = st.columns(2)
+        with activate:
+            if st.button(
+                "Activate Dataset",
+                key=WidgetKeyBuilder.manager_key("workspace", "activate"),
+            ):
+                self.api.select_dataset(chosen)
+                st.rerun(scope="app")
+        with remove:
+            if st.button(
+                "Remove Dataset",
+                key=WidgetKeyBuilder.manager_key("workspace", "remove"),
+            ):
+                self.api.remove_dataset(chosen)
+                st.rerun(scope="app")
+
+        if len(names) < 2:
+            st.caption("Retain a second dataset to compare, join, or append tables.")
+            return
+
+        operation = st.selectbox(
+            "Workspace operation",
+            ["Compare", "Join", "Append"],
+            key=WidgetKeyBuilder.manager_key("workspace", "operation"),
+        )
+        if operation == "Compare":
+            self._render_compare(names)
+        elif operation == "Join":
+            self._render_join(names)
+        else:
+            self._render_append(names)
+
+    def _render_compare(self, names: list[str]) -> None:
+        baseline, candidate = self._two_dataset_selectors(names, "compare")
+        baseline_data = self.api.get_dataset(baseline)
+        candidate_data = self.api.get_dataset(candidate)
+        shared = [
+            column
+            for column in baseline_data
+            if isinstance(column, str) and column in candidate_data.columns
+        ]
+        numeric = [
+            column
+            for column in shared
+            if pd.api.types.is_numeric_dtype(baseline_data[column].dtype)
+            and pd.api.types.is_numeric_dtype(candidate_data[column].dtype)
+        ]
+        keys = cast(
+            list[str],
+            st.multiselect(
+                "Comparison keys",
+                [column for column in shared if column not in numeric],
+                key=WidgetKeyBuilder.manager_key("workspace", "compare_keys"),
+            ),
+        )
+        metrics = cast(
+            list[str],
+            st.multiselect(
+                "Comparison metrics",
+                numeric,
+                key=WidgetKeyBuilder.manager_key("workspace", "compare_metrics"),
+            ),
+        )
+        direction = st.selectbox(
+            "Preferred direction",
+            ["Higher is better", "Lower is better"],
+            key=WidgetKeyBuilder.manager_key("workspace", "compare_direction"),
+        )
+        threshold = float(
+            st.number_input(
+                "Regression tolerance (%)",
+                min_value=0.0,
+                value=0.0,
+                key=WidgetKeyBuilder.manager_key("workspace", "compare_threshold"),
+            )
+        )
+        if st.button(
+            "Compare Retained Datasets",
+            key=WidgetKeyBuilder.manager_key("workspace", "compare_apply"),
+        ):
+            if not keys or not metrics:
+                st.error("Select at least one comparison key and metric.")
+            else:
+                try:
+                    result = self.api.compare_datasets(
+                        baseline,
+                        candidate,
+                        keys,
+                        metrics,
+                        directions="higher" if direction == "Higher is better" else "lower",
+                        thresholds=threshold,
+                    )
+                except (KeyError, TypeError, ValueError) as exc:
+                    st.error(str(exc))
+                else:
+                    self.api.set_preview(_COMPARISON_PREVIEW, result)
+        preview = self.api.get_preview(_COMPARISON_PREVIEW)
+        if preview is not None:
+            st.dataframe(preview, width="stretch")
+
+    def _render_join(self, names: list[str]) -> None:
+        left_name, right_name = self._two_dataset_selectors(names, "join")
+        left = self.api.get_dataset(left_name)
+        right = self.api.get_dataset(right_name)
+        shared = [column for column in left if isinstance(column, str) and column in right.columns]
+        keys = cast(
+            list[str],
+            st.multiselect(
+                "Join keys",
+                shared,
+                key=WidgetKeyBuilder.manager_key("workspace", "join_keys"),
+            ),
+        )
+        how = cast(
+            Literal["inner", "left", "right", "outer"],
+            st.selectbox(
+                "Join mode",
+                ["inner", "left", "right", "outer"],
+                key=WidgetKeyBuilder.manager_key("workspace", "join_mode"),
+            ),
+        )
+        output = st.text_input(
+            "Joined dataset name",
+            value=f"{left_name}_{right_name}_joined",
+            key=WidgetKeyBuilder.manager_key("workspace", "join_output"),
+        )
+        if st.button(
+            "Join Retained Datasets",
+            key=WidgetKeyBuilder.manager_key("workspace", "join_apply"),
+        ):
+            try:
+                self.api.join_datasets(left_name, right_name, output, keys, how=how)
+            except (KeyError, TypeError, ValueError) as exc:
+                st.error(str(exc))
+            else:
+                st.rerun(scope="app")
+
+    def _render_append(self, names: list[str]) -> None:
+        selected = cast(
+            list[str],
+            st.multiselect(
+                "Datasets to append",
+                names,
+                default=names[:2],
+                key=WidgetKeyBuilder.manager_key("workspace", "append_inputs"),
+            ),
+        )
+        join = cast(
+            Literal["outer", "inner"],
+            st.selectbox(
+                "Append columns",
+                ["outer", "inner"],
+                format_func=lambda value: "Union" if value == "outer" else "Intersection",
+                key=WidgetKeyBuilder.manager_key("workspace", "append_join"),
+            ),
+        )
+        output = st.text_input(
+            "Appended dataset name",
+            value="appended_dataset",
+            key=WidgetKeyBuilder.manager_key("workspace", "append_output"),
+        )
+        if st.button(
+            "Append Retained Datasets",
+            key=WidgetKeyBuilder.manager_key("workspace", "append_apply"),
+        ):
+            try:
+                self.api.append_datasets(selected, output, join=join)
+            except (KeyError, TypeError, ValueError) as exc:
+                st.error(str(exc))
+            else:
+                st.rerun(scope="app")
+
+    def _two_dataset_selectors(self, names: list[str], operation: str) -> tuple[str, str]:
+        left, right = st.columns(2)
+        with left:
+            first = str(
+                st.selectbox(
+                    "Baseline" if operation == "compare" else "Left dataset",
+                    names,
+                    index=0,
+                    key=WidgetKeyBuilder.manager_key("workspace", f"{operation}_left"),
+                )
+            )
+        with right:
+            second = str(
+                st.selectbox(
+                    "Candidate" if operation == "compare" else "Right dataset",
+                    names,
+                    index=1,
+                    key=WidgetKeyBuilder.manager_key("workspace", f"{operation}_right"),
+                )
+            )
+        return first, second

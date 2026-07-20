@@ -12,7 +12,13 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 import pandas as pd
 
 from src.core.application_api import ApplicationAPI
-from src.core.models import DataQualityReport, RestoreReport, ScanResult, StatConfig
+from src.core.models import (
+    DataQualityReport,
+    DatasetInfo,
+    RestoreReport,
+    ScanResult,
+    StatConfig,
+)
 from src.core.models.data_models import ParseVariableConfig
 from src.core.models.shaper_models import ShaperStepConfig
 from src.core.models.visualization.engine import EngineMode
@@ -384,6 +390,221 @@ class Session:
         if data is None:
             raise DataLoadError(f"Loading {csv_path!r} produced no data.")
         return data
+
+    def add_dataset(
+        self,
+        name: str,
+        data: "pd.DataFrame | Table",
+        *,
+        select: bool = True,
+        replace: bool = False,
+    ) -> DatasetInfo:
+        """Retain a named dataset in this session without replacing others.
+
+        Args:
+            name: Human-readable session-unique name.
+            data: DataFrame or :class:`ring5.Table` retained by defensive copy.
+            select: Make this dataset the active source-data view.
+            replace: Permit replacement of the same name.
+
+        Returns:
+            Immutable dataset metadata.
+
+        Raises:
+            DataValidationError: The name is invalid or already exists.
+        """
+        # [impl->req~ring5.data.multi-dataset-workspace~1]
+        frame, _ = _unwrap_table(data)
+        try:
+            return self.api.add_dataset(
+                name,
+                frame,
+                select=select,
+                replace=replace,
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def list_datasets(self) -> tuple[DatasetInfo, ...]:
+        """Return retained dataset metadata in insertion order."""
+        # [impl->req~ring5.data.multi-dataset-workspace~1]
+        return self.api.list_datasets()
+
+    def get_dataset(self, name: str | None = None) -> pd.DataFrame:
+        """Return a defensive copy of a named or selected dataset.
+
+        Args:
+            name: Dataset name, or ``None`` for the selected dataset.
+
+        Returns:
+            A newly allocated DataFrame.
+
+        Raises:
+            DataValidationError: No dataset is selected or the name is unknown.
+        """
+        # [impl->req~ring5.data.multi-dataset-workspace~1]
+        try:
+            return self.api.get_dataset(name)
+        except (KeyError, TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def select_dataset(self, name: str) -> pd.DataFrame:
+        """Select a named dataset as the active source-data view.
+
+        Args:
+            name: Retained dataset name.
+
+        Returns:
+            A defensive copy of the selected dataset.
+
+        Raises:
+            DataValidationError: The name is invalid or unknown.
+        """
+        # [impl->req~ring5.data.multi-dataset-workspace~1]
+        try:
+            return self.api.select_dataset(name)
+        except (KeyError, TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def remove_dataset(self, name: str) -> None:
+        """Remove one named dataset while preserving every other dataset.
+
+        Args:
+            name: Retained dataset name.
+
+        Raises:
+            DataValidationError: The name is invalid or unknown.
+        """
+        # [impl->req~ring5.data.multi-dataset-workspace~1]
+        try:
+            self.api.remove_dataset(name)
+        except (KeyError, TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def append_datasets(
+        self,
+        dataset_names: Sequence[str],
+        output_name: str,
+        *,
+        join: Literal["outer", "inner"] = "outer",
+        select: bool = True,
+        replace: bool = False,
+    ) -> pd.DataFrame:
+        """Append retained datasets and retain the result under a new name.
+
+        Args:
+            dataset_names: Ordered names of at least two retained datasets.
+            output_name: Name for the appended result.
+            join: Keep the union or intersection of columns.
+            select: Make the result the active source-data view.
+            replace: Permit replacement of ``output_name``.
+
+        Returns:
+            A defensive copy of the appended result.
+
+        Raises:
+            DataValidationError: A name, dataset, or option is invalid.
+        """
+        # [impl->req~ring5.data.multi-dataset-workspace~1]
+        try:
+            return self.api.append_datasets(
+                list(dataset_names),
+                output_name,
+                join=join,
+                select=select,
+                replace=replace,
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def join_datasets(
+        self,
+        left_name: str,
+        right_name: str,
+        output_name: str,
+        on: Sequence[str],
+        *,
+        how: Literal["inner", "left", "right", "outer"] = "inner",
+        suffixes: tuple[str, str] = ("_left", "_right"),
+        select: bool = True,
+        replace: bool = False,
+    ) -> pd.DataFrame:
+        """Join retained datasets and retain the result under a new name.
+
+        Args:
+            left_name: Left-side retained dataset.
+            right_name: Right-side retained dataset.
+            output_name: Name for the joined result.
+            on: Shared key columns.
+            how: Row-retention strategy.
+            suffixes: Distinct suffixes for overlapping non-key columns.
+            select: Make the result the active source-data view.
+            replace: Permit replacement of ``output_name``.
+
+        Returns:
+            A defensive copy of the joined result.
+
+        Raises:
+            DataValidationError: A name, dataset, key, or option is invalid.
+        """
+        # [impl->req~ring5.data.multi-dataset-workspace~1]
+        try:
+            return self.api.join_datasets(
+                left_name,
+                right_name,
+                output_name,
+                list(on),
+                how=how,
+                suffixes=suffixes,
+                select=select,
+                replace=replace,
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def compare_datasets(
+        self,
+        baseline_name: str,
+        candidate_name: str,
+        key_columns: Sequence[str],
+        metric_columns: Sequence[str],
+        *,
+        directions: (
+            Literal["higher", "lower"] | Mapping[str, Literal["higher", "lower"]]
+        ) = "higher",
+        thresholds: float | Mapping[str, float] = 0.0,
+        threshold_mode: Literal["percentage", "absolute"] = "percentage",
+    ) -> pd.DataFrame:
+        """Compare retained datasets without changing either source.
+
+        Args:
+            baseline_name: Reference retained dataset.
+            candidate_name: Candidate retained dataset.
+            key_columns: Columns that uniquely align rows.
+            metric_columns: Numeric columns to compare.
+            directions: Global or per-metric preferred direction.
+            thresholds: Global or per-metric non-negative tolerance.
+            threshold_mode: Interpret tolerances as percentages or absolute values.
+
+        Returns:
+            Long-form comparison rows.
+
+        Raises:
+            DataValidationError: A dataset, column, or option is invalid.
+        """
+        # [impl->req~ring5.data.multi-dataset-workspace~1]
+        try:
+            return self.api.compare_datasets(
+                baseline_name,
+                candidate_name,
+                list(key_columns),
+                list(metric_columns),
+                directions=directions,
+                thresholds=thresholds,
+                threshold_mode=threshold_mode,
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
 
     def profile_data(
         self,

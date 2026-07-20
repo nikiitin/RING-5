@@ -1,14 +1,15 @@
 """Application facade used by the web presentation layer."""
 
 import logging
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from concurrent.futures import Future
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 import numpy as np
 import pandas as pd
 
 from src.core.models import (
+    DatasetInfo,
     ParseBatchResult,
     ScanFileResult,
     ScannedVariable,
@@ -128,6 +129,141 @@ class ApplicationAPI:
         """Clear all session data."""
         self.state_manager.clear_data()
         self.state_manager.clear_all()
+
+    # Named dataset workspace
+
+    def add_dataset(
+        self,
+        name: str,
+        data: pd.DataFrame,
+        *,
+        select: bool = True,
+        replace: bool = False,
+    ) -> DatasetInfo:
+        """Retain a named dataset without replacing unrelated workspace data.
+
+        Args:
+            name: Human-readable session-unique name.
+            data: Dataset to retain by defensive copy.
+            select: Make this dataset the active source-data view.
+            replace: Permit replacement of the same name.
+
+        Returns:
+            Metadata for the stored dataset.
+        """
+        # [impl->req~ring5.data.multi-dataset-workspace~1]
+        if not isinstance(data, pd.DataFrame):
+            raise TypeError("Named workspace data must be a pandas DataFrame.")
+        return self.state_manager.add_dataset(
+            name,
+            data,
+            select=select,
+            replace=replace,
+        )
+
+    def add_current_dataset(
+        self,
+        name: str,
+        *,
+        select: bool = True,
+        replace: bool = False,
+    ) -> DatasetInfo:
+        """Retain the current source-data view under a name."""
+        data = self.state_manager.get_data()
+        if data is None:
+            raise ValueError("No active data is available to retain.")
+        return self.add_dataset(name, data, select=select, replace=replace)
+
+    def list_datasets(self) -> tuple[DatasetInfo, ...]:
+        """Return retained dataset metadata in insertion order."""
+        # [impl->req~ring5.data.multi-dataset-workspace~1]
+        return self.state_manager.list_datasets()
+
+    def get_dataset(self, name: str | None = None) -> pd.DataFrame:
+        """Return a defensive copy of a named or selected dataset."""
+        # [impl->req~ring5.data.multi-dataset-workspace~1]
+        return self.state_manager.get_dataset(name)
+
+    def select_dataset(self, name: str) -> pd.DataFrame:
+        """Select a retained dataset as the active source-data view."""
+        # [impl->req~ring5.data.multi-dataset-workspace~1]
+        return self.state_manager.select_dataset(name)
+
+    def remove_dataset(self, name: str) -> None:
+        """Remove one retained dataset while preserving every other dataset."""
+        # [impl->req~ring5.data.multi-dataset-workspace~1]
+        self.state_manager.remove_dataset(name)
+
+    def append_datasets(
+        self,
+        dataset_names: Sequence[str],
+        output_name: str,
+        *,
+        join: Literal["outer", "inner"] = "outer",
+        select: bool = True,
+        replace: bool = False,
+    ) -> pd.DataFrame:
+        """Append retained datasets and store the result under a new name."""
+        # [impl->req~ring5.data.multi-dataset-workspace~1]
+        frames = [self.state_manager.get_dataset(name) for name in dataset_names]
+        result = self.managers.append_datasets(frames, join=join)
+        self.add_dataset(output_name, result, select=select, replace=replace)
+        return result.copy(deep=True)
+
+    def join_datasets(
+        self,
+        left_name: str,
+        right_name: str,
+        output_name: str,
+        on: Sequence[str],
+        *,
+        how: Literal["inner", "left", "right", "outer"] = "inner",
+        suffixes: tuple[str, str] = ("_left", "_right"),
+        select: bool = True,
+        replace: bool = False,
+    ) -> pd.DataFrame:
+        """Join retained datasets and store the result under a new name."""
+        # [impl->req~ring5.data.multi-dataset-workspace~1]
+        left = self.state_manager.get_dataset(left_name)
+        right = self.state_manager.get_dataset(right_name)
+        result = self.managers.join_datasets(
+            left,
+            right,
+            on,
+            how=how,
+            suffixes=suffixes,
+        )
+        self.add_dataset(output_name, result, select=select, replace=replace)
+        return result.copy(deep=True)
+
+    def compare_datasets(
+        self,
+        baseline_name: str,
+        candidate_name: str,
+        key_columns: Sequence[str],
+        metric_columns: Sequence[str],
+        *,
+        directions: (
+            Literal["higher", "lower"] | Mapping[str, Literal["higher", "lower"]]
+        ) = "higher",
+        thresholds: float | Mapping[str, float] = 0.0,
+        threshold_mode: Literal["percentage", "absolute"] = "percentage",
+    ) -> pd.DataFrame:
+        """Compare two retained datasets without changing either dataset."""
+        # [impl->req~ring5.data.multi-dataset-workspace~1]
+        baseline = self.state_manager.get_dataset(baseline_name)
+        candidate = self.state_manager.get_dataset(candidate_name)
+        return self.managers.compare(
+            baseline,
+            candidate,
+            key_columns,
+            metric_columns,
+            directions=directions,
+            thresholds=thresholds,
+            threshold_mode=threshold_mode,
+            baseline_name=baseline_name,
+            candidate_name=candidate_name,
+        )
 
     # Parsing & Scanning
 

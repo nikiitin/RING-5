@@ -69,7 +69,13 @@ from ring5.figure_spec import (
 
 if TYPE_CHECKING:
     # Static names for mypy/IDEs; at runtime these resolve via __getattr__.
-    from src.core.models import RestoreReport, ScanResult, ScannedVariable, ShaperStepConfig
+    from src.core.models import (
+        DatasetInfo,
+        RestoreReport,
+        ScanResult,
+        ScannedVariable,
+        ShaperStepConfig,
+    )
     from src.core.models.parsing_models import StatConfig
     from src.core.models.quality_models import ColumnQuality, DataQualityReport
 
@@ -109,6 +115,7 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "RestoreReport": ("src.core.models", "RestoreReport"),
     "ColumnQuality": ("src.core.models", "ColumnQuality"),
     "DataQualityReport": ("src.core.models", "DataQualityReport"),
+    "DatasetInfo": ("src.core.models", "DatasetInfo"),
     "ShaperStepConfig": ("src.core.models", "ShaperStepConfig"),
     "available_shaper_types": ("ring5.shapers", "available_shaper_types"),
     # Self-contained figure-scripting surface (so scripts import only `ring5`):
@@ -168,6 +175,7 @@ __all__ = [
     "RestoreReport",
     "ColumnQuality",
     "DataQualityReport",
+    "DatasetInfo",
     "render_figure",
     "export_bytes",
     "export_file",

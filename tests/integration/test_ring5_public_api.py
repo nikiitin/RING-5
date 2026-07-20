@@ -326,6 +326,84 @@ class TestDataQuality:
                 )
 
 
+class TestNamedDatasetWorkspace:
+    """Retain and compose independent datasets through the public API."""
+
+    def test_workspace_retains_selects_compares_joins_and_appends(self) -> None:
+        # [test->req~ring5.data.multi-dataset-workspace~1]
+        baseline = ring5.Table.from_rows(
+            [
+                {"benchmark": "a", "ipc": 1.0},
+                {"benchmark": "b", "ipc": 2.0},
+            ]
+        )
+        candidate = pd.DataFrame({"benchmark": ["a", "b"], "ipc": [1.2, 1.8], "note": ["x", "y"]})
+
+        with ring5.Session() as session:
+            first = session.add_dataset("baseline", baseline)
+            second = session.add_dataset("candidate", candidate, select=False)
+            assert isinstance(first, ring5.DatasetInfo)
+            assert first.selected is True
+            assert second.selected is False
+            assert [item.name for item in session.list_datasets()] == [
+                "baseline",
+                "candidate",
+            ]
+
+            defensive = session.get_dataset("candidate")
+            defensive.loc[0, "ipc"] = 999.0
+            assert session.get_dataset("candidate").loc[0, "ipc"] == 1.2
+
+            comparison = session.compare_datasets(
+                "baseline",
+                "candidate",
+                ["benchmark"],
+                ["ipc"],
+                thresholds=5.0,
+            )
+            assert comparison["outcome"].tolist() == ["improvement", "regression"]
+
+            appended = session.append_datasets(
+                ["baseline", "candidate"],
+                "all_runs",
+                select=False,
+            )
+            assert len(appended) == 4
+            assert session.get_dataset()["ipc"].tolist() == [1.0, 2.0]
+
+            joined = session.join_datasets(
+                "baseline",
+                "candidate",
+                "paired",
+                ["benchmark"],
+            )
+            assert {"ipc_left", "ipc_right", "note"} <= set(joined.columns)
+            assert session.select_dataset("candidate")["ipc"].tolist() == [1.2, 1.8]
+            session.remove_dataset("baseline")
+            assert "candidate" in {item.name for item in session.list_datasets()}
+
+    def test_workspace_errors_are_typed(self) -> None:
+        with ring5.Session() as session:
+            session.add_dataset("one", pd.DataFrame({"key": [1], "value": [2.0]}))
+            session.add_dataset("two", pd.DataFrame({"key": [1], "value": [3.0]}))
+            with pytest.raises(ring5.DataValidationError, match="already exists"):
+                session.add_dataset("one", pd.DataFrame({"key": [1]}))
+            with pytest.raises(ring5.DataValidationError, match="pandas DataFrame"):
+                session.add_dataset("invalid", 42)  # type: ignore[arg-type]
+            with pytest.raises(ring5.DataValidationError, match="does not exist"):
+                session.get_dataset("missing")
+            with pytest.raises(ring5.DataValidationError, match="does not exist"):
+                session.select_dataset("missing")
+            with pytest.raises(ring5.DataValidationError, match="does not exist"):
+                session.remove_dataset("missing")
+            with pytest.raises(ring5.DataValidationError, match="at least two"):
+                session.append_datasets(["one"], "invalid")
+            with pytest.raises(ring5.DataValidationError, match="at least one"):
+                session.join_datasets("one", "two", "invalid", [])
+            with pytest.raises(ring5.DataValidationError, match="does not exist"):
+                session.compare_datasets("missing", "two", ["key"], ["value"])
+
+
 class TestPortfolioReplay:
     # [test->req~ring5.portfolio.batch-replay~1]
     """Save a session, regenerate every figure from the snapshot."""

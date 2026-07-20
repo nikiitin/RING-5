@@ -910,7 +910,7 @@ Tags: data, history, lineage, status_proposed
 ### Named multi-dataset workspace
 
 `req~ring5.data.multi-dataset-workspace~1`
-Status: proposed
+Status: approved
 
 A session shall retain multiple named datasets and let users select, compare, join, append, or remove them without replacing unrelated data.
 
@@ -919,7 +919,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: data, status_proposed, workspace
+Tags: data, status_approved, workspace
 
 ### Data quality profiler
 

@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 import pandas as pd
 
-from src.core.models import PlotProtocol, PortfolioData, RestoreReport
+from src.core.models import DatasetInfo, PlotProtocol, PortfolioData, RestoreReport
 from src.core.models.data_models import (
     CsvPoolEntry,
     ParseVariableConfig,
@@ -64,6 +64,37 @@ class StateManager(Protocol):
 
     def clear_data(self) -> None:
         """Clear all loaded data."""
+        raise NotImplementedError
+
+    def add_dataset(
+        self,
+        name: str,
+        data: pd.DataFrame,
+        *,
+        select: bool = True,
+        replace: bool = False,
+    ) -> DatasetInfo:
+        """Retain a named dataset in the session workspace."""
+        raise NotImplementedError
+
+    def list_datasets(self) -> tuple[DatasetInfo, ...]:
+        """List retained datasets in insertion order."""
+        raise NotImplementedError
+
+    def get_dataset(self, name: str | None = None) -> pd.DataFrame:
+        """Return a named or selected dataset."""
+        raise NotImplementedError
+
+    def select_dataset(self, name: str) -> pd.DataFrame:
+        """Select a retained dataset as the active compatibility view."""
+        raise NotImplementedError
+
+    def remove_dataset(self, name: str) -> None:
+        """Remove a retained dataset."""
+        raise NotImplementedError
+
+    def selected_dataset_name(self) -> str | None:
+        """Return the selected retained dataset name."""
         raise NotImplementedError
 
     # Config

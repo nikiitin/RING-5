@@ -8,7 +8,7 @@ from typing import Any
 
 import pandas as pd
 
-from src.core.models import PlotProtocol, PortfolioData, RestoreReport
+from src.core.models import DatasetInfo, PlotProtocol, PortfolioData, RestoreReport
 from src.core.models.data_models import (
     CsvPoolEntry,
     ParseVariableConfig,
@@ -89,6 +89,43 @@ class RepositoryStateManager:
         self._session_repo.plot_repo.clear_plots()
         self._session_repo.plot_repo.set_plot_counter(0)
         self._session_repo.plot_repo.set_current_plot_id(None)
+
+    def add_dataset(
+        self,
+        name: str,
+        data: pd.DataFrame,
+        *,
+        select: bool = True,
+        replace: bool = False,
+    ) -> DatasetInfo:
+        """Retain a named dataset after applying shared dtype rules."""
+        normalized = self._session_repo.enforce_config_dtypes(data)
+        return self._session_repo.data_repo.add_dataset(
+            name,
+            normalized,
+            select=select,
+            replace=replace,
+        )
+
+    def list_datasets(self) -> tuple[DatasetInfo, ...]:
+        """Return retained dataset metadata in insertion order."""
+        return self._session_repo.data_repo.list_datasets()
+
+    def get_dataset(self, name: str | None = None) -> pd.DataFrame:
+        """Return a defensive copy of a named or selected dataset."""
+        return self._session_repo.data_repo.get_dataset(name)
+
+    def select_dataset(self, name: str) -> pd.DataFrame:
+        """Select a retained dataset as the active source data."""
+        return self._session_repo.data_repo.select_dataset(name)
+
+    def remove_dataset(self, name: str) -> None:
+        """Remove one retained dataset without changing unrelated data."""
+        self._session_repo.data_repo.remove_dataset(name)
+
+    def selected_dataset_name(self) -> str | None:
+        """Return the selected retained dataset name."""
+        return self._session_repo.data_repo.selected_dataset_name()
 
     # ==================== Config & Parser ====================
 

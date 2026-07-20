@@ -59,6 +59,12 @@ Dataset counts remain scalar fields; `columns` contains immutable `ColumnQuality
 `to_frame()` creates a new DataFrame for display or export. Optional expected types validate finite
 values without conflating invalid values with missing cells.
 
+`Session.add_dataset` retains a defensive copy in a named, in-memory workspace and returns a
+`DatasetInfo`. `list_datasets`, `get_dataset`, `select_dataset`, and `remove_dataset` manage that
+workspace. `compare_datasets` leaves both sources unchanged; `join_datasets` and `append_datasets`
+store their result under a separate name. The selected dataset remains the compatibility view used
+by existing plot, transformation, and portfolio APIs.
+
 `scan_limit=0` means exhaustive variable discovery up to the global 10,000-file ceiling; a positive
 value is an exact sample cap. A scan with any failed files raises `ScanError` at the public boundary;
 pass `strict=False` to `ScanJob.finalize` or `Session.scan` only when a documented partial result is

@@ -1,8 +1,9 @@
 """Page Object for the Data Managers page.
 
-Covers all 9 tabs:
+Covers all 10 tabs:
 - Summary
 - Data Visualization
+- Workspace
 - Seeds Reducer
 - Outlier Remover
 - Preprocessor
@@ -27,6 +28,7 @@ class DataManagersPage(BasePage):
     TAB_NAMES: tuple[str, ...] = (
         "Summary",
         "Data Visualization",
+        "Workspace",
         "Seeds Reducer",
         "Outlier Remover",
         "Preprocessor",
@@ -154,7 +156,7 @@ class DataManagersPage(BasePage):
         expect(self.no_data_warning).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
     def assert_tabs_visible(self) -> None:
-        """Assert all 9 tabs are present."""
+        """Assert all 10 tabs are present."""
         expect(self.tab_bar).to_be_visible(timeout=self.RENDER_TIMEOUT)
         for tab_name in self.TAB_NAMES:
             expect(self.get_tab(tab_name)).to_be_visible()
@@ -406,6 +408,29 @@ class DataManagersPage(BasePage):
     def apply_comparison(self) -> None:
         """Calculate the comparison and wait for the preview."""
         self.comparison_apply_button.click()
+        self.wait_for_streamlit()
+
+    # E2E: Named dataset workspace
+
+    @property
+    def workspace_name_input(self) -> Locator:
+        """Name used to retain the current active dataset."""
+        return self._by_label("stTextInput", "Name for current data").locator("input")
+
+    @property
+    def workspace_retain_button(self) -> Locator:
+        """Button that stores the current table under a workspace name."""
+        return self.page.get_by_role("button", name="Retain Current Dataset")
+
+    @property
+    def workspace_dataset_metric(self) -> Locator:
+        """Count of retained named datasets."""
+        return self.page.locator("[data-testid='stMetric']").filter(has_text="Retained datasets")
+
+    def retain_current_dataset(self, name: str) -> None:
+        """Retain the active dataset under ``name`` and wait for rerendering."""
+        self.workspace_name_input.fill(name)
+        self.workspace_retain_button.click()
         self.wait_for_streamlit()
 
     # E2E: Data quality
