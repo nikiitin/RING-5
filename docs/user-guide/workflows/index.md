@@ -30,5 +30,6 @@ Use these pages for recurring tasks:
 - [Explore Rows Behind a Plot](plot-drill-down/) without losing the active figure configuration.
 - [Compare Groups with Small Multiples](small-multiples/) using aligned panels and shared styling.
 - [Compare and Copy Plot Settings and Pipelines](copy-plot-settings/) with a field-level preview.
+- [Compare Distributions with Box Plots](box-plots/) with explicit quartile and outlier controls.
 - [Manage Portfolios](portfolios/) to save and restore a workspace.
 - [Automate with Python and the CLI](scripting/) for batch and CI use.

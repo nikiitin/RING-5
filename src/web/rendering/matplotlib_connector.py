@@ -180,6 +180,7 @@ class FigureSpecToMatplotlib:
         from matplotlib.collections import PathCollection
         from matplotlib.container import BarContainer
         from matplotlib.lines import Line2D
+        from matplotlib.patches import Patch
 
         fill = _css_rgb_to_hex(color) if color else None
         edge = _css_rgb_to_hex(edge_color) if edge_color else None
@@ -214,6 +215,17 @@ class FigureSpecToMatplotlib:
                 handle.set_alpha(alpha)
             if marker_size is not None:
                 handle.set_sizes([float(marker_size)])
+        elif isinstance(handle, Patch):
+            if fill:
+                handle.set_facecolor(fill)
+            if alpha is not None:
+                handle.set_alpha(alpha)
+            if hatch:
+                handle.set_hatch(hatch)
+            if edge:
+                handle.set_edgecolor(edge)
+            if edge_width is not None:
+                handle.set_linewidth(edge_width)
 
     @staticmethod
     def _apply_series_styling(spec: FigureConfig, ax: Axes) -> None:

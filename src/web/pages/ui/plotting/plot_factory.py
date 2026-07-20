@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 
 from .types import (
     BarPlot,
+    BoxPlot,
     DualAxisBarDotPlot,
     GroupedBarPlot,
     GroupedStackedBarPlot,
@@ -37,6 +38,7 @@ class PlotFactory:
 
     _plot_classes: dict[str, Callable[[int, str], BasePlot]] = {
         "bar": BarPlot,
+        "box": BoxPlot,
         "dual_axis_bar_dot": DualAxisBarDotPlot,
         "grouped_bar": GroupedBarPlot,
         "heatmap": HeatmapPlot,
@@ -49,6 +51,7 @@ class PlotFactory:
 
     _plot_metadata: dict[str, PlotTypeMetadata] = {
         "bar": {"display_name": "Bar Chart", "icon": "bar_chart", "category": "basic"},
+        "box": {"display_name": "Box Plot", "icon": "inventory_2", "category": "distribution"},
         "line": {"display_name": "Line Chart", "icon": "show_chart", "category": "basic"},
         "scatter": {"display_name": "Scatter Plot", "icon": "scatter_plot", "category": "basic"},
         "grouped_bar": {

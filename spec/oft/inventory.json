@@ -3581,11 +3581,29 @@
       "id": "plot.box",
       "group": "plot-types",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Box plot",
       "description": "The plot registry shall provide box plots with grouping, orientation, quartile, whisker, outlier, and per-series styling controls.",
       "tags": ["distribution", "plots", "visualization"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/models/visualization/trace_config.py::BoxTraceConfig",
+          "src/web/pages/ui/plotting/types/box_plot.py::BoxPlot.create_traces",
+          "src/web/components/plotting/config/box_config.py::render",
+          "src/web/rendering/trace_to_plotly.py::_box_trace",
+          "src/web/rendering/matplotlib_trace_renderer.py::MatplotlibTraceRenderer._draw_box"
+        ],
+        "tests": [
+          "tests/unit/test_box_plot.py::test_grouped_box_traces_precompute_distribution_without_mutating_data",
+          "tests/unit/test_trace_to_plotly.py::TestBoxTrace.test_horizontal_box_controls_and_style",
+          "tests/unit/test_matplotlib_trace_renderer.py::TestRender.test_vertical_and_horizontal_boxes_use_precomputed_statistics",
+          "tests/integration/test_box_plot_public_api.py::test_public_box_plot_renders_both_engines_with_series_style",
+          "tests/e2e/test_plot_types.py::TestPlotCreation.test_07_create_box_plot"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/box-plots.md#compare-distributions-with-box-plots"
+        ]
+      }
     },
     {
       "id": "plot.violin",
@@ -4008,6 +4026,7 @@
     },
     "plot_types": {
       "bar": "plot.bar",
+      "box": "plot.box",
       "dual_axis_bar_dot": "plot.dual-axis-bar-dot",
       "grouped_bar": "plot.grouped-bar",
       "grouped_stacked_bar": "plot.grouped-stacked-bar",

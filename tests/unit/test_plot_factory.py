@@ -6,6 +6,7 @@ from src.web.pages.ui.plotting.plot_factory import PlotFactory, PlotTypeMetadata
 
 EXPECTED_PLOT_TYPES = {
     "bar",
+    "box",
     "dual_axis_bar_dot",
     "grouped_bar",
     "heatmap",
@@ -24,10 +25,10 @@ class TestPlotFactoryRegistration:
 
     # [test->req~ring5.extension.plot-registry~1]
 
-    def test_all_nine_plot_types_registered(self) -> None:
-        """All 9 plot types are registered in the factory."""
+    def test_all_plot_types_registered(self) -> None:
+        """Every built-in plot type is registered in the factory."""
         available = PlotFactory.get_available_plot_types()
-        assert len(available) == 9
+        assert len(available) == 10
         assert set(available) == EXPECTED_PLOT_TYPES
 
     def test_register_plot_type_rejects_non_baseplot_class(self) -> None:
@@ -55,7 +56,7 @@ class TestPlotFactoryMetadata:
         """get_plot_metadata returns a dict with correct structure."""
         metadata = PlotFactory.get_plot_metadata()
         assert isinstance(metadata, dict)
-        assert len(metadata) == 9
+        assert len(metadata) == 10
 
     def test_each_metadata_entry_has_required_keys(self) -> None:
         """Each metadata entry contains display_name, icon, and category."""

@@ -10,6 +10,7 @@ from src.core.models.visualization.annotation_config import AnnotationConfig
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import (
     BarTraceConfig,
+    BoxTraceConfig,
     HistogramTraceConfig,
     LineTraceConfig,
     ScatterTraceConfig,
@@ -17,6 +18,7 @@ from src.core.models.visualization.trace_config import (
 )
 from src.web.rendering.trace_to_plotly import (
     _bar_trace,
+    _box_trace,
     _bar_trace_from_base,
     _convert_annotations,
     _convert_trace,
@@ -47,6 +49,12 @@ class TestTracesToPlotly:
         assert len(cast(tuple[Any, ...], fig.data)) == 1
         assert isinstance(fig.data[0], go.Bar)
         assert cast(Any, fig.layout).barmode == "group"
+
+    def test_box_trace_sets_grouped_box_layout(self) -> None:
+        trace = BoxTraceConfig(name="A", category="A", values=[1.0, 2.0, 3.0])
+        fig = traces_to_plotly(TraceBuildResult(traces=[trace], boxmode="group"))
+        assert isinstance(fig.data[0], go.Box)
+        assert cast(Any, fig.layout).boxmode == "group"
 
     def test_secondary_y_creates_subplots(self) -> None:
         t1 = BarTraceConfig(name="left", x=["a"], y=[1], yaxis="y")
@@ -131,6 +139,44 @@ class TestConvertTrace:
         trace = BarTraceConfig(name="bar", x=["a"], y=[1])
         result = _convert_trace(trace)
         assert isinstance(result, go.Bar)
+
+    def test_box_trace_dispatch(self) -> None:
+        result = _convert_trace(BoxTraceConfig(name="box", category="A", values=[1.0]))
+        assert isinstance(result, go.Box)
+
+
+class TestBoxTrace:
+    """Tests for the Plotly box-trace conversion contract."""
+
+    def test_horizontal_box_controls_and_style(self) -> None:
+        # [test->req~ring5.plot.box~1]
+        trace = BoxTraceConfig(
+            name="base",
+            category="A",
+            values=[1.0, 2.0, 10.0],
+            orientation="horizontal",
+            quartile_method="exclusive",
+            lower_whisker=1.0,
+            upper_whisker=2.0,
+            point_mode="all",
+            jitter=0.3,
+            point_position=-0.2,
+            box_width=0.4,
+            whisker_cap_width=0.7,
+            notched=True,
+            show_mean=True,
+            color="#ff0000",
+        )
+
+        result = _box_trace(trace)
+
+        assert result.orientation == "h"
+        assert list(cast(Any, result.x)) == trace.values
+        assert result.quartilemethod == "exclusive"
+        assert result.boxpoints == "all"
+        assert result.notched
+        assert result.boxmean
+        assert result.fillcolor == "#ff0000"
 
     def test_line_trace_dispatch(self) -> None:
         trace = LineTraceConfig(name="line", x=["a"], y=[1])

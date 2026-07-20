@@ -1,6 +1,7 @@
 """Plot types package."""
 
 from .bar_plot import BarPlot
+from .box_plot import BoxPlot
 from .dual_axis_bar_dot_plot import DualAxisBarDotPlot
 from .grouped_bar_plot import GroupedBarPlot
 from .grouped_stacked_bar_plot import GroupedStackedBarPlot
@@ -12,6 +13,7 @@ from .stacked_bar_plot import StackedBarPlot
 
 __all__ = [
     "BarPlot",
+    "BoxPlot",
     "DualAxisBarDotPlot",
     "GroupedBarPlot",
     "HeatmapPlot",

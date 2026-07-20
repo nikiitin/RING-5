@@ -206,6 +206,7 @@ def test_public_registries_are_complete() -> None:
     ("plot_type", "config"),
     [
         ("bar", {"x": "x", "y": "y", "color": "group"}),
+        ("box", {"x": "x", "y": "y", "color": "group", "point_mode": "all"}),
         ("dual_axis_bar_dot", {"x": "x", "y_bar": "y", "y_dot": "z"}),
         ("grouped_bar", {"x": "x", "y": "y", "group": "group"}),
         ("grouped_stacked_bar", {"x": "x", "y_columns": ["y", "z"], "group": "group"}),

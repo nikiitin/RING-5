@@ -11,6 +11,7 @@ from ring5.errors import ColumnNotFoundError, DataValidationError
 
 _REQUIRED_SINGLE: dict[str, tuple[str, ...]] = {
     "bar": ("x", "y"),
+    "box": ("x", "y"),
     "dual_axis_bar_dot": ("x", "y_bar", "y_dot"),
     "grouped_bar": ("x", "y"),
     "grouped_stacked_bar": ("x",),
@@ -29,6 +30,7 @@ _REQUIRED_LIST: dict[str, tuple[str, ...]] = {
 
 _OPTIONAL_SINGLE: dict[str, tuple[str, ...]] = {
     "bar": ("color",),
+    "box": ("color",),
     "dual_axis_bar_dot": ("color",),
     "grouped_bar": ("group",),
     "grouped_stacked_bar": ("group",),

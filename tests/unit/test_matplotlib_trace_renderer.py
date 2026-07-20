@@ -13,6 +13,7 @@ import pytest
 
 from src.core.models.visualization.trace_config import (
     BarTraceConfig,
+    BoxTraceConfig,
     HeatmapTraceConfig,
     HistogramTraceConfig,
     LineTraceConfig,
@@ -52,6 +53,51 @@ class TestRender:
         trace = BarTraceConfig(name="s1", x=["a", "b"], y=[1, 2])
         count = MatplotlibTraceRenderer.render([trace], ax)
         assert count.trace_count == 1
+
+    def test_vertical_and_horizontal_boxes_use_precomputed_statistics(
+        self, ax: matplotlib.axes.Axes
+    ) -> None:
+        # [test->req~ring5.plot.box~1]
+        vertical = BoxTraceConfig(
+            name="A",
+            category="A",
+            values=[1.0, 2.0, 10.0],
+            q1=1.5,
+            median=2.0,
+            q3=3.0,
+            lower_whisker=1.0,
+            upper_whisker=3.0,
+            outliers=[10.0],
+            point_mode="outliers",
+            show_mean=True,
+        )
+        result = MatplotlibTraceRenderer.render([vertical], ax)
+        assert result.trace_count == 1
+        assert [tick.get_text() for tick in ax.get_xticklabels()] == ["A"]
+        assert ax.collections
+
+        fig, horizontal_ax = plt.subplots()
+        try:
+            horizontal = BoxTraceConfig(
+                name="B",
+                category="B",
+                values=[2.0, 3.0],
+                q1=2.25,
+                median=2.5,
+                q3=2.75,
+                lower_whisker=2.0,
+                upper_whisker=3.0,
+                orientation="horizontal",
+                point_mode="all",
+                notched=True,
+                notch_lower=2.2,
+                notch_upper=2.8,
+            )
+            horizontal_result = MatplotlibTraceRenderer.render([horizontal], horizontal_ax)
+            assert horizontal_result.trace_count == 1
+            assert [tick.get_text() for tick in horizontal_ax.get_yticklabels()] == ["B"]
+        finally:
+            plt.close(fig)
 
     def test_single_line(self, ax: matplotlib.axes.Axes) -> None:
         trace = LineTraceConfig(name="l1", x=[0, 1], y=[1, 2])

@@ -35,7 +35,7 @@ class TraceConfig:
     """
 
     name: str = ""
-    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap"] = "bar"
+    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap", "box"] = "bar"
     x: list[str | int | float] = field(default_factory=list)
     y: list[int | float] = field(default_factory=list)
     yaxis: Literal["y", "y2"] = "y"
@@ -55,7 +55,7 @@ class BarTraceConfig(TraceConfig):
     place bars directly without reimplementing grouping logic.
     """
 
-    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap"] = "bar"
+    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap", "box"] = "bar"
 
     # Bar positioning (pre-computed)
     x_positions: list[float] = field(default_factory=list)  # center of each bar
@@ -79,7 +79,7 @@ class BarTraceConfig(TraceConfig):
 class LineTraceConfig(TraceConfig):
     """Line-specific trace parameters."""
 
-    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap"] = "line"
+    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap", "box"] = "line"
 
     line_width: float = 2.0
     line_dash: Literal["solid", "dash", "dot", "dashdot", "longdash"] = "solid"
@@ -96,7 +96,7 @@ class LineTraceConfig(TraceConfig):
 class ScatterTraceConfig(TraceConfig):
     """Scatter-specific trace parameters."""
 
-    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap"] = "scatter"
+    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap", "box"] = "scatter"
 
     marker_symbol: str = "circle"
     marker_size: int = 8
@@ -119,7 +119,7 @@ class HistogramTraceConfig(TraceConfig):
     the binning should be done by the rendering engine.
     """
 
-    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap"] = "histogram"
+    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap", "box"] = "histogram"
 
     nbins: int = 20
     normalization: Literal["", "percent", "probability", "density"] = ""
@@ -134,7 +134,7 @@ class HeatmapTraceConfig(TraceConfig):
     column and row labels respectively.
     """
 
-    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap"] = "heatmap"
+    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap", "box"] = "heatmap"
 
     # Heatmap-specific label fields (base x/y are unused)
     col_labels: list[str] = field(default_factory=list)  # column (x-axis) labels
@@ -148,3 +148,33 @@ class HeatmapTraceConfig(TraceConfig):
     text_color: str = "#000000"
     totals_position: str = ""  # "", "right", or "top"
     totals_count: int = 0  # number of totals rows/columns (0 or 1)
+
+
+@dataclass
+class BoxTraceConfig(TraceConfig):
+    # [impl->req~ring5.plot.box~1]
+    """Precomputed distribution summary shared by both rendering engines."""
+
+    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap", "box"] = "box"
+    values: list[float] = field(default_factory=list)
+    category: str = ""
+    orientation: Literal["vertical", "horizontal"] = "vertical"
+    quartile_method: Literal["linear", "inclusive", "exclusive"] = "linear"
+    q1: float = 0.0
+    median: float = 0.0
+    q3: float = 0.0
+    notch_lower: float = 0.0
+    notch_upper: float = 0.0
+    lower_whisker: float = 0.0
+    upper_whisker: float = 0.0
+    mean: float = 0.0
+    outliers: list[float] = field(default_factory=list)
+    point_mode: Literal["outliers", "all", "none"] = "outliers"
+    jitter: float = 0.25
+    point_position: float = 0.0
+    position: float = 0.0
+    category_position: int = 0
+    box_width: float = 0.6
+    whisker_cap_width: float = 0.5
+    notched: bool = False
+    show_mean: bool = False

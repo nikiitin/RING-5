@@ -165,6 +165,20 @@ class PlotDisplayConfig(TypedDict, total=False):
     bargroupgap: float  # Spacing between groups
     bar_border_width: float  # Border width for stacked segments
 
+    # Box-specific
+    orientation: str
+    quartile_method: str
+    whisker_mode: str
+    whisker_multiplier: float
+    whisker_percentiles: list[float]
+    point_mode: str
+    jitter: float
+    point_position: float
+    box_width: float
+    whisker_cap_width: float
+    notched: bool
+    show_mean: bool
+
     # Export
     download_format: str  # "html", "png", "pdf", "svg"
     export_scale: int  # 1, 2, or 3

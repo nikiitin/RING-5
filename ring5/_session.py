@@ -55,6 +55,7 @@ from ring5._plot_validation import validate_plot_config
 
 PlotType = Literal[
     "bar",
+    "box",
     "dual_axis_bar_dot",
     "grouped_bar",
     "grouped_stacked_bar",

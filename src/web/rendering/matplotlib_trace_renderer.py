@@ -3,7 +3,7 @@ Matplotlib trace renderer — draws ``TraceConfig`` instances on matplotlib axes
 
 This module is the **engine-agnostic** trace renderer for the matplotlib
 connector.  It reads from ``TraceConfig`` sub-classes (``BarTraceConfig``,
-``LineTraceConfig``, ``ScatterTraceConfig``, ``HistogramTraceConfig``,
+``BoxTraceConfig``, ``LineTraceConfig``, ``ScatterTraceConfig``, ``HistogramTraceConfig``,
 ``HeatmapTraceConfig``) and draws the equivalent matplotlib artists.
 
 **No Plotly dependency** — this module does not import or reference
@@ -28,6 +28,7 @@ from matplotlib.axes import Axes
 
 from src.core.models.visualization.trace_config import (
     BarTraceConfig,
+    BoxTraceConfig,
     HeatmapTraceConfig,
     HistogramTraceConfig,
     LineTraceConfig,
@@ -97,6 +98,8 @@ class MatplotlibTraceRenderer:
 
         result = MatplotlibRenderResult()
         categorical_labels: list[str] = []
+        vertical_box_ticks: dict[int, str] = {}
+        horizontal_box_ticks: dict[int, str] = {}
 
         for idx, trace in enumerate(traces):
             is_secondary = trace.yaxis == "y2"
@@ -121,6 +124,15 @@ class MatplotlibTraceRenderer:
                         bargap=bargap,
                         bargroupgap=bargroupgap,
                         bar_border_width=bar_border_width,
+                    )
+                    result.trace_count += 1
+                elif isinstance(trace, BoxTraceConfig):
+                    MatplotlibTraceRenderer._draw_box(
+                        trace,
+                        target,
+                        vertical_box_ticks,
+                        horizontal_box_ticks,
+                        override_color=override_color,
                     )
                     result.trace_count += 1
                 elif isinstance(trace, LineTraceConfig):
@@ -160,6 +172,13 @@ class MatplotlibTraceRenderer:
                     )
             except Exception:
                 logger.exception("Failed to render trace %s", trace.name)
+
+        if vertical_box_ticks:
+            positions = sorted(vertical_box_ticks)
+            ax.set_xticks(positions, [vertical_box_ticks[position] for position in positions])
+        if horizontal_box_ticks:
+            positions = sorted(horizontal_box_ticks)
+            ax.set_yticks(positions, [horizontal_box_ticks[position] for position in positions])
 
         return result
 
@@ -227,6 +246,67 @@ class MatplotlibTraceRenderer:
             if not categorical_labels:
                 categorical_labels.extend(str(v) for v in spec.x)
             ax.xaxis.set_ticklabels(categorical_labels)
+
+    # line
+
+    @staticmethod
+    def _draw_box(
+        spec: BoxTraceConfig,
+        ax: Axes,
+        vertical_ticks: dict[int, str],
+        horizontal_ticks: dict[int, str],
+        override_color: str | None = None,
+    ) -> None:
+        # [impl->req~ring5.plot.box~1]
+        """Draw one precomputed distribution with deterministic point jitter."""
+        color = spec.color or override_color or "#4472C4"
+        stats: dict[str, Any] = {
+            "label": spec.name,
+            "med": spec.median,
+            "q1": spec.q1,
+            "q3": spec.q3,
+            "whislo": spec.lower_whisker,
+            "whishi": spec.upper_whisker,
+            "fliers": [],
+            "mean": spec.mean,
+            "cilo": spec.notch_lower,
+            "cihi": spec.notch_upper,
+        }
+        label = spec.name if spec.show_in_legend else "_nolegend_"
+        ax.bxp(
+            [stats],
+            positions=[spec.position],
+            widths=[spec.box_width],
+            orientation=spec.orientation,
+            patch_artist=True,
+            shownotches=spec.notched,
+            showmeans=spec.show_mean,
+            showfliers=False,
+            capwidths=[spec.box_width * spec.whisker_cap_width],
+            label=label,
+            boxprops={"facecolor": color, "edgecolor": color, "alpha": spec.opacity},
+            medianprops={"color": "black"},
+            whiskerprops={"color": color},
+            capprops={"color": color},
+            meanprops={"markerfacecolor": "white", "markeredgecolor": color},
+        )
+        points = spec.values if spec.point_mode == "all" else spec.outliers
+        if spec.point_mode != "none" and points:
+            center = spec.position + spec.point_position * spec.box_width
+            spread = (
+                np.linspace(-spec.jitter, spec.jitter, len(points)) * spec.box_width
+                if len(points) > 1
+                else np.array([0.0])
+            )
+            point_positions = center + spread
+            if spec.orientation == "vertical":
+                ax.scatter(point_positions, points, color=color, s=16, alpha=spec.opacity)
+            else:
+                ax.scatter(points, point_positions, color=color, s=16, alpha=spec.opacity)
+        if spec.orientation == "vertical":
+            vertical_ticks[spec.category_position] = spec.category
+        else:
+            horizontal_ticks[spec.category_position] = spec.category
 
     # line
     @staticmethod

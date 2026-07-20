@@ -1576,7 +1576,7 @@ Tags: bar, plots, stacked, status_approved
 ### Box plot
 
 `req~ring5.plot.box~1`
-Status: proposed
+Status: approved
 
 The plot registry shall provide box plots with grouping, orientation, quartile, whisker, outlier, and per-series styling controls.
 
@@ -1585,7 +1585,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: distribution, plots, status_proposed, visualization
+Tags: distribution, plots, status_approved, visualization
 
 ### Violin plot
 

@@ -20,6 +20,7 @@ from tests.visual.pages.base_page import BasePage
 # Available plot types (selectbox options — raw factory keys)
 PLOT_TYPES: tuple[str, ...] = (
     "bar",
+    "box",
     "dual_axis_bar_dot",
     "grouped_bar",
     "stacked_bar",

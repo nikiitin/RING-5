@@ -76,6 +76,7 @@ class TraceBuildResult:
         rule_lines: Engine-agnostic horizontal span rules (category super-groups).
         shaded_regions: Engine-agnostic alternating-category background bands.
         barmode: Bar grouping mode (``"group"``, ``"stack"``, etc.).
+        boxmode: Box grouping mode (``"group"`` or ``"overlay"``).
         custom_x_ticks: Optional override for x-axis tick values/labels.
             Expected keys: ``"vals"`` (``List[float]``), ``"text"``
             (``List[str]``).
@@ -89,5 +90,6 @@ class TraceBuildResult:
     rule_lines: list[RuleLine] = field(default_factory=list)
     shaded_regions: list[ShadedRegion] = field(default_factory=list)
     barmode: str = "group"
+    boxmode: Literal["group", "overlay"] = "group"
     custom_x_ticks: dict[str, list[float] | list[str] | list[bool]] | None = None
     secondary_y: bool = False

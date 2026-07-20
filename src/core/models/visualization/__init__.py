@@ -50,6 +50,7 @@ from src.core.models.visualization.series_style_config import SeriesStyleConfig
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import (
     BarTraceConfig,
+    BoxTraceConfig,
     HistogramTraceConfig,
     LineTraceConfig,
     ScatterTraceConfig,
@@ -101,6 +102,7 @@ __all__ = [
     # Traces
     "TraceConfig",
     "BarTraceConfig",
+    "BoxTraceConfig",
     "LineTraceConfig",
     "ScatterTraceConfig",
     "HistogramTraceConfig",

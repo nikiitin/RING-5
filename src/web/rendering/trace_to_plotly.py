@@ -18,6 +18,7 @@ from src.core.models.visualization.annotation_config import AnnotationConfig
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import (
     BarTraceConfig,
+    BoxTraceConfig,
     HeatmapTraceConfig,
     HistogramTraceConfig,
     LineTraceConfig,
@@ -81,6 +82,8 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
 
     # Layout updates
     layout_updates: dict[str, Any] = {"barmode": result.barmode}
+    if any(isinstance(trace, BoxTraceConfig) for trace in traces_list):
+        layout_updates["boxmode"] = result.boxmode
 
     if result.custom_x_ticks:
         xaxis_update: dict[str, Any] = {
@@ -169,6 +172,8 @@ def _convert_trace(trace: TraceConfig) -> go.BaseTraceType:  # type: ignore[name
     result: Any
     if isinstance(trace, BarTraceConfig):
         result = _bar_trace(trace)
+    elif isinstance(trace, BoxTraceConfig):
+        result = _box_trace(trace)
     elif isinstance(trace, LineTraceConfig):
         result = _line_trace(trace)
     elif isinstance(trace, ScatterTraceConfig):
@@ -242,6 +247,38 @@ def _bar_trace(trace: BarTraceConfig) -> go.Bar:
             kwargs["hovertemplate"] = trace.custom_data["hovertemplate"]
 
     return go.Bar(**{k: v for k, v in kwargs.items() if v is not None})
+
+
+def _box_trace(trace: BoxTraceConfig) -> go.Box:
+    # [impl->req~ring5.plot.box~1]
+    """Convert a precomputed ``BoxTraceConfig`` to a Plotly box trace."""
+    vertical = trace.orientation == "vertical"
+    kwargs: dict[str, Any] = {
+        "x": [trace.category] * len(trace.values) if vertical else trace.values,
+        "y": trace.values if vertical else [trace.category] * len(trace.values),
+        "name": trace.name,
+        "orientation": "v" if vertical else "h",
+        "quartilemethod": trace.quartile_method,
+        "lowerfence": [trace.lower_whisker],
+        "upperfence": [trace.upper_whisker],
+        "boxpoints": False if trace.point_mode == "none" else trace.point_mode,
+        "jitter": trace.jitter,
+        "pointpos": trace.point_position,
+        "width": trace.box_width,
+        "whiskerwidth": trace.whisker_cap_width,
+        "notched": trace.notched,
+        "boxmean": trace.show_mean,
+        "opacity": trace.opacity,
+        "showlegend": trace.show_in_legend,
+        "visible": trace.visible,
+        "legendgroup": trace.legendgroup or trace.name,
+        "offsetgroup": trace.legendgroup or trace.name,
+    }
+    if trace.color:
+        kwargs["fillcolor"] = trace.color
+        kwargs["marker"] = {"color": trace.color}
+        kwargs["line"] = {"color": trace.color}
+    return go.Box(**kwargs)
 
 
 def _line_trace(trace: LineTraceConfig) -> go.Scatter:
