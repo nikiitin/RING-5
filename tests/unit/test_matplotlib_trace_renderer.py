@@ -18,6 +18,7 @@ from src.core.models.visualization.trace_config import (
     HistogramTraceConfig,
     LineTraceConfig,
     RadarTraceConfig,
+    SankeyTraceConfig,
     ScatterTraceConfig,
     TraceConfig,
     ViolinTraceConfig,
@@ -186,6 +187,31 @@ class TestRender:
         assert len(ax.patches) == 3
         assert len(ax.lines) == 2
         assert [text.get_text() for text in ax.texts] == trace.value_labels
+
+    def test_sankey_draws_weighted_links_positioned_nodes_and_labels(
+        self, ax: matplotlib.axes.Axes
+    ) -> None:
+        # [test->req~ring5.plot.sankey~1]
+        trace = SankeyTraceConfig(
+            name="Flow",
+            node_labels=["A", "B", "C"],
+            source_indices=[0, 0],
+            target_indices=[1, 2],
+            values=[3.0, 2.0],
+            link_labels=["first", "second"],
+            node_colors=["#111111", "#222222", "#333333"],
+            link_colors=["#111111", "#222222"],
+            node_x=[0.0, 1.0, 1.0],
+            node_y=[0.5, 0.3, 0.7],
+            show_link_labels=True,
+        )
+
+        result = MatplotlibTraceRenderer.render([trace], ax)
+
+        assert result.trace_count == 1
+        assert len(ax.patches) == 5
+        assert [text.get_text() for text in ax.texts] == ["first", "second", "A", "B", "C"]
+        assert not ax.axison
 
     def test_vertical_and_horizontal_violins_use_precomputed_density(
         self, ax: matplotlib.axes.Axes

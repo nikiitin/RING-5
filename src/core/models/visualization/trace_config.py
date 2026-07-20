@@ -25,6 +25,7 @@ TraceType = Literal[
     "violin",
     "radar",
     "waterfall",
+    "sankey",
 ]
 
 
@@ -263,3 +264,28 @@ class WaterfallTraceConfig(TraceConfig):
     bar_width: float = 0.7
     show_values: bool = True
     value_labels: list[str] = field(default_factory=list)
+
+
+@dataclass
+class SankeyTraceConfig(TraceConfig):
+    # [impl->req~ring5.plot.sankey~1]
+    """Validated nodes, links, labels, colors, and positions for a Sankey diagram."""
+
+    trace_type: TraceType = "sankey"
+    node_labels: list[str] = field(default_factory=list)
+    source_indices: list[int] = field(default_factory=list)
+    target_indices: list[int] = field(default_factory=list)
+    values: list[float] = field(default_factory=list)
+    link_labels: list[str] = field(default_factory=list)
+    node_colors: list[str] = field(default_factory=list)
+    link_colors: list[str] = field(default_factory=list)
+    node_x: list[float] = field(default_factory=list)
+    node_y: list[float] = field(default_factory=list)
+    arrangement: Literal["snap", "perpendicular", "freeform", "fixed"] = "snap"
+    node_pad: int = 15
+    node_thickness: int = 20
+    node_line_color: str = "#333333"
+    node_line_width: float = 0.5
+    link_opacity: float = 0.35
+    show_node_labels: bool = True
+    show_link_labels: bool = False

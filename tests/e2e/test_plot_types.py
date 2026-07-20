@@ -227,6 +227,21 @@ class TestPlotCreation:
             timeout=E2E_TIMEOUT
         )
 
+    # -- Sankey --------------------------------------------------------------
+
+    def test_13_create_sankey_plot(self, tier1_page: Page) -> None:
+        # [test->req~ring5.plot.sankey~1]
+        """Create a Sankey diagram and expose flow semantics and arrangement."""
+        mp = ManagePlotsPage(tier1_page)
+        _create_and_finalize(mp, "E2E Sankey", "sankey")
+        _trigger_render_fragment(mp)
+        expect(tier1_page.get_by_text("Flow labels and arrangement", exact=True)).to_be_visible(
+            timeout=E2E_TIMEOUT
+        )
+        mp.select_sankey_value("system.cpu.ipc")
+        mp.refresh_plot()
+        mp.assert_chart_visible(timeout=CHART_TIMEOUT)
+
 
 # Tier 2 -- Plot management controls
 

@@ -3747,11 +3747,29 @@
       "id": "plot.sankey",
       "group": "plot-types",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Sankey diagram",
       "description": "The plot registry shall provide Sankey diagrams with validated source, target, value, label, color, and arrangement controls.",
       "tags": ["flows", "plots", "visualization"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/models/visualization/trace_config.py::SankeyTraceConfig",
+          "src/web/pages/ui/plotting/types/sankey_plot.py::SankeyPlot.create_traces",
+          "src/web/components/plotting/config/sankey_config.py::render",
+          "src/web/rendering/trace_to_plotly.py::_sankey_trace",
+          "src/web/rendering/matplotlib_trace_renderer.py::MatplotlibTraceRenderer._draw_sankey"
+        ],
+        "tests": [
+          "tests/unit/test_sankey_plot.py::test_sankey_aggregates_links_resolves_labels_colors_and_layout_without_mutation",
+          "tests/unit/test_trace_to_plotly.py::TestSankeyTrace.test_sankey_preserves_nodes_links_positions_colors_and_arrangement",
+          "tests/unit/test_matplotlib_trace_renderer.py::TestRender.test_sankey_draws_weighted_links_positioned_nodes_and_labels",
+          "tests/integration/test_sankey_plot_public_api.py::test_public_sankey_renders_validated_labeled_flows_in_both_engines",
+          "tests/e2e/test_plot_types.py::TestPlotCreation.test_13_create_sankey_plot"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/sankey-diagrams.md#trace-flows-with-sankey-diagrams"
+        ]
+      }
     },
     {
       "id": "plot.parallel-coordinates",
@@ -4126,6 +4144,7 @@
       "histogram": "plot.histogram",
       "line": "plot.line",
       "radar": "plot.radar",
+      "sankey": "plot.sankey",
       "scatter": "plot.scatter",
       "stacked_bar": "plot.stacked-bar"
     },

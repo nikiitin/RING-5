@@ -23,6 +23,7 @@ from .types import (
     HistogramPlot,
     LinePlot,
     RadarPlot,
+    SankeyPlot,
     ScatterPlot,
     StackedBarPlot,
     ViolinPlot,
@@ -54,6 +55,7 @@ class PlotFactory:
         "histogram": HistogramPlot,
         "line": LinePlot,
         "radar": RadarPlot,
+        "sankey": SankeyPlot,
         "scatter": ScatterPlot,
         "violin": ViolinPlot,
         "waterfall": WaterfallPlot,
@@ -65,6 +67,11 @@ class PlotFactory:
         "box": {"display_name": "Box Plot", "icon": "inventory_2", "category": "distribution"},
         "line": {"display_name": "Line Chart", "icon": "show_chart", "category": "basic"},
         "radar": {"display_name": "Radar Chart", "icon": "radar", "category": "comparison"},
+        "sankey": {
+            "display_name": "Sankey Diagram",
+            "icon": "account_tree",
+            "category": "comparison",
+        },
         "scatter": {"display_name": "Scatter Plot", "icon": "scatter_plot", "category": "basic"},
         "grouped_bar": {
             "display_name": "Grouped Bar",

@@ -23,6 +23,7 @@ from src.core.models.visualization.trace_config import (
     HistogramTraceConfig,
     LineTraceConfig,
     RadarTraceConfig,
+    SankeyTraceConfig,
     ScatterTraceConfig,
     TraceConfig,
     ViolinTraceConfig,
@@ -195,6 +196,8 @@ def _convert_trace(trace: TraceConfig) -> go.BaseTraceType:  # type: ignore[name
         result = _radar_trace(trace)
     elif isinstance(trace, WaterfallTraceConfig):
         result = _waterfall_trace(trace)
+    elif isinstance(trace, SankeyTraceConfig):
+        result = _sankey_trace(trace)
     elif isinstance(trace, LineTraceConfig):
         result = _line_trace(trace)
     elif isinstance(trace, ScatterTraceConfig):
@@ -380,6 +383,44 @@ def _waterfall_trace(trace: WaterfallTraceConfig) -> go.Waterfall:
         totals={"marker": {"color": trace.total_color}},
         text=trace.value_labels if trace.show_values else None,
         textposition="outside" if trace.show_values else None,
+    )
+
+
+def _with_opacity(color: str, opacity: float) -> str:
+    """Bake opacity into palette hex colors for Plotly Sankey links."""
+    if len(color) == 7 and color.startswith("#"):
+        try:
+            red, green, blue = (int(color[index : index + 2], 16) for index in (1, 3, 5))
+        except ValueError:
+            return color
+        return f"rgba({red},{green},{blue},{opacity:.3f})"
+    return color
+
+
+def _sankey_trace(trace: SankeyTraceConfig) -> go.Sankey:
+    # [impl->req~ring5.plot.sankey~1]
+    """Convert validated nodes and weighted links to a native Plotly Sankey trace."""
+    return go.Sankey(
+        name=trace.name,
+        arrangement=trace.arrangement,
+        orientation="h",
+        visible=trace.visible,
+        node={
+            "label": trace.node_labels if trace.show_node_labels else [""] * len(trace.node_labels),
+            "color": trace.node_colors,
+            "x": trace.node_x,
+            "y": trace.node_y,
+            "pad": trace.node_pad,
+            "thickness": trace.node_thickness,
+            "line": {"color": trace.node_line_color, "width": trace.node_line_width},
+        },
+        link={
+            "source": trace.source_indices,
+            "target": trace.target_indices,
+            "value": trace.values,
+            "label": trace.link_labels if trace.show_link_labels else [""] * len(trace.values),
+            "color": [_with_opacity(color, trace.link_opacity) for color in trace.link_colors],
+        },
     )
 
 

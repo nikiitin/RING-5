@@ -31,6 +31,7 @@ PLOT_TYPES: tuple[str, ...] = (
     "histogram",
     "line",
     "radar",
+    "sankey",
     "scatter",
     "violin",
     "waterfall",
@@ -309,6 +310,11 @@ class ManagePlotsPage(BasePage):
     def viz_y_axis_selectbox(self) -> Locator:
         """'Y-axis' selectbox."""
         return self._by_label("stSelectbox", "Y-axis")
+
+    @property
+    def sankey_value_selectbox(self) -> Locator:
+        """'Flow value' selectbox for Sankey diagrams."""
+        return self._by_label("stSelectbox", "Flow value")
 
     @property
     def viz_y_bar_selectbox(self) -> Locator:
@@ -687,6 +693,10 @@ class ManagePlotsPage(BasePage):
     def select_y_axis(self, column: str) -> None:
         """Select a column for the Y-axis."""
         self._open_and_select(self.viz_y_axis_selectbox, column)
+
+    def select_sankey_value(self, column: str) -> None:
+        """Select the positive numeric flow value for a Sankey diagram."""
+        self._open_and_select(self.sankey_value_selectbox, column)
 
     def open_layout_settings(self) -> None:
         """Open the Layout settings section when it is not already active."""

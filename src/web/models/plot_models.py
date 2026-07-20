@@ -227,6 +227,25 @@ class PlotDisplayConfig(TypedDict, total=False):
     waterfall_show_values: bool
     waterfall_number_format: str
 
+    # Sankey-specific
+    sankey_source: str
+    sankey_target: str
+    sankey_value: str
+    sankey_label: str | None
+    sankey_node_labels: dict[str, str]
+    sankey_label_mode: str
+    sankey_show_link_labels: bool
+    sankey_number_format: str
+    sankey_arrangement: str
+    sankey_node_positions: dict[str, list[float]]
+    sankey_node_pad: int
+    sankey_node_thickness: int
+    sankey_color_mode: str
+    sankey_link_color: str
+    sankey_link_opacity: float
+    sankey_node_line_color: str
+    sankey_node_line_width: float
+
     # Export
     download_format: str  # "html", "png", "pdf", "svg"
     export_scale: int  # 1, 2, or 3

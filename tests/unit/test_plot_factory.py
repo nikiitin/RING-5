@@ -17,6 +17,7 @@ EXPECTED_PLOT_TYPES = {
     "histogram",
     "line",
     "radar",
+    "sankey",
     "scatter",
     "violin",
     "waterfall",
@@ -33,7 +34,7 @@ class TestPlotFactoryRegistration:
     def test_all_plot_types_registered(self) -> None:
         """Every built-in plot type is registered in the factory."""
         available = PlotFactory.get_available_plot_types()
-        assert len(available) == 15
+        assert len(available) == 16
         assert set(available) == EXPECTED_PLOT_TYPES
 
     def test_register_plot_type_rejects_non_baseplot_class(self) -> None:
@@ -61,7 +62,7 @@ class TestPlotFactoryMetadata:
         """get_plot_metadata returns a dict with correct structure."""
         metadata = PlotFactory.get_plot_metadata()
         assert isinstance(metadata, dict)
-        assert len(metadata) == 15
+        assert len(metadata) == 16
 
     def test_each_metadata_entry_has_required_keys(self) -> None:
         """Each metadata entry contains display_name, icon, and category."""

@@ -218,6 +218,10 @@ def test_public_registries_are_complete() -> None:
         ("histogram", {"histogram_variable": "latency", "group_by": "group"}),
         ("line", {"x": "x", "y": "y", "color": "group"}),
         ("radar", {"x": "x", "y": "y", "color": "group", "radar_fill": True}),
+        (
+            "sankey",
+            {"sankey_source": "x", "sankey_target": "group", "sankey_value": "y"},
+        ),
         ("scatter", {"x": "x", "y": "y", "color": "group"}),
         ("stacked_bar", {"x": "x", "y_columns": ["y", "z"]}),
     ],

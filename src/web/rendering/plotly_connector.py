@@ -504,7 +504,7 @@ class FigureSpecToPlotly:
 
             # Heatmaps do not support marker-based coloring. Waterfalls encode
             # meaning through their increasing/decreasing/totals markers.
-            if trace_type in ("heatmap", "waterfall"):
+            if trace_type in ("heatmap", "waterfall", "sankey"):
                 continue
 
             # Skip traces that already have an explicit marker color
@@ -584,7 +584,7 @@ class FigureSpecToPlotly:
         for trace in _fig_traces(fig):
             # Heatmap traces don't support textposition/texttemplate —
             # their cell labels are handled separately via annotations.
-            if isinstance(trace, (go.Heatmap, go.Box, go.Violin)):
+            if isinstance(trace, (go.Heatmap, go.Box, go.Violin, go.Sankey)):
                 continue
 
             update: dict[str, Any] = {
@@ -631,7 +631,7 @@ class FigureSpecToPlotly:
             style = spec.series_styles[i % len(spec.series_styles)]
 
             update: dict[str, Any] = {}
-            if style.opacity > 0:
+            if style.opacity > 0 and not isinstance(trace, go.Sankey):
                 update["opacity"] = style.opacity
             if style.line_width > 0:
                 if hasattr(trace, "line"):
@@ -807,7 +807,7 @@ class FigureSpecToPlotly:
             if style.display_name:
                 trace.name = style.display_name
 
-            if style.color and trace_type not in ("heatmap", "waterfall"):
+            if style.color and trace_type not in ("heatmap", "waterfall", "sankey"):
                 trace.update(marker=dict(color=style.color))
                 if hasattr(trace, "line") and trace_type in (
                     "scatter",
@@ -818,10 +818,10 @@ class FigureSpecToPlotly:
                 elif trace_type in ("box", "violin"):
                     trace.update(fillcolor=style.color, line=dict(color=style.color))
 
-            if style.symbol and trace_type not in ("heatmap", "waterfall"):
+            if style.symbol and trace_type not in ("heatmap", "waterfall", "sankey"):
                 trace.update(marker=dict(symbol=style.symbol))
 
-            if style.marker_size > 0 and trace_type not in ("heatmap", "waterfall"):
+            if style.marker_size > 0 and trace_type not in ("heatmap", "waterfall", "sankey"):
                 trace.update(marker=dict(size=style.marker_size))
 
             if style.line_width > 0 and trace_type in (

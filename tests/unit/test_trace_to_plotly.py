@@ -14,6 +14,7 @@ from src.core.models.visualization.trace_config import (
     HistogramTraceConfig,
     LineTraceConfig,
     RadarTraceConfig,
+    SankeyTraceConfig,
     ScatterTraceConfig,
     TraceConfig,
     ViolinTraceConfig,
@@ -28,6 +29,7 @@ from src.web.rendering.trace_to_plotly import (
     _histogram_trace,
     _line_trace,
     _radar_trace,
+    _sankey_trace,
     _scatter_trace,
     traces_to_plotly,
     _violin_trace,
@@ -331,6 +333,42 @@ class TestWaterfallTrace:
         assert cast(Any, result.decreasing).marker.color == "#aa0000"
         assert cast(Any, result.totals).marker.color == "#0000aa"
         assert list(cast(Any, result.text)) == trace.value_labels
+
+
+class TestSankeyTrace:
+    """Tests for native Plotly Sankey conversion."""
+
+    def test_sankey_preserves_nodes_links_positions_colors_and_arrangement(self) -> None:
+        # [test->req~ring5.plot.sankey~1]
+        trace = SankeyTraceConfig(
+            name="Flow",
+            node_labels=["A", "B", "C"],
+            source_indices=[0, 0],
+            target_indices=[1, 2],
+            values=[3.0, 2.0],
+            link_labels=["first", "second"],
+            node_colors=["#111111", "#222222", "#333333"],
+            link_colors=["#111111", "#222222"],
+            node_x=[0.0, 1.0, 1.0],
+            node_y=[0.5, 0.3, 0.7],
+            arrangement="fixed",
+            link_opacity=0.4,
+            show_link_labels=True,
+        )
+
+        result = _sankey_trace(trace)
+
+        assert isinstance(result, go.Sankey)
+        assert result.arrangement == "fixed"
+        assert list(cast(Any, result.node.label)) == trace.node_labels
+        assert list(cast(Any, result.node.x)) == trace.node_x
+        assert list(cast(Any, result.link.source)) == trace.source_indices
+        assert list(cast(Any, result.link.value)) == trace.values
+        assert list(cast(Any, result.link.label)) == trace.link_labels
+        assert list(cast(Any, result.link.color)) == [
+            "rgba(17,17,17,0.400)",
+            "rgba(34,34,34,0.400)",
+        ]
 
     def test_scatter_trace_dispatch(self) -> None:
         trace = ScatterTraceConfig(name="scatter", x=["a"], y=[1])

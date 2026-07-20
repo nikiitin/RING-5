@@ -21,6 +21,7 @@ _REQUIRED_SINGLE: dict[str, tuple[str, ...]] = {
     "histogram": ("histogram_variable",),
     "line": ("x", "y"),
     "radar": ("x", "y"),
+    "sankey": ("sankey_source", "sankey_target", "sankey_value"),
     "scatter": ("x", "y"),
     "stacked_bar": ("x",),
     "violin": ("x", "y"),
@@ -45,6 +46,7 @@ _OPTIONAL_SINGLE: dict[str, tuple[str, ...]] = {
     "histogram": ("group_by",),
     "line": ("color",),
     "radar": ("color",),
+    "sankey": ("sankey_label",),
     "scatter": ("color",),
     "violin": ("color",),
 }

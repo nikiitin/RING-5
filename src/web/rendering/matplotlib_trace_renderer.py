@@ -25,6 +25,8 @@ from typing import Any, Literal, cast
 
 import numpy as np
 from matplotlib.axes import Axes
+from matplotlib.patches import PathPatch, Rectangle
+from matplotlib.path import Path
 
 from src.core.models.visualization.trace_config import (
     BarTraceConfig,
@@ -33,6 +35,7 @@ from src.core.models.visualization.trace_config import (
     HistogramTraceConfig,
     LineTraceConfig,
     RadarTraceConfig,
+    SankeyTraceConfig,
     ScatterTraceConfig,
     TraceConfig,
     ViolinTraceConfig,
@@ -167,6 +170,9 @@ class MatplotlibTraceRenderer:
                         target,
                         override_color=override_color,
                     )
+                    result.trace_count += 1
+                elif isinstance(trace, SankeyTraceConfig):
+                    MatplotlibTraceRenderer._draw_sankey(trace, target)
                     result.trace_count += 1
                 elif isinstance(trace, ScatterTraceConfig):
                     MatplotlibTraceRenderer._draw_scatter(
@@ -601,6 +607,89 @@ class MatplotlibTraceRenderer:
                     linewidth=spec.connector_width,
                 )
         ax.set_xticks(positions, spec.categories)
+
+    @staticmethod
+    def _draw_sankey(spec: SankeyTraceConfig, ax: Axes) -> None:
+        # [impl->req~ring5.plot.sankey~1]
+        """Draw weighted Bézier links and positioned nodes from one shared layout."""
+        if not spec.node_labels:
+            return
+        maximum = max(spec.values, default=1.0)
+        node_width = max(0.02, min(0.09, spec.node_thickness / 300.0))
+        layer_counts: dict[float, int] = {}
+        for x_position in spec.node_x:
+            layer_counts[x_position] = layer_counts.get(x_position, 0) + 1
+        node_heights = [
+            min(0.16, max(0.04, 0.7 / layer_counts.get(x_position, 1)))
+            for x_position in spec.node_x
+        ]
+
+        for index, (source, target, value) in enumerate(
+            zip(spec.source_indices, spec.target_indices, spec.values)
+        ):
+            source_x = spec.node_x[source] + node_width / 2
+            target_x = spec.node_x[target] - node_width / 2
+            source_y = spec.node_y[source]
+            target_y = spec.node_y[target]
+            distance = target_x - source_x
+            vertices = [
+                (source_x, source_y),
+                (source_x + distance * 0.45, source_y),
+                (target_x - distance * 0.45, target_y),
+                (target_x, target_y),
+            ]
+            path = Path(vertices, [Path.MOVETO, Path.CURVE4, Path.CURVE4, Path.CURVE4])
+            color = spec.link_colors[index] if index < len(spec.link_colors) else "#7f7f7f"
+            ax.add_patch(
+                PathPatch(
+                    path,
+                    facecolor="none",
+                    edgecolor=color,
+                    linewidth=1.0 + 18.0 * value / maximum,
+                    alpha=spec.link_opacity,
+                    capstyle="butt",
+                    zorder=1,
+                )
+            )
+            if spec.show_link_labels and index < len(spec.link_labels) and spec.link_labels[index]:
+                ax.text(
+                    (source_x + target_x) / 2,
+                    (source_y + target_y) / 2,
+                    spec.link_labels[index],
+                    ha="center",
+                    va="center",
+                    zorder=3,
+                )
+
+        for index, label in enumerate(spec.node_labels):
+            x_position, y_position = spec.node_x[index], spec.node_y[index]
+            height = node_heights[index]
+            color = spec.node_colors[index] if index < len(spec.node_colors) else "#4c78a8"
+            ax.add_patch(
+                Rectangle(
+                    (x_position - node_width / 2, y_position - height / 2),
+                    node_width,
+                    height,
+                    facecolor=color,
+                    edgecolor=spec.node_line_color,
+                    linewidth=spec.node_line_width,
+                    alpha=spec.opacity,
+                    zorder=2,
+                )
+            )
+            if spec.show_node_labels and label:
+                on_right = x_position >= 0.85
+                ax.text(
+                    x_position + (-node_width if on_right else node_width),
+                    y_position,
+                    label,
+                    ha="right" if on_right else "left",
+                    va="center",
+                    zorder=3,
+                )
+        ax.set_xlim(-0.12, 1.12)
+        ax.set_ylim(-0.05, 1.05)
+        ax.axis("off")
 
     # scatter
     @staticmethod

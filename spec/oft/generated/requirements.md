@@ -1660,7 +1660,7 @@ Tags: comparison, plots, status_approved, visualization
 ### Sankey diagram
 
 `req~ring5.plot.sankey~1`
-Status: proposed
+Status: approved
 
 The plot registry shall provide Sankey diagrams with validated source, target, value, label, color, and arrangement controls.
 
@@ -1669,7 +1669,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: flows, plots, status_proposed, visualization
+Tags: flows, plots, status_approved, visualization
 
 ### Parallel-coordinates plot
 

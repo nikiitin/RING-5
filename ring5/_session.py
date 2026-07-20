@@ -65,6 +65,7 @@ PlotType = Literal[
     "histogram",
     "line",
     "radar",
+    "sankey",
     "scatter",
     "stacked_bar",
     "violin",

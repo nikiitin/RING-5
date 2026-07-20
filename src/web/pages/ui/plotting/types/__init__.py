@@ -11,6 +11,7 @@ from .heatmap_plot import HeatmapPlot
 from .histogram_plot import HistogramPlot
 from .line_plot import LinePlot
 from .radar_plot import RadarPlot
+from .sankey_plot import SankeyPlot
 from .scatter_plot import ScatterPlot
 from .stacked_bar_plot import StackedBarPlot
 from .violin_plot import ViolinPlot
@@ -29,6 +30,7 @@ __all__ = [
     "HistogramPlot",
     "LinePlot",
     "RadarPlot",
+    "SankeyPlot",
     "ScatterPlot",
     "ViolinPlot",
     "WaterfallPlot",
