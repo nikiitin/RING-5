@@ -50,6 +50,7 @@ def small_inventory() -> dict[str, Any]:
                 "title": "Future behavior",
                 "description": "Still needs trace coverage.",
                 "tags": ["future"],
+                "implementation_branch": "006-workspace-future",
                 "evidence": {"implementation": [], "tests": [], "documentation": []},
             },
         ],
@@ -158,6 +159,21 @@ def test_status_views_expose_every_lifecycle_without_rewriting_oft_results(
     assert report.index("Requirement status views") < report.index('<main id="oft-native-report">')
     assert "native covered detail" in report
     assert "native uncovered detail" in report
+
+
+def test_future_requirement_card_exposes_its_implementation_branch(
+    native_oft_html: str,
+    small_inventory: dict[str, Any],
+) -> None:
+    """The human report keeps branch ownership beside its requirement."""
+    # [test->req~ring5.trace.branch-association~1]
+    report = enhance_oft_html(native_oft_html, small_inventory)
+
+    assert "Implementation branch <code>006-workspace-future</code>" in report
+    assert (
+        'data-search="workspace.future future behavior still needs trace coverage. future '
+        '006-workspace-future"' in report
+    )
 
 
 def test_human_labels_are_html_escaped(

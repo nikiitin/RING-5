@@ -102,6 +102,25 @@ baseline; the other four remain future work until their evidence is reviewed and
 changed. These views filter inventory metadata in the human layer. They do not alter OFT's native
 requirements, artifacts, links, or green/red coverage results.
 
+## Implementation branches
+
+<!--
+`uman~ring5.trace.branch-association.documentation~1`
+
+Covers:
+- req~ring5.trace.branch-association~1
+
+-->
+
+Every future requirement records an `implementation_branch` in `inventory.json`. The value is
+required for `proposed`, `draft`, `in-development`, and `blocked` items and may be retained after
+approval. It is catalog metadata, not the name of the branch currently checked out, so generation
+and review remain deterministic after branches are merged or removed.
+
+The generated requirement Markdown places the branch beside the normative statement. The summary
+lists future requirements by branch, and the HTML card displays and searches the same association.
+`oft-check` rejects missing or unsafe branch names before generating either view.
+
 ## Recording a feature
 
 Add one object to `features` in `inventory.json`:
@@ -112,6 +131,7 @@ Add one object to `features` in `inventory.json`:
 - Use `draft`, `proposed`, `in-development`, or `blocked` for future behavior.
   Evidence lists may be empty,
   so `make oft-trace-all` reports exactly which coverage remains missing.
+- Record the future item's dedicated `implementation_branch`.
 - Increment the revision when the behavior changes semantically. Spelling or
   formatting corrections do not require a revision bump.
 - Bind registry-backed behavior in `discovery_bindings` when applicable.

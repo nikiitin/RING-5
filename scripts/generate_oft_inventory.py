@@ -42,6 +42,7 @@ HTML_REPORT_FILENAME = "report.html"
 ALLOWED_STATUSES = frozenset(view.key for view in requirement_status_views())
 ID_PATTERN = re.compile(r"^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$")
 TAG_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")
+BRANCH_PATTERN = re.compile(r"^[a-z0-9][a-z0-9._/-]*$")
 
 
 class InventoryError(ValueError):
@@ -321,6 +322,17 @@ def _validate_evidence(
             errors.append(f"{label} references missing file {reference!r}")
 
 
+def _valid_branch_name(value: object) -> bool:
+    """Return whether a stored implementation branch is safe and reviewable."""
+    return (
+        isinstance(value, str)
+        and BRANCH_PATTERN.fullmatch(value) is not None
+        and ".." not in value
+        and "//" not in value
+        and not value.endswith(("/", ".", ".lock"))
+    )
+
+
 def validate_inventory(
     inventory: Mapping[str, Any],
     *,
@@ -341,6 +353,7 @@ def validate_inventory(
     # [impl->req~ring5.trace.discovery-convergence~1]
     # [impl->req~ring5.trace.inventory-generator~1]
     # [impl->req~ring5.trace.registry-drift~1]
+    # [impl->req~ring5.trace.branch-association~1]
     errors: list[str] = []
     schema_version = inventory.get("schema_version")
     if schema_version != 2:
@@ -409,6 +422,11 @@ def validate_inventory(
         status = feature_raw.get("status")
         if status not in ALLOWED_STATUSES:
             errors.append(f"{label}.status must be one of {sorted(ALLOWED_STATUSES)}")
+        branch = feature_raw.get("implementation_branch")
+        if status != "approved" and branch is None:
+            errors.append(f"{label}.implementation_branch is required for future requirements")
+        elif branch is not None and not _valid_branch_name(branch):
+            errors.append(f"{label}.implementation_branch is invalid: {branch!r}")
         for field in ("title", "description"):
             if not isinstance(feature_raw.get(field), str) or not feature_raw[field].strip():
                 errors.append(f"{label}.{field} must be a non-empty string")
@@ -512,6 +530,7 @@ def render_inventory(inventory: Mapping[str, Any]) -> dict[str, str]:
     """
     # [impl->req~ring5.trace.inventory-generator~1]
     # [impl->req~ring5.trace.future-status-reporting~1]
+    # [impl->req~ring5.trace.branch-association~1]
     groups = cast(list[dict[str, Any]], inventory["groups"])
     features = cast(list[dict[str, Any]], inventory["features"])
     by_group: dict[str, list[dict[str, Any]]] = {group["id"]: [] for group in groups}
@@ -556,6 +575,7 @@ def render_inventory(inventory: Mapping[str, Any]) -> dict[str, str]:
     for group in groups:
         requirement_lines.extend([f"## {group['title']}", ""])
         for feature in by_group[group["id"]]:
+            branch = feature.get("implementation_branch")
             requirement_lines.extend(
                 [
                     f"### {feature['title']}",
@@ -565,6 +585,7 @@ def render_inventory(inventory: Mapping[str, Any]) -> dict[str, str]:
                     "",
                     feature["description"],
                     "",
+                    *([f"Implementation branch: {branch}", ""] if branch else []),
                     "Covers:",
                     f"- {_feature_id(group['id'])}",
                     "",
@@ -625,6 +646,17 @@ def render_inventory(inventory: Mapping[str, Any]) -> dict[str, str]:
             "## Drift-checked capability sources",
             "",
             *[f"- `{source}`: {len(values)}" for source, values in sorted(bindings.items())],
+            "",
+            "## Future requirements by implementation branch",
+            "",
+            "| Requirement | Status | Implementation branch |",
+            "| --- | --- | --- |",
+            *[
+                f"| `{feature['id']}` | {feature['status']} | "
+                f"`{feature['implementation_branch']}` |"
+                for feature in features
+                if feature["status"] != "approved"
+            ],
             "",
             "<!-- oft:on -->",
         ]

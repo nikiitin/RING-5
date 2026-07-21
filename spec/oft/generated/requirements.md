@@ -2993,6 +2993,8 @@ Status: proposed
 
 The feature catalog shall retain reviewable requirement revisions and distinguish semantic changes from evidence-only updates.
 
+Implementation branch: 006-oft-requirement-history
+
 Covers:
 - feat~ring5.traceability~1
 
@@ -3003,16 +3005,18 @@ Tags: history, openfasttrace, requirements, status_proposed
 ### Requirement branch association
 
 `req~ring5.trace.branch-association~1`
-Status: proposed
+Status: approved
 
 Future requirements shall record their implementation branch and expose that association in generated summaries and HTML reports.
+
+Implementation branch: 006-oft-branch-association
 
 Covers:
 - feat~ring5.traceability~1
 
 Needs: impl, test, uman
 
-Tags: branches, openfasttrace, requirements, status_proposed
+Tags: branches, openfasttrace, requirements, status_approved
 
 ### Requirement diff
 
@@ -3020,6 +3024,8 @@ Tags: branches, openfasttrace, requirements, status_proposed
 Status: proposed
 
 The trace tooling shall compare the current catalog and evidence graph with another Git revision and report added, removed, changed, covered, and uncovered requirements.
+
+Implementation branch: 006-oft-requirement-diff
 
 Covers:
 - feat~ring5.traceability~1
@@ -3035,6 +3041,8 @@ Status: proposed
 
 The human report shall display specification, implementation, test, documentation, native trace, and execution readiness separately for every requirement.
 
+Implementation branch: 006-oft-readiness
+
 Covers:
 - feat~ring5.traceability~1
 
@@ -3048,6 +3056,8 @@ Tags: openfasttrace, readiness, reporting, status_proposed
 Status: proposed
 
 The inventory validator shall reject promotion to approved unless all required exact evidence resolves and native OFT reports the requirement as covered.
+
+Implementation branch: 006-oft-approval-gate
 
 Covers:
 - feat~ring5.traceability~1

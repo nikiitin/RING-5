@@ -121,6 +121,7 @@ def test_proposed_requirement_can_expose_missing_coverage() -> None:
     future["id"] = "workspace.future-example"
     future["title"] = "Future example"
     future["status"] = "proposed"
+    future["implementation_branch"] = "006-future-example"
     future["evidence"] = {"implementation": [], "tests": [], "documentation": []}
     inventory["features"].append(future)
 
@@ -142,6 +143,7 @@ def test_all_requirement_lifecycle_statuses_are_valid_and_rendered() -> None:
         feature["id"] = f"workspace.status-example-{index}"
         feature["title"] = f"Status example {index}"
         feature["status"] = status
+        feature["implementation_branch"] = f"006-status-example-{index}"
         feature["evidence"] = {"implementation": [], "tests": [], "documentation": []}
         inventory["features"].append(feature)
 
@@ -153,6 +155,33 @@ def test_all_requirement_lifecycle_statuses_are_valid_and_rendered() -> None:
         assert f"status_{status.replace('-', '_')}" in rendered["requirements.md"]
     assert (
         "| Approved | Proposed | Draft | In development | Blocked | Total |"
+        in rendered["summary.md"]
+    )
+
+
+def test_future_requirement_needs_a_valid_implementation_branch() -> None:
+    """Future work cannot be cataloged without deterministic branch ownership."""
+    # [test->req~ring5.trace.branch-association~1]
+    inventory = deepcopy(load_inventory())
+    feature = next(item for item in inventory["features"] if item["status"] != "approved")
+    feature.pop("implementation_branch")
+
+    with pytest.raises(InventoryError, match="implementation_branch is required"):
+        validate_inventory(inventory, live_capabilities=discover_live_capabilities())
+
+    feature["implementation_branch"] = "invalid branch"
+    with pytest.raises(InventoryError, match="implementation_branch is invalid"):
+        validate_inventory(inventory, live_capabilities=discover_live_capabilities())
+
+
+def test_branch_associations_are_rendered_in_normative_and_summary_markdown() -> None:
+    """Generated reviewers can find each future requirement's implementation branch."""
+    # [test->req~ring5.trace.branch-association~1]
+    rendered = render_inventory(load_inventory())
+
+    assert "Implementation branch: 006-oft-requirement-history" in rendered["requirements.md"]
+    assert (
+        "| `trace.requirement-history` | proposed | `006-oft-requirement-history` |"
         in rendered["summary.md"]
     )
 

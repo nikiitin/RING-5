@@ -224,6 +224,7 @@ def _requirement_card(
     markers: Mapping[tuple[str, str, int, str], EvidenceMarker],
     native_targets: Mapping[tuple[str, str, int, str], str],
 ) -> str:
+    # [impl->req~ring5.trace.branch-association~1]
     feature_id = str(feature["id"])
     status = str(feature["status"])
     status_label = next(view.label for view in requirement_status_views() if view.key == status)
@@ -235,11 +236,18 @@ def _requirement_card(
             str(feature["title"]),
             str(feature["description"]),
             " ".join(cast(list[str], feature["tags"])),
+            str(feature.get("implementation_branch", "")),
         )
     ).lower()
     tags = "".join(f'<span class="human-tag">{_escape(tag)}</span>' for tag in feature["tags"])
     native_id = f"req~ring5.{feature_id}~{feature['revision']}"
     evidence_details = _evidence_details(feature, markers, native_targets)
+    branch = feature.get("implementation_branch")
+    branch_html = (
+        '<span class="human-branch">Implementation branch ' f"<code>{_escape(branch)}</code></span>"
+        if branch
+        else ""
+    )
     return f"""
 <article class="human-requirement" data-group="{_escape(feature['group'])}"
   data-status="{_escape(status)}" data-coverage="{coverage}"
@@ -254,7 +262,7 @@ def _requirement_card(
   <p>{_escape(feature['description'])}</p>
   {evidence_details}
   <div class="human-card-footer">
-    <div class="human-tags">{tags}</div>
+    <div><div class="human-tags">{tags}</div>{branch_html}</div>
     <a href="#{_escape(native_id)}">View canonical OFT trace ↓</a>
   </div>
 </article>
@@ -730,6 +738,8 @@ body { margin:0; color:var(--h-ink); background:var(--h-soft); line-height:1.5; 
 .status-blocked { color:var(--h-bad); background:var(--h-bad-soft); }
 .coverage-uncovered { color:var(--h-bad); background:var(--h-bad-soft); }
 .human-tag { color:#4f5968; background:#eef1f5; font-weight:600; }
+.human-branch { display:block; margin-top:.55rem; color:var(--h-muted); font-size:.8rem; }
+.human-branch code { color:#39277f; }
 .human-card-footer>a { font-size:.8rem; font-weight:750; }
 .human-evidence {
   margin:.9rem 0;
