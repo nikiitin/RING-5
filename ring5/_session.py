@@ -16,6 +16,9 @@ from src.core.application_api import ApplicationAPI
 from src.core.models import (
     AccessibilityReport,
     AnalysisReport,
+    AnalysisRecipe,
+    AnalysisRecipeInfo,
+    AnalysisRecipeRunResult,
     ColumnSemantics,
     DataQualityReport,
     DashboardSpec,
@@ -44,6 +47,11 @@ from src.core.models import (
     PlotTransferResult,
     PortfolioData,
     ReportFigure,
+    RecipeExport,
+    RecipeParameter,
+    RecipePlot,
+    RecipeScalar,
+    RecipeSource,
     SmallMultiplesSpec,
     RestoreReport,
     ScanResult,
@@ -66,6 +74,7 @@ from ring5.errors import (
     ParseError,
     PipelineError,
     PortfolioError,
+    RecipeError,
     ScanError,
 )
 from ring5.figure_spec import FigureSpec
@@ -452,6 +461,7 @@ class Session:
         sm = self.api.state_manager
         sm.set_stats_path(stats_path)
         sm.set_stats_pattern(pattern)
+        sm.set_parser_strategy(strategy)
         sm.set_parse_variables(
             cast(
                 list[ParseVariableConfig],
@@ -2546,9 +2556,344 @@ class Session:
         except (KeyError, TypeError, ValueError) as exc:
             raise PortfolioError(f"Portfolio '{name}' could not be restored: {exc}") from exc
 
+    # analysis recipes
+    def capture_analysis_recipe(
+        self,
+        name: str,
+        *,
+        description: str = "",
+        parameters: Sequence[RecipeParameter] = (),
+        source: RecipeSource | None = None,
+        transformations: Sequence[ShaperStepConfig] = (),
+        exports: Sequence[RecipeExport] = (),
+    ) -> AnalysisRecipe:
+        """Capture this session's source, plots, and pipelines as a recipe.
+
+        The active CSV path or parser provenance is used when ``source`` is
+        omitted. Runtime placeholders use ``{{parameter_name}}`` in source
+        paths, shaper values, plot configuration values, and export paths.
+
+        Args:
+            name: Stable recipe name.
+            description: Human-readable purpose.
+            parameters: Typed runtime placeholder declarations.
+            source: Explicit source, or ``None`` to capture current provenance.
+            transformations: Dataset-wide shapers applied before every plot.
+            exports: Named-plot output instructions.
+
+        Returns:
+            A validated immutable recipe. Call :meth:`save_analysis_recipe`
+            to retain it locally.
+
+        Raises:
+            RecipeError: Current provenance or recipe content is invalid.
+        """
+        # [impl->req~ring5.portfolio.analysis-recipes~1]
+        try:
+            return self.api.data_services.capture_analysis_recipe(
+                name,
+                description=description,
+                parameters=parameters,
+                source=source,
+                transformations=transformations,
+                exports=exports,
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise RecipeError(str(exc)) from exc
+
+    def save_analysis_recipe(
+        self,
+        recipe: AnalysisRecipe,
+        *,
+        overwrite: bool = False,
+    ) -> str:
+        """Save a validated recipe without silent replacement.
+
+        Args:
+            recipe: Recipe returned by :meth:`capture_analysis_recipe` or
+                constructed from the public recipe dataclasses.
+            overwrite: Replace an existing recipe with the same name.
+
+        Returns:
+            Local saved JSON path.
+
+        Raises:
+            RecipeError: Validation or storage fails, or the name exists while
+                ``overwrite`` is false.
+        """
+        # [impl->req~ring5.portfolio.analysis-recipes~1]
+        try:
+            return self.api.data_services.save_analysis_recipe(recipe, overwrite=overwrite)
+        except (OSError, TypeError, ValueError) as exc:
+            raise RecipeError(str(exc)) from exc
+
+    def list_analysis_recipes(self) -> tuple[AnalysisRecipeInfo, ...]:
+        """List readable saved recipes in case-insensitive name order.
+
+        Returns:
+            Immutable catalog entries with content counts and saved paths.
+        """
+        return self.api.data_services.list_analysis_recipes()
+
+    def load_analysis_recipe(self, name: str) -> AnalysisRecipe:
+        """Load and validate a saved recipe by logical name.
+
+        Args:
+            name: Exact saved recipe name.
+
+        Returns:
+            The immutable recipe.
+
+        Raises:
+            RecipeError: The recipe is missing, unreadable, or invalid.
+        """
+        try:
+            return self.api.data_services.load_analysis_recipe(name)
+        except (OSError, TypeError, ValueError) as exc:
+            raise RecipeError(str(exc)) from exc
+
+    def delete_analysis_recipe(self, name: str) -> None:
+        """Delete one saved recipe.
+
+        Args:
+            name: Exact saved recipe name.
+
+        Raises:
+            RecipeError: The recipe does not exist or cannot be deleted.
+        """
+        try:
+            self.api.data_services.delete_analysis_recipe(name)
+        except (OSError, TypeError, ValueError) as exc:
+            raise RecipeError(str(exc)) from exc
+
+    def export_analysis_recipe(self, recipe: AnalysisRecipe) -> bytes:
+        """Serialize a recipe as deterministic versioned UTF-8 JSON.
+
+        Args:
+            recipe: Valid recipe to serialize.
+
+        Returns:
+            Portable JSON bytes without timestamps or host-specific metadata.
+
+        Raises:
+            RecipeError: The recipe is invalid or exceeds safety limits.
+        """
+        try:
+            return self.api.data_services.export_analysis_recipe(recipe)
+        except (TypeError, ValueError) as exc:
+            raise RecipeError(str(exc)) from exc
+
+    def import_analysis_recipe(
+        self,
+        payload: str | bytes | bytearray,
+        *,
+        overwrite: bool = False,
+    ) -> AnalysisRecipe:
+        """Validate and save one portable recipe JSON document.
+
+        Args:
+            payload: Versioned UTF-8 recipe JSON, limited to 512 KiB.
+            overwrite: Replace an existing recipe with the same name.
+
+        Returns:
+            The imported immutable recipe.
+
+        Raises:
+            RecipeError: The document is invalid, unsupported, or conflicts
+                with an existing saved recipe.
+        """
+        try:
+            return self.api.data_services.import_analysis_recipe(payload, overwrite=overwrite)
+        except (OSError, TypeError, ValueError) as exc:
+            raise RecipeError(str(exc)) from exc
+
+    def materialize_analysis_recipe(
+        self,
+        recipe: AnalysisRecipe,
+        values: Mapping[str, RecipeScalar] | None = None,
+    ) -> AnalysisRecipe:
+        """Resolve typed runtime values without executing a recipe.
+
+        Args:
+            recipe: Recipe containing declared placeholders.
+            values: Runtime values keyed by parameter name. Missing values use
+                declared defaults.
+
+        Returns:
+            A fully concrete recipe suitable for review or execution.
+
+        Raises:
+            RecipeError: Values are missing, unknown, mistyped, or invalid.
+        """
+        try:
+            return self.api.data_services.materialize_analysis_recipe(recipe, values)
+        except (KeyError, TypeError, ValueError) as exc:
+            raise RecipeError(str(exc)) from exc
+
+    def run_analysis_recipe(
+        self,
+        recipe: AnalysisRecipe | str,
+        values: Mapping[str, RecipeScalar] | None = None,
+    ) -> AnalysisRecipeRunResult:
+        """Execute a recipe in this session and write its configured exports.
+
+        CSV recipes load their source directly. Parser recipes use the normal
+        owned scan/parse job lifecycle before applying dataset-wide and
+        per-plot shapers. Plot mappings are validated before existing session
+        plots are replaced.
+
+        Args:
+            recipe: Recipe object or exact locally saved recipe name.
+            values: Typed runtime values keyed by parameter name.
+
+        Returns:
+            Dataset dimensions, created plot names, resolved parameters, and
+            written export paths.
+
+        Raises:
+            RecipeError: Loading, materialization, or source access fails.
+            ScanError: Parser-source discovery fails.
+            ParseError: Parser-source execution fails.
+            PipelineError: A transformation fails.
+            DataValidationError: A plot mapping is invalid for transformed data.
+            ExportError: Rendering or writing an export fails.
+        """
+        # [impl->req~ring5.portfolio.analysis-recipes~1]
+        definition = self.load_analysis_recipe(recipe) if isinstance(recipe, str) else recipe
+        materialized = self.materialize_analysis_recipe(definition, values)
+        resolved_values = tuple(
+            (
+                parameter.name,
+                cast(
+                    RecipeScalar,
+                    (values or {}).get(parameter.name, parameter.default),
+                ),
+            )
+            for parameter in definition.parameters
+        )
+
+        source = materialized.source
+        try:
+            if source.kind == "csv":
+                data = self.api.data_services.load_csv_file(source.path)
+                source_path = source.path
+            else:
+                parser_variables = _recipe_stat_configs(source.variables)
+                parsed = self.parse(
+                    source.path,
+                    cast(list[str | StatConfig], parser_variables),
+                    pattern=source.pattern,
+                    strategy=source.strategy,
+                    scan_limit=source.scan_limit,
+                    strict=source.strict,
+                )
+                source_path = parsed.csv_path
+                data = self.api.data_services.load_csv_file(parsed.csv_path)
+        except (OSError, TypeError, UnicodeError, ValueError) as exc:
+            raise RecipeError(f"Could not load recipe source {source.path!r}: {exc}") from exc
+
+        transformed = cast(
+            pd.DataFrame,
+            self.shape(data, list(materialized.transformations)),
+        )
+        prepared: list[tuple[RecipePlot, pd.DataFrame]] = []
+        for plot_spec in materialized.plots:
+            plot_data = cast(
+                pd.DataFrame,
+                self.shape(transformed, list(plot_spec.pipeline)),
+            )
+            resolved_type = _resolve_plot_type(plot_spec.plot_type)
+            validate_plot_config(resolved_type, plot_data, dict(plot_spec.config))
+            prepared.append((plot_spec, plot_data))
+
+        state = self.api.state_manager
+        for existing in state.get_plots():
+            state.remove_visualization_config(existing.plot_id)
+        state.set_plots([])
+        state.set_plot_counter(0)
+        state.set_current_plot_id(None)
+        state.set_data(transformed, operation=f"Run analysis recipe: {materialized.name}")
+        state.set_processed_data(None)
+        state.set_csv_path(source_path)
+        state.set_use_parser(source.kind == "parser")
+
+        created: dict[str, BasePlot] = {}
+        for plot_spec, plot_data in prepared:
+            plot = self.create_plot(
+                plot_spec.plot_type,
+                data=plot_data,
+                config=plot_spec.config,
+                name=plot_spec.name,
+            )
+            plot.pipeline = [
+                {"id": index, "type": config["type"], "config": copy.deepcopy(config)}
+                for index, config in enumerate(plot_spec.pipeline)
+            ]
+            plot.pipeline_counter = len(plot.pipeline)
+            plot.replace_source_data(transformed)
+            created[plot_spec.name] = plot
+
+        exported: list[str] = []
+        figures: dict[tuple[str, str], _render.Figure] = {}
+        for export in materialized.exports:
+            key = (export.plot, export.engine)
+            figure = figures.get(key)
+            if figure is None:
+                figure = self.render(created[export.plot], engine=export.engine)
+                figures[key] = figure
+            exported.append(
+                self.export(
+                    figure,
+                    export.path,
+                    fmt=export.format,
+                    deterministic=export.deterministic,
+                )
+            )
+
+        return AnalysisRecipeRunResult(
+            recipe_name=materialized.name,
+            parameter_values=resolved_values,
+            rows=len(transformed),
+            columns=tuple(str(column) for column in transformed.columns),
+            plot_names=tuple(created),
+            exported_paths=tuple(exported),
+        )
+
 
 def _require_columns(data: pd.DataFrame, columns: list[str]) -> None:
     """Raise the typed missing-column error before delegating to core."""
     for col in columns:
         if col not in data.columns:
             raise ColumnNotFoundError(col, list(data.columns))
+
+
+def _recipe_stat_configs(
+    variables: Sequence[ParseVariableConfig],
+) -> list[StatConfig]:
+    """Convert captured parser-variable dictionaries without losing metadata."""
+    from src.core.models.pattern_index_service import PatternIndexService
+
+    configs: list[StatConfig] = []
+    for variable in variables:
+        source_name = variable["name"]
+        alias = variable.get("alias")
+        output_name = alias or source_name
+        try:
+            repeat = int(variable.get("repeat", 1))
+        except (TypeError, ValueError) as exc:
+            raise RecipeError(
+                f"Parser variable {source_name!r} has invalid repeat metadata."
+            ) from exc
+        configs.append(
+            StatConfig(
+                name=output_name,
+                source_name=source_name if alias else None,
+                type=str(variable["type"]).lower(),
+                repeat=repeat,
+                params=cast(dict[str, Any], copy.deepcopy(dict(variable))),
+                statistics_only=bool(variable.get("statisticsOnly", False)),
+                is_regex=PatternIndexService.is_pattern_variable(source_name),
+                keep_indices=bool(variable.get("keepIndices", False)),
+            )
+        )
+    return configs

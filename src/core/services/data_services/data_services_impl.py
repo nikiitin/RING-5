@@ -5,12 +5,22 @@ Delegates to CsvPoolService, ConfigService, DatasetSnapshotService,
 VariableService, and PortfolioService.
 """
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
 import pandas as pd
 
-from src.core.models import DatasetSnapshotInfo, PlotProtocol, PortfolioData
+from src.core.models import (
+    AnalysisRecipe,
+    AnalysisRecipeInfo,
+    DatasetSnapshotInfo,
+    PlotProtocol,
+    PortfolioData,
+    RecipeExport,
+    RecipeParameter,
+    RecipeScalar,
+    RecipeSource,
+)
 from src.core.models.data_models import (
     CacheStatsInfo,
     CsvPoolEntry,
@@ -22,6 +32,7 @@ from src.core.models.data_models import (
     ScannedVariableDict,
 )
 from src.core.models.shaper_models import ShaperStepConfig
+from src.core.services.data_services.analysis_recipe_service import AnalysisRecipeService
 from src.core.services.data_services.config_service import ConfigService
 from src.core.services.data_services.csv_pool_service import CsvPoolService
 from src.core.services.data_services.dataset_snapshot_service import DatasetSnapshotService
@@ -40,6 +51,7 @@ class DefaultDataServicesAPI:
     def __init__(self, state_manager: StateManager) -> None:
         """Initialize with a StateManager for portfolio serialization."""
         self._portfolio_service = PortfolioService(state_manager)
+        self._analysis_recipe_service = AnalysisRecipeService(state_manager)
 
     # -- CSV Pool --
 
@@ -292,3 +304,59 @@ class DefaultDataServicesAPI:
     def delete_portfolio(self, name: str) -> None:
         """Delete a portfolio."""
         self._portfolio_service.delete_portfolio(name)
+
+    # -- Analysis recipes --
+
+    def capture_analysis_recipe(
+        self,
+        name: str,
+        *,
+        description: str = "",
+        parameters: Sequence[RecipeParameter] = (),
+        source: RecipeSource | None = None,
+        transformations: Sequence[ShaperStepConfig] = (),
+        exports: Sequence[RecipeExport] = (),
+    ) -> AnalysisRecipe:
+        """Capture current source provenance, plots, and pipelines as a recipe."""
+        return self._analysis_recipe_service.capture(
+            name,
+            description=description,
+            parameters=parameters,
+            source=source,
+            transformations=transformations,
+            exports=exports,
+        )
+
+    def save_analysis_recipe(self, recipe: AnalysisRecipe, *, overwrite: bool = False) -> str:
+        """Persist a validated recipe by logical name."""
+        return AnalysisRecipeService.save(recipe, overwrite=overwrite)
+
+    def list_analysis_recipes(self) -> tuple[AnalysisRecipeInfo, ...]:
+        """List readable saved analysis recipes."""
+        return AnalysisRecipeService.list()
+
+    def load_analysis_recipe(self, name: str) -> AnalysisRecipe:
+        """Load a saved analysis recipe by name."""
+        return AnalysisRecipeService.load(name)
+
+    def delete_analysis_recipe(self, name: str) -> None:
+        """Delete a saved analysis recipe."""
+        AnalysisRecipeService.delete(name)
+
+    def export_analysis_recipe(self, recipe: AnalysisRecipe) -> bytes:
+        """Serialize a validated recipe as deterministic versioned JSON."""
+        return AnalysisRecipeService.dumps(recipe)
+
+    def import_analysis_recipe(
+        self, payload: str | bytes | bytearray, *, overwrite: bool = False
+    ) -> AnalysisRecipe:
+        """Validate and persist one portable recipe document."""
+        return AnalysisRecipeService.import_recipe(payload, overwrite=overwrite)
+
+    def materialize_analysis_recipe(
+        self,
+        recipe: AnalysisRecipe,
+        values: Mapping[str, RecipeScalar] | None = None,
+    ) -> AnalysisRecipe:
+        """Substitute typed runtime values into a recipe."""
+        return AnalysisRecipeService.materialize(recipe, values)

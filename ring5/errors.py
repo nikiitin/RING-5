@@ -21,6 +21,7 @@ __all__ = [
     "RenderError",
     "PortfolioError",
     "PortfolioVersionError",
+    "RecipeError",
     "ExportError",
     "DependencyMissingError",
 ]
@@ -132,6 +133,11 @@ class PortfolioVersionError(PortfolioError):
     belongs to the :class:`Ring5Error` hierarchy): loading anyway would
     silently downgrade the file and destroy the newer data on re-save.
     """
+
+
+class RecipeError(PortfolioError):
+    # [impl->req~ring5.portfolio.analysis-recipes~1]
+    """Analysis-recipe validation, storage, materialization, or execution failed."""
 
 
 class ExportError(Ring5Error):

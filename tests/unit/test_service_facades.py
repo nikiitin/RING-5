@@ -107,6 +107,48 @@ class TestDefaultDataServicesAPI:
         mock_svc.delete_configuration.return_value = True
         assert api.delete_configuration("/configs/test.json") is True
 
+    def test_analysis_recipe_service_delegation(self, api: DefaultDataServicesAPI) -> None:
+        service = MagicMock()
+        api._analysis_recipe_service = service
+        recipe = MagicMock()
+        service.capture.return_value = recipe
+
+        assert api.capture_analysis_recipe("recipe") is recipe
+        service.capture.assert_called_once_with(
+            "recipe",
+            description="",
+            parameters=(),
+            source=None,
+            transformations=(),
+            exports=(),
+        )
+
+    @patch("src.core.services.data_services.data_services_impl.AnalysisRecipeService")
+    def test_analysis_recipe_static_operations(
+        self, mock_svc: MagicMock, api: DefaultDataServicesAPI
+    ) -> None:
+        recipe = MagicMock()
+        mock_svc.save.return_value = "/recipes/a.json"
+        mock_svc.list.return_value = (MagicMock(),)
+        mock_svc.load.return_value = recipe
+        mock_svc.dumps.return_value = b"{}"
+        mock_svc.import_recipe.return_value = recipe
+        mock_svc.materialize.return_value = recipe
+
+        assert api.save_analysis_recipe(recipe) == "/recipes/a.json"
+        assert api.list_analysis_recipes() == mock_svc.list.return_value
+        assert api.load_analysis_recipe("a") is recipe
+        assert api.export_analysis_recipe(recipe) == b"{}"
+        assert api.import_analysis_recipe(b"{}") is recipe
+        assert api.materialize_analysis_recipe(recipe, {"x": 1}) is recipe
+        api.delete_analysis_recipe("a")
+
+        mock_svc.save.assert_called_once_with(recipe, overwrite=False)
+        mock_svc.load.assert_called_once_with("a")
+        mock_svc.import_recipe.assert_called_once_with(b"{}", overwrite=False)
+        mock_svc.materialize.assert_called_once_with(recipe, {"x": 1})
+        mock_svc.delete.assert_called_once_with("a")
+
     # -- Variable delegation --
 
     @patch("src.core.services.data_services.data_services_impl.VariableService")

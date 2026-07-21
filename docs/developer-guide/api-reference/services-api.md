@@ -78,6 +78,12 @@ check before an atomic write. Load verifies the payload SHA-256 and the shared l
 fingerprint before returning data. `DataServicesAPI` exposes save, list, load, and delete operations;
 `ApplicationAPI` coordinates a verified load with named-workspace retention.
 
+`AnalysisRecipeService` captures current source provenance and plot pipelines, validates typed
+runtime placeholders, and persists deterministic `ring5.analysis-recipe` JSON separately from
+portfolio data. `DataServicesAPI` exposes capture, save, list, load, delete, import, export, and
+materialization. Execution remains in the public `Session` composition root because it coordinates
+parsing, shapers, plot construction, rendering, and file export across layer boundaries.
+
 ## Shapers
 
 `ShapersAPI` exposes registered identifiers and ordered pipeline execution. `PipelineService`

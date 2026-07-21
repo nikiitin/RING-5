@@ -2408,7 +2408,7 @@ Tags: cli, migration, portfolios, safety, status_approved
 ### Parameterized analysis recipes
 
 `req~ring5.portfolio.analysis-recipes~1`
-Status: proposed
+Status: approved
 
 Users shall save reusable recipes that combine data sources, parser variables, transformations, plots, exports, and typed runtime parameters.
 
@@ -2417,7 +2417,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: portfolios, recipes, reproducibility, status_proposed
+Tags: portfolios, recipes, reproducibility, status_approved
 
 ### Portfolio history and diff
 

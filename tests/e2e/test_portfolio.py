@@ -11,6 +11,8 @@ Fixtures:
 
 from __future__ import annotations
 
+import json
+
 import pytest
 from playwright.sync_api import Page, expect
 
@@ -84,7 +86,28 @@ class TestPortfolioSaveLoad:
         assert b"Execution environment" in payload
 
     @pytest.mark.order(4)
-    def test_04_portfolio_in_manage_list(self, tier3_page: Page) -> None:
+    def test_04_save_and_download_analysis_recipe(self, tier3_page: Page) -> None:
+        # [test->req~ring5.portfolio.analysis-recipes~1]
+        """Capture the current source, pipelines, and plots as versioned JSON."""
+        pf = PortfolioPage(tier3_page)
+        pf.navigate()
+        pf.save_current_as_recipe("E2E Analysis Recipe")
+
+        expect(pf.recipe_saved_success).to_be_visible(timeout=E2E_TIMEOUT)
+        pf.open_analysis_recipes()
+        pf.saved_recipes_tab.click()
+        expect(pf.download_recipe_button).to_be_visible(timeout=E2E_TIMEOUT)
+        with tier3_page.expect_download(timeout=E2E_TIMEOUT) as download_info:
+            pf.download_recipe_button.click()
+        document = json.loads(download_info.value.path().read_text())
+        assert document["format"] == "ring5.analysis-recipe"
+        assert document["source"]["path"] == "{{source_path}}"
+        assert document["parameters"][0]["type"] == "path"
+        assert len(document["plots"]) == 2
+        assert document["plots"][1]["pipeline"]
+
+    @pytest.mark.order(5)
+    def test_05_portfolio_in_manage_list(self, tier3_page: Page) -> None:
         """Verify saved portfolio still appears in manage section after renavigation."""
         pf = PortfolioPage(tier3_page)
         pf.navigate()
@@ -93,20 +116,13 @@ class TestPortfolioSaveLoad:
         expander = tier3_page.locator("[data-testid='stExpander']").filter(has_text=PORTFOLIO_NAME)
         expect(expander).to_be_visible(timeout=E2E_TIMEOUT)
 
-    @pytest.mark.order(5)
-    def test_05_load_portfolio(self, tier3_page: Page) -> None:
+    @pytest.mark.order(6)
+    def test_06_load_portfolio(self, tier3_page: Page) -> None:
         """Select portfolio from dropdown, click Load Portfolio, wait for reload."""
         pf = PortfolioPage(tier3_page)
         pf.navigate()
 
-        # Open the load selector dropdown
-        pf.load_selector.get_by_role("button", name="Open").click()
-
-        # Select the saved portfolio from the dropdown
-        option = tier3_page.get_by_role("option", name=PORTFOLIO_NAME, exact=True)
-        expect(option).to_be_visible(timeout=E2E_TIMEOUT)
-        option.click()
-        pf.wait_for_streamlit()
+        pf.select_portfolio(PORTFOLIO_NAME)
 
         # Click Load Portfolio (scoped to main content to avoid duplicates)
         load_btn = tier3_page.locator("[data-testid='stMainBlockContainer']").get_by_role(
@@ -116,16 +132,16 @@ class TestPortfolioSaveLoad:
         tier3_page.wait_for_timeout(3000)
         pf.wait_for_streamlit()
 
-    @pytest.mark.order(6)
-    def test_06_data_survives_load(self, tier3_page: Page) -> None:
+    @pytest.mark.order(7)
+    def test_07_data_survives_load(self, tier3_page: Page) -> None:
         """After loading portfolio, Data Managers still shows data."""
         dm = DataManagersPage(tier3_page)
         dm.navigate()
         dm.assert_page_header_visible()
         dm.assert_has_data()
 
-    @pytest.mark.order(7)
-    def test_07_plots_survive_load(self, tier3_page: Page) -> None:
+    @pytest.mark.order(8)
+    def test_08_plots_survive_load(self, tier3_page: Page) -> None:
         """After loading portfolio, Manage Plots shows 'E2E Bar' pill."""
         mp = ManagePlotsPage(tier3_page)
         mp.navigate()

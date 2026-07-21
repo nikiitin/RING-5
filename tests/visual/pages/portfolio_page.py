@@ -87,6 +87,38 @@ class PortfolioPage(BasePage):
         """HTML report download action."""
         return self.page.get_by_role("button", name="Download HTML report")
 
+    @property
+    def analysis_recipes_expander(self) -> Locator:
+        """Analysis-recipe capture and management workflow."""
+        return self.page.locator("[data-testid='stExpander']").filter(has_text="Analysis recipes")
+
+    @property
+    def recipe_name_input(self) -> Locator:
+        """Current-workspace recipe name."""
+        return self.analysis_recipes_expander.get_by_label("Recipe name")
+
+    @property
+    def save_recipe_button(self) -> Locator:
+        """Save-current-workspace recipe action."""
+        return self.analysis_recipes_expander.get_by_role("button", name="Save analysis recipe")
+
+    @property
+    def recipe_saved_success(self) -> Locator:
+        """Persistent recipe-save confirmation."""
+        return self.page.locator("[data-testid='stAlertContentSuccess']").filter(
+            has_text="Saved analysis recipe"
+        )
+
+    @property
+    def saved_recipes_tab(self) -> Locator:
+        """Saved recipe inspection tab."""
+        return self.analysis_recipes_expander.get_by_role("tab", name="Saved", exact=True)
+
+    @property
+    def download_recipe_button(self) -> Locator:
+        """Portable versioned recipe download action."""
+        return self.analysis_recipes_expander.get_by_role("button", name="Download recipe JSON")
+
     # Assertions
 
     def assert_page_header_visible(self) -> None:
@@ -108,3 +140,28 @@ class PortfolioPage(BasePage):
         expect(self.report_expander).to_be_visible(timeout=self.RENDER_TIMEOUT)
         self.report_expander.locator("summary").click()
         expect(self.report_title_input).to_be_visible(timeout=self.RENDER_TIMEOUT)
+
+    def open_analysis_recipes(self) -> None:
+        """Open the recipe workflow when it is collapsed."""
+        if not self.recipe_name_input.is_visible():
+            self.analysis_recipes_expander.locator("summary").click()
+        expect(self.recipe_name_input).to_be_visible(timeout=self.RENDER_TIMEOUT)
+
+    def save_current_as_recipe(self, name: str) -> None:
+        """Capture the current source and plots under *name*."""
+        self.open_analysis_recipes()
+        self.recipe_name_input.fill(name)
+        self.save_recipe_button.click()
+        self.wait_for_streamlit(expect_rerun=True)
+        self.page.wait_for_timeout(500)
+
+    def select_portfolio(self, name: str) -> None:
+        """Select *name* unless Streamlit already selected it."""
+        combobox = self.load_selector.get_by_role("combobox", name="Select Portfolio")
+        if combobox.input_value() == name:
+            return
+        self.load_selector.get_by_role("button", name="Open").click()
+        option = self.page.get_by_role("option", name=name, exact=True)
+        expect(option).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        option.click()
+        self.wait_for_streamlit()

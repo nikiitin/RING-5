@@ -15,6 +15,7 @@ from src.core.models import EnvironmentComparison
 from src.core.services.environment_metadata_service import EnvironmentMetadataService
 from src.core.services.portfolio_migrator import PortfolioVersionError
 from src.web.components.report_composer import ReportComposer
+from src.web.components.analysis_recipe_component import AnalysisRecipeComponent
 from src.web.rendering.config_builder import build_figure_spec_dict
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -183,6 +184,9 @@ def _portfolio_fragment(api: ApplicationAPI) -> None:
                     on_click=_delete_portfolio,
                     type="tertiary",
                 )
+
+    st.markdown("---")
+    AnalysisRecipeComponent.render(api)
 
 
 def show_portfolio_page(api: ApplicationAPI) -> None:

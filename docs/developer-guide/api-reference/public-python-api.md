@@ -98,6 +98,16 @@ checksum and the reconstructed dataframe fingerprint before retaining it as a na
 `delete_dataset_snapshot` removes one local cache entry. Snapshot storage follows `RING5_DATA_DIR`,
 so separate processes can deliberately share the same catalog.
 
+`AnalysisRecipe`, `RecipeSource`, `RecipeParameter`, `RecipePlot`, and `RecipeExport` define the
+versioned automation contract. `Session.capture_analysis_recipe` derives source/parser provenance,
+plots, and per-plot pipelines from live session state. `save_analysis_recipe`,
+`list_analysis_recipes`, `load_analysis_recipe`, and `delete_analysis_recipe` manage the local
+catalog without silent replacement. `export_analysis_recipe` and `import_analysis_recipe` use
+deterministic bounded JSON. `materialize_analysis_recipe` resolves strict typed placeholders without
+side effects; `run_analysis_recipe` loads or parses the source, applies shared and per-plot shapers,
+validates mappings, replaces the session plots, and writes declared exports. Storage and validation
+failures raise `RecipeError`; execution retains narrower parser, pipeline, plot, and export errors.
+
 `scan_limit=0` means exhaustive variable discovery up to the global 10,000-file ceiling; a positive
 value is an exact sample cap. A scan with any failed files raises `ScanError` at the public boundary;
 pass `strict=False` to `ScanJob.finalize` or `Session.scan` only when a documented partial result is

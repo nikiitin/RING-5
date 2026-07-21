@@ -12,6 +12,7 @@ class PathService:
     _data_dir: Path | None = None
     _portfolios_dir: Path | None = None
     _dataset_snapshots_dir: Path | None = None
+    _analysis_recipes_dir: Path | None = None
 
     @staticmethod
     def reset_caches() -> None:
@@ -20,6 +21,7 @@ class PathService:
         PathService._data_dir = None
         PathService._portfolios_dir = None
         PathService._dataset_snapshots_dir = None
+        PathService._analysis_recipes_dir = None
 
     @staticmethod
     def get_root_dir() -> Path:
@@ -62,3 +64,11 @@ class PathService:
             PathService._dataset_snapshots_dir = PathService.get_data_dir() / "dataset_snapshots"
             PathService._dataset_snapshots_dir.mkdir(parents=True, exist_ok=True)
         return PathService._dataset_snapshots_dir
+
+    @staticmethod
+    def get_analysis_recipes_dir() -> Path:
+        """Get the persistent analysis-recipe directory."""
+        if PathService._analysis_recipes_dir is None:
+            PathService._analysis_recipes_dir = PathService.get_data_dir() / "analysis_recipes"
+            PathService._analysis_recipes_dir.mkdir(parents=True, exist_ok=True)
+        return PathService._analysis_recipes_dir

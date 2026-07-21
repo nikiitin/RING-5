@@ -114,6 +114,75 @@ Covers:
 **Manage Saved Portfolios** lists each stored snapshot. Expanding one and selecting **Delete**
 removes that named portfolio file. Keep a separate backup when a snapshot cannot be recreated.
 
+## Save a reusable analysis recipe
+
+<!--
+`uman~ring5.portfolio.analysis-recipes.documentation~1`
+
+Covers:
+- req~ring5.portfolio.analysis-recipes~1
+
+-->
+
+Open **Analysis recipes** on the **Save/Load Portfolio** page. The **Save current** tab captures the
+active CSV or parser source, parser-variable definitions, every plot configuration, and each
+plot's ordered shaper pipeline. Source paths are runtime parameters by default, so the same recipe
+can run against another compatible input without editing its JSON.
+
+Select **Download each current plot when the recipe runs** to store an engine, format,
+deterministic output setting, and parameterized output path for every plot. Recipe names do not
+overwrite silently; select **Replace a saved recipe with this name** only when replacement is
+intentional. The **Saved** tab shows the source, parameter, transformation, plot, and download
+counts and downloads a portable `ring5.analysis-recipe` JSON file. The **Import** tab validates
+that versioned file before saving it. Recipe JSON is limited to 512 KiB and does not embed dataset
+rows.
+
+Python can construct recipes with shared transformations and arbitrary typed parameters as well as
+run recipes captured by the web application:
+
+```python
+import ring5
+
+recipe = ring5.AnalysisRecipe(
+    name="IPC paper",
+    parameters=(
+        ring5.RecipeParameter("input_csv", "path"),
+        ring5.RecipeParameter("output_dir", "path", default="figures"),
+    ),
+    source=ring5.RecipeSource(kind="csv", path="{{input_csv}}"),
+    plots=(
+        ring5.RecipePlot(
+            name="IPC",
+            plot_type="bar",
+            config={"x": "benchmark", "y": "ipc"},
+        ),
+    ),
+    exports=(
+        ring5.RecipeExport(
+            plot="IPC",
+            path="{{output_dir}}/ipc.pdf",
+            engine="matplotlib",
+            format="pdf",
+        ),
+    ),
+)
+
+with ring5.Session() as session:
+    session.save_analysis_recipe(recipe)
+    result = session.run_analysis_recipe(
+        "IPC paper",
+        {"input_csv": "results/candidate.csv"},
+    )
+    print(result.exported_paths)
+```
+
+Parameter types are `string`, `integer`, `number`, `boolean`, and `path`. A placeholder occupying a
+whole value preserves its declared type; a placeholder embedded in text is formatted as text.
+Execution validates all parameters, shapers, and plot mappings before replacing the session's
+plots. Parser recipes use the normal owned scan and parse lifecycle. Failures use `RecipeError` or
+the narrower scan, parse, pipeline, plot-validation, and export errors. Local recipes are stored
+under `.ring5/analysis_recipes/`, or under the configured `RING5_DATA_DIR`.
+
 ## Save and restore in Python
 
 <!--

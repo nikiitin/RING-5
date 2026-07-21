@@ -6,7 +6,7 @@ configuration persistence, variable management, and portfolio workspace
 snapshots.
 """
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping, Sequence
 from typing import (
     Any,
     Protocol,
@@ -15,7 +15,17 @@ from typing import (
 
 import pandas as pd
 
-from src.core.models import DatasetSnapshotInfo, PlotProtocol, PortfolioData
+from src.core.models import (
+    AnalysisRecipe,
+    AnalysisRecipeInfo,
+    DatasetSnapshotInfo,
+    PlotProtocol,
+    PortfolioData,
+    RecipeExport,
+    RecipeParameter,
+    RecipeScalar,
+    RecipeSource,
+)
 from src.core.models.data_models import (
     CacheStatsInfo,
     CsvPoolEntry,
@@ -272,4 +282,53 @@ class DataServicesAPI(Protocol):
 
     def delete_portfolio(self, name: str) -> None:
         """Delete a portfolio."""
+        raise NotImplementedError
+
+    # -- Analysis recipes --
+
+    def capture_analysis_recipe(
+        self,
+        name: str,
+        *,
+        description: str = "",
+        parameters: Sequence[RecipeParameter] = (),
+        source: RecipeSource | None = None,
+        transformations: Sequence[ShaperStepConfig] = (),
+        exports: Sequence[RecipeExport] = (),
+    ) -> AnalysisRecipe:
+        """Capture current source provenance, plots, and pipelines as a recipe."""
+        raise NotImplementedError
+
+    def save_analysis_recipe(self, recipe: AnalysisRecipe, *, overwrite: bool = False) -> str:
+        """Persist a validated recipe by logical name."""
+        raise NotImplementedError
+
+    def list_analysis_recipes(self) -> tuple[AnalysisRecipeInfo, ...]:
+        """List readable saved analysis recipes."""
+        raise NotImplementedError
+
+    def load_analysis_recipe(self, name: str) -> AnalysisRecipe:
+        """Load a saved analysis recipe by name."""
+        raise NotImplementedError
+
+    def delete_analysis_recipe(self, name: str) -> None:
+        """Delete a saved analysis recipe."""
+        raise NotImplementedError
+
+    def export_analysis_recipe(self, recipe: AnalysisRecipe) -> bytes:
+        """Serialize a validated recipe as deterministic versioned JSON."""
+        raise NotImplementedError
+
+    def import_analysis_recipe(
+        self, payload: str | bytes | bytearray, *, overwrite: bool = False
+    ) -> AnalysisRecipe:
+        """Validate and persist one portable recipe document."""
+        raise NotImplementedError
+
+    def materialize_analysis_recipe(
+        self,
+        recipe: AnalysisRecipe,
+        values: Mapping[str, RecipeScalar] | None = None,
+    ) -> AnalysisRecipe:
+        """Substitute typed runtime values into a recipe."""
         raise NotImplementedError
