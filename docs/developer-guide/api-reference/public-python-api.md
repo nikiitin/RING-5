@@ -118,6 +118,10 @@ failures raise `RecipeError`; execution retains narrower parser, pipeline, plot,
 `export_analysis_recipe_script` and `export_analysis_recipe_notebook` generate deterministic,
 documented artifacts that embed that canonical JSON and perform application work only through the
 supported `ring5` package.
+`run_analysis_recipe_matrix` executes at most 256 Cartesian cases in isolated sessions with a
+caller-selected bound of one through eight workers. It returns ordered `AnalysisRecipeMatrixCase`
+records and rewrites exports beneath stable case directories. `run_analysis_recipe_matrix_submit`
+exposes the same result through the session-owned background-job lifecycle.
 
 `Session.list_portfolio_revisions` returns checksum-verified `PortfolioRevisionInfo` records in
 save order. `compare_portfolio_revisions` returns a bounded `PortfolioDiff` whose entries cover

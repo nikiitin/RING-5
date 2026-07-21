@@ -5,6 +5,7 @@ Subcommands::
     ring5 doctor                          # dependency preflight
     ring5 parse DIR -v simTicks -o out.csv
     ring5 render PORTFOLIO -o figs/       # regenerate every figure
+    ring5 recipe-matrix RECIPE -m MATRIX -o out/
     ring5 upgrade PORTFOLIO               # persist a portfolio at the
                                           # current schema version
 """
@@ -12,11 +13,18 @@ Subcommands::
 from __future__ import annotations
 
 import argparse
+import json
 import shutil
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING, Any, NoReturn
 
-from ring5.errors import Ring5Error
+from ring5.errors import RecipeError, Ring5Error
+
+from src.core.common.security_limits import MAX_ANALYSIS_RECIPE_MATRIX_BYTES
+
+if TYPE_CHECKING:
+    from src.core.models import AnalysisRecipeMatrixResult
 
 
 def _cmd_doctor(args: argparse.Namespace) -> int:
@@ -99,6 +107,76 @@ def _cmd_upgrade(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_recipe_matrix(args: argparse.Namespace) -> int:
+    # [impl->req~ring5.automation.batch-matrices~1]
+    from ring5._session import Session
+
+    recipe_payload = _read_bounded_file(Path(args.recipe), "recipe")
+    matrix_payload = _read_bounded_file(Path(args.matrix), "matrix")
+    try:
+        matrix = json.loads(
+            matrix_payload.decode("utf-8"),
+            parse_constant=_reject_json_constant,
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+        raise RecipeError("Recipe matrix must be valid finite UTF-8 JSON.") from exc
+    with Session() as session:
+        recipe = session.decode_analysis_recipe(recipe_payload)
+        result = session.run_analysis_recipe_matrix(
+            recipe,
+            matrix,
+            output_directory=args.output_dir,
+            max_workers=args.workers,
+        )
+    print(json.dumps(_matrix_result_payload(result), indent=2, sort_keys=True))
+    return 0 if result.complete else 1
+
+
+def _read_bounded_file(path: Path, label: str) -> bytes:
+    """Read one bounded recipe automation input or raise a public error."""
+    try:
+        if path.stat().st_size > MAX_ANALYSIS_RECIPE_MATRIX_BYTES:
+            raise RecipeError(f"Recipe {label} exceeds the 512 KiB limit.")
+        return path.read_bytes()
+    except OSError as exc:
+        raise RecipeError(f"Could not read recipe {label} {str(path)!r}: {exc}") from exc
+
+
+def _reject_json_constant(value: str) -> NoReturn:
+    raise ValueError(f"Invalid JSON constant {value!r}.")
+
+
+def _matrix_result_payload(result: "AnalysisRecipeMatrixResult") -> dict[str, Any]:
+    """Return the stable JSON summary emitted by the recipe-matrix command."""
+    cases: list[dict[str, Any]] = []
+    for case in result.cases:
+        run = case.result
+        cases.append(
+            {
+                "case_id": case.case_id,
+                "status": "completed" if case.successful else "failed",
+                "parameters": dict(case.parameter_values),
+                "output_directory": case.output_directory,
+                "rows": run.rows if run is not None else None,
+                "columns": list(run.columns) if run is not None else [],
+                "plots": list(run.plot_names) if run is not None else [],
+                "exports": list(run.exported_paths) if run is not None else [],
+                "error": case.error,
+            }
+        )
+    return {
+        "format": "ring5.analysis-recipe-matrix-result",
+        "schema_version": 1,
+        "recipe": result.recipe_name,
+        "complete": result.complete,
+        "completed_cases": result.completed_cases,
+        "failed_cases": result.failed_cases,
+        "max_workers": result.max_workers,
+        "output_directory": result.output_directory,
+        "cases": cases,
+    }
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the command-line parser.
 
@@ -158,6 +236,32 @@ def build_parser() -> argparse.ArgumentParser:
     upgrade_p.add_argument("portfolio", help="portfolio name")
     upgrade_p.set_defaults(func=_cmd_upgrade)
 
+    matrix_p = sub.add_parser(
+        "recipe-matrix",
+        help="run a recipe across a bounded Cartesian parameter matrix",
+    )
+    matrix_p.add_argument("recipe", help="portable analysis-recipe JSON file")
+    matrix_p.add_argument(
+        "-m",
+        "--matrix",
+        required=True,
+        help="JSON object mapping parameter names to ordered value arrays",
+    )
+    matrix_p.add_argument(
+        "-o",
+        "--output-dir",
+        required=True,
+        help="root for deterministic per-case output directories",
+    )
+    matrix_p.add_argument(
+        "-j",
+        "--workers",
+        type=int,
+        default=2,
+        help="concurrent cases, from 1 through 8 (default: 2)",
+    )
+    matrix_p.set_defaults(func=_cmd_recipe_matrix)
+
     return parser
 
 
@@ -168,7 +272,8 @@ def main(argv: list[str] | None = None) -> int:
         argv: Arguments without the executable name. Uses ``sys.argv`` when omitted.
 
     Returns:
-        Process-style exit code: zero for success and two for an operational error.
+        Process-style exit code: zero for success, one for a matrix with failed
+        cases, and two for an operational error.
     """
     args = build_parser().parse_args(argv)
     try:

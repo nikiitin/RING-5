@@ -4392,11 +4392,31 @@
       "id": "automation.batch-matrices",
       "group": "automation",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Parameterized batch matrices",
       "description": "The Python API and CLI shall execute an analysis recipe across a typed parameter matrix with bounded concurrency and deterministic output paths.",
       "tags": ["automation", "batch", "cli"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/models/recipe_matrix_models.py::AnalysisRecipeMatrixCase",
+          "src/core/models/recipe_matrix_models.py::AnalysisRecipeMatrixResult",
+          "src/core/services/analysis_recipe_matrix_service.py::AnalysisRecipeMatrixService.execute",
+          "ring5/_session.py::Session.run_analysis_recipe_matrix",
+          "ring5/_session.py::Session.run_analysis_recipe_matrix_submit",
+          "ring5/cli.py::_cmd_recipe_matrix"
+        ],
+        "tests": [
+          "tests/unit/test_analysis_recipe_matrix_service.py::test_prepare_uses_recipe_order_stable_ids_and_collision_free_exports",
+          "tests/unit/test_analysis_recipe_matrix_service.py::test_execute_is_bounded_ordered_and_retains_per_case_failures",
+          "tests/integration/test_analysis_recipe_matrix_public_api.py::test_matrix_runs_in_stable_order_with_collision_free_outputs",
+          "tests/integration/test_analysis_recipe_matrix_public_api.py::test_matrix_failures_are_per_case_and_invalid_inputs_are_typed",
+          "tests/unit/test_ring5_cli.py::TestRecipeMatrixCommand.test_recipe_matrix_emits_ordered_versioned_summary",
+          "tests/unit/test_ring5_cli.py::TestRecipeMatrixCommand.test_recipe_matrix_returns_one_with_failed_case"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/scripting.md#run-a-typed-parameter-matrix"
+        ]
+      }
     },
     {
       "id": "automation.machine-readable-regression",
@@ -4748,6 +4768,8 @@
       "AnalysisReport": "export.batch-reports",
       "AnalysisRecipe": "portfolio.analysis-recipes",
       "AnalysisRecipeInfo": "portfolio.analysis-recipes",
+      "AnalysisRecipeMatrixCase": "automation.batch-matrices",
+      "AnalysisRecipeMatrixResult": "automation.batch-matrices",
       "AnalysisRecipeRunResult": "portfolio.analysis-recipes",
       "BackgroundJobInfo": "workspace.background-jobs",
       "BackgroundJobLogEntry": "workspace.background-jobs",
@@ -4935,6 +4957,8 @@
       "report_bytes": "export.batch-reports",
       "retry_background_job": "workspace.background-jobs",
       "run_analysis_recipe": "portfolio.analysis-recipes",
+      "run_analysis_recipe_matrix": "automation.batch-matrices",
+      "run_analysis_recipe_matrix_submit": "automation.batch-matrices",
       "small_multiples": "plots.small-multiples",
       "save_portfolio": "portfolio.save",
       "save_analysis_recipe": "portfolio.analysis-recipes",
@@ -4955,6 +4979,7 @@
     "cli_commands": {
       "doctor": "api.doctor",
       "parse": "cli.parse",
+      "recipe-matrix": "automation.batch-matrices",
       "render": "cli.render",
       "upgrade": "portfolio.upgrade-protection"
     },
@@ -4964,6 +4989,10 @@
       "parse:pattern": "ingestion.file-discovery",
       "parse:stats_path": "ingestion.file-discovery",
       "parse:variables": "ingestion.variable-editor",
+      "recipe-matrix:matrix": "automation.batch-matrices",
+      "recipe-matrix:output_dir": "automation.batch-matrices",
+      "recipe-matrix:recipe": "automation.batch-matrices",
+      "recipe-matrix:workers": "automation.batch-matrices",
       "render:engine": "render.engine-selection",
       "render:format": "export.web-download",
       "render:no_deterministic": "export.deterministic",

@@ -18,6 +18,7 @@ from src.core.models import (
     AnalysisReport,
     AnalysisRecipe,
     AnalysisRecipeInfo,
+    AnalysisRecipeMatrixResult,
     AnalysisRecipeRunResult,
     BackgroundJobInfo,
     ColumnSemantics,
@@ -207,6 +208,7 @@ class Session:
     def __init__(self, *, parser: SimulationParser | None = None) -> None:
         # Headless portfolio restores need the web composition root's plot deserializer.
         self.api = ApplicationAPI(plot_deserializer=PlotFactory.from_dict, parser=parser)
+        self._parser_override = parser
         # Temporary parse output is removed when the session closes.
         self._owned_tmpdirs: list[str] = []
         self._parse_jobs: list[_parse.ParseJob | _parse.ParserPlaygroundJob] = []
@@ -3416,6 +3418,106 @@ class Session:
             plot_names=tuple(created),
             exported_paths=tuple(exported),
         )
+
+    def run_analysis_recipe_matrix(
+        self,
+        recipe: AnalysisRecipe | str,
+        matrix: Mapping[str, Sequence[RecipeScalar]],
+        *,
+        output_directory: str = "ring5-batch-output",
+        max_workers: int = 2,
+    ) -> AnalysisRecipeMatrixResult:
+        """Execute the Cartesian product of typed recipe parameter values.
+
+        Each case runs in an isolated session. Results retain recipe parameter
+        order regardless of completion order, and exports are redirected to a
+        stable ``case-NNN-<digest>`` directory beneath ``output_directory``.
+
+        Args:
+            recipe: Recipe object or exact locally saved recipe name.
+            matrix: Parameter names mapped to ordered value sequences. Omitted
+                parameters use recipe defaults.
+            output_directory: Root for collision-free per-case exports.
+            max_workers: Concurrency bound from one through eight.
+
+        Returns:
+            Ordered case outcomes, including bounded per-case failures.
+
+        Raises:
+            RecipeError: The recipe, matrix, output path, or worker bound is invalid.
+        """
+        # [impl->req~ring5.automation.batch-matrices~1]
+        from src.core.services.analysis_recipe_matrix_service import (
+            AnalysisRecipeMatrixService,
+        )
+
+        definition = self.load_analysis_recipe(recipe) if isinstance(recipe, str) else recipe
+
+        def run_case(
+            case_recipe: AnalysisRecipe,
+            values: Mapping[str, RecipeScalar],
+        ) -> AnalysisRecipeRunResult:
+            with Session(parser=self._parser_override) as child:
+                return child.run_analysis_recipe(case_recipe, values)
+
+        try:
+            return AnalysisRecipeMatrixService.execute(
+                definition,
+                matrix,
+                output_directory,
+                run_case,
+                max_workers=max_workers,
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise RecipeError(str(exc)) from exc
+
+    def run_analysis_recipe_matrix_submit(
+        self,
+        recipe: AnalysisRecipe | str,
+        matrix: Mapping[str, Sequence[RecipeScalar]],
+        *,
+        output_directory: str = "ring5-batch-output",
+        max_workers: int = 2,
+        label: str | None = None,
+    ) -> BackgroundJobInfo:
+        """Submit a bounded recipe matrix to this session's background jobs.
+
+        Poll :meth:`background_jobs`, then pass its completed record to
+        :meth:`background_job_result` to obtain an
+        :class:`AnalysisRecipeMatrixResult`.
+
+        Args:
+            recipe: Recipe object or exact locally saved recipe name.
+            matrix: Parameter names mapped to ordered value sequences.
+            output_directory: Root for collision-free per-case exports.
+            max_workers: Concurrency bound from one through eight.
+            label: Optional human-readable job-center label.
+
+        Returns:
+            Initial immutable background-job snapshot.
+
+        Raises:
+            RecipeError: A saved recipe cannot be loaded.
+            JobError: Submission metadata or the job center is invalid.
+        """
+        # [impl->req~ring5.automation.batch-matrices~1]
+        definition = self.load_analysis_recipe(recipe) if isinstance(recipe, str) else recipe
+        captured_recipe = copy.deepcopy(definition)
+        captured_matrix = copy.deepcopy(matrix)
+        selected_label = label or f"Recipe matrix: {definition.name}"
+        try:
+            return self.api.submit_background_operation(
+                "transformation",
+                selected_label,
+                lambda: self.run_analysis_recipe_matrix(
+                    captured_recipe,
+                    captured_matrix,
+                    output_directory=output_directory,
+                    max_workers=max_workers,
+                ),
+            )
+        except (RuntimeError, TypeError, ValueError) as exc:
+            raise JobError(str(exc)) from exc
 
 
 def _require_columns(data: pd.DataFrame, columns: list[str]) -> None:

@@ -135,6 +135,10 @@ from src.core.models.recipe_models import (
     RecipeSource,
     RecipeSourceKind,
 )
+from src.core.models.recipe_matrix_models import (
+    AnalysisRecipeMatrixCase,
+    AnalysisRecipeMatrixResult,
+)
 from src.core.models.shaper_models import (
     BaseShaperConfig,
     ColumnSelectorConfig,
@@ -153,6 +157,8 @@ __all__ = [
     "AnalysisReport",
     "AnalysisRecipe",
     "AnalysisRecipeInfo",
+    "AnalysisRecipeMatrixCase",
+    "AnalysisRecipeMatrixResult",
     "AnalysisRecipeRunResult",
     "BaseShaperConfig",
     "BackgroundJobInfo",

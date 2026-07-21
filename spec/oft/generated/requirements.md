@@ -2662,7 +2662,7 @@ Tags: api, automation, notebook, status_approved
 ### Parameterized batch matrices
 
 `req~ring5.automation.batch-matrices~1`
-Status: proposed
+Status: approved
 
 The Python API and CLI shall execute an analysis recipe across a typed parameter matrix with bounded concurrency and deterministic output paths.
 
@@ -2671,7 +2671,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: automation, batch, cli, status_proposed
+Tags: automation, batch, cli, status_approved
 
 ### Machine-readable regression results
 

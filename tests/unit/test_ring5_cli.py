@@ -31,6 +31,13 @@ class TestParserStructure:
         assert args.format is None
         assert args.no_deterministic is False
 
+    def test_recipe_matrix_defaults(self) -> None:
+        args = build_parser().parse_args(
+            ["recipe-matrix", "recipe.json", "-m", "matrix.json", "-o", "out"]
+        )
+        assert args.command == "recipe-matrix"
+        assert args.workers == 2
+
 
 class TestDoctorCommand:
     # [test->req~ring5.api.doctor~1]
@@ -181,3 +188,140 @@ class TestUpgradeRefusal:
         err = capsys.readouterr().err
         assert "refusing to upgrade" in err
         assert "future_plot" in err
+
+
+class TestRecipeMatrixCommand:
+    @staticmethod
+    def _write_recipe(path: Path) -> None:
+        import ring5
+
+        recipe = ring5.AnalysisRecipe(
+            name="CLI matrix",
+            parameters=(ring5.RecipeParameter("input_csv", "path"),),
+            source=ring5.RecipeSource(kind="csv", path="{{input_csv}}"),
+        )
+        with ring5.Session() as session:
+            path.write_bytes(session.export_analysis_recipe(recipe))
+
+    def test_recipe_matrix_emits_ordered_versioned_summary(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        # [test->req~ring5.automation.batch-matrices~1]
+        first = tmp_path / "first.csv"
+        second = tmp_path / "second.csv"
+        pd.DataFrame({"value": [1]}).to_csv(first, index=False)
+        pd.DataFrame({"value": [2, 3]}).to_csv(second, index=False)
+        recipe = tmp_path / "recipe.json"
+        matrix = tmp_path / "matrix.json"
+        self._write_recipe(recipe)
+        matrix.write_text(json.dumps({"input_csv": [str(first), str(second)]}))
+
+        code = main(
+            [
+                "recipe-matrix",
+                str(recipe),
+                "--matrix",
+                str(matrix),
+                "--output-dir",
+                str(tmp_path / "out"),
+                "--workers",
+                "2",
+            ]
+        )
+        document = json.loads(capsys.readouterr().out)
+
+        assert code == 0
+        assert document["format"] == "ring5.analysis-recipe-matrix-result"
+        assert document["schema_version"] == 1
+        assert document["complete"] is True
+        assert document["completed_cases"] == 2
+        assert [case["rows"] for case in document["cases"]] == [1, 2]
+        assert [case["status"] for case in document["cases"]] == [
+            "completed",
+            "completed",
+        ]
+
+    def test_recipe_matrix_returns_one_with_failed_case(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        # [test->req~ring5.automation.batch-matrices~1]
+        valid = tmp_path / "valid.csv"
+        pd.DataFrame({"value": [1]}).to_csv(valid, index=False)
+        recipe = tmp_path / "recipe.json"
+        matrix = tmp_path / "matrix.json"
+        self._write_recipe(recipe)
+        matrix.write_text(json.dumps({"input_csv": [str(valid), str(tmp_path / "missing.csv")]}))
+
+        code = main(
+            [
+                "recipe-matrix",
+                str(recipe),
+                "-m",
+                str(matrix),
+                "-o",
+                str(tmp_path / "out"),
+            ]
+        )
+        document = json.loads(capsys.readouterr().out)
+
+        assert code == 1
+        assert document["failed_cases"] == 1
+        assert document["cases"][1]["status"] == "failed"
+        assert document["cases"][1]["rows"] is None
+        assert document["cases"][1]["columns"] == []
+        assert document["cases"][1]["error"]
+
+    @pytest.mark.parametrize("payload", [b"not json", b'{"input_csv": [NaN]}'])
+    def test_recipe_matrix_rejects_invalid_json(
+        self,
+        tmp_path: Path,
+        capsys: pytest.CaptureFixture[str],
+        payload: bytes,
+    ) -> None:
+        recipe = tmp_path / "recipe.json"
+        matrix = tmp_path / "matrix.json"
+        self._write_recipe(recipe)
+        matrix.write_bytes(payload)
+
+        assert (
+            main(["recipe-matrix", str(recipe), "-m", str(matrix), "-o", str(tmp_path / "out")])
+            == 2
+        )
+        assert "valid finite UTF-8 JSON" in capsys.readouterr().err
+
+    def test_recipe_matrix_rejects_missing_and_oversized_inputs(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        recipe = tmp_path / "recipe.json"
+        oversized = tmp_path / "oversized.json"
+        self._write_recipe(recipe)
+        oversized.write_bytes(b"x" * (512 * 1024 + 1))
+
+        assert (
+            main(
+                [
+                    "recipe-matrix",
+                    str(recipe),
+                    "-m",
+                    str(tmp_path / "missing.json"),
+                    "-o",
+                    str(tmp_path / "out"),
+                ]
+            )
+            == 2
+        )
+        assert "Could not read recipe matrix" in capsys.readouterr().err
+        assert (
+            main(
+                [
+                    "recipe-matrix",
+                    str(recipe),
+                    "-m",
+                    str(oversized),
+                    "-o",
+                    str(tmp_path / "out"),
+                ]
+            )
+            == 2
+        )
+        assert "exceeds the 512 KiB limit" in capsys.readouterr().err
