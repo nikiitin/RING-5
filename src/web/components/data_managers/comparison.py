@@ -24,6 +24,7 @@ class ComparisonManager(DataManager):
 
     def render(self) -> None:
         """Render comparison controls and the current result."""
+        # [impl->req~ring5.workspace.guided-analysis~1]
         # [impl->req~ring5.analysis.regression-comparison~1]
         # [impl->req~ring5.analysis.statistical-comparison~1]
         # [impl->req~ring5.analysis.regression-annotations~1]
@@ -231,6 +232,10 @@ class ComparisonManager(DataManager):
                     st.error(str(exc))
                 else:
                     self.api.set_preview(_PREVIEW_NAME, result)
+                    # Recompute the sidebar guide from the stored result before
+                    # presenting the preview and its next workflow action.
+                    st.rerun(scope="app")
+                    return
 
         preview = self.api.get_preview(_PREVIEW_NAME)
         if preview is None:

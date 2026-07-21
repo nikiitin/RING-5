@@ -30,6 +30,7 @@ Use these pages for recurring tasks:
 - [Organize Favorites and Tags](favorites-tags/) across variables, datasets, plots, pipelines, and portfolios.
 - [Review an Analysis Together](collaborative-review/) with portable authored comments and statuses.
 - [Recover an Interrupted Workspace](autosave-recovery/) from bounded browser-private local drafts.
+- [Follow a Guided Analysis](guided-analysis/) from source selection through a figure download.
 - [Create and Configure Plots](plotting/) with per-plot transformation pipelines.
 - [Build Multi-panel Dashboards](multi-panel-dashboards/) from existing plots and export one grid.
 - [Style Line Charts](line-styles/) with matching connectors, dashes, widths, and markers.

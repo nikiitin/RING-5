@@ -78,6 +78,7 @@ from src.core.models import (
     AnalysisReviewThread,
     RecoveryDraftCapture,
     RecoveryDraftInfo,
+    GuidedAnalysisProgress,
 )
 from src.core.models.data_models import ParseVariableConfig
 from src.core.models.shaper_models import ShaperStepConfig
@@ -227,6 +228,9 @@ class Session:
         self._owned_tmpdirs: list[str] = []
         self._parse_jobs: list[_parse.ParseJob | _parse.ParserPlaygroundJob] = []
         self._incremental_output_dirs: dict[tuple[str, str, str, str], str] = {}
+        self._guided_comparison_ready = False
+        self._guided_rendered_plot_ids: set[int] = set()
+        self._guided_exported = False
 
     # lifecycle
     def __enter__(self) -> "Session":
@@ -1054,6 +1058,35 @@ class Session:
             self.api.delete_recovery_draft(owner_key, draft_id)
         except (FileNotFoundError, OSError, TypeError, ValueError) as exc:
             raise PortfolioError(f"Recovery draft could not be deleted: {exc}") from exc
+
+    def guided_analysis_progress(self) -> GuidedAnalysisProgress:
+        """Return progress through source, validation, comparison, plot, and export work.
+
+        Progress is inferred from successful operations in this session. Calling
+        :meth:`compare` or :meth:`compare_statistics`, :meth:`render`, and an
+        export method advances their corresponding milestones. The result does
+        not change the workspace or limit access to lower-level methods.
+
+        Returns:
+            Immutable ordered stages, completion count, percentage, and next stage.
+        """
+        # [impl->req~ring5.workspace.guided-analysis~1]
+        from src.core.services.guided_analysis_service import GuidedAnalysisService
+
+        plots = self.api.state_manager.get_plots()
+        comparison_ready = self._guided_comparison_ready or self.api.state_manager.has_preview(
+            "regression_comparison"
+        )
+        rendered_ids = self._guided_rendered_plot_ids | {
+            plot.plot_id for plot in plots if getattr(plot, "last_generated_fig", None) is not None
+        }
+        return GuidedAnalysisService.assess(
+            self.api.state_manager.get_data(),
+            comparison_ready=comparison_ready,
+            plot_count=len(plots),
+            rendered_plot_count=sum(plot.plot_id in rendered_ids for plot in plots),
+            exported=self._guided_exported,
+        )
 
     def get_dataset(self, name: str | None = None) -> pd.DataFrame:
         """Return a defensive copy of a named or selected dataset.
@@ -2035,6 +2068,7 @@ class Session:
             )
         except (TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
+        self._guided_comparison_ready = True
         if baseline_was_table and candidate_was_table:
             return _rewrap_table(result)
         return result
@@ -2100,6 +2134,7 @@ class Session:
             )
         except (TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
+        self._guided_comparison_ready = True
         if baseline_was_table and candidate_was_table:
             return _rewrap_table(result)
         return result
@@ -2366,7 +2401,9 @@ class Session:
             RenderError: The engine is invalid or the plot has no processed
                 data.
         """
-        return _render.render_figure(plot, engine=engine)
+        figure = _render.render_figure(plot, engine=engine)
+        self._guided_rendered_plot_ids.add(plot.plot_id)
+        return figure
 
     def create_dashboard(
         self,
@@ -2711,7 +2748,15 @@ class Session:
             DependencyMissingError: The selected format requires an external
                 executable that is unavailable.
         """
-        return _export.export_file(fig, path, fmt=fmt, deterministic=deterministic, **kwargs)
+        exported_path = _export.export_file(
+            fig,
+            path,
+            fmt=fmt,
+            deterministic=deterministic,
+            **kwargs,
+        )
+        self._guided_exported = True
+        return exported_path
 
     def export_submit(
         self,
@@ -2747,7 +2792,7 @@ class Session:
             return self.api.submit_background_operation(
                 "export",
                 selected_label,
-                lambda: _export.export_file(
+                lambda: self.export(
                     captured_figure,
                     path,
                     fmt=fmt,
@@ -2782,7 +2827,9 @@ class Session:
             DependencyMissingError: The selected format requires an external
                 executable that is unavailable.
         """
-        return _export.export_bytes(fig, fmt, deterministic=deterministic, **kwargs)
+        payload = _export.export_bytes(fig, fmt, deterministic=deterministic, **kwargs)
+        self._guided_exported = True
+        return payload
 
     def create_report(
         self,

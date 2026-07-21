@@ -553,7 +553,11 @@ class ManagePlotsPage(BasePage):
     @property
     def download_expander(self) -> Locator:
         """The download expander container."""
-        return self.page.locator("[data-testid='stExpander']").filter(has_text="Download")
+        expanders = self.page.locator(
+            "[data-testid='stMainBlockContainer'] [data-testid='stExpander']"
+        )
+        summary = self.page.locator("summary").filter(has_text="Download")
+        return expanders.filter(has=summary)
 
     @property
     def download_format_pills(self) -> Locator:

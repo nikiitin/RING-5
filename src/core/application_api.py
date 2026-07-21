@@ -54,6 +54,7 @@ from src.core.models import (
     AnalysisReviewThread,
     RecoveryDraftCapture,
     RecoveryDraftInfo,
+    GuidedAnalysisProgress,
 )
 from src.core.models.browser_upload_models import BrowserUploadRequest
 from src.core.models.remote_source_models import RemoteSource, RemoteSourcePolicy
@@ -94,6 +95,7 @@ from src.core.services.workspace_command_service import WorkspaceCommandService
 from src.core.services.workspace_metadata_service import WorkspaceMetadataService
 from src.core.services.analysis_review_service import AnalysisReviewService
 from src.core.services.autosave_recovery_service import AutosaveRecoveryService
+from src.core.services.guided_analysis_service import GuidedAnalysisService
 from src.core.state.repository_state_manager import RepositoryStateManager
 from src.parsing.framework.file_discovery import find_stats_files as _find_stats_files
 from src.parsing.parser_protocol import SimulationParser
@@ -512,6 +514,31 @@ class ApplicationAPI:
     def delete_recovery_draft(self, owner_key: str, draft_id: str) -> None:
         """Delete one exact owner-scoped local recovery point."""
         AutosaveRecoveryService.delete(owner_key, draft_id)
+
+    def guided_analysis_progress(self, *, exported: bool = False) -> GuidedAnalysisProgress:
+        """Assess the guided workflow from current workspace evidence.
+
+        Args:
+            exported: Whether this browser session initiated a figure download.
+
+        Returns:
+            Ordered source, validation, comparison, visualization, and export stages.
+        """
+        # [impl->req~ring5.workspace.guided-analysis~1]
+        plots = self.state_manager.get_plots()
+        comparison_ready = self.state_manager.has_preview("regression_comparison") or any(
+            "comparison:" in str(record.get("operation", "")).casefold()
+            for record in self.state_manager.get_manager_history()
+        )
+        return GuidedAnalysisService.assess(
+            self.state_manager.get_data(),
+            comparison_ready=comparison_ready,
+            plot_count=len(plots),
+            rendered_plot_count=sum(
+                getattr(plot, "last_generated_fig", None) is not None for plot in plots
+            ),
+            exported=exported,
+        )
 
     def reset_session(self) -> None:
         """Clear all session data."""

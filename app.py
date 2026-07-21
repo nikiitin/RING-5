@@ -14,6 +14,7 @@ if str(root_dir) not in sys.path:
 def run_app() -> None:
     """Main application entry point."""
     # [impl->req~ring5.workspace.web-app~1]
+    # [impl->req~ring5.workspace.guided-analysis~1]
     # Lazy imports keep Streamlit out of multiprocessing workers that import app.py.
     import streamlit as st
 
@@ -77,10 +78,12 @@ def run_app() -> None:
         from src.web.components.command_palette import CommandPaletteComponent
         from src.web.components.analysis_review import AnalysisReviewComponent
         from src.web.components.autosave_recovery import AutosaveRecoveryComponent
+        from src.web.components.guided_analysis import GuidedAnalysisComponent
         from src.web.components.workspace_organizer import WorkspaceOrganizerComponent
         from src.web.components.workspace_search import WorkspaceSearchComponent
 
         CommandPaletteComponent.render(api)
+        GuidedAnalysisComponent.render(api)
         WorkspaceSearchComponent.render(api)
         WorkspaceOrganizerComponent.render(api)
         AnalysisReviewComponent.render(api)
@@ -116,6 +119,7 @@ def run_app() -> None:
             help="Clear loaded CSV data and plots",
         ):
             api.reset_session()
+            st.session_state.pop(GuidedAnalysisComponent.EXPORT_STATE_KEY, None)
             st.rerun()
 
         if st.button(
@@ -125,6 +129,7 @@ def run_app() -> None:
             help="Reset entire application to defaults",
         ):
             api.reset_session()
+            st.session_state.pop(GuidedAnalysisComponent.EXPORT_STATE_KEY, None)
             st.rerun()
 
     # Header

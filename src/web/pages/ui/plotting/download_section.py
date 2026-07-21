@@ -31,6 +31,13 @@ from src.web.rendering.figure_export import (
 logger = logging.getLogger(__name__)
 
 
+def _mark_guided_analysis_exported() -> None:
+    """Record a real figure-download action for the sidebar workflow."""
+    from src.web.components.guided_analysis import GuidedAnalysisComponent
+
+    GuidedAnalysisComponent.mark_exported()
+
+
 # UI download section
 
 
@@ -39,6 +46,7 @@ def render_download_section(
     plot_name: str,
     fig: go.Figure,
 ) -> None:
+    # [impl->req~ring5.workspace.guided-analysis~1]
     # [impl->req~ring5.export.web-download~1]
     """Engine-aware download controls.
 
@@ -106,15 +114,18 @@ def _render_plotly_download(
                 "the HTML format."
             ) from exc
 
-    st.download_button(
+    clicked = st.download_button(
         label=f"Download {fmt.upper()}",
         data=generate_download,
         file_name=f"{plot_name}{get_plotly_extension(fmt_typed)}",
         mime=get_plotly_mime(fmt_typed),
-        on_click="ignore",
+        on_click=_mark_guided_analysis_exported,
         use_container_width=True,
         key=f"dl_btn_{plot_id}",
     )
+    if clicked is True:
+        _mark_guided_analysis_exported()
+        st.rerun(scope="app")
 
 
 def _render_mpl_download(plot_id: int, plot_name: str) -> None:
@@ -152,11 +163,15 @@ def _render_mpl_download(plot_id: int, plot_name: str) -> None:
             data = matplotlib_download_bytes(mpl_fig, fmt_typed, spec=spec)
         else:
             raise
-    st.download_button(
+    clicked = st.download_button(
         label=f"Download {fmt_typed.upper()}",
         data=data,
         file_name=f"{plot_name}{get_matplotlib_extension(fmt_typed)}",
         mime=get_matplotlib_mime(fmt_typed),
+        on_click=_mark_guided_analysis_exported,
         use_container_width=True,
         key=f"dl_btn_{plot_id}",
     )
+    if clicked is True:
+        _mark_guided_analysis_exported()
+        st.rerun(scope="app")

@@ -170,6 +170,12 @@ from src.core.models.analysis_review_models import (
     AnalysisReviewThread,
 )
 from src.core.models.recovery_models import RecoveryDraftCapture, RecoveryDraftInfo
+from src.core.models.guided_analysis_models import (
+    GuidedAnalysisProgress,
+    GuidedAnalysisStage,
+    GuidedAnalysisStageId,
+    GuidedAnalysisStageStatus,
+)
 from src.core.models.shaper_models import (
     BaseShaperConfig,
     ColumnSelectorConfig,
@@ -280,6 +286,10 @@ __all__ = [
     "AnalysisReviewThread",
     "RecoveryDraftCapture",
     "RecoveryDraftInfo",
+    "GuidedAnalysisProgress",
+    "GuidedAnalysisStage",
+    "GuidedAnalysisStageId",
+    "GuidedAnalysisStageStatus",
     "ShaperStepConfig",
     "SortShaperConfig",
     "SplitApplyGroupConfig",

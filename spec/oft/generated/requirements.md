@@ -192,7 +192,7 @@ Tags: recovery, reliability, status_approved, workspace
 ### Guided analysis workflow
 
 `req~ring5.workspace.guided-analysis~1`
-Status: proposed
+Status: approved
 
 The web application shall guide users through source selection, validation, comparison setup, visualization, and export while preserving access to advanced controls.
 
@@ -201,7 +201,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: guidance, status_proposed, usability, workspace
+Tags: guidance, status_approved, usability, workspace
 
 ## Data Ingestion and Parsing
 

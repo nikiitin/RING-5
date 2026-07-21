@@ -107,7 +107,7 @@ class TestRenderDownloadSectionPlotly:
         mock_bytes.assert_called_once()
         assert kwargs["file_name"] == "myplot.pdf"
         assert kwargs["mime"] == "application/pdf"
-        assert kwargs["on_click"] == "ignore"
+        assert callable(kwargs["on_click"])
 
     @patch("src.web.pages.ui.plotting.download_section.EngineManager")
     @patch("src.web.pages.ui.plotting.download_section.st")

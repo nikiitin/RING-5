@@ -420,7 +420,7 @@ class DataManagersPage(BasePage):
     def apply_comparison(self) -> None:
         """Calculate the comparison and wait for the preview."""
         self.comparison_apply_button.click()
-        self.wait_for_streamlit()
+        self.wait_for_streamlit(expect_rerun=True)
 
     # E2E: Named dataset workspace
 

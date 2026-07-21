@@ -4696,11 +4696,33 @@
       "id": "workspace.guided-analysis",
       "group": "workspace",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Guided analysis workflow",
       "description": "The web application shall guide users through source selection, validation, comparison setup, visualization, and export while preserving access to advanced controls.",
       "tags": ["guidance", "usability", "workspace"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/models/guided_analysis_models.py::GuidedAnalysisProgress",
+          "src/core/services/guided_analysis_service.py::GuidedAnalysisService.assess",
+          "src/core/application_api.py::ApplicationAPI.guided_analysis_progress",
+          "ring5/_session.py::Session.guided_analysis_progress",
+          "src/web/components/guided_analysis.py::GuidedAnalysisComponent.render",
+          "src/web/components/guided_analysis.py::GuidedAnalysisComponent.activate",
+          "src/web/components/guided_analysis.py::GuidedAnalysisComponent.mark_exported",
+          "src/web/components/data_managers/comparison.py::ComparisonManager.render",
+          "src/web/pages/ui/plotting/download_section.py::render_download_section",
+          "app.py::run_app"
+        ],
+        "tests": [
+          "tests/unit/test_guided_analysis_service.py::test_progress_is_ordered_and_requires_real_upstream_evidence",
+          "tests/integration/test_guided_analysis_public_api.py::test_session_reports_real_progress_through_comparison_render_and_export",
+          "tests/ui_unit/test_guided_analysis.py::test_render_shows_one_next_action_and_navigates",
+          "tests/e2e/test_guided_analysis.py::TestGuidedAnalysis.test_guides_comparison_then_records_a_real_figure_download"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/guided-analysis.md#follow-a-guided-analysis"
+        ]
+      }
     },
     {
       "id": "shaping.config-import-export",
@@ -5024,6 +5046,8 @@
       "AnalysisReviewThread": "workspace.collaborative-review",
       "RecoveryDraftCapture": "workspace.autosave-recovery",
       "RecoveryDraftInfo": "workspace.autosave-recovery",
+      "GuidedAnalysisProgress": "workspace.guided-analysis",
+      "GuidedAnalysisStage": "workspace.guided-analysis",
       "__version__": "api.process-lifecycle",
       "available_plot_types": "api.registry-discovery",
       "available_shaper_types": "api.registry-discovery",
@@ -5139,6 +5163,7 @@
       "list_recovery_drafts": "workspace.autosave-recovery",
       "restore_recovery_draft": "workspace.autosave-recovery",
       "delete_recovery_draft": "workspace.autosave-recovery",
+      "guided_analysis_progress": "workspace.guided-analysis",
       "small_multiples": "plots.small-multiples",
       "save_portfolio": "portfolio.save",
       "save_analysis_recipe": "portfolio.analysis-recipes",
@@ -5292,6 +5317,7 @@
       "list_recovery_drafts": "workspace.autosave-recovery",
       "restore_recovery_draft": "workspace.autosave-recovery",
       "delete_recovery_draft": "workspace.autosave-recovery",
+      "guided_analysis_progress": "workspace.guided-analysis",
       "select_dataset": "data.multi-dataset-workspace",
       "set_preview": "data.preview-confirm",
       "set_visualization_config": "plots.independent-state",
