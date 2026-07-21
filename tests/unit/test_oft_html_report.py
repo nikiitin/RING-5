@@ -142,6 +142,24 @@ def test_human_layer_preserves_native_trace_and_links_to_it(
     ) in report
 
 
+def test_status_views_expose_every_lifecycle_without_rewriting_oft_results(
+    native_oft_html: str,
+    small_inventory: dict[str, Any],
+) -> None:
+    """Status views filter inventory metadata while OFT stays authoritative."""
+    # [test->req~ring5.trace.future-status-reporting~1]
+    report = enhance_oft_html(native_oft_html, small_inventory)
+
+    for status in ("approved", "proposed", "draft", "in-development", "blocked"):
+        assert f'data-status-view="{status}"' in report
+        assert f'<option value="{status}">' in report
+    assert 'data-status="approved" data-coverage="covered"' in report
+    assert 'data-status="proposed" data-coverage="uncovered"' in report
+    assert report.index("Requirement status views") < report.index('<main id="oft-native-report">')
+    assert "native covered detail" in report
+    assert "native uncovered detail" in report
+
+
 def test_human_labels_are_html_escaped(
     native_oft_html: str, small_inventory: dict[str, Any]
 ) -> None:

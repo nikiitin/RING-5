@@ -7,29 +7,31 @@ This file is informative; normative items are in the other generated files.
 
 - Feature groups: 13
 - Detailed requirements: 216
-- Approved current requirements: 210
-- Proposed future requirements: 6
+- Approved current requirements: 211
+- Proposed future requirements: 5
 - Draft future requirements: 0
+- In development future requirements: 0
+- Blocked future requirements: 0
 - Generated specification items: 229
 - Live capability bindings: 871
 
 ## Requirements by feature group
 
-| Feature group | Approved | Proposed | Draft | Total |
-| --- | ---: | ---: | ---: | ---: |
-| Interactive Workspace | 14 | 0 | 0 | 14 |
-| Data Ingestion and Parsing | 38 | 0 | 0 | 38 |
-| Dataset Management | 18 | 0 | 0 | 18 |
-| Per-Plot Data Shaping | 16 | 0 | 0 | 16 |
-| Comparison and Statistical Analysis | 3 | 0 | 0 | 3 |
-| Plot Lifecycle | 13 | 0 | 0 | 13 |
-| Plot Types | 17 | 0 | 0 | 17 |
-| Figure Configuration | 30 | 0 | 0 | 30 |
-| Rendering and Export | 13 | 0 | 0 | 13 |
-| Reproducibility and Portfolios | 13 | 0 | 0 | 13 |
-| Automation API and CLI | 17 | 0 | 0 | 17 |
-| Extensibility, Safety, and Quality | 14 | 0 | 0 | 14 |
-| Feature Traceability | 4 | 6 | 0 | 10 |
+| Feature group | Approved | Proposed | Draft | In development | Blocked | Total |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Interactive Workspace | 14 | 0 | 0 | 0 | 0 | 14 |
+| Data Ingestion and Parsing | 38 | 0 | 0 | 0 | 0 | 38 |
+| Dataset Management | 18 | 0 | 0 | 0 | 0 | 18 |
+| Per-Plot Data Shaping | 16 | 0 | 0 | 0 | 0 | 16 |
+| Comparison and Statistical Analysis | 3 | 0 | 0 | 0 | 0 | 3 |
+| Plot Lifecycle | 13 | 0 | 0 | 0 | 0 | 13 |
+| Plot Types | 17 | 0 | 0 | 0 | 0 | 17 |
+| Figure Configuration | 30 | 0 | 0 | 0 | 0 | 30 |
+| Rendering and Export | 13 | 0 | 0 | 0 | 0 | 13 |
+| Reproducibility and Portfolios | 13 | 0 | 0 | 0 | 0 | 13 |
+| Automation API and CLI | 17 | 0 | 0 | 0 | 0 | 17 |
+| Extensibility, Safety, and Quality | 14 | 0 | 0 | 0 | 0 | 14 |
+| Feature Traceability | 5 | 5 | 0 | 0 | 0 | 10 |
 
 ## Drift-checked capability sources
 

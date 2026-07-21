@@ -131,6 +131,32 @@ def test_proposed_requirement_can_expose_missing_coverage() -> None:
     assert "status_proposed" in rendered["requirements.md"]
 
 
+def test_all_requirement_lifecycle_statuses_are_valid_and_rendered() -> None:
+    """Every report status is accepted and gets a distinct generated view."""
+    # [test->req~ring5.trace.future-status-reporting~1]
+    inventory = deepcopy(load_inventory())
+    example = deepcopy(inventory["features"][0])
+    statuses = ("approved", "proposed", "draft", "in-development", "blocked")
+    for index, status in enumerate(statuses[1:]):
+        feature = deepcopy(example)
+        feature["id"] = f"workspace.status-example-{index}"
+        feature["title"] = f"Status example {index}"
+        feature["status"] = status
+        feature["evidence"] = {"implementation": [], "tests": [], "documentation": []}
+        inventory["features"].append(feature)
+
+    validate_inventory(inventory, live_capabilities=discover_live_capabilities())
+    rendered = render_inventory(inventory)
+
+    for status in statuses:
+        assert f"Status: {status}" in rendered["requirements.md"]
+        assert f"status_{status.replace('-', '_')}" in rendered["requirements.md"]
+    assert (
+        "| Approved | Proposed | Draft | In development | Blocked | Total |"
+        in rendered["summary.md"]
+    )
+
+
 def test_duplicate_json_keys_are_rejected(tmp_path: Path) -> None:
     """Ambiguous hand-edited JSON fails loudly instead of losing a value."""
     path = tmp_path / "inventory.json"

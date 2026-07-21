@@ -28,16 +28,18 @@ from typing import Any, cast, get_args
 if __package__:
     from scripts.oft_evidence import collect_evidence_markers, validate_source_evidence
     from scripts.oft_html_report import evidence_fingerprint, inventory_fingerprint
+    from scripts.oft_status import requirement_status_tag, requirement_status_views
 else:
     from oft_evidence import collect_evidence_markers, validate_source_evidence
     from oft_html_report import evidence_fingerprint, inventory_fingerprint
+    from oft_status import requirement_status_tag, requirement_status_views
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_INVENTORY = ROOT / "spec" / "oft" / "inventory.json"
 DEFAULT_OUTPUT_DIR = ROOT / "spec" / "oft" / "generated"
 GENERATED_FILENAMES = ("features.md", "requirements.md", "summary.md")
 HTML_REPORT_FILENAME = "report.html"
-ALLOWED_STATUSES = frozenset({"draft", "proposed", "approved"})
+ALLOWED_STATUSES = frozenset(view.key for view in requirement_status_views())
 ID_PATTERN = re.compile(r"^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$")
 TAG_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")
 
@@ -496,11 +498,7 @@ def _requirement_id(feature: Mapping[str, Any]) -> str:
 def _group_status(features: Sequence[Mapping[str, Any]]) -> str:
     """Derive the maturity of a feature group from its requirements."""
     statuses = {feature["status"] for feature in features}
-    if "approved" in statuses:
-        return "approved"
-    if "proposed" in statuses:
-        return "proposed"
-    return "draft"
+    return next(view.key for view in requirement_status_views() if view.key in statuses)
 
 
 def render_inventory(inventory: Mapping[str, Any]) -> dict[str, str]:
@@ -513,6 +511,7 @@ def render_inventory(inventory: Mapping[str, Any]) -> dict[str, str]:
         Filename-to-content mapping.
     """
     # [impl->req~ring5.trace.inventory-generator~1]
+    # [impl->req~ring5.trace.future-status-reporting~1]
     groups = cast(list[dict[str, Any]], inventory["groups"])
     features = cast(list[dict[str, Any]], inventory["features"])
     by_group: dict[str, list[dict[str, Any]]] = {group["id"]: [] for group in groups}
@@ -528,6 +527,7 @@ def render_inventory(inventory: Mapping[str, Any]) -> dict[str, str]:
     )
     for group in groups:
         status = _group_status(by_group[group["id"]])
+        group_tags = _tags([*group.get("tags", [group["id"]]), requirement_status_tag(status)])
         feature_lines.extend(
             [
                 f"## {group['title']}",
@@ -539,7 +539,7 @@ def render_inventory(inventory: Mapping[str, Any]) -> dict[str, str]:
                 "",
                 "Needs: req",
                 "",
-                f"Tags: {_tags([*group.get('tags', [group['id']]), f'status_{status}'])}",
+                f"Tags: {group_tags}",
                 "",
             ]
         )
@@ -547,8 +547,9 @@ def render_inventory(inventory: Mapping[str, Any]) -> dict[str, str]:
     requirement_lines = _generated_header("RING-5 Detailed Feature Requirements")
     requirement_lines.extend(
         [
-            "Approved items describe current behavior. Proposed items describe future behavior and",
-            "remain visibly uncovered until implementation, tests, and documentation are supplied.",
+            "Approved items describe current behavior. Proposed, draft, in-development, and",
+            "blocked items describe future behavior and remain visibly uncovered until",
+            "implementation, tests, and documentation are supplied.",
             "",
         ]
     )
@@ -569,14 +570,16 @@ def render_inventory(inventory: Mapping[str, Any]) -> dict[str, str]:
                     "",
                     "Needs: impl, test, uman",
                     "",
-                    "Tags: " + _tags([*feature["tags"], f"status_{feature['status']}"]),
+                    "Tags: " + _tags([*feature["tags"], requirement_status_tag(feature["status"])]),
                     "",
                 ]
             )
 
-    approved = sum(feature["status"] == "approved" for feature in features)
-    proposed = sum(feature["status"] == "proposed" for feature in features)
-    draft = sum(feature["status"] == "draft" for feature in features)
+    status_views = requirement_status_views()
+    status_counts = {
+        view.key: sum(feature["status"] == view.key for feature in features)
+        for view in status_views
+    }
     bindings = cast(dict[str, dict[str, str]], inventory["discovery_bindings"])
     summary_lines = _generated_header("RING-5 Feature Inventory Summary")
     summary_lines.extend(
@@ -586,18 +589,20 @@ def render_inventory(inventory: Mapping[str, Any]) -> dict[str, str]:
             "",
             f"- Feature groups: {len(groups)}",
             f"- Detailed requirements: {len(features)}",
-            f"- Approved current requirements: {approved}",
-            f"- Proposed future requirements: {proposed}",
-            f"- Draft future requirements: {draft}",
+            *[
+                f"- {view.label} {view.scope} requirements: {status_counts[view.key]}"
+                for view in status_views
+            ],
             f"- Generated specification items: {len(groups) + len(features)}",
             f"- Live capability bindings: {sum(len(values) for values in bindings.values())}",
             "",
             "## Requirements by feature group",
             "",
-            "| Feature group | Approved | Proposed | Draft | Total |",
-            "| --- | ---: | ---: | ---: | ---: |",
+            "| Feature group | Approved | Proposed | Draft | In development | Blocked | Total |",
+            "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
             *[
-                "| {title} | {approved} | {proposed} | {draft} | {total} |".format(
+                "| {title} | {approved} | {proposed} | {draft} | {in_development} | "
+                "{blocked} | {total} |".format(
                     title=group["title"],
                     approved=sum(
                         feature["status"] == "approved" for feature in by_group[group["id"]]
@@ -606,6 +611,12 @@ def render_inventory(inventory: Mapping[str, Any]) -> dict[str, str]:
                         feature["status"] == "proposed" for feature in by_group[group["id"]]
                     ),
                     draft=sum(feature["status"] == "draft" for feature in by_group[group["id"]]),
+                    in_development=sum(
+                        feature["status"] == "in-development" for feature in by_group[group["id"]]
+                    ),
+                    blocked=sum(
+                        feature["status"] == "blocked" for feature in by_group[group["id"]]
+                    ),
                     total=len(by_group[group["id"]]),
                 )
                 for group in groups

@@ -4759,11 +4759,15 @@
       "id": "trace.future-status-reporting",
       "group": "traceability",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Future requirement status views",
       "description": "The OFT report shall expose separate approved, proposed, draft, in-development, and blocked views without changing native OFT artifact semantics.",
       "tags": ["openfasttrace", "reporting", "status"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": ["scripts/oft_status.py::requirement_status_views", "scripts/generate_oft_inventory.py::render_inventory", "scripts/oft_html_report.py::_human_layer"],
+        "tests": ["tests/unit/test_oft_inventory.py::test_all_requirement_lifecycle_statuses_are_valid_and_rendered", "tests/unit/test_oft_html_report.py::test_status_views_expose_every_lifecycle_without_rewriting_oft_results"],
+        "documentation": ["spec/oft/README.md#requirement-status-views"]
+      }
     },
     {
       "id": "trace.requirement-history",

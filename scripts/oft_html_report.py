@@ -17,8 +17,10 @@ from typing import Any, cast
 
 if __package__:
     from scripts.oft_evidence import EvidenceMarker
+    from scripts.oft_status import requirement_status_views
 else:
     from oft_evidence import EvidenceMarker
+    from oft_status import requirement_status_views
 
 
 class OftHtmlReportError(ValueError):
@@ -224,6 +226,7 @@ def _requirement_card(
 ) -> str:
     feature_id = str(feature["id"])
     status = str(feature["status"])
+    status_label = next(view.label for view in requirement_status_views() if view.key == status)
     coverage = "covered" if covered else "uncovered"
     label = "Covered by OFT" if covered else "Uncovered in OFT"
     search_text = " ".join(
@@ -244,7 +247,7 @@ def _requirement_card(
   <div class="human-requirement-heading">
     <div><code>{_escape(native_id)}</code><h4>{_escape(feature['title'])}</h4></div>
     <div class="human-badges">
-      <span class="human-badge status-{_escape(status)}">{_escape(status.title())}</span>
+      <span class="human-badge status-{_escape(status)}">{_escape(status_label)}</span>
       <span class="human-badge coverage-{coverage}">{label}</span>
     </div>
   </div>
@@ -264,6 +267,7 @@ def _human_layer(
     evidence_markers: Sequence[EvidenceMarker],
     native_targets: Mapping[tuple[str, str, int, str], str],
 ) -> str:
+    # [impl->req~ring5.trace.future-status-reporting~1]
     project_name = str(inventory["project"])
     groups = cast(list[dict[str, Any]], inventory["groups"])
     features = cast(list[dict[str, Any]], inventory["features"])
@@ -278,8 +282,13 @@ def _human_layer(
 
     covered_count = sum(coverage.values())
     uncovered = [feature for feature in features if not coverage[str(feature["id"])]]
-    approved = sum(feature["status"] == "approved" for feature in features)
-    future = len(features) - approved
+    status_views = requirement_status_views()
+    status_counts = {
+        view.key: sum(feature["status"] == view.key for feature in features)
+        for view in status_views
+    }
+    approved = status_counts["approved"]
+    future = sum(status_counts[view.key] for view in status_views if view.scope == "future")
     binding_count = sum(len(values) for values in bindings.values())
     percentage = round(100 * covered_count / len(features)) if features else 100
 
@@ -344,6 +353,23 @@ def _human_layer(
         f'<div class="human-source"><code>{_escape(source)}</code>'
         f"<strong>{len(values)}</strong></div>"
         for source, values in sorted(bindings.items())
+    )
+    status_view_buttons = "".join(
+        (
+            '<button type="button" class="human-status-view" data-status-view="{key}" '
+            'aria-pressed="false">'
+            "<span>{label}</span><strong>{count}</strong><small>{description}</small></button>"
+        ).format(
+            key=_escape(view.key),
+            label=_escape(view.label),
+            count=status_counts[view.key],
+            description=_escape(view.description),
+        )
+        for view in status_views
+    )
+    status_options = "".join(
+        f'<option value="{_escape(view.key)}">{_escape(view.label)}</option>'
+        for view in status_views
     )
     return f"""
 <!-- RING-5 summary added to the native OpenFastTrace HTML below. -->
@@ -410,16 +436,19 @@ def _human_layer(
       <h2>Requirements</h2><p>Search and filter the product catalog; each card links
       to its canonical OFT item below.</p>
     </div>
+    <div class="human-status-views" aria-label="Requirement status views">
+      <button type="button" class="human-status-view active" data-status-view="all"
+        aria-pressed="true">
+        <span>All</span><strong>{len(features)}</strong><small>Complete inventory</small>
+      </button>{status_view_buttons}
+    </div>
     <div class="human-controls">
       <label>Search<input id="human-search" type="search"
         placeholder="Try parser, heatmap, export…"></label>
       <label>Feature group<select id="human-group-filter">
         <option value="all">All groups</option>{group_options}</select></label>
       <label>Status<select id="human-status-filter">
-        <option value="all">All statuses</option>
-        <option value="approved">Approved</option>
-        <option value="proposed">Proposed</option>
-        <option value="draft">Draft</option></select></label>
+        <option value="all">All statuses</option>{status_options}</select></label>
       <label>OFT coverage<select id="human-coverage-filter">
         <option value="all">All</option><option value="covered">Covered</option>
         <option value="uncovered">Uncovered</option></select></label>
@@ -600,6 +629,34 @@ body { margin:0; color:var(--h-ink); background:var(--h-soft); line-height:1.5; 
   border-bottom:1px solid #f2c9b8;
   text-decoration:none;
 }
+.human-status-views {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(145px,1fr));
+  gap:.65rem;
+  margin-bottom:1rem;
+}
+.human-status-view {
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:.15rem .5rem;
+  padding:.8rem;
+  color:var(--h-ink);
+  text-align:left;
+  background:white;
+  border:1px solid var(--h-line);
+  border-radius:12px;
+  cursor:pointer;
+}
+.human-status-view span { font-weight:800; }
+.human-status-view strong { font-size:1.25rem; }
+.human-status-view small { grid-column:1/-1; color:var(--h-muted); }
+.human-status-view:hover,
+.human-status-view:focus-visible { border-color:var(--h-brand); }
+.human-status-view.active {
+  color:#39277f;
+  background:#eeeafe;
+  border-color:#8c78da;
+}
 .human-controls {
   position:sticky;
   top:3.2rem;
@@ -668,7 +725,9 @@ body { margin:0; color:var(--h-ink); background:var(--h-soft); line-height:1.5; 
 .status-approved,
 .coverage-covered { color:var(--h-good); background:var(--h-good-soft); }
 .status-proposed,
-.status-draft { color:#6c5c16; background:#faf4d5; }
+.status-draft,
+.status-in-development { color:#6c5c16; background:#faf4d5; }
+.status-blocked { color:var(--h-bad); background:var(--h-bad-soft); }
 .coverage-uncovered { color:var(--h-bad); background:var(--h-bad-soft); }
 .human-tag { color:#4f5968; background:#eef1f5; font-weight:600; }
 .human-card-footer>a { font-size:.8rem; font-weight:750; }
@@ -785,6 +844,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
 }
 @media print {
   .human-nav,
+  .human-status-views,
   .human-controls { display:none; }
   .human-hero { padding:1rem; color:var(--h-ink); background:white; }
   .human-hero p { color:var(--h-muted); }
@@ -800,6 +860,7 @@ _HUMAN_SCRIPT = r"""
 (() => {
   const cards=[...document.querySelectorAll('.human-requirement')];
   const groups=[...document.querySelectorAll('.human-requirement-group')];
+  const statusViews=[...document.querySelectorAll('.human-status-view')];
   const search=document.querySelector('#human-search');
   const group=document.querySelector('#human-group-filter');
   const status=document.querySelector('#human-status-filter');
@@ -819,11 +880,18 @@ _HUMAN_SCRIPT = r"""
     groups.forEach(section=>{
       section.hidden=!section.querySelector('.human-requirement:not([hidden])');
     });
+    statusViews.forEach(button=>{
+      const active=button.dataset.statusView===status.value;
+      button.classList.toggle('active',active);button.setAttribute('aria-pressed',active);
+    });
     count.textContent=`${visible} of ${cards.length} requirements shown`;empty.hidden=visible!==0;
   }
   [search,group,status,coverage].forEach(control=>{
     control.addEventListener(control===search?'input':'change',filter);
   });
+  statusViews.forEach(button=>button.addEventListener('click',()=>{
+    status.value=button.dataset.statusView;filter();
+  }));
 })();
 </script>
 """

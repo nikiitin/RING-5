@@ -79,6 +79,29 @@ canonical OFT trace item. Generation fails if OFT omits an expected feature or
 requirement. `oft-check` verifies the report's inventory fingerprint
 without needing Java.
 
+## Requirement status views
+
+<!--
+`uman~ring5.trace.future-status-reporting.documentation~1`
+
+Covers:
+- req~ring5.trace.future-status-reporting~1
+
+-->
+
+The HTML inventory offers a separate one-click view for each requirement lifecycle status:
+
+- `approved`: accepted current behavior with implementation, test, and documentation evidence;
+- `proposed`: candidate future behavior ready for review;
+- `draft`: an early requirement whose wording or scope can still change;
+- `in-development`: future behavior currently being implemented; and
+- `blocked`: future behavior that cannot currently progress.
+
+Counts and group summaries use the same five statuses. Only `approved` belongs to the current
+baseline; the other four remain future work until their evidence is reviewed and their status is
+changed. These views filter inventory metadata in the human layer. They do not alter OFT's native
+requirements, artifacts, links, or green/red coverage results.
+
 ## Recording a feature
 
 Add one object to `features` in `inventory.json`:
@@ -86,7 +109,8 @@ Add one object to `features` in `inventory.json`:
 - Give it a stable lowercase ID under the appropriate feature group.
 - Use `approved` for behavior that exists now and supply implementation, test,
   and user-documentation evidence.
-- Use `draft` or `proposed` for future behavior. Evidence lists may be empty,
+- Use `draft`, `proposed`, `in-development`, or `blocked` for future behavior.
+  Evidence lists may be empty,
   so `make oft-trace-all` reports exactly which coverage remains missing.
 - Increment the revision when the behavior changes semantically. Spelling or
   formatting corrections do not require a revision bump.
@@ -118,10 +142,10 @@ See `discovery-audit.md` for the reviewed source surfaces, accepted deltas,
 rejected candidates, and the zero-delta pass that established convergence.
 See `future-roadmap.md` for proposed requirements, their feature branches, and dependency order.
 
-Approved items receive the generated tag `status_approved`; future items use
-`status_draft` or `status_proposed`. The default trace filters by the native OFT
-`approved` status so source-level evidence without catalog tags remains in the graph. The
-all-status trace acts as a development backlog.
+Approved items receive the generated tag `status_approved`; future items use the corresponding
+`status_draft`, `status_proposed`, `status_in_development`, or `status_blocked` tag. The default
+trace filters by the native OFT `approved` status so source-level evidence without catalog tags
+remains in the graph. The all-status trace acts as a development backlog.
 
 <!-- oft:off -->
 The generated IDs follow native OFT syntax, for example
