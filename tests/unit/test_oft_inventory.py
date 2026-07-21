@@ -181,8 +181,7 @@ def test_branch_associations_are_rendered_in_normative_and_summary_markdown() ->
 
     assert "Implementation branch: 006-oft-requirement-history" in rendered["requirements.md"]
     assert (
-        "| `trace.requirement-diff` | proposed | `006-oft-requirement-diff` |"
-        in rendered["summary.md"]
+        "| `trace.readiness-checklist` | proposed | `006-oft-readiness` |" in rendered["summary.md"]
     )
 
 

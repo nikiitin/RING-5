@@ -4817,12 +4817,16 @@
       "id": "trace.requirement-diff",
       "group": "traceability",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "implementation_branch": "006-oft-requirement-diff",
       "title": "Requirement diff",
       "description": "The trace tooling shall compare the current catalog and evidence graph with another Git revision and report added, removed, changed, covered, and uncovered requirements.",
       "tags": ["diff", "git", "openfasttrace"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": ["scripts/diff_oft_inventory.py::compare_requirement_states", "scripts/diff_oft_inventory.py::build_requirement_diff", "scripts/diff_oft_inventory.py::render_text", "scripts/diff_oft_inventory.py::main"],
+        "tests": ["tests/unit/test_oft_requirement_diff.py::test_requirement_diff_compares_git_catalog_and_native_oft_reports", "tests/unit/test_oft_requirement_diff.py::test_requirement_diff_json_is_stable_and_machine_readable", "tests/unit/test_oft_requirement_diff.py::test_requirement_diff_rejects_stale_reports_and_unknown_revisions"],
+        "documentation": ["spec/oft/README.md#compare-requirement-revisions"]
+      }
     },
     {
       "id": "trace.readiness-checklist",

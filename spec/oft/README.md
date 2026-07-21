@@ -142,6 +142,32 @@ cannot silently redefine behavior. History remains ordinary reviewable inventory
 Markdown summarizes it, and the HTML requirement card shows the old normative text and both change
 types without adding obsolete requirements to the native OFT graph.
 
+## Compare requirement revisions
+
+<!--
+`uman~ring5.trace.requirement-diff.documentation~1`
+
+Covers:
+- req~ring5.trace.requirement-diff~1
+
+-->
+
+Compare the working catalog with any commit, tag, or branch:
+
+```shell
+make oft-diff BASE=main
+./python_venv/bin/python scripts/diff_oft_inventory.py main --format json
+```
+
+The human report separates added and removed IDs from changed fields, including individual evidence
+lists. It also lists every currently covered and uncovered requirement plus requirements whose
+coverage changed in either direction. JSON output exposes the same stable fields for automation.
+
+Coverage on both sides comes from the green/red results in each revision's committed native-derived
+OFT report. The command verifies each report's inventory fingerprint and fails instead of inferring
+coverage when a report is missing or stale. Git revisions are resolved to a commit before files are
+read, and the comparison never checks out or modifies either revision.
+
 ## Recording a feature
 
 Add one object to `features` in `inventory.json`:

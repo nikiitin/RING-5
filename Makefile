@@ -30,7 +30,7 @@ OFT_REPORT := spec/oft/generated/report.html
 	test-e2e test-visual \
 	format format-check lint type-check arch-check comments-check docs-check dependency-check \
 	docs-build docs-audit security-audit quality-gate package-check check-outdated pre-commit-install \
-	pre-commit oft-generate oft-check oft-download oft-trace oft-trace-all oft-report clean
+	pre-commit oft-generate oft-check oft-download oft-trace oft-trace-all oft-report oft-diff clean
 
 help:
 	@echo "RING-5 development targets"
@@ -49,6 +49,7 @@ help:
 	@echo "  oft-trace           Trace the approved/current feature baseline"
 	@echo "  oft-trace-all       Trace current and proposed features, exposing future gaps"
 	@echo "  oft-report          Build the HTML traceability report from native OFT output"
+	@echo "  oft-diff            Compare catalog and native coverage with BASE=<git-revision>"
 	@echo "  docs-build          Build the documentation site with Bundler"
 	@echo "  docs-audit          Audit generated routes and local site references"
 	@echo "  package-check       Build and validate wheel and source distributions"
@@ -228,6 +229,10 @@ oft-report: oft-generate oft-download
 		--oft-html "$(OFT_NATIVE_REPORT)" --output "$(OFT_REPORT)"
 	$(PYTHON) scripts/generate_oft_inventory.py --check
 	@echo "Open $(OFT_REPORT) in a browser."
+
+oft-diff:
+	@test -n "$(BASE)" || { echo "Use: make oft-diff BASE=<git-revision>"; exit 2; }
+	$(PYTHON) scripts/diff_oft_inventory.py "$(BASE)"
 
 quality-gate: arch-check comments-check docs-check dependency-check oft-check format-check lint type-check security-audit
 	@echo "Quality gate passed."

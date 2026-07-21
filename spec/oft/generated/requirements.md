@@ -3023,7 +3023,7 @@ Tags: branches, openfasttrace, requirements, status_approved
 ### Requirement diff
 
 `req~ring5.trace.requirement-diff~1`
-Status: proposed
+Status: approved
 
 The trace tooling shall compare the current catalog and evidence graph with another Git revision and report added, removed, changed, covered, and uncovered requirements.
 
@@ -3034,7 +3034,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: diff, git, openfasttrace, status_proposed
+Tags: diff, git, openfasttrace, status_approved
 
 ### Requirement readiness checklist
 
