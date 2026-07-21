@@ -7,17 +7,17 @@ This file is informative; normative items are in the other generated files.
 
 - Feature groups: 13
 - Detailed requirements: 216
-- Approved current requirements: 207
-- Proposed future requirements: 9
+- Approved current requirements: 208
+- Proposed future requirements: 8
 - Draft future requirements: 0
 - Generated specification items: 229
-- Live capability bindings: 846
+- Live capability bindings: 857
 
 ## Requirements by feature group
 
 | Feature group | Approved | Proposed | Draft | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Interactive Workspace | 11 | 3 | 0 | 14 |
+| Interactive Workspace | 12 | 2 | 0 | 14 |
 | Data Ingestion and Parsing | 38 | 0 | 0 | 38 |
 | Dataset Management | 18 | 0 | 0 | 18 |
 | Per-Plot Data Shaping | 16 | 0 | 0 | 16 |
@@ -33,7 +33,7 @@ This file is informative; normative items are in the other generated files.
 
 ## Drift-checked capability sources
 
-- `application_api_members`: 91
+- `application_api_members`: 94
 - `axes_config_fields`: 11
 - `axis_config_fields`: 31
 - `cli_commands`: 7
@@ -57,7 +57,7 @@ This file is informative; normative items are in the other generated files.
 - `parser_strategies`: 2
 - `plot_types`: 17
 - `plotly_formats`: 4
-- `public_exports`: 115
+- `public_exports`: 120
 - `public_shaper_exports`: 15
 - `render_engines`: 2
 - `restore_report_fields`: 5
@@ -65,7 +65,7 @@ This file is informative; normative items are in the other generated files.
 - `scan_result_fields`: 3
 - `scanned_variable_fields`: 4
 - `series_style_config_fields`: 9
-- `session_methods`: 108
+- `session_methods`: 111
 - `settings_sections`: 8
 - `shaper_config_fields`: 13
 - `shaper_types`: 13

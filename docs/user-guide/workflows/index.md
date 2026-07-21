@@ -28,6 +28,7 @@ Use these pages for recurring tasks:
 - [Search the Workspace](workspace-search/) across variables, datasets, plots, pipelines, portfolios, commands, and guides.
 - [Use the Command Palette and Shortcuts](command-palette/) for safe keyboard-driven workspace actions.
 - [Organize Favorites and Tags](favorites-tags/) across variables, datasets, plots, pipelines, and portfolios.
+- [Review an Analysis Together](collaborative-review/) with portable authored comments and statuses.
 - [Create and Configure Plots](plotting/) with per-plot transformation pipelines.
 - [Build Multi-panel Dashboards](multi-panel-dashboards/) from existing plots and export one grid.
 - [Style Line Charts](line-styles/) with matching connectors, dashes, widths, and markers.

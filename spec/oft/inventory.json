@@ -4631,11 +4631,33 @@
       "id": "workspace.collaborative-review",
       "group": "workspace",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Analysis comments and review status",
       "description": "Portable analyses shall retain comments, author identifiers, timestamps, and review statuses attached to plots and portfolio revisions.",
       "tags": ["collaboration", "review", "workspace"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/models/analysis_review_models.py::AnalysisReviewTarget",
+          "src/core/services/analysis_review_service.py::AnalysisReviewService.list_reviews",
+          "src/core/services/analysis_review_service.py::AnalysisReviewService.record",
+          "src/core/application_api.py::ApplicationAPI.list_analysis_review_targets",
+          "src/core/application_api.py::ApplicationAPI.list_analysis_reviews",
+          "src/core/application_api.py::ApplicationAPI.record_analysis_review",
+          "ring5/_session.py::Session.list_analysis_review_targets",
+          "ring5/_session.py::Session.list_analysis_reviews",
+          "ring5/_session.py::Session.record_analysis_review",
+          "src/web/components/analysis_review.py::AnalysisReviewComponent.render"
+        ],
+        "tests": [
+          "tests/unit/test_analysis_review_service.py::test_comments_authors_timestamps_and_status_changes_are_append_only",
+          "tests/integration/test_analysis_review_public_api.py::test_plot_and_revision_reviews_survive_portfolio_bundle_transfer",
+          "tests/ui_unit/test_analysis_review.py::test_render_records_an_authored_status_and_comment",
+          "tests/e2e/test_analysis_review.py::TestAnalysisReview.test_plot_review_retains_author_comment_and_status"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/collaborative-review.md#review-an-analysis-together"
+        ]
+      }
     },
     {
       "id": "workspace.autosave-recovery",
@@ -4972,6 +4994,11 @@
       "WorkspaceCommandSearchResponse": "workspace.command-palette",
       "WorkspaceArtifact": "workspace.favorites-tags",
       "WorkspaceArtifactResponse": "workspace.favorites-tags",
+      "AnalysisReviewEvent": "workspace.collaborative-review",
+      "AnalysisReviewResponse": "workspace.collaborative-review",
+      "AnalysisReviewTarget": "workspace.collaborative-review",
+      "AnalysisReviewTargetResponse": "workspace.collaborative-review",
+      "AnalysisReviewThread": "workspace.collaborative-review",
       "__version__": "api.process-lifecycle",
       "available_plot_types": "api.registry-discovery",
       "available_shaper_types": "api.registry-discovery",
@@ -5080,6 +5107,9 @@
       "search_workspace_commands": "workspace.command-palette",
       "list_workspace_artifacts": "workspace.favorites-tags",
       "set_workspace_artifact_metadata": "workspace.favorites-tags",
+      "list_analysis_review_targets": "workspace.collaborative-review",
+      "list_analysis_reviews": "workspace.collaborative-review",
+      "record_analysis_review": "workspace.collaborative-review",
       "small_multiples": "plots.small-multiples",
       "save_portfolio": "portfolio.save",
       "save_analysis_recipe": "portfolio.analysis-recipes",
@@ -5226,6 +5256,9 @@
       "search_workspace_commands": "workspace.command-palette",
       "list_workspace_artifacts": "workspace.favorites-tags",
       "set_workspace_artifact_metadata": "workspace.favorites-tags",
+      "list_analysis_review_targets": "workspace.collaborative-review",
+      "list_analysis_reviews": "workspace.collaborative-review",
+      "record_analysis_review": "workspace.collaborative-review",
       "select_dataset": "data.multi-dataset-workspace",
       "set_preview": "data.preview-confirm",
       "set_visualization_config": "plots.independent-state",

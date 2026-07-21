@@ -71,6 +71,11 @@ from src.core.models import (
     WorkspaceArtifact,
     WorkspaceArtifactKind,
     WorkspaceArtifactResponse,
+    AnalysisReviewResponse,
+    AnalysisReviewStatus,
+    AnalysisReviewTargetKind,
+    AnalysisReviewTargetResponse,
+    AnalysisReviewThread,
 )
 from src.core.models.data_models import ParseVariableConfig
 from src.core.models.shaper_models import ShaperStepConfig
@@ -882,6 +887,98 @@ class Session:
                 identifier,
                 tags=tags,
                 favorite=favorite,
+            )
+        except (KeyError, OSError, TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def list_analysis_review_targets(
+        self,
+        *,
+        kind: AnalysisReviewTargetKind | None = None,
+        limit: int = 100,
+    ) -> AnalysisReviewTargetResponse:
+        """Discover plots and exact saved portfolio versions that can be reviewed.
+
+        Args:
+            kind: Optional plot or portfolio-revision target filter.
+            limit: Maximum returned targets, from 1 through 100.
+
+        Returns:
+            Bounded targets with transparent indexing and truncation totals.
+
+        Raises:
+            DataValidationError: The filter or retained revision data is invalid.
+        """
+        # [impl->req~ring5.workspace.collaborative-review~1]
+        try:
+            return self.api.list_analysis_review_targets(kind=kind, limit=limit)
+        except (OSError, TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def list_analysis_reviews(
+        self,
+        *,
+        kind: AnalysisReviewTargetKind | None = None,
+        status: AnalysisReviewStatus | None = None,
+        limit: int = 100,
+    ) -> AnalysisReviewResponse:
+        """List portable authored comments and review-status histories.
+
+        Args:
+            kind: Optional plot or portfolio-revision target filter.
+            status: Optional current review status filter.
+            limit: Maximum returned threads, from 1 through 100.
+
+        Returns:
+            Bounded review threads with current status totals.
+
+        Raises:
+            DataValidationError: A filter or portable review document is invalid.
+        """
+        # [impl->req~ring5.workspace.collaborative-review~1]
+        try:
+            return self.api.list_analysis_reviews(kind=kind, status=status, limit=limit)
+        except (OSError, TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def record_analysis_review(
+        self,
+        kind: AnalysisReviewTargetKind,
+        identifier: str,
+        *,
+        author_id: str,
+        comment: str = "",
+        status: AnalysisReviewStatus | None = None,
+        portfolio_name: str | None = None,
+    ) -> AnalysisReviewThread:
+        """Append an authored, timestamped review update to an exact target.
+
+        Review histories are included when this session is saved as a portfolio
+        or portable bundle. Existing events remain append-only.
+
+        Args:
+            kind: Plot or immutable portfolio-revision target kind.
+            identifier: Plot ID or exact SHA-256 portfolio revision ID.
+            author_id: Human or service identifier responsible for the update.
+            comment: Optional review comment, limited to 4,000 characters.
+            status: Optional replacement review status.
+            portfolio_name: Required only for a portfolio-revision target.
+
+        Returns:
+            The complete updated review thread.
+
+        Raises:
+            DataValidationError: The target or review update is invalid.
+        """
+        # [impl->req~ring5.workspace.collaborative-review~1]
+        try:
+            return self.api.record_analysis_review(
+                kind,
+                identifier,
+                author_id=author_id,
+                comment=comment,
+                status=status,
+                portfolio_name=portfolio_name,
             )
         except (KeyError, OSError, TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc

@@ -46,6 +46,12 @@ from src.core.models import (
     WorkspaceArtifact,
     WorkspaceArtifactKind,
     WorkspaceArtifactResponse,
+    AnalysisReviewResponse,
+    AnalysisReviewStatus,
+    AnalysisReviewTarget,
+    AnalysisReviewTargetKind,
+    AnalysisReviewTargetResponse,
+    AnalysisReviewThread,
 )
 from src.core.models.browser_upload_models import BrowserUploadRequest
 from src.core.models.remote_source_models import RemoteSource, RemoteSourcePolicy
@@ -84,6 +90,7 @@ from src.core.services.visualization.plot_configuration_comparison_service impor
 from src.core.services.workspace_search_service import WorkspaceSearchService
 from src.core.services.workspace_command_service import WorkspaceCommandService
 from src.core.services.workspace_metadata_service import WorkspaceMetadataService
+from src.core.services.analysis_review_service import AnalysisReviewService
 from src.core.state.repository_state_manager import RepositoryStateManager
 from src.parsing.framework.file_discovery import find_stats_files as _find_stats_files
 from src.parsing.parser_protocol import SimulationParser
@@ -377,6 +384,111 @@ class ApplicationAPI:
             tags=tags,
             favorite=favorite,
         )
+
+    def list_analysis_review_targets(
+        self,
+        *,
+        kind: AnalysisReviewTargetKind | None = None,
+        limit: int = 100,
+    ) -> AnalysisReviewTargetResponse:
+        """Discover bounded plot and immutable portfolio-revision review targets."""
+        # [impl->req~ring5.workspace.collaborative-review~1]
+        targets, available, truncated = self._analysis_review_targets(kind)
+        return AnalysisReviewService.list_targets(
+            targets,
+            kind=kind,
+            limit=limit,
+            available_targets=available,
+            index_truncated=truncated,
+        )
+
+    def list_analysis_reviews(
+        self,
+        *,
+        kind: AnalysisReviewTargetKind | None = None,
+        status: AnalysisReviewStatus | None = None,
+        limit: int = 100,
+    ) -> AnalysisReviewResponse:
+        """List portable review threads, optionally filtered by target and status."""
+        # [impl->req~ring5.workspace.collaborative-review~1]
+        targets, _available, _truncated = self._analysis_review_targets(kind)
+        return AnalysisReviewService.list_reviews(
+            self.state_manager,
+            targets,
+            kind=kind,
+            status=status,
+            limit=limit,
+        )
+
+    def record_analysis_review(
+        self,
+        kind: AnalysisReviewTargetKind,
+        identifier: str,
+        *,
+        author_id: str,
+        comment: str = "",
+        status: AnalysisReviewStatus | None = None,
+        portfolio_name: str | None = None,
+    ) -> AnalysisReviewThread:
+        """Append an authored comment or status decision to an exact target."""
+        # [impl->req~ring5.workspace.collaborative-review~1]
+        targets, _available, _truncated = self._analysis_review_targets(kind)
+        return AnalysisReviewService.record(
+            self.state_manager,
+            targets,
+            kind,
+            identifier,
+            author_id=author_id,
+            comment=comment,
+            status=status,
+            portfolio_name=portfolio_name,
+        )
+
+    def _analysis_review_targets(
+        self,
+        kind: AnalysisReviewTargetKind | None = None,
+    ) -> tuple[tuple[AnalysisReviewTarget, ...], int, bool]:
+        """Build a bounded target inventory from live plots and saved versions."""
+        from src.core.common.security_limits import MAX_WORKSPACE_SEARCH_ENTRIES_PER_KIND
+
+        targets: list[AnalysisReviewTarget] = []
+        available = 0
+        truncated = False
+        if kind in (None, "plot"):
+            plots = self.state_manager.get_plots()
+            available += len(plots)
+            for plot in plots[:MAX_WORKSPACE_SEARCH_ENTRIES_PER_KIND]:
+                targets.append(
+                    AnalysisReviewTarget(
+                        kind="plot",
+                        identifier=str(plot.plot_id),
+                        title=plot.name,
+                    )
+                )
+            if len(plots) > MAX_WORKSPACE_SEARCH_ENTRIES_PER_KIND:
+                truncated = True
+
+        if kind in (None, "portfolio_revision"):
+            revision_count = 0
+            for portfolio_name in sorted(self.data_services.list_portfolios(), key=str.casefold):
+                for revision in self.data_services.list_portfolio_revisions(portfolio_name):
+                    available += 1
+                    if revision_count >= MAX_WORKSPACE_SEARCH_ENTRIES_PER_KIND:
+                        truncated = True
+                        continue
+                    revision_count += 1
+                    targets.append(
+                        AnalysisReviewTarget(
+                            kind="portfolio_revision",
+                            identifier=revision.revision_id,
+                            title=(
+                                f"{portfolio_name} · version {revision.sequence} · "
+                                f"{revision.created_at[:19].replace('T', ' ')}"
+                            ),
+                            portfolio_name=portfolio_name,
+                        )
+                    )
+        return tuple(targets), available, truncated
 
     def reset_session(self) -> None:
         """Clear all session data."""

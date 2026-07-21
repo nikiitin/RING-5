@@ -140,6 +140,11 @@ if TYPE_CHECKING:
         WorkspaceCommandSearchResponse,
         WorkspaceArtifact,
         WorkspaceArtifactResponse,
+        AnalysisReviewEvent,
+        AnalysisReviewResponse,
+        AnalysisReviewTarget,
+        AnalysisReviewTargetResponse,
+        AnalysisReviewThread,
     )
     from src.core.models.parsing_models import StatConfig
     from src.core.models.quality_models import ColumnQuality, DataQualityReport
@@ -255,6 +260,11 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     ),
     "WorkspaceArtifact": ("src.core.models", "WorkspaceArtifact"),
     "WorkspaceArtifactResponse": ("src.core.models", "WorkspaceArtifactResponse"),
+    "AnalysisReviewEvent": ("src.core.models", "AnalysisReviewEvent"),
+    "AnalysisReviewResponse": ("src.core.models", "AnalysisReviewResponse"),
+    "AnalysisReviewTarget": ("src.core.models", "AnalysisReviewTarget"),
+    "AnalysisReviewTargetResponse": ("src.core.models", "AnalysisReviewTargetResponse"),
+    "AnalysisReviewThread": ("src.core.models", "AnalysisReviewThread"),
     "available_shaper_types": ("ring5.shapers", "available_shaper_types"),
     # Self-contained figure-scripting surface (so scripts import only `ring5`):
     "grouped_bar_coordinates": ("ring5.coordinates", "grouped_bar_coordinates"),
@@ -378,6 +388,11 @@ __all__ = [
     "WorkspaceCommandSearchResponse",
     "WorkspaceArtifact",
     "WorkspaceArtifactResponse",
+    "AnalysisReviewEvent",
+    "AnalysisReviewResponse",
+    "AnalysisReviewTarget",
+    "AnalysisReviewTargetResponse",
+    "AnalysisReviewThread",
     "render_figure",
     "render_dashboard",
     "apply_linked_selection",

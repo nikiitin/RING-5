@@ -164,7 +164,7 @@ Tags: metadata, organization, status_approved, workspace
 ### Analysis comments and review status
 
 `req~ring5.workspace.collaborative-review~1`
-Status: proposed
+Status: approved
 
 Portable analyses shall retain comments, author identifiers, timestamps, and review statuses attached to plots and portfolio revisions.
 
@@ -173,7 +173,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: collaboration, review, status_proposed, workspace
+Tags: collaboration, review, status_approved, workspace
 
 ### Autosave and crash recovery
 
