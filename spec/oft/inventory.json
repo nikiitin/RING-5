@@ -4663,11 +4663,34 @@
       "id": "workspace.autosave-recovery",
       "group": "workspace",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Autosave and crash recovery",
       "description": "The application shall keep bounded local drafts and offer explicit recovery after an interrupted or expired browser session.",
       "tags": ["recovery", "reliability", "workspace"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/models/recovery_models.py::RecoveryDraftInfo",
+          "src/core/services/data_services/portfolio_service.py::PortfolioService.serialize_workspace",
+          "src/core/services/autosave_recovery_service.py::AutosaveRecoveryService.capture",
+          "src/core/services/autosave_recovery_service.py::AutosaveRecoveryService.load",
+          "src/core/application_api.py::ApplicationAPI.create_recovery_draft",
+          "src/core/application_api.py::ApplicationAPI.list_recovery_drafts",
+          "src/core/application_api.py::ApplicationAPI.restore_recovery_draft",
+          "ring5/_session.py::Session.create_recovery_draft",
+          "ring5/_session.py::Session.list_recovery_drafts",
+          "ring5/_session.py::Session.restore_recovery_draft",
+          "src/web/components/autosave_recovery.py::AutosaveRecoveryComponent.render"
+        ],
+        "tests": [
+          "tests/unit/test_autosave_recovery_service.py::test_capture_deduplicates_lists_loads_and_isolates_owner_namespaces",
+          "tests/integration/test_autosave_recovery_public_api.py::test_expired_session_workspace_is_explicitly_recovered_by_owner",
+          "tests/ui_unit/test_autosave_recovery.py::test_render_autosaves_and_explicitly_restores_selected_draft",
+          "tests/e2e/test_autosave_recovery.py::TestAutosaveRecovery.test_new_browser_session_explicitly_recovers_previous_plot"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/autosave-recovery.md#recover-an-interrupted-workspace"
+        ]
+      }
     },
     {
       "id": "workspace.guided-analysis",
@@ -4999,6 +5022,8 @@
       "AnalysisReviewTarget": "workspace.collaborative-review",
       "AnalysisReviewTargetResponse": "workspace.collaborative-review",
       "AnalysisReviewThread": "workspace.collaborative-review",
+      "RecoveryDraftCapture": "workspace.autosave-recovery",
+      "RecoveryDraftInfo": "workspace.autosave-recovery",
       "__version__": "api.process-lifecycle",
       "available_plot_types": "api.registry-discovery",
       "available_shaper_types": "api.registry-discovery",
@@ -5110,6 +5135,10 @@
       "list_analysis_review_targets": "workspace.collaborative-review",
       "list_analysis_reviews": "workspace.collaborative-review",
       "record_analysis_review": "workspace.collaborative-review",
+      "create_recovery_draft": "workspace.autosave-recovery",
+      "list_recovery_drafts": "workspace.autosave-recovery",
+      "restore_recovery_draft": "workspace.autosave-recovery",
+      "delete_recovery_draft": "workspace.autosave-recovery",
       "small_multiples": "plots.small-multiples",
       "save_portfolio": "portfolio.save",
       "save_analysis_recipe": "portfolio.analysis-recipes",
@@ -5259,6 +5288,10 @@
       "list_analysis_review_targets": "workspace.collaborative-review",
       "list_analysis_reviews": "workspace.collaborative-review",
       "record_analysis_review": "workspace.collaborative-review",
+      "create_recovery_draft": "workspace.autosave-recovery",
+      "list_recovery_drafts": "workspace.autosave-recovery",
+      "restore_recovery_draft": "workspace.autosave-recovery",
+      "delete_recovery_draft": "workspace.autosave-recovery",
       "select_dataset": "data.multi-dataset-workspace",
       "set_preview": "data.preview-confirm",
       "set_visualization_config": "plots.independent-state",

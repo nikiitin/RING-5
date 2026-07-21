@@ -52,6 +52,8 @@ from src.core.models import (
     AnalysisReviewTargetKind,
     AnalysisReviewTargetResponse,
     AnalysisReviewThread,
+    RecoveryDraftCapture,
+    RecoveryDraftInfo,
 )
 from src.core.models.browser_upload_models import BrowserUploadRequest
 from src.core.models.remote_source_models import RemoteSource, RemoteSourcePolicy
@@ -91,6 +93,7 @@ from src.core.services.workspace_search_service import WorkspaceSearchService
 from src.core.services.workspace_command_service import WorkspaceCommandService
 from src.core.services.workspace_metadata_service import WorkspaceMetadataService
 from src.core.services.analysis_review_service import AnalysisReviewService
+from src.core.services.autosave_recovery_service import AutosaveRecoveryService
 from src.core.state.repository_state_manager import RepositoryStateManager
 from src.parsing.framework.file_discovery import find_stats_files as _find_stats_files
 from src.parsing.parser_protocol import SimulationParser
@@ -489,6 +492,26 @@ class ApplicationAPI:
                         )
                     )
         return tuple(targets), available, truncated
+
+    def create_recovery_draft(self, owner_key: str) -> RecoveryDraftCapture | None:
+        """Capture meaningful workspace state in the owner's bounded local history."""
+        # [impl->req~ring5.workspace.autosave-recovery~1]
+        return AutosaveRecoveryService.capture(self.state_manager, owner_key)
+
+    def list_recovery_drafts(self, owner_key: str) -> tuple[RecoveryDraftInfo, ...]:
+        """List the current browser owner's local recovery points newest first."""
+        # [impl->req~ring5.workspace.autosave-recovery~1]
+        return AutosaveRecoveryService.list_drafts(owner_key)
+
+    def restore_recovery_draft(self, owner_key: str, draft_id: str) -> RestoreReport:
+        """Explicitly verify and restore one owner-scoped local draft."""
+        # [impl->req~ring5.workspace.autosave-recovery~1]
+        portfolio = AutosaveRecoveryService.load(owner_key, draft_id)
+        return self.state_manager.restore_session(portfolio)
+
+    def delete_recovery_draft(self, owner_key: str, draft_id: str) -> None:
+        """Delete one exact owner-scoped local recovery point."""
+        AutosaveRecoveryService.delete(owner_key, draft_id)
 
     def reset_session(self) -> None:
         """Clear all session data."""

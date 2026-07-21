@@ -76,6 +76,8 @@ from src.core.models import (
     AnalysisReviewTargetKind,
     AnalysisReviewTargetResponse,
     AnalysisReviewThread,
+    RecoveryDraftCapture,
+    RecoveryDraftInfo,
 )
 from src.core.models.data_models import ParseVariableConfig
 from src.core.models.shaper_models import ShaperStepConfig
@@ -982,6 +984,76 @@ class Session:
             )
         except (KeyError, OSError, TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
+
+    def create_recovery_draft(self, owner_key: str) -> RecoveryDraftCapture | None:
+        """Capture meaningful workspace state in a private bounded local draft.
+
+        Args:
+            owner_key: Secret namespace key retained by the caller, never stored raw.
+
+        Returns:
+            Capture details, or ``None`` when the workspace is still empty.
+
+        Raises:
+            PortfolioError: The key, state, or local recovery storage is invalid.
+        """
+        # [impl->req~ring5.workspace.autosave-recovery~1]
+        try:
+            return self.api.create_recovery_draft(owner_key)
+        except (OSError, TypeError, ValueError) as exc:
+            raise PortfolioError(f"Recovery draft could not be created: {exc}") from exc
+
+    def list_recovery_drafts(self, owner_key: str) -> tuple[RecoveryDraftInfo, ...]:
+        """List private local recovery points newest first.
+
+        Args:
+            owner_key: Same secret namespace key used while capturing.
+
+        Returns:
+            Bounded draft metadata without loading embedded workspace data.
+
+        Raises:
+            PortfolioError: The key or local recovery storage is invalid.
+        """
+        # [impl->req~ring5.workspace.autosave-recovery~1]
+        try:
+            return self.api.list_recovery_drafts(owner_key)
+        except (OSError, TypeError, ValueError) as exc:
+            raise PortfolioError(f"Recovery drafts could not be listed: {exc}") from exc
+
+    def restore_recovery_draft(self, owner_key: str, draft_id: str) -> RestoreReport:
+        """Explicitly verify and restore one private local recovery point.
+
+        Args:
+            owner_key: Same secret namespace key used while capturing.
+            draft_id: Exact identifier returned by :meth:`list_recovery_drafts`.
+
+        Returns:
+            Structured report of restored and skipped state.
+
+        Raises:
+            PortfolioError: The draft is absent, modified, invalid, or cannot be restored.
+        """
+        # [impl->req~ring5.workspace.autosave-recovery~1]
+        try:
+            return self.api.restore_recovery_draft(owner_key, draft_id)
+        except (FileNotFoundError, KeyError, OSError, TypeError, ValueError) as exc:
+            raise PortfolioError(f"Recovery draft could not be restored: {exc}") from exc
+
+    def delete_recovery_draft(self, owner_key: str, draft_id: str) -> None:
+        """Delete one exact private local recovery point.
+
+        Args:
+            owner_key: Same secret namespace key used while capturing.
+            draft_id: Exact identifier returned by :meth:`list_recovery_drafts`.
+
+        Raises:
+            PortfolioError: The draft is absent or cannot be safely removed.
+        """
+        try:
+            self.api.delete_recovery_draft(owner_key, draft_id)
+        except (FileNotFoundError, OSError, TypeError, ValueError) as exc:
+            raise PortfolioError(f"Recovery draft could not be deleted: {exc}") from exc
 
     def get_dataset(self, name: str | None = None) -> pd.DataFrame:
         """Return a defensive copy of a named or selected dataset.

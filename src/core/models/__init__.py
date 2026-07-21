@@ -169,6 +169,7 @@ from src.core.models.analysis_review_models import (
     AnalysisReviewTargetResponse,
     AnalysisReviewThread,
 )
+from src.core.models.recovery_models import RecoveryDraftCapture, RecoveryDraftInfo
 from src.core.models.shaper_models import (
     BaseShaperConfig,
     ColumnSelectorConfig,
@@ -277,6 +278,8 @@ __all__ = [
     "AnalysisReviewTargetKind",
     "AnalysisReviewTargetResponse",
     "AnalysisReviewThread",
+    "RecoveryDraftCapture",
+    "RecoveryDraftInfo",
     "ShaperStepConfig",
     "SortShaperConfig",
     "SplitApplyGroupConfig",

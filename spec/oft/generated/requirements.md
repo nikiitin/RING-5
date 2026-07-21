@@ -178,7 +178,7 @@ Tags: collaboration, review, status_approved, workspace
 ### Autosave and crash recovery
 
 `req~ring5.workspace.autosave-recovery~1`
-Status: proposed
+Status: approved
 
 The application shall keep bounded local drafts and offer explicit recovery after an interrupted or expired browser session.
 
@@ -187,7 +187,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: recovery, reliability, status_proposed, workspace
+Tags: recovery, reliability, status_approved, workspace
 
 ### Guided analysis workflow
 

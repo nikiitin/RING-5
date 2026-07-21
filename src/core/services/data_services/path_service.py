@@ -14,6 +14,7 @@ class PathService:
     _portfolio_revisions_dir: Path | None = None
     _dataset_snapshots_dir: Path | None = None
     _analysis_recipes_dir: Path | None = None
+    _recovery_drafts_dir: Path | None = None
 
     @staticmethod
     def reset_caches() -> None:
@@ -24,6 +25,7 @@ class PathService:
         PathService._portfolio_revisions_dir = None
         PathService._dataset_snapshots_dir = None
         PathService._analysis_recipes_dir = None
+        PathService._recovery_drafts_dir = None
 
     @staticmethod
     def get_root_dir() -> Path:
@@ -84,3 +86,11 @@ class PathService:
             PathService._analysis_recipes_dir = PathService.get_data_dir() / "analysis_recipes"
             PathService._analysis_recipes_dir.mkdir(parents=True, exist_ok=True)
         return PathService._analysis_recipes_dir
+
+    @staticmethod
+    def get_recovery_drafts_dir() -> Path:
+        """Get the private bounded browser-recovery draft directory."""
+        if PathService._recovery_drafts_dir is None:
+            PathService._recovery_drafts_dir = PathService.get_data_dir() / "recovery_drafts"
+            PathService._recovery_drafts_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+        return PathService._recovery_drafts_dir

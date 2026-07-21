@@ -89,7 +89,46 @@ class PortfolioService:
         """
         if not name:
             raise ValueError("Portfolio name cannot be empty")
+        payload = self.serialize_workspace(
+            data,
+            plots,
+            config,
+            plot_counter,
+            csv_path=csv_path,
+            parse_variables=parse_variables,
+            figure_spec_enricher=figure_spec_enricher,
+            signing_key=signing_key,
+            signing_key_id=signing_key_id,
+        )
 
+        save_path = self._portfolio_path(name)
+        try:
+            PortfolioRevisionService.retain_and_replace(
+                name,
+                payload,
+                save_path,
+                overwrite=overwrite,
+            )
+        except FileExistsError as exc:
+            raise FileExistsError(f"Portfolio '{name}' already exists at {save_path}") from exc
+
+    def serialize_workspace(
+        self,
+        data: pd.DataFrame | None,
+        plots: list[PlotProtocol],
+        config: dict[str, Any],
+        plot_counter: int,
+        *,
+        csv_path: str | None = None,
+        parse_variables: list[ParseVariableConfig] | None = None,
+        figure_spec_enricher: None | (
+            Callable[[dict[str, Any], str], dict[str, Any] | None]
+        ) = None,
+        signing_key: str | bytes | None = None,
+        signing_key_id: str = "default",
+    ) -> bytes:
+        """Serialize current state into the integrity-checked portfolio format."""
+        # [impl->req~ring5.workspace.autosave-recovery~1]
         logger = logging.getLogger(__name__)
         serialized_plots: list[dict[str, Any]] = []
         for plot in plots:
@@ -97,7 +136,10 @@ class PortfolioService:
             plot_config: dict[str, Any] = plot_dict.get("config", {})
             if figure_spec_enricher is not None:
                 try:
-                    spec_dict = figure_spec_enricher(plot_config, plot_dict.get("plot_type", ""))
+                    spec_dict = figure_spec_enricher(
+                        plot_config,
+                        plot_dict.get("plot_type", ""),
+                    )
                     if spec_dict is not None:
                         plot_dict["figure_spec"] = spec_dict
                 except Exception:
@@ -113,7 +155,6 @@ class PortfolioService:
             if data is not None
             else {}
         )
-
         portfolio_data: dict[str, Any] = {
             "schema_version": PortfolioMigrator.CURRENT_VERSION,
             "version": "4.0",
@@ -126,14 +167,10 @@ class PortfolioService:
             "plot_counter": plot_counter,
             "config": config,
             "parse_variables": parse_variables or [],
-            # Persist parser-vs-CSV mode so restore reinstates it (PortfolioData documents
-            # the key; restore reads it — without this it always defaults back to CSV).
             "use_parser": self.state_manager.is_using_parser(),
-            # Persist stats location & scanning results using injected state manager
             "stats_path": self.state_manager.get_stats_path(),
             "stats_pattern": self.state_manager.get_stats_pattern(),
             "scanned_variables": self.state_manager.get_scanned_variables(),
-            # Persist operation history
             "manager_history": self.state_manager.get_manager_history(),
             "portfolio_history": self.state_manager.get_portfolio_history(),
         }
@@ -142,18 +179,7 @@ class PortfolioService:
             signing_key=signing_key,
             key_id=signing_key_id,
         )
-
-        save_path = self._portfolio_path(name)
-        payload = json.dumps(portfolio_data, indent=2).encode("utf-8")
-        try:
-            PortfolioRevisionService.retain_and_replace(
-                name,
-                payload,
-                save_path,
-                overwrite=overwrite,
-            )
-        except FileExistsError as exc:
-            raise FileExistsError(f"Portfolio '{name}' already exists at {save_path}") from exc
+        return json.dumps(portfolio_data, indent=2).encode("utf-8")
 
     def load_portfolio(
         self,

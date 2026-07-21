@@ -76,6 +76,7 @@ def run_app() -> None:
 
         from src.web.components.command_palette import CommandPaletteComponent
         from src.web.components.analysis_review import AnalysisReviewComponent
+        from src.web.components.autosave_recovery import AutosaveRecoveryComponent
         from src.web.components.workspace_organizer import WorkspaceOrganizerComponent
         from src.web.components.workspace_search import WorkspaceSearchComponent
 
@@ -83,6 +84,7 @@ def run_app() -> None:
         WorkspaceSearchComponent.render(api)
         WorkspaceOrganizerComponent.render(api)
         AnalysisReviewComponent.render(api)
+        AutosaveRecoveryComponent.render(api)
         st.markdown("---")
 
         for _nav_item in _NAV_OPTIONS:

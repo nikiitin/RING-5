@@ -145,6 +145,8 @@ if TYPE_CHECKING:
         AnalysisReviewTarget,
         AnalysisReviewTargetResponse,
         AnalysisReviewThread,
+        RecoveryDraftCapture,
+        RecoveryDraftInfo,
     )
     from src.core.models.parsing_models import StatConfig
     from src.core.models.quality_models import ColumnQuality, DataQualityReport
@@ -265,6 +267,8 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "AnalysisReviewTarget": ("src.core.models", "AnalysisReviewTarget"),
     "AnalysisReviewTargetResponse": ("src.core.models", "AnalysisReviewTargetResponse"),
     "AnalysisReviewThread": ("src.core.models", "AnalysisReviewThread"),
+    "RecoveryDraftCapture": ("src.core.models", "RecoveryDraftCapture"),
+    "RecoveryDraftInfo": ("src.core.models", "RecoveryDraftInfo"),
     "available_shaper_types": ("ring5.shapers", "available_shaper_types"),
     # Self-contained figure-scripting surface (so scripts import only `ring5`):
     "grouped_bar_coordinates": ("ring5.coordinates", "grouped_bar_coordinates"),
@@ -393,6 +397,8 @@ __all__ = [
     "AnalysisReviewTarget",
     "AnalysisReviewTargetResponse",
     "AnalysisReviewThread",
+    "RecoveryDraftCapture",
+    "RecoveryDraftInfo",
     "render_figure",
     "render_dashboard",
     "apply_linked_selection",
