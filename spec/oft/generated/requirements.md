@@ -2422,7 +2422,7 @@ Tags: portfolios, recipes, reproducibility, status_approved
 ### Portfolio history and diff
 
 `req~ring5.portfolio.history-diff~1`
-Status: proposed
+Status: approved
 
 The application shall retain portfolio revisions and display field-level differences in data sources, pipelines, plots, and figure settings.
 
@@ -2431,7 +2431,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: diff, history, portfolios, status_proposed
+Tags: diff, history, portfolios, status_approved
 
 ### Portable analysis bundles
 

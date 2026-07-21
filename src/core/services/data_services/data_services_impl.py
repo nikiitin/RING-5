@@ -16,6 +16,8 @@ from src.core.models import (
     DatasetSnapshotInfo,
     PlotProtocol,
     PortfolioData,
+    PortfolioDiff,
+    PortfolioRevisionInfo,
     RecipeExport,
     RecipeParameter,
     RecipeScalar,
@@ -300,6 +302,27 @@ class DefaultDataServicesAPI:
     def load_portfolio(self, name: str) -> PortfolioData:
         """Load a portfolio by name."""
         return self._portfolio_service.load_portfolio(name)
+
+    def list_portfolio_revisions(self, name: str) -> tuple[PortfolioRevisionInfo, ...]:
+        """List immutable saved versions for a named portfolio."""
+        return self._portfolio_service.list_portfolio_revisions(name)
+
+    def load_portfolio_revision(self, name: str, revision_id: str) -> PortfolioData:
+        """Load one immutable saved portfolio version."""
+        return self._portfolio_service.load_portfolio_revision(name, revision_id)
+
+    def compare_portfolio_revisions(
+        self,
+        name: str,
+        before_revision: str,
+        after_revision: str,
+    ) -> PortfolioDiff:
+        """Compare tracked fields in two saved portfolio versions."""
+        return self._portfolio_service.compare_portfolio_revisions(
+            name,
+            before_revision,
+            after_revision,
+        )
 
     def delete_portfolio(self, name: str) -> None:
         """Delete a portfolio."""

@@ -16,10 +16,18 @@ def clean_portfolio_env(
     """Create isolated portfolio environment using tmp_path instead of real .ring5/."""
     portfolios_dir = tmp_path / "portfolios"
     portfolios_dir.mkdir(parents=True, exist_ok=True)
+    revisions_dir = tmp_path / "portfolio_revisions"
+    revisions_dir.mkdir(parents=True, exist_ok=True)
 
-    with patch(
-        "src.core.services.data_services.path_service.PathService.get_portfolios_dir",
-        return_value=portfolios_dir,
+    with (
+        patch(
+            "src.core.services.data_services.path_service.PathService.get_portfolios_dir",
+            return_value=portfolios_dir,
+        ),
+        patch(
+            "src.core.services.data_services.path_service.PathService.get_portfolio_revisions_dir",
+            return_value=revisions_dir,
+        ),
     ):
         state_manager = RepositoryStateManager()
         portfolio_service = PortfolioService(state_manager)

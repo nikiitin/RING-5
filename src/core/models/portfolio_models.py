@@ -52,6 +52,9 @@ class PortfolioData(TypedDict, total=False):
     Type definition for portfolio restoration data.
 
     Attributes:
+        schema_version: Integer migration version.
+        version: Human-readable portfolio format version.
+        timestamp: Save time in ISO 8601 form.
         parse_variables: List of parser variable configurations
         stats_path: Base path to simulator stats files
         stats_pattern: Pattern for stats file naming
@@ -68,6 +71,9 @@ class PortfolioData(TypedDict, total=False):
         portfolio_history: Full list of operations performed in this portfolio
     """
 
+    schema_version: int
+    version: str
+    timestamp: str
     parse_variables: list[ParseVariableConfig]
     stats_path: str
     stats_pattern: str

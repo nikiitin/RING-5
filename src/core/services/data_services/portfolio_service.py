@@ -3,13 +3,23 @@
 import json
 import logging
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any, cast
 
 import pandas as pd
 
 from src.core.common.utils import sanitize_filename, validate_path_within
-from src.core.models import ParseVariableConfig, PlotProtocol, PortfolioData
+from src.core.models import (
+    ParseVariableConfig,
+    PlotProtocol,
+    PortfolioData,
+    PortfolioDiff,
+    PortfolioRevisionInfo,
+)
 from src.core.services.data_services.path_service import PathService
+from src.core.services.data_services.portfolio_revision_service import (
+    PortfolioRevisionService,
+)
 from src.core.services.environment_metadata_service import EnvironmentMetadataService
 from src.core.services.portfolio_migrator import PortfolioMigrator
 from src.core.state.state_manager import StateManager
@@ -121,16 +131,15 @@ class PortfolioService:
             "portfolio_history": self.state_manager.get_portfolio_history(),
         }
 
-        save_path = validate_path_within(
-            PathService.get_portfolios_dir() / f"{sanitize_filename(name)}.json",
-            PathService.get_portfolios_dir(),
-        )
-        # 'x' = atomic exclusive create: a check-then-write would let two
-        # concurrent savers both pass the check and silently clobber.
-        mode = "w" if overwrite else "x"
+        save_path = self._portfolio_path(name)
+        payload = json.dumps(portfolio_data, indent=2).encode("utf-8")
         try:
-            with open(save_path, mode) as f:
-                json.dump(portfolio_data, f, indent=2)
+            PortfolioRevisionService.retain_and_replace(
+                name,
+                payload,
+                save_path,
+                overwrite=overwrite,
+            )
         except FileExistsError as exc:
             raise FileExistsError(f"Portfolio '{name}' already exists at {save_path}") from exc
 
@@ -140,10 +149,7 @@ class PortfolioService:
         Runs schema migration via :class:`PortfolioMigrator` to ensure
         backward compatibility with older portfolio formats.
         """
-        load_path = validate_path_within(
-            PathService.get_portfolios_dir() / f"{sanitize_filename(name)}.json",
-            PathService.get_portfolios_dir(),
-        )
+        load_path = self._portfolio_path(name)
         if not load_path.exists():
             raise FileNotFoundError(f"Portfolio '{name}' not found")
 
@@ -152,6 +158,26 @@ class PortfolioService:
 
         return cast(PortfolioData, PortfolioMigrator.migrate(raw))
 
+    def list_portfolio_revisions(self, name: str) -> tuple[PortfolioRevisionInfo, ...]:
+        # [impl->req~ring5.portfolio.history-diff~1]
+        """List immutable saved versions for a named portfolio."""
+        return PortfolioRevisionService.list_revisions(name, self._portfolio_path(name))
+
+    def load_portfolio_revision(self, name: str, revision_id: str) -> PortfolioData:
+        # [impl->req~ring5.portfolio.history-diff~1]
+        """Load one checksum-verified portfolio revision."""
+        return PortfolioRevisionService.load_revision(name, revision_id)
+
+    def compare_portfolio_revisions(
+        self,
+        name: str,
+        before_revision: str,
+        after_revision: str,
+    ) -> PortfolioDiff:
+        # [impl->req~ring5.portfolio.history-diff~1]
+        """Return a bounded field-level comparison of two revisions."""
+        return PortfolioRevisionService.compare(name, before_revision, after_revision)
+
     def delete_portfolio(self, name: str) -> None:
         # [impl->req~ring5.portfolio.manage~1]
         """Delete a portfolio if it exists.
@@ -159,9 +185,12 @@ class PortfolioService:
         Args:
             name: Portfolio name, without a filename extension.
         """
-        path = validate_path_within(
-            PathService.get_portfolios_dir() / f"{sanitize_filename(name)}.json",
-            PathService.get_portfolios_dir(),
-        )
+        path = self._portfolio_path(name)
         if path.exists():
             path.unlink()
+        PortfolioRevisionService.delete_history(name)
+
+    @staticmethod
+    def _portfolio_path(name: str) -> Path:
+        directory = PathService.get_portfolios_dir()
+        return validate_path_within(directory / f"{sanitize_filename(name)}.json", directory)

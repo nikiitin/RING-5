@@ -260,6 +260,12 @@ class TestPathService:
             assert portfolios_dir.exists()
             assert portfolios_dir == tmp_path / ".ring5" / "portfolios"
 
+    def test_get_portfolio_revisions_dir_creates_directory(self, tmp_path: Path) -> None:
+        with patch.object(PathService, "get_root_dir", return_value=tmp_path):
+            revisions_dir = PathService.get_portfolio_revisions_dir()
+            assert revisions_dir.exists()
+            assert revisions_dir == tmp_path / ".ring5" / "portfolio_revisions"
+
     def test_get_dataset_snapshots_dir_creates_directory(self, tmp_path: Path) -> None:
         # [test->req~ring5.data.dataset-snapshots~1]
         with patch.object(PathService, "get_root_dir", return_value=tmp_path):

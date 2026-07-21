@@ -87,6 +87,48 @@ Portfolios are JSON files under the RING-5 application data directory. It defaul
 `.ring5/portfolios/` in the checkout. Set `RING5_DATA_DIR` before starting RING-5 to use an isolated
 or backed-up location.
 
+## Compare saved portfolio versions
+
+<!--
+`uman~ring5.portfolio.history-diff.documentation~1`
+
+Covers:
+- req~ring5.portfolio.history-diff~1
+
+-->
+
+Every successful save retains an immutable version. Under **Manage Saved Portfolios**, expand a
+portfolio to see its versions in save order, their source mode, plot count, current status, and a
+short content ID. Choose an earlier and later version, then select **Compare saved versions**.
+
+The comparison groups field-level changes into **Data sources**, **Pipelines**, **Plots**, and
+**Figure settings**. Embedded CSV rows are deliberately excluded: changing only stored table
+values does not expose those values in this report. Comparisons stop after 5,000 field changes and
+show a warning when that safety limit is reached. Deleting a portfolio also deletes all of its
+retained versions.
+
+Python callers receive immutable `PortfolioRevisionInfo`, `PortfolioDiff`, and
+`PortfolioDiffEntry` records. A retained version can be restored for inspection without making it
+the current saved version:
+
+```python
+with ring5.Session() as session:
+    versions = session.list_portfolio_revisions("paper-a")
+    changes = session.compare_portfolio_revisions(
+        "paper-a",
+        versions[-2].revision_id,
+        versions[-1].revision_id,
+    )
+    for change in changes.entries:
+        print(change.section, change.path, change.before, change.after)
+
+    report = session.restore_portfolio_revision("paper-a", versions[-2].revision_id)
+```
+
+Portfolios saved before this feature are captured as a baseline when their history is first
+opened. Revision IDs are SHA-256 checksums of the exact saved JSON bytes; RING-5 verifies the
+checksum before loading or comparing a version.
+
 ## Review restoration outcomes
 
 <!--
@@ -111,8 +153,9 @@ Covers:
 
 -->
 
-**Manage Saved Portfolios** lists each stored snapshot. Expanding one and selecting **Delete**
-removes that named portfolio file. Keep a separate backup when a snapshot cannot be recreated.
+**Manage Saved Portfolios** lists each stored snapshot. Expanding one and selecting **Delete
+portfolio and saved versions** removes that named portfolio and its retained history. Keep a
+separate backup when a snapshot cannot be recreated.
 
 ## Save a reusable analysis recipe
 

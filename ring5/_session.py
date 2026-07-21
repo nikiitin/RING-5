@@ -46,6 +46,8 @@ from src.core.models import (
     PlotTransferMode,
     PlotTransferResult,
     PortfolioData,
+    PortfolioDiff,
+    PortfolioRevisionInfo,
     ReportFigure,
     RecipeExport,
     RecipeParameter,
@@ -2463,6 +2465,29 @@ class Session:
         except (OSError, TypeError, ValueError) as exc:
             raise PortfolioError(f"Portfolio '{name}' could not be read: {exc}") from exc
 
+    def _read_portfolio_revision_data(
+        self,
+        name: str,
+        revision_id: str,
+    ) -> PortfolioData:
+        """Read one portfolio revision while preserving public error types."""
+        from src.core.services.portfolio_migrator import (
+            PortfolioVersionError as CoreVersionError,
+        )
+
+        from ring5.errors import PortfolioVersionError
+
+        try:
+            return self.api.data_services.load_portfolio_revision(name, revision_id)
+        except FileNotFoundError as exc:
+            raise PortfolioError(str(exc)) from exc
+        except CoreVersionError as exc:
+            raise PortfolioVersionError(str(exc)) from exc
+        except (OSError, TypeError, ValueError) as exc:
+            raise PortfolioError(
+                f"Portfolio revision for '{name}' could not be read: {exc}"
+            ) from exc
+
     def compare_portfolio_environment(
         self, name: str, *, refresh: bool = False
     ) -> EnvironmentComparison:
@@ -2555,6 +2580,102 @@ class Session:
             return self.api.state_manager.restore_session(data)
         except (KeyError, TypeError, ValueError) as exc:
             raise PortfolioError(f"Portfolio '{name}' could not be restored: {exc}") from exc
+
+    def list_portfolio_revisions(self, name: str) -> tuple[PortfolioRevisionInfo, ...]:
+        # [impl->req~ring5.portfolio.history-diff~1]
+        """List retained versions of a saved portfolio.
+
+        Existing portfolios created before revision retention are captured as
+        a baseline the first time they are listed.
+
+        Args:
+            name: Saved portfolio name.
+
+        Returns:
+            Immutable version summaries in save order.
+
+        Raises:
+            PortfolioError: Revision history could not be read.
+        """
+        try:
+            return self.api.data_services.list_portfolio_revisions(name)
+        except (OSError, TypeError, ValueError) as exc:
+            raise PortfolioError(
+                f"Portfolio history for '{name}' could not be read: {exc}"
+            ) from exc
+
+    def compare_portfolio_revisions(
+        self,
+        name: str,
+        before_revision: str,
+        after_revision: str,
+    ) -> PortfolioDiff:
+        # [impl->req~ring5.portfolio.history-diff~1]
+        """Compare reviewable fields in two saved portfolio versions.
+
+        Embedded data rows are deliberately excluded. The result groups leaf
+        changes into data sources, pipelines, plots, and figure settings.
+
+        Args:
+            name: Saved portfolio name.
+            before_revision: SHA-256 identity of the earlier version.
+            after_revision: SHA-256 identity of the later version.
+
+        Returns:
+            Bounded field-level difference entries and section totals.
+
+        Raises:
+            PortfolioError: Either revision is missing, invalid, or unreadable.
+            PortfolioVersionError: A revision uses a newer portfolio schema.
+        """
+        from src.core.services.portfolio_migrator import (
+            PortfolioVersionError as CoreVersionError,
+        )
+
+        from ring5.errors import PortfolioVersionError
+
+        try:
+            return self.api.data_services.compare_portfolio_revisions(
+                name,
+                before_revision,
+                after_revision,
+            )
+        except FileNotFoundError as exc:
+            raise PortfolioError(str(exc)) from exc
+        except CoreVersionError as exc:
+            raise PortfolioVersionError(str(exc)) from exc
+        except (OSError, TypeError, ValueError) as exc:
+            raise PortfolioError(
+                f"Portfolio revisions for '{name}' could not be compared: {exc}"
+            ) from exc
+
+    def restore_portfolio_revision(self, name: str, revision_id: str) -> RestoreReport:
+        # [impl->req~ring5.portfolio.history-diff~1]
+        """Restore one retained portfolio version into this session.
+
+        Restoring does not replace the named portfolio on disk. Call
+        :meth:`save_portfolio` explicitly if the restored state should become
+        a new current version.
+
+        Args:
+            name: Saved portfolio name.
+            revision_id: SHA-256 identity returned by
+                :meth:`list_portfolio_revisions`.
+
+        Returns:
+            A report describing restored and skipped content.
+
+        Raises:
+            PortfolioError: The revision is unavailable or cannot be restored.
+            PortfolioVersionError: The revision uses a newer portfolio schema.
+        """
+        data = self._read_portfolio_revision_data(name, revision_id)
+        try:
+            return self.api.state_manager.restore_session(data)
+        except (KeyError, TypeError, ValueError) as exc:
+            raise PortfolioError(
+                f"Portfolio revision for '{name}' could not be restored: {exc}"
+            ) from exc
 
     # analysis recipes
     def capture_analysis_recipe(

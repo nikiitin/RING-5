@@ -99,6 +99,11 @@ from src.core.models.visualization.plot_configuration_comparison import (
     PlotConfigurationComparison,
 )
 from src.core.models.portfolio_models import PortfolioData, RestoreReport
+from src.core.models.portfolio_revision_models import (
+    PortfolioDiff,
+    PortfolioDiffEntry,
+    PortfolioRevisionInfo,
+)
 from src.core.models.recipe_models import (
     AnalysisRecipe,
     AnalysisRecipeInfo,
@@ -201,6 +206,9 @@ __all__ = [
     "StatConfig",
     "TransformerShaperConfig",
     "PortfolioData",
+    "PortfolioDiff",
+    "PortfolioDiffEntry",
+    "PortfolioRevisionInfo",
     "RestoreReport",
     "ReportFigure",
     "ReportNarrative",

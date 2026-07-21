@@ -4213,11 +4213,36 @@
       "id": "portfolio.history-diff",
       "group": "reproducibility",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Portfolio history and diff",
       "description": "The application shall retain portfolio revisions and display field-level differences in data sources, pipelines, plots, and figure settings.",
       "tags": ["diff", "history", "portfolios"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/models/portfolio_revision_models.py::PortfolioRevisionInfo",
+          "src/core/services/data_services/portfolio_revision_service.py::PortfolioRevisionService.retain_and_replace",
+          "src/core/services/data_services/portfolio_revision_service.py::PortfolioRevisionService.list_revisions",
+          "src/core/services/data_services/portfolio_revision_service.py::PortfolioRevisionService.compare",
+          "src/core/services/data_services/portfolio_service.py::PortfolioService.list_portfolio_revisions",
+          "src/core/services/data_services/portfolio_service.py::PortfolioService.load_portfolio_revision",
+          "src/core/services/data_services/portfolio_service.py::PortfolioService.compare_portfolio_revisions",
+          "ring5/_session.py::Session.list_portfolio_revisions",
+          "ring5/_session.py::Session.compare_portfolio_revisions",
+          "ring5/_session.py::Session.restore_portfolio_revision",
+          "src/web/components/portfolio_history_component.py::PortfolioHistoryComponent.render"
+        ],
+        "tests": [
+          "tests/unit/test_portfolio_revision_service.py::test_retains_exact_versions_and_identifies_current",
+          "tests/unit/test_portfolio_revision_service.py::test_compare_groups_reviewable_changes_and_omits_embedded_rows",
+          "tests/unit/test_portfolio_history_component.py::test_lists_versions_and_renders_field_level_comparison",
+          "tests/integration/test_portfolio_history_public_api.py::test_portfolio_revisions_compare_and_restore",
+          "tests/integration/test_portfolio_history_public_api.py::test_portfolio_revision_errors_use_public_types",
+          "tests/e2e/test_portfolio.py::TestPortfolioSaveLoad.test_05_compare_saved_portfolio_versions"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/portfolios.md#compare-saved-portfolio-versions"
+        ]
+      }
     },
     {
       "id": "portfolio.portable-bundles",
@@ -4659,7 +4684,10 @@
       "PipelineConfigImportResult": "shaping.config-import-export",
       "PipelineError": "api.typed-errors",
       "PlotType": "api.registry-discovery",
+      "PortfolioDiff": "portfolio.history-diff",
+      "PortfolioDiffEntry": "portfolio.history-diff",
       "PortfolioError": "api.typed-errors",
+      "PortfolioRevisionInfo": "portfolio.history-diff",
       "PortfolioVersionError": "api.typed-errors",
       "ReferenceLineOpts": "api.figure-spec",
       "RecipeError": "portfolio.analysis-recipes",
@@ -4714,6 +4742,7 @@
       "compare": "analysis.regression-comparison",
       "compare_datasets": "data.multi-dataset-workspace",
       "compare_portfolio_environment": "portfolio.environment-metadata",
+      "compare_portfolio_revisions": "portfolio.history-diff",
       "compare_statistics": "analysis.statistical-comparison",
       "convert_unit": "data.semantic-units",
       "compare_plot_configurations": "plots.configuration-comparison",
@@ -4748,6 +4777,7 @@
       "list_datasets": "data.multi-dataset-workspace",
       "list_analysis_recipes": "portfolio.analysis-recipes",
       "list_dataset_snapshots": "data.dataset-snapshots",
+      "list_portfolio_revisions": "portfolio.history-diff",
       "load": "ingestion.csv-load",
       "load_analysis_recipe": "portfolio.analysis-recipes",
       "load_import": "ingestion.import-preview",
@@ -4780,6 +4810,7 @@
       "shape": "shaping.independent-pipelines",
       "supported_units": "data.semantic-units",
       "restore_dataset_revision": "data.lineage-undo-redo",
+      "restore_portfolio_revision": "portfolio.history-diff",
       "undo_dataset": "data.lineage-undo-redo",
       "validate_schema": "data.schema-contracts"
     },
@@ -4915,6 +4946,7 @@
       "build_statistics_list": "ingestion.variable-entry-selection",
       "capture_analysis_recipe": "portfolio.analysis-recipes",
       "clear_caches": "quality.bounded-caching",
+      "compare_portfolio_revisions": "portfolio.history-diff",
       "delete_configuration": "data.saved-pipeline-configurations",
       "delete_analysis_recipe": "portfolio.analysis-recipes",
       "delete_from_csv_pool": "ingestion.csv-pool",
@@ -4936,12 +4968,14 @@
       "list_portfolios": "portfolio.manage",
       "list_analysis_recipes": "portfolio.analysis-recipes",
       "list_dataset_snapshots": "data.dataset-snapshots",
+      "list_portfolio_revisions": "portfolio.history-diff",
       "load_configuration": "data.saved-pipeline-configurations",
       "load_analysis_recipe": "portfolio.analysis-recipes",
       "load_csv_file": "ingestion.csv-load",
       "load_csv_pool": "ingestion.csv-pool",
       "load_dataset_snapshot": "data.dataset-snapshots",
       "load_portfolio": "portfolio.restore",
+      "load_portfolio_revision": "portfolio.history-diff",
       "load_saved_configs": "data.saved-pipeline-configurations",
       "parse_comma_separated_entries": "ingestion.variable-entry-selection",
       "materialize_analysis_recipe": "portfolio.analysis-recipes",

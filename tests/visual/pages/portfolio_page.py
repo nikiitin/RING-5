@@ -119,6 +119,21 @@ class PortfolioPage(BasePage):
         """Portable versioned recipe download action."""
         return self.analysis_recipes_expander.get_by_role("button", name="Download recipe JSON")
 
+    def managed_portfolio(self, name: str) -> Locator:
+        """Return the management expander for one named portfolio."""
+        return self.page.locator("[data-testid='stExpander']").filter(has_text=name)
+
+    def compare_saved_versions_button(self, name: str) -> Locator:
+        """Return the history comparison action for one named portfolio."""
+        return self.managed_portfolio(name).get_by_role("button", name="Compare saved versions")
+
+    @property
+    def version_change_summary(self) -> Locator:
+        """Successful field-level difference summary."""
+        return self.page.locator("[data-testid='stAlertContentSuccess']").filter(
+            has_text="setup change"
+        )
+
     # Assertions
 
     def assert_page_header_visible(self) -> None:
@@ -154,6 +169,20 @@ class PortfolioPage(BasePage):
         self.save_recipe_button.click()
         self.wait_for_streamlit(expect_rerun=True)
         self.page.wait_for_timeout(500)
+
+    def open_saved_portfolio(self, name: str) -> None:
+        """Expand the management panel for *name*."""
+        expander = self.managed_portfolio(name)
+        expect(expander).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        if not self.compare_saved_versions_button(name).is_visible():
+            expander.locator("summary").click()
+        expect(self.compare_saved_versions_button(name)).to_be_visible(timeout=self.RENDER_TIMEOUT)
+
+    def compare_default_saved_versions(self, name: str) -> None:
+        """Compare the default earlier and later versions for *name*."""
+        self.open_saved_portfolio(name)
+        self.compare_saved_versions_button(name).click()
+        self.wait_for_streamlit()
 
     def select_portfolio(self, name: str) -> None:
         """Select *name* unless Streamlit already selected it."""

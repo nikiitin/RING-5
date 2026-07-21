@@ -107,7 +107,28 @@ class TestPortfolioSaveLoad:
         assert document["plots"][1]["pipeline"]
 
     @pytest.mark.order(5)
-    def test_05_portfolio_in_manage_list(self, tier3_page: Page) -> None:
+    def test_05_compare_saved_portfolio_versions(self, tier3_page: Page) -> None:
+        # [test->req~ring5.portfolio.history-diff~1]
+        """Overwrite after a plot change and review the exact changed field."""
+        plots = ManagePlotsPage(tier3_page)
+        plots.navigate()
+        plots.select_plot("E2E Shaped")
+        plots.rename_plot("E2E Shaped revised")
+
+        pf = PortfolioPage(tier3_page)
+        pf.navigate()
+        pf.save_name_input.fill(PORTFOLIO_NAME)
+        pf.save_button.click()
+        pf.wait_for_streamlit(expect_rerun=True)
+        pf.compare_default_saved_versions(PORTFOLIO_NAME)
+
+        expect(pf.version_change_summary).to_be_visible(timeout=E2E_TIMEOUT)
+        expect(
+            pf.managed_portfolio(PORTFOLIO_NAME).get_by_text("E2E Shaped revised", exact=True)
+        ).to_have_text("E2E Shaped revised", timeout=E2E_TIMEOUT)
+
+    @pytest.mark.order(6)
+    def test_06_portfolio_in_manage_list(self, tier3_page: Page) -> None:
         """Verify saved portfolio still appears in manage section after renavigation."""
         pf = PortfolioPage(tier3_page)
         pf.navigate()
@@ -116,8 +137,8 @@ class TestPortfolioSaveLoad:
         expander = tier3_page.locator("[data-testid='stExpander']").filter(has_text=PORTFOLIO_NAME)
         expect(expander).to_be_visible(timeout=E2E_TIMEOUT)
 
-    @pytest.mark.order(6)
-    def test_06_load_portfolio(self, tier3_page: Page) -> None:
+    @pytest.mark.order(7)
+    def test_07_load_portfolio(self, tier3_page: Page) -> None:
         """Select portfolio from dropdown, click Load Portfolio, wait for reload."""
         pf = PortfolioPage(tier3_page)
         pf.navigate()
@@ -132,16 +153,16 @@ class TestPortfolioSaveLoad:
         tier3_page.wait_for_timeout(3000)
         pf.wait_for_streamlit()
 
-    @pytest.mark.order(7)
-    def test_07_data_survives_load(self, tier3_page: Page) -> None:
+    @pytest.mark.order(8)
+    def test_08_data_survives_load(self, tier3_page: Page) -> None:
         """After loading portfolio, Data Managers still shows data."""
         dm = DataManagersPage(tier3_page)
         dm.navigate()
         dm.assert_page_header_visible()
         dm.assert_has_data()
 
-    @pytest.mark.order(8)
-    def test_08_plots_survive_load(self, tier3_page: Page) -> None:
+    @pytest.mark.order(9)
+    def test_09_plots_survive_load(self, tier3_page: Page) -> None:
         """After loading portfolio, Manage Plots shows 'E2E Bar' pill."""
         mp = ManagePlotsPage(tier3_page)
         mp.navigate()

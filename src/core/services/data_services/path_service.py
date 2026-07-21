@@ -11,6 +11,7 @@ class PathService:
     _root_dir: Path | None = None
     _data_dir: Path | None = None
     _portfolios_dir: Path | None = None
+    _portfolio_revisions_dir: Path | None = None
     _dataset_snapshots_dir: Path | None = None
     _analysis_recipes_dir: Path | None = None
 
@@ -20,6 +21,7 @@ class PathService:
         PathService._root_dir = None
         PathService._data_dir = None
         PathService._portfolios_dir = None
+        PathService._portfolio_revisions_dir = None
         PathService._dataset_snapshots_dir = None
         PathService._analysis_recipes_dir = None
 
@@ -55,6 +57,16 @@ class PathService:
             PathService._portfolios_dir = PathService.get_data_dir() / "portfolios"
             PathService._portfolios_dir.mkdir(parents=True, exist_ok=True)
         return PathService._portfolios_dir
+
+    @staticmethod
+    def get_portfolio_revisions_dir() -> Path:
+        """Get the immutable portfolio-revision directory."""
+        if PathService._portfolio_revisions_dir is None:
+            PathService._portfolio_revisions_dir = (
+                PathService.get_data_dir() / "portfolio_revisions"
+            )
+            PathService._portfolio_revisions_dir.mkdir(parents=True, exist_ok=True)
+        return PathService._portfolio_revisions_dir
 
     @staticmethod
     def get_dataset_snapshots_dir() -> Path:

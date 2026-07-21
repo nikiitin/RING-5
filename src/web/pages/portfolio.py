@@ -16,6 +16,7 @@ from src.core.services.environment_metadata_service import EnvironmentMetadataSe
 from src.core.services.portfolio_migrator import PortfolioVersionError
 from src.web.components.report_composer import ReportComposer
 from src.web.components.analysis_recipe_component import AnalysisRecipeComponent
+from src.web.components.portfolio_history_component import PortfolioHistoryComponent
 from src.web.rendering.config_builder import build_figure_spec_dict
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -173,13 +174,14 @@ def _portfolio_fragment(api: ApplicationAPI) -> None:
     if portfolios:
         for pname in portfolios:
             with st.expander(f"{pname}"):
+                PortfolioHistoryComponent.render(api, pname)
 
                 def _delete_portfolio(name: str = pname) -> None:
                     api.data_services.delete_portfolio(name)
-                    st.toast(f"Deleted {name}", icon="🗑️")
+                    st.toast(f"Deleted {name} and its saved versions", icon="🗑️")
 
                 st.button(
-                    "Delete",
+                    "Delete portfolio and saved versions",
                     key=f"del_portfolio_{pname}",
                     on_click=_delete_portfolio,
                     type="tertiary",

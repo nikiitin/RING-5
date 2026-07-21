@@ -84,6 +84,13 @@ portfolio data. `DataServicesAPI` exposes capture, save, list, load, delete, imp
 materialization. Execution remains in the public `Session` composition root because it coordinates
 parsing, shapers, plot construction, rendering, and file export across layer boundaries.
 
+`PortfolioRevisionService` content-addresses the exact JSON bytes from each successful portfolio
+save and verifies their SHA-256 identity on read. It lazily captures an existing portfolio as a
+baseline, atomically replaces the current file, and produces bounded leaf differences for source,
+pipeline, plot, and figure-setting sections without reading embedded CSV rows into the comparison.
+`DataServicesAPI` exposes revision listing, loading, and comparison; portfolio deletion removes the
+matching revision directory as well as the current file.
+
 ## Shapers
 
 `ShapersAPI` exposes registered identifiers and ordered pipeline execution. `PipelineService`

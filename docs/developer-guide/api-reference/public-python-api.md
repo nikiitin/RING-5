@@ -108,6 +108,13 @@ side effects; `run_analysis_recipe` loads or parses the source, applies shared a
 validates mappings, replaces the session plots, and writes declared exports. Storage and validation
 failures raise `RecipeError`; execution retains narrower parser, pipeline, plot, and export errors.
 
+`Session.list_portfolio_revisions` returns checksum-verified `PortfolioRevisionInfo` records in
+save order. `compare_portfolio_revisions` returns a bounded `PortfolioDiff` whose entries cover
+source provenance, pipelines, plot definitions, and appearance settings but never embedded table
+rows. `restore_portfolio_revision` restores one retained version without changing the saved current
+version. Storage, checksum, and identifier failures use `PortfolioError`; newer schemas use
+`PortfolioVersionError`.
+
 `scan_limit=0` means exhaustive variable discovery up to the global 10,000-file ceiling; a positive
 value is an exact sample cap. A scan with any failed files raises `ScanError` at the public boundary;
 pass `strict=False` to `ScanJob.finalize` or `Session.scan` only when a documented partial result is

@@ -252,6 +252,20 @@ class TestDefaultDataServicesAPI:
         api._portfolio_service.load_portfolio.return_value = {"name": "p1"}
         assert api.load_portfolio("p1") == {"name": "p1"}
 
+    def test_portfolio_revision_delegation(self, api: DefaultDataServicesAPI) -> None:
+        api._portfolio_service = MagicMock()
+        api._portfolio_service.list_portfolio_revisions.return_value = ("revision",)
+        api._portfolio_service.load_portfolio_revision.return_value = {"plots": []}
+        difference = MagicMock()
+        api._portfolio_service.compare_portfolio_revisions.return_value = difference
+
+        assert api.list_portfolio_revisions("p1") == ("revision",)
+        assert api.load_portfolio_revision("p1", "a" * 64) == {"plots": []}
+        assert api.compare_portfolio_revisions("p1", "a" * 64, "b" * 64) is difference
+        api._portfolio_service.compare_portfolio_revisions.assert_called_once_with(
+            "p1", "a" * 64, "b" * 64
+        )
+
     def test_delete_portfolio(self, api: DefaultDataServicesAPI) -> None:
         api._portfolio_service = MagicMock()
         api.delete_portfolio("p1")
