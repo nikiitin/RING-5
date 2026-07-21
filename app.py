@@ -75,10 +75,12 @@ def run_app() -> None:
             st.session_state["_nav_page"] = _NAV_OPTIONS[0]
 
         from src.web.components.command_palette import CommandPaletteComponent
+        from src.web.components.workspace_organizer import WorkspaceOrganizerComponent
         from src.web.components.workspace_search import WorkspaceSearchComponent
 
         CommandPaletteComponent.render(api)
         WorkspaceSearchComponent.render(api)
+        WorkspaceOrganizerComponent.render(api)
         st.markdown("---")
 
         for _nav_item in _NAV_OPTIONS:

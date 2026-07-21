@@ -43,6 +43,9 @@ from src.core.models import (
     StatConfig,
     WorkspaceSearchResponse,
     WorkspaceCommandSearchResponse,
+    WorkspaceArtifact,
+    WorkspaceArtifactKind,
+    WorkspaceArtifactResponse,
 )
 from src.core.models.browser_upload_models import BrowserUploadRequest
 from src.core.models.remote_source_models import RemoteSource, RemoteSourcePolicy
@@ -80,6 +83,7 @@ from src.core.services.visualization.plot_configuration_comparison_service impor
 )
 from src.core.services.workspace_search_service import WorkspaceSearchService
 from src.core.services.workspace_command_service import WorkspaceCommandService
+from src.core.services.workspace_metadata_service import WorkspaceMetadataService
 from src.core.state.repository_state_manager import RepositoryStateManager
 from src.parsing.framework.file_discovery import find_stats_files as _find_stats_files
 from src.parsing.parser_protocol import SimulationParser
@@ -335,6 +339,44 @@ class ApplicationAPI:
         """List or search the safe commands available to the web workspace."""
         # [impl->req~ring5.workspace.command-palette~1]
         return WorkspaceCommandService.search_commands(query, limit=limit)
+
+    def list_workspace_artifacts(
+        self,
+        *,
+        kind: WorkspaceArtifactKind | None = None,
+        tags: Sequence[str] = (),
+        favorites_only: bool = False,
+        limit: int = 100,
+    ) -> WorkspaceArtifactResponse:
+        """List workspace artifacts through validated favorite and tag filters."""
+        # [impl->req~ring5.workspace.favorites-tags~1]
+        return WorkspaceMetadataService.list_artifacts(
+            self.state_manager,
+            self.data_services.list_portfolios(),
+            kind=kind,
+            tags=tags,
+            favorites_only=favorites_only,
+            limit=limit,
+        )
+
+    def set_workspace_artifact_metadata(
+        self,
+        kind: WorkspaceArtifactKind,
+        identifier: str,
+        *,
+        tags: Sequence[str] = (),
+        favorite: bool = False,
+    ) -> WorkspaceArtifact:
+        """Replace validated tags and favorite state for one live artifact."""
+        # [impl->req~ring5.workspace.favorites-tags~1]
+        return WorkspaceMetadataService.set_metadata(
+            self.state_manager,
+            self.data_services.list_portfolios(),
+            kind,
+            identifier,
+            tags=tags,
+            favorite=favorite,
+        )
 
     def reset_session(self) -> None:
         """Clear all session data."""

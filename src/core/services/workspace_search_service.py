@@ -217,13 +217,14 @@ class WorkspaceSearchService:
             for index, step in enumerate(plot.pipeline):
                 step_type = str(step.get("type", "Transformation"))
                 step_title = step_type.replace("_", " ").title()
+                step_id = step.get("id", index)
                 entries.append(
                     WorkspaceSearchEntry(
                         kind="pipeline",
                         title=f"{plot.name} · step {index + 1}: {step_title}",
                         description=f"Pipeline step on {plot.name}",
                         location="Manage Plots",
-                        identifier=plot_id,
+                        identifier=f"{plot_id}:{step_id}",
                         keywords=(step_type, *cls._flatten_keywords(step.get("config", {}))),
                     )
                 )

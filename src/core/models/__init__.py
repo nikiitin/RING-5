@@ -155,6 +155,11 @@ from src.core.models.workspace_command_models import (
     WorkspaceCommandCategory,
     WorkspaceCommandSearchResponse,
 )
+from src.core.models.workspace_metadata_models import (
+    WorkspaceArtifact,
+    WorkspaceArtifactKind,
+    WorkspaceArtifactResponse,
+)
 from src.core.models.shaper_models import (
     BaseShaperConfig,
     ColumnSelectorConfig,
@@ -253,6 +258,9 @@ __all__ = [
     "WorkspaceCommandAction",
     "WorkspaceCommandCategory",
     "WorkspaceCommandSearchResponse",
+    "WorkspaceArtifact",
+    "WorkspaceArtifactKind",
+    "WorkspaceArtifactResponse",
     "ShaperStepConfig",
     "SortShaperConfig",
     "SplitApplyGroupConfig",

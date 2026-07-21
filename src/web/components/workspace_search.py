@@ -97,7 +97,7 @@ class WorkspaceSearchComponent:
             api.select_dataset(result.identifier)
         elif result.kind in {"plot", "pipeline"}:
             try:
-                plot_id = int(result.identifier)
+                plot_id = int(result.identifier.split(":", maxsplit=1)[0])
             except ValueError as exc:
                 raise ValueError("Search result has an invalid plot identifier.") from exc
             if not any(plot.plot_id == plot_id for plot in api.state_manager.get_plots()):

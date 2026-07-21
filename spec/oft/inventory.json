@@ -4600,11 +4600,32 @@
       "id": "workspace.favorites-tags",
       "group": "workspace",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Favorites and tags",
       "description": "Users shall assign validated tags and favorites to variables, datasets, plots, pipelines, and portfolios for filtering and reuse.",
       "tags": ["metadata", "organization", "workspace"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/models/workspace_metadata_models.py::WorkspaceArtifact",
+          "src/core/services/workspace_metadata_service.py::WorkspaceMetadataService.list_artifacts",
+          "src/core/services/workspace_metadata_service.py::WorkspaceMetadataService.set_metadata",
+          "src/core/application_api.py::ApplicationAPI.list_workspace_artifacts",
+          "src/core/application_api.py::ApplicationAPI.set_workspace_artifact_metadata",
+          "ring5/_session.py::Session.list_workspace_artifacts",
+          "ring5/_session.py::Session.set_workspace_artifact_metadata",
+          "src/web/components/workspace_organizer.py::WorkspaceOrganizerComponent.render",
+          "src/web/components/workspace_organizer.py::WorkspaceOrganizerComponent.activate"
+        ],
+        "tests": [
+          "tests/unit/test_workspace_metadata_service.py::test_every_artifact_kind_can_be_tagged_favorited_and_filtered",
+          "tests/integration/test_workspace_metadata_public_api.py::test_public_metadata_covers_every_kind_and_survives_portfolio_reuse",
+          "tests/ui_unit/test_workspace_organizer.py::test_render_filters_and_saves_canonical_metadata",
+          "tests/e2e/test_workspace_organizer.py::TestWorkspaceOrganizer.test_variable_can_be_favorited_tagged_and_reopened"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/favorites-tags.md#organize-favorites-and-tags"
+        ]
+      }
     },
     {
       "id": "workspace.collaborative-review",
@@ -4949,6 +4970,8 @@
       "WorkspaceSearchResult": "workspace.global-search",
       "WorkspaceCommand": "workspace.command-palette",
       "WorkspaceCommandSearchResponse": "workspace.command-palette",
+      "WorkspaceArtifact": "workspace.favorites-tags",
+      "WorkspaceArtifactResponse": "workspace.favorites-tags",
       "__version__": "api.process-lifecycle",
       "available_plot_types": "api.registry-discovery",
       "available_shaper_types": "api.registry-discovery",
@@ -5055,6 +5078,8 @@
       "run_scheduled_report": "automation.scheduled-reporting",
       "search_workspace": "workspace.global-search",
       "search_workspace_commands": "workspace.command-palette",
+      "list_workspace_artifacts": "workspace.favorites-tags",
+      "set_workspace_artifact_metadata": "workspace.favorites-tags",
       "small_multiples": "plots.small-multiples",
       "save_portfolio": "portfolio.save",
       "save_analysis_recipe": "portfolio.analysis-recipes",
@@ -5199,6 +5224,8 @@
       "save_dataset_snapshot": "data.dataset-snapshots",
       "search_workspace": "workspace.global-search",
       "search_workspace_commands": "workspace.command-palette",
+      "list_workspace_artifacts": "workspace.favorites-tags",
+      "set_workspace_artifact_metadata": "workspace.favorites-tags",
       "select_dataset": "data.multi-dataset-workspace",
       "set_preview": "data.preview-confirm",
       "set_visualization_config": "plots.independent-state",

@@ -68,6 +68,9 @@ from src.core.models import (
     StatConfig,
     WorkspaceSearchResponse,
     WorkspaceCommandSearchResponse,
+    WorkspaceArtifact,
+    WorkspaceArtifactKind,
+    WorkspaceArtifactResponse,
 )
 from src.core.models.data_models import ParseVariableConfig
 from src.core.models.shaper_models import ShaperStepConfig
@@ -811,6 +814,76 @@ class Session:
         try:
             return self.api.search_workspace_commands(query, limit=limit)
         except (TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def list_workspace_artifacts(
+        self,
+        *,
+        kind: WorkspaceArtifactKind | None = None,
+        tags: Sequence[str] = (),
+        favorites_only: bool = False,
+        limit: int = 100,
+    ) -> WorkspaceArtifactResponse:
+        """Filter variables, datasets, plots, pipelines, and portfolios.
+
+        Args:
+            kind: Optional artifact kind to retain.
+            tags: Canonical case-insensitive tags that must all match.
+            favorites_only: Return only artifacts marked as favorites.
+            limit: Maximum returned artifacts, from 1 through 100.
+
+        Returns:
+            Bounded matching artifacts and all tags currently available.
+
+        Raises:
+            DataValidationError: A filter or retained metadata document is invalid.
+        """
+        # [impl->req~ring5.workspace.favorites-tags~1]
+        try:
+            return self.api.list_workspace_artifacts(
+                kind=kind,
+                tags=tags,
+                favorites_only=favorites_only,
+                limit=limit,
+            )
+        except (OSError, TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def set_workspace_artifact_metadata(
+        self,
+        kind: WorkspaceArtifactKind,
+        identifier: str,
+        *,
+        tags: Sequence[str] = (),
+        favorite: bool = False,
+    ) -> WorkspaceArtifact:
+        """Replace tags and favorite state for one discoverable artifact.
+
+        Tags are normalized to lower case and may contain letters, numbers,
+        spaces, underscores, and hyphens. Clearing the tags and favorite state
+        removes the stored marker.
+
+        Args:
+            kind: Kind of workspace artifact to update.
+            identifier: Stable identifier of a discoverable artifact.
+            tags: Replacement tags, normalized case-insensitively.
+            favorite: Whether the artifact should be marked as a favorite.
+
+        Returns:
+            The artifact with its updated metadata.
+
+        Raises:
+            DataValidationError: The target or metadata is invalid.
+        """
+        # [impl->req~ring5.workspace.favorites-tags~1]
+        try:
+            return self.api.set_workspace_artifact_metadata(
+                kind,
+                identifier,
+                tags=tags,
+                favorite=favorite,
+            )
+        except (KeyError, OSError, TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
 
     def get_dataset(self, name: str | None = None) -> pd.DataFrame:

@@ -150,7 +150,7 @@ Tags: commands, keyboard, status_approved, workspace
 ### Favorites and tags
 
 `req~ring5.workspace.favorites-tags~1`
-Status: proposed
+Status: approved
 
 Users shall assign validated tags and favorites to variables, datasets, plots, pipelines, and portfolios for filtering and reuse.
 
@@ -159,7 +159,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: metadata, organization, status_proposed, workspace
+Tags: metadata, organization, status_approved, workspace
 
 ### Analysis comments and review status
 
