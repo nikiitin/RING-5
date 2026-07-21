@@ -149,6 +149,12 @@ from src.core.models.workspace_search_models import (
     WorkspaceSearchResponse,
     WorkspaceSearchResult,
 )
+from src.core.models.workspace_command_models import (
+    WorkspaceCommand,
+    WorkspaceCommandAction,
+    WorkspaceCommandCategory,
+    WorkspaceCommandSearchResponse,
+)
 from src.core.models.shaper_models import (
     BaseShaperConfig,
     ColumnSelectorConfig,
@@ -243,6 +249,10 @@ __all__ = [
     "WorkspaceSearchKind",
     "WorkspaceSearchResponse",
     "WorkspaceSearchResult",
+    "WorkspaceCommand",
+    "WorkspaceCommandAction",
+    "WorkspaceCommandCategory",
+    "WorkspaceCommandSearchResponse",
     "ShaperStepConfig",
     "SortShaperConfig",
     "SplitApplyGroupConfig",

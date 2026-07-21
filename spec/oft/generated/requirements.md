@@ -136,7 +136,7 @@ Tags: search, status_approved, workspace
 ### Command palette and shortcuts
 
 `req~ring5.workspace.command-palette~1`
-Status: proposed
+Status: approved
 
 The web application shall expose discoverable keyboard shortcuts and a searchable command palette for common workspace operations.
 
@@ -145,7 +145,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: commands, keyboard, status_proposed, workspace
+Tags: commands, keyboard, status_approved, workspace
 
 ### Favorites and tags
 

@@ -136,6 +136,8 @@ if TYPE_CHECKING:
         ShaperStepConfig,
         WorkspaceSearchResponse,
         WorkspaceSearchResult,
+        WorkspaceCommand,
+        WorkspaceCommandSearchResponse,
     )
     from src.core.models.parsing_models import StatConfig
     from src.core.models.quality_models import ColumnQuality, DataQualityReport
@@ -244,6 +246,11 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "ShaperStepConfig": ("src.core.models", "ShaperStepConfig"),
     "WorkspaceSearchResponse": ("src.core.models", "WorkspaceSearchResponse"),
     "WorkspaceSearchResult": ("src.core.models", "WorkspaceSearchResult"),
+    "WorkspaceCommand": ("src.core.models", "WorkspaceCommand"),
+    "WorkspaceCommandSearchResponse": (
+        "src.core.models",
+        "WorkspaceCommandSearchResponse",
+    ),
     "available_shaper_types": ("ring5.shapers", "available_shaper_types"),
     # Self-contained figure-scripting surface (so scripts import only `ring5`):
     "grouped_bar_coordinates": ("ring5.coordinates", "grouped_bar_coordinates"),
@@ -363,6 +370,8 @@ __all__ = [
     "ScheduledReportResult",
     "WorkspaceSearchResponse",
     "WorkspaceSearchResult",
+    "WorkspaceCommand",
+    "WorkspaceCommandSearchResponse",
     "render_figure",
     "render_dashboard",
     "apply_linked_selection",

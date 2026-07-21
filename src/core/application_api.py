@@ -42,6 +42,7 @@ from src.core.models import (
     ScanResult,
     StatConfig,
     WorkspaceSearchResponse,
+    WorkspaceCommandSearchResponse,
 )
 from src.core.models.browser_upload_models import BrowserUploadRequest
 from src.core.models.remote_source_models import RemoteSource, RemoteSourcePolicy
@@ -78,6 +79,7 @@ from src.core.services.visualization.plot_configuration_comparison_service impor
     compare_plot_configurations,
 )
 from src.core.services.workspace_search_service import WorkspaceSearchService
+from src.core.services.workspace_command_service import WorkspaceCommandService
 from src.core.state.repository_state_manager import RepositoryStateManager
 from src.parsing.framework.file_discovery import find_stats_files as _find_stats_files
 from src.parsing.parser_protocol import SimulationParser
@@ -323,6 +325,16 @@ class ApplicationAPI:
             query,
             limit=limit,
         )
+
+    def search_workspace_commands(
+        self,
+        query: str = "",
+        *,
+        limit: int = 20,
+    ) -> WorkspaceCommandSearchResponse:
+        """List or search the safe commands available to the web workspace."""
+        # [impl->req~ring5.workspace.command-palette~1]
+        return WorkspaceCommandService.search_commands(query, limit=limit)
 
     def reset_session(self) -> None:
         """Clear all session data."""

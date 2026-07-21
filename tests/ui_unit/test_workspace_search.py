@@ -94,6 +94,13 @@ def test_activate_selects_entities_and_rejects_stale_targets(mock_st: MagicMock)
     assert mock_st.session_state["var_search_box__search"] == "system.cpu.ipc"
     assert mock_st.session_state["_nav_page"] == "Data Source"
 
+    WorkspaceSearchComponent.activate(
+        api,
+        _result("command", "Search the workspace", "Search workspace", "search.focus"),
+    )
+    assert mock_st.session_state["_workspace_search_requested"] is True
+    assert mock_st.session_state["_workspace_search_focus_pending"] is True
+
     with pytest.raises(ValueError, match="external links"):
         WorkspaceSearchComponent.activate(
             api,

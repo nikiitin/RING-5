@@ -4571,11 +4571,30 @@
       "id": "workspace.command-palette",
       "group": "workspace",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Command palette and shortcuts",
       "description": "The web application shall expose discoverable keyboard shortcuts and a searchable command palette for common workspace operations.",
       "tags": ["commands", "keyboard", "workspace"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/models/workspace_command_models.py::WorkspaceCommandSearchResponse",
+          "src/core/services/workspace_command_service.py::WorkspaceCommandService.search_commands",
+          "src/core/application_api.py::ApplicationAPI.search_workspace_commands",
+          "ring5/_session.py::Session.search_workspace_commands",
+          "src/web/components/command_palette.py::CommandPaletteComponent.render",
+          "src/web/components/command_palette.py::CommandPaletteComponent.activate",
+          "src/web/components/command_palette.py::CommandPaletteComponent._install_shortcut_bridge"
+        ],
+        "tests": [
+          "tests/unit/test_workspace_command_service.py::test_empty_query_lists_every_safe_command_in_discoverable_order",
+          "tests/integration/test_workspace_command_public_api.py::test_public_session_searches_the_canonical_workspace_commands",
+          "tests/ui_unit/test_command_palette.py::test_activate_navigates_focuses_search_and_rejects_untrusted_actions",
+          "tests/e2e/test_command_palette.py::TestCommandPalette.test_keyboard_palette_discovers_and_runs_a_command"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/command-palette.md#use-the-command-palette"
+        ]
+      }
     },
     {
       "id": "workspace.favorites-tags",
@@ -4928,6 +4947,8 @@
       "Table": "api.table",
       "WorkspaceSearchResponse": "workspace.global-search",
       "WorkspaceSearchResult": "workspace.global-search",
+      "WorkspaceCommand": "workspace.command-palette",
+      "WorkspaceCommandSearchResponse": "workspace.command-palette",
       "__version__": "api.process-lifecycle",
       "available_plot_types": "api.registry-discovery",
       "available_shaper_types": "api.registry-discovery",
@@ -5033,6 +5054,7 @@
       "run_analysis_recipe_matrix_submit": "automation.batch-matrices",
       "run_scheduled_report": "automation.scheduled-reporting",
       "search_workspace": "workspace.global-search",
+      "search_workspace_commands": "workspace.command-palette",
       "small_multiples": "plots.small-multiples",
       "save_portfolio": "portfolio.save",
       "save_analysis_recipe": "portfolio.analysis-recipes",
@@ -5176,6 +5198,7 @@
       "save_configuration": "data.saved-pipeline-configurations",
       "save_dataset_snapshot": "data.dataset-snapshots",
       "search_workspace": "workspace.global-search",
+      "search_workspace_commands": "workspace.command-palette",
       "select_dataset": "data.multi-dataset-workspace",
       "set_preview": "data.preview-confirm",
       "set_visualization_config": "plots.independent-state",

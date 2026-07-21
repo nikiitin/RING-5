@@ -1,0 +1,66 @@
+"""Canonical safe commands shared by search and the web command palette."""
+
+from src.core.models.workspace_command_models import WorkspaceCommand
+
+WORKSPACE_COMMANDS = (
+    WorkspaceCommand(
+        command_id="navigate.data-source",
+        title="Go to Data Source",
+        description="Open parsing, scanning, upload, recent files, and variable configuration.",
+        category="navigation",
+        action="navigate",
+        destination="Data Source",
+        shortcuts=("Alt+1",),
+        keywords=("parse", "scan", "upload", "csv", "variables", "ingestion"),
+    ),
+    WorkspaceCommand(
+        command_id="navigate.data-managers",
+        title="Go to Data Managers",
+        description="Open datasets, profiles, transformations, comparisons, joins, and snapshots.",
+        category="navigation",
+        action="navigate",
+        destination="Data Managers",
+        shortcuts=("Alt+2",),
+        keywords=("dataset", "transform", "compare", "join", "profile", "snapshot"),
+    ),
+    WorkspaceCommand(
+        command_id="navigate.manage-plots",
+        title="Go to Manage Plots",
+        description="Open plot creation, pipelines, figure settings, rendering, and export.",
+        category="navigation",
+        action="navigate",
+        destination="Manage Plots",
+        shortcuts=("Alt+3",),
+        keywords=("plot", "figure", "pipeline", "shaper", "render", "export"),
+    ),
+    WorkspaceCommand(
+        command_id="navigate.portfolios",
+        title="Go to Save/Load Portfolio",
+        description="Open portfolio save, restore, history, comparison, and report composition.",
+        category="navigation",
+        action="navigate",
+        destination="Save/Load Portfolio",
+        shortcuts=("Alt+4",),
+        keywords=("portfolio", "save", "load", "restore", "history", "report"),
+    ),
+    WorkspaceCommand(
+        command_id="navigate.documentation",
+        title="Go to Documentation",
+        description="Open the in-application documentation hub.",
+        category="navigation",
+        action="navigate",
+        destination="Documentation",
+        shortcuts=("Alt+5",),
+        keywords=("help", "guide", "manual", "reference"),
+    ),
+    WorkspaceCommand(
+        command_id="search.focus",
+        title="Search the workspace",
+        description="Focus unified search for variables, datasets, plots, commands, and guides.",
+        category="search",
+        action="focus_workspace_search",
+        destination="Search workspace",
+        shortcuts=("/",),
+        keywords=("find", "lookup", "global", "documentation"),
+    ),
+)

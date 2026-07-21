@@ -1,6 +1,9 @@
-"""Stable navigation and documentation documents for workspace search."""
+"""Stable command and documentation documents for workspace search."""
 
 from src.core.models.workspace_search_models import WorkspaceSearchEntry
+from src.core.services.workspace_command_catalog import (
+    WORKSPACE_COMMANDS as REGISTERED_WORKSPACE_COMMANDS,
+)
 
 _DOCS_BASE_URL = "https://nikiitin.github.io/RING-5"
 
@@ -21,42 +24,16 @@ def _documentation(
     )
 
 
-WORKSPACE_COMMANDS = (
+WORKSPACE_COMMANDS = tuple(
     WorkspaceSearchEntry(
-        "command",
-        "Go to Data Source",
-        "Open parsing, scanning, CSV upload, recent files, and variable configuration.",
-        "Data Source",
-        keywords=("parse", "scan", "upload", "csv", "variables", "ingestion"),
-    ),
-    WorkspaceSearchEntry(
-        "command",
-        "Go to Data Managers",
-        "Open named datasets, profiles, transformations, comparisons, joins, and snapshots.",
-        "Data Managers",
-        keywords=("dataset", "transform", "compare", "join", "profile", "snapshot"),
-    ),
-    WorkspaceSearchEntry(
-        "command",
-        "Go to Manage Plots",
-        "Open plot creation, pipelines, figure settings, rendering, and export.",
-        "Manage Plots",
-        keywords=("plot", "figure", "pipeline", "shaper", "render", "export"),
-    ),
-    WorkspaceSearchEntry(
-        "command",
-        "Go to Save/Load Portfolio",
-        "Open portfolio save, restore, history, comparison, and report composition.",
-        "Save/Load Portfolio",
-        keywords=("portfolio", "save", "load", "restore", "history", "report"),
-    ),
-    WorkspaceSearchEntry(
-        "command",
-        "Go to Documentation",
-        "Open the in-application documentation hub.",
-        "Documentation",
-        keywords=("help", "guide", "manual", "reference"),
-    ),
+        kind="command",
+        title=command.title,
+        description=command.description,
+        location=command.destination,
+        identifier=command.command_id,
+        keywords=(*command.keywords, *command.shortcuts),
+    )
+    for command in REGISTERED_WORKSPACE_COMMANDS
 )
 
 

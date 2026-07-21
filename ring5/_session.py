@@ -67,6 +67,7 @@ from src.core.models import (
     ScheduledReportResult,
     StatConfig,
     WorkspaceSearchResponse,
+    WorkspaceCommandSearchResponse,
 )
 from src.core.models.data_models import ParseVariableConfig
 from src.core.models.shaper_models import ShaperStepConfig
@@ -785,6 +786,30 @@ class Session:
         # [impl->req~ring5.workspace.global-search~1]
         try:
             return self.api.search_workspace(query, limit=limit)
+        except (TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
+    def search_workspace_commands(
+        self,
+        query: str = "",
+        *,
+        limit: int = 20,
+    ) -> WorkspaceCommandSearchResponse:
+        """List or search the safe commands exposed by the web workspace.
+
+        Args:
+            query: Optional case-insensitive task or destination terms.
+            limit: Maximum returned commands, from 1 through 100.
+
+        Returns:
+            Matching commands and explicit result truncation metadata.
+
+        Raises:
+            DataValidationError: The query or result limit is invalid.
+        """
+        # [impl->req~ring5.workspace.command-palette~1]
+        try:
+            return self.api.search_workspace_commands(query, limit=limit)
         except (TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
 

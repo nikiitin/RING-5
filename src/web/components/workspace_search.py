@@ -28,7 +28,8 @@ class WorkspaceSearchComponent:
     def render(cls, api: ApplicationAPI) -> None:
         """Render the unified search index in the application sidebar."""
         # [impl->req~ring5.workspace.global-search~1]
-        with st.expander("Search workspace", expanded=False):
+        requested = bool(st.session_state.pop("_workspace_search_requested", False))
+        with st.expander("Search workspace", expanded=requested):
             query = st.text_input(
                 "Search variables, data, plots, commands, and guides",
                 key="_workspace_search_query",
@@ -86,6 +87,10 @@ class WorkspaceSearchComponent:
         # [impl->req~ring5.workspace.global-search~1]
         if result.kind == "documentation":
             raise ValueError("Documentation results open as external links.")
+        if result.kind == "command" and result.identifier == "search.focus":
+            st.session_state["_workspace_search_requested"] = True
+            st.session_state["_workspace_search_focus_pending"] = True
+            return
         if result.location not in _NAVIGATION_PAGES:
             raise ValueError(f"Unsupported workspace destination {result.location!r}.")
         if result.kind == "dataset":

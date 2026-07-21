@@ -122,10 +122,11 @@ schema versions cannot be loaded by older RING-5 releases.
 
 ## Are there application keyboard shortcuts?
 
-RING-5 does not define a custom shortcut layer. Browser, Streamlit, and Plotly interactions apply
-only when their controls have focus. Use the visible navigation and plot modebar so a browser
-shortcut does not accidentally replace an application action. Stop the local server with
-<kbd>Ctrl</kbd>+<kbd>C</kbd> in its terminal.
+Yes. Open **Command palette** in the sidebar to see the complete shortcut list. The main shortcuts
+are <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>K</kbd> for the palette, <kbd>/</kbd> for workspace search, and
+<kbd>Alt</kbd>+<kbd>1</kbd> through <kbd>Alt</kbd>+<kbd>5</kbd> for sidebar pages. RING-5 ignores
+single-key and page shortcuts while an editable control has focus. See [Command Palette and
+Shortcuts](../workflows/command-palette/) for the safety boundary and operating-system caveats.
 
 ## Where should I report a reproducible failure?
 
