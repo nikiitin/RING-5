@@ -2436,7 +2436,7 @@ Tags: diff, history, portfolios, status_approved
 ### Portable analysis bundles
 
 `req~ring5.portfolio.portable-bundles~1`
-Status: proposed
+Status: approved
 
 Users shall export and import a portable bundle containing a portfolio, source manifests, optional data snapshots, requirements, and generated results.
 
@@ -2445,7 +2445,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: bundles, portfolios, reproducibility, status_proposed
+Tags: bundles, portfolios, reproducibility, status_approved
 
 ### Signed portfolio manifests
 

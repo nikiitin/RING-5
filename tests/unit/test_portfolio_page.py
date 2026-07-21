@@ -383,3 +383,46 @@ class TestPortfolioIntegrity:
         assert report is None
         assert secret is None
         mock_st.error.assert_called_once()
+
+
+class TestPortablePortfolioBundle:
+    """Tests for the human-first portable bundle download workflow."""
+
+    @patch("src.web.pages.portfolio.st")
+    def test_prepare_bundle_with_optional_snapshot_then_download(
+        self,
+        mock_st: MagicMock,
+    ) -> None:
+        # [test->req~ring5.portfolio.portable-bundles~1]
+        from src.core.models import DatasetSnapshotInfo
+        from src.web.pages.portfolio import _render_bundle_download
+
+        expander = _make_col_mock()
+        mock_st.expander.return_value = expander
+        mock_st.session_state = {}
+        mock_st.selectbox.return_value = "exact-data"
+        mock_st.button.return_value = True
+        api = MagicMock()
+        api.data_services.list_dataset_snapshots.return_value = (
+            DatasetSnapshotInfo(
+                name="exact-data",
+                source_dataset="results",
+                created_at="2026-07-21T10:00:00+00:00",
+                row_count=2,
+                column_count=1,
+                fingerprint="sha256:value",
+                size_bytes=128,
+                format_version=1,
+            ),
+        )
+        api.data_services.export_portfolio_bundle.return_value = b"bundle"
+
+        _render_bundle_download(api, "paper-a")
+
+        api.data_services.export_portfolio_bundle.assert_called_once_with(
+            "paper-a",
+            snapshot_name="exact-data",
+        )
+        mock_st.download_button.assert_called_once()
+        assert mock_st.download_button.call_args.kwargs["data"] == b"bundle"
+        assert mock_st.download_button.call_args.kwargs["file_name"] == "paper-a.ring5-bundle"

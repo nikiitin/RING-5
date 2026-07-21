@@ -28,9 +28,11 @@ from src.core.models.browser_upload_models import (
     BrowserUploadRequest,
 )
 from src.core.models.portfolio_models import PortfolioData
+from src.core.models.portfolio_bundle_models import PortfolioBundleContents
 from src.core.services.import_preview_service import ImportPreviewService
 from src.core.services.portfolio_migrator import PortfolioMigrator
 from src.core.services.portfolio_integrity_service import PortfolioIntegrityService
+from src.core.services.portfolio_bundle_service import PortfolioBundleService
 
 _MEDIA_TYPES: dict[BrowserUploadKind, frozenset[str]] = {
     "csv": frozenset(
@@ -55,6 +57,14 @@ _MEDIA_TYPES: dict[BrowserUploadKind, frozenset[str]] = {
     ),
     "portfolio": frozenset(
         {"", "application/json", "application/octet-stream", "text/json", "text/plain"}
+    ),
+    "bundle": frozenset(
+        {
+            "",
+            "application/octet-stream",
+            "application/vnd.ring5.portfolio-bundle+zip",
+            "application/zip",
+        }
     ),
 }
 
@@ -279,14 +289,22 @@ def _kind(file_name: str, value: Any | None, request: BrowserUploadRequest) -> B
             and bool({"data_csv", "schema_version"} & set(value))
         )
         detected = "portfolio" if is_portfolio else "json"
+    elif suffix == ".ring5-bundle":
+        detected = "bundle"
     else:
-        raise ValueError("Upload filename must end in .csv, .json, or .xlsx.")
+        raise ValueError("Upload filename must end in .csv, .json, .xlsx, or .ring5-bundle.")
     if request == "portfolio" and suffix != ".json":
         raise ValueError("Portfolio uploads must be JSON files.")
     if request == "portfolio":
         return "portfolio"
+    if request == "bundle" and suffix != ".ring5-bundle":
+        raise ValueError("Portable bundle uploads must be .ring5-bundle files.")
+    if request == "bundle":
+        return "bundle"
     if request == "dataset" and detected == "portfolio":
         return "json"
+    if request == "dataset" and detected == "bundle":
+        raise ValueError("A portable bundle cannot be interpreted as a dataset.")
     return detected
 
 
@@ -303,7 +321,7 @@ class BrowserUploadService:
     ) -> BrowserUpload:
         # [impl->req~ring5.ingestion.browser-upload~1]
         """Validate, fingerprint, stage, and parse one bounded upload."""
-        if request not in {"auto", "dataset", "portfolio"}:
+        if request not in {"auto", "dataset", "portfolio", "bundle"}:
             raise ValueError(f"Unsupported browser upload interpretation: {request!r}.")
         if not isinstance(file_name, str):
             raise ValueError("Upload filename is invalid or unsafe.")
@@ -335,6 +353,18 @@ class BrowserUploadService:
         destination.mkdir(parents=True, exist_ok=True)
         source = destination / f"{digest}{Path(clean_name).suffix.lower()}"
         source.write_bytes(content)
+
+        if kind == "bundle":
+            bundle_info = PortfolioBundleService.inspect(content)
+            return BrowserUpload(
+                file_name=clean_name,
+                content_type=normalized_media or "not provided",
+                kind=kind,
+                size_bytes=len(content),
+                source_sha256=digest,
+                source_path=str(source.resolve()),
+                bundle_info=bundle_info,
+            )
 
         if kind == "portfolio":
             portfolio = _portfolio(json_value)
@@ -409,4 +439,24 @@ class BrowserUploadService:
                 signing_key=signing_key,
                 require_signature=require_signature,
             ),
+        )
+
+    @staticmethod
+    def load_portfolio_bundle(
+        upload: BrowserUpload,
+        *,
+        signing_key: str | bytes | None = None,
+        require_signature: bool = False,
+    ) -> PortfolioBundleContents:
+        # [impl->req~ring5.portfolio.portable-bundles~1]
+        """Revalidate staged bundle bytes and return all verified contents."""
+        if upload.kind != "bundle":
+            raise ValueError("Only a portable bundle upload can use bundle restoration.")
+        content = Path(upload.source_path).read_bytes()
+        if hashlib.sha256(content).hexdigest() != upload.source_sha256:
+            raise ValueError("Uploaded portable bundle changed after validation; upload it again.")
+        return PortfolioBundleService.read(
+            content,
+            signing_key=signing_key,
+            require_signature=require_signature,
         )

@@ -16,6 +16,8 @@ from src.core.models import (
     DatasetSnapshotInfo,
     PlotProtocol,
     PortfolioData,
+    PortfolioBundleContents,
+    PortfolioBundleInfo,
     PortfolioDiff,
     PortfolioIntegrityReport,
     PortfolioRevisionInfo,
@@ -40,6 +42,7 @@ from src.core.services.data_services.config_service import ConfigService
 from src.core.services.data_services.csv_pool_service import CsvPoolService
 from src.core.services.data_services.dataset_snapshot_service import DatasetSnapshotService
 from src.core.services.data_services.portfolio_service import PortfolioService
+from src.core.services.portfolio_bundle_service import PortfolioBundleService
 from src.core.services.data_services.variable_service import VariableService
 from src.core.state.state_manager import StateManager
 
@@ -326,6 +329,58 @@ class DefaultDataServicesAPI:
     ) -> PortfolioIntegrityReport:
         """Inspect a saved portfolio's checksums and optional signature."""
         return self._portfolio_service.verify_portfolio(name, signing_key=signing_key)
+
+    def export_portfolio_bundle(
+        self,
+        name: str,
+        *,
+        snapshot_name: str | None = None,
+        results: Mapping[str, bytes] | None = None,
+        signing_key: str | bytes | None = None,
+        signing_key_id: str = "default",
+    ) -> bytes:
+        """Build a portable bundle from a saved portfolio and optional artifacts."""
+        snapshot = (
+            (snapshot_name, DatasetSnapshotService.export_snapshot(snapshot_name))
+            if snapshot_name is not None
+            else None
+        )
+        return PortfolioBundleService.create(
+            name,
+            self._portfolio_service.export_portfolio_bytes(name),
+            dataset_snapshot=snapshot,
+            results=results,
+            signing_key=signing_key,
+            signing_key_id=signing_key_id,
+        )
+
+    def inspect_portfolio_bundle(
+        self,
+        payload: bytes,
+        *,
+        signing_key: str | bytes | None = None,
+        require_signature: bool = False,
+    ) -> PortfolioBundleInfo:
+        """Validate portable bundle metadata without changing application state."""
+        return PortfolioBundleService.inspect(
+            payload,
+            signing_key=signing_key,
+            require_signature=require_signature,
+        )
+
+    def read_portfolio_bundle(
+        self,
+        payload: bytes,
+        *,
+        signing_key: str | bytes | None = None,
+        require_signature: bool = False,
+    ) -> PortfolioBundleContents:
+        """Read every portable bundle artifact after full verification."""
+        return PortfolioBundleService.read(
+            payload,
+            signing_key=signing_key,
+            require_signature=require_signature,
+        )
 
     def list_portfolio_revisions(self, name: str) -> tuple[PortfolioRevisionInfo, ...]:
         """List immutable saved versions for a named portfolio."""

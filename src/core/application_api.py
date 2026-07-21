@@ -268,6 +268,22 @@ class ApplicationAPI:
         )
         return self.state_manager.restore_session(portfolio)
 
+    def restore_browser_portfolio_bundle(
+        self,
+        upload: BrowserUpload,
+        *,
+        signing_key: str | bytes | None = None,
+        require_signature: bool = False,
+    ) -> RestoreReport:
+        # [impl->req~ring5.portfolio.portable-bundles~1]
+        """Verify and restore a staged portable bundle without persisting its files."""
+        contents = BrowserUploadService.load_portfolio_bundle(
+            upload,
+            signing_key=signing_key,
+            require_signature=require_signature,
+        )
+        return self.state_manager.restore_session(contents.portfolio)
+
     def fetch_remote_source(
         self,
         source: RemoteSource,

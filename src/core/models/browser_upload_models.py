@@ -6,9 +6,10 @@ from dataclasses import dataclass
 from typing import Literal
 
 from src.core.models.portfolio_integrity_models import PortfolioIntegrityStatus
+from src.core.models.portfolio_bundle_models import PortfolioBundleInfo
 
-BrowserUploadKind = Literal["csv", "json", "excel", "portfolio"]
-BrowserUploadRequest = Literal["auto", "dataset", "portfolio"]
+BrowserUploadKind = Literal["csv", "json", "excel", "portfolio", "bundle"]
+BrowserUploadRequest = Literal["auto", "dataset", "portfolio", "bundle"]
 
 
 @dataclass(frozen=True)
@@ -31,6 +32,7 @@ class BrowserUpload:
     portfolio_has_data: bool | None = None
     portfolio_integrity_status: PortfolioIntegrityStatus | None = None
     portfolio_signing_key_id: str | None = None
+    bundle_info: PortfolioBundleInfo | None = None
     origin_display: str | None = None
 
     def __post_init__(self) -> None:
@@ -44,5 +46,8 @@ class BrowserUpload:
         if self.kind == "portfolio":
             if self.import_path is not None or self.portfolio_schema_version is None:
                 raise ValueError("Portfolio upload metadata is inconsistent.")
+        elif self.kind == "bundle":
+            if self.import_path is not None or self.bundle_info is None:
+                raise ValueError("Portfolio bundle upload metadata is inconsistent.")
         elif self.import_path is None or self.row_count is None:
             raise ValueError("Dataset upload metadata is inconsistent.")

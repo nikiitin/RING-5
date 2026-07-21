@@ -12,6 +12,7 @@ Fixtures:
 from __future__ import annotations
 
 import json
+from zipfile import ZipFile
 
 import pytest
 from playwright.sync_api import Page, expect
@@ -64,6 +65,20 @@ class TestPortfolioSaveLoad:
         pf.assert_environment_match_visible()
         # [test->req~ring5.portfolio.signed-manifests~1]
         pf.assert_checksum_integrity_visible()
+        # [test->req~ring5.portfolio.portable-bundles~1]
+        pf.prepare_portable_bundle()
+        with tier3_page.expect_download(timeout=E2E_TIMEOUT) as download_info:
+            pf.download_bundle_button.click()
+        bundle = download_info.value
+        assert bundle.suggested_filename == f"{PORTFOLIO_NAME}.ring5-bundle"
+        with ZipFile(bundle.path()) as archive:
+            assert {
+                "manifest.json",
+                "portfolio/portfolio.json",
+                "sources/manifest.json",
+                "environment/metadata.json",
+                "environment/requirements.txt",
+            }.issubset(archive.namelist())
 
     @pytest.mark.order(3)
     def test_03_generate_batch_report(self, tier3_page: Page) -> None:

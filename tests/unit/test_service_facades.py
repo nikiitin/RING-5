@@ -261,6 +261,56 @@ class TestDefaultDataServicesAPI:
         assert api.verify_portfolio("p1", signing_key="secret") == "verified"
         api._portfolio_service.verify_portfolio.assert_called_once_with("p1", signing_key="secret")
 
+    @patch(
+        "src.core.services.data_services.data_services_impl.DatasetSnapshotService.export_snapshot"
+    )
+    @patch("src.core.services.data_services.data_services_impl.PortfolioBundleService.create")
+    def test_export_portfolio_bundle(
+        self,
+        create_bundle: MagicMock,
+        export_snapshot: MagicMock,
+        api: DefaultDataServicesAPI,
+    ) -> None:
+        api._portfolio_service = MagicMock()
+        api._portfolio_service.export_portfolio_bytes.return_value = b"portfolio"
+        export_snapshot.return_value = b"snapshot"
+        create_bundle.return_value = b"bundle"
+
+        assert (
+            api.export_portfolio_bundle(
+                "p1",
+                snapshot_name="data",
+                results={"report.html": b"result"},
+            )
+            == b"bundle"
+        )
+        create_bundle.assert_called_once_with(
+            "p1",
+            b"portfolio",
+            dataset_snapshot=("data", b"snapshot"),
+            results={"report.html": b"result"},
+            signing_key=None,
+            signing_key_id="default",
+        )
+
+    @patch("src.core.services.data_services.data_services_impl.PortfolioBundleService")
+    def test_inspect_and_read_portfolio_bundle(
+        self,
+        bundle_service: MagicMock,
+        api: DefaultDataServicesAPI,
+    ) -> None:
+        bundle_service.inspect.return_value = "info"
+        bundle_service.read.return_value = "contents"
+
+        assert api.inspect_portfolio_bundle(b"bundle") == "info"
+        assert api.read_portfolio_bundle(b"bundle", require_signature=True) == "contents"
+        bundle_service.inspect.assert_called_once_with(
+            b"bundle", signing_key=None, require_signature=False
+        )
+        bundle_service.read.assert_called_once_with(
+            b"bundle", signing_key=None, require_signature=True
+        )
+
     def test_portfolio_revision_delegation(self, api: DefaultDataServicesAPI) -> None:
         api._portfolio_service = MagicMock()
         api._portfolio_service.list_portfolio_revisions.return_value = ("revision",)

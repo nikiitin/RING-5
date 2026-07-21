@@ -61,7 +61,7 @@ class DataSourceComponents:
     def render_browser_upload(api: ApplicationAPI) -> None:
         # [impl->req~ring5.ingestion.browser-upload~1]
         """Validate a browser upload and route it through review or restore confirmation."""
-        st.markdown("### Upload data or a portfolio")
+        st.markdown("### Upload data, a portfolio, or a portable bundle")
         st.caption(
             "Files stay out of the workspace until validation finishes and you explicitly "
             "confirm loading or restoration."
@@ -79,16 +79,20 @@ class DataSourceComponents:
             "Auto detect": "auto",
             "Dataset": "dataset",
             "RING-5 portfolio": "portfolio",
+            "Portable bundle": "bundle",
         }
         interpretation = st.selectbox(
-            "Interpret JSON as",
+            "Interpret upload as",
             options=list(interpretation_labels),
-            help="Use an explicit choice when a .json file could be either records or a portfolio.",
+            help=(
+                "Use an explicit choice when JSON could be records or a portfolio, "
+                "or when selecting a portable bundle."
+            ),
             key="data_source.browser_upload_interpretation",
         )
         uploaded = st.file_uploader(
-            "Choose CSV, JSON, Excel, or RING-5 portfolio",
-            type=["csv", "json", "xlsx"],
+            "Choose CSV, JSON, Excel, RING-5 portfolio, or portable bundle",
+            type=["csv", "json", "xlsx", "ring5-bundle"],
             max_upload_size=MAX_BROWSER_UPLOAD_BYTES // (1024 * 1024),
             help=(
                 "CSV and tabular JSON/Excel files enter the normal import review. "
@@ -97,7 +101,10 @@ class DataSourceComponents:
             key="data_source.browser_upload",
         )
         if uploaded is None:
-            st.info("Choose a file up to 64 MiB. Accepted names end in .csv, .json, or .xlsx.")
+            st.info(
+                "Choose a file up to 64 MiB. Accepted names end in .csv, .json, .xlsx, "
+                "or .ring5-bundle."
+            )
             return
 
         try:
@@ -135,7 +142,10 @@ class DataSourceComponents:
         with st.form("data_source.remote_form", clear_on_submit=True):
             file_name = st.text_input(
                 "Downloaded filename override (optional)",
-                help="Use when the remote URL or object key does not end in .csv, .json, or .xlsx.",
+                help=(
+                    "Use when the remote URL or object key does not end in .csv, .json, "
+                    ".xlsx, or .ring5-bundle."
+                ),
             )
             source: RemoteSource
             if adapter == "HTTPS":
@@ -208,6 +218,7 @@ class DataSourceComponents:
             "json": "JSON dataset",
             "excel": "Excel dataset",
             "portfolio": "RING-5 portfolio",
+            "bundle": "RING-5 portable bundle",
         }[inspection.kind]
         st.success(f"Validated {kind_label}: {inspection.file_name}")
         if inspection.origin_display:
@@ -216,6 +227,70 @@ class DataSourceComponents:
         size_col.metric("Upload size", f"{inspection.size_bytes / 1024:.1f} KiB")
         type_col.metric("Detected type", kind_label)
         digest_col.metric("SHA-256", f"{inspection.source_sha256[:12]}…")
+
+        if inspection.kind == "bundle":
+            # [impl->req~ring5.portfolio.portable-bundles~1]
+            info = inspection.bundle_info
+            if info is None:
+                st.error("Validated bundle did not provide an artifact summary.")
+                return
+            st.markdown("#### Review portable bundle restoration")
+            status = info.portfolio_integrity.status
+            st.write(
+                {
+                    "Bundle": info.name,
+                    "Portfolio schema": info.portfolio_schema_version,
+                    "Sources recorded": info.source_count,
+                    "Pinned requirements": info.requirement_count,
+                    "Dataset snapshot": (
+                        info.dataset_snapshot.name if info.dataset_snapshot else "Not included"
+                    ),
+                    "Generated results": len(info.result_names),
+                    "Portfolio integrity": status.replace("-", " ").title(),
+                }
+            )
+            if info.result_names:
+                st.caption("Included results: " + ", ".join(info.result_names))
+            bundle_signing_key: str | None = None
+            require_signature = status == "signature-unverified"
+            if info.portfolio_integrity.key_id:
+                st.caption(f"Signing key ID: `{info.portfolio_integrity.key_id}`")
+            if require_signature:
+                bundle_signing_key = (
+                    st.text_input(
+                        "Bundle portfolio signing secret",
+                        type="password",
+                        key=f"data_source.bundle_secret.{inspection.source_sha256}",
+                        help="Used only for this restore; the secret is not stored.",
+                    )
+                    or None
+                )
+            st.warning(
+                "Restoring replaces the current workspace with the bundled portfolio. "
+                "Included snapshots and generated results are validated but are not written "
+                "to server storage."
+            )
+            if st.button(
+                ":material/package_2: Restore portable bundle",
+                type="primary",
+                width="stretch",
+                key=f"data_source.restore_bundle.{inspection.source_sha256}",
+                disabled=require_signature and bundle_signing_key is None,
+            ):
+                try:
+                    report = api.restore_browser_portfolio_bundle(
+                        inspection,
+                        signing_key=bundle_signing_key,
+                        require_signature=require_signature,
+                    )
+                    if report.complete:
+                        st.toast("Portable bundle restored.", icon="✅")
+                    else:
+                        st.toast("Bundle restored with reported omissions.", icon="⚠️")
+                    st.rerun(scope="app")
+                except (OSError, TypeError, UnicodeError, ValueError) as exc:
+                    st.error(f"Portable bundle restoration failed: {exc}")
+            return
 
         if inspection.kind == "portfolio":
             st.markdown("#### Review portfolio restoration")
@@ -241,12 +316,12 @@ class DataSourceComponents:
                     ),
                 }
             )
-            signing_key: str | None = None
+            portfolio_signing_key: str | None = None
             require_signature = inspection.portfolio_integrity_status == "signature-unverified"
             if inspection.portfolio_signing_key_id:
                 st.caption(f"Signing key ID: `{inspection.portfolio_signing_key_id}`")
             if require_signature:
-                signing_key = (
+                portfolio_signing_key = (
                     st.text_input(
                         "Portfolio signing secret",
                         type="password",
@@ -264,12 +339,12 @@ class DataSourceComponents:
                 type="primary",
                 width="stretch",
                 key=f"data_source.restore_upload.{inspection.source_sha256}",
-                disabled=require_signature and signing_key is None,
+                disabled=require_signature and portfolio_signing_key is None,
             ):
                 try:
                     report = api.restore_browser_portfolio(
                         inspection,
-                        signing_key=signing_key,
+                        signing_key=portfolio_signing_key,
                         require_signature=require_signature,
                     )
                     if report.complete:

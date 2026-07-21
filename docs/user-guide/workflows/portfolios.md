@@ -150,6 +150,65 @@ authenticated portfolio. Without that external policy, a checksum-only portfolio
 restorable because signatures are optional. HMAC uses a shared secret, so it authenticates only
 among parties that protect that secret; it is not a public-key or identity certificate.
 
+## Share a portable analysis bundle
+
+<!--
+`uman~ring5.portfolio.portable-bundles.documentation~1`
+
+Covers:
+- req~ring5.portfolio.portable-bundles~1
+
+-->
+
+Choose a saved portfolio, open **Portable analysis bundle**, and select **Prepare portable bundle**.
+The download always contains the exact portfolio, a source-provenance manifest, captured environment
+metadata, and pinned Python package requirements. You can also select one existing reusable dataset
+snapshot. The result is a single `.ring5-bundle` file.
+
+To review a received bundle, open **Data Source**, choose the file, and inspect its source count,
+requirements, optional snapshot, generated results, and portfolio integrity status. RING-5 verifies
+the archive structure, every member checksum, the nested dataset snapshot, and the portfolio
+manifest before enabling restoration. A signed portfolio requires its shared secret. Restoration
+changes only the workspace; included snapshot and result files are not silently written to server
+storage.
+
+Python can attach generated result bytes and can read every artifact without restoring it:
+
+```python
+import ring5
+
+with ring5.Session() as session:
+    bundle = session.export_portfolio_bundle(
+        "paper-a",
+        snapshot_name="exact-input",
+        results={
+            "figures/ipc.svg": open("figures/ipc.svg", "rb").read(),
+            "report.html": open("report.html", "rb").read(),
+        },
+        signing_key="shared transfer secret",
+        signing_key_id="lab-transfer-2026",
+    )
+
+with ring5.Session() as session:
+    info = session.inspect_portfolio_bundle(bundle)
+    contents = session.read_portfolio_bundle(
+        bundle,
+        signing_key="shared transfer secret",
+        require_signature=True,
+    )
+    print(info.result_names)
+    report = session.restore_portfolio_bundle(
+        bundle,
+        signing_key="shared transfer secret",
+        require_signature=True,
+    )
+```
+
+Result names are safe paths relative to the bundle's `results/` directory. Bundle input, expanded
+members, file count, and total result bytes are bounded. Bundles are data-only ZIP archives: they do
+not contain or execute scripts, notebooks, package installers, or source datasets. Source manifests
+record provenance paths and embedded-data checksums; they do not copy external simulator output.
+
 ## Compare saved portfolio versions
 
 <!--

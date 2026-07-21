@@ -73,3 +73,16 @@ the general core API only when `require_signature` is false. Human-facing restor
 secret whenever a signature is present. Automation that expects a signature must always set
 `require_signature=True`, because an optional signature cannot prevent stripping without an
 external trust policy.
+
+## Portable bundle format
+
+`PortfolioBundleService` writes deterministic `.ring5-bundle` ZIP archives with fixed member
+timestamps and sorted paths. `manifest.json` declares every member's role, media type, uncompressed
+size, and SHA-256 digest. Required roles are the portfolio, source manifest, environment metadata,
+and Python requirements. One exact `.ring5-snapshot` and bounded files below `results/` are optional.
+
+Readers reject duplicate, encrypted, unsupported-compression, absolute, backslash, traversal,
+undeclared, oversized, or checksum-mismatched members before returning content. The nested snapshot
+is decoded and fingerprint-verified in memory. The portfolio integrity policy runs before migration
+or `restore_session`. Neither ZIP layer is extracted to a filesystem, and browser inspection remains
+non-mutating until explicit restoration.

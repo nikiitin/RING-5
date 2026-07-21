@@ -11,6 +11,7 @@ import os
 import tempfile
 from datetime import date, datetime, time, timezone
 from decimal import Decimal
+from io import BytesIO
 from pathlib import Path
 from typing import Any, cast
 from zipfile import ZIP_DEFLATED, BadZipFile, ZipFile
@@ -19,6 +20,7 @@ import numpy as np
 import pandas as pd
 
 from src.core.common.utils import sanitize_filename, validate_path_within
+from src.core.common.security_limits import MAX_PORTFOLIO_BUNDLE_BYTES
 from src.core.models import DatasetSnapshotInfo
 from src.core.services.data_services.dataset_fingerprint import fingerprint_dataset
 from src.core.services.data_services.path_service import PathService
@@ -137,29 +139,87 @@ class DatasetSnapshotService:
         path = cls._snapshot_path(cls._validate_name(name, "Snapshot"))
         if not path.exists():
             raise FileNotFoundError(f"Dataset snapshot {name!r} does not exist.")
+        return cls._load_payload(path.read_bytes(), expected_name=name.strip())
+
+    @classmethod
+    def export_snapshot(cls, name: str) -> bytes:
+        """Return exact verified snapshot bytes for a portable bundle.
+
+        Args:
+            name: Saved snapshot name.
+
+        Returns:
+            Complete ``.ring5-snapshot`` archive bytes.
+        """
+        path = cls._snapshot_path(cls._validate_name(name, "Snapshot"))
+        if not path.exists():
+            raise FileNotFoundError(f"Dataset snapshot {name!r} does not exist.")
+        payload = path.read_bytes()
+        cls._load_payload(payload, expected_name=name.strip())
+        return payload
+
+    @classmethod
+    def inspect_snapshot(cls, payload: bytes) -> DatasetSnapshotInfo:
+        """Validate in-memory snapshot bytes and return their metadata.
+
+        Args:
+            payload: Complete ``.ring5-snapshot`` archive bytes.
+
+        Returns:
+            Verified snapshot metadata without persisting the archive.
+        """
+        info, _data = cls._load_payload(payload)
+        return info
+
+    @classmethod
+    def _load_payload(
+        cls,
+        payload: bytes,
+        *,
+        expected_name: str | None = None,
+    ) -> tuple[DatasetSnapshotInfo, pd.DataFrame]:
+        """Decode one bounded snapshot archive from memory."""
+        if not isinstance(payload, bytes) or not payload:
+            raise ValueError("Dataset snapshot payload must be non-empty bytes.")
+        if len(payload) > MAX_PORTFOLIO_BUNDLE_BYTES:
+            raise ValueError("Dataset snapshot exceeds the portable bundle size limit.")
         try:
-            with ZipFile(path) as archive:
+            with ZipFile(BytesIO(payload)) as archive:
+                infos = archive.infolist()
+                if {info.filename for info in infos} != {_MANIFEST_MEMBER, _DATA_MEMBER}:
+                    raise ValueError("Dataset snapshot has unexpected archive members.")
+                if any(
+                    info.file_size > MAX_PORTFOLIO_BUNDLE_BYTES
+                    or info.flag_bits & 0x1
+                    or info.is_dir()
+                    for info in infos
+                ):
+                    raise ValueError("Dataset snapshot contains an unsafe archive member.")
+                if sum(info.file_size for info in infos) > MAX_PORTFOLIO_BUNDLE_BYTES:
+                    raise ValueError("Dataset snapshot expands beyond the portable size limit.")
                 manifest = cls._parse_manifest(archive.read(_MANIFEST_MEMBER))
                 payload_bytes = archive.read(_DATA_MEMBER)
         except (BadZipFile, KeyError, json.JSONDecodeError, UnicodeDecodeError) as exc:
-            raise ValueError(f"Dataset snapshot {name!r} is unreadable or incomplete.") from exc
+            raise ValueError("Dataset snapshot is unreadable or incomplete.") from exc
 
-        if manifest["name"] != name.strip():
-            raise ValueError(f"Dataset snapshot {name!r} has mismatched identity metadata.")
+        if expected_name is not None and manifest["name"] != expected_name:
+            raise ValueError(
+                f"Dataset snapshot {expected_name!r} has mismatched identity metadata."
+            )
 
         actual_payload_hash = hashlib.sha256(payload_bytes).hexdigest()
         if actual_payload_hash != manifest["payload_sha256"]:
-            raise ValueError(f"Dataset snapshot {name!r} failed its payload checksum.")
+            raise ValueError("Dataset snapshot failed its payload checksum.")
         try:
-            payload = cast(dict[str, Any], json.loads(payload_bytes))
-            data = cls._decode_frame(payload)
+            frame_payload = cast(dict[str, Any], json.loads(payload_bytes))
+            data = cls._decode_frame(frame_payload)
         except (KeyError, TypeError, ValueError, json.JSONDecodeError, UnicodeDecodeError) as exc:
-            raise ValueError(f"Dataset snapshot {name!r} contains invalid table data.") from exc
+            raise ValueError("Dataset snapshot contains invalid table data.") from exc
         if len(data) != manifest["row_count"] or len(data.columns) != manifest["column_count"]:
-            raise ValueError(f"Dataset snapshot {name!r} does not match its recorded dimensions.")
+            raise ValueError("Dataset snapshot does not match its recorded dimensions.")
         if fingerprint_dataset(data) != manifest["fingerprint"]:
-            raise ValueError(f"Dataset snapshot {name!r} failed fingerprint verification.")
-        return cls._info_from_manifest(manifest, path.stat().st_size), data
+            raise ValueError("Dataset snapshot failed fingerprint verification.")
+        return cls._info_from_manifest(manifest, len(payload)), data
 
     @classmethod
     def delete_snapshot(cls, name: str) -> None:

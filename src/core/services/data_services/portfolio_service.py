@@ -210,6 +210,30 @@ class PortfolioService:
             raise ValueError("Portfolio JSON must contain one top-level object.")
         return PortfolioIntegrityService.verify(raw, signing_key=signing_key)
 
+    def export_portfolio_bytes(self, name: str) -> bytes:
+        """Return exact manifest-verified portfolio bytes for portable packaging.
+
+        Args:
+            name: Saved portfolio name.
+
+        Returns:
+            Exact JSON file bytes after content-integrity verification.
+        """
+        load_path = self._portfolio_path(name)
+        if not load_path.exists():
+            raise FileNotFoundError(f"Portfolio '{name}' not found")
+        payload = load_path.read_bytes()
+        try:
+            value = json.loads(payload.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise ValueError(f"Portfolio '{name}' is not valid UTF-8 JSON.") from exc
+        if not isinstance(value, dict):
+            raise ValueError("Portfolio JSON must contain one top-level object.")
+        report = PortfolioIntegrityService.verify(value)
+        PortfolioIntegrityService.require_restorable(report)
+        PortfolioMigrator.migrate(value)
+        return payload
+
     def list_portfolio_revisions(self, name: str) -> tuple[PortfolioRevisionInfo, ...]:
         # [impl->req~ring5.portfolio.history-diff~1]
         """List immutable saved versions for a named portfolio."""

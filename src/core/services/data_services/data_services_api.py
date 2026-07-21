@@ -21,6 +21,8 @@ from src.core.models import (
     DatasetSnapshotInfo,
     PlotProtocol,
     PortfolioData,
+    PortfolioBundleContents,
+    PortfolioBundleInfo,
     PortfolioDiff,
     PortfolioIntegrityReport,
     PortfolioRevisionInfo,
@@ -298,6 +300,38 @@ class DataServicesAPI(Protocol):
         signing_key: str | bytes | None = None,
     ) -> PortfolioIntegrityReport:
         """Inspect a saved portfolio's checksums and optional signature."""
+        raise NotImplementedError
+
+    def export_portfolio_bundle(
+        self,
+        name: str,
+        *,
+        snapshot_name: str | None = None,
+        results: Mapping[str, bytes] | None = None,
+        signing_key: str | bytes | None = None,
+        signing_key_id: str = "default",
+    ) -> bytes:
+        """Build a portable bundle from a saved portfolio and optional artifacts."""
+        raise NotImplementedError
+
+    def inspect_portfolio_bundle(
+        self,
+        payload: bytes,
+        *,
+        signing_key: str | bytes | None = None,
+        require_signature: bool = False,
+    ) -> PortfolioBundleInfo:
+        """Validate portable bundle metadata without changing application state."""
+        raise NotImplementedError
+
+    def read_portfolio_bundle(
+        self,
+        payload: bytes,
+        *,
+        signing_key: str | bytes | None = None,
+        require_signature: bool = False,
+    ) -> PortfolioBundleContents:
+        """Read every portable bundle artifact after full verification."""
         raise NotImplementedError
 
     def list_portfolio_revisions(self, name: str) -> tuple[PortfolioRevisionInfo, ...]:

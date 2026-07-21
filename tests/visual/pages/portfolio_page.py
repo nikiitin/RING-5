@@ -75,6 +75,23 @@ class PortfolioPage(BasePage):
         return self.page.locator("[data-testid='stExpander']").filter(has_text="Analysis report")
 
     @property
+    def portable_bundle_expander(self) -> Locator:
+        """Portable analysis bundle preparation and download workflow."""
+        return self.page.locator("[data-testid='stExpander']").filter(
+            has_text="Portable analysis bundle"
+        )
+
+    @property
+    def prepare_bundle_button(self) -> Locator:
+        """Prepare the selected portfolio's portable bundle."""
+        return self.portable_bundle_expander.get_by_role("button", name="Prepare portable bundle")
+
+    @property
+    def download_bundle_button(self) -> Locator:
+        """Download a previously prepared portable bundle."""
+        return self.portable_bundle_expander.get_by_role("button", name="Download portable bundle")
+
+    @property
     def report_title_input(self) -> Locator:
         """Report title input."""
         return self.page.get_by_label("Report title")
@@ -173,6 +190,18 @@ class PortfolioPage(BasePage):
         expect(self.report_expander).to_be_visible(timeout=self.RENDER_TIMEOUT)
         self.report_expander.locator("summary").click()
         expect(self.report_title_input).to_be_visible(timeout=self.RENDER_TIMEOUT)
+
+    def prepare_portable_bundle(self) -> None:
+        """Prepare and expose a downloadable bundle for the selected portfolio."""
+        expect(self.portable_bundle_expander).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        if not self.prepare_bundle_button.is_visible():
+            self.portable_bundle_expander.locator("summary").click()
+        self.prepare_bundle_button.click()
+        self.wait_for_streamlit(expect_rerun=True)
+        if not self.download_bundle_button.is_visible():
+            self.portable_bundle_expander.locator("summary").click()
+        expect(self.download_bundle_button).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        self.page.wait_for_timeout(1_000)
 
     def open_analysis_recipes(self) -> None:
         """Open the recipe workflow when it is collapsed."""

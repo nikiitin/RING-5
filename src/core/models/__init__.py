@@ -115,6 +115,13 @@ from src.core.models.portfolio_revision_models import (
     PortfolioDiffEntry,
     PortfolioRevisionInfo,
 )
+from src.core.models.portfolio_bundle_models import (
+    PortfolioBundleArtifact,
+    PortfolioBundleArtifactRole,
+    PortfolioBundleContents,
+    PortfolioBundleInfo,
+    PortfolioBundleResult,
+)
 from src.core.models.recipe_models import (
     AnalysisRecipe,
     AnalysisRecipeInfo,
@@ -221,6 +228,11 @@ __all__ = [
     "StatConfig",
     "TransformerShaperConfig",
     "PortfolioData",
+    "PortfolioBundleArtifact",
+    "PortfolioBundleArtifactRole",
+    "PortfolioBundleContents",
+    "PortfolioBundleInfo",
+    "PortfolioBundleResult",
     "PortfolioIntegrityReport",
     "PortfolioIntegritySection",
     "PortfolioIntegrityStatus",

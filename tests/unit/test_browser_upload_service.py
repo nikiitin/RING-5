@@ -12,6 +12,7 @@ from openpyxl import Workbook
 from src.core.services.browser_upload_service import BrowserUploadService
 from src.core.services.import_preview_service import ImportPreviewService
 from src.core.services.portfolio_integrity_service import PortfolioIntegrityService
+from src.core.services.portfolio_bundle_service import PortfolioBundleService
 
 
 def _workbook_bytes() -> bytes:
@@ -173,6 +174,48 @@ def test_modified_manifest_portfolio_upload_is_rejected_before_staging(tmp_path:
             json.dumps(document).encode(),
             tmp_path,
         )
+
+
+def test_portable_bundle_is_summarized_and_reverified_before_restore(tmp_path: Path) -> None:
+    # [test->req~ring5.portfolio.portable-bundles~1]
+    document = {
+        "schema_version": 4,
+        "version": "4.0",
+        "data_csv": "benchmark,ipc\nalpha,1.25\n",
+        "plots": [],
+        "config": {},
+    }
+    document["integrity_manifest"] = PortfolioIntegrityService.create_manifest(document)
+    payload = PortfolioBundleService.create(
+        "portable-analysis",
+        json.dumps(document).encode(),
+        results={"report.html": b"<html/>"},
+        signing_key="shared bundle secret",
+        signing_key_id="transfer-key",
+    )
+
+    upload = BrowserUploadService.inspect(
+        "portable-analysis.ring5-bundle",
+        "application/zip",
+        payload,
+        tmp_path,
+    )
+
+    assert upload.kind == "bundle"
+    assert upload.bundle_info is not None
+    assert upload.bundle_info.name == "portable-analysis"
+    assert upload.bundle_info.result_names == ("report.html",)
+    assert upload.bundle_info.portfolio_integrity.status == "signature-unverified"
+    contents = BrowserUploadService.load_portfolio_bundle(
+        upload,
+        signing_key="shared bundle secret",
+        require_signature=True,
+    )
+    assert contents.info.portfolio_integrity.status == "signature-valid"
+
+    Path(upload.source_path).write_bytes(b"changed")
+    with pytest.raises(ValueError, match="changed after validation"):
+        BrowserUploadService.load_portfolio_bundle(upload)
 
 
 def test_csv_uses_browser_specific_size_row_and_cell_limits(

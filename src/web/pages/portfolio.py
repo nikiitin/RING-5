@@ -142,6 +142,59 @@ def _render_integrity_review(
     return report, signing_key
 
 
+def _render_bundle_download(api: ApplicationAPI, portfolio_name: str) -> None:
+    # [impl->req~ring5.portfolio.portable-bundles~1]
+    """Prepare a portable bundle with an optional exact dataset snapshot."""
+    with st.expander("Portable analysis bundle", expanded=False):
+        st.caption(
+            "Includes the portfolio, source manifest, environment, and pinned requirements. "
+            "Python callers can also attach generated result files."
+        )
+        try:
+            snapshots = api.data_services.list_dataset_snapshots()
+        except Exception as exc:
+            logger.warning("PORTFOLIO: dataset snapshots could not be listed: %s", exc)
+            snapshots = ()
+        snapshot_names = [snapshot.name for snapshot in snapshots]
+        selected_snapshot = st.selectbox(
+            "Exact dataset snapshot",
+            options=["Do not include", *snapshot_names],
+            key=f"portfolio_bundle_snapshot.{portfolio_name}",
+        )
+        snapshot_name = selected_snapshot if selected_snapshot in snapshot_names else None
+        state_key = f"portfolio_bundle_bytes.{portfolio_name}.{snapshot_name or 'none'}"
+        if st.button(
+            "Prepare portable bundle",
+            key=f"portfolio_bundle_prepare.{portfolio_name}",
+            width="stretch",
+        ):
+            try:
+                payload = api.data_services.export_portfolio_bundle(
+                    portfolio_name,
+                    snapshot_name=snapshot_name,
+                )
+                st.session_state[state_key] = payload
+            except Exception as exc:
+                logger.error(
+                    "PORTFOLIO: bundle for '%s' could not be created: %s",
+                    portfolio_name,
+                    exc,
+                    exc_info=True,
+                )
+                st.error(f"Portable bundle could not be prepared: {exc}")
+        prepared = st.session_state.get(state_key)
+        if isinstance(prepared, bytes):
+            st.download_button(
+                "Download portable bundle",
+                data=prepared,
+                file_name=f"{portfolio_name}.ring5-bundle",
+                mime="application/vnd.ring5.portfolio-bundle+zip",
+                key=f"portfolio_bundle_download.{portfolio_name}",
+                width="stretch",
+                on_click="ignore",
+            )
+
+
 def _portfolio_fragment(api: ApplicationAPI) -> None:
     # [impl->req~ring5.portfolio.partial-report~1]
     # [impl->req~ring5.portfolio.manage~1]
@@ -229,6 +282,7 @@ def _portfolio_fragment(api: ApplicationAPI) -> None:
                 str(selected_portfolio),
             )
             _render_environment_comparison(api, str(selected_portfolio))
+            _render_bundle_download(api, str(selected_portfolio))
 
             load_blocked = integrity is None or (
                 not integrity.safe_to_restore

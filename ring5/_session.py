@@ -47,6 +47,8 @@ from src.core.models import (
     PlotTransferMode,
     PlotTransferResult,
     PortfolioData,
+    PortfolioBundleContents,
+    PortfolioBundleInfo,
     PortfolioDiff,
     PortfolioIntegrityReport,
     PortfolioRevisionInfo,
@@ -2817,6 +2819,138 @@ class Session:
             return self.api.state_manager.restore_session(data)
         except (KeyError, TypeError, ValueError) as exc:
             raise PortfolioError(f"Portfolio '{name}' could not be restored: {exc}") from exc
+
+    def export_portfolio_bundle(
+        self,
+        name: str,
+        *,
+        snapshot_name: str | None = None,
+        results: Mapping[str, bytes] | None = None,
+        signing_key: str | bytes | None = None,
+        signing_key_id: str = "default",
+    ) -> bytes:
+        # [impl->req~ring5.portfolio.portable-bundles~1]
+        """Package a saved portfolio and reproducibility artifacts for transfer.
+
+        The bundle always contains source provenance, environment metadata, and
+        pinned Python requirements. A named exact dataset snapshot and generated
+        result bytes are optional. Supplying ``signing_key`` signs the bundled
+        portfolio copy without changing the saved portfolio.
+
+        Args:
+            name: Saved portfolio and bundle name.
+            snapshot_name: Optional reusable dataset snapshot to include.
+            results: Optional safe relative result names mapped to exact bytes.
+            signing_key: Optional shared secret for the bundled portfolio signature.
+            signing_key_id: Non-secret label stored with a new signature.
+
+        Returns:
+            Complete deterministic ``.ring5-bundle`` bytes.
+
+        Raises:
+            PortfolioError: Inputs are absent, invalid, modified, or exceed bundle limits.
+        """
+        try:
+            return self.api.data_services.export_portfolio_bundle(
+                name,
+                snapshot_name=snapshot_name,
+                results=results,
+                signing_key=signing_key,
+                signing_key_id=signing_key_id,
+            )
+        except (FileNotFoundError, OSError, TypeError, ValueError) as exc:
+            raise PortfolioError(f"Portfolio bundle '{name}' could not be created: {exc}") from exc
+
+    def inspect_portfolio_bundle(
+        self,
+        payload: bytes,
+        *,
+        signing_key: str | bytes | None = None,
+        require_signature: bool = False,
+    ) -> PortfolioBundleInfo:
+        # [impl->req~ring5.portfolio.portable-bundles~1]
+        """Validate and summarize a portable bundle without changing this session.
+
+        Args:
+            payload: Complete ``.ring5-bundle`` bytes.
+            signing_key: Optional shared secret for its portfolio signature.
+            require_signature: Require that secret to authenticate the portfolio.
+
+        Returns:
+            Artifact inventory, source/result counts, and integrity evidence.
+
+        Raises:
+            PortfolioError: The archive or any nested artifact fails validation.
+        """
+        try:
+            return self.api.data_services.inspect_portfolio_bundle(
+                payload,
+                signing_key=signing_key,
+                require_signature=require_signature,
+            )
+        except (OSError, TypeError, UnicodeError, ValueError) as exc:
+            raise PortfolioError(f"Portfolio bundle could not be inspected: {exc}") from exc
+
+    def read_portfolio_bundle(
+        self,
+        payload: bytes,
+        *,
+        signing_key: str | bytes | None = None,
+        require_signature: bool = False,
+    ) -> PortfolioBundleContents:
+        # [impl->req~ring5.portfolio.portable-bundles~1]
+        """Read verified portfolio, snapshot, provenance, and result artifacts.
+
+        Args:
+            payload: Complete ``.ring5-bundle`` bytes.
+            signing_key: Optional shared secret for its portfolio signature.
+            require_signature: Require that secret to authenticate the portfolio.
+
+        Returns:
+            Verified content without restoring or writing any artifact.
+
+        Raises:
+            PortfolioError: The archive or any nested artifact fails validation.
+        """
+        try:
+            return self.api.data_services.read_portfolio_bundle(
+                payload,
+                signing_key=signing_key,
+                require_signature=require_signature,
+            )
+        except (OSError, TypeError, UnicodeError, ValueError) as exc:
+            raise PortfolioError(f"Portfolio bundle could not be read: {exc}") from exc
+
+    def restore_portfolio_bundle(
+        self,
+        payload: bytes,
+        *,
+        signing_key: str | bytes | None = None,
+        require_signature: bool = False,
+    ) -> RestoreReport:
+        # [impl->req~ring5.portfolio.portable-bundles~1]
+        """Verify a portable bundle and explicitly restore its portfolio.
+
+        Args:
+            payload: Complete ``.ring5-bundle`` bytes.
+            signing_key: Optional shared secret for its portfolio signature.
+            require_signature: Require that secret to authenticate the portfolio.
+
+        Returns:
+            Normal portfolio restore report. Bundled files are not written to disk.
+
+        Raises:
+            PortfolioError: Validation or restoration fails.
+        """
+        contents = self.read_portfolio_bundle(
+            payload,
+            signing_key=signing_key,
+            require_signature=require_signature,
+        )
+        try:
+            return self.api.state_manager.restore_session(contents.portfolio)
+        except (KeyError, TypeError, ValueError) as exc:
+            raise PortfolioError(f"Portfolio bundle could not be restored: {exc}") from exc
 
     def list_portfolio_revisions(self, name: str) -> tuple[PortfolioRevisionInfo, ...]:
         # [impl->req~ring5.portfolio.history-diff~1]
