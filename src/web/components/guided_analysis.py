@@ -34,7 +34,7 @@ class GuidedAnalysisComponent:
                     stage.action_label,
                     key=f"guided_analysis_action_{stage.stage_id}",
                     type="primary",
-                    use_container_width=True,
+                    width="stretch",
                 ):
                     cls.activate(stage)
                     st.rerun()

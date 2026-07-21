@@ -95,6 +95,7 @@ class TestRenderDownloadSectionPlotly:
         mock_st.expander.return_value.__enter__ = lambda s: ctx
         mock_st.expander.return_value.__exit__ = MagicMock(return_value=False)
         mock_st.pills.return_value = "pdf"
+        mock_st.download_button.return_value = True
 
         render_download_section(1, "myplot", _simple_plotly_fig())
 
@@ -108,6 +109,7 @@ class TestRenderDownloadSectionPlotly:
         assert kwargs["file_name"] == "myplot.pdf"
         assert kwargs["mime"] == "application/pdf"
         assert callable(kwargs["on_click"])
+        mock_st.rerun.assert_not_called()
 
     @patch("src.web.pages.ui.plotting.download_section.EngineManager")
     @patch("src.web.pages.ui.plotting.download_section.st")
@@ -190,6 +192,7 @@ class TestRenderDownloadSectionMatplotlib:
         mock_st.expander.return_value.__exit__ = MagicMock(return_value=False)
         mock_st.session_state = {"plot.5.mpl_fig": _simple_mpl_fig()}
         mock_st.pills.return_value = "png"
+        mock_st.download_button.return_value = True
 
         render_download_section(5, "chart", _simple_plotly_fig())
 
@@ -199,6 +202,7 @@ class TestRenderDownloadSectionMatplotlib:
         assert kwargs["data"] == b"PNGDATA"
         assert kwargs["file_name"] == "chart.png"
         assert kwargs["mime"] == "image/png"
+        mock_st.rerun.assert_not_called()
 
     @patch(
         "src.web.pages.ui.plotting.download_section.matplotlib_download_bytes",

@@ -65,12 +65,12 @@ class WorkspaceSearchComponent:
                     st.link_button(
                         label,
                         result.location,
-                        use_container_width=True,
+                        width="stretch",
                     )
                 elif st.button(
                     label,
                     key=f"workspace_search_result_{index}_{result.kind}",
-                    use_container_width=True,
+                    width="stretch",
                     type="tertiary",
                 ):
                     try:

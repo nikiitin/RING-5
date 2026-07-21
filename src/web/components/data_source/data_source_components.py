@@ -851,14 +851,14 @@ class DataSourceComponents:
             test_configuration = st.button(
                 ":material/science: Test configuration",
                 help="Run the real parser on up to three matching files without loading data.",
-                use_container_width=True,
+                width="stretch",
                 key="parser_test_configuration",
             )
         with parse_col:
             parse_configuration = st.button(
                 f"Parse {sim_label} Stats Files",
                 type="primary",
-                use_container_width=True,
+                width="stretch",
             )
 
         if test_configuration:
@@ -999,7 +999,7 @@ class DataSourceComponents:
         st.dataframe(
             pd.DataFrame(result.rows, columns=result.columns),
             hide_index=True,
-            use_container_width=True,
+            width="stretch",
         )
         if result.missing_variables:
             st.warning("Missing sampled values: " + ", ".join(result.missing_variables))
@@ -1125,7 +1125,7 @@ class DataSourceComponents:
                     config["repeat"] = str(repeat_int)
 
             st.write("")
-            if st.button("Add to Configuration", type="primary", use_container_width=True):
+            if st.button("Add to Configuration", type="primary", width="stretch"):
                 if not name:
                     st.error("Variable name is required.")
                 elif var_type == "vector" and not config.get("vectorEntries"):

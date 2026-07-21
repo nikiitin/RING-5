@@ -98,7 +98,7 @@ class PlotTransferPanel:
             st.dataframe(
                 rows,
                 hide_index=True,
-                use_container_width=True,
+                width="stretch",
                 height=min(420, 38 + 35 * len(rows)),
             )
         if comparison.can_replace:

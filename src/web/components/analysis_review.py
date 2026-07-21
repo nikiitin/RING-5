@@ -118,7 +118,7 @@ class AnalysisReviewComponent:
             if st.button(
                 "Add review update",
                 key=f"_analysis_review_add_{suffix}",
-                use_container_width=True,
+                width="stretch",
                 type="primary",
             ):
                 try:

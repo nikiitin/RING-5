@@ -13,6 +13,8 @@ Data precondition:
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 from playwright.sync_api import Page, expect
 
@@ -203,8 +205,8 @@ class TestExportDownload:
         expect(pgf_pill).to_be_visible(timeout=E2E_TIMEOUT)
 
     @pytest.mark.order(7)
-    def test_07_download_button_label(self, tier2_page: Page) -> None:
-        """The download button inside the expander has the correct role + is enabled.
+    def test_07_html_download_completes(self, tier2_page: Page, tmp_path: Path) -> None:
+        """The HTML download completes and yields a self-contained document.
 
         HTML keeps this assertion independent of the optional Chrome-backed
         exporters; PDF, SVG, and PNG controls are covered above, and their byte
@@ -225,3 +227,10 @@ class TestExportDownload:
         # Verify the button has the expected accessible name + is enabled.
         expect(mp.download_button).to_be_visible(timeout=EXPORT_TIMEOUT)
         expect(mp.download_button).to_be_enabled(timeout=EXPORT_TIMEOUT)
+        with tier2_page.expect_download(timeout=E2E_TIMEOUT) as download_info:
+            mp.download_button.click()
+        download = download_info.value
+        assert download.failure() is None
+        output = tmp_path / download.suggested_filename
+        download.save_as(str(output))
+        assert output.read_bytes().lower().startswith(b"<html")

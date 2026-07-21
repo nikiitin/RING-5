@@ -74,6 +74,9 @@ class TestPlotCreation:
         _create_and_finalize(mp, "E2E Bar", "bar")
         _trigger_render_fragment(mp)
         _configure_and_assert_chart(mp, x="benchmark_name", y="system.cpu.ipc")
+        expect(mp.viz_title_input).to_have_value("system.cpu.ipc by benchmark_name")
+        expect(mp.viz_x_label_input).to_have_value("benchmark_name")
+        expect(mp.viz_y_label_input).to_have_value("system.cpu.ipc")
 
     # -- Grouped Bar ---------------------------------------------------------
 

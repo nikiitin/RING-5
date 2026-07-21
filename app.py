@@ -95,7 +95,7 @@ def run_app() -> None:
             if st.button(
                 _nav_item,
                 key=f"nav_{_nav_item}",
-                use_container_width=True,
+                width="stretch",
                 type="primary" if _is_active else "tertiary",
             ):
                 st.session_state["_nav_page"] = _nav_item
@@ -114,7 +114,7 @@ def run_app() -> None:
         # [impl->req~ring5.workspace.reset~1]
         if st.button(
             "Clear Data",
-            use_container_width=True,
+            width="stretch",
             type="tertiary",
             help="Clear loaded CSV data and plots",
         ):
@@ -124,7 +124,7 @@ def run_app() -> None:
 
         if st.button(
             "Reset All",
-            use_container_width=True,
+            width="stretch",
             type="secondary",
             help="Reset entire application to defaults",
         ):

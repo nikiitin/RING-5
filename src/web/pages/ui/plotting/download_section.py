@@ -114,18 +114,15 @@ def _render_plotly_download(
                 "the HTML format."
             ) from exc
 
-    clicked = st.download_button(
+    st.download_button(
         label=f"Download {fmt.upper()}",
         data=generate_download,
         file_name=f"{plot_name}{get_plotly_extension(fmt_typed)}",
         mime=get_plotly_mime(fmt_typed),
         on_click=_mark_guided_analysis_exported,
-        use_container_width=True,
+        width="stretch",
         key=f"dl_btn_{plot_id}",
     )
-    if clicked is True:
-        _mark_guided_analysis_exported()
-        st.rerun(scope="app")
 
 
 def _render_mpl_download(plot_id: int, plot_name: str) -> None:
@@ -163,15 +160,12 @@ def _render_mpl_download(plot_id: int, plot_name: str) -> None:
             data = matplotlib_download_bytes(mpl_fig, fmt_typed, spec=spec)
         else:
             raise
-    clicked = st.download_button(
+    st.download_button(
         label=f"Download {fmt_typed.upper()}",
         data=data,
         file_name=f"{plot_name}{get_matplotlib_extension(fmt_typed)}",
         mime=get_matplotlib_mime(fmt_typed),
         on_click=_mark_guided_analysis_exported,
-        use_container_width=True,
+        width="stretch",
         key=f"dl_btn_{plot_id}",
     )
-    if clicked is True:
-        _mark_guided_analysis_exported()
-        st.rerun(scope="app")

@@ -98,7 +98,7 @@ class WorkspaceOrganizerComponent:
             if st.button(
                 "Save organization",
                 key=f"_workspace_organizer_save_{widget_suffix}",
-                use_container_width=True,
+                width="stretch",
                 type="primary",
             ):
                 tags = tuple(tag.strip() for tag in tags_text.split(",") if tag.strip())
@@ -117,7 +117,7 @@ class WorkspaceOrganizerComponent:
             if st.button(
                 "Open selected artifact",
                 key=f"_workspace_organizer_open_{widget_suffix}",
-                use_container_width=True,
+                width="stretch",
                 type="tertiary",
             ):
                 try:

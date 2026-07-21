@@ -479,6 +479,35 @@ class TestPlotConfigComponents:
 
         assert "legend_title" not in result
 
+    @patch("src.web.components.plotting.config.plot_config_components.st")
+    def test_title_labels_reuse_session_state_without_widget_defaults(
+        self, mock_st: MagicMock
+    ) -> None:
+        from src.web.components.plotting.config.plot_config_components import (
+            PlotConfigComponents,
+        )
+
+        mock_st.session_state = {
+            "title_7": "Updated title",
+            "xlabel_7": "Updated X",
+            "ylabel_7": "Updated Y",
+        }
+        mock_st.text_input.side_effect = lambda _label, **kwargs: mock_st.session_state[
+            kwargs["key"]
+        ]
+
+        result = PlotConfigComponents.render_title_labels_section(
+            saved_config={"title": "Old title"},
+            plot_id=7,
+        )
+
+        assert result == {
+            "title": "Updated title",
+            "xlabel": "Updated X",
+            "ylabel": "Updated Y",
+        }
+        assert all("value" not in call.kwargs for call in mock_st.text_input.call_args_list)
+
 
 class TestColors:
     """Tests for color palette lookup and conversion."""

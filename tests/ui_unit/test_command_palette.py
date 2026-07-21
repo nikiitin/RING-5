@@ -32,10 +32,9 @@ def _command(
     )
 
 
-@patch("src.web.components.command_palette.components")
 @patch("src.web.components.command_palette.st")
 def test_render_dialog_lists_shortcuts_and_searches_commands(
-    mock_st: MagicMock, mock_components: MagicMock
+    mock_st: MagicMock,
 ) -> None:
     from src.web.components.command_palette import CommandPaletteComponent
 
@@ -56,7 +55,7 @@ def test_render_dialog_lists_shortcuts_and_searches_commands(
     api.search_workspace_commands.assert_called_once_with("plot", limit=20)
     assert mock_st.button.call_args.args[0] == "Go to Manage Plots · Alt+3"
     mock_st.markdown.assert_called_once()
-    mock_components.html.assert_not_called()
+    mock_st.iframe.assert_not_called()
 
 
 @patch("src.web.components.command_palette.st")
@@ -88,10 +87,9 @@ def test_activate_navigates_focuses_search_and_rejects_untrusted_actions(
         CommandPaletteComponent.activate(object())  # type: ignore[arg-type]
 
 
-@patch("src.web.components.command_palette.components")
 @patch("src.web.components.command_palette.st")
 def test_launcher_installs_one_bridge_with_pending_focus(
-    mock_st: MagicMock, mock_components: MagicMock
+    mock_st: MagicMock,
 ) -> None:
     from src.web.components.command_palette import CommandPaletteComponent
 
@@ -103,8 +101,9 @@ def test_launcher_installs_one_bridge_with_pending_focus(
 
     CommandPaletteComponent.render(MagicMock())
 
-    html = mock_components.html.call_args.args[0]
+    html = mock_st.iframe.call_args.args[0]
     assert "__ring5ShortcutHandler" in html
     assert "Alt+1" not in html
     assert "if (true)" in html
+    assert mock_st.iframe.call_args.kwargs == {"height": 1}
     assert mock_st.session_state == {}

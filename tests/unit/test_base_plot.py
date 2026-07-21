@@ -128,6 +128,40 @@ def test_render_common_config(mock_plc: Any, mock_st: Any, concrete_plot: Any) -
     assert config["title"] == "My Title"
 
 
+@patch("src.web.components.plotting.config.base_plot_config.st")
+def test_auto_labels_follow_axis_changes_without_overwriting_custom_text(mock_st: Any) -> None:
+    """Derived labels track new columns while user-authored labels remain stable."""
+    from src.web.components.plotting.config.base_plot_config import _sync_auto_labels
+
+    mock_st.session_state = {
+        "title_7": "seed by benchmark_name",
+        "xlabel_7": "benchmark_name",
+        "ylabel_7": "Publication value",
+    }
+    saved_config = {
+        "x": "benchmark_name",
+        "y": "seed",
+        "title": "seed by benchmark_name",
+        "xlabel": "benchmark_name",
+        "ylabel": "Publication value",
+    }
+
+    _sync_auto_labels(saved_config, 7, "config_description", "system.cpu.ipc")
+
+    assert mock_st.session_state == {
+        "title_7": "system.cpu.ipc by config_description",
+        "xlabel_7": "config_description",
+        "ylabel_7": "Publication value",
+    }
+    assert saved_config == {
+        "x": "benchmark_name",
+        "y": "seed",
+        "title": "seed by benchmark_name",
+        "xlabel": "benchmark_name",
+        "ylabel": "Publication value",
+    }
+
+
 def test_relabel_traces_renames_engine_agnostic_names() -> None:
     """Legend relabeling renames the engine-agnostic TraceConfig.name once
     (single source of truth) so both Plotly and Matplotlib honor it."""

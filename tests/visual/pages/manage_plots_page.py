@@ -625,9 +625,12 @@ class ManagePlotsPage(BasePage):
     def _open_and_select(self, selectbox: Locator, value: str) -> None:
         """Open a selectbox and choose *value*, retrying interrupted clicks."""
         expect(selectbox).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        combobox = selectbox.get_by_role("combobox")
+        if combobox.input_value() == value:
+            return
         option = self.page.get_by_role("option", name=value, exact=True).first
         for _ in range(3):
-            selectbox.get_by_role("combobox").click()
+            combobox.click()
             try:
                 option.wait_for(state="visible", timeout=5_000)
                 option.click(timeout=5_000)
@@ -635,7 +638,8 @@ class ManagePlotsPage(BasePage):
                 self.page.keyboard.press("Escape")
                 self.page.wait_for_timeout(250)
                 continue
-            self.wait_for_streamlit()
+            self.wait_for_streamlit(expect_rerun=True)
+            expect(combobox).to_have_value(value, timeout=self.RENDER_TIMEOUT)
             return
         expect(option).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
@@ -647,18 +651,14 @@ class ManagePlotsPage(BasePage):
         """
         combobox = self.plot_type_selectbox.get_by_role("combobox")
         expect(combobox).to_be_visible(timeout=self.RENDER_TIMEOUT)
-        current = combobox.input_value()
-        if current not in PLOT_TYPES or plot_type not in PLOT_TYPES:
-            self._open_and_select(self.plot_type_selectbox, plot_type)
-        else:
-            current_index = PLOT_TYPES.index(current)
-            target_index = PLOT_TYPES.index(plot_type)
-            combobox.click()
-            key = "ArrowDown" if target_index >= current_index else "ArrowUp"
-            for _ in range(abs(target_index - current_index)):
-                self.page.keyboard.press(key)
-            self.page.keyboard.press("Enter")
-            self.wait_for_streamlit()
+        if plot_type not in PLOT_TYPES:
+            raise ValueError(f"Unsupported plot type: {plot_type}")
+        combobox.click()
+        combobox.fill(plot_type)
+        option = self.page.get_by_role("option", name=plot_type, exact=True).first
+        expect(option).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        option.click()
+        self.wait_for_streamlit(expect_rerun=True)
         expect(combobox).to_have_value(
             plot_type,
             timeout=self.RENDER_TIMEOUT,

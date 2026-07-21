@@ -36,7 +36,7 @@ def test_render_shows_one_next_action_and_navigates(mock_st: MagicMock) -> None:
         "Configure comparison",
         key="guided_analysis_action_comparison",
         type="primary",
-        use_container_width=True,
+        width="stretch",
     )
     mock_st.rerun.assert_called_once()
 

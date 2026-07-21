@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 
 import streamlit as st
-import streamlit.components.v1 as components
 
 from src.core.application_api import ApplicationAPI
 from src.core.models import WorkspaceCommand
@@ -32,7 +31,7 @@ class CommandPaletteComponent:
         if st.button(
             "Command palette",
             key="_open_command_palette",
-            use_container_width=True,
+            width="stretch",
             type="tertiary",
             help="Search commands · Ctrl/⌘+K",
         ):
@@ -77,7 +76,7 @@ class CommandPaletteComponent:
                 if st.button(
                     f"{command.title}{shortcut}",
                     key=f"command_palette_{command.command_id}",
-                    use_container_width=True,
+                    width="stretch",
                     type="tertiary",
                     help=command.description,
                 ):
@@ -115,7 +114,7 @@ class CommandPaletteComponent:
         """Install one parent-document handler from the trusted application shell."""
         # [impl->req~ring5.workspace.command-palette~1]
         payload = json.dumps(_NAVIGATION_SHORTCUTS, sort_keys=True)
-        components.html(
+        st.iframe(
             f"""
 <script>
 (() => {{
@@ -177,6 +176,5 @@ class CommandPaletteComponent:
 }})();
 </script>
 """,
-            height=0,
-            scrolling=False,
+            height=1,
         )

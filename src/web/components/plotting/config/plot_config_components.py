@@ -181,32 +181,30 @@ class PlotConfigComponents:
         Returns:
             Dictionary with title, xlabel, ylabel, (and legend_title if requested)
         """
-        title = (
-            st.text_input(
-                "Title",
-                value=saved_config.get("title", default_title),
-                key=f"title_{plot_id}",
-            )
-            or ""
-        )
 
-        xlabel = (
-            st.text_input(
-                "X-label",
-                value=saved_config.get("xlabel", default_xlabel),
-                key=f"xlabel_{plot_id}",
+        def _text_input(
+            label: str,
+            field: str,
+            default: str,
+            *,
+            help_text: str | None = None,
+        ) -> str:
+            key = f"{field}_{plot_id}"
+            if key in st.session_state:
+                return st.text_input(label, key=key, help=help_text) or ""
+            return (
+                st.text_input(
+                    label,
+                    value=saved_config.get(field, default),
+                    key=key,
+                    help=help_text,
+                )
+                or ""
             )
-            or ""
-        )
 
-        ylabel = (
-            st.text_input(
-                "Y-label",
-                value=saved_config.get("ylabel", default_ylabel),
-                key=f"ylabel_{plot_id}",
-            )
-            or ""
-        )
+        title = _text_input("Title", "title", default_title)
+        xlabel = _text_input("X-label", "xlabel", default_xlabel)
+        ylabel = _text_input("Y-label", "ylabel", default_ylabel)
 
         result = {
             "title": title,
@@ -215,15 +213,11 @@ class PlotConfigComponents:
         }
 
         if include_legend_title:
-            legend_title = (
-                st.text_input(
-                    "Legend Title",
-                    value=saved_config.get("legend_title", default_legend_title),
-                    key=f"legend_title_{plot_id}",
-                    help="Custom title for the legend.",
-                )
-                or ""
+            result["legend_title"] = _text_input(
+                "Legend Title",
+                "legend_title",
+                default_legend_title,
+                help_text="Custom title for the legend.",
             )
-            result["legend_title"] = legend_title
 
         return result

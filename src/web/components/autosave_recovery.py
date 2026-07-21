@@ -37,7 +37,7 @@ class AutosaveRecoveryComponent:
             if st.button(
                 "Save recovery draft now",
                 key="_recovery_capture_now",
-                use_container_width=True,
+                width="stretch",
             ):
                 cls._capture_now(api, owner_key)
 
@@ -61,7 +61,7 @@ class AutosaveRecoveryComponent:
                 if st.button(
                     "Recover",
                     key=f"_recovery_restore_{selected.draft_id}",
-                    use_container_width=True,
+                    width="stretch",
                     type="primary",
                 ):
                     cls._restore(api, owner_key, selected)
@@ -69,7 +69,7 @@ class AutosaveRecoveryComponent:
                 if st.button(
                     "Delete draft",
                     key=f"_recovery_delete_{selected.draft_id}",
-                    use_container_width=True,
+                    width="stretch",
                     type="tertiary",
                 ):
                     try:
