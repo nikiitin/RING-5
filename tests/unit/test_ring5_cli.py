@@ -10,6 +10,7 @@ from xml.etree import ElementTree as ET
 import pandas as pd
 import pytest
 
+import ring5
 from ring5.cli import build_parser, main
 
 # Shares the conftest `portfolios_dir` patching with the public-api suite —
@@ -50,6 +51,19 @@ class TestParserStructure:
         assert args.threshold_mode == "percentage"
         assert args.format == "json"
         assert args.output is None
+
+    def test_report_schedule_defaults(self) -> None:
+        args = build_parser().parse_args(
+            ["report-schedule", "recipe.json", "--report", "report.html"]
+        )
+        assert args.command == "report-schedule"
+        assert args.parameters is None
+        assert args.state is None
+        assert args.stable_for == 30.0
+        assert args.format == "html"
+        assert args.watch is False
+        assert args.interval == 5.0
+        assert args.max_checks == 0
 
 
 class TestDoctorCommand:
@@ -571,3 +585,268 @@ class TestRegressionGateCommand:
                 == 2
             )
         assert "standard output" in capsys.readouterr().err
+
+
+class TestReportScheduleCommand:
+    """Scheduled ticks and watch polling expose stable JSON outcomes."""
+
+    @staticmethod
+    def _write_recipe(path: Path) -> None:
+        recipe = ring5.AnalysisRecipe(
+            name="Scheduled CLI",
+            parameters=(ring5.RecipeParameter("input_csv", "path"),),
+            source=ring5.RecipeSource("csv", "{{input_csv}}"),
+            plots=(
+                ring5.RecipePlot(
+                    name="IPC",
+                    plot_type="bar",
+                    config={"x": "benchmark", "y": "ipc"},
+                ),
+            ),
+        )
+        with ring5.Session() as session:
+            path.write_bytes(session.export_analysis_recipe(recipe))
+
+    def test_scheduler_tick_generates_then_skips_unchanged_input(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        # [test->req~ring5.automation.scheduled-reporting~1]
+        source = tmp_path / "input.csv"
+        source.write_text("benchmark,ipc\na,1.0\n")
+        recipe = tmp_path / "recipe.json"
+        parameters = tmp_path / "parameters.json"
+        report = tmp_path / "reports" / "nightly.html"
+        state = tmp_path / "state.json"
+        self._write_recipe(recipe)
+        parameters.write_text(json.dumps({"input_csv": str(source)}))
+        arguments = [
+            "report-schedule",
+            str(recipe),
+            "--report",
+            str(report),
+            "--parameters",
+            str(parameters),
+            "--state",
+            str(state),
+            "--stable-for",
+            "0",
+            "--title",
+            "CLI nightly",
+        ]
+
+        assert main(arguments) == 0
+        generated = json.loads(capsys.readouterr().out)
+        before = report.read_bytes()
+        assert generated["format"] == "ring5.scheduled-report-result"
+        assert generated["schema_version"] == 1
+        assert generated["outcome"] == "generated"
+        assert generated["generated"] is True
+        assert generated["configuration_fingerprint"].startswith("sha256:")
+        assert generated["source_files"] == [str(source.resolve())]
+        assert b"CLI nightly" in before
+
+        assert main(arguments) == 0
+        unchanged = json.loads(capsys.readouterr().out)
+        assert unchanged["outcome"] == "unchanged"
+        assert unchanged["generated"] is False
+        assert report.read_bytes() == before
+
+    def test_watch_emits_ndjson_and_honors_check_limit(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        # [test->req~ring5.automation.scheduled-reporting~1]
+        source = tmp_path / "input.csv"
+        source.write_text("benchmark,ipc\na,1.0\n")
+        recipe = tmp_path / "recipe.json"
+        parameters = tmp_path / "parameters.json"
+        self._write_recipe(recipe)
+        parameters.write_text(json.dumps({"input_csv": str(source)}))
+
+        with patch("ring5.cli.time.sleep") as sleep:
+            code = main(
+                [
+                    "report-schedule",
+                    str(recipe),
+                    "-o",
+                    str(tmp_path / "report.html"),
+                    "--parameters",
+                    str(parameters),
+                    "--stable-for",
+                    "0",
+                    "--watch",
+                    "--interval",
+                    "0.1",
+                    "--max-checks",
+                    "2",
+                ]
+            )
+        results = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
+
+        assert code == 0
+        assert [result["outcome"] for result in results] == ["generated", "unchanged"]
+        sleep.assert_called_once_with(0.1)
+
+    def test_first_scheduled_observation_waits_for_stability(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        source = tmp_path / "input.csv"
+        source.write_text("benchmark,ipc\na,1.0\n")
+        recipe = tmp_path / "recipe.json"
+        parameters = tmp_path / "parameters.json"
+        self._write_recipe(recipe)
+        parameters.write_text(json.dumps({"input_csv": str(source)}))
+        report = tmp_path / "report.html"
+
+        code = main(
+            [
+                "report-schedule",
+                str(recipe),
+                "-o",
+                str(report),
+                "--parameters",
+                str(parameters),
+            ]
+        )
+        result = json.loads(capsys.readouterr().out)
+
+        assert code == 0
+        assert result["outcome"] == "waiting_for_stability"
+        assert not report.exists()
+
+    def test_recipe_without_parameters_needs_no_parameter_document(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        source = tmp_path / "input.csv"
+        source.write_text("benchmark,ipc\na,1.0\n")
+        recipe_path = tmp_path / "recipe.json"
+        recipe = ring5.AnalysisRecipe(
+            name="Fixed source",
+            source=ring5.RecipeSource("csv", str(source)),
+            plots=(
+                ring5.RecipePlot(
+                    name="IPC",
+                    plot_type="bar",
+                    config={"x": "benchmark", "y": "ipc"},
+                ),
+            ),
+        )
+        with ring5.Session() as session:
+            recipe_path.write_bytes(session.export_analysis_recipe(recipe))
+
+        code = main(
+            [
+                "report-schedule",
+                str(recipe_path),
+                "--report",
+                str(tmp_path / "report.html"),
+                "--stable-for",
+                "0",
+            ]
+        )
+
+        assert code == 0
+        assert json.loads(capsys.readouterr().out)["outcome"] == "generated"
+
+    @pytest.mark.parametrize(
+        ("payload", "message"),
+        [
+            (b"not json", "valid finite UTF-8 JSON"),
+            (b"[]", "object with named values"),
+            (b'{"": 1}', "object with named values"),
+            (b'{"input_csv": NaN}', "valid finite UTF-8 JSON"),
+        ],
+    )
+    def test_invalid_parameter_documents_return_two(
+        self,
+        tmp_path: Path,
+        capsys: pytest.CaptureFixture[str],
+        payload: bytes,
+        message: str,
+    ) -> None:
+        recipe = tmp_path / "recipe.json"
+        parameters = tmp_path / "parameters.json"
+        self._write_recipe(recipe)
+        parameters.write_bytes(payload)
+
+        assert (
+            main(
+                [
+                    "report-schedule",
+                    str(recipe),
+                    "-o",
+                    str(tmp_path / "report.html"),
+                    "--parameters",
+                    str(parameters),
+                    "--stable-for",
+                    "0",
+                ]
+            )
+            == 2
+        )
+        assert message in capsys.readouterr().err
+
+    @pytest.mark.parametrize(
+        ("extra", "message"),
+        [
+            (["--max-checks", "-1"], "non-negative"),
+            (["--max-checks", "1"], "requires --watch"),
+            (["--watch", "--interval", "0"], "watch interval"),
+            (["--watch", "--interval", "inf"], "watch interval"),
+        ],
+    )
+    def test_invalid_watch_controls_return_two(
+        self,
+        tmp_path: Path,
+        capsys: pytest.CaptureFixture[str],
+        extra: list[str],
+        message: str,
+    ) -> None:
+        recipe = tmp_path / "recipe.json"
+        self._write_recipe(recipe)
+
+        assert (
+            main(
+                [
+                    "report-schedule",
+                    str(recipe),
+                    "-o",
+                    str(tmp_path / "report.html"),
+                    *extra,
+                ]
+            )
+            == 2
+        )
+        assert message in capsys.readouterr().err
+
+    def test_missing_recipe_or_parameters_return_two(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        assert (
+            main(
+                [
+                    "report-schedule",
+                    str(tmp_path / "missing-recipe.json"),
+                    "-o",
+                    str(tmp_path / "report.html"),
+                ]
+            )
+            == 2
+        )
+        assert "Could not read recipe" in capsys.readouterr().err
+
+        recipe = tmp_path / "recipe.json"
+        self._write_recipe(recipe)
+        assert (
+            main(
+                [
+                    "report-schedule",
+                    str(recipe),
+                    "-o",
+                    str(tmp_path / "report.html"),
+                    "--parameters",
+                    str(tmp_path / "missing-parameters.json"),
+                ]
+            )
+            == 2
+        )
+        assert "Could not read recipe" in capsys.readouterr().err

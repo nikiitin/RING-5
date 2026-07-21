@@ -2704,7 +2704,7 @@ Tags: automation, ci, regression, status_approved
 ### Scheduled and watched reporting
 
 `req~ring5.automation.scheduled-reporting~1`
-Status: proposed
+Status: approved
 
 Headless workflows shall watch configured sources or run on a schedule and generate reports only for stable, changed inputs.
 
@@ -2713,7 +2713,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: automation, reporting, scheduling, status_proposed
+Tags: automation, reporting, scheduling, status_approved
 
 ## Extensibility, Safety, and Quality
 

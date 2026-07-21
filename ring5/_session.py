@@ -7,6 +7,7 @@ import shutil
 import tempfile
 import threading
 from collections.abc import Mapping, Sequence
+from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, cast
 
@@ -63,6 +64,7 @@ from src.core.models import (
     RestoreReport,
     ScanResult,
     SchemaValidationReport,
+    ScheduledReportResult,
     StatConfig,
 )
 from src.core.models.data_models import ParseVariableConfig
@@ -3447,6 +3449,104 @@ class Session:
             plot_names=tuple(created),
             exported_paths=tuple(exported),
         )
+
+    def run_scheduled_report(
+        self,
+        recipe: AnalysisRecipe,
+        report_path: str,
+        *,
+        values: Mapping[str, RecipeScalar] | None = None,
+        state_path: str | None = None,
+        stable_for_seconds: float = 30.0,
+        title: str | None = None,
+        format: Literal["html", "pdf"] = "html",
+    ) -> ScheduledReportResult:
+        """Run one durable scheduled-report source check.
+
+        A changed recipe source must remain unchanged for
+        ``stable_for_seconds`` before the recipe runs. The report is built in
+        memory, the source is fingerprinted again, and only then is the report
+        atomically published and its generated fingerprint retained. Calling
+        this method from cron is a single scheduled tick; repeated calls skip
+        an already reported source.
+
+        Recipe plot exports are suppressed for this workflow so an unstable
+        source cannot leave partial side artifacts. The generated report still
+        contains every recipe plot plus data and environment provenance.
+
+        Args:
+            recipe: Valid analysis recipe with at least one plot.
+            report_path: HTML or PDF destination replaced only after success.
+            values: Typed runtime recipe parameters.
+            state_path: Durable state JSON path. Defaults beside the report.
+            stable_for_seconds: Required unchanged interval, from zero through
+                seven days.
+            title: Report title; defaults to the recipe name.
+            format: Deterministic ``"html"`` or ``"pdf"`` report format.
+
+        Returns:
+            A :class:`ring5.ScheduledReportResult` whose outcome is
+            ``generated``, ``unchanged``, or ``waiting_for_stability``.
+
+        Raises:
+            RecipeError: Recipe, source, state, or stability settings are invalid.
+            PipelineError: A recipe transformation fails.
+            DataValidationError: A plot or report mapping is invalid.
+            ExportError: Report rendering or atomic publication fails.
+        """
+        # [impl->req~ring5.automation.scheduled-reporting~1]
+        from src.core.services.scheduled_report_service import (
+            ScheduledReportError,
+            ScheduledReportPublishError,
+            ScheduledReportService,
+        )
+
+        materialized = self.materialize_analysis_recipe(recipe, values)
+        resolved_state = state_path or f"{report_path}.ring5-state.json"
+
+        def resolve_source_files() -> tuple[str, ...]:
+            return ScheduledReportService.source_files(
+                materialized.source,
+                self.api.find_stats_files,
+            )
+
+        def generate() -> bytes:
+            execution_recipe = replace(recipe, exports=())
+            self.run_analysis_recipe(execution_recipe, values)
+            if not self.plots:
+                raise RecipeError("Scheduled report recipes need at least one plot.")
+            report = self.create_report(
+                report_title,
+                self.plots,
+                narrative={
+                    "Scheduled execution": (
+                        "Generated after the configured source remained stable and changed."
+                    )
+                },
+            )
+            return self.report_bytes(report, format)
+
+        try:
+            report_title = title or materialized.name
+            configuration_fingerprint = ScheduledReportService.report_configuration_fingerprint(
+                self.export_analysis_recipe(replace(materialized, exports=())),
+                report_path=report_path,
+                title=report_title,
+                format=format,
+            )
+            return ScheduledReportService.run(
+                recipe_name=materialized.name,
+                configuration_fingerprint=configuration_fingerprint,
+                resolve_source_files=resolve_source_files,
+                report_path=report_path,
+                state_path=resolved_state,
+                stable_for_seconds=stable_for_seconds,
+                generate=generate,
+            )
+        except ScheduledReportPublishError as exc:
+            raise ExportError(str(exc)) from exc
+        except ScheduledReportError as exc:
+            raise RecipeError(str(exc)) from exc
 
     def run_analysis_recipe_matrix(
         self,

@@ -132,6 +132,7 @@ if TYPE_CHECKING:
         ScannedVariable,
         SchemaValidationReport,
         SchemaViolation,
+        ScheduledReportResult,
         ShaperStepConfig,
     )
     from src.core.models.parsing_models import StatConfig
@@ -237,6 +238,7 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "SmallMultiplesSpec": ("src.core.models", "SmallMultiplesSpec"),
     "SchemaValidationReport": ("src.core.models", "SchemaValidationReport"),
     "SchemaViolation": ("src.core.models", "SchemaViolation"),
+    "ScheduledReportResult": ("src.core.models", "ScheduledReportResult"),
     "ShaperStepConfig": ("src.core.models", "ShaperStepConfig"),
     "available_shaper_types": ("ring5.shapers", "available_shaper_types"),
     # Self-contained figure-scripting surface (so scripts import only `ring5`):
@@ -354,6 +356,7 @@ __all__ = [
     "SmallMultiplesSpec",
     "SchemaValidationReport",
     "SchemaViolation",
+    "ScheduledReportResult",
     "render_figure",
     "render_dashboard",
     "apply_linked_selection",

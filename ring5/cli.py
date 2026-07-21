@@ -7,6 +7,7 @@ Subcommands::
     ring5 render PORTFOLIO -o figs/       # regenerate every figure
     ring5 recipe-matrix RECIPE -m MATRIX -o out/
     ring5 regression-gate BASE.csv CAND.csv -k benchmark -m ipc
+    ring5 report-schedule RECIPE -o report.html
     ring5 upgrade PORTFOLIO               # persist a portfolio at the
                                           # current schema version
 """
@@ -18,6 +19,7 @@ import json
 import math
 import shutil
 import sys
+import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, NoReturn, cast
 
@@ -28,7 +30,7 @@ from src.core.common.security_limits import MAX_ANALYSIS_RECIPE_MATRIX_BYTES
 if TYPE_CHECKING:
     import pandas as pd
 
-    from src.core.models import AnalysisRecipeMatrixResult
+    from src.core.models import AnalysisRecipeMatrixResult, ScheduledReportResult
 
 
 _INCOMPLETE_REGRESSION_OUTCOMES = frozenset(
@@ -296,6 +298,71 @@ def _emit_regression_result(payload: bytes, output: str | None) -> None:
     print(f"wrote {target}", file=sys.stderr)
 
 
+def _cmd_report_schedule(args: argparse.Namespace) -> int:
+    """Run one schedulable report tick or poll in watch mode."""
+    # [impl->req~ring5.automation.scheduled-reporting~1]
+    from ring5._session import Session
+
+    if args.max_checks < 0:
+        raise RecipeError("max_checks must be non-negative.")
+    if not args.watch and args.max_checks:
+        raise RecipeError("--max-checks requires --watch.")
+    if args.watch and (not math.isfinite(args.interval) or not 0.1 <= args.interval <= 86_400):
+        raise RecipeError("watch interval must be from 0.1 through 86400 seconds.")
+
+    recipe_payload = _read_bounded_file(Path(args.recipe), "scheduled report recipe")
+    parameters = _scheduled_report_parameters(args.parameters)
+    with Session() as session:
+        recipe = session.decode_analysis_recipe(recipe_payload)
+        checks = 0
+        while True:
+            result = session.run_scheduled_report(
+                recipe,
+                args.report,
+                values=parameters,
+                state_path=args.state,
+                stable_for_seconds=args.stable_for,
+                title=args.title,
+                format=args.format,
+            )
+            print(json.dumps(_scheduled_report_payload(result), sort_keys=True))
+            checks += 1
+            if not args.watch or (args.max_checks and checks >= args.max_checks):
+                return 0
+            time.sleep(args.interval)
+
+
+def _scheduled_report_parameters(path: str | None) -> dict[str, Any]:
+    """Load an optional bounded JSON object of recipe parameter values."""
+    if path is None:
+        return {}
+    payload = _read_bounded_file(Path(path), "scheduled report parameters")
+    try:
+        value = json.loads(payload.decode("utf-8"), parse_constant=_reject_json_constant)
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+        raise RecipeError("Scheduled report parameters must be valid finite UTF-8 JSON.") from exc
+    if not isinstance(value, dict) or any(not isinstance(key, str) or not key for key in value):
+        raise RecipeError("Scheduled report parameters must be an object with named values.")
+    return cast(dict[str, Any], value)
+
+
+def _scheduled_report_payload(result: "ScheduledReportResult") -> dict[str, Any]:
+    """Return one stable JSON result for cron logs or watch-mode NDJSON."""
+    return {
+        "format": "ring5.scheduled-report-result",
+        "schema_version": 1,
+        "recipe": result.recipe_name,
+        "outcome": result.outcome,
+        "generated": result.generated,
+        "source_fingerprint": result.source_fingerprint,
+        "configuration_fingerprint": result.configuration_fingerprint,
+        "source_files": list(result.source_files),
+        "report_path": result.report_path,
+        "state_path": result.state_path,
+        "stable_for_seconds": result.stable_for_seconds,
+    }
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the command-line parser.
 
@@ -447,6 +514,54 @@ def build_parser() -> argparse.ArgumentParser:
     )
     gate_p.add_argument("-o", "--output", default=None, help="result file (default: stdout)")
     gate_p.set_defaults(func=_cmd_regression_gate)
+
+    schedule_p = sub.add_parser(
+        "report-schedule",
+        help="generate a recipe report only for stable changed inputs",
+    )
+    schedule_p.add_argument("recipe", help="portable analysis-recipe JSON file")
+    schedule_p.add_argument("-o", "--report", required=True, help="HTML or PDF report path")
+    schedule_p.add_argument(
+        "--parameters",
+        default=None,
+        help="optional JSON object containing typed recipe parameter values",
+    )
+    schedule_p.add_argument(
+        "--state",
+        default=None,
+        help="durable change-state JSON path (default: beside report)",
+    )
+    schedule_p.add_argument(
+        "--stable-for",
+        type=float,
+        default=30.0,
+        help="required unchanged seconds, from 0 through 604800 (default: 30)",
+    )
+    schedule_p.add_argument("--title", default=None, help="report title (default: recipe name)")
+    schedule_p.add_argument(
+        "--format",
+        choices=("html", "pdf"),
+        default="html",
+        help="report format (default: html)",
+    )
+    schedule_p.add_argument(
+        "--watch",
+        action="store_true",
+        help="keep polling instead of performing one scheduler-friendly tick",
+    )
+    schedule_p.add_argument(
+        "--interval",
+        type=float,
+        default=5.0,
+        help="watch polling seconds, from 0.1 through 86400 (default: 5)",
+    )
+    schedule_p.add_argument(
+        "--max-checks",
+        type=int,
+        default=0,
+        help="stop watch mode after N checks; zero keeps watching (default: 0)",
+    )
+    schedule_p.set_defaults(func=_cmd_report_schedule)
 
     return parser
 

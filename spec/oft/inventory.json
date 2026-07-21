@@ -4474,11 +4474,28 @@
       "id": "automation.scheduled-reporting",
       "group": "automation",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Scheduled and watched reporting",
       "description": "Headless workflows shall watch configured sources or run on a schedule and generate reports only for stable, changed inputs.",
       "tags": ["automation", "reporting", "scheduling"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/models/scheduled_report_models.py::ScheduledReportResult",
+          "src/core/services/scheduled_report_service.py::ScheduledReportService.run",
+          "src/core/services/scheduled_report_service.py::ScheduledReportService._check",
+          "ring5/_session.py::Session.run_scheduled_report",
+          "ring5/cli.py::_cmd_report_schedule"
+        ],
+        "tests": [
+          "tests/unit/test_scheduled_report_service.py::test_stability_change_and_generated_state_survive_independent_ticks",
+          "tests/integration/test_scheduled_report_public_api.py::test_scheduled_ticks_generate_wait_and_skip_durably",
+          "tests/unit/test_ring5_cli.py::TestReportScheduleCommand.test_scheduler_tick_generates_then_skips_unchanged_input",
+          "tests/unit/test_ring5_cli.py::TestReportScheduleCommand.test_watch_emits_ndjson_and_honors_check_limit"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/scripting.md#generate-reports-from-stable-changed-inputs"
+        ]
+      }
     },
     {
       "id": "workspace.background-jobs",
@@ -4883,6 +4900,7 @@
       "ScanJob": "ingestion.async-scan",
       "ScanResult": "ingestion.async-scan",
       "ScannedVariable": "ingestion.variable-scan",
+      "ScheduledReportResult": "automation.scheduled-reporting",
       "SchemaValidationReport": "data.schema-contracts",
       "SchemaViolation": "data.schema-contracts",
       "Session": "api.session",
@@ -4992,6 +5010,7 @@
       "run_analysis_recipe": "portfolio.analysis-recipes",
       "run_analysis_recipe_matrix": "automation.batch-matrices",
       "run_analysis_recipe_matrix_submit": "automation.batch-matrices",
+      "run_scheduled_report": "automation.scheduled-reporting",
       "small_multiples": "plots.small-multiples",
       "save_portfolio": "portfolio.save",
       "save_analysis_recipe": "portfolio.analysis-recipes",
@@ -5014,6 +5033,7 @@
       "parse": "cli.parse",
       "recipe-matrix": "automation.batch-matrices",
       "regression-gate": "automation.ci-regression-gates",
+      "report-schedule": "automation.scheduled-reporting",
       "render": "cli.render",
       "upgrade": "portfolio.upgrade-protection"
     },
@@ -5040,6 +5060,16 @@
       "regression-gate:output": "automation.ci-regression-gates",
       "regression-gate:threshold_mode": "automation.ci-regression-gates",
       "regression-gate:thresholds": "automation.ci-regression-gates",
+      "report-schedule:format": "automation.scheduled-reporting",
+      "report-schedule:interval": "automation.scheduled-reporting",
+      "report-schedule:max_checks": "automation.scheduled-reporting",
+      "report-schedule:parameters": "automation.scheduled-reporting",
+      "report-schedule:recipe": "automation.scheduled-reporting",
+      "report-schedule:report": "automation.scheduled-reporting",
+      "report-schedule:stable_for": "automation.scheduled-reporting",
+      "report-schedule:state": "automation.scheduled-reporting",
+      "report-schedule:title": "automation.scheduled-reporting",
+      "report-schedule:watch": "automation.scheduled-reporting",
       "render:engine": "render.engine-selection",
       "render:format": "export.web-download",
       "render:no_deterministic": "export.deterministic",

@@ -172,6 +172,62 @@ ring5 recipe-matrix analysis.ring5-recipe.json \
 The command prints a versioned JSON summary. It exits with `0` when every case succeeds, `1` when
 one or more cases fail, and `2` when the recipe, matrix, or command input is invalid.
 
+## Generate reports from stable, changed inputs
+
+<!--
+`uman~ring5.automation.scheduled-reporting.documentation~1`
+
+Covers:
+- req~ring5.automation.scheduled-reporting~1
+
+-->
+
+Use a scheduled report when an analysis recipe should become an HTML or PDF report without an
+open browser. One invocation is one bounded check, which makes it suitable for cron, a CI timer, or
+another scheduler:
+
+```text
+ring5 report-schedule analysis.ring5-recipe.json \
+  --parameters nightly-values.json \
+  --report reports/nightly.html \
+  --state reports/nightly.state.json \
+  --stable-for 30
+```
+
+The command fingerprints the recipe's concrete source files. CSV recipes watch their CSV file;
+parser recipes watch every matching statistics file and, for the config-aware strategy, each
+corresponding `config.ini`. The first changed observation is recorded in the state file. A report
+is generated only when the same fingerprint is still present after `--stable-for` seconds. Once
+that fingerprint has been reported, later checks return `unchanged` without rewriting the report.
+The materialized recipe, report title, format, and destination have a separate configuration
+fingerprint, so changing report settings—or removing the output—regenerates a report even when its
+source data is unchanged.
+
+Each check prints one versioned JSON result with the outcome `generated`, `unchanged`, or
+`waiting_for_stability`. The durable state means separate scheduler processes make the same
+decision. For a long-running local watcher, add `--watch --interval 5`; it emits one JSON object per
+line. `--max-checks` can bound a watch run.
+
+The report is built in memory with the recipe plots and automatic provenance. RING-5 fingerprints
+the sources again before publishing, so an input that changes during generation is not published.
+The final report and state are written atomically. Recipe-level exports are deliberately suppressed
+in this workflow so an unstable run cannot leave partial side files. Report and state paths must be
+different from one another and from every source file.
+
+Python schedulers can perform the same single check:
+
+```python
+with ring5.Session() as session:
+    recipe = session.decode_analysis_recipe(recipe_json)
+    result = session.run_scheduled_report(
+        recipe,
+        "reports/nightly.html",
+        values={"input_csv": "results/nightly.csv"},
+        stable_for_seconds=30,
+    )
+    print(result.outcome, result.source_fingerprint)
+```
+
 ## Use the CLI
 
 ### Parse statistics to CSV
@@ -224,5 +280,6 @@ ring5 doctor
 ring5 parse STATS_PATH --variable NAME --output FILE
 ring5 render PORTFOLIO --out-dir DIRECTORY
 ring5 recipe-matrix RECIPE --matrix MATRIX --output-dir DIRECTORY
+ring5 report-schedule RECIPE --report FILE [--parameters JSON]
 ring5 upgrade PORTFOLIO
 ```

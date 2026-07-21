@@ -139,6 +139,10 @@ from src.core.models.recipe_matrix_models import (
     AnalysisRecipeMatrixCase,
     AnalysisRecipeMatrixResult,
 )
+from src.core.models.scheduled_report_models import (
+    ScheduledReportOutcome,
+    ScheduledReportResult,
+)
 from src.core.models.shaper_models import (
     BaseShaperConfig,
     ColumnSelectorConfig,
@@ -227,6 +231,8 @@ __all__ = [
     "ScannedVariableDict",
     "SchemaValidationReport",
     "SchemaViolation",
+    "ScheduledReportOutcome",
+    "ScheduledReportResult",
     "ShaperStepConfig",
     "SortShaperConfig",
     "SplitApplyGroupConfig",
