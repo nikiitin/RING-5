@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json
+import subprocess
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 from typing import cast
@@ -14,6 +17,63 @@ import ring5
 from src.core.services.data_services.path_service import PathService
 
 pytestmark = [pytest.mark.public_api, pytest.mark.xdist_group("ring5_analysis_recipes")]
+
+
+def test_recipe_exports_execute_through_only_the_public_api(tmp_path: Path) -> None:
+    # [test->req~ring5.automation.script-notebook-export~1]
+    csv_path = tmp_path / "automation.csv"
+    pd.DataFrame({"benchmark": ["a", "b"], "value": [1.0, 2.0]}).to_csv(csv_path, index=False)
+    recipe = ring5.AnalysisRecipe(
+        name="Portable automation",
+        description="Re-run a reviewed dataset.",
+        parameters=(
+            ring5.RecipeParameter(
+                "input_csv",
+                "path",
+                description="Input measurements.",
+                default=str(csv_path),
+            ),
+        ),
+        source=ring5.RecipeSource(kind="csv", path="{{input_csv}}"),
+    )
+
+    with ring5.Session() as session:
+        canonical = session.export_analysis_recipe(recipe)
+        assert session.decode_analysis_recipe(canonical) == recipe
+        script = session.export_analysis_recipe_script(recipe)
+        notebook_payload = session.export_analysis_recipe_notebook(recipe)
+
+        with pytest.raises(ring5.RecipeError, match="valid finite UTF-8 JSON"):
+            session.decode_analysis_recipe(b"not json")
+        with pytest.raises(ring5.RecipeError, match="Analysis recipe must"):
+            session.export_analysis_recipe_script("bad")  # type: ignore[arg-type]
+        with pytest.raises(ring5.RecipeError, match="Analysis recipe must"):
+            session.export_analysis_recipe_notebook("bad")  # type: ignore[arg-type]
+
+    script_path = tmp_path / "portable_automation.py"
+    script_path.write_bytes(script)
+    completed = subprocess.run(  # noqa: S603
+        [sys.executable, str(script_path), "--input-csv", str(csv_path)],
+        cwd=Path(__file__).parents[2],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert json.loads(completed.stdout) == {
+        "columns": ["benchmark", "value"],
+        "exports": [],
+        "parameters": {"input_csv": str(csv_path)},
+        "plots": [],
+        "recipe": "Portable automation",
+        "rows": 2,
+    }
+
+    notebook = json.loads(notebook_payload)
+    namespace: dict[str, object] = {}
+    for cell in notebook["cells"]:
+        if cell["cell_type"] == "code":
+            exec(compile(cell["source"], f"{cell['id']}.py", "exec"), namespace)
+    assert namespace["result"].rows == 2  # type: ignore[union-attr]
 
 
 def test_parameterized_recipe_round_trip_executes_plots_and_exports(tmp_path: Path) -> None:

@@ -2648,7 +2648,7 @@ Tags: api, plots, status_approved, validation
 ### Python script and notebook export
 
 `req~ring5.automation.script-notebook-export~1`
-Status: proposed
+Status: approved
 
 The interactive workspace shall export an equivalent documented Python script or notebook that uses only the supported ring5 public API.
 
@@ -2657,7 +2657,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: api, automation, notebook, status_proposed
+Tags: api, automation, notebook, status_approved
 
 ### Parameterized batch matrices
 

@@ -143,6 +143,18 @@ class PortfolioPage(BasePage):
         """Portable versioned recipe download action."""
         return self.analysis_recipes_expander.get_by_role("button", name="Download recipe JSON")
 
+    @property
+    def download_recipe_script_button(self) -> Locator:
+        """Standalone public-API Python recipe download action."""
+        return self.analysis_recipes_expander.get_by_role("button", name="Download Python script")
+
+    @property
+    def download_recipe_notebook_button(self) -> Locator:
+        """Editable public-API notebook recipe download action."""
+        return self.analysis_recipes_expander.get_by_role(
+            "button", name="Download Jupyter notebook"
+        )
+
     def managed_portfolio(self, name: str) -> Locator:
         """Return the management expander for one named portfolio."""
         return self.page.locator("[data-testid='stExpander']").filter(has_text=name)

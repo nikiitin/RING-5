@@ -4363,11 +4363,30 @@
       "id": "automation.script-notebook-export",
       "group": "automation",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Python script and notebook export",
       "description": "The interactive workspace shall export an equivalent documented Python script or notebook that uses only the supported ring5 public API.",
       "tags": ["api", "automation", "notebook"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/services/analysis_recipe_automation_service.py::AnalysisRecipeAutomationService.export_script",
+          "src/core/services/analysis_recipe_automation_service.py::AnalysisRecipeAutomationService.export_notebook",
+          "ring5/_session.py::Session.decode_analysis_recipe",
+          "ring5/_session.py::Session.export_analysis_recipe_script",
+          "ring5/_session.py::Session.export_analysis_recipe_notebook",
+          "src/web/components/analysis_recipe_component.py::AnalysisRecipeComponent._render_saved"
+        ],
+        "tests": [
+          "tests/unit/test_analysis_recipe_automation_service.py::test_script_is_deterministic_documented_typed_and_compilable",
+          "tests/unit/test_analysis_recipe_automation_service.py::test_notebook_is_deterministic_safe_and_uses_standard_v4_cells",
+          "tests/unit/test_analysis_recipe_component.py::test_saved_recipe_shows_counts_and_portable_automation_downloads",
+          "tests/integration/test_analysis_recipe_public_api.py::test_recipe_exports_execute_through_only_the_public_api",
+          "tests/e2e/test_portfolio.py::TestPortfolioSaveLoad.test_04_save_and_download_analysis_recipe"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/portfolios.md#take-a-recipe-into-python-or-jupyter"
+        ]
+      }
     },
     {
       "id": "automation.batch-matrices",
@@ -4865,11 +4884,14 @@
       "drill_down": "plots.drill-down",
       "delete_dataset_snapshot": "data.dataset-snapshots",
       "delete_analysis_recipe": "portfolio.analysis-recipes",
+      "decode_analysis_recipe": "automation.script-notebook-export",
       "dismiss_finished_background_jobs": "workspace.background-jobs",
       "environment_metadata": "portfolio.environment-metadata",
       "export": "export.public-boundary",
       "export_submit": "workspace.background-jobs",
       "export_analysis_recipe": "portfolio.analysis-recipes",
+      "export_analysis_recipe_notebook": "automation.script-notebook-export",
+      "export_analysis_recipe_script": "automation.script-notebook-export",
       "export_bytes": "export.public-boundary",
       "export_report": "export.batch-reports",
       "export_figure_theme": "figure.theme-presets",
@@ -5073,11 +5095,14 @@
       "compare_portfolio_revisions": "portfolio.history-diff",
       "delete_configuration": "data.saved-pipeline-configurations",
       "delete_analysis_recipe": "portfolio.analysis-recipes",
+      "decode_analysis_recipe": "automation.script-notebook-export",
       "delete_from_csv_pool": "ingestion.csv-pool",
       "delete_dataset_snapshot": "data.dataset-snapshots",
       "export_configuration": "shaping.config-import-export",
       "export_portfolio_bundle": "portfolio.portable-bundles",
       "export_analysis_recipe": "portfolio.analysis-recipes",
+      "export_analysis_recipe_notebook": "automation.script-notebook-export",
+      "export_analysis_recipe_script": "automation.script-notebook-export",
       "delete_portfolio": "portfolio.manage",
       "delete_variable": "ingestion.variable-editor",
       "ensure_variable_ids": "ingestion.variable-editor",

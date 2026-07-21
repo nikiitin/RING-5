@@ -114,6 +114,10 @@ deterministic bounded JSON. `materialize_analysis_recipe` resolves strict typed 
 side effects; `run_analysis_recipe` loads or parses the source, applies shared and per-plot shapers,
 validates mappings, replaces the session plots, and writes declared exports. Storage and validation
 failures raise `RecipeError`; execution retains narrower parser, pipeline, plot, and export errors.
+`decode_analysis_recipe` validates portable JSON without persisting it.
+`export_analysis_recipe_script` and `export_analysis_recipe_notebook` generate deterministic,
+documented artifacts that embed that canonical JSON and perform application work only through the
+supported `ring5` package.
 
 `Session.list_portfolio_revisions` returns checksum-verified `PortfolioRevisionInfo` records in
 save order. `compare_portfolio_revisions` returns a bounded `PortfolioDiff` whose entries cover

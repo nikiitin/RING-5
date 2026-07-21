@@ -7,11 +7,11 @@ This file is informative; normative items are in the other generated files.
 
 - Feature groups: 13
 - Detailed requirements: 216
-- Approved current requirements: 199
-- Proposed future requirements: 17
+- Approved current requirements: 200
+- Proposed future requirements: 16
 - Draft future requirements: 0
 - Generated specification items: 229
-- Live capability bindings: 788
+- Live capability bindings: 794
 
 ## Requirements by feature group
 
@@ -27,7 +27,7 @@ This file is informative; normative items are in the other generated files.
 | Figure Configuration | 30 | 0 | 0 | 30 |
 | Rendering and Export | 13 | 0 | 0 | 13 |
 | Reproducibility and Portfolios | 13 | 0 | 0 | 13 |
-| Automation API and CLI | 12 | 5 | 0 | 17 |
+| Automation API and CLI | 13 | 4 | 0 | 17 |
 | Extensibility, Safety, and Quality | 14 | 0 | 0 | 14 |
 | Feature Traceability | 4 | 6 | 0 | 10 |
 
@@ -40,7 +40,7 @@ This file is informative; normative items are in the other generated files.
 - `cli_options`: 11
 - `colorbar_config_fields`: 9
 - `data_label_config_fields`: 12
-- `data_services_api_members`: 50
+- `data_services_api_members`: 53
 - `dimension_config_fields`: 7
 - `figure_builder_members`: 18
 - `figure_config_fields`: 22
@@ -65,7 +65,7 @@ This file is informative; normative items are in the other generated files.
 - `scan_result_fields`: 3
 - `scanned_variable_fields`: 4
 - `series_style_config_fields`: 9
-- `session_methods`: 97
+- `session_methods`: 100
 - `settings_sections`: 8
 - `shaper_config_fields`: 13
 - `shaper_types`: 13

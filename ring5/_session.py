@@ -3175,6 +3175,72 @@ class Session:
         except (TypeError, ValueError) as exc:
             raise RecipeError(str(exc)) from exc
 
+    def decode_analysis_recipe(self, payload: str | bytes | bytearray) -> AnalysisRecipe:
+        """Decode portable recipe JSON without saving or executing it.
+
+        This read-only operation is intended for generated automation and
+        callers that want to inspect a recipe before deciding whether to run
+        or persist it.
+
+        Args:
+            payload: Versioned UTF-8 recipe JSON, limited to 512 KiB.
+
+        Returns:
+            The validated immutable recipe.
+
+        Raises:
+            RecipeError: The document is invalid or unsupported.
+        """
+        # [impl->req~ring5.automation.script-notebook-export~1]
+        try:
+            return self.api.data_services.decode_analysis_recipe(payload)
+        except (TypeError, ValueError) as exc:
+            raise RecipeError(str(exc)) from exc
+
+    def export_analysis_recipe_script(self, recipe: AnalysisRecipe) -> bytes:
+        """Generate a documented command-line Python script for a recipe.
+
+        The deterministic UTF-8 script embeds the canonical recipe, exposes
+        each runtime parameter as a typed option, and imports only the public
+        :mod:`ring5` package plus Python's standard library.
+
+        Args:
+            recipe: Valid recipe to reproduce.
+
+        Returns:
+            Executable Python source bytes.
+
+        Raises:
+            RecipeError: The recipe is invalid or exceeds safety limits.
+        """
+        # [impl->req~ring5.automation.script-notebook-export~1]
+        try:
+            return self.api.data_services.export_analysis_recipe_script(recipe)
+        except (TypeError, ValueError) as exc:
+            raise RecipeError(str(exc)) from exc
+
+    def export_analysis_recipe_notebook(self, recipe: AnalysisRecipe) -> bytes:
+        """Generate a documented Jupyter notebook for a recipe.
+
+        The deterministic notebook needs no notebook-writing dependency. It
+        embeds the canonical recipe, provides an editable parameter cell, and
+        uses only the supported :mod:`ring5` API for application work.
+
+        Args:
+            recipe: Valid recipe to reproduce.
+
+        Returns:
+            UTF-8 Jupyter notebook JSON bytes.
+
+        Raises:
+            RecipeError: The recipe is invalid or exceeds safety limits.
+        """
+        # [impl->req~ring5.automation.script-notebook-export~1]
+        try:
+            return self.api.data_services.export_analysis_recipe_notebook(recipe)
+        except (TypeError, ValueError) as exc:
+            raise RecipeError(str(exc)) from exc
+
     def import_analysis_recipe(
         self,
         payload: str | bytes | bytearray,

@@ -178,16 +178,41 @@ class AnalysisRecipeComponent:
         try:
             recipe = api.data_services.load_analysis_recipe(selected)
             payload = api.data_services.export_analysis_recipe(recipe)
+            script = api.data_services.export_analysis_recipe_script(recipe)
+            notebook = api.data_services.export_analysis_recipe_notebook(recipe)
         except (OSError, TypeError, ValueError) as exc:
             st.error(str(exc))
             return
         AnalysisRecipeComponent._render_summary(recipe)
+        # [impl->req~ring5.automation.script-notebook-export~1]
+        st.caption(
+            "Take this analysis outside the browser. The script provides typed command-line "
+            "options; the notebook provides an editable parameter cell. Both embed this exact "
+            "recipe and use only the supported ring5 Python API."
+        )
         st.download_button(
             "Download recipe JSON",
             data=payload,
             file_name=f"{AnalysisRecipeComponent._safe_stem(recipe.name)}.ring5-recipe.json",
             mime="application/json",
             key="analysis_recipe_download",
+            on_click="ignore",
+        )
+        st.download_button(
+            "Download Python script",
+            data=script,
+            file_name=f"{AnalysisRecipeComponent._safe_stem(recipe.name)}.py",
+            mime="text/x-python",
+            key="analysis_recipe_script_download",
+            on_click="ignore",
+        )
+        st.download_button(
+            "Download Jupyter notebook",
+            data=notebook,
+            file_name=f"{AnalysisRecipeComponent._safe_stem(recipe.name)}.ipynb",
+            mime="application/x-ipynb+json",
+            key="analysis_recipe_notebook_download",
+            on_click="ignore",
         )
         if st.button("Delete recipe", key="analysis_recipe_delete"):
             try:

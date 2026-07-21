@@ -348,6 +348,45 @@ plots. Parser recipes use the normal owned scan and parse lifecycle. Failures us
 the narrower scan, parse, pipeline, plot-validation, and export errors. Local recipes are stored
 under `.ring5/analysis_recipes/`, or under the configured `RING5_DATA_DIR`.
 
+## Take a recipe into Python or Jupyter
+
+<!--
+`uman~ring5.automation.script-notebook-export.documentation~1`
+
+Covers:
+- req~ring5.automation.script-notebook-export~1
+
+-->
+
+Open **Analysis recipes**, select **Saved**, and choose **Download Python script** or **Download
+Jupyter notebook**. Both downloads contain the exact validated recipe shown in the browser: its
+source, typed parameters, transformations, plots, and file exports. They do not depend on private
+`src.*` modules and do not save a second recipe behind the scenes.
+
+The Python file is ready for a terminal wherever the `ring5` package and the recipe's input files
+are available. Run `python downloaded-recipe.py --help` to see one typed option per parameter, then
+pass any required paths or overrides. It prints a compact JSON summary with the row count, columns,
+plots, and written files when the run succeeds.
+
+The notebook begins with a plain-language recipe summary, followed by setup, parameters, and run
+cells. Replace every parameter value marked `REQUIRED`, edit defaults when needed, and run the cells
+from top to bottom. No `nbformat` package is needed to create the download; the file uses the
+standard Jupyter notebook v4 JSON format.
+
+Python callers can generate the same byte-stable artifacts without the browser:
+
+```python
+with ring5.Session() as session:
+    recipe = session.decode_analysis_recipe(recipe_json)
+    script = session.export_analysis_recipe_script(recipe)
+    notebook = session.export_analysis_recipe_notebook(recipe)
+```
+
+`decode_analysis_recipe` only validates and returns the immutable recipe. It does not execute or
+persist it. Generated artifacts validate their embedded recipe again immediately before execution
+and run it through `Session.run_analysis_recipe`, so their behavior stays aligned with the supported
+public API.
+
 ## Save and restore in Python
 
 <!--

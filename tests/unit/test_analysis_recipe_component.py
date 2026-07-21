@@ -60,7 +60,8 @@ def test_capture_parameterizes_source_and_saves_without_overwrite(mock_st: Magic
 
 
 @patch("src.web.components.analysis_recipe_component.st")
-def test_saved_recipe_shows_counts_parameters_and_download(mock_st: MagicMock) -> None:
+def test_saved_recipe_shows_counts_and_portable_automation_downloads(mock_st: MagicMock) -> None:
+    # [test->req~ring5.automation.script-notebook-export~1]
     from src.web.components.analysis_recipe_component import AnalysisRecipeComponent
 
     api = MagicMock()
@@ -73,6 +74,8 @@ def test_saved_recipe_shows_counts_parameters_and_download(mock_st: MagicMock) -
     )
     api.data_services.load_analysis_recipe.return_value = recipe
     api.data_services.export_analysis_recipe.return_value = b"{}"
+    api.data_services.export_analysis_recipe_script.return_value = b"print('recipe')\n"
+    api.data_services.export_analysis_recipe_notebook.return_value = b'{"nbformat": 4}\n'
     mock_st.session_state = {}
     mock_st.expander.return_value = nullcontext()
     mock_st.tabs.return_value = [nullcontext(), nullcontext(), nullcontext()]
@@ -85,5 +88,20 @@ def test_saved_recipe_shows_counts_parameters_and_download(mock_st: MagicMock) -
     AnalysisRecipeComponent.render(api)
 
     api.data_services.load_analysis_recipe.assert_called_once_with("Saved")
-    mock_st.download_button.assert_called_once()
-    assert mock_st.download_button.call_args.kwargs["data"] == b"{}"
+    calls = mock_st.download_button.call_args_list
+    assert [call.args[0] for call in calls] == [
+        "Download recipe JSON",
+        "Download Python script",
+        "Download Jupyter notebook",
+    ]
+    assert [call.kwargs["data"] for call in calls] == [
+        b"{}",
+        b"print('recipe')\n",
+        b'{"nbformat": 4}\n',
+    ]
+    assert [call.kwargs["file_name"] for call in calls] == [
+        "Saved.ring5-recipe.json",
+        "Saved.py",
+        "Saved.ipynb",
+    ]
+    assert all(call.kwargs["on_click"] == "ignore" for call in calls)

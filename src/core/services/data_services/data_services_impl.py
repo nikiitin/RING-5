@@ -44,6 +44,9 @@ from src.core.services.data_services.dataset_snapshot_service import DatasetSnap
 from src.core.services.data_services.portfolio_service import PortfolioService
 from src.core.services.portfolio_bundle_service import PortfolioBundleService
 from src.core.services.data_services.variable_service import VariableService
+from src.core.services.analysis_recipe_automation_service import (
+    AnalysisRecipeAutomationService,
+)
 from src.core.state.state_manager import StateManager
 
 
@@ -448,6 +451,18 @@ class DefaultDataServicesAPI:
     def export_analysis_recipe(self, recipe: AnalysisRecipe) -> bytes:
         """Serialize a validated recipe as deterministic versioned JSON."""
         return AnalysisRecipeService.dumps(recipe)
+
+    def decode_analysis_recipe(self, payload: str | bytes | bytearray) -> AnalysisRecipe:
+        """Decode validated recipe JSON without saving or executing it."""
+        return AnalysisRecipeService.loads(payload)
+
+    def export_analysis_recipe_script(self, recipe: AnalysisRecipe) -> bytes:
+        """Render a recipe as a documented public-API Python script."""
+        return AnalysisRecipeAutomationService.export_script(recipe)
+
+    def export_analysis_recipe_notebook(self, recipe: AnalysisRecipe) -> bytes:
+        """Render a recipe as a documented public-API Jupyter notebook."""
+        return AnalysisRecipeAutomationService.export_notebook(recipe)
 
     def import_analysis_recipe(
         self, payload: str | bytes | bytearray, *, overwrite: bool = False

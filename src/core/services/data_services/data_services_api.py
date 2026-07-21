@@ -390,6 +390,18 @@ class DataServicesAPI(Protocol):
         """Serialize a validated recipe as deterministic versioned JSON."""
         raise NotImplementedError
 
+    def decode_analysis_recipe(self, payload: str | bytes | bytearray) -> AnalysisRecipe:
+        """Decode validated recipe JSON without saving or executing it."""
+        raise NotImplementedError
+
+    def export_analysis_recipe_script(self, recipe: AnalysisRecipe) -> bytes:
+        """Render a recipe as a documented public-API Python script."""
+        raise NotImplementedError
+
+    def export_analysis_recipe_notebook(self, recipe: AnalysisRecipe) -> bytes:
+        """Render a recipe as a documented public-API Jupyter notebook."""
+        raise NotImplementedError
+
     def import_analysis_recipe(
         self, payload: str | bytes | bytearray, *, overwrite: bool = False
     ) -> AnalysisRecipe:

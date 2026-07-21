@@ -132,6 +132,7 @@ class TestDefaultDataServicesAPI:
         mock_svc.list.return_value = (MagicMock(),)
         mock_svc.load.return_value = recipe
         mock_svc.dumps.return_value = b"{}"
+        mock_svc.loads.return_value = recipe
         mock_svc.import_recipe.return_value = recipe
         mock_svc.materialize.return_value = recipe
 
@@ -139,15 +140,30 @@ class TestDefaultDataServicesAPI:
         assert api.list_analysis_recipes() == mock_svc.list.return_value
         assert api.load_analysis_recipe("a") is recipe
         assert api.export_analysis_recipe(recipe) == b"{}"
+        assert api.decode_analysis_recipe(b"{}") is recipe
         assert api.import_analysis_recipe(b"{}") is recipe
         assert api.materialize_analysis_recipe(recipe, {"x": 1}) is recipe
         api.delete_analysis_recipe("a")
 
         mock_svc.save.assert_called_once_with(recipe, overwrite=False)
         mock_svc.load.assert_called_once_with("a")
+        mock_svc.loads.assert_called_once_with(b"{}")
         mock_svc.import_recipe.assert_called_once_with(b"{}", overwrite=False)
         mock_svc.materialize.assert_called_once_with(recipe, {"x": 1})
         mock_svc.delete.assert_called_once_with("a")
+
+    @patch("src.core.services.data_services.data_services_impl.AnalysisRecipeAutomationService")
+    def test_analysis_recipe_automation_operations(
+        self, mock_svc: MagicMock, api: DefaultDataServicesAPI
+    ) -> None:
+        recipe = MagicMock()
+        mock_svc.export_script.return_value = b"script"
+        mock_svc.export_notebook.return_value = b"notebook"
+
+        assert api.export_analysis_recipe_script(recipe) == b"script"
+        assert api.export_analysis_recipe_notebook(recipe) == b"notebook"
+        mock_svc.export_script.assert_called_once_with(recipe)
+        mock_svc.export_notebook.assert_called_once_with(recipe)
 
     # -- Variable delegation --
 

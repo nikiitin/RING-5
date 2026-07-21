@@ -105,6 +105,7 @@ class TestPortfolioSaveLoad:
     @pytest.mark.order(4)
     def test_04_save_and_download_analysis_recipe(self, tier3_page: Page) -> None:
         # [test->req~ring5.portfolio.analysis-recipes~1]
+        # [test->req~ring5.automation.script-notebook-export~1]
         """Capture the current source, pipelines, and plots as versioned JSON."""
         pf = PortfolioPage(tier3_page)
         pf.navigate()
@@ -122,6 +123,26 @@ class TestPortfolioSaveLoad:
         assert document["parameters"][0]["type"] == "path"
         assert len(document["plots"]) == 2
         assert document["plots"][1]["pipeline"]
+
+        with tier3_page.expect_download(timeout=E2E_TIMEOUT) as script_download:
+            pf.download_recipe_script_button.click()
+        script = script_download.value.path().read_text()
+        assert script_download.value.suggested_filename == "E2E-Analysis-Recipe.py"
+        assert "from src." not in script
+        assert "session.run_analysis_recipe(recipe, parameters)" in script
+        compile(script, "E2E-Analysis-Recipe.py", "exec")
+
+        with tier3_page.expect_download(timeout=E2E_TIMEOUT) as notebook_download:
+            pf.download_recipe_notebook_button.click()
+        notebook = json.loads(notebook_download.value.path().read_text())
+        assert notebook_download.value.suggested_filename == "E2E-Analysis-Recipe.ipynb"
+        assert notebook["nbformat"] == 4
+        assert [cell["id"] for cell in notebook["cells"]] == [
+            "ring5-overview",
+            "ring5-setup",
+            "ring5-parameters",
+            "ring5-run",
+        ]
 
     @pytest.mark.order(5)
     def test_05_compare_saved_portfolio_versions(self, tier3_page: Page) -> None:
