@@ -134,6 +134,8 @@ if TYPE_CHECKING:
         SchemaViolation,
         ScheduledReportResult,
         ShaperStepConfig,
+        WorkspaceSearchResponse,
+        WorkspaceSearchResult,
     )
     from src.core.models.parsing_models import StatConfig
     from src.core.models.quality_models import ColumnQuality, DataQualityReport
@@ -240,6 +242,8 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "SchemaViolation": ("src.core.models", "SchemaViolation"),
     "ScheduledReportResult": ("src.core.models", "ScheduledReportResult"),
     "ShaperStepConfig": ("src.core.models", "ShaperStepConfig"),
+    "WorkspaceSearchResponse": ("src.core.models", "WorkspaceSearchResponse"),
+    "WorkspaceSearchResult": ("src.core.models", "WorkspaceSearchResult"),
     "available_shaper_types": ("ring5.shapers", "available_shaper_types"),
     # Self-contained figure-scripting surface (so scripts import only `ring5`):
     "grouped_bar_coordinates": ("ring5.coordinates", "grouped_bar_coordinates"),
@@ -357,6 +361,8 @@ __all__ = [
     "SchemaValidationReport",
     "SchemaViolation",
     "ScheduledReportResult",
+    "WorkspaceSearchResponse",
+    "WorkspaceSearchResult",
     "render_figure",
     "render_dashboard",
     "apply_linked_selection",

@@ -4542,11 +4542,30 @@
       "id": "workspace.global-search",
       "group": "workspace",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Workspace search",
       "description": "Users shall search variables, datasets, plots, pipelines, portfolios, commands, and documentation from one bounded indexed interface.",
       "tags": ["search", "workspace"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/models/workspace_search_models.py::WorkspaceSearchResponse",
+          "src/core/models/workspace_search_models.py::WorkspaceSearchResult",
+          "src/core/services/workspace_search_service.py::WorkspaceSearchService.search_workspace",
+          "src/core/application_api.py::ApplicationAPI.search_workspace",
+          "ring5/_session.py::Session.search_workspace",
+          "src/web/components/workspace_search.py::WorkspaceSearchComponent.render",
+          "src/web/components/workspace_search.py::WorkspaceSearchComponent.activate"
+        ],
+        "tests": [
+          "tests/unit/test_workspace_search_service.py::test_every_workspace_source_is_indexed_and_actionable",
+          "tests/integration/test_workspace_search_public_api.py::test_public_search_finds_dynamic_and_static_workspace_content",
+          "tests/ui_unit/test_workspace_search.py::test_activate_selects_entities_and_rejects_stale_targets",
+          "tests/e2e/test_workspace_search.py::TestWorkspaceSearch.test_search_opens_commands_and_links_exact_guides"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/workspace-search.md#search-the-workspace"
+        ]
+      }
     },
     {
       "id": "workspace.command-palette",
@@ -4907,6 +4926,8 @@
       "ShaperStepConfig": "shaping.pipeline-editor",
       "StatConfig": "ingestion.variable-editor",
       "Table": "api.table",
+      "WorkspaceSearchResponse": "workspace.global-search",
+      "WorkspaceSearchResult": "workspace.global-search",
       "__version__": "api.process-lifecycle",
       "available_plot_types": "api.registry-discovery",
       "available_shaper_types": "api.registry-discovery",
@@ -5011,6 +5032,7 @@
       "run_analysis_recipe_matrix": "automation.batch-matrices",
       "run_analysis_recipe_matrix_submit": "automation.batch-matrices",
       "run_scheduled_report": "automation.scheduled-reporting",
+      "search_workspace": "workspace.global-search",
       "small_multiples": "plots.small-multiples",
       "save_portfolio": "portfolio.save",
       "save_analysis_recipe": "portfolio.analysis-recipes",
@@ -5153,6 +5175,7 @@
       "retry_background_job": "workspace.background-jobs",
       "save_configuration": "data.saved-pipeline-configurations",
       "save_dataset_snapshot": "data.dataset-snapshots",
+      "search_workspace": "workspace.global-search",
       "select_dataset": "data.multi-dataset-workspace",
       "set_preview": "data.preview-confirm",
       "set_visualization_config": "plots.independent-state",

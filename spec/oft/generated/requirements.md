@@ -122,7 +122,7 @@ Tags: jobs, progress, status_approved, workspace
 ### Workspace search
 
 `req~ring5.workspace.global-search~1`
-Status: proposed
+Status: approved
 
 Users shall search variables, datasets, plots, pipelines, portfolios, commands, and documentation from one bounded indexed interface.
 
@@ -131,7 +131,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: search, status_proposed, workspace
+Tags: search, status_approved, workspace
 
 ### Command palette and shortcuts
 

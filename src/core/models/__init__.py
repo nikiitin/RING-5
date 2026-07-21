@@ -143,6 +143,12 @@ from src.core.models.scheduled_report_models import (
     ScheduledReportOutcome,
     ScheduledReportResult,
 )
+from src.core.models.workspace_search_models import (
+    WorkspaceSearchEntry,
+    WorkspaceSearchKind,
+    WorkspaceSearchResponse,
+    WorkspaceSearchResult,
+)
 from src.core.models.shaper_models import (
     BaseShaperConfig,
     ColumnSelectorConfig,
@@ -233,6 +239,10 @@ __all__ = [
     "SchemaViolation",
     "ScheduledReportOutcome",
     "ScheduledReportResult",
+    "WorkspaceSearchEntry",
+    "WorkspaceSearchKind",
+    "WorkspaceSearchResponse",
+    "WorkspaceSearchResult",
     "ShaperStepConfig",
     "SortShaperConfig",
     "SplitApplyGroupConfig",

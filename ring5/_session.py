@@ -66,6 +66,7 @@ from src.core.models import (
     SchemaValidationReport,
     ScheduledReportResult,
     StatConfig,
+    WorkspaceSearchResponse,
 )
 from src.core.models.data_models import ParseVariableConfig
 from src.core.models.shaper_models import ShaperStepConfig
@@ -762,6 +763,30 @@ class Session:
         """Return retained dataset metadata in insertion order."""
         # [impl->req~ring5.data.multi-dataset-workspace~1]
         return self.api.list_datasets()
+
+    def search_workspace(self, query: str, *, limit: int = 20) -> WorkspaceSearchResponse:
+        """Search every discoverable item in the current workspace.
+
+        The case-insensitive index includes configured and scanned variables,
+        named datasets, plots, pipeline steps, saved portfolios, navigation
+        commands, and published documentation. Results contain typed locations
+        and identifiers but do not mutate the active workspace.
+
+        Args:
+            query: Up to 200 characters; multiple terms use AND matching.
+            limit: Maximum returned matches, from 1 through 100.
+
+        Returns:
+            Ranked matches plus explicit result and index truncation metadata.
+
+        Raises:
+            DataValidationError: The query or result limit is invalid.
+        """
+        # [impl->req~ring5.workspace.global-search~1]
+        try:
+            return self.api.search_workspace(query, limit=limit)
+        except (TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
 
     def get_dataset(self, name: str | None = None) -> pd.DataFrame:
         """Return a defensive copy of a named or selected dataset.

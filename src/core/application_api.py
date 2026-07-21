@@ -41,6 +41,7 @@ from src.core.models import (
     ScannedVariable,
     ScanResult,
     StatConfig,
+    WorkspaceSearchResponse,
 )
 from src.core.models.browser_upload_models import BrowserUploadRequest
 from src.core.models.remote_source_models import RemoteSource, RemoteSourcePolicy
@@ -76,6 +77,7 @@ from src.core.services.visualization.plot_transfer_service import copy_plot_cont
 from src.core.services.visualization.plot_configuration_comparison_service import (
     compare_plot_configurations,
 )
+from src.core.services.workspace_search_service import WorkspaceSearchService
 from src.core.state.repository_state_manager import RepositoryStateManager
 from src.parsing.framework.file_discovery import find_stats_files as _find_stats_files
 from src.parsing.parser_protocol import SimulationParser
@@ -311,6 +313,16 @@ class ApplicationAPI:
             "processed_data": self.state_manager.get_processed_data(),
             "config": self.state_manager.get_config(),
         }
+
+    def search_workspace(self, query: str, *, limit: int = 20) -> WorkspaceSearchResponse:
+        """Search variables, datasets, plots, pipelines, portfolios, commands, and guides."""
+        # [impl->req~ring5.workspace.global-search~1]
+        return WorkspaceSearchService.search_workspace(
+            self.state_manager,
+            self.data_services.list_portfolios(),
+            query,
+            limit=limit,
+        )
 
     def reset_session(self) -> None:
         """Clear all session data."""
