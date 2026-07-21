@@ -4832,12 +4832,16 @@
       "id": "trace.readiness-checklist",
       "group": "traceability",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "implementation_branch": "006-oft-readiness",
       "title": "Requirement readiness checklist",
       "description": "The human report shall display specification, implementation, test, documentation, native trace, and execution readiness separately for every requirement.",
       "tags": ["openfasttrace", "readiness", "reporting"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": ["scripts/oft_readiness.py::assess_requirement_readiness", "scripts/oft_html_report.py::_readiness_checklist", "scripts/generate_oft_html_report.py::load_execution_results"],
+        "tests": ["tests/unit/test_oft_readiness.py::test_readiness_keeps_evidence_trace_and_execution_independent", "tests/unit/test_oft_readiness.py::test_execution_result_document_is_versioned_and_inventory_bounded", "tests/unit/test_oft_html_report.py::test_requirement_cards_show_six_independent_readiness_signals"],
+        "documentation": ["spec/oft/README.md#requirement-readiness"]
+      }
     },
     {
       "id": "trace.approval-gate",

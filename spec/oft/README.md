@@ -168,6 +168,43 @@ OFT report. The command verifies each report's inventory fingerprint and fails i
 coverage when a report is missing or stale. Git revisions are resolved to a commit before files are
 read, and the comparison never checks out or modifies either revision.
 
+## Requirement readiness
+
+<!--
+`uman~ring5.trace.readiness-checklist.documentation~1`
+
+Covers:
+- req~ring5.trace.readiness-checklist~1
+
+-->
+
+Every HTML requirement card reports six signals separately: valid specification text, exact
+implementation origins, exact test origins, exact documentation origins, the native OFT green/red
+result, and the latest supplied execution result. Missing evidence remains visible even if another
+dimension is ready. In particular, a test link or green OFT trace never implies that a test ran.
+
+Without execution input, every card says `No execution result supplied`. To add actual results,
+provide a bounded JSON document when generating the report:
+
+```json
+{
+  "format": "ring5.oft-execution-results",
+  "schema_version": 1,
+  "requirements": {
+    "trace.inventory-generator": "passed",
+    "trace.approval-gate": "not-run"
+  }
+}
+```
+
+```shell
+make oft-report EXECUTION_RESULTS=execution.json
+```
+
+Allowed values are `passed`, `failed`, and `not-run`. Results may cover any subset of the inventory;
+omitted requirements remain `not recorded`. Unknown IDs, invalid statuses, formats, or schema
+versions fail report generation.
+
 ## Recording a feature
 
 Add one object to `features` in `inventory.json`:

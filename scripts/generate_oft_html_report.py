@@ -4,7 +4,10 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import Mapping
+import json
 from pathlib import Path
+from typing import Any, cast
 
 if __package__:
     from scripts.generate_oft_inventory import load_inventory, validate_inventory
@@ -27,7 +30,42 @@ def build_parser() -> argparse.ArgumentParser:
         default=Path("spec/oft/inventory.json"),
         help="validated inventory used for human labels and filters",
     )
+    parser.add_argument(
+        "--execution-results",
+        type=Path,
+        help="optional per-requirement passed, failed, or not-run JSON results",
+    )
     return parser
+
+
+def load_execution_results(path: Path, inventory: Mapping[str, Any]) -> dict[str, str]:
+    """Load a bounded, versioned per-requirement execution result document."""
+    # [impl->req~ring5.trace.readiness-checklist~1]
+    try:
+        document = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"Could not load execution results {path}: {exc}") from exc
+    if not isinstance(document, dict):
+        raise ValueError("Execution results must contain a JSON object.")
+    if document.get("format") != "ring5.oft-execution-results":
+        raise ValueError("Execution results use an unsupported format.")
+    if document.get("schema_version") != 1:
+        raise ValueError("Execution results use an unsupported schema version.")
+    results = document.get("requirements")
+    if not isinstance(results, dict) or not all(
+        isinstance(key, str) and isinstance(value, str) for key, value in results.items()
+    ):
+        raise ValueError("Execution requirements must map IDs to string statuses.")
+    result_map = cast(dict[str, str], results)
+    allowed = {"passed", "failed", "not-run"}
+    invalid = sorted(key for key, value in result_map.items() if value not in allowed)
+    if invalid:
+        raise ValueError("Invalid execution statuses for: " + ", ".join(invalid))
+    features = cast(list[dict[str, Any]], inventory["features"])
+    unexpected = sorted(set(result_map) - {str(feature["id"]) for feature in features})
+    if unexpected:
+        raise ValueError("Unknown execution requirement IDs: " + ", ".join(unexpected))
+    return dict(sorted(result_map.items()))
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -37,10 +75,20 @@ def main(argv: list[str] | None = None) -> int:
     try:
         inventory = load_inventory(args.inventory)
         validate_inventory(inventory)
+        execution_results = (
+            load_execution_results(args.execution_results, inventory)
+            if args.execution_results
+            else {}
+        )
         native_html = args.oft_html.read_text(encoding="utf-8")
         repository_root = args.inventory.resolve().parents[2]
         evidence_markers = collect_evidence_markers(repository_root)
-        report = enhance_oft_html(native_html, inventory, evidence_markers)
+        report = enhance_oft_html(
+            native_html,
+            inventory,
+            evidence_markers,
+            execution_results,
+        )
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(report, encoding="utf-8")
     except (OSError, OftHtmlReportError, ValueError) as exc:

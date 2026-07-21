@@ -213,6 +213,35 @@ def test_requirement_card_exposes_semantic_and_evidence_history(
     assert "native covered detail" in report
 
 
+def test_requirement_cards_show_six_independent_readiness_signals(
+    native_oft_html: str,
+    small_inventory: dict[str, Any],
+) -> None:
+    """Every card distinguishes evidence, native trace, and execution results."""
+    # [test->req~ring5.trace.readiness-checklist~1]
+    report = enhance_oft_html(
+        native_oft_html,
+        small_inventory,
+        execution_results={"workspace.covered": "passed", "workspace.future": "failed"},
+    )
+
+    for label in (
+        "Specification",
+        "Implementation",
+        "Test",
+        "Documentation",
+        "Native OFT trace",
+        "Execution",
+    ):
+        assert report.count(f"<span>{label}</span>") == 2
+    assert report.count('aria-label="Requirement readiness"') == 2
+    assert 'data-readiness="covered"' in report
+    assert 'data-readiness="uncovered"' in report
+    assert 'data-readiness="passed"' in report
+    assert 'data-readiness="failed"' in report
+    assert "2 of 2" in report
+
+
 def test_human_labels_are_html_escaped(
     native_oft_html: str, small_inventory: dict[str, Any]
 ) -> None:

@@ -17,9 +17,11 @@ from typing import Any, cast
 
 if __package__:
     from scripts.oft_evidence import EvidenceMarker
+    from scripts.oft_readiness import assess_requirement_readiness
     from scripts.oft_status import requirement_status_views
 else:
     from oft_evidence import EvidenceMarker
+    from oft_readiness import assess_requirement_readiness
     from oft_status import requirement_status_views
 
 
@@ -250,11 +252,31 @@ def _history_details(feature: Mapping[str, Any]) -> str:
     )
 
 
+def _readiness_checklist(feature: Mapping[str, Any], covered: bool, execution_status: str) -> str:
+    """Render independent catalog, OFT, and execution readiness signals."""
+    # [impl->req~ring5.trace.readiness-checklist~1]
+    checks = assess_requirement_readiness(
+        feature,
+        native_covered=covered,
+        execution_status=execution_status,
+    )
+    items = "".join(
+        '<li data-readiness="{state}"><span>{label}</span><strong>{detail}</strong></li>'.format(
+            state=_escape(check.state),
+            label=_escape(check.label),
+            detail=_escape(check.detail),
+        )
+        for check in checks
+    )
+    return f'<ul class="human-readiness" aria-label="Requirement readiness">{items}</ul>'
+
+
 def _requirement_card(
     feature: Mapping[str, Any],
     covered: bool,
     markers: Mapping[tuple[str, str, int, str], EvidenceMarker],
     native_targets: Mapping[tuple[str, str, int, str], str],
+    execution_status: str,
 ) -> str:
     # [impl->req~ring5.trace.branch-association~1]
     feature_id = str(feature["id"])
@@ -275,6 +297,7 @@ def _requirement_card(
     native_id = f"req~ring5.{feature_id}~{feature['revision']}"
     evidence_details = _evidence_details(feature, markers, native_targets)
     history_details = _history_details(feature)
+    readiness = _readiness_checklist(feature, covered, execution_status)
     branch = feature.get("implementation_branch")
     branch_html = (
         '<span class="human-branch">Implementation branch ' f"<code>{_escape(branch)}</code></span>"
@@ -293,6 +316,7 @@ def _requirement_card(
     </div>
   </div>
   <p>{_escape(feature['description'])}</p>
+  {readiness}
 {history_details}
   {evidence_details}
   <div class="human-card-footer">
@@ -308,6 +332,7 @@ def _human_layer(
     coverage: Mapping[str, bool],
     evidence_markers: Sequence[EvidenceMarker],
     native_targets: Mapping[tuple[str, str, int, str], str],
+    execution_results: Mapping[str, str],
 ) -> str:
     # [impl->req~ring5.trace.future-status-reporting~1]
     project_name = str(inventory["project"])
@@ -332,6 +357,7 @@ def _human_layer(
     approved = status_counts["approved"]
     future = sum(status_counts[view.key] for view in status_views if view.scope == "future")
     binding_count = sum(len(values) for values in bindings.values())
+    execution_count = len(execution_results)
     percentage = round(100 * covered_count / len(features)) if features else 100
 
     group_options = "".join(
@@ -358,6 +384,7 @@ def _human_layer(
                 coverage[str(feature["id"])],
                 marker_index,
                 native_targets,
+                execution_results.get(str(feature["id"]), "not-recorded"),
             )
             for feature in group_features
         )
@@ -459,6 +486,10 @@ def _human_layer(
       <p>The inventory validator also checks that every displayed locator has a matching marker in
       that source symbol or heading. <strong>Covered does not mean that tests passed in the latest
       CI run, or by itself prove that the implementation is correct.</strong></p>
+      <p>Execution is reported independently: this build supplied results for
+      <strong>{execution_count} of {len(features)}</strong> requirements. Requirements absent from
+      the optional execution-results document are labeled <strong>Not recorded</strong>, never
+      assumed to have passed.</p>
     </div>
   </section>
   <section id="human-features" class="human-section">
@@ -775,6 +806,25 @@ body { margin:0; color:var(--h-ink); background:var(--h-soft); line-height:1.5; 
 .human-branch { display:block; margin-top:.55rem; color:var(--h-muted); font-size:.8rem; }
 .human-branch code { color:#39277f; }
 .human-card-footer>a { font-size:.8rem; font-weight:750; }
+.human-readiness {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:.45rem;
+  margin:.8rem 0;
+  padding:0;
+  list-style:none;
+}
+.human-readiness li { padding:.55rem .65rem; background:var(--h-soft); border-radius:8px; }
+.human-readiness span { display:block; color:var(--h-muted); font-size:.68rem; font-weight:800; }
+.human-readiness strong { display:block; margin-top:.1rem; font-size:.78rem; }
+.human-readiness [data-readiness="ready"] strong,
+.human-readiness [data-readiness="covered"] strong,
+.human-readiness [data-readiness="passed"] strong { color:var(--h-good); }
+.human-readiness [data-readiness="missing"] strong,
+.human-readiness [data-readiness="uncovered"] strong,
+.human-readiness [data-readiness="failed"] strong { color:var(--h-bad); }
+.human-readiness [data-readiness="not-run"] strong,
+.human-readiness [data-readiness="not-recorded"] strong { color:#6c5c16; }
 .human-history { margin:.8rem 0; border:1px solid var(--h-line); border-radius:10px; }
 .human-history>summary { padding:.7rem .8rem; cursor:pointer; font-weight:750; }
 .human-history ol { display:grid; gap:.7rem; margin:0; padding:.8rem 1rem .9rem 2.6rem; }
@@ -898,6 +948,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   .human-source-grid,
   .human-evidence-grid,
   .human-controls { grid-template-columns:1fr; }
+  .human-readiness { grid-template-columns:1fr 1fr; }
   .human-requirement-heading,
   .human-card-footer,
   .human-section-title { align-items:flex-start; flex-direction:column; }
@@ -961,6 +1012,7 @@ def enhance_oft_html(
     native_html: str,
     inventory: Mapping[str, Any],
     evidence_markers: Sequence[EvidenceMarker] = (),
+    execution_results: Mapping[str, str] | None = None,
 ) -> str:
     """Insert the RING-5 summary into native OFT HTML while retaining its trace graph."""
     # [impl->req~ring5.trace.human-html-report~1]
@@ -1019,7 +1071,14 @@ def enhance_oft_html(
     )
     report = report.replace(
         "<body>",
-        "<body>\n" + _human_layer(inventory, coverage, evidence_markers, native_targets),
+        "<body>\n"
+        + _human_layer(
+            inventory,
+            coverage,
+            evidence_markers,
+            native_targets,
+            execution_results or {},
+        ),
         1,
     )
     report = report.replace("<main>", '<main id="oft-native-report">', 1)

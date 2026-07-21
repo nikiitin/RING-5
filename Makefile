@@ -24,6 +24,7 @@ OFT_DOCUMENTATION_SOURCES := docs spec/oft/README.md spec/oft/discovery-audit.md
 OFT_SOURCES := $(OFT_SPEC_SOURCES) $(OFT_CODE_SOURCES) $(OFT_DOCUMENTATION_SOURCES)
 OFT_NATIVE_REPORT := $(OFT_CACHE_DIR)/ring5-openfasttrace.html
 OFT_REPORT := spec/oft/generated/report.html
+OFT_EXECUTION_RESULTS_ARG = $(if $(EXECUTION_RESULTS),--execution-results "$(EXECUTION_RESULTS)",)
 
 .PHONY: help venv install dev run playwright-install install-latex check-latex \
 	test-data mock-data test test-unit test-nonbrowser test-api test-ci test-export test-latex \
@@ -226,7 +227,7 @@ oft-report: oft-generate oft-download
 		--details-section-display collapse --output-file "$(OFT_NATIVE_REPORT)" $(OFT_SOURCES)
 	@test -s "$(OFT_NATIVE_REPORT)"
 	$(PYTHON) scripts/generate_oft_html_report.py \
-		--oft-html "$(OFT_NATIVE_REPORT)" --output "$(OFT_REPORT)"
+		--oft-html "$(OFT_NATIVE_REPORT)" --output "$(OFT_REPORT)" $(OFT_EXECUTION_RESULTS_ARG)
 	$(PYTHON) scripts/generate_oft_inventory.py --check
 	@echo "Open $(OFT_REPORT) in a browser."
 

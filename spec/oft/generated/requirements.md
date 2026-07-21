@@ -3039,7 +3039,7 @@ Tags: diff, git, openfasttrace, status_approved
 ### Requirement readiness checklist
 
 `req~ring5.trace.readiness-checklist~1`
-Status: proposed
+Status: approved
 
 The human report shall display specification, implementation, test, documentation, native trace, and execution readiness separately for every requirement.
 
@@ -3050,7 +3050,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: openfasttrace, readiness, reporting, status_proposed
+Tags: openfasttrace, readiness, reporting, status_approved
 
 ### Requirement approval gate
 
