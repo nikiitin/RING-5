@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
+import pandas as pd
 import plotly.graph_objects as go
 from matplotlib.figure import Figure as MplFigure
 
@@ -97,7 +98,8 @@ class TestRenderDownloadSectionPlotly:
         mock_st.pills.return_value = "pdf"
         mock_st.download_button.return_value = True
 
-        render_download_section(1, "myplot", _simple_plotly_fig())
+        source_data = pd.DataFrame({"benchmark": ["mcf"], "ipc": [2.1]})
+        render_download_section(1, "myplot", _simple_plotly_fig(), source_data)
 
         mock_st.download_button.assert_called_once()
         _, kwargs = mock_st.download_button.call_args
@@ -106,6 +108,7 @@ class TestRenderDownloadSectionPlotly:
         mock_bytes.assert_not_called()
         assert kwargs["data"]() == b"PDFDATA"
         mock_bytes.assert_called_once()
+        assert mock_bytes.call_args.kwargs["source_data"] is source_data
         assert kwargs["file_name"] == "myplot.pdf"
         assert kwargs["mime"] == "application/pdf"
         assert callable(kwargs["on_click"])

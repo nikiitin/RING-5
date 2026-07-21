@@ -6,6 +6,7 @@ with correct headers/magic bytes for PNG, SVG, and PDF formats.
 
 from __future__ import annotations
 
+import pandas as pd
 import plotly.graph_objects as go
 import pytest
 
@@ -73,7 +74,58 @@ class TestPlotlyHTML:
         assert "<html" in text
         assert "Plotly.newPlot" in text
         assert "plotly.js" in text
+        assert "ring5-source-data" not in text
         mock_calc.assert_not_called()
+
+    def test_html_can_embed_an_interactive_source_dataframe(
+        self, simple_bar_figure: go.Figure
+    ) -> None:
+        # [test->req~ring5.export.plotly-html-source-data~1]
+        """Workspace HTML can carry searchable data without executable cell HTML."""
+        source = pd.DataFrame(
+            {
+                "benchmark": ["mcf", "omnetpp"],
+                "ipc": [2.1, 1.85],
+                "note": ["safe", "</script><script>alert(1)</script>"],
+            }
+        )
+
+        text = plotly_download_bytes(
+            simple_bar_figure,
+            "html",
+            source_data=source,
+            deterministic=True,
+        ).decode("utf-8")
+
+        assert 'id="ring5-source-data"' in text
+        assert "Interactive source dataframe" in text
+        assert "Filter rows" in text
+        assert "Download source data as CSV" in text
+        assert "2 rows × 3 columns" in text
+        assert '"benchmark"' in text
+        assert "mcf" in text
+        assert "</script><script>alert(1)</script>" not in text
+        assert "\\u003c\\/script\\u003e" in text
+
+    def test_dataframe_html_export_remains_deterministic(
+        self, simple_bar_figure: go.Figure
+    ) -> None:
+        source = pd.DataFrame({"benchmark": ["mcf"], "ipc": [2.1]})
+
+        first = plotly_download_bytes(
+            simple_bar_figure,
+            "html",
+            source_data=source,
+            deterministic=True,
+        )
+        second = plotly_download_bytes(
+            simple_bar_figure,
+            "html",
+            source_data=source,
+            deterministic=True,
+        )
+
+        assert first == second
 
 
 # PNG tests

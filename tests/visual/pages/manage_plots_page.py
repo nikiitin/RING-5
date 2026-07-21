@@ -653,16 +653,27 @@ class ManagePlotsPage(BasePage):
         expect(combobox).to_be_visible(timeout=self.RENDER_TIMEOUT)
         if plot_type not in PLOT_TYPES:
             raise ValueError(f"Unsupported plot type: {plot_type}")
-        combobox.click()
-        combobox.fill(plot_type)
         option = self.page.get_by_role("option", name=plot_type, exact=True).first
+        for _ in range(3):
+            combobox.click()
+            combobox.fill(plot_type)
+            try:
+                option.wait_for(state="visible", timeout=5_000)
+            except PlaywrightTimeoutError:
+                # A Streamlit rerender can close the virtualized menu after the
+                # input accepted its search text. Reopening retains the query.
+                combobox.click()
+            try:
+                option.wait_for(state="visible", timeout=5_000)
+                option.click(timeout=5_000)
+            except PlaywrightTimeoutError:
+                self.page.keyboard.press("Escape")
+                self.page.wait_for_timeout(250)
+                continue
+            self.wait_for_streamlit(expect_rerun=True)
+            expect(combobox).to_have_value(plot_type, timeout=self.RENDER_TIMEOUT)
+            return
         expect(option).to_be_visible(timeout=self.RENDER_TIMEOUT)
-        option.click()
-        self.wait_for_streamlit(expect_rerun=True)
-        expect(combobox).to_have_value(
-            plot_type,
-            timeout=self.RENDER_TIMEOUT,
-        )
 
     #  ACTIONS — Plot Selector
 

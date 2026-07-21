@@ -38,6 +38,8 @@ from src.core.models.visualization.figure_config import FigureConfig
 from src.web.rendering.latex_security import disabled_figure_usetex, escaped_figure_text
 
 if TYPE_CHECKING:
+    import pandas as pd
+
     from matplotlib.typing import RcKeyType
 
 logger = logging.getLogger(__name__)
@@ -184,6 +186,7 @@ def plotly_download_bytes(
     scale: int = 2,
     deterministic: bool = False,
     div_id: str | None = None,
+    source_data: pd.DataFrame | None = None,
 ) -> bytes:
     # [impl->req~ring5.export.plotly-html~1]
     # [impl->req~ring5.export.plotly-static~1]
@@ -201,6 +204,8 @@ def plotly_download_bytes(
             deterministic as-is).
         div_id: Explicit div id for HTML export (implies a stable id;
             defaults to a random uuid unless ``deterministic`` is set).
+        source_data: Optional processed dataframe to append as an interactive
+            table in HTML exports. Ignored for static formats.
 
     Returns:
         Raw bytes of the exported content.
@@ -223,6 +228,12 @@ def plotly_download_bytes(
             full_html=True,
             div_id=effective_div_id,
         )
+        if source_data is not None:
+            from src.web.rendering.interactive_html_export import (
+                add_interactive_source_data,
+            )
+
+            html_str = add_interactive_source_data(html_str, source_data)
         return html_str.encode("utf-8")
 
     # Raster/vector via Kaleido — driven directly (not via fig.to_image) so we

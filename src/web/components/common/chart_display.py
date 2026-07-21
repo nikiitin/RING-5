@@ -17,6 +17,7 @@ import logging
 from typing import Any
 
 import matplotlib.pyplot as plt
+import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
@@ -94,6 +95,7 @@ class ChartDisplayComponent:
         plot_id: int,
         plot_name: str,
         config: dict[str, Any],
+        source_data: pd.DataFrame | None = None,
         *,
         capture_click: bool = False,
         component_generation: int = 0,
@@ -135,7 +137,7 @@ class ChartDisplayComponent:
             capture_click=capture_click,
         )
 
-        render_download_section(plot_id, plot_name, fig)
+        render_download_section(plot_id, plot_name, fig, source_data)
 
         return relayout_data
 

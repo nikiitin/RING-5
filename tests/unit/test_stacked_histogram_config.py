@@ -382,6 +382,37 @@ class TestPlotConfigComponents:
     """Tests for shared plot configuration controls."""
 
     @patch("src.web.components.plotting.config.plot_config_components.st")
+    def test_filter_mapping_change_selects_values_from_new_column(self, mock_st: MagicMock) -> None:
+        # [test->req~ring5.figure.plot-filtering~1]
+        from src.web.components.plotting.config.plot_config_components import (
+            PlotConfigComponents,
+        )
+
+        mock_st.columns.side_effect = _columns_side_effect
+        mock_st.session_state = {}
+        mock_st.multiselect.side_effect = lambda _label, **kwargs: mock_st.session_state.get(
+            kwargs["key"], kwargs.get("default", [])
+        )
+        df = pd.DataFrame(
+            {
+                "benchmark_name": ["mcf", "omnetpp"],
+                "config_description": ["baseline", "optimized"],
+            }
+        )
+
+        _x_values, group_values = PlotConfigComponents.render_filter_multiselects(
+            data=df,
+            x_col="benchmark_name",
+            group_col="config_description",
+            saved_config={"group": None, "group_filter": []},
+            plot_id=4,
+        )
+
+        assert group_values == ["baseline", "optimized"]
+        assert mock_st.session_state["group_filter_column_4"] == "config_description"
+        assert mock_st.session_state["group_filter_4"] == ["baseline", "optimized"]
+
+    @patch("src.web.components.plotting.config.plot_config_components.st")
     def test_filter_no_group_col(self, mock_st: MagicMock) -> None:
         from src.web.components.plotting.config.plot_config_components import (
             PlotConfigComponents,

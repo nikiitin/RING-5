@@ -1227,6 +1227,7 @@
           "src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot._build_right_axis_traces"
         ],
         "tests": [
+          "tests/unit/test_grouped_stacked_bar_plot_config.py::test_grouped_stacked_default_omits_colliding_x_axis_title",
           "tests/unit/test_grouped_stacked_bar_create_figure.py::TestCreateFigure.test_basic_grouped_stacked",
           "tests/unit/test_grouped_stacked_dual_axis.py::TestDualAxisCreateFigure"
         ],
@@ -1684,12 +1685,14 @@
           "src/web/components/plotting/config/dual_axis_settings.py::render_dual_axis_display_settings",
           "src/web/components/plotting/config/dual_axis_settings.py::render_secondary_legend_controls",
           "src/web/components/plotting/config/dual_axis_settings.py::render_right_axis_dot_settings",
+          "src/web/components/plotting/config/dual_axis_config.py::_sync_auto_labels",
           "src/web/pages/ui/plotting/types/dual_axis_bar_dot_plot.py::DualAxisBarDotPlot.create_traces",
           "src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot._build_right_axis_traces"
         ],
         "tests": [
           "tests/unit/test_dual_axis_bar_dot_plot.py::TestDualAxisBarDotPlotCreateFigure",
           "tests/unit/test_dual_axis_bar_dot_plot.py::TestDualAxisBarDotPlotDotCustomization",
+          "tests/unit/test_grouped_dual_config.py::TestDualAxisRenderConfigUI.test_generated_labels_follow_explicit_axis_changes",
           "tests/unit/test_grouped_stacked_dual_axis.py::TestDualAxisCreateFigure",
           "tests/e2e/test_dual_axis.py::TestDualAxisRendering"
         ],
@@ -1734,6 +1737,8 @@
           "src/web/pages/ui/plotting/types/heatmap_plot.py::HeatmapPlot.create_traces"
         ],
         "tests": [
+          "tests/unit/test_heatmap_plot.py::test_heatmap_generated_xlabel_follows_x_mapping",
+          "tests/unit/test_heatmap_plot.py::test_faceted_heatmap_labels_only_bottom_x_axis",
           "tests/unit/test_heatmap_plot.py::test_multiple_heatmap_traces_render_as_subplots",
           "tests/unit/test_heatmap_plot.py::test_heatmap_colorscale_from_palette",
           "tests/unit/test_heatmap_plot.py::test_plotly_shared_colorbar_zmin_zmax_match",
@@ -1874,6 +1879,28 @@
         ],
         "documentation": [
           "docs/user-guide/reference/rendering-export.md#plotly-html"
+        ]
+      }
+    },
+    {
+      "id": "export.plotly-html-source-data",
+      "group": "rendering-export",
+      "revision": 1,
+      "status": "approved",
+      "title": "Interactive source data in Plotly HTML exports",
+      "description": "Plotly HTML downloads from the web workspace shall include the processed dataframe used to build the figure in a searchable, sortable, paginated table with a client-side CSV download.",
+      "tags": ["data", "export", "html", "plotly", "web"],
+      "evidence": {
+        "implementation": [
+          "src/web/rendering/interactive_html_export.py::add_interactive_source_data",
+          "src/web/pages/ui/plotting/download_section.py::_render_plotly_download"
+        ],
+        "tests": [
+          "tests/unit/test_plotly_download.py::TestPlotlyHTML.test_html_can_embed_an_interactive_source_dataframe",
+          "tests/e2e/test_export_presets.py::TestExportDownload.test_07_html_download_completes"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/rendering-export.md#interactive-source-data"
         ]
       }
     },
@@ -2749,6 +2776,7 @@
           "src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot.create_traces"
         ],
         "tests": [
+          "tests/unit/test_stacked_histogram_config.py::TestPlotConfigComponents.test_filter_mapping_change_selects_values_from_new_column",
           "tests/unit/test_interactive_filters.py::TestGroupedBarPlotFilters",
           "tests/unit/test_interactive_filters.py::TestGroupedStackedBarPlotFilters"
         ],

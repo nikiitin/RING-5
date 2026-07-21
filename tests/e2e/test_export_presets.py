@@ -206,6 +206,7 @@ class TestExportDownload:
 
     @pytest.mark.order(7)
     def test_07_html_download_completes(self, tier2_page: Page, tmp_path: Path) -> None:
+        # [test->req~ring5.export.plotly-html-source-data~1]
         """The HTML download completes and yields a self-contained document.
 
         HTML keeps this assertion independent of the optional Chrome-backed
@@ -233,4 +234,28 @@ class TestExportDownload:
         assert download.failure() is None
         output = tmp_path / download.suggested_filename
         download.save_as(str(output))
-        assert output.read_bytes().lower().startswith(b"<html")
+        payload = output.read_bytes()
+        assert payload.lower().startswith(b"<html")
+        assert b'id="ring5-source-data"' in payload
+        assert b"benchmark_name" in payload
+
+        report = tier2_page.context.new_page()
+        try:
+            report.goto(output.as_uri(), wait_until="load")
+            source_table = report.get_by_role("region", name="Interactive source dataframe")
+            expect(source_table).to_be_visible(timeout=E2E_TIMEOUT)
+            expect(report.get_by_text("18 rows × 8 columns", exact=False)).to_be_visible()
+            filter_rows = report.get_by_role("searchbox", name="Filter rows")
+            filter_rows.fill("mcf")
+            expect(report.get_by_text("6 of 18 rows", exact=True)).to_be_visible()
+            expect(source_table.locator("tbody tr")).to_have_count(6)
+
+            report.get_by_role("button", name="benchmark_name", exact=True).click()
+            expect(source_table.locator("thead th").first).to_have_attribute(
+                "aria-sort", "ascending"
+            )
+            with report.expect_download(timeout=E2E_TIMEOUT) as csv_info:
+                report.get_by_role("button", name="Download source data as CSV").click()
+            assert csv_info.value.failure() is None
+        finally:
+            report.close()

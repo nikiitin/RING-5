@@ -107,6 +107,18 @@ class HeatmapPlot(BasePlot):
             first = self.last_traces.traces[0]
             if isinstance(first, HeatmapTraceConfig) and first.col_labels:
                 fig.update_xaxes(categoryorder="array", categoryarray=first.col_labels)
+            if len(self.last_traces.traces) > 1:
+                # Plotly's global update_xaxes call puts the same title on every
+                # facet, where intermediate titles and ticks overlap the next
+                # panel. Facets share one mapping, so label only the bottom axis.
+                bottom_axis = getattr(fig.layout, f"xaxis{len(self.last_traces.traces)}")
+                bottom_tick_labels = bottom_axis.showticklabels
+                fig.update_xaxes(title_text=None, showticklabels=False)
+                bottom_axis = getattr(fig.layout, f"xaxis{len(self.last_traces.traces)}")
+                bottom_axis.title.text = str(config.get("xlabel", "") or "")
+                bottom_axis.showticklabels = (
+                    True if bottom_tick_labels is None else bottom_tick_labels
+                )
         return fig
 
     @override

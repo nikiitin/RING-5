@@ -37,6 +37,63 @@ def sample_df() -> pd.DataFrame:
 class TestDualAxisRenderConfigUI:
     """Tests for dual-axis plot configuration."""
 
+    @patch(f"{_DUAL_CFG}.st")
+    def test_generated_labels_follow_explicit_axis_changes(self, mock_st: MagicMock) -> None:
+        # [test->req~ring5.figure.dual-axis-controls~1]
+        from src.web.components.plotting.config.dual_axis_config import _sync_auto_labels
+
+        mock_st.session_state = {
+            "title_8": "seed vs system.cpu.ipc",
+            "xlabel_8": "benchmark_name",
+            "ylabel_8": "seed",
+            "ylabel_dot_8": "system.cpu.ipc",
+        }
+        saved = {
+            "x": "benchmark_name",
+            "y_bar": "seed",
+            "y_dot": "system.cpu.ipc",
+            "title": "seed vs system.cpu.ipc",
+            "xlabel": "benchmark_name",
+            "ylabel_bar": "seed",
+            "ylabel_dot": "system.cpu.ipc",
+        }
+
+        _sync_auto_labels(
+            cast(Any, saved),
+            8,
+            "benchmark_name",
+            "system.cpu.ipc",
+            "system.cpu.numCycles",
+        )
+
+        assert mock_st.session_state == {
+            "title_8": "system.cpu.ipc vs system.cpu.numCycles",
+            "xlabel_8": "benchmark_name",
+            "ylabel_8": "system.cpu.ipc",
+            "ylabel_dot_8": "system.cpu.numCycles",
+        }
+
+    @patch(f"{_DUAL_CFG}.st")
+    def test_custom_dual_axis_labels_are_not_overwritten(self, mock_st: MagicMock) -> None:
+        from src.web.components.plotting.config.dual_axis_config import _sync_auto_labels
+
+        mock_st.session_state = {
+            "title_8": "Publication comparison",
+            "xlabel_8": "Workload",
+            "ylabel_8": "Performance",
+            "ylabel_dot_8": "Runtime",
+        }
+        saved = {"x": "old", "y_bar": "left", "y_dot": "right"}
+
+        _sync_auto_labels(cast(Any, saved), 8, "new", "new-left", "new-right")
+
+        assert mock_st.session_state == {
+            "title_8": "Publication comparison",
+            "xlabel_8": "Workload",
+            "ylabel_8": "Performance",
+            "ylabel_dot_8": "Runtime",
+        }
+
     @patch(f"{_DUAL_CFG}.PlotConfigComponents")
     @patch(f"{_DUAL_CFG}.render_color_selector")
     @patch(f"{_DUAL_CFG}.detect_column_types")

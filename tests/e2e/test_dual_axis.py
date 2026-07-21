@@ -75,6 +75,11 @@ class TestDualAxisRendering:
         mp.select_y_dot("system.cpu.numCycles")
         mp.refresh_plot()
         mp.assert_chart_visible(timeout=CHART_TIMEOUT)
+        expect(mp.viz_title_input).to_have_value("system.cpu.ipc vs system.cpu.numCycles")
+        expect(mp.viz_y_label_input).to_have_value("system.cpu.ipc")
+        expect(dual_axis_page.get_by_role("textbox", name="Right Y-axis Label")).to_have_value(
+            "system.cpu.numCycles"
+        )
 
     @pytest.mark.order(3)
     def test_03_matplotlib_renders(self, dual_axis_page: Page) -> None:

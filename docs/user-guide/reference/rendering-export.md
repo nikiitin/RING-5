@@ -100,6 +100,21 @@ Covers:
 HTML export embeds Plotly JavaScript and figure data in a self-contained interactive document. It
 does not invoke Chrome or Kaleido.
 
+### Interactive source data
+
+<!--
+`uman~ring5.export.plotly-html-source-data.documentation~1`
+
+Covers:
+- req~ring5.export.plotly-html-source-data~1
+
+-->
+
+HTML downloaded from the web workspace also includes the processed dataframe that produced the
+figure. The table works without a server or network connection and supports whole-table search,
+column sorting, pagination, and a client-side CSV download. This is the post-pipeline dataframe:
+it therefore shows the exact rows and columns available to the plot, not the unprocessed input.
+
 ### Plotly static formats
 
 <!--

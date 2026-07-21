@@ -21,6 +21,17 @@ from src.web.components.plotting.config.plot_config_components import (
 from src.web.models.plot_models import PlotConfig
 
 
+def _sync_auto_xlabel(saved_config: PlotConfig, plot_id: int, x_column: str) -> None:
+    """Follow X mapping changes while preserving a custom axis label."""
+    previous_x = saved_config.get("x")
+    if not isinstance(previous_x, str) or previous_x == x_column:
+        return
+    widget_key = f"xlabel_{plot_id}"
+    current_value = st.session_state.get(widget_key, saved_config.get("xlabel"))
+    if current_value == previous_x:
+        st.session_state[widget_key] = x_column
+
+
 def render(
     data: pd.DataFrame,
     saved_config: PlotConfig,
@@ -111,6 +122,8 @@ def render(
             key=f"hm_metrics_{plot_id}",
             help="Each selected numeric column becomes one row in the heatmap.",
         )
+
+    _sync_auto_xlabel(saved_config, plot_id, x_column)
 
     with col2:
         default_title: str = saved_config.get("title", "Heatmap") or ""

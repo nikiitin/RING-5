@@ -10,6 +10,8 @@ Since components call Streamlit widgets, we mock st.* to verify:
 from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
+import pandas as pd
+
 # PlotCreationComponent Tests
 
 
@@ -269,11 +271,13 @@ class TestChartDisplayComponent:
 
         from src.web.components.common.chart_display import ChartDisplayComponent
 
+        source_data = pd.DataFrame({"ipc": [2.1]})
         ChartDisplayComponent.render_plotly_chart(
             go.Figure(),
             plot_id=7,
             plot_name="ipc",
             config={"width": 900, "height": 540, "export_scale": 3},
+            source_data=source_data,
         )
 
         plotly_config = mock_chart.call_args.kwargs["config"]
@@ -285,7 +289,7 @@ class TestChartDisplayComponent:
             "scale": 3,
         }
         assert mock_chart.call_args.kwargs["capture_click"] is False
-        mock_download.assert_called_once()
+        mock_download.assert_called_once_with(7, "ipc", mock_chart.call_args.args[0], source_data)
 
     @patch("src.web.components.common.chart_display.st")
     def test_should_not_generate_when_no_auto_and_no_manual(

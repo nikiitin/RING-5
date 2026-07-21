@@ -2180,6 +2180,20 @@ Needs: impl, test, uman
 
 Tags: export, html, plotly, status_approved
 
+### Interactive source data in Plotly HTML exports
+
+`req~ring5.export.plotly-html-source-data~1`
+Status: approved
+
+Plotly HTML downloads from the web workspace shall include the processed dataframe used to build the figure in a searchable, sortable, paginated table with a client-side CSV download.
+
+Covers:
+- feat~ring5.rendering-export~1
+
+Needs: impl, test, uman
+
+Tags: data, export, html, plotly, status_approved, web
+
 ### Static Plotly export
 
 `req~ring5.export.plotly-static~1`

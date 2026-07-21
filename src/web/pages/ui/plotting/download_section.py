@@ -11,6 +11,7 @@ from __future__ import annotations
 import logging
 from typing import cast
 
+import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 from kaleido.errors import ChromeNotFoundError
@@ -45,6 +46,7 @@ def render_download_section(
     plot_id: int,
     plot_name: str,
     fig: go.Figure,
+    source_data: pd.DataFrame | None = None,
 ) -> None:
     # [impl->req~ring5.workspace.guided-analysis~1]
     # [impl->req~ring5.export.web-download~1]
@@ -60,19 +62,23 @@ def render_download_section(
         plot_id: Unique plot identifier (used for widget keys).
         plot_name: Human-readable name used as download filename stem.
         fig: The Plotly figure (used directly for Plotly exports).
+        source_data: Processed dataframe used to create the figure. Included
+            as an interactive table in Plotly HTML downloads.
     """
     with st.expander("📥 Download", expanded=False):
         if EngineManager.is_matplotlib():
             _render_mpl_download(plot_id, plot_name)
         else:
-            _render_plotly_download(plot_id, plot_name, fig)
+            _render_plotly_download(plot_id, plot_name, fig, source_data)
 
 
 def _render_plotly_download(
     plot_id: int,
     plot_name: str,
     fig: go.Figure,
+    source_data: pd.DataFrame | None,
 ) -> None:
+    # [impl->req~ring5.export.plotly-html-source-data~1]
     # [impl->req~ring5.export.web-download~1]
     """Format pills + a deferred download for the Plotly/Kaleido path.
 
@@ -99,7 +105,13 @@ def _render_plotly_download(
     def generate_download() -> bytes:
         """Generate the selected export in Streamlit's download worker."""
         try:
-            return plotly_download_bytes(fig, fmt_typed, width=width, height=height)
+            return plotly_download_bytes(
+                fig,
+                fmt_typed,
+                width=width,
+                height=height,
+                source_data=source_data,
+            )
         except ChromeNotFoundError as exc:
             logger.error("Plotly %s export failed — no browser for Kaleido: %s", fmt, exc)
             raise RuntimeError(

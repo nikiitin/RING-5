@@ -356,6 +356,7 @@ class PlotRenderController:
                     plot.plot_id,
                     plot.name,
                     plot.config,
+                    plot.processed_data,
                     capture_click=drill_enabled,
                     component_generation=generation,
                 )
