@@ -40,6 +40,7 @@ DEFAULT_OUTPUT_DIR = ROOT / "spec" / "oft" / "generated"
 GENERATED_FILENAMES = ("features.md", "requirements.md", "summary.md")
 HTML_REPORT_FILENAME = "report.html"
 ALLOWED_STATUSES = frozenset(view.key for view in requirement_status_views())
+HISTORY_CHANGE_TYPES = frozenset({"semantic", "evidence"})
 ID_PATTERN = re.compile(r"^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$")
 TAG_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")
 BRANCH_PATTERN = re.compile(r"^[a-z0-9][a-z0-9._/-]*$")
@@ -333,6 +334,65 @@ def _valid_branch_name(value: object) -> bool:
     )
 
 
+def _validate_requirement_history(
+    feature: Mapping[str, Any], label: str, errors: list[str]
+) -> None:
+    """Validate complete semantic snapshots and evidence-only history records."""
+    # [impl->req~ring5.trace.requirement-history~2]
+    history = feature.get("history", [])
+    if not isinstance(history, list):
+        errors.append(f"{label}.history must be a list")
+        return
+
+    current_revision = feature.get("revision")
+    valid_current_revision = (
+        isinstance(current_revision, int)
+        and not isinstance(current_revision, bool)
+        and current_revision >= 1
+    )
+    semantic_revisions: list[int] = []
+    previous_revision = 0
+    for index, record in enumerate(history):
+        record_label = f"{label}.history[{index}]"
+        if not isinstance(record, dict):
+            errors.append(f"{record_label} must be an object")
+            continue
+        revision = record.get("revision")
+        if not isinstance(revision, int) or isinstance(revision, bool) or revision < 1:
+            errors.append(f"{record_label}.revision must be a positive integer")
+            continue
+        if revision < previous_revision:
+            errors.append(f"{label}.history must be ordered by revision")
+        previous_revision = revision
+        if valid_current_revision and revision > current_revision:
+            errors.append(f"{record_label}.revision exceeds the current revision")
+
+        change_type = record.get("change_type")
+        if change_type not in HISTORY_CHANGE_TYPES:
+            errors.append(
+                f"{record_label}.change_type must be one of {sorted(HISTORY_CHANGE_TYPES)}"
+            )
+            continue
+        reason = record.get("reason")
+        if not isinstance(reason, str) or not reason.strip():
+            errors.append(f"{record_label}.reason must be a non-empty string")
+        if change_type == "semantic":
+            semantic_revisions.append(revision)
+            for field in ("title", "description"):
+                if not isinstance(record.get(field), str) or not record[field].strip():
+                    errors.append(f"{record_label}.{field} must be a non-empty string")
+        elif "title" in record or "description" in record:
+            errors.append(f"{record_label} evidence changes cannot redefine requirement text")
+
+    if valid_current_revision:
+        expected = list(range(1, current_revision))
+        if semantic_revisions != expected:
+            errors.append(
+                f"{label}.history semantic revisions must be exactly {expected}, "
+                f"got {semantic_revisions}"
+            )
+
+
 def validate_inventory(
     inventory: Mapping[str, Any],
     *,
@@ -419,6 +479,7 @@ def validate_inventory(
         revision = feature_raw.get("revision")
         if not isinstance(revision, int) or isinstance(revision, bool) or revision < 1:
             errors.append(f"{label}.revision must be a positive integer")
+        _validate_requirement_history(feature_raw, label, errors)
         status = feature_raw.get("status")
         if status not in ALLOWED_STATUSES:
             errors.append(f"{label}.status must be one of {sorted(ALLOWED_STATUSES)}")
@@ -531,6 +592,7 @@ def render_inventory(inventory: Mapping[str, Any]) -> dict[str, str]:
     # [impl->req~ring5.trace.inventory-generator~1]
     # [impl->req~ring5.trace.future-status-reporting~1]
     # [impl->req~ring5.trace.branch-association~1]
+    # [impl->req~ring5.trace.requirement-history~2]
     groups = cast(list[dict[str, Any]], inventory["groups"])
     features = cast(list[dict[str, Any]], inventory["features"])
     by_group: dict[str, list[dict[str, Any]]] = {group["id"]: [] for group in groups}
@@ -576,6 +638,7 @@ def render_inventory(inventory: Mapping[str, Any]) -> dict[str, str]:
         requirement_lines.extend([f"## {group['title']}", ""])
         for feature in by_group[group["id"]]:
             branch = feature.get("implementation_branch")
+            history = cast(list[dict[str, Any]], feature.get("history", []))
             requirement_lines.extend(
                 [
                     f"### {feature['title']}",
@@ -586,6 +649,7 @@ def render_inventory(inventory: Mapping[str, Any]) -> dict[str, str]:
                     feature["description"],
                     "",
                     *([f"Implementation branch: {branch}", ""] if branch else []),
+                    *([f"History records: {len(history)}", ""] if history else []),
                     "Covers:",
                     f"- {_feature_id(group['id'])}",
                     "",
@@ -656,6 +720,18 @@ def render_inventory(inventory: Mapping[str, Any]) -> dict[str, str]:
                 f"`{feature['implementation_branch']}` |"
                 for feature in features
                 if feature["status"] != "approved"
+            ],
+            "",
+            "## Requirement history",
+            "",
+            "| Requirement | Revision | Change | Reason |",
+            "| --- | ---: | --- | --- |",
+            *[
+                f"| `{feature['id']}` | {record['revision']} | "
+                f"{('Evidence only' if record['change_type'] == 'evidence' else 'Semantic')} | "
+                f"{record['reason']} |"
+                for feature in features
+                for record in feature.get("history", [])
             ],
             "",
             "<!-- oft:on -->",

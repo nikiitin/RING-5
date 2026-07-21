@@ -4772,13 +4772,31 @@
     {
       "id": "trace.requirement-history",
       "group": "traceability",
-      "revision": 1,
-      "status": "proposed",
+      "revision": 2,
+      "status": "approved",
       "implementation_branch": "006-oft-requirement-history",
       "title": "Requirement history",
-      "description": "The feature catalog shall retain reviewable requirement revisions and distinguish semantic changes from evidence-only updates.",
+      "description": "The feature catalog shall retain each superseded semantic revision's title and description with its change reason, record evidence-only updates without incrementing the revision, and expose both change types in generated summaries and HTML reports.",
       "tags": ["history", "openfasttrace", "requirements"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "semantic",
+          "title": "Requirement history",
+          "description": "The feature catalog shall retain reviewable requirement revisions and distinguish semantic changes from evidence-only updates.",
+          "reason": "Specified complete semantic snapshots and reviewer-facing history views."
+        },
+        {
+          "revision": 2,
+          "change_type": "evidence",
+          "reason": "Recorded implementation, verification, and documentation evidence without changing revision 2."
+        }
+      ],
+      "evidence": {
+        "implementation": ["scripts/generate_oft_inventory.py::_validate_requirement_history", "scripts/generate_oft_inventory.py::render_inventory", "scripts/oft_html_report.py::_history_details"],
+        "tests": ["tests/unit/test_oft_inventory.py::test_requirement_history_validates_semantic_snapshots_and_evidence_changes", "tests/unit/test_oft_inventory.py::test_requirement_history_is_rendered_in_markdown_views", "tests/unit/test_oft_html_report.py::test_requirement_card_exposes_semantic_and_evidence_history"],
+        "documentation": ["spec/oft/README.md#requirement-history"]
+      }
     },
     {
       "id": "trace.branch-association",

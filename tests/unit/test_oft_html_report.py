@@ -51,6 +51,13 @@ def small_inventory() -> dict[str, Any]:
                 "description": "Still needs trace coverage.",
                 "tags": ["future"],
                 "implementation_branch": "006-workspace-future",
+                "history": [
+                    {
+                        "revision": 1,
+                        "change_type": "evidence",
+                        "reason": "Linked the implementation branch.",
+                    }
+                ],
                 "evidence": {"implementation": [], "tests": [], "documentation": []},
             },
         ],
@@ -174,6 +181,36 @@ def test_future_requirement_card_exposes_its_implementation_branch(
         'data-search="workspace.future future behavior still needs trace coverage. future '
         '006-workspace-future"' in report
     )
+
+
+def test_requirement_card_exposes_semantic_and_evidence_history(
+    native_oft_html: str,
+    small_inventory: dict[str, Any],
+) -> None:
+    """History records stay reviewable without altering native OFT content."""
+    # [test->req~ring5.trace.requirement-history~2]
+    inventory = deepcopy(small_inventory)
+    inventory["features"][0]["revision"] = 2
+    inventory["features"][0]["history"] = [
+        {
+            "revision": 1,
+            "change_type": "semantic",
+            "title": "Earlier behavior",
+            "description": "The previous normative statement.",
+            "reason": "Clarified the current behavior.",
+        },
+        {"revision": 2, "change_type": "evidence", "reason": "Updated the verification."},
+    ]
+    revised_native = native_oft_html.replace("workspace.covered~1", "workspace.covered~2")
+
+    report = enhance_oft_html(revised_native, inventory)
+
+    assert "Show 2 history records" in report
+    assert "Earlier behavior" in report
+    assert "The previous normative statement." in report
+    assert "Evidence only" in report
+    assert "Updated the verification." in report
+    assert "native covered detail" in report
 
 
 def test_human_labels_are_html_escaped(

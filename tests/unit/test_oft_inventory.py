@@ -181,9 +181,38 @@ def test_branch_associations_are_rendered_in_normative_and_summary_markdown() ->
 
     assert "Implementation branch: 006-oft-requirement-history" in rendered["requirements.md"]
     assert (
-        "| `trace.requirement-history` | proposed | `006-oft-requirement-history` |"
+        "| `trace.requirement-diff` | proposed | `006-oft-requirement-diff` |"
         in rendered["summary.md"]
     )
+
+
+def test_requirement_history_validates_semantic_snapshots_and_evidence_changes() -> None:
+    """Superseded text is complete while evidence changes cannot redefine it."""
+    # [test->req~ring5.trace.requirement-history~2]
+    inventory = deepcopy(load_inventory())
+    feature = next(
+        item for item in inventory["features"] if item["id"] == "trace.requirement-history"
+    )
+    validate_inventory(inventory, live_capabilities=discover_live_capabilities())
+
+    feature["history"][0].pop("description")
+    with pytest.raises(InventoryError, match=r"history\[0\]\.description"):
+        validate_inventory(inventory, live_capabilities=discover_live_capabilities())
+
+    feature["history"][0]["description"] = feature["description"]
+    feature["history"][1]["title"] = "Not allowed"
+    with pytest.raises(InventoryError, match="evidence changes cannot redefine"):
+        validate_inventory(inventory, live_capabilities=discover_live_capabilities())
+
+
+def test_requirement_history_is_rendered_in_markdown_views() -> None:
+    """Generated reviewers can distinguish semantic and evidence-only records."""
+    # [test->req~ring5.trace.requirement-history~2]
+    rendered = render_inventory(load_inventory())
+
+    assert "History records: 2" in rendered["requirements.md"]
+    assert "| `trace.requirement-history` | 1 | Semantic |" in rendered["summary.md"]
+    assert "| `trace.requirement-history` | 2 | Evidence only |" in rendered["summary.md"]
 
 
 def test_duplicate_json_keys_are_rejected(tmp_path: Path) -> None:

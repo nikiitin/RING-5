@@ -7,8 +7,8 @@ This file is informative; normative items are in the other generated files.
 
 - Feature groups: 13
 - Detailed requirements: 216
-- Approved current requirements: 212
-- Proposed future requirements: 4
+- Approved current requirements: 213
+- Proposed future requirements: 3
 - Draft future requirements: 0
 - In development future requirements: 0
 - Blocked future requirements: 0
@@ -31,7 +31,7 @@ This file is informative; normative items are in the other generated files.
 | Reproducibility and Portfolios | 13 | 0 | 0 | 0 | 0 | 13 |
 | Automation API and CLI | 17 | 0 | 0 | 0 | 0 | 17 |
 | Extensibility, Safety, and Quality | 14 | 0 | 0 | 0 | 0 | 14 |
-| Feature Traceability | 6 | 4 | 0 | 0 | 0 | 10 |
+| Feature Traceability | 7 | 3 | 0 | 0 | 0 | 10 |
 
 ## Drift-checked capability sources
 
@@ -85,9 +85,15 @@ This file is informative; normative items are in the other generated files.
 
 | Requirement | Status | Implementation branch |
 | --- | --- | --- |
-| `trace.requirement-history` | proposed | `006-oft-requirement-history` |
 | `trace.requirement-diff` | proposed | `006-oft-requirement-diff` |
 | `trace.readiness-checklist` | proposed | `006-oft-readiness` |
 | `trace.approval-gate` | proposed | `006-oft-approval-gate` |
+
+## Requirement history
+
+| Requirement | Revision | Change | Reason |
+| --- | ---: | --- | --- |
+| `trace.requirement-history` | 1 | Semantic | Specified complete semantic snapshots and reviewer-facing history views. |
+| `trace.requirement-history` | 2 | Evidence only | Recorded implementation, verification, and documentation evidence without changing revision 2. |
 
 <!-- oft:on -->

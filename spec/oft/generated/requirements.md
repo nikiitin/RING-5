@@ -2988,19 +2988,21 @@ Tags: openfasttrace, reporting, status, status_approved
 
 ### Requirement history
 
-`req~ring5.trace.requirement-history~1`
-Status: proposed
+`req~ring5.trace.requirement-history~2`
+Status: approved
 
-The feature catalog shall retain reviewable requirement revisions and distinguish semantic changes from evidence-only updates.
+The feature catalog shall retain each superseded semantic revision's title and description with its change reason, record evidence-only updates without incrementing the revision, and expose both change types in generated summaries and HTML reports.
 
 Implementation branch: 006-oft-requirement-history
+
+History records: 2
 
 Covers:
 - feat~ring5.traceability~1
 
 Needs: impl, test, uman
 
-Tags: history, openfasttrace, requirements, status_proposed
+Tags: history, openfasttrace, requirements, status_approved
 
 ### Requirement branch association
 

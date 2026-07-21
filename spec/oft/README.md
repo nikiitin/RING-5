@@ -121,6 +121,27 @@ The generated requirement Markdown places the branch beside the normative statem
 lists future requirements by branch, and the HTML card displays and searches the same association.
 `oft-check` rejects missing or unsafe branch names before generating either view.
 
+## Requirement history
+
+<!--
+`uman~ring5.trace.requirement-history.documentation~2`
+
+Covers:
+- req~ring5.trace.requirement-history~2
+
+-->
+
+The active `revision`, `title`, and `description` remain the normative requirement. When its meaning
+changes, increment `revision` and add one `semantic` history record containing the superseded
+revision's complete title and description plus a concise reason. Every earlier revision must have
+exactly one semantic snapshot; gaps and duplicates fail `oft-check`.
+
+An evidence-only change keeps the active revision unchanged and may add an `evidence` record with
+the same revision and a reason. Evidence records cannot contain a title or description, so they
+cannot silently redefine behavior. History remains ordinary reviewable inventory data: generated
+Markdown summarizes it, and the HTML requirement card shows the old normative text and both change
+types without adding obsolete requirements to the native OFT graph.
+
 ## Recording a feature
 
 Add one object to `features` in `inventory.json`:
@@ -132,8 +153,8 @@ Add one object to `features` in `inventory.json`:
   Evidence lists may be empty,
   so `make oft-trace-all` reports exactly which coverage remains missing.
 - Record the future item's dedicated `implementation_branch`.
-- Increment the revision when the behavior changes semantically. Spelling or
-  formatting corrections do not require a revision bump.
+- Increment the revision and retain its semantic snapshot when behavior changes. Evidence-only,
+  spelling, and formatting changes keep the current revision.
 - Bind registry-backed behavior in `discovery_bindings` when applicable.
 
 Evidence uses repository-relative `path::qualified.symbol` references for Python and `path#heading`

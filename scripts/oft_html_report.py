@@ -218,6 +218,38 @@ def _evidence_details(
     )
 
 
+def _history_details(feature: Mapping[str, Any]) -> str:
+    """Render prior semantic snapshots and evidence-only changes."""
+    # [impl->req~ring5.trace.requirement-history~2]
+    history = cast(list[dict[str, Any]], feature.get("history", []))
+    if not history:
+        return ""
+    records: list[str] = []
+    for record in history:
+        change_type = str(record["change_type"])
+        label = "Evidence only" if change_type == "evidence" else "Semantic"
+        snapshot = ""
+        if change_type == "semantic":
+            snapshot = (
+                f'<div class="human-history-snapshot"><strong>{_escape(record["title"])}</strong>'
+                f'<p>{_escape(record["description"])}</p></div>'
+            )
+        records.append(
+            '<li><div><span class="human-history-type {change_type}">{label}</span>'
+            "<code>Revision {revision}</code></div><p>{reason}</p>{snapshot}</li>".format(
+                change_type=_escape(change_type),
+                label=label,
+                revision=record["revision"],
+                reason=_escape(record["reason"]),
+                snapshot=snapshot,
+            )
+        )
+    return (
+        f'<details class="human-history"><summary>Show {len(history)} history records</summary>'
+        f'<ol>{"".join(records)}</ol></details>'
+    )
+
+
 def _requirement_card(
     feature: Mapping[str, Any],
     covered: bool,
@@ -242,6 +274,7 @@ def _requirement_card(
     tags = "".join(f'<span class="human-tag">{_escape(tag)}</span>' for tag in feature["tags"])
     native_id = f"req~ring5.{feature_id}~{feature['revision']}"
     evidence_details = _evidence_details(feature, markers, native_targets)
+    history_details = _history_details(feature)
     branch = feature.get("implementation_branch")
     branch_html = (
         '<span class="human-branch">Implementation branch ' f"<code>{_escape(branch)}</code></span>"
@@ -260,6 +293,7 @@ def _requirement_card(
     </div>
   </div>
   <p>{_escape(feature['description'])}</p>
+{history_details}
   {evidence_details}
   <div class="human-card-footer">
     <div><div class="human-tags">{tags}</div>{branch_html}</div>
@@ -741,6 +775,22 @@ body { margin:0; color:var(--h-ink); background:var(--h-soft); line-height:1.5; 
 .human-branch { display:block; margin-top:.55rem; color:var(--h-muted); font-size:.8rem; }
 .human-branch code { color:#39277f; }
 .human-card-footer>a { font-size:.8rem; font-weight:750; }
+.human-history { margin:.8rem 0; border:1px solid var(--h-line); border-radius:10px; }
+.human-history>summary { padding:.7rem .8rem; cursor:pointer; font-weight:750; }
+.human-history ol { display:grid; gap:.7rem; margin:0; padding:.8rem 1rem .9rem 2.6rem; }
+.human-history li { padding-left:.25rem; }
+.human-history li>div { display:flex; gap:.5rem; align-items:center; }
+.human-history li>p { margin:.35rem 0; color:var(--h-muted); }
+.human-history-type {
+  padding:.15rem .45rem;
+  border-radius:99px;
+  font-size:.72rem;
+  font-weight:800;
+}
+.human-history-type.semantic { color:#39277f; background:#eeeafe; }
+.human-history-type.evidence { color:var(--h-good); background:var(--h-good-soft); }
+.human-history-snapshot { padding:.65rem .75rem; background:var(--h-soft); border-radius:8px; }
+.human-history-snapshot p { margin:.2rem 0 0; }
 .human-evidence {
   margin:.9rem 0;
   background:var(--h-soft);
