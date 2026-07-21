@@ -4422,11 +4422,29 @@
       "id": "automation.machine-readable-regression",
       "group": "automation",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Machine-readable regression results",
       "description": "Regression comparisons shall export versioned JSON and JUnit XML with metric values, thresholds, outcomes, and source identifiers.",
       "tags": ["automation", "ci", "regression"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/services/managers/regression_result_export_service.py::RegressionResultExportService.export",
+          "src/core/services/managers/regression_result_export_service.py::RegressionResultExportService._document",
+          "src/core/services/managers/regression_result_export_service.py::RegressionResultExportService._junit",
+          "src/core/services/managers/managers_impl.py::DefaultManagersAPI.export_regression_results",
+          "ring5/_session.py::Session.export_regression_results",
+          "src/web/components/data_managers/comparison.py::ComparisonManager.render"
+        ],
+        "tests": [
+          "tests/unit/test_regression_result_export_service.py::test_json_is_versioned_deterministic_and_retains_result_semantics",
+          "tests/unit/test_regression_result_export_service.py::test_junit_maps_regressions_to_failures_and_incomplete_rows_to_skips",
+          "tests/integration/test_ring5_public_api.py::TestRegressionComparison.test_machine_readable_results_support_tables_and_typed_errors",
+          "tests/e2e/test_data_managers.py::TestRegressionComparison.test_02_comparison_preview"
+        ],
+        "documentation": [
+          "docs/user-guide/guides/compare-configurations.md#export-regression-results-for-automation"
+        ]
+      }
     },
     {
       "id": "automation.ci-regression-gates",
@@ -4919,6 +4937,7 @@
       "export_figure_theme": "figure.theme-presets",
       "export_pipeline_configuration": "shaping.config-import-export",
       "export_portfolio_bundle": "portfolio.portable-bundles",
+      "export_regression_results": "automation.machine-readable-regression",
       "get_dataset": "data.multi-dataset-workspace",
       "get_dataset_revision": "data.lineage-undo-redo",
       "infer_schema_contract": "data.schema-contracts",
@@ -5099,6 +5118,7 @@
       "compare_statistics": "analysis.statistical-comparison",
       "convert_unit": "data.semantic-units",
       "diagnose_join": "data.validated-joins",
+      "export_regression_results": "automation.machine-readable-regression",
       "infer_schema_contract": "data.schema-contracts",
       "inspect_semantics": "data.semantic-units",
       "list_operators": "data.arithmetic",

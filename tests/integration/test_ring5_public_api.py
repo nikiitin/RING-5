@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any, cast, get_args
+from xml.etree import ElementTree as ET
 
 import pandas as pd
 import pytest
@@ -189,6 +190,37 @@ class TestRegressionComparison:
         with ring5.Session() as session:
             with pytest.raises(ring5.DataValidationError, match="not unique"):
                 session.compare(baseline, candidate, ["benchmark"], ["ipc"])
+
+    def test_machine_readable_results_support_tables_and_typed_errors(self) -> None:
+        # [test->req~ring5.automation.machine-readable-regression~1]
+        baseline = ring5.Table.from_rows(
+            [{"benchmark": "a", "ipc": 1.0}, {"benchmark": "b", "ipc": 2.0}]
+        )
+        candidate = ring5.Table.from_rows(
+            [{"benchmark": "a", "ipc": 0.8}, {"benchmark": "b", "ipc": 2.2}]
+        )
+
+        with ring5.Session() as session:
+            comparison = session.compare(
+                baseline,
+                candidate,
+                ["benchmark"],
+                ["ipc"],
+                thresholds=5.0,
+                baseline_name="main",
+                candidate_name="pull-request-42",
+            )
+            json_payload = session.export_regression_results(comparison)
+            junit_payload = session.export_regression_results(comparison, "junit")
+            with pytest.raises(ring5.DataValidationError, match="json.*junit"):
+                session.export_regression_results(comparison, "csv")  # type: ignore[arg-type]
+
+        document = json.loads(json_payload)
+        assert document["sources"] == {"baseline": "main", "candidate": "pull-request-42"}
+        assert document["summary"]["failures"] == 1
+        suite = ET.fromstring(junit_payload)
+        assert suite.attrib["failures"] == "1"
+        assert suite.attrib["skipped"] == "0"
 
     def test_repeated_sample_statistics(self) -> None:
         # [test->req~ring5.analysis.statistical-comparison~1]

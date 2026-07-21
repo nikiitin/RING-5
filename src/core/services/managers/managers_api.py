@@ -192,6 +192,22 @@ class ManagersAPI(Protocol):
         """
         raise NotImplementedError
 
+    def export_regression_results(
+        self,
+        comparison: pd.DataFrame,
+        format: Literal["json", "junit"],
+    ) -> bytes:
+        """Export threshold comparison rows for automation.
+
+        Args:
+            comparison: Long-form threshold comparison result.
+            format: Versioned JSON or JUnit XML.
+
+        Returns:
+            Deterministic UTF-8 document bytes.
+        """
+        raise NotImplementedError
+
     def profile_data(
         self,
         data: pd.DataFrame,

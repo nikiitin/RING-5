@@ -68,6 +68,53 @@ comparison = session.compare(
 )
 ```
 
+## Export regression results for automation
+
+<!--
+`uman~ring5.automation.machine-readable-regression.documentation~1`
+
+Covers:
+- req~ring5.automation.machine-readable-regression~1
+
+-->
+
+After a threshold comparison, use **Download results JSON** for scripts and retained artifacts or
+**Download JUnit XML** for CI test-report viewers. Both exports identify the baseline and candidate,
+retain every alignment key and metric value, and record the direction, threshold, threshold unit,
+and outcome. The existing CSV remains available for exploratory analysis.
+
+The JSON format is deterministic UTF-8, ends with a newline, and carries
+`"format": "ring5.regression-results"` plus `"schema_version": 1`. Its summary reports total,
+failed, and incomplete comparisons as well as counts for every outcome. Non-finite or unavailable
+numeric values are represented as JSON `null`, never non-standard `NaN` or infinity tokens.
+
+The JUnit mapping is deliberately conservative:
+
+- `regression` is a failed testcase;
+- `missing_baseline`, `missing_candidate`, `missing_value`, and `not_comparable` are skipped
+  testcases because no threshold decision can be made;
+- `improvement` and `unchanged` are passing testcases.
+
+JUnit suite properties contain the format version and both source identifiers. Each testcase has
+properties for the keys, metric values, changes, direction, threshold, unit, and outcome, so the XML
+does not hide the evidence behind the pass/fail projection.
+
+The public API exports either document directly from the result of `Session.compare`:
+
+```python
+from pathlib import Path
+
+json_bytes = session.export_regression_results(comparison)
+junit_bytes = session.export_regression_results(comparison, format="junit")
+
+Path("regression-results.json").write_bytes(json_bytes)
+Path("regression-results.xml").write_bytes(junit_bytes)
+```
+
+Use stable, meaningful `baseline_name` and `candidate_name` values when creating the comparison;
+those names become the source identifiers in both documents. An export rejects empty, mixed-source,
+or structurally modified comparison results instead of emitting ambiguous automation data.
+
 ## Read regression annotations
 
 <!--

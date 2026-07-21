@@ -1845,6 +1845,35 @@ class Session:
             raise DataValidationError(str(exc)) from exc
         return _rewrap_table(result) if was_table else result
 
+    def export_regression_results(
+        self,
+        comparison: "pd.DataFrame | Table",
+        format: Literal["json", "junit"] = "json",
+    ) -> bytes:
+        """Export a threshold comparison as deterministic JSON or JUnit XML.
+
+        The versioned JSON document includes source identifiers, outcome counts,
+        alignment keys, values, thresholds, and outcomes. In JUnit, regressions
+        are failures, incomplete comparisons are skipped, and improvements or
+        unchanged rows pass.
+
+        Args:
+            comparison: Long-form result from :meth:`compare`.
+            format: ``"json"`` or ``"junit"``.
+
+        Returns:
+            Deterministic UTF-8 document bytes.
+
+        Raises:
+            DataValidationError: The comparison schema or format is invalid.
+        """
+        # [impl->req~ring5.automation.machine-readable-regression~1]
+        frame, _ = _unwrap_table(comparison)
+        try:
+            return self.api.managers.export_regression_results(frame, format)
+        except (TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
+
     def remove_outliers(
         self,
         data: "pd.DataFrame | Table",

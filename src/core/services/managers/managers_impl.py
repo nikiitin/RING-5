@@ -24,6 +24,9 @@ from src.core.services.managers.quality_profile_service import QualityProfileSer
 from src.core.services.managers.schema_contract_service import SchemaContractService
 from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
 from src.core.services.managers.reduction_service import ReductionService
+from src.core.services.managers.regression_result_export_service import (
+    RegressionResultExportService,
+)
 from src.core.services.managers.statistical_comparison_service import (
     StatisticalComparisonService,
 )
@@ -184,6 +187,15 @@ class DefaultManagersAPI:
             label_columns=label_columns,
             change_mode=change_mode,
         )
+
+    def export_regression_results(
+        self,
+        comparison: pd.DataFrame,
+        format: Literal["json", "junit"],
+    ) -> bytes:
+        """Export threshold comparison rows for automation."""
+        # [impl->req~ring5.automation.machine-readable-regression~1]
+        return RegressionResultExportService.export(comparison, format)
 
     def profile_data(
         self,

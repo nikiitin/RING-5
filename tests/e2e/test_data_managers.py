@@ -267,6 +267,7 @@ class TestRegressionComparison:
     def test_02_comparison_preview(self, tier1_page: Page) -> None:
         # [test->req~ring5.analysis.regression-comparison~1]
         # [test->req~ring5.analysis.regression-annotations~1]
+        # [test->req~ring5.automation.machine-readable-regression~1]
         dm = DataManagersPage(tier1_page)
         _select_dropdown_option(
             tier1_page,
@@ -284,6 +285,8 @@ class TestRegressionComparison:
         dm.apply_comparison()
         expect(dm.comparison_confirm_button).to_be_visible(timeout=_E2E_TIMEOUT)
         expect(dm.regression_plot).to_be_visible(timeout=_E2E_TIMEOUT)
+        expect(dm.comparison_json_download_button).to_be_visible(timeout=_E2E_TIMEOUT)
+        expect(dm.comparison_junit_download_button).to_be_visible(timeout=_E2E_TIMEOUT)
 
 
 @pytest.mark.xdist_group("e2e_data_managers_statistics")

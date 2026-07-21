@@ -2676,7 +2676,7 @@ Tags: automation, batch, cli, status_approved
 ### Machine-readable regression results
 
 `req~ring5.automation.machine-readable-regression~1`
-Status: proposed
+Status: approved
 
 Regression comparisons shall export versioned JSON and JUnit XML with metric values, thresholds, outcomes, and source identifiers.
 
@@ -2685,7 +2685,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: automation, ci, regression, status_proposed
+Tags: automation, ci, regression, status_approved
 
 ### Continuous-integration regression gates
 

@@ -403,6 +403,16 @@ class DataManagersPage(BasePage):
         return self.page.get_by_role("button", name="Use Comparison Result")
 
     @property
+    def comparison_json_download_button(self) -> Locator:
+        """Download button for the versioned regression JSON document."""
+        return self.page.get_by_role("button", name="Download results JSON")
+
+    @property
+    def comparison_junit_download_button(self) -> Locator:
+        """Download button for the regression JUnit XML document."""
+        return self.page.get_by_role("button", name="Download JUnit XML")
+
+    @property
     def regression_plot(self) -> Locator:
         """Accessible regression-outcome chart in the comparison preview."""
         return self.page.locator("[data-testid='stCustomComponentV1']:visible")
