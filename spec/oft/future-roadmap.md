@@ -21,36 +21,36 @@ Every feature follows the same acceptance sequence:
 | `analysis.statistical-comparison` | `006-statistical-comparison` | `analysis.regression-comparison` |
 | `analysis.regression-annotations` | `006-regression-annotations` | `analysis.regression-comparison` |
 | `data.multi-dataset-workspace` | `006-multi-dataset-workspace` | — |
-| `data.lineage-undo-redo` | `006-data-lineage` | `data.multi-dataset-workspace` |
+| `data.lineage-undo-redo` | `006-data-lineage-undo-redo` | `data.multi-dataset-workspace` |
 | `data.quality-profiler` | `006-data-quality-profiler` | — |
-| `data.schema-contracts` | `006-schema-contracts` | `data.quality-profiler` |
-| `data.validated-joins` | `006-validated-joins` | `data.multi-dataset-workspace`, `data.schema-contracts` |
+| `data.schema-contracts` | `006-data-schema-contracts` | `data.quality-profiler` |
+| `data.validated-joins` | `006-data-validated-joins` | `data.multi-dataset-workspace`, `data.schema-contracts` |
 | `data.semantic-units` | `006-semantic-units` | `data.schema-contracts` |
-| `data.dataset-snapshots` | `006-dataset-snapshots` | `data.multi-dataset-workspace`, `data.lineage-undo-redo` |
+| `data.dataset-snapshots` | `006-data-dataset-snapshots` | `data.multi-dataset-workspace`, `data.lineage-undo-redo` |
 | `workspace.background-jobs` | `006-background-jobs` | — |
 
 ## Plotting and figure composition
 
 | Requirement | Branch | Dependencies |
 | --- | --- | --- |
-| `plots.multi-panel-dashboard` | `006-multi-panel-dashboard` | — |
-| `plots.linked-selections` | `006-linked-selections` | `plots.multi-panel-dashboard` |
-| `plots.drill-down` | `006-plot-drill-down` | `plots.linked-selections` |
-| `plots.small-multiples` | `006-small-multiples` | — |
-| `plots.copy-settings-pipeline` | `006-copy-plot-settings` | — |
-| `plots.configuration-comparison` | `006-plot-config-diff` | `plots.copy-settings-pipeline` |
+| `plots.multi-panel-dashboard` | `006-plots-multi-panel-dashboard` | — |
+| `plots.linked-selections` | `006-plots-linked-selections` | `plots.multi-panel-dashboard` |
+| `plots.drill-down` | `006-plots-drill-down` | `plots.linked-selections` |
+| `plots.small-multiples` | `006-plots-small-multiples` | — |
+| `plots.copy-settings-pipeline` | `006-plots-copy-settings-pipeline` | — |
+| `plots.configuration-comparison` | `006-plots-configuration-comparison` | `plots.copy-settings-pipeline` |
 | `figure.panel-composition` | `006-panel-composition` | `plots.multi-panel-dashboard` |
 | `figure.accessible-themes` | `006-accessible-themes` | — |
 | `figure.theme-presets` | `006-theme-presets` | `figure.accessible-themes` |
 | `figure.line-styles` | `006-line-styles` | — |
-| `plot.box` | `006-box-plot` | — |
-| `plot.violin` | `006-violin-plot` | `plot.box` |
-| `plot.ecdf` | `006-ecdf-plot` | — |
-| `plot.area` | `006-area-chart` | `figure.line-styles` |
-| `plot.radar` | `006-radar-chart` | — |
-| `plot.waterfall` | `006-waterfall-chart` | — |
-| `plot.sankey` | `006-sankey-diagram` | — |
-| `plot.parallel-coordinates` | `006-parallel-coordinates` | — |
+| `plot.box` | `006-plot-box` | — |
+| `plot.violin` | `006-plot-violin` | `plot.box` |
+| `plot.ecdf` | `006-plot-ecdf` | — |
+| `plot.area` | `006-plot-area` | `figure.line-styles` |
+| `plot.radar` | `006-plot-radar` | — |
+| `plot.waterfall` | `006-plot-waterfall` | — |
+| `plot.sankey` | `006-plot-sankey` | — |
+| `plot.parallel-coordinates` | `006-plot-parallel-coordinates` | — |
 
 ## Ingestion and exchange
 
@@ -86,7 +86,7 @@ Every feature follows the same acceptance sequence:
 | `workspace.global-search` | `006-workspace-search` | `data.multi-dataset-workspace` |
 | `workspace.command-palette` | `006-command-palette` | `workspace.global-search` |
 | `workspace.favorites-tags` | `006-favorites-tags` | `data.multi-dataset-workspace` |
-| `workspace.collaborative-review` | `006-analysis-review` | `portfolio.history-diff` |
+| `workspace.collaborative-review` | `006-collaborative-review` | `portfolio.history-diff` |
 | `workspace.autosave-recovery` | `006-autosave-recovery` | `portfolio.history-diff` |
 | `workspace.guided-analysis` | `006-guided-analysis` | `analysis.regression-comparison`, `ingestion.import-preview` |
 
