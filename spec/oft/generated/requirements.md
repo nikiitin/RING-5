@@ -3055,7 +3055,7 @@ Tags: openfasttrace, readiness, reporting, status_approved
 ### Requirement approval gate
 
 `req~ring5.trace.approval-gate~1`
-Status: proposed
+Status: approved
 
 The inventory validator shall reject promotion to approved unless all required exact evidence resolves and native OFT reports the requirement as covered.
 
@@ -3066,4 +3066,4 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: approval, governance, openfasttrace, status_proposed
+Tags: approval, governance, openfasttrace, status_approved

@@ -15,6 +15,7 @@ from scripts.generate_oft_inventory import (
     discover_live_capabilities,
     load_inventory,
     render_inventory,
+    validate_approved_native_coverage,
     validate_inventory,
     write_or_check,
 )
@@ -66,7 +67,13 @@ def test_html_report_fingerprint_detects_missing_stale_or_non_native_output(
     tmp_path: Path,
 ) -> None:
     """Offline checks ensure the committed report came from the current inventory and OFT."""
-    inventory = load_inventory()
+    # [test->req~ring5.trace.approval-gate~1]
+    repository_inventory = load_inventory()
+    feature = deepcopy(repository_inventory["features"][0])
+    group = next(
+        deepcopy(item) for item in repository_inventory["groups"] if item["id"] == feature["group"]
+    )
+    inventory = {"groups": [group], "features": [feature]}
     report = tmp_path / HTML_REPORT_FILENAME
 
     with pytest.raises(InventoryError, match="Missing OFT HTML report"):
@@ -89,8 +96,18 @@ def test_html_report_fingerprint_detects_missing_stale_or_non_native_output(
     with pytest.raises(InventoryError, match="lacks the native OFT trace"):
         check_html_report(inventory, tmp_path)
 
-    report.write_text(marker + source_marker + '<main id="oft-native-report">', encoding="utf-8")
+    native = f"""<main id="oft-native-report">
+<section id="feat"><section class="sitem" id="feat~ring5.{group['id']}~1"></section></section>
+<section id="impl"></section>
+<section id="req"><section class="sitem" id="req~ring5.{feature['id']}~{feature['revision']}">
+<details><summary><span class="green">covered</span></summary></details></section></section>
+<section id="test"></section><section id="uman"></section></main>"""
+    report.write_text(marker + source_marker + native, encoding="utf-8")
     check_html_report(inventory, tmp_path)
+
+    report.write_text(marker + source_marker + native.replace("green", "red"), encoding="utf-8")
+    with pytest.raises(InventoryError, match="native OFT reports uncovered"):
+        check_html_report(inventory, tmp_path)
 
 
 def test_unbound_live_capability_is_rejected() -> None:
@@ -163,8 +180,12 @@ def test_future_requirement_needs_a_valid_implementation_branch() -> None:
     """Future work cannot be cataloged without deterministic branch ownership."""
     # [test->req~ring5.trace.branch-association~1]
     inventory = deepcopy(load_inventory())
-    feature = next(item for item in inventory["features"] if item["status"] != "approved")
-    feature.pop("implementation_branch")
+    feature = deepcopy(inventory["features"][0])
+    feature["id"] = "workspace.future-branch-example"
+    feature["status"] = "proposed"
+    feature.pop("implementation_branch", None)
+    feature["evidence"] = {"implementation": [], "tests": [], "documentation": []}
+    inventory["features"].append(feature)
 
     with pytest.raises(InventoryError, match="implementation_branch is required"):
         validate_inventory(inventory, live_capabilities=discover_live_capabilities())
@@ -177,11 +198,61 @@ def test_future_requirement_needs_a_valid_implementation_branch() -> None:
 def test_branch_associations_are_rendered_in_normative_and_summary_markdown() -> None:
     """Generated reviewers can find each future requirement's implementation branch."""
     # [test->req~ring5.trace.branch-association~1]
-    rendered = render_inventory(load_inventory())
+    inventory = deepcopy(load_inventory())
+    future = deepcopy(inventory["features"][0])
+    future["id"] = "workspace.future-branch-example"
+    future["title"] = "Future branch example"
+    future["status"] = "proposed"
+    future["implementation_branch"] = "006-future-branch-example"
+    future["revision"] = 1
+    future.pop("history", None)
+    future["evidence"] = {"implementation": [], "tests": [], "documentation": []}
+    inventory["features"].append(future)
 
-    assert "Implementation branch: 006-oft-requirement-history" in rendered["requirements.md"]
+    rendered = render_inventory(inventory)
+
+    assert "Implementation branch: 006-future-branch-example" in rendered["requirements.md"]
     assert (
-        "| `trace.approval-gate` | proposed | `006-oft-approval-gate` |" in rendered["summary.md"]
+        "| `workspace.future-branch-example` | proposed | `006-future-branch-example` |"
+        in rendered["summary.md"]
+    )
+
+
+def test_approval_gate_requires_complete_resolvable_exact_evidence() -> None:
+    """Approved catalog entries cannot omit evidence or point at an unrelated marker."""
+    # [test->req~ring5.trace.approval-gate~1]
+    inventory = deepcopy(load_inventory())
+    feature = next(item for item in inventory["features"] if item["id"] == "trace.approval-gate")
+    feature["evidence"]["implementation"] = []
+
+    with pytest.raises(InventoryError, match="needs implementation evidence"):
+        validate_inventory(inventory, live_capabilities=discover_live_capabilities())
+
+    feature["evidence"]["implementation"] = ["scripts/oft_status.py::requirement_status_views"]
+    with pytest.raises(InventoryError, match="has no matching source-level OFT marker"):
+        validate_inventory(inventory, live_capabilities=discover_live_capabilities())
+
+
+def test_approval_gate_rejects_native_red_but_allows_future_requirements() -> None:
+    """Only approved requirements are required to have a present green native result."""
+    # [test->req~ring5.trace.approval-gate~1]
+    inventory = {
+        "features": [
+            {"id": "workspace.current", "status": "approved"},
+            {"id": "workspace.future", "status": "proposed"},
+        ]
+    }
+
+    with pytest.raises(InventoryError, match="native OFT reports uncovered: workspace.current"):
+        validate_approved_native_coverage(
+            inventory, {"workspace.current": False, "workspace.future": False}
+        )
+    with pytest.raises(InventoryError, match="missing native OFT result: workspace.current"):
+        validate_approved_native_coverage(inventory, {"workspace.future": False})
+
+    inventory["features"][0]["status"] = "in-development"
+    validate_approved_native_coverage(
+        inventory, {"workspace.current": False, "workspace.future": False}
     )
 
 

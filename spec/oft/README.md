@@ -205,6 +205,28 @@ Allowed values are `passed`, `failed`, and `not-run`. Results may cover any subs
 omitted requirements remain `not recorded`. Unknown IDs, invalid statuses, formats, or schema
 versions fail report generation.
 
+## Requirement approval gate
+
+<!--
+`uman~ring5.trace.approval-gate.documentation~1`
+
+Covers:
+- req~ring5.trace.approval-gate~1
+
+-->
+
+Promotion to `approved` has two independent checks. Inventory validation requires at least one exact
+implementation, test, and documentation reference and rejects any reference without a matching
+source-level OFT marker. Report validation then reads the committed native OFT green/red result and
+rejects every approved requirement that is missing or red. Future statuses may remain red while work
+is incomplete.
+
+Run `make oft-report` after promoting a requirement. It rebuilds the report with the pinned OFT
+version and immediately runs the gate. `make oft-check`, `make oft-trace`, and the quality gate also
+verify the committed report, so a stale fingerprint, stale source origin, incomplete native graph,
+or approved red item fails before merge. Use `make oft-trace-all` to confirm the complete current and
+future catalog separately.
+
 ## Recording a feature
 
 Add one object to `features` in `inventory.json`:

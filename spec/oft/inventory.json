@@ -4847,12 +4847,16 @@
       "id": "trace.approval-gate",
       "group": "traceability",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "implementation_branch": "006-oft-approval-gate",
       "title": "Requirement approval gate",
       "description": "The inventory validator shall reject promotion to approved unless all required exact evidence resolves and native OFT reports the requirement as covered.",
       "tags": ["approval", "governance", "openfasttrace"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": ["scripts/generate_oft_inventory.py::validate_inventory", "scripts/generate_oft_inventory.py::validate_approved_native_coverage", "scripts/generate_oft_inventory.py::check_html_report"],
+        "tests": ["tests/unit/test_oft_inventory.py::test_approval_gate_requires_complete_resolvable_exact_evidence", "tests/unit/test_oft_inventory.py::test_approval_gate_rejects_native_red_but_allows_future_requirements", "tests/unit/test_oft_inventory.py::test_html_report_fingerprint_detects_missing_stale_or_non_native_output"],
+        "documentation": ["spec/oft/README.md#requirement-approval-gate"]
+      }
     }
   ],
   "discovery_bindings": {

@@ -27,11 +27,21 @@ from typing import Any, cast, get_args
 
 if __package__:
     from scripts.oft_evidence import collect_evidence_markers, validate_source_evidence
-    from scripts.oft_html_report import evidence_fingerprint, inventory_fingerprint
+    from scripts.oft_html_report import (
+        OftHtmlReportError,
+        evidence_fingerprint,
+        extract_oft_coverage,
+        inventory_fingerprint,
+    )
     from scripts.oft_status import requirement_status_tag, requirement_status_views
 else:
     from oft_evidence import collect_evidence_markers, validate_source_evidence
-    from oft_html_report import evidence_fingerprint, inventory_fingerprint
+    from oft_html_report import (
+        OftHtmlReportError,
+        evidence_fingerprint,
+        extract_oft_coverage,
+        inventory_fingerprint,
+    )
     from oft_status import requirement_status_tag, requirement_status_views
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -414,6 +424,7 @@ def validate_inventory(
     # [impl->req~ring5.trace.inventory-generator~1]
     # [impl->req~ring5.trace.registry-drift~1]
     # [impl->req~ring5.trace.branch-association~1]
+    # [impl->req~ring5.trace.approval-gate~1]
     errors: list[str] = []
     schema_version = inventory.get("schema_version")
     if schema_version != 2:
@@ -551,6 +562,48 @@ def validate_inventory(
     if errors:
         details = "\n".join(f"- {error}" for error in errors)
         raise InventoryError(f"Feature inventory validation failed:\n{details}")
+
+
+def validate_approved_native_coverage(
+    inventory: Mapping[str, Any], native_coverage: Mapping[str, bool]
+) -> None:
+    """Reject approved requirements that native OpenFastTrace does not cover.
+
+    Future requirements may remain red while they are being specified or
+    implemented. Approval is the boundary that requires a present, green OFT
+    result in addition to the exact evidence checks in :func:`validate_inventory`.
+
+    Args:
+        inventory: Validated inventory mapping.
+        native_coverage: Requirement IDs mapped to native OFT green/red results.
+
+    Raises:
+        InventoryError: An approved requirement is missing or uncovered.
+    """
+    # [impl->req~ring5.trace.approval-gate~1]
+    features = cast(list[dict[str, Any]], inventory["features"])
+    approved_ids = sorted(
+        str(feature["id"]) for feature in features if feature["status"] == "approved"
+    )
+    missing = [
+        requirement_id for requirement_id in approved_ids if requirement_id not in native_coverage
+    ]
+    uncovered = [
+        requirement_id
+        for requirement_id in approved_ids
+        if requirement_id in native_coverage and not native_coverage[requirement_id]
+    ]
+    if not missing and not uncovered:
+        return
+
+    failures = [
+        *(f"missing native OFT result: {requirement_id}" for requirement_id in missing),
+        *(f"native OFT reports uncovered: {requirement_id}" for requirement_id in uncovered),
+    ]
+    raise InventoryError(
+        "Approved requirements must be covered by native OpenFastTrace:\n"
+        + "\n".join(f"- {failure}" for failure in failures)
+    )
 
 
 def _generated_header(title: str) -> list[str]:
@@ -774,9 +827,10 @@ def check_html_report(inventory: Mapping[str, Any], output_dir: Path) -> None:
     """Verify that the committed OFT-derived HTML matches the inventory.
 
     The report itself can only be rebuilt by native OpenFastTrace, but its
-    embedded inventory fingerprint can be checked without Java or network
-    access as part of the normal quality gate.
+    embedded fingerprints and native coverage can be checked without Java or
+    network access as part of the normal quality gate.
     """
+    # [impl->req~ring5.trace.approval-gate~1]
     path = output_dir / HTML_REPORT_FILENAME
     try:
         report = path.read_text(encoding="utf-8")
@@ -802,6 +856,11 @@ def check_html_report(inventory: Mapping[str, Any], output_dir: Path) -> None:
         )
     if '<main id="oft-native-report">' not in report:
         raise InventoryError(f"OFT HTML report {_display_path(path)} lacks the native OFT trace.")
+    try:
+        native_coverage = extract_oft_coverage(report, inventory)
+    except OftHtmlReportError as exc:
+        raise InventoryError(f"OFT HTML report {_display_path(path)} is invalid: {exc}") from exc
+    validate_approved_native_coverage(inventory, native_coverage)
 
 
 def _display_path(path: Path) -> Path:

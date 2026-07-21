@@ -620,8 +620,8 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
 
 </style>
     <title>RING-5 feature coverage · OpenFastTrace</title>
-    <meta name="ring5-inventory-sha256" content="5eb8075868f28fe178e41fb81c3005cabdf6043c6c21e77690616480c5123546">
-  <meta name="ring5-evidence-sha256" content="2811ab02ee1dd5ee1235fd456ab06879f25e5f1e11031e6c3987f84c98f40ff3">
+    <meta name="ring5-inventory-sha256" content="3d521a428519dc5b367b91eb74f2439f9f44a8ec3a024a309ff006d68da3a8d4">
+  <meta name="ring5-evidence-sha256" content="4e06966bde2720fcbc0b3ddc449f62e2b08af4ff844cca7866a3396872bf7380">
 </head>
   <body>
 
@@ -647,10 +647,10 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
     </div>
     <div class="human-metrics">
       <div><span>Requirements</span><strong>216</strong></div>
-      <div class="good"><span>Covered by OFT</span><strong>215</strong></div>
-      <div class="bad"><span>Uncovered in OFT</span><strong>1</strong></div>
-      <div><span>Approved now</span><strong>215</strong></div>
-      <div><span>Future items</span><strong>1</strong></div>
+      <div class="good"><span>Covered by OFT</span><strong>216</strong></div>
+      <div class="bad"><span>Uncovered in OFT</span><strong>0</strong></div>
+      <div><span>Approved now</span><strong>216</strong></div>
+      <div><span>Future items</span><strong>0</strong></div>
     </div>
     <p class="human-callout"><strong>100% OFT trace coverage.</strong>
     The covered and uncovered totals use the requirement results produced by OpenFastTrace.</p>
@@ -754,9 +754,9 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
 </a>
 
 <a class="human-group-card" href="#human-group-traceability">
-  <span>9/10 covered by OFT</span>
+  <span>10/10 covered by OFT</span>
   <h3>Feature Traceability</h3><p>RING-5 maintains a generated OpenFastTrace catalog that detects untracked current and future capabilities.</p>
-  <i aria-label="90% covered"><i style="width:90%"></i></i>
+  <i aria-label="100% covered"><i style="width:100%"></i></i>
 </a>
 </div>
   </section>
@@ -764,7 +764,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
     <div class="human-section-heading"><small>Coverage gaps</small>
       <h2>Uncovered requirements</h2>
       <p>Any requirement marked red by OpenFastTrace appears here.</p>
-    </div><div class="human-uncovered"><a href="#req~ring5.trace.approval-gate~1"><strong>Requirement approval gate</strong><span>trace.approval-gate</span></a></div>
+    </div><div class="human-uncovered"><div class="human-all-covered"><b>✓</b><div><strong>No uncovered requirements</strong><p>OpenFastTrace reports complete links for every cataloged requirement.</p></div></div></div>
   </section>
   <section id="human-requirements" class="human-section">
     <div class="human-section-heading"><small>Catalog</small>
@@ -775,7 +775,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
       <button type="button" class="human-status-view active" data-status-view="all"
         aria-pressed="true">
         <span>All</span><strong>216</strong><small>Complete inventory</small>
-      </button><button type="button" class="human-status-view" data-status-view="approved" aria-pressed="false"><span>Approved</span><strong>215</strong><small>Accepted current behavior</small></button><button type="button" class="human-status-view" data-status-view="proposed" aria-pressed="false"><span>Proposed</span><strong>1</strong><small>Candidate future behavior</small></button><button type="button" class="human-status-view" data-status-view="draft" aria-pressed="false"><span>Draft</span><strong>0</strong><small>Early requirement definition</small></button><button type="button" class="human-status-view" data-status-view="in-development" aria-pressed="false"><span>In development</span><strong>0</strong><small>Implementation in progress</small></button><button type="button" class="human-status-view" data-status-view="blocked" aria-pressed="false"><span>Blocked</span><strong>0</strong><small>Waiting before work can continue</small></button>
+      </button><button type="button" class="human-status-view" data-status-view="approved" aria-pressed="false"><span>Approved</span><strong>216</strong><small>Accepted current behavior</small></button><button type="button" class="human-status-view" data-status-view="proposed" aria-pressed="false"><span>Proposed</span><strong>0</strong><small>Candidate future behavior</small></button><button type="button" class="human-status-view" data-status-view="draft" aria-pressed="false"><span>Draft</span><strong>0</strong><small>Early requirement definition</small></button><button type="button" class="human-status-view" data-status-view="in-development" aria-pressed="false"><span>In development</span><strong>0</strong><small>Implementation in progress</small></button><button type="button" class="human-status-view" data-status-view="blocked" aria-pressed="false"><span>Blocked</span><strong>0</strong><small>Waiting before work can continue</small></button>
     </div>
     <div class="human-controls">
       <label>Search<input id="human-search" type="search"
@@ -5025,7 +5025,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>The inventory generator shall validate requirement metadata, exact evidence locators, matching source-level OFT markers, live capability bindings, and deterministic native OFT requirement Markdown.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>3 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 6 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../spec/oft/README.md#L35"><code>spec/oft/README.md#what-covered-means</code><b>open source ↗</b></a><span>line 35 · <a href="#uman~ring5.trace.inventory-generator.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../scripts/generate_oft_inventory.py#L414"><code>scripts/generate_oft_inventory.py::validate_inventory</code><b>open source ↗</b></a><span>line 414 · <a href="#impl~ring5.trace.inventory-generator-4037109800~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../scripts/generate_oft_inventory.py#L592"><code>scripts/generate_oft_inventory.py::render_inventory</code><b>open source ↗</b></a><span>line 592 · <a href="#impl~ring5.trace.inventory-generator-511854273~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../scripts/oft_evidence.py#L165"><code>scripts/oft_evidence.py::validate_source_evidence</code><b>open source ↗</b></a><span>line 165 · <a href="#impl~ring5.trace.inventory-generator-200261977~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_oft_inventory.py#L28"><code>tests/unit/test_oft_inventory.py::test_repository_inventory_is_valid_and_comprehensive</code><b>open source ↗</b></a><span>line 28 · <a href="#test~ring5.trace.inventory-generator-1421360810~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_oft_inventory.py#L42"><code>tests/unit/test_oft_inventory.py::test_rendered_inventory_is_deterministic_and_complete</code><b>open source ↗</b></a><span>line 42 · <a href="#test~ring5.trace.inventory-generator-2231902051~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 6 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../spec/oft/README.md#L35"><code>spec/oft/README.md#what-covered-means</code><b>open source ↗</b></a><span>line 35 · <a href="#uman~ring5.trace.inventory-generator.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../scripts/generate_oft_inventory.py#L424"><code>scripts/generate_oft_inventory.py::validate_inventory</code><b>open source ↗</b></a><span>line 424 · <a href="#impl~ring5.trace.inventory-generator-3659389088~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../scripts/generate_oft_inventory.py#L645"><code>scripts/generate_oft_inventory.py::render_inventory</code><b>open source ↗</b></a><span>line 645 · <a href="#impl~ring5.trace.inventory-generator-3400766746~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../scripts/oft_evidence.py#L165"><code>scripts/oft_evidence.py::validate_source_evidence</code><b>open source ↗</b></a><span>line 165 · <a href="#impl~ring5.trace.inventory-generator-200261977~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_oft_inventory.py#L29"><code>tests/unit/test_oft_inventory.py::test_repository_inventory_is_valid_and_comprehensive</code><b>open source ↗</b></a><span>line 29 · <a href="#test~ring5.trace.inventory-generator-439432451~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_oft_inventory.py#L43"><code>tests/unit/test_oft_inventory.py::test_rendered_inventory_is_deterministic_and_complete</code><b>open source ↗</b></a><span>line 43 · <a href="#test~ring5.trace.inventory-generator-3414234314~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">generator</span><span class="human-tag">governance</span><span class="human-tag">openfasttrace</span></div></div>
     <a href="#req~ring5.trace.inventory-generator~1">View canonical OFT trace ↓</a>
@@ -5045,7 +5045,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>The repository shall record independent feature-discovery passes, their accepted deltas and rejected candidates, and repeat the audit until a pass adds no current requirements.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 5 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../spec/oft/discovery-audit.md#L41"><code>spec/oft/discovery-audit.md#convergence-runs</code><b>open source ↗</b></a><span>line 41 · <a href="#uman~ring5.trace.discovery-convergence.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../scripts/generate_oft_inventory.py#L158"><code>scripts/generate_oft_inventory.py::discover_live_capabilities</code><b>open source ↗</b></a><span>line 158 · <a href="#impl~ring5.trace.discovery-convergence-3183443548~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../scripts/generate_oft_inventory.py#L413"><code>scripts/generate_oft_inventory.py::validate_inventory</code><b>open source ↗</b></a><span>line 413 · <a href="#impl~ring5.trace.discovery-convergence-450258911~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_oft_inventory.py#L27"><code>tests/unit/test_oft_inventory.py::test_repository_inventory_is_valid_and_comprehensive</code><b>open source ↗</b></a><span>line 27 · <a href="#test~ring5.trace.discovery-convergence-3155382722~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_oft_inventory.py#L98"><code>tests/unit/test_oft_inventory.py::test_unbound_live_capability_is_rejected</code><b>open source ↗</b></a><span>line 98 · <a href="#test~ring5.trace.discovery-convergence-1430162350~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 5 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../spec/oft/discovery-audit.md#L41"><code>spec/oft/discovery-audit.md#convergence-runs</code><b>open source ↗</b></a><span>line 41 · <a href="#uman~ring5.trace.discovery-convergence.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../scripts/generate_oft_inventory.py#L168"><code>scripts/generate_oft_inventory.py::discover_live_capabilities</code><b>open source ↗</b></a><span>line 168 · <a href="#impl~ring5.trace.discovery-convergence-2240083247~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../scripts/generate_oft_inventory.py#L423"><code>scripts/generate_oft_inventory.py::validate_inventory</code><b>open source ↗</b></a><span>line 423 · <a href="#impl~ring5.trace.discovery-convergence-586017964~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_oft_inventory.py#L28"><code>tests/unit/test_oft_inventory.py::test_repository_inventory_is_valid_and_comprehensive</code><b>open source ↗</b></a><span>line 28 · <a href="#test~ring5.trace.discovery-convergence-1688089706~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_oft_inventory.py#L115"><code>tests/unit/test_oft_inventory.py::test_unbound_live_capability_is_rejected</code><b>open source ↗</b></a><span>line 115 · <a href="#test~ring5.trace.discovery-convergence-396418716~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">audit</span><span class="human-tag">discovery</span><span class="human-tag">openfasttrace</span></div></div>
     <a href="#req~ring5.trace.discovery-convergence~1">View canonical OFT trace ↓</a>
@@ -5085,7 +5085,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>The quality gate shall fail when navigation, registries, parser and shaper schemas, rendering models and formats, public APIs, Session methods, or CLI commands and options lack an explicit requirement binding.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 5 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../spec/oft/README.md#L230"><code>spec/oft/README.md#automatic-discovery</code><b>open source ↗</b></a><span>line 230 · <a href="#uman~ring5.trace.registry-drift.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../scripts/generate_oft_inventory.py#L159"><code>scripts/generate_oft_inventory.py::discover_live_capabilities</code><b>open source ↗</b></a><span>line 159 · <a href="#impl~ring5.trace.registry-drift-3814715014~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../scripts/generate_oft_inventory.py#L415"><code>scripts/generate_oft_inventory.py::validate_inventory</code><b>open source ↗</b></a><span>line 415 · <a href="#impl~ring5.trace.registry-drift-2878339599~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_oft_inventory.py#L29"><code>tests/unit/test_oft_inventory.py::test_repository_inventory_is_valid_and_comprehensive</code><b>open source ↗</b></a><span>line 29 · <a href="#test~ring5.trace.registry-drift-2820068779~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_oft_inventory.py#L99"><code>tests/unit/test_oft_inventory.py::test_unbound_live_capability_is_rejected</code><b>open source ↗</b></a><span>line 99 · <a href="#test~ring5.trace.registry-drift-3917499063~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 5 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../spec/oft/README.md#L252"><code>spec/oft/README.md#automatic-discovery</code><b>open source ↗</b></a><span>line 252 · <a href="#uman~ring5.trace.registry-drift.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../scripts/generate_oft_inventory.py#L169"><code>scripts/generate_oft_inventory.py::discover_live_capabilities</code><b>open source ↗</b></a><span>line 169 · <a href="#impl~ring5.trace.registry-drift-1754058911~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../scripts/generate_oft_inventory.py#L425"><code>scripts/generate_oft_inventory.py::validate_inventory</code><b>open source ↗</b></a><span>line 425 · <a href="#impl~ring5.trace.registry-drift-542950422~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_oft_inventory.py#L30"><code>tests/unit/test_oft_inventory.py::test_repository_inventory_is_valid_and_comprehensive</code><b>open source ↗</b></a><span>line 30 · <a href="#test~ring5.trace.registry-drift-3161005220~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_oft_inventory.py#L116"><code>tests/unit/test_oft_inventory.py::test_unbound_live_capability_is_rejected</code><b>open source ↗</b></a><span>line 116 · <a href="#test~ring5.trace.registry-drift-2098922705~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">discovery</span><span class="human-tag">governance</span><span class="human-tag">openfasttrace</span></div></div>
     <a href="#req~ring5.trace.registry-drift~1">View canonical OFT trace ↓</a>
@@ -5105,7 +5105,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>The OFT report shall expose separate approved, proposed, draft, in-development, and blocked views without changing native OFT artifact semantics.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>3 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 6 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../spec/oft/README.md#L85"><code>spec/oft/README.md#requirement-status-views</code><b>open source ↗</b></a><span>line 85 · <a href="#uman~ring5.trace.future-status-reporting.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../scripts/oft_status.py#L19"><code>scripts/oft_status.py::requirement_status_views</code><b>open source ↗</b></a><span>line 19 · <a href="#impl~ring5.trace.future-status-reporting-1622657991~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../scripts/generate_oft_inventory.py#L593"><code>scripts/generate_oft_inventory.py::render_inventory</code><b>open source ↗</b></a><span>line 593 · <a href="#impl~ring5.trace.future-status-reporting-3038662183~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../scripts/oft_html_report.py#L337"><code>scripts/oft_html_report.py::_human_layer</code><b>open source ↗</b></a><span>line 337 · <a href="#impl~ring5.trace.future-status-reporting-3396297073~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_oft_inventory.py#L137"><code>tests/unit/test_oft_inventory.py::test_all_requirement_lifecycle_statuses_are_valid_and_rendered</code><b>open source ↗</b></a><span>line 137 · <a href="#test~ring5.trace.future-status-reporting-791028880~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_oft_html_report.py#L158"><code>tests/unit/test_oft_html_report.py::test_status_views_expose_every_lifecycle_without_rewriting_oft_results</code><b>open source ↗</b></a><span>line 158 · <a href="#test~ring5.trace.future-status-reporting-3803103551~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 6 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../spec/oft/README.md#L85"><code>spec/oft/README.md#requirement-status-views</code><b>open source ↗</b></a><span>line 85 · <a href="#uman~ring5.trace.future-status-reporting.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../scripts/oft_status.py#L19"><code>scripts/oft_status.py::requirement_status_views</code><b>open source ↗</b></a><span>line 19 · <a href="#impl~ring5.trace.future-status-reporting-1622657991~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../scripts/generate_oft_inventory.py#L646"><code>scripts/generate_oft_inventory.py::render_inventory</code><b>open source ↗</b></a><span>line 646 · <a href="#impl~ring5.trace.future-status-reporting-37750623~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../scripts/oft_html_report.py#L337"><code>scripts/oft_html_report.py::_human_layer</code><b>open source ↗</b></a><span>line 337 · <a href="#impl~ring5.trace.future-status-reporting-3396297073~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_oft_inventory.py#L154"><code>tests/unit/test_oft_inventory.py::test_all_requirement_lifecycle_statuses_are_valid_and_rendered</code><b>open source ↗</b></a><span>line 154 · <a href="#test~ring5.trace.future-status-reporting-451063505~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_oft_html_report.py#L158"><code>tests/unit/test_oft_html_report.py::test_status_views_expose_every_lifecycle_without_rewriting_oft_results</code><b>open source ↗</b></a><span>line 158 · <a href="#test~ring5.trace.future-status-reporting-3803103551~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">openfasttrace</span><span class="human-tag">reporting</span><span class="human-tag">status</span></div></div>
     <a href="#req~ring5.trace.future-status-reporting~1">View canonical OFT trace ↓</a>
@@ -5125,7 +5125,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>The feature catalog shall retain each superseded semantic revision&#x27;s title and description with its change reason, record evidence-only updates without incrementing the revision, and expose both change types in generated summaries and HTML reports.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>3 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>3 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 <details class="human-history"><summary>Show 2 history records</summary><ol><li><div><span class="human-history-type semantic">Semantic</span><code>Revision 1</code></div><p>Specified complete semantic snapshots and reviewer-facing history views.</p><div class="human-history-snapshot"><strong>Requirement history</strong><p>The feature catalog shall retain reviewable requirement revisions and distinguish semantic changes from evidence-only updates.</p></div></li><li><div><span class="human-history-type evidence">Evidence only</span><code>Revision 2</code></div><p>Recorded implementation, verification, and documentation evidence without changing revision 2.</p></li></ol></details>
-  <details class="human-evidence"><summary>Show 7 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../spec/oft/README.md#L127"><code>spec/oft/README.md#requirement-history</code><b>open source ↗</b></a><span>line 127 · <a href="#uman~ring5.trace.requirement-history.documentation~2">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../scripts/generate_oft_inventory.py#L341"><code>scripts/generate_oft_inventory.py::_validate_requirement_history</code><b>open source ↗</b></a><span>line 341 · <a href="#impl~ring5.trace.requirement-history-2424285765~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../scripts/generate_oft_inventory.py#L595"><code>scripts/generate_oft_inventory.py::render_inventory</code><b>open source ↗</b></a><span>line 595 · <a href="#impl~ring5.trace.requirement-history-1769913282~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../scripts/oft_html_report.py#L225"><code>scripts/oft_html_report.py::_history_details</code><b>open source ↗</b></a><span>line 225 · <a href="#impl~ring5.trace.requirement-history-4227789199~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_oft_inventory.py#L190"><code>tests/unit/test_oft_inventory.py::test_requirement_history_validates_semantic_snapshots_and_evidence_changes</code><b>open source ↗</b></a><span>line 190 · <a href="#test~ring5.trace.requirement-history-2150287053~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_oft_inventory.py#L209"><code>tests/unit/test_oft_inventory.py::test_requirement_history_is_rendered_in_markdown_views</code><b>open source ↗</b></a><span>line 209 · <a href="#test~ring5.trace.requirement-history-3775282933~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_oft_html_report.py#L191"><code>tests/unit/test_oft_html_report.py::test_requirement_card_exposes_semantic_and_evidence_history</code><b>open source ↗</b></a><span>line 191 · <a href="#test~ring5.trace.requirement-history-472215040~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 7 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../spec/oft/README.md#L127"><code>spec/oft/README.md#requirement-history</code><b>open source ↗</b></a><span>line 127 · <a href="#uman~ring5.trace.requirement-history.documentation~2">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../scripts/generate_oft_inventory.py#L351"><code>scripts/generate_oft_inventory.py::_validate_requirement_history</code><b>open source ↗</b></a><span>line 351 · <a href="#impl~ring5.trace.requirement-history-1060845570~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../scripts/generate_oft_inventory.py#L648"><code>scripts/generate_oft_inventory.py::render_inventory</code><b>open source ↗</b></a><span>line 648 · <a href="#impl~ring5.trace.requirement-history-965093568~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../scripts/oft_html_report.py#L225"><code>scripts/oft_html_report.py::_history_details</code><b>open source ↗</b></a><span>line 225 · <a href="#impl~ring5.trace.requirement-history-4227789199~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_oft_inventory.py#L261"><code>tests/unit/test_oft_inventory.py::test_requirement_history_validates_semantic_snapshots_and_evidence_changes</code><b>open source ↗</b></a><span>line 261 · <a href="#test~ring5.trace.requirement-history-2913208430~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_oft_inventory.py#L280"><code>tests/unit/test_oft_inventory.py::test_requirement_history_is_rendered_in_markdown_views</code><b>open source ↗</b></a><span>line 280 · <a href="#test~ring5.trace.requirement-history-3425166120~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_oft_html_report.py#L191"><code>tests/unit/test_oft_html_report.py::test_requirement_card_exposes_semantic_and_evidence_history</code><b>open source ↗</b></a><span>line 191 · <a href="#test~ring5.trace.requirement-history-472215040~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">history</span><span class="human-tag">openfasttrace</span><span class="human-tag">requirements</span></div><span class="human-branch">Implementation branch <code>006-oft-requirement-history</code></span></div>
     <a href="#req~ring5.trace.requirement-history~2">View canonical OFT trace ↓</a>
@@ -5145,7 +5145,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>Future requirements shall record their implementation branch and expose that association in generated summaries and HTML reports.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>3 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>3 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 7 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../spec/oft/README.md#L108"><code>spec/oft/README.md#implementation-branches</code><b>open source ↗</b></a><span>line 108 · <a href="#uman~ring5.trace.branch-association.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../scripts/generate_oft_inventory.py#L416"><code>scripts/generate_oft_inventory.py::validate_inventory</code><b>open source ↗</b></a><span>line 416 · <a href="#impl~ring5.trace.branch-association-257267076~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../scripts/generate_oft_inventory.py#L594"><code>scripts/generate_oft_inventory.py::render_inventory</code><b>open source ↗</b></a><span>line 594 · <a href="#impl~ring5.trace.branch-association-2041228749~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../scripts/oft_html_report.py#L281"><code>scripts/oft_html_report.py::_requirement_card</code><b>open source ↗</b></a><span>line 281 · <a href="#impl~ring5.trace.branch-association-2040478577~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_oft_inventory.py#L164"><code>tests/unit/test_oft_inventory.py::test_future_requirement_needs_a_valid_implementation_branch</code><b>open source ↗</b></a><span>line 164 · <a href="#test~ring5.trace.branch-association-3009410295~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_oft_inventory.py#L179"><code>tests/unit/test_oft_inventory.py::test_branch_associations_are_rendered_in_normative_and_summary_markdown</code><b>open source ↗</b></a><span>line 179 · <a href="#test~ring5.trace.branch-association-2626618721~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_oft_html_report.py#L176"><code>tests/unit/test_oft_html_report.py::test_future_requirement_card_exposes_its_implementation_branch</code><b>open source ↗</b></a><span>line 176 · <a href="#test~ring5.trace.branch-association-3062930429~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 7 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../spec/oft/README.md#L108"><code>spec/oft/README.md#implementation-branches</code><b>open source ↗</b></a><span>line 108 · <a href="#uman~ring5.trace.branch-association.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../scripts/generate_oft_inventory.py#L426"><code>scripts/generate_oft_inventory.py::validate_inventory</code><b>open source ↗</b></a><span>line 426 · <a href="#impl~ring5.trace.branch-association-3704523135~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../scripts/generate_oft_inventory.py#L647"><code>scripts/generate_oft_inventory.py::render_inventory</code><b>open source ↗</b></a><span>line 647 · <a href="#impl~ring5.trace.branch-association-2834917861~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../scripts/oft_html_report.py#L281"><code>scripts/oft_html_report.py::_requirement_card</code><b>open source ↗</b></a><span>line 281 · <a href="#impl~ring5.trace.branch-association-2040478577~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_oft_inventory.py#L181"><code>tests/unit/test_oft_inventory.py::test_future_requirement_needs_a_valid_implementation_branch</code><b>open source ↗</b></a><span>line 181 · <a href="#test~ring5.trace.branch-association-16489570~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_oft_inventory.py#L200"><code>tests/unit/test_oft_inventory.py::test_branch_associations_are_rendered_in_normative_and_summary_markdown</code><b>open source ↗</b></a><span>line 200 · <a href="#test~ring5.trace.branch-association-3189016195~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_oft_html_report.py#L176"><code>tests/unit/test_oft_html_report.py::test_future_requirement_card_exposes_its_implementation_branch</code><b>open source ↗</b></a><span>line 176 · <a href="#test~ring5.trace.branch-association-3062930429~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">branches</span><span class="human-tag">openfasttrace</span><span class="human-tag">requirements</span></div><span class="human-branch">Implementation branch <code>006-oft-branch-association</code></span></div>
     <a href="#req~ring5.trace.branch-association~1">View canonical OFT trace ↓</a>
@@ -5193,19 +5193,19 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
 </article>
 
 <article class="human-requirement" data-group="traceability"
-  data-status="proposed" data-coverage="uncovered"
+  data-status="approved" data-coverage="covered"
   data-search="trace.approval-gate requirement approval gate the inventory validator shall reject promotion to approved unless all required exact evidence resolves and native oft reports the requirement as covered. approval governance openfasttrace 006-oft-approval-gate">
   <div class="human-requirement-heading">
     <div><code>req~ring5.trace.approval-gate~1</code><h4>Requirement approval gate</h4></div>
     <div class="human-badges">
-      <span class="human-badge status-proposed">Proposed</span>
-      <span class="human-badge coverage-uncovered">Uncovered in OFT</span>
+      <span class="human-badge status-approved">Approved</span>
+      <span class="human-badge coverage-covered">Covered by OFT</span>
     </div>
   </div>
   <p>The inventory validator shall reject promotion to approved unless all required exact evidence resolves and native OFT reports the requirement as covered.</p>
-  <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="missing"><span>Implementation</span><strong>No exact origin</strong></li><li data-readiness="missing"><span>Test</span><strong>No exact origin</strong></li><li data-readiness="missing"><span>Documentation</span><strong>No exact origin</strong></li><li data-readiness="uncovered"><span>Native OFT trace</span><strong>Uncovered in OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
+  <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>3 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>3 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 0 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 7 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../spec/oft/README.md#L211"><code>spec/oft/README.md#requirement-approval-gate</code><b>open source ↗</b></a><span>line 211 · <a href="#uman~ring5.trace.approval-gate.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../scripts/generate_oft_inventory.py#L427"><code>scripts/generate_oft_inventory.py::validate_inventory</code><b>open source ↗</b></a><span>line 427 · <a href="#impl~ring5.trace.approval-gate-1314678629~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../scripts/generate_oft_inventory.py#L583"><code>scripts/generate_oft_inventory.py::validate_approved_native_coverage</code><b>open source ↗</b></a><span>line 583 · <a href="#impl~ring5.trace.approval-gate-3966705404~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../scripts/generate_oft_inventory.py#L833"><code>scripts/generate_oft_inventory.py::check_html_report</code><b>open source ↗</b></a><span>line 833 · <a href="#impl~ring5.trace.approval-gate-4090201912~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_oft_inventory.py#L223"><code>tests/unit/test_oft_inventory.py::test_approval_gate_requires_complete_resolvable_exact_evidence</code><b>open source ↗</b></a><span>line 223 · <a href="#test~ring5.trace.approval-gate-118463749~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_oft_inventory.py#L238"><code>tests/unit/test_oft_inventory.py::test_approval_gate_rejects_native_red_but_allows_future_requirements</code><b>open source ↗</b></a><span>line 238 · <a href="#test~ring5.trace.approval-gate-343932159~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_oft_inventory.py#L70"><code>tests/unit/test_oft_inventory.py::test_html_report_fingerprint_detects_missing_stale_or_non_native_output</code><b>open source ↗</b></a><span>line 70 · <a href="#test~ring5.trace.approval-gate-2372802975~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">approval</span><span class="human-tag">governance</span><span class="human-tag">openfasttrace</span></div><span class="human-branch">Implementation branch <code>006-oft-approval-gate</code></span></div>
     <a href="#req~ring5.trace.approval-gate~1">View canonical OFT trace ↓</a>
@@ -5395,7 +5395,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
       </section>
       <section class="sitem" id="feat~ring5.traceability~1">
         <details>
-          <summary title="feat~ring5.traceability~1"><span class="red">&cross;</span> <b>Feature Traceability</b><small>, rev. 1, feat</small></summary>
+          <summary title="feat~ring5.traceability~1"><span class="green">&check;</span> <b>Feature Traceability</b><small>, rev. 1, feat</small></summary>
           <p class="id">feat~ring5.traceability~1</p>
           <p>RING-5 maintains a generated OpenFastTrace catalog that detects untracked current and future capabilities.</p>
           <h6>Needs: req</h6>
@@ -14448,6 +14448,45 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
+      <section class="sitem" id="impl~ring5.trace.approval-gate-1314678629~0">
+        <details>
+          <summary title="impl~ring5.trace.approval-gate-1314678629~0"><span class="green">&check;</span> <b>ring5.trace.approval-gate-1314678629</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.trace.approval-gate-1314678629~0</p>
+          <p class="origin">scripts/generate_oft_inventory.py:427</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.trace.approval-gate~1">req~ring5.trace.approval-gate~1</a> <span class="origin">spec/oft/generated/requirements.md:3057</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="impl~ring5.trace.approval-gate-3966705404~0">
+        <details>
+          <summary title="impl~ring5.trace.approval-gate-3966705404~0"><span class="green">&check;</span> <b>ring5.trace.approval-gate-3966705404</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.trace.approval-gate-3966705404~0</p>
+          <p class="origin">scripts/generate_oft_inventory.py:583</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.trace.approval-gate~1">req~ring5.trace.approval-gate~1</a> <span class="origin">spec/oft/generated/requirements.md:3057</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="impl~ring5.trace.approval-gate-4090201912~0">
+        <details>
+          <summary title="impl~ring5.trace.approval-gate-4090201912~0"><span class="green">&check;</span> <b>ring5.trace.approval-gate-4090201912</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.trace.approval-gate-4090201912~0</p>
+          <p class="origin">scripts/generate_oft_inventory.py:833</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.trace.approval-gate~1">req~ring5.trace.approval-gate~1</a> <span class="origin">spec/oft/generated/requirements.md:3057</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
       <section class="sitem" id="impl~ring5.trace.branch-association-2040478577~0">
         <details>
           <summary title="impl~ring5.trace.branch-association-2040478577~0"><span class="green">&check;</span> <b>ring5.trace.branch-association-2040478577</b><small>, rev. 0, impl</small></summary>
@@ -14461,11 +14500,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.trace.branch-association-2041228749~0">
+      <section class="sitem" id="impl~ring5.trace.branch-association-2834917861~0">
         <details>
-          <summary title="impl~ring5.trace.branch-association-2041228749~0"><span class="green">&check;</span> <b>ring5.trace.branch-association-2041228749</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.trace.branch-association-2041228749~0</p>
-          <p class="origin">scripts/generate_oft_inventory.py:594</p>
+          <summary title="impl~ring5.trace.branch-association-2834917861~0"><span class="green">&check;</span> <b>ring5.trace.branch-association-2834917861</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.trace.branch-association-2834917861~0</p>
+          <p class="origin">scripts/generate_oft_inventory.py:647</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -14474,11 +14513,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.trace.branch-association-257267076~0">
+      <section class="sitem" id="impl~ring5.trace.branch-association-3704523135~0">
         <details>
-          <summary title="impl~ring5.trace.branch-association-257267076~0"><span class="green">&check;</span> <b>ring5.trace.branch-association-257267076</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.trace.branch-association-257267076~0</p>
-          <p class="origin">scripts/generate_oft_inventory.py:416</p>
+          <summary title="impl~ring5.trace.branch-association-3704523135~0"><span class="green">&check;</span> <b>ring5.trace.branch-association-3704523135</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.trace.branch-association-3704523135~0</p>
+          <p class="origin">scripts/generate_oft_inventory.py:426</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -14487,11 +14526,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.trace.discovery-convergence-3183443548~0">
+      <section class="sitem" id="impl~ring5.trace.discovery-convergence-2240083247~0">
         <details>
-          <summary title="impl~ring5.trace.discovery-convergence-3183443548~0"><span class="green">&check;</span> <b>ring5.trace.discovery-convergence-3183443548</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.trace.discovery-convergence-3183443548~0</p>
-          <p class="origin">scripts/generate_oft_inventory.py:158</p>
+          <summary title="impl~ring5.trace.discovery-convergence-2240083247~0"><span class="green">&check;</span> <b>ring5.trace.discovery-convergence-2240083247</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.trace.discovery-convergence-2240083247~0</p>
+          <p class="origin">scripts/generate_oft_inventory.py:168</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -14500,11 +14539,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.trace.discovery-convergence-450258911~0">
+      <section class="sitem" id="impl~ring5.trace.discovery-convergence-586017964~0">
         <details>
-          <summary title="impl~ring5.trace.discovery-convergence-450258911~0"><span class="green">&check;</span> <b>ring5.trace.discovery-convergence-450258911</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.trace.discovery-convergence-450258911~0</p>
-          <p class="origin">scripts/generate_oft_inventory.py:413</p>
+          <summary title="impl~ring5.trace.discovery-convergence-586017964~0"><span class="green">&check;</span> <b>ring5.trace.discovery-convergence-586017964</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.trace.discovery-convergence-586017964~0</p>
+          <p class="origin">scripts/generate_oft_inventory.py:423</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -14526,11 +14565,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.trace.future-status-reporting-3038662183~0">
+      <section class="sitem" id="impl~ring5.trace.future-status-reporting-3396297073~0">
         <details>
-          <summary title="impl~ring5.trace.future-status-reporting-3038662183~0"><span class="green">&check;</span> <b>ring5.trace.future-status-reporting-3038662183</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.trace.future-status-reporting-3038662183~0</p>
-          <p class="origin">scripts/generate_oft_inventory.py:593</p>
+          <summary title="impl~ring5.trace.future-status-reporting-3396297073~0"><span class="green">&check;</span> <b>ring5.trace.future-status-reporting-3396297073</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.trace.future-status-reporting-3396297073~0</p>
+          <p class="origin">scripts/oft_html_report.py:337</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -14539,11 +14578,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.trace.future-status-reporting-3396297073~0">
+      <section class="sitem" id="impl~ring5.trace.future-status-reporting-37750623~0">
         <details>
-          <summary title="impl~ring5.trace.future-status-reporting-3396297073~0"><span class="green">&check;</span> <b>ring5.trace.future-status-reporting-3396297073</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.trace.future-status-reporting-3396297073~0</p>
-          <p class="origin">scripts/oft_html_report.py:337</p>
+          <summary title="impl~ring5.trace.future-status-reporting-37750623~0"><span class="green">&check;</span> <b>ring5.trace.future-status-reporting-37750623</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.trace.future-status-reporting-37750623~0</p>
+          <p class="origin">scripts/generate_oft_inventory.py:646</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -14604,11 +14643,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.trace.inventory-generator-4037109800~0">
+      <section class="sitem" id="impl~ring5.trace.inventory-generator-3400766746~0">
         <details>
-          <summary title="impl~ring5.trace.inventory-generator-4037109800~0"><span class="green">&check;</span> <b>ring5.trace.inventory-generator-4037109800</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.trace.inventory-generator-4037109800~0</p>
-          <p class="origin">scripts/generate_oft_inventory.py:414</p>
+          <summary title="impl~ring5.trace.inventory-generator-3400766746~0"><span class="green">&check;</span> <b>ring5.trace.inventory-generator-3400766746</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.trace.inventory-generator-3400766746~0</p>
+          <p class="origin">scripts/generate_oft_inventory.py:645</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -14617,11 +14656,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.trace.inventory-generator-511854273~0">
+      <section class="sitem" id="impl~ring5.trace.inventory-generator-3659389088~0">
         <details>
-          <summary title="impl~ring5.trace.inventory-generator-511854273~0"><span class="green">&check;</span> <b>ring5.trace.inventory-generator-511854273</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.trace.inventory-generator-511854273~0</p>
-          <p class="origin">scripts/generate_oft_inventory.py:592</p>
+          <summary title="impl~ring5.trace.inventory-generator-3659389088~0"><span class="green">&check;</span> <b>ring5.trace.inventory-generator-3659389088</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.trace.inventory-generator-3659389088~0</p>
+          <p class="origin">scripts/generate_oft_inventory.py:424</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -14669,11 +14708,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.trace.registry-drift-2878339599~0">
+      <section class="sitem" id="impl~ring5.trace.registry-drift-1754058911~0">
         <details>
-          <summary title="impl~ring5.trace.registry-drift-2878339599~0"><span class="green">&check;</span> <b>ring5.trace.registry-drift-2878339599</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.trace.registry-drift-2878339599~0</p>
-          <p class="origin">scripts/generate_oft_inventory.py:415</p>
+          <summary title="impl~ring5.trace.registry-drift-1754058911~0"><span class="green">&check;</span> <b>ring5.trace.registry-drift-1754058911</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.trace.registry-drift-1754058911~0</p>
+          <p class="origin">scripts/generate_oft_inventory.py:169</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -14682,11 +14721,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.trace.registry-drift-3814715014~0">
+      <section class="sitem" id="impl~ring5.trace.registry-drift-542950422~0">
         <details>
-          <summary title="impl~ring5.trace.registry-drift-3814715014~0"><span class="green">&check;</span> <b>ring5.trace.registry-drift-3814715014</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.trace.registry-drift-3814715014~0</p>
-          <p class="origin">scripts/generate_oft_inventory.py:159</p>
+          <summary title="impl~ring5.trace.registry-drift-542950422~0"><span class="green">&check;</span> <b>ring5.trace.registry-drift-542950422</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.trace.registry-drift-542950422~0</p>
+          <p class="origin">scripts/generate_oft_inventory.py:425</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -14747,24 +14786,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.trace.requirement-history-1769913282~0">
+      <section class="sitem" id="impl~ring5.trace.requirement-history-1060845570~0">
         <details>
-          <summary title="impl~ring5.trace.requirement-history-1769913282~0"><span class="green">&check;</span> <b>ring5.trace.requirement-history-1769913282</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.trace.requirement-history-1769913282~0</p>
-          <p class="origin">scripts/generate_oft_inventory.py:595</p>
-          <div class="out">
-            <h6>Out: 1</h6>
-            <ul>
-              <li><a href="#req~ring5.trace.requirement-history~2">req~ring5.trace.requirement-history~2</a> <span class="origin">spec/oft/generated/requirements.md:2991</span></li>
-            </ul>
-          </div>
-        </details>
-      </section>
-      <section class="sitem" id="impl~ring5.trace.requirement-history-2424285765~0">
-        <details>
-          <summary title="impl~ring5.trace.requirement-history-2424285765~0"><span class="green">&check;</span> <b>ring5.trace.requirement-history-2424285765</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.trace.requirement-history-2424285765~0</p>
-          <p class="origin">scripts/generate_oft_inventory.py:341</p>
+          <summary title="impl~ring5.trace.requirement-history-1060845570~0"><span class="green">&check;</span> <b>ring5.trace.requirement-history-1060845570</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.trace.requirement-history-1060845570~0</p>
+          <p class="origin">scripts/generate_oft_inventory.py:351</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -14778,6 +14804,19 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <summary title="impl~ring5.trace.requirement-history-4227789199~0"><span class="green">&check;</span> <b>ring5.trace.requirement-history-4227789199</b><small>, rev. 0, impl</small></summary>
           <p class="id">impl~ring5.trace.requirement-history-4227789199~0</p>
           <p class="origin">scripts/oft_html_report.py:225</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.trace.requirement-history~2">req~ring5.trace.requirement-history~2</a> <span class="origin">spec/oft/generated/requirements.md:2991</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="impl~ring5.trace.requirement-history-965093568~0">
+        <details>
+          <summary title="impl~ring5.trace.requirement-history-965093568~0"><span class="green">&check;</span> <b>ring5.trace.requirement-history-965093568</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.trace.requirement-history-965093568~0</p>
+          <p class="origin">scripts/generate_oft_inventory.py:648</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -17330,10 +17369,10 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
             <h6>In: 6</h6>
             <ul>
               <li><a href="#impl~ring5.trace.inventory-generator-200261977~0">impl~ring5.trace.inventory-generator-200261977~0</a> <span class="origin">scripts/oft_evidence.py:165</span></li>
-              <li><a href="#impl~ring5.trace.inventory-generator-4037109800~0">impl~ring5.trace.inventory-generator-4037109800~0</a> <span class="origin">scripts/generate_oft_inventory.py:414</span></li>
-              <li><a href="#impl~ring5.trace.inventory-generator-511854273~0">impl~ring5.trace.inventory-generator-511854273~0</a> <span class="origin">scripts/generate_oft_inventory.py:592</span></li>
-              <li><a href="#test~ring5.trace.inventory-generator-1421360810~0">test~ring5.trace.inventory-generator-1421360810~0</a> <span class="origin">tests/unit/test_oft_inventory.py:28</span></li>
-              <li><a href="#test~ring5.trace.inventory-generator-2231902051~0">test~ring5.trace.inventory-generator-2231902051~0</a> <span class="origin">tests/unit/test_oft_inventory.py:42</span></li>
+              <li><a href="#impl~ring5.trace.inventory-generator-3400766746~0">impl~ring5.trace.inventory-generator-3400766746~0</a> <span class="origin">scripts/generate_oft_inventory.py:645</span></li>
+              <li><a href="#impl~ring5.trace.inventory-generator-3659389088~0">impl~ring5.trace.inventory-generator-3659389088~0</a> <span class="origin">scripts/generate_oft_inventory.py:424</span></li>
+              <li><a href="#test~ring5.trace.inventory-generator-3414234314~0">test~ring5.trace.inventory-generator-3414234314~0</a> <span class="origin">tests/unit/test_oft_inventory.py:43</span></li>
+              <li><a href="#test~ring5.trace.inventory-generator-439432451~0">test~ring5.trace.inventory-generator-439432451~0</a> <span class="origin">tests/unit/test_oft_inventory.py:29</span></li>
               <li><a href="#uman~ring5.trace.inventory-generator.documentation~1">uman~ring5.trace.inventory-generator.documentation~1</a> <span class="origin">spec/oft/README.md:35</span></li>
             </ul>
           </div>
@@ -17808,10 +17847,10 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
             <h6>In: 6</h6>
             <ul>
               <li><a href="#impl~ring5.trace.future-status-reporting-1622657991~0">impl~ring5.trace.future-status-reporting-1622657991~0</a> <span class="origin">scripts/oft_status.py:19</span></li>
-              <li><a href="#impl~ring5.trace.future-status-reporting-3038662183~0">impl~ring5.trace.future-status-reporting-3038662183~0</a> <span class="origin">scripts/generate_oft_inventory.py:593</span></li>
               <li><a href="#impl~ring5.trace.future-status-reporting-3396297073~0">impl~ring5.trace.future-status-reporting-3396297073~0</a> <span class="origin">scripts/oft_html_report.py:337</span></li>
+              <li><a href="#impl~ring5.trace.future-status-reporting-37750623~0">impl~ring5.trace.future-status-reporting-37750623~0</a> <span class="origin">scripts/generate_oft_inventory.py:646</span></li>
               <li><a href="#test~ring5.trace.future-status-reporting-3803103551~0">test~ring5.trace.future-status-reporting-3803103551~0</a> <span class="origin">tests/unit/test_oft_html_report.py:158</span></li>
-              <li><a href="#test~ring5.trace.future-status-reporting-791028880~0">test~ring5.trace.future-status-reporting-791028880~0</a> <span class="origin">tests/unit/test_oft_inventory.py:137</span></li>
+              <li><a href="#test~ring5.trace.future-status-reporting-451063505~0">test~ring5.trace.future-status-reporting-451063505~0</a> <span class="origin">tests/unit/test_oft_inventory.py:154</span></li>
               <li><a href="#uman~ring5.trace.future-status-reporting.documentation~1">uman~ring5.trace.future-status-reporting.documentation~1</a> <span class="origin">spec/oft/README.md:85</span></li>
             </ul>
           </div>
@@ -18600,11 +18639,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <div class="in">
             <h6>In: 5</h6>
             <ul>
-              <li><a href="#impl~ring5.trace.registry-drift-2878339599~0">impl~ring5.trace.registry-drift-2878339599~0</a> <span class="origin">scripts/generate_oft_inventory.py:415</span></li>
-              <li><a href="#impl~ring5.trace.registry-drift-3814715014~0">impl~ring5.trace.registry-drift-3814715014~0</a> <span class="origin">scripts/generate_oft_inventory.py:159</span></li>
-              <li><a href="#test~ring5.trace.registry-drift-2820068779~0">test~ring5.trace.registry-drift-2820068779~0</a> <span class="origin">tests/unit/test_oft_inventory.py:29</span></li>
-              <li><a href="#test~ring5.trace.registry-drift-3917499063~0">test~ring5.trace.registry-drift-3917499063~0</a> <span class="origin">tests/unit/test_oft_inventory.py:99</span></li>
-              <li><a href="#uman~ring5.trace.registry-drift.documentation~1">uman~ring5.trace.registry-drift.documentation~1</a> <span class="origin">spec/oft/README.md:230</span></li>
+              <li><a href="#impl~ring5.trace.registry-drift-1754058911~0">impl~ring5.trace.registry-drift-1754058911~0</a> <span class="origin">scripts/generate_oft_inventory.py:169</span></li>
+              <li><a href="#impl~ring5.trace.registry-drift-542950422~0">impl~ring5.trace.registry-drift-542950422~0</a> <span class="origin">scripts/generate_oft_inventory.py:425</span></li>
+              <li><a href="#test~ring5.trace.registry-drift-2098922705~0">test~ring5.trace.registry-drift-2098922705~0</a> <span class="origin">tests/unit/test_oft_inventory.py:116</span></li>
+              <li><a href="#test~ring5.trace.registry-drift-3161005220~0">test~ring5.trace.registry-drift-3161005220~0</a> <span class="origin">tests/unit/test_oft_inventory.py:30</span></li>
+              <li><a href="#uman~ring5.trace.registry-drift.documentation~1">uman~ring5.trace.registry-drift.documentation~1</a> <span class="origin">spec/oft/README.md:252</span></li>
             </ul>
           </div>
           <div class="out">
@@ -20164,10 +20203,10 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <div class="in">
             <h6>In: 5</h6>
             <ul>
-              <li><a href="#impl~ring5.trace.discovery-convergence-3183443548~0">impl~ring5.trace.discovery-convergence-3183443548~0</a> <span class="origin">scripts/generate_oft_inventory.py:158</span></li>
-              <li><a href="#impl~ring5.trace.discovery-convergence-450258911~0">impl~ring5.trace.discovery-convergence-450258911~0</a> <span class="origin">scripts/generate_oft_inventory.py:413</span></li>
-              <li><a href="#test~ring5.trace.discovery-convergence-1430162350~0">test~ring5.trace.discovery-convergence-1430162350~0</a> <span class="origin">tests/unit/test_oft_inventory.py:98</span></li>
-              <li><a href="#test~ring5.trace.discovery-convergence-3155382722~0">test~ring5.trace.discovery-convergence-3155382722~0</a> <span class="origin">tests/unit/test_oft_inventory.py:27</span></li>
+              <li><a href="#impl~ring5.trace.discovery-convergence-2240083247~0">impl~ring5.trace.discovery-convergence-2240083247~0</a> <span class="origin">scripts/generate_oft_inventory.py:168</span></li>
+              <li><a href="#impl~ring5.trace.discovery-convergence-586017964~0">impl~ring5.trace.discovery-convergence-586017964~0</a> <span class="origin">scripts/generate_oft_inventory.py:423</span></li>
+              <li><a href="#test~ring5.trace.discovery-convergence-1688089706~0">test~ring5.trace.discovery-convergence-1688089706~0</a> <span class="origin">tests/unit/test_oft_inventory.py:28</span></li>
+              <li><a href="#test~ring5.trace.discovery-convergence-396418716~0">test~ring5.trace.discovery-convergence-396418716~0</a> <span class="origin">tests/unit/test_oft_inventory.py:115</span></li>
               <li><a href="#uman~ring5.trace.discovery-convergence.documentation~1">uman~ring5.trace.discovery-convergence.documentation~1</a> <span class="origin">spec/oft/discovery-audit.md:41</span></li>
             </ul>
           </div>
@@ -20206,11 +20245,23 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
       </section>
       <section class="sitem" id="req~ring5.trace.approval-gate~1">
         <details>
-          <summary title="req~ring5.trace.approval-gate~1"><span class="red">&cross;</span> <b>Requirement approval gate</b><small>, rev. 1, req</small></summary>
+          <summary title="req~ring5.trace.approval-gate~1"><span class="green">&check;</span> <b>Requirement approval gate</b><small>, rev. 1, req</small></summary>
           <p class="id">req~ring5.trace.approval-gate~1</p>
           <p>The inventory validator shall reject promotion to approved unless all required exact evidence resolves and native OFT reports the requirement as covered.</p><p>Implementation branch: 006-oft-approval-gate</p>
-          <h6>Needs: <ins>impl</ins>, <ins>test</ins>, <ins>uman</ins></h6>
+          <h6>Needs: impl, test, uman</h6>
           <p class="origin">spec/oft/generated/requirements.md:3057</p>
+          <div class="in">
+            <h6>In: 7</h6>
+            <ul>
+              <li><a href="#impl~ring5.trace.approval-gate-1314678629~0">impl~ring5.trace.approval-gate-1314678629~0</a> <span class="origin">scripts/generate_oft_inventory.py:427</span></li>
+              <li><a href="#impl~ring5.trace.approval-gate-3966705404~0">impl~ring5.trace.approval-gate-3966705404~0</a> <span class="origin">scripts/generate_oft_inventory.py:583</span></li>
+              <li><a href="#impl~ring5.trace.approval-gate-4090201912~0">impl~ring5.trace.approval-gate-4090201912~0</a> <span class="origin">scripts/generate_oft_inventory.py:833</span></li>
+              <li><a href="#test~ring5.trace.approval-gate-118463749~0">test~ring5.trace.approval-gate-118463749~0</a> <span class="origin">tests/unit/test_oft_inventory.py:223</span></li>
+              <li><a href="#test~ring5.trace.approval-gate-2372802975~0">test~ring5.trace.approval-gate-2372802975~0</a> <span class="origin">tests/unit/test_oft_inventory.py:70</span></li>
+              <li><a href="#test~ring5.trace.approval-gate-343932159~0">test~ring5.trace.approval-gate-343932159~0</a> <span class="origin">tests/unit/test_oft_inventory.py:238</span></li>
+              <li><a href="#uman~ring5.trace.approval-gate.documentation~1">uman~ring5.trace.approval-gate.documentation~1</a> <span class="origin">spec/oft/README.md:211</span></li>
+            </ul>
+          </div>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -20230,11 +20281,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
             <h6>In: 7</h6>
             <ul>
               <li><a href="#impl~ring5.trace.branch-association-2040478577~0">impl~ring5.trace.branch-association-2040478577~0</a> <span class="origin">scripts/oft_html_report.py:281</span></li>
-              <li><a href="#impl~ring5.trace.branch-association-2041228749~0">impl~ring5.trace.branch-association-2041228749~0</a> <span class="origin">scripts/generate_oft_inventory.py:594</span></li>
-              <li><a href="#impl~ring5.trace.branch-association-257267076~0">impl~ring5.trace.branch-association-257267076~0</a> <span class="origin">scripts/generate_oft_inventory.py:416</span></li>
-              <li><a href="#test~ring5.trace.branch-association-2626618721~0">test~ring5.trace.branch-association-2626618721~0</a> <span class="origin">tests/unit/test_oft_inventory.py:179</span></li>
-              <li><a href="#test~ring5.trace.branch-association-3009410295~0">test~ring5.trace.branch-association-3009410295~0</a> <span class="origin">tests/unit/test_oft_inventory.py:164</span></li>
+              <li><a href="#impl~ring5.trace.branch-association-2834917861~0">impl~ring5.trace.branch-association-2834917861~0</a> <span class="origin">scripts/generate_oft_inventory.py:647</span></li>
+              <li><a href="#impl~ring5.trace.branch-association-3704523135~0">impl~ring5.trace.branch-association-3704523135~0</a> <span class="origin">scripts/generate_oft_inventory.py:426</span></li>
+              <li><a href="#test~ring5.trace.branch-association-16489570~0">test~ring5.trace.branch-association-16489570~0</a> <span class="origin">tests/unit/test_oft_inventory.py:181</span></li>
               <li><a href="#test~ring5.trace.branch-association-3062930429~0">test~ring5.trace.branch-association-3062930429~0</a> <span class="origin">tests/unit/test_oft_html_report.py:176</span></li>
+              <li><a href="#test~ring5.trace.branch-association-3189016195~0">test~ring5.trace.branch-association-3189016195~0</a> <span class="origin">tests/unit/test_oft_inventory.py:200</span></li>
               <li><a href="#uman~ring5.trace.branch-association.documentation~1">uman~ring5.trace.branch-association.documentation~1</a> <span class="origin">spec/oft/README.md:108</span></li>
             </ul>
           </div>
@@ -20284,11 +20335,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <div class="in">
             <h6>In: 7</h6>
             <ul>
-              <li><a href="#impl~ring5.trace.requirement-history-1769913282~0">impl~ring5.trace.requirement-history-1769913282~0</a> <span class="origin">scripts/generate_oft_inventory.py:595</span></li>
-              <li><a href="#impl~ring5.trace.requirement-history-2424285765~0">impl~ring5.trace.requirement-history-2424285765~0</a> <span class="origin">scripts/generate_oft_inventory.py:341</span></li>
+              <li><a href="#impl~ring5.trace.requirement-history-1060845570~0">impl~ring5.trace.requirement-history-1060845570~0</a> <span class="origin">scripts/generate_oft_inventory.py:351</span></li>
               <li><a href="#impl~ring5.trace.requirement-history-4227789199~0">impl~ring5.trace.requirement-history-4227789199~0</a> <span class="origin">scripts/oft_html_report.py:225</span></li>
-              <li><a href="#test~ring5.trace.requirement-history-2150287053~0">test~ring5.trace.requirement-history-2150287053~0</a> <span class="origin">tests/unit/test_oft_inventory.py:190</span></li>
-              <li><a href="#test~ring5.trace.requirement-history-3775282933~0">test~ring5.trace.requirement-history-3775282933~0</a> <span class="origin">tests/unit/test_oft_inventory.py:209</span></li>
+              <li><a href="#impl~ring5.trace.requirement-history-965093568~0">impl~ring5.trace.requirement-history-965093568~0</a> <span class="origin">scripts/generate_oft_inventory.py:648</span></li>
+              <li><a href="#test~ring5.trace.requirement-history-2913208430~0">test~ring5.trace.requirement-history-2913208430~0</a> <span class="origin">tests/unit/test_oft_inventory.py:261</span></li>
+              <li><a href="#test~ring5.trace.requirement-history-3425166120~0">test~ring5.trace.requirement-history-3425166120~0</a> <span class="origin">tests/unit/test_oft_inventory.py:280</span></li>
               <li><a href="#test~ring5.trace.requirement-history-472215040~0">test~ring5.trace.requirement-history-472215040~0</a> <span class="origin">tests/unit/test_oft_html_report.py:191</span></li>
               <li><a href="#uman~ring5.trace.requirement-history.documentation~2">uman~ring5.trace.requirement-history.documentation~2</a> <span class="origin">spec/oft/README.md:127</span></li>
             </ul>
@@ -29272,24 +29323,50 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="test~ring5.trace.branch-association-2626618721~0">
+      <section class="sitem" id="test~ring5.trace.approval-gate-118463749~0">
         <details>
-          <summary title="test~ring5.trace.branch-association-2626618721~0"><span class="green">&check;</span> <b>ring5.trace.branch-association-2626618721</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.trace.branch-association-2626618721~0</p>
-          <p class="origin">tests/unit/test_oft_inventory.py:179</p>
+          <summary title="test~ring5.trace.approval-gate-118463749~0"><span class="green">&check;</span> <b>ring5.trace.approval-gate-118463749</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.trace.approval-gate-118463749~0</p>
+          <p class="origin">tests/unit/test_oft_inventory.py:223</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
-              <li><a href="#req~ring5.trace.branch-association~1">req~ring5.trace.branch-association~1</a> <span class="origin">spec/oft/generated/requirements.md:3009</span></li>
+              <li><a href="#req~ring5.trace.approval-gate~1">req~ring5.trace.approval-gate~1</a> <span class="origin">spec/oft/generated/requirements.md:3057</span></li>
             </ul>
           </div>
         </details>
       </section>
-      <section class="sitem" id="test~ring5.trace.branch-association-3009410295~0">
+      <section class="sitem" id="test~ring5.trace.approval-gate-2372802975~0">
         <details>
-          <summary title="test~ring5.trace.branch-association-3009410295~0"><span class="green">&check;</span> <b>ring5.trace.branch-association-3009410295</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.trace.branch-association-3009410295~0</p>
-          <p class="origin">tests/unit/test_oft_inventory.py:164</p>
+          <summary title="test~ring5.trace.approval-gate-2372802975~0"><span class="green">&check;</span> <b>ring5.trace.approval-gate-2372802975</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.trace.approval-gate-2372802975~0</p>
+          <p class="origin">tests/unit/test_oft_inventory.py:70</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.trace.approval-gate~1">req~ring5.trace.approval-gate~1</a> <span class="origin">spec/oft/generated/requirements.md:3057</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="test~ring5.trace.approval-gate-343932159~0">
+        <details>
+          <summary title="test~ring5.trace.approval-gate-343932159~0"><span class="green">&check;</span> <b>ring5.trace.approval-gate-343932159</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.trace.approval-gate-343932159~0</p>
+          <p class="origin">tests/unit/test_oft_inventory.py:238</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.trace.approval-gate~1">req~ring5.trace.approval-gate~1</a> <span class="origin">spec/oft/generated/requirements.md:3057</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="test~ring5.trace.branch-association-16489570~0">
+        <details>
+          <summary title="test~ring5.trace.branch-association-16489570~0"><span class="green">&check;</span> <b>ring5.trace.branch-association-16489570</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.trace.branch-association-16489570~0</p>
+          <p class="origin">tests/unit/test_oft_inventory.py:181</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -29311,11 +29388,24 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="test~ring5.trace.discovery-convergence-1430162350~0">
+      <section class="sitem" id="test~ring5.trace.branch-association-3189016195~0">
         <details>
-          <summary title="test~ring5.trace.discovery-convergence-1430162350~0"><span class="green">&check;</span> <b>ring5.trace.discovery-convergence-1430162350</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.trace.discovery-convergence-1430162350~0</p>
-          <p class="origin">tests/unit/test_oft_inventory.py:98</p>
+          <summary title="test~ring5.trace.branch-association-3189016195~0"><span class="green">&check;</span> <b>ring5.trace.branch-association-3189016195</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.trace.branch-association-3189016195~0</p>
+          <p class="origin">tests/unit/test_oft_inventory.py:200</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.trace.branch-association~1">req~ring5.trace.branch-association~1</a> <span class="origin">spec/oft/generated/requirements.md:3009</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="test~ring5.trace.discovery-convergence-1688089706~0">
+        <details>
+          <summary title="test~ring5.trace.discovery-convergence-1688089706~0"><span class="green">&check;</span> <b>ring5.trace.discovery-convergence-1688089706</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.trace.discovery-convergence-1688089706~0</p>
+          <p class="origin">tests/unit/test_oft_inventory.py:28</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -29324,11 +29414,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="test~ring5.trace.discovery-convergence-3155382722~0">
+      <section class="sitem" id="test~ring5.trace.discovery-convergence-396418716~0">
         <details>
-          <summary title="test~ring5.trace.discovery-convergence-3155382722~0"><span class="green">&check;</span> <b>ring5.trace.discovery-convergence-3155382722</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.trace.discovery-convergence-3155382722~0</p>
-          <p class="origin">tests/unit/test_oft_inventory.py:27</p>
+          <summary title="test~ring5.trace.discovery-convergence-396418716~0"><span class="green">&check;</span> <b>ring5.trace.discovery-convergence-396418716</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.trace.discovery-convergence-396418716~0</p>
+          <p class="origin">tests/unit/test_oft_inventory.py:115</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -29350,11 +29440,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="test~ring5.trace.future-status-reporting-791028880~0">
+      <section class="sitem" id="test~ring5.trace.future-status-reporting-451063505~0">
         <details>
-          <summary title="test~ring5.trace.future-status-reporting-791028880~0"><span class="green">&check;</span> <b>ring5.trace.future-status-reporting-791028880</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.trace.future-status-reporting-791028880~0</p>
-          <p class="origin">tests/unit/test_oft_inventory.py:137</p>
+          <summary title="test~ring5.trace.future-status-reporting-451063505~0"><span class="green">&check;</span> <b>ring5.trace.future-status-reporting-451063505</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.trace.future-status-reporting-451063505~0</p>
+          <p class="origin">tests/unit/test_oft_inventory.py:154</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -29415,11 +29505,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="test~ring5.trace.inventory-generator-1421360810~0">
+      <section class="sitem" id="test~ring5.trace.inventory-generator-3414234314~0">
         <details>
-          <summary title="test~ring5.trace.inventory-generator-1421360810~0"><span class="green">&check;</span> <b>ring5.trace.inventory-generator-1421360810</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.trace.inventory-generator-1421360810~0</p>
-          <p class="origin">tests/unit/test_oft_inventory.py:28</p>
+          <summary title="test~ring5.trace.inventory-generator-3414234314~0"><span class="green">&check;</span> <b>ring5.trace.inventory-generator-3414234314</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.trace.inventory-generator-3414234314~0</p>
+          <p class="origin">tests/unit/test_oft_inventory.py:43</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -29428,11 +29518,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="test~ring5.trace.inventory-generator-2231902051~0">
+      <section class="sitem" id="test~ring5.trace.inventory-generator-439432451~0">
         <details>
-          <summary title="test~ring5.trace.inventory-generator-2231902051~0"><span class="green">&check;</span> <b>ring5.trace.inventory-generator-2231902051</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.trace.inventory-generator-2231902051~0</p>
-          <p class="origin">tests/unit/test_oft_inventory.py:42</p>
+          <summary title="test~ring5.trace.inventory-generator-439432451~0"><span class="green">&check;</span> <b>ring5.trace.inventory-generator-439432451</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.trace.inventory-generator-439432451~0</p>
+          <p class="origin">tests/unit/test_oft_inventory.py:29</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -29480,11 +29570,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="test~ring5.trace.registry-drift-2820068779~0">
+      <section class="sitem" id="test~ring5.trace.registry-drift-2098922705~0">
         <details>
-          <summary title="test~ring5.trace.registry-drift-2820068779~0"><span class="green">&check;</span> <b>ring5.trace.registry-drift-2820068779</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.trace.registry-drift-2820068779~0</p>
-          <p class="origin">tests/unit/test_oft_inventory.py:29</p>
+          <summary title="test~ring5.trace.registry-drift-2098922705~0"><span class="green">&check;</span> <b>ring5.trace.registry-drift-2098922705</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.trace.registry-drift-2098922705~0</p>
+          <p class="origin">tests/unit/test_oft_inventory.py:116</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -29493,11 +29583,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="test~ring5.trace.registry-drift-3917499063~0">
+      <section class="sitem" id="test~ring5.trace.registry-drift-3161005220~0">
         <details>
-          <summary title="test~ring5.trace.registry-drift-3917499063~0"><span class="green">&check;</span> <b>ring5.trace.registry-drift-3917499063</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.trace.registry-drift-3917499063~0</p>
-          <p class="origin">tests/unit/test_oft_inventory.py:99</p>
+          <summary title="test~ring5.trace.registry-drift-3161005220~0"><span class="green">&check;</span> <b>ring5.trace.registry-drift-3161005220</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.trace.registry-drift-3161005220~0</p>
+          <p class="origin">tests/unit/test_oft_inventory.py:30</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -29545,11 +29635,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="test~ring5.trace.requirement-history-2150287053~0">
+      <section class="sitem" id="test~ring5.trace.requirement-history-2913208430~0">
         <details>
-          <summary title="test~ring5.trace.requirement-history-2150287053~0"><span class="green">&check;</span> <b>ring5.trace.requirement-history-2150287053</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.trace.requirement-history-2150287053~0</p>
-          <p class="origin">tests/unit/test_oft_inventory.py:190</p>
+          <summary title="test~ring5.trace.requirement-history-2913208430~0"><span class="green">&check;</span> <b>ring5.trace.requirement-history-2913208430</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.trace.requirement-history-2913208430~0</p>
+          <p class="origin">tests/unit/test_oft_inventory.py:261</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -29558,11 +29648,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="test~ring5.trace.requirement-history-3775282933~0">
+      <section class="sitem" id="test~ring5.trace.requirement-history-3425166120~0">
         <details>
-          <summary title="test~ring5.trace.requirement-history-3775282933~0"><span class="green">&check;</span> <b>ring5.trace.requirement-history-3775282933</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.trace.requirement-history-3775282933~0</p>
-          <p class="origin">tests/unit/test_oft_inventory.py:209</p>
+          <summary title="test~ring5.trace.requirement-history-3425166120~0"><span class="green">&check;</span> <b>ring5.trace.requirement-history-3425166120</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.trace.requirement-history-3425166120~0</p>
+          <p class="origin">tests/unit/test_oft_inventory.py:280</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -32577,6 +32667,19 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
+      <section class="sitem" id="uman~ring5.trace.approval-gate.documentation~1">
+        <details>
+          <summary title="uman~ring5.trace.approval-gate.documentation~1"><span class="green">&check;</span> <b>ring5.trace.approval-gate.documentation</b><small>, rev. 1, uman</small></summary>
+          <p class="id">uman~ring5.trace.approval-gate.documentation~1</p>
+          <p class="origin">spec/oft/README.md:211</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.trace.approval-gate~1">req~ring5.trace.approval-gate~1</a> <span class="origin">spec/oft/generated/requirements.md:3057</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
       <section class="sitem" id="uman~ring5.trace.branch-association.documentation~1">
         <details>
           <summary title="uman~ring5.trace.branch-association.documentation~1"><span class="green">&check;</span> <b>ring5.trace.branch-association.documentation</b><small>, rev. 1, uman</small></summary>
@@ -32659,7 +32762,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
         <details>
           <summary title="uman~ring5.trace.registry-drift.documentation~1"><span class="green">&check;</span> <b>ring5.trace.registry-drift.documentation</b><small>, rev. 1, uman</small></summary>
           <p class="id">uman~ring5.trace.registry-drift.documentation~1</p>
-          <p class="origin">spec/oft/README.md:230</p>
+          <p class="origin">spec/oft/README.md:252</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -32879,7 +32982,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
     </section>
   </main>
   <nav>
-    <span class="red">&cross;</span> 1866 total <meter value="1864" low="1865" max="1866">99%</meter> <span class=".red">2 defects</span> | <a href="#feat">feat</a> &middot; <a href="#impl">impl</a> &middot; <a href="#req">req</a> &middot; <a href="#test">test</a> &middot; <a href="#uman">uman</a>  </nav>
+    <span class="green">&check;</span> 1873 total <meter value="1873" max="1873">100%</meter> | <a href="#feat">feat</a> &middot; <a href="#impl">impl</a> &middot; <a href="#req">req</a> &middot; <a href="#test">test</a> &middot; <a href="#uman">uman</a>  </nav>
   
 <script>
 (() => {
