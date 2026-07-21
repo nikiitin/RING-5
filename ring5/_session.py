@@ -48,6 +48,7 @@ from src.core.models import (
     PlotTransferResult,
     PortfolioData,
     PortfolioDiff,
+    PortfolioIntegrityReport,
     PortfolioRevisionInfo,
     ReportFigure,
     RecipeExport,
@@ -2621,7 +2622,13 @@ class Session:
 
         return EnvironmentMetadataService.capture(refresh=refresh)
 
-    def _read_portfolio_data(self, name: str) -> PortfolioData:
+    def _read_portfolio_data(
+        self,
+        name: str,
+        *,
+        signing_key: str | bytes | None = None,
+        require_signature: bool = False,
+    ) -> PortfolioData:
         """Read a portfolio while translating storage errors to public errors."""
         from src.core.services.portfolio_migrator import (
             PortfolioVersionError as CoreVersionError,
@@ -2630,7 +2637,13 @@ class Session:
         from ring5.errors import PortfolioVersionError
 
         try:
-            return self.api.data_services.load_portfolio(name)
+            if signing_key is None and not require_signature:
+                return self.api.data_services.load_portfolio(name)
+            return self.api.data_services.load_portfolio(
+                name,
+                signing_key=signing_key,
+                require_signature=require_signature,
+            )
         except FileNotFoundError as exc:
             raise PortfolioError(str(exc)) from exc
         except CoreVersionError as exc:
@@ -2700,7 +2713,14 @@ class Session:
         """The session's plots (created here or restored from a portfolio)."""
         return list(self.api.state_manager.get_plots())  # type: ignore[arg-type]
 
-    def save_portfolio(self, name: str, *, overwrite: bool = False) -> None:
+    def save_portfolio(
+        self,
+        name: str,
+        *,
+        overwrite: bool = False,
+        signing_key: str | bytes | None = None,
+        signing_key_id: str = "default",
+    ) -> None:
         # [impl->req~ring5.portfolio.safe-overwrite~1]
         """Snapshot the session (data + plots + config) to a portfolio.
 
@@ -2711,6 +2731,8 @@ class Session:
         Args:
             name: Portfolio name.
             overwrite: Replace an existing portfolio with the same name.
+            signing_key: Optional shared secret used to add an HMAC-SHA-256 signature.
+            signing_key_id: Non-secret label stored with the signature.
 
         Raises:
             PortfolioError: The name exists and ``overwrite`` is False.
@@ -2729,17 +2751,55 @@ class Session:
                 parse_variables=sm.get_parse_variables(),
                 figure_spec_enricher=build_figure_spec_dict,
                 overwrite=overwrite,
+                signing_key=signing_key,
+                signing_key_id=signing_key_id,
             )
         except FileExistsError as exc:
             raise PortfolioError(str(exc)) from exc
         except (OSError, ValueError) as exc:
             raise PortfolioError(f"Portfolio '{name}' could not be saved: {exc}") from exc
 
-    def load_portfolio(self, name: str) -> RestoreReport:
+    def verify_portfolio(
+        self,
+        name: str,
+        *,
+        signing_key: str | bytes | None = None,
+    ) -> PortfolioIntegrityReport:
+        # [impl->req~ring5.portfolio.signed-manifests~1]
+        """Verify a saved portfolio without changing this session.
+
+        Args:
+            name: Saved portfolio name.
+            signing_key: Optional shared secret for HMAC-SHA-256 verification.
+
+        Returns:
+            Structured checksum and signature evidence. A checksum-valid but
+            unsigned portfolio is not presented as authenticated.
+
+        Raises:
+            PortfolioError: The portfolio cannot be read or inspected.
+        """
+        try:
+            return self.api.data_services.verify_portfolio(name, signing_key=signing_key)
+        except FileNotFoundError as exc:
+            raise PortfolioError(str(exc)) from exc
+        except (OSError, TypeError, ValueError) as exc:
+            raise PortfolioError(f"Portfolio '{name}' could not be verified: {exc}") from exc
+
+    def load_portfolio(
+        self,
+        name: str,
+        *,
+        signing_key: str | bytes | None = None,
+        require_signature: bool = False,
+    ) -> RestoreReport:
+        # [impl->req~ring5.portfolio.signed-manifests~1]
         """Load + restore a portfolio; the report says what was skipped.
 
         Args:
             name: Portfolio name.
+            signing_key: Optional shared secret for signature verification.
+            require_signature: Refuse restore unless that secret verifies a signature.
 
         Returns:
             A report describing restored and skipped content.
@@ -2748,7 +2808,11 @@ class Session:
             PortfolioError: The portfolio does not exist.
             PortfolioVersionError: It was written by a newer RING-5.
         """
-        data = self._read_portfolio_data(name)
+        data = self._read_portfolio_data(
+            name,
+            signing_key=signing_key,
+            require_signature=require_signature,
+        )
         try:
             return self.api.state_manager.restore_session(data)
         except (KeyError, TypeError, ValueError) as exc:

@@ -4258,11 +4258,43 @@
       "id": "portfolio.signed-manifests",
       "group": "reproducibility",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Signed portfolio manifests",
       "description": "Portable portfolios shall support checksummed manifests and optional signatures for detecting modified inputs, configuration, and outputs.",
       "tags": ["integrity", "portfolios", "security"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "src/core/models/portfolio_integrity_models.py::PortfolioIntegrityReport",
+          "src/core/models/portfolio_integrity_models.py::PortfolioIntegritySection",
+          "src/core/services/portfolio_integrity_service.py::PortfolioIntegrityService.create_manifest",
+          "src/core/services/portfolio_integrity_service.py::PortfolioIntegrityService.verify",
+          "src/core/services/portfolio_integrity_service.py::PortfolioIntegrityService.require_restorable",
+          "src/core/services/data_services/portfolio_service.py::PortfolioService.save_portfolio",
+          "src/core/services/data_services/portfolio_service.py::PortfolioService.verify_portfolio",
+          "src/core/services/data_services/portfolio_service.py::PortfolioService.load_portfolio",
+          "src/core/services/browser_upload_service.py::BrowserUploadService.load_portfolio",
+          "src/core/services/portfolio_migrator.py::PortfolioMigrator._migrate_v3_to_v4",
+          "ring5/_session.py::Session.verify_portfolio",
+          "ring5/_session.py::Session.load_portfolio",
+          "src/web/pages/portfolio.py::_render_integrity_review"
+        ],
+        "tests": [
+          "tests/unit/test_portfolio_integrity_service.py::test_checksum_manifest_reports_named_sections_without_claiming_authenticity",
+          "tests/unit/test_portfolio_integrity_service.py::test_signature_requires_the_matching_secret_for_authentication",
+          "tests/unit/test_portfolio_integrity_service.py::test_modified_content_identifies_the_affected_section",
+          "tests/unit/test_browser_upload_service.py::test_signed_portfolio_upload_requires_matching_secret_when_requested",
+          "tests/unit/test_browser_upload_service.py::test_modified_manifest_portfolio_upload_is_rejected_before_staging",
+          "tests/unit/test_browser_upload_component.py::test_signed_portfolio_requires_secret_and_reports_key_id",
+          "tests/unit/test_portfolio_page.py::TestPortfolioIntegrity.test_integrity_review_distinguishes_checksum_from_signature",
+          "tests/integration/test_signed_portfolio_public_api.py::test_public_api_distinguishes_checksums_and_verified_signatures",
+          "tests/integration/test_signed_portfolio_public_api.py::test_modified_portfolio_is_reported_and_never_restored",
+          "tests/integration/test_signed_portfolio_public_api.py::test_integrity_public_errors_remain_portfolio_errors",
+          "tests/e2e/test_portfolio.py::TestPortfolioSaveLoad.test_02_save_portfolio"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/portfolios.md#check-integrity-and-authenticate-a-portfolio"
+        ]
+      }
     },
     {
       "id": "portfolio.environment-metadata",
@@ -4721,6 +4753,8 @@
       "PortfolioDiff": "portfolio.history-diff",
       "PortfolioDiffEntry": "portfolio.history-diff",
       "PortfolioError": "api.typed-errors",
+      "PortfolioIntegrityReport": "portfolio.signed-manifests",
+      "PortfolioIntegritySection": "portfolio.signed-manifests",
       "PortfolioRevisionInfo": "portfolio.history-diff",
       "PortfolioVersionError": "api.typed-errors",
       "ReferenceLineOpts": "api.figure-spec",
@@ -4853,7 +4887,8 @@
       "restore_dataset_revision": "data.lineage-undo-redo",
       "restore_portfolio_revision": "portfolio.history-diff",
       "undo_dataset": "data.lineage-undo-redo",
-      "validate_schema": "data.schema-contracts"
+      "validate_schema": "data.schema-contracts",
+      "verify_portfolio": "portfolio.signed-manifests"
     },
     "cli_commands": {
       "doctor": "api.doctor",
@@ -5032,7 +5067,8 @@
       "save_dataset_snapshot": "data.dataset-snapshots",
       "save_portfolio": "portfolio.save",
       "update_scanned_entries": "ingestion.variable-entry-selection",
-      "update_variable": "ingestion.variable-editor"
+      "update_variable": "ingestion.variable-editor",
+      "verify_portfolio": "portfolio.signed-manifests"
     },
     "shapers_api_members": {
       "create_shaper": "extension.shaper-registry",

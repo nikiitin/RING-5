@@ -62,3 +62,36 @@ def test_invalid_upload_stays_out_of_the_workspace(mock_st: MagicMock) -> None:
     mock_st.error.assert_called_once()
     api.load_import_preview.assert_not_called()
     api.restore_browser_portfolio.assert_not_called()
+
+
+@patch("src.web.components.data_source.data_source_components.st")
+def test_signed_portfolio_requires_secret_and_reports_key_id(mock_st: MagicMock) -> None:
+    # [test->req~ring5.portfolio.signed-manifests~1]
+    api = MagicMock()
+    api.restore_browser_portfolio.return_value.complete = True
+    mock_st.columns.side_effect = columns_side_effect
+    mock_st.text_input.return_value = "shared secret"
+    mock_st.button.return_value = True
+    inspection = BrowserUpload(
+        file_name="analysis.json",
+        content_type="application/json",
+        kind="portfolio",
+        size_bytes=128,
+        source_sha256="b" * 64,
+        source_path="/tmp/analysis.json",
+        portfolio_schema_version=4,
+        portfolio_plot_count=2,
+        portfolio_has_data=True,
+        portfolio_integrity_status="signature-unverified",
+        portfolio_signing_key_id="lab-key",
+    )
+
+    DataSourceComponents._show_validated_upload(api, inspection)
+
+    mock_st.text_input.assert_called_once()
+    assert "lab-key" in mock_st.caption.call_args.args[0]
+    api.restore_browser_portfolio.assert_called_once_with(
+        inspection,
+        signing_key="shared secret",
+        require_signature=True,
+    )

@@ -27,6 +27,7 @@ from src.core.models.portfolio_revision_models import (
 )
 from src.core.services.data_services.path_service import PathService
 from src.core.services.portfolio_migrator import PortfolioMigrator
+from src.core.services.portfolio_integrity_service import PortfolioIntegrityService
 
 _REVISION_ID = re.compile(r"^[0-9a-f]{64}$")
 _SECTIONS: tuple[PortfolioDiffSection, ...] = (
@@ -309,6 +310,8 @@ class PortfolioRevisionService:
         value = json.loads(raw.decode("utf-8"))
         if not isinstance(value, dict):
             raise ValueError("Portfolio revision must contain a JSON object.")
+        integrity = PortfolioIntegrityService.verify(value)
+        PortfolioIntegrityService.require_restorable(integrity)
         return cast(PortfolioData, PortfolioMigrator.migrate(value))
 
     @staticmethod

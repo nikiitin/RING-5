@@ -244,13 +244,22 @@ class TestDefaultDataServicesAPI:
         df = pd.DataFrame({"x": [1]})
         api.save_portfolio("p1", df, [], {}, 0)
         api._portfolio_service.save_portfolio.assert_called_once_with(
-            "p1", df, [], {}, 0, None, None, None, True
+            "p1", df, [], {}, 0, None, None, None, True, None, "default"
         )
 
     def test_load_portfolio(self, api: DefaultDataServicesAPI) -> None:
         api._portfolio_service = MagicMock()
         api._portfolio_service.load_portfolio.return_value = {"name": "p1"}
         assert api.load_portfolio("p1") == {"name": "p1"}
+        api._portfolio_service.load_portfolio.assert_called_once_with(
+            "p1", signing_key=None, require_signature=False
+        )
+
+    def test_verify_portfolio(self, api: DefaultDataServicesAPI) -> None:
+        api._portfolio_service = MagicMock()
+        api._portfolio_service.verify_portfolio.return_value = "verified"
+        assert api.verify_portfolio("p1", signing_key="secret") == "verified"
+        api._portfolio_service.verify_portfolio.assert_called_once_with("p1", signing_key="secret")
 
     def test_portfolio_revision_delegation(self, api: DefaultDataServicesAPI) -> None:
         api._portfolio_service = MagicMock()

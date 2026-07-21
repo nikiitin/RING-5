@@ -11,6 +11,7 @@ from openpyxl import Workbook
 
 from src.core.services.browser_upload_service import BrowserUploadService
 from src.core.services.import_preview_service import ImportPreviewService
+from src.core.services.portfolio_integrity_service import PortfolioIntegrityService
 
 
 def _workbook_bytes() -> bytes:
@@ -106,7 +107,7 @@ def test_portfolio_is_summarized_and_revalidated_before_restore(tmp_path: Path) 
     )
 
     assert upload.kind == "portfolio"
-    assert upload.portfolio_schema_version == 3
+    assert upload.portfolio_schema_version == 4
     assert upload.portfolio_plot_count == 0
     assert upload.portfolio_has_data is True
     assert BrowserUploadService.load_portfolio(upload)["data_csv"].startswith("benchmark")
@@ -114,6 +115,64 @@ def test_portfolio_is_summarized_and_revalidated_before_restore(tmp_path: Path) 
     Path(upload.source_path).write_text("{}", encoding="utf-8")
     with pytest.raises(ValueError, match="changed after validation"):
         BrowserUploadService.load_portfolio(upload)
+
+
+def test_signed_portfolio_upload_requires_matching_secret_when_requested(tmp_path: Path) -> None:
+    # [test->req~ring5.portfolio.signed-manifests~1]
+    document = {
+        "schema_version": 4,
+        "version": "4.0",
+        "data_csv": "benchmark,ipc\nalpha,1.25\n",
+        "plots": [],
+        "config": {},
+    }
+    document["integrity_manifest"] = PortfolioIntegrityService.create_manifest(
+        document,
+        signing_key="shared upload secret",
+        key_id="collaborator-a",
+    )
+    upload = BrowserUploadService.inspect(
+        "signed-analysis.json",
+        "application/json",
+        json.dumps(document).encode(),
+        tmp_path,
+    )
+
+    assert upload.portfolio_integrity_status == "signature-unverified"
+    assert upload.portfolio_signing_key_id == "collaborator-a"
+    with pytest.raises(ValueError, match="does not verify"):
+        BrowserUploadService.load_portfolio(
+            upload,
+            signing_key="wrong secret",
+            require_signature=True,
+        )
+    restored = BrowserUploadService.load_portfolio(
+        upload,
+        signing_key="shared upload secret",
+        require_signature=True,
+    )
+    assert restored["data_csv"].startswith("benchmark")
+
+
+def test_modified_manifest_portfolio_upload_is_rejected_before_staging(tmp_path: Path) -> None:
+    # [test->req~ring5.portfolio.signed-manifests~1]
+    document = {
+        "schema_version": 4,
+        "version": "4.0",
+        "data_csv": "benchmark,ipc\nalpha,1.25\n",
+        "plots": [],
+        "config": {},
+    }
+    document["integrity_manifest"] = PortfolioIntegrityService.create_manifest(document)
+    document["data_csv"] = "benchmark,ipc\nalpha,9.99\n"
+
+    with pytest.raises(ValueError, match="does not match"):
+        BrowserUploadService.inspect(
+            "modified-analysis.json",
+            "application/json",
+            json.dumps(document).encode(),
+            tmp_path,
+        )
 
 
 def test_csv_uses_browser_specific_size_row_and_cell_limits(

@@ -219,13 +219,42 @@ class DataSourceComponents:
 
         if inspection.kind == "portfolio":
             st.markdown("#### Review portfolio restoration")
+            integrity_labels = {
+                "legacy-unverified": "Legacy — no manifest",
+                "checksum-valid": "Checksums match — unsigned",
+                "signature-unverified": "Checksums match — signature needs secret",
+                "signature-valid": "Checksums and signature verified",
+                "modified": "Modified",
+                "signature-invalid": "Signature invalid",
+                "invalid-manifest": "Invalid manifest",
+            }
+            integrity_status = inspection.portfolio_integrity_status
             st.write(
                 {
                     "Schema version": inspection.portfolio_schema_version,
                     "Plots": inspection.portfolio_plot_count,
                     "Contains data": "Yes" if inspection.portfolio_has_data else "No",
+                    "Integrity": (
+                        integrity_labels.get(integrity_status, "Not reported")
+                        if integrity_status is not None
+                        else "Not reported"
+                    ),
                 }
             )
+            signing_key: str | None = None
+            require_signature = inspection.portfolio_integrity_status == "signature-unverified"
+            if inspection.portfolio_signing_key_id:
+                st.caption(f"Signing key ID: `{inspection.portfolio_signing_key_id}`")
+            if require_signature:
+                signing_key = (
+                    st.text_input(
+                        "Portfolio signing secret",
+                        type="password",
+                        key=f"data_source.portfolio_secret.{inspection.source_sha256}",
+                        help="Used only for this restore; the secret is not stored.",
+                    )
+                    or None
+                )
             st.warning(
                 "Restoring replaces the current workspace with the uploaded portfolio. "
                 "The upload has been validated but no state has changed yet."
@@ -235,9 +264,14 @@ class DataSourceComponents:
                 type="primary",
                 width="stretch",
                 key=f"data_source.restore_upload.{inspection.source_sha256}",
+                disabled=require_signature and signing_key is None,
             ):
                 try:
-                    report = api.restore_browser_portfolio(inspection)
+                    report = api.restore_browser_portfolio(
+                        inspection,
+                        signing_key=signing_key,
+                        require_signature=require_signature,
+                    )
                     if report.complete:
                         st.toast("Uploaded portfolio restored.", icon="✅")
                     else:

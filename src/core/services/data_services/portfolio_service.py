@@ -14,6 +14,7 @@ from src.core.models import (
     PlotProtocol,
     PortfolioData,
     PortfolioDiff,
+    PortfolioIntegrityReport,
     PortfolioRevisionInfo,
 )
 from src.core.services.data_services.path_service import PathService
@@ -22,6 +23,7 @@ from src.core.services.data_services.portfolio_revision_service import (
 )
 from src.core.services.environment_metadata_service import EnvironmentMetadataService
 from src.core.services.portfolio_migrator import PortfolioMigrator
+from src.core.services.portfolio_integrity_service import PortfolioIntegrityService
 from src.core.state.state_manager import StateManager
 from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
 
@@ -57,10 +59,13 @@ class PortfolioService:
             Callable[[dict[str, Any], str], dict[str, Any] | None]
         ) = None,
         overwrite: bool = True,
+        signing_key: str | bytes | None = None,
+        signing_key_id: str = "default",
     ) -> None:
         # [impl->req~ring5.portfolio.save~1]
         # [impl->req~ring5.data.semantic-units~1]
         # [impl->req~ring5.portfolio.environment-metadata~1]
+        # [impl->req~ring5.portfolio.signed-manifests~1]
         """Serialize and save the current workspace state.
 
         Args:
@@ -79,6 +84,8 @@ class PortfolioService:
             overwrite: When False, raise FileExistsError instead of replacing
                 an existing portfolio of the same name (portfolios are keyed
                 by name alone — the default silently overwrites).
+            signing_key: Optional shared secret for an HMAC-SHA-256 signature.
+            signing_key_id: Non-secret label stored with a signature.
         """
         if not name:
             raise ValueError("Portfolio name cannot be empty")
@@ -109,7 +116,7 @@ class PortfolioService:
 
         portfolio_data: dict[str, Any] = {
             "schema_version": PortfolioMigrator.CURRENT_VERSION,
-            "version": "3.0",
+            "version": "4.0",
             "timestamp": pd.Timestamp.now().isoformat(),
             "environment_metadata": EnvironmentMetadataService.capture().to_dict(),
             "data_csv": data_csv,
@@ -130,6 +137,11 @@ class PortfolioService:
             "manager_history": self.state_manager.get_manager_history(),
             "portfolio_history": self.state_manager.get_portfolio_history(),
         }
+        portfolio_data["integrity_manifest"] = PortfolioIntegrityService.create_manifest(
+            portfolio_data,
+            signing_key=signing_key,
+            key_id=signing_key_id,
+        )
 
         save_path = self._portfolio_path(name)
         payload = json.dumps(portfolio_data, indent=2).encode("utf-8")
@@ -143,7 +155,14 @@ class PortfolioService:
         except FileExistsError as exc:
             raise FileExistsError(f"Portfolio '{name}' already exists at {save_path}") from exc
 
-    def load_portfolio(self, name: str) -> PortfolioData:
+    def load_portfolio(
+        self,
+        name: str,
+        *,
+        signing_key: str | bytes | None = None,
+        require_signature: bool = False,
+    ) -> PortfolioData:
+        # [impl->req~ring5.portfolio.signed-manifests~1]
         """Load a portfolio JSON by name.
 
         Runs schema migration via :class:`PortfolioMigrator` to ensure
@@ -153,10 +172,43 @@ class PortfolioService:
         if not load_path.exists():
             raise FileNotFoundError(f"Portfolio '{name}' not found")
 
-        with open(load_path) as f:
-            raw: dict[str, Any] = cast(dict[str, Any], json.load(f))
+        with open(load_path, encoding="utf-8") as f:
+            value = json.load(f)
+        if not isinstance(value, dict):
+            raise ValueError("Portfolio JSON must contain one top-level object.")
+        raw: dict[str, Any] = value
 
+        report = PortfolioIntegrityService.verify(raw, signing_key=signing_key)
+        PortfolioIntegrityService.require_restorable(
+            report,
+            require_signature=require_signature,
+        )
         return cast(PortfolioData, PortfolioMigrator.migrate(raw))
+
+    def verify_portfolio(
+        self,
+        name: str,
+        *,
+        signing_key: str | bytes | None = None,
+    ) -> PortfolioIntegrityReport:
+        # [impl->req~ring5.portfolio.signed-manifests~1]
+        """Return checksum and optional signature evidence without restoring state.
+
+        Args:
+            name: Saved portfolio name.
+            signing_key: Optional shared secret for HMAC verification.
+
+        Returns:
+            Structured integrity status for the exact saved content.
+        """
+        load_path = self._portfolio_path(name)
+        if not load_path.exists():
+            raise FileNotFoundError(f"Portfolio '{name}' not found")
+        with open(load_path, encoding="utf-8") as handle:
+            raw = json.load(handle)
+        if not isinstance(raw, dict):
+            raise ValueError("Portfolio JSON must contain one top-level object.")
+        return PortfolioIntegrityService.verify(raw, signing_key=signing_key)
 
     def list_portfolio_revisions(self, name: str) -> tuple[PortfolioRevisionInfo, ...]:
         # [impl->req~ring5.portfolio.history-diff~1]

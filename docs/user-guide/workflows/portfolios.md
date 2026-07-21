@@ -87,6 +87,69 @@ Portfolios are JSON files under the RING-5 application data directory. It defaul
 `.ring5/portfolios/` in the checkout. Set `RING5_DATA_DIR` before starting RING-5 to use an isolated
 or backed-up location.
 
+## Check integrity and authenticate a portfolio
+
+<!--
+`uman~ring5.portfolio.signed-manifests.documentation~1`
+
+Covers:
+- req~ring5.portfolio.signed-manifests~1
+
+-->
+
+Every newly saved portfolio contains SHA-256 checksums for the complete document and for three
+reviewable areas: **Inputs** covers embedded data and source/parser provenance; **Configuration**
+covers workspace settings, histories, plot definitions, and pipelines; **Outputs** covers each
+plot's processed data and semantics. Open **Portfolio integrity** before loading to see whether each
+area still matches. RING-5 blocks restoration when any checksum differs or the manifest is invalid.
+
+The status wording deliberately separates integrity from authenticity:
+
+| Status | Meaning |
+| --- | --- |
+| Checksums match — unsigned | Content is unchanged since the checksums were created; its author is not authenticated. |
+| Signature needs secret | Content is unchanged and carries a signature, but RING-5 has not authenticated it yet. |
+| Checksums and signature verified | Content is unchanged and the supplied shared secret verifies its HMAC-SHA-256 signature. |
+| Legacy — no manifest | The portfolio predates integrity manifests; no content-integrity claim is possible. |
+| Modified or invalid | Restoration is blocked. Review or reacquire the portfolio instead of trusting it. |
+
+To sign from the web application, select **Sign integrity manifest**, give the key a non-secret ID,
+and enter the shared secret. The secret is used only for that save and is not written into the
+portfolio. When loading a signed portfolio, enter the matching secret; the web application will not
+restore it as though it were authenticated without that check.
+
+Python callers can enforce the same trust policy. Keep the secret outside source control, logs, and
+the portfolio itself:
+
+```python
+import os
+import ring5
+
+secret = os.environ["RING5_PORTFOLIO_SIGNING_SECRET"]
+
+with ring5.Session() as session:
+    session.save_portfolio(
+        "paper-a",
+        signing_key=secret,
+        signing_key_id="lab-key-2026",
+    )
+
+with ring5.Session() as session:
+    evidence = session.verify_portfolio("paper-a", signing_key=secret)
+    if evidence.status != "signature-valid":
+        raise RuntimeError(evidence.message)
+    session.load_portfolio(
+        "paper-a",
+        signing_key=secret,
+        require_signature=True,
+    )
+```
+
+`require_signature=True` is the anti-downgrade control: use it whenever the workflow expects an
+authenticated portfolio. Without that external policy, a checksum-only portfolio remains
+restorable because signatures are optional. HMAC uses a shared secret, so it authenticates only
+among parties that protect that secret; it is not a public-key or identity certificate.
+
 ## Compare saved portfolio versions
 
 <!--
@@ -252,8 +315,8 @@ with ring5.Session() as session:
 
 `Session.save_portfolio` refuses to overwrite by default. Pass `overwrite=True` only when replacing
 the named snapshot is intentional. `load_portfolio` returns a `RestoreReport` with data, plot, and
-parse-variable outcomes. Every newly saved schema-V3 portfolio also captures its execution
-environment.
+parse-variable outcomes. Every newly saved schema-V4 portfolio captures its execution environment
+and an integrity manifest.
 
 ## Render every saved plot
 

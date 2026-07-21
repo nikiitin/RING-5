@@ -22,6 +22,7 @@ from src.core.models import (
     PlotProtocol,
     PortfolioData,
     PortfolioDiff,
+    PortfolioIntegrityReport,
     PortfolioRevisionInfo,
     RecipeExport,
     RecipeParameter,
@@ -274,12 +275,29 @@ class DataServicesAPI(Protocol):
             Callable[[dict[str, Any], str], dict[str, Any] | None]
         ) = None,
         overwrite: bool = True,
+        signing_key: str | bytes | None = None,
+        signing_key_id: str = "default",
     ) -> None:
         """Serialize and save the current workspace state."""
         raise NotImplementedError
 
-    def load_portfolio(self, name: str) -> PortfolioData:
+    def load_portfolio(
+        self,
+        name: str,
+        *,
+        signing_key: str | bytes | None = None,
+        require_signature: bool = False,
+    ) -> PortfolioData:
         """Load a portfolio by name."""
+        raise NotImplementedError
+
+    def verify_portfolio(
+        self,
+        name: str,
+        *,
+        signing_key: str | bytes | None = None,
+    ) -> PortfolioIntegrityReport:
+        """Inspect a saved portfolio's checksums and optional signature."""
         raise NotImplementedError
 
     def list_portfolio_revisions(self, name: str) -> tuple[PortfolioRevisionInfo, ...]:

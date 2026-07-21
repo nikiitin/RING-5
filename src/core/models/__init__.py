@@ -105,6 +105,11 @@ from src.core.models.visualization.plot_configuration_comparison import (
     PlotConfigurationComparison,
 )
 from src.core.models.portfolio_models import PortfolioData, RestoreReport
+from src.core.models.portfolio_integrity_models import (
+    PortfolioIntegrityReport,
+    PortfolioIntegritySection,
+    PortfolioIntegrityStatus,
+)
 from src.core.models.portfolio_revision_models import (
     PortfolioDiff,
     PortfolioDiffEntry,
@@ -216,6 +221,9 @@ __all__ = [
     "StatConfig",
     "TransformerShaperConfig",
     "PortfolioData",
+    "PortfolioIntegrityReport",
+    "PortfolioIntegritySection",
+    "PortfolioIntegrityStatus",
     "PortfolioDiff",
     "PortfolioDiffEntry",
     "PortfolioRevisionInfo",

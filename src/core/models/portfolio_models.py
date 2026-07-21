@@ -64,6 +64,7 @@ class PortfolioData(TypedDict, total=False):
         data_csv: CSV string representation of data
         data_semantics: Semantic labels and units retained with data
         environment_metadata: Save-time runtime and dependency versions
+        integrity_manifest: Checksums and optional HMAC signature for saved content
         plots: List of plot configurations
         plot_counter: Current plot ID counter
         config: Application configuration dictionary
@@ -83,6 +84,7 @@ class PortfolioData(TypedDict, total=False):
     data_csv: str
     data_semantics: dict[str, dict[str, str]]
     environment_metadata: dict[str, Any] | None
+    integrity_manifest: dict[str, Any] | None
     plots: list[dict[str, Any]]
     plot_counter: int
     config: dict[str, Any]

@@ -11,7 +11,7 @@ import logging
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
-from src.core.models import EnvironmentComparison
+from src.core.models import EnvironmentComparison, PortfolioIntegrityReport
 from src.core.services.environment_metadata_service import EnvironmentMetadataService
 from src.core.services.portfolio_migrator import PortfolioVersionError
 from src.web.components.report_composer import ReportComposer
@@ -76,6 +76,72 @@ def _render_environment_status(comparison: EnvironmentComparison) -> None:
         )
 
 
+def _render_integrity_status(report: PortfolioIntegrityReport) -> None:
+    """Render an honest interpretation of checksum and signature evidence."""
+    if report.status == "signature-valid":
+        st.success(report.message)
+    elif report.status == "checksum-valid":
+        st.info(report.message)
+    elif report.status in {"legacy-unverified", "signature-unverified"}:
+        st.warning(report.message)
+    else:
+        st.error(report.message)
+
+
+def _render_integrity_review(
+    api: ApplicationAPI,
+    portfolio_name: str,
+) -> tuple[PortfolioIntegrityReport | None, str | None]:
+    # [impl->req~ring5.portfolio.signed-manifests~1]
+    """Show integrity evidence and collect a secret only when one is needed."""
+    try:
+        candidate = api.data_services.verify_portfolio(portfolio_name)
+        report = candidate if isinstance(candidate, PortfolioIntegrityReport) else None
+    except Exception as exc:
+        logger.warning(
+            "PORTFOLIO: integrity for '%s' could not be inspected: %s",
+            portfolio_name,
+            exc,
+        )
+        st.error("Portfolio integrity could not be inspected; restoration is blocked.")
+        return None, None
+    if report is None:
+        return None, None
+
+    signing_key: str | None = None
+    with st.expander("Portfolio integrity", expanded=not report.safe_to_restore):
+        _render_integrity_status(report)
+        if report.key_id:
+            st.caption(f"Signing key ID: `{report.key_id}`")
+        if report.sections:
+            st.dataframe(
+                [
+                    {
+                        "Content": section.name.title(),
+                        "Checksum": "Matches" if section.matches else "Modified",
+                    }
+                    for section in report.sections
+                ],
+                hide_index=True,
+                width="stretch",
+            )
+        if report.status == "signature-unverified":
+            signing_key = (
+                st.text_input(
+                    "Signing secret",
+                    type="password",
+                    key=f"portfolio_verify_secret.{portfolio_name}",
+                    help=(
+                        "Used only to verify this load; the secret is not written "
+                        "to the portfolio."
+                    ),
+                )
+                or None
+            )
+            st.caption("A signed portfolio must be authenticated before the web app restores it.")
+    return report, signing_key
+
+
 def _portfolio_fragment(api: ApplicationAPI) -> None:
     # [impl->req~ring5.portfolio.partial-report~1]
     # [impl->req~ring5.portfolio.manage~1]
@@ -90,8 +156,38 @@ def _portfolio_fragment(api: ApplicationAPI) -> None:
         portfolio_name = st.text_input(
             "Portfolio Name", value="my_portfolio", key="portfolio_save_name"
         )
+        sign_portfolio = (
+            st.checkbox(
+                "Sign integrity manifest",
+                value=False,
+                help="Adds HMAC-SHA-256 authentication using a shared secret you provide.",
+            )
+            is True
+        )
+        signing_key: str | None = None
+        signing_key_id = "default"
+        if sign_portfolio:
+            signing_key_id = st.text_input(
+                "Signing key ID",
+                value="default",
+                help="A non-secret label recipients can use to identify the shared secret.",
+            )
+            signing_key = (
+                st.text_input(
+                    "Signing secret",
+                    type="password",
+                    key="portfolio_save_signing_secret",
+                    help="The secret is used for this save and is never stored in the portfolio.",
+                )
+                or None
+            )
 
-        if st.button("Save Portfolio", type="primary", width="stretch"):
+        if st.button(
+            "Save Portfolio",
+            type="primary",
+            width="stretch",
+            disabled=sign_portfolio and signing_key is None,
+        ):
             try:
                 current_data = api.state_manager.get_data()
                 api.data_services.save_portfolio(
@@ -103,6 +199,8 @@ def _portfolio_fragment(api: ApplicationAPI) -> None:
                     csv_path=api.state_manager.get_csv_path(),
                     parse_variables=api.state_manager.get_parse_variables(),
                     figure_spec_enricher=build_figure_spec_dict,
+                    signing_key=signing_key,
+                    signing_key_id=signing_key_id,
                 )
                 st.toast(f"Portfolio saved: {portfolio_name}", icon="✅")
                 st.rerun()
@@ -126,11 +224,30 @@ def _portfolio_fragment(api: ApplicationAPI) -> None:
             selected_portfolio = st.selectbox(
                 "Select Portfolio", portfolios, key="portfolio_load_select"
             )
+            integrity, verification_key = _render_integrity_review(
+                api,
+                str(selected_portfolio),
+            )
             _render_environment_comparison(api, str(selected_portfolio))
 
-            if st.button("Load Portfolio", type="primary", width="stretch"):
+            load_blocked = integrity is None or (
+                not integrity.safe_to_restore
+                or (integrity.status == "signature-unverified" and verification_key is None)
+            )
+            if st.button(
+                "Load Portfolio",
+                type="primary",
+                width="stretch",
+                disabled=load_blocked,
+            ):
                 try:
-                    data = api.data_services.load_portfolio(selected_portfolio)
+                    data = api.data_services.load_portfolio(
+                        selected_portfolio,
+                        signing_key=verification_key,
+                        require_signature=(
+                            integrity is not None and integrity.status == "signature-unverified"
+                        ),
+                    )
                     report = api.state_manager.restore_session(data)
                     if not report.complete:
                         issues: list[str] = list(report.plots_skipped)

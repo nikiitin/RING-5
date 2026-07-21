@@ -252,10 +252,20 @@ class ApplicationAPI:
             request,
         )
 
-    def restore_browser_portfolio(self, upload: BrowserUpload) -> RestoreReport:
+    def restore_browser_portfolio(
+        self,
+        upload: BrowserUpload,
+        *,
+        signing_key: str | bytes | None = None,
+        require_signature: bool = False,
+    ) -> RestoreReport:
         # [impl->req~ring5.ingestion.browser-upload~1]
         """Restore an explicitly confirmed, unchanged browser portfolio upload."""
-        portfolio = BrowserUploadService.load_portfolio(upload)
+        portfolio = BrowserUploadService.load_portfolio(
+            upload,
+            signing_key=signing_key,
+            require_signature=require_signature,
+        )
         return self.state_manager.restore_session(portfolio)
 
     def fetch_remote_source(

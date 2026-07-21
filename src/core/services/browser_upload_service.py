@@ -30,6 +30,7 @@ from src.core.models.browser_upload_models import (
 from src.core.models.portfolio_models import PortfolioData
 from src.core.services.import_preview_service import ImportPreviewService
 from src.core.services.portfolio_migrator import PortfolioMigrator
+from src.core.services.portfolio_integrity_service import PortfolioIntegrityService
 
 _MEDIA_TYPES: dict[BrowserUploadKind, frozenset[str]] = {
     "csv": frozenset(
@@ -237,7 +238,12 @@ def _validate_csv_table(content: bytes, encoding: str, delimiter: str, header_ro
         raise ValueError(f"CSV upload parsing failed near line {reader.line_num}: {exc}.") from exc
 
 
-def _portfolio(value: Any) -> dict[str, Any]:
+def _portfolio(
+    value: Any,
+    *,
+    signing_key: str | bytes | None = None,
+    require_signature: bool = False,
+) -> dict[str, Any]:
     """Validate and migrate a recognizable RING-5 portfolio object."""
     if not isinstance(value, dict):
         raise ValueError("Portfolio JSON must contain one top-level object.")
@@ -250,6 +256,11 @@ def _portfolio(value: Any) -> dict[str, Any]:
     if "config" in value and not isinstance(value["config"], dict):
         raise ValueError("Portfolio config must be an object.")
     try:
+        integrity = PortfolioIntegrityService.verify(value, signing_key=signing_key)
+        PortfolioIntegrityService.require_restorable(
+            integrity,
+            require_signature=require_signature,
+        )
         return PortfolioMigrator.migrate(cast(dict[str, Any], value))
     except (TypeError, ValueError) as exc:
         raise ValueError(f"Portfolio schema validation failed: {exc}") from exc
@@ -327,6 +338,7 @@ class BrowserUploadService:
 
         if kind == "portfolio":
             portfolio = _portfolio(json_value)
+            integrity = PortfolioIntegrityService.verify(cast(dict[str, Any], json_value))
             return BrowserUpload(
                 file_name=clean_name,
                 content_type=normalized_media or "not provided",
@@ -337,6 +349,8 @@ class BrowserUploadService:
                 portfolio_schema_version=int(portfolio["schema_version"]),
                 portfolio_plot_count=len(portfolio.get("plots", [])),
                 portfolio_has_data=bool(portfolio.get("data_csv")),
+                portfolio_integrity_status=integrity.status,
+                portfolio_signing_key_id=integrity.key_id,
             )
 
         sheet_name: str | None = None
@@ -374,12 +388,25 @@ class BrowserUploadService:
         )
 
     @staticmethod
-    def load_portfolio(upload: BrowserUpload) -> PortfolioData:
+    def load_portfolio(
+        upload: BrowserUpload,
+        *,
+        signing_key: str | bytes | None = None,
+        require_signature: bool = False,
+    ) -> PortfolioData:
         # [impl->req~ring5.ingestion.browser-upload~1]
+        # [impl->req~ring5.portfolio.signed-manifests~1]
         """Revalidate an unchanged staged portfolio for confirmed restoration."""
         if upload.kind != "portfolio":
             raise ValueError("Only a portfolio upload can restore a workspace.")
         content = Path(upload.source_path).read_bytes()
         if hashlib.sha256(content).hexdigest() != upload.source_sha256:
             raise ValueError("Uploaded portfolio changed after validation; upload it again.")
-        return cast(PortfolioData, _portfolio(_parse_json(content)))
+        return cast(
+            PortfolioData,
+            _portfolio(
+                _parse_json(content),
+                signing_key=signing_key,
+                require_signature=require_signature,
+            ),
+        )

@@ -82,8 +82,8 @@ def test_save_and_load_portfolio(
     loaded_data = portfolio_service.load_portfolio("test_portfolio")
 
     # Verify Content
-    assert loaded_data["schema_version"] == 3
-    assert loaded_data["version"] == "3.0"
+    assert loaded_data["schema_version"] == 4
+    assert loaded_data["version"] == "4.0"
     environment = loaded_data["environment_metadata"]
     assert environment is not None
     assert environment["format_version"] == 1

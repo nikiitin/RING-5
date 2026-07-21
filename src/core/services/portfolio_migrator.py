@@ -6,7 +6,8 @@ saved under older schemas can be loaded by the current application.
 Schema versions:
     - **V1** (original): flat config dicts, ``export_*`` keys for LaTeX.
     - **V2**: ``engine`` field per plot, no ``export_*`` keys.
-    - **V3** (current): optional save-time execution-environment metadata.
+    - **V3**: optional save-time execution-environment metadata.
+    - **V4** (current): optional portfolio integrity manifest.
 """
 
 from __future__ import annotations
@@ -37,7 +38,7 @@ class PortfolioMigrator:
         migrated = PortfolioMigrator.migrate(raw)
     """
 
-    CURRENT_VERSION: int = 3
+    CURRENT_VERSION: int = 4
 
     @staticmethod
     def migrate(portfolio_data: dict[str, Any]) -> dict[str, Any]:
@@ -73,6 +74,8 @@ class PortfolioMigrator:
             portfolio_data = dict(portfolio_data)
         if version < 3:
             portfolio_data = PortfolioMigrator._migrate_v2_to_v3(portfolio_data)
+        if version < 4:
+            portfolio_data = PortfolioMigrator._migrate_v3_to_v4(portfolio_data)
 
         portfolio_data["schema_version"] = PortfolioMigrator.CURRENT_VERSION
         return portfolio_data
@@ -123,4 +126,18 @@ class PortfolioMigrator:
         data = dict(data)
         data.setdefault("environment_metadata", None)
         data["version"] = "3.0"
+        return data
+
+    @staticmethod
+    def _migrate_v3_to_v4(data: dict[str, Any]) -> dict[str, Any]:
+        # [impl->req~ring5.portfolio.signed-manifests~1]
+        """V3 → V4: mark absent historical integrity evidence honestly.
+
+        A checksum created during migration would only attest to the document
+        after it reached this runtime. Older portfolios therefore receive
+        ``None`` and remain explicitly legacy-unverified.
+        """
+        data = dict(data)
+        data.setdefault("integrity_manifest", None)
+        data["version"] = "4.0"
         return data

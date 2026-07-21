@@ -1,6 +1,6 @@
 """Integration tests for portfolio migration.
 
-Tests end-to-end migration scenarios: V1 load, V2 migration, V3 passthrough,
+Tests end-to-end migration scenarios: V1 load, V2/V3 migration, V4 passthrough,
 roundtrip save → load → verify.
 """
 
@@ -37,8 +37,9 @@ class TestV1LoadAndMigrate:
             ],
         }
         result = PortfolioMigrator.migrate(v1)
-        assert result["schema_version"] == 3
+        assert result["schema_version"] == 4
         assert result["environment_metadata"] is None
+        assert result["integrity_manifest"] is None
         cfg = result["plots"][0]["config"]
         assert cfg["engine"] == "plotly"
         assert "export_format" not in cfg
@@ -70,7 +71,7 @@ class TestV1LoadAndMigrate:
 
 class TestV2Migration:
     # [test->req~ring5.portfolio.migration~1]
-    """V2 portfolio gains the optional V3 environment field."""
+    """V2 portfolio gains honest V3 environment and V4 integrity fields."""
 
     def test_v2_adds_environment_without_touching_plots(self) -> None:
         original: Dict[str, Any] = {
@@ -83,8 +84,9 @@ class TestV2Migration:
             ],
         }
         result = PortfolioMigrator.migrate(original)
-        assert result["schema_version"] == 3
+        assert result["schema_version"] == 4
         assert result["environment_metadata"] is None
+        assert result["integrity_manifest"] is None
         assert result["plots"][0]["config"]["engine"] == "matplotlib"
         assert result["plots"][0]["figure_spec"]["dimensions"]["width"] == 600
 
@@ -127,7 +129,8 @@ class TestRoundtrip:
         loaded: Dict[str, Any] = json.loads(json_str)
         migrated = PortfolioMigrator.migrate(loaded)
 
-        assert migrated["schema_version"] == 3
+        assert migrated["schema_version"] == 4
+        assert migrated["integrity_manifest"] is None
         assert migrated["plots"][0]["config"]["width"] == 800
         assert migrated["plots"][0]["config"]["engine"] == "plotly"
 

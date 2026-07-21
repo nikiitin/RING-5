@@ -63,6 +63,13 @@ class PortfolioPage(BasePage):
         )
 
     @property
+    def integrity_expander(self) -> Locator:
+        """Checksum and optional signature evidence for the selected portfolio."""
+        return self.page.locator("[data-testid='stExpander']").filter(
+            has_text="Portfolio integrity"
+        )
+
+    @property
     def report_expander(self) -> Locator:
         """Analysis-report composition workflow."""
         return self.page.locator("[data-testid='stExpander']").filter(has_text="Analysis report")
@@ -147,6 +154,17 @@ class PortfolioPage(BasePage):
         expect(
             self.environment_expander.get_by_text(
                 "Saved environment matches this RING-5 runtime exactly.", exact=True
+            )
+        ).to_be_visible(timeout=self.RENDER_TIMEOUT)
+
+    def assert_checksum_integrity_visible(self) -> None:
+        """Expand and verify honest checksum-only integrity wording."""
+        expect(self.integrity_expander).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        self.integrity_expander.get_by_text("Portfolio integrity", exact=True).click()
+        expect(
+            self.integrity_expander.get_by_text(
+                "Checksums match. This portfolio is unchanged but not signed.",
+                exact=True,
             )
         ).to_be_visible(timeout=self.RENDER_TIMEOUT)
 

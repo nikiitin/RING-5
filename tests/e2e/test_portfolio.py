@@ -62,6 +62,8 @@ class TestPortfolioSaveLoad:
         expander = tier3_page.locator("[data-testid='stExpander']").filter(has_text=PORTFOLIO_NAME)
         expect(expander).to_be_visible(timeout=E2E_TIMEOUT)
         pf.assert_environment_match_visible()
+        # [test->req~ring5.portfolio.signed-manifests~1]
+        pf.assert_checksum_integrity_visible()
 
     @pytest.mark.order(3)
     def test_03_generate_batch_report(self, tier3_page: Page) -> None:

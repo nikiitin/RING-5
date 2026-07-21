@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
+from src.core.models.portfolio_integrity_models import PortfolioIntegrityStatus
+
 BrowserUploadKind = Literal["csv", "json", "excel", "portfolio"]
 BrowserUploadRequest = Literal["auto", "dataset", "portfolio"]
 
@@ -27,6 +29,8 @@ class BrowserUpload:
     portfolio_schema_version: int | None = None
     portfolio_plot_count: int | None = None
     portfolio_has_data: bool | None = None
+    portfolio_integrity_status: PortfolioIntegrityStatus | None = None
+    portfolio_signing_key_id: str | None = None
     origin_display: str | None = None
 
     def __post_init__(self) -> None:

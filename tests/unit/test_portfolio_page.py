@@ -324,3 +324,62 @@ class TestPortfolioEnvironment:
         _render_environment_comparison(api, "broken")
 
         mock_st.warning.assert_called_once_with("The saved environment could not be inspected.")
+
+
+class TestPortfolioIntegrity:
+    """Tests for human-readable integrity and authentication states."""
+
+    @patch("src.web.pages.portfolio.st")
+    def test_integrity_review_distinguishes_checksum_from_signature(
+        self,
+        mock_st: MagicMock,
+    ) -> None:
+        # [test->req~ring5.portfolio.signed-manifests~1]
+        from src.core.models import PortfolioIntegrityReport, PortfolioIntegritySection
+        from src.web.pages.portfolio import _render_integrity_review
+
+        expander = _make_col_mock()
+        mock_st.expander.return_value = expander
+        mock_st.text_input.return_value = "shared secret"
+        api = MagicMock()
+        api.data_services.verify_portfolio.return_value = PortfolioIntegrityReport(
+            status="signature-unverified",
+            message="Checksums match. Signature needs its secret.",
+            checksum_valid=True,
+            signature_present=True,
+            signature_valid=None,
+            key_id="lab-key",
+            sections=(
+                PortfolioIntegritySection("inputs", "a" * 64, "a" * 64, True),
+                PortfolioIntegritySection("configuration", "b" * 64, "b" * 64, True),
+                PortfolioIntegritySection("outputs", "c" * 64, "c" * 64, True),
+            ),
+        )
+
+        report, secret = _render_integrity_review(api, "paper")
+
+        assert report is not None
+        assert report.status == "signature-unverified"
+        assert secret == "shared secret"
+        mock_st.warning.assert_called_once_with(report.message)
+        assert mock_st.dataframe.call_args.args[0] == [
+            {"Content": "Inputs", "Checksum": "Matches"},
+            {"Content": "Configuration", "Checksum": "Matches"},
+            {"Content": "Outputs", "Checksum": "Matches"},
+        ]
+
+    @patch("src.web.pages.portfolio.st")
+    def test_integrity_inspection_failure_blocks_without_details(
+        self,
+        mock_st: MagicMock,
+    ) -> None:
+        from src.web.pages.portfolio import _render_integrity_review
+
+        api = MagicMock()
+        api.data_services.verify_portfolio.side_effect = ValueError("broken")
+
+        report, secret = _render_integrity_review(api, "paper")
+
+        assert report is None
+        assert secret is None
+        mock_st.error.assert_called_once()

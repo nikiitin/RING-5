@@ -2450,7 +2450,7 @@ Tags: bundles, portfolios, reproducibility, status_proposed
 ### Signed portfolio manifests
 
 `req~ring5.portfolio.signed-manifests~1`
-Status: proposed
+Status: approved
 
 Portable portfolios shall support checksummed manifests and optional signatures for detecting modified inputs, configuration, and outputs.
 
@@ -2459,7 +2459,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: integrity, portfolios, security, status_proposed
+Tags: integrity, portfolios, security, status_approved
 
 ### Captured execution environment
 

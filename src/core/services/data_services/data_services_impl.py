@@ -17,6 +17,7 @@ from src.core.models import (
     PlotProtocol,
     PortfolioData,
     PortfolioDiff,
+    PortfolioIntegrityReport,
     PortfolioRevisionInfo,
     RecipeExport,
     RecipeParameter,
@@ -285,6 +286,8 @@ class DefaultDataServicesAPI:
             Callable[[dict[str, Any], str], dict[str, Any] | None]
         ) = None,
         overwrite: bool = True,
+        signing_key: str | bytes | None = None,
+        signing_key_id: str = "default",
     ) -> None:
         """Serialize and save the current workspace state."""
         self._portfolio_service.save_portfolio(
@@ -297,11 +300,32 @@ class DefaultDataServicesAPI:
             parse_variables,
             figure_spec_enricher,
             overwrite,
+            signing_key,
+            signing_key_id,
         )
 
-    def load_portfolio(self, name: str) -> PortfolioData:
+    def load_portfolio(
+        self,
+        name: str,
+        *,
+        signing_key: str | bytes | None = None,
+        require_signature: bool = False,
+    ) -> PortfolioData:
         """Load a portfolio by name."""
-        return self._portfolio_service.load_portfolio(name)
+        return self._portfolio_service.load_portfolio(
+            name,
+            signing_key=signing_key,
+            require_signature=require_signature,
+        )
+
+    def verify_portfolio(
+        self,
+        name: str,
+        *,
+        signing_key: str | bytes | None = None,
+    ) -> PortfolioIntegrityReport:
+        """Inspect a saved portfolio's checksums and optional signature."""
+        return self._portfolio_service.verify_portfolio(name, signing_key=signing_key)
 
     def list_portfolio_revisions(self, name: str) -> tuple[PortfolioRevisionInfo, ...]:
         """List immutable saved versions for a named portfolio."""
