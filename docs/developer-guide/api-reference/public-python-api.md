@@ -39,6 +39,13 @@ without touching work from another handle. `Session.load` returns a DataFrame. `
 given one. `Session.compare` returns a `Table` when both baseline and candidate inputs are tables;
 otherwise it returns a DataFrame.
 
+`Session.background_jobs` returns immutable `BackgroundJobInfo` snapshots for tracked scan, parse,
+transformation, and export work. `shape_submit` and `export_submit` add retryable work and retain
+successful results for `background_job_result`; parser results remain on their original handles.
+`cancel_background_job` reports a running cancellation request as `cancelling`,
+`retry_background_job` reuses the stable job identity with a higher attempt, and
+`dismiss_finished_background_jobs` releases terminal records and retained results.
+
 `Session.parser_playground_submit` returns a `ParserPlaygroundJob` that runs the registered parser
 against at most three lexically selected files. Finalization returns `ParserPlaygroundResult`
 without retaining a CSV or changing workspace data. The result exposes exact sampled paths, output
@@ -229,7 +236,8 @@ Covers:
 Catch the narrow error from `ring5.errors` when recovery differs. All supported operational errors
 inherit `Ring5Error`. `ScanError` covers empty, failed, or incomplete scans; `ParseError` covers
 submission, resource-limit, worker, timeout, and assembly failures. Public boundaries preserve the
-original failure as `__cause__` where wrapping adds API context.
+original failure as `__cause__` where wrapping adds API context. `JobError` covers invalid
+background-job identifiers and lifecycle operations.
 
 When adding a public name, export it lazily where appropriate, document parameters and exceptions,
 add a `public_api` contract test, keep `make test-api` at 100%, and update the User Guide.

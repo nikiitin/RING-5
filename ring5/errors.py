@@ -22,6 +22,7 @@ __all__ = [
     "PortfolioError",
     "PortfolioVersionError",
     "RecipeError",
+    "JobError",
     "ExportError",
     "DependencyMissingError",
 ]
@@ -143,6 +144,11 @@ class RecipeError(PortfolioError):
 class ExportError(Ring5Error):
     # [impl->req~ring5.api.typed-errors~1]
     """Figure export failed."""
+
+
+class JobError(Ring5Error):
+    # [impl->req~ring5.workspace.background-jobs~1]
+    """Background-job submission, control, retry, or result retrieval failed."""
 
 
 class DependencyMissingError(Ring5Error):

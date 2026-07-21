@@ -89,6 +89,12 @@ def run_app() -> None:
 
         st.markdown("---")
 
+        from src.web.components.background_job_center import BackgroundJobCenter
+
+        BackgroundJobCenter.render(api)
+
+        st.markdown("---")
+
         # [impl->req~ring5.workspace.reset~1]
         if st.button(
             "Clear Data",

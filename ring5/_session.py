@@ -19,6 +19,7 @@ from src.core.models import (
     AnalysisRecipe,
     AnalysisRecipeInfo,
     AnalysisRecipeRunResult,
+    BackgroundJobInfo,
     ColumnSemantics,
     DataQualityReport,
     DashboardSpec,
@@ -73,6 +74,7 @@ from ring5.errors import (
     DataLoadError,
     DataValidationError,
     ExportError,
+    JobError,
     ParseError,
     PipelineError,
     PortfolioError,
@@ -228,6 +230,93 @@ class Session:
         self._owned_tmpdirs.clear()
         self._parse_jobs.clear()
         self._incremental_output_dirs.clear()
+        self.api.close_background_jobs()
+
+    # background jobs
+    def background_jobs(self) -> tuple[BackgroundJobInfo, ...]:
+        # [impl->req~ring5.workspace.background-jobs~1]
+        """Return newest-first scan, parse, transformation, and export jobs.
+
+        Returns:
+            Immutable progress, attempt, cancellation, completion, and bounded
+            error information for this session.
+        """
+        return self.api.list_background_jobs()
+
+    def cancel_background_job(self, job: str | BackgroundJobInfo) -> BackgroundJobInfo:
+        # [impl->req~ring5.workspace.background-jobs~1]
+        """Request cancellation of one job without claiming running work stopped.
+
+        Args:
+            job: Job ID or snapshot returned by :meth:`background_jobs`.
+
+        Returns:
+            Updated job state, which can be ``cancelling`` until running work settles.
+
+        Raises:
+            JobError: The job identifier is invalid or unknown.
+        """
+        try:
+            return self.api.cancel_background_job(self._background_job_id(job))
+        except (KeyError, RuntimeError, TypeError, ValueError) as exc:
+            raise JobError(str(exc)) from exc
+
+    def retry_background_job(self, job: str | BackgroundJobInfo) -> BackgroundJobInfo:
+        # [impl->req~ring5.workspace.background-jobs~1]
+        """Retry one finished job using its captured submission inputs.
+
+        Args:
+            job: Job ID or immutable job snapshot.
+
+        Returns:
+            The same job identity at its next attempt.
+
+        Raises:
+            JobError: The job is active, unknown, not retryable, or cannot be resubmitted.
+        """
+        try:
+            return self.api.retry_background_job(self._background_job_id(job))
+        except (KeyError, RuntimeError, TypeError, ValueError) as exc:
+            raise JobError(str(exc)) from exc
+
+    def background_job_result(self, job: str | BackgroundJobInfo) -> Any:
+        # [impl->req~ring5.workspace.background-jobs~1]
+        """Return a completed transformation or export result without waiting.
+
+        Scan and parse results remain on their original :class:`ScanJob` and
+        :class:`ParseJob` handles to avoid retaining duplicate parser payloads.
+
+        Args:
+            job: Job ID or immutable job snapshot.
+
+        Returns:
+            The completed result retained by the job center.
+
+        Raises:
+            JobError: The job is active, failed, cancelled, unknown, or keeps
+                its result on another handle.
+        """
+        try:
+            return self.api.get_background_job_result(self._background_job_id(job))
+        except (KeyError, RuntimeError, TypeError, ValueError) as exc:
+            raise JobError(str(exc)) from exc
+
+    def dismiss_finished_background_jobs(self) -> int:
+        # [impl->req~ring5.workspace.background-jobs~1]
+        """Remove finished job records and release retained results.
+
+        Returns:
+            Number of records removed. Active jobs are never dismissed.
+        """
+        return self.api.dismiss_finished_background_jobs()
+
+    @staticmethod
+    def _background_job_id(job: str | BackgroundJobInfo) -> str:
+        if isinstance(job, BackgroundJobInfo):
+            return job.job_id
+        if not isinstance(job, str) or not job:
+            raise JobError("Background job must be a non-empty ID or BackgroundJobInfo.")
+        return job
 
     # scan
     def scan_submit(
@@ -1508,6 +1597,45 @@ class Session:
             raise PipelineError(str(exc)) from exc
         return _rewrap_table(shaped) if was_table else shaped
 
+    def shape_submit(
+        self,
+        data: "pd.DataFrame | Table",
+        pipeline: list[ShaperStepConfig],
+        *,
+        label: str = "Shape data",
+    ) -> BackgroundJobInfo:
+        # [impl->req~ring5.workspace.background-jobs~1]
+        """Submit a shaper pipeline without blocking the calling thread.
+
+        The input data and pipeline are defensively copied at submission.
+        Poll :meth:`background_jobs`, then pass the finished record to
+        :meth:`background_job_result`.
+
+        Args:
+            data: Input DataFrame or :class:`ring5.Table`.
+            pipeline: Ordered shaper configurations.
+            label: Human-readable job-center label.
+
+        Returns:
+            Initial immutable job snapshot.
+
+        Raises:
+            JobError: Submission metadata or the session job center is invalid.
+        """
+        frame, was_table = _unwrap_table(data)
+        captured_data: pd.DataFrame | Table = frame.copy(deep=True)
+        if was_table:
+            captured_data = _rewrap_table(cast(pd.DataFrame, captured_data))
+        captured_pipeline = copy.deepcopy(pipeline)
+        try:
+            return self.api.submit_background_operation(
+                "transformation",
+                label,
+                lambda: self.shape(captured_data, captured_pipeline),
+            )
+        except (RuntimeError, TypeError, ValueError) as exc:
+            raise JobError(str(exc)) from exc
+
     def reduce_seeds(
         self,
         data: "pd.DataFrame | Table",
@@ -2256,6 +2384,51 @@ class Session:
                 executable that is unavailable.
         """
         return _export.export_file(fig, path, fmt=fmt, deterministic=deterministic, **kwargs)
+
+    def export_submit(
+        self,
+        fig: _render.Figure,
+        path: str,
+        *,
+        fmt: str | None = None,
+        deterministic: bool = False,
+        label: str | None = None,
+        **kwargs: Any,
+    ) -> BackgroundJobInfo:
+        # [impl->req~ring5.workspace.background-jobs~1]
+        """Submit a figure export without blocking the calling thread.
+
+        Args:
+            fig: Figure returned by :meth:`render`.
+            path: Destination file path.
+            fmt: Explicit format, or infer it from ``path``.
+            deterministic: Enable byte-stable export settings.
+            label: Optional job-center label.
+            **kwargs: Engine-specific dimensions and resolution options.
+
+        Returns:
+            Initial immutable job snapshot. The completed result is the path.
+
+        Raises:
+            JobError: Submission metadata or the session job center is invalid.
+        """
+        captured_figure = copy.deepcopy(fig)
+        captured_kwargs = copy.deepcopy(kwargs)
+        selected_label = label or f"Download {Path(path).name or 'figure'}"
+        try:
+            return self.api.submit_background_operation(
+                "export",
+                selected_label,
+                lambda: _export.export_file(
+                    captured_figure,
+                    path,
+                    fmt=fmt,
+                    deterministic=deterministic,
+                    **captured_kwargs,
+                ),
+            )
+        except (RuntimeError, TypeError, ValueError) as exc:
+            raise JobError(str(exc)) from exc
 
     def export_bytes(
         self,

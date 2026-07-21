@@ -108,7 +108,7 @@ Tags: deployment, persistence, status_approved, workspace
 ### Background job center
 
 `req~ring5.workspace.background-jobs~1`
-Status: proposed
+Status: approved
 
 The workspace shall track non-blocking scan, parse, transformation, and export jobs with progress, cancellation, retry, completion, and bounded error logs.
 
@@ -117,7 +117,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: jobs, progress, status_proposed, workspace
+Tags: jobs, progress, status_approved, workspace
 
 ### Workspace search
 

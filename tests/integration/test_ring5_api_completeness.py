@@ -253,6 +253,8 @@ def test_public_registries_are_complete() -> None:
     assert ring5.AnalysisRecipe is not None
     assert ring5.AnalysisRecipeInfo is not None
     assert ring5.AnalysisRecipeRunResult is not None
+    assert ring5.BackgroundJobInfo is not None
+    assert ring5.BackgroundJobLogEntry is not None
     assert ring5.PortfolioRevisionInfo is not None
     assert ring5.PortfolioDiff is not None
     assert ring5.PortfolioDiffEntry is not None

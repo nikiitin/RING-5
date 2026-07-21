@@ -30,6 +30,12 @@ from src.core.models.data_models import (
     ScannedVariableDict,
 )
 from src.core.models.accessibility_models import AccessibilityFinding, AccessibilityReport
+from src.core.models.background_job_models import (
+    BackgroundJobInfo,
+    BackgroundJobKind,
+    BackgroundJobLogEntry,
+    BackgroundJobStatus,
+)
 from src.core.models.figure_theme_models import FigureTheme, FigureThemeContext
 from src.core.models.environment_models import (
     EnvironmentComparison,
@@ -137,6 +143,10 @@ __all__ = [
     "AnalysisRecipeInfo",
     "AnalysisRecipeRunResult",
     "BaseShaperConfig",
+    "BackgroundJobInfo",
+    "BackgroundJobKind",
+    "BackgroundJobLogEntry",
+    "BackgroundJobStatus",
     "CacheStatsEntry",
     "CacheStatsInfo",
     "ColumnInfoResult",

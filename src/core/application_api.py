@@ -2,7 +2,7 @@
 
 import logging
 import tempfile
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import Future
 from dataclasses import replace
 from pathlib import Path
@@ -11,7 +11,10 @@ from typing import Any, Literal, cast
 import numpy as np
 import pandas as pd
 
+from src.core.common.security_limits import MAX_BACKGROUND_JOB_LABEL_LENGTH
 from src.core.models import (
+    BackgroundJobInfo,
+    BackgroundJobKind,
     BrowserUpload,
     DatasetInfo,
     DatasetLineage,
@@ -58,6 +61,7 @@ from src.core.models.parsing_models import StatParamValue
 from src.core.models.plot_protocol import PlotDeserializer
 from src.core.models.visualization import FigureConfig
 from src.core.services.data_services.data_services_api import DataServicesAPI
+from src.core.services.background_job_service import BackgroundJobService
 from src.core.services.browser_upload_service import BrowserUploadService
 from src.core.services.managers.managers_api import ManagersAPI
 from src.core.services.import_preview_service import ImportPreviewService
@@ -125,6 +129,7 @@ class ApplicationAPI:
 
         # A facade may cancel only scan jobs that it submitted.
         self._pending_scan_futures: list[Future[ScanFileResult]] = []
+        self._background_jobs = BackgroundJobService()
 
         logger.info("Application API initialized")
 
@@ -144,6 +149,42 @@ class ApplicationAPI:
     def shapers(self) -> ShapersAPI:
         """Access pipeline and shaper operations."""
         return self._services.shapers
+
+    def list_background_jobs(self) -> tuple[BackgroundJobInfo, ...]:
+        # [impl->req~ring5.workspace.background-jobs~1]
+        """Return newest-first immutable background-job snapshots."""
+        return self._background_jobs.list()
+
+    def submit_background_operation(
+        self,
+        kind: BackgroundJobKind,
+        label: str,
+        operation: Callable[[], Any],
+        *,
+        retryable: bool = True,
+    ) -> BackgroundJobInfo:
+        """Submit callable transformation or export work to this session's job center."""
+        return self._background_jobs.submit(kind, label, operation, retryable=retryable)
+
+    def cancel_background_job(self, job_id: str) -> BackgroundJobInfo:
+        """Request cancellation of one session-owned job."""
+        return self._background_jobs.cancel(job_id)
+
+    def retry_background_job(self, job_id: str) -> BackgroundJobInfo:
+        """Retry one finished session-owned job."""
+        return self._background_jobs.retry(job_id)
+
+    def get_background_job_result(self, job_id: str) -> Any:
+        """Return a retained completed transformation or export result."""
+        return self._background_jobs.result(job_id)
+
+    def dismiss_finished_background_jobs(self) -> int:
+        """Remove finished job records and their retained results."""
+        return self._background_jobs.dismiss_finished()
+
+    def close_background_jobs(self, *, wait: bool = False) -> None:
+        """Cancel active jobs and release the session-owned job executor."""
+        self._background_jobs.close(wait=wait)
 
     def load_data(self, csv_path: str) -> None:
         """
@@ -247,6 +288,8 @@ class ApplicationAPI:
 
     def reset_session(self) -> None:
         """Clear all session data."""
+        self._background_jobs.cancel_all()
+        self._background_jobs.dismiss_finished()
         self.state_manager.clear_data()
         self.state_manager.clear_all()
 
@@ -599,9 +642,15 @@ class ApplicationAPI:
         """
         # [impl->req~ring5.ingestion.output-aliases~1]
         stat_configs, resolved_scanned = self._normalize_parse_request(variables, scanned_vars)
-        return self._parser.submit_parse_async(
+        batch = self._parser.submit_parse_async(
             stats_path, stats_pattern, stat_configs, output_dir, strategy_type, resolved_scanned
         )
+        self._background_jobs.track_futures(
+            "parse",
+            self._background_label("Parse", stats_path),
+            batch.futures,
+        )
+        return batch
 
     @staticmethod
     def _normalize_parse_request(
@@ -672,7 +721,7 @@ class ApplicationAPI:
         # [impl->req~ring5.ingestion.incremental-parsing~1]
         """Submit only new or changed simulator inputs and retain unchanged rows."""
         stat_configs, resolved_scanned = self._normalize_parse_request(variables, scanned_vars)
-        return self._parser.submit_incremental_parse_async(
+        batch = self._parser.submit_incremental_parse_async(
             stats_path,
             stats_pattern,
             stat_configs,
@@ -681,6 +730,12 @@ class ApplicationAPI:
             resolved_scanned,
             cache_path,
         )
+        self._background_jobs.track_futures(
+            "parse",
+            self._background_label("Incremental parse", stats_path),
+            batch.futures,
+        )
+        return batch
 
     def finalize_parsing(
         self,
@@ -715,7 +770,7 @@ class ApplicationAPI:
         # [impl->req~ring5.ingestion.parser-playground~1]
         """Test parser settings against a bounded sample without changing workspace data."""
         stat_configs, resolved_scanned = self._normalize_parse_request(variables, scanned_vars)
-        return self._parser.submit_parser_playground_async(
+        batch = self._parser.submit_parser_playground_async(
             stats_path,
             stats_pattern,
             stat_configs,
@@ -723,6 +778,12 @@ class ApplicationAPI:
             strategy_type,
             resolved_scanned,
         )
+        self._background_jobs.track_futures(
+            "parse",
+            self._background_label("Test parser", stats_path),
+            batch.futures,
+        )
+        return batch
 
     def finalize_parser_playground(
         self,
@@ -743,7 +804,18 @@ class ApplicationAPI:
         self._pending_scan_futures = [f for f in self._pending_scan_futures if not f.done()] + list(
             futures
         )
+        self._background_jobs.track_futures(
+            "scan",
+            self._background_label("Scan", stats_path),
+            futures,
+        )
         return futures
+
+    @staticmethod
+    def _background_label(action: str, source: str) -> str:
+        """Return a bounded human label without exposing a full source path."""
+        name = Path(source).name or source
+        return f"{action}: {name}"[:MAX_BACKGROUND_JOB_LABEL_LENGTH]
 
     def finalize_scan(self, results: list[ScanFileResult]) -> ScanResult:
         """Aggregate per-file scan results into a ``ScanResult``.

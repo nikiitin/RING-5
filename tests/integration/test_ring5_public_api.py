@@ -914,6 +914,7 @@ class TestErrorSurface:
             ring5.PortfolioError,
             ring5.PortfolioVersionError,
             ring5.ExportError,
+            ring5.JobError,
             ring5.DependencyMissingError,
         ):
             assert issubclass(err, ring5.Ring5Error)

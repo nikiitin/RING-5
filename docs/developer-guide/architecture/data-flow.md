@@ -51,6 +51,13 @@ Scan and parse work follows submit/finalize contracts. Submission returns owned 
 aggregates results and preserves per-file failures. Do not hide asynchronous work inside a component
 or fabricate a placeholder value after a parser error.
 
+`BackgroundJobService` observes those existing futures without duplicating their parser payloads.
+It also owns a two-worker executor for explicitly submitted transformations and exports. Its
+thread-safe records are bounded, exposed as immutable snapshots, and scoped to one
+`ApplicationAPI` session. Cancellation distinguishes a request from terminal cancellation, and a
+retry is offered only when the service owns a factory for the complete operation. The web job
+center depends on the application facade and these core models; core does not import Streamlit.
+
 Incremental submission first discovers the same bounded file set and hashes complete input
 contents. It filters the normal strategy work items to new or changed paths; it does not introduce
 a synchronous parser or bypass the shared worker pool. Finalization uses each worker result's

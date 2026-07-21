@@ -24,6 +24,7 @@ Use these pages for recurring tasks:
 - [Load and Parse Data](loading-data/) from a gem5 results tree or existing CSV.
 - [Manage Datasets](managing-datasets/) before plots share the data.
 - [Reuse Dataset Snapshots](dataset-snapshots/) across browser and Python sessions.
+- [Monitor Background Jobs](background-jobs/) for progress, cancellation, retries, and bounded errors.
 - [Create and Configure Plots](plotting/) with per-plot transformation pipelines.
 - [Build Multi-panel Dashboards](multi-panel-dashboards/) from existing plots and export one grid.
 - [Style Line Charts](line-styles/) with matching connectors, dashes, widths, and markers.

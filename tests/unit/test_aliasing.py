@@ -1,3 +1,4 @@
+from concurrent.futures import Future
 from typing import Any, cast
 from unittest.mock import MagicMock, mock_open, patch
 
@@ -34,8 +35,8 @@ class TestAliasing:
         mock_submit = facade._parser.submit_parse_async
 
         # Mock futures properly
-        mock_future = MagicMock()
-        mock_future.result = MagicMock(return_value={"data": "test"})
+        mock_future: Future[dict[str, str]] = Future()
+        mock_future.set_result({"data": "test"})
         mock_submit.return_value = ParseBatchResult(
             futures=[mock_future], var_names=["IPC", "system.cpu.cpi"]
         )
@@ -62,3 +63,4 @@ class TestAliasing:
         cpi_var = next((v for v in passed_vars if v.name == "system.cpu.cpi"), None)
         assert cpi_var is not None, "Non-aliased variable not found"
         assert "parsed_ids" not in cpi_var.params, "Non-aliased variable should not have parsed_ids"
+        facade.close_background_jobs(wait=True)
