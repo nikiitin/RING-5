@@ -6,6 +6,7 @@ Subcommands::
     ring5 parse DIR -v simTicks -o out.csv
     ring5 render PORTFOLIO -o figs/       # regenerate every figure
     ring5 recipe-matrix RECIPE -m MATRIX -o out/
+    ring5 regression-gate BASE.csv CAND.csv -k benchmark -m ipc
     ring5 upgrade PORTFOLIO               # persist a portfolio at the
                                           # current schema version
 """
@@ -14,17 +15,25 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import shutil
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, NoReturn
+from typing import TYPE_CHECKING, Any, Literal, NoReturn, cast
 
-from ring5.errors import RecipeError, Ring5Error
+from ring5.errors import DataValidationError, ExportError, RecipeError, Ring5Error
 
 from src.core.common.security_limits import MAX_ANALYSIS_RECIPE_MATRIX_BYTES
 
 if TYPE_CHECKING:
+    import pandas as pd
+
     from src.core.models import AnalysisRecipeMatrixResult
+
+
+_INCOMPLETE_REGRESSION_OUTCOMES = frozenset(
+    {"missing_baseline", "missing_candidate", "missing_value", "not_comparable"}
+)
 
 
 def _cmd_doctor(args: argparse.Namespace) -> int:
@@ -177,6 +186,116 @@ def _matrix_result_payload(result: "AnalysisRecipeMatrixResult") -> dict[str, An
     }
 
 
+def _cmd_regression_gate(args: argparse.Namespace) -> int:
+    """Compare two CSV files and return a stable CI gate status."""
+    # [impl->req~ring5.automation.ci-regression-gates~1]
+    from ring5._session import Session
+
+    metrics = list(args.metrics)
+    directions, thresholds = _regression_gate_configuration(args, metrics)
+    with Session() as session:
+        baseline = session.load(args.baseline)
+        candidate = session.load(args.candidate)
+        comparison = cast(
+            "pd.DataFrame",
+            session.compare(
+                baseline,
+                candidate,
+                list(args.keys),
+                metrics,
+                directions=directions,
+                thresholds=thresholds,
+                threshold_mode=args.threshold_mode,
+                baseline_name=args.baseline_id or args.baseline,
+                candidate_name=args.candidate_id or args.candidate,
+            ),
+        )
+        payload = session.export_regression_results(comparison, args.format)
+
+    _emit_regression_result(payload, args.output)
+    outcomes = set(comparison["outcome"].astype(str))
+    if outcomes & _INCOMPLETE_REGRESSION_OUTCOMES:
+        return 3
+    return 1 if "regression" in outcomes else 0
+
+
+def _regression_gate_configuration(
+    args: argparse.Namespace,
+    metrics: list[str],
+) -> tuple[dict[str, Literal["higher", "lower"]], dict[str, float]]:
+    """Resolve global defaults and per-metric CLI assignments."""
+    # [impl->req~ring5.automation.ci-regression-gates~1]
+    direction_overrides = _metric_assignments(args.directions, metrics, "direction")
+    invalid_directions = {
+        metric: value
+        for metric, value in direction_overrides.items()
+        if value not in ("higher", "lower")
+    }
+    if invalid_directions:
+        details = ", ".join(
+            f"{metric}={value!r}" for metric, value in sorted(invalid_directions.items())
+        )
+        raise DataValidationError(f"Invalid metric directions: {details}.")
+
+    threshold_overrides = _metric_assignments(args.thresholds, metrics, "threshold")
+    raw_thresholds = {
+        metric: threshold_overrides.get(metric, str(args.default_threshold)) for metric in metrics
+    }
+    try:
+        thresholds = {metric: float(value) for metric, value in raw_thresholds.items()}
+    except ValueError as exc:
+        raise DataValidationError("Thresholds must be finite non-negative numbers.") from exc
+    if any(not math.isfinite(value) or value < 0 for value in thresholds.values()):
+        raise DataValidationError("Thresholds must be finite non-negative numbers.")
+
+    directions: dict[str, Literal["higher", "lower"]] = {
+        metric: cast(
+            Literal["higher", "lower"],
+            direction_overrides.get(metric, args.default_direction),
+        )
+        for metric in metrics
+    }
+    return directions, thresholds
+
+
+def _metric_assignments(
+    entries: list[str],
+    metrics: list[str],
+    label: str,
+) -> dict[str, str]:
+    """Parse repeatable ``METRIC=VALUE`` CLI assignments."""
+    assignments: dict[str, str] = {}
+    for entry in entries:
+        metric, separator, value = entry.partition("=")
+        if not separator or not metric or not value:
+            raise DataValidationError(f"Every {label} override must use METRIC=VALUE.")
+        if metric not in metrics:
+            raise DataValidationError(f"{label.title()} references unknown metric {metric!r}.")
+        if metric in assignments:
+            raise DataValidationError(f"Duplicate {label} override for metric {metric!r}.")
+        assignments[metric] = value
+    return assignments
+
+
+def _emit_regression_result(payload: bytes, output: str | None) -> None:
+    """Write a gate document to stdout or one explicitly requested file."""
+    if output is None:
+        try:
+            sys.stdout.write(payload.decode("utf-8"))
+        except OSError as exc:
+            raise ExportError(
+                f"Could not write regression result to standard output: {exc}"
+            ) from exc
+        return
+    target = Path(output)
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(payload)
+    except OSError as exc:
+        raise ExportError(f"Could not write regression result {str(target)!r}: {exc}") from exc
+    print(f"wrote {target}", file=sys.stderr)
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the command-line parser.
 
@@ -262,6 +381,73 @@ def build_parser() -> argparse.ArgumentParser:
     )
     matrix_p.set_defaults(func=_cmd_recipe_matrix)
 
+    gate_p = sub.add_parser(
+        "regression-gate",
+        help="compare baseline and candidate CSV metrics for CI",
+    )
+    gate_p.add_argument("baseline", help="baseline CSV file")
+    gate_p.add_argument("candidate", help="candidate CSV file")
+    gate_p.add_argument(
+        "-k",
+        "--key",
+        dest="keys",
+        action="append",
+        required=True,
+        help="alignment key column (repeatable)",
+    )
+    gate_p.add_argument(
+        "-m",
+        "--metric",
+        dest="metrics",
+        action="append",
+        required=True,
+        help="numeric metric column (repeatable)",
+    )
+    gate_p.add_argument(
+        "--default-direction",
+        choices=("higher", "lower"),
+        default="higher",
+        help="preferred direction unless overridden (default: higher)",
+    )
+    gate_p.add_argument(
+        "--direction",
+        dest="directions",
+        action="append",
+        default=[],
+        metavar="METRIC=DIRECTION",
+        help="per-metric higher/lower override (repeatable)",
+    )
+    gate_p.add_argument(
+        "--default-threshold",
+        type=float,
+        default=0.0,
+        help="non-negative tolerance unless overridden (default: 0)",
+    )
+    gate_p.add_argument(
+        "--threshold",
+        dest="thresholds",
+        action="append",
+        default=[],
+        metavar="METRIC=VALUE",
+        help="per-metric non-negative tolerance override (repeatable)",
+    )
+    gate_p.add_argument(
+        "--threshold-mode",
+        choices=("percentage", "absolute"),
+        default="percentage",
+        help="unit for every configured threshold (default: percentage)",
+    )
+    gate_p.add_argument("--baseline-id", default=None, help="baseline source identifier")
+    gate_p.add_argument("--candidate-id", default=None, help="candidate source identifier")
+    gate_p.add_argument(
+        "--format",
+        choices=("json", "junit"),
+        default="json",
+        help="result document format (default: json)",
+    )
+    gate_p.add_argument("-o", "--output", default=None, help="result file (default: stdout)")
+    gate_p.set_defaults(func=_cmd_regression_gate)
+
     return parser
 
 
@@ -272,8 +458,10 @@ def main(argv: list[str] | None = None) -> int:
         argv: Arguments without the executable name. Uses ``sys.argv`` when omitted.
 
     Returns:
-        Process-style exit code: zero for success, one for a matrix with failed
-        cases, and two for an operational error.
+        Process-style exit code. Regression gates use zero for a pass, one for
+        regressions, two for configuration or execution errors, and three for
+        incomplete comparison evidence. Other commands use zero for success,
+        one for a negative result, and two for an operational error.
     """
     args = build_parser().parse_args(argv)
     try:

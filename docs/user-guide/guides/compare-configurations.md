@@ -115,6 +115,49 @@ Use stable, meaningful `baseline_name` and `candidate_name` values when creating
 those names become the source identifiers in both documents. An export rejects empty, mixed-source,
 or structurally modified comparison results instead of emitting ambiguous automation data.
 
+### Fail CI on regressions
+
+<!--
+`uman~ring5.automation.ci-regression-gates.documentation~1`
+
+Covers:
+- req~ring5.automation.ci-regression-gates~1
+
+-->
+
+`ring5 regression-gate` loads separate baseline and candidate CSV files, compares the configured
+metrics, emits the same machine-readable result described above, and communicates the decision in
+its process status:
+
+```bash
+ring5 regression-gate results/main.csv results/change.csv \
+  --key benchmark --metric ipc --metric latency \
+  --default-threshold 5 \
+  --direction latency=lower --threshold ipc=2 \
+  --baseline-id main --candidate-id "$GITHUB_SHA" \
+  --format junit --output artifacts/regression.xml
+```
+
+Repeat `--key` for composite alignment keys and `--metric` for every gated measurement. Higher is
+better and the tolerance is zero by default. `--default-direction` and `--default-threshold` change
+those defaults; repeat `--direction METRIC=higher|lower` or `--threshold METRIC=VALUE` for explicit
+per-metric overrides. `--threshold-mode` applies either percentage or absolute units consistently
+to the gate.
+
+Without `--output`, versioned JSON is written to standard output. Use `--format junit` with an
+output path when the CI system collects test artifacts. Results are emitted for every completed
+comparison decision, including a failing or incomplete gate.
+
+| Exit status | Meaning |
+|---:|---|
+| `0` | Every comparison is complete and no metric exceeds its regression threshold. |
+| `1` | Comparison is complete and at least one metric is a regression. |
+| `2` | CLI configuration, CSV loading, comparison, or result writing failed; details are on standard error. |
+| `3` | Evidence is incomplete because a row is missing a baseline, candidate, finite value, or comparable percentage. |
+
+Status `3` takes precedence if the result contains both a regression and incomplete rows. This
+prevents a partial dataset from being reported as a trustworthy pass or ordinary threshold failure.
+
 ## Read regression annotations
 
 <!--

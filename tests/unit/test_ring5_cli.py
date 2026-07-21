@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from unittest.mock import patch
+from xml.etree import ElementTree as ET
 
 import pandas as pd
 import pytest
@@ -37,6 +39,17 @@ class TestParserStructure:
         )
         assert args.command == "recipe-matrix"
         assert args.workers == 2
+
+    def test_regression_gate_defaults(self) -> None:
+        args = build_parser().parse_args(
+            ["regression-gate", "main.csv", "change.csv", "-k", "benchmark", "-m", "ipc"]
+        )
+        assert args.command == "regression-gate"
+        assert args.default_direction == "higher"
+        assert args.default_threshold == 0.0
+        assert args.threshold_mode == "percentage"
+        assert args.format == "json"
+        assert args.output is None
 
 
 class TestDoctorCommand:
@@ -325,3 +338,236 @@ class TestRecipeMatrixCommand:
             == 2
         )
         assert "exceeds the 512 KiB limit" in capsys.readouterr().err
+
+
+class TestRegressionGateCommand:
+    """CI statuses derive from the same rows emitted as JSON or JUnit."""
+
+    @staticmethod
+    def _write_inputs(
+        tmp_path: Path,
+        baseline: pd.DataFrame,
+        candidate: pd.DataFrame,
+    ) -> tuple[Path, Path]:
+        baseline_path = tmp_path / "baseline.csv"
+        candidate_path = tmp_path / "candidate.csv"
+        baseline.to_csv(baseline_path, index=False)
+        candidate.to_csv(candidate_path, index=False)
+        return baseline_path, candidate_path
+
+    def test_pass_emits_versioned_json_and_returns_zero(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        # [test->req~ring5.automation.ci-regression-gates~1]
+        baseline, candidate = self._write_inputs(
+            tmp_path,
+            pd.DataFrame({"benchmark": ["a", "b"], "ipc": [100.0, 100.0]}),
+            pd.DataFrame({"benchmark": ["a", "b"], "ipc": [102.0, 99.0]}),
+        )
+
+        code = main(
+            [
+                "regression-gate",
+                str(baseline),
+                str(candidate),
+                "--key",
+                "benchmark",
+                "--metric",
+                "ipc",
+                "--default-threshold",
+                "5",
+            ]
+        )
+        document = json.loads(capsys.readouterr().out)
+
+        assert code == 0
+        assert document["format"] == "ring5.regression-results"
+        assert document["sources"] == {
+            "baseline": str(baseline),
+            "candidate": str(candidate),
+        }
+        assert document["summary"]["failures"] == 0
+        assert document["summary"]["incomplete"] == 0
+
+    def test_regression_writes_junit_and_returns_one(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        # [test->req~ring5.automation.ci-regression-gates~1]
+        baseline, candidate = self._write_inputs(
+            tmp_path,
+            pd.DataFrame({"benchmark": ["a"], "ipc": [100.0], "latency": [10.0]}),
+            pd.DataFrame({"benchmark": ["a"], "ipc": [90.0], "latency": [12.0]}),
+        )
+        output = tmp_path / "artifacts" / "regression.xml"
+
+        code = main(
+            [
+                "regression-gate",
+                str(baseline),
+                str(candidate),
+                "-k",
+                "benchmark",
+                "-m",
+                "ipc",
+                "-m",
+                "latency",
+                "--direction",
+                "latency=lower",
+                "--threshold",
+                "ipc=5",
+                "--threshold",
+                "latency=5",
+                "--baseline-id",
+                "main",
+                "--candidate-id",
+                "pull-request-42",
+                "--format",
+                "junit",
+                "--output",
+                str(output),
+            ]
+        )
+        captured = capsys.readouterr()
+        suite = ET.fromstring(output.read_bytes())
+
+        assert code == 1
+        assert captured.out == ""
+        assert f"wrote {output}" in captured.err
+        assert suite.attrib["failures"] == "2"
+        assert suite.attrib["skipped"] == "0"
+
+    def test_incomplete_evidence_takes_precedence_and_returns_three(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        # [test->req~ring5.automation.ci-regression-gates~1]
+        baseline, candidate = self._write_inputs(
+            tmp_path,
+            pd.DataFrame({"benchmark": ["shared", "old"], "ipc": [100.0, 1.0]}),
+            pd.DataFrame({"benchmark": ["shared", "new"], "ipc": [80.0, 1.0]}),
+        )
+
+        code = main(
+            [
+                "regression-gate",
+                str(baseline),
+                str(candidate),
+                "-k",
+                "benchmark",
+                "-m",
+                "ipc",
+                "--default-threshold",
+                "5",
+            ]
+        )
+        document = json.loads(capsys.readouterr().out)
+
+        assert code == 3
+        assert document["summary"]["failures"] == 1
+        assert document["summary"]["incomplete"] == 2
+
+    @pytest.mark.parametrize(
+        ("extra", "message"),
+        [
+            (["--direction", "ipc"], "METRIC=VALUE"),
+            (["--direction", "other=lower"], "unknown metric"),
+            (
+                ["--direction", "ipc=lower", "--direction", "ipc=higher"],
+                "Duplicate direction",
+            ),
+            (["--direction", "ipc=sideways"], "Invalid metric directions"),
+            (["--threshold", "ipc=lots"], "finite non-negative"),
+            (["--default-threshold", "-1"], "finite non-negative"),
+            (
+                ["--threshold", "ipc=1", "--threshold", "ipc=2"],
+                "Duplicate threshold",
+            ),
+        ],
+    )
+    def test_invalid_gate_configuration_returns_two(
+        self,
+        tmp_path: Path,
+        capsys: pytest.CaptureFixture[str],
+        extra: list[str],
+        message: str,
+    ) -> None:
+        baseline, candidate = self._write_inputs(
+            tmp_path,
+            pd.DataFrame({"benchmark": ["a"], "ipc": [1.0]}),
+            pd.DataFrame({"benchmark": ["a"], "ipc": [1.0]}),
+        )
+        arguments = [
+            "regression-gate",
+            str(baseline),
+            str(candidate),
+            "-k",
+            "benchmark",
+            "-m",
+            "ipc",
+            *extra,
+        ]
+
+        assert main(arguments) == 2
+        assert message in capsys.readouterr().err
+
+    def test_input_and_output_execution_failures_return_two(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        # [test->req~ring5.automation.ci-regression-gates~1]
+        baseline, candidate = self._write_inputs(
+            tmp_path,
+            pd.DataFrame({"benchmark": ["a"], "ipc": [1.0]}),
+            pd.DataFrame({"benchmark": ["a"], "ipc": [1.0]}),
+        )
+
+        assert (
+            main(
+                [
+                    "regression-gate",
+                    str(tmp_path / "missing.csv"),
+                    str(candidate),
+                    "-k",
+                    "benchmark",
+                    "-m",
+                    "ipc",
+                ]
+            )
+            == 2
+        )
+        assert "Could not load CSV" in capsys.readouterr().err
+
+        blocked_parent = tmp_path / "not-a-directory"
+        blocked_parent.write_text("blocked")
+        assert (
+            main(
+                [
+                    "regression-gate",
+                    str(baseline),
+                    str(candidate),
+                    "-k",
+                    "benchmark",
+                    "-m",
+                    "ipc",
+                    "--output",
+                    str(blocked_parent / "result.json"),
+                ]
+            )
+            == 2
+        )
+        assert "Could not write regression result" in capsys.readouterr().err
+
+        with patch("ring5.cli.sys.stdout.write", side_effect=BrokenPipeError("closed")):
+            assert (
+                main(
+                    [
+                        "regression-gate",
+                        str(baseline),
+                        str(candidate),
+                        "-k",
+                        "benchmark",
+                        "-m",
+                        "ipc",
+                    ]
+                )
+                == 2
+            )
+        assert "standard output" in capsys.readouterr().err

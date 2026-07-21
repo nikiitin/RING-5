@@ -2690,7 +2690,7 @@ Tags: automation, ci, regression, status_approved
 ### Continuous-integration regression gates
 
 `req~ring5.automation.ci-regression-gates~1`
-Status: proposed
+Status: approved
 
 The CLI shall return documented exit statuses when configured metrics exceed regression thresholds, comparison data is incomplete, or execution fails.
 
@@ -2699,7 +2699,7 @@ Covers:
 
 Needs: impl, test, uman
 
-Tags: automation, ci, regression, status_proposed
+Tags: automation, ci, regression, status_approved
 
 ### Scheduled and watched reporting
 

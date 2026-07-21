@@ -4450,11 +4450,25 @@
       "id": "automation.ci-regression-gates",
       "group": "automation",
       "revision": 1,
-      "status": "proposed",
+      "status": "approved",
       "title": "Continuous-integration regression gates",
       "description": "The CLI shall return documented exit statuses when configured metrics exceed regression thresholds, comparison data is incomplete, or execution fails.",
       "tags": ["automation", "ci", "regression"],
-      "evidence": {"implementation": [], "tests": [], "documentation": []}
+      "evidence": {
+        "implementation": [
+          "ring5/cli.py::_cmd_regression_gate",
+          "ring5/cli.py::_regression_gate_configuration"
+        ],
+        "tests": [
+          "tests/unit/test_ring5_cli.py::TestRegressionGateCommand.test_pass_emits_versioned_json_and_returns_zero",
+          "tests/unit/test_ring5_cli.py::TestRegressionGateCommand.test_regression_writes_junit_and_returns_one",
+          "tests/unit/test_ring5_cli.py::TestRegressionGateCommand.test_incomplete_evidence_takes_precedence_and_returns_three",
+          "tests/unit/test_ring5_cli.py::TestRegressionGateCommand.test_input_and_output_execution_failures_return_two"
+        ],
+        "documentation": [
+          "docs/user-guide/guides/compare-configurations.md#fail-ci-on-regressions"
+        ]
+      }
     },
     {
       "id": "automation.scheduled-reporting",
@@ -4999,6 +5013,7 @@
       "doctor": "api.doctor",
       "parse": "cli.parse",
       "recipe-matrix": "automation.batch-matrices",
+      "regression-gate": "automation.ci-regression-gates",
       "render": "cli.render",
       "upgrade": "portfolio.upgrade-protection"
     },
@@ -5012,6 +5027,19 @@
       "recipe-matrix:output_dir": "automation.batch-matrices",
       "recipe-matrix:recipe": "automation.batch-matrices",
       "recipe-matrix:workers": "automation.batch-matrices",
+      "regression-gate:baseline": "automation.ci-regression-gates",
+      "regression-gate:baseline_id": "automation.ci-regression-gates",
+      "regression-gate:candidate": "automation.ci-regression-gates",
+      "regression-gate:candidate_id": "automation.ci-regression-gates",
+      "regression-gate:default_direction": "automation.ci-regression-gates",
+      "regression-gate:default_threshold": "automation.ci-regression-gates",
+      "regression-gate:directions": "automation.ci-regression-gates",
+      "regression-gate:format": "automation.ci-regression-gates",
+      "regression-gate:keys": "automation.ci-regression-gates",
+      "regression-gate:metrics": "automation.ci-regression-gates",
+      "regression-gate:output": "automation.ci-regression-gates",
+      "regression-gate:threshold_mode": "automation.ci-regression-gates",
+      "regression-gate:thresholds": "automation.ci-regression-gates",
       "render:engine": "render.engine-selection",
       "render:format": "export.web-download",
       "render:no_deterministic": "export.deterministic",
