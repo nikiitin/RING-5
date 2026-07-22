@@ -169,6 +169,7 @@ class TestValidateWebStatsPath:
         child.mkdir(parents=True)
         monkeypatch.setenv("RING5_ALLOWED_STATS_ROOTS", str(allowed))
 
+        assert utils.validate_web_stats_path(str(allowed)) == allowed.resolve()
         assert utils.validate_web_stats_path(str(child)) == child.resolve()
 
     def test_outside_root_is_rejected(

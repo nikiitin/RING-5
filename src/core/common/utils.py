@@ -209,16 +209,16 @@ def validate_web_stats_path(user_path: str) -> Path:
     # [impl->req~ring5.ingestion.web-path-authorization~1]
     # [impl->req~ring5.quality.input-security~1]
     # Resolve symlinks before comparing against independently configured, resolved roots;
-    # the relative_to guard below rejects traversal, sibling-prefix, and symlink escapes.
+    # a separator-terminated root prefix rejects traversal, sibling, and symlink escapes.
     # codeql[py/path-injection]
     candidate = normalize_user_path(user_path).expanduser().resolve(strict=False)
     allowed_roots = allowed_web_stats_roots()
+    candidate_text = os.path.normcase(os.fspath(candidate))
     for root in allowed_roots:
-        try:
-            candidate.relative_to(root)
+        root_text = os.path.normcase(os.fspath(root))
+        root_prefix = root_text if root_text.endswith(os.sep) else root_text + os.sep
+        if candidate_text == root_text or candidate_text.startswith(root_prefix):
             return candidate
-        except ValueError:
-            continue
     allowed = ", ".join(str(root) for root in allowed_roots)
     raise ValueError(
         f"Stats path '{candidate}' is outside the allowed web roots: {allowed}. "
