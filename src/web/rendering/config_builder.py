@@ -257,9 +257,41 @@ class ConfigSpecBuilder:
             axis_line_width=float(config.get("y_axis_line_width", 1.0)),
         )
 
+        # [impl->req~ring5.figure.dual-axis-controls~1]
+        # Dual-axis plots use the same engine-neutral AxisConfig in both
+        # connectors. ``ylabel_dot`` is the bar+dot UI's historic key;
+        # grouped-stacked and the public API use ``ylabel_right``.
+        has_y2_axis = plot_type == "dual_axis_bar_dot" or bool(config.get("dual_axis"))
+        y2_axis: AxisConfig | None = None
+        if has_y2_axis:
+            y2_label = str(config.get("ylabel_right") or config.get("ylabel_dot") or "").replace(
+                "undefined", ""
+            )
+            y2_axis = AxisConfig(
+                label=y2_label,
+                tick_angle=float(config.get("yaxis2_tickangle", 0)),
+                range=config.get("range_y2"),
+                dtick=config.get("yaxis2_dtick"),
+                automargin=config.get("automargin", True),
+                show_grid=config.get("y2show_y_grid", False),
+                grid_color=config.get("y2_grid_color", config.get("grid_color", "#E5E5E5")),
+                grid_width=float(config.get("y2_grid_width", 1.0)),
+                grid_dash=config.get("y2_grid_dash", "solid"),
+                grid_alpha=float(config.get("y2_grid_alpha", 1.0)),
+                label_standoff=config.get("yaxis2_title_standoff", -1),
+                show_ticks=config.get("show_y2tick_marks", True),
+                show_tick_labels=config.get("show_y2tick_labels", True),
+                tick_font_color=config.get("yaxis2_tickfont_color", ""),
+                tick_side="right",
+                axis_color=config.get("axis_color", "#444"),
+                axis_line_color=config.get("y2_axis_line_color", ""),
+                axis_line_width=float(config.get("y2_axis_line_width", 1.0)),
+            )
+
         axes = AxesConfig(
             x=x_axis,
             y=y_axis,
+            y2=y2_axis,
             group_label_alternate=config.get("group_label_alternate", True),
             group_label_alt_spacing=float(config.get("group_label_alt_spacing", 0.05)),
             group_label_offset=float(config.get("group_label_offset", -0.12)),
@@ -649,6 +681,15 @@ def enrich_from_traces(spec: FigureConfig, result: TraceBuildResult) -> None:
         text = ticks.get("text")
         if text is not None:
             object.__setattr__(spec.axes.x, "tick_text", [str(t) for t in text])
+
+    y_ticks = result.custom_y_ticks
+    if y_ticks:
+        vals = y_ticks.get("vals")
+        if vals is not None:
+            object.__setattr__(spec.axes.y, "tick_values", list(vals))
+        text = y_ticks.get("text")
+        if text is not None:
+            object.__setattr__(spec.axes.y, "tick_text", [str(t) for t in text])
 
     barmode_str = str(result.barmode)
     if barmode_str in ("group", "stack", "overlay", "relative"):

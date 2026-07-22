@@ -114,6 +114,17 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
             xaxis_update["ticks"] = ""
         layout_updates["xaxis"] = xaxis_update
 
+    if result.custom_y_ticks:
+        yaxis_update: dict[str, Any] = {
+            "tickmode": "array",
+            "tickvals": result.custom_y_ticks["vals"],
+            "ticktext": result.custom_y_ticks["text"],
+        }
+        if result.custom_y_ticks.get("hide_ticks"):
+            yaxis_update["showticklabels"] = False
+            yaxis_update["ticks"] = ""
+        layout_updates["yaxis"] = yaxis_update
+
     separator_shapes: list[dict[str, Any]] = [
         {
             "type": "line",
@@ -281,8 +292,8 @@ def _box_trace(trace: BoxTraceConfig) -> go.Box:
     """Convert a precomputed ``BoxTraceConfig`` to a Plotly box trace."""
     vertical = trace.orientation == "vertical"
     kwargs: dict[str, Any] = {
-        "x": [trace.category] * len(trace.values) if vertical else trace.values,
-        "y": trace.values if vertical else [trace.category] * len(trace.values),
+        "x": [trace.position] * len(trace.values) if vertical else trace.values,
+        "y": trace.values if vertical else [trace.position] * len(trace.values),
         "name": trace.name,
         "orientation": "v" if vertical else "h",
         "quartilemethod": trace.quartile_method,
@@ -313,8 +324,8 @@ def _violin_trace(trace: ViolinTraceConfig) -> go.Violin:
     """Convert an engine-neutral violin distribution to Plotly."""
     vertical = trace.orientation == "vertical"
     kwargs: dict[str, Any] = {
-        "x": [trace.category] * len(trace.values) if vertical else trace.values,
-        "y": trace.values if vertical else [trace.category] * len(trace.values),
+        "x": [trace.position] * len(trace.values) if vertical else trace.values,
+        "y": trace.values if vertical else [trace.position] * len(trace.values),
         "name": trace.name,
         "orientation": "v" if vertical else "h",
         "bandwidth": trace.bandwidth,

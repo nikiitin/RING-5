@@ -81,6 +81,8 @@ class TraceBuildResult:
         custom_x_ticks: Optional override for x-axis tick values/labels.
             Expected keys: ``"vals"`` (``List[float]``), ``"text"``
             (``List[str]``).
+        custom_y_ticks: Equivalent override for the y-axis, used by
+            horizontally oriented distribution plots.
         secondary_y: Whether a secondary Y-axis is used.
     """
 
@@ -94,4 +96,5 @@ class TraceBuildResult:
     boxmode: Literal["group", "overlay"] = "group"
     violinmode: Literal["group", "overlay"] = "group"
     custom_x_ticks: dict[str, list[float] | list[str] | list[bool]] | None = None
+    custom_y_ticks: dict[str, list[float] | list[str] | list[bool]] | None = None
     secondary_y: bool = False

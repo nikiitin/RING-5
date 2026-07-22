@@ -193,6 +193,100 @@ class TestDualAxisBarDotPlotColorGrouping:
         assert len(scatter_traces) == 1, f"Expected 1 scatter trace, got {len(scatter_traces)}"
 
 
+class TestDualAxisBarDotPlotAlignedLayout:
+    """Verify grouped-bar alignment and connection scope semantics."""
+
+    # [test->req~ring5.figure.dual-axis-dot-layout~1]
+
+    def test_series_dots_share_each_bar_coordinate(
+        self, sample_data: pd.DataFrame, base_config: dict
+    ) -> None:
+        """Each configuration's dots use the exact coordinates of its bars."""
+        base_config.update(
+            dot_alignment="bar",
+            line_scope="series",
+            bargroupgap=0.6,
+        )
+        result = DualAxisBarDotPlot(1, "Test").create_traces(sample_data, base_config)
+
+        from src.core.models.visualization.trace_config import BarTraceConfig, LineTraceConfig
+
+        bars = [trace for trace in result.traces if isinstance(trace, BarTraceConfig)]
+        lines = [trace for trace in result.traces if isinstance(trace, LineTraceConfig)]
+        assert len(bars) == len(lines) == 2
+        for bar, line in zip(bars, lines, strict=True):
+            assert bar.x_positions == line.x
+        assert bars[0].x_positions == pytest.approx([0.0, 2.6, 5.2])
+        assert bars[1].x_positions == pytest.approx([1.0, 3.6, 6.2])
+        assert result.custom_x_ticks is not None
+        assert result.custom_x_ticks["vals"] == pytest.approx([0.0, 1.0, 2.6, 3.6, 5.2, 6.2])
+        assert result.custom_x_ticks["text"] == ["High", "Low", "High", "Low", "High", "Low"]
+        assert [annotation["text"] for annotation in result.layout_annotations] == [
+            "<b>A</b>",
+            "<b>B</b>",
+            "<b>C</b>",
+        ]
+
+    def test_group_scope_never_connects_adjacent_benchmarks(
+        self, sample_data: pd.DataFrame, base_config: dict
+    ) -> None:
+        """One line per benchmark connects its configurations and stops there."""
+        base_config.update(
+            dot_alignment="bar",
+            line_scope="group",
+            bargroupgap=0.6,
+        )
+        result = DualAxisBarDotPlot(1, "Test").create_traces(sample_data, base_config)
+
+        from src.core.models.visualization.trace_config import BarTraceConfig, LineTraceConfig
+
+        bars = [trace for trace in result.traces if isinstance(trace, BarTraceConfig)]
+        lines = [trace for trace in result.traces if isinstance(trace, LineTraceConfig)]
+        assert len(bars) == 2
+        expected = ([0.0, 1.0], [2.6, 3.6], [5.2, 6.2])
+        for trace, coordinates in zip(lines, expected, strict=True):
+            assert trace.x == pytest.approx(coordinates)
+        assert [trace.show_in_legend for trace in lines] == [True, False, False]
+
+    def test_markers_only_still_aligns_dots_to_bars(
+        self, sample_data: pd.DataFrame, base_config: dict
+    ) -> None:
+        """Turning lines off preserves bar-aligned marker positions."""
+        base_config.update(
+            dot_alignment="bar",
+            line_scope="group",
+            show_lines=False,
+        )
+        result = DualAxisBarDotPlot(1, "Test").create_traces(sample_data, base_config)
+
+        from src.core.models.visualization.trace_config import BarTraceConfig, ScatterTraceConfig
+
+        bars = [trace for trace in result.traces if isinstance(trace, BarTraceConfig)]
+        dots = [trace for trace in result.traces if isinstance(trace, ScatterTraceConfig)]
+        assert len(bars) == len(dots) == 2
+        for bar, dot in zip(bars, dots, strict=True):
+            assert bar.x_positions == dot.x
+
+    def test_plotly_uses_numeric_bar_and_dot_coordinates(
+        self, sample_data: pd.DataFrame, base_config: dict
+    ) -> None:
+        """The Plotly connector receives the same manual positions for both axes."""
+        base_config.update(dot_alignment="bar", line_scope="series")
+        figure = DualAxisBarDotPlot(1, "Test").create_figure(sample_data, base_config)
+        bars = [trace for trace in figure.data if isinstance(trace, go.Bar)]
+        dots = [trace for trace in figure.data if isinstance(trace, go.Scatter)]
+        assert list(bars[0].x) == list(dots[0].x)
+        assert list(bars[1].x) == list(dots[1].x)
+        assert list(figure.layout.xaxis.ticktext) == [
+            "High",
+            "Low",
+            "High",
+            "Low",
+            "High",
+            "Low",
+        ]
+
+
 class TestDualAxisBarDotPlotDotCustomization:
     """Test dot/marker customization options."""
 

@@ -109,6 +109,26 @@ class TestConfigSpecAxes:
         spec = ConfigSpecBuilder.from_config(_sample_config(yaxis_dtick=0.5))
         assert spec.axes.y.dtick == 0.5
 
+    def test_dual_axis_maps_right_label_range_and_grid(self) -> None:
+        # [test->req~ring5.figure.dual-axis-controls~1]
+        """The shared spec carries secondary-axis semantics to both engines."""
+        spec = ConfigSpecBuilder.from_config(
+            _sample_config(
+                ylabel_dot="IPC",
+                range_y2=[0.5, 2.0],
+                y2show_y_grid=True,
+            ),
+            plot_type="dual_axis_bar_dot",
+        )
+        assert spec.axes.y2 is not None
+        assert spec.axes.y2.label == "IPC"
+        assert spec.axes.y2.range == [0.5, 2.0]
+        assert spec.axes.y2.show_grid is True
+
+    def test_non_dual_plot_does_not_create_secondary_axis(self) -> None:
+        spec = ConfigSpecBuilder.from_config(_sample_config(), plot_type="bar")
+        assert spec.axes.y2 is None
+
     def test_xaxis_category_order(self) -> None:
         order = ["A", "B", "C"]
         spec = ConfigSpecBuilder.from_config(_sample_config(xaxis_order=order))

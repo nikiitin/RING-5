@@ -61,6 +61,8 @@ def test_grouped_violin_precomputes_density_and_count_width_without_mutation() -
     assert base_a.point_mode == "all"
     assert base_a.color == "#336699"
     assert not result.traces[1].show_in_legend
+    assert result.custom_x_ticks == {"vals": [0.0, 1.0], "text": ["B", "A"]}
+    assert [trace.position for trace in result.traces] == pytest.approx([0.2, 0.8, 1.2])
     pd.testing.assert_frame_equal(data, original)
 
 
@@ -85,6 +87,7 @@ def test_horizontal_half_violin_uses_hard_span_and_category_legend() -> None:
     assert min(first.density_coordinates) == min(first.values)
     assert max(first.density_coordinates) == max(first.values)
     assert not first.show_box and first.show_mean
+    assert result.custom_y_ticks == {"vals": [0.0, 1.0], "text": ["A", "B"]}
     assert plot.get_legend_column({"x": "benchmark"}) == "benchmark"
 
 

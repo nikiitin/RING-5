@@ -110,8 +110,22 @@ Covers:
 
 -->
 
+<!--
+`uman~ring5.figure.dual-axis-dot-layout.documentation~1`
+
+Covers:
+- req~ring5.figure.dual-axis-dot-layout~1
+
+-->
+
 Dual-axis bar-and-dot and grouped-stacked plots configure right-axis metrics, range and title, bars
 or dots, dot marker and line styling, per-group connecting lines, and unified or separate legends.
+
+For grouped bar-and-dot plots, **Dot placement** can keep the right-axis series at each benchmark
+center or align every dot directly with the bar for the same configuration. With aligned dots,
+**Line connection scope** either follows each configuration across benchmark groups or connects the
+configurations only inside one benchmark group. The latter deliberately stops every line before the
+next benchmark, making comparisons inside a group explicit without implying a trend between groups.
 
 ### Histogram controls
 

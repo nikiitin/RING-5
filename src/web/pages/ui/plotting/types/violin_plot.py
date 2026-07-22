@@ -226,7 +226,15 @@ class ViolinPlot(BasePlot):
                     custom_data={"drilldown": item.drilldown},
                 )
             )
-        return TraceBuildResult(traces=traces)
+        category_ticks: dict[str, list[float] | list[str] | list[bool]] = {
+            "vals": [float(index) for index in range(len(categories))],
+            "text": [str(category) for category in categories],
+        }
+        return TraceBuildResult(
+            traces=traces,
+            custom_x_ticks=category_ticks if orientation == "vertical" else None,
+            custom_y_ticks=category_ticks if orientation == "horizontal" else None,
+        )
 
     @override
     def get_legend_column(self, config: PlotConfig) -> str | None:

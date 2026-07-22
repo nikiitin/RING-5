@@ -1898,6 +1898,20 @@ Needs: impl, test, uman
 
 Tags: dual_axis, settings, status_approved, styling
 
+### Dual-axis grouped-dot layout
+
+`req~ring5.figure.dual-axis-dot-layout~1`
+Status: approved
+
+Grouped bar-and-dot plots shall optionally align each right-axis dot with its corresponding bar and shall connect dots either across categories by series or only within each category group.
+
+Covers:
+- feat~ring5.figure-configuration~1
+
+Needs: impl, test, uman
+
+Tags: dual_axis, grouping, layout, status_approved
+
 ### Histogram configuration
 
 `req~ring5.figure.histogram-controls~1`

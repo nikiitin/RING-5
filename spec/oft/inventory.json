@@ -1686,6 +1686,7 @@
           "src/web/components/plotting/config/dual_axis_settings.py::render_secondary_legend_controls",
           "src/web/components/plotting/config/dual_axis_settings.py::render_right_axis_dot_settings",
           "src/web/components/plotting/config/dual_axis_config.py::_sync_auto_labels",
+          "src/web/rendering/config_builder.py::ConfigSpecBuilder.from_config",
           "src/web/pages/ui/plotting/types/dual_axis_bar_dot_plot.py::DualAxisBarDotPlot.create_traces",
           "src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot._build_right_axis_traces"
         ],
@@ -1693,7 +1694,30 @@
           "tests/unit/test_dual_axis_bar_dot_plot.py::TestDualAxisBarDotPlotCreateFigure",
           "tests/unit/test_dual_axis_bar_dot_plot.py::TestDualAxisBarDotPlotDotCustomization",
           "tests/unit/test_grouped_dual_config.py::TestDualAxisRenderConfigUI.test_generated_labels_follow_explicit_axis_changes",
+          "tests/unit/core/visualization/test_config_spec_builder.py::TestConfigSpecAxes.test_dual_axis_maps_right_label_range_and_grid",
           "tests/unit/test_grouped_stacked_dual_axis.py::TestDualAxisCreateFigure",
+          "tests/e2e/test_dual_axis.py::TestDualAxisRendering"
+        ],
+        "documentation": [
+          "docs/user-guide/reference/plot-types.md#dual-axis-controls"
+        ]
+      }
+    },
+    {
+      "id": "figure.dual-axis-dot-layout",
+      "group": "figure-configuration",
+      "revision": 1,
+      "status": "approved",
+      "title": "Dual-axis grouped-dot layout",
+      "description": "Grouped bar-and-dot plots shall optionally align each right-axis dot with its corresponding bar and shall connect dots either across categories by series or only within each category group.",
+      "tags": ["dual_axis", "grouping", "layout"],
+      "evidence": {
+        "implementation": [
+          "src/web/components/plotting/config/dual_axis_config.py::render",
+          "src/web/pages/ui/plotting/types/dual_axis_bar_dot_plot.py::DualAxisBarDotPlot.create_traces"
+        ],
+        "tests": [
+          "tests/unit/test_dual_axis_bar_dot_plot.py::TestDualAxisBarDotPlotAlignedLayout",
           "tests/e2e/test_dual_axis.py::TestDualAxisRendering"
         ],
         "documentation": [

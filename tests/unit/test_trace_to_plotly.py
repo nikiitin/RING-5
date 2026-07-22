@@ -187,12 +187,14 @@ class TestBoxTrace:
             notched=True,
             show_mean=True,
             color="#ff0000",
+            position=1.25,
         )
 
         result = _box_trace(trace)
 
         assert result.orientation == "h"
         assert list(cast(Any, result.x)) == trace.values
+        assert list(cast(Any, result.y)) == [1.25, 1.25, 1.25]
         assert result.quartilemethod == "exclusive"
         assert result.boxpoints == "all"
         assert result.notched
@@ -220,12 +222,14 @@ class TestViolinTrace:
             show_box=True,
             show_mean=True,
             color="#ff0000",
+            position=1.25,
         )
 
         result = _violin_trace(trace)
 
         assert result.orientation == "h"
         assert list(cast(Any, result.x)) == trace.values
+        assert list(cast(Any, result.y)) == [1.25, 1.25, 1.25]
         assert result.bandwidth == 0.4
         assert result.spanmode == "hard"
         assert result.scalemode == "count"

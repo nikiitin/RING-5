@@ -358,6 +358,16 @@ class ManagePlotsPage(BasePage):
         return self._by_label("stSelectbox", "Color by")
 
     @property
+    def dual_dot_placement_selectbox(self) -> Locator:
+        """Human-facing dot placement control for dual-axis bar+dot plots."""
+        return self._by_label("stSelectbox", "Dot placement")
+
+    @property
+    def dual_line_scope_selectbox(self) -> Locator:
+        """Line connection scope control for dual-axis bar+dot plots."""
+        return self._by_label("stSelectbox", "Line connection scope")
+
+    @property
     def viz_group_by_selectbox(self) -> Locator:
         """'Group by' selectbox (for Grouped Bar)."""
         return self._by_label("stSelectbox", "Group by")
@@ -866,6 +876,14 @@ class ManagePlotsPage(BasePage):
     def select_color_by(self, column: str) -> None:
         """Select a column for 'Color by'."""
         self._open_and_select(self.viz_color_by_selectbox, column)
+
+    def select_dual_dot_placement(self, placement: str) -> None:
+        """Choose centered or per-bar dot placement."""
+        self._open_and_select(self.dual_dot_placement_selectbox, placement)
+
+    def select_dual_line_scope(self, scope: str) -> None:
+        """Choose whether dot lines cross groups or stop within each group."""
+        self._open_and_select(self.dual_line_scope_selectbox, scope)
 
     def select_group_by(self, column: str) -> None:
         """Select a column for 'Group by' (Grouped Bar)."""

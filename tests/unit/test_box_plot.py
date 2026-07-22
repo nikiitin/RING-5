@@ -55,6 +55,8 @@ def test_grouped_box_traces_precompute_distribution_without_mutating_data() -> N
     assert base_a.show_mean
     assert not result.traces[1].show_in_legend
     assert result.boxmode == "group"
+    assert result.custom_x_ticks == {"vals": [0.0, 1.0], "text": ["B", "A"]}
+    assert [trace.position for trace in result.traces] == pytest.approx([0.15, 0.85, 1.15])
     assert plot.get_legend_column(config) == "variant"
     pd.testing.assert_frame_equal(data, original)
 
@@ -81,6 +83,7 @@ def test_horizontal_percentile_boxes_and_category_legend() -> None:
     assert first.point_mode == "all"
     assert first.notched
     assert first.lower_whisker < first.upper_whisker
+    assert result.custom_y_ticks == {"vals": [0.0, 1.0], "text": ["A", "B"]}
     assert plot.get_legend_column({"x": "benchmark"}) == "benchmark"
 
 

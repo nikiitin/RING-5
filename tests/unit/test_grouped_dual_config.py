@@ -113,12 +113,14 @@ class TestDualAxisRenderConfigUI:
         mock_detect.return_value = (["cycles", "ipc"], ["benchmark", "config"])
         mock_color_sel.return_value = None
         mock_st.columns.side_effect = _columns_side_effect
-        # selectbox: x, y_bar, y_dot, dot_symbol
+        # selectbox: x, y_bar, y_dot, dot_symbol, dot placement, line scope
         mock_st.selectbox.side_effect = [
             "benchmark",
             "cycles",
             "ipc",
             "circle",
+            "Benchmark center",
+            "Across benchmark groups",
         ]
         mock_st.text_input.return_value = "IPC"
         mock_st.checkbox.return_value = True  # show_lines
@@ -137,6 +139,8 @@ class TestDualAxisRenderConfigUI:
         assert result["x"] == "benchmark"
         assert result["y_bar"] == "cycles"
         assert result["y_dot"] == "ipc"
+        assert result["dot_alignment"] == "category"
+        assert result["line_scope"] == "series"
 
     @patch(f"{_DUAL_CFG}.PlotConfigComponents")
     @patch(f"{_DUAL_CFG}.render_color_selector")
@@ -157,12 +161,14 @@ class TestDualAxisRenderConfigUI:
         mock_detect.return_value = (["cycles", "ipc"], ["benchmark", "config"])
         mock_color_sel.return_value = "config"
         mock_st.columns.side_effect = _columns_side_effect
-        # selectbox: x, y_bar, y_dot, dot_symbol
+        # selectbox: x, y_bar, y_dot, dot_symbol, dot placement, line scope
         mock_st.selectbox.side_effect = [
             "benchmark",
             "cycles",
             "ipc",
             "diamond",
+            "Aligned with each bar",
+            "Only within each benchmark group",
         ]
         mock_st.text_input.return_value = "IPC"
         mock_st.checkbox.return_value = False  # show_lines
@@ -172,6 +178,8 @@ class TestDualAxisRenderConfigUI:
             "xlabel": "benchmark",
             "ylabel": "cycles",
             "legend_title": "Legend",
+            "dot_alignment": "bar",
+            "line_scope": "group",
         }
 
         saved = {
@@ -193,6 +201,8 @@ class TestDualAxisRenderConfigUI:
 
         assert result["color"] == "config"
         assert result["show_lines"] is False
+        assert result["dot_alignment"] == "bar"
+        assert result["line_scope"] == "group"
 
     @patch(f"{_DUAL_CFG}.PlotConfigComponents")
     @patch(f"{_DUAL_CFG}.render_color_selector")
@@ -218,6 +228,8 @@ class TestDualAxisRenderConfigUI:
             "cycles",
             "ipc",
             "circle",
+            "Benchmark center",
+            "Across benchmark groups",
         ]
         mock_st.text_input.return_value = "IPC"
         mock_st.checkbox.return_value = True
@@ -259,6 +271,8 @@ class TestDualAxisRenderConfigUI:
             "cycles",
             "ipc",
             "square",
+            "Benchmark center",
+            "Across benchmark groups",
         ]
         mock_st.text_input.return_value = "IPC"
         mock_st.checkbox.return_value = True
