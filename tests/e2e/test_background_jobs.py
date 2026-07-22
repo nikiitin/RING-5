@@ -23,6 +23,7 @@ class TestBackgroundJobCenter:
         expect(base.background_jobs_content).to_contain_text("No background jobs in this session.")
 
         source = Path(__file__).parent / "fixtures" / "background_job_stats"
+        assert (source / "run" / "stats.txt").is_file(), "tracked scan fixture is missing"
         data_source = DataSourcePage(tier0_page)
         data_source.navigate()
         data_source.ensure_parse_mode()

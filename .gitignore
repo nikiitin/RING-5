@@ -49,6 +49,7 @@ tests/visual/screenshots/
 tests/visual/artifacts/
 
 tests/e2e/artifacts/
+!tests/e2e/fixtures/background_job_stats/run/stats.txt
 
 # R session / environment artifacts (RING-5 is a Python project)
 .RData
