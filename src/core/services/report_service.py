@@ -27,6 +27,7 @@ def _cell_text(value: object) -> str:
         if bool(pd.isna(cast(Any, value))):
             return ""
     except (TypeError, ValueError):
+        # Non-scalar extension values are rendered by the normal fallbacks below.
         pass
     if isinstance(value, (datetime, date)):
         return value.isoformat()

@@ -137,6 +137,25 @@ def test_invalid_targets_and_metadata_are_rejected(
         )
 
 
+@pytest.mark.parametrize(
+    ("tag", "expected"),
+    [
+        ("CPU_2026", "cpu_2026"),
+        ("_internal_", "_internal_"),
+        ("Nightly Run", "nightly run"),
+        ("release-candidate", "release-candidate"),
+    ],
+)
+def test_workspace_tag_validation_preserves_supported_forms(tag: str, expected: str) -> None:
+    assert WorkspaceMetadataService._normalize_tag(tag) == expected
+
+
+@pytest.mark.parametrize("tag", ["-leading", "trailing-", "two--parts", "bad!tag"])
+def test_workspace_tag_validation_rejects_unsupported_forms(tag: str) -> None:
+    with pytest.raises(ValueError, match="may contain"):
+        WorkspaceMetadataService._normalize_tag(tag)
+
+
 def test_empty_metadata_removes_records_and_filters_are_bounded(portfolios_dir) -> None:
     state = _state()
     WorkspaceMetadataService.set_metadata(

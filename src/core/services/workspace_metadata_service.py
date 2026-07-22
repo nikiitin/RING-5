@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import os
-import re
 import tempfile
 import threading
 import unicodedata
@@ -32,7 +31,7 @@ from src.core.state.state_manager import StateManager
 _CONFIG_KEY = "_workspace_artifact_metadata"
 _PORTFOLIO_METADATA_FILE = ".workspace-metadata"
 _PORTFOLIO_METADATA_VERSION = 1
-_TAG = re.compile(r"^[\w]+(?:[ _-][\w]+)*$", re.UNICODE)
+_TAG_SEPARATORS = frozenset({" ", "-"})
 _KINDS: tuple[WorkspaceArtifactKind, ...] = (
     "variable",
     "dataset",
@@ -396,7 +395,18 @@ class WorkspaceMetadataService:
             raise ValueError(
                 f"Workspace tags are limited to {MAX_WORKSPACE_TAG_LENGTH} characters."
             )
-        if not _TAG.fullmatch(normalized):
+        if (
+            normalized[0] in _TAG_SEPARATORS
+            or normalized[-1] in _TAG_SEPARATORS
+            or any(
+                character != "_" and not character.isalnum() and character not in _TAG_SEPARATORS
+                for character in normalized
+            )
+            or any(
+                left in _TAG_SEPARATORS and right in _TAG_SEPARATORS
+                for left, right in zip(normalized, normalized[1:], strict=False)
+            )
+        ):
             raise ValueError(
                 "Workspace tags may contain letters, numbers, spaces, underscores, and hyphens."
             )

@@ -24,6 +24,7 @@ def _value_key(value: Any) -> str:
         try:
             value = value.item()
         except (TypeError, ValueError):
+            # Keep the original extension scalar when conversion is unsupported.
             pass
     if isinstance(value, (datetime, date)):
         return f"date:{value.isoformat()}"

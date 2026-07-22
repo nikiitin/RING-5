@@ -370,7 +370,7 @@ class S3RemoteSourceAdapter:
         parsed_endpoint = urlsplit(endpoint)
         if parsed_endpoint.query or parsed_endpoint.fragment or parsed_endpoint.username:
             raise ValueError("S3 endpoint must not contain query, fragment, or credentials.")
-        host, _display_endpoint = _authorize_url(
+        _authorize_url(
             endpoint,
             policy,
             frozenset({"http", "https"}),

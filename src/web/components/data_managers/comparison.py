@@ -117,19 +117,27 @@ class ComparisonManager(DataManager):
             key=WidgetKeyBuilder.manager_key("comparison", "keys"),
         )
 
+        threshold_options: tuple[str, str, float] | None = None
+        statistics_options: tuple[float, float, int, int] | None = None
         if method_label == "Threshold":
             direction_column, mode_column, threshold_column = st.columns(3)
             with direction_column:
-                direction_label = st.selectbox(
-                    "Preferred direction",
-                    ["Higher is better", "Lower is better"],
-                    key=WidgetKeyBuilder.manager_key("comparison", "direction"),
+                direction_label = (
+                    st.selectbox(
+                        "Preferred direction",
+                        ["Higher is better", "Lower is better"],
+                        key=WidgetKeyBuilder.manager_key("comparison", "direction"),
+                    )
+                    or "Higher is better"
                 )
             with mode_column:
-                mode_label = st.selectbox(
-                    "Threshold unit",
-                    ["Percentage", "Absolute"],
-                    key=WidgetKeyBuilder.manager_key("comparison", "threshold_mode"),
+                mode_label = (
+                    st.selectbox(
+                        "Threshold unit",
+                        ["Percentage", "Absolute"],
+                        key=WidgetKeyBuilder.manager_key("comparison", "threshold_mode"),
+                    )
+                    or "Percentage"
                 )
             with threshold_column:
                 threshold = float(
@@ -141,6 +149,7 @@ class ComparisonManager(DataManager):
                         key=WidgetKeyBuilder.manager_key("comparison", "threshold"),
                     )
                 )
+            threshold_options = (direction_label, mode_label, threshold)
         else:
             confidence_column, alpha_column, samples_column = st.columns(3)
             with confidence_column:
@@ -185,6 +194,12 @@ class ComparisonManager(DataManager):
                     key=WidgetKeyBuilder.manager_key("comparison", "minimum_sample_size"),
                 )
             )
+            statistics_options = (
+                confidence_level,
+                alpha,
+                bootstrap_samples,
+                minimum_sample_size,
+            )
 
         if baseline_value == candidate_value:
             st.warning("Baseline and candidate must be different groups.")
@@ -202,31 +217,35 @@ class ComparisonManager(DataManager):
                 candidate = data.loc[data[group_column].eq(candidate_value)].copy()
                 try:
                     if method_label == "Threshold":
+                        if threshold_options is None:
+                            raise RuntimeError("Threshold comparison options were not rendered.")
                         result = self.api.managers.compare(
                             baseline,
                             candidate,
                             key_columns,
                             metric_columns,
                             directions=(
-                                "higher" if direction_label == "Higher is better" else "lower"
+                                "higher" if threshold_options[0] == "Higher is better" else "lower"
                             ),
-                            thresholds=threshold,
+                            thresholds=threshold_options[2],
                             threshold_mode=(
-                                "percentage" if mode_label == "Percentage" else "absolute"
+                                "percentage" if threshold_options[1] == "Percentage" else "absolute"
                             ),
                             baseline_name=str(baseline_value),
                             candidate_name=str(candidate_value),
                         )
                     else:
+                        if statistics_options is None:
+                            raise RuntimeError("Statistical comparison options were not rendered.")
                         result = self.api.managers.compare_statistics(
                             baseline,
                             candidate,
                             key_columns,
                             metric_columns,
-                            confidence_level=confidence_level,
-                            alpha=alpha,
-                            bootstrap_samples=bootstrap_samples,
-                            minimum_sample_size=minimum_sample_size,
+                            confidence_level=statistics_options[0],
+                            alpha=statistics_options[1],
+                            bootstrap_samples=statistics_options[2],
+                            minimum_sample_size=statistics_options[3],
                         )
                 except (TypeError, ValueError) as exc:
                     st.error(str(exc))

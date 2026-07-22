@@ -36,6 +36,7 @@ def _matching_rows(series: pd.Series[Any], value: Any) -> pd.Series[bool]:
                 try:
                     item = item.item()
                 except (TypeError, ValueError):
+                    # Keep the original extension scalar when conversion is unsupported.
                     pass
             if isinstance(item, (date, datetime)):
                 return item.isoformat()

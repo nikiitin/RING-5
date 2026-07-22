@@ -126,7 +126,8 @@ Yes. Open **Command palette** in the sidebar to see the complete shortcut list. 
 are <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>K</kbd> for the palette, <kbd>/</kbd> for workspace search, and
 <kbd>Alt</kbd>+<kbd>1</kbd> through <kbd>Alt</kbd>+<kbd>5</kbd> for sidebar pages. RING-5 ignores
 single-key and page shortcuts while an editable control has focus. See [Command Palette and
-Shortcuts](../workflows/command-palette/) for the safety boundary and operating-system caveats.
+Shortcuts]({{site.baseurl}}/user-guide/workflows/command-palette/) for the safety boundary and
+operating-system caveats.
 
 ## Where should I report a reproducible failure?
 

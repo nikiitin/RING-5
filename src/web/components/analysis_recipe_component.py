@@ -64,7 +64,6 @@ class AnalysisRecipeComponent:
         )
         engine = "matplotlib"
         export_format = "pdf"
-        output_dir = "recipe-output"
         if include_exports:
             engine = (
                 st.selectbox(

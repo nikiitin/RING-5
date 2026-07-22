@@ -28,8 +28,6 @@ from ring5.errors import DataValidationError, ExportError, RecipeError, Ring5Err
 from src.core.common.security_limits import MAX_ANALYSIS_RECIPE_MATRIX_BYTES
 
 if TYPE_CHECKING:
-    import pandas as pd
-
     from src.core.models import AnalysisRecipeMatrixResult, ScheduledReportResult
 
 
@@ -199,7 +197,7 @@ def _cmd_regression_gate(args: argparse.Namespace) -> int:
         baseline = session.load(args.baseline)
         candidate = session.load(args.candidate)
         comparison = cast(
-            "pd.DataFrame",
+            Any,
             session.compare(
                 baseline,
                 candidate,

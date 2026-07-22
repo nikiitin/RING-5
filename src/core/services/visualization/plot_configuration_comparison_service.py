@@ -63,7 +63,7 @@ def _flatten(
     output: dict[str, tuple[str, Any]],
 ) -> None:
     if isinstance(value, Mapping) and value:
-        for key in sorted(value, key=lambda item: str(item)):
+        for key in sorted(value, key=str):
             child = str(key)
             _flatten(
                 value[key],

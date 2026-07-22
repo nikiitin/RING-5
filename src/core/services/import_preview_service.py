@@ -289,7 +289,7 @@ def _inspect(
 ) -> tuple[ImportPreview, list[list[object | None]]]:
     """Infer types, apply corrections, and classify every bounded row."""
     header = _header(source, options)
-    candidates = [_TypeCandidate() for _column in header]
+    candidates = [_TypeCandidate() for _ in header]
     for _line_number, raw_values in _records(source, options):
         if len(raw_values) != len(header):
             continue

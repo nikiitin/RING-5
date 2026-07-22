@@ -28,6 +28,7 @@ def _browser_scalar(value: Any) -> Any:
         try:
             value = value.item()
         except (TypeError, ValueError):
+            # Some extension scalars advertise item() but reject conversion.
             pass
     if isinstance(value, (date, datetime)):
         return value.isoformat()
