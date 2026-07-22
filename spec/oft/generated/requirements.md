@@ -3000,6 +3000,20 @@ Needs: impl, test, uman
 
 Tags: html, openfasttrace, reporting, status_approved
 
+### CI-published OFT HTML report
+
+`req~ring5.trace.ci-html-artifact~1`
+Status: approved
+
+Every CI run shall regenerate the human-first report from pinned native OpenFastTrace output, validate the trace inputs, and publish the standalone HTML as a downloadable workflow artifact.
+
+Covers:
+- feat~ring5.traceability~1
+
+Needs: impl, test, uman
+
+Tags: artifacts, ci, html, openfasttrace, status_approved
+
 ### Live capability drift detection
 
 `req~ring5.trace.registry-drift~1`

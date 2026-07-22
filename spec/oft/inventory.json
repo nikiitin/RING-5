@@ -3172,6 +3172,20 @@
       }
     },
     {
+      "id": "trace.ci-html-artifact",
+      "group": "traceability",
+      "revision": 1,
+      "status": "approved",
+      "title": "CI-published OFT HTML report",
+      "description": "Every CI run shall regenerate the human-first report from pinned native OpenFastTrace output, validate the trace inputs, and publish the standalone HTML as a downloadable workflow artifact.",
+      "tags": ["artifacts", "ci", "html", "openfasttrace"],
+      "evidence": {
+        "implementation": ["scripts/generate_oft_inventory.py::validate_ci_oft_artifact"],
+        "tests": ["tests/unit/test_oft_inventory.py::test_ci_generates_and_publishes_the_human_oft_report"],
+        "documentation": ["spec/oft/README.md#ci-report-artifact"]
+      }
+    },
+    {
       "id": "trace.registry-drift",
       "group": "traceability",
       "revision": 1,

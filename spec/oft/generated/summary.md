@@ -6,13 +6,13 @@
 This file is informative; normative items are in the other generated files.
 
 - Feature groups: 13
-- Detailed requirements: 219
-- Approved current requirements: 219
+- Detailed requirements: 220
+- Approved current requirements: 220
 - Proposed future requirements: 0
 - Draft future requirements: 0
 - In development future requirements: 0
 - Blocked future requirements: 0
-- Generated specification items: 232
+- Generated specification items: 233
 - Live capability bindings: 871
 
 ## Requirements by feature group
@@ -31,7 +31,7 @@ This file is informative; normative items are in the other generated files.
 | Reproducibility and Portfolios | 13 | 0 | 0 | 0 | 0 | 13 |
 | Automation API and CLI | 17 | 0 | 0 | 0 | 0 | 17 |
 | Extensibility, Safety, and Quality | 14 | 0 | 0 | 0 | 0 | 14 |
-| Feature Traceability | 10 | 0 | 0 | 0 | 0 | 10 |
+| Feature Traceability | 11 | 0 | 0 | 0 | 0 | 11 |
 
 ## Drift-checked capability sources
 

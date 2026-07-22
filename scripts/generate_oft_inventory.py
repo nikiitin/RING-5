@@ -49,6 +49,7 @@ DEFAULT_INVENTORY = ROOT / "spec" / "oft" / "inventory.json"
 DEFAULT_OUTPUT_DIR = ROOT / "spec" / "oft" / "generated"
 GENERATED_FILENAMES = ("features.md", "requirements.md", "summary.md")
 HTML_REPORT_FILENAME = "report.html"
+CI_WORKFLOW_PATH = Path(".github/workflows/ci.yml")
 ALLOWED_STATUSES = frozenset(view.key for view in requirement_status_views())
 HISTORY_CHANGE_TYPES = frozenset({"semantic", "evidence"})
 ID_PATTERN = re.compile(r"^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$")
@@ -344,6 +345,46 @@ def _valid_branch_name(value: object) -> bool:
     )
 
 
+def validate_ci_oft_artifact(root: Path = ROOT) -> list[str]:
+    """Return errors when CI does not generate and publish the OFT HTML report."""
+    # [impl->req~ring5.trace.ci-html-artifact~1]
+    workflow_path = root / CI_WORKFLOW_PATH
+    try:
+        lines = workflow_path.read_text(encoding="utf-8").splitlines()
+    except OSError as exc:
+        return [f"could not read {CI_WORKFLOW_PATH.as_posix()}: {exc}"]
+
+    header = "  oft:"
+    try:
+        start = lines.index(header) + 1
+    except ValueError:
+        return ["CI workflow is missing the dedicated 'oft' job"]
+
+    end = len(lines)
+    for index in range(start, len(lines)):
+        line = lines[index]
+        if line.startswith("  ") and not line.startswith("    ") and line.endswith(":"):
+            end = index
+            break
+    job = "\n".join(lines[start:end])
+    required_tokens = {
+        "the human-readable job name": "name: OpenFastTrace HTML report",
+        "Java setup": "uses: actions/setup-java@v5",
+        "the pinned Java runtime": 'java-version: "17"',
+        "application installation": "python_venv/bin/pip install -e .",
+        "OFT report generation": "make oft-report",
+        "artifact upload": "uses: actions/upload-artifact@v7",
+        "the report artifact name": "name: ring5-openfasttrace-report",
+        "the generated HTML path": "path: spec/oft/generated/report.html",
+        "missing-artifact failure behavior": "if-no-files-found: error",
+    }
+    return [
+        f"CI OFT job is missing {label} ({token!r})"
+        for label, token in required_tokens.items()
+        if token not in job
+    ]
+
+
 def _validate_requirement_history(
     feature: Mapping[str, Any], label: str, errors: list[str]
 ) -> None:
@@ -556,6 +597,7 @@ def validate_inventory(
                     f"requirement {feature_id!r}"
                 )
 
+    errors.extend(validate_ci_oft_artifact(root))
     if not errors:
         errors.extend(validate_source_evidence(cast(dict[str, Any], inventory), root))
 

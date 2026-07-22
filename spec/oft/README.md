@@ -79,6 +79,22 @@ canonical OFT trace item. Generation fails if OFT omits an expected feature or
 requirement. `oft-check` verifies the report's inventory fingerprint
 without needing Java.
 
+### CI report artifact
+
+<!--
+`uman~ring5.trace.ci-html-artifact.documentation~1`
+
+Covers:
+- req~ring5.trace.ci-html-artifact~1
+
+-->
+
+Every CI run has a dedicated **OpenFastTrace HTML report** job. It installs Java 17 and the pinned
+OFT release, regenerates the report from native OFT output, validates the resulting trace, and
+uploads `spec/oft/generated/report.html` as the `ring5-openfasttrace-report` workflow artifact.
+Reviewers can download the standalone report from the run's **Artifacts** section for 30 days
+without building it locally.
+
 ## Requirement status views
 
 <!--

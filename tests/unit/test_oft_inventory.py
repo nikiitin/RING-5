@@ -16,6 +16,7 @@ from scripts.generate_oft_inventory import (
     load_inventory,
     render_inventory,
     validate_approved_native_coverage,
+    validate_ci_oft_artifact,
     validate_inventory,
     write_or_check,
 )
@@ -36,6 +37,25 @@ def test_repository_inventory_is_valid_and_comprehensive() -> None:
     assert len(inventory["groups"]) >= 10
     assert len(inventory["features"]) >= 100
     assert all(live_capabilities.values())
+
+
+def test_ci_generates_and_publishes_the_human_oft_report() -> None:
+    """The CI contract keeps a downloadable report attached to every run."""
+    # [test->req~ring5.trace.ci-html-artifact~1]
+    assert validate_ci_oft_artifact() == []
+
+
+def test_ci_oft_contract_reports_missing_generation_and_upload(tmp_path: Path) -> None:
+    """Workflow drift names each missing part of the OFT artifact contract."""
+    workflow = tmp_path / ".github" / "workflows" / "ci.yml"
+    workflow.parent.mkdir(parents=True)
+    workflow.write_text("jobs:\n  oft:\n    name: OpenFastTrace HTML report\n", encoding="utf-8")
+
+    errors = validate_ci_oft_artifact(tmp_path)
+
+    assert any("OFT report generation" in error for error in errors)
+    assert any("artifact upload" in error for error in errors)
+    assert any("generated HTML path" in error for error in errors)
 
 
 def test_rendered_inventory_is_deterministic_and_complete() -> None:
