@@ -210,10 +210,10 @@ def validate_web_stats_path(user_path: str) -> Path:
     # [impl->req~ring5.quality.input-security~1]
     # Resolve symlinks before comparing against independently configured, resolved roots;
     # a separator-terminated root prefix rejects traversal, sibling, and symlink escapes.
-    # codeql[py/path-injection]
-    candidate = normalize_user_path(user_path).expanduser().resolve(strict=False)
+    candidate_path = os.path.realpath(os.path.expanduser(os.fspath(normalize_user_path(user_path))))
+    candidate = Path(candidate_path)
     allowed_roots = allowed_web_stats_roots()
-    candidate_text = os.path.normcase(os.fspath(candidate))
+    candidate_text = os.path.normcase(candidate_path)
     for root in allowed_roots:
         root_text = os.path.normcase(os.fspath(root))
         root_prefix = root_text if root_text.endswith(os.sep) else root_text + os.sep
