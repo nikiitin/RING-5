@@ -208,6 +208,7 @@ jobs:
   e2e:
     name: Streamlit E2E
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     needs: quality
     steps:
       - name: Check out repository

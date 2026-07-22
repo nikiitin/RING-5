@@ -69,7 +69,15 @@ class WorkspaceOrganizer(BasePage):
         self.tags_input.press("Enter")
         self.wait_for_streamlit(expect_rerun=True)
         if self.favorite_checkbox.is_checked() != favorite:
-            self.favorite_checkbox.set_checked(favorite, force=True)
+            # Streamlit replaces the checkbox node during a rerun. Playwright's
+            # set_checked() verifies the old node immediately after clicking and
+            # can report a false failure even though the new widget has the right
+            # state, so assert against the post-rerun locator instead.
+            self.favorite_checkbox.locator("xpath=ancestor::label").click()
             self.wait_for_streamlit(expect_rerun=True)
+            if favorite:
+                expect(self.favorite_checkbox).to_be_checked(timeout=self.RENDER_TIMEOUT)
+            else:
+                expect(self.favorite_checkbox).not_to_be_checked(timeout=self.RENDER_TIMEOUT)
         self.save_button.click()
         self.wait_for_streamlit(expect_rerun=True)

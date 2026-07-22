@@ -63,3 +63,47 @@ def test_export_marker_and_navigation_reject_untrusted_values(mock_st: MagicMock
                 destination="Unknown",
             )
         )
+
+
+@patch("src.web.components.guided_analysis.st")
+def test_export_stage_polls_once_then_refreshes_complete_sidebar(
+    mock_st: MagicMock,
+) -> None:
+    from src.web.components.guided_analysis import GuidedAnalysisComponent
+
+    data = pd.DataFrame({"configuration": ["base", "next"], "ipc": [1.0, 1.1]})
+    exporting = GuidedAnalysisService.assess(
+        data,
+        comparison_ready=True,
+        plot_count=1,
+        rendered_plot_count=1,
+        exported=False,
+    )
+    complete = GuidedAnalysisService.assess(
+        data,
+        comparison_ready=True,
+        plot_count=1,
+        rendered_plot_count=1,
+        exported=True,
+    )
+    captured: dict[str, object] = {}
+
+    def _fragment(func: object, *, run_every: object = None) -> object:
+        captured["func"] = func
+        captured["run_every"] = run_every
+        return func
+
+    mock_st.session_state = {}
+    mock_st.fragment.side_effect = _fragment
+    mock_st.expander.return_value.__enter__.return_value = MagicMock()
+    mock_st.button.return_value = False
+    api = MagicMock()
+    api.guided_analysis_progress.side_effect = [exporting, complete]
+
+    GuidedAnalysisComponent.render_fragmented(api)
+    assert captured["run_every"] == 1
+    scheduled_render = captured["func"]
+    assert callable(scheduled_render)
+    scheduled_render()
+
+    mock_st.rerun.assert_called_once_with(scope="app")

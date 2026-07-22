@@ -16,7 +16,12 @@ Covers all 11 tabs:
 
 from __future__ import annotations
 
-from playwright.sync_api import Locator, Page, expect
+from playwright.sync_api import (
+    Locator,
+    Page,
+    TimeoutError as PlaywrightTimeoutError,
+    expect,
+)
 
 from tests.visual.pages.base_page import BasePage
 
@@ -62,6 +67,7 @@ class DataManagersPage(BasePage):
     def navigate(self) -> None:
         """Open the Data Managers page via sidebar."""
         self.navigate_to(self.PAGE_NAME)
+        expect(self.page_header).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
     # Locators
 
@@ -89,8 +95,16 @@ class DataManagersPage(BasePage):
             tab_name: One of ``TAB_NAMES``.
         """
         tab = self.page.get_by_role("tab", name=tab_name)
-        tab.click()
-        self.wait_for_streamlit()
+        for _ in range(3):
+            try:
+                tab.click(timeout=5_000)
+                expect(tab).to_have_attribute("aria-selected", "true", timeout=5_000)
+                return
+            except (AssertionError, PlaywrightTimeoutError):
+                # Navigation can replace the complete tab list while this click
+                # is in flight. Wait for that run and retry through the locator.
+                self.wait_for_streamlit()
+        expect(tab).to_have_attribute("aria-selected", "true", timeout=self.RENDER_TIMEOUT)
 
     def get_tab(self, tab_name: str) -> Locator:
         """Return the tab locator by name."""
@@ -183,14 +197,17 @@ class DataManagersPage(BasePage):
         if expected is not None:
             expect(rows_metric.first).to_contain_text(str(expected), timeout=self.RENDER_TIMEOUT)
 
-    def assert_summary_has_columns(self) -> None:
-        """Assert Summary tab shows a column-count metric.
+    def assert_summary_has_columns(self, expected: int | None = None) -> None:
+        """Assert Summary shows a column count, optionally an exact value.
 
         Scopes to the ``st.metric`` card; a bare ``get_by_text("Columns")``
         matched ~23 elements on the page (strict-mode violation).
         """
         cols_metric = self.page.locator("[data-testid='stMetric']").filter(has_text="Columns")
         expect(cols_metric.first).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        if expected is not None:
+            value = cols_metric.first.locator("[data-testid='stMetricValue']")
+            expect(value).to_have_text(str(expected), timeout=self.RENDER_TIMEOUT)
 
     # E2E: Seeds Reducer
 
@@ -317,12 +334,12 @@ class DataManagersPage(BasePage):
     def apply_preprocessor_preview(self) -> None:
         """Click 'Preview Result' and wait."""
         self.preproc_preview_button.click()
-        self.wait_for_streamlit()
+        self.wait_for_streamlit(expect_rerun=True)
 
     def confirm_preprocessor(self) -> None:
         """Click 'Confirm and Add Column to Dataset' and wait."""
         self.preproc_confirm_button.click()
-        self.wait_for_streamlit()
+        self.wait_for_streamlit(expect_rerun=True)
 
     # E2E: Mixer
 
@@ -536,9 +553,16 @@ class DataManagersPage(BasePage):
 
     def retain_current_dataset(self, name: str) -> None:
         """Retain the active dataset under ``name`` and wait for rerendering."""
+        previous_count = 0
+        if self.workspace_dataset_metric_value.count():
+            expect(self.workspace_dataset_metric_value).to_be_visible(timeout=self.RENDER_TIMEOUT)
+            previous_count = int(self.workspace_dataset_metric_value.inner_text())
         self.workspace_name_input.fill(name)
         self.workspace_retain_button.click()
-        self.wait_for_streamlit()
+        self.wait_for_streamlit(expect_rerun=True)
+        expect(self.workspace_dataset_metric_value).to_have_text(
+            str(previous_count + 1), timeout=self.RENDER_TIMEOUT
+        )
 
     def open_workspace_snapshots(self) -> None:
         """Expand the reusable snapshot controls when collapsed."""
@@ -570,17 +594,17 @@ class DataManagersPage(BasePage):
     def undo_workspace_dataset(self) -> None:
         """Undo one named-dataset revision and wait for the rerender."""
         self.workspace_undo_button.click()
-        self.wait_for_streamlit()
+        self.wait_for_streamlit(expect_rerun=True)
 
     def redo_workspace_dataset(self) -> None:
         """Redo one named-dataset revision and wait for the rerender."""
         self.workspace_redo_button.click()
-        self.wait_for_streamlit()
+        self.wait_for_streamlit(expect_rerun=True)
 
     def join_workspace_datasets(self) -> None:
         """Execute the validated join and wait for the workspace rerender."""
         self.workspace_join_button.click()
-        self.wait_for_streamlit()
+        self.wait_for_streamlit(expect_rerun=True)
 
     # E2E: Data quality
 

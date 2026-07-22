@@ -32,6 +32,7 @@ PORTFOLIO_NAME = "E2E_Test_Portfolio"
 
 
 @pytest.mark.xdist_group("e2e_portfolio")
+@pytest.mark.timeout(240)
 class TestPortfolioSaveLoad:
     """Tier 3: Full portfolio save/load cycle (ordered).
 

@@ -107,7 +107,7 @@ class DataSourcePage(BasePage):
     @property
     def stats_path_input(self) -> Locator:
         """Text input for the stats directory path."""
-        return self.page.locator("[data-testid='stTextInput'] input").first
+        return self.page.get_by_role("textbox", name="Stats directory path", exact=True)
 
     @property
     def stats_path_label(self) -> Locator:
@@ -117,7 +117,7 @@ class DataSourcePage(BasePage):
     @property
     def stats_pattern_input(self) -> Locator:
         """Text input for the file pattern (e.g. stats.txt)."""
-        return self.page.locator("[data-testid='stTextInput'] input").nth(1)
+        return self.page.get_by_role("textbox", name="File pattern", exact=True)
 
     @property
     def stats_pattern_label(self) -> Locator:

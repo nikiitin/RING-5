@@ -83,7 +83,7 @@ def run_app() -> None:
         from src.web.components.workspace_search import WorkspaceSearchComponent
 
         CommandPaletteComponent.render(api)
-        GuidedAnalysisComponent.render(api)
+        GuidedAnalysisComponent.render_fragmented(api)
         WorkspaceSearchComponent.render(api)
         WorkspaceOrganizerComponent.render(api)
         AnalysisReviewComponent.render(api)

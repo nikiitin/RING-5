@@ -28,7 +28,13 @@ from pathlib import Path
 from typing import Any, cast
 
 import pytest
-from playwright.sync_api import Browser, BrowserContext, Page, expect
+from playwright.sync_api import (
+    Browser,
+    BrowserContext,
+    Page,
+    TimeoutError as PlaywrightTimeoutError,
+    expect,
+)
 
 # Page objects — reuse from visual tests
 from tests.visual.pages.base_page import BasePage
@@ -254,10 +260,16 @@ def _capture_failure_artifacts(request: pytest.FixtureRequest) -> Generator[None
     if rep_call is not None and rep_call.failed:
         _ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
         test_name = request.node.name
-        active_page.screenshot(
-            path=str(_ARTIFACTS_DIR / f"{test_name}_failure.png"),
-            full_page=True,
-        )
+        if not active_page.is_closed():
+            try:
+                active_page.screenshot(
+                    path=str(_ARTIFACTS_DIR / f"{test_name}_failure.png"),
+                    full_page=True,
+                    timeout=10_000,
+                )
+            except PlaywrightTimeoutError:
+                # Failure diagnostics must never hold the E2E job open.
+                pass
         if tracing:
             context.tracing.stop(path=str(_ARTIFACTS_DIR / f"{test_name}_trace.zip"))
     elif tracing:

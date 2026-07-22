@@ -4800,6 +4800,7 @@
           "src/core/application_api.py::ApplicationAPI.guided_analysis_progress",
           "ring5/_session.py::Session.guided_analysis_progress",
           "src/web/components/guided_analysis.py::GuidedAnalysisComponent.render",
+          "src/web/components/guided_analysis.py::GuidedAnalysisComponent.render_fragmented",
           "src/web/components/guided_analysis.py::GuidedAnalysisComponent.activate",
           "src/web/components/guided_analysis.py::GuidedAnalysisComponent.mark_exported",
           "src/web/components/data_managers/comparison.py::ComparisonManager.render",

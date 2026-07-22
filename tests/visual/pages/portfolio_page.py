@@ -9,7 +9,12 @@ Covers:
 
 from __future__ import annotations
 
-from playwright.sync_api import Locator, Page, expect
+from playwright.sync_api import (
+    Locator,
+    Page,
+    TimeoutError as PlaywrightTimeoutError,
+    expect,
+)
 
 from tests.visual.pages.base_page import BasePage
 
@@ -27,6 +32,7 @@ class PortfolioPage(BasePage):
     def navigate(self) -> None:
         """Open the Portfolio page via sidebar."""
         self.navigate_to(self.PAGE_NAME)
+        expect(self.page_header).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
     # Locators
 
@@ -48,7 +54,9 @@ class PortfolioPage(BasePage):
     @property
     def load_selector(self) -> Locator:
         """Select box for choosing a portfolio to load."""
-        return self.page.locator("[data-testid='stSelectbox']").first
+        return self.page.locator("[data-testid='stSelectbox']").filter(
+            has=self.page.get_by_role("combobox", name="Select Portfolio", exact=True)
+        )
 
     @property
     def load_button(self) -> Locator:
@@ -249,12 +257,21 @@ class PortfolioPage(BasePage):
         self.wait_for_streamlit()
 
     def select_portfolio(self, name: str) -> None:
-        """Select *name* unless Streamlit already selected it."""
-        combobox = self.load_selector.get_by_role("combobox", name="Select Portfolio")
-        if combobox.input_value() == name:
+        """Select *name* through the labeled portfolio control."""
+        combobox = self.page.get_by_role("combobox", name="Select Portfolio", exact=True)
+        expect(combobox).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        if (combobox.text_content() or "").strip() == name:
             return
-        self.load_selector.get_by_role("button", name="Open").click()
         option = self.page.get_by_role("option", name=name, exact=True)
-        expect(option).to_be_visible(timeout=self.RENDER_TIMEOUT)
-        option.click()
-        self.wait_for_streamlit()
+        for attempt in range(3):
+            combobox.click()
+            try:
+                option.wait_for(state="visible", timeout=5_000)
+                option.click(timeout=5_000)
+            except PlaywrightTimeoutError:
+                self.page.keyboard.press("Escape")
+                if attempt == 2:
+                    raise
+                continue
+            self.wait_for_streamlit()
+            return

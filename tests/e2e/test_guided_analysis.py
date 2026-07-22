@@ -37,6 +37,8 @@ def _add_multiselect_option(page: Page, multiselect: Locator, text: str) -> None
 
 
 @pytest.mark.requires_browser
+@pytest.mark.serial
+@pytest.mark.timeout(240)
 @pytest.mark.xdist_group("e2e_guided_analysis")
 class TestGuidedAnalysis:
     """Follow the guide over a loaded and already-rendered Tier 2 workspace."""

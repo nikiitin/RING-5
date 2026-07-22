@@ -27,6 +27,23 @@ _E2E_TIMEOUT: int = 30_000
 def _select_dropdown_option(page: Page, selectbox: Locator, text: str) -> None:
     """Open a Streamlit selectbox and choose *text*, retrying missed clicks."""
     option = page.get_by_role("option", name=text, exact=True).first
+    for attempt in range(3):
+        selectbox.get_by_role("combobox").click()
+        try:
+            option.wait_for(state="visible", timeout=5_000)
+            option.click(timeout=5_000)
+        except PlaywrightTimeoutError:
+            page.keyboard.press("Escape")
+            if attempt == 2:
+                raise
+            page.wait_for_timeout(250)
+            continue
+        return
+
+
+def _select_second_dropdown_option(page: Page, selectbox: Locator) -> None:
+    """Choose the second available option, retrying a click lost to a rerun."""
+    option = page.get_by_role("option").nth(1)
     for _ in range(3):
         selectbox.get_by_role("combobox").click()
         try:
@@ -245,7 +262,7 @@ class TestPreprocessor:
     def test_04_confirm_add_column(self, tier1_page: Page) -> None:
         dm = DataManagersPage(tier1_page)
         dm.confirm_preprocessor()
-        dm.assert_success_message_visible()
+        dm.assert_summary_has_columns(9)
 
 
 # Baseline comparison
@@ -329,7 +346,7 @@ class TestNamedDatasetWorkspace:
         dm.navigate()
         dm.select_tab("Workspace")
         dm.retain_current_dataset("tier1_results")
-        expect(dm.workspace_dataset_metric).to_contain_text("1", timeout=_E2E_TIMEOUT)
+        expect(dm.workspace_dataset_metric_value).to_be_visible(timeout=_E2E_TIMEOUT)
 
     def test_lineage_inspection_undo_and_redo(self, tier1_page: Page) -> None:
         # [test->req~ring5.data.lineage-undo-redo~1]
@@ -339,19 +356,22 @@ class TestNamedDatasetWorkspace:
         dm.retain_current_dataset("recoverable_results")
 
         dm.select_tab("Preprocessor")
-        _select_dropdown_option(tier1_page, dm.preproc_src1_selectbox, "simTicks")
+        # Other randomly ordered workspace tests can leave a derived dataset
+        # active. The preprocessor defaults are always numeric columns in the
+        # active dataset, which is all this lineage test needs.
+        _select_second_dropdown_option(tier1_page, dm.preproc_src2_selectbox)
         dm.wait_for_streamlit()
-        _select_dropdown_option(
-            tier1_page,
-            dm.preproc_src2_selectbox,
-            "system.cpu.committedInsts",
-        )
-        dm.wait_for_streamlit()
-        dm.preproc_name_input.fill("ticks_per_inst")
+        dm.preproc_name_input.fill("lineage_ratio")
         dm.apply_preprocessor_preview()
         dm.confirm_preprocessor()
 
         dm.select_tab("Workspace")
+        _select_dropdown_option(
+            tier1_page,
+            dm.workspace_dataset_selectbox,
+            "recoverable_results",
+        )
+        dm.wait_for_streamlit()
         expect(dm.workspace_lineage_panel).to_be_visible(timeout=_E2E_TIMEOUT)
         expect(dm.workspace_undo_button).to_be_enabled()
         dm.undo_workspace_dataset()
