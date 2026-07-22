@@ -97,6 +97,31 @@ class TestSubmitParseAsync:
 
     @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
+    def test_invalid_aggregate_scan_name_is_treated_as_a_non_match(
+        self, mock_factory: MagicMock, mock_pool: MagicMock, tmp_path: Any
+    ) -> None:
+        stats_dir = tmp_path / "stats"
+        stats_dir.mkdir()
+        config = FakeStatConfig(name=r"system.cpu\d+.ipc", is_regex=True)
+        scanned = [ScannedVariable(name=r"system.cpu\d+.[invalid]", type="scalar")]
+        strategy = MagicMock()
+        strategy.get_work_items.return_value = [MagicMock()]
+        mock_factory.create.return_value = strategy
+        mock_pool.get_instance.return_value.submit_batch_async.return_value = []
+
+        Gem5Parser.submit_parse_async(
+            str(stats_dir),
+            "stats.txt",
+            [config],  # type: ignore[list-item]
+            str(tmp_path),
+            scanned_vars=scanned,
+        )
+
+        submitted_config = strategy.get_work_items.call_args.args[2][0]
+        assert submitted_config is config
+
+    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_regex_expansion_with_pattern_indices(
         self, mock_factory: MagicMock, mock_pool: MagicMock, tmp_path: Any
     ) -> None:

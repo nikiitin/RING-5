@@ -162,6 +162,7 @@ class Gem5Parser(SimulationParser):
                             try:
                                 same_pattern = canonical_source == normalize_stat_pattern(sv_name)
                             except SafeRegexError:
+                                # Invalid scan metadata is not a canonical aggregate pattern.
                                 pass
                         if same_pattern or fullmatch_bounded_regex(pattern, sv_name):
                             # If sv is already an aggregated pattern, use its constituents

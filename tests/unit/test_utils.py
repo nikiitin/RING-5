@@ -183,6 +183,18 @@ class TestValidateWebStatsPath:
         with pytest.raises(ValueError, match="outside the allowed web roots"):
             utils.validate_web_stats_path(str(outside))
 
+    def test_sibling_with_allowed_prefix_is_rejected(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        allowed = tmp_path / "allowed"
+        sibling = tmp_path / "allowed-export"
+        allowed.mkdir()
+        sibling.mkdir()
+        monkeypatch.setenv("RING5_ALLOWED_STATS_ROOTS", str(allowed))
+
+        with pytest.raises(ValueError, match="outside the allowed web roots"):
+            utils.validate_web_stats_path(str(sibling))
+
     def test_symlink_escape_is_rejected(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
