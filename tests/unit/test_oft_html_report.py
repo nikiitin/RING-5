@@ -150,6 +150,18 @@ def test_human_layer_preserves_native_trace_and_links_to_it(
     ) in report
 
 
+def test_human_layer_normalizes_native_trailing_whitespace(
+    native_oft_html: str,
+    small_inventory: dict[str, Any],
+) -> None:
+    """Generated review artifacts remain clean even when native OFT emits padding."""
+    padded = native_oft_html.replace("</style>", "padding: 0.5em   \n</style>")
+
+    report = enhance_oft_html(padded, small_inventory)
+
+    assert all(line == line.rstrip() for line in report.splitlines())
+
+
 def test_status_views_expose_every_lifecycle_without_rewriting_oft_results(
     native_oft_html: str,
     small_inventory: dict[str, Any],

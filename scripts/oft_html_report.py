@@ -1083,4 +1083,6 @@ def enhance_oft_html(
     )
     report = report.replace("<main>", '<main id="oft-native-report">', 1)
     report = report.replace("</body>", _HUMAN_SCRIPT + "\n</body>", 1)
-    return report
+    had_final_newline = report.endswith(("\n", "\r"))
+    report = "\n".join(line.rstrip() for line in report.splitlines())
+    return report + ("\n" if had_final_newline else "")
