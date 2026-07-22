@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+from typing import IO, Any
 
 import pytest
 
@@ -402,19 +403,24 @@ def test_source_change_during_read_is_treated_as_unstable(
 ) -> None:
     source = tmp_path / "source"
     source.write_text("data")
+    original_open = Path.open
     original_stat = Path.stat
-    calls = 0
 
-    def changing_stat(path: Path, *args: object, **kwargs: object):
-        nonlocal calls
-        result = original_stat(path, *args, **kwargs)
-        if path == source and calls == 0:
-            os.utime(source, ns=(result.st_atime_ns, result.st_mtime_ns + 1))
+    def changing_open(
+        path: Path,
+        mode: str = "r",
+        buffering: int = -1,
+        encoding: str | None = None,
+        errors: str | None = None,
+        newline: str | None = None,
+    ) -> IO[Any]:
+        result = original_open(path, mode, buffering, encoding, errors, newline)
         if path == source:
-            calls += 1
+            metadata = original_stat(source)
+            os.utime(source, ns=(metadata.st_atime_ns, metadata.st_mtime_ns + 1))
         return result
 
-    monkeypatch.setattr(Path, "stat", changing_stat)
+    monkeypatch.setattr(Path, "open", changing_open)
     result = _run(
         source,
         tmp_path / "report",
