@@ -2320,6 +2320,20 @@ Needs: impl, test, uman
 
 Tags: export, reporting, reproducibility, status_approved
 
+### Interactive plot-and-data gallery export
+
+`req~ring5.export.interactive-gallery~1`
+Status: approved
+
+Users shall export selected figures as a self-contained, searchable HTML feed whose live plot cards expose each figure's exact processed dataframe through independent filtering, sorting, pagination, and CSV download controls.
+
+Covers:
+- feat~ring5.rendering-export~1
+
+Needs: impl, test, uman
+
+Tags: export, html, interactive, reporting, status_approved
+
 ## Reproducibility and Portfolios
 
 ### Portfolio save

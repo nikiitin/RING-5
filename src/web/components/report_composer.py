@@ -30,10 +30,11 @@ class ReportComposer:
 
     def render(self) -> None:
         # [impl->req~ring5.export.batch-reports~1]
+        # [impl->req~ring5.export.interactive-gallery~1]
         """Render selected figures, narrative, table, and metadata controls."""
         with st.expander(":material/article: Analysis report", expanded=False):
             st.caption(
-                "Package selected figures with plain-language findings, a bounded data table, "
+                "Package selected figures with plain-language findings, inspectable data, "
                 "source provenance, and the exact execution environment."
             )
             plots = cast(list[BasePlot], self._api.state_manager.get_plots())
@@ -62,6 +63,29 @@ class ReportComposer:
                 key="report.composer.narrative",
             )
 
+            selected_format = cast(
+                Literal["HTML", "PDF"],
+                st.radio(
+                    "Report format",
+                    options=["HTML", "PDF"],
+                    horizontal=True,
+                    key="report.composer.format_choice",
+                ),
+            )
+            html_mode: Literal["document", "gallery"] = "document"
+            if selected_format == "HTML":
+                html_experience = st.radio(
+                    "HTML experience",
+                    options=["Interactive gallery", "Publication document"],
+                    captions=[
+                        "Live plots with one searchable dataframe per figure.",
+                        "Static figures optimized for reading and printing.",
+                    ],
+                    horizontal=True,
+                    key="report.composer.html_experience",
+                )
+                html_mode = "gallery" if html_experience == "Interactive gallery" else "document"
+
             data = self._api.state_manager.get_data()
             table_col, limit_col, layout_col = st.columns(3)
             with table_col:
@@ -83,22 +107,16 @@ class ReportComposer:
                     )
                 )
             with layout_col:
-                compose_panel = st.checkbox(
-                    "Combine figures as panels",
-                    value=len(selected_ids) > 1,
-                    disabled=len(selected_ids) < 2,
-                    key="report.composer.panel",
-                )
-
-            selected_format = cast(
-                Literal["HTML", "PDF"],
-                st.radio(
-                    "Report format",
-                    options=["HTML", "PDF"],
-                    horizontal=True,
-                    key="report.composer.format_choice",
-                ),
-            )
+                if html_mode == "gallery":
+                    compose_panel = False
+                    st.caption("Gallery mode keeps every selected figure in its own review card.")
+                else:
+                    compose_panel = st.checkbox(
+                        "Combine figures as panels",
+                        value=len(selected_ids) > 1,
+                        disabled=len(selected_ids) < 2,
+                        key="report.composer.panel",
+                    )
             current_signature = (
                 title,
                 tuple(selected_ids),
@@ -108,6 +126,7 @@ class ReportComposer:
                 row_limit,
                 compose_panel,
                 selected_format,
+                html_mode,
                 id(data),
                 data.shape if data is not None else None,
             )
@@ -131,7 +150,7 @@ class ReportComposer:
                             row_limit=row_limit,
                         )
                         fmt = cast(Literal["html", "pdf"], selected_format.lower())
-                        payload = render_report(plots, report, fmt=fmt)
+                        payload = render_report(plots, report, fmt=fmt, html_mode=html_mode)
                     except Exception as exc:
                         st.exception(exc)
                     else:
@@ -150,12 +169,22 @@ class ReportComposer:
                 and isinstance(filename, str)
                 and rendered_signature == current_signature
             ):
+                artifact = (
+                    "Interactive gallery"
+                    if stored_fmt == "html" and html_mode == "gallery"
+                    else "Report"
+                )
                 st.success(
-                    f"Report ready · {len(selected_ids)} selected figure(s) · "
-                    f"{row_limit if include_table else 0} table row limit"
+                    f"{artifact} ready · {len(selected_ids)} selected figure(s) · "
+                    f"{row_limit if include_table else 0} overview-table row limit"
+                )
+                download_label = (
+                    "Download HTML gallery"
+                    if stored_fmt == "html" and html_mode == "gallery"
+                    else f"Download {str(stored_fmt).upper()} report"
                 )
                 st.download_button(
-                    f"Download {str(stored_fmt).upper()} report",
+                    download_label,
                     data=stored_payload,
                     file_name=f"{filename}.{stored_fmt}",
                     mime="text/html" if stored_fmt == "html" else "application/pdf",

@@ -4,6 +4,8 @@
 
 from __future__ import annotations
 
+from html import escape
+
 import pandas as pd
 
 _STYLE = """
@@ -89,9 +91,9 @@ _STYLE = """
 
 _SCRIPT = """
 (() => {
-  const payloadNode = document.getElementById("ring5-source-data-payload");
-  const root = document.getElementById("ring5-source-data");
-  if (!payloadNode || !root) return;
+  document.querySelectorAll("[data-ring5-source-data]").forEach(root => {
+  const payloadNode = document.getElementById(root.dataset.ring5Payload || "");
+  if (!payloadNode) return;
 
   const payload = JSON.parse(payloadNode.textContent || "{}");
   const columns = Array.isArray(payload.columns) ? payload.columns : [];
@@ -191,11 +193,12 @@ _SCRIPT = """
     const url = URL.createObjectURL(new Blob([csv], {type: "text/csv;charset=utf-8"}));
     const link = document.createElement("a");
     link.href = url;
-    link.download = "ring5-source-data.csv";
+    link.download = root.dataset.ring5CsvFilename || "ring5-source-data.csv";
     link.click();
     URL.revokeObjectURL(url);
   });
   render();
+  });
 })();
 """
 
@@ -219,15 +222,45 @@ def _json_payload(data: pd.DataFrame) -> str:
     )
 
 
-def add_interactive_source_data(html_document: str, data: pd.DataFrame) -> str:
-    # [impl->req~ring5.export.plotly-html-source-data~1]
-    """Append a searchable, sortable, paginated source table to Plotly HTML."""
+def interactive_source_data_assets() -> tuple[str, str]:
+    """Return the shared CSS and JavaScript for one or more dataframe sections."""
+    return _STYLE, _SCRIPT
+
+
+def interactive_source_data_section(
+    data: pd.DataFrame,
+    *,
+    section_id: str = "ring5-source-data",
+    title: str = "Source data",
+    description: str | None = None,
+    csv_filename: str = "ring5-source-data.csv",
+    heading_level: int = 2,
+) -> str:
+    # [impl->req~ring5.export.interactive-gallery~1]
+    """Render one reusable interactive dataframe section.
+
+    The dataframe is serialized into an inert JSON node. A single copy of the
+    assets returned by :func:`interactive_source_data_assets` can initialize
+    any number of sections in the same document.
+    """
+    if heading_level not in {2, 3, 4}:
+        raise ValueError("Interactive source-data headings must use level 2, 3, or 4.")
     row_count, column_count = data.shape
-    section = f"""
-<section class="ring5-source-data" id="ring5-source-data" aria-labelledby="ring5-source-data-title">
+    payload_id = f"{section_id}-payload"
+    detail = description or (
+        f"The processed dataframe used to build this figure: "
+        f"{row_count:,} rows × {column_count:,} columns."
+    )
+    safe_section_id = escape(section_id, quote=True)
+    safe_payload_id = escape(payload_id, quote=True)
+    safe_title = escape(title)
+    safe_detail = escape(detail)
+    safe_filename = escape(csv_filename, quote=True)
+    return f"""
+<section class="ring5-source-data" id="{safe_section_id}" data-ring5-source-data data-ring5-payload="{safe_payload_id}" data-ring5-csv-filename="{safe_filename}" aria-labelledby="{safe_section_id}-title">
   <div class="ring5-source-data__heading">
-    <h2 id="ring5-source-data-title">Source data</h2>
-    <p>The processed dataframe used to build this figure: {row_count:,} rows × {column_count:,} columns.</p>
+    <h{heading_level} id="{safe_section_id}-title">{safe_title}</h{heading_level}>
+    <p>{safe_detail}</p>
   </div>
   <div class="ring5-source-data__controls">
     <label>Filter rows<input type="search" data-ring5-filter placeholder="Search every column…" autocomplete="off"></label>
@@ -246,8 +279,14 @@ def add_interactive_source_data(html_document: str, data: pd.DataFrame) -> str:
     </div>
   </div>
 </section>
-<script id="ring5-source-data-payload" type="application/json">{_json_payload(data)}</script>
-<script>{_SCRIPT}</script>
+<script id="{safe_payload_id}" type="application/json">{_json_payload(data)}</script>
 """
-    enriched = html_document.replace("</head>", f"<style>{_STYLE}</style></head>", 1)
-    return enriched.replace("</body>", f"{section}</body>", 1)
+
+
+def add_interactive_source_data(html_document: str, data: pd.DataFrame) -> str:
+    # [impl->req~ring5.export.plotly-html-source-data~1]
+    """Append a searchable, sortable, paginated source table to Plotly HTML."""
+    section = interactive_source_data_section(data)
+    style, script = interactive_source_data_assets()
+    enriched = html_document.replace("</head>", f"<style>{style}</style></head>", 1)
+    return enriched.replace("</body>", f"{section}<script>{script}</script></body>", 1)

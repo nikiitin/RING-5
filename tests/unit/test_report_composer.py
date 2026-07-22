@@ -65,7 +65,7 @@ def test_report_composer_builds_panel_table_narrative_and_download(
     mock_st.text_area.return_value = "IPC improved."
     mock_st.checkbox.side_effect = [True, True]
     mock_st.number_input.return_value = 2
-    mock_st.radio.return_value = "HTML"
+    mock_st.radio.side_effect = ["HTML", "Publication document"]
     mock_st.button.return_value = True
     mock_st.session_state = {}
 
@@ -77,9 +77,59 @@ def test_report_composer_builds_panel_table_narrative_and_download(
     assert report.tables[0].title == "Current workspace data"
     assert report.narrative[0].heading == "Finding"
     assert report.provenance.source_kind == "CSV"
+    assert mock_render.call_args.kwargs["html_mode"] == "document"
     mock_st.download_button.assert_called_once()
     assert mock_st.download_button.call_args.kwargs["data"] == b"<html>report</html>"
     assert mock_st.download_button.call_args.kwargs["file_name"] == "Performance report.html"
+
+
+@patch("src.web.components.report_composer.EnvironmentMetadataService.capture")
+@patch("src.web.components.report_composer.render_report", return_value=b"<html>gallery</html>")
+@patch("src.web.components.report_composer.st")
+def test_report_composer_builds_interactive_gallery_as_individual_cards(
+    mock_st: MagicMock, mock_render: MagicMock, mock_environment: MagicMock
+) -> None:
+    # [test->req~ring5.export.interactive-gallery~1]
+    """Gallery mode keeps plots separate and exposes the specific download."""
+    from src.web.components.report_composer import ReportComposer
+
+    data = pd.DataFrame({"benchmark": ["a", "b"], "ipc": [1.0, 1.2]})
+    first = PlotFactory.create_plot("bar", 1, "Bars")
+    second = PlotFactory.create_plot("line", 2, "Trend")
+    for plot in (first, second):
+        plot.processed_data = data
+        plot.config = {"x": "benchmark", "y": "ipc"}
+
+    api = MagicMock()
+    state = api.state_manager
+    state.get_plots.return_value = [first, second]
+    state.get_data.return_value = data
+    state.is_using_parser.return_value = False
+    state.get_csv_path.return_value = "measurements.csv"
+    state.get_stats_path.return_value = ""
+    state.get_stats_pattern.return_value = "stats.txt"
+    state.get_parse_variables.return_value = []
+    state.get_portfolio_history.return_value = []
+    mock_environment.return_value = _environment()
+
+    mock_st.expander.return_value = _context()
+    mock_st.columns.return_value = [_context(), _context(), _context()]
+    mock_st.multiselect.return_value = [1, 2]
+    mock_st.text_input.side_effect = ["Performance gallery", "Finding"]
+    mock_st.text_area.return_value = "IPC improved."
+    mock_st.radio.side_effect = ["HTML", "Interactive gallery"]
+    mock_st.checkbox.return_value = True
+    mock_st.number_input.return_value = 2
+    mock_st.button.return_value = True
+    mock_st.session_state = {}
+
+    ReportComposer(api).render()
+
+    report = mock_render.call_args.args[1]
+    assert [figure.plot_ids for figure in report.figures] == [(1,), (2,)]
+    assert mock_render.call_args.kwargs == {"fmt": "html", "html_mode": "gallery"}
+    assert mock_st.download_button.call_args.args[0] == "Download HTML gallery"
+    assert mock_st.download_button.call_args.kwargs["data"] == b"<html>gallery</html>"
 
 
 @patch("src.web.components.report_composer.st")

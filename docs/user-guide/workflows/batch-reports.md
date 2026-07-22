@@ -26,11 +26,34 @@ read a result away from the live workspace:
 - the source type and location, data SHA-256 digest, dimensions, parser variables, and operations;
 - RING-5, Python, operating-system, dependency, renderer, and external-tool versions.
 
-Choose **HTML** for a self-contained document with embedded figure images and no remote scripts or
-assets. Choose **PDF** for a deterministic multi-page artifact containing the same figures, tables,
-narrative, provenance, and environment. RING-5 escapes narrative and table text instead of treating
-it as executable HTML or LaTeX. If settings or workspace data change after a build, build again
-before downloading.
+Choose **HTML**, then select the experience that fits the review:
+
+- **Interactive gallery** creates a human-first feed with one live Plotly card for every selected
+  figure. Search the feed by title, plot type, or dataframe column, filter it by plot type, and use
+  Plotly's normal zoom, pan, hover, legend, and image controls. Every card includes the exact
+  processed dataframe used by that plot, with independent search, column sorting, pagination, and
+  CSV export. The gallery keeps figures separate so their source data remains unambiguous.
+- **Publication document** embeds static figure images in a linear document intended for reading or
+  printing. It can combine selected figures into a labeled multi-panel composition.
+
+Both HTML experiences are self-contained and load no remote scripts or assets. Choose **PDF** for a
+deterministic multi-page artifact containing static figures, tables, narrative, provenance, and
+environment. RING-5 escapes narrative and table text instead of treating it as executable HTML or
+LaTeX. If settings or workspace data change after a build, build again before downloading.
+
+## Export an interactive gallery
+
+<!--
+`uman~ring5.export.interactive-gallery.documentation~1`
+
+Covers:
+- req~ring5.export.interactive-gallery~1
+-->
+
+In **Save/Load Portfolio**, expand **Analysis report**, select the figures to share, choose **HTML**
+and **Interactive gallery**, then build the export. The optional current-data table is an overview;
+it does not replace the per-plot dataframes, which are always carried with gallery cards. A plot
+whose shaping pipeline produces different rows or columns therefore shows its own processed result.
 
 The displayed-row limit is explicit: a truncated table says how many rows are shown out of the
 source total. The data digest always covers the complete current table, not only the displayed
@@ -58,9 +81,15 @@ with ring5.Session() as session:
         table_row_limit=50,
     )
     session.export_report(report, "reports/cpu-review.html")
+    session.export_report(
+        report,
+        "reports/cpu-review-gallery.html",
+        html_mode="gallery",
+    )
     session.export_report(report, "reports/cpu-review.pdf")
 ```
 
 `report_bytes(report, "html")` and `report_bytes(report, "pdf")` return the same deterministic
-payloads without writing to disk. A dashboard returned by `create_dashboard` can appear anywhere an
-individual plot appears in the report figure list.
+payloads without writing to disk. Pass `html_mode="gallery"` to `report_bytes` for interactive HTML
+bytes. A dashboard returned by `create_dashboard` can appear anywhere an individual plot appears in
+the report figure list; its gallery card exposes one source dataframe for every dashboard panel.

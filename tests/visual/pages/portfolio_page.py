@@ -112,6 +112,11 @@ class PortfolioPage(BasePage):
         return self.page.get_by_role("button", name="Download HTML report")
 
     @property
+    def download_html_gallery_button(self) -> Locator:
+        """Interactive HTML gallery download action."""
+        return self.page.get_by_role("button", name="Download HTML gallery")
+
+    @property
     def analysis_recipes_expander(self) -> Locator:
         """Analysis-recipe capture and management workflow."""
         return self.page.locator("[data-testid='stExpander']").filter(has_text="Analysis recipes")

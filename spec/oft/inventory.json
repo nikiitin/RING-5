@@ -4067,6 +4067,33 @@
       }
     },
     {
+      "id": "export.interactive-gallery",
+      "group": "rendering-export",
+      "revision": 1,
+      "status": "approved",
+      "title": "Interactive plot-and-data gallery export",
+      "description": "Users shall export selected figures as a self-contained, searchable HTML feed whose live plot cards expose each figure's exact processed dataframe through independent filtering, sorting, pagination, and CSV download controls.",
+      "tags": ["export", "html", "interactive", "reporting"],
+      "evidence": {
+        "implementation": [
+          "src/web/rendering/interactive_html_export.py::interactive_source_data_section",
+          "src/web/rendering/report_builder.py::_html_gallery",
+          "src/web/rendering/report_builder.py::render_report",
+          "src/web/components/report_composer.py::ReportComposer.render",
+          "ring5/_session.py::Session.report_bytes",
+          "ring5/_session.py::Session.export_report"
+        ],
+        "tests": [
+          "tests/integration/test_batch_reports_public_api.py::test_interactive_gallery_contains_live_plots_and_each_processed_dataframe",
+          "tests/unit/test_report_composer.py::test_report_composer_builds_interactive_gallery_as_individual_cards",
+          "tests/e2e/test_portfolio.py::TestPortfolioSaveLoad.test_03_generate_batch_report"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/batch-reports.md#export-an-interactive-gallery"
+        ]
+      }
+    },
+    {
       "id": "ingestion.browser-upload",
       "group": "ingestion",
       "revision": 1,

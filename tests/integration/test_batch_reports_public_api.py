@@ -75,6 +75,51 @@ def test_report_contains_every_content_type_and_is_byte_stable(tmp_path: Path) -
     pd.testing.assert_frame_equal(data, original)
 
 
+def test_interactive_gallery_contains_live_plots_and_each_processed_dataframe(
+    tmp_path: Path,
+) -> None:
+    # [test->req~ring5.export.interactive-gallery~1]
+    """The public API emits deterministic, self-contained plot-and-data cards."""
+    with ring5.Session() as session:
+        data, bar, line = _workspace(session, tmp_path)
+        line_data = data.assign(normalized_ipc=data["ipc"] / data["ipc"].max())
+        line.replace_processed_data(line_data)
+        report = session.create_report(
+            "Interactive CPU review",
+            [bar, line],
+            narrative={"Finding": "Compare every benchmark and inspect its exact input."},
+        )
+
+        first = session.report_bytes(report, "html", html_mode="gallery")
+        second = session.report_bytes(report, "html", html_mode="gallery")
+        target = tmp_path / "interactive-review.html"
+        written = session.export_report(report, str(target), html_mode="gallery")
+
+    assert written == str(target)
+    assert first == second == target.read_bytes()
+    assert first.startswith(b"<!doctype html>")
+    assert b"Plotly.newPlot" in first
+    assert b"plotly.js" in first
+    assert first.count(b'<article class="gallery-card"') == 2
+    assert first.count(b'<section class="ring5-source-data"') == 2
+    assert b"Find a plot" in first
+    assert b"Explore the dataframe behind this plot" in first
+    assert b"normalized_ipc" in first
+    assert b"<img alt=" not in first
+    assert b'"<script>"' not in first
+    assert b"\\u003cscript\\u003e" in first
+
+
+def test_interactive_gallery_rejects_pdf_mode(tmp_path: Path) -> None:
+    """An interactive browser experience is not mislabeled as a PDF export."""
+    with ring5.Session() as session:
+        _data, bar, _line = _workspace(session, tmp_path)
+        report = session.create_report("Valid", [bar])
+
+        with pytest.raises(ring5.ExportError, match="only for HTML"):
+            session.report_bytes(report, "pdf", html_mode="gallery")
+
+
 def test_report_validation_and_export_failures_are_typed(tmp_path: Path) -> None:
     with ring5.Session() as session:
         data, bar, line = _workspace(session, tmp_path)

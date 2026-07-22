@@ -83,7 +83,8 @@ class TestPortfolioSaveLoad:
     @pytest.mark.order(3)
     def test_03_generate_batch_report(self, tier3_page: Page) -> None:
         # [test->req~ring5.export.batch-reports~1]
-        """Build and download a self-contained report from the live workspace."""
+        # [test->req~ring5.export.interactive-gallery~1]
+        """Build, download, and use a gallery from the live workspace."""
         pf = PortfolioPage(tier3_page)
         pf.navigate()
         pf.open_report_composer()
@@ -91,16 +92,36 @@ class TestPortfolioSaveLoad:
         pf.report_narrative_input.fill("The selected figures summarize the benchmark results.")
         pf.build_report_button.click()
         pf.wait_for_streamlit()
-        expect(pf.download_html_report_button).to_be_visible(timeout=E2E_TIMEOUT)
+        expect(pf.download_html_gallery_button).to_be_visible(timeout=E2E_TIMEOUT)
 
         with tier3_page.expect_download(timeout=E2E_TIMEOUT) as download_info:
-            pf.download_html_report_button.click()
+            pf.download_html_gallery_button.click()
         downloaded = download_info.value
         assert downloaded.suggested_filename == "E2E Analysis Report.html"
         payload = downloaded.path().read_bytes()
         assert payload.startswith(b"<!doctype html>")
+        assert b"Plotly.newPlot" in payload
+        assert b"Explore the dataframe behind this plot" in payload
         assert b"Data provenance" in payload
         assert b"Execution environment" in payload
+
+        gallery = tier3_page.context.new_page()
+        try:
+            gallery.set_content(payload.decode("utf-8"), wait_until="networkidle")
+            expect(gallery.locator("[data-ring5-gallery-item]")).to_have_count(2)
+            expect(gallery.locator(".plotly-graph-div")).to_have_count(2)
+            expect(gallery.locator("[data-ring5-gallery-count]")).to_have_text(
+                "2 of 2 plots visible"
+            )
+            gallery.locator("[data-ring5-gallery-search]").fill("E2E Shaped")
+            expect(gallery.locator("[data-ring5-gallery-count]")).to_have_text(
+                "1 of 2 plots visible"
+            )
+            visible_card = gallery.locator("[data-ring5-gallery-item]:not([hidden])")
+            expect(visible_card).to_have_count(1)
+            expect(visible_card.locator("[data-ring5-row-status]")).to_contain_text("rows")
+        finally:
+            gallery.close()
 
     @pytest.mark.order(4)
     def test_04_save_and_download_analysis_recipe(self, tier3_page: Page) -> None:

@@ -2924,13 +2924,22 @@ class Session:
         except (TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
 
-    def report_bytes(self, report: AnalysisReport, fmt: Literal["html", "pdf"] = "html") -> bytes:
+    def report_bytes(
+        self,
+        report: AnalysisReport,
+        fmt: Literal["html", "pdf"] = "html",
+        *,
+        html_mode: Literal["document", "gallery"] = "document",
+    ) -> bytes:
         # [impl->req~ring5.export.batch-reports~1]
+        # [impl->req~ring5.export.interactive-gallery~1]
         """Render a deterministic self-contained HTML or PDF report.
 
         Args:
             report: Specification returned by :meth:`create_report`.
             fmt: Output format, ``"html"`` or ``"pdf"``.
+            html_mode: For HTML, render a static publication ``"document"``
+                or an interactive plot-and-data ``"gallery"``.
 
         Returns:
             Deterministic report bytes.
@@ -2941,7 +2950,7 @@ class Session:
         from src.web.rendering.report_builder import render_report
 
         try:
-            return render_report(self.plots, report, fmt=fmt)
+            return render_report(self.plots, report, fmt=fmt, html_mode=html_mode)
         except (AttributeError, KeyError, RuntimeError, TypeError, ValueError) as exc:
             raise ExportError(f"Could not render {fmt!r} analysis report: {exc}") from exc
 
@@ -2951,14 +2960,18 @@ class Session:
         path: str,
         *,
         fmt: Literal["html", "pdf"] | None = None,
+        html_mode: Literal["document", "gallery"] = "document",
     ) -> str:
         # [impl->req~ring5.export.batch-reports~1]
+        # [impl->req~ring5.export.interactive-gallery~1]
         """Write a deterministic analysis report to a file.
 
         Args:
             report: Specification returned by :meth:`create_report`.
             path: Destination file path.
             fmt: Explicit format; inferred from the ``.html`` or ``.pdf`` suffix.
+            html_mode: For HTML, render a static publication ``"document"``
+                or an interactive plot-and-data ``"gallery"``.
 
         Returns:
             The written file path.
@@ -2971,7 +2984,11 @@ class Session:
         if selected_format not in {"html", "pdf"}:
             raise ExportError("Report path or fmt must select HTML or PDF.")
         try:
-            payload = self.report_bytes(report, cast(Literal["html", "pdf"], selected_format))
+            payload = self.report_bytes(
+                report,
+                cast(Literal["html", "pdf"], selected_format),
+                html_mode=html_mode,
+            )
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(payload)
         except ExportError:
