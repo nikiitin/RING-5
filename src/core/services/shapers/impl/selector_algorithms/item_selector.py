@@ -54,6 +54,7 @@ class ItemSelector(Selector):
 
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
         """Filter the dataframe to only include rows with matching strings."""
+        # [impl->req~ring5.shaping.item-selector~1]
         self._verify_preconditions(data_frame)
 
         if self.mode == "exact":

@@ -25,6 +25,8 @@ SCAN_FUTURE_TIMEOUT = 30
 class TestGem5Parsing:
     """Integration tests for parsing real gem5 data."""
 
+    # [test->req~ring5.ingestion.gem5-backend~1]
+
     TEST_DATA_DIR = Path("tests/data/results-micro26-sens")
 
     @pytest.fixture(autouse=True)

@@ -58,6 +58,8 @@ class BenchmarkResult:
 class BenchmarkSuite:
     """Suite for running multiple benchmarks."""
 
+    # [impl->req~ring5.quality.performance-regression-gates~1]
+
     def __init__(self, name: str):
         """
         Initialize benchmark suite.

@@ -15,6 +15,14 @@ A data manager changes the shared workspace table. Put the operation and validat
 
 ## Implement
 
+<!--
+`uman~ring5.extension.data-manager.documentation~1`
+
+Covers:
+- req~ring5.extension.data-manager~1
+
+-->
+
 1. Add a stateless service method that validates its columns and returns a new DataFrame.
 2. Add the method to `ManagersAPI` and its concrete implementation.
 3. Add a UI manager derived from the shared data-manager base. Read data through the API, collect

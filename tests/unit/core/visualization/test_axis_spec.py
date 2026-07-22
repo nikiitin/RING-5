@@ -85,6 +85,8 @@ class TestAxisSpecStylingFields:
 class TestAxisSpecRoundTrip:
     """Test to_dict/from_dict round-trip for AxisConfig."""
 
+    # [test->req~ring5.figure.axes~1]
+
     def test_default_round_trip(self) -> None:
         spec = AxisConfig()
         restored = AxisConfig.from_dict(spec.to_dict())

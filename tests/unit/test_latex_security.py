@@ -10,6 +10,7 @@ from src.web.rendering.latex_security import (
 
 
 def test_latex_commands_are_neutralized() -> None:
+    # [test->req~ring5.quality.safe-output-formatting~1]
     escaped = escape_latex_text(r"\input{/etc/hostname}_value")
 
     assert r"\input" not in escaped
@@ -18,6 +19,7 @@ def test_latex_commands_are_neutralized() -> None:
 
 
 def test_figure_text_is_escaped_temporarily() -> None:
+    # [test->req~ring5.quality.safe-output-formatting~1]
     fig, ax = plt.subplots()
     ax.set_title(r"\input{/etc/hostname}")
     try:
@@ -29,6 +31,7 @@ def test_figure_text_is_escaped_temporarily() -> None:
 
 
 def test_figure_usetex_is_disabled_temporarily() -> None:
+    # [test->req~ring5.quality.safe-output-formatting~1]
     fig, ax = plt.subplots()
     ax.title.set_usetex(True)
     try:

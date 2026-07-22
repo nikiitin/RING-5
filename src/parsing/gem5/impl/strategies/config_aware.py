@@ -33,6 +33,8 @@ class ConfigAwareStrategy(SimpleStatsStrategy):
     the gem5 configuration file found in the same directory.
     """
 
+    # [impl->req~ring5.ingestion.config-aware-strategy~1]
+
     def post_process(self, results: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
         Augment results with config data.

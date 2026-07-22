@@ -21,24 +21,31 @@ __all__ = [
     "RenderError",
     "PortfolioError",
     "PortfolioVersionError",
+    "RecipeError",
+    "JobError",
     "ExportError",
     "DependencyMissingError",
 ]
 
 
 class Ring5Error(Exception):
+    # [impl->req~ring5.api.typed-errors~1]
     """Base class for every error the public ring5 API raises."""
 
 
 class ScanError(Ring5Error):
+    # [impl->req~ring5.api.typed-errors~1]
     """Variable scanning failed or returned an incomplete file set."""
 
 
 class ParseError(Ring5Error):
+    # [impl->req~ring5.api.typed-errors~1]
+    # [impl->req~ring5.ingestion.parse-integrity~1]
     """Parsing failed or produced nothing."""
 
 
 class MissingStatError(ParseError):
+    # [impl->req~ring5.api.typed-errors~1]
     """One or more requested statistics matched no value in any stats file.
 
     Per the no-fabrication rule the parser writes ``NaN`` (never 0) for a
@@ -59,6 +66,7 @@ class MissingStatError(ParseError):
 
 
 class PipelineError(Ring5Error):
+    # [impl->req~ring5.api.typed-errors~1]
     """A shaper-pipeline step failed or was malformed.
 
     Attributes:
@@ -79,6 +87,7 @@ class PipelineError(Ring5Error):
 
 
 class ColumnNotFoundError(Ring5Error):
+    # [impl->req~ring5.api.typed-errors~1]
     """A named column is absent from the DataFrame.
 
     Attributes:
@@ -93,10 +102,12 @@ class ColumnNotFoundError(Ring5Error):
 
 
 class DataLoadError(Ring5Error):
+    # [impl->req~ring5.api.typed-errors~1]
     """A requested input table is missing, unreadable, or malformed."""
 
 
 class DataValidationError(Ring5Error):
+    # [impl->req~ring5.api.typed-errors~1]
     """A data-manager operation rejected its inputs.
 
     Raised for validation failures beyond a missing column (which gets the
@@ -106,14 +117,17 @@ class DataValidationError(Ring5Error):
 
 
 class RenderError(Ring5Error):
+    # [impl->req~ring5.api.typed-errors~1]
     """A plot cannot be rendered with the requested configuration."""
 
 
 class PortfolioError(Ring5Error):
+    # [impl->req~ring5.api.typed-errors~1]
     """Portfolio save/load/replay failed."""
 
 
 class PortfolioVersionError(PortfolioError):
+    # [impl->req~ring5.api.typed-errors~1]
     """The portfolio was written by a newer RING-5 schema.
 
     Mirrors the core migrator's guard (raised at the Session boundary so it
@@ -122,11 +136,23 @@ class PortfolioVersionError(PortfolioError):
     """
 
 
+class RecipeError(PortfolioError):
+    # [impl->req~ring5.portfolio.analysis-recipes~1]
+    """Analysis-recipe validation, storage, materialization, or execution failed."""
+
+
 class ExportError(Ring5Error):
+    # [impl->req~ring5.api.typed-errors~1]
     """Figure export failed."""
 
 
+class JobError(Ring5Error):
+    # [impl->req~ring5.workspace.background-jobs~1]
+    """Background-job submission, control, retry, or result retrieval failed."""
+
+
 class DependencyMissingError(Ring5Error):
+    # [impl->req~ring5.api.typed-errors~1]
     """An external binary a feature needs is not installed.
 
     Attributes:

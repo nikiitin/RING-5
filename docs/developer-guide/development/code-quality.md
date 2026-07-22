@@ -29,5 +29,19 @@ without documenting why the exception preserves the underlying contract.
 Public functions use typed errors from `ring5.errors` and concise Google-style docstrings. Keep
 comments for intent, invariants, and non-obvious constraints; Git history carries change narration.
 
+## Cache requirements
+
+<!--
+`uman~ring5.quality.bounded-caching.documentation~1`
+
+Covers:
+- req~ring5.quality.bounded-caching~1
+
+-->
+
+Shared caches are thread-safe, size-bounded, and either expire entries or key them with full-content
+fingerprints. Cached DataFrames are returned through isolated copies. New caches need tests for
+eviction, expiry, concurrency, mutation isolation, statistics, and explicit clearing.
+
 `make pre-commit` runs repository hooks over all files. Hooks are useful feedback, but the Make
 targets remain the documented local interface and match CI more closely.

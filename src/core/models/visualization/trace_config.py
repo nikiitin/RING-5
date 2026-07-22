@@ -15,6 +15,43 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
+LineDash = Literal["solid", "dash", "dot", "dashdot", "longdash", "longdashdot"]
+LineShape = Literal["linear", "spline", "hv", "vh", "hvh", "vhv"]
+
+LINE_DASHES: tuple[LineDash, ...] = (
+    "solid",
+    "dash",
+    "dot",
+    "dashdot",
+    "longdash",
+    "longdashdot",
+)
+LINE_SHAPES: tuple[LineShape, ...] = ("linear", "spline", "hv", "vh", "hvh", "vhv")
+LINE_MARKER_SYMBOLS: tuple[str, ...] = (
+    "circle",
+    "square",
+    "diamond",
+    "cross",
+    "x",
+    "triangle-up",
+    "triangle-down",
+    "star",
+)
+
+TraceType = Literal[
+    "bar",
+    "line",
+    "scatter",
+    "histogram",
+    "heatmap",
+    "box",
+    "violin",
+    "radar",
+    "waterfall",
+    "sankey",
+    "parallel_coordinates",
+]
+
 
 @dataclass
 class TraceConfig:
@@ -35,7 +72,7 @@ class TraceConfig:
     """
 
     name: str = ""
-    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap"] = "bar"
+    trace_type: TraceType = "bar"
     x: list[str | int | float] = field(default_factory=list)
     y: list[int | float] = field(default_factory=list)
     yaxis: Literal["y", "y2"] = "y"
@@ -55,7 +92,7 @@ class BarTraceConfig(TraceConfig):
     place bars directly without reimplementing grouping logic.
     """
 
-    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap"] = "bar"
+    trace_type: TraceType = "bar"
 
     # Bar positioning (pre-computed)
     x_positions: list[float] = field(default_factory=list)  # center of each bar
@@ -77,16 +114,20 @@ class BarTraceConfig(TraceConfig):
 
 @dataclass
 class LineTraceConfig(TraceConfig):
+    # [impl->req~ring5.figure.line-styles~1]
     """Line-specific trace parameters."""
 
-    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap"] = "line"
+    trace_type: TraceType = "line"
 
     line_width: float = 2.0
-    line_dash: Literal["solid", "dash", "dot", "dashdot", "longdash"] = "solid"
+    line_dash: LineDash = "solid"
+    line_shape: LineShape = "linear"
     marker_symbol: str = "circle"
     marker_size: int = 6
     show_markers: bool = True
+    connect_gaps: bool = False
     fill: Literal["none", "tozeroy", "tonexty"] = "none"
+    fill_base: list[float] | None = None
 
     # Error bars
     error_y: list[float] | None = None
@@ -96,7 +137,7 @@ class LineTraceConfig(TraceConfig):
 class ScatterTraceConfig(TraceConfig):
     """Scatter-specific trace parameters."""
 
-    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap"] = "scatter"
+    trace_type: TraceType = "scatter"
 
     marker_symbol: str = "circle"
     marker_size: int = 8
@@ -119,7 +160,7 @@ class HistogramTraceConfig(TraceConfig):
     the binning should be done by the rendering engine.
     """
 
-    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap"] = "histogram"
+    trace_type: TraceType = "histogram"
 
     nbins: int = 20
     normalization: Literal["", "percent", "probability", "density"] = ""
@@ -134,7 +175,7 @@ class HeatmapTraceConfig(TraceConfig):
     column and row labels respectively.
     """
 
-    trace_type: Literal["bar", "line", "scatter", "histogram", "heatmap"] = "heatmap"
+    trace_type: TraceType = "heatmap"
 
     # Heatmap-specific label fields (base x/y are unused)
     col_labels: list[str] = field(default_factory=list)  # column (x-axis) labels
@@ -148,3 +189,162 @@ class HeatmapTraceConfig(TraceConfig):
     text_color: str = "#000000"
     totals_position: str = ""  # "", "right", or "top"
     totals_count: int = 0  # number of totals rows/columns (0 or 1)
+
+
+@dataclass
+class BoxTraceConfig(TraceConfig):
+    # [impl->req~ring5.plot.box~1]
+    """Precomputed distribution summary shared by both rendering engines."""
+
+    trace_type: TraceType = "box"
+    values: list[float] = field(default_factory=list)
+    category: str = ""
+    orientation: Literal["vertical", "horizontal"] = "vertical"
+    quartile_method: Literal["linear", "inclusive", "exclusive"] = "linear"
+    q1: float = 0.0
+    median: float = 0.0
+    q3: float = 0.0
+    notch_lower: float = 0.0
+    notch_upper: float = 0.0
+    lower_whisker: float = 0.0
+    upper_whisker: float = 0.0
+    mean: float = 0.0
+    outliers: list[float] = field(default_factory=list)
+    point_mode: Literal["outliers", "all", "none"] = "outliers"
+    jitter: float = 0.25
+    point_position: float = 0.0
+    position: float = 0.0
+    category_position: int = 0
+    box_width: float = 0.6
+    whisker_cap_width: float = 0.5
+    notched: bool = False
+    show_mean: bool = False
+
+
+@dataclass
+class ViolinTraceConfig(TraceConfig):
+    # [impl->req~ring5.plot.violin~1]
+    """Precomputed kernel density and summary shared by both renderers."""
+
+    trace_type: TraceType = "violin"
+    values: list[float] = field(default_factory=list)
+    category: str = ""
+    orientation: Literal["vertical", "horizontal"] = "vertical"
+    density_coordinates: list[float] = field(default_factory=list)
+    density: list[float] = field(default_factory=list)
+    bandwidth: float = 1.0
+    bandwidth_method: Literal["scott", "silverman"] = "scott"
+    density_span: Literal["soft", "hard"] = "soft"
+    density_scale: Literal["width", "count"] = "width"
+    side: Literal["both", "positive", "negative"] = "both"
+    point_mode: Literal["all", "none"] = "none"
+    jitter: float = 0.15
+    position: float = 0.0
+    category_position: int = 0
+    violin_width: float = 0.8
+    width_scale: float = 1.0
+    q1: float = 0.0
+    median: float = 0.0
+    q3: float = 0.0
+    mean: float = 0.0
+    show_box: bool = True
+    show_mean: bool = False
+
+
+@dataclass
+class RadarTraceConfig(TraceConfig):
+    # [impl->req~ring5.plot.radar~1]
+    """Closed radial series with a scale shared by every radar trace."""
+
+    trace_type: TraceType = "radar"
+    categories: list[str] = field(default_factory=list)
+    values: list[float] = field(default_factory=list)
+    radial_min: float = 0.0
+    radial_max: float = 1.0
+    start_angle: float = 90.0
+    clockwise: bool = True
+    fill_area: bool = True
+    show_markers: bool = True
+    marker_size: int = 6
+    line_width: float = 2.0
+
+
+@dataclass
+class WaterfallTraceConfig(TraceConfig):
+    # [impl->req~ring5.plot.waterfall~1]
+    """Precomputed running-total bars and connectors for a waterfall chart."""
+
+    trace_type: TraceType = "waterfall"
+    categories: list[str] = field(default_factory=list)
+    values: list[float] = field(default_factory=list)
+    measures: list[Literal["relative", "absolute", "total"]] = field(default_factory=list)
+    kinds: list[Literal["relative", "absolute", "subtotal", "total"]] = field(default_factory=list)
+    starts: list[float] = field(default_factory=list)
+    ends: list[float] = field(default_factory=list)
+    connector_visible: bool = True
+    connector_color: str = "#666666"
+    connector_width: float = 1.0
+    increasing_color: str = "#2ca02c"
+    decreasing_color: str = "#d62728"
+    total_color: str = "#4c78a8"
+    bar_width: float = 0.7
+    show_values: bool = True
+    value_labels: list[str] = field(default_factory=list)
+
+
+@dataclass
+class SankeyTraceConfig(TraceConfig):
+    # [impl->req~ring5.plot.sankey~1]
+    """Validated nodes, links, labels, colors, and positions for a Sankey diagram."""
+
+    trace_type: TraceType = "sankey"
+    node_labels: list[str] = field(default_factory=list)
+    source_indices: list[int] = field(default_factory=list)
+    target_indices: list[int] = field(default_factory=list)
+    values: list[float] = field(default_factory=list)
+    link_labels: list[str] = field(default_factory=list)
+    node_colors: list[str] = field(default_factory=list)
+    link_colors: list[str] = field(default_factory=list)
+    node_x: list[float] = field(default_factory=list)
+    node_y: list[float] = field(default_factory=list)
+    arrangement: Literal["snap", "perpendicular", "freeform", "fixed"] = "snap"
+    node_pad: int = 15
+    node_thickness: int = 20
+    node_line_color: str = "#333333"
+    node_line_width: float = 0.5
+    link_opacity: float = 0.35
+    show_node_labels: bool = True
+    show_link_labels: bool = False
+
+
+@dataclass
+class ParallelDimensionConfig:
+    """One encoded parallel-coordinate axis with range and optional brush."""
+
+    column: str = ""
+    label: str = ""
+    values: list[float] = field(default_factory=list)
+    range: tuple[float, float] = (0.0, 1.0)
+    tick_values: list[float] = field(default_factory=list)
+    tick_labels: list[str] = field(default_factory=list)
+    constraintrange: tuple[float, float] | None = None
+
+
+@dataclass
+class ParallelCoordinatesTraceConfig(TraceConfig):
+    # [impl->req~ring5.plot.parallel-coordinates~1]
+    """Ordered numeric/categorical dimensions and shared brushing/color semantics."""
+
+    trace_type: TraceType = "parallel_coordinates"
+    dimensions: list[ParallelDimensionConfig] = field(default_factory=list)
+    line_color_values: list[float] | None = None
+    line_color: str = "#4c78a8"
+    colorscale: str = "Viridis"
+    reverse_colorscale: bool = False
+    color_min: float = 0.0
+    color_max: float = 1.0
+    show_colorbar: bool = True
+    colorbar_title: str = ""
+    color_tick_values: list[float] = field(default_factory=list)
+    color_tick_labels: list[str] = field(default_factory=list)
+    unselected_opacity: float = 0.08

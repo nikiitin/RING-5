@@ -35,9 +35,7 @@ class PlotCreationComponent:
                     "Plot type", options=available_types, key="new_plot_type"
                 )
             with col3:
-                create_clicked: bool = st.form_submit_button(
-                    "Create Plot", use_container_width=True
-                )
+                create_clicked: bool = st.form_submit_button("Create Plot", width="stretch")
 
         return {
             "name": name,

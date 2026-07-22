@@ -11,6 +11,7 @@ class TestPlotLifecycle:
         self.state_manager.clear_all()
 
     def test_create_plot(self) -> None:
+        # [test->req~ring5.plots.create-multiple~1]
         plot = PlotService.create_plot("Test Plot", "bar", self.state_manager)
 
         assert isinstance(plot, BasePlot)
@@ -24,6 +25,7 @@ class TestPlotLifecycle:
         assert self.state_manager.get_current_plot_id() == 0
 
     def test_duplicate_plot(self) -> None:
+        # [test->req~ring5.plots.duplicate~1]
         plot1 = PlotService.create_plot("Original", "line", self.state_manager)
         plot1.config = {"x": "my_col"}
 
@@ -54,6 +56,7 @@ class TestPlotLifecycle:
         assert current_plot.plot_type == "line"
 
     def test_delete_plot(self) -> None:
+        # [test->req~ring5.plots.delete~1]
         p1 = PlotService.create_plot("P1", "bar", self.state_manager)
         p2 = PlotService.create_plot("P2", "bar", self.state_manager)
 

@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 from typing import Any, cast
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import HeatmapTraceConfig
@@ -10,7 +13,50 @@ from src.web.pages.ui.plotting.types.heatmap_plot import HeatmapPlot
 from src.web.rendering.trace_to_plotly import traces_to_plotly
 
 
+@patch("src.web.components.plotting.config.heatmap_config.st")
+def test_heatmap_generated_xlabel_follows_x_mapping(mock_st: MagicMock) -> None:
+    # [test->req~ring5.figure.heatmap-controls~1]
+    from src.web.components.plotting.config.heatmap_config import _sync_auto_xlabel
+
+    mock_st.session_state = {"xlabel_7": "benchmark_name"}
+    _sync_auto_xlabel(
+        cast(Any, {"x": "benchmark_name", "xlabel": "benchmark_name"}),
+        7,
+        "config_description",
+    )
+
+    assert mock_st.session_state["xlabel_7"] == "config_description"
+
+
+def test_faceted_heatmap_labels_only_bottom_x_axis() -> None:
+    # [test->req~ring5.figure.heatmap-controls~1]
+    plot = HeatmapPlot(plot_id=7, name="Heatmap")
+    plot.last_traces = TraceBuildResult(
+        traces=[
+            HeatmapTraceConfig(name=name, col_labels=["A"], row_labels=["metric"], z=[[1.0]])
+            for name in ("one", "two", "three")
+        ]
+    )
+    figure = make_subplots(rows=3, cols=1)
+    for row in range(1, 4):
+        figure.add_trace(go.Heatmap(z=[[1.0]]), row=row, col=1)
+
+    with patch(
+        "src.web.pages.ui.plotting.types.heatmap_plot.BasePlot.apply_common_layout",
+        return_value=figure,
+    ):
+        result = plot.apply_common_layout(figure, cast(Any, {"xlabel": "Configuration"}))
+
+    assert result.layout.xaxis.title.text is None
+    assert result.layout.xaxis2.title.text is None
+    assert result.layout.xaxis3.title.text == "Configuration"
+    assert result.layout.xaxis.showticklabels is False
+    assert result.layout.xaxis2.showticklabels is False
+    assert result.layout.xaxis3.showticklabels is True
+
+
 def test_heatmap_plot_creates_trace_per_benchmark() -> None:
+    # [test->req~ring5.plot.heatmap~1]
     data = pd.DataFrame(
         {
             "config_abbrev": ["A", "B", "A", "B"],
@@ -74,6 +120,7 @@ def test_heatmap_plot_aggregates_duplicate_rows() -> None:
 
 
 def test_multiple_heatmap_traces_render_as_subplots() -> None:
+    # [test->req~ring5.figure.heatmap-controls~1]
     result = TraceBuildResult(
         traces=[
             HeatmapTraceConfig(
@@ -218,6 +265,7 @@ def test_heatmap_subplot_annotations_use_correct_axis_refs() -> None:
 
 def test_heatmap_totals_right_adds_column() -> None:
     """Totals position='right' adds an extra column to z and col_labels."""
+    # [test->req~ring5.figure.heatmap-summary-controls~1]
     data = pd.DataFrame(
         {
             "cfg": ["A", "B"],
@@ -306,6 +354,7 @@ def test_heatmap_totals_sum_aggregation() -> None:
 
 def test_heatmap_totals_with_none_values() -> None:
     """None values are excluded when computing totals."""
+    # [test->req~ring5.figure.heatmap-summary-controls~1]
     data = pd.DataFrame(
         {
             "cfg": ["A", "B", "C"],
@@ -379,6 +428,8 @@ def test_heatmap_apply_common_layout_restricts_xaxis_categories() -> None:
 
 def test_heatmap_data_labels_format_and_threshold() -> None:
     """Data labels configuration applies format and threshold logic."""
+    # [test->req~ring5.figure.heatmap-controls~1]
+    # [test->req~ring5.figure.heatmap-summary-controls~1]
     data = pd.DataFrame(
         {
             "cfg": ["A", "B", "C"],
@@ -410,6 +461,7 @@ def test_heatmap_data_labels_format_and_threshold() -> None:
 
 def test_heatmap_facet_ordering() -> None:
     """Facet order config controls the order of traces."""
+    # [test->req~ring5.plot.heatmap~1]
     data = pd.DataFrame(
         {
             "cfg": ["A", "A", "A"],
@@ -460,6 +512,7 @@ def test_heatmap_facet_renaming() -> None:
 
 def test_heatmap_facet_order_and_rename_combined() -> None:
     """Facet ordering and renaming work together."""
+    # [test->req~ring5.figure.ordering-renaming~1]
     data = pd.DataFrame(
         {
             "cfg": ["A", "A"],
@@ -488,6 +541,7 @@ def test_heatmap_facet_order_and_rename_combined() -> None:
 
 def test_heatmap_colorscale_from_palette() -> None:
     """When color_palette is set, colorscale is derived from it."""
+    # [test->req~ring5.figure.heatmap-controls~1]
     data = pd.DataFrame({"cfg": ["A"], "m1": [1.0]})
     plot = HeatmapPlot(plot_id=60, name="PaletteCS")
     result = plot.create_traces(
@@ -510,6 +564,7 @@ def test_heatmap_colorscale_from_palette() -> None:
 
 def test_heatmap_colorscale_reverse_list() -> None:
     """Reversing a list-format colorscale flips positions."""
+    # [test->req~ring5.figure.heatmap-summary-controls~1]
     data = pd.DataFrame({"cfg": ["A"], "m1": [1.0]})
     plot = HeatmapPlot(plot_id=61, name="ReverseCS")
     result_normal = plot.create_traces(
@@ -693,6 +748,7 @@ def test_heatmap_plotly_no_separator_without_totals() -> None:
 
 def test_plotly_shared_colorbar_zmin_zmax_match() -> None:
     """Shared colorbar mode: all traces get identical zmin/zmax, only last shows scale."""
+    # [test->req~ring5.figure.heatmap-controls~1]
     import plotly.graph_objects as go
 
     from src.core.models.visualization.figure_config import FigureConfig

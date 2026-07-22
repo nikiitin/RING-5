@@ -23,6 +23,9 @@ from src.web.components.data_source.pattern_index_selector import PatternIndexSe
 class VariableEditor:
     """Component for editing parser variables."""
 
+    # [impl->req~ring5.ingestion.statistics-only~1]
+    # [impl->req~ring5.ingestion.variable-editor~1]
+
     @classmethod
     def render(
         cls,
@@ -104,6 +107,7 @@ class VariableEditor:
         idx: int, var: ParseVariableConfig, var_id: str
     ) -> tuple[str, str, str, bool]:
         """Render common variable fields (Name, Alias, Type)."""
+        # [impl->req~ring5.ingestion.output-aliases~1]
         col1, col2, col3, col4 = st.columns([3, 2, 2, 1])
 
         with col1:
@@ -195,6 +199,7 @@ class VariableEditor:
         stats_pattern: str,
     ) -> None:
         """Render configuration for histogram variables."""
+        # [impl->req~ring5.ingestion.histogram-rebinning~1]
         var_name = var_config.get("name", "")
         if var_name:
             st.markdown(f"**Histogram Configuration for `{var_name}`:**")
@@ -454,6 +459,8 @@ class VariableEditor:
         is_distribution: bool,
     ) -> None:
         """Blocking dialog for async scanning using futures."""
+        # [impl->req~ring5.ingestion.distribution-range-scan~1]
+        # [impl->req~ring5.ingestion.scan-presets-progress~1]
         st.write(f"Variable: `{var_name}`")
         st.write(f"Scanning {len(futures)} files...")
         progress_bar = st.progress(0, text="Starting scan...")
@@ -562,6 +569,7 @@ class VariableEditor:
         discovered_entries: list[str],
     ) -> None:
         """Render multiselect for discovered vector entries."""
+        # [impl->req~ring5.ingestion.variable-entry-selection~1]
         # Filter internal statistics using variable services
         filtered_entries = api.data_services.filter_internal_stats(discovered_entries)
 
@@ -813,6 +821,7 @@ class VariableEditor:
         var_config: ParseVariableConfig, original_var: ParseVariableConfig, var_id: str
     ) -> None:
         """Render configuration for configuration variables."""
+        # [impl->req~ring5.ingestion.configuration-fallbacks~1]
         var_name = var_config.get("name", "")
         if var_name:
             st.markdown(f"**Configuration for `{var_name}`:**")

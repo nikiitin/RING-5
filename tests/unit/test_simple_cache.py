@@ -9,6 +9,8 @@ from src.core.performance import SimpleCache, compute_data_fingerprint
 
 
 class TestComputeDataFingerprint:
+    # [test->req~ring5.quality.bounded-caching~1]
+
     """The fingerprint must reflect a change in *any* row, not just the first few."""
 
     def test_late_row_change_changes_fingerprint(self):
@@ -28,6 +30,8 @@ class TestComputeDataFingerprint:
 
 class TestBasicOperations:
     """Tests for basic cache operations without concurrency."""
+
+    # [test->req~ring5.quality.bounded-caching~1]
 
     def test_basic_get_set(self):
         """Cache should store and retrieve values correctly."""
@@ -208,6 +212,8 @@ class TestBasicOperations:
 
 
 class TestConcurrency:
+    # [test->req~ring5.quality.bounded-caching~1]
+
     """Tests for thread safety under concurrent access."""
 
     def test_concurrent_get_set(self):

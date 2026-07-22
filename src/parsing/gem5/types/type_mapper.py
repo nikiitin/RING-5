@@ -69,6 +69,7 @@ class TypeMapper:
         Returns:
             An instance of a class registered in StatTypeRegistry.
         """
+        # [impl->req~ring5.ingestion.statistics-only~1]
         var_type: str = ""
         repeat: int = 1
         statistics_only: bool = False

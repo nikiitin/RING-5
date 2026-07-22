@@ -10,26 +10,41 @@ from src.core.models.visualization.annotation_config import AnnotationConfig
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import (
     BarTraceConfig,
+    BoxTraceConfig,
     HistogramTraceConfig,
     LineTraceConfig,
+    ParallelCoordinatesTraceConfig,
+    ParallelDimensionConfig,
+    RadarTraceConfig,
+    SankeyTraceConfig,
     ScatterTraceConfig,
     TraceConfig,
+    ViolinTraceConfig,
+    WaterfallTraceConfig,
 )
 from src.web.rendering.trace_to_plotly import (
     _bar_trace,
+    _box_trace,
     _bar_trace_from_base,
     _convert_annotations,
     _convert_trace,
     _histogram_trace,
     _line_trace,
+    _parallel_coordinates_trace,
+    _radar_trace,
+    _sankey_trace,
     _scatter_trace,
     traces_to_plotly,
+    _violin_trace,
+    _waterfall_trace,
 )
 
 # traces_to_plotly (main entry)
 
 
 class TestTracesToPlotly:
+    # [test->req~ring5.render.engine-independent-traces~1]
+    # [test->req~ring5.render.plotly~1]
     """Tests for the top-level ``traces_to_plotly`` function."""
 
     def test_empty_result_returns_figure(self) -> None:
@@ -45,6 +60,18 @@ class TestTracesToPlotly:
         assert len(cast(tuple[Any, ...], fig.data)) == 1
         assert isinstance(fig.data[0], go.Bar)
         assert cast(Any, fig.layout).barmode == "group"
+
+    def test_box_trace_sets_grouped_box_layout(self) -> None:
+        trace = BoxTraceConfig(name="A", category="A", values=[1.0, 2.0, 3.0])
+        fig = traces_to_plotly(TraceBuildResult(traces=[trace], boxmode="group"))
+        assert isinstance(fig.data[0], go.Box)
+        assert cast(Any, fig.layout).boxmode == "group"
+
+    def test_violin_trace_sets_grouped_violin_layout(self) -> None:
+        trace = ViolinTraceConfig(name="A", category="A", values=[1.0, 2.0, 3.0])
+        fig = traces_to_plotly(TraceBuildResult(traces=[trace], violinmode="group"))
+        assert isinstance(fig.data[0], go.Violin)
+        assert cast(Any, fig.layout).violinmode == "group"
 
     def test_secondary_y_creates_subplots(self) -> None:
         t1 = BarTraceConfig(name="left", x=["a"], y=[1], yaxis="y")
@@ -122,6 +149,7 @@ class TestTracesToPlotly:
 
 
 class TestConvertTrace:
+    # [test->req~ring5.render.engine-independent-traces~1]
     """Tests for the dispatch ``_convert_trace``."""
 
     def test_bar_trace_dispatch(self) -> None:
@@ -129,10 +157,272 @@ class TestConvertTrace:
         result = _convert_trace(trace)
         assert isinstance(result, go.Bar)
 
+    def test_box_trace_dispatch(self) -> None:
+        result = _convert_trace(BoxTraceConfig(name="box", category="A", values=[1.0]))
+        assert isinstance(result, go.Box)
+
+    def test_violin_trace_dispatch(self) -> None:
+        result = _convert_trace(ViolinTraceConfig(name="violin", category="A", values=[1.0]))
+        assert isinstance(result, go.Violin)
+
+
+class TestBoxTrace:
+    """Tests for the Plotly box-trace conversion contract."""
+
+    def test_horizontal_box_controls_and_style(self) -> None:
+        # [test->req~ring5.plot.box~1]
+        trace = BoxTraceConfig(
+            name="base",
+            category="A",
+            values=[1.0, 2.0, 10.0],
+            orientation="horizontal",
+            quartile_method="exclusive",
+            lower_whisker=1.0,
+            upper_whisker=2.0,
+            point_mode="all",
+            jitter=0.3,
+            point_position=-0.2,
+            box_width=0.4,
+            whisker_cap_width=0.7,
+            notched=True,
+            show_mean=True,
+            color="#ff0000",
+            position=1.25,
+        )
+
+        result = _box_trace(trace)
+
+        assert result.orientation == "h"
+        assert list(cast(Any, result.x)) == trace.values
+        assert list(cast(Any, result.y)) == [1.25, 1.25, 1.25]
+        assert result.quartilemethod == "exclusive"
+        assert result.boxpoints == "all"
+        assert result.notched
+        assert result.boxmean
+        assert result.fillcolor == "#ff0000"
+
+
+class TestViolinTrace:
+    """Tests for the Plotly violin-trace conversion contract."""
+
+    def test_horizontal_density_summary_and_style_controls(self) -> None:
+        # [test->req~ring5.plot.violin~1]
+        trace = ViolinTraceConfig(
+            name="base",
+            category="A",
+            values=[1.0, 2.0, 3.0],
+            orientation="horizontal",
+            bandwidth=0.4,
+            density_span="hard",
+            density_scale="count",
+            side="negative",
+            point_mode="all",
+            jitter=0.3,
+            violin_width=0.5,
+            show_box=True,
+            show_mean=True,
+            color="#ff0000",
+            position=1.25,
+        )
+
+        result = _violin_trace(trace)
+
+        assert result.orientation == "h"
+        assert list(cast(Any, result.x)) == trace.values
+        assert list(cast(Any, result.y)) == [1.25, 1.25, 1.25]
+        assert result.bandwidth == 0.4
+        assert result.spanmode == "hard"
+        assert result.scalemode == "count"
+        assert result.side == "negative"
+        assert result.points == "all"
+        assert cast(Any, result.box).visible
+        assert cast(Any, result.meanline).visible
+        assert result.fillcolor == "#ff0000"
+
     def test_line_trace_dispatch(self) -> None:
-        trace = LineTraceConfig(name="line", x=["a"], y=[1])
+        trace = LineTraceConfig(name="line", x=["a"], y=[1], line_shape="hv")
         result = _convert_trace(trace)
         assert isinstance(result, go.Scatter)
+        assert result.line.shape == "hv"
+
+
+class TestEcdfLineTrace:
+    """Tests for the Plotly ECDF step-line contract."""
+
+    def test_ecdf_uses_post_threshold_step_shape(self) -> None:
+        # [test->req~ring5.plot.ecdf~1]
+        result = _line_trace(
+            LineTraceConfig(name="ECDF", x=[1.0, 2.0], y=[0.5, 1.0], line_shape="hv")
+        )
+
+        assert result.line.shape == "hv"
+        assert list(cast(Any, result.y)) == [0.5, 1.0]
+
+
+class TestAreaLineTrace:
+    """Tests for the Plotly filled-area line contract."""
+
+    def test_area_fill_and_step_interpolation_are_preserved(self) -> None:
+        # [test->req~ring5.plot.area~1]
+        result = _line_trace(
+            LineTraceConfig(
+                name="Area",
+                x=[1.0, 2.0],
+                y=[3.0, 4.0],
+                fill="tonexty",
+                fill_base=[1.0, 2.0],
+                line_shape="hv",
+            )
+        )
+
+        assert result.fill == "tonexty"
+        assert result.line.shape == "hv"
+
+
+class TestRadarTrace:
+    """Tests for Plotly radar conversion and shared polar layout."""
+
+    def test_radar_closes_profile_and_applies_shared_scale(self) -> None:
+        # [test->req~ring5.plot.radar~1]
+        trace = RadarTraceConfig(
+            name="base",
+            categories=["A", "B", "C"],
+            values=[1.0, 2.0, 3.0],
+            radial_min=0.0,
+            radial_max=4.0,
+            start_angle=45,
+            clockwise=False,
+            fill_area=True,
+            color="#336699",
+        )
+
+        result = _radar_trace(trace)
+        figure = traces_to_plotly(TraceBuildResult(traces=[trace]))
+
+        assert list(cast(Any, result.theta)) == ["A", "B", "C", "A"]
+        assert list(cast(Any, result.r)) == [1.0, 2.0, 3.0, 1.0]
+        assert result.fill == "toself"
+        assert result.line.color == "#336699"
+        assert tuple(cast(Any, figure.layout).polar.radialaxis.range) == (0.0, 4.0)
+        assert cast(Any, figure.layout).polar.angularaxis.direction == "counterclockwise"
+
+
+class TestWaterfallTrace:
+    """Tests for native Plotly waterfall conversion."""
+
+    def test_waterfall_preserves_measures_connectors_colors_and_labels(self) -> None:
+        # [test->req~ring5.plot.waterfall~1]
+        trace = WaterfallTraceConfig(
+            name="Change",
+            categories=["Start", "Loss", "Subtotal", "Total"],
+            values=[10.0, -3.0, 0.0, 0.0],
+            measures=["absolute", "relative", "total", "total"],
+            kinds=["absolute", "relative", "subtotal", "total"],
+            starts=[0.0, 10.0, 0.0, 0.0],
+            ends=[10.0, 7.0, 7.0, 7.0],
+            connector_color="#123456",
+            connector_width=2.0,
+            increasing_color="#00aa00",
+            decreasing_color="#aa0000",
+            total_color="#0000aa",
+            show_values=True,
+            value_labels=["10", "-3", "7", "7"],
+        )
+
+        result = _waterfall_trace(trace)
+
+        assert isinstance(result, go.Waterfall)
+        assert list(cast(Any, result.measure)) == trace.measures
+        assert cast(Any, result.connector).visible
+        assert cast(Any, result.connector).line.color == "#123456"
+        assert cast(Any, result.connector).line.width == 2.0
+        assert cast(Any, result.increasing).marker.color == "#00aa00"
+        assert cast(Any, result.decreasing).marker.color == "#aa0000"
+        assert cast(Any, result.totals).marker.color == "#0000aa"
+        assert list(cast(Any, result.text)) == trace.value_labels
+
+
+class TestSankeyTrace:
+    """Tests for native Plotly Sankey conversion."""
+
+    def test_sankey_preserves_nodes_links_positions_colors_and_arrangement(self) -> None:
+        # [test->req~ring5.plot.sankey~1]
+        trace = SankeyTraceConfig(
+            name="Flow",
+            node_labels=["A", "B", "C"],
+            source_indices=[0, 0],
+            target_indices=[1, 2],
+            values=[3.0, 2.0],
+            link_labels=["first", "second"],
+            node_colors=["#111111", "#222222", "#333333"],
+            link_colors=["#111111", "#222222"],
+            node_x=[0.0, 1.0, 1.0],
+            node_y=[0.5, 0.3, 0.7],
+            arrangement="fixed",
+            link_opacity=0.4,
+            show_link_labels=True,
+        )
+
+        result = _sankey_trace(trace)
+
+        assert isinstance(result, go.Sankey)
+        assert result.arrangement == "fixed"
+        assert list(cast(Any, result.node.label)) == trace.node_labels
+        assert list(cast(Any, result.node.x)) == trace.node_x
+        assert list(cast(Any, result.link.source)) == trace.source_indices
+        assert list(cast(Any, result.link.value)) == trace.values
+        assert list(cast(Any, result.link.label)) == trace.link_labels
+        assert list(cast(Any, result.link.color)) == [
+            "rgba(17,17,17,0.400)",
+            "rgba(34,34,34,0.400)",
+        ]
+
+
+class TestParallelCoordinatesTrace:
+    """Tests for native Plotly parallel-coordinate conversion."""
+
+    def test_parallel_coordinates_preserve_order_encoding_brush_and_color_scale(self) -> None:
+        # [test->req~ring5.plot.parallel-coordinates~1]
+        trace = ParallelCoordinatesTraceConfig(
+            name="Score",
+            dimensions=[
+                ParallelDimensionConfig(
+                    column="kind",
+                    label="Kind",
+                    values=[0.0, 1.0],
+                    range=(0.0, 1.0),
+                    tick_values=[0.0, 1.0],
+                    tick_labels=["A", "B"],
+                ),
+                ParallelDimensionConfig(
+                    column="score",
+                    label="Score",
+                    values=[2.0, 3.0],
+                    range=(1.0, 4.0),
+                    constraintrange=(2.5, 4.0),
+                ),
+            ],
+            line_color_values=[2.0, 3.0],
+            colorscale="Cividis",
+            reverse_colorscale=True,
+            color_min=2.0,
+            color_max=3.0,
+            colorbar_title="Score",
+            unselected_opacity=0.1,
+        )
+
+        result = _parallel_coordinates_trace(trace)
+
+        assert isinstance(result, go.Parcoords)
+        assert [dimension.label for dimension in cast(Any, result.dimensions)] == [
+            "Kind",
+            "Score",
+        ]
+        assert list(cast(Any, result.dimensions[0].ticktext)) == ["A", "B"]
+        assert tuple(cast(Any, result.dimensions[1].constraintrange)) == (2.5, 4.0)
+        assert result.line.reversescale
+        assert result.line.cmin == 2.0 and result.line.cmax == 3.0
+        assert cast(Any, result.unselected).line.opacity == 0.1
 
     def test_scatter_trace_dispatch(self) -> None:
         trace = ScatterTraceConfig(name="scatter", x=["a"], y=[1])
@@ -204,6 +494,7 @@ class TestBarTrace:
         assert bar.textposition == "outside"
 
     def test_bar_error_y(self) -> None:
+        # [test->req~ring5.figure.error-bars~1]
         trace = BarTraceConfig(x=["a"], y=[1], error_y=[0.1])
         bar = _bar_trace(trace)
         error_y = cast(Any, bar.error_y)
@@ -270,6 +561,29 @@ class TestLineTrace:
         trace = LineTraceConfig(x=["a"], y=[1], fill="tozeroy")
         scatter = _line_trace(trace)
         assert scatter.fill == "tozeroy"
+
+    def test_complete_line_style_and_gap_connector(self) -> None:
+        # [test->req~ring5.figure.line-styles~1]
+        trace = LineTraceConfig(
+            x=[0, 1, 2],
+            y=[1, float("nan"), 3],
+            line_width=3.5,
+            line_dash="longdashdot",
+            line_shape="spline",
+            show_markers=True,
+            marker_symbol="diamond",
+            marker_size=10,
+            connect_gaps=True,
+        )
+
+        scatter = _line_trace(trace)
+
+        assert scatter.line.width == 3.5
+        assert scatter.line.dash == "longdashdot"
+        assert scatter.line.shape == "spline"
+        assert scatter.marker.symbol == "diamond"
+        assert scatter.marker.size == 10
+        assert scatter.connectgaps is True
 
     def test_line_error_y(self) -> None:
         trace = LineTraceConfig(x=["a"], y=[1], error_y=[0.2])

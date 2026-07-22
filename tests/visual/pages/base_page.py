@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from pathlib import Path
+import re
 
 from playwright.sync_api import Locator, Page, TimeoutError as PlaywrightTimeoutError, expect
 
@@ -35,6 +36,25 @@ class BasePage:
     def main_header(self) -> Locator:
         """The main ``RING-5 Interactive Analyzer`` title."""
         return self.page.locator("h1.main-header")
+
+    @property
+    def background_jobs_expander(self) -> Locator:
+        """The session-owned background-job center in the sidebar."""
+        return self.sidebar.locator("[data-testid='stExpander']").filter(
+            has_text=re.compile(r"Background jobs")
+        )
+
+    @property
+    def background_jobs_content(self) -> Locator:
+        """Visible content within the background-job center."""
+        return self.background_jobs_expander.locator("[data-testid='stExpanderDetails']")
+
+    def open_background_jobs(self) -> None:
+        """Expand the job center while preserving an already-open state."""
+        expect(self.background_jobs_expander).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        if not self.background_jobs_content.is_visible():
+            self.background_jobs_expander.locator("summary").click()
+        expect(self.background_jobs_content).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
     # Navigation
 

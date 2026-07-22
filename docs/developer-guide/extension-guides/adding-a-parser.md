@@ -17,6 +17,19 @@ Keep simulator-specific names and file handling inside `src/parsing/<simulator>/
 
 ## Implement the backend
 
+<!--
+`uman~ring5.ingestion.simulator-registry.documentation~1`
+
+Covers:
+- req~ring5.ingestion.simulator-registry~1
+
+`uman~ring5.extension.parser-protocol.documentation~1`
+
+Covers:
+- req~ring5.extension.parser-protocol~1
+
+-->
+
 1. Read `src/parsing/parser_protocol.py` and the gem5 implementation.
 2. Create the simulator package with scanning, parsing, strategies, and model adapters needed by the
    protocol.

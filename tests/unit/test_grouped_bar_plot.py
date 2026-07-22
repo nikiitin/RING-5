@@ -62,6 +62,7 @@ def test_render_config_ui(mock_streamlit: Any, sample_data: Any) -> None:
 
 def test_create_figure_basic(sample_data: Any) -> None:
 
+    # [test->req~ring5.plot.grouped-bar~1]
     plot = GroupedBarPlot(1, "Test Plot")
     config = {
         "x": "Category",
@@ -84,6 +85,7 @@ def test_create_figure_basic(sample_data: Any) -> None:
 
 def test_create_figure_with_error_bars_and_filters(sample_data: Any) -> None:
 
+    # [test->req~ring5.plot.grouped-bar~1]
     plot = GroupedBarPlot(1, "Test Plot")
     config = {
         "x": "Category",

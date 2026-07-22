@@ -34,6 +34,42 @@ jobs:
           python -m venv python_venv
           make docs-build docs-audit
 
+  oft:
+    name: OpenFastTrace HTML report
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install application
+        run: |
+          python -m venv python_venv
+          python_venv/bin/python -m pip install "pip==26.1.2"
+          python_venv/bin/pip install -e .
+
+      - name: Generate and verify OFT report
+        run: make oft-report
+
+      - name: Upload OFT HTML report
+        uses: actions/upload-artifact@v7
+        with:
+          name: ring5-openfasttrace-report
+          path: spec/oft/generated/report.html
+          if-no-files-found: error
+          retention-days: 30
+
   quality:
     name: Quality, security, and package
     runs-on: ubuntu-latest
@@ -172,6 +208,7 @@ jobs:
   e2e:
     name: Streamlit E2E
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     needs: quality
     steps:
       - name: Check out repository

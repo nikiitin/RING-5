@@ -42,6 +42,7 @@ class StyleApplicator:
         Side-effect: stores the resolved ``FigureConfig`` in ``self.last_spec``
         for downstream consumers (e.g., the LaTeX export pipeline).
         """
+        # [impl->req~ring5.figure.shapes-annotations~1]
         # Build & resolve the engine-agnostic FigureConfig
         self.last_spec = resolve_config(ConfigSpecBuilder.from_config(config, self.plot_type))
 

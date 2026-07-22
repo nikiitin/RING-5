@@ -21,6 +21,7 @@ htmlcov/
 _site/
 config_files
 .mypy_cache/
+.cache/openfasttrace/
 
 # Node.js — only needed for Playwright E2E testing, installed on demand
 node_modules/
@@ -48,6 +49,7 @@ tests/visual/screenshots/
 tests/visual/artifacts/
 
 tests/e2e/artifacts/
+!tests/e2e/fixtures/background_job_stats/run/stats.txt
 
 # R session / environment artifacts (RING-5 is a Python project)
 .RData

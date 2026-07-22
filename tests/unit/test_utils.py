@@ -66,6 +66,8 @@ class TestSanitizeLogValue:
 class TestSanitizeFilename:
     """Tests for sanitize_filename function."""
 
+    # [test->req~ring5.quality.input-security~1]
+
     def test_normal_filename(self) -> None:
         assert utils.sanitize_filename("data.csv") == "data.csv"
 
@@ -148,6 +150,8 @@ class TestNormalizeUserPath:
 
 
 class TestValidateWebStatsPath:
+    # [test->req~ring5.quality.input-security~1]
+
     def test_default_root_is_launch_directory(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -159,11 +163,13 @@ class TestValidateWebStatsPath:
     def test_allowed_root_accepts_child(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        # [test->req~ring5.ingestion.web-path-authorization~1]
         allowed = tmp_path / "allowed"
         child = allowed / "run"
         child.mkdir(parents=True)
         monkeypatch.setenv("RING5_ALLOWED_STATS_ROOTS", str(allowed))
 
+        assert utils.validate_web_stats_path(str(allowed)) == allowed.resolve()
         assert utils.validate_web_stats_path(str(child)) == child.resolve()
 
     def test_outside_root_is_rejected(
@@ -177,6 +183,18 @@ class TestValidateWebStatsPath:
 
         with pytest.raises(ValueError, match="outside the allowed web roots"):
             utils.validate_web_stats_path(str(outside))
+
+    def test_sibling_with_allowed_prefix_is_rejected(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        allowed = tmp_path / "allowed"
+        sibling = tmp_path / "allowed-export"
+        allowed.mkdir()
+        sibling.mkdir()
+        monkeypatch.setenv("RING5_ALLOWED_STATS_ROOTS", str(allowed))
+
+        with pytest.raises(ValueError, match="outside the allowed web roots"):
+            utils.validate_web_stats_path(str(sibling))
 
     def test_symlink_escape_is_rejected(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch

@@ -158,6 +158,8 @@ class TestHistoryLifecycle:
 
 
 class TestPreviewLifecycle:
+    # [test->req~ring5.extension.data-manager~1]
+
     """Test preview set/get/has/clear through ApplicationAPI."""
 
     def test_set_and_get_preview(
@@ -235,6 +237,8 @@ class TestPreviewLifecycle:
 
 
 class TestApplyShapersPipeline:
+    # [test->req~ring5.extension.data-manager~1]
+
     """Test apply_shapers through ApplicationAPI."""
 
     def test_column_selector_pipeline(

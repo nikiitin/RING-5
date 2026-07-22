@@ -5,6 +5,8 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
+from src.core.models.data_models import PipelineConfigImportResult
+
 
 @pytest.fixture
 def sample_data() -> pd.DataFrame:
@@ -83,6 +85,47 @@ class TestPipelineControllerRender:
         assert mock_plot.pipeline[0]["type"] == "rename"
         mock_st.rerun.assert_called_once()
 
+    @patch("src.web.controllers.plot.pipeline_controller.PipelineComponent")
+    def test_import_replaces_active_pipeline_after_core_validation(
+        self,
+        mock_presenter: MagicMock,
+        mock_api: MagicMock,
+        mock_executor: MagicMock,
+        mock_plot: MagicMock,
+    ) -> None:
+        from src.web.controllers.plot.pipeline_controller import PipelineController
+
+        mock_plot.pipeline_counter = 7
+        result = PipelineConfigImportResult(
+            path="/configs/paper.json",
+            name="Paper pipeline (2)",
+            original_name="Paper pipeline",
+            description="Reviewed",
+            shapers=({"type": "columnSelector", "columns": ["x"]},),
+            csv_path=None,
+            schema_version=1,
+            migrated=True,
+            conflict_resolution="renamed",
+        )
+        mock_api.import_configuration.return_value = result
+        controller = PipelineController(mock_api, MagicMock(), mock_executor)
+
+        imported = controller._handle_exchange_import(
+            mock_plot,
+            {"import_clicked": True, "payload": b"{}", "conflict": "rename"},
+        )
+
+        mock_api.import_configuration.assert_called_once_with(b"{}", conflict="rename")
+        assert mock_plot.pipeline == [
+            {
+                "id": 7,
+                "type": "columnSelector",
+                "config": {"type": "columnSelector", "columns": ["x"]},
+            }
+        ]
+        assert mock_plot.pipeline_counter == 8
+        assert imported is result
+
     @patch("src.web.controllers.plot.pipeline_controller.PipelineStepComponent")
     @patch("src.web.controllers.plot.pipeline_controller.PipelineComponent")
     @patch("src.web.controllers.plot.pipeline_controller.st")
@@ -95,6 +138,7 @@ class TestPipelineControllerRender:
         mock_executor: MagicMock,
         mock_plot: MagicMock,
     ) -> None:
+        # [test->req~ring5.shaping.pipeline-editor~1]
         from src.web.controllers.plot.pipeline_controller import PipelineController
 
         mock_plot.pipeline = [{"id": 0, "type": "rename", "config": {"mapping": {"x": "X"}}}]

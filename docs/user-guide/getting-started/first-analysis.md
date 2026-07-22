@@ -13,6 +13,13 @@ redirect_from:
 
 # First analysis
 
+<!--
+`uman~ring5.workspace.data-preview.documentation~1`
+
+Covers:
+- req~ring5.workspace.data-preview~1
+-->
+
 This workflow parses one metric from a gem5 results tree, creates a bar plot, and exports it. Use a
 results directory that contains at least one `stats.txt` file with `simTicks`.
 

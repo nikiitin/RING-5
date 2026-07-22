@@ -15,6 +15,9 @@ Data precondition:
 
 from __future__ import annotations
 
+from pathlib import Path
+from uuid import uuid4
+
 import pytest
 from playwright.sync_api import Page, expect
 
@@ -53,6 +56,8 @@ class TestShaperPipelineOperations:
     accumulate state across the class.  Test names are numbered to
     guarantee execution order.
     """
+
+    # [test->req~ring5.shaping.pipeline-editor~1]
 
     @pytest.mark.order(1)
     def test_01_create_plot_for_pipeline(self, tier1_page: Page) -> None:
@@ -196,3 +201,22 @@ class TestShaperTypes:
         mp.add_shaper("Filter")
         mp.assert_pipeline_step_count(3)
         mp.assert_finalize_button_visible()
+
+
+@pytest.mark.xdist_group("e2e_pipeline_exchange")
+class TestPipelineConfigurationExchange:
+    """A human can download and reapply a versioned pipeline file."""
+
+    def test_download_then_import_and_use(self, tier1_page: Page, tmp_path: Path) -> None:
+        # [test->req~ring5.shaping.config-import-export~1]
+        mp = ManagePlotsPage(tier1_page)
+        name = f"Pipeline Exchange {uuid4().hex[:8]}"
+        _create_bar_plot(mp, name)
+        mp.add_shaper("Column Selector")
+        exchange_path = tmp_path / "pipeline.ring5-pipeline.json"
+
+        mp.download_pipeline_configuration(exchange_path)
+        mp.upload_and_use_pipeline_configuration(exchange_path)
+
+        expect(mp.pipeline_configuration_import_success).to_be_visible(timeout=E2E_TIMEOUT)
+        expect(mp.column_selector_multiselect).to_be_visible(timeout=E2E_TIMEOUT)

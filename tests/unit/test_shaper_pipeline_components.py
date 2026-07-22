@@ -123,6 +123,29 @@ class TestPipelineComponent:
         assert "move_down" in result
         assert "delete" in result
 
+    @patch("src.web.components.common.pipeline.st")
+    def test_render_exchange_returns_upload_and_renders_download(self, mock_st: MagicMock) -> None:
+        from src.web.components.common.pipeline import PipelineComponent
+
+        uploaded = MagicMock()
+        uploaded.getvalue.return_value = b'{"format":"ring5.pipeline-configuration"}'
+        mock_st.text_input.return_value = "Paper pipeline"
+        mock_st.text_area.return_value = "Reviewed"
+        mock_st.file_uploader.return_value = uploaded
+        mock_st.selectbox.return_value = "rename"
+        mock_st.button.return_value = True
+        export_fn = MagicMock(return_value=b"{}")
+
+        result = PipelineComponent.render_exchange(1, "Plot", export_fn)
+
+        export_fn.assert_called_once_with("Paper pipeline", "Reviewed")
+        mock_st.download_button.assert_called_once()
+        assert result == {
+            "import_clicked": True,
+            "payload": b'{"format":"ring5.pipeline-configuration"}',
+            "conflict": "rename",
+        }
+
 
 class TestPipelineStepComponent:
     """Tests for pipeline-step result reporting."""
@@ -194,4 +217,4 @@ class TestDataManagerBase:
         mgr = Concrete(api)
         df = pd.DataFrame({"x": [1]})
         mgr.set_data(df)
-        api.state_manager.set_data.assert_called_once_with(df)
+        api.update_selected_dataset.assert_called_once_with(df, operation="Update dataset")

@@ -2,7 +2,7 @@
 
 Covers the three data-source modes:
 - Parse gem5 Stats Files  (parser config, scan, variable editor, parse)
-- I already have CSV data  (CSV mode success message)
+- Upload data or portfolio  (validated browser-upload workflow)
 - Load from Recent  (CSV pool with Load/Preview/Delete cards)
 
 Every interactable widget on this page is exposed as a locator so that
@@ -15,7 +15,7 @@ import re
 import shutil
 from pathlib import Path
 
-from playwright.sync_api import Locator, Page, expect
+from playwright.sync_api import Locator, Page, TimeoutError as PlaywrightTimeoutError, expect
 
 from tests.visual.pages.base_page import BasePage
 
@@ -75,8 +75,8 @@ class DataSourcePage(BasePage):
 
     @property
     def csv_option(self) -> Locator:
-        """'I already have CSV data' option."""
-        return self.segmented_control.get_by_role("radio", name="I already have CSV data")
+        """'Upload data or portfolio' option."""
+        return self.segmented_control.get_by_role("radio", name="Upload data or portfolio")
 
     @property
     def recent_option(self) -> Locator:
@@ -107,7 +107,7 @@ class DataSourcePage(BasePage):
     @property
     def stats_path_input(self) -> Locator:
         """Text input for the stats directory path."""
-        return self.page.locator("[data-testid='stTextInput'] input").first
+        return self.page.get_by_role("textbox", name="Stats directory path", exact=True)
 
     @property
     def stats_path_label(self) -> Locator:
@@ -117,7 +117,7 @@ class DataSourcePage(BasePage):
     @property
     def stats_pattern_input(self) -> Locator:
         """Text input for the file pattern (e.g. stats.txt)."""
-        return self.page.locator("[data-testid='stTextInput'] input").nth(1)
+        return self.page.get_by_role("textbox", name="File pattern", exact=True)
 
     @property
     def stats_pattern_label(self) -> Locator:
@@ -199,11 +199,21 @@ class DataSourcePage(BasePage):
     # 3e — Parse button (outside fragment)
 
     @property
+    def test_parser_configuration_button(self) -> Locator:
+        """Bounded parser playground action."""
+        return self.page.get_by_role("button", name="Test configuration")
+
+    @property
     def parse_button(self) -> Locator:
         """'Parse gem5 Stats Files' primary action button."""
         return self.page.locator(
             "[data-testid='stMainBlockContainer'] " "[data-testid='stBaseButton-primary']"
         ).filter(has_text="Parse gem5 Stats Files")
+
+    @property
+    def incremental_parse_checkbox(self) -> Locator:
+        """The human-facing changed-file reuse control."""
+        return self.page.get_by_role("checkbox", name="Reuse unchanged simulator files")
 
     @property
     def parser_config_section(self) -> Locator:
@@ -221,10 +231,40 @@ class DataSourcePage(BasePage):
 
     @property
     def csv_success_message(self) -> Locator:
-        """Success message shown in CSV mode."""
+        """Success message shown in upload mode."""
         return self.page.locator(
             "[data-testid='stMainBlockContainer'] " "[data-testid='stAlertContentSuccess']"
-        ).filter(has_text="CSV mode selected")
+        ).filter(has_text="Upload mode selected")
+
+    @property
+    def browser_upload_input(self) -> Locator:
+        """Browser file chooser for a dataset or portfolio."""
+        return self.page.locator("input[type='file']")
+
+    @property
+    def upload_origin_control(self) -> Locator:
+        """Selector between local browser and remote sources."""
+        return self.page.get_by_role("radiogroup", name="Source location")
+
+    @property
+    def remote_source_option(self) -> Locator:
+        """Remote-source option inside upload mode."""
+        return self.upload_origin_control.get_by_role("radio", name="Remote source")
+
+    @property
+    def local_source_option(self) -> Locator:
+        """Browser-local source option inside upload mode."""
+        return self.upload_origin_control.get_by_role("radio", name="This computer")
+
+    @property
+    def remote_adapter_select(self) -> Locator:
+        """Remote transport adapter selector."""
+        return self.page.get_by_text("Remote adapter", exact=True)
+
+    @property
+    def remote_https_url_input(self) -> Locator:
+        """HTTPS remote-source URL input."""
+        return self.page.get_by_label("HTTPS URL")
 
     # SECTION 5: Recent CSV pool (Load from Recent mode)
 
@@ -246,8 +286,8 @@ class DataSourcePage(BasePage):
         )
 
     def pool_card_load_button(self, index: int = 0) -> Locator:
-        """'Load This File' button for a specific CSV pool card."""
-        return self.page.get_by_role("button", name="Load This File").nth(index)
+        """'Review & Load' button for a specific CSV pool card."""
+        return self.page.get_by_role("button", name="Review & Load").nth(index)
 
     def pool_card_preview_button(self, index: int = 0) -> Locator:
         """'Preview' button for a specific CSV pool card."""
@@ -256,6 +296,26 @@ class DataSourcePage(BasePage):
     def pool_card_delete_button(self, index: int = 0) -> Locator:
         """'Delete' button for a specific CSV pool card."""
         return self.page.get_by_role("button", name="Delete").nth(index)
+
+    @property
+    def import_review_header(self) -> Locator:
+        """Structured review heading below the recent-file cards."""
+        return self.page.get_by_text("Review tabular import", exact=True)
+
+    @property
+    def import_detection_summary(self) -> Locator:
+        """Detected text encoding and delimiter summary."""
+        return self.page.locator("[data-testid='stAlertContentInfo']").filter(has_text="Detected")
+
+    @property
+    def import_accepted_metric(self) -> Locator:
+        """Accepted-row count from the structured preview."""
+        return self.page.locator("[data-testid='stMetric']").filter(has_text="Accepted rows")
+
+    @property
+    def load_accepted_import_button(self) -> Locator:
+        """Explicit action that loads the reviewed accepted rows."""
+        return self.page.get_by_role("button", name="Load accepted rows")
 
     @property
     def pool_expanders(self) -> Locator:
@@ -402,8 +462,19 @@ class DataSourcePage(BasePage):
         self._select_mode(self.parse_option)
 
     def select_csv_mode(self) -> None:
-        """Click the 'I already have CSV data' option."""
+        """Click the browser-upload option."""
+        # A completed fragment rerun can leave the top-level radio checked while its previous
+        # parser body is still mounted. A Parse round-trip gives the mode switch a full rerun.
+        if self.csv_option.is_checked() and not self.csv_success_message.is_visible():
+            self.parse_option.click()
+            self.wait_for_streamlit(expect_rerun=True)
         self._select_mode(self.csv_option)
+        expect(self.csv_success_message).to_be_visible(timeout=self.RENDER_TIMEOUT)
+
+    def select_remote_source(self) -> None:
+        """Open the remote-source form within upload mode."""
+        self.select_csv_mode()
+        self._select_mode(self.remote_source_option)
 
     def select_recent_mode(self) -> None:
         """Click the 'Load from Recent' option."""
@@ -509,9 +580,9 @@ class DataSourcePage(BasePage):
         self.wait_for_streamlit()
 
     def load_recent_csv(self, index: int = 0) -> None:
-        """Load a CSV from the Recent-CSV pool by card index (0 = most recent).
+        """Review and load a CSV from the Recent-CSV pool by card index.
 
-        The most-recent card is auto-expanded, so its 'Load This File' button
+        The most-recent card is auto-expanded, so its 'Review & Load' button
         is immediately actionable.
 
         Args:
@@ -520,6 +591,9 @@ class DataSourcePage(BasePage):
         self.select_recent_mode()
         self.pool_card_load_button(index).click()
         self.wait_for_streamlit()
+        expect(self.import_review_header).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        self.load_accepted_import_button.click()
+        self.wait_for_streamlit()
 
     def load_recent_csv_by_name(self, filename: str) -> None:
         """Load a specific CSV from the Recent-CSV pool by filename.
@@ -527,7 +601,7 @@ class DataSourcePage(BasePage):
         Deterministic under load and a large/cluttered pool (the failure mode
         behind the `-n 3` "No data loaded" tier1 errors): waits for the named
         card to render, expands it if collapsed (only the newest card is
-        auto-expanded), waits for its 'Load This File' button, clicks, then
+        auto-expanded), reviews the file, confirms accepted rows, then
         ASSERTS the load registered. The assertion is essential —
         ``wait_for_streamlit`` returns even when a raced click triggered no
         rerun, so without it a missed click fails silently downstream.
@@ -538,7 +612,7 @@ class DataSourcePage(BasePage):
         self.select_recent_mode()
         card = self.page.locator("[data-testid='stExpander']").filter(has_text=filename).first
         expect(card).to_be_visible(timeout=30_000)
-        load_btn = card.get_by_role("button", name="Load This File")
+        load_btn = card.get_by_role("button", name="Review & Load")
         if not load_btn.is_visible():
             # Collapsed (another worker's freshly-staged file is newer) — expand.
             card.locator("summary").click()
@@ -549,37 +623,69 @@ class DataSourcePage(BasePage):
         # button (mid-open), which otherwise times out the click.
         load_btn.dispatch_event("click")
         self.wait_for_streamlit()
+        expect(self.import_review_header).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        self.load_accepted_import_button.click()
+        self.wait_for_streamlit()
         # Confirm the load actually took (guards against a raced no-op click).
-        expect(self.page.get_by_text(re.compile(r"Loaded\s+\d+\s+rows")).first).to_be_visible(
-            timeout=self.RENDER_TIMEOUT
-        )
+        expect(
+            self.page.get_by_text(re.compile(r"Loaded\s+\d+\s+(?:reviewed\s+)?rows")).first
+        ).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
-    def upload_csv(self, csv_path: str | Path) -> None:
-        """Load a CSV into the app from a local path.
+    def review_recent_csv_by_name(self, filename: str) -> None:
+        """Open the structured import review for a named recent CSV."""
+        self.select_recent_mode()
+        card = self.page.locator("[data-testid='stExpander']").filter(has_text=filename).first
+        expect(card).to_be_visible(timeout=30_000)
+        preview_button = card.get_by_role("button", name="Preview")
+        if not preview_button.is_visible():
+            card.locator("summary").click()
+            self.wait_for_streamlit()
+        expect(preview_button).to_be_visible(timeout=30_000)
+        preview_button.dispatch_event("click")
+        self.wait_for_streamlit()
+        expect(self.import_review_header).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
-        The legacy ``st.file_uploader`` was removed; the canonical "bring your
-        own CSV" path is now the Recent-CSV pool. We stage the file into the
-        pool directory (shared on disk with the server process) with a fresh
-        mtime so it becomes the newest entry, then load it via the
-        'Load from Recent' UI.
-
-        Args:
-            csv_path: Absolute path to the CSV file to load.
-        """
+    def stage_csv(self, csv_path: str | Path) -> str:
+        """Copy a local CSV into the server-side recent-file pool."""
         import os
 
         from src.core.services.data_services.csv_pool_service import CsvPoolService
 
         pool_dir = CsvPoolService.get_pool_dir()
         pool_dir.mkdir(parents=True, exist_ok=True)
-        # Per-worker staged name: under `pytest -n N` every worker shares this
-        # on-disk pool dir, so a fixed name would race (concurrent overwrite /
-        # torn reads → "No data loaded"). Namespacing by xdist worker keeps each
-        # worker's staged file private; the freshest copy is the newest card.
         worker = os.environ.get("PYTEST_XDIST_WORKER", "main")
         staged = pool_dir / f"e2e_staged_{worker}_{Path(csv_path).stem}.csv"
         shutil.copy(str(csv_path), str(staged))
-        self.load_recent_csv_by_name(staged.name)
+        return staged.name
+
+    def upload_csv(self, csv_path: str | Path) -> None:
+        """Upload, review, and explicitly load a CSV from a browser path.
+
+        Args:
+            csv_path: Absolute path to the CSV file to load.
+        """
+        for attempt in range(2):
+            try:
+                self.select_csv_mode()
+                self.upload_origin_control.wait_for(
+                    state="visible",
+                    timeout=self.RENDER_TIMEOUT,
+                )
+                self._select_mode(self.local_source_option)
+                self.browser_upload_input.set_input_files(str(csv_path))
+                self.wait_for_streamlit()
+                self.import_review_header.wait_for(
+                    state="visible",
+                    timeout=self.RENDER_TIMEOUT,
+                )
+                break
+            except PlaywrightTimeoutError:
+                if attempt:
+                    raise
+                self.parse_option.click()
+                self.wait_for_streamlit(expect_rerun=True)
+        self.load_accepted_import_button.click()
+        self.wait_for_streamlit()
 
     # Assertions
 
@@ -654,7 +760,7 @@ class DataSourcePage(BasePage):
         expect(self.parse_button).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
     def assert_csv_mode_message_visible(self) -> None:
-        """Assert the CSV mode success message is shown."""
+        """Assert the upload-mode success message is shown."""
         expect(self.csv_success_message).to_be_visible(
             timeout=self.RENDER_TIMEOUT,
         )

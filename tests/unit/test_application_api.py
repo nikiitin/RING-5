@@ -50,7 +50,10 @@ class TestApplicationAPI:
         application_api.load_data(path)
 
         mock_data.load_csv_file.assert_called_once_with(path)
-        application_api.state_manager.set_data.assert_called_once_with(df)
+        application_api.state_manager.set_data.assert_called_once_with(
+            df,
+            operation=f"Load CSV: {path}",
+        )
         application_api.state_manager.set_processed_data.assert_called_once_with(None)
         application_api.state_manager.set_csv_path.assert_called_once_with(path)
 
@@ -64,7 +67,10 @@ class TestApplicationAPI:
         application_api.load_from_pool(path)
 
         mock_data.load_csv_file.assert_called_once_with(path)
-        application_api.state_manager.set_data.assert_called_once_with(df)
+        application_api.state_manager.set_data.assert_called_once_with(
+            df,
+            operation=f"Load CSV: {path}",
+        )
 
     def test_get_current_view_assembly(self, application_api: Any) -> None:
         """

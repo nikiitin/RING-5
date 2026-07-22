@@ -10,6 +10,8 @@ from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
 class TestStatisticsOnlyIntegration:
     """Test statistics-only mode with real gem5 stats files."""
 
+    # [test->req~ring5.ingestion.statistics-only~1]
+
     @pytest.fixture
     def stats_file(self, tmp_path: Path) -> Path:
         """Create a sample stats.txt file with distribution data."""

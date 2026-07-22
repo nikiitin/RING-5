@@ -24,6 +24,7 @@ class TestMeanNaNHandling:
 
     def test_arithmean_with_nan_values(self) -> None:
         """Arithmetic mean should propagate NaN via pandas default behavior."""
+        # [test->req~ring5.shaping.mean~1]
         from src.core.services.shapers.impl.mean import Mean
 
         df = self._build_df()

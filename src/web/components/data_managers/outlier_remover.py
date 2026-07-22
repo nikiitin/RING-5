@@ -21,6 +21,8 @@ class OutlierRemoverManager(DataManager):
 
     def render(self) -> None:
         """Render the Outlier Remover UI."""
+        # [impl->req~ring5.data.outlier-removal~1]
+        # [impl->req~ring5.data.preview-confirm~1]
         st.markdown("### Outlier Remover")
 
         st.info("""
@@ -173,7 +175,10 @@ class OutlierRemoverManager(DataManager):
             ):
                 confirmed_df: pd.DataFrame | None = self.api.get_preview("outlier_removal")
                 if confirmed_df is not None:
-                    self.set_data(confirmed_df)
+                    self.set_data(
+                        confirmed_df,
+                        operation="Outlier Removal (IQR)",
+                    )
                     self.api.clear_preview("outlier_removal")
                     record: OperationRecord = {
                         "source_columns": [outlier_column] + group_by_cols,

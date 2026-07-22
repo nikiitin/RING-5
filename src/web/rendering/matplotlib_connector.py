@@ -96,7 +96,11 @@ class FigureSpecToMatplotlib:
 
     @staticmethod
     def apply(
-        spec: FigureConfig, ax: Axes, render_result: MatplotlibRenderResult | None = None
+        spec: FigureConfig,
+        ax: Axes,
+        render_result: MatplotlibRenderResult | None = None,
+        *,
+        apply_margins: bool = True,
     ) -> None:
         """Apply the full FigureConfig to a matplotlib Axes.
 
@@ -104,7 +108,10 @@ class FigureSpecToMatplotlib:
             spec: A resolved FigureConfig (no sentinel values).
             ax: A ``matplotlib.axes.Axes`` instance.
             render_result: Trace-rendering metadata, including an optional heatmap image.
+            apply_margins: Apply figure-wide margins. Dashboard panels disable
+                this because their parent grid owns the outer layout.
         """
+        # [impl->req~ring5.extension.render-connector~1]
         import matplotlib as mpl
 
         # Scope the font family to this build: artists the steps below create
@@ -134,7 +141,8 @@ class FigureSpecToMatplotlib:
             FigureSpecToMatplotlib._apply_data_labels(spec, ax)
             FigureSpecToMatplotlib._apply_annotations(spec, ax)
             FigureSpecToMatplotlib._apply_hatching(spec, ax)
-            FigureSpecToMatplotlib._apply_margins(spec, ax)
+            if apply_margins:
+                FigureSpecToMatplotlib._apply_margins(spec, ax)
 
             if render_result and render_result.heatmap_image is not None:
                 FigureSpecToMatplotlib._apply_colorbar(spec, ax, render_result.heatmap_image)
@@ -169,9 +177,10 @@ class FigureSpecToMatplotlib:
         hatch: str | None = None,
     ) -> None:
         """Apply styling to a single matplotlib artist, dispatching by its type."""
-        from matplotlib.collections import PathCollection
+        from matplotlib.collections import PathCollection, PolyCollection
         from matplotlib.container import BarContainer
         from matplotlib.lines import Line2D
+        from matplotlib.patches import Patch
 
         fill = _css_rgb_to_hex(color) if color else None
         edge = _css_rgb_to_hex(edge_color) if edge_color else None
@@ -206,10 +215,32 @@ class FigureSpecToMatplotlib:
                 handle.set_alpha(alpha)
             if marker_size is not None:
                 handle.set_sizes([float(marker_size)])
+        elif isinstance(handle, PolyCollection):
+            if fill:
+                handle.set_facecolor(fill)
+                handle.set_edgecolor(fill)
+            if alpha is not None:
+                handle.set_alpha(alpha)
+            if edge:
+                handle.set_edgecolor(edge)
+            if edge_width is not None:
+                handle.set_linewidth(edge_width)
+        elif isinstance(handle, Patch):
+            if fill:
+                handle.set_facecolor(fill)
+            if alpha is not None:
+                handle.set_alpha(alpha)
+            if hatch:
+                handle.set_hatch(hatch)
+            if edge:
+                handle.set_edgecolor(edge)
+            if edge_width is not None:
+                handle.set_linewidth(edge_width)
 
     @staticmethod
     def _apply_series_styling(spec: FigureConfig, ax: Axes) -> None:
         """Apply per-trace line_width / marker_size / opacity / bar border (by index)."""
+        # [impl->req~ring5.figure.series-styling~1]
         if not spec.series_styles:
             return
         for i, (handle, _label) in enumerate(FigureSpecToMatplotlib._styleable_handles(ax)):
@@ -228,6 +259,7 @@ class FigureSpecToMatplotlib:
     @staticmethod
     def _apply_trace_overrides(spec: FigureConfig, ax: Axes) -> None:
         """Apply per-trace overrides (color/symbol/size/width/hatch/rename) by trace name."""
+        # [impl->req~ring5.figure.series-styling~1]
         if not spec.trace_overrides:
             return
         for handle, label in FigureSpecToMatplotlib._styleable_handles(ax):
@@ -360,6 +392,7 @@ class FigureSpecToMatplotlib:
         spec: FigureConfig, ax: Axes, render_result: MatplotlibRenderResult | None = None
     ) -> None:
         """Configure tick labels, rotation, padding."""
+        # [impl->req~ring5.figure.axes~1]
         import matplotlib.transforms as transforms
 
         typo = spec.typography
@@ -547,6 +580,7 @@ class FigureSpecToMatplotlib:
     @staticmethod
     def _apply_legends(spec: FigureConfig, ax: Axes) -> None:
         """Render legends with full spacing control."""
+        # [impl->req~ring5.figure.legends~1]
         if not spec.legends:
             return
 
@@ -737,6 +771,7 @@ class FigureSpecToMatplotlib:
         mutated — a mid-render mutation leaked process-wide and made the
         first figure of every process render in the wrong font.
         """
+        # [impl->req~ring5.figure.typography~1]
         import matplotlib.text
 
         if spec.font_family:
@@ -762,6 +797,7 @@ class FigureSpecToMatplotlib:
 
         Uses the ReferenceLineConfig list on FigureConfig.
         """
+        # [impl->req~ring5.figure.reference-lines~1]
         for rl in spec.reference_lines:
             if not rl.enabled:
                 continue
@@ -814,6 +850,7 @@ class FigureSpecToMatplotlib:
         Falls back to ``ax.bar_label()`` when available (mpl 3.4+),
         otherwise silently skips.
         """
+        # [impl->req~ring5.figure.data-labels~1]
         if spec.data_labels is None or not spec.data_labels.enabled:
             return
 
@@ -861,6 +898,7 @@ class FigureSpecToMatplotlib:
         and the coordinate is a category name that can't be converted, the
         annotation is silently skipped.
         """
+        # [impl->req~ring5.figure.shapes-annotations~1]
         if not spec.annotations:
             return
 
@@ -965,12 +1003,18 @@ class FigureSpecToMatplotlib:
     @staticmethod
     def _apply_hatching(spec: FigureConfig, ax: Axes) -> None:
         """Apply hatching patterns from hatching_sequence to bar patches."""
+        # [impl->req~ring5.figure.accessible-themes~1]
         if not spec.enable_stripes or not spec.hatching_sequence:
             return
 
-        for i, container in enumerate(ax.containers):
+        from matplotlib.container import BarContainer
+
+        containers = [
+            container for container in ax.containers if isinstance(container, BarContainer)
+        ]
+        for i, container in enumerate(containers):
             pattern = spec.hatching_sequence[i % len(spec.hatching_sequence)]
-            for patch in container:
+            for patch in container.patches:
                 patch.set_hatch(pattern)
 
     @staticmethod

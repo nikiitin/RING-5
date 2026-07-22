@@ -18,6 +18,7 @@ Architecture Note — Streamlit usage:
     to the component layer.
 """
 
+import copy
 import logging
 from typing import Any, cast
 
@@ -25,8 +26,13 @@ import pandas as pd
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
+from src.core.models.data_models import (
+    PipelineConfigConflictPolicy,
+    PipelineConfigImportResult,
+    PipelineStep,
+)
 from src.core.models.shaper_models import ShaperStepConfig
-from src.web.components.common.pipeline import PipelineComponent
+from src.web.components.common.pipeline import PipelineComponent, PipelineExchangeResult
 from src.web.components.common.pipeline_step import (
     PipelineStepComponent,
     PipelineStepResult,
@@ -65,17 +71,28 @@ class PipelineController:
         Steps:
             1. Show "Add transformation" selector
             2. Show current pipeline steps with config/preview
-            3. Show "Finalize" button
+            3. Show import/export controls
+            4. Show "Finalize" button
 
         Args:
             plot: The plot whose pipeline to edit.
         """
+        # [impl->req~ring5.shaping.pipeline-editor~1]
         PipelineComponent.render_section_header()
 
         raw_data: pd.DataFrame | None = self._api.state_manager.get_data()
         if raw_data is None:
             PipelineComponent.render_no_data_warning()
             return
+
+        feedback_key = f"pipeline_import_feedback_{plot.plot_id}"
+        feedback = st.session_state.pop(feedback_key, None)
+        if isinstance(feedback, dict):
+            PipelineComponent.render_import_success(
+                str(feedback["name"]),
+                migrated=bool(feedback["migrated"]),
+                resolution=str(feedback["resolution"]),
+            )
 
         # 1. Add shaper (via component)
         add_result: dict[str, Any] = PipelineComponent.render_add_shaper(plot.plot_id)
@@ -96,10 +113,70 @@ class PipelineController:
             PipelineComponent.render_pipeline_label()
             self._handle_pipeline_steps(plot, raw_data)
 
-        # 3. Finalize (via component)
+        # 3. Import/export after step widgets have committed their current values.
+        exchange_result = PipelineComponent.render_exchange(
+            plot.plot_id,
+            plot.name,
+            lambda name, description: self._api.export_configuration(
+                name,
+                description,
+                [copy.deepcopy(step["config"]) for step in plot.pipeline],
+            ),
+        )
+        if exchange_result.get("import_clicked") is True:
+            imported = self._handle_exchange_import(plot, exchange_result)
+            if imported is not None:
+                st.session_state[feedback_key] = {
+                    "name": imported.name,
+                    "migrated": imported.migrated,
+                    "resolution": imported.conflict_resolution,
+                }
+                st.rerun()
+
+        # 4. Finalize (via component)
         if plot.pipeline:
             if PipelineComponent.render_finalize_button(plot.plot_id):
                 self._handle_finalize(plot, raw_data)
+
+    def _handle_exchange_import(
+        self,
+        plot: PlotHandle,
+        exchange: PipelineExchangeResult,
+    ) -> PipelineConfigImportResult | None:
+        """Validate and save an upload before replacing the active pipeline.
+
+        Args:
+            plot: Plot whose pipeline receives the imported configuration.
+            exchange: Uploaded payload and selected conflict policy.
+
+        Returns:
+            Import details on success, otherwise ``None``.
+        """
+        # [impl->req~ring5.shaping.config-import-export~1]
+        payload = exchange["payload"]
+        if payload is None:
+            return None
+        try:
+            result = self._api.import_configuration(
+                payload,
+                conflict=cast(PipelineConfigConflictPolicy, exchange["conflict"]),
+            )
+        except (OSError, TypeError, ValueError) as exc:
+            PipelineComponent.render_import_error(str(exc))
+            return None
+
+        imported_pipeline: list[PipelineStep] = []
+        for config in result.shapers:
+            imported_pipeline.append(
+                {
+                    "id": plot.pipeline_counter,
+                    "type": config["type"],
+                    "config": copy.deepcopy(config),
+                }
+            )
+            plot.pipeline_counter += 1
+        plot.pipeline = imported_pipeline
+        return result
 
     def _handle_pipeline_steps(self, plot: PlotHandle, raw_data: pd.DataFrame) -> None:
         """
@@ -113,6 +190,7 @@ class PipelineController:
             plot: The plot holding the pipeline.
             raw_data: The original uploaded data (before any shapers).
         """
+        # [impl->req~ring5.shaping.pipeline-editor~1]
         step_input: pd.DataFrame = raw_data
         for idx, shaper in enumerate(plot.pipeline):
             try:
@@ -177,6 +255,7 @@ class PipelineController:
                 )
 
     def _handle_finalize(self, plot: PlotHandle, raw_data: pd.DataFrame) -> None:
+        # [impl->req~ring5.plots.drill-down~1]
         """
         Apply the full pipeline to raw data and store the result.
 
@@ -184,9 +263,11 @@ class PipelineController:
             plot: The plot to finalize.
             raw_data: Original uploaded data.
         """
+        # [impl->req~ring5.shaping.independent-pipelines~1]
         try:
             confs: list[ShaperStepConfig] = [s["config"] for s in plot.pipeline if s["config"]]
             processed: pd.DataFrame = self._pipeline.apply_shapers(raw_data, confs)
+            plot.replace_source_data(raw_data)
             plot.replace_processed_data(processed)
             PipelineStepComponent.render_finalize_result(processed)
             # Finalization runs inside a fragment. An app rerun refreshes the

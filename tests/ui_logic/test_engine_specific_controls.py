@@ -14,6 +14,7 @@ class TestEngineSpecificControls:
     @patch(f"{_MODULE}.st")
     def test_plotly_shows_hovermode(self, mock_st: MagicMock, mock_em: MagicMock) -> None:
         """When engine is Plotly, a hovermode selectbox is rendered."""
+        # [test->req~ring5.figure.plotly-hovermode~1]
         from src.web.components.plotting.settings.engine_settings import (
             render_engine_controls,
         )
@@ -37,6 +38,7 @@ class TestEngineSpecificControls:
         self, mock_st: MagicMock, mock_em: MagicMock
     ) -> None:
         """Matplotlib fixes the preamble while still exposing the TeX system."""
+        # [test->req~ring5.figure.matplotlib-tex-system~1]
         from src.web.components.plotting.settings.engine_settings import (
             render_engine_controls,
         )
@@ -82,6 +84,7 @@ class TestEngineSpecificControls:
     @patch(f"{_MODULE}.st")
     def test_matplotlib_no_hovermode(self, mock_st: MagicMock, mock_em: MagicMock) -> None:
         """Matplotlib mode does not render hovermode selectbox."""
+        # [test->req~ring5.figure.matplotlib-tex-system~1]
         from src.web.components.plotting.settings.engine_settings import (
             render_engine_controls,
         )
@@ -101,6 +104,7 @@ class TestEngineSpecificControls:
     @patch(f"{_MODULE}.st")
     def test_saved_hovermode_preserved(self, mock_st: MagicMock, mock_em: MagicMock) -> None:
         """Previously saved hovermode value is used as default index."""
+        # [test->req~ring5.figure.plotly-hovermode~1]
         from src.web.components.plotting.settings.engine_settings import (
             render_engine_controls,
         )

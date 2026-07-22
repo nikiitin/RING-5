@@ -14,7 +14,10 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
+import plotly.graph_objects as go
 
+from src.core.models.visualization.drill_down_result import DrillDownResult
+from src.core.models.visualization.small_multiples_spec import FacetPanel, SmallMultiplesSpec
 from tests.ui_logic.conftest import StubPlotHandle
 
 _CTRL = "src.web.controllers.plot.render_controller"
@@ -228,6 +231,38 @@ class TestRefreshLogic:
     @patch(f"{_CTRL}.ChartDisplayComponent.render_refresh_controls")
     @patch(f"{_CTRL}.render_settings_pills")
     @patch(f"{_CTRL}.st")
+    def test_theme_apply_requests_one_refresh_even_when_auto_refresh_is_off(
+        self,
+        mock_st: MagicMock,
+        mock_pills: MagicMock,
+        mock_refresh: MagicMock,
+        mock_viz: MagicMock,
+    ) -> None:
+        # [test->req~ring5.figure.theme-presets~1]
+        mock_st.selectbox.return_value = "bar"
+        mock_st.toggle.return_value = False
+        mock_pills.return_value = "themes"
+        mock_refresh.return_value = _default_refresh_controls(
+            should_generate=False,
+            auto_refresh=False,
+        )
+
+        data = pd.DataFrame({"a": [1]})
+        plot = StubPlotHandle(processed_data=data, config={"x": "a"})
+        plot.render_settings_section = lambda section, saved_config, data=None: {
+            "figure_theme_id": "paper",
+            "_ring5_request_refresh": True,
+        }
+        ctrl = _make_render_controller()
+        ctrl.render(plot)
+
+        assert plot.config == {"x": "a", "figure_theme_id": "paper"}
+        mock_viz.assert_called_once_with(plot, True)
+
+    @patch(f"{_CTRL}.PlotRenderController._render_visualization")
+    @patch(f"{_CTRL}.ChartDisplayComponent.render_refresh_controls")
+    @patch(f"{_CTRL}.render_settings_pills")
+    @patch(f"{_CTRL}.st")
     def test_auto_refresh_stored_in_ui_state(
         self,
         mock_st: MagicMock,
@@ -338,6 +373,8 @@ class TestErrorResilience:
 class TestFigureIdentity:
     """Figure reuse is limited to identical data, config, and engine."""
 
+    # [test->req~ring5.plots.refresh-cache~1]
+
     def test_middle_row_changes_data_hash(self) -> None:
         """The fingerprint covers rows beyond the frame boundaries."""
         from src.web.controllers.plot.render_controller import PlotRenderController
@@ -386,6 +423,7 @@ class TestFigureIdentity:
         mock_engine: MagicMock,
     ) -> None:
         """An engine change reruns, then regenerates with the new identity."""
+        # [test->req~ring5.plots.independent-state~1]
         mock_engine.get_engine.side_effect = ["plotly", "plotly", "matplotlib"]
         mock_chart.render_engine_selector.side_effect = [
             "plotly",
@@ -403,6 +441,61 @@ class TestFigureIdentity:
         assert plot.create_figure.call_count == 2
         mock_engine.set_engine.assert_called_once_with("matplotlib")
         mock_st.rerun.assert_called_once_with()
+
+
+class TestDrillDownInteraction:
+    """Point clicks resolve source rows without changing figure configuration."""
+
+    @patch(f"{_CTRL}.DrillDownPanel")
+    @patch(f"{_CTRL}.ChartDisplayComponent")
+    @patch(f"{_CTRL}.EngineManager")
+    @patch(f"{_CTRL}.st")
+    def test_click_resolves_rows_and_preserves_config(
+        self,
+        mock_st: MagicMock,
+        mock_engine: MagicMock,
+        mock_chart: MagicMock,
+        mock_panel: MagicMock,
+    ) -> None:
+        # [test->req~ring5.plots.drill-down~1]
+        data = pd.DataFrame({"workload": ["A"], "ipc": [1.0]})
+        figure = go.Figure(go.Bar(x=["A"], y=[1.0]))
+        figure.data[0].meta = {"ring5_drilldown": [{"workload": "A"}]}
+        plot = StubPlotHandle(
+            plot_id=3,
+            plot_type="bar",
+            config={"x": "workload", "y": "ipc", "title": "Keep me"},
+            processed_data=data,
+        )
+        plot.create_figure = MagicMock(return_value=figure)
+        plot.apply_common_layout = MagicMock(return_value=figure)
+        config_snapshot = dict(plot.config)
+        result = DrillDownResult(3, (("workload", "A"),), data)
+        api = MagicMock()
+        api.drill_down_plot.return_value = result
+        ctrl = _make_render_controller(api=api)
+
+        mock_st.session_state = {}
+        mock_engine.get_engine.return_value = "plotly"
+        mock_chart.render_engine_selector.return_value = "plotly"
+        mock_chart.render_plotly_chart.return_value = {
+            "kind": "drill_down",
+            "x": "A",
+            "y": 1.0,
+            "traceName": "ipc",
+            "filters": {"workload": "A"},
+        }
+        mock_panel.render_toggle.return_value = True
+
+        ctrl._render_visualization(plot, should_generate=True)
+
+        api.drill_down_plot.assert_called_once_with(3, {"workload": "A"})
+        stored = mock_st.session_state["plot.3.drill_down.result"]
+        assert stored["result"] is result
+        assert plot.config == config_snapshot
+        mock_chart.render_plotly_chart.assert_called_once()
+        assert mock_chart.render_plotly_chart.call_args.kwargs["capture_click"] is True
+        mock_st.rerun.assert_called_once()
 
     @patch(f"{_CTRL}.EngineManager")
     @patch(f"{_CTRL}.ChartDisplayComponent")
@@ -423,3 +516,65 @@ class TestFigureIdentity:
         ctrl._render_visualization(plot, should_generate=False)
 
         assert plot.create_figure.call_count == 2
+
+
+class TestSmallMultiplesRendering:
+    """Facet settings route one plot through the shared dual-engine grid builder."""
+
+    @patch(f"{_CTRL}.render_small_multiples")
+    @patch(f"{_CTRL}.ChartDisplayComponent")
+    @patch(f"{_CTRL}.EngineManager")
+    @patch(f"{_CTRL}.st")
+    def test_matplotlib_facets_build_plotly_preview_and_native_grid(
+        self,
+        mock_st: MagicMock,
+        mock_engine: MagicMock,
+        mock_chart: MagicMock,
+        mock_render: MagicMock,
+    ) -> None:
+        # [test->req~ring5.plots.small-multiples~1]
+        data = pd.DataFrame({"benchmark": ["A", "A"], "arch": ["x86", "arm"], "ipc": [1.0, 2.0]})
+        plot = StubPlotHandle(
+            plot_id=5,
+            plot_type="bar",
+            processed_data=data,
+            config={
+                "x": "benchmark",
+                "y": "ipc",
+                "small_multiples_enabled": True,
+                "small_multiples_by": ["arch"],
+                "small_multiples_columns": 2,
+            },
+        )
+        spec = SmallMultiplesSpec(
+            plot_id=5,
+            facet_columns=("arch",),
+            panels=(FacetPanel(("x86",), "arch: x86"), FacetPanel(("arm",), "arch: arm")),
+            rows=1,
+            columns=2,
+        )
+        plotly_figure = go.Figure()
+        matplotlib_figure = MagicMock()
+        plot.create_figure = MagicMock()
+        mock_render.side_effect = [plotly_figure, matplotlib_figure]
+        api = MagicMock()
+        api.create_small_multiples.return_value = spec
+        ctrl = _make_render_controller(api=api)
+        mock_st.session_state = {}
+        mock_engine.get_engine.return_value = "matplotlib"
+        mock_chart.render_engine_selector.return_value = "matplotlib"
+
+        ctrl._render_visualization(plot, should_generate=True)
+
+        api.create_small_multiples.assert_called_once()
+        assert [call.kwargs["engine"] for call in mock_render.call_args_list] == [
+            "plotly",
+            "matplotlib",
+        ]
+        plot.create_figure.assert_not_called()
+        mock_chart.render_prebuilt_matplotlib_chart.assert_called_once_with(
+            matplotlib_figure,
+            plotly_figure,
+            5,
+            "Test Plot",
+        )

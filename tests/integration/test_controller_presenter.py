@@ -214,6 +214,8 @@ class TestPlotRenderControllerIntegration:
 class TestChartDisplayComponentIntegration:
     """Test ChartDisplayComponent.render_refresh_controls() logic."""
 
+    # [test->req~ring5.plots.refresh-cache~1]
+
     @patch("src.web.components.common.chart_display.st")
     def test_auto_refresh_with_config_change_triggers_generation(self, mock_st: MagicMock) -> None:
         """Auto-refresh ON + config changed → should_generate is True."""
@@ -314,6 +316,13 @@ class TestPlotLifecycleIntegration:
         )  # type: ignore[assignment]
         plot.processed_data = rich_sample_data
         plot.config = {"x": "benchmark_name", "y": "system.cpu.ipc"}
+        plot.pipeline = [
+            {
+                "id": 0,
+                "type": "columnSelector",
+                "config": {"columns": ["benchmark_name", "system.cpu.ipc"]},
+            }
+        ]
 
         # Change type
         new_plot: BasePlot = PlotService.change_plot_type(
@@ -329,12 +338,22 @@ class TestPlotLifecycleIntegration:
         self, state_manager: RepositoryStateManager, rich_sample_data: pd.DataFrame
     ) -> None:
         """Duplicated plot is independent — changes don't affect original."""
+        # [test->req~ring5.plots.duplicate~1]
+        # [test->req~ring5.plots.independent-state~1]
+        # [test->req~ring5.shaping.independent-pipelines~1]
         # Create and populate
         plot: BasePlot = PlotService.create_plot(
             "Original", "bar", state_manager
         )  # type: ignore[assignment]
         plot.processed_data = rich_sample_data
         plot.config = {"x": "benchmark_name", "y": "system.cpu.ipc"}
+        plot.pipeline = [
+            {
+                "id": 0,
+                "type": "columnSelector",
+                "config": {"columns": ["benchmark_name", "system.cpu.ipc"]},
+            }
+        ]
 
         # Duplicate
         copy_plot: BasePlot = PlotService.duplicate_plot(
@@ -347,6 +366,15 @@ class TestPlotLifecycleIntegration:
         # Mutating the copy must leave the original unchanged.
         copy_plot.config["title"] = "Modified"
         assert "title" not in plot.config
+        copy_plot.pipeline[0]["config"]["columns"].append("simTicks")
+        assert plot.pipeline[0]["config"]["columns"] == [
+            "benchmark_name",
+            "system.cpu.ipc",
+        ]
+        assert copy_plot.processed_data is not None
+        copy_plot.processed_data.loc[:, "system.cpu.ipc"] = 0
+        assert plot.processed_data is not None
+        assert not (plot.processed_data["system.cpu.ipc"] == 0).all()
 
     def test_delete_removes_from_state(self, state_manager: RepositoryStateManager) -> None:
         """After deletion, plot is no longer in state manager."""

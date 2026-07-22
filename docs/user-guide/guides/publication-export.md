@@ -24,6 +24,23 @@ physical width and height for export; Plotly uses the corresponding pixel dimens
 
 ## Check typography and axes
 
+<!--
+`uman~ring5.figure.category-groups.documentation~1`
+
+Covers:
+- req~ring5.figure.category-groups~1
+
+`uman~ring5.figure.numbered-xaxis.documentation~1`
+
+Covers:
+- req~ring5.figure.numbered-xaxis~1
+
+-->
+
+For long grouped-category labels, numbered X-axis mode can replace or supplement ticks with numbers
+and a separately positioned number legend. Category super-groups can label adjacent spans and draw
+their boundary or rule lines.
+
 Under **Typography**, set title, axis-title, and tick-label sizes for the final printed size. Under
 **Axes**, check tick spacing, label rotation, units, and ranges. A truncated range can change the
 visual claim, especially for bars.
@@ -49,6 +66,14 @@ RING-5 does not support EPS export.
 
 ## Export from the web application
 
+<!--
+`uman~ring5.export.web-download.documentation~1`
+
+Covers:
+- req~ring5.export.web-download~1
+
+-->
+
 Select **Engine**, refresh the plot, expand **Download**, select **Format**, and use the matching
 download button. The format list changes with the active engine.
 
@@ -56,6 +81,14 @@ Open the exported file outside the browser. Check dimensions, clipped labels, em
 fonts, line weights, marker visibility, and color accessibility at the size used in the paper.
 
 ## Export deterministically from Python
+
+<!--
+`uman~ring5.export.deterministic.documentation~1`
+
+Covers:
+- req~ring5.export.deterministic~1
+
+-->
 
 ```python
 figure = session.plot(

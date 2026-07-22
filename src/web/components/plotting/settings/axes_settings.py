@@ -122,6 +122,7 @@ class AxesSettingsComponent:
         PlotConfig
             Axis configuration keys.
         """
+        # [impl->req~ring5.figure.axes~1]
         _axis_labels: dict[str, str] = {
             "x": ":material/straighten: X-Axis",
             "y_left": ":material/straighten: Y-Left",

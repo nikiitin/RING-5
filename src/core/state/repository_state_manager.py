@@ -8,7 +8,14 @@ from typing import Any
 
 import pandas as pd
 
-from src.core.models import PlotProtocol, PortfolioData, RestoreReport
+from src.core.models import (
+    DatasetInfo,
+    DatasetLineage,
+    DatasetRevision,
+    PlotProtocol,
+    PortfolioData,
+    RestoreReport,
+)
 from src.core.models.data_models import (
     CsvPoolEntry,
     ParseVariableConfig,
@@ -34,6 +41,7 @@ class RepositoryStateManager:
                 a ``PlotProtocol`` instance.  Forwarded to SessionRepository
                 so portfolio restoration never imports web-layer classes.
         """
+        # [impl->req~ring5.workspace.session-isolation~1]
         self._session_repo = SessionRepository(plot_deserializer=plot_deserializer)
 
     def initialize(self) -> None:
@@ -50,7 +58,12 @@ class RepositoryStateManager:
         return self._session_repo.data_repo.get_data()
 
     def set_data(
-        self, data: pd.DataFrame | None, on_change: Callable[[], None] | None = None
+        self,
+        data: pd.DataFrame | None,
+        on_change: Callable[[], None] | None = None,
+        *,
+        operation: str = "Update dataset",
+        source_datasets: tuple[str, ...] = (),
     ) -> None:
         """Store source data and optionally invoke a change callback."""
         # Copy + enforce configuration-column dtypes via the shared ingestion
@@ -58,7 +71,12 @@ class RepositoryStateManager:
         if data is not None:
             data = self._session_repo.enforce_config_dtypes(data)
 
-        self._session_repo.data_repo.set_data(data, on_change)
+        self._session_repo.data_repo.set_data(
+            data,
+            on_change,
+            operation=operation,
+            source_datasets=source_datasets,
+        )
 
     def get_processed_data(self) -> pd.DataFrame | None:
         """Return the current processed data."""
@@ -74,6 +92,7 @@ class RepositoryStateManager:
 
     def clear_data(self) -> None:
         """Clear data, plots, and temporary files owned by the session."""
+        # [impl->req~ring5.workspace.reset~1]
         temp_dir = self._session_repo.config_repo.get_temp_dir()
         if temp_dir and Path(temp_dir).exists():
             try:
@@ -87,6 +106,67 @@ class RepositoryStateManager:
         self._session_repo.plot_repo.clear_plots()
         self._session_repo.plot_repo.set_plot_counter(0)
         self._session_repo.plot_repo.set_current_plot_id(None)
+
+    def add_dataset(
+        self,
+        name: str,
+        data: pd.DataFrame,
+        *,
+        select: bool = True,
+        replace: bool = False,
+        operation: str = "Add dataset",
+        source_datasets: tuple[str, ...] = (),
+    ) -> DatasetInfo:
+        """Retain a named dataset after applying shared dtype rules."""
+        normalized = self._session_repo.enforce_config_dtypes(data)
+        return self._session_repo.data_repo.add_dataset(
+            name,
+            normalized,
+            select=select,
+            replace=replace,
+            operation=operation,
+            source_datasets=source_datasets,
+        )
+
+    def list_datasets(self) -> tuple[DatasetInfo, ...]:
+        """Return retained dataset metadata in insertion order."""
+        return self._session_repo.data_repo.list_datasets()
+
+    def get_dataset(self, name: str | None = None) -> pd.DataFrame:
+        """Return a defensive copy of a named or selected dataset."""
+        return self._session_repo.data_repo.get_dataset(name)
+
+    def select_dataset(self, name: str) -> pd.DataFrame:
+        """Select a retained dataset as the active source data."""
+        return self._session_repo.data_repo.select_dataset(name)
+
+    def remove_dataset(self, name: str) -> None:
+        """Remove one retained dataset without changing unrelated data."""
+        self._session_repo.data_repo.remove_dataset(name)
+
+    def selected_dataset_name(self) -> str | None:
+        """Return the selected retained dataset name."""
+        return self._session_repo.data_repo.selected_dataset_name()
+
+    def get_dataset_lineage(self, name: str | None = None) -> DatasetLineage:
+        """Return revision metadata and recovery capabilities for a dataset."""
+        return self._session_repo.data_repo.get_dataset_lineage(name)
+
+    def get_dataset_revision(self, revision_id: str) -> pd.DataFrame:
+        """Return a defensive copy of a retained revision snapshot."""
+        return self._session_repo.data_repo.get_dataset_revision(revision_id)
+
+    def undo_dataset(self, name: str | None = None) -> DatasetRevision:
+        """Restore the preceding revision of a named dataset."""
+        return self._session_repo.data_repo.undo_dataset(name)
+
+    def redo_dataset(self, name: str | None = None) -> DatasetRevision:
+        """Reapply the most recently undone dataset revision."""
+        return self._session_repo.data_repo.redo_dataset(name)
+
+    def restore_dataset_revision(self, revision_id: str) -> DatasetRevision:
+        """Restore an arbitrary retained dataset revision."""
+        return self._session_repo.data_repo.restore_dataset_revision(revision_id)
 
     # ==================== Config & Parser ====================
 
@@ -289,5 +369,6 @@ class RepositoryStateManager:
         self._session_repo.clear_all()
 
     def restore_session(self, portfolio_data: PortfolioData) -> RestoreReport:
+        # [impl->req~ring5.portfolio.restore~1]
         """Restore session state from a portfolio snapshot."""
         return self._session_repo.restore_from_portfolio(portfolio_data)

@@ -33,6 +33,7 @@ def _df() -> pd.DataFrame:
 
 
 def test_derive_sum_skips_nan_like_pandas():
+    # [test->req~ring5.shaping.derive-column~1]
     out = DeriveColumn({"type": "deriveColumn", "op": "sum", "dest": "s", "sources": ["p", "q"]})(
         _df()
     )
@@ -41,6 +42,7 @@ def test_derive_sum_skips_nan_like_pandas():
 
 
 def test_derive_ratio_zero_denominator_becomes_nan():
+    # [test->req~ring5.shaping.derive-column~1]
     out = DeriveColumn({"type": "deriveColumn", "op": "ratio", "dest": "r", "sources": ["p", "q"]})(
         _df()
     )
@@ -52,6 +54,7 @@ def test_derive_ratio_zero_denominator_becomes_nan():
 
 
 def test_derive_scalar_and_concat_and_map():
+    # [test->req~ring5.shaping.derive-column~1]
     base = _df()
     scaled = DeriveColumn(
         {
@@ -106,6 +109,7 @@ def test_derive_immutable_and_validation():
 
 
 def test_group_cardinality_eq_keeps_complete_groups():
+    # [test->req~ring5.shaping.group-cardinality-selector~1]
     df = _df().iloc[:-1]  # drop the last row → group "c" has only 1 policy
     out = GroupCardinalitySelector(
         {
@@ -120,6 +124,7 @@ def test_group_cardinality_eq_keeps_complete_groups():
 
 
 def test_group_cardinality_modes_and_validation():
+    # [test->req~ring5.shaping.group-cardinality-selector~1]
     df = _df().iloc[:-1]
     ge = GroupCardinalitySelector(
         {
@@ -142,6 +147,7 @@ def test_group_cardinality_modes_and_validation():
 
 def test_group_predicate_drops_zero_baseline_group():
     # group "b" has base p == 0.0, group "c" has base p == NaN → both dropped
+    # [test->req~ring5.shaping.group-predicate-selector~1]
     out = GroupPredicateSelector(
         {
             "type": "groupPredicateSelector",
@@ -157,6 +163,7 @@ def test_group_predicate_drops_zero_baseline_group():
 
 
 def test_group_predicate_keep_action_and_validation():
+    # [test->req~ring5.shaping.group-predicate-selector~1]
     kept = GroupPredicateSelector(
         {
             "type": "groupPredicateSelector",

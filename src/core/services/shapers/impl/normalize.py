@@ -135,6 +135,7 @@ class Normalize(UniDfShaper):
         Returns:
             A new dataframe with normalized values.
         """
+        # [impl->req~ring5.shaping.normalize~1]
         result = group.copy()
 
         # Identify the baseline row for this group
@@ -182,6 +183,8 @@ class Normalize(UniDfShaper):
         Returns:
             Normalized DataFrame
         """
+
+        # [impl->req~ring5.quality.bounded-caching~1]
 
         with warnings.catch_warnings():
             # Suppress pandas warning about group keys

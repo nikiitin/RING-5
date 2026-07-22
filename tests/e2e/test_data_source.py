@@ -8,7 +8,7 @@ within the group.
 Test tiers:
 - TestDataSourcePageStructure  -- layout, segmented control, mode content
 - TestDataSourceVariableDialog -- Add Variable dialog lifecycle & validation
-- TestDataSourceCsvUpload      -- CSV upload and data verification
+- TestDataSourceCsvLoad        -- browser upload and recent-file review workflows
 """
 
 from __future__ import annotations
@@ -62,6 +62,22 @@ class TestDataSourcePageStructure:
         ds.ensure_parse_mode()
         ds.assert_strategy_section_visible()
 
+    def test_incremental_parse_control_is_visible_and_enabled(self, tier0_page: Page) -> None:
+        # [test->req~ring5.ingestion.incremental-parsing~1]
+        """The default parser path explains and enables unchanged-file reuse."""
+        ds = DataSourcePage(tier0_page)
+        ds.ensure_parse_mode()
+        expect(ds.incremental_parse_checkbox).to_be_visible()
+        expect(ds.incremental_parse_checkbox).to_be_checked()
+
+    def test_parser_playground_action_is_visible(self, tier0_page: Page) -> None:
+        # [test->req~ring5.ingestion.parser-playground~1]
+        """Parser settings can be tested before the primary full-parse action."""
+        ds = DataSourcePage(tier0_page)
+        ds.ensure_parse_mode()
+        expect(ds.test_parser_configuration_button).to_be_visible()
+        expect(ds.parse_button).to_be_visible()
+
     def test_parser_variables_section_visible(self, tier0_page: Page) -> None:
         """Variables to Extract section with scan and add buttons is visible."""
         ds = DataSourcePage(tier0_page)
@@ -84,6 +100,7 @@ class TestDataSourcePageStructure:
 
     def test_mode_switching_round_trip(self, tier0_page: Page) -> None:
         """Cycling parse -> csv -> recent -> parse restores correct content."""
+        # [test->req~ring5.ingestion.source-modes~1]
         ds = DataSourcePage(tier0_page)
         # Parse
         ds.select_parse_mode()
@@ -211,13 +228,7 @@ class TestDataSourceVariableDialog:
 
 @pytest.mark.xdist_group("e2e_data_source")
 class TestDataSourceCsvLoad:
-    """Tier 0: CSV load-from-pool workflow.
-
-    The legacy st.file_uploader was removed; CSVs are loaded via the
-    'Load from Recent' pool (``DataSourcePage.upload_csv`` stages the file into
-    the pool, then loads it). These tests cover the mode message + the real
-    load path.
-    """
+    """Tier 0: Browser-upload and recent-file review workflows."""
 
     def test_csv_mode_shows_success_message(self, tier0_page: Page) -> None:
         """CSV mode displays the mode selection success message."""
@@ -233,8 +244,19 @@ class TestDataSourceCsvLoad:
         ds.select_csv_mode()
         ds.assert_parser_config_hidden()
 
+    def test_remote_source_controls_show_the_authorization_boundary(self, tier0_page: Page) -> None:
+        # [test->req~ring5.ingestion.remote-sources~1]
+        """Remote sources expose an adapter form inside the reviewed upload path."""
+        ds = DataSourcePage(tier0_page)
+        ds.navigate()
+        ds.select_remote_source()
+
+        expect(ds.remote_adapter_select).to_be_visible(timeout=ds.RENDER_TIMEOUT)
+        expect(ds.remote_https_url_input).to_be_visible(timeout=ds.RENDER_TIMEOUT)
+
     def test_csv_load_loads_data(self, tier0_page: Page, e2e_csv_path: Path) -> None:
-        """Load the fixture CSV via the Recent pool and verify data is loaded."""
+        # [test->req~ring5.ingestion.browser-upload~1]
+        """Upload the fixture CSV in the browser and verify confirmed data is loaded."""
         ds = DataSourcePage(tier0_page)
         ds.navigate()
         ds.upload_csv(e2e_csv_path)
@@ -246,4 +268,23 @@ class TestDataSourceCsvLoad:
         ds = DataSourcePage(tier0_page)
         ds.navigate()
         ds.upload_csv(e2e_csv_path)
+        ds.assert_data_loaded(row_count=18)
+
+    def test_csv_review_detects_format_before_loading(
+        self, tier0_page: Page, e2e_csv_path: Path
+    ) -> None:
+        # [test->req~ring5.ingestion.import-preview~1]
+        """Review detected structure and accepted rows before explicit loading."""
+        ds = DataSourcePage(tier0_page)
+        ds.navigate()
+        filename = ds.stage_csv(e2e_csv_path)
+        ds.review_recent_csv_by_name(filename)
+
+        expect(ds.import_detection_summary).to_contain_text("utf-8")
+        expect(ds.import_detection_summary).to_contain_text("comma")
+        expect(ds.import_accepted_metric).to_contain_text("18")
+        expect(ds.load_accepted_import_button).to_be_visible()
+
+        ds.load_accepted_import_button.click()
+        ds.wait_for_streamlit()
         ds.assert_data_loaded(row_count=18)

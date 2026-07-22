@@ -10,12 +10,13 @@ from dataclasses import dataclass, field
 from typing import Any, TypedDict
 
 from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
-from src.core.models.shaper_models import ShaperStepConfig
 from src.core.models.history_models import OperationRecord
+from src.core.models.shaper_models import ShaperStepConfig
 
 
 @dataclass(frozen=True)
 class RestoreReport:
+    # [impl->req~ring5.portfolio.partial-report~1]
     """Outcome of a portfolio restore.
 
     A restore is best-effort per item (a portfolio with one corrupt plot
@@ -39,6 +40,7 @@ class RestoreReport:
 
     @property
     def complete(self) -> bool:
+        # [impl->req~ring5.portfolio.upgrade-protection~1]
         """True when nothing was skipped or lost."""
         return (
             self.data_error is None and not self.plots_skipped and self.parse_variables_skipped == 0
@@ -50,6 +52,9 @@ class PortfolioData(TypedDict, total=False):
     Type definition for portfolio restoration data.
 
     Attributes:
+        schema_version: Integer migration version.
+        version: Human-readable portfolio format version.
+        timestamp: Save time in ISO 8601 form.
         parse_variables: List of parser variable configurations
         stats_path: Base path to simulator stats files
         stats_pattern: Pattern for stats file naming
@@ -57,6 +62,9 @@ class PortfolioData(TypedDict, total=False):
         use_parser: Whether parser mode is enabled
         scanned_variables: List of variables discovered by scanner
         data_csv: CSV string representation of data
+        data_semantics: Semantic labels and units retained with data
+        environment_metadata: Save-time runtime and dependency versions
+        integrity_manifest: Checksums and optional HMAC signature for saved content
         plots: List of plot configurations
         plot_counter: Current plot ID counter
         config: Application configuration dictionary
@@ -64,6 +72,9 @@ class PortfolioData(TypedDict, total=False):
         portfolio_history: Full list of operations performed in this portfolio
     """
 
+    schema_version: int
+    version: str
+    timestamp: str
     parse_variables: list[ParseVariableConfig]
     stats_path: str
     stats_pattern: str
@@ -71,6 +82,9 @@ class PortfolioData(TypedDict, total=False):
     use_parser: bool
     scanned_variables: list[ScannedVariableDict]
     data_csv: str
+    data_semantics: dict[str, dict[str, str]]
+    environment_metadata: dict[str, Any] | None
+    integrity_manifest: dict[str, Any] | None
     plots: list[dict[str, Any]]
     plot_counter: int
     config: dict[str, Any]

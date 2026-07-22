@@ -174,8 +174,16 @@ def portfolios_dir(tmp_path: Any) -> Generator[Any, None, None]:
 
     pdir = tmp_path / "portfolios"
     pdir.mkdir()
-    with patch(
-        "src.core.services.data_services.path_service.PathService.get_portfolios_dir",
-        return_value=pdir,
+    revisions = tmp_path / "portfolio_revisions"
+    revisions.mkdir()
+    with (
+        patch(
+            "src.core.services.data_services.path_service.PathService.get_portfolios_dir",
+            return_value=pdir,
+        ),
+        patch(
+            "src.core.services.data_services.path_service.PathService.get_portfolio_revisions_dir",
+            return_value=revisions,
+        ),
     ):
         yield pdir

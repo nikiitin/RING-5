@@ -169,6 +169,8 @@ class TestPerlWorker:
 class TestPerlWorkerPool:
     """Test worker pool functionality."""
 
+    # [test->req~ring5.ingestion.persistent-workers~1]
+
     def test_pool_initialization(self, worker_pool: Any) -> None:
         """Pool should initialize with correct number of workers."""
         stats = worker_pool.get_stats()
@@ -278,6 +280,7 @@ class TestWorkerPoolIntegration:
         shutdown_worker_pool()
 
     def test_singleton_pool(self) -> None:
+        # [test->req~ring5.api.process-lifecycle~1]
         """Test singleton pattern for worker pool."""
         # Get pool instance
         pool1 = get_worker_pool(pool_size=2)

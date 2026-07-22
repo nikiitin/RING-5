@@ -50,6 +50,8 @@ def render(
     Returns:
         Configuration dictionary with histogram-specific keys.
     """
+    # [impl->req~ring5.figure.histogram-controls~1]
+    # [impl->req~ring5.figure.histogram-cumulative~1]
     config = render_common_config(data, saved_config, plot_id)
 
     # Detect histogram variables

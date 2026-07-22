@@ -9,6 +9,14 @@ permalink: /developer-guide/api-reference/application-api/
 
 # Application API
 
+<!--
+`uman~ring5.quality.application-facade.documentation~1`
+
+Covers:
+- req~ring5.quality.application-facade~1
+
+-->
+
 `ApplicationAPI` is the internal facade composed by `app.py` and `ring5.Session`. Web pages receive
 one instance per browser session rather than constructing services or repositories.
 

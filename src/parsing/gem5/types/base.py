@@ -194,6 +194,7 @@ class StatType:
 
     def reduce_duplicates(self) -> None:
         """Reduce content to single value via arithmetic mean."""
+        # [impl->req~ring5.ingestion.pattern-aggregation~1]
         object.__setattr__(self, "_reduced", True)
 
         if not self._content:

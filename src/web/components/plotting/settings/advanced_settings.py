@@ -89,6 +89,7 @@ class AdvancedSettingsComponent:
         render_shapes_fn: ShapesRenderer | None = None,
         render_engine_fn: EngineControlsRenderer | None = None,
     ) -> PlotConfig:
+        # [impl->req~ring5.export.plotly-scale~1]
         """Render all advanced settings sections.
 
         Parameters

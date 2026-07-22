@@ -40,6 +40,7 @@ class TestRemoveOutliers:
         assert len(result) == 7
 
     def test_with_group_by_uses_group_iqr(self) -> None:
+        # [test->req~ring5.data.outlier-removal~1]
         df = pd.DataFrame(
             {
                 "group": ["A", "A", "A", "A", "B", "B", "B", "B"],

@@ -82,6 +82,7 @@ class TypographyConfig(TypedDict, total=False):
 
 
 class PlotDisplayConfig(TypedDict, total=False):
+    # [impl->req~ring5.figure.line-styles~1]
     """
     Complete display configuration for a plot.
 
@@ -165,6 +166,113 @@ class PlotDisplayConfig(TypedDict, total=False):
     bargroupgap: float  # Spacing between groups
     bar_border_width: float  # Border width for stacked segments
 
+    # Line-specific
+    line_shape: str
+    line_dash: str
+    line_width: float
+    show_markers: bool
+    marker_symbol: str
+    connect_gaps: bool
+
+    # Box-specific
+    orientation: str
+    quartile_method: str
+    whisker_mode: str
+    whisker_multiplier: float
+    whisker_percentiles: list[float]
+    point_mode: str
+    jitter: float
+    point_position: float
+    box_width: float
+    whisker_cap_width: float
+    notched: bool
+    show_mean: bool
+
+    # Violin-specific
+    bandwidth_method: str
+    bandwidth_scale: float
+    density_span: str
+    density_scale: str
+    violin_side: str
+    summary_mode: str
+    violin_width: float
+
+    # ECDF-specific
+    ecdf_complementary: bool
+    ecdf_y_mode: str
+    ecdf_markers: bool
+    marker_size: int
+
+    # Area-specific
+    area_mode: str
+    area_interpolation: str
+    area_missing: str
+    area_opacity: float
+
+    # Radar-specific
+    radar_scale_mode: str
+    radar_min: float
+    radar_max: float
+    radar_start_angle: float
+    radar_clockwise: bool
+    radar_fill: bool
+    radar_markers: bool
+    radar_opacity: float
+    radar_line_width: float
+
+    # Waterfall-specific
+    waterfall_absolute: list[str]
+    waterfall_subtotals: list[str]
+    waterfall_final_total: bool
+    waterfall_total_label: str
+    waterfall_connectors: bool
+    waterfall_connector_color: str
+    waterfall_connector_width: float
+    waterfall_increasing_color: str
+    waterfall_decreasing_color: str
+    waterfall_total_color: str
+    waterfall_bar_width: float
+    waterfall_opacity: float
+    waterfall_show_values: bool
+    waterfall_number_format: str
+
+    # Sankey-specific
+    sankey_source: str
+    sankey_target: str
+    sankey_value: str
+    sankey_label: str | None
+    sankey_node_labels: dict[str, str]
+    sankey_label_mode: str
+    sankey_show_link_labels: bool
+    sankey_number_format: str
+    sankey_arrangement: str
+    sankey_node_positions: dict[str, list[float]]
+    sankey_node_pad: int
+    sankey_node_thickness: int
+    sankey_color_mode: str
+    sankey_link_color: str
+    sankey_link_opacity: float
+    sankey_node_line_color: str
+    sankey_node_line_width: float
+
+    # Parallel-coordinates-specific
+    parallel_dimensions: list[str]
+    parallel_color: str | None
+    parallel_labels: dict[str, str]
+    parallel_range_mode: str
+    parallel_ranges: dict[str, list[float]]
+    parallel_brush_dimension: str | None
+    parallel_brush_range: list[float] | None
+    parallel_brushes: dict[str, list[float]]
+    parallel_colorscale: str
+    parallel_reverse_colorscale: bool
+    parallel_color_min: float
+    parallel_color_max: float
+    parallel_show_colorbar: bool
+    parallel_colorbar_title: str
+    parallel_line_color: str
+    parallel_unselected_opacity: float
+
     # Export
     download_format: str  # "html", "png", "pdf", "svg"
     export_scale: int  # 1, 2, or 3
@@ -222,7 +330,11 @@ class PlotDisplayConfig(TypedDict, total=False):
 
     # Color palette
     color_palette: str
+    accessibility_mode: bool
     enable_stripes: bool
+    figure_theme_id: str
+    figure_theme_name: str
+    figure_theme_context: str
 
     # Reference line
     reference_line_enabled: bool

@@ -43,6 +43,7 @@ class OrderingSettingsComponent:
             data: Data being plotted.
             config: Current configuration to update.
         """
+        # [impl->req~ring5.figure.ordering-renaming~1]
         st.markdown("#### Ordering Control")
 
         # X-axis Order

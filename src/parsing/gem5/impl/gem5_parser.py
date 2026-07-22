@@ -4,6 +4,7 @@ import csv
 import logging
 import math
 import os
+import tempfile
 import time
 from concurrent.futures import Future
 from dataclasses import replace
@@ -20,13 +21,22 @@ from src.core.common.safe_regex import (
 from src.core.common.utils import normalize_user_path
 from src.core.common.security_limits import (
     MAX_DISCOVERED_FILES,
+    MAX_INCREMENTAL_CACHE_COLUMNS,
+    MAX_PARSE_FILES,
     MAX_PARSE_VARIABLES,
+    MAX_PARSER_PLAYGROUND_CELLS,
+    MAX_PARSER_PLAYGROUND_FILES,
+    MAX_PARSER_PLAYGROUND_VARIABLES,
     MAX_REGEX_CANDIDATES,
     MAX_REGEX_EXPANSION_SECONDS,
     MAX_REGEX_MATCH_ATTEMPTS,
 )
 from src.core.models import (
+    IncrementalParseBatchResult,
+    IncrementalParseResult,
     ParseBatchResult,
+    ParserPlaygroundBatchResult,
+    ParserPlaygroundResult,
     ScanFileResult,
     ScannedVariable,
     ScanResult,
@@ -35,10 +45,18 @@ from src.core.models import (
 from src.core.models.csv_contract import MISSING_VALUE, validate_parser_csv
 from src.core.models.pattern_index_service import PatternIndexService
 from src.parsing.framework.file_discovery import find_stats_files
+from src.parsing.framework.incremental_cache import (
+    DEFAULT_CACHE_NAME,
+    configuration_hash,
+    fingerprint_inputs,
+    load_cache,
+    write_cache,
+)
 from src.parsing.gem5.impl.pool.pool import ParseWorkPool, ScanWorkPool
 from src.parsing.gem5.impl.scanning.gem5_scan_work import Gem5ScanWork
 from src.parsing.gem5.impl.scanning.pattern_aggregator import PatternAggregator
 from src.parsing.gem5.impl.strategies.factory import StrategyFactory
+from src.parsing.gem5.impl.strategies.file_parser_strategy import INTERNAL_SIM_PATH_KEY
 from src.parsing.gem5.models import Gem5ScannedVariable
 from src.parsing.parser_protocol import SimulationParser
 
@@ -68,6 +86,8 @@ class Gem5Parser(SimulationParser):
     instance the registry hands to ``ApplicationAPI``.
     """
 
+    # [impl->req~ring5.ingestion.gem5-backend~1]
+
     @staticmethod
     def submit_parse_async(
         stats_path: str,
@@ -76,6 +96,8 @@ class Gem5Parser(SimulationParser):
         output_dir: str,
         strategy_type: str = "simple",
         scanned_vars: list[ScannedVariable] | None = None,
+        *,
+        file_paths: list[str] | None = None,
     ) -> ParseBatchResult:
         """Submit async parsing job and return a ParseBatchResult."""
         t_start = time.perf_counter()
@@ -140,6 +162,7 @@ class Gem5Parser(SimulationParser):
                             try:
                                 same_pattern = canonical_source == normalize_stat_pattern(sv_name)
                             except SafeRegexError:
+                                # Invalid scan metadata is not a canonical aggregate pattern.
                                 pass
                         if same_pattern or fullmatch_bounded_regex(pattern, sv_name):
                             # If sv is already an aggregated pattern, use its constituents
@@ -242,7 +265,31 @@ class Gem5Parser(SimulationParser):
 
         # 3. Get work items from strategy
         t_work_start = time.perf_counter()
-        batch_work = strategy.get_work_items(stats_path, stats_pattern, processed_configs)
+        selected_paths: list[str] | None = None
+        if file_paths is not None:
+            requested_paths = {str(Path(path).resolve(strict=True)) for path in file_paths}
+            discovered_paths = {
+                str(Path(path).resolve(strict=True))
+                for path in find_stats_files(
+                    stats_path,
+                    stats_pattern,
+                    sort=True,
+                    raise_if_empty=True,
+                )
+            }
+            unknown_paths = requested_paths - discovered_paths
+            if unknown_paths:
+                raise ValueError(
+                    "PARSER: incremental selection contains files outside the discovered batch: "
+                    + ", ".join(sorted(unknown_paths))
+                )
+            selected_paths = sorted(requested_paths)
+        batch_work = strategy.get_work_items(
+            stats_path,
+            stats_pattern,
+            processed_configs,
+            file_paths=selected_paths,
+        )
         t_work_end = time.perf_counter()
         logger.info(f"PERF: Work item generation took {t_work_end - t_work_start:.4f}s")
 
@@ -262,6 +309,141 @@ class Gem5Parser(SimulationParser):
         t_total = time.perf_counter() - t_start
         logger.info(f"PERF: submit_parse_async total (pre-pool) took {t_total:.4f}s")
         return ParseBatchResult(futures=futures, var_names=var_names)
+
+    @staticmethod
+    def submit_incremental_parse_async(
+        stats_path: str,
+        stats_pattern: str,
+        variables: list[StatConfig],
+        output_dir: str,
+        strategy_type: str = "simple",
+        scanned_vars: list[ScannedVariable] | None = None,
+        cache_path: str | None = None,
+    ) -> IncrementalParseBatchResult:
+        # [impl->req~ring5.ingestion.incremental-parsing~1]
+        """Fingerprint a parse tree and submit workers only for new or changed files."""
+        files = find_stats_files(stats_path, stats_pattern, sort=True, raise_if_empty=True)
+        fingerprints = fingerprint_inputs(files, strategy_type)
+        config_hash = configuration_hash(
+            stats_pattern,
+            strategy_type,
+            variables,
+            scanned_vars,
+        )
+        resolved_cache = (
+            Path(cache_path).expanduser().resolve()
+            if cache_path
+            else Path(output_dir).expanduser().resolve() / DEFAULT_CACHE_NAME
+        )
+        protected_paths = {Path(source_path) for source_path, _fingerprint in fingerprints}
+        if strategy_type == "config_aware":
+            protected_paths.update(path.parent / "config.ini" for path in tuple(protected_paths))
+        output_path = Path(output_dir).expanduser().resolve() / "results.csv"
+        if (
+            resolved_cache == output_path
+            or resolved_cache in protected_paths
+            or output_path in protected_paths
+        ):
+            raise ValueError(
+                "PARSER: incremental output or cache path must not replace results.csv or a "
+                "simulator input."
+            )
+        cached_var_names, cached_files = load_cache(resolved_cache, config_hash)
+        current_fingerprints = dict(fingerprints)
+
+        cached_rows: list[tuple[str, tuple[tuple[str, str], ...]]] = []
+        changed_files: list[str] = []
+        for source_path, fingerprint in fingerprints:
+            cached = cached_files.get(source_path)
+            if cached is not None and cached[0] == fingerprint:
+                cached_rows.append((source_path, tuple(cached[1].items())))
+            else:
+                changed_files.append(source_path)
+
+        removed_files = tuple(sorted(set(cached_files) - set(current_fingerprints)))
+        futures: list[Future[dict[str, Any]]] = []
+        var_names = cached_var_names
+        if changed_files:
+            changed_batch = Gem5Parser.submit_parse_async(
+                stats_path,
+                stats_pattern,
+                variables,
+                output_dir,
+                strategy_type,
+                scanned_vars,
+                file_paths=changed_files,
+            )
+            futures = list(changed_batch.futures)
+            var_names = list(changed_batch.var_names)
+        if not var_names:
+            raise RuntimeError("PARSER: incremental parse has no resolved variable names.")
+
+        logger.info(
+            "PARSER: incremental plan has %d changed, %d reused, and %d removed files",
+            len(changed_files),
+            len(cached_rows),
+            len(removed_files),
+        )
+        return IncrementalParseBatchResult(
+            futures=futures,
+            var_names=var_names,
+            output_dir=str(Path(output_dir).expanduser().resolve()),
+            strategy_type=strategy_type,
+            cache_path=str(resolved_cache),
+            configuration_hash=config_hash,
+            fingerprints=fingerprints,
+            cached_rows=tuple(cached_rows),
+            changed_files=tuple(changed_files),
+            removed_files=removed_files,
+        )
+
+    @staticmethod
+    def submit_parser_playground_async(
+        stats_path: str,
+        stats_pattern: str,
+        variables: list[StatConfig],
+        output_dir: str,
+        strategy_type: str = "simple",
+        scanned_vars: list[ScannedVariable] | None = None,
+    ) -> ParserPlaygroundBatchResult:
+        # [impl->req~ring5.ingestion.parser-playground~1]
+        """Submit the real parser for a deterministic, bounded sample of matching files."""
+        if not variables:
+            raise ValueError("PARSER: add at least one variable before testing the configuration.")
+        if len(variables) > MAX_PARSER_PLAYGROUND_VARIABLES:
+            raise ValueError(
+                "PARSER: configuration tests accept at most "
+                f"{MAX_PARSER_PLAYGROUND_VARIABLES} variables; narrow the test first."
+            )
+        files = find_stats_files(stats_path, stats_pattern, sort=True, raise_if_empty=True)
+        sampled_files = tuple(files[:MAX_PARSER_PLAYGROUND_FILES])
+        parse_batch = Gem5Parser.submit_parse_async(
+            stats_path,
+            stats_pattern,
+            variables,
+            output_dir,
+            strategy_type,
+            scanned_vars,
+            file_paths=list(sampled_files),
+        )
+        diagnostics: list[str] = []
+        if len(files) > len(sampled_files):
+            diagnostics.append(
+                f"Previewed {len(sampled_files)} of {len(files)} matching files in lexical order."
+            )
+        if len(files) > MAX_PARSE_FILES:
+            diagnostics.append(
+                f"A full parse would exceed the {MAX_PARSE_FILES}-file safety limit."
+            )
+        return ParserPlaygroundBatchResult(
+            futures=list(parse_batch.futures),
+            var_names=list(parse_batch.var_names),
+            output_dir=str(Path(output_dir).expanduser().resolve()),
+            strategy_type=strategy_type,
+            matched_file_count=len(files),
+            sampled_files=sampled_files,
+            diagnostics=tuple(diagnostics),
+        )
 
     # ------------------------------------------------------------------ scanning
 
@@ -316,6 +498,7 @@ class Gem5Parser(SimulationParser):
         Returns:
             ``ScanResult`` with the merged variables and the list of failures.
         """
+        # [impl->req~ring5.ingestion.variable-scan~1]
         failures: list[ScanFileResult] = [r for r in results if not r.ok]
 
         merged_registry: dict[str, ScannedVariable] = {}
@@ -402,6 +585,7 @@ class Gem5Parser(SimulationParser):
         """
         Post-process and aggregate provided results into final CSV.
         """
+        # [impl->req~ring5.ingestion.parse-integrity~1]
         t_start = time.perf_counter()
         if not results:
             logger.warning("PARSER: No results to persist.")
@@ -429,6 +613,229 @@ class Gem5Parser(SimulationParser):
         return csv_path
 
     @staticmethod
+    def _flatten_incremental_result(
+        result: dict[str, Any],
+        strategy_type: str,
+        var_names: list[str],
+    ) -> tuple[str, dict[str, str]]:
+        """Reduce one worker result into safe JSON/CSV scalar cells."""
+        source_value = result.get(INTERNAL_SIM_PATH_KEY)
+        if not isinstance(source_value, str) or not source_value:
+            raise RuntimeError("PARSER: incremental result is missing simulation provenance.")
+        source_path = str(Path(source_value).resolve(strict=True))
+        processed = StrategyFactory.create(strategy_type).post_process([result])
+        if len(processed) != 1:
+            raise RuntimeError("PARSER: incremental strategy changed the per-file row count.")
+
+        public_result = processed[0]
+        ordered_names = list(var_names)
+        ordered_names.extend(sorted(name for name in public_result if name not in ordered_names))
+        row: dict[str, str] = {}
+        for var_name in ordered_names:
+            if var_name not in public_result:
+                continue
+            value = public_result[var_name]
+            if hasattr(value, "balance_content"):
+                value.balance_content()
+                value.reduce_duplicates()
+                entries = getattr(value, "entries", None)
+                if entries:
+                    reduced = value.reduced_content
+                    for entry in entries:
+                        row[f"{var_name}..{entry}"] = _render_value(reduced.get(entry))
+                else:
+                    row[var_name] = _render_value(value.reduced_content)
+            else:
+                row[var_name] = str(value)
+            if len(row) > MAX_INCREMENTAL_CACHE_COLUMNS:
+                raise RuntimeError(
+                    "PARSER: incremental row exceeds the "
+                    f"{MAX_INCREMENTAL_CACHE_COLUMNS}-column cache limit."
+                )
+        return source_path, row
+
+    @staticmethod
+    def finalize_incremental_parsing(
+        batch: IncrementalParseBatchResult,
+        results: list[dict[str, Any]],
+    ) -> IncrementalParseResult:
+        # [impl->req~ring5.ingestion.incremental-parsing~1]
+        """Merge changed results with unchanged cache rows and atomically publish both files."""
+        current_fingerprints = fingerprint_inputs(
+            [source_path for source_path, _fingerprint in batch.fingerprints],
+            batch.strategy_type,
+        )
+        if current_fingerprints != batch.fingerprints:
+            raise RuntimeError(
+                "PARSER: simulator inputs changed during incremental parsing; submit again "
+                "before updating the cache."
+            )
+        expected_changed = set(batch.changed_files)
+        if len(results) != len(expected_changed):
+            raise RuntimeError(
+                "PARSER: incremental finalization received "
+                f"{len(results)} results for {len(expected_changed)} changed files."
+            )
+
+        rows = {source_path: dict(cells) for source_path, cells in batch.cached_rows}
+        for result in results:
+            source_path, row = Gem5Parser._flatten_incremental_result(
+                result,
+                batch.strategy_type,
+                batch.var_names,
+            )
+            if source_path not in expected_changed:
+                raise RuntimeError(
+                    f"PARSER: incremental worker returned an unplanned file: {source_path}"
+                )
+            if source_path in rows:
+                raise RuntimeError(
+                    f"PARSER: incremental worker returned duplicate provenance: {source_path}"
+                )
+            rows[source_path] = row
+
+        current_paths = [source_path for source_path, _fingerprint in batch.fingerprints]
+        if set(rows) != set(current_paths):
+            missing_paths = sorted(set(current_paths) - set(rows))
+            raise RuntimeError(
+                "PARSER: incremental finalization is missing rows for: " + ", ".join(missing_paths)
+            )
+
+        columns: list[str] = []
+        for var_name in batch.var_names:
+            matching = [
+                column
+                for source_path in current_paths
+                for column in rows[source_path]
+                if column == var_name or column.startswith(f"{var_name}..")
+            ]
+            for column in matching or [var_name]:
+                if column not in columns:
+                    columns.append(column)
+        extras = sorted(
+            {column for row in rows.values() for column in row if column not in columns}
+        )
+        columns.extend(extras)
+        if len(columns) > MAX_INCREMENTAL_CACHE_COLUMNS:
+            raise RuntimeError(
+                "PARSER: incremental output exceeds the "
+                f"{MAX_INCREMENTAL_CACHE_COLUMNS}-column limit."
+            )
+
+        output_dir = Path(batch.output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output_path = output_dir / "results.csv"
+        temporary_name: str | None = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w",
+                encoding="utf-8",
+                newline="",
+                prefix=".results.",
+                suffix=".csv.tmp",
+                dir=output_dir,
+                delete=False,
+            ) as handle:
+                temporary_name = handle.name
+                writer = csv.DictWriter(handle, fieldnames=columns, extrasaction="raise")
+                writer.writeheader()
+                for source_path in current_paths:
+                    writer.writerow(
+                        {column: rows[source_path].get(column, MISSING_VALUE) for column in columns}
+                    )
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temporary_name, output_path)
+            temporary_name = None
+        finally:
+            if temporary_name is not None:
+                Path(temporary_name).unlink(missing_ok=True)
+
+        for warning in validate_parser_csv(output_path):
+            logger.warning("CSV contract: %s", warning)
+        write_cache(
+            Path(batch.cache_path),
+            batch.configuration_hash,
+            batch.var_names,
+            batch.fingerprints,
+            rows,
+        )
+        return IncrementalParseResult(
+            csv_path=str(output_path),
+            parsed_files=batch.parsed_file_count,
+            reused_files=batch.reused_file_count,
+            removed_files=batch.removed_file_count,
+            total_files=batch.total_file_count,
+        )
+
+    @staticmethod
+    def finalize_parser_playground(
+        batch: ParserPlaygroundBatchResult,
+        results: list[dict[str, Any]],
+    ) -> ParserPlaygroundResult:
+        # [impl->req~ring5.ingestion.parser-playground~1]
+        """Finalize a bounded dry run into cells and diagnostics without retaining a CSV."""
+        if len(results) != len(batch.sampled_files):
+            raise RuntimeError(
+                "PARSER: configuration test received "
+                f"{len(results)} results for {len(batch.sampled_files)} sampled files."
+            )
+
+        output_dir = Path(batch.output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix="ring5-playground-", dir=output_dir) as scratch:
+            csv_path = Gem5Parser.finalize_parsing(
+                scratch,
+                results,
+                strategy_type=batch.strategy_type,
+                var_names=batch.var_names,
+            )
+            if csv_path is None:
+                raise RuntimeError("PARSER: configuration test produced no preview table.")
+            with Path(csv_path).open("r", encoding="utf-8", newline="") as handle:
+                reader = csv.reader(handle)
+                try:
+                    columns = tuple(next(reader))
+                except StopIteration as exc:
+                    raise RuntimeError("PARSER: configuration test produced an empty CSV.") from exc
+                rows = tuple(tuple(value for value in row) for row in reader)
+
+        if len(columns) * max(len(rows), 1) > MAX_PARSER_PLAYGROUND_CELLS:
+            raise RuntimeError(
+                "PARSER: configuration preview exceeds the "
+                f"{MAX_PARSER_PLAYGROUND_CELLS}-cell limit."
+            )
+        missing_variables: list[str] = []
+        for variable in batch.var_names:
+            indices = [
+                index
+                for index, column in enumerate(columns)
+                if column == variable or column.startswith(f"{variable}..")
+            ]
+            if not indices or all(
+                not row[index] or row[index] == MISSING_VALUE for row in rows for index in indices
+            ):
+                missing_variables.append(variable)
+
+        diagnostics = list(batch.diagnostics)
+        if missing_variables:
+            diagnostics.append(
+                "No sampled value was produced for: " + ", ".join(missing_variables) + "."
+            )
+        ready = not missing_variables and batch.matched_file_count <= MAX_PARSE_FILES
+        if ready:
+            diagnostics.append("The sampled configuration is ready for a full parse.")
+        return ParserPlaygroundResult(
+            matched_file_count=batch.matched_file_count,
+            sampled_files=batch.sampled_files,
+            columns=columns,
+            rows=rows,
+            missing_variables=tuple(missing_variables),
+            diagnostics=tuple(diagnostics),
+            ready_for_full_parse=ready,
+        )
+
+    @staticmethod
     def construct_final_csv(
         output_dir: str,
         results: list[dict[str, Any]],
@@ -437,6 +844,7 @@ class Gem5Parser(SimulationParser):
         """
         Aggregate provided results and save to CSV.
         """
+        # [impl->req~ring5.ingestion.pattern-index-selection~1]
         t_start = time.perf_counter()
         if not results:
             return None

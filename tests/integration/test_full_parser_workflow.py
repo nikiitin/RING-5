@@ -67,6 +67,7 @@ class TestFullParserWorkflow:
         3. CSV construction aggregates results
         4. Data loading produces correct dataframe
         """
+        # [test->req~ring5.ingestion.parse-output-provenance~1]
         # Step 1: Scan for available variables
         scan_futures = ScannerService.submit_scan_async(
             stats_path=str(sample_stats_dir), stats_pattern="stats.txt", limit=10

@@ -26,6 +26,8 @@ def sample_data() -> pd.DataFrame:
 class TestBarPlotCreateFigure:
     """Tests for BarPlot.create_figure branches."""
 
+    # [test->req~ring5.plot.bar~1]
+
     def test_basic_bar(self, sample_data: pd.DataFrame) -> None:
         plot = BarPlot(1, "test")
         config = {
@@ -53,6 +55,7 @@ class TestBarPlotCreateFigure:
         assert len(list(fig.data)) >= 2  # one trace per color
 
     def test_bar_with_error_bars(self, sample_data: pd.DataFrame) -> None:
+        # [test->req~ring5.figure.error-bars~1]
         plot = BarPlot(1, "test")
         config = {
             "x": "benchmark",
@@ -120,6 +123,8 @@ class TestBarPlotCreateFigure:
 
 class TestLinePlotCreateFigure:
     """Tests for LinePlot.create_figure branches."""
+
+    # [test->req~ring5.plot.line~1]
 
     def test_basic_line(self, sample_data: pd.DataFrame) -> None:
         plot = LinePlot(1, "test")

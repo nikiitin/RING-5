@@ -81,7 +81,10 @@ def render(
 
         # Title & Labels
         default_title: str = saved_config.get("title", f"Stacked Statistics by {x_column}")
-        default_xlabel: str = str(saved_config.get("xlabel", x_column) or "")
+        # Major-group annotations already name every outer category. Repeating
+        # the mapped column as an axis title collides with those labels in the
+        # default compact layout; saved/custom titles remain supported.
+        default_xlabel: str = str(saved_config.get("xlabel", "") or "")
         default_ylabel: str = str(saved_config.get("ylabel", "Value") or "")
 
         label_config = PlotConfigComponents.render_title_labels_section(

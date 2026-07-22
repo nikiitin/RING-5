@@ -23,6 +23,7 @@ def test_browser_sessions_keep_data_plots_and_reset_isolated(
     tmp_path: Path,
 ) -> None:
     """Independent browser contexts cannot read or reset each other's state."""
+    # [test->req~ring5.workspace.session-isolation~1]
     first_csv = tmp_path / "first_session.csv"
     second_csv = tmp_path / "second_session.csv"
     pd.DataFrame({"label": ["a", "b"], "value": [1, 2]}).to_csv(first_csv, index=False)

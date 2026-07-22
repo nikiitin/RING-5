@@ -57,6 +57,7 @@ class Transformer(UniDfShaper):
     @override
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
         """Executes the data type conversion."""
+        # [impl->req~ring5.shaping.transformer~1]
         self._verify_preconditions(data_frame)
 
         df = data_frame.copy()

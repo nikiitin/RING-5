@@ -21,6 +21,7 @@ def render_dual_axis_display_settings(
         config: Current configuration dict to update in-place.
         plot_id: Plot identifier for unique widget keys.
     """
+    # [impl->req~ring5.figure.dual-axis-controls~1]
     st.markdown("#### Dual Axis Display")
 
     # Grid Lines
@@ -108,6 +109,7 @@ def render_secondary_legend_controls(
         config: Current configuration dict to update in-place.
         plot_id: Plot identifier for unique widget keys.
     """
+    # [impl->req~ring5.figure.dual-axis-controls~1]
     st.markdown("##### Right-Axis Legend")
 
     # Position & Orientation
@@ -214,6 +216,7 @@ def render_right_axis_dot_settings(
         config: Current configuration dict to update in-place.
         plot_id: Plot identifier for unique widget keys.
     """
+    # [impl->req~ring5.figure.dual-axis-controls~1]
     st.markdown("#### Right-Axis Dot & Line Settings")
     dc1, dc2, dc3 = st.columns(3)
     with dc1:

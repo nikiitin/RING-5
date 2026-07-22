@@ -18,6 +18,7 @@ def bounded_unique_strings(values: Iterable[object]) -> tuple[list[str], bool]:
     Returns the options and whether rows, cardinality, or value length caused
     truncation. Iteration stops once the row or unique-value budget is reached.
     """
+    # [impl->req~ring5.quality.input-security~1]
     unique: set[str] = set()
     truncated = False
     for row_index, value in enumerate(values):

@@ -90,6 +90,7 @@ class PivotLonger(Shaper):
     @override
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
         """Execute the pivot_longer operation on the data."""
+        # [impl->req~ring5.shaping.pivot-longer~1]
         super().__call__(data_frame)
         result = data_frame.copy()
 
@@ -224,6 +225,7 @@ class PivotWider(Shaper):
     @override
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
         """Execute the pivot_wider operation on the data."""
+        # [impl->req~ring5.shaping.pivot-wider~1]
         super().__call__(data_frame)
         # No copy needed: pivot_table() creates a new DataFrame.
         result = data_frame

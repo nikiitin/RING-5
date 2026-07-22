@@ -39,6 +39,8 @@ class PatternIndexService:
     - Display formatting
     """
 
+    # [impl->req~ring5.ingestion.pattern-index-selection~1]
+
     @staticmethod
     def is_pattern_variable(var_name: str) -> bool:
         r"""Check if variable name contains regex pattern (\d+).

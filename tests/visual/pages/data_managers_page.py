@@ -1,18 +1,27 @@
 """Page Object for the Data Managers page.
 
-Covers all 7 tabs:
+Covers all 11 tabs:
 - Summary
 - Data Visualization
+- Workspace
 - Seeds Reducer
 - Outlier Remover
 - Preprocessor
 - Mixer
+- Compare
+- Data Quality
+- Schema Contract
 - Operations History
 """
 
 from __future__ import annotations
 
-from playwright.sync_api import Locator, Page, expect
+from playwright.sync_api import (
+    Locator,
+    Page,
+    TimeoutError as PlaywrightTimeoutError,
+    expect,
+)
 
 from tests.visual.pages.base_page import BasePage
 
@@ -25,10 +34,14 @@ class DataManagersPage(BasePage):
     TAB_NAMES: tuple[str, ...] = (
         "Summary",
         "Data Visualization",
+        "Workspace",
         "Seeds Reducer",
         "Outlier Remover",
         "Preprocessor",
         "Mixer",
+        "Compare",
+        "Data Quality",
+        "Schema Contract",
         "Operations History",
     )
 
@@ -54,6 +67,7 @@ class DataManagersPage(BasePage):
     def navigate(self) -> None:
         """Open the Data Managers page via sidebar."""
         self.navigate_to(self.PAGE_NAME)
+        expect(self.page_header).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
     # Locators
 
@@ -81,8 +95,16 @@ class DataManagersPage(BasePage):
             tab_name: One of ``TAB_NAMES``.
         """
         tab = self.page.get_by_role("tab", name=tab_name)
-        tab.click()
-        self.wait_for_streamlit()
+        for _ in range(3):
+            try:
+                tab.click(timeout=5_000)
+                expect(tab).to_have_attribute("aria-selected", "true", timeout=5_000)
+                return
+            except (AssertionError, PlaywrightTimeoutError):
+                # Navigation can replace the complete tab list while this click
+                # is in flight. Wait for that run and retry through the locator.
+                self.wait_for_streamlit()
+        expect(tab).to_have_attribute("aria-selected", "true", timeout=self.RENDER_TIMEOUT)
 
     def get_tab(self, tab_name: str) -> Locator:
         """Return the tab locator by name."""
@@ -150,7 +172,7 @@ class DataManagersPage(BasePage):
         expect(self.no_data_warning).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
     def assert_tabs_visible(self) -> None:
-        """Assert all 7 tabs are present."""
+        """Assert all 11 tabs are present."""
         expect(self.tab_bar).to_be_visible(timeout=self.RENDER_TIMEOUT)
         for tab_name in self.TAB_NAMES:
             expect(self.get_tab(tab_name)).to_be_visible()
@@ -175,14 +197,17 @@ class DataManagersPage(BasePage):
         if expected is not None:
             expect(rows_metric.first).to_contain_text(str(expected), timeout=self.RENDER_TIMEOUT)
 
-    def assert_summary_has_columns(self) -> None:
-        """Assert Summary tab shows a column-count metric.
+    def assert_summary_has_columns(self, expected: int | None = None) -> None:
+        """Assert Summary shows a column count, optionally an exact value.
 
         Scopes to the ``st.metric`` card; a bare ``get_by_text("Columns")``
         matched ~23 elements on the page (strict-mode violation).
         """
         cols_metric = self.page.locator("[data-testid='stMetric']").filter(has_text="Columns")
         expect(cols_metric.first).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        if expected is not None:
+            value = cols_metric.first.locator("[data-testid='stMetricValue']")
+            expect(value).to_have_text(str(expected), timeout=self.RENDER_TIMEOUT)
 
     # E2E: Seeds Reducer
 
@@ -309,12 +334,12 @@ class DataManagersPage(BasePage):
     def apply_preprocessor_preview(self) -> None:
         """Click 'Preview Result' and wait."""
         self.preproc_preview_button.click()
-        self.wait_for_streamlit()
+        self.wait_for_streamlit(expect_rerun=True)
 
     def confirm_preprocessor(self) -> None:
         """Click 'Confirm and Add Column to Dataset' and wait."""
         self.preproc_confirm_button.click()
-        self.wait_for_streamlit()
+        self.wait_for_streamlit(expect_rerun=True)
 
     # E2E: Mixer
 
@@ -360,6 +385,276 @@ class DataManagersPage(BasePage):
     def confirm_mixer(self) -> None:
         """Click 'Confirm and Merge' and wait."""
         self.mixer_confirm_button.click()
+        self.wait_for_streamlit()
+
+    # E2E: Baseline comparison
+
+    @property
+    def comparison_group_selectbox(self) -> Locator:
+        """Experiment-group column selector."""
+        return self._by_label("stSelectbox", "Experiment column")
+
+    @property
+    def comparison_method_selectbox(self) -> Locator:
+        """Threshold or statistical comparison selector."""
+        return self._by_label("stSelectbox", "Comparison method")
+
+    @property
+    def comparison_metrics_multiselect(self) -> Locator:
+        """Metrics selected for comparison."""
+        return self._by_label("stMultiSelect", "Metrics")
+
+    @property
+    def comparison_keys_multiselect(self) -> Locator:
+        """Columns used to align baseline and candidate rows."""
+        return self._by_label("stMultiSelect", "Alignment keys")
+
+    @property
+    def comparison_apply_button(self) -> Locator:
+        """Button that calculates the comparison preview."""
+        return self.page.get_by_role("button", name="Compare", exact=True)
+
+    @property
+    def comparison_confirm_button(self) -> Locator:
+        """Button that replaces the active data with the comparison result."""
+        return self.page.get_by_role("button", name="Use Comparison Result")
+
+    @property
+    def comparison_json_download_button(self) -> Locator:
+        """Download button for the versioned regression JSON document."""
+        return self.page.get_by_role("button", name="Download results JSON")
+
+    @property
+    def comparison_junit_download_button(self) -> Locator:
+        """Download button for the regression JUnit XML document."""
+        return self.page.get_by_role("button", name="Download JUnit XML")
+
+    @property
+    def regression_plot(self) -> Locator:
+        """Accessible regression-outcome chart in the comparison preview."""
+        return self.page.locator("[data-testid='stCustomComponentV1']:visible")
+
+    def apply_comparison(self) -> None:
+        """Calculate the comparison and wait for the preview."""
+        self.comparison_apply_button.click()
+        self.wait_for_streamlit(expect_rerun=True)
+
+    # E2E: Named dataset workspace
+
+    @property
+    def workspace_name_input(self) -> Locator:
+        """Name used to retain the current active dataset."""
+        return self._by_label("stTextInput", "Name for current data").locator("input")
+
+    @property
+    def workspace_retain_button(self) -> Locator:
+        """Button that stores the current table under a workspace name."""
+        return self.page.get_by_role("button", name="Retain Current Dataset")
+
+    @property
+    def workspace_dataset_metric(self) -> Locator:
+        """Count of retained named datasets."""
+        return self.page.locator("[data-testid='stMetric']").filter(has_text="Retained datasets")
+
+    @property
+    def workspace_dataset_metric_value(self) -> Locator:
+        """Numeric retained-dataset count inside the workspace metric."""
+        return self.workspace_dataset_metric.locator("[data-testid='stMetricValue']")
+
+    @property
+    def workspace_snapshots_panel(self) -> Locator:
+        """Persistent dataset snapshot controls."""
+        return self.page.get_by_text("Reusable dataset snapshots", exact=True)
+
+    @property
+    def workspace_snapshot_name_input(self) -> Locator:
+        """Local reusable snapshot name."""
+        return self.page.get_by_role("textbox", name="Snapshot name", exact=True)
+
+    @property
+    def workspace_snapshot_save_button(self) -> Locator:
+        """Save the selected dataset as a reusable snapshot."""
+        return self.page.get_by_role("button", name="Save Reusable Snapshot")
+
+    @property
+    def workspace_snapshot_output_input(self) -> Locator:
+        """Workspace dataset name for a loaded snapshot."""
+        return self.page.get_by_role("textbox", name="Loaded dataset name", exact=True)
+
+    @property
+    def workspace_snapshot_load_button(self) -> Locator:
+        """Verify and load the selected reusable snapshot."""
+        return self.page.get_by_role("button", name="Verify and Load Snapshot")
+
+    @property
+    def workspace_lineage_panel(self) -> Locator:
+        """Expanded lineage and recovery panel for the selected dataset."""
+        return self.page.get_by_text("Lineage & recovery", exact=True)
+
+    @property
+    def workspace_undo_button(self) -> Locator:
+        """Restore the preceding dataset revision."""
+        return self.page.get_by_role("button", name="Undo Last Change")
+
+    @property
+    def workspace_redo_button(self) -> Locator:
+        """Reapply the most recently undone dataset revision."""
+        return self.page.get_by_role("button", name="Redo Change")
+
+    @property
+    def workspace_restore_button(self) -> Locator:
+        """Restore the revision selected for inspection."""
+        return self.page.get_by_role("button", name="Restore This Revision")
+
+    @property
+    def workspace_operation_selectbox(self) -> Locator:
+        """Workspace compare, join, or append operation selector."""
+        return self._by_label("stSelectbox", "Workspace operation")
+
+    @property
+    def workspace_dataset_selectbox(self) -> Locator:
+        """Currently inspected named dataset selector."""
+        return self._by_label("stSelectbox", "Workspace dataset")
+
+    @property
+    def workspace_join_left(self) -> Locator:
+        """Left named dataset selector."""
+        return self._by_label("stSelectbox", "Left dataset")
+
+    @property
+    def workspace_join_right(self) -> Locator:
+        """Right named dataset selector."""
+        return self._by_label("stSelectbox", "Right dataset")
+
+    @property
+    def workspace_join_keys(self) -> Locator:
+        """Shared key-column selector for retained-dataset joins."""
+        return self._by_label("stMultiSelect", "Join keys")
+
+    @property
+    def workspace_join_cardinality(self) -> Locator:
+        """Expected left/right key relationship selector."""
+        return self._by_label("stSelectbox", "Expected key relationship")
+
+    @property
+    def workspace_join_button(self) -> Locator:
+        """Cardinality-gated join action."""
+        return self.page.get_by_role("button", name="Validate and Join Datasets")
+
+    @property
+    def workspace_join_output_input(self) -> Locator:
+        """Name for the validated join output."""
+        return self._by_label("stTextInput", "Joined dataset name").locator("input")
+
+    @property
+    def workspace_cardinality_metric(self) -> Locator:
+        """Current join-cardinality diagnostic status."""
+        return self.page.locator("[data-testid='stMetric']").filter(has_text="Cardinality")
+
+    def retain_current_dataset(self, name: str) -> None:
+        """Retain the active dataset under ``name`` and wait for rerendering."""
+        previous_count = 0
+        if self.workspace_dataset_metric_value.count():
+            expect(self.workspace_dataset_metric_value).to_be_visible(timeout=self.RENDER_TIMEOUT)
+            previous_count = int(self.workspace_dataset_metric_value.inner_text())
+        self.workspace_name_input.fill(name)
+        self.workspace_retain_button.click()
+        self.wait_for_streamlit(expect_rerun=True)
+        expect(self.workspace_dataset_metric_value).to_have_text(
+            str(previous_count + 1), timeout=self.RENDER_TIMEOUT
+        )
+
+    def open_workspace_snapshots(self) -> None:
+        """Expand the reusable snapshot controls when collapsed."""
+        if not self.workspace_snapshot_name_input.is_visible():
+            self.workspace_snapshots_panel.click()
+            expect(self.workspace_snapshot_name_input).to_be_visible()
+        self.page.wait_for_timeout(300)
+
+    def save_workspace_snapshot(self, name: str) -> None:
+        """Save the selected workspace dataset and wait for rerendering."""
+        self.open_workspace_snapshots()
+        self.workspace_snapshot_name_input.fill(name)
+        self.page.keyboard.press("Tab")
+        self.wait_for_streamlit()
+        self.open_workspace_snapshots()
+        self.workspace_snapshot_save_button.click()
+        self.wait_for_streamlit()
+
+    def load_workspace_snapshot(self, dataset_name: str) -> None:
+        """Verify the selected snapshot, load it, and wait for rerendering."""
+        self.open_workspace_snapshots()
+        self.workspace_snapshot_output_input.fill(dataset_name)
+        self.page.keyboard.press("Tab")
+        self.wait_for_streamlit()
+        self.open_workspace_snapshots()
+        self.workspace_snapshot_load_button.click()
+        self.wait_for_streamlit()
+
+    def undo_workspace_dataset(self) -> None:
+        """Undo one named-dataset revision and wait for the rerender."""
+        self.workspace_undo_button.click()
+        self.wait_for_streamlit(expect_rerun=True)
+
+    def redo_workspace_dataset(self) -> None:
+        """Redo one named-dataset revision and wait for the rerender."""
+        self.workspace_redo_button.click()
+        self.wait_for_streamlit(expect_rerun=True)
+
+    def join_workspace_datasets(self) -> None:
+        """Execute the validated join and wait for the workspace rerender."""
+        self.workspace_join_button.click()
+        self.wait_for_streamlit(expect_rerun=True)
+
+    # E2E: Data quality
+
+    @property
+    def quality_profile_button(self) -> Locator:
+        """Button that calculates the data-quality report."""
+        return self.page.get_by_role("button", name="Profile Dataset")
+
+    @property
+    def quality_schema_metric(self) -> Locator:
+        """Schema-violation summary metric."""
+        return self.page.locator("[data-testid='stMetric']").filter(has_text="Schema violations")
+
+    def profile_data(self) -> None:
+        """Calculate the data-quality report and wait for rendering."""
+        self.quality_profile_button.click()
+        self.wait_for_streamlit()
+
+    # E2E: Dataset schema contract
+
+    @property
+    def schema_contract_validate_button(self) -> Locator:
+        """Button that validates the editable schema contract."""
+        return self.page.get_by_role("button", name="Validate Schema Contract")
+
+    @property
+    def schema_contract_status_metric(self) -> Locator:
+        """Validation status for the active schema contract."""
+        return self.page.locator("[data-testid='stMetric']").filter(has_text="Contract status")
+
+    @property
+    def schema_semantics_apply_button(self) -> Locator:
+        """Button that retains semantic labels and units with active data."""
+        return self.page.get_by_role("button", name="Apply Labels and Units")
+
+    @property
+    def schema_semantics_success(self) -> Locator:
+        """Confirmation that semantic metadata entered the data lifecycle."""
+        return self.page.get_by_text(
+            "Semantic labels and units are retained with the active dataset."
+        )
+
+    def validate_schema_contract(self) -> None:
+        """Validate the inferred contract and wait for rendering."""
+        self.schema_contract_validate_button.click()
+        self.wait_for_streamlit()
+
+    def apply_schema_semantics(self) -> None:
+        """Apply the current labels/units and wait for the rerender."""
+        self.schema_semantics_apply_button.click()
         self.wait_for_streamlit()
 
     # E2E: Data Visualization tab

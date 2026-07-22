@@ -8,6 +8,7 @@ from src.web.components.common.bounded_options import (
 
 
 def test_unique_options_are_capped() -> None:
+    # [test->req~ring5.quality.input-security~1]
     options, truncated = bounded_unique_strings(range(MAX_FILTER_OPTIONS + 10))
 
     assert len(options) == MAX_FILTER_OPTIONS
@@ -15,6 +16,7 @@ def test_unique_options_are_capped() -> None:
 
 
 def test_oversized_values_are_omitted() -> None:
+    # [test->req~ring5.quality.input-security~1]
     options, truncated = bounded_unique_strings(["ok", "x" * (MAX_FILTER_VALUE_LENGTH + 1)])
 
     assert options == ["ok"]

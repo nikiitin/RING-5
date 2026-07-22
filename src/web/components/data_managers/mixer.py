@@ -21,6 +21,9 @@ class MixerManager(DataManager):
 
     def render(self) -> None:
         """Render the Mixer UI."""
+        # [impl->req~ring5.data.configuration-mixer~1]
+        # [impl->req~ring5.data.numeric-mixer~1]
+        # [impl->req~ring5.data.preview-confirm~1]
         st.markdown("### Mixer (Merge Columns)")
 
         st.info("""
@@ -163,7 +166,10 @@ class MixerManager(DataManager):
             ):
                 confirmed_df: pd.DataFrame | None = self.api.get_preview("mixer")
                 if confirmed_df is not None:
-                    self.set_data(confirmed_df)
+                    self.set_data(
+                        confirmed_df,
+                        operation=f"Mixer: {operation}",
+                    )
                     self.api.clear_preview("mixer")
                     record: OperationRecord = {
                         "source_columns": selected_cols,

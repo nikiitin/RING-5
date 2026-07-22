@@ -57,6 +57,7 @@ def sanitize_filename(name: str) -> str:
     Returns:
         A safe filename without directory components.
     """
+    # [impl->req~ring5.quality.input-security~1]
     # Remove any directory separators and traversal sequences
     name = name.replace("/", "_").replace("\\", "_")
     name = name.replace("..", "_")
@@ -125,6 +126,7 @@ def sanitize_glob_pattern(pattern: str, default: str = _DEFAULT_STATS_PATTERN) -
     Returns:
         A validated glob pattern string.
     """
+    # [impl->req~ring5.quality.input-security~1]
     if not pattern or not pattern.strip():
         return default
     clean: str = pattern.strip()
@@ -204,14 +206,20 @@ def validate_web_stats_path(user_path: str) -> Path:
     Raises:
         ValueError: If the path is outside every approved root.
     """
-    candidate = normalize_user_path(user_path).expanduser().resolve(strict=False)
-    for root in allowed_web_stats_roots():
-        try:
-            candidate.relative_to(root)
+    # [impl->req~ring5.ingestion.web-path-authorization~1]
+    # [impl->req~ring5.quality.input-security~1]
+    # Resolve symlinks before comparing against independently configured, resolved roots;
+    # a separator-terminated root prefix rejects traversal, sibling, and symlink escapes.
+    candidate_path = os.path.realpath(os.path.expanduser(os.fspath(normalize_user_path(user_path))))
+    candidate = Path(candidate_path)
+    allowed_roots = allowed_web_stats_roots()
+    candidate_text = os.path.normcase(candidate_path)
+    for root in allowed_roots:
+        root_text = os.path.normcase(os.fspath(root))
+        root_prefix = root_text if root_text.endswith(os.sep) else root_text + os.sep
+        if candidate_text == root_text or candidate_text.startswith(root_prefix):
             return candidate
-        except ValueError:
-            continue
-    allowed = ", ".join(str(root) for root in allowed_web_stats_roots())
+    allowed = ", ".join(str(root) for root in allowed_roots)
     raise ValueError(
         f"Stats path '{candidate}' is outside the allowed web roots: {allowed}. "
         "Set RING5_ALLOWED_STATS_ROOTS on the server to authorize another root."

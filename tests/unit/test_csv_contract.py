@@ -29,6 +29,8 @@ class TestConstants:
 class TestValidateParserCsv:
     """Test CSV validation function."""
 
+    # [test->req~ring5.ingestion.csv-contract~1]
+
     def test_valid_csv(self, tmp_path: Path) -> None:
         csv_file = tmp_path / "valid.csv"
         csv_file.write_text("name,value\nfoo,1.0\nbar,2.0\n", encoding="utf-8")

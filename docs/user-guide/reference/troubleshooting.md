@@ -26,6 +26,14 @@ the Streamlit command.
 
 ## Parsing finds no files or variables
 
+<!--
+`uman~ring5.ingestion.parse-integrity.documentation~1`
+
+Covers:
+- req~ring5.ingestion.parse-integrity~1
+
+-->
+
 Check **Stats directory path** and **File pattern** against the filesystem. Run **Quick Scan** first,
 then use **Deep Scan** when variables differ between runs. Parsing needs Perl; check it with
 `ring5 doctor`.
@@ -42,6 +50,22 @@ the 10,000-file discovery ceiling. The web Deep Scan deliberately samples at mos
 Do not use lenient parsing to hide a misspelled statistic. `--lenient` and `strict=False` are for
 intentional missing columns represented as `NaN`.
 
+## Input bounds and path containment
+
+<!--
+`uman~ring5.quality.input-security.documentation~1`
+
+Covers:
+- req~ring5.quality.input-security~1
+
+-->
+
+Browser paths are resolved below configured statistics roots, file names and glob patterns are
+sanitized before filesystem work, and regular-expression matching has pattern, input-length, and
+execution-time bounds. Large data columns are also capped before their distinct values become
+widget options. A rejected or truncated input is reported; widening a limit requires reviewing the
+work and payload it permits.
+
 ## Parsing reports a resource-limit error
 
 Reduce either the number of files or requested variables. One parse accepts at most 4,096 files,
@@ -55,6 +79,14 @@ A pattern variable expands to at most 1,024 instances by default. On trusted inp
 are not supported; use literal ASCII statistic-name characters and `\d+` placeholders.
 
 ## A CSV does not load
+
+<!--
+`uman~ring5.ingestion.csv-contract.documentation~1`
+
+Covers:
+- req~ring5.ingestion.csv-contract~1
+
+-->
 
 Confirm that the file is readable, has a non-empty header, contains a data row, and uses consistent
 row widths. RING-5 does not require specific gem5 columns. Operations later validate the columns and
@@ -90,10 +122,12 @@ schema versions cannot be loaded by older RING-5 releases.
 
 ## Are there application keyboard shortcuts?
 
-RING-5 does not define a custom shortcut layer. Browser, Streamlit, and Plotly interactions apply
-only when their controls have focus. Use the visible navigation and plot modebar so a browser
-shortcut does not accidentally replace an application action. Stop the local server with
-<kbd>Ctrl</kbd>+<kbd>C</kbd> in its terminal.
+Yes. Open **Command palette** in the sidebar to see the complete shortcut list. The main shortcuts
+are <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>K</kbd> for the palette, <kbd>/</kbd> for workspace search, and
+<kbd>Alt</kbd>+<kbd>1</kbd> through <kbd>Alt</kbd>+<kbd>5</kbd> for sidebar pages. RING-5 ignores
+single-key and page shortcuts while an editable control has focus. See [Command Palette and
+Shortcuts]({{site.baseurl}}/user-guide/workflows/command-palette/) for the safety boundary and
+operating-system caveats.
 
 ## Where should I report a reproducible failure?
 

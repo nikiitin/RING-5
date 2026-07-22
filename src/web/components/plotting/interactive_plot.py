@@ -20,7 +20,12 @@ _component_func = components.declare_component("interactive_plotly", path=compon
 
 
 def interactive_plotly_chart(
-    fig: go.Figure, config: dict[str, Any] | None = None, key: str | None = None
+    fig: go.Figure,
+    config: dict[str, Any] | None = None,
+    key: str | None = None,
+    *,
+    capture_selection: bool = False,
+    capture_click: bool = False,
 ) -> dict[str, Any] | None:
     """
     Render a Plotly figure with custom interactivity.
@@ -32,17 +37,27 @@ def interactive_plotly_chart(
         fig: Plotly Figure object to render
         config: Optional Plotly configuration dictionary
         key: Optional Streamlit component key for state management
+        capture_selection: Return sanitized Plotly box/lasso selection events.
+        capture_click: Return sanitized clicks carrying drill-down filters.
 
     Returns:
         Dictionary containing relayoutData if an interaction occurred,
         None otherwise
     """
+    # [impl->req~ring5.figure.interactive-editing~1]
+    # [impl->req~ring5.plots.linked-selections~1]
+    # [impl->req~ring5.plots.drill-down~1]
     # Serialize figure to JSON string
     fig_json: str = fig.to_json() or ""
 
     # Render component
     component_value: dict[str, Any] | None = _component_func(
-        spec=fig_json, config=json.dumps(config) if config else "{}", key=key, default=None
+        spec=fig_json,
+        config=json.dumps(config) if config else "{}",
+        capture_selection=capture_selection,
+        capture_click=capture_click,
+        key=key,
+        default=None,
     )
 
     return component_value

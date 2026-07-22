@@ -87,6 +87,8 @@ def _extract_imports(file_path: Path) -> list[tuple[int, str]]:
 class TestArchitectureBoundary:
     """Verify that the web layer does not directly import from the parsing layer."""
 
+    # [test->req~ring5.quality.architecture-boundaries~1]
+
     def test_web_layer_has_no_parsing_imports(self) -> None:
         """Scan every .py file under src/web/ and assert none import from src.parsing."""
         assert WEB_SRC_DIR.is_dir(), f"Web source directory not found: {WEB_SRC_DIR}"
@@ -118,6 +120,8 @@ class TestArchitectureBoundary:
 
 class TestDependencyDirection:
     """Verify dependency direction across web, core, and parsing layers."""
+
+    # [test->req~ring5.quality.architecture-boundaries~1]
 
     def test_models_layer_has_no_services_imports(self) -> None:
         """The shared model package must not depend on core services."""

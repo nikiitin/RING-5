@@ -18,6 +18,36 @@ from src.web.models.plot_models import PlotConfig
 __all__ = ["detect_column_types"]
 
 
+def _sync_auto_labels(
+    saved_config: PlotConfig,
+    plot_id: int,
+    x_column: str,
+    y_column: str,
+) -> None:
+    """Update derived labels after an axis change while retaining custom text.
+
+    The label renderer omits its ``value`` argument when widget state already
+    exists, so updating that state here is both persistent and warning-free.
+    """
+    previous_x = saved_config.get("x")
+    previous_y = saved_config.get("y")
+    if not isinstance(previous_x, str) or not isinstance(previous_y, str):
+        return
+    if (previous_x, previous_y) == (x_column, y_column):
+        return
+
+    derived_values = {
+        "title": (f"{previous_y} by {previous_x}", f"{y_column} by {x_column}"),
+        "xlabel": (previous_x, x_column),
+        "ylabel": (previous_y, y_column),
+    }
+    for field, (previous_default, current_default) in derived_values.items():
+        widget_key = f"{field}_{plot_id}"
+        current_value = st.session_state.get(widget_key, saved_config.get(field))
+        if current_value == previous_default:
+            st.session_state[widget_key] = current_default
+
+
 def render_xy_selectors(
     saved_config: PlotConfig,
     plot_id: int,
@@ -124,6 +154,8 @@ def render_common_config(
         x_column, y_column = render_xy_selectors(
             saved_config, plot_id, numeric_cols, categorical_cols
         )
+
+    _sync_auto_labels(saved_config, plot_id, x_column, y_column)
 
     with col2:
         default_title: str = saved_config.get("title", f"{y_column} by {x_column}") or ""

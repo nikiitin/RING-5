@@ -1,0 +1,49 @@
+"""Browser workflow for composing and exporting a multi-panel dashboard."""
+
+from __future__ import annotations
+
+import pytest
+from playwright.sync_api import Page, expect
+
+from tests.e2e.conftest import CHART_TIMEOUT, E2E_TIMEOUT
+from tests.visual.pages.manage_plots_page import ManagePlotsPage
+
+pytestmark = [pytest.mark.requires_browser, pytest.mark.xdist_group("e2e_dashboard_composer")]
+
+
+def test_build_and_offer_whole_dashboard_export(tier2_page: Page) -> None:
+    # [test->req~ring5.plots.multi-panel-dashboard~1]
+    # [test->req~ring5.plots.linked-selections~1]
+    # [test->req~ring5.figure.panel-composition~1]
+    manager = ManagePlotsPage(tier2_page)
+    manager.navigate()
+    manager.select_plot("E2E Bar")
+    manager.duplicate_plot()
+    expect(manager.plot_selector_pills.get_by_role("radio")).to_have_count(2, timeout=E2E_TIMEOUT)
+
+    composer = tier2_page.get_by_text("Multi-panel dashboard").last
+    expect(composer).to_be_visible(timeout=E2E_TIMEOUT)
+    composer.click()
+
+    tier2_page.get_by_text("Publication layout", exact=True).click()
+    expect(tier2_page.get_by_role("radiogroup", name="Panel labels")).to_be_visible(
+        timeout=E2E_TIMEOUT
+    )
+    tier2_page.get_by_role("textbox", name="Panel captions (one per line)").fill(
+        "Baseline\nComparison"
+    )
+    expect(tier2_page.get_by_text("Horizontal gap (%)", exact=True)).to_be_visible()
+    expect(tier2_page.get_by_text("Vertical gap (%)", exact=True)).to_be_visible()
+
+    tier2_page.get_by_text("Link panel selections", exact=True).click()
+    expect(tier2_page.get_by_role("radiogroup", name="Relate values on")).to_be_visible(
+        timeout=E2E_TIMEOUT
+    )
+    expect(tier2_page.get_by_role("radiogroup", name="Linked behavior")).to_be_visible(
+        timeout=E2E_TIMEOUT
+    )
+
+    tier2_page.get_by_role("button", name="Build dashboard").click()
+    expect(tier2_page.get_by_role("button", name="Download complete HTML")).to_be_visible(
+        timeout=CHART_TIMEOUT
+    )

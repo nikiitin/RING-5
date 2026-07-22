@@ -18,11 +18,17 @@ from src.core.models.visualization.annotation_config import AnnotationConfig
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import (
     BarTraceConfig,
+    BoxTraceConfig,
     HeatmapTraceConfig,
     HistogramTraceConfig,
     LineTraceConfig,
+    ParallelCoordinatesTraceConfig,
+    RadarTraceConfig,
+    SankeyTraceConfig,
     ScatterTraceConfig,
     TraceConfig,
+    ViolinTraceConfig,
+    WaterfallTraceConfig,
 )
 from src.web.rendering._heatmap_utils import is_dark_cell
 
@@ -35,6 +41,7 @@ def _error_y_dict(error_y: list[float] | None) -> dict[str, Any] | None:
 
 
 def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
+    # [impl->req~ring5.render.plotly~1]
     """Convert a ``TraceBuildResult`` into a Plotly ``go.Figure``.
 
     The returned figure contains all traces, shapes, annotations,
@@ -80,6 +87,20 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
 
     # Layout updates
     layout_updates: dict[str, Any] = {"barmode": result.barmode}
+    if any(isinstance(trace, BoxTraceConfig) for trace in traces_list):
+        layout_updates["boxmode"] = result.boxmode
+    if any(isinstance(trace, ViolinTraceConfig) for trace in traces_list):
+        layout_updates["violinmode"] = result.violinmode
+    radar_traces = [trace for trace in traces_list if isinstance(trace, RadarTraceConfig)]
+    if radar_traces:
+        radar = radar_traces[0]
+        layout_updates["polar"] = {
+            "radialaxis": {"range": [radar.radial_min, radar.radial_max]},
+            "angularaxis": {
+                "rotation": radar.start_angle,
+                "direction": "clockwise" if radar.clockwise else "counterclockwise",
+            },
+        }
 
     if result.custom_x_ticks:
         xaxis_update: dict[str, Any] = {
@@ -92,6 +113,17 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
             xaxis_update["showticklabels"] = False
             xaxis_update["ticks"] = ""
         layout_updates["xaxis"] = xaxis_update
+
+    if result.custom_y_ticks:
+        yaxis_update: dict[str, Any] = {
+            "tickmode": "array",
+            "tickvals": result.custom_y_ticks["vals"],
+            "ticktext": result.custom_y_ticks["text"],
+        }
+        if result.custom_y_ticks.get("hide_ticks"):
+            yaxis_update["showticklabels"] = False
+            yaxis_update["ticks"] = ""
+        layout_updates["yaxis"] = yaxis_update
 
     separator_shapes: list[dict[str, Any]] = [
         {
@@ -163,24 +195,43 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
 
 
 def _convert_trace(trace: TraceConfig) -> go.BaseTraceType:  # type: ignore[name-defined]
+    # [impl->req~ring5.plots.drill-down~1]
     """Dispatch to the appropriate trace converter."""
+    result: Any
     if isinstance(trace, BarTraceConfig):
-        return _bar_trace(trace)
+        result = _bar_trace(trace)
+    elif isinstance(trace, BoxTraceConfig):
+        result = _box_trace(trace)
+    elif isinstance(trace, ViolinTraceConfig):
+        result = _violin_trace(trace)
+    elif isinstance(trace, RadarTraceConfig):
+        result = _radar_trace(trace)
+    elif isinstance(trace, WaterfallTraceConfig):
+        result = _waterfall_trace(trace)
+    elif isinstance(trace, SankeyTraceConfig):
+        result = _sankey_trace(trace)
+    elif isinstance(trace, ParallelCoordinatesTraceConfig):
+        result = _parallel_coordinates_trace(trace)
     elif isinstance(trace, LineTraceConfig):
-        return _line_trace(trace)
+        result = _line_trace(trace)
     elif isinstance(trace, ScatterTraceConfig):
-        return _scatter_trace(trace)
+        result = _scatter_trace(trace)
     elif isinstance(trace, HistogramTraceConfig):
-        return _histogram_trace(trace)
+        result = _histogram_trace(trace)
     elif isinstance(trace, HeatmapTraceConfig):
-        return _heatmap_trace(trace)
+        result = _heatmap_trace(trace)
     else:
         # Fallback for base TraceConfig — render as bar
-        return _bar_trace_from_base(trace)
+        result = _bar_trace_from_base(trace)
+    drilldown = trace.custom_data.get("drilldown")
+    if drilldown is not None:
+        result.meta = {"ring5_drilldown": drilldown}
+    return result
 
 
 def _bar_trace(trace: BarTraceConfig) -> go.Bar:
     """Convert a ``BarTraceConfig`` to ``go.Bar``."""
+    # [impl->req~ring5.figure.error-bars~1]
     # Use x_positions for manually positioned bars, else use x values
     x_data = trace.x_positions if trace.x_positions else trace.x
 
@@ -236,7 +287,204 @@ def _bar_trace(trace: BarTraceConfig) -> go.Bar:
     return go.Bar(**{k: v for k, v in kwargs.items() if v is not None})
 
 
+def _box_trace(trace: BoxTraceConfig) -> go.Box:
+    # [impl->req~ring5.plot.box~1]
+    """Convert a precomputed ``BoxTraceConfig`` to a Plotly box trace."""
+    vertical = trace.orientation == "vertical"
+    kwargs: dict[str, Any] = {
+        "x": [trace.position] * len(trace.values) if vertical else trace.values,
+        "y": trace.values if vertical else [trace.position] * len(trace.values),
+        "name": trace.name,
+        "orientation": "v" if vertical else "h",
+        "quartilemethod": trace.quartile_method,
+        "lowerfence": [trace.lower_whisker],
+        "upperfence": [trace.upper_whisker],
+        "boxpoints": False if trace.point_mode == "none" else trace.point_mode,
+        "jitter": trace.jitter,
+        "pointpos": trace.point_position,
+        "width": trace.box_width,
+        "whiskerwidth": trace.whisker_cap_width,
+        "notched": trace.notched,
+        "boxmean": trace.show_mean,
+        "opacity": trace.opacity,
+        "showlegend": trace.show_in_legend,
+        "visible": trace.visible,
+        "legendgroup": trace.legendgroup or trace.name,
+        "offsetgroup": trace.legendgroup or trace.name,
+    }
+    if trace.color:
+        kwargs["fillcolor"] = trace.color
+        kwargs["marker"] = {"color": trace.color}
+        kwargs["line"] = {"color": trace.color}
+    return go.Box(**kwargs)
+
+
+def _violin_trace(trace: ViolinTraceConfig) -> go.Violin:
+    # [impl->req~ring5.plot.violin~1]
+    """Convert an engine-neutral violin distribution to Plotly."""
+    vertical = trace.orientation == "vertical"
+    kwargs: dict[str, Any] = {
+        "x": [trace.position] * len(trace.values) if vertical else trace.values,
+        "y": trace.values if vertical else [trace.position] * len(trace.values),
+        "name": trace.name,
+        "orientation": "v" if vertical else "h",
+        "bandwidth": trace.bandwidth,
+        "spanmode": trace.density_span,
+        "scalemode": trace.density_scale,
+        "scalegroup": "ring5-violins",
+        "side": trace.side,
+        "points": "all" if trace.point_mode == "all" else False,
+        "jitter": trace.jitter,
+        "width": trace.violin_width,
+        "box": {"visible": trace.show_box},
+        "meanline": {"visible": trace.show_mean},
+        "opacity": trace.opacity,
+        "showlegend": trace.show_in_legend,
+        "visible": trace.visible,
+        "legendgroup": trace.legendgroup or trace.name,
+        "offsetgroup": trace.legendgroup or trace.name,
+    }
+    if trace.color:
+        kwargs["fillcolor"] = trace.color
+        kwargs["marker"] = {"color": trace.color}
+        kwargs["line"] = {"color": trace.color}
+    return go.Violin(**kwargs)
+
+
+def _radar_trace(trace: RadarTraceConfig) -> go.Scatterpolar:
+    # [impl->req~ring5.plot.radar~1]
+    """Convert a shared-scale radar trace to a closed Plotly polygon."""
+    theta = [*trace.categories, trace.categories[0]] if trace.categories else []
+    radius = [*trace.values, trace.values[0]] if trace.values else []
+    kwargs: dict[str, Any] = {
+        "theta": theta,
+        "r": radius,
+        "name": trace.name,
+        "mode": "lines+markers" if trace.show_markers else "lines",
+        "fill": "toself" if trace.fill_area else None,
+        "opacity": trace.opacity,
+        "showlegend": trace.show_in_legend,
+        "visible": trace.visible,
+        "legendgroup": trace.legendgroup or trace.name,
+        "line": {"width": trace.line_width},
+        "marker": {"size": trace.marker_size},
+    }
+    if trace.color:
+        kwargs["line"]["color"] = trace.color
+        kwargs["marker"]["color"] = trace.color
+    return go.Scatterpolar(**{key: value for key, value in kwargs.items() if value is not None})
+
+
+def _waterfall_trace(trace: WaterfallTraceConfig) -> go.Waterfall:
+    # [impl->req~ring5.plot.waterfall~1]
+    """Convert precomputed waterfall semantics to Plotly."""
+    return go.Waterfall(
+        name=trace.name,
+        x=trace.categories,
+        y=trace.values,
+        measure=trace.measures,
+        width=trace.bar_width,
+        opacity=trace.opacity,
+        showlegend=trace.show_in_legend,
+        visible=trace.visible,
+        legendgroup=trace.legendgroup or trace.name,
+        connector={
+            "visible": trace.connector_visible,
+            "line": {"color": trace.connector_color, "width": trace.connector_width},
+        },
+        increasing={"marker": {"color": trace.increasing_color}},
+        decreasing={"marker": {"color": trace.decreasing_color}},
+        totals={"marker": {"color": trace.total_color}},
+        text=trace.value_labels if trace.show_values else None,
+        textposition="outside" if trace.show_values else None,
+    )
+
+
+def _with_opacity(color: str, opacity: float) -> str:
+    """Bake opacity into palette hex colors for Plotly Sankey links."""
+    if len(color) == 7 and color.startswith("#"):
+        try:
+            red, green, blue = (int(color[index : index + 2], 16) for index in (1, 3, 5))
+        except ValueError:
+            return color
+        return f"rgba({red},{green},{blue},{opacity:.3f})"
+    return color
+
+
+def _sankey_trace(trace: SankeyTraceConfig) -> go.Sankey:
+    # [impl->req~ring5.plot.sankey~1]
+    """Convert validated nodes and weighted links to a native Plotly Sankey trace."""
+    return go.Sankey(
+        name=trace.name,
+        arrangement=trace.arrangement,
+        orientation="h",
+        visible=trace.visible,
+        node={
+            "label": trace.node_labels if trace.show_node_labels else [""] * len(trace.node_labels),
+            "color": trace.node_colors,
+            "x": trace.node_x,
+            "y": trace.node_y,
+            "pad": trace.node_pad,
+            "thickness": trace.node_thickness,
+            "line": {"color": trace.node_line_color, "width": trace.node_line_width},
+        },
+        link={
+            "source": trace.source_indices,
+            "target": trace.target_indices,
+            "value": trace.values,
+            "label": trace.link_labels if trace.show_link_labels else [""] * len(trace.values),
+            "color": [_with_opacity(color, trace.link_opacity) for color in trace.link_colors],
+        },
+    )
+
+
+def _parallel_coordinates_trace(trace: ParallelCoordinatesTraceConfig) -> go.Parcoords:
+    # [impl->req~ring5.plot.parallel-coordinates~1]
+    """Convert encoded dimensions, brushes, and color scale to Plotly Parcoords."""
+    dimensions: list[dict[str, Any]] = []
+    for dimension in trace.dimensions:
+        item: dict[str, Any] = {
+            "label": dimension.label,
+            "values": dimension.values,
+            "range": list(dimension.range),
+        }
+        if dimension.tick_values:
+            item["tickvals"] = dimension.tick_values
+            item["ticktext"] = dimension.tick_labels
+        if dimension.constraintrange is not None:
+            item["constraintrange"] = list(dimension.constraintrange)
+        dimensions.append(item)
+
+    line: dict[str, Any]
+    if trace.line_color_values is None:
+        line = {"color": trace.line_color}
+    else:
+        colorbar: dict[str, Any] = {"title": {"text": trace.colorbar_title}}
+        if trace.color_tick_values:
+            colorbar["tickvals"] = trace.color_tick_values
+            colorbar["ticktext"] = trace.color_tick_labels
+        line = {
+            "color": trace.line_color_values,
+            "colorscale": trace.colorscale,
+            "reversescale": trace.reverse_colorscale,
+            "cmin": trace.color_min,
+            "cmax": trace.color_max,
+            "showscale": trace.show_colorbar,
+            "colorbar": colorbar,
+        }
+    return go.Parcoords(
+        name=trace.name,
+        dimensions=dimensions,
+        line=line,
+        visible=trace.visible,
+        unselected={"line": {"opacity": trace.unselected_opacity}},
+    )
+
+
 def _line_trace(trace: LineTraceConfig) -> go.Scatter:
+    # [impl->req~ring5.plot.ecdf~1]
+    # [impl->req~ring5.plot.area~1]
+    # [impl->req~ring5.figure.line-styles~1]
     """Convert a ``LineTraceConfig`` to ``go.Scatter`` with lines mode."""
     mode = "lines+markers" if trace.show_markers else "lines"
 
@@ -248,10 +496,12 @@ def _line_trace(trace: LineTraceConfig) -> go.Scatter:
         "opacity": trace.opacity,
         "showlegend": trace.show_in_legend,
         "visible": trace.visible,
+        "connectgaps": trace.connect_gaps,
         "legendgroup": trace.legendgroup or trace.name,
         "line": {
             "width": trace.line_width,
             "dash": trace.line_dash,
+            "shape": trace.line_shape,
         },
     }
 

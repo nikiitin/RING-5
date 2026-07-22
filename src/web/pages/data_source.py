@@ -18,6 +18,7 @@ class DataSourcePage:
 
     def render(self) -> None:
         """Render the data source page."""
+        # [impl->req~ring5.ingestion.source-modes~1]
         st.markdown("## Step 1: Choose Data Source")
 
         # Determine selected simulator for dynamic labels
@@ -31,16 +32,16 @@ class DataSourcePage:
         parse_label = f"Parse {sim_label} Stats Files"
 
         st.info(f"""
-        **RING-5 supports two data input methods:**
+        **RING-5 supports three data input methods:**
 
         - **{parse_label}**: For raw simulator output ({sim_info.file_pattern} files)
-        - **Upload CSV Directly**: If you already have parsed CSV data
+        - **Upload Data or Portfolio**: Review CSV, JSON, Excel, or a RING-5 portfolio
         - **Load from Recent**: Quick access to previously parsed CSV files
         """)
 
         data_source_options = [
             parse_label,
-            "I already have CSV data",
+            "Upload data or portfolio",
             "Load from Recent",
         ]
         choice = st.segmented_control(
@@ -60,5 +61,6 @@ class DataSourcePage:
             if self.api.state_manager.is_using_parser():
                 self.api.state_manager.set_use_parser(False)
             st.success(
-                "CSV mode selected — choose 'Load from Recent' to load a parsed CSV from the pool."
+                "Upload mode selected — validation and review happen before workspace changes."
             )
+            DataSourceComponents.render_browser_upload(self.api)

@@ -16,6 +16,8 @@ from src.web.state.ui_state_manager import WidgetKeyBuilder
 class DataManager(ABC):
     """Abstract base class for data managers."""
 
+    # [impl->req~ring5.extension.data-manager~1]
+
     def __init__(self, api: ApplicationAPI):
         """Initialize the manager with ApplicationAPI."""
         self.api = api
@@ -49,6 +51,6 @@ class DataManager(ABC):
         """Helper to get current data from StateManager."""
         return self.api.state_manager.get_data()
 
-    def set_data(self, data: pd.DataFrame) -> None:
-        """Helper to update application data."""
-        self.api.state_manager.set_data(data)
+    def set_data(self, data: pd.DataFrame, *, operation: str = "Update dataset") -> None:
+        """Update active data and label its named-dataset lineage revision."""
+        self.api.update_selected_dataset(data, operation=operation)

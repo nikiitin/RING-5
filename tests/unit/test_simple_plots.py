@@ -231,13 +231,59 @@ class TestLinePlotAdvancedOptions:
     """Tests for line-plot advanced options."""
 
     @patch("src.web.pages.ui.plotting.types.line_plot.st")
-    def test_line_shape(self, mock_st: MagicMock) -> None:
+    def test_complete_line_style(self, mock_st: MagicMock) -> None:
+        # [test->req~ring5.figure.line-styles~1]
         from src.web.pages.ui.plotting.types.line_plot import LinePlot
 
         plot = LinePlot(1, "test")
-        mock_st.selectbox.return_value = "spline"
-        result = plot.render_specific_advanced_options({"line_shape": "linear"})
+        mock_st.selectbox.side_effect = ["Smooth spline", "Dash-dot", "diamond"]
+        mock_st.number_input.side_effect = [3.5, 10]
+        mock_st.checkbox.side_effect = [True, True]
+        result = plot.render_specific_advanced_options(
+            {
+                "line_shape": "linear",
+                "line_dash": "solid",
+                "line_width": 2.0,
+                "show_markers": True,
+                "marker_symbol": "circle",
+                "marker_size": 6,
+                "connect_gaps": False,
+            }
+        )
+
         assert result["line_shape"] == "spline"
+        assert result["line_dash"] == "dashdot"
+        assert result["line_width"] == 3.5
+        assert result["show_markers"] is True
+        assert result["marker_symbol"] == "diamond"
+        assert result["marker_size"] == 10
+        assert result["connect_gaps"] is True
+
+    @patch("src.web.pages.ui.plotting.types.line_plot.st")
+    def test_line_style_falls_back_from_unknown_saved_values(self, mock_st: MagicMock) -> None:
+        from src.web.pages.ui.plotting.types.line_plot import LinePlot
+
+        plot = LinePlot(1, "test")
+        mock_st.selectbox.side_effect = ["Straight", "Solid", "circle"]
+        mock_st.number_input.side_effect = [2.0, 6]
+        mock_st.checkbox.side_effect = [False, False]
+
+        result = plot.render_specific_advanced_options(
+            {
+                "line_shape": "unknown",
+                "line_dash": "unknown",
+                "line_width": "wide",
+                "marker_symbol": "unknown",
+                "marker_size": 0,
+            }
+        )
+
+        assert result["line_shape"] == "linear"
+        assert result["line_dash"] == "solid"
+        assert result["marker_symbol"] == "circle"
+        assert result["show_markers"] is False
+        assert mock_st.number_input.call_args_list[0].kwargs["value"] == 2.0
+        assert mock_st.number_input.call_args_list[1].kwargs["value"] == 6
 
 
 class TestScatterPlotRenderConfigUI:

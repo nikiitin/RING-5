@@ -41,6 +41,7 @@ class ShapesSettingsComponent:
             ``saved_config`` is never mutated — edits are returned and
             committed through the normal config change-detection path.
         """
+        # [impl->req~ring5.figure.shapes-annotations~1]
         # Independent copy: never mutate the caller's (live) config in place.
         shapes: list[ShapeConfig] = deepcopy(saved_config.get("shapes", []))
 

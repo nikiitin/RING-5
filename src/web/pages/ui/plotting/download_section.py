@@ -11,6 +11,7 @@ from __future__ import annotations
 import logging
 from typing import cast
 
+import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 from kaleido.errors import ChromeNotFoundError
@@ -31,6 +32,13 @@ from src.web.rendering.figure_export import (
 logger = logging.getLogger(__name__)
 
 
+def _mark_guided_analysis_exported() -> None:
+    """Record a real figure-download action for the sidebar workflow."""
+    from src.web.components.guided_analysis import GuidedAnalysisComponent
+
+    GuidedAnalysisComponent.mark_exported()
+
+
 # UI download section
 
 
@@ -38,7 +46,10 @@ def render_download_section(
     plot_id: int,
     plot_name: str,
     fig: go.Figure,
+    source_data: pd.DataFrame | None = None,
 ) -> None:
+    # [impl->req~ring5.workspace.guided-analysis~1]
+    # [impl->req~ring5.export.web-download~1]
     """Engine-aware download controls.
 
     Shows format pills and a download button appropriate for the
@@ -51,19 +62,24 @@ def render_download_section(
         plot_id: Unique plot identifier (used for widget keys).
         plot_name: Human-readable name used as download filename stem.
         fig: The Plotly figure (used directly for Plotly exports).
+        source_data: Processed dataframe used to create the figure. Included
+            as an interactive table in Plotly HTML downloads.
     """
     with st.expander("📥 Download", expanded=False):
         if EngineManager.is_matplotlib():
             _render_mpl_download(plot_id, plot_name)
         else:
-            _render_plotly_download(plot_id, plot_name, fig)
+            _render_plotly_download(plot_id, plot_name, fig, source_data)
 
 
 def _render_plotly_download(
     plot_id: int,
     plot_name: str,
     fig: go.Figure,
+    source_data: pd.DataFrame | None,
 ) -> None:
+    # [impl->req~ring5.export.plotly-html-source-data~1]
+    # [impl->req~ring5.export.web-download~1]
     """Format pills + a deferred download for the Plotly/Kaleido path.
 
     Image generation is delayed until the user clicks the download button.
@@ -89,7 +105,13 @@ def _render_plotly_download(
     def generate_download() -> bytes:
         """Generate the selected export in Streamlit's download worker."""
         try:
-            return plotly_download_bytes(fig, fmt_typed, width=width, height=height)
+            return plotly_download_bytes(
+                fig,
+                fmt_typed,
+                width=width,
+                height=height,
+                source_data=source_data,
+            )
         except ChromeNotFoundError as exc:
             logger.error("Plotly %s export failed — no browser for Kaleido: %s", fmt, exc)
             raise RuntimeError(
@@ -109,13 +131,15 @@ def _render_plotly_download(
         data=generate_download,
         file_name=f"{plot_name}{get_plotly_extension(fmt_typed)}",
         mime=get_plotly_mime(fmt_typed),
-        on_click="ignore",
-        use_container_width=True,
+        on_click=_mark_guided_analysis_exported,
+        width="stretch",
         key=f"dl_btn_{plot_id}",
     )
 
 
 def _render_mpl_download(plot_id: int, plot_name: str) -> None:
+    # [impl->req~ring5.export.matplotlib-pgf~1]
+    # [impl->req~ring5.export.web-download~1]
     """Format pills + download button for the Matplotlib path."""
     mpl_fig: MplFigure | None = st.session_state.get(f"plot.{plot_id}.mpl_fig")
     if mpl_fig is None:
@@ -149,10 +173,11 @@ def _render_mpl_download(plot_id: int, plot_name: str) -> None:
         else:
             raise
     st.download_button(
-        label=f"Download {fmt.upper()}",
+        label=f"Download {fmt_typed.upper()}",
         data=data,
         file_name=f"{plot_name}{get_matplotlib_extension(fmt_typed)}",
         mime=get_matplotlib_mime(fmt_typed),
-        use_container_width=True,
+        on_click=_mark_guided_analysis_exported,
+        width="stretch",
         key=f"dl_btn_{plot_id}",
     )

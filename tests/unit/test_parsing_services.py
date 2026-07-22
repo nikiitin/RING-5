@@ -128,6 +128,7 @@ class TestScannerService:
             ScannerService.submit_scan_async(str(tmp_path), "stats.txt")
 
     def test_submit_scan_zero_preserves_exhaustive_discovery_contract(self, tmp_path: Path) -> None:
+        # [test->req~ring5.ingestion.scan-limits~1]
         from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ScannerService
 
         paths = [str(tmp_path / f"run-{index:03d}" / "stats.txt") for index in range(257)]
@@ -142,6 +143,7 @@ class TestScannerService:
         assert find.call_args.kwargs["limit"] == 0
 
     def test_submit_scan_rejects_limit_above_global_ceiling(self, tmp_path: Path) -> None:
+        # [test->req~ring5.ingestion.scan-limits~1]
         from src.core.common.security_limits import MAX_DISCOVERED_FILES
         from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ScannerService
 
@@ -246,6 +248,7 @@ class TestPathService:
         assert root.exists()
 
     def test_get_data_dir_creates_directory(self, tmp_path: Path) -> None:
+        # [test->req~ring5.workspace.application-data-directory~1]
         with patch.object(PathService, "get_root_dir", return_value=tmp_path):
             data_dir = PathService.get_data_dir()
             assert data_dir.exists()
@@ -256,6 +259,19 @@ class TestPathService:
             portfolios_dir = PathService.get_portfolios_dir()
             assert portfolios_dir.exists()
             assert portfolios_dir == tmp_path / ".ring5" / "portfolios"
+
+    def test_get_portfolio_revisions_dir_creates_directory(self, tmp_path: Path) -> None:
+        with patch.object(PathService, "get_root_dir", return_value=tmp_path):
+            revisions_dir = PathService.get_portfolio_revisions_dir()
+            assert revisions_dir.exists()
+            assert revisions_dir == tmp_path / ".ring5" / "portfolio_revisions"
+
+    def test_get_dataset_snapshots_dir_creates_directory(self, tmp_path: Path) -> None:
+        # [test->req~ring5.data.dataset-snapshots~1]
+        with patch.object(PathService, "get_root_dir", return_value=tmp_path):
+            snapshots_dir = PathService.get_dataset_snapshots_dir()
+            assert snapshots_dir.exists()
+            assert snapshots_dir == tmp_path / ".ring5" / "dataset_snapshots"
 
     def test_directories_are_idempotent(self, tmp_path: Path) -> None:
         """Calling get_*_dir twice doesn't fail."""

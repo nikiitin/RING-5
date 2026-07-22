@@ -4,11 +4,32 @@ Default implementation of the ManagersAPI protocol.
 Delegates to ArithmeticService, OutlierService, and ReductionService.
 """
 
+from collections.abc import Mapping, Sequence
+from typing import Literal
+
 import pandas as pd
 
+from src.core.models.dataset_workspace_models import JoinCardinality, JoinDiagnostics
+from src.core.models.quality_models import DataQualityReport
+from src.core.models.schema_contract_models import DatasetSchemaContract, SchemaValidationReport
+from src.core.models.semantic_metadata_models import DatasetSemantics
 from src.core.services.managers.arithmetic_service import ArithmeticService
+from src.core.services.managers.comparison_annotation_service import (
+    ComparisonAnnotationService,
+)
+from src.core.services.managers.comparison_service import ComparisonService
+from src.core.services.managers.dataset_workspace_service import DatasetWorkspaceService
 from src.core.services.managers.outlier_service import OutlierService
+from src.core.services.managers.quality_profile_service import QualityProfileService
+from src.core.services.managers.schema_contract_service import SchemaContractService
+from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
 from src.core.services.managers.reduction_service import ReductionService
+from src.core.services.managers.regression_result_export_service import (
+    RegressionResultExportService,
+)
+from src.core.services.managers.statistical_comparison_service import (
+    StatisticalComparisonService,
+)
 
 
 class DefaultManagersAPI:
@@ -96,3 +117,198 @@ class DefaultManagersAPI:
     ) -> list[str]:
         """Validate inputs for seeds reduction."""
         return ReductionService.validate_seeds_reducer_inputs(df, categorical_cols, statistic_cols)
+
+    # -- Baseline comparison --
+
+    def compare(
+        self,
+        baseline: pd.DataFrame,
+        candidate: pd.DataFrame,
+        key_columns: Sequence[str],
+        metric_columns: Sequence[str],
+        *,
+        directions: (
+            Literal["higher", "lower"] | Mapping[str, Literal["higher", "lower"]]
+        ) = "higher",
+        thresholds: float | Mapping[str, float] = 0.0,
+        threshold_mode: Literal["percentage", "absolute"] = "percentage",
+        baseline_name: str = "baseline",
+        candidate_name: str = "candidate",
+    ) -> pd.DataFrame:
+        """Compare aligned baseline and candidate metrics."""
+        return ComparisonService.compare(
+            baseline,
+            candidate,
+            key_columns,
+            metric_columns,
+            directions=directions,
+            thresholds=thresholds,
+            threshold_mode=threshold_mode,
+            baseline_name=baseline_name,
+            candidate_name=candidate_name,
+        )
+
+    def compare_statistics(
+        self,
+        baseline: pd.DataFrame,
+        candidate: pd.DataFrame,
+        group_columns: Sequence[str],
+        metric_columns: Sequence[str],
+        *,
+        confidence_level: float = 0.95,
+        alpha: float = 0.05,
+        bootstrap_samples: int = 2_000,
+        random_seed: int = 0,
+        minimum_sample_size: int = 5,
+    ) -> pd.DataFrame:
+        """Calculate repeated-sample comparison statistics."""
+        return StatisticalComparisonService.compare(
+            baseline,
+            candidate,
+            group_columns,
+            metric_columns,
+            confidence_level=confidence_level,
+            alpha=alpha,
+            bootstrap_samples=bootstrap_samples,
+            random_seed=random_seed,
+            minimum_sample_size=minimum_sample_size,
+        )
+
+    def annotate_comparison(
+        self,
+        comparison: pd.DataFrame,
+        *,
+        label_columns: Sequence[str] | None = None,
+        change_mode: Literal["threshold", "percentage", "absolute"] = "threshold",
+    ) -> pd.DataFrame:
+        """Prepare accessible plot annotations for comparison rows."""
+        return ComparisonAnnotationService.annotate(
+            comparison,
+            label_columns=label_columns,
+            change_mode=change_mode,
+        )
+
+    def export_regression_results(
+        self,
+        comparison: pd.DataFrame,
+        format: Literal["json", "junit"],
+    ) -> bytes:
+        """Export threshold comparison rows for automation."""
+        # [impl->req~ring5.automation.machine-readable-regression~1]
+        return RegressionResultExportService.export(comparison, format)
+
+    def profile_data(
+        self,
+        data: pd.DataFrame,
+        *,
+        expected_types: (
+            Mapping[str, Literal["numeric", "integer", "boolean", "datetime", "string"]] | None
+        ) = None,
+    ) -> DataQualityReport:
+        """Calculate dataset and per-column quality measurements."""
+        return QualityProfileService.profile(data, expected_types=expected_types)
+
+    def infer_schema_contract(
+        self,
+        data: pd.DataFrame,
+        *,
+        name: str = "dataset",
+    ) -> DatasetSchemaContract:
+        """Infer editable type and nullability rules from a dataset."""
+        return SchemaContractService.infer(data, name=name)
+
+    def validate_schema(
+        self,
+        data: pd.DataFrame,
+        contract: DatasetSchemaContract,
+    ) -> SchemaValidationReport:
+        """Validate a dataset against an explicit schema contract."""
+        return SchemaContractService.validate(data, contract)
+
+    def attach_semantics(
+        self,
+        data: pd.DataFrame,
+        semantics: DatasetSemantics,
+    ) -> pd.DataFrame:
+        """Return a copy retaining validated semantic labels and units."""
+        return SemanticMetadataService.attach(data, semantics)
+
+    def inspect_semantics(self, data: pd.DataFrame) -> DatasetSemantics:
+        """Return ordered semantic metadata retained by a dataset."""
+        return SemanticMetadataService.inspect(data)
+
+    def convert_unit(
+        self,
+        data: pd.DataFrame,
+        column: str,
+        target_unit: str,
+    ) -> pd.DataFrame:
+        """Convert one numeric column between compatible declared units."""
+        return SemanticMetadataService.convert(data, column, target_unit)
+
+    def supported_units(self) -> tuple[str, ...]:
+        """Return canonical units accepted by semantic conversion."""
+        return SemanticMetadataService.supported_units()
+
+    def append_datasets(
+        self,
+        datasets: Sequence[pd.DataFrame],
+        *,
+        join: Literal["outer", "inner"] = "outer",
+    ) -> pd.DataFrame:
+        """Append datasets by matching column names."""
+        return DatasetWorkspaceService.append(datasets, join=join)
+
+    def join_datasets(
+        self,
+        left: pd.DataFrame,
+        right: pd.DataFrame,
+        on: Sequence[str],
+        *,
+        how: Literal["inner", "left", "right", "outer"] = "inner",
+        suffixes: tuple[str, str] = ("_left", "_right"),
+    ) -> pd.DataFrame:
+        """Join two datasets on shared key columns."""
+        return DatasetWorkspaceService.join(
+            left,
+            right,
+            on,
+            how=how,
+            suffixes=suffixes,
+        )
+
+    def diagnose_join(
+        self,
+        left: pd.DataFrame,
+        right: pd.DataFrame,
+        on: Sequence[str],
+        *,
+        cardinality: JoinCardinality,
+    ) -> JoinDiagnostics:
+        """Diagnose key duplication, unmatched rows, and cardinality."""
+        return DatasetWorkspaceService.diagnose_join(
+            left,
+            right,
+            on,
+            cardinality=cardinality,
+        )
+
+    def validated_join(
+        self,
+        left: pd.DataFrame,
+        right: pd.DataFrame,
+        on: Sequence[str],
+        *,
+        cardinality: JoinCardinality,
+        how: Literal["inner", "left", "right", "outer"] = "inner",
+        suffixes: tuple[str, str] = ("_left", "_right"),
+    ) -> tuple[pd.DataFrame, JoinDiagnostics]:
+        """Join only when the explicit key cardinality is satisfied."""
+        return DatasetWorkspaceService.validated_join(
+            left,
+            right,
+            on,
+            cardinality=cardinality,
+            how=how,
+            suffixes=suffixes,
+        )

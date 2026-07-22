@@ -22,6 +22,8 @@ def sample_data() -> pd.DataFrame:
 class TestScatterPlotCreateFigure:
     """Tests for ScatterPlot.create_figure."""
 
+    # [test->req~ring5.plot.scatter~1]
+
     def test_basic_scatter(self, sample_data: pd.DataFrame) -> None:
         plot = ScatterPlot(1, "test")
         config = {"x": "x", "y": "y", "title": "T", "xlabel": "X", "ylabel": "Y"}

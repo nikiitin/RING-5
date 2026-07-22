@@ -94,6 +94,7 @@ def test_verify_preconditions_multiple_normalizers() -> None:
 
 def test_normalization_logic(base_data: Any) -> None:
 
+    # [test->req~ring5.shaping.normalize~1]
     n = Normalize(
         {
             "normalizeVars": ["metric"],
@@ -125,6 +126,7 @@ def test_normalization_logic(base_data: Any) -> None:
 
 def test_normalization_sd(base_data: Any) -> None:
 
+    # [test->req~ring5.shaping.normalize~1]
     n = Normalize(
         {
             "normalizeVars": ["metric"],
@@ -153,6 +155,7 @@ def test_normalization_sd(base_data: Any) -> None:
 
 
 def test_zero_division() -> None:
+    # [test->req~ring5.shaping.normalize~1]
     df = pd.DataFrame(
         {
             "config": ["baseline", "test"],

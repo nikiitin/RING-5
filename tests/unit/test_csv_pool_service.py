@@ -121,6 +121,10 @@ class TestPoolDirectory:
 class TestCSVLoading:
     """Test CSV file loading with caching."""
 
+    # [test->req~ring5.quality.bounded-caching~1]
+
+    # [test->req~ring5.ingestion.csv-pool~1]
+
     def test_load_csv_file_reads_data_correctly(self, sample_csv: Path) -> None:
         """Verify CSV loading produces correct DataFrame."""
         df = CsvPoolService.load_csv_file(str(sample_csv))
@@ -167,6 +171,7 @@ class TestCSVLoading:
         self, tmp_path: Path, separator: str
     ) -> None:
         """Verify automatic separator detection works."""
+        # [test->req~ring5.ingestion.csv-delimiter-detection~1]
         sep_label = "tab" if separator == "\t" else separator
         csv_file = tmp_path / f"data_{sep_label}.csv"
         df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
@@ -182,6 +187,8 @@ class TestCSVLoading:
 
 class TestMetadataCaching:
     """Test CSV metadata extraction and caching."""
+
+    # [test->req~ring5.ingestion.csv-delimiter-detection~1]
 
     def test_get_csv_metadata_extracts_info_correctly(self, sample_csv: Path) -> None:
         """Verify metadata extraction without loading full DataFrame."""
@@ -217,6 +224,8 @@ class TestMetadataCaching:
 
 class TestPoolManagement:
     """Test pool listing, adding, and deletion operations."""
+
+    # [test->req~ring5.ingestion.csv-pool~1]
 
     def test_load_pool_returns_empty_list_for_empty_directory(self, empty_pool_dir: Path) -> None:
         """Verify empty pool returns empty list."""
@@ -317,6 +326,8 @@ class TestPoolManagement:
 
 class TestCacheManagement:
     """Test cache operations and statistics."""
+
+    # [test->req~ring5.quality.bounded-caching~1]
 
     def test_clear_caches_empties_all_caches(self, sample_csv: Path) -> None:
         """Verify all caches are cleared."""

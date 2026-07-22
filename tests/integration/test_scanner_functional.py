@@ -28,6 +28,7 @@ class TestScannerFunctional:
         """
         Test scanning actual gem5 stats files using valid futures.
         """
+        # [test->req~ring5.ingestion.variable-scan~1]
         facade = ApplicationAPI()
 
         # Submit Scan

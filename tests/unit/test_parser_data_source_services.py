@@ -213,6 +213,7 @@ class TestParseWork:
 
 
 class TestWorkPool:
+    # [test->req~ring5.api.process-lifecycle~1]
     """Tests for lazy executor creation and submission."""
 
     def test_thread_executor_lazy_init(self) -> None:
@@ -248,6 +249,23 @@ class TestWorkPool:
         result = future.result(timeout=5)
         assert result == "done"
 
+        pool.shutdown(wait=True)
+        WorkPool._instance = None
+
+    def test_submit_restarts_executor_after_shutdown(self) -> None:
+        from src.parsing.framework.work_pool import WorkPool
+
+        WorkPool._instance = None
+        pool = WorkPool()
+        assert pool.submit(lambda: "first").result(timeout=5) == "first"
+        original_executor = pool._thread_executor
+
+        pool.shutdown(wait=True)
+
+        assert pool._thread_executor is None
+        assert pool.submit(lambda: "second").result(timeout=5) == "second"
+        assert pool._thread_executor is not original_executor
+        pool.shutdown(wait=True)
         WorkPool._instance = None
 
 
@@ -927,8 +945,6 @@ class TestDataSourceComponents:
         mock_st: MagicMock,
         tmp_path: Path,
     ) -> None:
-        import pandas as pd
-
         from src.web.components.data_source.data_source_components import (
             DataSourceComponents,
         )
@@ -939,11 +955,13 @@ class TestDataSourceComponents:
         api = MagicMock()
         api.state_manager.get_csv_pool.return_value = [{"path": str(csv_file), "name": "test.csv"}]
         mock_card.file_info_card.return_value = (True, False, False)  # load_clicked=True
-        api.load_csv_file.return_value = pd.DataFrame({"a": [1], "b": [2]})
+        mock_st.session_state = {}
 
-        DataSourceComponents.render_csv_pool(api)
-        api.load_csv_file.assert_called_once()
-        mock_st.success.assert_called()
+        with patch.object(DataSourceComponents, "render_import_preview") as render_preview:
+            DataSourceComponents.render_csv_pool(api)
+
+        render_preview.assert_called_once_with(api, str(csv_file))
+        api.load_csv_file.assert_not_called()
 
     @patch("src.web.components.data_source.data_source_components.st")
     @patch("src.web.components.data_source.data_source_components.CardComponents")
@@ -965,10 +983,13 @@ class TestDataSourceComponents:
         api = MagicMock()
         api.state_manager.get_csv_pool.return_value = [{"path": str(csv_file), "name": "test.csv"}]
         mock_card.file_info_card.return_value = (True, False, False)
-        api.load_csv_file.side_effect = RuntimeError("read error")
+        mock_st.session_state = {}
 
-        DataSourceComponents.render_csv_pool(api)
-        mock_st.exception.assert_called()
+        with patch.object(DataSourceComponents, "render_import_preview") as render_preview:
+            DataSourceComponents.render_csv_pool(api)
+
+        render_preview.assert_called_once_with(api, str(csv_file))
+        api.load_csv_file.assert_not_called()
 
     @patch("src.web.components.data_source.data_source_components.st")
     @patch("src.web.components.data_source.data_source_components.CardComponents")
@@ -980,8 +1001,6 @@ class TestDataSourceComponents:
         mock_st: MagicMock,
         tmp_path: Path,
     ) -> None:
-        import pandas as pd
-
         from src.web.components.data_source.data_source_components import (
             DataSourceComponents,
         )
@@ -992,10 +1011,12 @@ class TestDataSourceComponents:
         api = MagicMock()
         api.state_manager.get_csv_pool.return_value = [{"path": str(csv_file), "name": "test.csv"}]
         mock_card.file_info_card.return_value = (False, True, False)  # preview_clicked
-        api.load_csv_file.return_value = pd.DataFrame({"a": [1]})
+        mock_st.session_state = {}
 
-        DataSourceComponents.render_csv_pool(api)
-        mock_st.dataframe.assert_called()
+        with patch.object(DataSourceComponents, "render_import_preview") as render_preview:
+            DataSourceComponents.render_csv_pool(api)
+
+        render_preview.assert_called_once_with(api, str(csv_file))
 
     @patch("src.web.components.data_source.data_source_components.st")
     @patch("src.web.components.data_source.data_source_components.CardComponents")
@@ -1475,11 +1496,12 @@ class TestDataSourcePage:
 
         api = MagicMock()
         api.state_manager.is_using_parser.return_value = True
-        mock_st.segmented_control.return_value = "I already have CSV data"
+        mock_st.segmented_control.return_value = "Upload data or portfolio"
         page = DataSourcePage(api)
         page.render()
         api.state_manager.set_use_parser.assert_called_with(False)
         mock_st.success.assert_called()
+        mock_dsc.render_browser_upload.assert_called_once_with(api)
 
 
 # DataManager abstract contract
@@ -1527,7 +1549,7 @@ class TestDataManagerBase:
         df = pd.DataFrame({"a": [1]})
         mgr = ConcreteManager(api)
         mgr.set_data(df)
-        api.state_manager.set_data.assert_called_once_with(df)
+        api.update_selected_dataset.assert_called_once_with(df, operation="Update dataset")
 
 
 # Additional data-source actions
@@ -1556,10 +1578,15 @@ class TestDataSourceComponentsExtra:
         api = MagicMock()
         api.state_manager.get_csv_pool.return_value = [{"path": str(csv_file), "name": "test.csv"}]
         mock_card.file_info_card.return_value = (False, True, False)
-        api.load_csv_file.side_effect = RuntimeError("preview error")
+        mock_st.session_state = {}
 
-        DataSourceComponents.render_csv_pool(api)
-        mock_st.exception.assert_called()
+        with patch.object(
+            DataSourceComponents,
+            "render_import_preview",
+            side_effect=RuntimeError("preview error"),
+        ):
+            with pytest.raises(RuntimeError, match="preview error"):
+                DataSourceComponents.render_csv_pool(api)
 
     @patch("src.web.components.data_source.data_source_components.st")
     @patch("src.web.components.data_source.data_source_components.VariableEditor")
@@ -1660,6 +1687,7 @@ class TestReductionService:
         assert result.empty
 
     def test_reduce_seeds_basic(self) -> None:
+        # [test->req~ring5.data.seed-reduction~1]
         import pandas as pd
 
         from src.core.services.managers.reduction_service import ReductionService
@@ -1717,6 +1745,8 @@ class TestReductionService:
 
 class TestArithmeticService:
     """Tests for arithmetic operation dispatch."""
+
+    # [test->req~ring5.data.arithmetic~1]
 
     def test_division(self) -> None:
         import pandas as pd

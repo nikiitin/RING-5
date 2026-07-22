@@ -16,6 +16,14 @@ and configuration to `TraceBuildResult`; it does not construct Plotly or Matplot
 
 ## Implement and register
 
+<!--
+`uman~ring5.extension.plot-registry.documentation~1`
+
+Covers:
+- req~ring5.extension.plot-registry~1
+
+-->
+
 1. Subclass `BasePlot`, pass a snake-case identifier to its constructor, and implement
    `create_traces` plus `get_legend_column` when grouping creates legend entries.
 2. Return trace models from `src/core/models/visualization/`. Keep styling in figure configuration

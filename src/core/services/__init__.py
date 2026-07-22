@@ -20,6 +20,7 @@ from .data_services import (
     ConfigService,
     CsvPoolService,
     DataServicesAPI,
+    DatasetSnapshotService,
     DefaultDataServicesAPI,
     PathService,
     PortfolioService,
@@ -57,6 +58,7 @@ __all__ = [
     "PathService",
     "VariableService",
     "PortfolioService",
+    "DatasetSnapshotService",
     "PipelineService",
     "ShaperFactory",
 ]

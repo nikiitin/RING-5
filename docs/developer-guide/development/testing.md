@@ -28,6 +28,21 @@ Reuse fixtures from `tests/conftest.py` and existing xdist groups for shared sta
 assert public outcomes and typed errors, not implementation call order unless orchestration is the
 contract.
 
+## Performance regression checks
+
+<!--
+`uman~ring5.quality.performance-regression-gates.documentation~1`
+
+Covers:
+- req~ring5.quality.performance-regression-gates~1
+
+-->
+
+Performance tests use repeatable fixtures and explicit thresholds for large-data transformations,
+caches, rendering, and worker-pool throughput. Treat a threshold change as a reviewed contract
+change rather than weakening it merely to accommodate a regression. They live outside the default
+test targets and run explicitly with `python_venv/bin/pytest tests/performance -n 0 --no-cov`.
+
 ## Commands
 
 ```bash

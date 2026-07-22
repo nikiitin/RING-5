@@ -58,6 +58,7 @@ def test_histogram_rebinning_fallback_to_raw() -> None:
 
 def test_histogram_rebinning_exact_values() -> None:
     """Regression test for rebinning distribution logic."""
+    # [test->req~ring5.ingestion.histogram-rebinning~1]
     # bins=3. max=200.
     # Regular=2. Width=100. Keys: 0-100, 100-200, 200+
     hist = Histogram(repeat=1, bins=3, max_range=200)

@@ -37,6 +37,8 @@ def _new_future() -> Future[Any]:
 
 
 class TestScanWorkPoolStateless:
+    # [test->req~ring5.quality.async-ownership~1]
+
     """ScanWorkPool must keep no reference to submitted futures."""
 
     @patch("src.parsing.gem5.impl.pool.pool.WorkPool")
@@ -81,6 +83,8 @@ class TestScanWorkPoolStateless:
 
 
 class TestParseWorkPoolStateless:
+    # [test->req~ring5.quality.async-ownership~1]
+
     """ParseWorkPool must keep no reference to submitted futures."""
 
     @patch("src.parsing.gem5.impl.pool.pool.WorkPool")
@@ -117,6 +121,8 @@ class TestParseWorkPoolStateless:
 
 
 class TestSessionScopedCancellation:
+    # [test->req~ring5.quality.async-ownership~1]
+
     """ApplicationAPI.cancel_pending_scans cancels only its own futures."""
 
     def test_cancel_only_own_session_futures(self) -> None:

@@ -6,7 +6,7 @@ configuration persistence, variable management, and portfolio workspace
 snapshots.
 """
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping, Sequence
 from typing import (
     Any,
     Protocol,
@@ -15,11 +15,28 @@ from typing import (
 
 import pandas as pd
 
-from src.core.models import PlotProtocol, PortfolioData
+from src.core.models import (
+    AnalysisRecipe,
+    AnalysisRecipeInfo,
+    DatasetSnapshotInfo,
+    PlotProtocol,
+    PortfolioData,
+    PortfolioBundleContents,
+    PortfolioBundleInfo,
+    PortfolioDiff,
+    PortfolioIntegrityReport,
+    PortfolioRevisionInfo,
+    RecipeExport,
+    RecipeParameter,
+    RecipeScalar,
+    RecipeSource,
+)
 from src.core.models.data_models import (
     CacheStatsInfo,
     CsvPoolEntry,
     ParseVariableConfig,
+    PipelineConfigConflictPolicy,
+    PipelineConfigImportResult,
     SavedConfigData,
     SavedConfigEntry,
     ScannedVariableDict,
@@ -69,6 +86,25 @@ class DataServicesAPI(Protocol):
         """Load a configuration from file."""
         raise NotImplementedError
 
+    def export_configuration(
+        self,
+        name: str,
+        description: str,
+        shapers_config: list[ShaperStepConfig],
+        csv_path: str | None = None,
+    ) -> bytes:
+        """Serialize a validated configuration as portable versioned JSON."""
+        raise NotImplementedError
+
+    def import_configuration(
+        self,
+        payload: str | bytes | bytearray,
+        *,
+        conflict: PipelineConfigConflictPolicy = "error",
+    ) -> PipelineConfigImportResult:
+        """Validate and save a current or legacy portable configuration."""
+        raise NotImplementedError
+
     def load_saved_configs(self) -> list[SavedConfigEntry]:
         """List all saved configurations."""
         raise NotImplementedError
@@ -85,6 +121,31 @@ class DataServicesAPI(Protocol):
 
     def clear_caches(self) -> None:
         """Clear all CSV pool caches."""
+        raise NotImplementedError
+
+    # -- Reusable Dataset Snapshots --
+
+    def list_dataset_snapshots(self) -> tuple[DatasetSnapshotInfo, ...]:
+        """List locally saved dataset snapshots without loading their payloads."""
+        raise NotImplementedError
+
+    def save_dataset_snapshot(
+        self,
+        name: str,
+        data: pd.DataFrame,
+        *,
+        source_dataset: str,
+        overwrite: bool = False,
+    ) -> DatasetSnapshotInfo:
+        """Persist an exact fingerprinted dataset snapshot."""
+        raise NotImplementedError
+
+    def load_dataset_snapshot(self, name: str) -> tuple[DatasetSnapshotInfo, pd.DataFrame]:
+        """Load and verify a fingerprinted dataset snapshot."""
+        raise NotImplementedError
+
+    def delete_dataset_snapshot(self, name: str) -> None:
+        """Delete one locally saved dataset snapshot."""
         raise NotImplementedError
 
     # -- Variable Management --
@@ -216,14 +277,141 @@ class DataServicesAPI(Protocol):
             Callable[[dict[str, Any], str], dict[str, Any] | None]
         ) = None,
         overwrite: bool = True,
+        signing_key: str | bytes | None = None,
+        signing_key_id: str = "default",
     ) -> None:
         """Serialize and save the current workspace state."""
         raise NotImplementedError
 
-    def load_portfolio(self, name: str) -> PortfolioData:
+    def load_portfolio(
+        self,
+        name: str,
+        *,
+        signing_key: str | bytes | None = None,
+        require_signature: bool = False,
+    ) -> PortfolioData:
         """Load a portfolio by name."""
+        raise NotImplementedError
+
+    def verify_portfolio(
+        self,
+        name: str,
+        *,
+        signing_key: str | bytes | None = None,
+    ) -> PortfolioIntegrityReport:
+        """Inspect a saved portfolio's checksums and optional signature."""
+        raise NotImplementedError
+
+    def export_portfolio_bundle(
+        self,
+        name: str,
+        *,
+        snapshot_name: str | None = None,
+        results: Mapping[str, bytes] | None = None,
+        signing_key: str | bytes | None = None,
+        signing_key_id: str = "default",
+    ) -> bytes:
+        """Build a portable bundle from a saved portfolio and optional artifacts."""
+        raise NotImplementedError
+
+    def inspect_portfolio_bundle(
+        self,
+        payload: bytes,
+        *,
+        signing_key: str | bytes | None = None,
+        require_signature: bool = False,
+    ) -> PortfolioBundleInfo:
+        """Validate portable bundle metadata without changing application state."""
+        raise NotImplementedError
+
+    def read_portfolio_bundle(
+        self,
+        payload: bytes,
+        *,
+        signing_key: str | bytes | None = None,
+        require_signature: bool = False,
+    ) -> PortfolioBundleContents:
+        """Read every portable bundle artifact after full verification."""
+        raise NotImplementedError
+
+    def list_portfolio_revisions(self, name: str) -> tuple[PortfolioRevisionInfo, ...]:
+        """List immutable saved versions for a named portfolio."""
+        raise NotImplementedError
+
+    def load_portfolio_revision(self, name: str, revision_id: str) -> PortfolioData:
+        """Load one immutable saved portfolio version."""
+        raise NotImplementedError
+
+    def compare_portfolio_revisions(
+        self,
+        name: str,
+        before_revision: str,
+        after_revision: str,
+    ) -> PortfolioDiff:
+        """Compare tracked fields in two saved portfolio versions."""
         raise NotImplementedError
 
     def delete_portfolio(self, name: str) -> None:
         """Delete a portfolio."""
+        raise NotImplementedError
+
+    # -- Analysis recipes --
+
+    def capture_analysis_recipe(
+        self,
+        name: str,
+        *,
+        description: str = "",
+        parameters: Sequence[RecipeParameter] = (),
+        source: RecipeSource | None = None,
+        transformations: Sequence[ShaperStepConfig] = (),
+        exports: Sequence[RecipeExport] = (),
+    ) -> AnalysisRecipe:
+        """Capture current source provenance, plots, and pipelines as a recipe."""
+        raise NotImplementedError
+
+    def save_analysis_recipe(self, recipe: AnalysisRecipe, *, overwrite: bool = False) -> str:
+        """Persist a validated recipe by logical name."""
+        raise NotImplementedError
+
+    def list_analysis_recipes(self) -> tuple[AnalysisRecipeInfo, ...]:
+        """List readable saved analysis recipes."""
+        raise NotImplementedError
+
+    def load_analysis_recipe(self, name: str) -> AnalysisRecipe:
+        """Load a saved analysis recipe by name."""
+        raise NotImplementedError
+
+    def delete_analysis_recipe(self, name: str) -> None:
+        """Delete a saved analysis recipe."""
+        raise NotImplementedError
+
+    def export_analysis_recipe(self, recipe: AnalysisRecipe) -> bytes:
+        """Serialize a validated recipe as deterministic versioned JSON."""
+        raise NotImplementedError
+
+    def decode_analysis_recipe(self, payload: str | bytes | bytearray) -> AnalysisRecipe:
+        """Decode validated recipe JSON without saving or executing it."""
+        raise NotImplementedError
+
+    def export_analysis_recipe_script(self, recipe: AnalysisRecipe) -> bytes:
+        """Render a recipe as a documented public-API Python script."""
+        raise NotImplementedError
+
+    def export_analysis_recipe_notebook(self, recipe: AnalysisRecipe) -> bytes:
+        """Render a recipe as a documented public-API Jupyter notebook."""
+        raise NotImplementedError
+
+    def import_analysis_recipe(
+        self, payload: str | bytes | bytearray, *, overwrite: bool = False
+    ) -> AnalysisRecipe:
+        """Validate and persist one portable recipe document."""
+        raise NotImplementedError
+
+    def materialize_analysis_recipe(
+        self,
+        recipe: AnalysisRecipe,
+        values: Mapping[str, RecipeScalar] | None = None,
+    ) -> AnalysisRecipe:
+        """Substitute typed runtime values into a recipe."""
         raise NotImplementedError

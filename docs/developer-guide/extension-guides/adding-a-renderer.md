@@ -17,6 +17,14 @@ cross-cutting compatibility change.
 
 ## Implement the connector
 
+<!--
+`uman~ring5.extension.render-connector.documentation~1`
+
+Covers:
+- req~ring5.extension.render-connector~1
+
+-->
+
 1. Add the engine value to `src/core/models/visualization/engine.py` and update exhaustive engine
    selection in `src/web/rendering/engine_manager.py`.
 2. Implement trace translation and a stateless figure-configuration connector under

@@ -86,6 +86,7 @@ def build_matplotlib_figure_from_traces(
     plot_type: str,
     result: Any,
 ) -> tuple[MplFigure, FigureConfig]:
+    # [impl->req~ring5.render.matplotlib~1]
     """Build a fully styled matplotlib figure straight from a ``TraceBuildResult``.
 
     This is the engine-isolated path: it never constructs or reads a Plotly figure. The

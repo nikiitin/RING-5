@@ -29,10 +29,19 @@ class PlotProtocol(Protocol):
     pipeline_counter: int
     legend_mappings_by_column: dict[str, dict[str, str]]
     legend_mappings: dict[str, str]
+    source_data: pd.DataFrame | None
     processed_data: pd.DataFrame | None
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize the plot to a dictionary."""
+        raise NotImplementedError
+
+    def invalidate_figure(self) -> None:
+        """Discard derived figure artifacts after a configuration change."""
+        raise NotImplementedError
+
+    def replace_processed_data(self, data: pd.DataFrame | None) -> None:
+        """Replace processed data and discard derived figure artifacts."""
         raise NotImplementedError
 
 

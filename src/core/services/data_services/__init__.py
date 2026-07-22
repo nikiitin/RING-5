@@ -6,6 +6,7 @@ from .data_services_api import DataServicesAPI
 from .data_services_impl import DefaultDataServicesAPI
 from .path_service import PathService
 from .portfolio_service import PortfolioService
+from .dataset_snapshot_service import DatasetSnapshotService
 from .variable_service import VariableService
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     "PathService",
     "VariableService",
     "PortfolioService",
+    "DatasetSnapshotService",
 ]

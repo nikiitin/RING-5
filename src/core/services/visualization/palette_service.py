@@ -36,6 +36,7 @@ def resolve_palette(name: object) -> list[str]:
     Returns:
         A **copy** of the hex color list (safe to mutate).
     """
+    # [impl->req~ring5.figure.colors~1]
     # Explicit list/tuple of colors -> cleaned copy (passthrough). Checked
     # before the string branch so a custom palette is no longer silently
     # ignored (the previous behaviour fell back to Wong for any non-str).
@@ -65,6 +66,7 @@ def get_palette_names() -> list[str]:
     Returns:
         Ordered list of palette name strings.
     """
+    # [impl->req~ring5.figure.colors~1]
     return list(PALETTE_ORDER)
 
 
@@ -77,4 +79,5 @@ def is_colorblind_safe(name: str) -> bool:
     Returns:
         ``True`` if the palette is in the colorblind-safe set.
     """
+    # [impl->req~ring5.figure.colors~1]
     return name in _COLORBLIND_PALETTES

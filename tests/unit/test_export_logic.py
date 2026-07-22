@@ -43,6 +43,7 @@ def test_export_pdf_via_matplotlib(tmp_path: Any, session: Any, bar_plot: Any) -
 
 
 def test_export_html_via_plotly(tmp_path: Any, session: Any, bar_plot: Any) -> None:
+    # [test->req~ring5.export.plotly-html~1]
     """Plotly HTML export needs no external binary."""
     fig = session.render(bar_plot, engine="plotly")
     path = session.export(fig, str(tmp_path / "test_plot.html"))
@@ -85,6 +86,7 @@ def test_export_no_extension_no_fmt_raises(tmp_path: Any, session: Any, bar_plot
 
 
 def test_deterministic_mpl_pdf_byte_identical(tmp_path: Any, session: Any, bar_plot: Any) -> None:
+    # [test->req~ring5.export.deterministic~1]
     """deterministic=True makes re-exports byte-identical (CI contract)."""
     fig = session.render(bar_plot, engine="matplotlib")
     a = session.export_bytes(fig, "pdf", deterministic=True)
@@ -93,6 +95,7 @@ def test_deterministic_mpl_pdf_byte_identical(tmp_path: Any, session: Any, bar_p
 
 
 def test_deterministic_html_byte_identical(tmp_path: Any, session: Any, bar_plot: Any) -> None:
+    # [test->req~ring5.export.deterministic~1]
     fig = session.render(bar_plot, engine="plotly")
     a = session.export_bytes(fig, "html", deterministic=True)
     b = session.export_bytes(fig, "html", deterministic=True)

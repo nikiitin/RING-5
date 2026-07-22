@@ -26,6 +26,7 @@ def render_portfolio(
     fmt: str | None = None,
     deterministic: bool = True,
 ) -> list[str]:
+    # [impl->req~ring5.portfolio.batch-replay~1]
     """Restore portfolio *name* and export every plot to *out_dir*.
 
     Args:

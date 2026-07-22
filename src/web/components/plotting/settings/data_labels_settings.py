@@ -55,6 +55,8 @@ class DataLabelsSettingsComponent:
         PlotConfig
             Configuration dict with data label keys.
         """
+        # [impl->req~ring5.figure.data-labels~1]
+        # [impl->req~ring5.figure.heatmap-summary-controls~1]
         st.markdown("#### Data Labels")
 
         is_heatmap = self.plot_type == "heatmap"

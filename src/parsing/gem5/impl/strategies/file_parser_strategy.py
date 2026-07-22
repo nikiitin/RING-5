@@ -47,7 +47,12 @@ class FileParserStrategy(Protocol):
     """
 
     def get_work_items(
-        self, stats_path: str, stats_pattern: str, variables: list[StatConfig]
+        self,
+        stats_path: str,
+        stats_pattern: str,
+        variables: list[StatConfig],
+        *,
+        file_paths: list[str] | None = None,
     ) -> Sequence[ParseWork]:
         """
         Discover and prepare work items for parallel execution.
@@ -59,6 +64,8 @@ class FileParserStrategy(Protocol):
             stats_path: Root directory to scan
             stats_pattern: File pattern to match
             variables: Variables to parse (used for preprocessing/validation)
+            file_paths: Optional validated subset of discovered inputs. Incremental parsing uses
+                this to avoid constructing work for unchanged files.
 
         Returns:
             Sequence of ParseWork objects ready for pool submission

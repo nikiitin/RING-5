@@ -88,6 +88,17 @@ def test_serialization(concrete_plot: Any) -> None:
         assert len(loaded_plot.processed_data) == 3
 
 
+def test_source_snapshot_is_defensive_and_not_serialized(concrete_plot: Any) -> None:
+    source = pd.DataFrame({"seed": [0, 1]})
+
+    concrete_plot.replace_source_data(source)
+    source.loc[0, "seed"] = 99
+
+    assert concrete_plot.source_data is not None
+    assert concrete_plot.source_data["seed"].tolist() == [0, 1]
+    assert "source_data" not in concrete_plot.to_dict()
+
+
 @patch("src.web.components.plotting.config.base_plot_config.st")
 @patch("src.web.components.plotting.config.base_plot_config.PlotConfigComponents")
 def test_render_common_config(mock_plc: Any, mock_st: Any, concrete_plot: Any) -> None:
@@ -115,6 +126,40 @@ def test_render_common_config(mock_plc: Any, mock_st: Any, concrete_plot: Any) -
 
     assert config["x"] == "num"
     assert config["title"] == "My Title"
+
+
+@patch("src.web.components.plotting.config.base_plot_config.st")
+def test_auto_labels_follow_axis_changes_without_overwriting_custom_text(mock_st: Any) -> None:
+    """Derived labels track new columns while user-authored labels remain stable."""
+    from src.web.components.plotting.config.base_plot_config import _sync_auto_labels
+
+    mock_st.session_state = {
+        "title_7": "seed by benchmark_name",
+        "xlabel_7": "benchmark_name",
+        "ylabel_7": "Publication value",
+    }
+    saved_config = {
+        "x": "benchmark_name",
+        "y": "seed",
+        "title": "seed by benchmark_name",
+        "xlabel": "benchmark_name",
+        "ylabel": "Publication value",
+    }
+
+    _sync_auto_labels(saved_config, 7, "config_description", "system.cpu.ipc")
+
+    assert mock_st.session_state == {
+        "title_7": "system.cpu.ipc by config_description",
+        "xlabel_7": "config_description",
+        "ylabel_7": "Publication value",
+    }
+    assert saved_config == {
+        "x": "benchmark_name",
+        "y": "seed",
+        "title": "seed by benchmark_name",
+        "xlabel": "benchmark_name",
+        "ylabel": "Publication value",
+    }
 
 
 def test_relabel_traces_renames_engine_agnostic_names() -> None:

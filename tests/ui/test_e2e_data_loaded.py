@@ -18,7 +18,7 @@ from tests.ui.helpers import (
 
 # Data Managers — data loaded
 class TestDataManagersWithData:
-    """Data Managers page renders its 7 tabs when data is available."""
+    """Data Managers page renders its 11 tabs when data is available."""
 
     def test_no_warning_when_data_loaded(self) -> None:
         """No 'no data' warning should appear when data is injected."""
@@ -30,12 +30,12 @@ class TestDataManagersWithData:
         assert len(no_data_warnings) == 0, "Should not show 'no data' warning"
 
     def test_tabs_render(self) -> None:
-        """All 7 Data Manager tabs should render."""
+        """All Data Manager tabs should render."""
         at = create_app_with_data()
         navigate_to(at, "Data Managers")
 
         assert not at.exception
-        assert len(at.tabs) >= 7, f"Expected 7 tabs, got {len(at.tabs)}"
+        assert len(at.tabs) >= 11, f"Expected 11 tabs, got {len(at.tabs)}"
 
     def test_summary_tab_has_metrics(self) -> None:
         """Summary tab should show metrics (rows, columns, etc.)."""
@@ -156,6 +156,7 @@ class TestSidebarWithData:
 
     def test_data_preview_metrics_shown(self) -> None:
         """Sidebar area should show Rows/Columns metrics."""
+        # [test->req~ring5.workspace.data-preview~1]
         at = create_app_with_data()
         # After first run with data, re-run to render header metrics
         at.run()
@@ -169,6 +170,7 @@ class TestSidebarWithData:
 
     def test_clear_data_button_clears_state(self) -> None:
         """Clicking Clear Data removes data from state."""
+        # [test->req~ring5.workspace.reset~1]
         at = create_app_with_data()
         at.run()
 

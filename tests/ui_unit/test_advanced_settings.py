@@ -110,6 +110,7 @@ class TestAdvancedSettingsComponent:
         assert result["download_format"] == "pdf"
 
     def test_export_scale_caption(self, mock_st: MagicMock) -> None:
+        # [test->req~ring5.export.plotly-scale~1]
         """Should show download size caption."""
         mock_st.selectbox.side_effect = ["html", 2]
         comp = self._make_component()

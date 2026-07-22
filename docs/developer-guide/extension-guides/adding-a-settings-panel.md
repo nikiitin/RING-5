@@ -15,6 +15,14 @@ to **Axes**; font sizes and text colors belong to **Typography**; legend behavio
 
 ## Implement a visual setting
 
+<!--
+`uman~ring5.extension.settings-panel.documentation~1`
+
+Covers:
+- req~ring5.extension.settings-panel~1
+
+-->
+
 1. Add the field to the appropriate dataclass under `src/core/models/visualization/`, including
    `to_dict` and `from_dict` behavior.
 2. If the field inherits a default, use the existing sentinel convention and add resolution in

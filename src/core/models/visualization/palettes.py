@@ -16,9 +16,46 @@ Usage::
 
 from __future__ import annotations
 
+from typing import Final
+
 # Colorblind-safe palettes  (listed first in get_palette_names)
 
+
+class _AccessiblePalette:
+    """RING-5 colors that meet the accessible theme's white-background audit."""
+
+    # [impl->req~ring5.figure.accessible-themes~1]
+    COLORS: Final = (
+        "#000000",
+        "#0072B2",
+        "#D55E00",
+        "#007A55",
+        "#6F3C8C",
+        "#8C510A",
+        "#006D6F",
+        "#A51C5B",
+    )
+
+
+class _DarkThemePalette:
+    """Color-vision-safe marks with at least 3:1 contrast on dark theme surfaces."""
+
+    # [impl->req~ring5.figure.theme-presets~1]
+    COLORS: Final = (
+        "#4477AA",
+        "#EE6677",
+        "#228833",
+        "#CCBB44",
+        "#66CCEE",
+        "#CC79A7",
+        "#BBBBBB",
+        "#E69F00",
+    )
+
+
 _COLORBLIND_PALETTES: dict[str, list[str]] = {
+    "ring5_accessible": list(_AccessiblePalette.COLORS),
+    "ring5_accessible_dark": list(_DarkThemePalette.COLORS),
     "wong": [
         "#000000",
         "#E69F00",

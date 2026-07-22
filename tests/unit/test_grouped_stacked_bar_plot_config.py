@@ -82,6 +82,35 @@ def test_render_config_ui_grouped(mock_streamlit: Any, sample_data: Any) -> None
     assert len(config["y_columns"]) == 2
 
 
+def test_grouped_stacked_default_omits_colliding_x_axis_title(sample_data: DataFrame) -> None:
+    # [test->req~ring5.plot.grouped-stacked-bar~1]
+    module = "src.web.components.plotting.config.grouped_stacked_bar_config"
+    with (
+        patch(f"{module}.st") as mock_st,
+        patch(f"{module}.detect_column_types") as mock_detect,
+        patch(f"{module}.PlotConfigComponents") as mock_components,
+    ):
+        mock_st.session_state = {}
+        mock_st.columns.side_effect = columns_side_effect
+        mock_st.selectbox.side_effect = ["Benchmark", "Config"]
+        mock_st.multiselect.return_value = ["Value", "Value2"]
+        mock_st.checkbox.return_value = False
+        mock_detect.return_value = (["Value", "Value2"], ["Benchmark", "Config"])
+        mock_components.render_title_labels_section.return_value = {
+            "title": "Title",
+            "xlabel": "",
+            "ylabel": "Value",
+            "legend_title": "",
+        }
+        mock_components.render_filter_multiselects.return_value = (["A", "B"], ["Low", "High"])
+
+        from src.web.components.plotting.config.grouped_stacked_bar_config import render
+
+        render(sample_data, cast(Any, {}), 5)
+
+    assert mock_components.render_title_labels_section.call_args.kwargs["default_xlabel"] == ""
+
+
 def test_render_config_filter_options(mock_streamlit: Any, sample_data: Any) -> None:
     """Test filter options rendering."""
     plot = GroupedStackedBarPlot(1, "Test Plot")

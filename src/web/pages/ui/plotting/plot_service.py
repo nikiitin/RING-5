@@ -23,6 +23,7 @@ class PlotService:
     @staticmethod
     def create_plot(name: str, plot_type: str, state_manager: "StateManager") -> BasePlot:
         """Create a new plot and add it to the session state."""
+        # [impl->req~ring5.plots.create-multiple~1]
         plot_id = state_manager.start_next_plot_id()
         plot = PlotFactory.create_plot(plot_type=plot_type, plot_id=plot_id, name=name)
 
@@ -34,6 +35,7 @@ class PlotService:
     @staticmethod
     def delete_plot(plot_id: int, state_manager: "StateManager") -> None:
         """Delete a plot by ID."""
+        # [impl->req~ring5.plots.delete~1]
         plots = state_manager.get_plots()
         plots = [p for p in plots if p.plot_id != plot_id]
         state_manager.set_plots(plots)
@@ -45,6 +47,7 @@ class PlotService:
     @staticmethod
     def duplicate_plot(plot: BasePlot, state_manager: "StateManager") -> BasePlot:
         """Duplicate an existing plot."""
+        # [impl->req~ring5.plots.duplicate~1]
         new_plot = copy.deepcopy(plot)
         new_plot.plot_id = state_manager.start_next_plot_id()
         new_plot.name = f"{plot.name} (copy)"
@@ -57,12 +60,14 @@ class PlotService:
     @staticmethod
     def change_plot_type(plot: BasePlot, new_type: str, state_manager: "StateManager") -> BasePlot:
         """Change the type of an existing plot, preserving configuration where possible."""
+        # [impl->req~ring5.plots.change-type~1]
         if plot.plot_type == new_type:
             return plot
 
         new_plot = PlotFactory.create_plot(new_type, plot.plot_id, plot.name)
         new_plot.pipeline = plot.pipeline
         new_plot.pipeline_counter = plot.pipeline_counter
+        new_plot.replace_source_data(plot.source_data)
         new_plot.replace_processed_data(plot.processed_data)
         new_plot.config = {}  # Reset config when type changes
 

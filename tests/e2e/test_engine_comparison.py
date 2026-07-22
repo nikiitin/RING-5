@@ -28,6 +28,7 @@ pytestmark = pytest.mark.requires_browser
 
 @pytest.mark.xdist_group("e2e_engine")
 class TestEngineSwitching:
+    # [test->req~ring5.render.engine-selection~1]
     """Tier 2: Switch between Plotly and Matplotlib engines (ordered).
 
     All tests share the same ``tier2_page`` (class-scoped) which already

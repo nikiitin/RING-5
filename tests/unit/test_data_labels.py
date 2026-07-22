@@ -43,6 +43,8 @@ def applicator() -> StyleApplicator:
 class TestDataLabelsBasic:
     """Test basic data labels functionality."""
 
+    # [test->req~ring5.figure.data-labels~1]
+
     def test_show_values_disabled_by_default(
         self, plot: Any, sample_data: Any, applicator: Any
     ) -> None:
@@ -159,6 +161,8 @@ class TestConstrainToBar:
 
 class TestTextPosition:
     """Test text position and anchor."""
+
+    # [test->req~ring5.figure.data-labels~1]
 
     def test_position_auto(self, plot: Any, sample_data: Any, applicator: Any) -> None:
         """Test auto position."""

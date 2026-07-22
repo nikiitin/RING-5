@@ -22,6 +22,67 @@ print(ring5.available_plot_types())
 
 ## Selection guide
 
+<!--
+`uman~ring5.plot.bar.documentation~1`
+
+Covers:
+- req~ring5.plot.bar~1
+
+`uman~ring5.plot.dual-axis-bar-dot.documentation~1`
+
+Covers:
+- req~ring5.plot.dual-axis-bar-dot~1
+
+`uman~ring5.plot.grouped-bar.documentation~1`
+
+Covers:
+- req~ring5.plot.grouped-bar~1
+
+`uman~ring5.plot.grouped-stacked-bar.documentation~1`
+
+Covers:
+- req~ring5.plot.grouped-stacked-bar~1
+
+`uman~ring5.plot.heatmap.documentation~1`
+
+Covers:
+- req~ring5.plot.heatmap~1
+
+`uman~ring5.plot.histogram.documentation~1`
+
+Covers:
+- req~ring5.plot.histogram~1
+
+`uman~ring5.plot.line.documentation~1`
+
+Covers:
+- req~ring5.plot.line~1
+
+`uman~ring5.plot.scatter.documentation~1`
+
+Covers:
+- req~ring5.plot.scatter~1
+
+`uman~ring5.plot.stacked-bar.documentation~1`
+
+Covers:
+- req~ring5.plot.stacked-bar~1
+
+-->
+
+<!--
+`uman~ring5.ingestion.distribution.documentation~1`
+
+Covers:
+- req~ring5.ingestion.distribution~1
+
+`uman~ring5.ingestion.histogram.documentation~1`
+
+Covers:
+- req~ring5.ingestion.histogram~1
+
+-->
+
 | Relationship | Starting point | Data requirement |
 | --- | --- | --- |
 | One numeric measure by category | `bar` | Categorical X and numeric Y |
@@ -30,12 +91,80 @@ print(ring5.available_plot_types())
 | Components nested within comparisons | `grouped_stacked_bar` | Major and minor groups plus stack columns |
 | Trend over an ordered value | `line` | Ordered X and numeric Y |
 | Relationship between numeric measures | `scatter` | Numeric X and Y |
-| Distribution of observations | `histogram` | Numeric observations |
+| Parsed histogram buckets | `histogram` | Columns named `<variable>..<start>-<end>` |
 | Matrix of values | `heatmap` | Row, column, and numeric value mappings |
 | Bars with a distinct right-axis measure | `dual_axis_bar_dot` | Bar mapping and right-axis dot mapping |
 
 These are task descriptions, not a frozen registry inventory. Extensions can register additional
 identifiers.
+
+## Plot-specific controls
+
+### Dual-axis controls
+
+<!--
+`uman~ring5.figure.dual-axis-controls.documentation~1`
+
+Covers:
+- req~ring5.figure.dual-axis-controls~1
+
+-->
+
+<!--
+`uman~ring5.figure.dual-axis-dot-layout.documentation~1`
+
+Covers:
+- req~ring5.figure.dual-axis-dot-layout~1
+
+-->
+
+Dual-axis bar-and-dot and grouped-stacked plots configure right-axis metrics, range and title, bars
+or dots, dot marker and line styling, per-group connecting lines, and unified or separate legends.
+
+For grouped bar-and-dot plots, **Dot placement** can keep the right-axis series at each benchmark
+center or align every dot directly with the bar for the same configuration. With aligned dots,
+**Line connection scope** either follows each configuration across benchmark groups or connects the
+configurations only inside one benchmark group. The latter deliberately stops every line before the
+next benchmark, making comparisons inside a group explicit without implying a trend between groups.
+
+### Histogram controls
+
+<!--
+`uman~ring5.figure.histogram-controls.documentation~1`
+
+Covers:
+- req~ring5.figure.histogram-controls~1
+
+-->
+
+Histogram plots select parsed bucket columns, an optional categorical group, count, probability,
+percent, or density normalization, and cumulative display. Grouped bucket traces overlay.
+
+### Heatmap controls
+
+<!--
+`uman~ring5.figure.heatmap-controls.documentation~1`
+
+Covers:
+- req~ring5.figure.heatmap-controls~1
+
+-->
+
+Heatmaps map row, column, and numeric value fields with optional facets. Controls include palette,
+range, shared or individual colorbars, missing-cell text, and formatted cell labels.
+
+### Cumulative histograms
+
+<!--
+`uman~ring5.figure.histogram-cumulative.documentation~1`
+
+Covers:
+- req~ring5.figure.histogram-cumulative~1
+
+-->
+
+Cumulative mode accumulates pre-binned values in display order after applying the selected count,
+probability, percent, or density normalization.
 
 ## Common checks
 

@@ -51,12 +51,17 @@ class PlotHandle(Protocol):
     name: str
     plot_type: str
     config: dict[str, Any]
+    source_data: pd.DataFrame | None
     processed_data: pd.DataFrame | None
     pipeline: list[PipelineStep]
     pipeline_counter: int
 
     def replace_processed_data(self, data: pd.DataFrame | None) -> None:
         """Replace processed data and invalidate all derived render state."""
+        raise NotImplementedError
+
+    def replace_source_data(self, data: pd.DataFrame | None) -> None:
+        """Replace the private source-row snapshot used for drill-down."""
         raise NotImplementedError
 
 

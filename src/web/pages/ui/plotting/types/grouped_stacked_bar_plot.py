@@ -10,7 +10,10 @@ from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import TraceConfig
 from src.web.components.plotting.config import grouped_stacked_bar_config
 from src.web.models.plot_models import PlotConfig
-from src.web.pages.ui.plotting.types._trace_helpers import prepare_categorical_data
+from src.web.pages.ui.plotting.types._trace_helpers import (
+    build_drill_down_payload,
+    prepare_categorical_data,
+)
 from src.web.pages.ui.plotting.types.stacked_bar_plot import StackedBarPlot
 from src.web.pages.ui.plotting.utils import GroupedBarUtils
 
@@ -219,6 +222,8 @@ class GroupedStackedBarPlot(StackedBarPlot):
     @override
     def create_traces(self, data: pd.DataFrame, config: PlotConfig) -> TraceBuildResult:
         """Create grouped stacked bar trace configurations."""
+        # [impl->req~ring5.figure.plot-filtering~1]
+        # [impl->req~ring5.plot.grouped-stacked-bar~1]
         x_col = config.get("x")
         group_col = config.get("group")
         y_cols = config.get("y_columns", [])
@@ -265,6 +270,9 @@ class GroupedStackedBarPlot(StackedBarPlot):
         # Get ordered categories and groups
         categories, groups = self._get_ordered_categories_and_groups(data, x_col, group_col, config)
 
+        data["__ring5_drilldown_x"] = data[x_col]
+        data["__ring5_drilldown_group"] = data[group_col]
+
         # Apply renames
         data, categories, groups = self._apply_renames(
             data, x_col, group_col, categories, groups, config
@@ -303,6 +311,20 @@ class GroupedStackedBarPlot(StackedBarPlot):
                 data, "__x_coord", y_cols_right, right_type, bar_width, config
             )
             traces.extend(right_traces)
+
+        payloads = build_drill_down_payload(
+            data,
+            {
+                x_col: "__ring5_drilldown_x",
+                group_col: "__ring5_drilldown_group",
+            },
+        )
+        payload_by_coordinate = dict(zip(data["__x_coord"], payloads, strict=False))
+        for built_trace in traces:
+            coordinates = getattr(built_trace, "x_positions", []) or built_trace.x
+            built_trace.custom_data["drilldown"] = [
+                payload_by_coordinate.get(coordinate, {}) for coordinate in coordinates
+            ]
 
         # Apply numbered X-axis labels (replace verbose ticks with indices)
         tick_text, numbered_legend = self._apply_numbered_xaxis(tick_text, config)
@@ -364,6 +386,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         config: PlotConfig,
     ) -> tuple[pd.DataFrame, list[str], list[str]]:
         """Apply renames to data and ordered lists."""
+        # [impl->req~ring5.figure.ordering-renaming~1]
         from src.web.pages.ui.plotting.utils.grouped_stacked_bar_helpers import (
             apply_renames,
         )
@@ -504,6 +527,8 @@ class GroupedStackedBarPlot(StackedBarPlot):
         config: PlotConfig,
     ) -> list[TraceConfig]:
         """Build traces for the secondary (right) Y-axis."""
+        # [impl->req~ring5.figure.dual-axis-controls~1]
+        # [impl->req~ring5.plot.grouped-stacked-bar~1]
         from src.web.pages.ui.plotting.utils.grouped_stacked_bar_helpers import (
             build_right_axis_traces,
         )

@@ -23,6 +23,7 @@ def _coords(config):
 
 
 class TestGroupSeparators:
+    # [test->req~ring5.figure.category-groups~1]
     def test_boundary_gets_bold_separator_and_within_group_stays_faint(self):
         res = _coords({"show_separators": True, "category_groups": GROUPS})
         seps = res["separator_lines"]
@@ -64,6 +65,7 @@ class TestGroupSeparators:
 
 
 class TestGroupCenters:
+    # [test->req~ring5.figure.category-groups~1]
     def test_centers_are_run_means(self):
         res = _coords({"category_groups": GROUPS})
         assert res["category_group_centers"] == [
@@ -78,6 +80,7 @@ class TestGroupCenters:
 
 
 class TestGroupRules:
+    # [test->req~ring5.figure.category-groups~1]
     def test_rules_span_each_run_with_inset(self):
         res = _coords({"category_groups": GROUPS})
         rules = res["category_group_rules"]
@@ -142,6 +145,7 @@ class TestGroupRules:
 
 
 class TestGroupAnnotations:
+    # [test->req~ring5.figure.category-groups~1]
     def test_annotation_content(self):
         anns = GroupedBarUtils.build_category_group_annotations(
             [(1.0, "G1")], font_size=9, font_color="#222222", y_offset=-0.3

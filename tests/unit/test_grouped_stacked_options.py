@@ -26,6 +26,8 @@ def _columns_side_effect(n: "int | list[int]") -> "list[MagicMock]":
 class TestRenderStackTotalOptions:
     """Test _render_stack_total_options branches."""
 
+    # [test->req~ring5.figure.stack-totals~1]
+
     @patch("src.web.components.plotting.config.grouped_stacked_bar_theme.st")
     def test_totals_disabled(self, mock_st: MagicMock) -> None:
         mock_st.columns.side_effect = _columns_side_effect
@@ -96,6 +98,7 @@ class TestRenderThemeOptions:
         mock_stack_totals: MagicMock,
         mock_st: MagicMock,
     ) -> None:
+        # [test->req~ring5.figure.alternate-category-shading~1]
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.number_input.side_effect = [
             16,

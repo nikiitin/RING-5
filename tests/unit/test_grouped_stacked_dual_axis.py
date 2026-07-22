@@ -38,6 +38,10 @@ def plot() -> GroupedStackedBarPlot:
 class TestDualAxisCreateFigure:
     """Test create_figure with dual_axis=True."""
 
+    # [test->req~ring5.figure.dual-axis-controls~1]
+
+    # [test->req~ring5.plot.grouped-stacked-bar~1]
+
     def test_dual_axis_bars_right(
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:

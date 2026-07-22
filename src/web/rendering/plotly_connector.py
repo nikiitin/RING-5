@@ -69,6 +69,8 @@ class FigureSpecToPlotly:
 
     @staticmethod
     def apply(spec: FigureConfig, fig: go.Figure) -> go.Figure:
+        # [impl->req~ring5.render.plotly~1]
+        # [impl->req~ring5.extension.render-connector~1]
         """Apply the full FigureConfig to a Plotly figure.
 
         Args:
@@ -125,6 +127,7 @@ class FigureSpecToPlotly:
     @staticmethod
     def _apply_backgrounds(spec: FigureConfig, fig: go.Figure) -> None:
         """Set paper and plot background colors."""
+        # [impl->req~ring5.figure.colors~1]
         fig.update_layout(
             paper_bgcolor=spec.paper_bgcolor,
             plot_bgcolor=spec.plot_bgcolor,
@@ -149,6 +152,7 @@ class FigureSpecToPlotly:
     @staticmethod
     def _apply_xaxis(spec: FigureConfig, fig: go.Figure) -> None:
         """Configure the primary X-axis."""
+        # [impl->req~ring5.figure.axes~1]
         if spec.axes is None:
             raise ValueError("FigureConfig requires axes")
         if spec.typography is None:
@@ -210,6 +214,7 @@ class FigureSpecToPlotly:
     @staticmethod
     def _apply_yaxis(spec: FigureConfig, fig: go.Figure) -> None:
         """Configure the primary Y-axis."""
+        # [impl->req~ring5.figure.axes~1]
         if spec.axes is None:
             raise ValueError("FigureConfig requires axes")
         if spec.typography is None:
@@ -304,6 +309,7 @@ class FigureSpecToPlotly:
     @staticmethod
     def _apply_legends(spec: FigureConfig, fig: go.Figure) -> None:
         """Apply legend configuration for all legends."""
+        # [impl->req~ring5.figure.legends~1]
         if not spec.legends:
             return
 
@@ -496,9 +502,9 @@ class FigureSpecToPlotly:
         for i, trace in enumerate(_fig_traces(fig)):
             trace_type = str(getattr(trace, "type", ""))
 
-            # Heatmaps do not support marker-based coloring.
-            # Their color is controlled by z-values and colorscale.
-            if trace_type == "heatmap":
+            # Heatmaps do not support marker-based coloring. Waterfalls encode
+            # meaning through their increasing/decreasing/totals markers.
+            if trace_type in ("heatmap", "waterfall", "sankey", "parcoords"):
                 continue
 
             # Skip traces that already have an explicit marker color
@@ -520,17 +526,20 @@ class FigureSpecToPlotly:
     @staticmethod
     def _apply_hovermode(spec: FigureConfig, fig: go.Figure) -> None:
         """Set hovermode from spec."""
+        # [impl->req~ring5.figure.plotly-hovermode~1]
         fig.update_layout(hovermode=spec.hovermode)
 
     @staticmethod
     def _apply_font_family(spec: FigureConfig, fig: go.Figure) -> None:
         """Set global font family."""
+        # [impl->req~ring5.figure.typography~1]
         if spec.font_family:
             fig.update_layout(font=dict(family=spec.font_family))
 
     @staticmethod
     def _apply_reference_lines(spec: FigureConfig, fig: go.Figure) -> None:
         """Add horizontal/vertical reference lines via fig.add_shape()."""
+        # [impl->req~ring5.figure.reference-lines~1]
         for rl in spec.reference_lines:
             if not rl.enabled:
                 continue
@@ -554,6 +563,7 @@ class FigureSpecToPlotly:
     @staticmethod
     def _apply_data_labels(spec: FigureConfig, fig: go.Figure) -> None:
         """Apply data label annotations on bars/points."""
+        # [impl->req~ring5.figure.data-labels~1]
         if spec.data_labels is None or not spec.data_labels.enabled:
             return
 
@@ -574,7 +584,7 @@ class FigureSpecToPlotly:
         for trace in _fig_traces(fig):
             # Heatmap traces don't support textposition/texttemplate —
             # their cell labels are handled separately via annotations.
-            if isinstance(trace, go.Heatmap):
+            if isinstance(trace, (go.Heatmap, go.Box, go.Violin, go.Sankey, go.Parcoords)):
                 continue
 
             update: dict[str, Any] = {
@@ -612,6 +622,7 @@ class FigureSpecToPlotly:
     @staticmethod
     def _apply_series_styling(spec: FigureConfig, fig: go.Figure) -> None:
         """Apply per-trace line_width, marker, opacity from series_styles."""
+        # [impl->req~ring5.figure.series-styling~1]
         if not spec.series_styles:
             return
 
@@ -620,9 +631,9 @@ class FigureSpecToPlotly:
             style = spec.series_styles[i % len(spec.series_styles)]
 
             update: dict[str, Any] = {}
-            if style.opacity > 0:
+            if style.opacity > 0 and not isinstance(trace, (go.Sankey, go.Parcoords)):
                 update["opacity"] = style.opacity
-            if style.line_width > 0:
+            if style.line_width > 0 and not isinstance(trace, go.Parcoords):
                 if hasattr(trace, "line"):
                     update["line"] = dict(width=style.line_width)
             if style.marker_size > 0:
@@ -631,7 +642,7 @@ class FigureSpecToPlotly:
                     marker_update = update.get("marker", {})
                     marker_update["size"] = style.marker_size
                     update["marker"] = marker_update
-            if style.bar_border_width > 0:
+            if style.bar_border_width > 0 and hasattr(trace, "marker"):
                 marker_update = update.get("marker", {})
                 marker_update["line"] = dict(
                     width=style.bar_border_width,
@@ -796,24 +807,48 @@ class FigureSpecToPlotly:
             if style.display_name:
                 trace.name = style.display_name
 
-            if style.color and trace_type != "heatmap":
+            if style.color and trace_type not in (
+                "heatmap",
+                "waterfall",
+                "sankey",
+                "parcoords",
+            ):
                 trace.update(marker=dict(color=style.color))
                 if hasattr(trace, "line") and trace_type in (
                     "scatter",
                     "scattergl",
+                    "scatterpolar",
                 ):
                     trace.update(line=dict(color=style.color))
+                elif trace_type in ("box", "violin"):
+                    trace.update(fillcolor=style.color, line=dict(color=style.color))
 
-            if style.symbol and trace_type != "heatmap":
+            if style.symbol and trace_type not in (
+                "heatmap",
+                "waterfall",
+                "sankey",
+                "parcoords",
+            ):
                 trace.update(marker=dict(symbol=style.symbol))
 
-            if style.marker_size > 0 and trace_type != "heatmap":
+            if style.marker_size > 0 and trace_type not in (
+                "heatmap",
+                "waterfall",
+                "sankey",
+                "parcoords",
+            ):
                 trace.update(marker=dict(size=style.marker_size))
 
-            if style.line_width > 0 and trace_type in ("scatter", "scattergl"):
+            if style.line_width > 0 and trace_type in (
+                "scatter",
+                "scattergl",
+                "scatterpolar",
+                "box",
+                "violin",
+            ):
                 trace.update(line=dict(width=style.line_width))
 
-            if style.hatching_pattern and trace_type != "heatmap":
+            if style.hatching_pattern and trace_type in ("bar", "histogram"):
                 trace.update(
                     marker=dict(
                         pattern=dict(

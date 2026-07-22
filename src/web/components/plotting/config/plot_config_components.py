@@ -11,6 +11,23 @@ class PlotConfigComponents:
     """Reusable UI components for plot configuration."""
 
     @staticmethod
+    def _sync_filter_column(
+        *,
+        plot_id: int,
+        filter_name: str,
+        column: str,
+        options: list[str],
+        saved_column: object,
+    ) -> None:
+        """Reset a filter to all values when its mapped column changes."""
+        column_key = f"{filter_name}_column_{plot_id}"
+        widget_key = f"{filter_name}_{plot_id}"
+        previous_column = st.session_state.get(column_key, saved_column)
+        if previous_column != column:
+            st.session_state[widget_key] = list(options)
+        st.session_state[column_key] = column
+
+    @staticmethod
     def render_filter_multiselects(
         data: pd.DataFrame,
         x_col: str | None,
@@ -35,6 +52,7 @@ class PlotConfigComponents:
         Returns:
             Tuple of (x_filter_values, group_filter_values)
         """
+        # [impl->req~ring5.figure.plot-filtering~1]
         col_filter1, col_filter2 = st.columns(2)
 
         x_values: list[str] = []
@@ -57,6 +75,13 @@ class PlotConfigComponents:
             # Sanitize session state — Streamlit >= 1.53 raises when keys hold
             # values that are no longer valid options (e.g. after a data update).
             _xf_key = f"x_filter_{plot_id}"
+            PlotConfigComponents._sync_filter_column(
+                plot_id=plot_id,
+                filter_name="x_filter",
+                column=x_col,
+                options=unique_x,
+                saved_column=saved_config.get("x"),
+            )
             if _xf_key in st.session_state:
                 _xf_state = st.session_state[_xf_key]
                 if isinstance(_xf_state, list):
@@ -65,13 +90,21 @@ class PlotConfigComponents:
                         st.session_state[_xf_key] = _xf_valid
 
             with col_filter1:
-                x_values = st.multiselect(
-                    x_label,
-                    options=unique_x,
-                    default=default_x,
-                    key=f"x_filter_{plot_id}",
-                    help="Select specific values to display on the X-axis.",
-                )
+                if _xf_key in st.session_state:
+                    x_values = st.multiselect(
+                        x_label,
+                        options=unique_x,
+                        key=_xf_key,
+                        help="Select specific values to display on the X-axis.",
+                    )
+                else:
+                    x_values = st.multiselect(
+                        x_label,
+                        options=unique_x,
+                        default=default_x,
+                        key=_xf_key,
+                        help="Select specific values to display on the X-axis.",
+                    )
 
         # Filter Group values
         if group_col and group_col in data.columns:
@@ -87,6 +120,13 @@ class PlotConfigComponents:
 
             # Sanitize session state for group filter (same reason as above).
             _gf_key = f"group_filter_{plot_id}"
+            PlotConfigComponents._sync_filter_column(
+                plot_id=plot_id,
+                filter_name="group_filter",
+                column=group_col,
+                options=unique_g,
+                saved_column=saved_config.get("group", saved_config.get("facet_col")),
+            )
             if _gf_key in st.session_state:
                 _gf_state = st.session_state[_gf_key]
                 if isinstance(_gf_state, list):
@@ -95,13 +135,21 @@ class PlotConfigComponents:
                         st.session_state[_gf_key] = _gf_valid
 
             with col_filter2:
-                group_values = st.multiselect(
-                    group_label,
-                    options=unique_g,
-                    default=default_g,
-                    key=f"group_filter_{plot_id}",
-                    help="Select specific groups to display.",
-                )
+                if _gf_key in st.session_state:
+                    group_values = st.multiselect(
+                        group_label,
+                        options=unique_g,
+                        key=_gf_key,
+                        help="Select specific groups to display.",
+                    )
+                else:
+                    group_values = st.multiselect(
+                        group_label,
+                        options=unique_g,
+                        default=default_g,
+                        key=_gf_key,
+                        help="Select specific groups to display.",
+                    )
 
         return x_values, group_values
 
@@ -180,32 +228,30 @@ class PlotConfigComponents:
         Returns:
             Dictionary with title, xlabel, ylabel, (and legend_title if requested)
         """
-        title = (
-            st.text_input(
-                "Title",
-                value=saved_config.get("title", default_title),
-                key=f"title_{plot_id}",
-            )
-            or ""
-        )
 
-        xlabel = (
-            st.text_input(
-                "X-label",
-                value=saved_config.get("xlabel", default_xlabel),
-                key=f"xlabel_{plot_id}",
+        def _text_input(
+            label: str,
+            field: str,
+            default: str,
+            *,
+            help_text: str | None = None,
+        ) -> str:
+            key = f"{field}_{plot_id}"
+            if key in st.session_state:
+                return st.text_input(label, key=key, help=help_text) or ""
+            return (
+                st.text_input(
+                    label,
+                    value=saved_config.get(field, default),
+                    key=key,
+                    help=help_text,
+                )
+                or ""
             )
-            or ""
-        )
 
-        ylabel = (
-            st.text_input(
-                "Y-label",
-                value=saved_config.get("ylabel", default_ylabel),
-                key=f"ylabel_{plot_id}",
-            )
-            or ""
-        )
+        title = _text_input("Title", "title", default_title)
+        xlabel = _text_input("X-label", "xlabel", default_xlabel)
+        ylabel = _text_input("Y-label", "ylabel", default_ylabel)
 
         result = {
             "title": title,
@@ -214,15 +260,11 @@ class PlotConfigComponents:
         }
 
         if include_legend_title:
-            legend_title = (
-                st.text_input(
-                    "Legend Title",
-                    value=saved_config.get("legend_title", default_legend_title),
-                    key=f"legend_title_{plot_id}",
-                    help="Custom title for the legend.",
-                )
-                or ""
+            result["legend_title"] = _text_input(
+                "Legend Title",
+                "legend_title",
+                default_legend_title,
+                help_text="Custom title for the legend.",
             )
-            result["legend_title"] = legend_title
 
         return result

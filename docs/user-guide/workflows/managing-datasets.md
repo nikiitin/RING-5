@@ -17,7 +17,276 @@ Pipeline** for filtering, normalization, sorting, and reshaping that belongs to 
 Keep an unchanged source CSV outside the application. Data-manager confirmations replace the active
 workspace table, while the implementation returns a new DataFrame rather than mutating its input.
 
+## Keep multiple named datasets
+
+<!--
+`uman~ring5.data.multi-dataset-workspace.documentation~1`
+
+Covers:
+- req~ring5.data.multi-dataset-workspace~1
+
+-->
+
+Open **Data Managers → Workspace** and choose **Retain Current Dataset** to keep the active table
+under a session-unique name. Retained tables appear with their row count, column count, and active
+state. Activating another table updates the existing Summary, transformation, and plotting pages;
+it does not delete or overwrite the other retained tables.
+
+With at least two named datasets, the workspace can:
+
+- compare aligned numeric metrics while leaving both sources untouched;
+- join tables on one or more shared key columns and retain the result under a new name;
+- append rows using the union or intersection of columns and retain the result;
+- remove one retained table without removing unrelated tables.
+
+Joined and appended results become independent named datasets. Transformations made through the
+existing data managers update only the active named dataset. Named datasets are held in the current
+session; a portfolio continues to snapshot its active dataset.
+
+The public API supports the same workflow:
+
+```python
+session.add_dataset("main", baseline)
+session.add_dataset("candidate", candidate, select=False)
+
+comparison = session.compare_datasets(
+    "main",
+    "candidate",
+    key_columns=["benchmark"],
+    metric_columns=["ipc"],
+    thresholds=2.0,
+)
+paired = session.join_datasets(
+    "main",
+    "candidate",
+    "paired",
+    on=["benchmark"],
+)
+all_runs = session.append_datasets(
+    ["main", "candidate"],
+    "all_runs",
+    select=False,
+)
+```
+
+`list_datasets()` returns immutable `DatasetInfo` summaries. `get_dataset()` returns a defensive
+copy, so editing it cannot change the retained source accidentally. Use `select_dataset()` to make
+a named table active and `remove_dataset()` to remove it explicitly.
+
+## Trace and recover dataset changes
+
+<!--
+`uman~ring5.data.lineage-undo-redo.documentation~1`
+
+Covers:
+- req~ring5.data.lineage-undo-redo~1
+
+-->
+
+Expand **Lineage & recovery** beneath a named dataset to answer three practical questions: what
+changed, which named datasets contributed to it, and which exact table state is active. Every
+confirmed change to a named dataset creates an immutable in-session revision with:
+
+- a human-readable operation such as an append, join, seeds reduction, or arithmetic change;
+- source dataset names and parent revision IDs that expose ancestry;
+- row and column counts;
+- a SHA-256 content fingerprint for identifying the exact table state.
+
+Choose a revision to inspect its first 100 rows without changing the dataset. **Undo Last Change**
+moves to the preceding state and **Redo Change** reapplies the most recently undone state. **Restore
+This Revision** makes any inspected intermediate state current. If you confirm a new change after
+undoing, the new revision branches from that restored state and the abandoned revision remains
+inspectable, while the redo action is cleared.
+
+The public API exposes the same recovery flow:
+
+```python
+lineage = session.dataset_lineage("all_runs")
+for revision in lineage.revisions:
+    print(revision.sequence, revision.operation, revision.fingerprint)
+
+old_table = session.get_dataset_revision(lineage.revisions[0].revision_id)
+session.undo_dataset("all_runs")
+session.redo_dataset("all_runs")
+session.restore_dataset_revision(lineage.revisions[0].revision_id)
+```
+
+Revision snapshots are defensive copies held only for the current session. They are not stored
+inside portfolios. Save an important recovered table as a reusable dataset snapshot before ending
+the session when you need the exact table again.
+
+## Define and validate a schema contract
+
+<!--
+`uman~ring5.data.schema-contracts.documentation~1`
+
+Covers:
+- req~ring5.data.schema-contracts~1
+
+-->
+
+Open **Data Managers → Schema Contract** when a dataset is about to cross an important boundary,
+such as a join, regression comparison, or shared analysis recipe. RING-5 starts with inferred data
+types and current nullability so the loaded table passes by default. Edit the table to make the
+actual agreement explicit:
+
+- mark columns required or optional;
+- choose numeric, integer, boolean, datetime, text, or unconstrained values;
+- decide whether each present column may contain missing cells;
+- set finite minimum and maximum values for numeric columns;
+- enter comma-separated accepted categorical values;
+- reject or allow columns not declared by the contract.
+
+Select **Validate Schema Contract** to see a clear valid/needs-attention result. Failures are grouped
+by rule and column with an affected-row count and up to ten zero-based row positions. Validation is
+read-only: it never coerces, removes, or replaces data.
+
+Python workflows can infer a starting point or construct an exact contract directly:
+
+```python
+contract = ring5.DatasetSchemaContract(
+    "benchmark-results-v1",
+    (
+        ring5.ColumnContract("benchmark", data_type="string"),
+        ring5.ColumnContract(
+            "ipc",
+            data_type="numeric",
+            nullable=False,
+            minimum=0.0,
+        ),
+        ring5.ColumnContract(
+            "status",
+            data_type="string",
+            accepted_values=("stable", "experimental"),
+        ),
+    ),
+    allow_extra_columns=False,
+)
+report = session.validate_schema(data, contract)
+if not report.valid:
+    print(report.to_frame())
+
+starting_point = session.infer_schema_contract(data, name="draft-contract")
+```
+
+An inferred contract describes the current table; it is not a substitute for deciding what future
+inputs are allowed. Review nullable columns and categorical values before treating it as a stable
+boundary.
+
+## Retain semantic labels and units
+
+<!--
+`uman~ring5.data.semantic-units.documentation~1`
+
+Covers:
+- req~ring5.data.semantic-units~1
+
+-->
+
+Column names are often optimized for machines (`system.cpu.temp`, `avg_ns`) rather than readers.
+In **Data Managers → Schema Contract**, fill **Semantic label** with the meaning readers should see
+and **Unit** with the measurement unit, then select **Apply Labels and Units**. This metadata becomes
+part of the active dataset and its lineage revision. It is retained by reusable dataset snapshots,
+portfolios, and plot snapshots.
+
+When a figure has no explicit axis label, RING-5 uses `Semantic label (unit)`. A label entered in the
+figure controls always wins. Parallel-coordinate dimensions receive the same labels. Consequently,
+Plotly, Matplotlib, and exported figure files describe the measurement consistently without copying
+labels into every plot.
+
+The same schema contract is the source of truth in Python:
+
+```python
+contract = ring5.DatasetSchemaContract(
+    "latency-results",
+    (
+        ring5.ColumnContract("benchmark", semantic_label="Workload"),
+        ring5.ColumnContract(
+            "latency",
+            data_type="numeric",
+            semantic_label="Mean latency",
+            unit="ms",
+        ),
+    ),
+)
+annotated = session.apply_semantics(data, contract)
+converted = session.convert_unit(annotated, "latency", "us")
+print(session.inspect_semantics(converted).to_frame())
+```
+
+Conversions return a new table and require a declared source unit. Only compatible dimensions are
+accepted: time, frequency, length, data size, power, energy, voltage, current, temperature, and
+ratio/percent. `supported_units()` returns the exact canonical spellings. Temperature conversion
+handles offsets as well as scale; incompatible or non-numeric conversions raise
+`DataValidationError` before changing data.
+
+`Table.to_csv()` keeps the CSV standards-compliant and, when metadata is present, writes a
+neighboring `<filename>.metadata.json` sidecar. Pass `include_metadata=False` when a downstream
+consumer requires the CSV alone.
+
+## Validate joins before creating output
+
+<!--
+`uman~ring5.data.validated-joins.documentation~1`
+
+Covers:
+- req~ring5.data.validated-joins~1
+
+-->
+
+In **Data Managers → Workspace**, select **Join** and choose the key columns before creating an
+output. Then state the relationship you expect:
+
+- **one left row to one right row** requires unique keys on both sides;
+- **one left row to many right rows** requires unique left keys;
+- **many left rows to one right row** requires unique right keys;
+- **many rows on both sides** permits duplicate keys explicitly.
+
+RING-5 shows the number of duplicate-key rows, duplicate-key groups, unmatched rows on each side,
+and distinct keys that match. **Validate and Join Datasets** remains disabled when duplicates
+conflict with the selected relationship. Unmatched rows are diagnostics rather than an automatic
+failure because the selected inner, left, right, or outer join mode determines whether they belong
+in the result. A many-to-many join is allowed only when you choose it explicitly; remember that it
+can multiply rows within every duplicated key group.
+
+Python workflows can diagnose first and then reuse the same explicit relationship for execution:
+
+```python
+diagnostics = session.diagnose_join(
+    "benchmarks",
+    "metadata",
+    on=["benchmark"],
+    cardinality="many_to_one",
+)
+print(diagnostics.left_unmatched_rows, diagnostics.right_unmatched_rows)
+
+joined, confirmed = session.join_datasets_validated(
+    "benchmarks",
+    "metadata",
+    "benchmarks_with_metadata",
+    on=["benchmark"],
+    cardinality="many_to_one",
+    how="left",
+)
+```
+
+The validated output is a new named dataset with lineage links to both sources. A cardinality
+conflict raises `DataValidationError` and does not create the output.
+
 ## Inspect the table
+
+<!--
+`uman~ring5.data.summary.documentation~1`
+
+Covers:
+- req~ring5.data.summary~1
+
+`uman~ring5.data.table-view.documentation~1`
+
+Covers:
+- req~ring5.data.table-view~1
+
+-->
 
 Open **Data Managers** and use **Summary** to check column types and missing values. Use **Data
 Visualization** to search, select columns, and inspect rows. **Download Current View as CSV** exports
@@ -26,7 +295,67 @@ the filtered view for inspection; it does not redefine the active workspace tabl
 Before changing data, verify that configuration columns are categorical and statistics are numeric.
 An incorrect inferred type usually indicates inconsistent CSV values.
 
+## Profile data quality
+
+<!--
+`uman~ring5.data.quality-profiler.documentation~1`
+
+Covers:
+- req~ring5.data.quality-profiler~1
+
+-->
+
+Open **Data Quality** to inspect the active table without changing it. Select columns that are
+expected to contain numeric, boolean, datetime, or text values, then select **Profile Dataset**.
+The report includes:
+
+- missing cells and redundant duplicate rows;
+- inferred and stored column types;
+- unique values and constant columns;
+- infinite numeric values;
+- values outside the 1.5 × IQR bounds;
+- values that cannot be interpreted as the selected expected type.
+
+Missing expected columns are reported by the public API. Type validation ignores missing cells so
+missingness and invalid values remain separate counts. IQR outliers are screening results, not
+automatic exclusions; inspect the experiment design before removing them.
+
+```python
+report = session.profile_data(
+    data,
+    expected_types={
+        "ipc": "numeric",
+        "completed": "boolean",
+        "timestamp": "datetime",
+    },
+)
+print(report.duplicate_rows, report.schema_violations)
+column_profile = report.to_frame()
+```
+
+## Preview and confirm changes
+
+<!--
+`uman~ring5.data.preview-confirm.documentation~1`
+
+Covers:
+- req~ring5.data.preview-confirm~1
+
+-->
+
+Seeds Reducer, Outlier Remover, Preprocessor, Mixer, and Compare calculate into an isolated preview. The
+active workspace table changes only after the corresponding confirmation control is selected.
+Discarding or replacing a preview leaves the active table unchanged.
+
 ## Reduce repeated runs
+
+<!--
+`uman~ring5.data.seed-reduction.documentation~1`
+
+Covers:
+- req~ring5.data.seed-reduction~1
+
+-->
 
 Use **Seeds Reducer** after confirming the raw runs and before normalizing a figure:
 
@@ -51,6 +380,14 @@ reduced = session.reduce_seeds(
 
 ## Remove outliers
 
+<!--
+`uman~ring5.data.outlier-removal.documentation~1`
+
+Covers:
+- req~ring5.data.outlier-removal~1
+
+-->
+
 **Outlier Remover** computes Q1 and Q3 for a numeric column and removes values outside
 `[Q1 - 1.5 × IQR, Q3 + 1.5 × IQR]`. Optional group-by columns calculate independent bounds for
 each experiment group.
@@ -73,17 +410,72 @@ measurements.
 
 ## Derive or combine columns
 
-- **Preprocessor** applies a selected binary arithmetic operation to two numeric columns. Use
-  **Preview Result**, check invalid or infinite results, then select **Confirm and Add Column to
-  Dataset**.
-- **Mixer** combines several numeric columns with sum or mean, or concatenates columns into a
-  configuration label. When matching standard-deviation columns exist, numeric mixing propagates
-  them into the result.
+### Binary arithmetic
+
+<!--
+`uman~ring5.data.arithmetic.documentation~1`
+
+Covers:
+- req~ring5.data.arithmetic~1
+
+-->
+
+**Preprocessor** creates a named column by dividing, adding, subtracting, or multiplying two numeric
+source columns. Division by zero produces a missing value. Use **Preview Result**, inspect invalid or
+infinite results, then select **Confirm and Add Column to Dataset**.
+
+### Numeric column mixing
+
+<!--
+`uman~ring5.data.numeric-mixer.documentation~1`
+
+Covers:
+- req~ring5.data.numeric-mixer~1
+
+-->
+
+**Mixer** creates a named sum or arithmetic mean from two or more numeric columns. The source
+columns remain in the result.
+
+### Configuration label mixing
+
+<!--
+`uman~ring5.data.configuration-mixer.documentation~1`
+
+Covers:
+- req~ring5.data.configuration-mixer~1
+
+-->
+
+In configuration mode, **Mixer** converts the selected source values to text and concatenates them
+in selection order with the configured separator. This mode does not calculate uncertainty.
+
+### Uncertainty propagation
+
+<!--
+`uman~ring5.data.error-propagation.documentation~1`
+
+Covers:
+- req~ring5.data.error-propagation~1
+
+-->
+
+For numeric sums and means, Mixer looks for a `.sd` or `_stdev` companion for each source column.
+When at least one is present, it combines variances and writes `<result>.sd`; means divide the
+combined standard deviation by the number of source columns.
 
 Name derived columns for the quantity and unit they contain. For example, a division is not
 automatically IPC unless the numerator and denominator have the correct semantics.
 
 ## Review operation history
+
+<!--
+`uman~ring5.data.operation-history.documentation~1`
+
+Covers:
+- req~ring5.data.operation-history~1
+
+-->
 
 Each manager records confirmed operations. Use its history to reload a configuration, and use
 **Operations History** to review workspace changes. History records configuration; they do not

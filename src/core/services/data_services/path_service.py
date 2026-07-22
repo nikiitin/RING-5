@@ -11,6 +11,10 @@ class PathService:
     _root_dir: Path | None = None
     _data_dir: Path | None = None
     _portfolios_dir: Path | None = None
+    _portfolio_revisions_dir: Path | None = None
+    _dataset_snapshots_dir: Path | None = None
+    _analysis_recipes_dir: Path | None = None
+    _recovery_drafts_dir: Path | None = None
 
     @staticmethod
     def reset_caches() -> None:
@@ -18,6 +22,10 @@ class PathService:
         PathService._root_dir = None
         PathService._data_dir = None
         PathService._portfolios_dir = None
+        PathService._portfolio_revisions_dir = None
+        PathService._dataset_snapshots_dir = None
+        PathService._analysis_recipes_dir = None
+        PathService._recovery_drafts_dir = None
 
     @staticmethod
     def get_root_dir() -> Path:
@@ -35,6 +43,7 @@ class PathService:
         environment variable when set, so tests (and sandboxes) can redirect all
         app data to an isolated location instead of the shared repo ``.ring5``.
         """
+        # [impl->req~ring5.workspace.application-data-directory~1]
         if PathService._data_dir is None:
             override = os.environ.get("RING5_DATA_DIR")
             PathService._data_dir = (
@@ -50,3 +59,38 @@ class PathService:
             PathService._portfolios_dir = PathService.get_data_dir() / "portfolios"
             PathService._portfolios_dir.mkdir(parents=True, exist_ok=True)
         return PathService._portfolios_dir
+
+    @staticmethod
+    def get_portfolio_revisions_dir() -> Path:
+        """Get the immutable portfolio-revision directory."""
+        if PathService._portfolio_revisions_dir is None:
+            PathService._portfolio_revisions_dir = (
+                PathService.get_data_dir() / "portfolio_revisions"
+            )
+            PathService._portfolio_revisions_dir.mkdir(parents=True, exist_ok=True)
+        return PathService._portfolio_revisions_dir
+
+    @staticmethod
+    def get_dataset_snapshots_dir() -> Path:
+        """Get the persistent reusable-dataset snapshot directory."""
+        # [impl->req~ring5.data.dataset-snapshots~1]
+        if PathService._dataset_snapshots_dir is None:
+            PathService._dataset_snapshots_dir = PathService.get_data_dir() / "dataset_snapshots"
+            PathService._dataset_snapshots_dir.mkdir(parents=True, exist_ok=True)
+        return PathService._dataset_snapshots_dir
+
+    @staticmethod
+    def get_analysis_recipes_dir() -> Path:
+        """Get the persistent analysis-recipe directory."""
+        if PathService._analysis_recipes_dir is None:
+            PathService._analysis_recipes_dir = PathService.get_data_dir() / "analysis_recipes"
+            PathService._analysis_recipes_dir.mkdir(parents=True, exist_ok=True)
+        return PathService._analysis_recipes_dir
+
+    @staticmethod
+    def get_recovery_drafts_dir() -> Path:
+        """Get the private bounded browser-recovery draft directory."""
+        if PathService._recovery_drafts_dir is None:
+            PathService._recovery_drafts_dir = PathService.get_data_dir() / "recovery_drafts"
+            PathService._recovery_drafts_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+        return PathService._recovery_drafts_dir

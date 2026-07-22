@@ -21,14 +21,17 @@ import hashlib
 import json
 import logging
 from copy import deepcopy
-from typing import cast
+from collections.abc import Mapping
+from typing import Any, cast
 
 import pandas as pd
+import plotly.graph_objects as go
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
 from src.core.models.visualization.engine import EngineMode
 from src.web.components.common.chart_display import ChartDisplayComponent
+from src.web.components.plotting.drill_down_panel import DrillDownPanel, point_label
 from src.web.models.plot_models import PlotConfig
 from src.web.models.plot_protocols import (
     PlotLifecycleService,
@@ -37,9 +40,24 @@ from src.web.models.plot_protocols import (
 )
 from src.web.pages.ui.plotting.settings_pills import render_settings_pills
 from src.web.rendering.engine_manager import EngineManager
+from src.web.rendering.small_multiples_builder import render_small_multiples
 from src.web.state.ui_state_manager import UIStateManager
 
 logger = logging.getLogger(__name__)
+
+
+def _drill_down_key(plot_id: int, suffix: str) -> str:
+    """Return a plot-scoped key for transient drill-down browser state."""
+    return f"plot.{plot_id}.drill_down.{suffix}"
+
+
+def _supports_drill_down(figure: go.Figure) -> bool:
+    """Return whether any trace carries point-aligned source filters."""
+    for trace in figure.data:
+        meta = getattr(trace, "meta", None)
+        if isinstance(meta, Mapping) and isinstance(meta.get("ring5_drilldown"), list):
+            return True
+    return False
 
 
 class PlotRenderController:
@@ -88,6 +106,9 @@ class PlotRenderController:
             plot: The plot to render (must satisfy both PlotHandle
                   and ConfigRenderer protocols).
         """
+        # [impl->req~ring5.plots.change-type~1]
+        # [impl->req~ring5.plots.refresh-cache~1]
+        # [impl->req~ring5.figure.theme-presets~1]
         if plot.processed_data is None:
             st.warning("No processed data available.")
             return
@@ -134,6 +155,7 @@ class PlotRenderController:
             config_error = True
 
         # 3. Advanced & Theme (inline)
+        refresh_requested = False
         try:
             show_adv: bool = st.toggle(
                 "Show advanced settings",
@@ -144,6 +166,7 @@ class PlotRenderController:
             extra_config: PlotConfig = plot.render_settings_section(
                 selected_section, current_config, data
             )
+            refresh_requested = bool(extra_config.pop("_ring5_request_refresh", False))
             current_config.update(extra_config)
         except Exception as e:
             st.exception(e)
@@ -168,7 +191,7 @@ class PlotRenderController:
         # Update auto-refresh in UI state
         self._ui.plot.set_auto_refresh(plot.plot_id, controls["auto_refresh"])
 
-        should_gen: bool = controls["should_generate"] and not config_error
+        should_gen: bool = (controls["should_generate"] or refresh_requested) and not config_error
         # With auto-refresh disabled, keep the persisted config paired with the
         # visible figure until the user explicitly refreshes. Widget values
         # remain in Streamlit state and are gathered again on that refresh.
@@ -180,6 +203,9 @@ class PlotRenderController:
 
     # Private helpers
     def _render_visualization(self, plot: RenderablePlot, should_generate: bool) -> None:
+        # [impl->req~ring5.render.engine-selection~1]
+        # [impl->req~ring5.plots.drill-down~1]
+        # [impl->req~ring5.plots.small-multiples~1]
         """
         Generate figure (with caching) and delegate display to component.
 
@@ -194,6 +220,7 @@ class PlotRenderController:
             plot: The plot instance (``BasePlot`` at runtime).
             should_generate: Whether to force figure regeneration.
         """
+        # [impl->req~ring5.plots.refresh-cache~1]
         if plot.processed_data is None:
             return
 
@@ -225,14 +252,40 @@ class PlotRenderController:
             plot.last_generated_fig is not None and plot.last_figure_cache_key == cache_key
         )
 
+        multiples_spec = None
+        if plot.config.get("small_multiples_enabled"):
+            facet_columns = plot.config.get("small_multiples_by", [])
+            if isinstance(facet_columns, list) and facet_columns:
+                try:
+                    panel_columns = int(plot.config.get("small_multiples_columns", 3))
+                    multiples_spec = self._api.create_small_multiples(
+                        plot.plot_id,
+                        facet_columns,
+                        columns=panel_columns,
+                        width=max(int(plot.config.get("width", 800)), panel_columns * 360),
+                        panel_height=int(plot.config.get("small_multiples_panel_height", 320)),
+                        shared_xaxes=bool(plot.config.get("small_multiples_shared_xaxes", True)),
+                        shared_yaxes=bool(plot.config.get("small_multiples_shared_yaxes", True)),
+                        shared_legend=bool(plot.config.get("small_multiples_shared_legend", True)),
+                    )
+                except (TypeError, ValueError) as exc:
+                    ChartDisplayComponent.render_error(exc)
+                    return
+
         # Generate figure if needed
         if should_generate or not cache_matches:
             try:
                 # create_figure relabels legend names engine-agnostically
                 # (on TraceConfig.name), so both engines stay consistent — no
                 # Plotly-only for_each_trace pass here.
-                fig = plot.create_figure(plot.processed_data, plot.config)
-                fig = plot.apply_common_layout(fig, plot.config)
+                if multiples_spec is not None:
+                    fig = cast(
+                        go.Figure,
+                        render_small_multiples([cast(Any, plot)], multiples_spec, engine="plotly"),
+                    )
+                else:
+                    fig = plot.create_figure(plot.processed_data, plot.config)
+                    fig = plot.apply_common_layout(fig, plot.config)
                 plot.last_generated_fig = fig
                 plot.last_figure_cache_key = cache_key
             except Exception as e:
@@ -247,6 +300,17 @@ class PlotRenderController:
         # Branch on engine mode
         try:
             if active_engine == "matplotlib":
+                if multiples_spec is not None:
+                    mpl_fig = render_small_multiples(
+                        [cast(Any, plot)], multiples_spec, engine="matplotlib"
+                    )
+                    ChartDisplayComponent.render_prebuilt_matplotlib_chart(
+                        mpl_fig,
+                        display_fig,
+                        plot.plot_id,
+                        plot.name,
+                    )
+                    return
                 # Reuse traces computed during plot generation when available.
                 _traces_result = plot.last_traces
                 pre_traces = list(_traces_result.traces) if _traces_result is not None else None
@@ -265,20 +329,78 @@ class PlotRenderController:
                     rule_lines=rules,
                 )
             else:
-                relayout_data = ChartDisplayComponent.render_plotly_chart(
+                drill_enabled = False
+                generation_key = _drill_down_key(plot.plot_id, "generation")
+                generation = int(st.session_state.get(generation_key, 0))
+                result_key = _drill_down_key(plot.plot_id, "result")
+                event_key = _drill_down_key(plot.plot_id, "last_event")
+
+                if _supports_drill_down(display_fig):
+                    drill_enabled = DrillDownPanel.render_toggle(plot.plot_id)
+                stored = st.session_state.get(result_key)
+                if isinstance(stored, dict) and stored.get("cache_key") != cache_key:
+                    st.session_state.pop(result_key, None)
+                    st.session_state.pop(event_key, None)
+                    generation += 1
+                    st.session_state[generation_key] = generation
+                    stored = None
+                if not drill_enabled and stored is not None:
+                    st.session_state.pop(result_key, None)
+                    st.session_state.pop(event_key, None)
+                    generation += 1
+                    st.session_state[generation_key] = generation
+                    stored = None
+
+                interaction_data = ChartDisplayComponent.render_plotly_chart(
                     display_fig,
                     plot.plot_id,
                     plot.name,
                     plot.config,
+                    plot.processed_data,
+                    capture_click=drill_enabled,
+                    component_generation=generation,
                 )
+                if (
+                    drill_enabled
+                    and interaction_data
+                    and interaction_data.get("kind") == "drill_down"
+                ):
+                    last_event = st.session_state.get(event_key)
+                    if interaction_data != last_event:
+                        filters = interaction_data.get("filters")
+                        if isinstance(filters, Mapping):
+                            st.session_state[event_key] = interaction_data
+                            try:
+                                result = self._api.drill_down_plot(plot.plot_id, filters)
+                            except (TypeError, ValueError) as exc:
+                                DrillDownPanel.render_error(exc)
+                            else:
+                                st.session_state[result_key] = {
+                                    "cache_key": cache_key,
+                                    "point_label": point_label(interaction_data),
+                                    "result": result,
+                                }
+                                st.rerun()
+                                return
                 # Handle relayout events (zoom, pan, legend drag)
-                if relayout_data:
+                elif interaction_data:
                     last_event_key = f"plot.{plot.plot_id}.last_relayout"
                     last_event = st.session_state.get(last_event_key)
-                    if relayout_data != last_event:
-                        if plot.update_from_relayout(relayout_data):
-                            st.session_state[last_event_key] = relayout_data
+                    if interaction_data != last_event:
+                        if plot.update_from_relayout(interaction_data):
+                            st.session_state[last_event_key] = interaction_data
                             st.rerun()
+
+                stored = st.session_state.get(result_key)
+                if isinstance(stored, dict) and stored.get("cache_key") == cache_key:
+                    stored_result = stored.get("result")
+                    if stored_result is not None and DrillDownPanel.render_result(
+                        stored_result, str(stored.get("point_label", ""))
+                    ):
+                        st.session_state.pop(result_key, None)
+                        st.session_state.pop(event_key, None)
+                        st.session_state[generation_key] = generation + 1
+                        st.rerun()
         except Exception as e:
             ChartDisplayComponent.render_error(e)
 
@@ -304,6 +426,7 @@ class PlotRenderController:
         Returns:
             Cache key string.
         """
+        # [impl->req~ring5.plots.independent-state~1]
         cache_relevant_config = {
             k: v for k, v in config.items() if k not in {"xaxis_range", "yaxis_range"}
         }

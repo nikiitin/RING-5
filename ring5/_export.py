@@ -46,6 +46,7 @@ def export_bytes(
     dpi: int = 300,
     spec: FigureConfig | None = None,
 ) -> bytes:
+    # [impl->req~ring5.export.public-boundary~1]
     """Export a rendered figure to image/document bytes.
 
     The engine is inferred from the figure type: ``go.Figure`` → plotly
@@ -139,6 +140,7 @@ def export_file(
     dpi: int = 300,
     spec: FigureConfig | None = None,
 ) -> str:
+    # [impl->req~ring5.export.public-boundary~1]
     """Export a rendered figure to a file; format defaults from the extension.
 
     Args:

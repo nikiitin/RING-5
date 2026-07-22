@@ -76,7 +76,7 @@ class TestApplicationAPIIsRegex:
     def test_dict_with_regex_name(self) -> None:
         r"""A dict variable with \\d+ in name should produce is_regex=True."""
         api = self._make_api()
-        api._parser.submit_parse_async.return_value = MagicMock()
+        api._parser.submit_parse_async.return_value = MagicMock(futures=[])
 
         variables: list[dict[str, Any]] = [
             {"name": r"system.cpu\d+.ipc", "type": "scalar"},
@@ -96,7 +96,7 @@ class TestApplicationAPIIsRegex:
     def test_dict_with_plain_name(self) -> None:
         r"""A dict variable without \\d+ should produce is_regex=False."""
         api = self._make_api()
-        api._parser.submit_parse_async.return_value = MagicMock()
+        api._parser.submit_parse_async.return_value = MagicMock(futures=[])
 
         variables: list[dict[str, Any]] = [
             {"name": "system.cpu.ipc", "type": "scalar"},
@@ -116,7 +116,7 @@ class TestApplicationAPIIsRegex:
     def test_scanned_variable_with_regex(self) -> None:
         r"""A ScannedVariable with \\d+ in name should produce is_regex=True."""
         api = self._make_api()
-        api._parser.submit_parse_async.return_value = MagicMock()
+        api._parser.submit_parse_async.return_value = MagicMock(futures=[])
 
         sv = ScannedVariable(
             name=r"system.cpu\d+.numCycles",

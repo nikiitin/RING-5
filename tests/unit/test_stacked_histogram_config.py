@@ -170,6 +170,7 @@ class TestStackedBarCreateFigure:
         assert len(list(trace0_x)) == 1
 
     def test_show_totals_annotations(self) -> None:
+        # [test->req~ring5.figure.stack-totals~1]
         from src.web.pages.ui.plotting.types.stacked_bar_plot import StackedBarPlot
 
         plot = StackedBarPlot(plot_id=1, name="test")
@@ -219,6 +220,7 @@ class TestStackedBarCreateFigure:
         assert anchor == "bottom"
 
     def test_totals_threshold_skips_small(self) -> None:
+        # [test->req~ring5.figure.stack-totals~1]
         from src.web.pages.ui.plotting.types.stacked_bar_plot import StackedBarPlot
 
         plot = StackedBarPlot(plot_id=1, name="test")
@@ -244,6 +246,8 @@ class TestStackedBarCreateFigure:
 class TestHistogramRenderConfigUI:
     """Tests for histogram configuration controls."""
 
+    # [test->req~ring5.figure.histogram-controls~1]
+
     @patch(f"{_HIST_CFG}.render_common_config")
     @patch(f"{_HIST_CFG}.st")
     def test_no_histogram_vars_detected(self, mock_st: MagicMock, mock_common: MagicMock) -> None:
@@ -267,6 +271,8 @@ class TestHistogramRenderConfigUI:
 
 class TestHistogramCreateFigure:
     """Tests for histogram figure creation."""
+
+    # [test->req~ring5.figure.histogram-controls~1]
 
     def test_no_histogram_var_raises(self) -> None:
         from src.web.pages.ui.plotting.types.histogram_plot import HistogramPlot
@@ -340,6 +346,7 @@ class TestHistogramCreateFigure:
         assert vals == pytest.approx(expected)
 
     def test_normalization_cumulative(self) -> None:
+        # [test->req~ring5.figure.histogram-cumulative~1]
         from src.web.pages.ui.plotting.types.histogram_plot import HistogramPlot
 
         plot = HistogramPlot(plot_id=1, name="test")
@@ -373,6 +380,37 @@ class TestHistogramCreateFigure:
 
 class TestPlotConfigComponents:
     """Tests for shared plot configuration controls."""
+
+    @patch("src.web.components.plotting.config.plot_config_components.st")
+    def test_filter_mapping_change_selects_values_from_new_column(self, mock_st: MagicMock) -> None:
+        # [test->req~ring5.figure.plot-filtering~1]
+        from src.web.components.plotting.config.plot_config_components import (
+            PlotConfigComponents,
+        )
+
+        mock_st.columns.side_effect = _columns_side_effect
+        mock_st.session_state = {}
+        mock_st.multiselect.side_effect = lambda _label, **kwargs: mock_st.session_state.get(
+            kwargs["key"], kwargs.get("default", [])
+        )
+        df = pd.DataFrame(
+            {
+                "benchmark_name": ["mcf", "omnetpp"],
+                "config_description": ["baseline", "optimized"],
+            }
+        )
+
+        _x_values, group_values = PlotConfigComponents.render_filter_multiselects(
+            data=df,
+            x_col="benchmark_name",
+            group_col="config_description",
+            saved_config={"group": None, "group_filter": []},
+            plot_id=4,
+        )
+
+        assert group_values == ["baseline", "optimized"]
+        assert mock_st.session_state["group_filter_column_4"] == "config_description"
+        assert mock_st.session_state["group_filter_4"] == ["baseline", "optimized"]
 
     @patch("src.web.components.plotting.config.plot_config_components.st")
     def test_filter_no_group_col(self, mock_st: MagicMock) -> None:
@@ -471,6 +509,35 @@ class TestPlotConfigComponents:
         )
 
         assert "legend_title" not in result
+
+    @patch("src.web.components.plotting.config.plot_config_components.st")
+    def test_title_labels_reuse_session_state_without_widget_defaults(
+        self, mock_st: MagicMock
+    ) -> None:
+        from src.web.components.plotting.config.plot_config_components import (
+            PlotConfigComponents,
+        )
+
+        mock_st.session_state = {
+            "title_7": "Updated title",
+            "xlabel_7": "Updated X",
+            "ylabel_7": "Updated Y",
+        }
+        mock_st.text_input.side_effect = lambda _label, **kwargs: mock_st.session_state[
+            kwargs["key"]
+        ]
+
+        result = PlotConfigComponents.render_title_labels_section(
+            saved_config={"title": "Old title"},
+            plot_id=7,
+        )
+
+        assert result == {
+            "title": "Updated title",
+            "xlabel": "Updated X",
+            "ylabel": "Updated Y",
+        }
+        assert all("value" not in call.kwargs for call in mock_st.text_input.call_args_list)
 
 
 class TestColors:

@@ -9,6 +9,8 @@ import plotly.graph_objects as go
 
 from src.core.models.data_models import PipelineStep
 from src.core.models.visualization.trace_build_result import TraceBuildResult
+from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
+from src.core.services.visualization.accessibility_service import AccessibilityService
 from src.web.models.plot_models import PlotConfig
 from src.web.rendering.relayout import update_config_from_relayout
 from src.web.pages.ui.plotting.plot_config_ui import PlotConfigUIMixin
@@ -24,6 +26,7 @@ def _relabel_traces(
     single source of truth for legend relabeling, so BOTH the Plotly and
     Matplotlib engines honor it (each reads ``trace.name`` for the legend entry).
     """
+    # [impl->req~ring5.figure.ordering-renaming~1]
     if not legend_labels:
         return result
     new_traces = [replace(t, name=legend_labels.get(t.name, t.name)) for t in result.traces]
@@ -42,10 +45,13 @@ class BasePlot(PlotConfigUIMixin, ABC):
             name: Display name for the plot
             plot_type: Type of plot (bar, line, etc.)
         """
+        # [impl->req~ring5.plots.independent-state~1]
+        # [impl->req~ring5.shaping.independent-pipelines~1]
         self.plot_id: int = plot_id
         self.name: str = name
         self.plot_type: str = plot_type
         self.config: PlotConfig = {}
+        self.source_data: pd.DataFrame | None = None
         self.processed_data: pd.DataFrame | None = None
         self.last_generated_fig: go.Figure | None = None
         self.last_traces: TraceBuildResult | None = None
@@ -77,6 +83,9 @@ class BasePlot(PlotConfigUIMixin, ABC):
         """
 
     def create_figure(self, data: pd.DataFrame, config: PlotConfig) -> go.Figure:
+        # [impl->req~ring5.render.engine-independent-traces~1]
+        # [impl->req~ring5.data.semantic-units~1]
+        # [impl->req~ring5.figure.accessible-themes~1]
         """
         Create the Plotly figure from data and configuration.
 
@@ -92,7 +101,13 @@ class BasePlot(PlotConfigUIMixin, ABC):
         """
         from src.web.rendering.trace_to_plotly import traces_to_plotly
 
+        effective_config = SemanticMetadataService.enrich_figure_config(data, config)
+        effective_config = AccessibilityService.apply_defaults(effective_config, self.plot_type)
+        if effective_config is not config:
+            self.config = effective_config
+            config = self.config
         result = self.create_traces(data, config)
+        result = AccessibilityService.apply_non_color_encodings(result, config)
         # Apply legend relabeling once, engine-agnostically, so both Plotly and
         # Matplotlib (which renders from ``last_traces``) show the custom names.
         result = _relabel_traces(result, config.get("legend_labels"))
@@ -119,6 +134,7 @@ class BasePlot(PlotConfigUIMixin, ABC):
         Returns:
             True if config changed, False otherwise
         """
+        # [impl->req~ring5.figure.interactive-editing~1]
         updated_config, changed = update_config_from_relayout(self.config, relayout_data)
 
         if changed:
@@ -142,6 +158,15 @@ class BasePlot(PlotConfigUIMixin, ABC):
         """
         self.processed_data = data
         self.invalidate_figure()
+
+    def replace_source_data(self, data: pd.DataFrame | None) -> None:
+        # [impl->req~ring5.plots.drill-down~1]
+        """Store a private source snapshot for reversible row exploration.
+
+        The snapshot is deliberately excluded from portfolio serialization;
+        restored legacy plots fall back to their saved processed data.
+        """
+        self.source_data = data.copy(deep=True) if data is not None else None
 
     @abstractmethod
     def get_legend_column(self, config: PlotConfig) -> str | None:
@@ -176,6 +201,8 @@ class BasePlot(PlotConfigUIMixin, ABC):
         return fig
 
     def to_dict(self) -> dict[str, Any]:
+        # [impl->req~ring5.portfolio.save~1]
+        # [impl->req~ring5.data.semantic-units~1]
         """
         Convert plot to dictionary for serialization.
 
@@ -191,6 +218,13 @@ class BasePlot(PlotConfigUIMixin, ABC):
                 self.processed_data.to_csv(index=False)
                 if isinstance(self.processed_data, pd.DataFrame)
                 else None
+            ),
+            "processed_semantics": (
+                SemanticMetadataService.to_payload(
+                    SemanticMetadataService.inspect(self.processed_data)
+                )
+                if isinstance(self.processed_data, pd.DataFrame)
+                else {}
             ),
             "pipeline": self.pipeline,
             "pipeline_counter": self.pipeline_counter,

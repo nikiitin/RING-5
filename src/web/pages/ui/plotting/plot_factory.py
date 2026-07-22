@@ -12,15 +12,23 @@ if TYPE_CHECKING:
     from .base_plot import BasePlot
 
 from .types import (
+    AreaPlot,
     BarPlot,
+    BoxPlot,
     DualAxisBarDotPlot,
+    EcdfPlot,
     GroupedBarPlot,
     GroupedStackedBarPlot,
     HeatmapPlot,
     HistogramPlot,
     LinePlot,
+    ParallelCoordinatesPlot,
+    RadarPlot,
+    SankeyPlot,
     ScatterPlot,
     StackedBarPlot,
+    ViolinPlot,
+    WaterfallPlot,
 )
 
 
@@ -36,20 +44,41 @@ class PlotFactory:
     """Create plots from a registry that supports runtime extension."""
 
     _plot_classes: dict[str, Callable[[int, str], BasePlot]] = {
+        "area": AreaPlot,
         "bar": BarPlot,
+        "box": BoxPlot,
         "dual_axis_bar_dot": DualAxisBarDotPlot,
+        "ecdf": EcdfPlot,
         "grouped_bar": GroupedBarPlot,
         "heatmap": HeatmapPlot,
         "stacked_bar": StackedBarPlot,
         "grouped_stacked_bar": GroupedStackedBarPlot,
         "histogram": HistogramPlot,
         "line": LinePlot,
+        "parallel_coordinates": ParallelCoordinatesPlot,
+        "radar": RadarPlot,
+        "sankey": SankeyPlot,
         "scatter": ScatterPlot,
+        "violin": ViolinPlot,
+        "waterfall": WaterfallPlot,
     }
 
     _plot_metadata: dict[str, PlotTypeMetadata] = {
+        "area": {"display_name": "Area Chart", "icon": "area_chart", "category": "basic"},
         "bar": {"display_name": "Bar Chart", "icon": "bar_chart", "category": "basic"},
+        "box": {"display_name": "Box Plot", "icon": "inventory_2", "category": "distribution"},
         "line": {"display_name": "Line Chart", "icon": "show_chart", "category": "basic"},
+        "parallel_coordinates": {
+            "display_name": "Parallel Coordinates",
+            "icon": "multiline_chart",
+            "category": "comparison",
+        },
+        "radar": {"display_name": "Radar Chart", "icon": "radar", "category": "comparison"},
+        "sankey": {
+            "display_name": "Sankey Diagram",
+            "icon": "account_tree",
+            "category": "comparison",
+        },
         "scatter": {"display_name": "Scatter Plot", "icon": "scatter_plot", "category": "basic"},
         "grouped_bar": {
             "display_name": "Grouped Bar",
@@ -71,8 +100,15 @@ class PlotFactory:
             "icon": "waterfall_chart",
             "category": "comparison",
         },
+        "ecdf": {"display_name": "ECDF", "icon": "ssid_chart", "category": "distribution"},
         "heatmap": {"display_name": "Heatmap", "icon": "grid_on", "category": "distribution"},
         "histogram": {"display_name": "Histogram", "icon": "bar_chart", "category": "distribution"},
+        "violin": {"display_name": "Violin Plot", "icon": "graphic_eq", "category": "distribution"},
+        "waterfall": {
+            "display_name": "Waterfall Chart",
+            "icon": "waterfall_chart",
+            "category": "comparison",
+        },
     }
 
     @classmethod
@@ -102,6 +138,7 @@ class PlotFactory:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> BasePlot:
+        # [impl->req~ring5.data.semantic-units~1]
         """Restore a plot and its state from :meth:`BasePlot.to_dict` output.
 
         Args:
@@ -123,7 +160,16 @@ class PlotFactory:
 
         processed_data = data.get("processed_data")
         if processed_data:
-            plot.replace_processed_data(pd.read_csv(StringIO(processed_data)))
+            from src.core.services.managers.semantic_metadata_service import (
+                SemanticMetadataService,
+            )
+
+            frame = pd.read_csv(StringIO(processed_data))
+            semantics = SemanticMetadataService.from_payload(
+                data.get("processed_semantics", {}),
+                available_columns=tuple(str(column) for column in frame.columns),
+            )
+            plot.replace_processed_data(SemanticMetadataService.attach(frame, semantics))
         return plot
 
     @classmethod
@@ -144,6 +190,7 @@ class PlotFactory:
         Returns:
             Dictionary mapping plot type identifiers to their metadata.
         """
+        # [impl->req~ring5.extension.plot-registry~1]
         return dict(cls._plot_metadata)
 
     @classmethod
@@ -164,6 +211,7 @@ class PlotFactory:
         Raises:
             ValueError: If plot_class is not a subclass of BasePlot.
         """
+        # [impl->req~ring5.extension.plot-registry~1]
         if isinstance(plot_class, type):
             from .base_plot import BasePlot
 

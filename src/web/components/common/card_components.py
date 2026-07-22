@@ -35,7 +35,7 @@ class CardComponents:
             col1, col2, col3 = st.columns(3)
 
             with col1:
-                load_clicked = st.button("Load This File", key=f"load_{index}")
+                load_clicked = st.button("Review & Load", key=f"load_{index}")
 
             with col2:
                 preview_clicked = st.button("Preview", key=f"preview_{index}")

@@ -74,6 +74,9 @@ class TestPlotCreation:
         _create_and_finalize(mp, "E2E Bar", "bar")
         _trigger_render_fragment(mp)
         _configure_and_assert_chart(mp, x="benchmark_name", y="system.cpu.ipc")
+        expect(mp.viz_title_input).to_have_value("system.cpu.ipc by benchmark_name")
+        expect(mp.viz_x_label_input).to_have_value("benchmark_name")
+        expect(mp.viz_y_label_input).to_have_value("system.cpu.ipc")
 
     # -- Grouped Bar ---------------------------------------------------------
 
@@ -112,11 +115,35 @@ class TestPlotCreation:
     # -- Line ----------------------------------------------------------------
 
     def test_04_create_line_plot(self, tier1_page: Page) -> None:
+        # [test->req~ring5.figure.line-styles~1]
         """Create a line plot with benchmark_name vs simTicks."""
         mp = ManagePlotsPage(tier1_page)
         _create_and_finalize(mp, "E2E Line", "line")
         _trigger_render_fragment(mp)
         _configure_and_assert_chart(mp, x="benchmark_name", y="simTicks")
+
+        mp.toggle_advanced_settings()
+        axes_pill = mp.viz_settings_pills.get_by_role("radio", name="Axes")
+        axes_pill.click()
+        mp.wait_for_streamlit()
+        expect(mp.line_connector_selectbox).to_be_visible(timeout=E2E_TIMEOUT)
+        expect(mp.line_pattern_selectbox).to_be_visible(timeout=E2E_TIMEOUT)
+        expect(tier1_page.get_by_role("checkbox", name="Show point markers")).to_be_visible()
+        expect(tier1_page.get_by_text("Marker symbol", exact=True)).to_be_visible()
+        expect(tier1_page.get_by_text("Marker size", exact=True)).to_be_visible()
+        expect(
+            tier1_page.get_by_role("checkbox", name="Connect across missing values")
+        ).to_be_visible()
+
+        mp.select_line_connector("Smooth spline")
+        mp.select_line_pattern("Dash-dot")
+        tier1_page.get_by_text("Connect across missing values", exact=True).click()
+        mp.wait_for_streamlit()
+        expect(
+            tier1_page.get_by_role("checkbox", name="Connect across missing values")
+        ).to_be_checked(timeout=E2E_TIMEOUT)
+        mp.refresh_plot()
+        mp.assert_chart_visible(timeout=CHART_TIMEOUT)
 
     # -- Scatter -------------------------------------------------------------
 
@@ -145,6 +172,116 @@ class TestPlotCreation:
         expect(tier1_page.get_by_text("No histogram variables detected").first).to_be_visible(
             timeout=E2E_TIMEOUT
         )
+
+    # -- Box -----------------------------------------------------------------
+
+    def test_07_create_box_plot(self, tier1_page: Page) -> None:
+        # [test->req~ring5.plot.box~1]
+        """Create a box plot and expose its human-readable distribution controls."""
+        mp = ManagePlotsPage(tier1_page)
+        _create_and_finalize(mp, "E2E Box", "box")
+        _trigger_render_fragment(mp)
+        _configure_and_assert_chart(mp, x="benchmark_name", y="system.cpu.ipc")
+        expect(tier1_page.get_by_text("Distribution summary", exact=True)).to_be_visible(
+            timeout=E2E_TIMEOUT
+        )
+
+    # -- Violin --------------------------------------------------------------
+
+    def test_08_create_violin_plot(self, tier1_page: Page) -> None:
+        # [test->req~ring5.plot.violin~1]
+        """Create a violin plot and expose its human-readable density controls."""
+        mp = ManagePlotsPage(tier1_page)
+        _create_and_finalize(mp, "E2E Violin", "violin")
+        _trigger_render_fragment(mp)
+        _configure_and_assert_chart(mp, x="benchmark_name", y="system.cpu.ipc")
+        expect(tier1_page.get_by_text("Density shape", exact=True)).to_be_visible(
+            timeout=E2E_TIMEOUT
+        )
+
+    # -- ECDF ----------------------------------------------------------------
+
+    def test_09_create_ecdf_plot(self, tier1_page: Page) -> None:
+        # [test->req~ring5.plot.ecdf~1]
+        """Create an ECDF and expose cumulative meaning controls."""
+        mp = ManagePlotsPage(tier1_page)
+        _create_and_finalize(mp, "E2E ECDF", "ecdf")
+        _trigger_render_fragment(mp)
+        expect(mp.viz_x_axis_selectbox).to_be_visible(timeout=E2E_TIMEOUT)
+        mp.select_x_axis("system.cpu.ipc")
+        mp.refresh_plot()
+        mp.assert_chart_visible(timeout=CHART_TIMEOUT)
+        expect(tier1_page.get_by_text("Cumulative display", exact=True)).to_be_visible(
+            timeout=E2E_TIMEOUT
+        )
+
+    # -- Area ----------------------------------------------------------------
+
+    def test_10_create_area_plot(self, tier1_page: Page) -> None:
+        # [test->req~ring5.plot.area~1]
+        """Create an area chart and expose arrangement and interpolation controls."""
+        mp = ManagePlotsPage(tier1_page)
+        _create_and_finalize(mp, "E2E Area", "area")
+        _trigger_render_fragment(mp)
+        _configure_and_assert_chart(mp, x="benchmark_name", y="system.cpu.ipc")
+        expect(tier1_page.get_by_text("Area display", exact=True)).to_be_visible(
+            timeout=E2E_TIMEOUT
+        )
+
+    # -- Radar ---------------------------------------------------------------
+
+    def test_11_create_radar_plot(self, tier1_page: Page) -> None:
+        # [test->req~ring5.plot.radar~1]
+        """Create a radar chart and expose its shared-scale controls."""
+        mp = ManagePlotsPage(tier1_page)
+        _create_and_finalize(mp, "E2E Radar", "radar")
+        _trigger_render_fragment(mp)
+        _configure_and_assert_chart(mp, x="benchmark_name", y="system.cpu.ipc")
+        expect(tier1_page.get_by_text("Radar scale and geometry", exact=True)).to_be_visible(
+            timeout=E2E_TIMEOUT
+        )
+
+    # -- Waterfall -----------------------------------------------------------
+
+    def test_12_create_waterfall_plot(self, tier1_page: Page) -> None:
+        # [test->req~ring5.plot.waterfall~1]
+        """Create a waterfall chart and expose step-meaning controls."""
+        mp = ManagePlotsPage(tier1_page)
+        _create_and_finalize(mp, "E2E Waterfall", "waterfall")
+        _trigger_render_fragment(mp)
+        _configure_and_assert_chart(mp, x="benchmark_name", y="system.cpu.ipc")
+        expect(tier1_page.get_by_text("Waterfall steps", exact=True)).to_be_visible(
+            timeout=E2E_TIMEOUT
+        )
+
+    # -- Sankey --------------------------------------------------------------
+
+    def test_13_create_sankey_plot(self, tier1_page: Page) -> None:
+        # [test->req~ring5.plot.sankey~1]
+        """Create a Sankey diagram and expose flow semantics and arrangement."""
+        mp = ManagePlotsPage(tier1_page)
+        _create_and_finalize(mp, "E2E Sankey", "sankey")
+        _trigger_render_fragment(mp)
+        expect(tier1_page.get_by_text("Flow labels and arrangement", exact=True)).to_be_visible(
+            timeout=E2E_TIMEOUT
+        )
+        mp.select_sankey_value("system.cpu.ipc")
+        mp.refresh_plot()
+        mp.assert_chart_visible(timeout=CHART_TIMEOUT)
+
+    # -- Parallel coordinates ------------------------------------------------
+
+    def test_14_create_parallel_coordinates_plot(self, tier1_page: Page) -> None:
+        # [test->req~ring5.plot.parallel-coordinates~1]
+        """Create parallel coordinates and expose range, brush, and color controls."""
+        mp = ManagePlotsPage(tier1_page)
+        _create_and_finalize(mp, "E2E Parallel Coordinates", "parallel_coordinates")
+        _trigger_render_fragment(mp)
+        expect(tier1_page.get_by_text("Dimensions and ranges", exact=True)).to_be_visible(
+            timeout=E2E_TIMEOUT
+        )
+        mp.refresh_plot()
+        mp.assert_chart_visible(timeout=CHART_TIMEOUT)
 
 
 # Tier 2 -- Plot management controls

@@ -14,7 +14,10 @@ from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
-from src.core.common.security_limits import PARSE_BATCH_TIMEOUT_SECONDS
+from src.core.common.security_limits import (
+    PARSE_BATCH_TIMEOUT_SECONDS,
+    PARSER_PLAYGROUND_TIMEOUT_SECONDS,
+)
 from src.core.models import StatConfig
 
 from ring5._scan import ScanJob
@@ -24,6 +27,11 @@ if TYPE_CHECKING:
     from concurrent.futures import Future
 
     from src.core.application_api import ApplicationAPI
+    from src.core.models import (
+        IncrementalParseBatchResult,
+        ParserPlaygroundBatchResult,
+        ParserPlaygroundResult,
+    )
 
 
 @dataclass(frozen=True)
@@ -34,15 +42,24 @@ class ParseResult:
         csv_path: The assembled CSV.
         missing_stats: Requested variables that produced no value in any
             file (the parser writes NaN for these — never a fabricated 0).
+        parsed_files: Files parsed by workers. ``None`` is reserved for results from older
+            integrations that do not report a count.
+        reused_files: Unchanged finalized rows reused by incremental mode.
+        removed_files: Cached source rows removed because their inputs disappeared.
     """
 
     csv_path: str
     missing_stats: list[str] = field(default_factory=list)
+    parsed_files: int | None = None
+    reused_files: int = 0
+    removed_files: int = 0
 
 
 @dataclass
 class ParseJob:
     """A submitted parse batch — everything finalize needs, in one handle."""
+
+    # [impl->req~ring5.ingestion.async-parse~1]
 
     api: "ApplicationAPI"
     futures: list["Future[dict[str, Any]]"]
@@ -51,9 +68,11 @@ class ParseJob:
     strategy: str
     stats_path: str
     stats_pattern: str
+    incremental_batch: "IncrementalParseBatchResult | None" = None
 
     def cancel(self) -> None:
         """Cancel this job's pending work (only this job's — handle-based)."""
+        # [impl->req~ring5.quality.async-ownership~1]
         for future in self.futures:
             future.cancel()
 
@@ -70,6 +89,7 @@ class ParseJob:
             ParseError: A worker failed, or no CSV was produced.
             MissingStatError: See ``strict``.
         """
+        # [impl->req~ring5.ingestion.parse-integrity~1]
         from concurrent.futures import wait
 
         _done, pending = wait(self.futures, timeout=PARSE_BATCH_TIMEOUT_SECONDS)
@@ -81,18 +101,32 @@ class ParseJob:
                 f"succeeded for {cancelled} not-yet-running file(s)."
             )
 
+        csv_path: str | None
         try:
             results = [f.result() for f in self.futures]
         except Exception as exc:
             raise ParseError(f"Parse worker failed: {exc}") from exc
 
         try:
-            csv_path = self.api.finalize_parsing(
-                self.output_dir,
-                results,
-                strategy_type=self.strategy,
-                var_names=self.var_names,
-            )
+            if self.incremental_batch is not None:
+                incremental = self.api.finalize_incremental_parsing(
+                    self.incremental_batch,
+                    results,
+                )
+                csv_path = incremental.csv_path
+                parsed_files = incremental.parsed_files
+                reused_files = incremental.reused_files
+                removed_files = incremental.removed_files
+            else:
+                csv_path = self.api.finalize_parsing(
+                    self.output_dir,
+                    results,
+                    strategy_type=self.strategy,
+                    var_names=self.var_names,
+                )
+                parsed_files = len(results)
+                reused_files = 0
+                removed_files = 0
         except (OSError, RuntimeError, TypeError, ValueError) as exc:
             raise ParseError(f"Could not assemble parser output: {exc}") from exc
         if csv_path is None:
@@ -106,7 +140,60 @@ class ParseJob:
             raise ParseError(f"Could not validate parser output {csv_path!r}: {exc}") from exc
         if missing and strict:
             raise MissingStatError(missing)
-        return ParseResult(csv_path=csv_path, missing_stats=missing)
+        return ParseResult(
+            csv_path=csv_path,
+            missing_stats=missing,
+            parsed_files=parsed_files,
+            reused_files=reused_files,
+            removed_files=removed_files,
+        )
+
+
+@dataclass
+class ParserPlaygroundJob:
+    """Owned asynchronous dry run for a bounded parser configuration sample."""
+
+    # [impl->req~ring5.ingestion.parser-playground~1]
+
+    api: "ApplicationAPI"
+    batch: "ParserPlaygroundBatchResult"
+    futures: list["Future[dict[str, Any]]"]
+    output_dir: str
+    stats_path: str
+    stats_pattern: str
+
+    def cancel(self) -> None:
+        """Cancel only this configuration test's pending work."""
+        for future in self.futures:
+            future.cancel()
+
+    def finalize(self) -> "ParserPlaygroundResult":
+        """Collect the bounded sample and return an immutable parser preview.
+
+        Returns:
+            The sampled rows, matching-file context, and readiness diagnostics.
+
+        Raises:
+            ParseError: A worker failed, timed out, or produced invalid preview output.
+        """
+        from concurrent.futures import wait
+
+        _done, pending = wait(self.futures, timeout=PARSER_PLAYGROUND_TIMEOUT_SECONDS)
+        if pending:
+            cancelled = sum(future.cancel() for future in pending)
+            raise ParseError(
+                "Parser configuration test exceeded "
+                f"{PARSER_PLAYGROUND_TIMEOUT_SECONDS:g} seconds; {len(pending)} file(s) "
+                f"remained unfinished and {cancelled} pending file(s) were cancelled."
+            )
+        try:
+            results = [future.result() for future in self.futures]
+        except Exception as exc:
+            raise ParseError(f"Parser configuration test worker failed: {exc}") from exc
+        try:
+            return self.api.finalize_parser_playground(self.batch, results)
+        except (OSError, RuntimeError, TypeError, ValueError) as exc:
+            raise ParseError(f"Parser configuration test failed: {exc}") from exc
 
 
 def _find_missing_stats(csv_path: str, var_names: list[str]) -> list[str]:

@@ -20,6 +20,8 @@ class Scalar(StatType):
     - Raises TypeError on non-numeric input
     """
 
+    # [impl->req~ring5.ingestion.scalar~1]
+
     required_params = []
 
     @override

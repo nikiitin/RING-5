@@ -17,15 +17,79 @@ Concrete implementations compose smaller services; callers depend on the protoco
 
 ## Managers
 
-`ManagersAPI` validates and runs arithmetic, column mixing, IQR outlier removal, and repeated-run
-reduction. Operations accept DataFrames and return new DataFrames. UI components preview a result
-before replacing workspace data.
+`ManagersAPI` validates and runs arithmetic, column mixing, IQR outlier removal, repeated-run
+reduction, and aligned baseline comparison. Operations accept DataFrames and return new DataFrames.
+Comparison requires unique keys in each input and retains unmatched rows with explicit outcomes. UI
+components preview a result before replacing workspace data. `compare_statistics` instead treats
+rows within each grouping key as repeated samples and returns bounded deterministic inference
+results without storing service state.
+
+`annotate_comparison` validates a threshold-comparison result and returns a new DataFrame with
+redundant text, shape, and color encodings for improvements, regressions, and tolerated changes.
+The UI renders these values and does not reimplement outcome semantics.
+
+`profile_data` calculates duplicate, missing, constant, infinite, IQR-outlier, and expected-type
+measurements without mutating the input. It returns immutable records so presentation code cannot
+alter the report through a shared DataFrame.
+
+`infer_schema_contract` creates explicit type and nullability defaults from a DataFrame.
+`validate_schema` checks required columns, declared types, nullability, numeric bounds, categorical
+values, and unexpected columns through `SchemaContractService`. Both operations are stateless and
+return immutable models; row evidence is bounded independently of input size.
+
+`DatasetWorkspaceService` provides stateless join and append operations. Session retention and
+selection live in `DataRepository`; `ApplicationAPI` coordinates repository reads, manager
+operations, and storage of named outputs so the web layer does not compose workspace state itself.
+Named-state changes are captured by `DataRepository` as immutable revision snapshots. The facade
+adds operation and source labels, while repository-owned fingerprints, parent links, and recovery
+stacks keep lineage semantics identical for the web and public Python API.
+
+`DatasetWorkspaceService.diagnose_join` measures duplicate-key rows and groups, unmatched rows, and
+matched distinct keys before materialization. `validated_join` enforces pandas-compatible
+one-to-one, one-to-many, many-to-one, or explicitly many-to-many relationships and returns the exact
+diagnostics used for the decision beside the new DataFrame.
 
 ## Data services
+
+<!--
+`uman~ring5.data.saved-pipeline-configurations.documentation~1`
+
+Covers:
+- req~ring5.data.saved-pipeline-configurations~1
+
+-->
 
 `DataServicesAPI` covers the local CSV pool, saved shaper configuration, parser variables,
 portfolios, and path-backed application data. File operations validate names and containment before
 reading or writing.
+
+Saved shaper configurations contain a name, description, ordered shaper configuration, and optional
+CSV path. The service supports saving, listing, loading, and deleting these path-backed records.
+`export_configuration` emits the deterministic `ring5.pipeline-configuration` schema.
+`import_configuration` accepts that current schema or the legacy unversioned record, validates
+registered shapers without executing them, and saves with explicit `error`, `rename`, or `replace`
+name-conflict behavior. `ApplicationAPI` exposes both operations to the web editor; the supported
+Python surface is `Session.export_pipeline_configuration` and
+`Session.import_pipeline_configuration`.
+
+`DatasetSnapshotService` stores reusable dataframes as versioned compressed archives containing a
+small manifest and a non-executable JSON table payload. Save performs an encode/decode exactness
+check before an atomic write. Load verifies the payload SHA-256 and the shared lineage content
+fingerprint before returning data. `DataServicesAPI` exposes save, list, load, and delete operations;
+`ApplicationAPI` coordinates a verified load with named-workspace retention.
+
+`AnalysisRecipeService` captures current source provenance and plot pipelines, validates typed
+runtime placeholders, and persists deterministic `ring5.analysis-recipe` JSON separately from
+portfolio data. `DataServicesAPI` exposes capture, save, list, load, delete, import, export, and
+materialization. Execution remains in the public `Session` composition root because it coordinates
+parsing, shapers, plot construction, rendering, and file export across layer boundaries.
+
+`PortfolioRevisionService` content-addresses the exact JSON bytes from each successful portfolio
+save and verifies their SHA-256 identity on read. It lazily captures an existing portfolio as a
+baseline, atomically replaces the current file, and produces bounded leaf differences for source,
+pipeline, plot, and figure-setting sections without reading embedded CSV rows into the comparison.
+`DataServicesAPI` exposes revision listing, loading, and comparison; portfolio deletion removes the
+matching revision directory as well as the current file.
 
 ## Shapers
 

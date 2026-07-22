@@ -46,7 +46,7 @@ class HistoryComponents:
             )
 
         df = pd.DataFrame(rows)
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        st.dataframe(df, width="stretch", hide_index=True)
 
     @staticmethod
     def render_global_history(
@@ -115,6 +115,7 @@ class HistoryComponents:
                 the manager.
             delete_callback: Called with the record to delete.
         """
+        # [impl->req~ring5.data.operation-history~1]
         filtered = [r for r in all_records if r["operation"].startswith(operation_prefix)]
         if not filtered:
             return

@@ -5,15 +5,23 @@ import pytest
 from src.web.pages.ui.plotting.plot_factory import PlotFactory, PlotTypeMetadata
 
 EXPECTED_PLOT_TYPES = {
+    "area",
     "bar",
+    "box",
     "dual_axis_bar_dot",
+    "ecdf",
     "grouped_bar",
     "heatmap",
     "stacked_bar",
     "grouped_stacked_bar",
     "histogram",
     "line",
+    "parallel_coordinates",
+    "radar",
+    "sankey",
     "scatter",
+    "violin",
+    "waterfall",
 }
 
 METADATA_REQUIRED_KEYS = {"display_name", "icon", "category"}
@@ -22,10 +30,12 @@ METADATA_REQUIRED_KEYS = {"display_name", "icon", "category"}
 class TestPlotFactoryRegistration:
     """Tests for plot type registration."""
 
-    def test_all_nine_plot_types_registered(self) -> None:
-        """All 9 plot types are registered in the factory."""
+    # [test->req~ring5.extension.plot-registry~1]
+
+    def test_all_plot_types_registered(self) -> None:
+        """Every built-in plot type is registered in the factory."""
         available = PlotFactory.get_available_plot_types()
-        assert len(available) == 9
+        assert len(available) == 17
         assert set(available) == EXPECTED_PLOT_TYPES
 
     def test_register_plot_type_rejects_non_baseplot_class(self) -> None:
@@ -41,6 +51,8 @@ class TestPlotFactoryRegistration:
 class TestPlotFactoryMetadata:
     """Tests for plot type metadata."""
 
+    # [test->req~ring5.extension.plot-registry~1]
+
     def test_metadata_present_for_all_types(self) -> None:
         """Metadata is present for every registered plot type."""
         metadata = PlotFactory.get_plot_metadata()
@@ -51,7 +63,7 @@ class TestPlotFactoryMetadata:
         """get_plot_metadata returns a dict with correct structure."""
         metadata = PlotFactory.get_plot_metadata()
         assert isinstance(metadata, dict)
-        assert len(metadata) == 9
+        assert len(metadata) == 17
 
     def test_each_metadata_entry_has_required_keys(self) -> None:
         """Each metadata entry contains display_name, icon, and category."""

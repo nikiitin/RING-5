@@ -15,6 +15,7 @@ pytestmark = pytest.mark.public_api
 
 
 class TestFigureSpecBuilder:
+    # [test->req~ring5.api.figure-builder~1]
     def test_chaining_returns_self(self) -> None:
         b = FigureSpecBuilder()
         assert b.data(x="a") is b

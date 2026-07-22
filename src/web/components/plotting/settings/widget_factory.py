@@ -30,6 +30,7 @@ def select_option(
 
     Falls back to index 0 when the saved value is missing or not in *options*.
     """
+    # [impl->req~ring5.extension.settings-panel~1]
     default = default or (options[0] if options else "")
     current = config.get(config_key, default)
     idx = options.index(current) if current in options else 0

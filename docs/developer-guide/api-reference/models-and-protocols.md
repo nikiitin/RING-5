@@ -18,6 +18,20 @@ Cross-layer models live in `src/core/models/`. Prefer a dataclass for validated 
 `TypedDict` for JSON-compatible mappings, and a protocol for behavior owned by another layer.
 
 Parsing models carry scan results, parse batches, variable configuration, and simulator metadata.
+`IncrementalParseBatchResult` is the immutable handoff between submission and finalization: it
+contains owned changed-file futures plus content fingerprints and plain scalar cached rows.
+`IncrementalParseResult` reports the output path and parsed, reused, removed, and total file counts.
+`ParserPlaygroundBatchResult` owns the bounded sample futures and exact matched-file context;
+`ParserPlaygroundResult` carries immutable display cells, sampled source paths, missing variables,
+diagnostics, and readiness. The `SimulationParser` protocol keeps full, incremental, and playground
+work in asynchronous submit/finalize pairs.
+Import models carry immutable delimiter/encoding corrections, inferred column types, accepted-row
+previews, rejected source lines, and the source fingerprint used at confirmation time.
+`BrowserUpload` records validated upload type, original-byte fingerprint, staged paths, and bounded
+dataset or portfolio summary metadata without retaining browser bytes in application state.
+Remote-source models separate HTTP, SSH, and S3 configuration; credential fields are excluded from
+representations. `RemoteSourcePolicy` records the explicit host, private-address, and TLS boundary,
+while `RemoteDownload` keeps response bytes out of its representation before upload validation.
 Data models carry plot serialization and current-view shapes. Portfolio models define persisted
 fields and `RestoreReport`. Shaper models form a discriminated configuration union. Visualization
 models describe engines, traces, axes, legends, annotations, labels, palettes, and full figure

@@ -90,6 +90,7 @@ class TestScanWorkflow:
 
     def test_scan_single_stats(self, shared_page: Page, live_server_url: str) -> None:
         """Quick Scan on single/stats.txt discovers scalar variables."""
+        # [test->req~ring5.ingestion.scan-presets-progress~1]
         ds = _setup_data_source(shared_page, live_server_url)
         ds.fill_stats_path(str(_SINGLE_STATS))
         ds.fill_stats_pattern("stats.txt")

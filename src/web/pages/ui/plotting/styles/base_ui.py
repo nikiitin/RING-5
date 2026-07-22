@@ -325,6 +325,7 @@ class BaseStyleUI:
         key_prefix: str = "",
         palette_name: str = "",
     ) -> dict[str, Any]:
+        # [impl->req~ring5.figure.series-styling~1]
         c2, c3 = st.columns([1, 2])
 
         # Keys for widgets — include palette_name so Streamlit resets

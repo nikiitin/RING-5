@@ -39,6 +39,8 @@ class EngineSettingsComponent:
             saved_config: Previously saved configuration.
             config: Configuration dictionary to populate.
         """
+        # [impl->req~ring5.figure.matplotlib-tex-system~1]
+        # [impl->req~ring5.figure.plotly-hovermode~1]
         st.markdown("---")
         if EngineManager.is_plotly():
             st.markdown("#### :material/interactive_space: Interactive Settings")

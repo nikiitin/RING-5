@@ -80,6 +80,8 @@ class TestMatplotlibBackgrounds:
 class TestMatplotlibFontFamily:
     """Test _apply_font_family — applies to text artists, never to global rcParams."""
 
+    # [test->req~ring5.figure.typography~1]
+
     def test_font_family_set_on_existing_text(self, ax: Axes) -> None:
         ax.set_title("t")
         spec = FigureConfig(font_family="monospace")
@@ -145,6 +147,8 @@ class TestMatplotlibColorPalette:
 class TestMatplotlibReferenceLines:
     """Test _apply_reference_lines."""
 
+    # [test->req~ring5.figure.reference-lines~1]
+
     def test_horizontal_line(self, ax: Axes) -> None:
         rl = ReferenceLineConfig(enabled=True, axis="y", value=1.0, color="red", width=2.0)
         spec = FigureConfig(reference_lines=[rl])
@@ -194,6 +198,8 @@ class TestMatplotlibReferenceLines:
 class TestMatplotlibDataLabels:
     """Test _apply_data_labels."""
 
+    # [test->req~ring5.figure.data-labels~1]
+
     def test_data_labels_on_bar(self, ax: Axes) -> None:
         ax.bar(["A", "B"], [10, 20])
         dl = DataLabelConfig(enabled=True, font_size=12, format_string=".0f")
@@ -223,6 +229,8 @@ class TestMatplotlibDataLabels:
 
 class TestMatplotlibAnnotations:
     """Test _apply_annotations arrow handling."""
+
+    # [test->req~ring5.figure.shapes-annotations~1]
 
     def test_annotation_without_arrow_has_no_arrowpatch(self, ax: Axes) -> None:
         spec = FigureConfig(

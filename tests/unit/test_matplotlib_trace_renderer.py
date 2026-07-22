@@ -13,11 +13,18 @@ import pytest
 
 from src.core.models.visualization.trace_config import (
     BarTraceConfig,
+    BoxTraceConfig,
     HeatmapTraceConfig,
     HistogramTraceConfig,
     LineTraceConfig,
+    ParallelCoordinatesTraceConfig,
+    ParallelDimensionConfig,
+    RadarTraceConfig,
+    SankeyTraceConfig,
     ScatterTraceConfig,
     TraceConfig,
+    ViolinTraceConfig,
+    WaterfallTraceConfig,
 )
 from src.web.rendering._heatmap_utils import is_dark_cell
 from src.web.rendering.matplotlib_trace_renderer import (
@@ -53,10 +60,292 @@ class TestRender:
         count = MatplotlibTraceRenderer.render([trace], ax)
         assert count.trace_count == 1
 
+    def test_vertical_and_horizontal_boxes_use_precomputed_statistics(
+        self, ax: matplotlib.axes.Axes
+    ) -> None:
+        # [test->req~ring5.plot.box~1]
+        vertical = BoxTraceConfig(
+            name="A",
+            category="A",
+            values=[1.0, 2.0, 10.0],
+            q1=1.5,
+            median=2.0,
+            q3=3.0,
+            lower_whisker=1.0,
+            upper_whisker=3.0,
+            outliers=[10.0],
+            point_mode="outliers",
+            show_mean=True,
+        )
+        result = MatplotlibTraceRenderer.render([vertical], ax)
+        assert result.trace_count == 1
+        assert [tick.get_text() for tick in ax.get_xticklabels()] == ["A"]
+        assert ax.collections
+
+        fig, horizontal_ax = plt.subplots()
+        try:
+            horizontal = BoxTraceConfig(
+                name="B",
+                category="B",
+                values=[2.0, 3.0],
+                q1=2.25,
+                median=2.5,
+                q3=2.75,
+                lower_whisker=2.0,
+                upper_whisker=3.0,
+                orientation="horizontal",
+                point_mode="all",
+                notched=True,
+                notch_lower=2.2,
+                notch_upper=2.8,
+            )
+            horizontal_result = MatplotlibTraceRenderer.render([horizontal], horizontal_ax)
+            assert horizontal_result.trace_count == 1
+            assert [tick.get_text() for tick in horizontal_ax.get_yticklabels()] == ["B"]
+        finally:
+            plt.close(fig)
+
     def test_single_line(self, ax: matplotlib.axes.Axes) -> None:
-        trace = LineTraceConfig(name="l1", x=[0, 1], y=[1, 2])
+        trace = LineTraceConfig(name="l1", x=[0, 1], y=[1, 2], line_shape="hv")
         count = MatplotlibTraceRenderer.render([trace], ax)
         assert count.trace_count == 1
+        assert ax.lines[0].get_drawstyle() == "steps-post"
+
+    def test_spline_style_connects_gaps_and_marks_only_observations(
+        self, ax: matplotlib.axes.Axes
+    ) -> None:
+        # [test->req~ring5.figure.line-styles~1]
+        trace = LineTraceConfig(
+            name="smooth",
+            x=[0, 1, 2, 3, 4],
+            y=[1, 2, float("nan"), 3, 5],
+            line_shape="spline",
+            line_dash="longdashdot",
+            line_width=3.5,
+            marker_symbol="diamond",
+            marker_size=10,
+            connect_gaps=True,
+        )
+
+        result = MatplotlibTraceRenderer.render([trace], ax)
+
+        line = ax.lines[0]
+        assert result.trace_count == 1
+        assert len(line.get_xdata()) > 4
+        assert all(np.isfinite(line.get_ydata()))
+        assert len(line.get_markevery()) == 4
+        assert line.get_linewidth() == 3.5
+        assert line.get_marker() == "D"
+        assert line.get_markersize() == 10
+
+    def test_grouped_categorical_splines_share_deterministic_positions(
+        self, ax: matplotlib.axes.Axes
+    ) -> None:
+        traces = [
+            LineTraceConfig(
+                name="partial",
+                x=["A", "C", "D"],
+                y=[1, 3, 4],
+                line_shape="spline",
+            ),
+            LineTraceConfig(
+                name="complete",
+                x=["A", "B", "C", "D"],
+                y=[2, 2.5, 3.5, 5],
+                line_shape="spline",
+            ),
+        ]
+
+        MatplotlibTraceRenderer.render(traces, ax)
+
+        assert len(ax.lines[0].get_xdata()) > 3
+        assert len(ax.lines[1].get_xdata()) > 4
+        assert 2.0 in ax.lines[0].get_xdata()
+        assert [tick.get_text() for tick in ax.get_xticklabels()] == ["A", "B", "C", "D"]
+
+    def test_ecdf_line_uses_post_step_drawstyle(self, ax: matplotlib.axes.Axes) -> None:
+        # [test->req~ring5.plot.ecdf~1]
+        trace = LineTraceConfig(name="ECDF", x=[1.0, 2.0], y=[0.5, 1.0], line_shape="hv")
+
+        result = MatplotlibTraceRenderer.render([trace], ax)
+
+        assert result.trace_count == 1
+        assert ax.lines[0].get_drawstyle() == "steps-post"
+
+    def test_area_line_fills_against_precomputed_baseline(self, ax: matplotlib.axes.Axes) -> None:
+        # [test->req~ring5.plot.area~1]
+        trace = LineTraceConfig(
+            name="Area",
+            x=[1.0, 2.0, 3.0],
+            y=[2.0, 4.0, 5.0],
+            fill="tonexty",
+            fill_base=[1.0, 1.5, 2.0],
+            line_shape="hv",
+            color="#336699",
+        )
+
+        result = MatplotlibTraceRenderer.render([trace], ax)
+
+        assert result.trace_count == 1
+        assert len(ax.collections) == 1
+        assert ax.lines[0].get_drawstyle() == "steps-post"
+
+    def test_radar_draws_shared_frame_once_and_closed_profiles(
+        self, ax: matplotlib.axes.Axes
+    ) -> None:
+        # [test->req~ring5.plot.radar~1]
+        traces = [
+            RadarTraceConfig(
+                name="base",
+                categories=["A", "B", "C"],
+                values=[1.0, 2.0, 3.0],
+                radial_max=4.0,
+                color="#336699",
+            ),
+            RadarTraceConfig(
+                name="new",
+                categories=["A", "B", "C"],
+                values=[2.0, 3.0, 1.0],
+                radial_max=4.0,
+                fill_area=False,
+            ),
+        ]
+
+        result = MatplotlibTraceRenderer.render(traces, ax)
+
+        assert result.trace_count == 2
+        assert len(ax.texts) == 3
+        assert len(ax.patches) == 1
+        assert not ax.axison
+
+    def test_waterfall_draws_explicit_geometry_connectors_and_labels(
+        self, ax: matplotlib.axes.Axes
+    ) -> None:
+        # [test->req~ring5.plot.waterfall~1]
+        trace = WaterfallTraceConfig(
+            name="Change",
+            categories=["Start", "Loss", "Subtotal"],
+            values=[10.0, -3.0, 0.0],
+            measures=["absolute", "relative", "total"],
+            kinds=["absolute", "relative", "subtotal"],
+            starts=[0.0, 10.0, 0.0],
+            ends=[10.0, 7.0, 7.0],
+            connector_visible=True,
+            value_labels=["10", "-3", "7"],
+        )
+
+        result = MatplotlibTraceRenderer.render([trace], ax)
+
+        assert result.trace_count == 1
+        assert [tick.get_text() for tick in ax.get_xticklabels()] == trace.categories
+        assert len(ax.patches) == 3
+        assert len(ax.lines) == 2
+        assert [text.get_text() for text in ax.texts] == trace.value_labels
+
+    def test_sankey_draws_weighted_links_positioned_nodes_and_labels(
+        self, ax: matplotlib.axes.Axes
+    ) -> None:
+        # [test->req~ring5.plot.sankey~1]
+        trace = SankeyTraceConfig(
+            name="Flow",
+            node_labels=["A", "B", "C"],
+            source_indices=[0, 0],
+            target_indices=[1, 2],
+            values=[3.0, 2.0],
+            link_labels=["first", "second"],
+            node_colors=["#111111", "#222222", "#333333"],
+            link_colors=["#111111", "#222222"],
+            node_x=[0.0, 1.0, 1.0],
+            node_y=[0.5, 0.3, 0.7],
+            show_link_labels=True,
+        )
+
+        result = MatplotlibTraceRenderer.render([trace], ax)
+
+        assert result.trace_count == 1
+        assert len(ax.patches) == 5
+        assert [text.get_text() for text in ax.texts] == ["first", "second", "A", "B", "C"]
+        assert not ax.axison
+
+    def test_parallel_coordinates_draw_encoded_axes_brushed_rows_and_color_scale(
+        self, ax: matplotlib.axes.Axes
+    ) -> None:
+        # [test->req~ring5.plot.parallel-coordinates~1]
+        trace = ParallelCoordinatesTraceConfig(
+            name="Score",
+            dimensions=[
+                ParallelDimensionConfig(
+                    column="kind",
+                    label="Kind",
+                    values=[0.0, 1.0],
+                    range=(0.0, 1.0),
+                    tick_values=[0.0, 1.0],
+                    tick_labels=["A", "B"],
+                ),
+                ParallelDimensionConfig(
+                    column="score",
+                    label="Score",
+                    values=[2.0, 3.0],
+                    range=(1.0, 4.0),
+                    constraintrange=(2.5, 4.0),
+                ),
+            ],
+            line_color_values=[2.0, 3.0],
+            colorscale="Cividis",
+            color_min=2.0,
+            color_max=3.0,
+            show_colorbar=False,
+            unselected_opacity=0.1,
+        )
+
+        result = MatplotlibTraceRenderer.render([trace], ax)
+
+        assert result.trace_count == 1
+        assert len(ax.lines) == 4
+        assert {text.get_text() for text in ax.texts} >= {"Kind", "Score", "A", "B"}
+        assert sorted(line.get_alpha() for line in ax.lines[:2]) == [0.1, 0.8]
+        assert not ax.axison
+
+    def test_vertical_and_horizontal_violins_use_precomputed_density(
+        self, ax: matplotlib.axes.Axes
+    ) -> None:
+        # [test->req~ring5.plot.violin~1]
+        vertical = ViolinTraceConfig(
+            name="A",
+            category="A",
+            values=[1.0, 2.0, 3.0],
+            density_coordinates=[0.5, 1.5, 2.5, 3.5],
+            density=[0.1, 1.0, 0.8, 0.1],
+            q1=1.5,
+            median=2.0,
+            q3=2.5,
+            mean=2.0,
+            show_box=True,
+            show_mean=True,
+            point_mode="all",
+        )
+        result = MatplotlibTraceRenderer.render([vertical], ax)
+        assert result.trace_count == 1
+        assert [tick.get_text() for tick in ax.get_xticklabels()] == ["A"]
+        assert ax.collections
+
+        fig, horizontal_ax = plt.subplots()
+        try:
+            horizontal = ViolinTraceConfig(
+                name="B",
+                category="B",
+                values=[2.0, 3.0],
+                density_coordinates=[1.5, 2.5, 3.5],
+                density=[0.1, 1.0, 0.1],
+                orientation="horizontal",
+                side="negative",
+                show_box=False,
+            )
+            horizontal_result = MatplotlibTraceRenderer.render([horizontal], horizontal_ax)
+            assert horizontal_result.trace_count == 1
+            assert [tick.get_text() for tick in horizontal_ax.get_yticklabels()] == ["B"]
+        finally:
+            plt.close(fig)
 
     def test_single_scatter(self, ax: matplotlib.axes.Axes) -> None:
         trace = ScatterTraceConfig(name="sc", x=[0, 1], y=[1, 2])

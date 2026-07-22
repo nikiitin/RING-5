@@ -83,6 +83,21 @@ class TestDefaultDataServicesAPI:
         assert result == {"name": "test"}
 
     @patch("src.core.services.data_services.data_services_impl.ConfigService")
+    def test_export_configuration(self, mock_svc: MagicMock, api: DefaultDataServicesAPI) -> None:
+        mock_svc.export_configuration.return_value = b"{}"
+        result = api.export_configuration("test", "desc", [], "/data.csv")
+        mock_svc.export_configuration.assert_called_once_with("test", "desc", [], "/data.csv")
+        assert result == b"{}"
+
+    @patch("src.core.services.data_services.data_services_impl.ConfigService")
+    def test_import_configuration(self, mock_svc: MagicMock, api: DefaultDataServicesAPI) -> None:
+        expected = MagicMock()
+        mock_svc.import_configuration.return_value = expected
+        result = api.import_configuration(b"{}", conflict="rename")
+        mock_svc.import_configuration.assert_called_once_with(b"{}", conflict="rename")
+        assert result is expected
+
+    @patch("src.core.services.data_services.data_services_impl.ConfigService")
     def test_load_saved_configs(self, mock_svc: MagicMock, api: DefaultDataServicesAPI) -> None:
         mock_svc.load_saved_configs.return_value = [{"name": "cfg1"}]
         assert api.load_saved_configs() == [{"name": "cfg1"}]
@@ -91,6 +106,64 @@ class TestDefaultDataServicesAPI:
     def test_delete_configuration(self, mock_svc: MagicMock, api: DefaultDataServicesAPI) -> None:
         mock_svc.delete_configuration.return_value = True
         assert api.delete_configuration("/configs/test.json") is True
+
+    def test_analysis_recipe_service_delegation(self, api: DefaultDataServicesAPI) -> None:
+        service = MagicMock()
+        api._analysis_recipe_service = service
+        recipe = MagicMock()
+        service.capture.return_value = recipe
+
+        assert api.capture_analysis_recipe("recipe") is recipe
+        service.capture.assert_called_once_with(
+            "recipe",
+            description="",
+            parameters=(),
+            source=None,
+            transformations=(),
+            exports=(),
+        )
+
+    @patch("src.core.services.data_services.data_services_impl.AnalysisRecipeService")
+    def test_analysis_recipe_static_operations(
+        self, mock_svc: MagicMock, api: DefaultDataServicesAPI
+    ) -> None:
+        recipe = MagicMock()
+        mock_svc.save.return_value = "/recipes/a.json"
+        mock_svc.list.return_value = (MagicMock(),)
+        mock_svc.load.return_value = recipe
+        mock_svc.dumps.return_value = b"{}"
+        mock_svc.loads.return_value = recipe
+        mock_svc.import_recipe.return_value = recipe
+        mock_svc.materialize.return_value = recipe
+
+        assert api.save_analysis_recipe(recipe) == "/recipes/a.json"
+        assert api.list_analysis_recipes() == mock_svc.list.return_value
+        assert api.load_analysis_recipe("a") is recipe
+        assert api.export_analysis_recipe(recipe) == b"{}"
+        assert api.decode_analysis_recipe(b"{}") is recipe
+        assert api.import_analysis_recipe(b"{}") is recipe
+        assert api.materialize_analysis_recipe(recipe, {"x": 1}) is recipe
+        api.delete_analysis_recipe("a")
+
+        mock_svc.save.assert_called_once_with(recipe, overwrite=False)
+        mock_svc.load.assert_called_once_with("a")
+        mock_svc.loads.assert_called_once_with(b"{}")
+        mock_svc.import_recipe.assert_called_once_with(b"{}", overwrite=False)
+        mock_svc.materialize.assert_called_once_with(recipe, {"x": 1})
+        mock_svc.delete.assert_called_once_with("a")
+
+    @patch("src.core.services.data_services.data_services_impl.AnalysisRecipeAutomationService")
+    def test_analysis_recipe_automation_operations(
+        self, mock_svc: MagicMock, api: DefaultDataServicesAPI
+    ) -> None:
+        recipe = MagicMock()
+        mock_svc.export_script.return_value = b"script"
+        mock_svc.export_notebook.return_value = b"notebook"
+
+        assert api.export_analysis_recipe_script(recipe) == b"script"
+        assert api.export_analysis_recipe_notebook(recipe) == b"notebook"
+        mock_svc.export_script.assert_called_once_with(recipe)
+        mock_svc.export_notebook.assert_called_once_with(recipe)
 
     # -- Variable delegation --
 
@@ -187,13 +260,86 @@ class TestDefaultDataServicesAPI:
         df = pd.DataFrame({"x": [1]})
         api.save_portfolio("p1", df, [], {}, 0)
         api._portfolio_service.save_portfolio.assert_called_once_with(
-            "p1", df, [], {}, 0, None, None, None, True
+            "p1", df, [], {}, 0, None, None, None, True, None, "default"
         )
 
     def test_load_portfolio(self, api: DefaultDataServicesAPI) -> None:
         api._portfolio_service = MagicMock()
         api._portfolio_service.load_portfolio.return_value = {"name": "p1"}
         assert api.load_portfolio("p1") == {"name": "p1"}
+        api._portfolio_service.load_portfolio.assert_called_once_with(
+            "p1", signing_key=None, require_signature=False
+        )
+
+    def test_verify_portfolio(self, api: DefaultDataServicesAPI) -> None:
+        api._portfolio_service = MagicMock()
+        api._portfolio_service.verify_portfolio.return_value = "verified"
+        assert api.verify_portfolio("p1", signing_key="secret") == "verified"
+        api._portfolio_service.verify_portfolio.assert_called_once_with("p1", signing_key="secret")
+
+    @patch(
+        "src.core.services.data_services.data_services_impl.DatasetSnapshotService.export_snapshot"
+    )
+    @patch("src.core.services.data_services.data_services_impl.PortfolioBundleService.create")
+    def test_export_portfolio_bundle(
+        self,
+        create_bundle: MagicMock,
+        export_snapshot: MagicMock,
+        api: DefaultDataServicesAPI,
+    ) -> None:
+        api._portfolio_service = MagicMock()
+        api._portfolio_service.export_portfolio_bytes.return_value = b"portfolio"
+        export_snapshot.return_value = b"snapshot"
+        create_bundle.return_value = b"bundle"
+
+        assert (
+            api.export_portfolio_bundle(
+                "p1",
+                snapshot_name="data",
+                results={"report.html": b"result"},
+            )
+            == b"bundle"
+        )
+        create_bundle.assert_called_once_with(
+            "p1",
+            b"portfolio",
+            dataset_snapshot=("data", b"snapshot"),
+            results={"report.html": b"result"},
+            signing_key=None,
+            signing_key_id="default",
+        )
+
+    @patch("src.core.services.data_services.data_services_impl.PortfolioBundleService")
+    def test_inspect_and_read_portfolio_bundle(
+        self,
+        bundle_service: MagicMock,
+        api: DefaultDataServicesAPI,
+    ) -> None:
+        bundle_service.inspect.return_value = "info"
+        bundle_service.read.return_value = "contents"
+
+        assert api.inspect_portfolio_bundle(b"bundle") == "info"
+        assert api.read_portfolio_bundle(b"bundle", require_signature=True) == "contents"
+        bundle_service.inspect.assert_called_once_with(
+            b"bundle", signing_key=None, require_signature=False
+        )
+        bundle_service.read.assert_called_once_with(
+            b"bundle", signing_key=None, require_signature=True
+        )
+
+    def test_portfolio_revision_delegation(self, api: DefaultDataServicesAPI) -> None:
+        api._portfolio_service = MagicMock()
+        api._portfolio_service.list_portfolio_revisions.return_value = ("revision",)
+        api._portfolio_service.load_portfolio_revision.return_value = {"plots": []}
+        difference = MagicMock()
+        api._portfolio_service.compare_portfolio_revisions.return_value = difference
+
+        assert api.list_portfolio_revisions("p1") == ("revision",)
+        assert api.load_portfolio_revision("p1", "a" * 64) == {"plots": []}
+        assert api.compare_portfolio_revisions("p1", "a" * 64, "b" * 64) is difference
+        api._portfolio_service.compare_portfolio_revisions.assert_called_once_with(
+            "p1", "a" * 64, "b" * 64
+        )
 
     def test_delete_portfolio(self, api: DefaultDataServicesAPI) -> None:
         api._portfolio_service = MagicMock()

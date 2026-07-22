@@ -26,6 +26,8 @@ class ArithmeticService:
         df: pd.DataFrame, operation: str, src1: str, src2: str, dest: str
     ) -> pd.DataFrame:
         """Apply arithmetic operation between two columns."""
+        # [impl->req~ring5.data.arithmetic~1]
+        # [impl->req~ring5.quality.immutable-data~1]
         result = df.copy()
 
         s1 = result[src1]
@@ -72,6 +74,9 @@ class ArithmeticService:
         Raises:
             ValueError: If the operation is not supported.
         """
+        # [impl->req~ring5.data.configuration-mixer~1]
+        # [impl->req~ring5.data.error-propagation~1]
+        # [impl->req~ring5.data.numeric-mixer~1]
         if not source_cols:
             return df
 

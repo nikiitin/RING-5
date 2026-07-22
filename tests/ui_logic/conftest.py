@@ -32,6 +32,7 @@ class StubPlotHandle:
         self.name = name
         self.plot_type = plot_type
         self.config: dict[str, Any] = config or {}
+        self.source_data: pd.DataFrame | None = None
         self.processed_data = processed_data
         self.pipeline: list[PipelineStep] = pipeline or []
         self.pipeline_counter = pipeline_counter
@@ -73,6 +74,9 @@ class StubPlotHandle:
     def replace_processed_data(self, data: pd.DataFrame | None) -> None:
         self.processed_data = data
         self.invalidate_figure()
+
+    def replace_source_data(self, data: pd.DataFrame | None) -> None:
+        self.source_data = data.copy(deep=True) if data is not None else None
 
     # RenderablePlot stubs
     def create_figure(self, data: pd.DataFrame, config: dict[str, Any]) -> Any:

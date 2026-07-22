@@ -16,6 +16,14 @@ returns a new DataFrame and has no Streamlit dependency.
 
 ## Implement and register
 
+<!--
+`uman~ring5.extension.shaper-registry.documentation~1`
+
+Covers:
+- req~ring5.extension.shaper-registry~1
+
+-->
+
 1. Copy the closest implementation under `src/core/services/shapers/impl/`. Subclass `Shaper` or
    `UniDfShaper` for a single-frame operation.
 2. Validate static configuration in `_verify_params` and data-dependent requirements in

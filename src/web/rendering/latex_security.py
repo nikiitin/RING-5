@@ -22,12 +22,14 @@ _LATEX_ESCAPES = {
 
 def escape_latex_text(text: str) -> str:
     """Escape every TeX control character, including command backslashes."""
+    # [impl->req~ring5.quality.safe-output-formatting~1]
     return "".join(_LATEX_ESCAPES.get(char, char) for char in text)
 
 
 @contextmanager
 def escaped_figure_text(fig: Any) -> Iterator[None]:
     """Temporarily escape every Matplotlib Text artist in a figure."""
+    # [impl->req~ring5.quality.safe-output-formatting~1]
     from matplotlib.text import Text
 
     originals: list[tuple[Text, str]] = []
@@ -47,6 +49,7 @@ def escaped_figure_text(fig: Any) -> Iterator[None]:
 @contextmanager
 def disabled_figure_usetex(fig: Any) -> Iterator[None]:
     """Temporarily force all existing Text artists away from external TeX."""
+    # [impl->req~ring5.quality.safe-output-formatting~1]
     from matplotlib.text import Text
 
     originals: list[tuple[Text, bool]] = []

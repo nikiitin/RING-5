@@ -19,6 +19,8 @@ from tests.helpers.benchmark import BenchmarkSuite
 
 
 class TestPlotPerformance:
+    # [test->req~ring5.quality.performance-regression-gates~1]
+
     """Test plot generation performance."""
 
     @pytest.fixture
@@ -89,6 +91,8 @@ class TestPlotPerformance:
 
 
 class TestShaperPerformance:
+    # [test->req~ring5.quality.performance-regression-gates~1]
+
     """Test shaper performance."""
 
     @pytest.fixture
@@ -196,6 +200,8 @@ class TestShaperPerformance:
 
 
 class TestCsvPoolPerformance:
+    # [test->req~ring5.quality.performance-regression-gates~1]
+
     """Test CSV pool operations performance."""
 
     def test_csv_metadata_caching(self, tmp_path: Any) -> None:
@@ -283,6 +289,8 @@ class TestCsvPoolPerformance:
 
 
 class TestDataLoadingPerformance:
+    # [test->req~ring5.quality.performance-regression-gates~1]
+
     """Test data loading and processing performance."""
 
     def test_dataframe_creation_speed(self) -> None:

@@ -62,6 +62,11 @@ class Gem5ParseWork(ParseWork):
     def __str__(self) -> str:
         return f"Gem5ParseWork({self._fileToParse})"
 
+    @property
+    def source_path(self) -> str:
+        """Return the exact statistics file parsed by this worker."""
+        return self._fileToParse
+
     # ========== Entry Buffering ==========
 
     def _bufferEntry(self, varID: str, varValue: str) -> None:
@@ -130,6 +135,7 @@ class Gem5ParseWork(ParseWork):
         cls, var_id: str, target_var: StatType, vars_to_parse: VarsDictType
     ) -> tuple[str, str] | None:
         """Resolve a concrete scalar alias to its logical vector entry."""
+        # [impl->req~ring5.ingestion.configuration-fallbacks~1]
         target_content = target_var.content
         target_entries = target_var.entries or []
         for logical_id, logical_var in vars_to_parse.items():

@@ -37,6 +37,63 @@ def sample_df() -> pd.DataFrame:
 class TestDualAxisRenderConfigUI:
     """Tests for dual-axis plot configuration."""
 
+    @patch(f"{_DUAL_CFG}.st")
+    def test_generated_labels_follow_explicit_axis_changes(self, mock_st: MagicMock) -> None:
+        # [test->req~ring5.figure.dual-axis-controls~1]
+        from src.web.components.plotting.config.dual_axis_config import _sync_auto_labels
+
+        mock_st.session_state = {
+            "title_8": "seed vs system.cpu.ipc",
+            "xlabel_8": "benchmark_name",
+            "ylabel_8": "seed",
+            "ylabel_dot_8": "system.cpu.ipc",
+        }
+        saved = {
+            "x": "benchmark_name",
+            "y_bar": "seed",
+            "y_dot": "system.cpu.ipc",
+            "title": "seed vs system.cpu.ipc",
+            "xlabel": "benchmark_name",
+            "ylabel_bar": "seed",
+            "ylabel_dot": "system.cpu.ipc",
+        }
+
+        _sync_auto_labels(
+            cast(Any, saved),
+            8,
+            "benchmark_name",
+            "system.cpu.ipc",
+            "system.cpu.numCycles",
+        )
+
+        assert mock_st.session_state == {
+            "title_8": "system.cpu.ipc vs system.cpu.numCycles",
+            "xlabel_8": "benchmark_name",
+            "ylabel_8": "system.cpu.ipc",
+            "ylabel_dot_8": "system.cpu.numCycles",
+        }
+
+    @patch(f"{_DUAL_CFG}.st")
+    def test_custom_dual_axis_labels_are_not_overwritten(self, mock_st: MagicMock) -> None:
+        from src.web.components.plotting.config.dual_axis_config import _sync_auto_labels
+
+        mock_st.session_state = {
+            "title_8": "Publication comparison",
+            "xlabel_8": "Workload",
+            "ylabel_8": "Performance",
+            "ylabel_dot_8": "Runtime",
+        }
+        saved = {"x": "old", "y_bar": "left", "y_dot": "right"}
+
+        _sync_auto_labels(cast(Any, saved), 8, "new", "new-left", "new-right")
+
+        assert mock_st.session_state == {
+            "title_8": "Publication comparison",
+            "xlabel_8": "Workload",
+            "ylabel_8": "Performance",
+            "ylabel_dot_8": "Runtime",
+        }
+
     @patch(f"{_DUAL_CFG}.PlotConfigComponents")
     @patch(f"{_DUAL_CFG}.render_color_selector")
     @patch(f"{_DUAL_CFG}.detect_column_types")
@@ -56,12 +113,14 @@ class TestDualAxisRenderConfigUI:
         mock_detect.return_value = (["cycles", "ipc"], ["benchmark", "config"])
         mock_color_sel.return_value = None
         mock_st.columns.side_effect = _columns_side_effect
-        # selectbox: x, y_bar, y_dot, dot_symbol
+        # selectbox: x, y_bar, y_dot, dot_symbol, dot placement, line scope
         mock_st.selectbox.side_effect = [
             "benchmark",
             "cycles",
             "ipc",
             "circle",
+            "Benchmark center",
+            "Across benchmark groups",
         ]
         mock_st.text_input.return_value = "IPC"
         mock_st.checkbox.return_value = True  # show_lines
@@ -80,6 +139,8 @@ class TestDualAxisRenderConfigUI:
         assert result["x"] == "benchmark"
         assert result["y_bar"] == "cycles"
         assert result["y_dot"] == "ipc"
+        assert result["dot_alignment"] == "category"
+        assert result["line_scope"] == "series"
 
     @patch(f"{_DUAL_CFG}.PlotConfigComponents")
     @patch(f"{_DUAL_CFG}.render_color_selector")
@@ -100,12 +161,14 @@ class TestDualAxisRenderConfigUI:
         mock_detect.return_value = (["cycles", "ipc"], ["benchmark", "config"])
         mock_color_sel.return_value = "config"
         mock_st.columns.side_effect = _columns_side_effect
-        # selectbox: x, y_bar, y_dot, dot_symbol
+        # selectbox: x, y_bar, y_dot, dot_symbol, dot placement, line scope
         mock_st.selectbox.side_effect = [
             "benchmark",
             "cycles",
             "ipc",
             "diamond",
+            "Aligned with each bar",
+            "Only within each benchmark group",
         ]
         mock_st.text_input.return_value = "IPC"
         mock_st.checkbox.return_value = False  # show_lines
@@ -115,6 +178,8 @@ class TestDualAxisRenderConfigUI:
             "xlabel": "benchmark",
             "ylabel": "cycles",
             "legend_title": "Legend",
+            "dot_alignment": "bar",
+            "line_scope": "group",
         }
 
         saved = {
@@ -136,6 +201,8 @@ class TestDualAxisRenderConfigUI:
 
         assert result["color"] == "config"
         assert result["show_lines"] is False
+        assert result["dot_alignment"] == "bar"
+        assert result["line_scope"] == "group"
 
     @patch(f"{_DUAL_CFG}.PlotConfigComponents")
     @patch(f"{_DUAL_CFG}.render_color_selector")
@@ -161,6 +228,8 @@ class TestDualAxisRenderConfigUI:
             "cycles",
             "ipc",
             "circle",
+            "Benchmark center",
+            "Across benchmark groups",
         ]
         mock_st.text_input.return_value = "IPC"
         mock_st.checkbox.return_value = True
@@ -202,6 +271,8 @@ class TestDualAxisRenderConfigUI:
             "cycles",
             "ipc",
             "square",
+            "Benchmark center",
+            "Across benchmark groups",
         ]
         mock_st.text_input.return_value = "IPC"
         mock_st.checkbox.return_value = True

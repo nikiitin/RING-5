@@ -245,6 +245,7 @@ class TestSplitApplyMean:
         mean_split_config: dict[str, Any],
     ) -> None:
         """Mean values are computed independently for each variable."""
+        # [test->req~ring5.shaping.split-apply~1]
         shaper = SplitApply(mean_split_config)
         result = shaper(dual_axis_data)
 
@@ -620,6 +621,7 @@ class TestSplitApplyFourGroups:
 
     def test_four_groups_with_mean(self) -> None:
         """Four groups each with Mean produce correct merged result."""
+        # [test->req~ring5.shaping.split-apply~1]
         data = pd.DataFrame(
             {
                 "bench": ["a", "b"],

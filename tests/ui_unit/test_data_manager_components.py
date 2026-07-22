@@ -35,6 +35,7 @@ def mock_streamlit() -> Generator[None, None, None]:
 
 def test_render_summary_tab_stats(mock_streamlit: Any) -> None:
 
+    # [test->req~ring5.data.summary~1]
     df = pd.DataFrame({"num": [1, 2, 3], "cat": ["a", "b", "a"], "mixed": [1.1, None, 3.3]})
 
     DataManagerComponents.render_summary_tab(df)
@@ -66,6 +67,7 @@ def test_render_visualization_tab_search_all(mock_streamlit: Any) -> None:
 
 def test_render_visualization_tab_search_specific(mock_streamlit: Any) -> None:
 
+    # [test->req~ring5.data.table-view~1]
     df = pd.DataFrame({"A": ["foo", "bar"], "B": ["foo", "qux"]})
 
     mock_streamlit.selectbox.side_effect = ["B", "All"]
@@ -77,6 +79,7 @@ def test_render_visualization_tab_search_specific(mock_streamlit: Any) -> None:
 
 
 def test_render_visualization_search_is_literal(mock_streamlit: Any) -> None:
+    # [test->req~ring5.data.table-view~1]
     df = pd.DataFrame({"A": ["value[0]", "value0"]})
     mock_streamlit.selectbox.side_effect = ["A", "All"]
     mock_streamlit.text_input.return_value = "["
@@ -88,6 +91,7 @@ def test_render_visualization_search_is_literal(mock_streamlit: Any) -> None:
 
 def test_render_visualization_tab_pagination(mock_streamlit: Any) -> None:
 
+    # [test->req~ring5.data.table-view~1]
     df = pd.DataFrame({"A": range(100)})
 
     mock_streamlit.text_input.return_value = ""
@@ -103,6 +107,7 @@ def test_render_visualization_tab_pagination(mock_streamlit: Any) -> None:
 
 def test_render_visualization_tab_download(mock_streamlit: Any) -> None:
 
+    # [test->req~ring5.data.table-view~1]
     df = pd.DataFrame({"A": [1]})
 
     mock_streamlit.text_input.return_value = ""

@@ -11,6 +11,7 @@ from src.web.components.plotting.config import stacked_bar_config
 from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.types._trace_helpers import (
+    build_drill_down_payload,
     extract_error_bars,
     prepare_categorical_data,
 )
@@ -31,6 +32,7 @@ class StackedBarPlot(BasePlot):
     @override
     def create_traces(self, data: pd.DataFrame, config: PlotConfig) -> TraceBuildResult:
         """Create stacked bar trace configurations."""
+        # [impl->req~ring5.plot.stacked-bar~1]
         x_col = config.get("x")
         y_cols = config.get("y_columns", [])
 
@@ -140,6 +142,7 @@ class StackedBarPlot(BasePlot):
             custom_data={
                 "customdata": data["__total"].tolist(),
                 "hovertemplate": hover_template,
+                "drilldown": build_drill_down_payload(data, [x_col]),
             },
         )
 
@@ -147,6 +150,7 @@ class StackedBarPlot(BasePlot):
         self, data: pd.DataFrame, x_col: str, config: PlotConfig
     ) -> list[dict[str, Any]]:
         """Build annotations for stack totals."""
+        # [impl->req~ring5.figure.stack-totals~1]
         total_fmt = config.get("net_total_format", ".2f")
         font_size = config.get("total_font_size", 12)
         font_color = config.get("total_font_color", "#000000")

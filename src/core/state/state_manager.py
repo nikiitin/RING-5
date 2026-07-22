@@ -14,7 +14,14 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 import pandas as pd
 
-from src.core.models import PlotProtocol, PortfolioData, RestoreReport
+from src.core.models import (
+    DatasetInfo,
+    DatasetLineage,
+    DatasetRevision,
+    PlotProtocol,
+    PortfolioData,
+    RestoreReport,
+)
 from src.core.models.data_models import (
     CsvPoolEntry,
     ParseVariableConfig,
@@ -45,7 +52,12 @@ class StateManager(Protocol):
         raise NotImplementedError
 
     def set_data(
-        self, data: pd.DataFrame | None, on_change: Callable[[], None] | None = None
+        self,
+        data: pd.DataFrame | None,
+        on_change: Callable[[], None] | None = None,
+        *,
+        operation: str = "Update dataset",
+        source_datasets: tuple[str, ...] = (),
     ) -> None:
         """Set the raw DataFrame with optional change callback."""
         raise NotImplementedError
@@ -64,6 +76,59 @@ class StateManager(Protocol):
 
     def clear_data(self) -> None:
         """Clear all loaded data."""
+        raise NotImplementedError
+
+    def add_dataset(
+        self,
+        name: str,
+        data: pd.DataFrame,
+        *,
+        select: bool = True,
+        replace: bool = False,
+        operation: str = "Add dataset",
+        source_datasets: tuple[str, ...] = (),
+    ) -> DatasetInfo:
+        """Retain a named dataset in the session workspace."""
+        raise NotImplementedError
+
+    def list_datasets(self) -> tuple[DatasetInfo, ...]:
+        """List retained datasets in insertion order."""
+        raise NotImplementedError
+
+    def get_dataset(self, name: str | None = None) -> pd.DataFrame:
+        """Return a named or selected dataset."""
+        raise NotImplementedError
+
+    def select_dataset(self, name: str) -> pd.DataFrame:
+        """Select a retained dataset as the active compatibility view."""
+        raise NotImplementedError
+
+    def remove_dataset(self, name: str) -> None:
+        """Remove a retained dataset."""
+        raise NotImplementedError
+
+    def selected_dataset_name(self) -> str | None:
+        """Return the selected retained dataset name."""
+        raise NotImplementedError
+
+    def get_dataset_lineage(self, name: str | None = None) -> DatasetLineage:
+        """Return revision metadata and recovery capabilities for a dataset."""
+        raise NotImplementedError
+
+    def get_dataset_revision(self, revision_id: str) -> pd.DataFrame:
+        """Return an immutable revision snapshot by ID."""
+        raise NotImplementedError
+
+    def undo_dataset(self, name: str | None = None) -> DatasetRevision:
+        """Restore the preceding revision of a named dataset."""
+        raise NotImplementedError
+
+    def redo_dataset(self, name: str | None = None) -> DatasetRevision:
+        """Reapply the most recently undone dataset revision."""
+        raise NotImplementedError
+
+    def restore_dataset_revision(self, revision_id: str) -> DatasetRevision:
+        """Restore an arbitrary retained dataset revision."""
         raise NotImplementedError
 
     # Config

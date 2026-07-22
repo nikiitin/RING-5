@@ -16,6 +16,8 @@ import plotly.graph_objects as go
 from matplotlib.figure import Figure as MplFigure
 
 from src.core.models.visualization.engine import VALID_ENGINES, EngineMode
+from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
+from src.core.services.visualization.accessibility_service import AccessibilityService
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from ring5.errors import RenderError
 
@@ -45,12 +47,19 @@ def render_figure(plot: BasePlot, *, engine: EngineMode = "plotly") -> Figure:
     Raises:
         RenderError: The engine is invalid or the plot has no processed data.
     """
+    # [impl->req~ring5.figure.accessible-themes~1]
     if engine not in VALID_ENGINES:
         raise RenderError(f"Unknown engine {engine!r}. Choose from {sorted(VALID_ENGINES)}.")
     if plot.processed_data is None:
         raise RenderError(f"Plot '{plot.name}' has no processed data to render.")
 
     try:
+        effective_config = SemanticMetadataService.enrich_figure_config(
+            plot.processed_data, plot.config
+        )
+        effective_config = AccessibilityService.apply_defaults(effective_config, plot.plot_type)
+        if effective_config is not plot.config:
+            plot.config = effective_config
         if engine == "plotly":
             # UI sequence (render_controller.py): create_figure + apply_common_layout.
             plotly_fig = plot.create_figure(plot.processed_data, plot.config)
@@ -70,6 +79,7 @@ def render_figure(plot: BasePlot, *, engine: EngineMode = "plotly") -> Figure:
         )
 
         traces_result = plot.create_traces(plot.processed_data, plot.config)
+        traces_result = AccessibilityService.apply_non_color_encodings(traces_result, plot.config)
         traces_result = _relabel_traces(traces_result, plot.config.get("legend_labels"))
         plot.last_traces = traces_result
 

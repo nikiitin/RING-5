@@ -16,6 +16,94 @@ when another tool already produced the analysis table.
 
 ## Parse gem5 statistics in the web application
 
+<!--
+`uman~ring5.ingestion.configuration.documentation~1`
+
+Covers:
+- req~ring5.ingestion.configuration~1
+
+`uman~ring5.ingestion.configuration-fallbacks.documentation~1`
+
+Covers:
+- req~ring5.ingestion.configuration-fallbacks~1
+
+`uman~ring5.ingestion.distribution-range-scan.documentation~1`
+
+Covers:
+- req~ring5.ingestion.distribution-range-scan~1
+
+`uman~ring5.ingestion.file-discovery.documentation~1`
+
+Covers:
+- req~ring5.ingestion.file-discovery~1
+
+`uman~ring5.ingestion.gem5-backend.documentation~1`
+
+Covers:
+- req~ring5.ingestion.gem5-backend~1
+
+`uman~ring5.ingestion.histogram-rebinning.documentation~1`
+
+Covers:
+- req~ring5.ingestion.histogram-rebinning~1
+
+`uman~ring5.ingestion.output-aliases.documentation~1`
+
+Covers:
+- req~ring5.ingestion.output-aliases~1
+
+`uman~ring5.ingestion.pattern-index-selection.documentation~1`
+
+Covers:
+- req~ring5.ingestion.pattern-index-selection~1
+
+`uman~ring5.ingestion.scalar.documentation~1`
+
+Covers:
+- req~ring5.ingestion.scalar~1
+
+`uman~ring5.ingestion.scan-presets-progress.documentation~1`
+
+Covers:
+- req~ring5.ingestion.scan-presets-progress~1
+
+`uman~ring5.ingestion.source-modes.documentation~1`
+
+Covers:
+- req~ring5.ingestion.source-modes~1
+
+`uman~ring5.ingestion.statistics-only.documentation~1`
+
+Covers:
+- req~ring5.ingestion.statistics-only~1
+
+`uman~ring5.ingestion.variable-editor.documentation~1`
+
+Covers:
+- req~ring5.ingestion.variable-editor~1
+
+`uman~ring5.ingestion.variable-entry-selection.documentation~1`
+
+Covers:
+- req~ring5.ingestion.variable-entry-selection~1
+
+`uman~ring5.ingestion.variable-scan.documentation~1`
+
+Covers:
+- req~ring5.ingestion.variable-scan~1
+
+`uman~ring5.ingestion.vector.documentation~1`
+
+Covers:
+- req~ring5.ingestion.vector~1
+
+`uman~ring5.ingestion.web-path-authorization.documentation~1`
+
+Covers:
+- req~ring5.ingestion.web-path-authorization~1
+
+-->
+
 On **Data Source**, select **Parse gem5 Stats Files** and set:
 
 - **Stats directory path** to the common root of the gem5 runs.
@@ -38,16 +126,221 @@ Add variables from the scan results. Check vector and distribution entry selecti
 their configuration controls which output columns are created. Then select **Parse gem5 Stats
 Files**. RING-5 assembles the parser output into one CSV and loads it into the workspace.
 
+Use **Alias** when the CSV column should have a concise logical name while discovery still targets
+the original statistic or numeric pattern. Scalar aliases must remain unique across both source and
+output names. For a configuration variable, **On Empty** supplies the value to emit when the
+selected path position contains no metadata; otherwise the first extracted value is retained.
+
 The parser records missing values as `NaN`. It reports file failures instead of substituting
 simulator values. Investigate missing variables before reducing or normalizing the data.
 
+### Test parser settings before a full run
+
+<!--
+`uman~ring5.ingestion.parser-playground.documentation~1`
+
+Covers:
+- req~ring5.ingestion.parser-playground~1
+
+-->
+
+Select **Test configuration** after choosing the file pattern, parser strategy, and variables. The
+test runs the real asynchronous parser on the first three matching files in lexical path order. It
+also counts every matching file, so the dialog explains both the full-run scope and exactly which
+files supplied the sample.
+
+Review the sampled output table, exact source paths, missing-variable warning, and readiness
+message. Vector and histogram entries appear as the same output columns a full parse would create.
+A missing value remains `NaN`; it is never replaced with a plausible-looking value. The test also
+warns when the full match count exceeds the parser's 4,096-file safety limit.
+
+The preview is limited to 3 files, 64 configured variables, 50,000 displayed cells, and two minutes.
+It uses scratch CSV assembly only: finalization removes that CSV, does not add anything to Recent,
+and does not replace the workspace's current data. Fix the settings and test again, or select
+**Parse gem5 Stats Files** when the evidence is ready.
+
+Headless callers use the same submit/finalize lifecycle; there is deliberately no synchronous
+playground wrapper:
+
+```python
+with ring5.Session() as session:
+    job = session.parser_playground_submit(
+        "results/",
+        variables=["simTicks", "system.cpu.ipc"],
+        pattern="stats.txt",
+        scan_limit=0,
+    )
+    preview = job.finalize()
+    print(preview.sampled_files)
+    print(preview.columns, preview.rows)
+    print(preview.missing_variables, preview.ready_for_full_parse)
+```
+
+### Reuse unchanged simulator files
+
+<!--
+`uman~ring5.ingestion.incremental-parsing.documentation~1`
+
+Covers:
+- req~ring5.ingestion.incremental-parsing~1
+
+-->
+
+Keep **Reuse unchanged simulator files** selected when a results tree grows over time. Before
+submitting work, RING-5 computes a SHA-256 content fingerprint for every matching statistics file.
+The configuration-aware strategy also fingerprints the adjacent `config.ini`. The progress dialog
+then states exactly how many files are new or changed, unchanged, and removed.
+
+- New and changed files run through the normal asynchronous parser workers.
+- Unchanged files reuse their previously finalized CSV cells; no executable parser objects are
+  deserialized.
+- Files that disappeared from the results tree lose their cached row in the next output.
+- A change to the file pattern, strategy, variable definitions, aliases, or scanned pattern
+  expansion invalidates the prior cache and reparses the current tree.
+
+RING-5 writes the merged `results.csv` atomically, then writes an inspectable
+`.ring5-incremental-parse.json` beside it. A malformed, incompatible, or stale cache is ignored and
+rebuilt from simulator inputs. Parser failures remain visible and never become successful cache
+entries. Clear the checkbox when you explicitly want a full parse without reuse.
+
+The Python API uses the same contract. Reuse the same `output_dir` (or pass `cache_path`) between
+calls and inspect the returned counts:
+
+```python
+with ring5.Session() as session:
+    result = session.parse(
+        "results/",
+        variables=["simTicks", "system.cpu.ipc"],
+        output_dir="parsed/",
+        scan_limit=0,
+        incremental=True,
+    )
+    print(result.parsed_files, result.reused_files, result.removed_files)
+```
+
 ## Reopen parser output in the web application
+
+<!--
+`uman~ring5.ingestion.csv-delimiter-detection.documentation~1`
+
+Covers:
+- req~ring5.ingestion.csv-delimiter-detection~1
+
+`uman~ring5.ingestion.csv-pool.documentation~1`
+
+Covers:
+- req~ring5.ingestion.csv-pool~1
+
+-->
 
 Parsed CSVs are stored in the application's recent-file pool. On **Data Source**, select **Load from
 Recent**, choose a file, and load it. The recent-file pool is local application state, not a durable
 archive; copy important results to research storage.
 
+Recent-file cards include cached row, column, and type metadata. CSV loading detects common
+delimiters rather than requiring comma-only input; the file must still satisfy the non-empty header
+contract.
+
+### Upload data or a portfolio from your browser
+
+<!--
+`uman~ring5.ingestion.browser-upload.documentation~1`
+
+Covers:
+- req~ring5.ingestion.browser-upload~1
+
+-->
+
+Select **Upload data or portfolio** on **Data Source** to choose a file from your computer. RING-5
+accepts CSV, tabular JSON, modern Excel (`.xlsx`), and RING-5 portfolio JSON. The browser sends the
+file contents—not its local path—and RING-5 keeps the staged copy in temporary session storage.
+
+Each upload is limited to 64 MiB. RING-5 validates the filename extension, the browser-declared
+media type, and the actual content before showing an action. It also fingerprints the original
+bytes with SHA-256. JSON tables contain one object or an array of flat objects; nested cell values
+are rejected. Excel imports use the first visible worksheet and require a unique, non-empty header
+row. Tabular uploads are additionally bounded to 100,000 rows, 500 columns, 2,000,000 cells, and
+10,000 characters per normalized cell.
+
+CSV, JSON, and Excel datasets continue into the same required import review described below. A
+JSON file that could be either data or a portfolio can be labeled explicitly with **Interpret JSON
+as**. Portfolio uploads show their schema version, plot count, and whether data is present before
+**Restore uploaded portfolio** replaces the current workspace. Validation alone never changes
+workspace data or plots.
+
+### Fetch an authorized remote source
+
+<!--
+`uman~ring5.ingestion.remote-sources.documentation~1`
+
+Covers:
+- req~ring5.ingestion.remote-sources~1
+
+-->
+
+Under **Upload data or portfolio**, select **Remote source** to fetch through HTTPS, SSH, or an
+S3-compatible endpoint. Remote access is disabled until the server administrator sets an exact or
+wildcard host allowlist, for example:
+
+```bash
+export RING5_ALLOWED_REMOTE_HOSTS="data.example.org,*.objects.example.org"
+```
+
+The allowlist is applied to the original host and every HTTP redirect. Public network addresses
+are required by default, which prevents a remote URL from reaching loopback, link-local, or private
+services. A controlled on-premises deployment can set `RING5_ALLOW_PRIVATE_REMOTE_HOSTS=1`.
+HTTPS is required for HTTP and S3 endpoints; `RING5_REQUIRE_REMOTE_TLS=0` is available only for an
+explicitly authorized development endpoint.
+
+- **HTTPS** accepts a URL and an optional bearer token. URL query strings and tokens are omitted
+  from displayed provenance and errors, and credentialed requests do not follow redirects.
+- **SSH** uses the server process's SSH agent/configuration or a server-side private-key path. It
+  requires batch mode, strict host-key checking, a safe absolute remote path, and never accepts a
+  password in the source URI.
+- **S3-compatible** uses path-style object URLs and optional AWS Signature Version 4 access,
+  secret, and session credentials. Credentials are sent in headers and are not retained in the
+  staged result.
+
+Every adapter stops at the same 64 MiB boundary. The fetched bytes then undergo the same file-type,
+parsing, fingerprint, and human review checks as a browser upload. Fetching alone does not change
+workspace data or plots; select **Load accepted rows** or **Restore uploaded portfolio** only after
+reviewing the result.
+
+### Review a tabular import before loading
+
+<!--
+`uman~ring5.ingestion.import-preview.documentation~1`
+
+Covers:
+- req~ring5.ingestion.import-preview~1
+
+-->
+
+Select **Review & Load** or **Preview** on a recent-file card to inspect the source without changing
+the workspace. Both actions open the same required review; no web import enters the workspace
+directly. RING-5 shows the detected encoding and delimiter, every inferred column type, accepted
+and rejected row counts, a bounded accepted-row preview, and the physical source line and reason
+for each shown rejection.
+
+Use the controls above the preview to correct the encoding, delimiter, one-based header row,
+surrounding whitespace, and missing-value tokens. Set **Import as** for a column when its inferred
+type is unsuitable. The preview is recalculated immediately, so a type mismatch becomes a visible
+rejected row before loading. Select **Load accepted rows** only after those outcomes are correct.
+
+The source is fingerprinted when previewed. If it changes before loading, RING-5 refuses the load
+and asks for another review. Files, row counts, column counts, displayed rows, missing-value tokens,
+and rejection details are bounded; accepted and rejected totals still describe the complete
+reviewed source within those limits.
+
 ## Load an existing CSV in Python
+
+<!--
+`uman~ring5.ingestion.csv-load.documentation~1`
+
+Covers:
+- req~ring5.ingestion.csv-load~1
+
+-->
 
 `Session.load` reads a non-empty CSV with a header. It does not require fixed gem5 columns.
 
@@ -61,6 +354,27 @@ with ring5.Session() as session:
 
 An operation may still require categorical or numeric columns appropriate to that task. Loading
 raises `ring5.DataLoadError` for missing, unreadable, malformed, or empty input.
+
+For review-before-load automation, call `preview_import`, inspect its immutable result, then pass
+that exact result to `load_import`:
+
+```python
+with ring5.Session() as session:
+    preview = session.preview_import(
+        "instrument.txt",
+        header_row=2,
+        column_types={"ipc": "number", "stable": "boolean"},
+    )
+    print(preview.encoding, preview.delimiter)
+    print(preview.accepted_row_count, preview.rejected_row_count)
+    for row in preview.rejected_rows:
+        print(row.line_number, row.reason)
+    data = session.load_import(preview)
+```
+
+Supported corrections are UTF-8, UTF-8 with BOM, Windows-1252, or Latin-1 text; comma, semicolon,
+tab, or pipe delimiters; and text, integer, number, boolean, or ISO datetime column types. Loading
+uses nullable pandas dtypes where a reviewed numeric or boolean column contains missing values.
 
 ## Parse from Python
 
@@ -88,6 +402,16 @@ a `NaN` column is an intentional part of the analysis.
 Pattern variables accept the scanner form `system.cpu\d+.ipc` and the equivalent escaped-literal
 form `system\.cpu\d+\.ipc`. Only literal ASCII statistic-name characters and `\d+` numeric
 placeholders are accepted; arbitrary regular expressions are rejected before parsing.
+
+When a pattern has one or more numeric positions, **Select specific indices** filters the discovered
+instances. Enabling it preserves each selected instance as a separate concrete output column;
+leaving it disabled applies the variable type's normal pattern aggregation.
+
+Vector, distribution, and histogram editors offer **Statistics Only**, **Entries Only**, and
+**Entries + Statistics** modes where applicable. Entries can be selected from scan results or
+entered manually. A per-variable deep scan discovers entries across the larger bounded sample and
+aggregates the minimum and maximum bucket range for distributions. Histogram configurations can
+also rebin inconsistent source ranges into a fixed bucket count and maximum range.
 
 For a non-blocking workflow, call `Session.parse_submit(...)`, then `finalize()` or `cancel()` on the
 returned job. Each job owns its futures.

@@ -37,6 +37,20 @@ flowchart LR
     MPL --> EXPORT
 ```
 
+## Engine-independent traces
+
+<!--
+`uman~ring5.render.engine-independent-traces.documentation~1`
+
+Covers:
+- req~ring5.render.engine-independent-traces~1
+
+-->
+
+Every registered plot type produces a typed `TraceBuildResult` before backend rendering. It carries
+bar, line, scatter, histogram, or heatmap traces plus backend-neutral separators, shaded regions,
+rules, annotations, tick positions, and secondary-axis metadata.
+
 Plot types live under `src/web/pages/ui/plotting/types/` because their configuration UI and current
 composition are web-owned. They emit models from `src/core/models/visualization/` and do not create
 backend marks directly.

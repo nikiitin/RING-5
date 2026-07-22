@@ -12,6 +12,8 @@ from src.core.services.shapers.factory import ShaperFactory
 class TestShaperFactoryDisplayNames:
     """Tests for shaper display name mapping."""
 
+    # [test->req~ring5.extension.shaper-registry~1]
+
     def test_get_display_name_map_returns_dict(self) -> None:
         result = ShaperFactory.get_display_name_map()
         assert isinstance(result, dict)

@@ -9,6 +9,13 @@ permalink: /user-guide/getting-started/concepts/
 
 # Core concepts
 
+<!--
+`uman~ring5.workspace.reset.documentation~1`
+
+Covers:
+- req~ring5.workspace.reset~1
+-->
+
 RING-5 separates data preparation from per-figure shaping so one loaded dataset can support several
 figures without hidden mutation.
 
@@ -45,9 +52,21 @@ These operations return new DataFrames in the Python API. They do not mutate cal
 
 ## Plot and shaper pipeline
 
+<!--
+`uman~ring5.plots.independent-state.documentation~1`
+
+Covers:
+- req~ring5.plots.independent-state~1
+
+-->
+
 A plot stores a plot type, a configuration, processed data, and an ordered shaper pipeline. A
 shaper transforms data for that plot only. For example, one plot can normalize IPC to a baseline
 while another uses absolute IPC from the same workspace dataset.
+
+Each plot also owns its legend mappings and generated-figure cache. The Plotly or Matplotlib engine
+choice is session-scoped; the active engine participates in each plot's cache identity, so changing
+engines regenerates the figure instead of reusing an incompatible render.
 
 Pipeline order matters: filtering before calculating a mean can produce a different result from
 calculating the mean before filtering. Preview intermediate output and finalize the pipeline before

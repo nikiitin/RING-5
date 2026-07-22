@@ -20,6 +20,8 @@ if TYPE_CHECKING:
 class ScanJob:
     """A submitted scan batch whose handle owns its futures and context."""
 
+    # [impl->req~ring5.ingestion.async-scan~1]
+
     api: "ApplicationAPI"
     futures: list["Future[ScanFileResult]"]
     stats_path: str
@@ -27,6 +29,7 @@ class ScanJob:
 
     def cancel(self) -> None:
         """Cancel only work belonging to this scan job."""
+        # [impl->req~ring5.quality.async-ownership~1]
         for future in self.futures:
             future.cancel()
 

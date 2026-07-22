@@ -15,11 +15,11 @@ class TestShowDataManagersPage:
         api = MagicMock()
         api.state_manager.has_data.return_value = False
 
-        # st.tabs must return 7 context managers for destructuring
+        # st.tabs must return 11 context managers for destructuring
         tab = MagicMock()
         tab.__enter__ = MagicMock(return_value=tab)
         tab.__exit__ = MagicMock(return_value=False)
-        mock_st.tabs.return_value = [tab] * 7
+        mock_st.tabs.return_value = [tab] * 11
 
         show_data_managers_page(api)
 
@@ -36,7 +36,7 @@ class TestShowDataManagersPage:
         tab = MagicMock()
         tab.__enter__ = MagicMock(return_value=tab)
         tab.__exit__ = MagicMock(return_value=False)
-        mock_st.tabs.return_value = [tab] * 7
+        mock_st.tabs.return_value = [tab] * 11
 
         show_data_managers_page(api)
 
@@ -48,10 +48,18 @@ class TestShowDataManagersPage:
     @patch("src.web.pages.data_managers.OutlierRemoverManager")
     @patch("src.web.pages.data_managers.PreprocessorManager")
     @patch("src.web.pages.data_managers.MixerManager")
+    @patch("src.web.pages.data_managers.SchemaContractManager")
+    @patch("src.web.pages.data_managers.QualityProfileManager")
+    @patch("src.web.pages.data_managers.ComparisonManager")
+    @patch("src.web.pages.data_managers.DatasetWorkspaceManager")
     @patch("src.web.pages.data_managers.st")
     def test_with_data_renders_tabs(
         self,
         mock_st: MagicMock,
+        mock_workspace_cls: MagicMock,
+        mock_comparison_cls: MagicMock,
+        mock_quality_cls: MagicMock,
+        mock_schema_contract_cls: MagicMock,
         mock_mixer_cls: MagicMock,
         mock_preproc_cls: MagicMock,
         mock_outlier_cls: MagicMock,
@@ -73,8 +81,12 @@ class TestShowDataManagersPage:
         tab = MagicMock()
         tab.__enter__ = MagicMock(return_value=tab)
         tab.__exit__ = MagicMock(return_value=False)
-        mock_st.tabs.return_value = [tab] * 7
+        mock_st.tabs.return_value = [tab] * 11
 
         show_data_managers_page(api)
 
         mock_st.tabs.assert_called_once()
+        mock_workspace_cls.assert_called_once_with(api)
+        mock_comparison_cls.assert_called_once_with(api)
+        mock_quality_cls.assert_called_once_with(api)
+        mock_schema_contract_cls.assert_called_once_with(api)

@@ -98,7 +98,7 @@ class TestApplicationAPIKeepIndices:
     def test_dict_with_keep_indices_true(self) -> None:
         """A dict variable with keepIndices=True should produce keep_indices=True."""
         api = self._make_api()
-        api._parser.submit_parse_async.return_value = MagicMock()
+        api._parser.submit_parse_async.return_value = MagicMock(futures=[])
 
         variables: list[dict[str, Any]] = [
             {"name": r"system.cpu\d+.ipc", "type": "scalar", "keepIndices": True},
@@ -118,7 +118,7 @@ class TestApplicationAPIKeepIndices:
     def test_dict_with_keep_indices_false(self) -> None:
         """A dict variable without keepIndices should default to False."""
         api = self._make_api()
-        api._parser.submit_parse_async.return_value = MagicMock()
+        api._parser.submit_parse_async.return_value = MagicMock(futures=[])
 
         variables: list[dict[str, Any]] = [
             {"name": r"system.cpu\d+.ipc", "type": "scalar"},
@@ -138,7 +138,7 @@ class TestApplicationAPIKeepIndices:
     def test_dict_with_snake_case_keep_indices(self) -> None:
         """``keep_indices`` (snake_case) in dicts is also accepted."""
         api = self._make_api()
-        api._parser.submit_parse_async.return_value = MagicMock()
+        api._parser.submit_parse_async.return_value = MagicMock(futures=[])
 
         variables: list[dict[str, Any]] = [
             {"name": r"system.cpu\d+.ipc", "type": "scalar", "keep_indices": True},
@@ -495,6 +495,8 @@ class TestReconstructConcreteName:
 
 class TestKeepIndicesUserFiltered:
     """Verify that user-filtered IDs from PatternIndexSelector are respected."""
+
+    # [test->req~ring5.ingestion.pattern-index-selection~1]
 
     @staticmethod
     def _expand(config: StatConfig, scanned: list[ScannedVariable]) -> list[StatConfig]:

@@ -16,6 +16,7 @@ from src.core.state.repositories.parser_state_repository import ParserStateRepos
 from src.core.state.repositories.plot_repository import PlotRepository
 from src.core.state.repositories.preview_repository import PreviewRepository
 from src.core.state.repositories.visualization_repository import VisualizationRepository
+from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +79,9 @@ class SessionRepository:
         return result
 
     def restore_from_portfolio(self, portfolio_data: PortfolioData) -> RestoreReport:
+        # [impl->req~ring5.portfolio.restore~1]
+        # [impl->req~ring5.portfolio.partial-report~1]
+        # [impl->req~ring5.data.semantic-units~1]
         """
         Restore complete session state from portfolio data.
 
@@ -121,6 +125,11 @@ class SessionRepository:
         if data_csv:
             try:
                 df = self.enforce_config_dtypes(pd.read_csv(io.StringIO(data_csv)))
+                semantics = SemanticMetadataService.from_payload(
+                    portfolio_data.get("data_semantics", {}),
+                    available_columns=tuple(str(column) for column in df.columns),
+                )
+                df = SemanticMetadataService.attach(df, semantics)
                 self.data_repo.set_data(df)
                 data_restored = True
                 logger.info("SESSION_REPO: Restored data - %d rows", len(df))

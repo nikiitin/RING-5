@@ -239,6 +239,8 @@ class TestBuildBarTrace:
 class TestCreateFigure:
     """Tests for create_figure end-to-end."""
 
+    # [test->req~ring5.plot.stacked-bar~1]
+
     def test_missing_x_shows_message(self) -> None:
         plot = StackedBarPlot(1, "test")
         fig = plot.create_figure(_sample_df(), {"y_columns": ["ipc"]})

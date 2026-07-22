@@ -28,6 +28,8 @@ class Distribution(StatType):
     - Underflows and overflows are mandatory entries in the input data.
     """
 
+    # [impl->req~ring5.ingestion.distribution~1]
+
     required_params = ["minimum", "maximum"]
     _allowed_attributes = frozenset(
         {

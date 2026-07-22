@@ -49,6 +49,7 @@ def _config_with_shapes() -> dict[str, Any]:
 
 def test_render_does_not_mutate_saved_config(mock_st: MagicMock) -> None:
     """render() returns an independent copy; the input config is untouched."""
+    # [test->req~ring5.figure.shapes-annotations~1]
     saved_config = _config_with_shapes()
     snapshot = deepcopy(saved_config)
 
@@ -65,6 +66,7 @@ def test_render_does_not_mutate_saved_config(mock_st: MagicMock) -> None:
 
 def test_add_shape_returns_new_list_without_mutating(mock_st: MagicMock) -> None:
     """Clicking 'Add Shape' yields a longer list, leaving saved_config intact."""
+    # [test->req~ring5.figure.shapes-annotations~1]
     mock_st.button.return_value = True  # 'Add Shape' clicked
     saved_config = _config_with_shapes()
     snapshot = deepcopy(saved_config)

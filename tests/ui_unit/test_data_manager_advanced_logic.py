@@ -112,7 +112,9 @@ def test_mixer_confirm(mock_streamlit: Any, mock_api: Any, sample_data: Any) -> 
     manager.render()
 
     # Check state updated via api orchestrator
-    mock_api.state_manager.set_data.assert_called_with(result_df)
+    mock_api.update_selected_dataset.assert_called_once()
+    pd.testing.assert_frame_equal(mock_api.update_selected_dataset.call_args.args[0], result_df)
+    assert mock_api.update_selected_dataset.call_args.kwargs["operation"].startswith("Mixer:")
     mock_api.clear_preview.assert_called_once_with("mixer")
 
 

@@ -211,6 +211,8 @@ class TestOutlierRemoverRender:
     def test_confirm_applies_data(
         self, mock_st: MagicMock, mock_hist: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
     ) -> None:
+        # [test->req~ring5.data.outlier-removal~1]
+        # [test->req~ring5.data.preview-confirm~1]
         from src.web.components.data_managers.outlier_remover import (
             OutlierRemoverManager,
         )
@@ -227,7 +229,10 @@ class TestOutlierRemoverRender:
 
         mgr = OutlierRemoverManager(mock_api)
         mgr.render()
-        mock_api.state_manager.set_data.assert_called_once()
+        mock_api.update_selected_dataset.assert_called_once_with(
+            filtered,
+            operation="Outlier Removal (IQR)",
+        )
         mock_api.clear_preview.assert_called_once()
         mock_api.add_manager_history_record.assert_called_once()
 

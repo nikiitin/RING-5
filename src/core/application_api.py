@@ -1,25 +1,70 @@
 """Application facade used by the web presentation layer."""
 
 import logging
-from collections.abc import Sequence
+import tempfile
+from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import Future
-from typing import Any, cast
+from dataclasses import replace
+from pathlib import Path
+from typing import Any, Literal, cast
 
 import numpy as np
 import pandas as pd
 
+from src.core.common.security_limits import MAX_BACKGROUND_JOB_LABEL_LENGTH
 from src.core.models import (
+    BackgroundJobInfo,
+    BackgroundJobKind,
+    BrowserUpload,
+    DatasetInfo,
+    DatasetLineage,
+    DatasetRevision,
+    DatasetSnapshotInfo,
+    DashboardSpec,
+    DrillDownResult,
+    ImportOptions,
+    ImportPreview,
+    IncrementalParseBatchResult,
+    IncrementalParseResult,
+    JoinCardinality,
+    JoinDiagnostics,
+    LinkedSelectionSpec,
+    PlotConfigurationComparison,
+    PlotTransferMode,
+    PlotTransferResult,
+    RestoreReport,
+    SmallMultiplesSpec,
     ParseBatchResult,
+    ParserPlaygroundBatchResult,
+    ParserPlaygroundResult,
     ScanFileResult,
     ScannedVariable,
     ScanResult,
     StatConfig,
+    WorkspaceSearchResponse,
+    WorkspaceCommandSearchResponse,
+    WorkspaceArtifact,
+    WorkspaceArtifactKind,
+    WorkspaceArtifactResponse,
+    AnalysisReviewResponse,
+    AnalysisReviewStatus,
+    AnalysisReviewTarget,
+    AnalysisReviewTargetKind,
+    AnalysisReviewTargetResponse,
+    AnalysisReviewThread,
+    RecoveryDraftCapture,
+    RecoveryDraftInfo,
+    GuidedAnalysisProgress,
 )
+from src.core.models.browser_upload_models import BrowserUploadRequest
+from src.core.models.remote_source_models import RemoteSource, RemoteSourcePolicy
 from src.core.models.pattern_index_service import PatternIndexService
 from src.core.models.data_models import (
     ColumnInfoResult,
     CsvPoolEntry,
     ParseVariableConfig,
+    PipelineConfigConflictPolicy,
+    PipelineConfigImportResult,
     SavedConfigData,
     SavedConfigEntry,
     ScannedVariableDict,
@@ -30,9 +75,27 @@ from src.core.models.parsing_models import StatParamValue
 from src.core.models.plot_protocol import PlotDeserializer
 from src.core.models.visualization import FigureConfig
 from src.core.services.data_services.data_services_api import DataServicesAPI
+from src.core.services.background_job_service import BackgroundJobService
+from src.core.services.browser_upload_service import BrowserUploadService
 from src.core.services.managers.managers_api import ManagersAPI
+from src.core.services.import_preview_service import ImportPreviewService
+from src.core.services.remote_source_service import RemoteSourceService
 from src.core.services.services_impl import DefaultServicesAPI
 from src.core.services.shapers.shapers_api import ShapersAPI
+from src.core.services.visualization.drill_down_service import drill_down_rows
+from src.core.services.visualization.small_multiples_service import (
+    create_small_multiples_spec as build_small_multiples_spec,
+)
+from src.core.services.visualization.plot_transfer_service import copy_plot_content
+from src.core.services.visualization.plot_configuration_comparison_service import (
+    compare_plot_configurations,
+)
+from src.core.services.workspace_search_service import WorkspaceSearchService
+from src.core.services.workspace_command_service import WorkspaceCommandService
+from src.core.services.workspace_metadata_service import WorkspaceMetadataService
+from src.core.services.analysis_review_service import AnalysisReviewService
+from src.core.services.autosave_recovery_service import AutosaveRecoveryService
+from src.core.services.guided_analysis_service import GuidedAnalysisService
 from src.core.state.repository_state_manager import RepositoryStateManager
 from src.parsing.framework.file_discovery import find_stats_files as _find_stats_files
 from src.parsing.parser_protocol import SimulationParser
@@ -41,13 +104,29 @@ from src.parsing.registry import SimulatorInfo, SimulatorRegistry
 logger = logging.getLogger(__name__)
 
 
+def _automatic_panel_labels(count: int) -> tuple[str, ...]:
+    """Return deterministic publication labels ``(a)`` through ``(zz...)``."""
+    labels: list[str] = []
+    for index in range(count):
+        value = index + 1
+        letters = ""
+        while value:
+            value, remainder = divmod(value - 1, 26)
+            letters = chr(ord("a") + remainder) + letters
+        labels.append(f"({letters})")
+    return tuple(labels)
+
+
 class ApplicationAPI:
     """Coordinate parsers, domain services, and repository state for the UI."""
+
+    # [impl->req~ring5.quality.application-facade~1]
 
     def __init__(
         self,
         plot_deserializer: PlotDeserializer | None = None,
         parser: SimulationParser | None = None,
+        remote_source_service: RemoteSourceService | None = None,
     ) -> None:
         """
         Initialize the Application API.
@@ -59,15 +138,18 @@ class ApplicationAPI:
                 classes directly.
             parser: Optional simulator parser backend.  Defaults to the
                 gem5 parser from the ``SimulatorRegistry``.
+            remote_source_service: Optional configured remote adapter dispatcher.
         """
         self.state_manager = RepositoryStateManager(plot_deserializer=plot_deserializer)
 
         self._services = DefaultServicesAPI(self.state_manager)
+        self._remote_sources = remote_source_service or RemoteSourceService()
 
         self._parser: SimulationParser = parser or SimulatorRegistry.get_parser("gem5")
 
         # A facade may cancel only scan jobs that it submitted.
         self._pending_scan_futures: list[Future[ScanFileResult]] = []
+        self._background_jobs = BackgroundJobService()
 
         logger.info("Application API initialized")
 
@@ -88,18 +170,55 @@ class ApplicationAPI:
         """Access pipeline and shaper operations."""
         return self._services.shapers
 
+    def list_background_jobs(self) -> tuple[BackgroundJobInfo, ...]:
+        # [impl->req~ring5.workspace.background-jobs~1]
+        """Return newest-first immutable background-job snapshots."""
+        return self._background_jobs.list()
+
+    def submit_background_operation(
+        self,
+        kind: BackgroundJobKind,
+        label: str,
+        operation: Callable[[], Any],
+        *,
+        retryable: bool = True,
+    ) -> BackgroundJobInfo:
+        """Submit callable transformation or export work to this session's job center."""
+        return self._background_jobs.submit(kind, label, operation, retryable=retryable)
+
+    def cancel_background_job(self, job_id: str) -> BackgroundJobInfo:
+        """Request cancellation of one session-owned job."""
+        return self._background_jobs.cancel(job_id)
+
+    def retry_background_job(self, job_id: str) -> BackgroundJobInfo:
+        """Retry one finished session-owned job."""
+        return self._background_jobs.retry(job_id)
+
+    def get_background_job_result(self, job_id: str) -> Any:
+        """Return a retained completed transformation or export result."""
+        return self._background_jobs.result(job_id)
+
+    def dismiss_finished_background_jobs(self) -> int:
+        """Remove finished job records and their retained results."""
+        return self._background_jobs.dismiss_finished()
+
+    def close_background_jobs(self, *, wait: bool = False) -> None:
+        """Cancel active jobs and release the session-owned job executor."""
+        self._background_jobs.close(wait=wait)
+
     def load_data(self, csv_path: str) -> None:
         """
         Orchestrate loading data from a file path:
         1. Load via data services
         2. Persist via StateManager
         """
+        # [impl->req~ring5.ingestion.csv-load~1]
         try:
             # 1. Operation: Load
             df = self._services.data_services.load_csv_file(csv_path)
 
             # 2. Persistence: Save
-            self.state_manager.set_data(df)
+            self.state_manager.set_data(df, operation=f"Load CSV: {csv_path}")
             self.state_manager.set_processed_data(None)  # Reset derived state
             self.state_manager.set_csv_path(csv_path)
 
@@ -113,6 +232,98 @@ class ApplicationAPI:
         # Using pure string path from pool
         self.load_data(csv_path)
 
+    def preview_import(self, file_path: str, options: ImportOptions | None = None) -> ImportPreview:
+        # [impl->req~ring5.ingestion.import-preview~1]
+        """Inspect a delimited table without changing workspace state."""
+        return ImportPreviewService.preview(file_path, options)
+
+    def load_import_preview(self, preview: ImportPreview) -> pd.DataFrame:
+        # [impl->req~ring5.ingestion.import-preview~1]
+        """Load accepted rows from an unchanged, previously reviewed import."""
+        data = ImportPreviewService.load(preview)
+        self.state_manager.set_data(
+            data,
+            operation=f"Load reviewed import: {preview.source_path}",
+        )
+        self.state_manager.set_processed_data(None)
+        self.state_manager.set_csv_path(preview.source_path)
+        self.state_manager.set_use_parser(False)
+        return data
+
+    def inspect_browser_upload(
+        self,
+        file_name: str,
+        content_type: str,
+        content: bytes,
+        request: BrowserUploadRequest = "auto",
+    ) -> BrowserUpload:
+        # [impl->req~ring5.ingestion.browser-upload~1]
+        """Validate and stage a browser upload without changing workspace data."""
+        temp_dir = self.state_manager.get_temp_dir()
+        if not temp_dir:
+            temp_dir = tempfile.mkdtemp(prefix="ring5-session-")
+            self.state_manager.set_temp_dir(temp_dir)
+        destination = Path(temp_dir) / "browser_uploads"
+        return BrowserUploadService.inspect(
+            file_name,
+            content_type,
+            content,
+            destination,
+            request,
+        )
+
+    def restore_browser_portfolio(
+        self,
+        upload: BrowserUpload,
+        *,
+        signing_key: str | bytes | None = None,
+        require_signature: bool = False,
+    ) -> RestoreReport:
+        # [impl->req~ring5.ingestion.browser-upload~1]
+        """Restore an explicitly confirmed, unchanged browser portfolio upload."""
+        portfolio = BrowserUploadService.load_portfolio(
+            upload,
+            signing_key=signing_key,
+            require_signature=require_signature,
+        )
+        return self.state_manager.restore_session(portfolio)
+
+    def restore_browser_portfolio_bundle(
+        self,
+        upload: BrowserUpload,
+        *,
+        signing_key: str | bytes | None = None,
+        require_signature: bool = False,
+    ) -> RestoreReport:
+        # [impl->req~ring5.portfolio.portable-bundles~1]
+        """Verify and restore a staged portable bundle without persisting its files."""
+        contents = BrowserUploadService.load_portfolio_bundle(
+            upload,
+            signing_key=signing_key,
+            require_signature=require_signature,
+        )
+        return self.state_manager.restore_session(contents.portfolio)
+
+    def fetch_remote_source(
+        self,
+        source: RemoteSource,
+        policy: RemoteSourcePolicy | None = None,
+    ) -> BrowserUpload:
+        # [impl->req~ring5.ingestion.remote-sources~1]
+        """Fetch, validate, and stage one authorized remote dataset or portfolio."""
+        download = self._remote_sources.fetch(source, policy)
+        temp_dir = self.state_manager.get_temp_dir()
+        if not temp_dir:
+            temp_dir = tempfile.mkdtemp(prefix="ring5-session-")
+            self.state_manager.set_temp_dir(temp_dir)
+        upload = BrowserUploadService.inspect(
+            download.file_name,
+            download.content_type,
+            download.content,
+            Path(temp_dir) / "remote_sources",
+        )
+        return replace(upload, origin_display=download.display_uri)
+
     def get_current_view(self) -> dict[str, Any]:
         """Assemble the current data pipeline state for UI consumption."""
         return {
@@ -121,10 +332,537 @@ class ApplicationAPI:
             "config": self.state_manager.get_config(),
         }
 
+    def search_workspace(self, query: str, *, limit: int = 20) -> WorkspaceSearchResponse:
+        """Search variables, datasets, plots, pipelines, portfolios, commands, and guides."""
+        # [impl->req~ring5.workspace.global-search~1]
+        return WorkspaceSearchService.search_workspace(
+            self.state_manager,
+            self.data_services.list_portfolios(),
+            query,
+            limit=limit,
+        )
+
+    def search_workspace_commands(
+        self,
+        query: str = "",
+        *,
+        limit: int = 20,
+    ) -> WorkspaceCommandSearchResponse:
+        """List or search the safe commands available to the web workspace."""
+        # [impl->req~ring5.workspace.command-palette~1]
+        return WorkspaceCommandService.search_commands(query, limit=limit)
+
+    def list_workspace_artifacts(
+        self,
+        *,
+        kind: WorkspaceArtifactKind | None = None,
+        tags: Sequence[str] = (),
+        favorites_only: bool = False,
+        limit: int = 100,
+    ) -> WorkspaceArtifactResponse:
+        """List workspace artifacts through validated favorite and tag filters."""
+        # [impl->req~ring5.workspace.favorites-tags~1]
+        return WorkspaceMetadataService.list_artifacts(
+            self.state_manager,
+            self.data_services.list_portfolios(),
+            kind=kind,
+            tags=tags,
+            favorites_only=favorites_only,
+            limit=limit,
+        )
+
+    def set_workspace_artifact_metadata(
+        self,
+        kind: WorkspaceArtifactKind,
+        identifier: str,
+        *,
+        tags: Sequence[str] = (),
+        favorite: bool = False,
+    ) -> WorkspaceArtifact:
+        """Replace validated tags and favorite state for one live artifact."""
+        # [impl->req~ring5.workspace.favorites-tags~1]
+        return WorkspaceMetadataService.set_metadata(
+            self.state_manager,
+            self.data_services.list_portfolios(),
+            kind,
+            identifier,
+            tags=tags,
+            favorite=favorite,
+        )
+
+    def list_analysis_review_targets(
+        self,
+        *,
+        kind: AnalysisReviewTargetKind | None = None,
+        limit: int = 100,
+    ) -> AnalysisReviewTargetResponse:
+        """Discover bounded plot and immutable portfolio-revision review targets."""
+        # [impl->req~ring5.workspace.collaborative-review~1]
+        targets, available, truncated = self._analysis_review_targets(kind)
+        return AnalysisReviewService.list_targets(
+            targets,
+            kind=kind,
+            limit=limit,
+            available_targets=available,
+            index_truncated=truncated,
+        )
+
+    def list_analysis_reviews(
+        self,
+        *,
+        kind: AnalysisReviewTargetKind | None = None,
+        status: AnalysisReviewStatus | None = None,
+        limit: int = 100,
+    ) -> AnalysisReviewResponse:
+        """List portable review threads, optionally filtered by target and status."""
+        # [impl->req~ring5.workspace.collaborative-review~1]
+        targets, _available, _truncated = self._analysis_review_targets(kind)
+        return AnalysisReviewService.list_reviews(
+            self.state_manager,
+            targets,
+            kind=kind,
+            status=status,
+            limit=limit,
+        )
+
+    def record_analysis_review(
+        self,
+        kind: AnalysisReviewTargetKind,
+        identifier: str,
+        *,
+        author_id: str,
+        comment: str = "",
+        status: AnalysisReviewStatus | None = None,
+        portfolio_name: str | None = None,
+    ) -> AnalysisReviewThread:
+        """Append an authored comment or status decision to an exact target."""
+        # [impl->req~ring5.workspace.collaborative-review~1]
+        targets, _available, _truncated = self._analysis_review_targets(kind)
+        return AnalysisReviewService.record(
+            self.state_manager,
+            targets,
+            kind,
+            identifier,
+            author_id=author_id,
+            comment=comment,
+            status=status,
+            portfolio_name=portfolio_name,
+        )
+
+    def _analysis_review_targets(
+        self,
+        kind: AnalysisReviewTargetKind | None = None,
+    ) -> tuple[tuple[AnalysisReviewTarget, ...], int, bool]:
+        """Build a bounded target inventory from live plots and saved versions."""
+        from src.core.common.security_limits import MAX_WORKSPACE_SEARCH_ENTRIES_PER_KIND
+
+        targets: list[AnalysisReviewTarget] = []
+        available = 0
+        truncated = False
+        if kind in (None, "plot"):
+            plots = self.state_manager.get_plots()
+            available += len(plots)
+            for plot in plots[:MAX_WORKSPACE_SEARCH_ENTRIES_PER_KIND]:
+                targets.append(
+                    AnalysisReviewTarget(
+                        kind="plot",
+                        identifier=str(plot.plot_id),
+                        title=plot.name,
+                    )
+                )
+            if len(plots) > MAX_WORKSPACE_SEARCH_ENTRIES_PER_KIND:
+                truncated = True
+
+        if kind in (None, "portfolio_revision"):
+            revision_count = 0
+            for portfolio_name in sorted(self.data_services.list_portfolios(), key=str.casefold):
+                for revision in self.data_services.list_portfolio_revisions(portfolio_name):
+                    available += 1
+                    if revision_count >= MAX_WORKSPACE_SEARCH_ENTRIES_PER_KIND:
+                        truncated = True
+                        continue
+                    revision_count += 1
+                    targets.append(
+                        AnalysisReviewTarget(
+                            kind="portfolio_revision",
+                            identifier=revision.revision_id,
+                            title=(
+                                f"{portfolio_name} · version {revision.sequence} · "
+                                f"{revision.created_at[:19].replace('T', ' ')}"
+                            ),
+                            portfolio_name=portfolio_name,
+                        )
+                    )
+        return tuple(targets), available, truncated
+
+    def create_recovery_draft(self, owner_key: str) -> RecoveryDraftCapture | None:
+        """Capture meaningful workspace state in the owner's bounded local history."""
+        # [impl->req~ring5.workspace.autosave-recovery~1]
+        return AutosaveRecoveryService.capture(self.state_manager, owner_key)
+
+    def list_recovery_drafts(self, owner_key: str) -> tuple[RecoveryDraftInfo, ...]:
+        """List the current browser owner's local recovery points newest first."""
+        # [impl->req~ring5.workspace.autosave-recovery~1]
+        return AutosaveRecoveryService.list_drafts(owner_key)
+
+    def restore_recovery_draft(self, owner_key: str, draft_id: str) -> RestoreReport:
+        """Explicitly verify and restore one owner-scoped local draft."""
+        # [impl->req~ring5.workspace.autosave-recovery~1]
+        portfolio = AutosaveRecoveryService.load(owner_key, draft_id)
+        return self.state_manager.restore_session(portfolio)
+
+    def delete_recovery_draft(self, owner_key: str, draft_id: str) -> None:
+        """Delete one exact owner-scoped local recovery point."""
+        AutosaveRecoveryService.delete(owner_key, draft_id)
+
+    def guided_analysis_progress(self, *, exported: bool = False) -> GuidedAnalysisProgress:
+        """Assess the guided workflow from current workspace evidence.
+
+        Args:
+            exported: Whether this browser session initiated a figure download.
+
+        Returns:
+            Ordered source, validation, comparison, visualization, and export stages.
+        """
+        # [impl->req~ring5.workspace.guided-analysis~1]
+        plots = self.state_manager.get_plots()
+        comparison_ready = self.state_manager.has_preview("regression_comparison") or any(
+            "comparison:" in str(record.get("operation", "")).casefold()
+            for record in self.state_manager.get_manager_history()
+        )
+        return GuidedAnalysisService.assess(
+            self.state_manager.get_data(),
+            comparison_ready=comparison_ready,
+            plot_count=len(plots),
+            rendered_plot_count=sum(
+                getattr(plot, "last_generated_fig", None) is not None for plot in plots
+            ),
+            exported=exported,
+        )
+
     def reset_session(self) -> None:
         """Clear all session data."""
+        self._background_jobs.cancel_all()
+        self._background_jobs.dismiss_finished()
         self.state_manager.clear_data()
         self.state_manager.clear_all()
+
+    # Named dataset workspace
+
+    def add_dataset(
+        self,
+        name: str,
+        data: pd.DataFrame,
+        *,
+        select: bool = True,
+        replace: bool = False,
+        operation: str = "Add dataset",
+        source_datasets: tuple[str, ...] = (),
+    ) -> DatasetInfo:
+        """Retain a named dataset without replacing unrelated workspace data.
+
+        Args:
+            name: Human-readable session-unique name.
+            data: Dataset to retain by defensive copy.
+            select: Make this dataset the active source-data view.
+            replace: Permit replacement of the same name.
+            operation: Human-readable lineage operation.
+            source_datasets: Named datasets used to produce this state.
+
+        Returns:
+            Metadata for the stored dataset.
+        """
+        # [impl->req~ring5.data.multi-dataset-workspace~1]
+        if not isinstance(data, pd.DataFrame):
+            raise TypeError("Named workspace data must be a pandas DataFrame.")
+        return self.state_manager.add_dataset(
+            name,
+            data,
+            select=select,
+            replace=replace,
+            operation=operation,
+            source_datasets=source_datasets,
+        )
+
+    def add_current_dataset(
+        self,
+        name: str,
+        *,
+        select: bool = True,
+        replace: bool = False,
+    ) -> DatasetInfo:
+        """Retain the current source-data view under a name."""
+        data = self.state_manager.get_data()
+        if data is None:
+            raise ValueError("No active data is available to retain.")
+        selected = self.state_manager.selected_dataset_name()
+        sources = (selected,) if selected is not None else ()
+        return self.add_dataset(
+            name,
+            data,
+            select=select,
+            replace=replace,
+            operation="Retain current dataset",
+            source_datasets=sources,
+        )
+
+    def list_datasets(self) -> tuple[DatasetInfo, ...]:
+        """Return retained dataset metadata in insertion order."""
+        # [impl->req~ring5.data.multi-dataset-workspace~1]
+        return self.state_manager.list_datasets()
+
+    def get_dataset(self, name: str | None = None) -> pd.DataFrame:
+        """Return a defensive copy of a named or selected dataset."""
+        # [impl->req~ring5.data.multi-dataset-workspace~1]
+        return self.state_manager.get_dataset(name)
+
+    def select_dataset(self, name: str) -> pd.DataFrame:
+        """Select a retained dataset as the active source-data view."""
+        # [impl->req~ring5.data.multi-dataset-workspace~1]
+        return self.state_manager.select_dataset(name)
+
+    def remove_dataset(self, name: str) -> None:
+        """Remove one retained dataset while preserving every other dataset."""
+        # [impl->req~ring5.data.multi-dataset-workspace~1]
+        self.state_manager.remove_dataset(name)
+
+    def update_selected_dataset(
+        self,
+        data: pd.DataFrame,
+        *,
+        operation: str,
+        source_datasets: tuple[str, ...] = (),
+    ) -> None:
+        """Replace the active data and snapshot it when a named dataset is selected."""
+        if not isinstance(data, pd.DataFrame):
+            raise TypeError("Updated workspace data must be a pandas DataFrame.")
+        self.state_manager.set_data(
+            data,
+            operation=operation,
+            source_datasets=source_datasets,
+        )
+
+    def get_dataset_lineage(self, name: str | None = None) -> DatasetLineage:
+        """Inspect immutable revisions and recovery state for a named dataset."""
+        # [impl->req~ring5.data.lineage-undo-redo~1]
+        return self.state_manager.get_dataset_lineage(name)
+
+    def get_dataset_revision(self, revision_id: str) -> pd.DataFrame:
+        """Return a defensive copy of an immutable dataset revision."""
+        # [impl->req~ring5.data.lineage-undo-redo~1]
+        return self.state_manager.get_dataset_revision(revision_id)
+
+    def undo_dataset(self, name: str | None = None) -> DatasetRevision:
+        """Restore the preceding revision of a named dataset."""
+        # [impl->req~ring5.data.lineage-undo-redo~1]
+        return self.state_manager.undo_dataset(name)
+
+    def redo_dataset(self, name: str | None = None) -> DatasetRevision:
+        """Reapply the most recently undone revision of a named dataset."""
+        # [impl->req~ring5.data.lineage-undo-redo~1]
+        return self.state_manager.redo_dataset(name)
+
+    def restore_dataset_revision(self, revision_id: str) -> DatasetRevision:
+        """Restore any retained intermediate revision by ID."""
+        # [impl->req~ring5.data.lineage-undo-redo~1]
+        return self.state_manager.restore_dataset_revision(revision_id)
+
+    def list_dataset_snapshots(self) -> tuple[DatasetSnapshotInfo, ...]:
+        """List reusable local dataset snapshots without loading their tables."""
+        # [impl->req~ring5.data.dataset-snapshots~1]
+        return self.data_services.list_dataset_snapshots()
+
+    def save_dataset_snapshot(
+        self,
+        name: str,
+        dataset_name: str | None = None,
+        *,
+        overwrite: bool = False,
+    ) -> DatasetSnapshotInfo:
+        """Persist a named or active dataset for verified reuse in later sessions."""
+        # [impl->req~ring5.data.dataset-snapshots~1]
+        selected = self.state_manager.selected_dataset_name()
+        if dataset_name is not None:
+            data = self.state_manager.get_dataset(dataset_name)
+            source_name = dataset_name.strip()
+        elif selected is not None:
+            data = self.state_manager.get_dataset(selected)
+            source_name = selected
+        else:
+            active = self.state_manager.get_data()
+            if active is None:
+                raise ValueError("No active or named dataset is available to snapshot.")
+            data = active
+            source_name = "active_data"
+        return self.data_services.save_dataset_snapshot(
+            name,
+            data,
+            source_dataset=source_name,
+            overwrite=overwrite,
+        )
+
+    def load_dataset_snapshot(
+        self,
+        name: str,
+        dataset_name: str | None = None,
+        *,
+        select: bool = True,
+        replace: bool = False,
+    ) -> DatasetInfo:
+        """Verify a snapshot and retain its table in the named workspace."""
+        # [impl->req~ring5.data.dataset-snapshots~1]
+        snapshot, data = self.data_services.load_dataset_snapshot(name)
+        output_name = snapshot.source_dataset if dataset_name is None else dataset_name
+        return self.add_dataset(
+            output_name,
+            data,
+            select=select,
+            replace=replace,
+            operation=f"Load reusable snapshot: {snapshot.name}",
+        )
+
+    def delete_dataset_snapshot(self, name: str) -> None:
+        """Delete one reusable local dataset snapshot."""
+        self.data_services.delete_dataset_snapshot(name)
+
+    def append_datasets(
+        self,
+        dataset_names: Sequence[str],
+        output_name: str,
+        *,
+        join: Literal["outer", "inner"] = "outer",
+        select: bool = True,
+        replace: bool = False,
+    ) -> pd.DataFrame:
+        """Append retained datasets and store the result under a new name."""
+        # [impl->req~ring5.data.multi-dataset-workspace~1]
+        frames = [self.state_manager.get_dataset(name) for name in dataset_names]
+        result = self.managers.append_datasets(frames, join=join)
+        self.add_dataset(
+            output_name,
+            result,
+            select=select,
+            replace=replace,
+            operation=f"Append datasets ({join})",
+            source_datasets=tuple(dataset_names),
+        )
+        return result.copy(deep=True)
+
+    def join_datasets(
+        self,
+        left_name: str,
+        right_name: str,
+        output_name: str,
+        on: Sequence[str],
+        *,
+        how: Literal["inner", "left", "right", "outer"] = "inner",
+        suffixes: tuple[str, str] = ("_left", "_right"),
+        select: bool = True,
+        replace: bool = False,
+    ) -> pd.DataFrame:
+        """Join retained datasets and store the result under a new name."""
+        # [impl->req~ring5.data.multi-dataset-workspace~1]
+        left = self.state_manager.get_dataset(left_name)
+        right = self.state_manager.get_dataset(right_name)
+        result = self.managers.join_datasets(
+            left,
+            right,
+            on,
+            how=how,
+            suffixes=suffixes,
+        )
+        self.add_dataset(
+            output_name,
+            result,
+            select=select,
+            replace=replace,
+            operation=f"Join datasets ({how}) on {', '.join(on)}",
+            source_datasets=(left_name, right_name),
+        )
+        return result.copy(deep=True)
+
+    def diagnose_join(
+        self,
+        left_name: str,
+        right_name: str,
+        on: Sequence[str],
+        *,
+        cardinality: JoinCardinality,
+    ) -> JoinDiagnostics:
+        """Diagnose named-dataset join keys without changing workspace data."""
+        # [impl->req~ring5.data.validated-joins~1]
+        left = self.state_manager.get_dataset(left_name)
+        right = self.state_manager.get_dataset(right_name)
+        return self.managers.diagnose_join(
+            left,
+            right,
+            on,
+            cardinality=cardinality,
+        )
+
+    def join_datasets_validated(
+        self,
+        left_name: str,
+        right_name: str,
+        output_name: str,
+        on: Sequence[str],
+        *,
+        cardinality: JoinCardinality,
+        how: Literal["inner", "left", "right", "outer"] = "inner",
+        suffixes: tuple[str, str] = ("_left", "_right"),
+        select: bool = True,
+        replace: bool = False,
+    ) -> tuple[pd.DataFrame, JoinDiagnostics]:
+        """Validate cardinality, join named datasets, and retain the result."""
+        # [impl->req~ring5.data.validated-joins~1]
+        left = self.state_manager.get_dataset(left_name)
+        right = self.state_manager.get_dataset(right_name)
+        result, diagnostics = self.managers.validated_join(
+            left,
+            right,
+            on,
+            cardinality=cardinality,
+            how=how,
+            suffixes=suffixes,
+        )
+        self.add_dataset(
+            output_name,
+            result,
+            select=select,
+            replace=replace,
+            operation=(f"Validated {cardinality.replace('_', '-')} {how} join on {', '.join(on)}"),
+            source_datasets=(left_name, right_name),
+        )
+        return result.copy(deep=True), diagnostics
+
+    def compare_datasets(
+        self,
+        baseline_name: str,
+        candidate_name: str,
+        key_columns: Sequence[str],
+        metric_columns: Sequence[str],
+        *,
+        directions: (
+            Literal["higher", "lower"] | Mapping[str, Literal["higher", "lower"]]
+        ) = "higher",
+        thresholds: float | Mapping[str, float] = 0.0,
+        threshold_mode: Literal["percentage", "absolute"] = "percentage",
+    ) -> pd.DataFrame:
+        """Compare two retained datasets without changing either dataset."""
+        # [impl->req~ring5.data.multi-dataset-workspace~1]
+        baseline = self.state_manager.get_dataset(baseline_name)
+        candidate = self.state_manager.get_dataset(candidate_name)
+        return self.managers.compare(
+            baseline,
+            candidate,
+            key_columns,
+            metric_columns,
+            directions=directions,
+            thresholds=thresholds,
+            threshold_mode=threshold_mode,
+            baseline_name=baseline_name,
+            candidate_name=candidate_name,
+        )
 
     # Parsing & Scanning
 
@@ -156,6 +894,24 @@ class ApplicationAPI:
         Converts variable dictionaries to StatConfig objects.
         Repetition and regex expansion are handled by the parsing module.
         """
+        # [impl->req~ring5.ingestion.output-aliases~1]
+        stat_configs, resolved_scanned = self._normalize_parse_request(variables, scanned_vars)
+        batch = self._parser.submit_parse_async(
+            stats_path, stats_pattern, stat_configs, output_dir, strategy_type, resolved_scanned
+        )
+        self._background_jobs.track_futures(
+            "parse",
+            self._background_label("Parse", stats_path),
+            batch.futures,
+        )
+        return batch
+
+    @staticmethod
+    def _normalize_parse_request(
+        variables: Sequence[ParseVariableConfig | StatConfig],
+        scanned_vars: list[ScannedVariable] | list[ScannedVariableDict] | None,
+    ) -> tuple[list[StatConfig], list[ScannedVariable] | None]:
+        """Normalize UI/public parser configurations for either submission mode."""
         stat_configs: list[StatConfig] = []
         for var in variables:
             if isinstance(var, dict):
@@ -204,9 +960,36 @@ class ApplicationAPI:
                 ScannedVariable.from_dict(sv) if isinstance(sv, dict) else sv for sv in scanned_vars
             ]
 
-        return self._parser.submit_parse_async(
-            stats_path, stats_pattern, stat_configs, output_dir, strategy_type, resolved_scanned
+        return stat_configs, resolved_scanned
+
+    def submit_incremental_parse_async(
+        self,
+        stats_path: str,
+        stats_pattern: str,
+        variables: Sequence[ParseVariableConfig | StatConfig],
+        output_dir: str,
+        strategy_type: str = "simple",
+        scanned_vars: list[ScannedVariable] | list[ScannedVariableDict] | None = None,
+        cache_path: str | None = None,
+    ) -> IncrementalParseBatchResult:
+        # [impl->req~ring5.ingestion.incremental-parsing~1]
+        """Submit only new or changed simulator inputs and retain unchanged rows."""
+        stat_configs, resolved_scanned = self._normalize_parse_request(variables, scanned_vars)
+        batch = self._parser.submit_incremental_parse_async(
+            stats_path,
+            stats_pattern,
+            stat_configs,
+            output_dir,
+            strategy_type,
+            resolved_scanned,
+            cache_path,
         )
+        self._background_jobs.track_futures(
+            "parse",
+            self._background_label("Incremental parse", stats_path),
+            batch.futures,
+        )
+        return batch
 
     def finalize_parsing(
         self,
@@ -220,6 +1003,51 @@ class ApplicationAPI:
             output_dir, results, strategy_type, var_names=var_names
         )
 
+    def finalize_incremental_parsing(
+        self,
+        batch: IncrementalParseBatchResult,
+        results: list[dict[str, Any]],
+    ) -> IncrementalParseResult:
+        # [impl->req~ring5.ingestion.incremental-parsing~1]
+        """Merge changed parser results with unchanged cached rows."""
+        return self._parser.finalize_incremental_parsing(batch, results)
+
+    def submit_parser_playground_async(
+        self,
+        stats_path: str,
+        stats_pattern: str,
+        variables: Sequence[ParseVariableConfig | StatConfig],
+        output_dir: str,
+        strategy_type: str = "simple",
+        scanned_vars: list[ScannedVariable] | list[ScannedVariableDict] | None = None,
+    ) -> ParserPlaygroundBatchResult:
+        # [impl->req~ring5.ingestion.parser-playground~1]
+        """Test parser settings against a bounded sample without changing workspace data."""
+        stat_configs, resolved_scanned = self._normalize_parse_request(variables, scanned_vars)
+        batch = self._parser.submit_parser_playground_async(
+            stats_path,
+            stats_pattern,
+            stat_configs,
+            output_dir,
+            strategy_type,
+            resolved_scanned,
+        )
+        self._background_jobs.track_futures(
+            "parse",
+            self._background_label("Test parser", stats_path),
+            batch.futures,
+        )
+        return batch
+
+    def finalize_parser_playground(
+        self,
+        batch: ParserPlaygroundBatchResult,
+        results: list[dict[str, Any]],
+    ) -> ParserPlaygroundResult:
+        # [impl->req~ring5.ingestion.parser-playground~1]
+        """Finalize a parser configuration test into an immutable bounded preview."""
+        return self._parser.finalize_parser_playground(batch, results)
+
     def submit_scan_async(
         self, stats_path: str, stats_pattern: str = "stats.txt", limit: int = 5
     ) -> list[Future[ScanFileResult]]:
@@ -230,7 +1058,18 @@ class ApplicationAPI:
         self._pending_scan_futures = [f for f in self._pending_scan_futures if not f.done()] + list(
             futures
         )
+        self._background_jobs.track_futures(
+            "scan",
+            self._background_label("Scan", stats_path),
+            futures,
+        )
         return futures
+
+    @staticmethod
+    def _background_label(action: str, source: str) -> str:
+        """Return a bounded human label without exposing a full source path."""
+        name = Path(source).name or source
+        return f"{action}: {name}"[:MAX_BACKGROUND_JOB_LABEL_LENGTH]
 
     def finalize_scan(self, results: list[ScanFileResult]) -> ScanResult:
         """Aggregate per-file scan results into a ``ScanResult``.
@@ -279,6 +1118,49 @@ class ApplicationAPI:
     def load_configuration(self, config_path: str) -> SavedConfigData:
         """Load configuration from file."""
         return self._services.data_services.load_configuration(config_path)
+
+    def export_configuration(
+        self,
+        name: str,
+        description: str,
+        shapers_config: list[ShaperStepConfig],
+        csv_path: str | None = None,
+    ) -> bytes:
+        """Serialize a validated pipeline configuration as versioned JSON.
+
+        Args:
+            name: Human-readable configuration name.
+            description: Optional human-readable explanation.
+            shapers_config: Ordered flat shaper configurations.
+            csv_path: Optional source CSV association.
+
+        Returns:
+            Deterministic UTF-8 JSON bytes.
+        """
+        return self._services.data_services.export_configuration(
+            name,
+            description,
+            shapers_config,
+            csv_path,
+        )
+
+    def import_configuration(
+        self,
+        payload: str | bytes | bytearray,
+        *,
+        conflict: PipelineConfigConflictPolicy = "error",
+    ) -> PipelineConfigImportResult:
+        """Validate and save a current or legacy pipeline configuration.
+
+        Args:
+            payload: UTF-8 JSON text or bytes, limited to 256 KiB.
+            conflict: Logical-name policy: ``"error"``, ``"rename"``, or
+                ``"replace"``.
+
+        Returns:
+            Saved configuration and conflict-resolution details.
+        """
+        return self._services.data_services.import_configuration(payload, conflict=conflict)
 
     def load_csv_pool(self) -> list[CsvPoolEntry]:
         """List available CSV files in the pool."""
@@ -344,10 +1226,222 @@ class ApplicationAPI:
         """Remove the visualization config for a plot."""
         self.state_manager.remove_visualization_config(plot_id)
 
+    def create_dashboard(
+        self,
+        plot_ids: Sequence[int],
+        *,
+        title: str = "",
+        rows: int | None = None,
+        columns: int = 2,
+        width: int = 1200,
+        height: int = 800,
+        shared_xaxes: bool = False,
+        shared_yaxes: bool = False,
+        shared_legend: bool = True,
+        x_title: str = "",
+        y_title: str = "",
+        panel_titles: Sequence[str] | None = None,
+        panel_labels: Sequence[str] | Literal["auto"] | None = None,
+        panel_captions: Sequence[str] | None = None,
+        horizontal_spacing: float | None = None,
+        vertical_spacing: float | None = None,
+    ) -> DashboardSpec:
+        # [impl->req~ring5.plots.multi-panel-dashboard~1]
+        # [impl->req~ring5.figure.panel-composition~1]
+        """Create a validated dashboard layout from registered plots.
+
+        The returned specification is immutable and contains stable plot IDs,
+        so both the web application and the headless API use the same layout
+        contract.  Rendering remains live: a later plot edit is reflected the
+        next time the dashboard is rendered.
+        """
+        ids = tuple(plot_ids)
+        if any(isinstance(plot_id, bool) or not isinstance(plot_id, int) for plot_id in ids):
+            raise ValueError("Dashboard plot IDs must be integers.")
+
+        available = {plot.plot_id: plot for plot in self.state_manager.get_plots()}
+        missing = [plot_id for plot_id in ids if plot_id not in available]
+        if missing:
+            missing_text = ", ".join(str(plot_id) for plot_id in missing)
+            raise ValueError(f"Dashboard references unknown plot IDs: {missing_text}.")
+
+        if columns < 1:
+            raise ValueError("Dashboard columns must be at least 1.")
+        effective_rows = rows if rows is not None else max(1, (len(ids) + columns - 1) // columns)
+        titles = (
+            tuple(str(value) for value in panel_titles)
+            if panel_titles is not None
+            else tuple(str(available[plot_id].name) for plot_id in ids)
+        )
+        if panel_labels == "auto":
+            labels = _automatic_panel_labels(len(ids))
+        elif isinstance(panel_labels, str):
+            raise ValueError("Dashboard panel_labels must be 'auto', a sequence, or None.")
+        else:
+            raw_labels = tuple(panel_labels or ())
+            if any(not isinstance(value, str) for value in raw_labels):
+                raise ValueError("Dashboard panel labels must be strings.")
+            labels = tuple(value.strip() for value in raw_labels)
+        if isinstance(panel_captions, str):
+            raise ValueError("Dashboard panel_captions must be a sequence or None.")
+        raw_captions = tuple(panel_captions or ())
+        if any(not isinstance(value, str) for value in raw_captions):
+            raise ValueError("Dashboard panel captions must be strings.")
+        captions = tuple(value.strip() for value in raw_captions)
+        return DashboardSpec(
+            plot_ids=ids,
+            rows=effective_rows,
+            columns=columns,
+            panel_titles=titles,
+            title=title.strip(),
+            width=width,
+            height=height,
+            shared_xaxes=shared_xaxes,
+            shared_yaxes=shared_yaxes,
+            shared_legend=shared_legend,
+            x_title=x_title.strip(),
+            y_title=y_title.strip(),
+            panel_labels=labels,
+            panel_captions=captions,
+            horizontal_spacing=horizontal_spacing,
+            vertical_spacing=vertical_spacing,
+        )
+
+    def create_small_multiples(
+        self,
+        plot_id: int,
+        facet_columns: Sequence[str],
+        *,
+        columns: int = 3,
+        order: Sequence[Any] | None = None,
+        labels: Mapping[Any, str] | None = None,
+        title: str | None = None,
+        width: int = 1200,
+        panel_height: int = 320,
+        shared_xaxes: bool = True,
+        shared_yaxes: bool = True,
+        shared_legend: bool = True,
+        x_title: str = "",
+        y_title: str = "",
+    ) -> SmallMultiplesSpec:
+        # [impl->req~ring5.plots.small-multiples~1]
+        """Resolve categorical facet panels for one registered plot."""
+        available = {plot.plot_id: plot for plot in self.state_manager.get_plots()}
+        plot = available.get(plot_id)
+        if plot is None:
+            raise ValueError(f"Small multiples references unknown plot ID: {plot_id}.")
+        if plot.processed_data is None:
+            raise ValueError(f"Plot '{plot.name}' has no processed data.")
+        effective_title = str(plot.config.get("title", plot.name)) if title is None else title
+        return build_small_multiples_spec(
+            plot_id,
+            plot.processed_data,
+            facet_columns,
+            columns=columns,
+            order=order,
+            labels=labels,
+            title=effective_title,
+            width=width,
+            panel_height=panel_height,
+            shared_xaxes=shared_xaxes,
+            shared_yaxes=shared_yaxes,
+            shared_legend=shared_legend,
+            x_title=x_title,
+            y_title=y_title,
+        )
+
+    def create_linked_selection(
+        self,
+        plot_ids: Sequence[int],
+        *,
+        axis: Literal["x", "y"] = "x",
+        mode: Literal["highlight", "filter"] = "highlight",
+    ) -> LinkedSelectionSpec:
+        # [impl->req~ring5.plots.linked-selections~1]
+        """Create a validated, non-mutating selection link for registered plots."""
+        ids = tuple(plot_ids)
+        available = {plot.plot_id for plot in self.state_manager.get_plots()}
+        missing = [plot_id for plot_id in ids if plot_id not in available]
+        if missing:
+            raise ValueError(
+                "Linked selection references unknown plot IDs: "
+                + ", ".join(map(str, missing))
+                + "."
+            )
+        return LinkedSelectionSpec(plot_ids=ids, axis=axis, mode=mode)
+
+    def copy_plot_content(
+        self,
+        source_plot_id: int,
+        target_plot_id: int,
+        mode: PlotTransferMode,
+        *,
+        sections: Sequence[str] = (),
+    ) -> PlotTransferResult:
+        # [impl->req~ring5.plots.copy-settings-pipeline~1]
+        """Copy validated configuration or pipeline content between live plots."""
+        available = {plot.plot_id: plot for plot in self.state_manager.get_plots()}
+        missing = [value for value in (source_plot_id, target_plot_id) if value not in available]
+        if missing:
+            raise ValueError(
+                "Copy references unknown plot IDs: " + ", ".join(map(str, missing)) + "."
+            )
+        return copy_plot_content(
+            available[source_plot_id],
+            available[target_plot_id],
+            mode,
+            sections=sections,
+        )
+
+    def compare_plot_configurations(
+        self,
+        source_plot_id: int,
+        destination_plot_id: int,
+    ) -> PlotConfigurationComparison:
+        # [impl->req~ring5.plots.configuration-comparison~1]
+        """Return field-level differences for two registered plot configurations."""
+        available = {plot.plot_id: plot for plot in self.state_manager.get_plots()}
+        missing = [
+            value for value in (source_plot_id, destination_plot_id) if value not in available
+        ]
+        if missing:
+            raise ValueError(
+                "Comparison references unknown plot IDs: " + ", ".join(map(str, missing)) + "."
+            )
+        return compare_plot_configurations(
+            available[source_plot_id],
+            available[destination_plot_id],
+        )
+
+    def drill_down_plot(
+        self,
+        plot_id: int,
+        filters: Mapping[str, Any],
+    ) -> DrillDownResult:
+        # [impl->req~ring5.plots.drill-down~1]
+        """Resolve the private source rows represented by one registered plot point."""
+        if isinstance(plot_id, bool) or not isinstance(plot_id, int):
+            raise ValueError("Drill-down plot ID must be an integer.")
+        plot = next(
+            (
+                candidate
+                for candidate in self.state_manager.get_plots()
+                if candidate.plot_id == plot_id
+            ),
+            None,
+        )
+        if plot is None:
+            raise ValueError(f"Drill-down references unknown plot ID: {plot_id}.")
+        source_data = plot.source_data if plot.source_data is not None else plot.processed_data
+        if source_data is None:
+            raise ValueError(f"Plot {plot_id} has no source data to inspect.")
+        return drill_down_rows(plot_id, source_data, filters)
+
     # Previews (Delegated to StateManager)
 
     def set_preview(self, operation_name: str, data: pd.DataFrame) -> None:
         """Store a preview DataFrame for an operation."""
+        # [impl->req~ring5.extension.data-manager~1]
         self.state_manager.set_preview(operation_name, data)
 
     def get_preview(self, operation_name: str) -> pd.DataFrame | None:

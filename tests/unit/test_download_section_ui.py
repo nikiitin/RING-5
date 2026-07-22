@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
+import pandas as pd
 import plotly.graph_objects as go
 from matplotlib.figure import Figure as MplFigure
 
@@ -36,6 +37,7 @@ def _simple_mpl_fig() -> MplFigure:
 
 
 class TestRenderDownloadSectionPlotly:
+    # [test->req~ring5.export.web-download~1]
     """render_download_section with Plotly engine active."""
 
     @patch("src.web.pages.ui.plotting.download_section.EngineManager")
@@ -94,8 +96,10 @@ class TestRenderDownloadSectionPlotly:
         mock_st.expander.return_value.__enter__ = lambda s: ctx
         mock_st.expander.return_value.__exit__ = MagicMock(return_value=False)
         mock_st.pills.return_value = "pdf"
+        mock_st.download_button.return_value = True
 
-        render_download_section(1, "myplot", _simple_plotly_fig())
+        source_data = pd.DataFrame({"benchmark": ["mcf"], "ipc": [2.1]})
+        render_download_section(1, "myplot", _simple_plotly_fig(), source_data)
 
         mock_st.download_button.assert_called_once()
         _, kwargs = mock_st.download_button.call_args
@@ -104,9 +108,11 @@ class TestRenderDownloadSectionPlotly:
         mock_bytes.assert_not_called()
         assert kwargs["data"]() == b"PDFDATA"
         mock_bytes.assert_called_once()
+        assert mock_bytes.call_args.kwargs["source_data"] is source_data
         assert kwargs["file_name"] == "myplot.pdf"
         assert kwargs["mime"] == "application/pdf"
-        assert kwargs["on_click"] == "ignore"
+        assert callable(kwargs["on_click"])
+        mock_st.rerun.assert_not_called()
 
     @patch("src.web.pages.ui.plotting.download_section.EngineManager")
     @patch("src.web.pages.ui.plotting.download_section.st")
@@ -129,6 +135,7 @@ class TestRenderDownloadSectionPlotly:
 
 
 class TestRenderDownloadSectionMatplotlib:
+    # [test->req~ring5.export.web-download~1]
     """render_download_section with Matplotlib engine active."""
 
     @patch("src.web.pages.ui.plotting.download_section.EngineManager")
@@ -188,6 +195,7 @@ class TestRenderDownloadSectionMatplotlib:
         mock_st.expander.return_value.__exit__ = MagicMock(return_value=False)
         mock_st.session_state = {"plot.5.mpl_fig": _simple_mpl_fig()}
         mock_st.pills.return_value = "png"
+        mock_st.download_button.return_value = True
 
         render_download_section(5, "chart", _simple_plotly_fig())
 
@@ -197,6 +205,40 @@ class TestRenderDownloadSectionMatplotlib:
         assert kwargs["data"] == b"PNGDATA"
         assert kwargs["file_name"] == "chart.png"
         assert kwargs["mime"] == "image/png"
+        mock_st.rerun.assert_not_called()
+
+    @patch(
+        "src.web.pages.ui.plotting.download_section.matplotlib_download_bytes",
+        side_effect=[ValueError("PGF cannot contain raster images"), b"PDFDATA"],
+    )
+    @patch("src.web.pages.ui.plotting.download_section.EngineManager")
+    @patch("src.web.pages.ui.plotting.download_section.st")
+    def test_pgf_raster_failure_falls_back_visibly_to_pdf(
+        self,
+        mock_st: MagicMock,
+        mock_em: MagicMock,
+        mock_bytes: MagicMock,
+    ) -> None:
+        # [test->req~ring5.export.matplotlib-pgf~1]
+        """Raster PGF failures warn and expose the actual PDF artifact."""
+        from src.web.pages.ui.plotting.download_section import render_download_section
+
+        mock_em.is_matplotlib.return_value = True
+        mock_st.expander.return_value.__enter__ = lambda context: context
+        mock_st.expander.return_value.__exit__ = MagicMock(return_value=False)
+        mpl_fig = _simple_mpl_fig()
+        mock_st.session_state = {"plot.5.mpl_fig": mpl_fig}
+        mock_st.pills.return_value = "pgf"
+
+        render_download_section(5, "chart", _simple_plotly_fig())
+
+        mock_st.warning.assert_called_once()
+        assert [call.args[1] for call in mock_bytes.call_args_list] == ["pgf", "pdf"]
+        _, kwargs = mock_st.download_button.call_args
+        assert kwargs["label"] == "Download PDF"
+        assert kwargs["data"] == b"PDFDATA"
+        assert kwargs["file_name"] == "chart.pdf"
+        assert kwargs["mime"] == "application/pdf"
 
     @patch("src.web.pages.ui.plotting.download_section.EngineManager")
     @patch("src.web.pages.ui.plotting.download_section.st")

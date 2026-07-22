@@ -13,20 +13,31 @@ Covers:
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from playwright.sync_api import Locator, Page, TimeoutError as PlaywrightTimeoutError, expect
 
 from tests.visual.pages.base_page import BasePage
 
 # Available plot types (selectbox options — raw factory keys)
 PLOT_TYPES: tuple[str, ...] = (
+    "area",
     "bar",
+    "box",
     "dual_axis_bar_dot",
+    "ecdf",
     "grouped_bar",
+    "heatmap",
     "stacked_bar",
     "grouped_stacked_bar",
     "histogram",
     "line",
+    "parallel_coordinates",
+    "radar",
+    "sankey",
     "scatter",
+    "violin",
+    "waterfall",
 )
 
 # Available shapers (Add transformation selectbox options)
@@ -134,6 +145,28 @@ class ManagePlotsPage(BasePage):
         """'Duplicate' plot button."""
         return self.page.get_by_role("button", name="Duplicate")
 
+    @property
+    def plot_transfer_expander(self) -> Locator:
+        """Expander for copying settings or a pipeline into the active plot."""
+        return self.page.locator("[data-testid='stExpander']").filter(
+            has_text="Copy from another plot"
+        )
+
+    @property
+    def plot_transfer_button(self) -> Locator:
+        """Apply the selected source-to-current-plot transfer."""
+        return self.page.get_by_role("button", name="Copy into current plot")
+
+    @property
+    def plot_configuration_comparison(self) -> Locator:
+        """Human-readable field comparison shown before transfer controls."""
+        return self.plot_transfer_expander.get_by_text("Configuration comparison", exact=True)
+
+    @property
+    def plot_configuration_difference_summary(self) -> Locator:
+        """Summary containing the number of source-to-current differences."""
+        return self.plot_transfer_expander.get_by_text("differences", exact=False)
+
     #  5. Pipeline editor (st.fragment)
 
     @property
@@ -150,29 +183,48 @@ class ManagePlotsPage(BasePage):
     def pipeline_steps(self) -> Locator:
         """All pipeline step expanders (numbered: '1. Sort', '2. Filter', …).
 
-        Excludes non-pipeline expanders (e.g. Download, Advanced Options,
-        View Current Data) by filtering out expanders whose summary label
-        is known to be outside the pipeline section.
+        Every top-level step owns one exact ``Del`` action. Matching that
+        structural contract excludes unrelated and nested expanders without
+        maintaining a list of their presentation labels.
         """
-        return (
-            self.page.locator("[data-testid='stExpander']")
-            .filter(has_not_text="📥 Download")
-            .filter(has_not_text="Advanced Options")
-            .filter(has_not_text="Theme & Style")
-            .filter(has_not_text="Reorder")
-            .filter(has_not_text="Rename Items")
-            .filter(has_not_text="Rename X-Axis")
-            .filter(has_not_text="Reference Line")
-            .filter(has_not_text="Marker & Line")
-            .filter(has_not_text="Add New Shape")
-            .filter(has_not_text="View Current Data")
-            .filter(has_not_text="Show Errors")
-        )
+        delete_action = self.page.get_by_role("button", name="Del", exact=True)
+        return self.page.locator("[data-testid='stExpander']").filter(has=delete_action)
 
     @property
     def finalize_button(self) -> Locator:
         """'Finalize Pipeline for Plotting' primary button."""
         return self.page.get_by_role("button", name="Finalize Pipeline for Plotting")
+
+    @property
+    def pipeline_exchange_expander(self) -> Locator:
+        """Versioned pipeline import/export panel."""
+        return self.page.locator("[data-testid='stExpander']").filter(
+            has_text="Import or export pipeline"
+        )
+
+    @property
+    def pipeline_configuration_download_button(self) -> Locator:
+        """Download the current pipeline as versioned JSON."""
+        return self.pipeline_exchange_expander.get_by_role(
+            "button", name="Download pipeline configuration"
+        )
+
+    @property
+    def pipeline_configuration_uploader(self) -> Locator:
+        """Portable pipeline JSON file input."""
+        return self.pipeline_exchange_expander.locator("input[type='file']")
+
+    @property
+    def pipeline_configuration_import_button(self) -> Locator:
+        """Validate, save, and use the uploaded pipeline."""
+        return self.pipeline_exchange_expander.get_by_role("button", name="Import, save, and use")
+
+    @property
+    def pipeline_configuration_import_success(self) -> Locator:
+        """Human-readable pipeline import confirmation."""
+        return self.page.locator("[data-testid='stAlertContentSuccess']").filter(
+            has_text="Imported and loaded"
+        )
 
     def get_pipeline_step(self, index: int) -> Locator:
         """Return the *n*-th pipeline step expander (0-based).
@@ -282,6 +334,11 @@ class ManagePlotsPage(BasePage):
         return self._by_label("stSelectbox", "Y-axis")
 
     @property
+    def sankey_value_selectbox(self) -> Locator:
+        """'Flow value' selectbox for Sankey diagrams."""
+        return self._by_label("stSelectbox", "Flow value")
+
+    @property
     def viz_y_bar_selectbox(self) -> Locator:
         """'Y-axis (Bars – left)' selectbox (dual-axis bar+dot plot).
 
@@ -299,6 +356,16 @@ class ManagePlotsPage(BasePage):
     def viz_color_by_selectbox(self) -> Locator:
         """'Color by' selectbox (optional — may not be rendered)."""
         return self._by_label("stSelectbox", "Color by")
+
+    @property
+    def dual_dot_placement_selectbox(self) -> Locator:
+        """Human-facing dot placement control for dual-axis bar+dot plots."""
+        return self._by_label("stSelectbox", "Dot placement")
+
+    @property
+    def dual_line_scope_selectbox(self) -> Locator:
+        """Line connection scope control for dual-axis bar+dot plots."""
+        return self._by_label("stSelectbox", "Line connection scope")
 
     @property
     def viz_group_by_selectbox(self) -> Locator:
@@ -354,14 +421,76 @@ class ManagePlotsPage(BasePage):
         return self.page.get_by_text("Show advanced settings")
 
     @property
+    def viz_drill_down_toggle(self) -> Locator:
+        """Opt-in source-row exploration toggle."""
+        return self.page.get_by_text("Explore source rows", exact=True)
+
+    @property
+    def drill_down_panel(self) -> Locator:
+        """The source-row detail panel shown after a point click."""
+        return self.page.get_by_text("Source rows", exact=True)
+
+    @property
+    def drill_down_back_button(self) -> Locator:
+        """Button that closes the source-row detail panel."""
+        return self.page.get_by_role("button", name="Back to full plot")
+
+    @property
     def viz_settings_pills(self) -> Locator:
         """Settings navigation pills (key=settings_nav).
 
-        The basic sections (Layout / Typography / Legends) are ALWAYS rendered
+        The basic sections (Layout / Themes / Typography / Legends) are ALWAYS rendered
         whenever a plot's visualization section is shown — they are not gated by
         the 'Show advanced settings' toggle (only the advanced sections are).
         """
         return self.page.get_by_role("radiogroup", name="Settings")
+
+    @property
+    def viz_layout_section_pill(self) -> Locator:
+        """The Layout settings pill containing dimensions and facet controls."""
+        return self.viz_settings_pills.get_by_role("radio", name="Layout")
+
+    @property
+    def viz_theme_section_pill(self) -> Locator:
+        """The always-visible Themes settings pill."""
+        return self.viz_settings_pills.get_by_role("radio", name="Themes")
+
+    @property
+    def figure_theme_selectbox(self) -> Locator:
+        """Built-in figure-theme selector."""
+        return self._by_label("stSelectbox", "Theme preset")
+
+    @property
+    def apply_figure_theme_button(self) -> Locator:
+        """Button that applies the selected theme to the active plot."""
+        return self.page.get_by_role("button", name="Apply theme", exact=True)
+
+    @property
+    def export_figure_theme_button(self) -> Locator:
+        """Download button for the current customized theme."""
+        return self.page.get_by_role("button", name="Download current theme")
+
+    @property
+    def import_figure_theme_uploader(self) -> Locator:
+        """Theme JSON file uploader."""
+        return self._by_label("stFileUploader", "Theme JSON")
+
+    @property
+    def figure_theme_applied_success(self) -> Locator:
+        """Human confirmation that a built-in theme retained data mappings."""
+        return self.page.locator("[data-testid='stAlertContentSuccess']").filter(
+            has_text="Data mappings and filters were kept"
+        )
+
+    @property
+    def small_multiples_toggle(self) -> Locator:
+        """Opt-in switch for splitting the active plot into panels."""
+        return self.page.get_by_role("switch", name="Split this plot into comparable panels")
+
+    @property
+    def small_multiples_by(self) -> Locator:
+        """Categorical columns used to form small-multiples panels."""
+        return self._by_label("stMultiSelect", "Create one panel for each combination of")
 
     @property
     def viz_advanced_section_pill(self) -> Locator:
@@ -372,6 +501,38 @@ class ManagePlotsPage(BasePage):
         reliable signal of the toggle's effect (the basic pills never disappear).
         """
         return self.viz_settings_pills.get_by_role("radio", name="Colors")
+
+    @property
+    def accessible_theme_control(self) -> Locator:
+        """Opt-in accessible figure theme widget in the Colors settings section."""
+        return self._by_label("stCheckbox", "Accessible Theme")
+
+    @property
+    def accessible_theme_checkbox(self) -> Locator:
+        """Accessible-theme checkbox input used to assert its current state."""
+        return self.accessible_theme_control.get_by_role("checkbox", name="Accessible Theme")
+
+    @property
+    def color_palette_selectbox(self) -> Locator:
+        """Palette selector in the Colors settings section."""
+        return self._by_label("stSelectbox", "Palette")
+
+    @property
+    def line_connector_selectbox(self) -> Locator:
+        """Line interpolation/connector style selector."""
+        return self._by_label("stSelectbox", "Connector style")
+
+    @property
+    def line_pattern_selectbox(self) -> Locator:
+        """Line dash-pattern selector."""
+        return self._by_label("stSelectbox", "Line pattern")
+
+    @property
+    def accessibility_check_success(self) -> Locator:
+        """Human-readable successful figure-accessibility audit."""
+        return self.page.locator("[data-testid='stAlertContentSuccess']").filter(
+            has_text="Accessibility check passed"
+        )
 
     @property
     def viz_engine_pills(self) -> Locator:
@@ -402,7 +563,11 @@ class ManagePlotsPage(BasePage):
     @property
     def download_expander(self) -> Locator:
         """The download expander container."""
-        return self.page.locator("[data-testid='stExpander']").filter(has_text="Download")
+        expanders = self.page.locator(
+            "[data-testid='stMainBlockContainer'] [data-testid='stExpander']"
+        )
+        summary = self.page.locator("summary").filter(has_text="Download")
+        return expanders.filter(has=summary)
 
     @property
     def download_format_pills(self) -> Locator:
@@ -470,9 +635,12 @@ class ManagePlotsPage(BasePage):
     def _open_and_select(self, selectbox: Locator, value: str) -> None:
         """Open a selectbox and choose *value*, retrying interrupted clicks."""
         expect(selectbox).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        combobox = selectbox.get_by_role("combobox")
+        if combobox.input_value() == value:
+            return
         option = self.page.get_by_role("option", name=value, exact=True).first
         for _ in range(3):
-            selectbox.get_by_role("combobox").click()
+            combobox.click()
             try:
                 option.wait_for(state="visible", timeout=5_000)
                 option.click(timeout=5_000)
@@ -480,7 +648,8 @@ class ManagePlotsPage(BasePage):
                 self.page.keyboard.press("Escape")
                 self.page.wait_for_timeout(250)
                 continue
-            self.wait_for_streamlit()
+            self.wait_for_streamlit(expect_rerun=True)
+            expect(combobox).to_have_value(value, timeout=self.RENDER_TIMEOUT)
             return
         expect(option).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
@@ -490,11 +659,31 @@ class ManagePlotsPage(BasePage):
         Args:
             plot_type: Exact factory key (e.g. "bar", "dual_axis_bar_dot").
         """
-        self._open_and_select(self.plot_type_selectbox, plot_type)
-        expect(self.plot_type_selectbox.get_by_role("combobox")).to_have_value(
-            plot_type,
-            timeout=self.RENDER_TIMEOUT,
-        )
+        combobox = self.plot_type_selectbox.get_by_role("combobox")
+        expect(combobox).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        if plot_type not in PLOT_TYPES:
+            raise ValueError(f"Unsupported plot type: {plot_type}")
+        option = self.page.get_by_role("option", name=plot_type, exact=True).first
+        for _ in range(3):
+            combobox.click()
+            combobox.fill(plot_type)
+            try:
+                option.wait_for(state="visible", timeout=5_000)
+            except PlaywrightTimeoutError:
+                # A Streamlit rerender can close the virtualized menu after the
+                # input accepted its search text. Reopening retains the query.
+                combobox.click()
+            try:
+                option.wait_for(state="visible", timeout=5_000)
+                option.click(timeout=5_000)
+            except PlaywrightTimeoutError:
+                self.page.keyboard.press("Escape")
+                self.page.wait_for_timeout(250)
+                continue
+            self.wait_for_streamlit(expect_rerun=True)
+            expect(combobox).to_have_value(plot_type, timeout=self.RENDER_TIMEOUT)
+            return
+        expect(option).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
     #  ACTIONS — Plot Selector
 
@@ -534,6 +723,12 @@ class ManagePlotsPage(BasePage):
         self.duplicate_button.click()
         self.wait_for_streamlit(expect_rerun=True)
 
+    def copy_default_settings_from_other_plot(self) -> None:
+        """Open the transfer panel and apply its default selected settings."""
+        self.plot_transfer_expander.locator("summary").click()
+        self.plot_transfer_button.click()
+        self.wait_for_streamlit(expect_rerun=True)
+
     #  ACTIONS — Pipeline editor
 
     def add_shaper(self, shaper_name: str) -> None:
@@ -550,6 +745,28 @@ class ManagePlotsPage(BasePage):
         """Click 'Finalize Pipeline for Plotting' and wait."""
         self.finalize_button.click()
         self.wait_for_streamlit(expect_rerun=True)
+
+    def open_pipeline_exchange(self) -> None:
+        """Open the pipeline import/export panel when it is collapsed."""
+        if not self.pipeline_configuration_download_button.is_visible():
+            self.pipeline_exchange_expander.locator("summary").click()
+
+    def download_pipeline_configuration(self, path: str | Path) -> None:
+        """Download the active pipeline configuration to *path*."""
+        self.open_pipeline_exchange()
+        with self.page.expect_download() as download_info:
+            self.pipeline_configuration_download_button.click()
+        download_info.value.save_as(str(path))
+
+    def upload_and_use_pipeline_configuration(self, path: str | Path) -> None:
+        """Upload, validate, save, and use one portable pipeline file."""
+        self.open_pipeline_exchange()
+        self.pipeline_configuration_uploader.set_input_files(str(path))
+        self.wait_for_streamlit(expect_rerun=True)
+        self.page.wait_for_timeout(500)
+        self.pipeline_configuration_import_button.click()
+        self.wait_for_streamlit(expect_rerun=True)
+        self.page.wait_for_timeout(500)
 
     def delete_step(self, index: int) -> None:
         """Delete a pipeline step by index.
@@ -610,6 +827,44 @@ class ManagePlotsPage(BasePage):
         """Select a column for the Y-axis."""
         self._open_and_select(self.viz_y_axis_selectbox, column)
 
+    def select_sankey_value(self, column: str) -> None:
+        """Select the positive numeric flow value for a Sankey diagram."""
+        self._open_and_select(self.sankey_value_selectbox, column)
+
+    def open_layout_settings(self) -> None:
+        """Open the Layout settings section when it is not already active."""
+        if self.viz_layout_section_pill.is_checked():
+            return
+        self.viz_layout_section_pill.click()
+        self.wait_for_streamlit(expect_rerun=True)
+
+    def enable_small_multiples(self) -> None:
+        """Enable small multiples and wait until its facet controls are committed."""
+        if self.small_multiples_toggle.is_checked():
+            return
+        self.page.get_by_text("Split this plot into comparable panels", exact=True).click()
+        self.wait_for_streamlit(expect_rerun=True)
+
+    def add_small_multiples_column(self, column: str) -> None:
+        """Add one categorical column to the small-multiples grouping."""
+        self.small_multiples_by.click()
+        self.page.get_by_role("option", name=column, exact=True).click()
+        self.wait_for_streamlit(expect_rerun=True)
+
+    def enable_drill_down(self) -> None:
+        """Enable point-click source-row exploration and wait for the fragment rerun."""
+        self.viz_drill_down_toggle.click()
+        self.wait_for_streamlit(expect_rerun=True)
+        self.page.wait_for_timeout(500)
+
+    def click_first_plot_point(self) -> None:
+        """Click the first rendered Plotly point inside the custom-component frame."""
+        self.assert_chart_visible()
+        frame = self.plotly_chart.first.content_frame
+        frame.locator(".plotly .point").first.click(force=True)
+        self.wait_for_streamlit(expect_rerun=True)
+        self.page.wait_for_timeout(500)
+
     def select_y_bar(self, column: str) -> None:
         """Select the bars (left Y-axis) column for a dual-axis bar+dot plot."""
         self._open_and_select(self.viz_y_bar_selectbox, column)
@@ -621,6 +876,14 @@ class ManagePlotsPage(BasePage):
     def select_color_by(self, column: str) -> None:
         """Select a column for 'Color by'."""
         self._open_and_select(self.viz_color_by_selectbox, column)
+
+    def select_dual_dot_placement(self, placement: str) -> None:
+        """Choose centered or per-bar dot placement."""
+        self._open_and_select(self.dual_dot_placement_selectbox, placement)
+
+    def select_dual_line_scope(self, scope: str) -> None:
+        """Choose whether dot lines cross groups or stop within each group."""
+        self._open_and_select(self.dual_line_scope_selectbox, scope)
 
     def select_group_by(self, column: str) -> None:
         """Select a column for 'Group by' (Grouped Bar)."""
@@ -681,6 +944,18 @@ class ManagePlotsPage(BasePage):
             expect(pill).to_be_checked(timeout=60_000)
             return
         expect(pill).to_be_checked(timeout=60_000)
+
+    def select_figure_theme(self, name: str) -> None:
+        """Select a built-in figure theme by its human-readable name."""
+        self._open_and_select(self.figure_theme_selectbox, name)
+
+    def select_line_connector(self, connector: str) -> None:
+        """Select a human-readable line connector style."""
+        self._open_and_select(self.line_connector_selectbox, connector)
+
+    def select_line_pattern(self, pattern: str) -> None:
+        """Select a human-readable line dash pattern."""
+        self._open_and_select(self.line_pattern_selectbox, pattern)
 
     #  ASSERTIONS
 

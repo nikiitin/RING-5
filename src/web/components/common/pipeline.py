@@ -1,10 +1,20 @@
 """Pipeline component — renders the shaper pipeline editor UI."""
 
-from typing import Any
+import re
+from collections.abc import Callable
+from typing import Any, TypedDict
 
 import streamlit as st
 
 from src.core.services.shapers.factory import ShaperFactory
+
+
+class PipelineExchangeResult(TypedDict):
+    """User intent returned by the pipeline exchange controls."""
+
+    import_clicked: bool
+    payload: bytes | None
+    conflict: str
 
 
 class PipelineComponent:
@@ -36,6 +46,109 @@ class PipelineComponent:
     def render_pipeline_label() -> None:
         """Render the 'Current Pipeline' label."""
         st.markdown("**Current Pipeline:**")
+
+    @staticmethod
+    def render_exchange(
+        plot_id: int,
+        default_name: str,
+        export_fn: Callable[[str, str], bytes],
+    ) -> PipelineExchangeResult:
+        """Render human-first versioned pipeline import/export controls.
+
+        Args:
+            plot_id: Plot ID for widget key uniqueness.
+            default_name: Initial portable configuration name.
+            export_fn: Core-facade callback that validates and serializes the
+                current pipeline for the chosen name and description.
+
+        Returns:
+            Uploaded payload, selected conflict policy, and import intent.
+        """
+        # [impl->req~ring5.shaping.config-import-export~1]
+        with st.expander("Import or export pipeline", expanded=False):
+            st.caption(
+                "Share this pipeline as a versioned JSON file. Imports are validated before "
+                "they are saved or loaded into the editor."
+            )
+            export_name = st.text_input(
+                "Configuration name",
+                value=default_name,
+                max_chars=80,
+                key=f"pipeline_export_name_{plot_id}",
+            )
+            description = st.text_area(
+                "Description",
+                value="",
+                max_chars=500,
+                key=f"pipeline_export_description_{plot_id}",
+            )
+            try:
+                payload = export_fn(export_name, description)
+                st.download_button(
+                    "Download pipeline configuration",
+                    data=payload,
+                    file_name=PipelineComponent._download_name(export_name),
+                    mime="application/json",
+                    key=f"pipeline_export_{plot_id}",
+                )
+            except (TypeError, ValueError) as exc:
+                st.info(f"Complete the pipeline before exporting it: {exc}")
+
+            st.markdown("#### Import")
+            uploaded = st.file_uploader(
+                "Pipeline configuration JSON",
+                type=["json"],
+                key=f"pipeline_import_{plot_id}",
+                help=(
+                    "Accepts RING-5 versioned files and legacy saved configurations "
+                    "up to 256 KiB."
+                ),
+            )
+            conflict_options: list[str] = ["error", "rename", "replace"]
+            conflict_labels = {
+                "error": "Stop and keep both unchanged",
+                "rename": "Save as a numbered copy",
+                "replace": "Replace the saved configuration",
+            }
+            conflict: str | None = st.selectbox(
+                "If that name already exists",
+                conflict_options,
+                format_func=lambda value: conflict_labels[value],
+                key=f"pipeline_import_conflict_{plot_id}",
+            )
+            import_clicked = st.button(
+                "Import, save, and use",
+                disabled=uploaded is None,
+                type="primary",
+                key=f"pipeline_import_apply_{plot_id}",
+            )
+        return {
+            "import_clicked": import_clicked,
+            "payload": uploaded.getvalue() if uploaded is not None else None,
+            "conflict": conflict or "error",
+        }
+
+    @staticmethod
+    def render_import_success(name: str, *, migrated: bool, resolution: str) -> None:
+        """Show a concise import result with migration and conflict details."""
+        details: list[str] = []
+        if migrated:
+            details.append("legacy format migrated")
+        if resolution != "none":
+            details.append(f"name conflict {resolution}")
+        suffix = f" ({'; '.join(details)})" if details else ""
+        st.success(f"Imported and loaded {name}{suffix}. Finalize to update the plot.")
+
+    @staticmethod
+    def render_import_error(message: str) -> None:
+        """Show a pipeline import failure without changing the active pipeline."""
+        st.error(message)
+
+    @staticmethod
+    def _download_name(name: str) -> str:
+        """Return a safe, recognizable browser download name."""
+        stem = re.sub(r"[^A-Za-z0-9._-]+", "-", name.strip()).strip("-._")
+        return f"{stem or 'pipeline'}.ring5-pipeline.json"
 
     @staticmethod
     def render_add_shaper(plot_id: int) -> dict[str, Any]:

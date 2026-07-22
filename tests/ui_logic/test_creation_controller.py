@@ -10,6 +10,8 @@ Verifies that the controller correctly orchestrates:
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pandas as pd
+
 from tests.ui_logic.conftest import StubPlotHandle
 
 
@@ -230,17 +232,30 @@ class TestRenderControls:
     @patch("src.web.controllers.plot.creation_controller.PlotControlsComponent.render")
     def test_rename_updates_plot_name(self, mock_render: MagicMock, mock_st: MagicMock) -> None:
         """When presenter returns a different name, plot.name is updated."""
+        # [test->req~ring5.plots.rename~1]
         mock_render.return_value = {
             "new_name": "Renamed Plot",
             "delete_clicked": False,
             "duplicate_clicked": False,
         }
 
-        plot = StubPlotHandle(plot_id=1, name="Original")
+        processed_data = pd.DataFrame({"benchmark": ["mcf"], "ipc": [1.2]})
+        pipeline = [{"id": 0, "type": "columnSelector", "config": {"columns": ["ipc"]}}]
+        config = {"x": "benchmark", "y": "ipc"}
+        plot = StubPlotHandle(
+            plot_id=1,
+            name="Original",
+            config=config,
+            processed_data=processed_data,
+            pipeline=pipeline,
+        )
         ctrl = _make_controller()
         ctrl.render_controls(plot)
 
         assert plot.name == "Renamed Plot"
+        assert plot.config is config
+        assert plot.pipeline is pipeline
+        assert plot.processed_data is processed_data
 
     @patch("src.web.controllers.plot.creation_controller.st")
     @patch("src.web.controllers.plot.creation_controller.PlotControlsComponent.render")
@@ -248,6 +263,7 @@ class TestRenderControls:
         self, mock_render: MagicMock, mock_st: MagicMock
     ) -> None:
         """Delete triggers ui cleanup, lifecycle.delete_plot, and rerun."""
+        # [test->req~ring5.plots.delete~1]
         mock_render.return_value = {
             "new_name": "Plot",
             "delete_clicked": True,

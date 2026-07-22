@@ -13,6 +13,8 @@ if str(root_dir) not in sys.path:
 
 def run_app() -> None:
     """Main application entry point."""
+    # [impl->req~ring5.workspace.web-app~1]
+    # [impl->req~ring5.workspace.guided-analysis~1]
     # Lazy imports keep Streamlit out of multiprocessing workers that import app.py.
     import streamlit as st
 
@@ -49,6 +51,7 @@ def run_app() -> None:
     # The API owns mutable data, plots, parser configuration, and operation
     # history. Keep one workspace per browser session; only explicitly
     # thread-safe worker pools are shared process-wide.
+    # [impl->req~ring5.workspace.session-isolation~1]
     if "api" not in st.session_state:
         st.session_state.api = ApplicationAPI(plot_deserializer=PlotFactory.from_dict)
 
@@ -60,6 +63,7 @@ def run_app() -> None:
         st.caption("gem5 Analysis & Visualization")
         st.markdown("---")
 
+        # [impl->req~ring5.workspace.navigation~1]
         _NAV_OPTIONS = [
             "Data Source",
             "Data Managers",
@@ -71,12 +75,27 @@ def run_app() -> None:
         if "_nav_page" not in st.session_state:
             st.session_state["_nav_page"] = _NAV_OPTIONS[0]
 
+        from src.web.components.command_palette import CommandPaletteComponent
+        from src.web.components.analysis_review import AnalysisReviewComponent
+        from src.web.components.autosave_recovery import AutosaveRecoveryComponent
+        from src.web.components.guided_analysis import GuidedAnalysisComponent
+        from src.web.components.workspace_organizer import WorkspaceOrganizerComponent
+        from src.web.components.workspace_search import WorkspaceSearchComponent
+
+        CommandPaletteComponent.render(api)
+        GuidedAnalysisComponent.render_fragmented(api)
+        WorkspaceSearchComponent.render(api)
+        WorkspaceOrganizerComponent.render(api)
+        AnalysisReviewComponent.render(api)
+        AutosaveRecoveryComponent.render(api)
+        st.markdown("---")
+
         for _nav_item in _NAV_OPTIONS:
             _is_active = st.session_state["_nav_page"] == _nav_item
             if st.button(
                 _nav_item,
                 key=f"nav_{_nav_item}",
-                use_container_width=True,
+                width="stretch",
                 type="primary" if _is_active else "tertiary",
             ):
                 st.session_state["_nav_page"] = _nav_item
@@ -86,22 +105,31 @@ def run_app() -> None:
 
         st.markdown("---")
 
+        from src.web.components.background_job_center import BackgroundJobCenter
+
+        BackgroundJobCenter.render(api)
+
+        st.markdown("---")
+
+        # [impl->req~ring5.workspace.reset~1]
         if st.button(
             "Clear Data",
-            use_container_width=True,
+            width="stretch",
             type="tertiary",
             help="Clear loaded CSV data and plots",
         ):
             api.reset_session()
+            st.session_state.pop(GuidedAnalysisComponent.EXPORT_STATE_KEY, None)
             st.rerun()
 
         if st.button(
             "Reset All",
-            use_container_width=True,
+            width="stretch",
             type="secondary",
             help="Reset entire application to defaults",
         ):
             api.reset_session()
+            st.session_state.pop(GuidedAnalysisComponent.EXPORT_STATE_KEY, None)
             st.rerun()
 
     # Header
@@ -110,6 +138,7 @@ def run_app() -> None:
     # Data preview (fragment-wrapped — only reruns when its own widgets change).
     @st.fragment
     def _data_preview_fragment() -> None:
+        # [impl->req~ring5.workspace.data-preview~1]
         current_view = api.get_current_view()
 
         if current_view["raw_data"] is not None and not current_view["raw_data"].empty:

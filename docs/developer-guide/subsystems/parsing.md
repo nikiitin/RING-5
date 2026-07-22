@@ -19,6 +19,14 @@ registered backend rather than importing a simulator implementation directly.
 
 ## Async contract
 
+<!--
+`uman~ring5.ingestion.persistent-workers.documentation~1`
+
+Covers:
+- req~ring5.ingestion.persistent-workers~1
+
+-->
+
 Scanning and parsing are submit/finalize operations. Submit methods validate inputs and return
 futures owned by the caller or a parse job. Finalization aggregates successful results, preserves
 file failures, and assembles the CSV. Cancellation must affect only work owned by the current API
@@ -30,6 +38,14 @@ can collapse repeated concrete names into a selectable pattern; parsing needs sc
 to expand those patterns correctly.
 
 ## Variable types and CSV
+
+<!--
+`uman~ring5.ingestion.pattern-aggregation.documentation~1`
+
+Covers:
+- req~ring5.ingestion.pattern-aggregation~1
+
+-->
 
 gem5 stat types register through decorators under `src/parsing/gem5/types/`. Perl scanning modules
 classify input lines, while Python types validate, balance, and reduce parsed content. The simulator

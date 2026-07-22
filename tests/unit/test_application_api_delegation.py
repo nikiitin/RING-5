@@ -1,6 +1,7 @@
 """Tests for ApplicationAPI delegation, conversion, and error handling."""
 
 from collections.abc import Generator
+from concurrent.futures import Future
 from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
@@ -26,9 +27,12 @@ def api() -> Generator[ApplicationAPI, None, None]:
         inst._services = mock_svc_cls.return_value
         inst._parser = MagicMock()
         yield inst
+        inst.close_background_jobs(wait=True)
 
 
 class TestPropertyAccess:
+    # [test->req~ring5.quality.application-facade~1]
+
     """Test sub-API property accessors."""
 
     def test_managers_property(self, api: ApplicationAPI) -> None:
@@ -81,7 +85,7 @@ class TestSubmitParseAsync:
 
     def test_dict_variable_basic(self, api: ApplicationAPI) -> None:
         """Dict variable is converted to StatConfig."""
-        cast(Any, api._parser.submit_parse_async).return_value = MagicMock()
+        cast(Any, api._parser.submit_parse_async).return_value = MagicMock(futures=[])
         api.submit_parse_async(
             "/path",
             "stats.txt",
@@ -93,10 +97,16 @@ class TestSubmitParseAsync:
         assert len(configs) == 1
         assert configs[0].name == "simTicks"
         assert configs[0].type == "scalar"
+        job = api.list_background_jobs()[0]
+        assert job.kind == "parse"
+        assert job.label == "Parse: path"
+        assert job.status == "completed"
+        assert not job.retryable
 
     def test_dict_variable_with_alias(self, api: ApplicationAPI) -> None:
         """Dict variable with alias uses alias as name."""
-        cast(Any, api._parser.submit_parse_async).return_value = MagicMock()
+        # [test->req~ring5.ingestion.output-aliases~1]
+        cast(Any, api._parser.submit_parse_async).return_value = MagicMock(futures=[])
         api.submit_parse_async(
             "/path",
             "stats.txt",
@@ -116,7 +126,7 @@ class TestSubmitParseAsync:
 
     def test_dict_regex_with_alias_preserves_source_pattern(self, api: ApplicationAPI) -> None:
         """Regex detection uses the source statistic rather than its alias."""
-        cast(Any, api._parser.submit_parse_async).return_value = MagicMock()
+        cast(Any, api._parser.submit_parse_async).return_value = MagicMock(futures=[])
         api.submit_parse_async(
             "/path",
             "stats.txt",
@@ -141,7 +151,7 @@ class TestSubmitParseAsync:
 
     def test_dict_variable_with_regex(self, api: ApplicationAPI) -> None:
         r"""Variable with \\d+ in name is marked as regex."""
-        cast(Any, api._parser.submit_parse_async).return_value = MagicMock()
+        cast(Any, api._parser.submit_parse_async).return_value = MagicMock(futures=[])
         api.submit_parse_async(
             "/path",
             "stats.txt",
@@ -154,7 +164,7 @@ class TestSubmitParseAsync:
 
     def test_dict_variable_statistics_only(self, api: ApplicationAPI) -> None:
         """statistics_only flag is passed through."""
-        cast(Any, api._parser.submit_parse_async).return_value = MagicMock()
+        cast(Any, api._parser.submit_parse_async).return_value = MagicMock(futures=[])
         api.submit_parse_async(
             "/path",
             "stats.txt",
@@ -179,7 +189,7 @@ class TestSubmitParseAsync:
         # Remove params attr so it triggers the elif branch
         del scanned.params
 
-        cast(Any, api._parser.submit_parse_async).return_value = MagicMock()
+        cast(Any, api._parser.submit_parse_async).return_value = MagicMock(futures=[])
         api.submit_parse_async("/path", "stats.txt", [scanned], "/out")
         args_tuple = cast(MagicMock, api._parser.submit_parse_async).call_args
         configs = args_tuple[0][2]
@@ -191,7 +201,7 @@ class TestSubmitParseAsync:
         from src.core.models import StatConfig
 
         sc = StatConfig(name="test", type="scalar")
-        cast(Any, api._parser.submit_parse_async).return_value = MagicMock()
+        cast(Any, api._parser.submit_parse_async).return_value = MagicMock(futures=[])
         api.submit_parse_async("/path", "stats.txt", [sc], "/out")
         args_tuple = cast(MagicMock, api._parser.submit_parse_async).call_args
         configs = args_tuple[0][2]
@@ -201,7 +211,7 @@ class TestSubmitParseAsync:
         """scanned_vars kwarg is forwarded to the parser."""
         from src.core.models.parsing_models import ScannedVariable
 
-        cast(Any, api._parser.submit_parse_async).return_value = MagicMock()
+        cast(Any, api._parser.submit_parse_async).return_value = MagicMock(futures=[])
         sv = ScannedVariable(name="test_var", type="scalar", entries=[])
         scanned = [sv]
         api.submit_parse_async("/path", "stats.txt", [], "/out", scanned_vars=scanned)
@@ -228,13 +238,109 @@ class TestFinalizeParsing:
         assert call_kwargs["var_names"] == ["a", "b"]
 
 
+class TestIncrementalParsing:
+    """Incremental requests share normalization and delegate their complete plan."""
+
+    def test_submit_and_finalize_delegate_to_parser(self, api: ApplicationAPI) -> None:
+        # [test->req~ring5.ingestion.incremental-parsing~1]
+        from src.core.models import IncrementalParseBatchResult, IncrementalParseResult
+
+        batch = IncrementalParseBatchResult(
+            futures=[],
+            var_names=["IPC"],
+            output_dir="/out",
+            strategy_type="simple",
+            cache_path="/out/cache.json",
+            configuration_hash="a" * 64,
+            fingerprints=(),
+            cached_rows=(),
+            changed_files=(),
+            removed_files=(),
+        )
+        result = IncrementalParseResult("/out/results.csv", 0, 1, 0, 1)
+        cast(Any, api._parser.submit_incremental_parse_async).return_value = batch
+        cast(Any, api._parser.finalize_incremental_parsing).return_value = result
+
+        submitted = api.submit_incremental_parse_async(
+            "/inputs",
+            "stats.txt",
+            [cast(ParseVariableConfig, {"name": "cpu.ipc", "alias": "IPC"})],
+            "/out",
+            cache_path="/out/cache.json",
+        )
+        finalized = api.finalize_incremental_parsing(submitted, [])
+
+        assert submitted is batch
+        assert finalized is result
+        assert api.list_background_jobs()[0].label == "Incremental parse: inputs"
+        configs = cast(MagicMock, api._parser.submit_incremental_parse_async).call_args.args[2]
+        assert configs[0].name == "IPC"
+        assert configs[0].source_name == "cpu.ipc"
+        cast(MagicMock, api._parser.finalize_incremental_parsing).assert_called_once_with(batch, [])
+
+
+class TestParserPlayground:
+    """Configuration tests normalize once and preserve the async parser contract."""
+
+    def test_submit_and_finalize_delegate_to_parser(self, api: ApplicationAPI) -> None:
+        # [test->req~ring5.ingestion.parser-playground~1]
+        from src.core.models import ParserPlaygroundBatchResult, ParserPlaygroundResult
+
+        batch = ParserPlaygroundBatchResult(
+            futures=[],
+            var_names=["IPC"],
+            output_dir="/out",
+            strategy_type="simple",
+            matched_file_count=2,
+            sampled_files=("/inputs/a/stats.txt", "/inputs/b/stats.txt"),
+        )
+        result = ParserPlaygroundResult(
+            matched_file_count=2,
+            sampled_files=batch.sampled_files,
+            columns=("IPC",),
+            rows=(("1.0",), ("2.0",)),
+            missing_variables=(),
+            diagnostics=("The sampled configuration is ready for a full parse.",),
+            ready_for_full_parse=True,
+        )
+        cast(Any, api._parser.submit_parser_playground_async).return_value = batch
+        cast(Any, api._parser.finalize_parser_playground).return_value = result
+
+        submitted = api.submit_parser_playground_async(
+            "/inputs",
+            "stats.txt",
+            [cast(ParseVariableConfig, {"name": "cpu.ipc", "alias": "IPC"})],
+            "/out",
+        )
+        finalized = api.finalize_parser_playground(submitted, [{"IPC": 1.0}])
+
+        assert submitted is batch
+        assert finalized is result
+        assert api.list_background_jobs()[0].label == "Test parser: inputs"
+        configs = cast(MagicMock, api._parser.submit_parser_playground_async).call_args.args[2]
+        assert configs[0].name == "IPC"
+        assert configs[0].source_name == "cpu.ipc"
+        cast(MagicMock, api._parser.finalize_parser_playground).assert_called_once_with(
+            batch, [{"IPC": 1.0}]
+        )
+
+
 class TestScanMethods:
     """Test scan delegation."""
 
     def test_submit_scan_async(self, api: ApplicationAPI) -> None:
-        cast(Any, api._parser.submit_scan_async).return_value = [MagicMock()]
+        pending: Future[Any] = Future()
+        cast(Any, api._parser.submit_scan_async).return_value = [pending]
         result = api.submit_scan_async("/path")
         assert len(result) == 1
+        job = api.list_background_jobs()[0]
+        assert job.kind == "scan"
+        assert job.label == "Scan: path"
+        assert not job.retryable
+        pending.set_result(MagicMock(error=None))
+        assert api.list_background_jobs()[0].status == "completed"
+        api.reset_session()
+        assert api.list_background_jobs() == ()
 
     def test_finalize_scan(self, api: ApplicationAPI) -> None:
         cast(Any, api._parser.aggregate_scan_results).return_value = [MagicMock()]
@@ -247,6 +353,8 @@ class TestScanMethods:
 
 
 class TestShapersDelegation:
+    # [test->req~ring5.quality.application-facade~1]
+
     """Test apply_shapers delegation."""
 
     def test_apply_shapers(self, api: ApplicationAPI) -> None:
@@ -271,6 +379,18 @@ class TestConfigurationManagement:
         api.load_configuration("/config.json")
         cast(MagicMock, api._services.data_services.load_configuration).assert_called_once_with(
             "/config.json"
+        )
+
+    def test_export_configuration(self, api: ApplicationAPI) -> None:
+        api.export_configuration("name", "desc", [], "/path.csv")
+        cast(MagicMock, api._services.data_services.export_configuration).assert_called_once_with(
+            "name", "desc", [], "/path.csv"
+        )
+
+    def test_import_configuration(self, api: ApplicationAPI) -> None:
+        api.import_configuration(b"{}", conflict="rename")
+        cast(MagicMock, api._services.data_services.import_configuration).assert_called_once_with(
+            b"{}", conflict="rename"
         )
 
     def test_load_csv_pool(self, api: ApplicationAPI) -> None:
@@ -340,6 +460,8 @@ class TestGetColumnInfo:
 
 
 class TestPreviewDelegation:
+    # [test->req~ring5.quality.application-facade~1]
+
     """Test preview methods delegate to state manager."""
 
     def test_set_preview(self, api: ApplicationAPI) -> None:

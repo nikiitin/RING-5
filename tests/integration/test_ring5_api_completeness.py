@@ -12,9 +12,14 @@ import pandas as pd
 import pytest
 
 import ring5
-from ring5._parse import ParseJob
+from ring5._parse import ParseJob, ParserPlaygroundJob
 from ring5._scan import ScanJob
-from src.core.models import ScanFileResult, ScannedVariable, ScanResult
+from src.core.models import (
+    ParserPlaygroundBatchResult,
+    ScanFileResult,
+    ScannedVariable,
+    ScanResult,
+)
 
 pytestmark = pytest.mark.public_api
 
@@ -29,6 +34,8 @@ def _write_stats_run(root: Path, body: str, config: str | None = None) -> Path:
 
 
 def test_scan_parse_and_config_aware_workflow(tmp_path: Path) -> None:
+    # [test->req~ring5.ingestion.async-parse~1]
+    # [test->req~ring5.ingestion.async-scan~1]
     run = _write_stats_run(
         tmp_path / "inputs",
         "simTicks 123 # ticks\n",
@@ -98,6 +105,7 @@ def test_gem5_oneline_histogram_is_scanned_and_parsed(tmp_path: Path) -> None:
 
 
 def test_scan_job_partial_and_timeout_are_typed(monkeypatch: pytest.MonkeyPatch) -> None:
+    # [test->req~ring5.ingestion.async-scan~1]
     good: Future[ScanFileResult] = Future()
     good.set_result(ScanFileResult("good/stats.txt", [ScannedVariable(name="x", type="scalar")]))
     bad_result = ScanFileResult("bad/stats.txt", error="scanner failed")
@@ -124,7 +132,53 @@ def test_scan_job_partial_and_timeout_are_typed(monkeypatch: pytest.MonkeyPatch)
     assert pending.cancelled()
 
 
+def test_parser_playground_job_timeout_and_failures_are_typed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def make_job(
+        future: Future[dict[str, Any]], api: MagicMock | None = None
+    ) -> ParserPlaygroundJob:
+        playground_api = api or MagicMock()
+        batch = ParserPlaygroundBatchResult(
+            futures=[future],
+            var_names=["simTicks"],
+            output_dir="/preview",
+            strategy_type="simple",
+            matched_file_count=1,
+            sampled_files=("/inputs/run/stats.txt",),
+        )
+        return ParserPlaygroundJob(
+            playground_api,
+            batch,
+            [future],
+            "/preview",
+            "/inputs",
+            "stats.txt",
+        )
+
+    pending: Future[dict[str, Any]] = Future()
+    monkeypatch.setattr("ring5._parse.PARSER_PLAYGROUND_TIMEOUT_SECONDS", 0)
+    with pytest.raises(ring5.ParseError, match=r"1 pending file\(s\) were cancelled"):
+        make_job(pending).finalize()
+    assert pending.cancelled()
+
+    failed: Future[dict[str, Any]] = Future()
+    failed.set_exception(KeyError("bad sample"))
+    with pytest.raises(ring5.ParseError, match="worker failed"):
+        make_job(failed).finalize()
+
+    finished: Future[dict[str, Any]] = Future()
+    finished.set_result({"simTicks": 1})
+    failing_api = MagicMock()
+    failing_api.finalize_parser_playground.side_effect = RuntimeError("bad preview")
+    with pytest.raises(ring5.ParseError, match="configuration test failed"):
+        make_job(finished, failing_api).finalize()
+
+
 def test_session_close_defers_cleanup_for_running_parse(tmp_path: Path) -> None:
+    # [test->req~ring5.api.session~1]
+    # [test->req~ring5.ingestion.async-parse~1]
+    # [test->req~ring5.quality.async-ownership~1]
     output = tmp_path / "owned"
     output.mkdir()
     running: Future[dict[str, Any]] = Future()
@@ -151,7 +205,10 @@ def test_session_close_defers_cleanup_for_running_parse(tmp_path: Path) -> None:
 
 
 def test_manager_operations_preserve_dataframe_and_table() -> None:
+    # [test->req~ring5.api.session~1]
+    # [test->req~ring5.quality.immutable-data~1]
     frame = pd.DataFrame({"a": [2.0, 4.0], "b": [1.0, 2.0], "a.sd": [0.3, 0.4], "b.sd": [0.4, 0.3]})
+    original = frame.copy(deep=True)
     with ring5.Session() as session:
         divided = session.apply_operation(frame, "Division", "a", "b", "ratio")
         assert isinstance(divided, pd.DataFrame)
@@ -167,8 +224,11 @@ def test_manager_operations_preserve_dataframe_and_table() -> None:
         with pytest.raises(ring5.DataValidationError, match="Invalid operation"):
             session.mix_columns(frame, "total", ["a", "b"], operation="Nope")
 
+    pd.testing.assert_frame_equal(frame, original)
+
 
 def test_public_registries_are_complete() -> None:
+    # [test->req~ring5.api.registry-discovery~1]
     assert set(ring5.available_shaper_types()) == {
         "mean",
         "columnSelector",
@@ -185,21 +245,49 @@ def test_public_registries_are_complete() -> None:
         "groupPredicateSelector",
     }
     assert ring5.ScanJob is ScanJob
+    assert ring5.ParserPlaygroundJob is not None
+    assert ring5.ParserPlaygroundResult is not None
     assert ring5.ScanResult is ScanResult
     assert ring5.ScannedVariable is ScannedVariable
     assert ring5.ShaperStepConfig is not None
+    assert ring5.AnalysisRecipe is not None
+    assert ring5.AnalysisRecipeInfo is not None
+    assert ring5.AnalysisRecipeRunResult is not None
+    assert ring5.BackgroundJobInfo is not None
+    assert ring5.BackgroundJobLogEntry is not None
+    assert ring5.PortfolioRevisionInfo is not None
+    assert ring5.PortfolioDiff is not None
+    assert ring5.PortfolioDiffEntry is not None
+    assert ring5.RecipeParameter is not None
+    assert ring5.RecipeSource is not None
+    assert ring5.RecipePlot is not None
+    assert ring5.RecipeExport is not None
 
 
 @pytest.mark.parametrize(
     ("plot_type", "config"),
     [
+        ("area", {"x": "x", "y": "y", "color": "group", "area_mode": "stack"}),
         ("bar", {"x": "x", "y": "y", "color": "group"}),
+        ("box", {"x": "x", "y": "y", "color": "group", "point_mode": "all"}),
+        ("violin", {"x": "x", "y": "y", "color": "group", "point_mode": "all"}),
+        ("waterfall", {"x": "x", "y": "y", "waterfall_final_total": True}),
         ("dual_axis_bar_dot", {"x": "x", "y_bar": "y", "y_dot": "z"}),
+        ("ecdf", {"x": "y", "color": "group", "ecdf_complementary": True}),
         ("grouped_bar", {"x": "x", "y": "y", "group": "group"}),
         ("grouped_stacked_bar", {"x": "x", "y_columns": ["y", "z"], "group": "group"}),
         ("heatmap", {"x": "x", "metric_columns": ["y", "z"], "facet_col": "group"}),
         ("histogram", {"histogram_variable": "latency", "group_by": "group"}),
         ("line", {"x": "x", "y": "y", "color": "group"}),
+        (
+            "parallel_coordinates",
+            {"parallel_dimensions": ["x", "group", "y"], "parallel_color": "y"},
+        ),
+        ("radar", {"x": "x", "y": "y", "color": "group", "radar_fill": True}),
+        (
+            "sankey",
+            {"sankey_source": "x", "sankey_target": "group", "sankey_value": "y"},
+        ),
         ("scatter", {"x": "x", "y": "y", "color": "group"}),
         ("stacked_bar", {"x": "x", "y_columns": ["y", "z"]}),
     ],
@@ -207,14 +295,15 @@ def test_public_registries_are_complete() -> None:
 def test_every_registered_plot_accepts_validated_config(
     plot_type: str, config: dict[str, Any]
 ) -> None:
+    # [test->req~ring5.api.plot-validation~1]
     frame = pd.DataFrame(
         {
-            "x": ["a", "b"],
-            "group": ["one", "two"],
-            "y": [1.0, 2.0],
-            "z": [2.0, 3.0],
-            "latency..0-9": [2.0, 3.0],
-            "latency..10-19": [1.0, 4.0],
+            "x": ["a", "b", "c"],
+            "group": ["one", "two", "three"],
+            "y": [1.0, 2.0, 3.0],
+            "z": [2.0, 3.0, 4.0],
+            "latency..0-9": [2.0, 3.0, 4.0],
+            "latency..10-19": [1.0, 4.0, 2.0],
         }
     )
     with ring5.Session() as session:
@@ -225,6 +314,7 @@ def test_every_registered_plot_accepts_validated_config(
 
 
 def test_invalid_plot_config_does_not_register_and_render_errors_are_typed() -> None:
+    # [test->req~ring5.api.plot-validation~1]
     frame = pd.DataFrame({"x": ["a"], "y": [1.0]})
     with ring5.Session() as session:
         with pytest.raises(ring5.DataValidationError, match="field 'y'"):

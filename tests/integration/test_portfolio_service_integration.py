@@ -6,7 +6,9 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
+from src.core.models import ColumnSemantics, DatasetSemantics
 from src.core.services.data_services.portfolio_service import PortfolioService
+from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
 from src.core.state.repository_state_manager import RepositoryStateManager
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
@@ -33,6 +35,8 @@ def portfolio_service(state_manager: Any, portfolios_dir: Any) -> PortfolioServi
 def test_save_and_load_portfolio(
     portfolio_service: Any, tmp_path: Any, portfolios_dir: Any, state_manager: Any
 ) -> None:
+    # [test->req~ring5.portfolio.save~1]
+    # [test->req~ring5.portfolio.environment-metadata~1]
     """Test saving a portfolio and then loading it back to verify data integrity."""
 
     # Setup Test Data
@@ -45,7 +49,19 @@ def test_save_and_load_portfolio(
     plot.config = plot_config
 
     config_state = {"theme": "dark"}
-    parse_variables = ["var1", "var2"]
+    parse_variables = [{"name": "ipc", "type": "scalar", "_id": "ipc-1"}]
+    state_manager.set_use_parser(True)
+    state_manager.set_stats_path(str(tmp_path / "stats"))
+    state_manager.set_stats_pattern("stats*.txt")
+    state_manager.set_scanned_variables([{"name": "ipc", "type": "scalar"}])
+    state_manager.add_manager_history_record(
+        {
+            "source_columns": ["A"],
+            "dest_columns": ["B"],
+            "operation": "derive B",
+            "timestamp": "2026-07-19T12:00:00",
+        }
+    )
 
     # Save Portfolio (using instance method)
     portfolio_service.save_portfolio(
@@ -66,11 +82,24 @@ def test_save_and_load_portfolio(
     loaded_data = portfolio_service.load_portfolio("test_portfolio")
 
     # Verify Content
-    assert loaded_data["version"] == "2.0"
+    assert loaded_data["schema_version"] == 4
+    assert loaded_data["version"] == "4.0"
+    environment = loaded_data["environment_metadata"]
+    assert environment is not None
+    assert environment["format_version"] == 1
+    assert environment["ring5_version"]
+    assert environment["python_version"]
+    assert set(environment["renderers"]) == {"matplotlib", "plotly"}
+    assert set(environment["external_tools"]) == {"chrome", "perl", "xelatex"}
     assert loaded_data["csv_path"] == str(tmp_path / "original.csv")
     assert loaded_data["plot_counter"] == 1
     assert loaded_data["config"] == config_state
     assert loaded_data["parse_variables"] == parse_variables
+    assert loaded_data["use_parser"] is True
+    assert loaded_data["stats_path"] == str(tmp_path / "stats")
+    assert loaded_data["stats_pattern"] == "stats*.txt"
+    assert loaded_data["scanned_variables"] == [{"name": "ipc", "type": "scalar"}]
+    assert loaded_data["manager_history"][0]["operation"] == "derive B"
 
     # Verify Data CSV reconstruction
     loaded_df_csv = loaded_data["data_csv"]
@@ -84,9 +113,48 @@ def test_save_and_load_portfolio(
     assert loaded_plot["id"] == 1
     assert loaded_plot["plot_type"] == "bar"
     assert loaded_plot["config"] == plot_config
+    assert pd.read_csv(io.StringIO(loaded_plot["processed_data"])).equals(df)
+    assert loaded_plot["pipeline"] == []
+    assert loaded_plot["pipeline_counter"] == 0
+
+
+def test_portfolio_retains_data_and_plot_semantics(
+    portfolio_service: PortfolioService,
+    state_manager: RepositoryStateManager,
+    portfolios_dir: Any,
+) -> None:
+    # [test->req~ring5.data.semantic-units~1]
+    semantics = DatasetSemantics((ColumnSemantics("latency", "Mean latency", "ms"),))
+    data = SemanticMetadataService.attach(pd.DataFrame({"latency": [1.0]}), semantics)
+    plot = PlotFactory.create_plot("line", 3, "Latency")
+    plot.processed_data = data
+    plot.config = {"x": "latency", "y": "latency"}
+
+    portfolio_service.save_portfolio(
+        "semantic_portfolio",
+        data,
+        [plot],
+        {},
+        4,
+    )
+    loaded = portfolio_service.load_portfolio("semantic_portfolio")
+    restored = RepositoryStateManager(plot_deserializer=PlotFactory.from_dict)
+    report = restored.restore_session(loaded)
+
+    assert report.complete
+    assert loaded["data_semantics"]["latency"] == {
+        "label": "Mean latency",
+        "unit": "ms",
+    }
+    assert SemanticMetadataService.inspect(restored.get_data()).for_column(
+        "latency"
+    ) == ColumnSemantics("latency", "Mean latency", "ms")
+    restored_plot = restored.get_plots()[0]
+    assert SemanticMetadataService.inspect(restored_plot.processed_data) == semantics
 
 
 def test_list_portfolios(portfolio_service: Any, portfolios_dir: Any) -> None:
+    # [test->req~ring5.portfolio.manage~1]
     """Test listing available portfolios."""
     # Create two dummy portfolio files
     (portfolios_dir / "p1.json").touch()
@@ -98,6 +166,7 @@ def test_list_portfolios(portfolio_service: Any, portfolios_dir: Any) -> None:
 
 
 def test_delete_portfolio(portfolio_service: Any, portfolios_dir: Any) -> None:
+    # [test->req~ring5.portfolio.manage~1]
     """Test deleting a portfolio."""
     # Create a dummy portfolio file
     p_path = portfolios_dir / "to_delete.json"
@@ -121,6 +190,7 @@ def test_load_nonexistent_portfolio(portfolio_service: Any) -> None:
 
 
 def test_save_portfolio_overwrite_false_raises(portfolio_service: Any, portfolios_dir: Any) -> None:
+    # [test->req~ring5.portfolio.safe-overwrite~1]
     """Portfolios are keyed by name alone; overwrite=False must protect existing files."""
     df = pd.DataFrame({"A": [1, 2]})
     portfolio_service.save_portfolio("dup", df, [], {}, 0)
@@ -135,6 +205,7 @@ def test_save_portfolio_overwrite_false_raises(portfolio_service: Any, portfolio
 def test_restore_returns_report_with_skipped_plots_when_no_deserializer(
     portfolio_service: Any, portfolios_dir: Any, state_manager: Any
 ) -> None:
+    # [test->req~ring5.portfolio.partial-report~1]
     """Without a plot deserializer the plots are skipped — the report must
     say so explicitly (previously only a logger.warning, invisible to scripts)."""
     df = pd.DataFrame({"A": [1, 2]})
@@ -157,6 +228,7 @@ def test_restore_returns_report_with_skipped_plots_when_no_deserializer(
 def test_restore_report_complete_with_deserializer(
     portfolio_service: Any, portfolios_dir: Any
 ) -> None:
+    # [test->req~ring5.portfolio.restore~1]
     df = pd.DataFrame({"A": [1, 2]})
     plot = PlotFactory.create_plot("bar", 2, "OK Plot")
     plot.processed_data = df
@@ -175,6 +247,7 @@ def test_restore_report_complete_with_deserializer(
 def test_restore_survives_malformed_parse_variables(
     portfolio_service: Any, portfolios_dir: Any
 ) -> None:
+    # [test->req~ring5.portfolio.partial-report~1]
     """Portfolio JSON is untrusted: a plain-string parse_variables list
     (the old documented save signature produced exactly this) must not
     crash restore — entries are skipped and counted in the report."""

@@ -30,6 +30,7 @@ def _by_label(ax: plt.Axes) -> dict:
 
 
 class TestTraceOverrides:
+    # [test->req~ring5.figure.series-styling~1]
     def test_color_override_recolors_bar_and_line(self) -> None:
         fig, ax = _bar_line_ax()
         spec = FigureConfig(
@@ -69,6 +70,7 @@ class TestTraceOverrides:
 
 
 class TestSeriesStyling:
+    # [test->req~ring5.figure.series-styling~1]
     def test_bar_border_applied(self) -> None:
         fig, ax = _bar_line_ax()
         # series_styles apply by index; give every series the border so the
@@ -83,6 +85,8 @@ class TestSeriesStyling:
 
 
 class TestConnectorParity:
+    # [test->req~ring5.extension.render-connector~1]
+
     def test_both_connectors_expose_per_trace_styling(self) -> None:
         from src.web.rendering.plotly_connector import FigureSpecToPlotly
 

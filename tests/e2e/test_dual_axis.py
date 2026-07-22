@@ -53,6 +53,9 @@ class TestDualAxisRendering:
     the engine — never re-selecting the pill.
     """
 
+    # [test->req~ring5.figure.dual-axis-controls~1]
+    # [test->req~ring5.figure.dual-axis-dot-layout~1]
+
     @pytest.mark.order(1)
     def test_01_plotly_renders_with_auto_axes(self, dual_axis_page: Page) -> None:
         """Default (Plotly) engine renders the dual-axis chart from auto-picked axes."""
@@ -73,6 +76,11 @@ class TestDualAxisRendering:
         mp.select_y_dot("system.cpu.numCycles")
         mp.refresh_plot()
         mp.assert_chart_visible(timeout=CHART_TIMEOUT)
+        expect(mp.viz_title_input).to_have_value("system.cpu.ipc vs system.cpu.numCycles")
+        expect(mp.viz_y_label_input).to_have_value("system.cpu.ipc")
+        expect(dual_axis_page.get_by_role("textbox", name="Right Y-axis Label")).to_have_value(
+            "system.cpu.numCycles"
+        )
 
     @pytest.mark.order(3)
     def test_03_matplotlib_renders(self, dual_axis_page: Page) -> None:
@@ -84,7 +92,18 @@ class TestDualAxisRendering:
         mp.assert_matplotlib_chart_visible()
 
     @pytest.mark.order(4)
-    def test_04_switch_back_to_plotly(self, dual_axis_page: Page) -> None:
+    def test_04_bar_aligned_within_group_mode_renders(self, dual_axis_page: Page) -> None:
+        """Human-facing alignment and within-group controls render in Matplotlib."""
+        mp = ManagePlotsPage(dual_axis_page)
+        mp.navigate()
+        mp.select_color_by("config_description")
+        mp.select_dual_dot_placement("Aligned with each bar")
+        mp.select_dual_line_scope("Only within each benchmark group")
+        mp.refresh_plot()
+        mp.assert_matplotlib_chart_visible()
+
+    @pytest.mark.order(5)
+    def test_05_switch_back_to_plotly(self, dual_axis_page: Page) -> None:
         """Switching back to Plotly re-renders the interactive dual-axis chart."""
         mp = ManagePlotsPage(dual_axis_page)
         mp.navigate()

@@ -2,7 +2,6 @@ from collections.abc import Generator
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-import pandas as pd
 import pytest
 
 from src.web.components.data_source.data_source_components import DataSourceComponents
@@ -33,8 +32,6 @@ def test_render_csv_pool_load(
     mock_streamlit: Any, mock_api: Any, mock_card_components: Any
 ) -> None:
     """Test loading a CSV file from the pool."""
-    mock_st = mock_streamlit
-
     pool = [{"name": "test.csv", "path": "/path/test.csv", "size": 100}]
     mock_api.load_csv_pool.return_value = pool
     mock_api.state_manager.get_csv_pool.return_value = []
@@ -42,15 +39,14 @@ def test_render_csv_pool_load(
     # load_clicked=True
     mock_card_components.file_info_card.return_value = (True, False, False)
 
-    df = pd.DataFrame({"col": [1, 2]})
-    mock_api.load_csv_file.return_value = df
-
-    with patch("pathlib.Path.exists", return_value=True):
+    with (
+        patch("pathlib.Path.exists", return_value=True),
+        patch.object(DataSourceComponents, "render_import_preview") as render_preview,
+    ):
         DataSourceComponents.render_csv_pool(mock_api)
 
-    mock_api.load_csv_file.assert_called_with("/path/test.csv")
-    mock_api.state_manager.set_data.assert_called_with(df)
-    mock_st.success.assert_called()
+    render_preview.assert_called_once_with(mock_api, "/path/test.csv")
+    mock_api.load_csv_file.assert_not_called()
 
 
 def test_execute_parser(mock_streamlit: Any, mock_api: Any) -> None:

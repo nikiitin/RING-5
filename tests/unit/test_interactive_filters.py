@@ -24,6 +24,8 @@ def sample_data() -> DataFrame:
 class TestGroupedBarPlotFilters:
     """Test filtering in GroupedBarPlot."""
 
+    # [test->req~ring5.figure.plot-filtering~1]
+
     def test_filter_x(self, sample_data: Any) -> None:
         """Test filtering X values."""
         plot = GroupedBarPlot(1, "Test")
@@ -69,6 +71,8 @@ class TestGroupedBarPlotFilters:
 
 class TestGroupedStackedBarPlotFilters:
     """Test filtering in GroupedStackedBarPlot."""
+
+    # [test->req~ring5.figure.plot-filtering~1]
 
     def test_filter_x(self, sample_data: Any) -> None:
         """Test filtering X values."""

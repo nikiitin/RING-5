@@ -49,6 +49,8 @@ def dataframe_with_sd() -> DataFrame:
 class TestApplyMixerSumOperation:
     """Test apply_mixer with Sum operation."""
 
+    # [test->req~ring5.data.numeric-mixer~1]
+
     def test_sum_two_columns(self, sample_dataframe: Any) -> None:
 
         df = sample_dataframe
@@ -73,6 +75,7 @@ class TestApplyMixerSumOperation:
 
     def test_sum_with_sd_propagation(self, dataframe_with_sd: Any) -> None:
 
+        # [test->req~ring5.data.error-propagation~1]
         df = dataframe_with_sd
 
         result = MixerService.apply_mixer(
@@ -114,6 +117,8 @@ class TestApplyMixerSumOperation:
 class TestApplyMixerMeanOperation:
     """Test apply_mixer with Mean operations."""
 
+    # [test->req~ring5.data.numeric-mixer~1]
+
     def test_mean_two_columns(self, sample_dataframe: Any) -> None:
 
         df = sample_dataframe
@@ -137,6 +142,7 @@ class TestApplyMixerMeanOperation:
 
     def test_mean_with_sd_propagation(self, dataframe_with_sd: Any) -> None:
 
+        # [test->req~ring5.data.error-propagation~1]
         df = dataframe_with_sd
 
         result = MixerService.apply_mixer(
@@ -154,6 +160,8 @@ class TestApplyMixerMeanOperation:
 
 class TestApplyMixerConcatenateOperation:
     """Test apply_mixer with Concatenate operation."""
+
+    # [test->req~ring5.data.configuration-mixer~1]
 
     def test_concatenate_default_separator(self, sample_dataframe: Any) -> None:
 

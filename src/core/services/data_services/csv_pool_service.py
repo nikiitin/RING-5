@@ -24,6 +24,8 @@ logger = logging.getLogger(__name__)
 class CsvPoolService:
     """Service for managing CSV files in the data pool with performance optimizations."""
 
+    # [impl->req~ring5.ingestion.csv-pool~1]
+
     # Cache for CSV metadata (columns, row count, dtypes)
     _metadata_cache: SimpleCache = SimpleCache(maxsize=100, ttl=600)  # 10 min TTL
 
@@ -139,6 +141,8 @@ class CsvPoolService:
             FileNotFoundError: If the resolved path does not exist.
             IsADirectoryError: If the resolved path is a directory.
         """
+        # [impl->req~ring5.ingestion.csv-delimiter-detection~1]
+        # [impl->req~ring5.quality.bounded-caching~1]
         # Validate input before resolving
         if not csv_path or not csv_path.strip():
             raise ValueError(f"Invalid CSV path: '{csv_path}'")
@@ -213,6 +217,7 @@ class CsvPoolService:
         Returns:
             Dict with 'columns', 'rows', 'dtypes' or None if error
         """
+        # [impl->req~ring5.ingestion.csv-delimiter-detection~1]
         # Use the resolved path as the canonical cache key, matching
         # the key load_csv_file writes under, so a load followed by a listing actually hits.
         resolved_path = str(Path(csv_path).resolve())
@@ -248,6 +253,7 @@ class CsvPoolService:
     @staticmethod
     def clear_caches() -> None:
         """Clear all CSV pool caches."""
+        # [impl->req~ring5.quality.bounded-caching~1]
         CsvPoolService._metadata_cache.clear()
         CsvPoolService._dataframe_cache.clear()
         with CsvPoolService._pool_lock:
@@ -257,6 +263,7 @@ class CsvPoolService:
     @staticmethod
     def get_cache_stats() -> CacheStatsInfo:
         """Get cache statistics for monitoring."""
+        # [impl->req~ring5.quality.bounded-caching~1]
         with CsvPoolService._pool_lock:
             index_size = len(CsvPoolService._pool_index)
         return cast(

@@ -48,6 +48,7 @@ class TestColumnSelector:
 
     def test_select_multiple_columns(self, sample_dataframe: Any) -> None:
         """Test selecting multiple columns."""
+        # [test->req~ring5.shaping.column-selector~1]
         selector = ColumnSelector({"columns": ["system_id", "throughput", "latency"]})
         result = selector(sample_dataframe)
 
@@ -66,6 +67,7 @@ class TestColumnSelector:
 
     def test_column_order_preserved(self, sample_dataframe: Any) -> None:
         """Test that column order is preserved."""
+        # [test->req~ring5.shaping.column-selector~1]
         columns = ["latency", "throughput", "system_id"]
         selector = ColumnSelector({"columns": columns})
         result = selector(sample_dataframe)
@@ -167,6 +169,7 @@ class TestItemSelector:
 
     def test_select_multiple_items(self, sample_dataframe: Any) -> None:
         """Test selecting rows matching multiple strings."""
+        # [test->req~ring5.shaping.item-selector~1]
         selector = ItemSelector({"column": "system_id", "strings": ["S1", "S2"]})
         result = selector(sample_dataframe)
 
@@ -175,6 +178,7 @@ class TestItemSelector:
 
     def test_partial_match_contains_mode(self, sample_dataframe: Any) -> None:
         """Test partial string matching using mode='contains'."""
+        # [test->req~ring5.shaping.item-selector~1]
         selector = ItemSelector({"column": "config", "strings": ["A"], "mode": "contains"})
         result = selector(sample_dataframe)
 

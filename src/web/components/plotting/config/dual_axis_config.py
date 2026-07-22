@@ -15,11 +15,43 @@ from src.web.components.plotting.config.plot_config_components import (
 from src.web.models.plot_models import PlotConfig
 
 
+def _sync_auto_labels(
+    saved_config: PlotConfig,
+    plot_id: int,
+    x_column: str,
+    y_bar: str,
+    y_dot: str,
+) -> None:
+    # [impl->req~ring5.figure.dual-axis-controls~1]
+    """Keep generated dual-axis labels aligned while preserving custom text."""
+    previous_x = saved_config.get("x")
+    previous_bar = saved_config.get("y_bar")
+    previous_dot = saved_config.get("y_dot")
+    if not all(isinstance(value, str) for value in (previous_x, previous_bar, previous_dot)):
+        return
+    if (previous_x, previous_bar, previous_dot) == (x_column, y_bar, y_dot):
+        return
+
+    derived_values = {
+        "title": (f"{previous_bar} vs {previous_dot}", f"{y_bar} vs {y_dot}"),
+        "xlabel": (previous_x, x_column),
+        "ylabel": (previous_bar, y_bar),
+        "ylabel_dot": (previous_dot, y_dot),
+    }
+    for field, (previous_default, current_default) in derived_values.items():
+        widget_key = f"{field}_{plot_id}"
+        saved_field = "ylabel_bar" if field == "ylabel" else field
+        current_value = st.session_state.get(widget_key, saved_config.get(saved_field))
+        if current_value == previous_default:
+            st.session_state[widget_key] = current_default
+
+
 def render(
     data: pd.DataFrame,
     saved_config: PlotConfig,
     plot_id: int,
 ) -> PlotConfig:
+    # [impl->req~ring5.figure.dual-axis-dot-layout~1]
     """Render configuration UI for a dual-axis bar + dot/line plot.
 
     Fully custom layout: X-axis, colour-by, separate Y-bar and Y-dot
@@ -80,6 +112,8 @@ def render(
             key=f"y_dot_{plot_id}",
         )
 
+    _sync_auto_labels(saved_config, plot_id, x_column, y_bar, y_dot)
+
     # --- Titles & Labels ---
     default_title: str = saved_config.get("title", f"{y_bar} vs {y_dot}")
     default_xlabel: str = saved_config.get("xlabel", x_column)
@@ -97,11 +131,15 @@ def render(
         default_legend_title=default_legend_title,
     )
 
-    ylabel_dot: str = st.text_input(
-        "Right Y-axis Label",
-        value=default_ylabel_dot,
-        key=f"ylabel_dot_{plot_id}",
-    )
+    ylabel_dot_key = f"ylabel_dot_{plot_id}"
+    if ylabel_dot_key in st.session_state:
+        ylabel_dot = st.text_input("Right Y-axis Label", key=ylabel_dot_key)
+    else:
+        ylabel_dot = st.text_input(
+            "Right Y-axis Label",
+            value=default_ylabel_dot,
+            key=ylabel_dot_key,
+        )
 
     # --- Dot/Line Options ---
     st.markdown("##### Dot & Line Settings")
@@ -160,6 +198,61 @@ def render(
                 key=f"dot_color_{plot_id}",
             )
 
+    placement_options = {
+        "Benchmark center": "category",
+        "Aligned with each bar": "bar",
+    }
+    saved_placement = saved_config.get("dot_alignment", "category")
+    placement_labels = list(placement_options)
+    placement_index = next(
+        (
+            index
+            for index, label in enumerate(placement_labels)
+            if placement_options[label] == saved_placement
+        ),
+        0,
+    )
+
+    connection_options = {
+        "Across benchmark groups": "series",
+        "Only within each benchmark group": "group",
+    }
+    saved_connection = saved_config.get("line_scope", "series")
+    connection_labels = list(connection_options)
+    connection_index = next(
+        (
+            index
+            for index, label in enumerate(connection_labels)
+            if connection_options[label] == saved_connection
+        ),
+        0,
+    )
+
+    pc1, pc2 = st.columns(2)
+    with pc1:
+        placement_label = st.selectbox(
+            "Dot placement",
+            options=placement_labels,
+            index=placement_index,
+            key=f"dot_alignment_{plot_id}",
+            help=(
+                "Place each right-axis dot at the benchmark center, or align it "
+                "directly with the grouped bar for the same configuration."
+            ),
+        )
+    with pc2:
+        connection_label = st.selectbox(
+            "Line connection scope",
+            options=connection_labels,
+            index=connection_index,
+            key=f"line_scope_{plot_id}",
+            disabled=not show_lines,
+            help=(
+                "Connect each configuration across benchmarks, or connect configurations "
+                "only inside one benchmark group without bridging adjacent groups."
+            ),
+        )
+
     return {
         "x": x_column,
         "y": y_bar,
@@ -177,6 +270,9 @@ def render(
         "dot_size": dot_size,
         "dot_color": dot_color,
         "line_width": line_width,
+        "dot_alignment": placement_options[placement_label],
+        "line_scope": connection_options[connection_label],
+        "bargroupgap": saved_config.get("bargroupgap", 0.6),
         "numeric_cols": numeric_cols,
         "categorical_cols": categorical_cols,
     }

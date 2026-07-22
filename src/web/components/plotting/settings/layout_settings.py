@@ -9,8 +9,12 @@ Usage::
     config = component.render(saved_config)
 """
 
+import pandas as pd
 import streamlit as st
 
+from src.web.components.plotting.settings.small_multiples_settings import (
+    SmallMultiplesSettingsComponent,
+)
 from src.web.models.plot_models import PlotConfig
 
 
@@ -29,7 +33,7 @@ class LayoutSettingsComponent:
         self.plot_id = plot_id
         self.plot_type = plot_type
 
-    def render(self, saved_config: PlotConfig) -> PlotConfig:
+    def render(self, saved_config: PlotConfig, data: pd.DataFrame | None = None) -> PlotConfig:
         """Render layout dimension widgets.
 
         Parameters
@@ -42,6 +46,7 @@ class LayoutSettingsComponent:
         PlotConfig
             Configuration dict with dimension and margin keys.
         """
+        # [impl->req~ring5.figure.layout~1]
         st.markdown("**Dimensions**")
 
         preset_options: dict[str, float] = {
@@ -101,7 +106,7 @@ class LayoutSettingsComponent:
         width = int(width_inches * 100)
         height = int(height_inches * 100)
 
-        return {
+        config: PlotConfig = {
             "document_width_preset": preset,
             "width_inches": width_inches,
             "height_inches": height_inches,
@@ -114,3 +119,6 @@ class LayoutSettingsComponent:
             "margin_pad": 0,
             "automargin": True,
         }
+        if data is not None:
+            config.update(SmallMultiplesSettingsComponent(self.plot_id).render(saved_config, data))
+        return config

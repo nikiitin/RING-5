@@ -110,6 +110,7 @@ class TestChangePlotType:
 
     @patch("src.web.pages.ui.plotting.plot_service.PlotFactory")
     def test_different_type_replaces(self, mock_factory: MagicMock, mock_state: MagicMock) -> None:
+        # [test->req~ring5.plots.change-type~1]
         old_plot = MagicMock()
         old_plot.plot_type = "bar"
         old_plot.plot_id = 5
@@ -148,6 +149,7 @@ class TestChangePlotType:
 
 
 class TestRing5ExportFile:
+    # [test->req~ring5.export.public-boundary~1]
     """Unit tests for ring5._export.export_file (subsumed export_plot_to_file)."""
 
     def test_pdf_export_writes_bytes(self, tmp_path: Path) -> None:
