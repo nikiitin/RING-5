@@ -48,7 +48,7 @@ dev = [
   "flake8==7.3.0",
   "flake8-pyproject==1.2.4",
   "mypy==2.3.0",
-  "pre-commit==4.6.0",
+  "pre-commit==4.6.1",
   "pytest-randomly==4.1.0",
   "pytest-order==1.5.0",
   "pandas-stubs==3.0.3.260530",
