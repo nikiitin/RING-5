@@ -446,8 +446,54 @@ class DataSourcePage(BasePage):
         """Select a segmented-control option and wait for its rerun."""
         if option.is_checked():
             return
-        option.click()
+        # Streamlit replaces segmented-control buttons as soon as their callback
+        # starts a rerun.  The normal Playwright actionability sequence can see
+        # the old button detach between scrolling and mouse dispatch, then retry
+        # against a control whose visibility has changed.  A forced pointer click
+        # still exercises the real React handler while avoiding that stale-node
+        # retry window.
+        option.click(force=True)
         self.wait_for_streamlit(expect_rerun=True)
+        expect(option).to_be_checked(timeout=self.RENDER_TIMEOUT)
+
+    def _refresh_data_source_render(self) -> None:
+        """Force a full-page render without replacing the browser session.
+
+        Streamlit can accept a second widget interaction while the frontend is
+        still applying an earlier fragment result.  In that narrow window the
+        radio's optimistic checked state and the server-rendered body disagree.
+        Visiting a sibling page and returning provides a deterministic full-app
+        synchronization point while preserving the session under test.
+        """
+        self.sidebar.get_by_role("button", name="Data Managers").click(force=True)
+        self.page.get_by_text("Data Managers & Transformations").wait_for(
+            state="visible",
+            timeout=self.RENDER_TIMEOUT,
+        )
+        self.sidebar.get_by_role("button", name=self.PAGE_NAME).click(force=True)
+        self.step_header.wait_for(state="visible", timeout=self.RENDER_TIMEOUT)
+        self.wait_for_streamlit()
+
+    def _select_top_level_mode(self, option: Locator, content: Locator) -> None:
+        """Select a source mode and verify its server-rendered body, retrying once."""
+        for attempt in range(2):
+            option_selected = option.is_checked()
+            content_rendered = content.is_visible()
+            if option_selected and content_rendered:
+                return
+            if option_selected != content_rendered:
+                self._refresh_data_source_render()
+                if option.is_checked() and content.is_visible():
+                    return
+
+            self._select_mode(option)
+            try:
+                content.wait_for(state="visible", timeout=self.RENDER_TIMEOUT)
+                return
+            except PlaywrightTimeoutError:
+                if attempt:
+                    raise
+                self._refresh_data_source_render()
 
     def ensure_parse_mode(self) -> None:
         """Ensure Parse mode is active without toggling it off.
@@ -455,30 +501,36 @@ class DataSourcePage(BasePage):
         If Parse mode is already active (default), do nothing.
         If not active, click it to activate.
         """
-        self._select_mode(self.parse_option)
+        self._select_top_level_mode(self.parse_option, self.file_location_header)
 
     def select_parse_mode(self) -> None:
         """Click the 'Parse gem5 Stats Files' option."""
-        self._select_mode(self.parse_option)
+        self._select_top_level_mode(self.parse_option, self.file_location_header)
 
     def select_csv_mode(self) -> None:
         """Click the browser-upload option."""
-        # A completed fragment rerun can leave the top-level radio checked while its previous
-        # parser body is still mounted. A Parse round-trip gives the mode switch a full rerun.
-        if self.csv_option.is_checked() and not self.csv_success_message.is_visible():
-            self.parse_option.click()
-            self.wait_for_streamlit(expect_rerun=True)
-        self._select_mode(self.csv_option)
-        expect(self.csv_success_message).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        self._select_top_level_mode(self.csv_option, self.csv_success_message)
 
     def select_remote_source(self) -> None:
         """Open the remote-source form within upload mode."""
         self.select_csv_mode()
-        self._select_mode(self.remote_source_option)
+        for attempt in range(2):
+            self._select_mode(self.remote_source_option)
+            try:
+                self.remote_adapter_select.wait_for(
+                    state="visible",
+                    timeout=self.RENDER_TIMEOUT,
+                )
+                return
+            except PlaywrightTimeoutError:
+                if attempt:
+                    raise
+                self._refresh_data_source_render()
+                self.select_csv_mode()
 
     def select_recent_mode(self) -> None:
         """Click the 'Load from Recent' option."""
-        self._select_mode(self.recent_option)
+        self._select_top_level_mode(self.recent_option, self.recent_header)
 
     def fill_stats_path(self, path: str) -> None:
         """Type a value into the stats directory path input."""
