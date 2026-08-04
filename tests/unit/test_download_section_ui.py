@@ -96,6 +96,7 @@ class TestRenderDownloadSectionPlotly:
         mock_st.expander.return_value.__enter__ = lambda s: ctx
         mock_st.expander.return_value.__exit__ = MagicMock(return_value=False)
         mock_st.pills.return_value = "pdf"
+        mock_st.session_state = {}
         mock_st.download_button.return_value = True
 
         source_data = pd.DataFrame({"benchmark": ["mcf"], "ipc": [2.1]})
@@ -112,6 +113,7 @@ class TestRenderDownloadSectionPlotly:
         assert kwargs["file_name"] == "myplot.pdf"
         assert kwargs["mime"] == "application/pdf"
         assert callable(kwargs["on_click"])
+        assert mock_st.session_state["_guided_analysis_exported"] is True
         mock_st.rerun.assert_not_called()
 
     @patch("src.web.pages.ui.plotting.download_section.EngineManager")
@@ -205,6 +207,8 @@ class TestRenderDownloadSectionMatplotlib:
         assert kwargs["data"] == b"PNGDATA"
         assert kwargs["file_name"] == "chart.png"
         assert kwargs["mime"] == "image/png"
+        assert callable(kwargs["on_click"])
+        assert mock_st.session_state["_guided_analysis_exported"] is True
         mock_st.rerun.assert_not_called()
 
     @patch(

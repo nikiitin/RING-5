@@ -93,6 +93,11 @@ class TestGuidedAnalysis:
         with tier2_page.expect_download(timeout=EXPORT_TIMEOUT):
             plots.download_button.click()
         plots.wait_for_streamlit(timeout=EXPORT_TIMEOUT, expect_rerun=True)
+        # The returned-click fallback records completion after the sidebar has
+        # already rendered in the download-triggered run.  A normal active-page
+        # button run refreshes the sidebar without cancelling the file response.
+        plots.sidebar.get_by_role("button", name="Manage Plots").click()
+        plots.wait_for_streamlit(expect_rerun=True)
 
         guide.open()
         expect(guide.completion_message).to_be_visible(timeout=30_000)
