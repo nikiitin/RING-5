@@ -8,6 +8,7 @@ from playwright.sync_api import Locator, Page, TimeoutError as PlaywrightTimeout
 from tests.visual.pages.data_managers_page import DataManagersPage
 from tests.visual.pages.guided_analysis import GuidedAnalysis
 from tests.visual.pages.manage_plots_page import ManagePlotsPage
+from tests.e2e.conftest import EXPORT_TIMEOUT
 
 
 def _select_dropdown_option(page: Page, selectbox: Locator, text: str) -> None:
@@ -87,10 +88,11 @@ class TestGuidedAnalysis:
         plots = ManagePlotsPage(tier2_page)
         if not plots.download_expander.locator("[data-testid='stExpanderDetails']").is_visible():
             plots.download_expander.locator("summary").click()
-        expect(plots.download_button).to_be_visible(timeout=30_000)
-        with tier2_page.expect_download(timeout=30_000):
+        expect(plots.download_button).to_be_visible(timeout=EXPORT_TIMEOUT)
+        expect(plots.download_button).to_be_enabled(timeout=EXPORT_TIMEOUT)
+        with tier2_page.expect_download(timeout=EXPORT_TIMEOUT):
             plots.download_button.click()
-        plots.wait_for_streamlit(expect_rerun=True)
+        plots.wait_for_streamlit(timeout=EXPORT_TIMEOUT, expect_rerun=True)
 
         guide.open()
         expect(guide.completion_message).to_be_visible(timeout=30_000)
