@@ -66,11 +66,11 @@ class BasePage:
                 (e.g. "Data Source", "Data Managers").
         """
         btn = self.sidebar.get_by_role("button", name=page_name)
+        if btn.get_attribute("data-testid") == "stBaseButton-primary":
+            self.wait_for_streamlit()
+            return
         btn.click()
-        # NOTE: do NOT pass expect_rerun here — navigating to the page you are
-        # already on is a no-op that does not rerun, so an expect_rerun wait
-        # would stall on the (never-appearing) status widget for every such call.
-        self.wait_for_streamlit()
+        self.wait_for_streamlit(expect_rerun=True)
 
     def reset_all(self) -> None:
         """Click the sidebar 'Reset All' button to clear all app state.

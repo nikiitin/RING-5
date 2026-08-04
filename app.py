@@ -105,12 +105,13 @@ def run_app() -> None:
 
         for _nav_item in _NAV_OPTIONS:
             _is_active = st.session_state["_nav_page"] == _nav_item
-            if st.button(
+            _nav_clicked = st.button(
                 _nav_item,
                 key=f"nav_{_nav_item}",
                 width="stretch",
                 type="primary" if _is_active else "tertiary",
-            ):
+            )
+            if _nav_clicked and not _is_active:
                 st.session_state["_nav_page"] = _nav_item
                 st.rerun()
 
