@@ -185,7 +185,7 @@ class TestSeedsReducer:
     def test_04_confirm_reduces_rows(self, tier1_page: Page) -> None:
         dm = DataManagersPage(tier1_page)
         dm.confirm_seeds_reducer()
-        dm.assert_success_message_visible()
+        dm.assert_summary_has_rows(expected=3)
 
 
 # Mixer

@@ -104,7 +104,7 @@ class BasePage:
 
     def goto_and_wait(self, url: str) -> None:
         """Navigate to *url* and wait for Streamlit to render."""
-        self.page.goto(url, wait_until="networkidle")
+        self.page.goto(url, wait_until="domcontentloaded")
         self.wait_for_streamlit()
 
     # Screenshot helpers
