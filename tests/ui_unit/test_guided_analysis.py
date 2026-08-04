@@ -66,9 +66,7 @@ def test_export_marker_and_navigation_reject_untrusted_values(mock_st: MagicMock
 
 
 @patch("src.web.components.guided_analysis.st")
-def test_export_stage_polls_once_then_refreshes_complete_sidebar(
-    mock_st: MagicMock,
-) -> None:
+def test_export_stage_relies_on_download_callback_rerun(mock_st: MagicMock) -> None:
     from src.web.components.guided_analysis import GuidedAnalysisComponent
 
     data = pd.DataFrame({"configuration": ["base", "next"], "ipc": [1.0, 1.1]})
@@ -78,13 +76,6 @@ def test_export_stage_polls_once_then_refreshes_complete_sidebar(
         plot_count=1,
         rendered_plot_count=1,
         exported=False,
-    )
-    complete = GuidedAnalysisService.assess(
-        data,
-        comparison_ready=True,
-        plot_count=1,
-        rendered_plot_count=1,
-        exported=True,
     )
     captured: dict[str, object] = {}
 
@@ -98,12 +89,11 @@ def test_export_stage_polls_once_then_refreshes_complete_sidebar(
     mock_st.expander.return_value.__enter__.return_value = MagicMock()
     mock_st.button.return_value = False
     api = MagicMock()
-    api.guided_analysis_progress.side_effect = [exporting, complete]
+    api.guided_analysis_progress.return_value = exporting
 
     GuidedAnalysisComponent.render_fragmented(api)
-    assert captured["run_every"] == 1
-    scheduled_render = captured["func"]
-    assert callable(scheduled_render)
-    scheduled_render()
+    assert captured["run_every"] is None
+    assert captured["func"] == GuidedAnalysisComponent.render
 
-    mock_st.rerun.assert_called_once_with(scope="app")
+    api.guided_analysis_progress.assert_called_once_with(exported=False)
+    mock_st.rerun.assert_not_called()

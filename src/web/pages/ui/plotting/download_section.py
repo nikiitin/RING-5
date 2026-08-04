@@ -36,7 +36,7 @@ def _mark_guided_analysis_exported() -> None:
     """Record a real figure-download action for the sidebar workflow."""
     from src.web.components.guided_analysis import GuidedAnalysisComponent
 
-    GuidedAnalysisComponent.mark_exported()
+    st.session_state[GuidedAnalysisComponent.EXPORT_STATE_KEY] = True
 
 
 # UI download section
@@ -126,7 +126,7 @@ def _render_plotly_download(
                 "the HTML format."
             ) from exc
 
-    st.download_button(
+    downloaded = st.download_button(
         label=f"Download {fmt.upper()}",
         data=generate_download,
         file_name=f"{plot_name}{get_plotly_extension(fmt_typed)}",
@@ -135,6 +135,8 @@ def _render_plotly_download(
         width="stretch",
         key=f"dl_btn_{plot_id}",
     )
+    if downloaded:
+        _mark_guided_analysis_exported()
 
 
 def _render_mpl_download(plot_id: int, plot_name: str) -> None:
@@ -172,7 +174,7 @@ def _render_mpl_download(plot_id: int, plot_name: str) -> None:
             data = matplotlib_download_bytes(mpl_fig, fmt_typed, spec=spec)
         else:
             raise
-    st.download_button(
+    downloaded = st.download_button(
         label=f"Download {fmt_typed.upper()}",
         data=data,
         file_name=f"{plot_name}{get_matplotlib_extension(fmt_typed)}",
@@ -181,3 +183,5 @@ def _render_mpl_download(plot_id: int, plot_name: str) -> None:
         width="stretch",
         key=f"dl_btn_{plot_id}",
     )
+    if downloaded:
+        _mark_guided_analysis_exported()
