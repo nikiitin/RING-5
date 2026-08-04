@@ -2378,6 +2378,20 @@ Needs: impl, test, uman
 
 Tags: api, portfolios, safety, status_approved
 
+### Generated example portfolio
+
+`req~ring5.portfolio.example-catalog~1`
+Status: approved
+
+Developers shall be able to generate a deterministic, self-validating portfolio containing representative data and one renderable example of every registered plot type.
+
+Covers:
+- feat~ring5.reproducibility~1
+
+Needs: impl, test, uman
+
+Tags: examples, portfolios, reproducibility, status_approved
+
 ### Portfolio restore
 
 `req~ring5.portfolio.restore~1`

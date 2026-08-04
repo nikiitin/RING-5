@@ -18,8 +18,8 @@ for _thread_limit_var in (
 ):
     os.environ.setdefault(_thread_limit_var, "2")
 
-import pandas as pd
-import pytest
+import pandas as pd  # noqa: E402
+import pytest  # noqa: E402
 
 # Register helper fixture plugins so they are available everywhere
 pytest_plugins = ["tests.helpers.gem5_fixtures"]
@@ -29,6 +29,7 @@ pytest_plugins = ["tests.helpers.gem5_fixtures"]
 def pytest_xdist_auto_num_workers(config: pytest.Config) -> int:
     """Cap explicit ``-n auto`` runs at the two-worker safety boundary."""
     return 2
+
 
 # Shared Helpers
 

@@ -353,6 +353,108 @@ def build_example_plots(data: pd.DataFrame) -> list[BasePlot]:
         )
     )
 
+    config = _common_config("Cumulative IPC Across Workloads", "Benchmark", "IPC")
+    config.update(
+        {
+            "x": "benchmark",
+            "y": "ipc",
+            "color": "configuration",
+            "area_mode": "stack",
+            "legend_order": CONFIGURATION_ORDER,
+        }
+    )
+    plots.append(_make_plot(10, "area", "10 · Cumulative IPC", data, config, sort_pipeline))
+
+    config = _common_config("IPC Distribution by Configuration", "Configuration", "IPC")
+    config.update({"x": "configuration", "y": "ipc", "xaxis_order": CONFIGURATION_ORDER})
+    plots.append(_make_plot(11, "box", "11 · IPC Distribution", data, config))
+
+    config = _common_config("Cumulative Memory Latency", "Memory latency (ns)", "Proportion")
+    config.update(
+        {
+            "x": "memory_latency_ns",
+            "color": "configuration",
+            "ecdf_markers": True,
+            "legend_order": CONFIGURATION_ORDER,
+        }
+    )
+    plots.append(_make_plot(12, "ecdf", "12 · Memory-Latency ECDF", data, config))
+
+    config = _common_config("Configuration Design Space", "", "")
+    config.update(
+        {
+            "parallel_dimensions": [
+                "benchmark",
+                "configuration",
+                "ipc",
+                "energy_j",
+                "l2_miss_rate",
+            ],
+            "parallel_color": "ipc",
+            "parallel_colorbar_title": "IPC",
+        }
+    )
+    plots.append(_make_plot(13, "parallel_coordinates", "13 · Design Space", data, config))
+
+    config = _common_config("IPC Profile by Workload", "Benchmark", "IPC")
+    config.update(
+        {
+            "x": "benchmark",
+            "y": "ipc",
+            "color": "configuration",
+            "legend_order": CONFIGURATION_ORDER,
+            "radar_scale_mode": "zero",
+        }
+    )
+    plots.append(_make_plot(14, "radar", "14 · Workload Profile", data, config))
+
+    sankey_data = data.assign(
+        source="Workload · " + data["benchmark"].astype(str),
+        target="Configuration · " + data["configuration"].astype(str),
+        flow=data["ipc"] * 100,
+        flow_label=data["benchmark"].astype(str) + " → " + data["configuration"].astype(str),
+    )
+    config = _common_config("Workload-to-Configuration Performance Flow", "", "")
+    config.update(
+        {
+            "sankey_source": "source",
+            "sankey_target": "target",
+            "sankey_value": "flow",
+            "sankey_label": "flow_label",
+            "sankey_label_mode": "names",
+        }
+    )
+    plots.append(_make_plot(15, "sankey", "15 · Performance Flow", sankey_data, config))
+
+    config = _common_config("Latency Distribution by Configuration", "Configuration", "Latency")
+    config.update(
+        {
+            "x": "configuration",
+            "y": "memory_latency_ns",
+            "xaxis_order": CONFIGURATION_ORDER,
+            "summary_mode": "box+mean",
+        }
+    )
+    plots.append(_make_plot(16, "violin", "16 · Latency Distribution", data, config))
+
+    waterfall_data = pd.DataFrame(
+        {
+            "contribution": ["Baseline", "Large L2 saving", "Prefetch saving"],
+            "energy_delta": [10.0, -1.6, -1.2],
+        }
+    )
+    config = _common_config("Illustrative Energy Savings", "Contribution", "Energy (J)")
+    config.update(
+        {
+            "x": "contribution",
+            "y": "energy_delta",
+            "xaxis_order": waterfall_data["contribution"].tolist(),
+            "waterfall_absolute": ["Baseline"],
+            "waterfall_total_label": "Optimized",
+        }
+    )
+    plots.append(_make_plot(17, "waterfall", "17 · Energy Savings", waterfall_data, config))
+
     expected_types = set(PlotFactory.get_available_plot_types())
     generated_types = {plot.plot_type for plot in plots}
     if generated_types != expected_types:
@@ -373,6 +475,7 @@ def generate_example_portfolio(
     output_dir: Path | None = None,
     force: bool = False,
 ) -> Path:
+    # [impl->req~ring5.portfolio.example-catalog~1]
     """Generate, validate, save, reload, and return an example portfolio path."""
     portfolios_dir = (
         output_dir.resolve() if output_dir is not None else PathService.get_portfolios_dir()
@@ -387,7 +490,7 @@ def generate_example_portfolio(
     data = build_example_data()
     plots = build_example_plots(data)
     portfolio_plots: list[PlotProtocol] = list(plots)
-    state_manager = RepositoryStateManager(plot_deserializer=BasePlot.from_dict)
+    state_manager = RepositoryStateManager(plot_deserializer=PlotFactory.from_dict)
     state_manager.set_data(data)
     state_manager.set_plots(portfolio_plots)
     state_manager.set_plot_counter(len(plots))
@@ -416,7 +519,7 @@ def generate_example_portfolio(
 
     # Verify the exact artifact through the public loader and restoration path.
     loaded = service.load_portfolio(name)
-    restored = RepositoryStateManager(plot_deserializer=BasePlot.from_dict)
+    restored = RepositoryStateManager(plot_deserializer=PlotFactory.from_dict)
     restored.restore_session(loaded)
     restored_plots = restored.get_plots()
     if len(restored_plots) != len(plots) or restored.get_data() is None:

@@ -132,7 +132,9 @@ class PlotRenderController:
             ),
             key=f"plot_type_sel_{plot.plot_id}",
         )
-        type_changed: bool = new_type is not None and new_type != plot.plot_type
+        type_changed: bool = (
+            isinstance(new_type, str) and new_type in available_types and new_type != plot.plot_type
+        )
 
         if type_changed and new_type is not None:
             self._lifecycle.change_plot_type(plot, new_type, self._api.state_manager)

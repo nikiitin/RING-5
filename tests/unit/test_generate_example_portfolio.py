@@ -17,8 +17,8 @@ from scripts.generate_example_portfolio import (
     main,
 )
 from src.core.services.data_services.portfolio_service import PortfolioService
+from src.core.services.portfolio_migrator import PortfolioMigrator
 from src.core.state.repository_state_manager import RepositoryStateManager
-from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
 
@@ -35,6 +35,7 @@ def test_example_data_is_deterministic_and_complete() -> None:
 
 
 def test_every_registered_plot_example_renders() -> None:
+    # [test->req~ring5.portfolio.example-catalog~1]
     data = build_example_data()
     plots = build_example_plots(data)
 
@@ -50,11 +51,11 @@ def test_generated_portfolio_round_trips(tmp_path: Path) -> None:
     assert output == tmp_path / "Example Cases.json"
     assert output.is_file()
     raw = json.loads(output.read_text())
-    assert raw["schema_version"] == 2
+    assert raw["schema_version"] == PortfolioMigrator.CURRENT_VERSION
     assert len(raw["plots"]) == len(PlotFactory.get_available_plot_types())
     assert all("figure_spec" in plot for plot in raw["plots"])
 
-    state_manager = RepositoryStateManager(plot_deserializer=BasePlot.from_dict)
+    state_manager = RepositoryStateManager(plot_deserializer=PlotFactory.from_dict)
     loaded = PortfolioService(state_manager, portfolios_dir=tmp_path).load_portfolio(
         "Example Cases"
     )

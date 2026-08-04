@@ -459,9 +459,17 @@ Use `ring5 upgrade NAME` to migrate and re-save an older portfolio only after a 
 The command refuses to write a partial restore because that would discard skipped content.
 ## Generate the example portfolio
 
+<!--
+`uman~ring5.portfolio.example-catalog.documentation~1`
+
+Covers:
+- req~ring5.portfolio.example-catalog~1
+
+-->
+
 Run `make example-portfolio` from the repository root to create a validated portfolio
 containing representative data and one configured example of every registered plot type.
-The command writes `ring5_example_portfolio.json` to the normal portfolio directory, or
+The command writes `RING5_Example_Cases.json` to the normal portfolio directory, or
 you can run `python_venv/bin/python scripts/generate_example_portfolio.py --output-dir DIR`
 to choose an isolated destination. Load the result from **Save/Load Portfolio** and use it
 as a compact gallery of supported plot configurations.
