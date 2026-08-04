@@ -137,6 +137,7 @@ class PlotRenderController:
         if type_changed and new_type is not None:
             self._lifecycle.change_plot_type(plot, new_type, self._api.state_manager)
             st.rerun()
+            return
 
         # 2. Type-specific config (via plot.render_config_ui)
         data: pd.DataFrame = plot.processed_data

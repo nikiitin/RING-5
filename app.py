@@ -3,8 +3,18 @@ RING-5 Interactive Web Application
 Modern, interactive dashboard for gem5 data analysis and visualization.
 """
 
+import os
 import sys
 from pathlib import Path
+
+for _thread_limit_var in (
+    "OPENBLAS_NUM_THREADS",
+    "OMP_NUM_THREADS",
+    "MKL_NUM_THREADS",
+    "NUMEXPR_NUM_THREADS",
+    "VECLIB_MAXIMUM_THREADS",
+):
+    os.environ.setdefault(_thread_limit_var, "2")
 
 root_dir = Path(__file__).parent
 if str(root_dir) not in sys.path:

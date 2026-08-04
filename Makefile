@@ -1,3 +1,10 @@
+RING5_NATIVE_THREADS ?= 2
+export OPENBLAS_NUM_THREADS := $(RING5_NATIVE_THREADS)
+export OMP_NUM_THREADS := $(RING5_NATIVE_THREADS)
+export MKL_NUM_THREADS := $(RING5_NATIVE_THREADS)
+export NUMEXPR_NUM_THREADS := $(RING5_NATIVE_THREADS)
+export VECLIB_MAXIMUM_THREADS := $(RING5_NATIVE_THREADS)
+
 VENV_NAME := python_venv
 VENV_BIN := ./$(VENV_NAME)/bin
 PYTHON := $(VENV_BIN)/python
@@ -26,7 +33,7 @@ OFT_NATIVE_REPORT := $(OFT_CACHE_DIR)/ring5-openfasttrace.html
 OFT_REPORT := spec/oft/generated/report.html
 OFT_EXECUTION_RESULTS_ARG = $(if $(EXECUTION_RESULTS),--execution-results "$(EXECUTION_RESULTS)",)
 
-.PHONY: help venv install dev run playwright-install install-latex check-latex \
+.PHONY: help venv install dev run example-portfolio playwright-install install-latex check-latex \
 	test-data mock-data test test-unit test-nonbrowser test-api test-ci test-export test-latex \
 	test-e2e test-visual \
 	format format-check lint type-check arch-check comments-check docs-check dependency-check \
@@ -38,6 +45,7 @@ help:
 	@echo ""
 	@echo "  dev                 Install editable development and browser dependencies"
 	@echo "  run                 Start the Streamlit application"
+	@echo "  example-portfolio   Generate the example plot portfolio"
 	@echo "  test-unit           Run fast unit tests"
 	@echo "  test                Run non-browser tests, including serial exports"
 	@echo "  test-latex          Run tests that require a local XeLaTeX installation"
@@ -70,6 +78,9 @@ dev: venv
 
 run:
 	$(VENV_BIN)/streamlit run app.py
+
+example-portfolio:
+	$(PYTHON) scripts/generate_example_portfolio.py
 
 playwright-install: venv
 	$(VENV_BIN)/playwright install chromium

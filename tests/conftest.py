@@ -4,15 +4,31 @@ Provides common helper functions and fixtures used across multiple
 test directories (unit, ui_unit, integration).
 """
 
+import os
 from collections.abc import Generator
 from typing import Any
 from unittest.mock import MagicMock
+
+for _thread_limit_var in (
+    "OPENBLAS_NUM_THREADS",
+    "OMP_NUM_THREADS",
+    "MKL_NUM_THREADS",
+    "NUMEXPR_NUM_THREADS",
+    "VECLIB_MAXIMUM_THREADS",
+):
+    os.environ.setdefault(_thread_limit_var, "2")
 
 import pandas as pd
 import pytest
 
 # Register helper fixture plugins so they are available everywhere
 pytest_plugins = ["tests.helpers.gem5_fixtures"]
+
+
+@pytest.hookimpl(optionalhook=True)
+def pytest_xdist_auto_num_workers(config: pytest.Config) -> int:
+    """Cap explicit ``-n auto`` runs at the two-worker safety boundary."""
+    return 2
 
 # Shared Helpers
 

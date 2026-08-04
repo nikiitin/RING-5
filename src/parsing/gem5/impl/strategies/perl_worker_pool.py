@@ -27,13 +27,14 @@ from src.core.common.security_limits import MAX_PARSE_LINE_COUNT
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_PERL_WORKERS = 2
+
 
 def _default_pool_size() -> int:
     """Resolve the number of persistent Perl workers.
 
-    Defaults to **half the available CPUs** — parse throughput is bounded by this
-    pool, and measurements show the gain flattens out around cores/2. Override with
-    the ``RING5_PERL_POOL_SIZE`` environment variable (an integer >= 1).
+    Defaults to two persistent processes to bound memory on developer machines.
+    Override with ``RING5_PERL_POOL_SIZE`` (an integer >= 1).
     """
     override = os.environ.get("RING5_PERL_POOL_SIZE")
     if override:
@@ -44,7 +45,7 @@ def _default_pool_size() -> int:
             logger.warning("RING5_PERL_POOL_SIZE=%r is < 1; ignoring", override)
         except ValueError:
             logger.warning("RING5_PERL_POOL_SIZE=%r is not an integer; ignoring", override)
-    return max(1, (os.cpu_count() or 4) // 2)
+    return DEFAULT_PERL_WORKERS
 
 
 @dataclass

@@ -23,6 +23,21 @@ class TestInteractivePlotlyChart:
     # [test->req~ring5.figure.interactive-editing~1]
 
     @patch(f"{MODULE}._component_func")
+    def test_uses_standard_library_json_engine(self, mock_func: MagicMock) -> None:
+        """Serialization must not lazily import a native JSON engine."""
+        from src.web.components.plotting.interactive_plot import (
+            interactive_plotly_chart,
+        )
+
+        fig = MagicMock(spec=go.Figure)
+        fig.to_plotly_json.return_value = {"data": [], "layout": {}}
+
+        interactive_plotly_chart(fig)
+
+        fig.to_plotly_json.assert_called_once_with()
+        fig.to_json.assert_not_called()
+
+    @patch(f"{MODULE}._component_func")
     def test_basic_call_serializes_figure(self, mock_func: MagicMock) -> None:
         """Figure is serialized to JSON and passed to the component."""
         mock_func.return_value = None

@@ -34,14 +34,21 @@ class PortfolioService:
     It interacts with the StateManager to persist/retrieve the full application state.
     """
 
-    def __init__(self, state_manager: StateManager) -> None:
-        """Initialize the PortfolioService with a StateManager instance."""
+    def __init__(self, state_manager: StateManager, portfolios_dir: Path | None = None) -> None:
+        """Initialize state access and an optional isolated storage directory."""
         self.state_manager = state_manager
+        self._portfolios_dir = portfolios_dir.resolve() if portfolios_dir is not None else None
+        if self._portfolios_dir is not None:
+            self._portfolios_dir.mkdir(parents=True, exist_ok=True)
+
+    def _get_portfolios_dir(self) -> Path:
+        """Return the configured portfolio directory."""
+        return self._portfolios_dir or PathService.get_portfolios_dir()
 
     def list_portfolios(self) -> list[str]:
         # [impl->req~ring5.portfolio.manage~1]
         """Return saved portfolio names."""
-        portfolios_dir = PathService.get_portfolios_dir()
+        portfolios_dir = self._get_portfolios_dir()
         if not portfolios_dir.exists():
             return []
         return [p.stem for p in portfolios_dir.glob("*.json")]
@@ -292,7 +299,6 @@ class PortfolioService:
             path.unlink()
         PortfolioRevisionService.delete_history(name)
 
-    @staticmethod
-    def _portfolio_path(name: str) -> Path:
-        directory = PathService.get_portfolios_dir()
+    def _portfolio_path(self, name: str) -> Path:
+        directory = self._get_portfolios_dir()
         return validate_path_within(directory / f"{sanitize_filename(name)}.json", directory)

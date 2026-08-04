@@ -20,6 +20,22 @@ from src.parsing.framework.job import Job
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_WORKERS = 2
+
+
+def _default_workers() -> int:
+    """Return the bounded worker count, honoring an explicit deployment override."""
+    value = os.environ.get("RING5_WORK_POOL_SIZE")
+    if value:
+        try:
+            workers = int(value)
+            if workers >= 1:
+                return workers
+        except ValueError:
+            pass
+        logger.warning("Ignoring invalid RING5_WORK_POOL_SIZE=%r", value)
+    return DEFAULT_WORKERS
+
 
 class WorkPool:
     """Unified singleton thread-pool manager for parallel task execution."""
@@ -41,7 +57,7 @@ class WorkPool:
         with self._new_lock:
             if self._initialized:
                 return
-            self._num_workers = os.cpu_count() or 1
+            self._num_workers = _default_workers()
             self._thread_executor: ThreadPoolExecutor | None = None
             self._executor_lock = threading.Lock()
             self._initialized = True
@@ -56,7 +72,7 @@ class WorkPool:
         # executor (the one shutdown() later releases), never a leaked extra.
         with self._executor_lock:
             if self._thread_executor is None:
-                self._thread_executor = ThreadPoolExecutor(max_workers=self._num_workers * 2)
+                self._thread_executor = ThreadPoolExecutor(max_workers=self._num_workers)
             return self._thread_executor
 
     def submit(self, task: Job | Callable[[], Any]) -> Future[Any]:
