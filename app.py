@@ -10,6 +10,8 @@ root_dir = Path(__file__).parent
 if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
+DOCUMENTATION_URL = "https://nikiitin.github.io/RING-5/"
+
 
 def run_app() -> None:
     """Main application entry point."""
@@ -83,10 +85,9 @@ def run_app() -> None:
             "Data Managers",
             "Manage Plots",
             "Save/Load Portfolio",
-            "Documentation",
         ]
 
-        if "_nav_page" not in st.session_state:
+        if st.session_state.get("_nav_page") not in _NAV_OPTIONS:
             st.session_state["_nav_page"] = _NAV_OPTIONS[0]
 
         from src.web.components.command_palette import CommandPaletteComponent
@@ -115,6 +116,14 @@ def run_app() -> None:
             if _nav_clicked and not _is_active:
                 st.session_state["_nav_page"] = _nav_item
                 st.rerun()
+
+        # [impl->req~ring5.workspace.documentation-hub~2]
+        st.link_button(
+            "Documentation",
+            DOCUMENTATION_URL,
+            width="stretch",
+            help="Open the published RING-5 documentation",
+        )
 
         page = st.session_state["_nav_page"]
 
@@ -192,10 +201,6 @@ def run_app() -> None:
         from src.web.pages.portfolio import show_portfolio_page
 
         show_portfolio_page(api)
-    elif page == "Documentation":
-        from src.web.pages.documentation import show_documentation_page
-
-        show_documentation_page()
 
 
 if __name__ == "__main__":

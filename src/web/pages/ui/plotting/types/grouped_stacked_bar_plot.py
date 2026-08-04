@@ -312,6 +312,9 @@ class GroupedStackedBarPlot(StackedBarPlot):
             )
             traces.extend(right_traces)
 
+        if dual_axis and config.get("unified_legend", True):
+            traces = self._order_unified_legend_traces(traces, config)
+
         payloads = build_drill_down_payload(
             data,
             {
@@ -366,6 +369,30 @@ class GroupedStackedBarPlot(StackedBarPlot):
             secondary_y=dual_axis,
         )
 
+    @staticmethod
+    def _order_unified_legend_traces(
+        traces: list[TraceConfig], config: PlotConfig
+    ) -> list[TraceConfig]:
+        # [impl->req~ring5.figure.ordering-renaming~2]
+        """Apply a combined left/right order to a unified legend."""
+        configured_order = config.get("legend_order")
+        if not configured_order:
+            return traces
+
+        series_styles: dict[str, Any] = config.get("series_styles", {})
+        ordered_names = [
+            str(series_styles.get(key, {}).get("name", key)) for key in configured_order
+        ]
+        rank = {name: index for index, name in enumerate(ordered_names)}
+        fallback = len(rank)
+        return [
+            trace
+            for _, trace in sorted(
+                enumerate(traces),
+                key=lambda indexed: (rank.get(indexed[1].name, fallback), indexed[0]),
+            )
+        ]
+
     def _get_ordered_categories_and_groups(
         self, data: pd.DataFrame, x_col: str, group_col: str, config: PlotConfig
     ) -> tuple[list[str], list[str]]:
@@ -386,7 +413,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         config: PlotConfig,
     ) -> tuple[pd.DataFrame, list[str], list[str]]:
         """Apply renames to data and ordered lists."""
-        # [impl->req~ring5.figure.ordering-renaming~1]
+        # [impl->req~ring5.figure.ordering-renaming~2]
         from src.web.pages.ui.plotting.utils.grouped_stacked_bar_helpers import (
             apply_renames,
         )

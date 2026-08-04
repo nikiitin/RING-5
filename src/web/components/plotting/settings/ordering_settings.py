@@ -1,9 +1,7 @@
-"""Ordering settings component — reorder X-axis, groups, legend items.
+"""Ordering settings component — reorder axes, groups, and facets.
 
 Extracted from ``BasePlot._render_ordering_ui``.
 """
-
-from typing import Any
 
 import pandas as pd
 import streamlit as st
@@ -16,7 +14,7 @@ from src.web.models.plot_models import PlotConfig
 
 
 class OrderingSettingsComponent:
-    """Render ordering controls for X-axis, groups, and legend items.
+    """Render ordering controls for axes, groups, and facets.
 
     Parameters
     ----------
@@ -36,14 +34,14 @@ class OrderingSettingsComponent:
         data: pd.DataFrame,
         config: PlotConfig,
     ) -> None:
-        """Render ordering controls for X-axis, groups, and legend items.
+        """Render ordering controls for axes, groups, and facets.
 
         Args:
             saved_config: Previously saved configuration.
             data: Data being plotted.
             config: Current configuration to update.
         """
-        # [impl->req~ring5.figure.ordering-renaming~1]
+        # [impl->req~ring5.figure.ordering-renaming~2]
         st.markdown("#### Ordering Control")
 
         # X-axis Order
@@ -63,11 +61,15 @@ class OrderingSettingsComponent:
                 )
                 order_x, renames_x = x_result  # type: ignore[misc]
                 config["xaxis_order"] = order_x
-                if renames_x:
+                if renames_x != (saved_config.get("xaxis_labels") or {}):
                     config["xaxis_labels"] = renames_x
 
         # Group Order
-        if saved_config.get("group") and saved_config["group"] in data.columns:
+        if (
+            self.plot_type != "grouped_bar"
+            and saved_config.get("group")
+            and saved_config["group"] in data.columns
+        ):
             with st.expander("Reorder and Rename Groups"):
                 unique_g, truncated = bounded_unique_strings(data[saved_config["group"]])
                 if truncated:
@@ -77,74 +79,15 @@ class OrderingSettingsComponent:
                     unique_g,
                     "group",
                     plot_id=self.plot_id,
-                    legend_labels=saved_config.get("legend_labels"),
+                    legend_labels=saved_config.get("group_renames"),
                     default_order=saved_config.get("group_order"),
                     enable_rename=True,
-                    rename_map=saved_config.get("legend_labels"),
+                    rename_map=saved_config.get("group_renames"),
                 )
                 order_g, renames_g = g_result  # type: ignore[misc]
                 config["group_order"] = order_g
-                if renames_g:
-                    config["legend_labels"] = renames_g
-
-        # Legend Order (Color)
-        if saved_config.get("color") and saved_config["color"] in data.columns:
-            with st.expander("Reorder and Rename Legend Items"):
-                unique_c, truncated = bounded_unique_strings(data[saved_config["color"]])
-                if truncated:
-                    st.warning("Legend ordering options were capped for safety.")
-                c_result = render_reorderable_list(
-                    "Legend Order",
-                    unique_c,
-                    "legend",
-                    plot_id=self.plot_id,
-                    legend_labels=saved_config.get("legend_labels"),
-                    default_order=saved_config.get("legend_order"),
-                    enable_rename=True,
-                    rename_map=saved_config.get("legend_labels"),
-                )
-                order_c, renames_c = c_result  # type: ignore[misc]
-                config["legend_order"] = order_c
-                if renames_c and isinstance(renames_c, dict):
-                    if "legend_labels" not in config:
-                        config["legend_labels"] = {}
-                    # Ensure we have a dict to appease mypy
-                    labels_dict = config["legend_labels"]
-                    if isinstance(labels_dict, dict):
-                        labels_dict.update(renames_c)
-                    else:
-                        config["legend_labels"] = dict(renames_c)
-
-        # Stacked Series Order (y_columns — "Non-tx", "Commit", etc.)
-        y_cols: list[str] = saved_config.get("y_columns", [])
-        if y_cols:
-            series_styles: dict[str, Any] = saved_config.get("series_styles", {})
-            series_rename_map: dict[str, str] = {
-                k: str(series_styles[k].get("name", k))
-                for k in y_cols
-                if k in series_styles and series_styles[k].get("name")
-            }
-            with st.expander("Reorder and Rename Stacked Series"):
-                current_order: list[str] = list(y_cols)
-                s_result = render_reorderable_list(
-                    "Series Order",
-                    current_order,
-                    "series",
-                    plot_id=self.plot_id,
-                    enable_rename=True,
-                    rename_map=series_rename_map or None,
-                )
-                new_order, series_renames = s_result  # type: ignore[misc]
-                if new_order != current_order:
-                    config["y_columns"] = new_order
-                if series_renames and isinstance(series_renames, dict):
-                    if "series_styles" not in config:
-                        config["series_styles"] = {}
-                    for k, v in series_renames.items():
-                        if k not in config["series_styles"]:
-                            config["series_styles"][k] = {"name": v}
-                        else:
-                            config["series_styles"][k]["name"] = v
+                if renames_g != (saved_config.get("group_renames") or {}):
+                    config["group_renames"] = renames_g
 
         # Heatmap Y-axis Metrics
         metric_cols: list[str] = saved_config.get("metric_columns", [])
@@ -160,7 +103,7 @@ class OrderingSettingsComponent:
                 )
                 order_hm, renames_hm = hm_result  # type: ignore[misc]
                 config["metric_columns"] = order_hm
-                if renames_hm:
+                if renames_hm != (saved_config.get("metric_labels") or {}):
                     config["metric_labels"] = renames_hm
 
         # Heatmap Facet Order (split-by column)
@@ -179,7 +122,7 @@ class OrderingSettingsComponent:
                 )
                 order_f, renames_f = f_result  # type: ignore[misc]
                 config["facet_order"] = order_f
-                if renames_f:
+                if renames_f != (saved_config.get("facet_labels") or {}):
                     config["facet_labels"] = renames_f
 
 

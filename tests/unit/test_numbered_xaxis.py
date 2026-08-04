@@ -202,6 +202,42 @@ class TestApplyNumberedXaxis:
         text: str = legend["text"]
         assert text.index("1. zeta") < text.index("2. alpha") < text.index("3. mid")
 
+    @pytest.mark.parametrize(
+        ("extra_config", "order_key", "labels_key"),
+        [
+            ({}, "legend2_order", "legend2_labels"),
+            (
+                {"dual_axis": True, "unified_legend": False},
+                "legend3_order",
+                "legend3_labels",
+            ),
+        ],
+    )
+    def test_uses_independent_numbered_legend_order_and_labels(
+        self,
+        plot: GroupedStackedBarPlot,
+        extra_config: dict[str, Any],
+        order_key: str,
+        labels_key: str,
+    ) -> None:
+        """The numbered annotation follows its own legend-tier controls."""
+        config: dict[str, Any] = {
+            "numbered_xaxis_modes": ["Numbers", "Number legend"],
+            order_key: ["c", "a", "b"],
+            labels_key: {"c": "Charlie", "a": "Alpha"},
+            **extra_config,
+        }
+
+        result_text, legend = plot._apply_numbered_xaxis(["a", "b", "c"], config)
+
+        assert result_text == ["2", "3", "1"]
+        assert legend is not None
+        assert legend["text"].split("<br>") == [
+            "1. Charlie",
+            "2. Alpha",
+            "3. b",
+        ]
+
     def test_single_group(self, plot: GroupedStackedBarPlot) -> None:
         """Works correctly with a single group."""
         tick_text: list[str] = ["only"]

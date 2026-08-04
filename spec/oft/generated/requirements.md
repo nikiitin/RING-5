@@ -27,7 +27,7 @@ Tags: status_approved, streamlit, web, workspace
 `req~ring5.workspace.navigation~1`
 Status: approved
 
-Users shall navigate between Data Source, Data Managers, Manage Plots, Save/Load Portfolio, and Documentation pages from the sidebar.
+Users shall navigate between Data Source, Data Managers, Manage Plots, and Save/Load Portfolio from the sidebar, with published documentation exposed as an external link rather than an application page.
 
 Covers:
 - feat~ring5.workspace~1
@@ -78,12 +78,14 @@ Needs: impl, test, uman
 
 Tags: reset, state, status_approved, web
 
-### In-application documentation hub
+### Published documentation link
 
-`req~ring5.workspace.documentation-hub~1`
+`req~ring5.workspace.documentation-hub~2`
 Status: approved
 
-The application shall link users to canonical getting-started, workflow, guide, reference, and developer documentation.
+The sidebar and command palette shall link directly to the canonical published RING-5 documentation without maintaining a duplicate in-application documentation page.
+
+History records: 1
 
 Covers:
 - feat~ring5.workspace~1
@@ -1844,10 +1846,12 @@ Tags: annotations, shapes, status_approved, styling
 
 ### Category ordering and relabeling
 
-`req~ring5.figure.ordering-renaming~1`
+`req~ring5.figure.ordering-renaming~2`
 Status: approved
 
-Users shall reorder and rename applicable X categories, groups, legend items, stack series, Y metrics, and facets without rewriting source data.
+Users shall reorder and rename applicable X categories, groups, Y metrics, and facets under axis settings, while each visible legend tier shall independently own its legend-item and stack-series order and names without rewriting source data.
+
+History records: 1
 
 Covers:
 - feat~ring5.figure-configuration~1

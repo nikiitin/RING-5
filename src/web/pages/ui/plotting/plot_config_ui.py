@@ -131,21 +131,24 @@ class PlotConfigUIMixin:
             )
 
         if section == "legends":
-            has_dual_axis: bool = self.plot_type == "dual_axis_bar_dot" or bool(
-                saved_config.get("dual_axis")
+            numbered_legend = bool(
+                "Number legend" in (saved_config.get("numbered_xaxis_modes") or [])
+                or saved_config.get("numbered_xaxis")
             )
-            has_secondary: bool = has_dual_axis or self._supports_secondary_legend()
+            has_separate_axis_legend = bool(
+                saved_config.get("dual_axis")
+                and not saved_config.get("unified_legend", True)
+                and saved_config.get("y_columns_right")
+            )
+            has_secondary = has_separate_axis_legend or (
+                self._supports_secondary_legend() and numbered_legend
+            )
             has_tertiary: bool = (
-                self._supports_tertiary_legend()
-                and has_dual_axis
-                and bool(
-                    saved_config.get("show_group_labels")
-                    or "Number legend" in saved_config.get("numbered_xaxis_modes", [])
-                    or saved_config.get("numbered_xaxis")
-                )
+                self._supports_tertiary_legend() and has_separate_axis_legend and numbered_legend
             )
             return LegendSettingsComponent(self.plot_id, self.plot_type).render(
                 saved_config,
+                data=data,
                 has_secondary=has_secondary,
                 has_tertiary=has_tertiary,
             )

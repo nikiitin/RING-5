@@ -20,6 +20,7 @@ def test_empty_query_lists_every_safe_command_in_discoverable_order() -> None:
     assert {command.action for command in response.commands} == {
         "navigate",
         "focus_workspace_search",
+        "open_external",
     }
     assert not any(
         forbidden in command.title.casefold()
@@ -34,7 +35,7 @@ def test_search_uses_and_matching_ranking_and_explicit_bounds() -> None:
 
     assert [command.command_id for command in plots.commands] == ["navigate.manage-plots"]
     assert limited.returned_matches == 2
-    assert limited.total_matches == 5
+    assert limited.total_matches == 4
     assert limited.results_truncated is True
 
 

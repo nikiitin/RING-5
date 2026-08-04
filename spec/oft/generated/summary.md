@@ -13,7 +13,7 @@ This file is informative; normative items are in the other generated files.
 - In development future requirements: 0
 - Blocked future requirements: 0
 - Generated specification items: 234
-- Live capability bindings: 880
+- Live capability bindings: 879
 
 ## Requirements by feature group
 
@@ -53,7 +53,7 @@ This file is informative; normative items are in the other generated files.
 - `managers_api_members`: 23
 - `margin_config_fields`: 5
 - `matplotlib_formats`: 4
-- `navigation_pages`: 5
+- `navigation_pages`: 4
 - `parse_job_members`: 2
 - `parse_variable_fields`: 18
 - `parser_strategies`: 2
@@ -90,6 +90,8 @@ This file is informative; normative items are in the other generated files.
 
 | Requirement | Revision | Change | Reason |
 | --- | ---: | --- | --- |
+| `workspace.documentation-hub` | 1 | Semantic | Replaced the duplicate application page with direct links to the canonical published documentation. |
+| `figure.ordering-renaming` | 1 | Semantic | Assigned legend-entry ordering to each visible Legend tab while keeping axis and facet ordering under Axes. |
 | `trace.requirement-history` | 1 | Semantic | Specified complete semantic snapshots and reviewer-facing history views. |
 | `trace.requirement-history` | 2 | Evidence only | Recorded implementation, verification, and documentation evidence without changing revision 2. |
 

@@ -109,7 +109,7 @@ class TestCreateFigure:
 
     def test_with_xaxis_order(self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame) -> None:
         """Custom x-axis ordering is respected."""
-        # [test->req~ring5.figure.ordering-renaming~1]
+        # [test->req~ring5.figure.ordering-renaming~2]
         config = {
             "x": "Benchmark",
             "group": "Config",
@@ -125,7 +125,7 @@ class TestCreateFigure:
 
     def test_with_group_order(self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame) -> None:
         """Custom group ordering is respected."""
-        # [test->req~ring5.figure.ordering-renaming~1]
+        # [test->req~ring5.figure.ordering-renaming~2]
         config = {
             "x": "Benchmark",
             "group": "Config",

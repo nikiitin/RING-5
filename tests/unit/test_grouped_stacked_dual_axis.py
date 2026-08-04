@@ -735,6 +735,30 @@ class TestDualAxisLegendUnification:
             legend_attr = getattr(trace, "legend", None)
             assert legend_attr != "legend2"
 
+    def test_unified_legend_honors_combined_item_order(
+        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
+    ) -> None:
+        """A unified legend can interleave left- and right-axis series."""
+        config: dict[str, Any] = {
+            "x": "Benchmark",
+            "group": "Config",
+            "y_columns": ["Ticks", "Energy"],
+            "y_columns_right": ["IPC", "Cycles"],
+            "dual_axis": True,
+            "right_axis_type": "bars",
+            "unified_legend": True,
+            "legend_order": ["IPC", "Ticks", "Cycles", "Energy"],
+        }
+
+        result = plot.create_traces(sample_data, config)
+
+        assert [trace.name for trace in result.traces] == [
+            "IPC",
+            "Ticks",
+            "Cycles",
+            "Energy",
+        ]
+
     def test_separate_legend(self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame) -> None:
         """When unified_legend=False, traces are split into legend + legend2."""
         config: dict[str, Any] = {

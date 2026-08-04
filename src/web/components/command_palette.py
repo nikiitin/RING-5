@@ -10,7 +10,7 @@ from src.core.application_api import ApplicationAPI
 from src.core.models import WorkspaceCommand
 
 _NAVIGATION_PAGES = frozenset(
-    {"Data Source", "Data Managers", "Manage Plots", "Save/Load Portfolio", "Documentation"}
+    {"Data Source", "Data Managers", "Manage Plots", "Save/Load Portfolio"}
 )
 _NAVIGATION_SHORTCUTS = {
     "1": "Data Source",
@@ -54,6 +54,7 @@ class CommandPaletteComponent:
 
     @classmethod
     def render_dialog(cls, api: ApplicationAPI) -> None:
+        # [impl->req~ring5.workspace.documentation-hub~2]
         """Render searchable command results inside an open dialog."""
         query = st.text_input(
             "Search commands",
@@ -73,8 +74,16 @@ class CommandPaletteComponent:
             st.caption(f"{response.total_matches} {match_label}")
             for command in response.commands:
                 shortcut = f" · {', '.join(command.shortcuts)}" if command.shortcuts else ""
-                if st.button(
-                    f"{command.title}{shortcut}",
+                label = f"{command.title}{shortcut}"
+                if command.action == "open_external":
+                    st.link_button(
+                        label,
+                        command.destination,
+                        width="stretch",
+                        help=command.description,
+                    )
+                elif st.button(
+                    label,
                     key=f"command_palette_{command.command_id}",
                     width="stretch",
                     type="tertiary",
@@ -88,7 +97,8 @@ class CommandPaletteComponent:
             st.markdown("""
 - **Ctrl/⌘+K** — open this command palette
 - **/** — focus workspace search when you are not typing
-- **Alt+1 … Alt+5** — open the five sidebar pages in order
+- **Alt+1 … Alt+4** — open the four workspace pages in order
+- **Alt+5** — open the published documentation
 - **Esc** — close the palette
 """)
 
@@ -107,6 +117,8 @@ class CommandPaletteComponent:
             st.session_state["_workspace_search_requested"] = True
             st.session_state["_workspace_search_focus_pending"] = True
             return
+        if command.action == "open_external":
+            raise ValueError("External commands must be opened through their rendered link.")
         raise ValueError(f"Unsupported workspace command action {command.action!r}.")
 
     @staticmethod
@@ -121,8 +133,8 @@ class CommandPaletteComponent:
   const host = window.parent;
   const doc = host.document;
   const navigation = {payload};
-  const buttonNamed = (label) => Array.from(doc.querySelectorAll("button"))
-    .find((button) => button.innerText.trim() === label);
+  const controlNamed = (label) => Array.from(doc.querySelectorAll("button, a"))
+    .find((control) => control.innerText.trim() === label);
   const retryFocus = (selector, attempts = 20) => {{
     const input = doc.querySelector(selector);
     if (input && input.getClientRects().length > 0) {{
@@ -138,7 +150,7 @@ class CommandPaletteComponent:
     retryFocus('input[placeholder="Type two or more letters…"]');
   }};
   const openPalette = () => {{
-    buttonNamed("Command palette")?.click();
+    controlNamed("Command palette")?.click();
     retryFocus('input[placeholder="Type a task or destination…"]');
   }};
   if (host.__ring5ShortcutHandler) {{
@@ -165,7 +177,7 @@ class CommandPaletteComponent:
     }}
     if (event.altKey && !event.ctrlKey && !event.metaKey && navigation[key]) {{
       event.preventDefault();
-      buttonNamed(navigation[key])?.click();
+      controlNamed(navigation[key])?.click();
     }}
   }};
   doc.addEventListener("keydown", host.__ring5ShortcutHandler, true);

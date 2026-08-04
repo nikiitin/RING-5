@@ -69,7 +69,7 @@ def test_legend_labels_backward_compatibility() -> None:
 
 def test_multiple_column_persistence() -> None:
     """Test that multiple columns can have different custom labels."""
-    # [test->req~ring5.figure.ordering-renaming~1]
+    # [test->req~ring5.figure.ordering-renaming~2]
 
     plot = {
         "id": 1,

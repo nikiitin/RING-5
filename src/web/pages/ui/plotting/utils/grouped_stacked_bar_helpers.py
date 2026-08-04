@@ -99,8 +99,22 @@ def apply_numbered_xaxis(
     has_labels: bool = "Labels" in modes
     has_legend: bool = "Number legend" in modes
 
-    # Unique groups preserving insertion order
+    # The numbered annotation uses the secondary legend tier, or the tertiary
+    # tier when separate left/right trace legends already occupy two tiers.
+    if config.get("dual_axis") and not config.get("unified_legend", True):
+        _prefix = "legend3_"
+    else:
+        _prefix = "legend2_"
+
+    # Unique groups preserving insertion order, then apply this annotation
+    # legend's independent ordering and display labels.
     unique_groups: list[str] = list(dict.fromkeys(tick_text))
+    configured_order = [str(item) for item in (config.get(f"{_prefix}order") or [])]
+    ordered_groups = [item for item in configured_order if item in unique_groups]
+    ordered_groups.extend(item for item in unique_groups if item not in ordered_groups)
+    unique_groups = ordered_groups
+    raw_labels = config.get(f"{_prefix}labels", {})
+    legend_labels: dict[str, str] = raw_labels if isinstance(raw_labels, dict) else {}
 
     # Build numbered tick labels — one per original tick position.
     label_to_num: dict[str, int] = {g: i + 1 for i, g in enumerate(unique_groups)}
@@ -123,13 +137,9 @@ def apply_numbered_xaxis(
         return numbered_text, None
 
     # Build legend text — vertical list inside a bordered box
-    legend_parts: list[str] = [f"{i + 1}. {g}" for i, g in enumerate(unique_groups)]
-
-    # Determine prefix for numbered legend controls (secondary or tertiary pill)
-    if config.get("dual_axis") and not config.get("unified_legend", True):
-        _prefix = "legend3_"
-    else:
-        _prefix = "legend2_"
+    legend_parts: list[str] = [
+        f"{i + 1}. {legend_labels.get(group, group)}" for i, group in enumerate(unique_groups)
+    ]
 
     # Column count: prefer legend pill's ncols, fall back to old config key
     max_cols: int = int(config.get(f"{_prefix}ncols", config.get("numbered_legend_columns", 1)))

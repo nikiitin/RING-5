@@ -18,8 +18,13 @@ Usage::
     )
 """
 
+from typing import Any
+
+import pandas as pd
 import streamlit as st
 
+from src.web.components.common.bounded_options import bounded_unique_strings
+from src.web.components.common.reorderable_list import render_reorderable_list
 from src.web.components.plotting.settings.widget_factory import (
     color_picker,
     numeric_input,
@@ -61,6 +66,7 @@ class LegendSettingsComponent:
     def render(
         self,
         saved_config: PlotConfig,
+        data: pd.DataFrame | None = None,
         has_secondary: bool = False,
         has_tertiary: bool = False,
     ) -> PlotConfig:
@@ -70,6 +76,8 @@ class LegendSettingsComponent:
         ----------
         saved_config : PlotConfig
             Current saved configuration.
+        data : pandas.DataFrame | None
+            Processed data used to discover categorical legend entries.
         has_secondary : bool
             Whether to show a secondary legend pill.
         has_tertiary : bool
@@ -100,13 +108,14 @@ class LegendSettingsComponent:
 
         key_prefix = _LEGEND_KEY_PREFIXES.get(legend_tab or "primary", "theme_")
 
-        # Render the active pill's widgets
+        active_tab = legend_tab or "primary"
+
+        # Render the active pill's styling and entry controls.
         active_config = self._render_legend_section(saved_config, key_prefix)
+        item_config = self._render_legend_items(saved_config, data, active_tab)
 
         # Preserve inactive pills' config from saved_config so that
         # switching pills doesn't lose previously-set values.
-        active_tab = legend_tab or "primary"
-
         preserved: PlotConfig = {}
         for level, cfg_prefix in _LEGEND_PREFIXES.items():
             if level == active_tab:
@@ -121,7 +130,213 @@ class LegendSettingsComponent:
                 if key.startswith(cfg_prefix):
                     preserved[key] = value
 
-        return {**preserved, **active_config}
+        return {**preserved, **active_config, **item_config}
+
+    def _render_legend_items(
+        self,
+        saved_config: PlotConfig,
+        data: pd.DataFrame | None,
+        active_tab: str,
+    ) -> PlotConfig:
+        # [impl->req~ring5.figure.ordering-renaming~2]
+        """Render ordering and renaming for the selected legend tier."""
+        left_series = [str(item) for item in saved_config.get("y_columns") or []]
+        right_series = [str(item) for item in saved_config.get("y_columns_right") or []]
+        dual_axis = bool(saved_config.get("dual_axis"))
+        separate_legends = dual_axis and not bool(saved_config.get("unified_legend", True))
+
+        if active_tab == "primary" and left_series:
+            if dual_axis and not separate_legends and right_series:
+                unified_items = left_series + [
+                    item for item in right_series if item not in left_series
+                ]
+                return self._render_series_items(
+                    saved_config,
+                    unified_items,
+                    order_key="legend_order",
+                    widget_prefix="legend_items",
+                )
+            return self._render_series_items(
+                saved_config,
+                left_series,
+                order_key="y_columns",
+                widget_prefix="legend_items",
+            )
+
+        if active_tab == "secondary" and separate_legends and right_series:
+            return self._render_series_items(
+                saved_config,
+                right_series,
+                order_key="y_columns_right",
+                widget_prefix="legend2_items",
+            )
+
+        numbered_level = self._numbered_legend_level(saved_config)
+        if active_tab == numbered_level:
+            numbered_items, truncated = self._numbered_legend_items(saved_config, data)
+            if truncated:
+                st.warning("Legend ordering options were capped for safety.")
+            if numbered_items:
+                prefix = _LEGEND_PREFIXES[active_tab]
+                return self._render_named_items(
+                    saved_config,
+                    numbered_items,
+                    order_key=f"{prefix}order",
+                    labels_key=f"{prefix}labels",
+                    widget_prefix=f"{prefix}items",
+                )
+
+        group_col = saved_config.get("group")
+        if (
+            active_tab == "primary"
+            and self.plot_type == "grouped_bar"
+            and data is not None
+            and group_col
+            and group_col in data.columns
+        ):
+            group_items, truncated = bounded_unique_strings(data[group_col].dropna())
+            if truncated:
+                st.warning("Legend ordering options were capped for safety.")
+            return self._render_named_items(
+                saved_config,
+                group_items,
+                order_key="group_order",
+                labels_key="legend_labels",
+                widget_prefix="legend_items",
+            )
+
+        color_col = saved_config.get("color")
+        if active_tab == "primary" and data is not None and color_col and color_col in data.columns:
+            color_items, truncated = bounded_unique_strings(data[color_col].dropna())
+            if truncated:
+                st.warning("Legend ordering options were capped for safety.")
+            return self._render_named_items(
+                saved_config,
+                color_items,
+                order_key="legend_order",
+                labels_key="legend_labels",
+                widget_prefix="legend_items",
+            )
+
+        return {}
+
+    def _render_series_items(
+        self,
+        saved_config: PlotConfig,
+        items: list[str],
+        *,
+        order_key: str,
+        widget_prefix: str,
+    ) -> PlotConfig:
+        """Render ordering and display-name controls for trace series."""
+        raw_styles_value = saved_config.get("series_styles")
+        raw_styles: dict[str, Any] = raw_styles_value if isinstance(raw_styles_value, dict) else {}
+        rename_map = {
+            item: str(raw_styles[item]["name"])
+            for item in items
+            if item in raw_styles
+            and isinstance(raw_styles[item], dict)
+            and raw_styles[item].get("name")
+        }
+
+        with st.expander("Reorder and Rename Legend Items"):
+            rendered = render_reorderable_list(
+                "Legend Item Order",
+                items,
+                widget_prefix,
+                plot_id=self.plot_id,
+                default_order=saved_config.get(order_key),
+                enable_rename=True,
+                rename_map=rename_map or None,
+            )
+
+        if not isinstance(rendered, tuple):
+            return {}
+        new_order, renames = rendered
+        result: PlotConfig = {}
+        if new_order != saved_config.get(order_key):
+            result[order_key] = new_order
+
+        if renames != rename_map:
+            styles: dict[str, Any] = {
+                str(key): dict(value)
+                for key, value in raw_styles.items()
+                if isinstance(value, dict)
+            }
+            for item in items:
+                item_style = styles.setdefault(item, {})
+                if item in renames:
+                    item_style["name"] = renames[item]
+                else:
+                    item_style.pop("name", None)
+                if not item_style:
+                    styles.pop(item, None)
+            result["series_styles"] = styles
+        return result
+
+    def _render_named_items(
+        self,
+        saved_config: PlotConfig,
+        items: list[str],
+        *,
+        order_key: str,
+        labels_key: str,
+        widget_prefix: str,
+    ) -> PlotConfig:
+        """Render ordering and renaming for categorical legend entries."""
+        raw_labels = saved_config.get(labels_key)
+        saved_labels: dict[str, str] = (
+            {str(key): str(value) for key, value in raw_labels.items()}
+            if isinstance(raw_labels, dict)
+            else {}
+        )
+        labels = {item: saved_labels[item] for item in items if item in saved_labels}
+        with st.expander("Reorder and Rename Legend Items"):
+            rendered = render_reorderable_list(
+                "Legend Item Order",
+                items,
+                widget_prefix,
+                plot_id=self.plot_id,
+                default_order=saved_config.get(order_key),
+                enable_rename=True,
+                rename_map=labels or None,
+            )
+
+        if not isinstance(rendered, tuple):
+            return {}
+        new_order, renames = rendered
+        result: PlotConfig = {}
+        if new_order != saved_config.get(order_key):
+            result[order_key] = new_order
+        if renames != saved_labels:
+            result[labels_key] = renames
+        return result
+
+    @staticmethod
+    def _numbered_legend_level(saved_config: PlotConfig) -> str | None:
+        """Return the tier used by the numbered X-axis annotation legend."""
+        modes = saved_config.get("numbered_xaxis_modes") or []
+        enabled = "Number legend" in modes or bool(saved_config.get("numbered_xaxis"))
+        if not enabled:
+            return None
+        if saved_config.get("dual_axis") and not saved_config.get("unified_legend", True):
+            return "tertiary"
+        return "secondary"
+
+    @staticmethod
+    def _numbered_legend_items(
+        saved_config: PlotConfig,
+        data: pd.DataFrame | None,
+    ) -> tuple[list[str], bool]:
+        """Return bounded group labels represented by the numbered legend."""
+        group_col = saved_config.get("group")
+        if data is None or not group_col or group_col not in data.columns:
+            return [], False
+        items, truncated = bounded_unique_strings(data[group_col].dropna())
+        group_renames = saved_config.get("group_renames", {})
+        if isinstance(group_renames, dict):
+            items = [str(group_renames.get(item, item)) for item in items]
+        return list(dict.fromkeys(items)), truncated
 
     # Legend section rendering
 

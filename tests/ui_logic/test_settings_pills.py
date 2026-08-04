@@ -111,6 +111,55 @@ class TestSectionDispatch:
             mock_component.assert_called_once_with(1, "grouped_bar")
             mock_component.return_value.render.assert_called_once_with({"x": "a"})
 
+    def test_legend_tiers_match_the_legends_that_are_actually_visible(self) -> None:
+        """Separate trace legends and numbered legends receive distinct tabs."""
+        # [test->req~ring5.figure.legends~1]
+        plot = self._make_plot()
+        plot.plot_type = "grouped_stacked_bar"
+        plot._supports_secondary_legend.return_value = True
+        plot._supports_tertiary_legend.return_value = True
+        data = pd.DataFrame({"group": ["a", "b"]})
+        config = {
+            "dual_axis": True,
+            "unified_legend": False,
+            "y_columns_right": ["ipc"],
+            "numbered_xaxis_modes": ["Number legend"],
+        }
+
+        with patch("src.web.pages.ui.plotting.plot_config_ui.LegendSettingsComponent") as component:
+            component.return_value.render.return_value = {}
+            plot.render_settings_section("legends", config, data)
+
+        component.return_value.render.assert_called_once_with(
+            config,
+            data=data,
+            has_secondary=True,
+            has_tertiary=True,
+        )
+
+    def test_unified_axis_uses_only_the_primary_legend_tab(self) -> None:
+        """A unified dual-axis legend does not expose a phantom second tab."""
+        plot = self._make_plot()
+        plot.plot_type = "grouped_stacked_bar"
+        plot._supports_secondary_legend.return_value = True
+        plot._supports_tertiary_legend.return_value = True
+        config = {
+            "dual_axis": True,
+            "unified_legend": True,
+            "y_columns_right": ["ipc"],
+        }
+
+        with patch("src.web.pages.ui.plotting.plot_config_ui.LegendSettingsComponent") as component:
+            component.return_value.render.return_value = {}
+            plot.render_settings_section("legends", config, None)
+
+        component.return_value.render.assert_called_once_with(
+            config,
+            data=None,
+            has_secondary=False,
+            has_tertiary=False,
+        )
+
     def test_all_sections_are_handled(self) -> None:
         """Every defined section key has a handler."""
         from src.web.pages.ui.plotting.settings_pills import SETTINGS_SECTIONS
