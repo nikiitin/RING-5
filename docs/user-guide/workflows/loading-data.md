@@ -438,3 +438,23 @@ The CLI defaults to the `stats.txt` pattern and strict missing-stat handling. Ru
 
 Next: [Manage Datasets]({{site.baseurl}}/user-guide/workflows/managing-datasets/) or
 [Create and Configure Plots]({{site.baseurl}}/user-guide/workflows/plotting/).
+## Session background parsing
+
+<!--
+`uman~ring5.ingestion.session-background-parse.documentation~1`
+
+Covers:
+- req~ring5.ingestion.session-background-parse~1
+-->
+
+Full and incremental simulator parses run in the background for the current browser
+session. The Data Source page and sidebar show live file progress, elapsed time, and
+bounded error details while the rest of the application remains usable. Identical
+requests share active work and can reuse a successfully published Recent CSV during
+the same session.
+
+Cancellation affects only the selected session job. Pending files are cancelled, while
+already-running parser calls finish safely before their results are discarded. Partial
+results require an explicit **Load Partial**, **Retry**, or **Dismiss** choice; failed and
+cancelled attempts remain visible until acknowledged. **Clear Data**, **Reset All**, and
+session closure cancel active parsing and remove transient job metadata.

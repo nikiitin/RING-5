@@ -447,6 +447,20 @@
       }
     },
     {
+      "id": "ingestion.session-background-parse",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "Session-scoped background parsing",
+      "description": "Web parsing shall submit immediately, retain bounded progress across reruns and navigation within one browser session, coalesce identical requests, support cooperative job-specific cancellation and explicit retry, publish successful CSVs atomically, and clean transient job data on consumption, acknowledgement, reset, release, shutdown, or orphan recovery.",
+      "tags": ["async", "parsing", "sessions"],
+      "evidence": {
+        "implementation": ["src/core/services/parse_job_service.py::ParseJobService"],
+        "tests": ["tests/unit/test_parse_jobs.py::TestParseJobFlow"],
+        "documentation": ["docs/user-guide/workflows/loading-data.md#session-background-parsing"]
+      }
+    },
+    {
       "id": "ingestion.parse-integrity",
       "group": "ingestion",
       "revision": 1,
@@ -4182,13 +4196,12 @@
           "src/core/application_api.py::ApplicationAPI.submit_incremental_parse_async",
           "src/core/application_api.py::ApplicationAPI.finalize_incremental_parsing",
           "ring5/_session.py::Session.parse_submit",
-          "src/web/components/data_source/data_source_components.py::DataSourceComponents.render_parser_config",
-          "src/web/components/data_source/data_source_components.py::DataSourceComponents._show_parse_dialog"
+          "src/web/components/data_source/data_source_components.py::DataSourceComponents.render_parser_config"
         ],
         "tests": [
           "tests/unit/test_incremental_parse_cache.py::test_cache_is_plain_json_and_rejects_stale_or_malformed_records",
           "tests/integration/test_incremental_parsing.py::test_incremental_parse_reuses_updates_and_removes_exact_source_rows",
-          "tests/unit/test_incremental_parse_component.py::test_incremental_dialog_finalizes_an_all_reused_batch",
+          "tests/unit/test_incremental_parse_component.py::test_incremental_background_job_finalizes_an_all_reused_batch",
           "tests/unit/test_application_api_delegation.py::TestIncrementalParsing.test_submit_and_finalize_delegate_to_parser",
           "tests/e2e/test_data_source.py::TestDataSourcePageStructure.test_incremental_parse_control_is_visible_and_enabled"
         ],
@@ -5377,10 +5390,13 @@
       "available_simulator_info": "ingestion.simulator-registry",
       "available_simulators": "ingestion.simulator-registry",
       "cancel_background_job": "workspace.background-jobs",
+      "cancel_parse_job": "ingestion.session-background-parse",
       "cancel_pending_scans": "ingestion.async-scan",
+      "close": "ingestion.session-background-parse",
       "close_background_jobs": "workspace.background-jobs",
       "clear_preview": "data.preview-confirm",
       "compare_plot_configurations": "plots.configuration-comparison",
+      "consume_parse_job": "ingestion.session-background-parse",
       "create_dashboard": "plots.multi-panel-dashboard",
       "create_linked_selection": "plots.linked-selections",
       "copy_plot_content": "plots.copy-settings-pipeline",
@@ -5392,6 +5408,7 @@
       "delete_from_pool": "ingestion.csv-pool",
       "delete_dataset_snapshot": "data.dataset-snapshots",
       "dismiss_finished_background_jobs": "workspace.background-jobs",
+      "dismiss_parse_job": "ingestion.session-background-parse",
       "export_configuration": "shaping.config-import-export",
       "finalize_parsing": "ingestion.async-parse",
       "finalize_scan": "ingestion.async-scan",
@@ -5401,12 +5418,14 @@
       "finalize_parser_playground": "ingestion.parser-playground",
       "get_column_info": "data.summary",
       "get_background_job_result": "workspace.background-jobs",
+      "get_active_parse_job": "ingestion.session-background-parse",
       "get_current_view": "workspace.data-preview",
       "get_dataset": "data.multi-dataset-workspace",
       "get_dataset_lineage": "data.lineage-undo-redo",
       "get_dataset_revision": "data.lineage-undo-redo",
       "get_manager_history": "data.operation-history",
       "get_parse_status": "ingestion.scan-presets-progress",
+      "get_parse_job": "ingestion.session-background-parse",
       "get_portfolio_history": "data.operation-history",
       "get_preview": "data.preview-confirm",
       "get_scanner_status": "ingestion.scan-presets-progress",
@@ -5441,6 +5460,7 @@
       "remove_visualization_config": "plots.delete",
       "reset_session": "workspace.reset",
       "retry_background_job": "workspace.background-jobs",
+      "retry_parse_job": "ingestion.session-background-parse",
       "save_configuration": "data.saved-pipeline-configurations",
       "save_dataset_snapshot": "data.dataset-snapshots",
       "search_workspace": "workspace.global-search",
@@ -5460,6 +5480,7 @@
       "set_visualization_config": "plots.independent-state",
       "shapers": "quality.application-facade",
       "submit_background_operation": "workspace.background-jobs",
+      "submit_parse_job": "ingestion.session-background-parse",
       "submit_parse_async": "ingestion.async-parse",
       "submit_incremental_parse_async": "ingestion.incremental-parsing",
       "submit_parser_playground_async": "ingestion.parser-playground",
@@ -5495,6 +5516,7 @@
     },
     "data_services_api_members": {
       "add_to_csv_pool": "ingestion.csv-pool",
+      "publish_to_csv_pool": "ingestion.session-background-parse",
       "add_variable": "ingestion.variable-editor",
       "aggregate_discovered_entries": "ingestion.variable-entry-selection",
       "aggregate_distribution_range": "ingestion.distribution-range-scan",

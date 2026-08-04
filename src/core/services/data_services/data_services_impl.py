@@ -72,6 +72,10 @@ class DefaultDataServicesAPI:
         """Add a CSV file to the pool. Returns pool path."""
         return CsvPoolService.add_to_pool(file_path)
 
+    def publish_to_csv_pool(self, file_path: str, file_name: str) -> str:
+        """Atomically publish a named background result to the CSV pool."""
+        return CsvPoolService.publish_to_pool(file_path, file_name)
+
     def delete_from_csv_pool(self, file_path: str) -> bool:
         """Delete a CSV file from the pool."""
         return CsvPoolService.delete_from_pool(file_path)

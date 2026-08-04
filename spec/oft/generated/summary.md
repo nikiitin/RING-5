@@ -6,21 +6,21 @@
 This file is informative; normative items are in the other generated files.
 
 - Feature groups: 13
-- Detailed requirements: 220
-- Approved current requirements: 220
+- Detailed requirements: 221
+- Approved current requirements: 221
 - Proposed future requirements: 0
 - Draft future requirements: 0
 - In development future requirements: 0
 - Blocked future requirements: 0
-- Generated specification items: 233
-- Live capability bindings: 871
+- Generated specification items: 234
+- Live capability bindings: 880
 
 ## Requirements by feature group
 
 | Feature group | Approved | Proposed | Draft | In development | Blocked | Total |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | Interactive Workspace | 14 | 0 | 0 | 0 | 0 | 14 |
-| Data Ingestion and Parsing | 38 | 0 | 0 | 0 | 0 | 38 |
+| Data Ingestion and Parsing | 39 | 0 | 0 | 0 | 0 | 39 |
 | Dataset Management | 18 | 0 | 0 | 0 | 0 | 18 |
 | Per-Plot Data Shaping | 16 | 0 | 0 | 0 | 0 | 16 |
 | Comparison and Statistical Analysis | 3 | 0 | 0 | 0 | 0 | 3 |
@@ -35,14 +35,14 @@ This file is informative; normative items are in the other generated files.
 
 ## Drift-checked capability sources
 
-- `application_api_members`: 99
+- `application_api_members`: 107
 - `axes_config_fields`: 11
 - `axis_config_fields`: 31
 - `cli_commands`: 7
 - `cli_options`: 38
 - `colorbar_config_fields`: 9
 - `data_label_config_fields`: 12
-- `data_services_api_members`: 53
+- `data_services_api_members`: 54
 - `dimension_config_fields`: 7
 - `figure_builder_members`: 18
 - `figure_config_fields`: 22

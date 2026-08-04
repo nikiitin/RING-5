@@ -1,61 +1,91 @@
-"""Human-facing incremental parse progress and reuse summary tests."""
+"""Incremental parsing coverage for the session background orchestrator."""
 
 from __future__ import annotations
 
+import shutil
+import time
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from typing import Any
 
-import pandas as pd
-
-from src.core.models import IncrementalParseBatchResult, IncrementalParseResult
-
-
-def _context() -> MagicMock:
-    context = MagicMock()
-    context.__enter__.return_value = context
-    context.__exit__.return_value = False
-    return context
+from src.core.models import IncrementalParseBatchResult, ParseJobStatus
+from src.core.models.parse_job_models import JsonValue
+from src.core.services.parse_job_service import ParseJobService
+from src.core.services.parse_job_workspace import ParseJobRuntimeWorkspace
 
 
-@patch("src.web.components.data_source.data_source_components.DataComponents")
-@patch("src.web.components.data_source.data_source_components.st")
-def test_incremental_dialog_finalizes_an_all_reused_batch(
-    mock_st: MagicMock,
-    mock_data_components: MagicMock,
-    tmp_path: Path,
-) -> None:
+def test_incremental_background_job_finalizes_an_all_reused_batch(tmp_path: Path) -> None:
     # [test->req~ring5.ingestion.incremental-parsing~1]
-    from src.web.components.data_source.data_source_components import DataSourceComponents
-
-    output = tmp_path / "results.csv"
-    output.write_text("simTicks\n100\n", encoding="utf-8")
+    stats_file = tmp_path / "inputs" / "run" / "stats.txt"
+    stats_file.parent.mkdir(parents=True)
+    stats_file.write_text("simTicks 100\n", encoding="utf-8")
     batch = IncrementalParseBatchResult(
         futures=[],
         var_names=["simTicks"],
-        output_dir=str(tmp_path),
+        output_dir=str(tmp_path / "output"),
         strategy_type="simple",
         cache_path=str(tmp_path / "cache.json"),
         configuration_hash="a" * 64,
-        fingerprints=(("/inputs/run/stats.txt", "b" * 64),),
-        cached_rows=(("/inputs/run/stats.txt", (("simTicks", "100"),)),),
+        fingerprints=((str(stats_file.resolve()), "b" * 64),),
+        cached_rows=((str(stats_file.resolve()), (("simTicks", "100"),)),),
         changed_files=(),
         removed_files=(),
     )
-    api = MagicMock()
-    api.state_manager.get_parser_strategy.return_value = "simple"
-    api.finalize_incremental_parsing.return_value = IncrementalParseResult(str(output), 0, 1, 0, 1)
-    api.add_to_csv_pool.return_value = str(output)
-    api.load_csv_file.return_value = pd.DataFrame({"simTicks": [100]})
-    mock_st.progress.return_value = MagicMock()
-    mock_st.empty.return_value = MagicMock()
-    mock_st.status.return_value = _context()
-    mock_st.button.return_value = False
 
-    decorated = DataSourceComponents._show_parse_dialog
-    dialog = getattr(decorated, "__wrapped__", decorated)
-    dialog(api, batch, str(tmp_path))
+    def submit(
+        _path: str,
+        _pattern: str,
+        _variables: list[JsonValue],
+        _output: str,
+        _strategy: str,
+        _scanned: list[JsonValue] | None,
+        incremental: bool,
+    ) -> IncrementalParseBatchResult:
+        assert incremental is True
+        return batch
 
-    api.finalize_incremental_parsing.assert_called_once_with(batch, [])
-    mock_st.write.assert_any_call("Incremental update: 0 new or changed, 1 unchanged, 0 removed.")
-    mock_st.write.assert_any_call("Updated 1 rows: parsed 0, reused 1, removed 0.")
-    mock_data_components.show_missing_data_notice.assert_called_once()
+    def finalize(
+        output_dir: str,
+        received_batch: IncrementalParseBatchResult,
+        results: list[dict[str, Any]],
+        complete: bool,
+        strategy: str,
+    ) -> str:
+        assert received_batch is batch
+        assert results == []
+        assert complete is True
+        assert strategy == "simple"
+        output = Path(output_dir) / "results.csv"
+        output.write_text("simTicks\n100\n", encoding="utf-8")
+        return str(output)
+
+    recent = tmp_path / "recent"
+    recent.mkdir()
+
+    def publish(source: str, name: str) -> str:
+        destination = recent / name
+        shutil.copyfile(source, destination)
+        return str(destination)
+
+    runtime = ParseJobRuntimeWorkspace(tmp_path / "jobs")
+    service = ParseJobService(submit, finalize, publish, runtime_workspace=runtime)
+    try:
+        snapshot = service.submit(
+            stats_path=str(stats_file.parent.parent),
+            stats_pattern="stats.txt",
+            variables=[{"name": "simTicks", "type": "scalar"}],
+            strategy_type="simple",
+            incremental=True,
+        )
+        deadline = time.monotonic() + 5
+        current = service.get(snapshot.job_id)
+        while current is not None and current.status.is_active and time.monotonic() < deadline:
+            time.sleep(0.01)
+            current = service.get(snapshot.job_id)
+
+        assert current is not None
+        assert current.status == ParseJobStatus.SUCCEEDED
+        assert current.completed_files == 1
+        assert current.total_files == 1
+    finally:
+        service.close()
+        runtime.close()

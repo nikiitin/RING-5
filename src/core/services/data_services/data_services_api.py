@@ -62,6 +62,10 @@ class DataServicesAPI(Protocol):
         """Add a CSV file to the pool. Returns pool path."""
         raise NotImplementedError
 
+    def publish_to_csv_pool(self, file_path: str, file_name: str) -> str:
+        """Atomically publish a named background result to the CSV pool."""
+        raise NotImplementedError
+
     def delete_from_csv_pool(self, file_path: str) -> bool:
         """Delete a CSV file from the pool."""
         raise NotImplementedError

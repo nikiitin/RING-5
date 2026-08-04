@@ -35,6 +35,8 @@ from src.core.models import (
     RestoreReport,
     SmallMultiplesSpec,
     ParseBatchResult,
+    ParseJobReceipt,
+    ParseJobSnapshot,
     ParserPlaygroundBatchResult,
     ParserPlaygroundResult,
     ScanFileResult,
@@ -72,6 +74,7 @@ from src.core.models.data_models import (
 from src.core.models.shaper_models import ShaperStepConfig
 from src.core.models.history_models import OperationRecord
 from src.core.models.parsing_models import StatParamValue
+from src.core.models.parse_job_models import JsonValue
 from src.core.models.plot_protocol import PlotDeserializer
 from src.core.models.visualization import FigureConfig
 from src.core.services.data_services.data_services_api import DataServicesAPI
@@ -79,6 +82,8 @@ from src.core.services.background_job_service import BackgroundJobService
 from src.core.services.browser_upload_service import BrowserUploadService
 from src.core.services.managers.managers_api import ManagersAPI
 from src.core.services.import_preview_service import ImportPreviewService
+from src.core.services.parse_job_service import PARSER_CONTRACT_VERSION, ParseJobService
+from src.core.services.parse_job_workspace import ParseJobRuntimeWorkspace
 from src.core.services.remote_source_service import RemoteSourceService
 from src.core.services.services_impl import DefaultServicesAPI
 from src.core.services.shapers.shapers_api import ShapersAPI
@@ -150,6 +155,9 @@ class ApplicationAPI:
         # A facade may cancel only scan jobs that it submitted.
         self._pending_scan_futures: list[Future[ScanFileResult]] = []
         self._background_jobs = BackgroundJobService()
+        self._parse_job_runtime = ParseJobRuntimeWorkspace.get_instance()
+        self._parse_jobs: ParseJobService | None = None
+        self._closed = False
 
         logger.info("Application API initialized")
 
@@ -542,6 +550,8 @@ class ApplicationAPI:
 
     def reset_session(self) -> None:
         """Clear all session data."""
+        if self._parse_jobs is not None:
+            self._parse_jobs.reset()
         self._background_jobs.cancel_all()
         self._background_jobs.dismiss_finished()
         self.state_manager.clear_data()
@@ -879,6 +889,161 @@ class ApplicationAPI:
         """
         return _find_stats_files(search_path, pattern)
 
+    def submit_parse_job(
+        self,
+        stats_path: str,
+        stats_pattern: str,
+        variables: Sequence[ParseVariableConfig | StatConfig],
+        strategy_type: str = "simple",
+        scanned_vars: Sequence[ScannedVariable | ScannedVariableDict] | None = None,
+        simulator: str | None = None,
+        parser_contract_version: str = PARSER_CONTRACT_VERSION,
+        incremental: bool = False,
+    ) -> ParseJobSnapshot:
+        """Submit a session-scoped background parse attempt and return immediately."""
+        selected_simulator = simulator or self.state_manager.get_simulator()
+        return self._get_parse_job_service().submit(
+            stats_path=stats_path,
+            stats_pattern=stats_pattern,
+            variables=variables,
+            strategy_type=strategy_type,
+            scanned_variables=scanned_vars,
+            simulator=selected_simulator,
+            parser_contract_version=parser_contract_version,
+            incremental=incremental,
+        )
+
+    def get_parse_job(self, job_id: str) -> ParseJobSnapshot | None:
+        """Return a background parse job owned by this session."""
+        return None if self._parse_jobs is None else self._parse_jobs.get(job_id)
+
+    def get_active_parse_job(self) -> ParseJobSnapshot | None:
+        """Return this session's active parse job, if any."""
+        return None if self._parse_jobs is None else self._parse_jobs.get_active()
+
+    def cancel_parse_job(self, job_id: str) -> ParseJobSnapshot:
+        """Request cooperative cancellation of one session parse job."""
+        return self._get_parse_job_service().cancel(job_id)
+
+    def retry_parse_job(self, job_id: str) -> ParseJobSnapshot:
+        """Retry a terminal parse attempt after recomputing input signatures."""
+        return self._get_parse_job_service().retry(job_id)
+
+    def consume_parse_job(self, job_id: str, allow_partial: bool = False) -> ParseJobReceipt:
+        """Consume a completed job and load its Recent CSV into application state."""
+        return self._get_parse_job_service().consume(
+            job_id,
+            allow_partial=allow_partial,
+            before_cleanup=self._load_consumed_parse_result,
+        )
+
+    def dismiss_parse_job(self, job_id: str) -> None:
+        """Acknowledge and remove a terminal parse attempt."""
+        self._get_parse_job_service().dismiss(job_id)
+
+    def close(self) -> None:
+        """Release this browser session's jobs and transient resources."""
+        if self._closed:
+            return
+        self._closed = True
+        if self._parse_jobs is not None:
+            self._parse_jobs.close()
+        self._background_jobs.close(wait=False)
+
+    def _load_consumed_parse_result(self, receipt: ParseJobReceipt) -> None:
+        """Load a published result before deleting its transient attempt."""
+        self.load_data(receipt.csv_path)
+        self.state_manager.set_csv_pool(self.load_csv_pool())
+
+    def _get_parse_job_service(self) -> ParseJobService:
+        """Lazily create the parser orchestrator owned by this session."""
+        if self._closed:
+            raise RuntimeError("ApplicationAPI is closed")
+        if self._parse_jobs is None:
+            self._parse_jobs = ParseJobService(
+                self._submit_background_parse,
+                self._finalize_background_parse,
+                self._publish_background_csv,
+                runtime_workspace=self._parse_job_runtime,
+            )
+        return self._parse_jobs
+
+    def _submit_background_parse(
+        self,
+        stats_path: str,
+        stats_pattern: str,
+        variables: Sequence[JsonValue],
+        output_dir: str,
+        strategy_type: str,
+        scanned_vars: list[JsonValue] | None,
+        incremental: bool,
+    ) -> ParseBatchResult | IncrementalParseBatchResult:
+        """Adapt persisted JSON values to the existing parser primitive."""
+        typed_variables: list[ParseVariableConfig | StatConfig] = []
+        for value in variables:
+            if isinstance(value, dict) and isinstance(value.get("params"), dict):
+                typed_variables.append(
+                    StatConfig(
+                        name=str(value.get("name", "")),
+                        type=str(value.get("type", "scalar")),
+                        repeat=int(cast(int | str, value.get("repeat", 1))),
+                        params=cast(dict[str, StatParamValue], value["params"]),
+                        statistics_only=bool(value.get("statistics_only", False)),
+                        is_regex=bool(value.get("is_regex", False)),
+                        keep_indices=bool(value.get("keep_indices", False)),
+                        source_name=(
+                            str(value["source_name"])
+                            if value.get("source_name") is not None
+                            else None
+                        ),
+                    )
+                )
+            else:
+                typed_variables.append(cast(ParseVariableConfig, value))
+        typed_scanned = cast(
+            list[ScannedVariable] | list[ScannedVariableDict] | None,
+            scanned_vars,
+        )
+        stat_configs, resolved_scanned = self._normalize_parse_request(
+            typed_variables, typed_scanned
+        )
+        if incremental:
+            cache_path = str(Path(output_dir).parent.parent / "incremental-cache.json")
+            return self._parser.submit_incremental_parse_async(
+                stats_path,
+                stats_pattern,
+                stat_configs,
+                output_dir,
+                strategy_type,
+                resolved_scanned,
+                cache_path,
+            )
+        return self._parser.submit_parse_async(
+            stats_path, stats_pattern, stat_configs, output_dir, strategy_type, resolved_scanned
+        )
+
+    def _finalize_background_parse(
+        self,
+        output_dir: str,
+        batch: ParseBatchResult | IncrementalParseBatchResult,
+        results: list[dict[str, Any]],
+        complete: bool,
+        strategy_type: str,
+    ) -> str | None:
+        """Adapt the job finalizer callback to the parser primitive."""
+        if isinstance(batch, IncrementalParseBatchResult) and complete:
+            return self.finalize_incremental_parsing(batch, results).csv_path
+        return self.finalize_parsing(
+            output_dir,
+            results,
+            strategy_type=strategy_type,
+            var_names=batch.var_names,
+        )
+
+    def _publish_background_csv(self, file_path: str, file_name: str) -> str:
+        """Atomically publish a completed job result to Recent CSVs."""
+        return self._services.data_services.publish_to_csv_pool(file_path, file_name)
+
     def submit_parse_async(
         self,
         stats_path: str,
@@ -1082,12 +1247,9 @@ class ApplicationAPI:
         return self._parser.aggregate_scan_results(results)
 
     def get_parse_status(self) -> str:
-        """Get current parsing status.
-
-        Returns a static 'idle' status. Status tracking is handled
-        at the UI layer via session state.
-        """
-        return "idle"
+        """Return the active session parse status, or ``"idle"``."""
+        active = self.get_active_parse_job()
+        return active.status.value if active is not None else "idle"
 
     def get_scanner_status(self) -> str:
         """Get current scanner status."""

@@ -48,14 +48,27 @@ def run_app() -> None:
     from src.core.application_api import ApplicationAPI
     from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
-    # The API owns mutable data, plots, parser configuration, and operation
-    # history. Keep one workspace per browser session; only explicitly
-    # thread-safe worker pools are shared process-wide.
+    # The API owns mutable workspace state and transient parse metadata. Keep
+    # one resource per browser session and release it when that session ends.
+    # Only explicitly thread-safe parser worker pools remain process-wide.
     # [impl->req~ring5.workspace.session-isolation~1]
-    if "api" not in st.session_state:
-        st.session_state.api = ApplicationAPI(plot_deserializer=PlotFactory.from_dict)
+    @st.cache_resource(
+        show_spinner="Initializing RING-5...",
+        scope="session",
+        on_release=lambda session_api: session_api.close(),
+    )
+    def get_api() -> ApplicationAPI:
+        return ApplicationAPI(plot_deserializer=PlotFactory.from_dict)
 
-    api: ApplicationAPI = st.session_state.api
+    api = get_api()
+    st.session_state.api = api
+
+    from src.web.components.data_source.parse_job_status import (
+        render_sidebar_parse_job,
+        show_parse_job_flash,
+    )
+
+    show_parse_job_flash()
 
     # Sidebar - Navigation
     with st.sidebar:
@@ -107,6 +120,7 @@ def run_app() -> None:
 
         from src.web.components.background_job_center import BackgroundJobCenter
 
+        render_sidebar_parse_job(api)
         BackgroundJobCenter.render(api)
 
         st.markdown("---")

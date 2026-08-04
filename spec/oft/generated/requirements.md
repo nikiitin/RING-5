@@ -486,6 +486,20 @@ Needs: impl, test, uman
 
 Tags: api, async, parsing, status_approved
 
+### Session-scoped background parsing
+
+`req~ring5.ingestion.session-background-parse~1`
+Status: approved
+
+Web parsing shall submit immediately, retain bounded progress across reruns and navigation within one browser session, coalesce identical requests, support cooperative job-specific cancellation and explicit retry, publish successful CSVs atomically, and clean transient job data on consumption, acknowledgement, reset, release, shutdown, or orphan recovery.
+
+Covers:
+- feat~ring5.ingestion~1
+
+Needs: impl, test, uman
+
+Tags: async, parsing, sessions, status_approved
+
 ### Visible missing and failed parse values
 
 `req~ring5.ingestion.parse-integrity~1`
