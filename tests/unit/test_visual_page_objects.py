@@ -25,6 +25,18 @@ def test_initial_navigation_does_not_wait_for_network_idle() -> None:
     )
 
 
+def test_navigation_does_not_click_the_already_active_page() -> None:
+    """An active navigation button must not enqueue a redundant app rerun."""
+    page = MagicMock()
+    sidebar = page.locator.return_value
+    button = sidebar.get_by_role.return_value
+    button.get_attribute.return_value = "stBaseButton-primary"
+
+    BasePage(page).navigate_to("Data Source")
+
+    button.click.assert_not_called()
+
+
 def test_segmented_control_selection_skips_detach_prone_actionability_waits() -> None:
     """Segmented controls use a forced pointer click before waiting for the rerun."""
     page = MagicMock()
