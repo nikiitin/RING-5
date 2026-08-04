@@ -101,6 +101,11 @@ class BasePage:
             except PlaywrightTimeoutError:
                 pass
         running.wait_for(state="hidden", timeout=effective_timeout)
+        if expect_rerun:
+            # Fast Streamlit reruns can appear and disappear between Playwright
+            # polls.  Give the frontend one event-loop turn to apply the final
+            # widget tree before another interaction starts a competing rerun.
+            self.page.wait_for_timeout(250)
 
     def goto_and_wait(self, url: str) -> None:
         """Navigate to *url* and wait for Streamlit to render."""
