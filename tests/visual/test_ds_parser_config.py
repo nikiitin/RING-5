@@ -209,5 +209,4 @@ class TestParserConfig:
         ds.fill_stats_path("/nonexistent/path/that/should/fail")
         ds.fill_stats_pattern("stats.txt")
         ds.click_parse()
-        error_or_dialog = ds.page.locator("[data-testid='stDialog'], [data-testid='stException']")
-        expect(error_or_dialog).to_be_visible(timeout=15_000)
+        expect(ds.parser_error_message).to_be_visible(timeout=15_000)

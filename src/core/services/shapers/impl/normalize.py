@@ -186,6 +186,11 @@ class Normalize(UniDfShaper):
 
         # [impl->req~ring5.quality.bounded-caching~1]
 
+        # Validation scans the same relevant columns and groups as the
+        # normalization. Keep it inside the cached body so an unchanged,
+        # fingerprint-matched frame does not repeat that work on every hit.
+        self._verify_preconditions(data_frame)
+
         with warnings.catch_warnings():
             # Suppress pandas warning about group keys
             warnings.filterwarnings(
@@ -227,8 +232,6 @@ class Normalize(UniDfShaper):
         Returns:
             New dataframe with normalized columns.
         """
-        self._verify_preconditions(data_frame)
-
         # Compute fingerprint for caching (only hash metadata, not entire DataFrame).
         # Include ``normalizer_vars`` because it supplies the denominator (see
         # ``_normalize_group``) and can differ from ``normalize_vars``; omitting it lets a

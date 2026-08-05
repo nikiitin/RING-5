@@ -92,39 +92,7 @@ class TestFullWorkflow:
         for name, var_type in _STATS_TO_PARSE:
             ds.add_manual_variable(name, var_type)
 
-        # Parse
-        ds.click_parse()
-        expect(ds.parse_dialog).to_be_visible(timeout=_PARSE_TIMEOUT)
-        expect(ds.parse_close_button).to_be_visible(timeout=_PARSE_TIMEOUT)
-
-        # Close the parse dialog
-        ds.parse_close_button.click()
-
-        # After parsing 586 files, the app does a heavy rerun (loading CSV,
-        # computing summaries).  The default 15s wait_for_streamlit() is too
-        # short.  Wait for the "Running" indicator to appear and then vanish.
-        running = shared_page.locator("[data-testid='stStatusWidget']")
-        try:
-            # Wait for the status widget to appear (rerun triggered)
-            running.wait_for(state="visible", timeout=10_000)
-        except Exception:
-            pass  # May have already appeared and hidden
-        # Now wait for it to disappear (rerun finished)
-        running.wait_for(state="hidden", timeout=_PARSE_TIMEOUT)
-
-        # Extra stabilisation: reload the page and wait again
-        shared_page.reload()
-        try:
-            shared_page.wait_for_load_state("networkidle", timeout=30_000)
-        except Exception:
-            pass
-        try:
-            running.wait_for(state="visible", timeout=5_000)
-        except Exception:
-            pass
-        running.wait_for(state="hidden", timeout=_E2E_TIMEOUT)
-        # Final buffer for UI to fully stabilise
-        shared_page.wait_for_timeout(2_000)
+        ds.parse_and_wait(timeout=_PARSE_TIMEOUT)
 
     # Test 1: Verify parsed data in Data Managers
 

@@ -50,18 +50,19 @@ _PYTHON: str = sys.executable
 _FIXTURES_DIR: Path = Path(__file__).parent / "fixtures"
 _ARTIFACTS_DIR: Path = Path(__file__).parent / "artifacts"
 _E2E_CSV: Path = _FIXTURES_DIR / "sample_data.csv"
+_LOOPBACK_HOST = "127.0.0.1"
 
 # Timeouts
 LOAD_TIMEOUT: int = 30_000
-# Chart render (Plotly iframe JS resize / Matplotlib st.pyplot) competes with 2
-# other workers' browsers under -n 3, so a render can occasionally exceed 30s;
+# Chart render (Plotly iframe JS resize / Matplotlib st.pyplot) competes with
+# another worker's browser, so a render can occasionally exceed 30s;
 # 60s gives headroom while staying well under the per-test timeout.
 CHART_TIMEOUT: int = 60_000
 E2E_TIMEOUT: int = 60_000
 # Raster downloads (png/svg/pdf) render the figure eagerly via Kaleido before
 # st.download_button, so the button is absent until the
-# export finishes. Three concurrent Kaleido/Chromium exports deadlock/starve
-# under -n 3 (no timeout fixes it), so those tests are marked ``serial`` and run
+# export finishes. Concurrent Kaleido/Chromium exports can deadlock or starve,
+# so those tests are marked ``serial`` and run
 # in a separate -n 0 pass; this 90s headroom comfortably covers a single export.
 EXPORT_TIMEOUT: int = 90_000
 
@@ -70,9 +71,9 @@ EXPORT_TIMEOUT: int = 90_000
 
 
 def _free_port() -> int:
-    """Return a free TCP port on localhost."""
+    """Return a free IPv4 loopback TCP port."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(("", 0))
+        s.bind((_LOOPBACK_HOST, 0))
         return int(s.getsockname()[1])
 
 
@@ -81,7 +82,7 @@ def _wait_for_server(port: int, *, timeout: float = 30.0) -> None:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         try:
-            with socket.create_connection(("localhost", port), timeout=1.0):
+            with socket.create_connection((_LOOPBACK_HOST, port), timeout=1.0):
                 return
         except OSError:
             time.sleep(0.5)
@@ -97,7 +98,7 @@ def _isolated_data_dir(tmp_path_factory: pytest.TempPathFactory) -> Generator[No
     empty per-worker temp dir for the whole session.
 
     Keeps e2e runs off the user's cluttered ``.ring5`` pool (~150 CSVs that slow
-    the Recent-mode render and caused ``-n 3`` timeouts) and gives each xdist
+    the Recent-mode render and caused parallel timeouts) and gives each xdist
     worker its own clean, fast, race-free pool. ``RING5_DATA_DIR`` is set on
     ``os.environ`` before ``live_server_url`` starts, so the Streamlit server
     subprocess inherits it; the test process resets the path caches so its own
@@ -140,6 +141,8 @@ def live_server_url(_streamlit_port: int, _isolated_data_dir: None) -> Generator
         str(_APP_PY),
         "--server.port",
         str(port),
+        "--server.address",
+        _LOOPBACK_HOST,
         "--server.headless",
         "true",
         "--server.fileWatcherType",
@@ -150,14 +153,14 @@ def live_server_url(_streamlit_port: int, _isolated_data_dir: None) -> Generator
     proc = subprocess.Popen(
         cmd,
         cwd=str(_ROOT_DIR),
-        # The server is long-lived and these streams are never consumed. Sending
-        # them to a pipe can fill the OS buffer and deadlock a parallel E2E run.
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        # Inherit the test runner's streams so application startup/runtime
+        # failures remain visible in CI.  A pipe cannot be used here because
+        # this long-lived process has no consumer and can deadlock once its
+        # buffer fills.
     )
     try:
         _wait_for_server(port)
-        yield f"http://localhost:{port}"
+        yield f"http://{_LOOPBACK_HOST}:{port}"
     finally:
         proc.send_signal(signal.SIGTERM)
         try:
@@ -225,6 +228,11 @@ def _reset_app_state(shared_page: Page, live_server_url: str) -> Generator[None]
     """
     bp = BasePage(shared_page)
     bp.goto_and_wait(live_server_url)
+    # A listening TCP socket and a loaded static shell do not mean the
+    # Streamlit websocket has mounted the application.  Gate class setup on a
+    # real app control so startup failures are reported at the readiness
+    # boundary instead of being misdiagnosed as a reset failure.
+    expect(bp.sidebar.get_by_role("button", name="Reset All")).to_be_visible(timeout=LOAD_TIMEOUT)
     bp.reset_all()
     # Fail loudly if a raced/no-op reset leaves state from an earlier class in
     # the reused browser context.

@@ -45,7 +45,7 @@ _E2E_TIMEOUT: int = 60_000
 
 
 def _parse_benchmarks(page: Page, live_server_url: str) -> None:
-    """Load the app, scan benchmarks, add variables, parse, close dialog."""
+    """Load the app, scan benchmarks, and wait for background parsing."""
     ds = DataSourcePage(page)
     ds.goto_and_wait(live_server_url)
     ds.assert_step_header_visible()
@@ -59,10 +59,7 @@ def _parse_benchmarks(page: Page, live_server_url: str) -> None:
     ds.add_manual_variable("system.cpu.ipc", "scalar")
     ds.add_manual_variable("simSeconds", "scalar")
 
-    ds.click_parse()
-    expect(ds.parse_dialog).to_be_visible(timeout=_E2E_TIMEOUT)
-    expect(ds.parse_close_button).to_be_visible(timeout=_E2E_TIMEOUT)
-    ds.close_parse_dialog_and_reload()
+    ds.parse_and_wait(timeout=_E2E_TIMEOUT)
 
 
 def _create_and_finalize_bar(

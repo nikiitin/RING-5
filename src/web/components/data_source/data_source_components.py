@@ -20,7 +20,6 @@ from src.core.application_api import ApplicationAPI
 from src.core.common.security_limits import (
     MAX_BROWSER_UPLOAD_BYTES,
     MAX_SCAN_FILES,
-    PARSE_BATCH_TIMEOUT_SECONDS,
     PARSER_PLAYGROUND_TIMEOUT_SECONDS,
     SCAN_BATCH_TIMEOUT_SECONDS,
 )
@@ -31,8 +30,6 @@ from src.core.models import (
     ImportColumnCorrection,
     ImportOptions,
     ImportPreview,
-    IncrementalParseBatchResult,
-    ParseBatchResult,
     ParserPlaygroundBatchResult,
     ScanFileResult,
     ScanResult,
@@ -46,6 +43,11 @@ from src.core.models.remote_source_models import RemoteSource, RemoteSourcePolic
 from src.web.components.common.card_components import CardComponents
 from src.web.components.common.data_components import DataComponents
 from src.web.components.common.filtered_selector import filtered_selectbox
+from src.web.components.data_source.parse_job_status import (
+    get_visible_parse_job,
+    remember_parse_job,
+    render_parse_job_panel,
+)
 from src.web.components.data_source.variable_editor import VariableEditor
 
 logger = logging.getLogger(__name__)
@@ -652,13 +654,15 @@ class DataSourceComponents:
 
         st.markdown(f"### {sim_label} Stats Parser Configuration")
 
+        render_parse_job_panel(api)
+
         incremental_enabled = st.checkbox(
             "Reuse unchanged simulator files",
             value=True,
             help=(
                 "Fingerprint all matching inputs, parse only new or changed files, and remove "
-                "rows whose source files were deleted. The cache stays beside the generated "
-                "CSV and is invalidated when parser settings change."
+                "rows whose source files were deleted. The cache stays in this browser session "
+                "and is invalidated when parser settings change."
             ),
             key="parser_incremental_enabled",
         )
@@ -842,10 +846,11 @@ class DataSourceComponents:
 
         _parser_config_fragment()
 
-        # Actions sit outside the fragment so their dialogs can own the complete
-        # async lifecycle. Read widget values from session_state because locals
-        # from the fragment are not in scope.
+        # Actions sit outside the fragment so submission reruns the full app and
+        # exposes the job in both the page and sidebar. Fragment-local widget
+        # values are read from session state.
         st.markdown("---")
+        visible_job = get_visible_parse_job(api)
         test_col, parse_col = st.columns(2)
         with test_col:
             test_configuration = st.button(
@@ -853,12 +858,19 @@ class DataSourceComponents:
                 help="Run the real parser on up to three matching files without loading data.",
                 width="stretch",
                 key="parser_test_configuration",
+                disabled=visible_job is not None and visible_job.status.is_active,
             )
         with parse_col:
             parse_configuration = st.button(
                 f"Parse {sim_label} Stats Files",
                 type="primary",
                 width="stretch",
+                disabled=visible_job is not None,
+                help=(
+                    "Retry, load, or dismiss the current parse attempt first."
+                    if visible_job is not None
+                    else None
+                ),
             )
 
         if test_configuration:
@@ -904,35 +916,18 @@ class DataSourceComponents:
                 try:
                     safe_stats_path = str(validate_web_stats_path(str(_stats_path)))
                     incremental = bool(st.session_state.get("parser_incremental_enabled", True))
-                    parse_batch: ParseBatchResult | IncrementalParseBatchResult
-                    if incremental:
-                        session_dir = api.state_manager.get_temp_dir()
-                        if not session_dir:
-                            session_dir = tempfile.mkdtemp(prefix="ring5-session-")
-                            api.state_manager.set_temp_dir(session_dir)
-                        output_path = Path(session_dir) / "incremental_parser"
-                        output_path.mkdir(parents=True, exist_ok=True)
-                        output_dir = str(output_path)
-                        parse_batch = api.submit_incremental_parse_async(
-                            safe_stats_path,
-                            _stats_pattern,
-                            api.state_manager.get_parse_variables(),
-                            output_dir,
-                            scanned_vars=api.state_manager.get_scanned_variables(),
-                            strategy_type=api.state_manager.get_parser_strategy(),
-                        )
-                    else:
-                        output_dir = tempfile.mkdtemp()
-                        api.state_manager.set_temp_dir(output_dir)
-                        parse_batch = api.submit_parse_async(
-                            safe_stats_path,
-                            _stats_pattern,
-                            api.state_manager.get_parse_variables(),
-                            output_dir,
-                            scanned_vars=api.state_manager.get_scanned_variables(),
-                            strategy_type=api.state_manager.get_parser_strategy(),
-                        )
-                    DataSourceComponents._show_parse_dialog(api, parse_batch, output_dir)
+                    snapshot = api.submit_parse_job(
+                        safe_stats_path,
+                        str(_stats_pattern),
+                        api.state_manager.get_parse_variables(),
+                        scanned_vars=api.state_manager.get_scanned_variables(),
+                        strategy_type=api.state_manager.get_parser_strategy(),
+                        simulator=selected_sim,
+                        incremental=incremental,
+                    )
+                    remember_parse_job(snapshot)
+                    st.toast("Parsing started in the background.", icon="⏳")
+                    st.rerun()
                 except Exception as e:
                     st.exception(e)
                     logger.error("UI: Parsing submission failed: %s", e, exc_info=True)
@@ -1144,124 +1139,3 @@ class DataSourceComponents:
                         api.state_manager.set_parse_variables(current_vars)
                         st.toast(f"Added '{name}'!", icon="✅")
                         st.rerun()
-
-    @staticmethod
-    @st.dialog("Parsing Stats", dismissible=True)
-    def _show_parse_dialog(
-        api: ApplicationAPI,
-        batch: ParseBatchResult | IncrementalParseBatchResult,
-        output_dir: str,
-    ) -> None:
-        # [impl->req~ring5.ingestion.incremental-parsing~1]
-        """Render the parsing progress dialog using blocking futures."""
-        futures = batch.futures
-        if isinstance(batch, IncrementalParseBatchResult):
-            st.write(
-                f"Incremental update: {batch.parsed_file_count} new or changed, "
-                f"{batch.reused_file_count} unchanged, "
-                f"{batch.removed_file_count} removed."
-            )
-        else:
-            st.write(f"Processing {len(futures)} files...")
-        progress_bar = st.progress(0, text="Starting...")
-        status_text = st.empty()
-
-        results: list[Any] = []
-        errors: list[str] = []
-
-        completed_count = 0
-        total = len(futures)
-
-        try:
-            for future in as_completed(futures, timeout=PARSE_BATCH_TIMEOUT_SECONDS):
-                try:
-                    res = future.result()
-                    if res:
-                        results.append(res)
-                except Exception as e:
-                    errors.append(str(e))
-
-                completed_count += 1
-                if total > 0:
-                    pct = min(completed_count / total, 1.0)
-                    progress_bar.progress(pct, text=f"Processed {completed_count}/{total}")
-
-        except FuturesTimeoutError:
-            for future in futures:
-                future.cancel()
-            st.error(
-                "Parse batch exceeded the ten-minute limit; cancellation was requested for "
-                "unfinished work. Already-running files may finish in the background."
-            )
-            return
-        except KeyboardInterrupt:
-            # Fallback if something interrupts
-            for f in futures:
-                f.cancel()
-            st.warning("Parsing interrupted.")
-            return
-
-        if errors:
-            st.error(f"Encountered {len(errors)} errors during parsing.")
-            with st.expander("Show Errors"):
-                for err in errors:
-                    st.write(err)
-
-        if not results and not errors and not isinstance(batch, IncrementalParseBatchResult):
-            st.warning("No results generated.")
-            return
-
-        status_text.empty()
-
-        with st.status("Finalizing results...", expanded=True) as status:
-            _loaded_data: Any = None
-            _parse_failed = False
-            try:
-                st.write("Generating CSV output...")
-                strategy = api.state_manager.get_parser_strategy()
-                csv_path: str | None
-                if isinstance(batch, IncrementalParseBatchResult):
-                    incremental_result = api.finalize_incremental_parsing(batch, results)
-                    csv_path = incremental_result.csv_path
-                    st.write(
-                        f"Updated {incremental_result.total_files} rows: "
-                        f"parsed {incremental_result.parsed_files}, "
-                        f"reused {incremental_result.reused_files}, "
-                        f"removed {incremental_result.removed_files}."
-                    )
-                else:
-                    csv_path = api.finalize_parsing(
-                        output_dir,
-                        results,
-                        strategy_type=strategy,
-                        var_names=batch.var_names,
-                    )
-                if csv_path and Path(csv_path).exists():
-                    st.write("Adding to data pool...")
-                    pool_path = api.add_to_csv_pool(csv_path)
-                    st.write("Loading data into session...")
-                    data = api.load_csv_file(pool_path)
-                    api.state_manager.set_data(data)
-                    api.state_manager.set_csv_path(pool_path)
-                    _loaded_data = data
-                    status.update(
-                        label=f"Complete — {len(data)} rows loaded",
-                        state="complete",
-                        expanded=False,
-                    )
-                else:
-                    _parse_failed = True
-                    status.update(label="Failed", state="error")
-                    st.error("Failed to generate final CSV.")
-            except Exception as e:
-                _parse_failed = True
-                status.update(label="Error", state="error")
-                st.exception(e)
-
-        # Success message and close button OUTSIDE the status block
-        # so they remain visible when the status collapses.
-        if _loaded_data is not None and not _parse_failed:
-            st.success(f"Done! Generated {len(_loaded_data)} rows.")
-            DataComponents.show_missing_data_notice(_loaded_data)
-            if st.button("Close & Reload", key="finish_parse_futures_btn"):
-                st.rerun()

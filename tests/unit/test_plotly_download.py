@@ -285,6 +285,27 @@ class TestChromeNotFound:
                 plotly_download_bytes(simple_bar_figure, "png")
             assert mock_calc.call_count == 3
 
+    def test_configured_browser_path_is_forwarded(
+        self,
+        simple_bar_figure: go.Figure,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """An administrator-selected browser must override Kaleido's local cache."""
+        from unittest.mock import patch
+
+        browser_path = "/opt/ring5/chrome"
+        monkeypatch.setenv("BROWSER_PATH", browser_path)
+        with patch(
+            "src.web.rendering.figure_export.kaleido.calc_fig_sync",
+            return_value=b"png",
+        ) as mock_calc:
+            plotly_download_bytes(simple_bar_figure, "png")
+
+        assert mock_calc.call_args.kwargs["kopts"] == {
+            "timeout": 25,
+            "path": browser_path,
+        }
+
 
 # Deterministic exports
 

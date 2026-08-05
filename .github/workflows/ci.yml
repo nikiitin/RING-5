@@ -4,7 +4,6 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -56,7 +55,7 @@ jobs:
       - name: Install application
         run: |
           python -m venv python_venv
-          python_venv/bin/python -m pip install "pip==26.1.2"
+          python_venv/bin/python -m pip install "pip==26.2.1"
           python_venv/bin/pip install -e .
 
       - name: Generate and verify OFT report
@@ -86,7 +85,7 @@ jobs:
       - name: Install exact dependencies
         run: |
           python -m venv python_venv
-          python_venv/bin/python -m pip install "pip==26.1.2"
+          python_venv/bin/python -m pip install "pip==26.2.1"
           python_venv/bin/pip install -e ".[dev,ci]"
 
       - name: Run quality gate
@@ -121,7 +120,7 @@ jobs:
       - name: Install exact dependencies
         run: |
           python -m venv python_venv
-          python_venv/bin/python -m pip install "pip==26.1.2"
+          python_venv/bin/python -m pip install "pip==26.2.1"
           # The coverage gate collects the full test tree before marker filtering,
           # so its environment must be able to import the E2E conftest module.
           python_venv/bin/pip install -e ".[dev,ci,e2e]"
@@ -168,7 +167,7 @@ jobs:
       - name: Install exact dependencies
         run: |
           python -m venv python_venv
-          python_venv/bin/python -m pip install "pip==26.1.2"
+          python_venv/bin/python -m pip install "pip==26.2.1"
           python_venv/bin/pip install -e ".[dev,ci]"
 
       - name: Install Chrome for Kaleido
@@ -199,7 +198,7 @@ jobs:
       - name: Install exact dependencies
         run: |
           python -m venv python_venv
-          python_venv/bin/python -m pip install "pip==26.1.2"
+          python_venv/bin/python -m pip install "pip==26.2.1"
           python_venv/bin/pip install -e ".[dev,ci]"
 
       - name: Run LaTeX export tests
@@ -208,7 +207,7 @@ jobs:
   e2e:
     name: Streamlit E2E
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     needs: quality
     steps:
       - name: Check out repository
@@ -223,7 +222,7 @@ jobs:
       - name: Install exact dependencies
         run: |
           python -m venv python_venv
-          python_venv/bin/python -m pip install "pip==26.1.2"
+          python_venv/bin/python -m pip install "pip==26.2.1"
           python_venv/bin/pip install -e ".[dev,ci,e2e]"
 
       - name: Install Chromium

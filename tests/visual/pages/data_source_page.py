@@ -224,7 +224,8 @@ class DataSourcePage(BasePage):
     def parser_error_message(self) -> Locator:
         """Error alert shown when parsing fails or path is empty."""
         return self.page.locator(
-            "[data-testid='stMainBlockContainer'] " "[data-testid='stAlertContentError']"
+            "[data-testid='stMainBlockContainer'] "
+            ":is([data-testid='stAlertContentError'], [data-testid='stException'])"
         )
 
     # SECTION 4: CSV mode
@@ -316,6 +317,11 @@ class DataSourcePage(BasePage):
     def load_accepted_import_button(self) -> Locator:
         """Explicit action that loads the reviewed accepted rows."""
         return self.page.get_by_role("button", name="Load accepted rows")
+
+    @property
+    def loaded_review_success(self) -> Locator:
+        """Confirmation emitted only after reviewed rows enter application state."""
+        return self.page.get_by_text(re.compile(r"Loaded\s+\d+\s+(?:reviewed\s+)?rows")).first
 
     @property
     def pool_expanders(self) -> Locator:
@@ -419,22 +425,32 @@ class DataSourcePage(BasePage):
         """'+ Add Manual' button in the variable editor."""
         return self.page.get_by_role("button", name="Add Manual")
 
-    # SECTION 8: Parsing dialog
+    # SECTION 8: Background parsing
 
     @property
-    def parse_dialog(self) -> Locator:
-        """The 'Parsing gem5 Stats' dialog."""
-        return self.page.locator("[data-testid='stDialog']")
+    def parse_job_heading(self) -> Locator:
+        """Detailed background-parse heading on the Data Source page."""
+        return self.page.get_by_text("Background parsing", exact=True)
 
     @property
-    def parse_dialog_progress(self) -> Locator:
-        """Progress bar inside the parse dialog."""
-        return self.parse_dialog.locator("[role='progressbar']")
+    def parse_job_progress(self) -> Locator:
+        """File progress bar for the visible background parse."""
+        return self.page.locator("[data-testid='stMainBlockContainer'] [role='progressbar']").first
 
     @property
-    def parse_close_button(self) -> Locator:
-        """'Close & Reload' button in the parse dialog."""
-        return self.parse_dialog.get_by_role("button", name="Close & Reload")
+    def parse_job_retry_button(self) -> Locator:
+        """Manual retry action shown for partial, failed, or cancelled work."""
+        return self.page.get_by_role("button", name="Retry", exact=True).first
+
+    @property
+    def parse_completion_message(self) -> Locator:
+        """One-shot toast emitted after a successful result is loaded."""
+        return (
+            self.page.get_by_text("Loaded parsed CSV from Recent", exact=True)
+            .or_(self.page.get_by_text("Reused parsed CSV from Recent", exact=True))
+            .or_(self.page.get_by_text("Loaded partial CSV:", exact=False))
+            .first
+        )
 
     # Actions
 
@@ -446,8 +462,54 @@ class DataSourcePage(BasePage):
         """Select a segmented-control option and wait for its rerun."""
         if option.is_checked():
             return
-        option.click()
+        # Streamlit replaces segmented-control buttons as soon as their callback
+        # starts a rerun.  The normal Playwright actionability sequence can see
+        # the old button detach between scrolling and mouse dispatch, then retry
+        # against a control whose visibility has changed.  A forced pointer click
+        # still exercises the real React handler while avoiding that stale-node
+        # retry window.
+        option.click(force=True)
         self.wait_for_streamlit(expect_rerun=True)
+        expect(option).to_be_checked(timeout=self.RENDER_TIMEOUT)
+
+    def _refresh_data_source_render(self) -> None:
+        """Force a full-page render without replacing the browser session.
+
+        Streamlit can accept a second widget interaction while the frontend is
+        still applying an earlier fragment result.  In that narrow window the
+        radio's optimistic checked state and the server-rendered body disagree.
+        Visiting a sibling page and returning provides a deterministic full-app
+        synchronization point while preserving the session under test.
+        """
+        self.sidebar.get_by_role("button", name="Data Managers").click(force=True)
+        self.page.get_by_text("Data Managers & Transformations").wait_for(
+            state="visible",
+            timeout=self.RENDER_TIMEOUT,
+        )
+        self.sidebar.get_by_role("button", name=self.PAGE_NAME).click(force=True)
+        self.step_header.wait_for(state="visible", timeout=self.RENDER_TIMEOUT)
+        self.wait_for_streamlit()
+
+    def _select_top_level_mode(self, option: Locator, content: Locator) -> None:
+        """Select a source mode and verify its server-rendered body, retrying once."""
+        for attempt in range(2):
+            option_selected = option.is_checked()
+            content_rendered = content.is_visible()
+            if option_selected and content_rendered:
+                return
+            if option_selected != content_rendered:
+                self._refresh_data_source_render()
+                if option.is_checked() and content.is_visible():
+                    return
+
+            self._select_mode(option)
+            try:
+                content.wait_for(state="visible", timeout=self.RENDER_TIMEOUT)
+                return
+            except PlaywrightTimeoutError:
+                if attempt:
+                    raise
+                self._refresh_data_source_render()
 
     def ensure_parse_mode(self) -> None:
         """Ensure Parse mode is active without toggling it off.
@@ -455,30 +517,36 @@ class DataSourcePage(BasePage):
         If Parse mode is already active (default), do nothing.
         If not active, click it to activate.
         """
-        self._select_mode(self.parse_option)
+        self._select_top_level_mode(self.parse_option, self.file_location_header)
 
     def select_parse_mode(self) -> None:
         """Click the 'Parse gem5 Stats Files' option."""
-        self._select_mode(self.parse_option)
+        self._select_top_level_mode(self.parse_option, self.file_location_header)
 
     def select_csv_mode(self) -> None:
         """Click the browser-upload option."""
-        # A completed fragment rerun can leave the top-level radio checked while its previous
-        # parser body is still mounted. A Parse round-trip gives the mode switch a full rerun.
-        if self.csv_option.is_checked() and not self.csv_success_message.is_visible():
-            self.parse_option.click()
-            self.wait_for_streamlit(expect_rerun=True)
-        self._select_mode(self.csv_option)
-        expect(self.csv_success_message).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        self._select_top_level_mode(self.csv_option, self.csv_success_message)
 
     def select_remote_source(self) -> None:
         """Open the remote-source form within upload mode."""
         self.select_csv_mode()
-        self._select_mode(self.remote_source_option)
+        for attempt in range(2):
+            self._select_mode(self.remote_source_option)
+            try:
+                self.remote_adapter_select.wait_for(
+                    state="visible",
+                    timeout=self.RENDER_TIMEOUT,
+                )
+                return
+            except PlaywrightTimeoutError:
+                if attempt:
+                    raise
+                self._refresh_data_source_render()
+                self.select_csv_mode()
 
     def select_recent_mode(self) -> None:
         """Click the 'Load from Recent' option."""
-        self._select_mode(self.recent_option)
+        self._select_top_level_mode(self.recent_option, self.recent_header)
 
     def fill_stats_path(self, path: str) -> None:
         """Type a value into the stats directory path input."""
@@ -593,13 +661,13 @@ class DataSourcePage(BasePage):
         self.wait_for_streamlit()
         expect(self.import_review_header).to_be_visible(timeout=self.RENDER_TIMEOUT)
         self.load_accepted_import_button.click()
-        self.wait_for_streamlit()
+        expect(self.loaded_review_success).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
     def load_recent_csv_by_name(self, filename: str) -> None:
         """Load a specific CSV from the Recent-CSV pool by filename.
 
         Deterministic under load and a large/cluttered pool (the failure mode
-        behind the `-n 3` "No data loaded" tier1 errors): waits for the named
+        behind parallel "No data loaded" tier1 errors): waits for the named
         card to render, expands it if collapsed (only the newest card is
         auto-expanded), reviews the file, confirms accepted rows, then
         ASSERTS the load registered. The assertion is essential —
@@ -627,9 +695,7 @@ class DataSourcePage(BasePage):
         self.load_accepted_import_button.click()
         self.wait_for_streamlit()
         # Confirm the load actually took (guards against a raced no-op click).
-        expect(
-            self.page.get_by_text(re.compile(r"Loaded\s+\d+\s+(?:reviewed\s+)?rows")).first
-        ).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        expect(self.loaded_review_success).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
     def review_recent_csv_by_name(self, filename: str) -> None:
         """Open the structured import review for a named recent CSV."""
@@ -685,7 +751,9 @@ class DataSourcePage(BasePage):
                 self.parse_option.click()
                 self.wait_for_streamlit(expect_rerun=True)
         self.load_accepted_import_button.click()
-        self.wait_for_streamlit()
+        # Do not infer success from Streamlit's transient running indicator: a
+        # fast or missed rerun can make that wait return before state is stored.
+        expect(self.loaded_review_success).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
     # Assertions
 
@@ -946,30 +1014,18 @@ class DataSourcePage(BasePage):
 
     # E2E: Parse workflow
 
+    def wait_for_parse_completion(self, *, timeout: int = 60_000) -> None:
+        """Wait for automatic result consumption and verify data is loaded."""
+        expect(self.parse_completion_message).to_be_visible(timeout=timeout)
+        rows_metric = self.page.locator("[data-testid='stMetric']").filter(has_text="Rows").first
+        expect(rows_metric).to_be_visible(timeout=timeout)
+
     def parse_and_wait(self, *, timeout: int = 60_000) -> None:
-        """Click Parse and wait for the parse dialog to complete.
-
-        Waits for the progress bar to reach 100% and the
-        'Close & Reload' button to appear.
-        """
+        """Submit a parse and wait for its automatic background consumption."""
         self.click_parse()
-        # Wait for the parse dialog to appear
-        expect(self.parse_dialog).to_be_visible(timeout=timeout)
-        # Wait for "Close & Reload" button (appears on success)
-        expect(self.parse_close_button).to_be_visible(timeout=timeout)
+        self.wait_for_parse_completion(timeout=timeout)
 
-    def close_parse_dialog_and_reload(self) -> None:
-        """Click 'Close & Reload' in the parse dialog to reload the page."""
-        expect(self.parse_close_button).to_be_visible(timeout=self.RENDER_TIMEOUT)
-        self.parse_close_button.click()
-        self.wait_for_streamlit()
-
-    def assert_parse_dialog_shows_errors(self) -> None:
-        """Assert the parse dialog shows error messages."""
-        error_text = self.parse_dialog.locator("[data-testid='stAlertContentError']")
-        expect(error_text).to_be_visible(timeout=self.RENDER_TIMEOUT)
-
-    def assert_parse_dialog_shows_no_results(self) -> None:
-        """Assert the parse dialog reports no results generated."""
-        warning = self.parse_dialog.locator("[data-testid='stAlertContentWarning']")
-        expect(warning).to_be_visible(timeout=self.RENDER_TIMEOUT)
+    def wait_for_parse_terminal_outcome(self, *, timeout: int = 60_000) -> None:
+        """Wait until a parse loads successfully or exposes manual recovery."""
+        outcome = self.parse_completion_message.or_(self.parse_job_retry_button).first
+        expect(outcome).to_be_visible(timeout=timeout)

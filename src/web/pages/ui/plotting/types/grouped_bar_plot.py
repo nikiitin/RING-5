@@ -1,6 +1,6 @@
 """Grouped bar plot implementation."""
 
-from typing import override
+from typing import cast, override
 
 import pandas as pd
 import streamlit as st
@@ -112,8 +112,9 @@ class GroupedBarPlot(BasePlot):
         # [impl->req~ring5.plot.grouped-bar~1]
 
         # 1. Data Preparation
-        x_col = config["x"]
-        group_col = config["group"] if config.get("group") else None
+        x_col = cast(str, config["x"])
+        y_col = cast(str, config["y"])
+        group_col = cast(str | None, config.get("group"))
         data = prepare_categorical_data(data, [x_col, group_col])
 
         # Apply Filters
@@ -150,14 +151,14 @@ class GroupedBarPlot(BasePlot):
                 grp_data = data[data[group_col] == grp]
                 x_coords = pd.Series(grp_data[x_col]).map(x_map).tolist()
 
-                sd_col = extract_error_bars(data, config["y"], config)
+                sd_col = extract_error_bars(data, y_col, config)
                 error_y_vals: list[float] | None = grp_data[sd_col].tolist() if sd_col else None
 
                 traces.append(
                     BarTraceConfig(
                         name=grp,
                         x_positions=x_coords,
-                        y=grp_data[config["y"]].tolist(),
+                        y=grp_data[y_col].tolist(),
                         error_y=error_y_vals,
                         custom_data={
                             "drilldown": build_drill_down_payload(grp_data, [x_col, group_col])
@@ -168,13 +169,13 @@ class GroupedBarPlot(BasePlot):
             # No grouping (Single series)
             x_coords = pd.Series(data[x_col]).map(x_map).tolist()
 
-            sd_col = extract_error_bars(data, config["y"], config)
+            sd_col = extract_error_bars(data, y_col, config)
             error_y_vals = data[sd_col].tolist() if sd_col else None
 
             traces.append(
                 BarTraceConfig(
                     x_positions=x_coords,
-                    y=data[config["y"]].tolist(),
+                    y=data[y_col].tolist(),
                     error_y=error_y_vals,
                     custom_data={"drilldown": build_drill_down_payload(data, [x_col])},
                 )

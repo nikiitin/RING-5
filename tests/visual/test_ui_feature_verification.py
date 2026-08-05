@@ -133,18 +133,7 @@ class TestPlotFeatures:
         for name, var_type in _STATS:
             ds.add_manual_variable(name, var_type)
 
-        ds.click_parse()
-        expect(ds.parse_dialog).to_be_visible(timeout=_PARSE_TIMEOUT)
-        expect(ds.parse_close_button).to_be_visible(timeout=_PARSE_TIMEOUT)
-        ds.parse_close_button.click()
-
-        # Wait for rerun to finish
-        running = shared_page.locator("[data-testid='stStatusWidget']")
-        try:
-            running.wait_for(state="visible", timeout=10_000)
-        except Exception:
-            pass
-        running.wait_for(state="hidden", timeout=_PARSE_TIMEOUT)
+        ds.parse_and_wait(timeout=_PARSE_TIMEOUT)
 
         # Create a bar plot
         mp = ManagePlotsPage(shared_page)

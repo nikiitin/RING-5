@@ -4,6 +4,7 @@ import csv
 import datetime
 import hashlib
 import logging
+import os
 import shutil
 import threading
 import uuid
@@ -13,7 +14,7 @@ from typing import cast
 import pandas as pd
 from pandas import DataFrame
 
-from src.core.common.utils import validate_path_within
+from src.core.common.utils import sanitize_filename, validate_path_within
 from src.core.models.data_models import CacheStatsInfo, CsvMetadata, CsvPoolEntry
 from src.core.performance import SimpleCache
 from src.core.services.data_services.path_service import PathService
@@ -106,6 +107,28 @@ class CsvPoolService:
         return str(pool_path)
 
     @staticmethod
+    def publish_to_pool(csv_path: str, file_name: str) -> str:
+        """Atomically publish a completed background result to Recent CSVs."""
+        source_path = Path(csv_path).resolve()
+        if not source_path.is_file():
+            raise FileNotFoundError(f"Parsed CSV file not found: {source_path}")
+
+        safe_name = sanitize_filename(file_name)
+        if not safe_name.lower().endswith(".csv"):
+            safe_name = f"{safe_name}.csv"
+        pool_dir = CsvPoolService.get_pool_dir()
+        pool_path = validate_path_within(pool_dir / safe_name, pool_dir)
+        temporary_path = validate_path_within(
+            pool_dir / f".{safe_name}.{uuid.uuid4().hex}.tmp", pool_dir
+        )
+        try:
+            shutil.copyfile(source_path, temporary_path)
+            os.replace(temporary_path, pool_path)
+        finally:
+            temporary_path.unlink(missing_ok=True)
+        return str(pool_path)
+
+    @staticmethod
     def delete_from_pool(csv_path: str) -> bool:
         """
         Delete a CSV file from the pool.
@@ -168,11 +191,10 @@ class CsvPoolService:
             # Copy-on-Write isolates every mutation path through the new frame.
             return cast(DataFrame, cached_df).copy(deep=False)
 
-        # Automatic delimiter detection requires pandas' Python parser.
+        separator = CsvPoolService._detect_separator(resolved)
         result: DataFrame = pd.read_csv(
             resolved_path,
-            sep=None,
-            engine="python",
+            sep=separator,
         )
 
         # Cache the DataFrame
@@ -187,6 +209,16 @@ class CsvPoolService:
         CsvPoolService._metadata_cache.set(resolved_path, metadata)
 
         return result.copy(deep=False)
+
+    @staticmethod
+    def _detect_separator(csv_path: Path) -> str:
+        """Detect common delimiters without treating data letters as separators."""
+        try:
+            with csv_path.open(encoding="utf-8") as source:
+                sample = source.read(8_192)
+            return csv.Sniffer().sniff(sample, delimiters=",;\t|").delimiter
+        except (OSError, UnicodeError, csv.Error):
+            return ","
 
     @staticmethod
     def _compute_file_hash(file_path: str) -> str:
@@ -231,11 +263,12 @@ class CsvPoolService:
         try:
 
             # Fast row count without loading entire file
-            with open(resolved_path) as f:
+            with open(resolved_path, encoding="utf-8", newline="") as f:
                 row_count = max(0, sum(1 for _ in f) - 1)  # Subtract header
 
             # Read just first row to get columns and types
-            sample_df = pd.read_csv(resolved_path, sep=None, engine="python", nrows=100)
+            separator = CsvPoolService._detect_separator(Path(resolved_path))
+            sample_df = pd.read_csv(resolved_path, sep=separator, nrows=100)
 
             metadata: CsvMetadata = {
                 "columns": list(sample_df.columns),
@@ -246,7 +279,14 @@ class CsvPoolService:
             # Cache it under the resolved key (consistent with the lookup above).
             CsvPoolService._metadata_cache.set(resolved_path, metadata)
             return metadata
-        except (OSError, pd.errors.ParserError, csv.Error, KeyError) as e:
+        except (
+            OSError,
+            UnicodeError,
+            pd.errors.EmptyDataError,
+            pd.errors.ParserError,
+            csv.Error,
+            KeyError,
+        ) as e:
             logger.debug("Failed to read CSV metadata for %s: %s", csv_path, e)
             return None
 

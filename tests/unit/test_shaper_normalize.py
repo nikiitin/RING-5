@@ -210,6 +210,40 @@ def test_different_normalizer_vars() -> None:
     assert result["metric"].iloc[1] == 20.0
 
 
+def test_cache_hit_skips_revalidation_but_mutated_input_does_not(
+    base_data: DataFrame, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A content-identical hit avoids group scans without hiding mutations."""
+    normalizer = Normalize(
+        {
+            "normalizeVars": ["metric"],
+            "normalizerColumn": "config",
+            "normalizerValue": "baseline",
+            "groupBy": ["bench"],
+        }
+    )
+    cache_clear = getattr(normalizer._normalize_with_cache, "cache_clear")
+    cache_clear()
+    original_verify = normalizer._verify_preconditions
+    validation_calls = 0
+
+    def counted_verify(data: DataFrame) -> bool:
+        nonlocal validation_calls
+        validation_calls += 1
+        return original_verify(data)
+
+    monkeypatch.setattr(normalizer, "_verify_preconditions", counted_verify)
+
+    normalizer(base_data)
+    normalizer(base_data)
+    assert validation_calls == 1
+
+    base_data.loc[base_data["config"] == "test", "metric"] *= 2
+    normalizer(base_data)
+    assert validation_calls == 2
+    cache_clear()
+
+
 # Validation and edge cases
 
 

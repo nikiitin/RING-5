@@ -1,6 +1,6 @@
 """Grouped stacked bar plot implementation."""
 
-from typing import Any, override
+from typing import Any, cast, override
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -165,7 +165,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
                             config["series_styles"][k]["name"] = v
 
         # 4. Major Group Configuration (Original X)
-        x_col = saved_config.get("x")
+        x_col = cast(str | None, saved_config.get("x"))
         if data is not None and x_col and x_col in data.columns:
             st.markdown("#### Major Grouping (Outer) Configuration")
             with st.expander("Reorder & Rename Major Groups"):
@@ -184,7 +184,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
                     config["xaxis_labels"] = renames_maj
 
         # 5. Minor Group Configuration (Original Group)
-        group_col = saved_config.get("group")
+        group_col = cast(str | None, saved_config.get("group"))
         if data is not None and group_col and group_col in data.columns:
             st.markdown("#### X-Axis / Minor Grouping (Inner) Configuration")
             with st.expander("Reorder & Rename Minor Groups"):

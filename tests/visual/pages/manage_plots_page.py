@@ -850,6 +850,11 @@ class ManagePlotsPage(BasePage):
         self.small_multiples_by.click()
         self.page.get_by_role("option", name=column, exact=True).click()
         self.wait_for_streamlit(expect_rerun=True)
+        expect(self.small_multiples_by).to_contain_text(column, timeout=self.RENDER_TIMEOUT)
+        # Streamlit multiselects stay open after an option is chosen. Closing
+        # the popover after the selected chip renders makes controls below the
+        # settings panel actionable without cancelling the selection commit.
+        self.page.keyboard.press("Escape")
 
     def enable_drill_down(self) -> None:
         """Enable point-click source-row exploration and wait for the fragment rerun."""
@@ -892,7 +897,7 @@ class ManagePlotsPage(BasePage):
     def refresh_plot(self) -> None:
         """Click 'Refresh Plot' and wait for the regeneration rerun.
 
-        Refresh reruns to regenerate the figure; under -n 3 that can be slow, so
+        Refresh reruns to regenerate the figure; under xdist that can be slow, so
         we wait for the rerun (expect_rerun) with generous time before callers
         assert the chart — otherwise the regen races a tight assert_chart_visible.
         """

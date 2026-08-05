@@ -24,29 +24,14 @@ class GuidedAnalysisComponent:
 
     @classmethod
     def render_fragmented(cls, api: ApplicationAPI) -> None:
-        """Render guidance and briefly poll while an export is outstanding."""
+        """Render guidance in an independently rerunnable sidebar fragment.
+
+        A download records completion in session state, which the next sidebar
+        render observes. Periodic polling can race the browser's download
+        response, so this fragment refreshes only on normal application reruns.
+        """
         # [impl->req~ring5.workspace.guided-analysis~1]
-        initial_progress = api.guided_analysis_progress(
-            exported=bool(st.session_state.get(cls.EXPORT_STATE_KEY, False))
-        )
-        poll_for_export = initial_progress.current_stage == "export"
-        first_progress = [initial_progress]
-
-        def _render_guide() -> None:
-            progress = (
-                first_progress.pop()
-                if first_progress
-                else api.guided_analysis_progress(
-                    exported=bool(st.session_state.get(cls.EXPORT_STATE_KEY, False))
-                )
-            )
-            if poll_for_export and progress.complete:
-                # Stop the polling fragment by rebuilding the full app. The new
-                # guide is complete and therefore has no automatic interval.
-                st.rerun(scope="app")
-            cls._render_progress(progress)
-
-        st.fragment(_render_guide, run_every=1 if poll_for_export else None)()
+        st.fragment(cls.render)(api)
 
     @classmethod
     def _render_progress(cls, progress: GuidedAnalysisProgress) -> None:

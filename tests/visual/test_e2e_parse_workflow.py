@@ -58,12 +58,12 @@ def _setup_data_source(page: Page, live_server_url: str) -> DataSourcePage:
     return ds
 
 
-def _scan_add_parse_close(
+def _scan_add_parse(
     ds: DataSourcePage,
     stats_path: Path,
     variables: list[str],
 ) -> None:
-    """Reusable helper: scan -> add variables -> parse -> close dialog."""
+    """Scan, configure variables, and wait for background parsing to load."""
     ds.fill_stats_path(str(stats_path))
     ds.fill_stats_pattern("stats.txt")
     ds.scan_and_wait(timeout=_E2E_TIMEOUT)
@@ -72,10 +72,7 @@ def _scan_add_parse_close(
     for var in variables:
         ds.add_manual_variable(var, "scalar")
 
-    ds.click_parse()
-    expect(ds.parse_dialog).to_be_visible(timeout=_E2E_TIMEOUT)
-    expect(ds.parse_close_button).to_be_visible(timeout=_E2E_TIMEOUT)
-    ds.close_parse_dialog_and_reload()
+    ds.parse_and_wait(timeout=_E2E_TIMEOUT)
 
 
 # Scanning workflow
@@ -193,7 +190,7 @@ class TestVariableAndParse:
         - data_managers_history_is_empty_initially
         """
         ds = _setup_data_source(shared_page, live_server_url)
-        _scan_add_parse_close(ds, _BENCHMARKS_STATS, ["system.cpu.ipc"])
+        _scan_add_parse(ds, _BENCHMARKS_STATS, ["system.cpu.ipc"])
 
         # Navigate to Data Managers
         dm = DataManagersPage(shared_page)
@@ -237,11 +234,7 @@ class TestVariableAndParse:
         ds.add_manual_variable("totally.fake.variable.that.doesnt.exist", "scalar")
         ds.assert_dialog_hidden()
         ds.click_parse()
-        expect(ds.parse_dialog).to_be_visible(timeout=_E2E_TIMEOUT)
-        dialog_outcome = ds.parse_dialog.locator(
-            "[data-testid='stAlertContentWarning'], [data-testid='stAlertContentError']"
-        ).or_(ds.parse_close_button)
-        expect(dialog_outcome).to_be_visible(timeout=_E2E_TIMEOUT)
+        ds.wait_for_parse_terminal_outcome(timeout=_E2E_TIMEOUT)
 
 
 # Data Manager operations
@@ -268,7 +261,7 @@ class TestDataManagerOperations:
         """
         # Parse benchmarks data (multiple rows for statistical operations)
         ds = _setup_data_source(shared_page, live_server_url)
-        _scan_add_parse_close(ds, _BENCHMARKS_STATS, ["system.cpu.ipc", "simSeconds"])
+        _scan_add_parse(ds, _BENCHMARKS_STATS, ["system.cpu.ipc", "simSeconds"])
 
         dm = DataManagersPage(shared_page)
         dm.navigate()
@@ -309,7 +302,7 @@ class TestParseAndRecentPool:
     def test_parsed_csv_appears_in_recent(self, shared_page: Page, live_server_url: str) -> None:
         """After parsing, switching to 'Load from Recent' shows the CSV."""
         ds = _setup_data_source(shared_page, live_server_url)
-        _scan_add_parse_close(ds, _SINGLE_STATS, ["simSeconds"])
+        _scan_add_parse(ds, _SINGLE_STATS, ["simSeconds"])
 
         ds.select_recent_mode()
         ds.assert_recent_header_visible()
@@ -350,9 +343,9 @@ class TestE2EScreenshots:
         live_server_url: str,
         shared_screenshot_dir: Path,
     ) -> None:
-        """Capture parse dialog and Data Managers with data screenshots.
+        """Capture background parsing and Data Managers with data screenshots.
 
-        - capture_parse_in_progress
+        - capture_background_parse
         - capture_data_managers_with_data
         """
         ds = _setup_data_source(shared_page, live_server_url)
@@ -361,15 +354,12 @@ class TestE2EScreenshots:
         ds.scan_and_wait(timeout=_E2E_TIMEOUT)
         ds.add_manual_variable("simSeconds", "scalar")
 
-        # Parse dialog screenshot
+        # Very small fixtures can finish before an intermediate progress frame.
         ds.click_parse()
-        expect(ds.parse_dialog).to_be_visible(timeout=_E2E_TIMEOUT)
-        shared_page.wait_for_timeout(2000)
-        ds.screenshot(shared_screenshot_dir / "e2e_parse_dialog.png")
-
-        # Wait for parse to complete, close dialog
-        expect(ds.parse_close_button).to_be_visible(timeout=_E2E_TIMEOUT)
-        ds.close_parse_dialog_and_reload()
+        parse_activity = ds.parse_job_heading.or_(ds.parse_completion_message).first
+        expect(parse_activity).to_be_visible(timeout=_E2E_TIMEOUT)
+        ds.screenshot(shared_screenshot_dir / "e2e_parse_background.png")
+        ds.wait_for_parse_completion(timeout=_E2E_TIMEOUT)
 
         # Data Managers with data
         dm = DataManagersPage(shared_page)

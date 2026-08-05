@@ -13,7 +13,7 @@ from src.core.services.data_services.csv_pool_service import CsvPoolService
 from src.core.services.data_services.path_service import PathService
 
 # Serialize Perl-worker-pool tests onto one xdist worker to bound the number of
-# concurrent Perl pools under -n3 (matches the other pool tests' convention).
+# concurrent Perl pools under xdist (matches the other pool tests' convention).
 pytestmark = pytest.mark.xdist_group("perl_pool")
 
 # A scan subprocess has its own 15-second deadline. A future can also spend

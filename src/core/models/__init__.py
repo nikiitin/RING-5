@@ -93,6 +93,18 @@ from src.core.models.parsing_models import (
     ScanResult,
     StatConfig,
 )
+from src.core.models.parse_job_models import (
+    InvalidParseJobTransition,
+    ParseFileSignature,
+    ParseJobConflictError,
+    ParseJobError,
+    ParseJobNotConsumableError,
+    ParseJobNotFoundError,
+    ParseJobReceipt,
+    ParseJobRequest,
+    ParseJobSnapshot,
+    ParseJobStatus,
+)
 from src.core.models.plot_protocol import PlotDeserializer, PlotProtocol
 from src.core.models.visualization.dashboard_spec import DashboardSpec
 from src.core.models.visualization.drill_down_result import DrillDownResult
@@ -251,6 +263,16 @@ __all__ = [
     "ParserPlaygroundBatchResult",
     "ParserPlaygroundResult",
     "ParseBatchResult",
+    "InvalidParseJobTransition",
+    "ParseFileSignature",
+    "ParseJobConflictError",
+    "ParseJobError",
+    "ParseJobNotConsumableError",
+    "ParseJobNotFoundError",
+    "ParseJobReceipt",
+    "ParseJobRequest",
+    "ParseJobSnapshot",
+    "ParseJobStatus",
     "ParseVariableConfig",
     "PipelineConfigConflictPolicy",
     "PipelineConfigConflictResolution",
