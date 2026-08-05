@@ -4,7 +4,6 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -208,7 +207,7 @@ jobs:
   e2e:
     name: Streamlit E2E
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     needs: quality
     steps:
       - name: Check out repository

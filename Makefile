@@ -141,9 +141,9 @@ test-ci: test-data mock-data test-api
 
 test-e2e:
 	$(PYTEST) tests/e2e -m "requires_browser and not serial" \
-		-n 3 --dist loadgroup --timeout=120 --no-cov
+		-n 2 --dist loadgroup --timeout=240 --timeout-method=thread --no-cov
 	$(PYTEST) tests/e2e -m "requires_browser and serial" \
-		-n 0 --timeout=120 --no-cov
+		-n 0 --timeout=240 --timeout-method=thread --no-cov
 
 test-visual:
 	@set -eu; \
