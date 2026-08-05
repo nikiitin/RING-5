@@ -136,6 +136,19 @@ def service_factory(tmp_path: Path) -> Generator[_ServiceFactory, None, None]:
 
 
 class TestParseJobFingerprint:
+    def test_application_api_defers_parse_workspace_creation(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        get_runtime = MagicMock()
+        monkeypatch.setattr(ParseJobRuntimeWorkspace, "get_instance", get_runtime)
+
+        api = ApplicationAPI()
+        try:
+            assert api.get_active_parse_job() is None
+            get_runtime.assert_not_called()
+        finally:
+            api.close()
+
     def test_deterministic_and_ignores_ui_ids(self, tmp_path: Path) -> None:
         _stats_tree(tmp_path)
         first = build_parse_job_request(
