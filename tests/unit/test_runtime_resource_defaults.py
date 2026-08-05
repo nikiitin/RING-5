@@ -37,14 +37,17 @@ def test_security_audit_resolves_project_dependencies() -> None:
     assert "pip-audit --strict --progress-spinner off ." in makefile
 
 
-def test_default_browser_gate_is_serial() -> None:
-    """Keep the standard E2E target from multiplying server and browser processes."""
+def test_default_browser_gate_has_bounded_parallelism() -> None:
+    """Use two workers for grouped tests and isolate resource-heavy serial tests."""
     repository_root = Path(__file__).resolve().parents[2]
     makefile = (repository_root / "Makefile").read_text(encoding="utf-8")
     target = makefile.split("test-e2e:", maxsplit=1)[1].split("test-visual:", maxsplit=1)[0]
 
+    assert "E2E_WORKERS ?= 2" in makefile
+    assert "-n $(E2E_WORKERS) --dist loadgroup" in target
+    assert '-m "requires_browser and not serial"' in target
+    assert '-m "requires_browser and serial" -n 0' in target
     assert "-n 0" in target
-    assert "-n 2" not in target
 
 
 def test_make_virtual_environment_override_accepts_absolute_paths() -> None:

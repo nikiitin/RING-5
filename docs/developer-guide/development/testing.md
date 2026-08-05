@@ -55,9 +55,10 @@ make test-e2e         # Playwright workflows
 make test-visual      # local visual diagnostics
 ```
 
-Use markers declared in `pyproject.toml`. Repository test commands run serially by default, and
-`make test-e2e` starts one Streamlit server and Chromium browser at a time. A developer with measured
-headroom may opt into `-n 2 --dist loadgroup`; the `-n auto` hook is capped at two workers.
+Use markers declared in `pyproject.toml`. Repository test commands run serially by default.
+`make test-e2e` uses two workers for grouped browser tests so ordered, stateful classes stay together,
+then runs resource-heavy tests serially. Set `E2E_WORKERS=1` when local memory is tighter; the
+`-n auto` hook is also capped at two workers.
 
 Make targets also limit native numerical runtimes to two threads. Set `RING5_NATIVE_THREADS=1` for
 a tighter local budget. Parser deployments can tune `RING5_WORK_POOL_SIZE` and
