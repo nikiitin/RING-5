@@ -279,7 +279,14 @@ class CsvPoolService:
             # Cache it under the resolved key (consistent with the lookup above).
             CsvPoolService._metadata_cache.set(resolved_path, metadata)
             return metadata
-        except (OSError, UnicodeError, pd.errors.ParserError, csv.Error, KeyError) as e:
+        except (
+            OSError,
+            UnicodeError,
+            pd.errors.EmptyDataError,
+            pd.errors.ParserError,
+            csv.Error,
+            KeyError,
+        ) as e:
             logger.debug("Failed to read CSV metadata for %s: %s", csv_path, e)
             return None
 
