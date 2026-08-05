@@ -78,6 +78,7 @@ def test_capture_is_complete_stable_and_privacy_conscious(monkeypatch: pytest.Mo
 
     assert restored == captured
     assert captured.ring5_version == "1.2.3"
+    assert captured.dependencies["python-multipart"] == "9.0"
     assert captured.renderers == {"matplotlib": "3.11.0", "plotly": "6.9.0"}
     assert captured.external_tools["xelatex"] is None
     payload = json.dumps(captured.to_dict()).lower()

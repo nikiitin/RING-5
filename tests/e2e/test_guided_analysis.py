@@ -5,10 +5,10 @@ from __future__ import annotations
 import pytest
 from playwright.sync_api import Locator, Page, TimeoutError as PlaywrightTimeoutError, expect
 
+from tests.e2e.conftest import EXPORT_TIMEOUT
 from tests.visual.pages.data_managers_page import DataManagersPage
 from tests.visual.pages.guided_analysis import GuidedAnalysis
 from tests.visual.pages.manage_plots_page import ManagePlotsPage
-from tests.e2e.conftest import EXPORT_TIMEOUT
 
 
 def _select_dropdown_option(page: Page, selectbox: Locator, text: str) -> None:
@@ -90,12 +90,12 @@ class TestGuidedAnalysis:
             plots.download_expander.locator("summary").click()
         expect(plots.download_button).to_be_visible(timeout=EXPORT_TIMEOUT)
         expect(plots.download_button).to_be_enabled(timeout=EXPORT_TIMEOUT)
-        with tier2_page.expect_download(timeout=EXPORT_TIMEOUT):
+        with tier2_page.expect_download(timeout=EXPORT_TIMEOUT) as download_info:
             plots.download_button.click()
+        download_info.value.path()
         plots.wait_for_streamlit(timeout=EXPORT_TIMEOUT, expect_rerun=True)
-        # The returned-click fallback records completion after the sidebar has
-        # already rendered in the download-triggered run. Navigating to a sibling
-        # page refreshes the sidebar without cancelling the file response.
+        # The deferred-download fallback is stored after the sidebar rendered.
+        # Refresh it only after Playwright confirms the transfer completed.
         plots.sidebar.get_by_role("button", name="Data Source").click()
         plots.wait_for_streamlit(expect_rerun=True)
 

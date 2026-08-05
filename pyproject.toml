@@ -33,8 +33,9 @@ dependencies = [
   "regex==2026.7.19",
   # Security floors for dependencies used by Streamlit/Matplotlib.
   "click>=8.3.3",
-  "gitpython>=3.1.50",
+  "gitpython>=3.1.57",
   "pillow>=12.3.0",
+  "python-multipart>=0.0.31",
   # Streamlit 1.61's gzip middleware calls Starlette's pre-1.4 responder API.
   "starlette==1.3.1",
   "tornado>=6.5.7",
@@ -67,7 +68,12 @@ ci = [
   "msgpack>=1.2.1",
   "urllib3>=2.7.0",
 ]
-e2e = ["pytest-playwright==0.8.0", "pytest-base-url==2.1.0", "playwright==1.62.0"]
+e2e = [
+  "pytest-playwright==0.8.0",
+  "pytest-base-url==2.1.0",
+  "playwright==1.62.0",
+  "imageio==2.37.4",
+]
 
 [project.urls]
 Homepage = "https://nikiitin.github.io/RING-5/"

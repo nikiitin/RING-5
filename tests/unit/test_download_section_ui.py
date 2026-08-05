@@ -100,7 +100,10 @@ class TestRenderDownloadSectionPlotly:
         mock_st.download_button.return_value = True
 
         source_data = pd.DataFrame({"benchmark": ["mcf"], "ipc": [2.1]})
-        render_download_section(1, "myplot", _simple_plotly_fig(), source_data)
+        with patch(
+            "src.web.components.guided_analysis.GuidedAnalysisComponent.mark_exported"
+        ) as mock_mark_exported:
+            render_download_section(1, "myplot", _simple_plotly_fig(), source_data)
 
         mock_st.download_button.assert_called_once()
         _, kwargs = mock_st.download_button.call_args
@@ -113,7 +116,12 @@ class TestRenderDownloadSectionPlotly:
         assert kwargs["file_name"] == "myplot.pdf"
         assert kwargs["mime"] == "application/pdf"
         assert callable(kwargs["on_click"])
-        assert mock_st.session_state["_guided_analysis_exported"] is True
+        mock_mark_exported.assert_called_once_with()
+        with patch(
+            "src.web.components.guided_analysis.GuidedAnalysisComponent.mark_exported"
+        ) as mock_callback_exported:
+            kwargs["on_click"]()
+        mock_callback_exported.assert_called_once_with()
         mock_st.rerun.assert_not_called()
 
     @patch("src.web.pages.ui.plotting.download_section.EngineManager")
@@ -199,7 +207,10 @@ class TestRenderDownloadSectionMatplotlib:
         mock_st.pills.return_value = "png"
         mock_st.download_button.return_value = True
 
-        render_download_section(5, "chart", _simple_plotly_fig())
+        with patch(
+            "src.web.components.guided_analysis.GuidedAnalysisComponent.mark_exported"
+        ) as mock_mark_exported:
+            render_download_section(5, "chart", _simple_plotly_fig())
 
         mock_st.download_button.assert_called_once()
         _, kwargs = mock_st.download_button.call_args
@@ -208,7 +219,12 @@ class TestRenderDownloadSectionMatplotlib:
         assert kwargs["file_name"] == "chart.png"
         assert kwargs["mime"] == "image/png"
         assert callable(kwargs["on_click"])
-        assert mock_st.session_state["_guided_analysis_exported"] is True
+        mock_mark_exported.assert_called_once_with()
+        with patch(
+            "src.web.components.guided_analysis.GuidedAnalysisComponent.mark_exported"
+        ) as mock_callback_exported:
+            kwargs["on_click"]()
+        mock_callback_exported.assert_called_once_with()
         mock_st.rerun.assert_not_called()
 
     @patch(

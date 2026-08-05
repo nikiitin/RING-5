@@ -30,6 +30,7 @@ _RUNTIME_DEPENDENCIES = (
     "pandas",
     "pillow",
     "plotly",
+    "python-multipart",
     "regex",
     "scipy",
     "starlette",

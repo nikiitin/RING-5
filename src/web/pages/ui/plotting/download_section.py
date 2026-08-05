@@ -36,7 +36,13 @@ def _mark_guided_analysis_exported() -> None:
     """Record a real figure-download action for the sidebar workflow."""
     from src.web.components.guided_analysis import GuidedAnalysisComponent
 
-    st.session_state[GuidedAnalysisComponent.EXPORT_STATE_KEY] = True
+    GuidedAnalysisComponent.mark_exported()
+
+
+def _record_reported_download(clicked: bool) -> None:
+    """Record a click when Streamlit reports it without running the callback."""
+    if clicked:
+        _mark_guided_analysis_exported()
 
 
 # UI download section
@@ -135,8 +141,7 @@ def _render_plotly_download(
         width="stretch",
         key=f"dl_btn_{plot_id}",
     )
-    if downloaded:
-        _mark_guided_analysis_exported()
+    _record_reported_download(downloaded)
 
 
 def _render_mpl_download(plot_id: int, plot_name: str) -> None:
@@ -183,5 +188,4 @@ def _render_mpl_download(plot_id: int, plot_name: str) -> None:
         width="stretch",
         key=f"dl_btn_{plot_id}",
     )
-    if downloaded:
-        _mark_guided_analysis_exported()
+    _record_reported_download(downloaded)
