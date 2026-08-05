@@ -656,7 +656,7 @@ class DataSourcePage(BasePage):
         """Load a specific CSV from the Recent-CSV pool by filename.
 
         Deterministic under load and a large/cluttered pool (the failure mode
-        behind the `-n 3` "No data loaded" tier1 errors): waits for the named
+        behind parallel "No data loaded" tier1 errors): waits for the named
         card to render, expands it if collapsed (only the newest card is
         auto-expanded), reviews the file, confirms accepted rows, then
         ASSERTS the load registered. The assertion is essential —

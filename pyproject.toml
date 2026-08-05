@@ -100,7 +100,7 @@ pythonpath = ["."]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
-addopts = "-v --tb=short --strict-markers -n 3 --dist loadgroup"
+addopts = "-v --tb=short --strict-markers -n 2 --dist loadgroup"
 xfail_strict = true
 markers = [
   "public_api: Tests that enforce the supported ring5 Python API contract",
@@ -111,7 +111,7 @@ markers = [
   "data_value: Inject data value into fixtures",
   "slow: Marks tests as slow (deselect with '-m \"not slow\"')",
   "xdist_group: Group tests to run on the same xdist worker",
-  "serial: Tests that must run WITHOUT xdist parallelism (e.g. Kaleido Chromium raster export deadlocks/starves under -n 3); run them in a separate '-n 0' pass",
+  "serial: Tests that must run without xdist parallelism (for example, Kaleido browser exports); run them in a separate '-n 0' pass",
 ]
 
 [tool.coverage.report]

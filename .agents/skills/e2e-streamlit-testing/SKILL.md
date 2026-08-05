@@ -79,21 +79,20 @@ def _by_label(page, test_id, label):   # scope a widget duplicated across tabs
   reuse `shared_page`, so the autouse class-scoped `_reset_app_state` fixture in
   both conftest files clears that reused context before each class.
 
-## The e2e gate is TWO passes (and -n 3 is contention-limited on a shared machine)
+## The e2e gate is two resource-bounded passes
 ```bash
 # 1) main suite — everything except the Kaleido raster-download class
-pytest tests/e2e -m "requires_browser and not serial" -n 3 --dist loadgroup --timeout=120
+pytest tests/e2e -m "requires_browser and not serial" -n 2 --dist loadgroup \
+  --timeout=240 --timeout-method=thread
 # 2) serial pass — the @pytest.mark.serial classes (Kaleido raster downloads), no parallelism
-pytest tests/e2e -m "requires_browser and serial"     -n 0                  --timeout=120
+pytest tests/e2e -m "requires_browser and serial" -n 0 \
+  --timeout=240 --timeout-method=thread
 ```
-**`-n 0` is the deterministic gate. `-n 3` is best-effort on a shared desktop.** And the contention is
-**RAM-bound, not just CPU**: each `-n 3` worker runs its own Streamlit server **and** a Chromium
-browser (≈3× both), so on a box already hosting a heavy desktop Chrome the machine starts swapping —
-once that happens *everything* times out and you get a 25-30 failure cascade across unrelated files
-(seen: 6.7 GB swap in use, run 2× slower). That is the memory wall, **not** a regression — confirm with
-`free -h` (swap used) before chasing "failures". Close the desktop browser, or use a runner with
-real RAM headroom, for a clean `-n 3` run. Hard-won facts from
-~20 full runs:
+**Two workers are the default ceiling.** Each worker owns a Streamlit server and Chromium browser,
+so browser tests are RAM-bound as well as CPU-bound. Run them in a cgroup/systemd scope when sharing
+a workstation, keep swap disabled for the scope, and use `-n 0` for a focused diagnostic rerun.
+Timeouts and OOMs are test failures: inspect whether the application, synchronization, or resource
+budget is wrong instead of dismissing them as environmental flakes. Hard-won facts from full runs:
 - **Kaleido raster export (pdf/svg/png)** — `download_section` renders the figure via Kaleido (a
   Chromium subprocess) *eagerly* before `st.download_button`. Three of those across xdist workers
   deadlock/starve AND cascade (a stuck export pegs CPU, timing out unrelated chart renders on other
@@ -102,13 +101,10 @@ real RAM headroom, for a clean `-n 3` run. Hard-won facts from
   attempt) → the serial pass is now reliable (8/8). The other gotcha here: the `<details>` Download
   expander can **re-collapse on the format-select rerun**, hiding the button — `_select_format_pill`
   re-opens it afterwards. test_07's role/enabled check uses kaleido-free `html` to stay fast.
-- **Chart renders (`assert_chart_visible`) intermittently exceed `CHART_TIMEOUT` under `-n 3`** even
-  without Kaleido — the `@st.fragment` chart rerun is CPU-starved when several plotly/matplotlib
-  renders happen across workers at once (some full `-n 3` runs are 100% green, others hit 1–3
-  chart-attach timeouts; it depends on instantaneous load + `loadgroup` distribution). It is NOT an app
-  bug — the render is correct and fast at `-n 0` and on favorable `-n 3` runs; bigger timeouts only
-  amplify cascades. Treat `-n 3` flakes here as environmental, not test bugs. `CHART_TIMEOUT = 60s`
-  (up from 30s) absorbs the common case; `EXPORT_TIMEOUT = 90s` covers a single serial export.
+- **Chart renders (`assert_chart_visible`) can exceed `CHART_TIMEOUT` under contention.** A serial
+  rerun helps distinguish resource starvation from an application or synchronization defect, but the
+  original failure still needs a cause and fix. `CHART_TIMEOUT = 60s` bounds the chart assertion;
+  the 240-second thread watchdog covers tier setup and exits a stuck worker without hanging teardown.
 - Observed under starvation: switching engine to Plotly can leave the Matplotlib `stImage` showing
   (the engine *pill* flips but the fragment hasn't re-rendered yet) — a fragment-rerun timing artifact,
   not an engine-state bug.

@@ -22,7 +22,7 @@ from src.core.services.shapers.factory import ShaperFactory
 from src.core.services.shapers.pipeline_service import PipelineService
 
 # Serialize Perl-worker-pool tests onto one xdist worker to bound the number of
-# concurrent Perl pools under -n3 (matches the other pool tests' convention).
+# concurrent Perl pools under xdist (matches the other pool tests' convention).
 pytestmark = pytest.mark.xdist_group("perl_pool")
 
 # Test Class 1: Apply a multi-step pipeline to real data
