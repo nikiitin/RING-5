@@ -338,6 +338,32 @@ class TestParseJobFingerprint:
         assert added.stat().st_mtime_ns != current.st_mtime_ns
         assert request().fingerprint != with_changed_size.fingerprint
 
+    def test_config_aware_fingerprint_tracks_companion_configuration(self, tmp_path: Path) -> None:
+        """A changed or newly created config.ini must invalidate session result reuse."""
+        _stats_tree(tmp_path)
+
+        def request() -> Any:
+            return build_parse_job_request(
+                stats_path=str(tmp_path),
+                stats_pattern="stats.txt",
+                variables=[{"name": "system.cpu.type", "type": "configuration"}],
+                strategy_type="config_aware",
+            )
+
+        missing = request()
+        config_path = tmp_path / "run-0" / "config.ini"
+        config_path.write_text("[system.cpu]\ntype=TimingSimpleCPU\n", encoding="utf-8")
+        created = request()
+        assert created.fingerprint != missing.fingerprint
+
+        previous_stat = config_path.stat()
+        config_path.write_text("[system.cpu]\ntype=MinorCPU\n", encoding="utf-8")
+        assert (
+            config_path.stat().st_size != previous_stat.st_size
+            or config_path.stat().st_mtime_ns != previous_stat.st_mtime_ns
+        )
+        assert request().fingerprint != created.fingerprint
+
 
 class TestParseJobStore:
     def test_connections_close_after_each_operation(self, tmp_path: Path) -> None:
@@ -522,6 +548,54 @@ class TestParseJobFlow:
         assert attempt_dir.is_dir()
         assert service._store.get_published(job.fingerprint) is None
 
+    def test_failed_partial_consumer_rolls_back_recent_publication(
+        self, tmp_path: Path, service_factory: _ServiceFactory
+    ) -> None:
+        """A partial CSV enters Recent only after the script thread loads it."""
+        _stats_tree(tmp_path, ("one\n", "two\n"))
+
+        def submit(
+            _path: str,
+            _pattern: str,
+            _variables: Sequence[JsonValue],
+            _output: str,
+            _strategy: str,
+            _scanned: list[JsonValue] | None,
+            _incremental: bool,
+        ) -> ParseBatchResult:
+            return ParseBatchResult(
+                futures=[
+                    _completed_future({"simTicks": {"value": 1}}),
+                    _completed_future(error=RuntimeError("bad file")),
+                ],
+                var_names=["simTicks"],
+            )
+
+        service = service_factory.create(submit)
+        job = service.submit(
+            stats_path=str(tmp_path),
+            stats_pattern="stats.txt",
+            variables=[],
+            strategy_type="simple",
+        )
+        terminal = _wait_for_status(service, job.job_id, {ParseJobStatus.PARTIAL})
+        attempt_dir = service._store.get_attempt_dir(job.job_id)
+        recent_dir = service_factory.runtime.jobs_root.parent / "recent"
+
+        def fail_to_load(_receipt: Any) -> None:
+            raise ValueError("CSV could not be loaded")
+
+        with pytest.raises(ValueError, match="could not be loaded"):
+            service.consume(
+                job.job_id,
+                allow_partial=True,
+                before_cleanup=fail_to_load,
+            )
+
+        assert service.get(job.job_id) == terminal
+        assert attempt_dir.is_dir()
+        assert list(recent_dir.glob("*.csv")) == []
+
     def test_identical_active_submission_coalesces_and_different_conflicts(
         self, tmp_path: Path, service_factory: _ServiceFactory
     ) -> None:
@@ -583,6 +657,13 @@ class TestParseJobFlow:
                 [
                     _completed_future({"simTicks": {"value": 1}}),
                     _completed_future(error=RuntimeError("one bad file")),
+                ],
+                ParseJobStatus.PARTIAL,
+            ),
+            (
+                [
+                    _completed_future({"simTicks": {"value": 1}}),
+                    _completed_future({}),
                 ],
                 ParseJobStatus.PARTIAL,
             ),
@@ -783,6 +864,56 @@ class TestParseJobCancellationAndRetry:
         assert published == []
         worker.shutdown()
 
+    def test_cancel_during_publication_removes_the_late_csv(
+        self, tmp_path: Path, service_factory: _ServiceFactory
+    ) -> None:
+        """Cancellation must remain responsive while a completed CSV is being copied."""
+        _stats_tree(tmp_path)
+        publish_started = threading.Event()
+        release_publish = threading.Event()
+        published_path: Path | None = None
+
+        def submit(
+            _path: str,
+            _pattern: str,
+            _variables: Sequence[JsonValue],
+            _output: str,
+            _strategy: str,
+            _scanned: list[JsonValue] | None,
+            _incremental: bool,
+        ) -> ParseBatchResult:
+            return ParseBatchResult(
+                futures=[_completed_future({"simTicks": {"value": 1}})],
+                var_names=["simTicks"],
+            )
+
+        def publish(source: str, name: str) -> str:
+            nonlocal published_path
+            published_path = service_factory.runtime.jobs_root.parent / "recent" / name
+            shutil.copyfile(source, published_path)
+            publish_started.set()
+            release_publish.wait()
+            return str(published_path)
+
+        service = service_factory.create(submit, publish=publish)
+        job = service.submit(
+            stats_path=str(tmp_path),
+            stats_pattern="stats.txt",
+            variables=[],
+            strategy_type="simple",
+        )
+        assert publish_started.wait(2)
+        try:
+            cancelling = service.cancel(job.job_id)
+            assert cancelling.status == ParseJobStatus.CANCELLING
+        finally:
+            release_publish.set()
+
+        terminal = _wait_for_status(service, job.job_id, {ParseJobStatus.CANCELLED})
+        assert terminal.published_csv_path is None
+        assert published_path is not None
+        assert not published_path.exists()
+
     def test_one_session_cannot_cancel_another(
         self, tmp_path: Path, service_factory: _ServiceFactory
     ) -> None:
@@ -916,6 +1047,55 @@ class TestParseJobCleanup:
         assert published == []
         worker.shutdown()
 
+    def test_reset_during_publication_discards_job_and_late_csv(
+        self, tmp_path: Path, service_factory: _ServiceFactory
+    ) -> None:
+        """Reset must signal a publisher before waiting on serialized cleanup."""
+        _stats_tree(tmp_path)
+        publish_started = threading.Event()
+        release_publish = threading.Event()
+        published_path: Path | None = None
+
+        def submit(
+            _path: str,
+            _pattern: str,
+            _variables: Sequence[JsonValue],
+            _output: str,
+            _strategy: str,
+            _scanned: list[JsonValue] | None,
+            _incremental: bool,
+        ) -> ParseBatchResult:
+            return ParseBatchResult(
+                futures=[_completed_future({"simTicks": {"value": 1}})],
+                var_names=["simTicks"],
+            )
+
+        def publish(source: str, name: str) -> str:
+            nonlocal published_path
+            published_path = service_factory.runtime.jobs_root.parent / "recent" / name
+            shutil.copyfile(source, published_path)
+            publish_started.set()
+            release_publish.wait()
+            return str(published_path)
+
+        service = service_factory.create(submit, publish=publish)
+        job = service.submit(
+            stats_path=str(tmp_path),
+            stats_pattern="stats.txt",
+            variables=[],
+            strategy_type="simple",
+        )
+        assert publish_started.wait(2)
+        service.reset()
+        release_publish.set()
+
+        deadline = time.monotonic() + 3
+        while service.get(job.job_id) is not None and time.monotonic() < deadline:
+            time.sleep(0.01)
+        assert service.get(job.job_id) is None
+        assert published_path is not None
+        assert not published_path.exists()
+
     def test_reset_removes_terminal_metadata_but_preserves_recent_csv(
         self, tmp_path: Path, service_factory: _ServiceFactory
     ) -> None:
@@ -999,6 +1179,59 @@ class TestParseJobCleanup:
         assert not close_thread.is_alive()
         assert not session_dir.exists()
         worker.shutdown()
+
+    def test_close_during_publication_removes_late_csv_before_session_cleanup(
+        self, tmp_path: Path, service_factory: _ServiceFactory
+    ) -> None:
+        """Session release must wait for and roll back an in-flight publication."""
+        _stats_tree(tmp_path)
+        publish_started = threading.Event()
+        release_publish = threading.Event()
+        published_path: Path | None = None
+
+        def submit(
+            _path: str,
+            _pattern: str,
+            _variables: Sequence[JsonValue],
+            _output: str,
+            _strategy: str,
+            _scanned: list[JsonValue] | None,
+            _incremental: bool,
+        ) -> ParseBatchResult:
+            return ParseBatchResult(
+                futures=[_completed_future({"simTicks": {"value": 1}})],
+                var_names=["simTicks"],
+            )
+
+        def publish(source: str, name: str) -> str:
+            nonlocal published_path
+            published_path = service_factory.runtime.jobs_root.parent / "recent" / name
+            shutil.copyfile(source, published_path)
+            publish_started.set()
+            release_publish.wait()
+            return str(published_path)
+
+        service = service_factory.create(submit, publish=publish)
+        service.submit(
+            stats_path=str(tmp_path),
+            stats_pattern="stats.txt",
+            variables=[],
+            strategy_type="simple",
+        )
+        assert publish_started.wait(2)
+        session_dir = service.session_dir
+        close_thread = threading.Thread(target=service.close)
+        close_thread.start()
+        try:
+            assert close_thread.is_alive()
+        finally:
+            release_publish.set()
+        close_thread.join(3)
+
+        assert not close_thread.is_alive()
+        assert not session_dir.exists()
+        assert published_path is not None
+        assert not published_path.exists()
 
     def test_dismiss_and_close_remove_transient_workspaces(
         self, tmp_path: Path, service_factory: _ServiceFactory

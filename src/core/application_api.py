@@ -1031,8 +1031,22 @@ class ApplicationAPI:
         strategy_type: str,
     ) -> str | None:
         """Adapt the job finalizer callback to the parser primitive."""
-        if isinstance(batch, IncrementalParseBatchResult) and complete:
-            return self.finalize_incremental_parsing(batch, results).csv_path
+        if isinstance(batch, IncrementalParseBatchResult):
+            if complete:
+                return self.finalize_incremental_parsing(batch, results).csv_path
+            # Partial rows must not enter the parser's durable success cache.
+            # Keep that capability private so SimulationParser's public contract stays unchanged.
+            partial_finalizer = getattr(
+                self._parser,
+                "_finalize_partial_incremental_parsing",
+                None,
+            )
+            if callable(partial_finalizer):
+                return cast(str, partial_finalizer(batch, results))
+            if batch.cached_rows:
+                raise RuntimeError(
+                    "Parser backend cannot retain reused rows in a partial incremental result"
+                )
         return self.finalize_parsing(
             output_dir,
             results,
