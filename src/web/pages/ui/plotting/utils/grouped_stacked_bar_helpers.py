@@ -39,22 +39,24 @@ def apply_renames(
     groups: list[str],
     config: dict[str, Any],
 ) -> tuple[pd.DataFrame, list[str], list[str]]:
-    """Apply renames to data and ordered lists."""
+    """Return renamed data and labels without mutating the caller's frame."""
+    renamed_data = data.copy(deep=False)
+
     # X-axis renames
     x_renames = config.get("xaxis_labels", {})
     if x_renames:
-        data[x_col] = data[x_col].replace(x_renames)
+        renamed_data[x_col] = renamed_data[x_col].replace(x_renames)
 
     renamed_categories = [x_renames.get(cat, cat) for cat in categories]
 
     # Group renames
     group_renames = config.get("group_renames", {})
     if group_renames:
-        data[group_col] = data[group_col].replace(group_renames)
+        renamed_data[group_col] = renamed_data[group_col].replace(group_renames)
 
     renamed_groups = [group_renames.get(grp, grp) for grp in groups]
 
-    return data, renamed_categories, renamed_groups
+    return renamed_data, renamed_categories, renamed_groups
 
 
 def apply_numbered_xaxis(

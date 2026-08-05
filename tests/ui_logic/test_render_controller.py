@@ -128,6 +128,7 @@ class TestTypeSelector:
 
         data = pd.DataFrame({"x": [1]})
         plot = StubPlotHandle(plot_type="bar", processed_data=data)
+        plot.render_config_ui = MagicMock()
         lifecycle = MagicMock()
         api = MagicMock()
         ctrl = _make_render_controller(api=api, lifecycle=lifecycle)
@@ -135,6 +136,7 @@ class TestTypeSelector:
 
         lifecycle.change_plot_type.assert_called_once_with(plot, "line", api.state_manager)
         mock_st.rerun.assert_called_once()
+        plot.render_config_ui.assert_not_called()
 
 
 # Config gathering
@@ -159,7 +161,7 @@ class TestConfigGathering:
         mock_refresh.return_value = _default_refresh_controls(should_generate=True)
 
         data = pd.DataFrame({"time": [1], "value": [2]})
-        plot = StubPlotHandle(processed_data=data, config={})
+        plot = StubPlotHandle(plot_type="bar", processed_data=data, config={})
         # Override render_config_ui to return specific config
         plot.render_config_ui = lambda data, config: {"x_col": "time", "y_col": "value"}
         plot.render_settings_section = lambda section, saved_config, data=None: {
@@ -173,6 +175,33 @@ class TestConfigGathering:
         assert plot.config["y_col"] == "value"
         assert plot.config["title"] == "My Chart"
         assert plot.config["legend"] is True
+
+    @patch(f"{_CTRL}.PlotRenderController._render_visualization")
+    @patch(f"{_CTRL}.ChartDisplayComponent.render_refresh_controls")
+    @patch(f"{_CTRL}.render_settings_pills")
+    @patch(f"{_CTRL}.st")
+    def test_legacy_publication_preset_marker_is_removed(
+        self,
+        mock_st: MagicMock,
+        mock_pills: MagicMock,
+        mock_refresh: MagicMock,
+        mock_viz: MagicMock,
+    ) -> None:
+        """Discard the obsolete publication-preset marker from old portfolios."""
+        mock_st.selectbox.return_value = "bar"
+        mock_st.toggle.return_value = False
+        mock_pills.return_value = None
+        mock_refresh.return_value = _default_refresh_controls(should_generate=True)
+        data = pd.DataFrame({"time": [1], "value": [2]})
+        plot = StubPlotHandle(
+            plot_type="bar",
+            processed_data=data,
+            config={"preset_applied": "isca"},
+        )
+
+        _make_render_controller().render(plot)
+
+        assert "preset_applied" not in plot.config
 
 
 # Config change detection + refresh
@@ -197,7 +226,7 @@ class TestRefreshLogic:
         mock_refresh.return_value = _default_refresh_controls(should_generate=True)
 
         data = pd.DataFrame({"a": [1]})
-        plot = StubPlotHandle(processed_data=data, config={})
+        plot = StubPlotHandle(plot_type="bar", processed_data=data, config={})
         ctrl = _make_render_controller()
         ctrl.render(plot)
 
@@ -221,7 +250,7 @@ class TestRefreshLogic:
         mock_refresh.return_value = _default_refresh_controls(should_generate=False)
 
         data = pd.DataFrame({"a": [1]})
-        plot = StubPlotHandle(processed_data=data, config={})
+        plot = StubPlotHandle(plot_type="bar", processed_data=data, config={})
         ctrl = _make_render_controller()
         ctrl.render(plot)
 
@@ -238,6 +267,7 @@ class TestRefreshLogic:
         mock_refresh: MagicMock,
         mock_viz: MagicMock,
     ) -> None:
+        """Force one render after applying a theme with auto-refresh disabled."""
         # [test->req~ring5.figure.theme-presets~1]
         mock_st.selectbox.return_value = "bar"
         mock_st.toggle.return_value = False
@@ -248,7 +278,7 @@ class TestRefreshLogic:
         )
 
         data = pd.DataFrame({"a": [1]})
-        plot = StubPlotHandle(processed_data=data, config={"x": "a"})
+        plot = StubPlotHandle(plot_type="bar", processed_data=data, config={"x": "a"})
         plot.render_settings_section = lambda section, saved_config, data=None: {
             "figure_theme_id": "paper",
             "_ring5_request_refresh": True,
@@ -277,7 +307,7 @@ class TestRefreshLogic:
         mock_refresh.return_value = _default_refresh_controls(auto_refresh=False)
 
         data = pd.DataFrame({"a": [1]})
-        plot = StubPlotHandle(plot_id=10, processed_data=data, config={})
+        plot = StubPlotHandle(plot_id=10, plot_type="bar", processed_data=data, config={})
         ui_state = MagicMock()
         ui_state.plot.get_auto_refresh.return_value = True
         ctrl = _make_render_controller(ui_state=ui_state)
@@ -308,7 +338,7 @@ class TestErrorResilience:
         mock_refresh.return_value = _default_refresh_controls(should_generate=True)
 
         data = pd.DataFrame({"a": [1]})
-        plot = StubPlotHandle(processed_data=data, config={})
+        plot = StubPlotHandle(plot_type="bar", processed_data=data, config={})
         plot.render_config_ui = MagicMock(side_effect=ValueError("bad column"))
         ctrl = _make_render_controller()
         ctrl.render(plot)
@@ -334,7 +364,7 @@ class TestErrorResilience:
         mock_refresh.return_value = _default_refresh_controls(should_generate=True)
 
         data = pd.DataFrame({"a": [1]})
-        plot = StubPlotHandle(processed_data=data, config={})
+        plot = StubPlotHandle(plot_type="bar", processed_data=data, config={})
         plot.render_settings_section = MagicMock(side_effect=TypeError("wrong type"))
         ctrl = _make_render_controller()
         ctrl.render(plot)
@@ -360,7 +390,7 @@ class TestErrorResilience:
         mock_refresh.return_value = _default_refresh_controls(should_generate=True)
 
         data = pd.DataFrame({"a": [1]})
-        plot = StubPlotHandle(processed_data=data, config={})
+        plot = StubPlotHandle(plot_type="bar", processed_data=data, config={})
         plot.render_config_ui = MagicMock(side_effect=RuntimeError("err1"))
         plot.render_settings_section = MagicMock(side_effect=RuntimeError("err2"))
         ctrl = _make_render_controller()

@@ -132,11 +132,10 @@ class PlotRenderController:
             ),
             key=f"plot_type_sel_{plot.plot_id}",
         )
-        type_changed: bool = new_type is not None and new_type != plot.plot_type
-
-        if type_changed and new_type is not None:
+        if isinstance(new_type, str) and new_type in available_types and new_type != plot.plot_type:
             self._lifecycle.change_plot_type(plot, new_type, self._api.state_manager)
             st.rerun()
+            return
 
         # 2. Type-specific config (via plot.render_config_ui)
         data: pd.DataFrame = plot.processed_data
@@ -177,6 +176,9 @@ class PlotRenderController:
                 exc_info=True,
             )
             config_error = True
+
+        # Publication preset selection was removed from plot configuration.
+        current_config.pop("preset_applied", None)
 
         # 4. Refresh logic (via ChartDisplayComponent)
         config_changed: bool = current_config != saved_config

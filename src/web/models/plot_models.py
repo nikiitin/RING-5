@@ -109,6 +109,7 @@ class PlotDisplayConfig(TypedDict, total=False):
     # Grouping
     color: str | None  # Color-by column
     group: str | None  # Group-by column (grouped/stacked bars)
+    group_by: str | None  # Group-by column (histograms)
 
     # Column Metadata (computed, not user-set)
     numeric_cols: list[str]
@@ -155,6 +156,7 @@ class PlotDisplayConfig(TypedDict, total=False):
     legend_labels: dict[str, str] | None  # Original → display label
     legend2_labels: dict[str, str] | None  # Secondary legend display labels
     legend3_labels: dict[str, str] | None  # Tertiary legend display labels
+    group_renames: dict[str, str] | None  # Grouped/stacked category display labels
 
     # Series Styling
     series_styles: dict[str, SeriesStyleConfig]

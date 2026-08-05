@@ -10,6 +10,7 @@ from src.web.components.plotting.config import histogram_config
 from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.types._trace_helpers import build_drill_down_payload
+from src.web.pages.ui.plotting.utils.ordering import order_with_overrides
 
 
 class HistogramPlot(BasePlot):
@@ -174,7 +175,7 @@ class HistogramPlot(BasePlot):
 
         if group_by and group_by in data.columns:
             # Group data
-            groups = data[group_by].unique()
+            groups = data[group_by].dropna().unique()
             result: dict[str, Any] = {
                 "buckets": buckets,
                 "groups": groups,
@@ -255,7 +256,10 @@ class HistogramPlot(BasePlot):
             List of BarTraceConfig, one per group
         """
         buckets = bucket_data["buckets"]
-        groups = bucket_data["groups"]
+        groups = order_with_overrides(
+            (str(group) for group in bucket_data["groups"]),
+            config.get("legend_order"),
+        )
 
         x_centers = [(b[0] + b[1]) / 2 for b in buckets]
         traces: list[BarTraceConfig] = []

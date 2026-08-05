@@ -889,11 +889,11 @@ class TestLegendItemOrderRename:
     # [test->req~ring5.figure.legends~1]
 
     @staticmethod
-    def _component() -> Any:
+    def _component(plot_type: str = "grouped_stacked_bar") -> Any:
         """Build a legend component with styling widgets isolated."""
         from src.web.components.plotting.settings import LegendSettingsComponent
 
-        component = LegendSettingsComponent(plot_id=1, plot_type="grouped_stacked_bar")
+        component = LegendSettingsComponent(plot_id=1, plot_type=plot_type)
         component._render_legend_section = MagicMock(return_value={})  # type: ignore[method-assign]
         return component
 
@@ -969,6 +969,21 @@ class TestLegendItemOrderRename:
         data = pd.DataFrame({"variant": ["fast", "slow", "fast"]})
 
         result = self._component().render({"color": "variant"}, data=data)
+
+        assert result["legend_order"] == ["slow", "fast"]
+        assert result["legend_labels"] == {"fast": "Fast path"}
+
+    @patch("src.web.components.plotting.settings.legend_settings.render_reorderable_list")
+    @patch("src.web.components.plotting.settings.legend_settings.st")
+    def test_histogram_group_legend_uses_legend_order_and_labels(
+        self, mock_st: MagicMock, mock_reorder: MagicMock
+    ) -> None:
+        """Configure grouped-histogram legend entries under the primary tier."""
+        self._setup_streamlit(mock_st, "primary")
+        mock_reorder.return_value = (["slow", "fast"], {"fast": "Fast path"})
+        data = pd.DataFrame({"variant": ["fast", "slow", "fast"]})
+
+        result = self._component("histogram").render({"group_by": "variant"}, data=data)
 
         assert result["legend_order"] == ["slow", "fast"]
         assert result["legend_labels"] == {"fast": "Fast path"}

@@ -208,9 +208,18 @@ class LegendSettingsComponent:
                 widget_prefix="legend_items",
             )
 
-        color_col = saved_config.get("color")
-        if active_tab == "primary" and data is not None and color_col and color_col in data.columns:
-            color_items, truncated = bounded_unique_strings(data[color_col].dropna())
+        legend_col = (
+            saved_config.get("group_by")
+            if self.plot_type == "histogram"
+            else saved_config.get("color")
+        )
+        if (
+            active_tab == "primary"
+            and data is not None
+            and legend_col
+            and legend_col in data.columns
+        ):
+            color_items, truncated = bounded_unique_strings(data[legend_col].dropna())
             if truncated:
                 st.warning("Legend ordering options were capped for safety.")
             return self._render_named_items(

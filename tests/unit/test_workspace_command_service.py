@@ -9,6 +9,7 @@ from src.core.services.workspace_command_service import WorkspaceCommandService
 
 
 def test_empty_query_lists_every_safe_command_in_discoverable_order() -> None:
+    """Expose the complete bounded catalog without unsafe destructive actions."""
     # [test->req~ring5.workspace.command-palette~1]
     response = WorkspaceCommandService.search_commands()
 
@@ -30,6 +31,7 @@ def test_empty_query_lists_every_safe_command_in_discoverable_order() -> None:
 
 
 def test_search_uses_and_matching_ranking_and_explicit_bounds() -> None:
+    """Apply AND matching, deterministic ranking, and result truncation."""
     plots = WorkspaceCommandService.search_commands("plot pipeline")
     limited = WorkspaceCommandService.search_commands("go", limit=2)
 
