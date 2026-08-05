@@ -100,7 +100,10 @@ pythonpath = ["."]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
-addopts = "-v --tb=short --strict-markers -n 2 --dist loadgroup"
+# Run serially by default so pytest workers cannot multiply the application's
+# parser pools and Kaleido browser processes. Developers can still opt into
+# xdist explicitly for lightweight subsets.
+addopts = "-v --tb=short --strict-markers"
 xfail_strict = true
 markers = [
   "public_api: Tests that enforce the supported ring5 Python API contract",

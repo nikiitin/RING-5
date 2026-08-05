@@ -8,11 +8,22 @@ from collections.abc import Generator
 from typing import Any
 from unittest.mock import MagicMock
 
-import pandas as pd
-import pytest
+from src.core.common.runtime_limits import configure_native_thread_limits
+
+configure_native_thread_limits()
+
+import pandas as pd  # noqa: E402: limits must precede native imports
+import pytest  # noqa: E402: limits must precede native imports
 
 # Register helper fixture plugins so they are available everywhere
 pytest_plugins = ["tests.helpers.gem5_fixtures"]
+
+
+@pytest.hookimpl(optionalhook=True)
+def pytest_xdist_auto_num_workers(config: pytest.Config) -> int:
+    """Cap explicit ``-n auto`` runs at the two-worker safety boundary."""
+    return 2
+
 
 # Shared Helpers
 

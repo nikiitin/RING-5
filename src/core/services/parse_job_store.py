@@ -6,7 +6,7 @@ import json
 import sqlite3
 import threading
 import time
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -340,8 +340,14 @@ class ParseJobStore:
             )
 
     @contextmanager
-    def _connect(self) -> Iterator[sqlite3.Connection]:
-        """Yield a transactional connection and always close it afterward."""
+    def _connect(self) -> Generator[sqlite3.Connection, None, None]:
+        """Open one transactional connection and always close it.
+
+        A ``sqlite3.Connection`` context manager commits or rolls back, but it
+        does not close the connection.  Wrapping that behavior here prevents
+        short-lived job operations from leaking connections until cyclic
+        garbage collection runs on an arbitrary worker thread.
+        """
         connection = sqlite3.connect(self.db_path, timeout=5.0)
         connection.row_factory = sqlite3.Row
         try:
