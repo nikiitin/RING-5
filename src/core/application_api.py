@@ -155,7 +155,6 @@ class ApplicationAPI:
         # A facade may cancel only scan jobs that it submitted.
         self._pending_scan_futures: list[Future[ScanFileResult]] = []
         self._background_jobs = BackgroundJobService()
-        self._parse_job_runtime = ParseJobRuntimeWorkspace.get_instance()
         self._parse_jobs: ParseJobService | None = None
         self._closed = False
 
@@ -964,7 +963,7 @@ class ApplicationAPI:
                 self._submit_background_parse,
                 self._finalize_background_parse,
                 self._publish_background_csv,
-                runtime_workspace=self._parse_job_runtime,
+                runtime_workspace=ParseJobRuntimeWorkspace.get_instance(),
             )
         return self._parse_jobs
 
