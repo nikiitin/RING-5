@@ -1,10 +1,8 @@
 from collections.abc import Generator
-from concurrent.futures import Future
 from pathlib import Path
 from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
-import pandas as pd
 import pytest
 
 from src.core.application_api import ApplicationAPI
@@ -135,67 +133,43 @@ class TestScannerFix:
         # Verify call to api.submit_scan_async (NOT backend)
         mock_api.submit_scan_async.assert_called()
 
-    def test_parser_dialog_calls_finalize_parsing_correctly(
+    def test_parse_action_submits_background_job_with_strategy_type(
         self, mock_api: Any, mock_streamlit: Any
     ) -> None:
-        """Test that _show_parse_dialog calls finalize_parsing with
-        correct keyword arg 'strategy_type'.
-        """
-        from src.core.models import ParseBatchResult
-
-        # Setup - mock all required API methods
+        """The parse action submits immediately through the session job API."""
         mock_api.state_manager.get_parser_strategy.return_value = "simple"
-        mock_api.finalize_parsing.return_value = "/tmp/out/final.csv"
-        mock_api.add_to_csv_pool.return_value = "/pool/final.csv"
-        mock_api.load_csv_file.return_value = pd.DataFrame({"col": [1, 2]})
-        output_dir = "/tmp/out"
+        mock_api.state_manager.get_simulator.return_value = "gem5"
+        mock_api.state_manager.get_stats_path.return_value = str(Path.cwd())
+        mock_api.state_manager.get_stats_pattern.return_value = "stats.txt"
+        mock_api.state_manager.get_parse_variables.return_value = []
+        mock_api.state_manager.get_scanned_variables.return_value = []
+        mock_api.get_active_parse_job.return_value = None
+        snapshot = MagicMock(job_id="job-1")
+        mock_api.submit_parse_job.return_value = snapshot
 
-        # Create a future that returns a result
-        mock_future = MagicMock()
-        mock_future.result.return_value = {"some": "data"}
-        futures = cast(list[Future[dict[str, Any]]], [mock_future])
-
-        # Wrap in ParseBatchResult
-        batch = ParseBatchResult(futures=futures, var_names=["test_var"])
+        mock_streamlit["ds"].pills.return_value = "gem5"
+        mock_streamlit["ds"].segmented_control.return_value = "simple"
+        mock_streamlit["ds"].text_input.side_effect = [str(Path.cwd()), "stats.txt"]
+        mock_streamlit["ds"].checkbox.side_effect = [True, False]
+        mock_streamlit["ds"].button.side_effect = (
+            lambda label, **_kwargs: label == "Parse gem5 Stats Files"
+        )
 
         with (
             patch(
-                "src.web.components.data_source.data_source_components.as_completed",
-                return_value=futures,
+                "src.web.components.data_source.data_source_components.validate_web_stats_path",
+                return_value=Path.cwd(),
             ),
-            patch("pathlib.Path.exists", return_value=True),
+            patch("src.web.components.data_source.parse_job_status.st") as job_status_st,
         ):
-            mock_progress = MagicMock()
-            mock_status_text = MagicMock()
-            mock_status_ctx = MagicMock()
-            mock_status_ctx.__enter__ = MagicMock(return_value=mock_status_ctx)
-            mock_status_ctx.__exit__ = MagicMock(return_value=False)
+            job_status_st.session_state = {}
+            DataSourceComponents.render_parser_config(mock_api)
 
-            with (
-                patch(
-                    "src.web.components.data_source.data_source_components.st.progress",
-                    return_value=mock_progress,
-                ),
-                patch(
-                    "src.web.components.data_source.data_source_components.st.empty",
-                    return_value=mock_status_text,
-                ),
-                patch(
-                    "src.web.components.data_source.data_source_components.st.status",
-                    return_value=mock_status_ctx,
-                ),
-                patch("src.web.components.data_source.data_source_components.st.write"),
-                patch("src.web.components.data_source.data_source_components.st.success"),
-            ):
-                decorated = DataSourceComponents._show_parse_dialog
-                dialog = getattr(decorated, "__wrapped__", decorated)
-                dialog(mock_api, batch, output_dir)
-
-        # Verify finalize_parsing called with correct arguments
-        mock_api.finalize_parsing.assert_called_once()
-
-        # Inspect kwargs to ensure 'strategy_type' was used
-        _, kwargs = mock_api.finalize_parsing.call_args
+        mock_api.submit_parse_job.assert_called_once()
+        _, kwargs = mock_api.submit_parse_job.call_args
         assert "strategy_type" in kwargs, f"Expected 'strategy_type' kwarg, got {kwargs.keys()}"
         assert "strategy" not in kwargs, "Should NOT use 'strategy' legacy kwarg"
-        assert "var_names" in kwargs, f"Expected 'var_names' kwarg, got {kwargs.keys()}"
+        assert kwargs["simulator"] == "gem5"
+        assert kwargs["incremental"] is True
+        assert job_status_st.session_state["_ring5_parse_job_id"] == "job-1"
+        mock_api.finalize_parsing.assert_not_called()

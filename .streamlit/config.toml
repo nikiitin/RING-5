@@ -16,8 +16,9 @@ textColor = "#e8eaed"
 font = "sans serif"
 
 [server]
-# Disable file watcher on production
-fileWatcherType = "auto"
+# Polling avoids watchdog's thread-per-directory fan-out while preserving
+# automatic reruns during local development.
+fileWatcherType = "poll"
 
 [browser]
 # Show gather usage stats prompt

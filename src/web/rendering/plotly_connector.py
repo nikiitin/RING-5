@@ -629,6 +629,7 @@ class FigureSpecToPlotly:
         for i, trace in enumerate(_fig_traces(fig)):
             # Use modular index to cycle through styles
             style = spec.series_styles[i % len(spec.series_styles)]
+            trace_type = str(getattr(trace, "type", ""))
 
             update: dict[str, Any] = {}
             if style.opacity > 0 and not isinstance(trace, (go.Sankey, go.Parcoords)):
@@ -638,7 +639,7 @@ class FigureSpecToPlotly:
                     update["line"] = dict(width=style.line_width)
             if style.marker_size > 0:
                 # marker.size only applies to scatter-like traces
-                if hasattr(trace, "marker") and not isinstance(trace, go.Bar):
+                if trace_type in ("scatter", "scattergl", "scatterpolar", "box", "violin"):
                     marker_update = update.get("marker", {})
                     marker_update["size"] = style.marker_size
                     update["marker"] = marker_update

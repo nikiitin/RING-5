@@ -24,10 +24,12 @@ Tags: status_approved, streamlit, web, workspace
 
 ### Page navigation
 
-`req~ring5.workspace.navigation~1`
+`req~ring5.workspace.navigation~2`
 Status: approved
 
-Users shall navigate between Data Source, Data Managers, Manage Plots, Save/Load Portfolio, and Documentation pages from the sidebar.
+Users shall navigate between Data Source, Data Managers, Manage Plots, and Save/Load Portfolio from the sidebar, with published documentation exposed as an external link rather than an application page.
+
+History records: 1
 
 Covers:
 - feat~ring5.workspace~1
@@ -78,12 +80,14 @@ Needs: impl, test, uman
 
 Tags: reset, state, status_approved, web
 
-### In-application documentation hub
+### Published documentation link
 
-`req~ring5.workspace.documentation-hub~1`
+`req~ring5.workspace.documentation-hub~2`
 Status: approved
 
-The application shall link users to canonical getting-started, workflow, guide, reference, and developer documentation.
+The sidebar and command palette shall link directly to the canonical published RING-5 documentation without maintaining a duplicate in-application documentation page.
+
+History records: 1
 
 Covers:
 - feat~ring5.workspace~1
@@ -485,6 +489,20 @@ Covers:
 Needs: impl, test, uman
 
 Tags: api, async, parsing, status_approved
+
+### Session-scoped background parsing
+
+`req~ring5.ingestion.session-background-parse~1`
+Status: approved
+
+Web parsing shall submit immediately, retain bounded progress across reruns and navigation within one browser session, coalesce identical requests, support cooperative job-specific cancellation and explicit retry, publish successful CSVs atomically, and clean transient job data on consumption, acknowledgement, reset, release, shutdown, or orphan recovery.
+
+Covers:
+- feat~ring5.ingestion~1
+
+Needs: impl, test, uman
+
+Tags: async, parsing, sessions, status_approved
 
 ### Visible missing and failed parse values
 
@@ -1830,10 +1848,12 @@ Tags: annotations, shapes, status_approved, styling
 
 ### Category ordering and relabeling
 
-`req~ring5.figure.ordering-renaming~1`
+`req~ring5.figure.ordering-renaming~2`
 Status: approved
 
-Users shall reorder and rename applicable X categories, groups, legend items, stack series, Y metrics, and facets without rewriting source data.
+Users shall reorder and rename applicable X categories, groups, Y metrics, and facets under axis settings, while each visible legend tier shall independently own its legend-item and stack-series order and names without rewriting source data.
+
+History records: 1
 
 Covers:
 - feat~ring5.figure-configuration~1
@@ -2363,6 +2383,20 @@ Covers:
 Needs: impl, test, uman
 
 Tags: api, portfolios, safety, status_approved
+
+### Generated example portfolio
+
+`req~ring5.portfolio.example-catalog~1`
+Status: approved
+
+Developers shall be able to generate a self-validating portfolio from deterministic representative data, containing one Plotly- and Matplotlib-renderable example of every registered plot type.
+
+Covers:
+- feat~ring5.reproducibility~1
+
+Needs: impl, test, uman
+
+Tags: examples, portfolios, reproducibility, status_approved
 
 ### Portfolio restore
 

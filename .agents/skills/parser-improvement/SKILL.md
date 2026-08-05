@@ -23,14 +23,12 @@ invariant). To add a new stat type or wire Perl, use `parsing-and-variable-types
 
 ## Where the time actually goes (measured — see [[ring5-parser-perf-profile]])
 Profiled on the real 586-file bench (16-core host). Start from these facts, not intuition:
-- **Parse is Perl-pool-bound.** `WorkPool` is one `ThreadPoolExecutor(cpu_count*2)` (no process pool);
-  parse threads dispatch to the persistent `PerlWorkerPool`, size **hard-coded 4**
-  (`perl_worker_pool.py:432,664`). So parse concurrency = 4 no matter the core count. Raising it is the
-  one validated win: 40 vars × 586 files = 14.8s @4 → 10.2s @8 (1.45×) → 8.9s @14 (1.66×). Sub-linear
-  (per-file Python work is GIL-bound). Make the size adaptive + RAM-capped (each worker is a live Perl
-  process; CI is RAM-bound — see the `make test-e2e` note).
+- **Parse is Perl-pool-bound.** `WorkPool` and the persistent `PerlWorkerPool` both default to two
+  workers to protect developer workstations. Deployments can set `RING5_WORK_POOL_SIZE` and
+  `RING5_PERL_POOL_SIZE`, but each Perl worker is a live process, so measure memory as well as
+  throughput before raising either limit.
 - **Scan spawns a fresh `perl` per file** (`scanner.py:96`, no pool) → ~195 ms/file, 90% Perl, ~12.6k
-  vars/file pre-aggregation. It runs ~3× parallel on the thread pool. **A process pool does NOT help**
+  vars/file pre-aggregation. It uses the bounded shared thread pool. **A process pool does NOT help**
   (measured 1.03–1.12× — scan is Perl-work-bound, not GIL/thread-bound), so a scan pool (process or
   persistent-Perl) is **not worth building**. Default UI scan is `limit=5` (~0.6s); only full-catalog
   scans (limit=-1 → ~51s) are slow, and the only real lever there is a faster Perl scanner itself.

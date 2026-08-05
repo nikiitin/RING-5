@@ -34,7 +34,7 @@ or <kbd>⌘</kbd>+<kbd>K</kbd> on macOS. Type a page, object, or task such as `p
 | <kbd>Alt</kbd>+<kbd>2</kbd> | Open **Data Managers**. |
 | <kbd>Alt</kbd>+<kbd>3</kbd> | Open **Manage Plots**. |
 | <kbd>Alt</kbd>+<kbd>4</kbd> | Open **Save/Load Portfolio**. |
-| <kbd>Alt</kbd>+<kbd>5</kbd> | Open **Documentation**. |
+| <kbd>Alt</kbd>+<kbd>5</kbd> | Open the published **Documentation** in a new tab. |
 
 The application ignores `/` and page shortcuts while you are typing in an input, editor, or
 selector. Browser, operating-system, and assistive-technology shortcuts still take precedence if

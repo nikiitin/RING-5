@@ -99,11 +99,20 @@
     {
       "id": "workspace.navigation",
       "group": "workspace",
-      "revision": 1,
+      "revision": 2,
       "status": "approved",
       "title": "Page navigation",
-      "description": "Users shall navigate between Data Source, Data Managers, Manage Plots, Save/Load Portfolio, and Documentation pages from the sidebar.",
+      "description": "Users shall navigate between Data Source, Data Managers, Manage Plots, and Save/Load Portfolio from the sidebar, with published documentation exposed as an external link rather than an application page.",
       "tags": ["navigation", "web"],
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "semantic",
+          "title": "Page navigation",
+          "description": "Users shall navigate between Data Source, Data Managers, Manage Plots, Save/Load Portfolio, and Documentation pages from the sidebar.",
+          "reason": "Replaced Documentation routing with a direct link to the published site."
+        }
+      ],
       "evidence": {
         "implementation": ["app.py::run_app"],
         "tests": ["tests/visual/test_navigation.py::TestNavigationWorkflow.test_navigate_all_pages_and_return"],
@@ -155,14 +164,23 @@
     {
       "id": "workspace.documentation-hub",
       "group": "workspace",
-      "revision": 1,
+      "revision": 2,
       "status": "approved",
-      "title": "In-application documentation hub",
-      "description": "The application shall link users to canonical getting-started, workflow, guide, reference, and developer documentation.",
+      "title": "Published documentation link",
+      "description": "The sidebar and command palette shall link directly to the canonical published RING-5 documentation without maintaining a duplicate in-application documentation page.",
       "tags": ["documentation", "web"],
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "semantic",
+          "title": "In-application documentation hub",
+          "description": "The application shall link users to canonical getting-started, workflow, guide, reference, and developer documentation.",
+          "reason": "Replaced the duplicate application page with direct links to the canonical published documentation."
+        }
+      ],
       "evidence": {
-        "implementation": ["src/web/pages/documentation.py::show_documentation_page"],
-        "tests": ["tests/ui_unit/test_documentation_page.py::TestShowDocumentationPage.test_renders_two_guide_sections"],
+        "implementation": ["app.py::run_app", "src/web/components/command_palette.py::CommandPaletteComponent.render_dialog"],
+        "tests": ["tests/ui/test_ui_sanity.py::TestUISanity.test_navigation_sidebar", "tests/ui_unit/test_command_palette.py::test_render_dialog_uses_a_link_for_external_documentation"],
         "documentation": ["docs/index.md#ring-5-documentation"]
       }
     },
@@ -444,6 +462,23 @@
         "implementation": ["ring5/_parse.py::ParseJob", "ring5/_session.py::Session.parse_submit"],
         "tests": ["tests/integration/test_ring5_api_completeness.py::test_scan_parse_and_config_aware_workflow", "tests/integration/test_ring5_api_completeness.py::test_session_close_defers_cleanup_for_running_parse"],
         "documentation": ["docs/user-guide/workflows/scripting.md#run-a-complete-analysis"]
+      }
+    },
+    {
+      "id": "ingestion.session-background-parse",
+      "group": "ingestion",
+      "revision": 1,
+      "status": "approved",
+      "title": "Session-scoped background parsing",
+      "description": "Web parsing shall submit immediately, retain bounded progress across reruns and navigation within one browser session, coalesce identical requests, support cooperative job-specific cancellation and explicit retry, publish successful CSVs atomically, and clean transient job data on consumption, acknowledgement, reset, release, shutdown, or orphan recovery.",
+      "tags": ["async", "parsing", "sessions"],
+      "evidence": {
+        "implementation": ["src/core/services/parse_job_service.py::ParseJobService"],
+        "tests": [
+          "tests/unit/test_parse_jobs.py::TestParseJobFlow",
+          "tests/e2e/test_background_jobs.py::TestBackgroundParseJob.test_parse_loads_without_a_blocking_dialog"
+        ],
+        "documentation": ["docs/user-guide/workflows/loading-data.md#session-background-parsing"]
       }
     },
     {
@@ -1426,6 +1461,8 @@
         "tests": [
           "tests/ui_logic/test_settings_pills_e2e.py::TestSecondaryLegendConfig",
           "tests/ui_logic/test_settings_pills_e2e.py::TestLegendSizingControls",
+          "tests/ui_logic/test_settings_pills_e2e.py::TestLegendItemOrderRename",
+          "tests/ui_logic/test_settings_pills.py::TestSectionDispatch.test_legend_tiers_match_the_legends_that_are_actually_visible",
           "tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorLegendAnchor",
           "tests/unit/core/visualization/test_connectors.py::TestConfigBuilderLegendOrientation"
         ],
@@ -1581,20 +1618,31 @@
     {
       "id": "figure.ordering-renaming",
       "group": "figure-configuration",
-      "revision": 1,
+      "revision": 2,
       "status": "approved",
       "title": "Category ordering and relabeling",
-      "description": "Users shall reorder and rename applicable X categories, groups, legend items, stack series, Y metrics, and facets without rewriting source data.",
+      "description": "Users shall reorder and rename applicable X categories, groups, Y metrics, and facets under axis settings, while each visible legend tier shall independently own its legend-item and stack-series order and names without rewriting source data.",
       "tags": ["labels", "ordering", "styling"],
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "semantic",
+          "title": "Category ordering and relabeling",
+          "description": "Users shall reorder and rename applicable X categories, groups, legend items, stack series, Y metrics, and facets without rewriting source data.",
+          "reason": "Assigned legend-entry ordering to each visible Legend tab while keeping axis and facet ordering under Axes."
+        }
+      ],
       "evidence": {
         "implementation": [
           "src/web/components/plotting/settings/ordering_settings.py::OrderingSettingsComponent.render",
+          "src/web/components/plotting/settings/legend_settings.py::LegendSettingsComponent._render_legend_items",
           "src/web/pages/ui/plotting/base_plot.py::_relabel_traces",
-          "src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot._apply_renames"
+          "src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot._apply_renames",
+          "src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot._order_unified_legend_traces"
         ],
         "tests": [
           "tests/unit/test_persistent_labels.py::test_multiple_column_persistence",
-          "tests/ui_logic/test_settings_pills_e2e.py::TestStackedSeriesOrderRename",
+          "tests/ui_logic/test_settings_pills_e2e.py::TestLegendItemOrderRename",
           "tests/unit/test_grouped_stacked_bar_create_figure.py::TestCreateFigure.test_with_xaxis_order",
           "tests/unit/test_grouped_stacked_bar_create_figure.py::TestCreateFigure.test_with_group_order",
           "tests/unit/test_heatmap_plot.py::test_heatmap_facet_order_and_rename_combined"
@@ -1683,7 +1731,6 @@
       "evidence": {
         "implementation": [
           "src/web/components/plotting/config/dual_axis_settings.py::render_dual_axis_display_settings",
-          "src/web/components/plotting/config/dual_axis_settings.py::render_secondary_legend_controls",
           "src/web/components/plotting/config/dual_axis_settings.py::render_right_axis_dot_settings",
           "src/web/components/plotting/config/dual_axis_config.py::_sync_auto_labels",
           "src/web/rendering/config_builder.py::ConfigSpecBuilder.from_config",
@@ -2100,6 +2147,26 @@
         ],
         "documentation": [
           "docs/user-guide/workflows/portfolios.md#save-and-restore-in-python"
+        ]
+      }
+    },
+    {
+      "id": "portfolio.example-catalog",
+      "group": "reproducibility",
+      "revision": 1,
+      "status": "approved",
+      "title": "Generated example portfolio",
+      "description": "Developers shall be able to generate a self-validating portfolio from deterministic representative data, containing one Plotly- and Matplotlib-renderable example of every registered plot type.",
+      "tags": ["examples", "portfolios", "reproducibility"],
+      "evidence": {
+        "implementation": [
+          "scripts/generate_example_portfolio.py::generate_example_portfolio"
+        ],
+        "tests": [
+          "tests/unit/test_generate_example_portfolio.py::test_every_registered_plot_example_renders"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/portfolios.md#generate-the-example-portfolio"
         ]
       }
     },
@@ -4182,13 +4249,12 @@
           "src/core/application_api.py::ApplicationAPI.submit_incremental_parse_async",
           "src/core/application_api.py::ApplicationAPI.finalize_incremental_parsing",
           "ring5/_session.py::Session.parse_submit",
-          "src/web/components/data_source/data_source_components.py::DataSourceComponents.render_parser_config",
-          "src/web/components/data_source/data_source_components.py::DataSourceComponents._show_parse_dialog"
+          "src/web/components/data_source/data_source_components.py::DataSourceComponents.render_parser_config"
         ],
         "tests": [
           "tests/unit/test_incremental_parse_cache.py::test_cache_is_plain_json_and_rejects_stale_or_malformed_records",
           "tests/integration/test_incremental_parsing.py::test_incremental_parse_reuses_updates_and_removes_exact_source_rows",
-          "tests/unit/test_incremental_parse_component.py::test_incremental_dialog_finalizes_an_all_reused_batch",
+          "tests/unit/test_incremental_parse_component.py::test_incremental_background_job_finalizes_an_all_reused_batch",
           "tests/unit/test_application_api_delegation.py::TestIncrementalParsing.test_submit_and_finalize_delegate_to_parser",
           "tests/e2e/test_data_source.py::TestDataSourcePageStructure.test_incremental_parse_control_is_visible_and_enabled"
         ],
@@ -4957,7 +5023,6 @@
     "navigation_pages": {
       "Data Managers": "data.summary",
       "Data Source": "ingestion.source-modes",
-      "Documentation": "workspace.documentation-hub",
       "Manage Plots": "plots.create-multiple",
       "Save/Load Portfolio": "portfolio.save"
     },
@@ -5377,10 +5442,13 @@
       "available_simulator_info": "ingestion.simulator-registry",
       "available_simulators": "ingestion.simulator-registry",
       "cancel_background_job": "workspace.background-jobs",
+      "cancel_parse_job": "ingestion.session-background-parse",
       "cancel_pending_scans": "ingestion.async-scan",
+      "close": "ingestion.session-background-parse",
       "close_background_jobs": "workspace.background-jobs",
       "clear_preview": "data.preview-confirm",
       "compare_plot_configurations": "plots.configuration-comparison",
+      "consume_parse_job": "ingestion.session-background-parse",
       "create_dashboard": "plots.multi-panel-dashboard",
       "create_linked_selection": "plots.linked-selections",
       "copy_plot_content": "plots.copy-settings-pipeline",
@@ -5392,6 +5460,7 @@
       "delete_from_pool": "ingestion.csv-pool",
       "delete_dataset_snapshot": "data.dataset-snapshots",
       "dismiss_finished_background_jobs": "workspace.background-jobs",
+      "dismiss_parse_job": "ingestion.session-background-parse",
       "export_configuration": "shaping.config-import-export",
       "finalize_parsing": "ingestion.async-parse",
       "finalize_scan": "ingestion.async-scan",
@@ -5401,12 +5470,14 @@
       "finalize_parser_playground": "ingestion.parser-playground",
       "get_column_info": "data.summary",
       "get_background_job_result": "workspace.background-jobs",
+      "get_active_parse_job": "ingestion.session-background-parse",
       "get_current_view": "workspace.data-preview",
       "get_dataset": "data.multi-dataset-workspace",
       "get_dataset_lineage": "data.lineage-undo-redo",
       "get_dataset_revision": "data.lineage-undo-redo",
       "get_manager_history": "data.operation-history",
       "get_parse_status": "ingestion.scan-presets-progress",
+      "get_parse_job": "ingestion.session-background-parse",
       "get_portfolio_history": "data.operation-history",
       "get_preview": "data.preview-confirm",
       "get_scanner_status": "ingestion.scan-presets-progress",
@@ -5441,6 +5512,7 @@
       "remove_visualization_config": "plots.delete",
       "reset_session": "workspace.reset",
       "retry_background_job": "workspace.background-jobs",
+      "retry_parse_job": "ingestion.session-background-parse",
       "save_configuration": "data.saved-pipeline-configurations",
       "save_dataset_snapshot": "data.dataset-snapshots",
       "search_workspace": "workspace.global-search",
@@ -5460,6 +5532,7 @@
       "set_visualization_config": "plots.independent-state",
       "shapers": "quality.application-facade",
       "submit_background_operation": "workspace.background-jobs",
+      "submit_parse_job": "ingestion.session-background-parse",
       "submit_parse_async": "ingestion.async-parse",
       "submit_incremental_parse_async": "ingestion.incremental-parsing",
       "submit_parser_playground_async": "ingestion.parser-playground",
@@ -5495,6 +5568,7 @@
     },
     "data_services_api_members": {
       "add_to_csv_pool": "ingestion.csv-pool",
+      "publish_to_csv_pool": "ingestion.session-background-parse",
       "add_variable": "ingestion.variable-editor",
       "aggregate_discovered_entries": "ingestion.variable-entry-selection",
       "aggregate_distribution_range": "ingestion.distribution-range-scan",

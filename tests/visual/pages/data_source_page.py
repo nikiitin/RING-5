@@ -224,7 +224,8 @@ class DataSourcePage(BasePage):
     def parser_error_message(self) -> Locator:
         """Error alert shown when parsing fails or path is empty."""
         return self.page.locator(
-            "[data-testid='stMainBlockContainer'] " "[data-testid='stAlertContentError']"
+            "[data-testid='stMainBlockContainer'] "
+            ":is([data-testid='stAlertContentError'], [data-testid='stException'])"
         )
 
     # SECTION 4: CSV mode
@@ -424,22 +425,32 @@ class DataSourcePage(BasePage):
         """'+ Add Manual' button in the variable editor."""
         return self.page.get_by_role("button", name="Add Manual")
 
-    # SECTION 8: Parsing dialog
+    # SECTION 8: Background parsing
 
     @property
-    def parse_dialog(self) -> Locator:
-        """The 'Parsing gem5 Stats' dialog."""
-        return self.page.locator("[data-testid='stDialog']")
+    def parse_job_heading(self) -> Locator:
+        """Detailed background-parse heading on the Data Source page."""
+        return self.page.get_by_text("Background parsing", exact=True)
 
     @property
-    def parse_dialog_progress(self) -> Locator:
-        """Progress bar inside the parse dialog."""
-        return self.parse_dialog.locator("[role='progressbar']")
+    def parse_job_progress(self) -> Locator:
+        """File progress bar for the visible background parse."""
+        return self.page.locator("[data-testid='stMainBlockContainer'] [role='progressbar']").first
 
     @property
-    def parse_close_button(self) -> Locator:
-        """'Close & Reload' button in the parse dialog."""
-        return self.parse_dialog.get_by_role("button", name="Close & Reload")
+    def parse_job_retry_button(self) -> Locator:
+        """Manual retry action shown for partial, failed, or cancelled work."""
+        return self.page.get_by_role("button", name="Retry", exact=True).first
+
+    @property
+    def parse_completion_message(self) -> Locator:
+        """One-shot toast emitted after a successful result is loaded."""
+        return (
+            self.page.get_by_text("Loaded parsed CSV from Recent", exact=True)
+            .or_(self.page.get_by_text("Reused parsed CSV from Recent", exact=True))
+            .or_(self.page.get_by_text("Loaded partial CSV:", exact=False))
+            .first
+        )
 
     # Actions
 
@@ -1003,30 +1014,18 @@ class DataSourcePage(BasePage):
 
     # E2E: Parse workflow
 
+    def wait_for_parse_completion(self, *, timeout: int = 60_000) -> None:
+        """Wait for automatic result consumption and verify data is loaded."""
+        expect(self.parse_completion_message).to_be_visible(timeout=timeout)
+        rows_metric = self.page.locator("[data-testid='stMetric']").filter(has_text="Rows").first
+        expect(rows_metric).to_be_visible(timeout=timeout)
+
     def parse_and_wait(self, *, timeout: int = 60_000) -> None:
-        """Click Parse and wait for the parse dialog to complete.
-
-        Waits for the progress bar to reach 100% and the
-        'Close & Reload' button to appear.
-        """
+        """Submit a parse and wait for its automatic background consumption."""
         self.click_parse()
-        # Wait for the parse dialog to appear
-        expect(self.parse_dialog).to_be_visible(timeout=timeout)
-        # Wait for "Close & Reload" button (appears on success)
-        expect(self.parse_close_button).to_be_visible(timeout=timeout)
+        self.wait_for_parse_completion(timeout=timeout)
 
-    def close_parse_dialog_and_reload(self) -> None:
-        """Click 'Close & Reload' in the parse dialog to reload the page."""
-        expect(self.parse_close_button).to_be_visible(timeout=self.RENDER_TIMEOUT)
-        self.parse_close_button.click()
-        self.wait_for_streamlit()
-
-    def assert_parse_dialog_shows_errors(self) -> None:
-        """Assert the parse dialog shows error messages."""
-        error_text = self.parse_dialog.locator("[data-testid='stAlertContentError']")
-        expect(error_text).to_be_visible(timeout=self.RENDER_TIMEOUT)
-
-    def assert_parse_dialog_shows_no_results(self) -> None:
-        """Assert the parse dialog reports no results generated."""
-        warning = self.parse_dialog.locator("[data-testid='stAlertContentWarning']")
-        expect(warning).to_be_visible(timeout=self.RENDER_TIMEOUT)
+    def wait_for_parse_terminal_outcome(self, *, timeout: int = 60_000) -> None:
+        """Wait until a parse loads successfully or exposes manual recovery."""
+        outcome = self.parse_completion_message.or_(self.parse_job_retry_button).first
+        expect(outcome).to_be_visible(timeout=timeout)

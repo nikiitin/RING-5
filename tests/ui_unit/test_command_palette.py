@@ -12,6 +12,7 @@ from src.core.models import (
     WorkspaceCommandAction,
     WorkspaceCommandSearchResponse,
 )
+from src.core.services.workspace_command_catalog import WORKSPACE_COMMANDS
 
 
 def _command(
@@ -20,11 +21,12 @@ def _command(
     action: str = "navigate",
     destination: str = "Manage Plots",
 ) -> WorkspaceCommand:
+    """Build a command fixture with a category matching its action."""
     return WorkspaceCommand(
         command_id=command_id,
         title="Go to Manage Plots",
         description="Open plots and pipelines.",
-        category="navigation" if action == "navigate" else "search",  # type: ignore[arg-type]
+        category="search" if action == "focus_workspace_search" else "navigation",
         action=cast(WorkspaceCommandAction, action),
         destination=destination,
         shortcuts=("Alt+3",),
@@ -36,6 +38,7 @@ def _command(
 def test_render_dialog_lists_shortcuts_and_searches_commands(
     mock_st: MagicMock,
 ) -> None:
+    """Render trusted command matches as actionable buttons."""
     from src.web.components.command_palette import CommandPaletteComponent
 
     mock_st.text_input.return_value = "plot"
@@ -59,9 +62,41 @@ def test_render_dialog_lists_shortcuts_and_searches_commands(
 
 
 @patch("src.web.components.command_palette.st")
+def test_render_dialog_uses_a_link_for_external_documentation(mock_st: MagicMock) -> None:
+    """Render the canonical documentation command as an external link."""
+    # [test->req~ring5.workspace.documentation-hub~2]
+    from src.web.components.command_palette import CommandPaletteComponent
+
+    documentation = next(
+        command for command in WORKSPACE_COMMANDS if command.command_id == "navigate.documentation"
+    )
+    mock_st.text_input.return_value = "documentation"
+    mock_st.expander.return_value.__enter__.return_value = MagicMock()
+    api = MagicMock()
+    api.search_workspace_commands.return_value = WorkspaceCommandSearchResponse(
+        query="documentation",
+        commands=(documentation,),
+        total_matches=1,
+        returned_matches=1,
+        results_truncated=False,
+    )
+
+    CommandPaletteComponent.render_dialog(api)
+
+    mock_st.link_button.assert_called_once_with(
+        "Open Documentation · Alt+5",
+        "https://nikiitin.github.io/RING-5/",
+        width="stretch",
+        help="Open the published RING-5 documentation in a new browser tab.",
+    )
+    mock_st.button.assert_not_called()
+
+
+@patch("src.web.components.command_palette.st")
 def test_activate_navigates_focuses_search_and_rejects_untrusted_actions(
     mock_st: MagicMock,
 ) -> None:
+    """Apply internal actions and reject destinations outside the catalog."""
     # [test->req~ring5.workspace.command-palette~1]
     from src.web.components.command_palette import CommandPaletteComponent
 
@@ -79,6 +114,9 @@ def test_activate_navigates_focuses_search_and_rejects_untrusted_actions(
     assert mock_st.session_state["_workspace_search_requested"] is True
     assert mock_st.session_state["_workspace_search_focus_pending"] is True
 
+    with pytest.raises(ValueError, match="rendered link"):
+        CommandPaletteComponent.activate(_command(action="open_external"))
+
     with pytest.raises(ValueError, match="Unsupported workspace destination"):
         CommandPaletteComponent.activate(_command(destination="Unknown"))
     with pytest.raises(ValueError, match="Unsupported workspace command action"):
@@ -91,6 +129,7 @@ def test_activate_navigates_focuses_search_and_rejects_untrusted_actions(
 def test_launcher_installs_one_bridge_with_pending_focus(
     mock_st: MagicMock,
 ) -> None:
+    """Install one keyboard bridge and consume pending focus requests."""
     from src.web.components.command_palette import CommandPaletteComponent
 
     mock_st.button.return_value = False
@@ -103,6 +142,7 @@ def test_launcher_installs_one_bridge_with_pending_focus(
 
     html = mock_st.iframe.call_args.args[0]
     assert "__ring5ShortcutHandler" in html
+    assert 'querySelectorAll("button, a")' in html
     assert "Alt+1" not in html
     assert "if (true)" in html
     assert mock_st.iframe.call_args.kwargs == {"height": 1}

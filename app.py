@@ -10,6 +10,11 @@ root_dir = Path(__file__).parent
 if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
+from src.core.common.runtime_limits import configure_native_thread_limits  # noqa: E402
+from src.core.services.workspace_command_catalog import DOCUMENTATION_URL  # noqa: E402
+
+configure_native_thread_limits()
+
 
 def run_app() -> None:
     """Main application entry point."""
@@ -48,14 +53,28 @@ def run_app() -> None:
     from src.core.application_api import ApplicationAPI
     from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
-    # The API owns mutable data, plots, parser configuration, and operation
-    # history. Keep one workspace per browser session; only explicitly
-    # thread-safe worker pools are shared process-wide.
+    # The API owns mutable workspace state and transient parse metadata. Keep
+    # one resource per browser session and release it when that session ends.
+    # Only explicitly thread-safe parser worker pools remain process-wide.
     # [impl->req~ring5.workspace.session-isolation~1]
-    if "api" not in st.session_state:
-        st.session_state.api = ApplicationAPI(plot_deserializer=PlotFactory.from_dict)
+    @st.cache_resource(
+        show_spinner="Initializing RING-5...",
+        scope="session",
+        on_release=lambda session_api: session_api.close(),
+    )
+    def get_api() -> ApplicationAPI:
+        """Return the mutable application facade owned by this browser session."""
+        return ApplicationAPI(plot_deserializer=PlotFactory.from_dict)
 
-    api: ApplicationAPI = st.session_state.api
+    api = get_api()
+    st.session_state.api = api
+
+    from src.web.components.data_source.parse_job_status import (
+        render_sidebar_parse_job,
+        show_parse_job_flash,
+    )
+
+    show_parse_job_flash()
 
     # Sidebar - Navigation
     with st.sidebar:
@@ -63,16 +82,15 @@ def run_app() -> None:
         st.caption("gem5 Analysis & Visualization")
         st.markdown("---")
 
-        # [impl->req~ring5.workspace.navigation~1]
+        # [impl->req~ring5.workspace.navigation~2]
         _NAV_OPTIONS = [
             "Data Source",
             "Data Managers",
             "Manage Plots",
             "Save/Load Portfolio",
-            "Documentation",
         ]
 
-        if "_nav_page" not in st.session_state:
+        if st.session_state.get("_nav_page") not in _NAV_OPTIONS:
             st.session_state["_nav_page"] = _NAV_OPTIONS[0]
 
         from src.web.components.command_palette import CommandPaletteComponent
@@ -102,12 +120,21 @@ def run_app() -> None:
                 st.session_state["_nav_page"] = _nav_item
                 st.rerun()
 
+        # [impl->req~ring5.workspace.documentation-hub~2]
+        st.link_button(
+            "Documentation",
+            DOCUMENTATION_URL,
+            width="stretch",
+            help="Open the published RING-5 documentation",
+        )
+
         page = st.session_state["_nav_page"]
 
         st.markdown("---")
 
         from src.web.components.background_job_center import BackgroundJobCenter
 
+        render_sidebar_parse_job(api)
         BackgroundJobCenter.render(api)
 
         st.markdown("---")
@@ -139,6 +166,7 @@ def run_app() -> None:
     # Data preview (fragment-wrapped — only reruns when its own widgets change).
     @st.fragment
     def _data_preview_fragment() -> None:
+        """Render the current dataset summary in an isolated fragment."""
         # [impl->req~ring5.workspace.data-preview~1]
         current_view = api.get_current_view()
 
@@ -177,10 +205,6 @@ def run_app() -> None:
         from src.web.pages.portfolio import show_portfolio_page
 
         show_portfolio_page(api)
-    elif page == "Documentation":
-        from src.web.pages.documentation import show_documentation_page
-
-        show_documentation_page()
 
 
 if __name__ == "__main__":

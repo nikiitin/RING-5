@@ -1,5 +1,13 @@
+RING5_NATIVE_THREADS ?= 2
+E2E_WORKERS ?= 2
+export OPENBLAS_NUM_THREADS := $(RING5_NATIVE_THREADS)
+export OMP_NUM_THREADS := $(RING5_NATIVE_THREADS)
+export MKL_NUM_THREADS := $(RING5_NATIVE_THREADS)
+export NUMEXPR_NUM_THREADS := $(RING5_NATIVE_THREADS)
+export VECLIB_MAXIMUM_THREADS := $(RING5_NATIVE_THREADS)
+
 VENV_NAME := python_venv
-VENV_BIN := ./$(VENV_NAME)/bin
+VENV_BIN := $(VENV_NAME)/bin
 PYTHON := $(VENV_BIN)/python
 PIP := $(VENV_BIN)/pip
 PYTEST := $(VENV_BIN)/pytest
@@ -26,7 +34,7 @@ OFT_NATIVE_REPORT := $(OFT_CACHE_DIR)/ring5-openfasttrace.html
 OFT_REPORT := spec/oft/generated/report.html
 OFT_EXECUTION_RESULTS_ARG = $(if $(EXECUTION_RESULTS),--execution-results "$(EXECUTION_RESULTS)",)
 
-.PHONY: help venv install dev run playwright-install install-latex check-latex \
+.PHONY: help venv install dev run example-portfolio playwright-install install-latex check-latex \
 	test-data mock-data test test-unit test-nonbrowser test-api test-ci test-export test-latex \
 	test-e2e test-visual \
 	format format-check lint type-check arch-check comments-check docs-check dependency-check \
@@ -38,6 +46,7 @@ help:
 	@echo ""
 	@echo "  dev                 Install editable development and browser dependencies"
 	@echo "  run                 Start the Streamlit application"
+	@echo "  example-portfolio   Generate the example plot portfolio"
 	@echo "  test-unit           Run fast unit tests"
 	@echo "  test                Run non-browser tests, including serial exports"
 	@echo "  test-latex          Run tests that require a local XeLaTeX installation"
@@ -70,6 +79,9 @@ dev: venv
 
 run:
 	$(VENV_BIN)/streamlit run app.py
+
+example-portfolio:
+	$(PYTHON) scripts/generate_example_portfolio.py
 
 playwright-install: venv
 	$(VENV_BIN)/playwright install chromium
@@ -141,9 +153,10 @@ test-ci: test-data mock-data test-api
 
 test-e2e:
 	$(PYTEST) tests/e2e -m "requires_browser and not serial" \
-		-n 2 --dist loadgroup --timeout=240 --timeout-method=thread --no-cov
-	$(PYTEST) tests/e2e -m "requires_browser and serial" \
-		-n 0 --timeout=240 --timeout-method=thread --no-cov
+		-n $(E2E_WORKERS) --dist loadgroup \
+		--timeout=240 --timeout-method=thread --no-cov
+	$(PYTEST) tests/e2e -m "requires_browser and serial" -n 0 \
+		--timeout=240 --timeout-method=thread --no-cov
 
 test-visual:
 	@set -eu; \
@@ -189,7 +202,7 @@ dependency-check:
 
 security-audit:
 	$(VENV_BIN)/bandit -r ring5 src -c pyproject.toml -ll
-	$(VENV_BIN)/pip-audit --progress-spinner off
+	$(VENV_BIN)/pip-audit --strict --progress-spinner off .
 
 oft-generate:
 	$(PYTHON) scripts/generate_oft_inventory.py

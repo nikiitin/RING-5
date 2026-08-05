@@ -20,6 +20,26 @@ from src.parsing.framework.job import Job
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_WORKERS = 2
+
+
+def _default_workers() -> int:
+    """Return the bounded worker count, honoring an explicit deployment override."""
+    value = os.environ.get("RING5_WORK_POOL_SIZE")
+    if value is None:
+        return DEFAULT_WORKERS
+
+    try:
+        workers = int(value)
+    except ValueError:
+        logger.warning("Ignoring non-integer RING5_WORK_POOL_SIZE=%r", value)
+        return DEFAULT_WORKERS
+
+    if workers < 1:
+        logger.warning("Ignoring non-positive RING5_WORK_POOL_SIZE=%r", value)
+        return DEFAULT_WORKERS
+    return workers
+
 
 class WorkPool:
     """Unified singleton thread-pool manager for parallel task execution."""
@@ -29,6 +49,7 @@ class WorkPool:
     _new_lock: threading.Lock = threading.Lock()
 
     def __new__(cls) -> WorkPool:
+        """Return the process-wide singleton, creating it under a lock if needed."""
         with cls._new_lock:
             if cls._instance is None:
                 cls._instance = super().__new__(cls)
@@ -36,12 +57,13 @@ class WorkPool:
             return cls._instance
 
     def __init__(self) -> None:
+        """Initialize the executor configuration once for the singleton instance."""
         # Guard runs under the construction lock so two threads racing the very
         # first WorkPool() can never both run the init body.
         with self._new_lock:
             if self._initialized:
                 return
-            self._num_workers = os.cpu_count() or 1
+            self._num_workers = _default_workers()
             self._thread_executor: ThreadPoolExecutor | None = None
             self._executor_lock = threading.Lock()
             self._initialized = True
@@ -52,11 +74,12 @@ class WorkPool:
         return cls()
 
     def _get_thread_executor(self) -> ThreadPoolExecutor:
+        """Return the shared executor, constructing it lazily and thread-safely."""
         # Locked lazy creation so concurrent first submits create exactly one
         # executor (the one shutdown() later releases), never a leaked extra.
         with self._executor_lock:
             if self._thread_executor is None:
-                self._thread_executor = ThreadPoolExecutor(max_workers=self._num_workers * 2)
+                self._thread_executor = ThreadPoolExecutor(max_workers=self._num_workers)
             return self._thread_executor
 
     def submit(self, task: Job | Callable[[], Any]) -> Future[Any]:

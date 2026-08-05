@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal, TypeAlias
 
-WorkspaceCommandAction: TypeAlias = Literal["navigate", "focus_workspace_search"]
+WorkspaceCommandAction: TypeAlias = Literal["navigate", "focus_workspace_search", "open_external"]
 WorkspaceCommandCategory: TypeAlias = Literal["navigation", "search"]
 
 

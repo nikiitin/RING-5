@@ -8,7 +8,7 @@ from src.core.application_api import ApplicationAPI
 from src.core.models import WorkspaceSearchResult
 
 _NAVIGATION_PAGES = frozenset(
-    {"Data Source", "Data Managers", "Manage Plots", "Save/Load Portfolio", "Documentation"}
+    {"Data Source", "Data Managers", "Manage Plots", "Save/Load Portfolio"}
 )
 _KIND_LABELS = {
     "variable": "Variable",

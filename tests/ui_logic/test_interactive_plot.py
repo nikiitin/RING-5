@@ -9,7 +9,7 @@ Verifies:
 
 import json
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import plotly.graph_objects as go
@@ -21,6 +21,21 @@ class TestInteractivePlotlyChart:
     """Tests for the interactive_plotly_chart function."""
 
     # [test->req~ring5.figure.interactive-editing~1]
+
+    @patch(f"{MODULE}._component_func")
+    def test_uses_standard_library_json_engine(self, mock_func: MagicMock) -> None:
+        """Serialization must not lazily import a native JSON engine."""
+        from src.web.components.plotting.interactive_plot import (
+            interactive_plotly_chart,
+        )
+
+        fig = MagicMock(spec=go.Figure)
+        fig.to_plotly_json.return_value = {"data": [], "layout": {}}
+
+        interactive_plotly_chart(fig)
+
+        fig.to_plotly_json.assert_called_once_with()
+        fig.to_json.assert_not_called()
 
     @patch(f"{MODULE}._component_func")
     def test_basic_call_serializes_figure(self, mock_func: MagicMock) -> None:
@@ -54,7 +69,7 @@ class TestInteractivePlotlyChart:
         )
 
         fig = go.Figure()
-        config: Dict[str, Any] = {"displayModeBar": False}
+        config: dict[str, Any] = {"displayModeBar": False}
         interactive_plotly_chart(fig, config=config)
 
         call_kwargs = mock_func.call_args
@@ -125,7 +140,7 @@ class TestInteractivePlotlyChart:
     @patch(f"{MODULE}._component_func")
     def test_returns_component_value(self, mock_func: MagicMock) -> None:
         """Return value from the component function is passed through."""
-        expected: Dict[str, Any] = {"relayoutData": {"xaxis.range": [0, 10]}}
+        expected: dict[str, Any] = {"relayoutData": {"xaxis.range": [0, 10]}}
         mock_func.return_value = expected
 
         from src.web.components.plotting.interactive_plot import (
@@ -153,6 +168,7 @@ class TestInteractivePlotlyChart:
 
 
 def test_browser_component_sanitizes_plotly_click_payloads() -> None:
+    """Keep click events bounded by the browser-side sanitizer."""
     html = (
         Path(__file__).parents[2] / "src/web/components/plotting/custom_plotly/index.html"
     ).read_text(encoding="utf-8")

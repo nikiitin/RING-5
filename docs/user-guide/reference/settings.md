@@ -237,15 +237,17 @@ label. A normalized baseline is represented by a line at one.
 ### Ordering and renaming
 
 <!--
-`uman~ring5.figure.ordering-renaming.documentation~1`
+`uman~ring5.figure.ordering-renaming.documentation~2`
 
 Covers:
-- req~ring5.figure.ordering-renaming~1
+- req~ring5.figure.ordering-renaming~2
 
 -->
 
-Applicable plots store display-only order and label mappings for X categories, groups, legend
-items, stack series, Y metrics, and heatmap facets. These settings do not rewrite processed data.
+Applicable plots store display-only order and label mappings for X categories, groups, Y metrics,
+and heatmap facets under **Axes**. Legend entries and stack series are ordered and renamed under
+**Legends**, independently for each visible legend tier. These settings do not rewrite processed
+data.
 
 ### Stack totals
 

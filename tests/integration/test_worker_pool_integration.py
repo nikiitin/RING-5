@@ -18,6 +18,7 @@ from src.core.models import StatConfig
 from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
 from src.parsing.gem5.impl.strategies.gem5_parse_work import Gem5ParseWork
 from src.parsing.gem5.impl.strategies.perl_worker_pool import (
+    DEFAULT_PERL_WORKERS,
     get_worker_pool,
     shutdown_worker_pool,
 )
@@ -123,6 +124,7 @@ class TestWorkerPoolIntegration:
         # Get worker pool ID before parsing
         pool_before = get_worker_pool()
         pool_id_before = id(pool_before)
+        assert pool_before.pool_size == DEFAULT_PERL_WORKERS == 2
 
         # Create and execute multiple parse works
         for _ in range(3):

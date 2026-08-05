@@ -148,10 +148,10 @@ class TestHistogramPlotFigureCreation:
         # Data with grouping variable
         data = pd.DataFrame(
             {
-                "benchmark": ["A", "B"],
-                "latency..0-10": [5, 8],
-                "latency..10-20": [10, 12],
-                "latency..20-30": [3, 5],
+                "benchmark": ["A", "B", None],
+                "latency..0-10": [5, 8, 100],
+                "latency..10-20": [10, 12, 100],
+                "latency..20-30": [3, 5, 100],
             }
         )
 
@@ -163,13 +163,16 @@ class TestHistogramPlotFigureCreation:
             "bucket_size": 10,
             "normalization": "count",
             "group_by": "benchmark",
+            "legend_order": ["B", "A"],
+            "legend_labels": {"B": "Optimized"},
         }
 
         fig = plot.create_figure(data, config)
 
         assert fig is not None
-        # Should have 2 traces (one per benchmark)
+        # Missing group values do not create a bogus empty trace.
         assert len(list(fig.data)) == 2
+        assert [trace.name for trace in fig.data] == ["Optimized", "A"]
 
     def test_create_figure_with_rebinning(self) -> None:
         """Test histogram with custom bucket size (rebinning)."""

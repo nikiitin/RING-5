@@ -42,3 +42,24 @@ class TestBackgroundJobCenter:
         base.wait_for_streamlit(expect_rerun=True)
         base.open_background_jobs()
         expect(base.background_jobs_content).to_contain_text("No background jobs in this session.")
+
+
+class TestBackgroundParseJob:
+    """A real parse is consumed automatically and remains available in Recent."""
+
+    def test_parse_loads_without_a_blocking_dialog(self, tier0_page: Page) -> None:
+        """Verify submit, automatic consumption, data loading, and Recent publication."""
+        # [test->req~ring5.ingestion.session-background-parse~1]
+        source = Path(__file__).parent / "fixtures" / "background_job_stats"
+        assert (source / "run" / "stats.txt").is_file(), "tracked parse fixture is missing"
+
+        data_source = DataSourcePage(tier0_page)
+        data_source.navigate()
+        data_source.ensure_parse_mode()
+        data_source.fill_stats_path(str(source))
+        data_source.fill_stats_pattern("stats.txt")
+        data_source.parse_and_wait()
+        data_source.assert_data_loaded(row_count=1)
+
+        data_source.select_recent_mode()
+        expect(data_source.pool_file_count_info).to_be_visible()

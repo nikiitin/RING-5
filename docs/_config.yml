@@ -5,6 +5,13 @@ baseurl: /RING-5
 
 theme: just-the-docs
 
+# The current theme still requires Sass imports; use its upstream-supported
+# warning policy while keeping Jekyll and Dart Sass on their latest releases.
+sass:
+  quiet_deps: true
+  silence_deprecations:
+    - import
+
 # Preserve old wiki URLs after the docs consolidation (see redirect_from front-matter).
 plugins:
   - jekyll-redirect-from

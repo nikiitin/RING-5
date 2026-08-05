@@ -17,8 +17,8 @@ RING-5 tests the UI at four levels — pick the cheapest that covers the behavio
 Run: `make test-unit` (no-browser), `make test-visual` (browser; spins up Streamlit on :8502).
 E2E marker: `-m requires_browser`. Visual is excluded from default collection.
 
-`tests/ui/conftest.py` records that Streamlit fixed the old `ButtonGroup.indices` single-selection
-bug in 1.58. No compatibility monkey-patch remains.
+`tests/ui/conftest.py` clears session-scoped cached resources around every AppTest. Streamlit fixed
+the old `ButtonGroup.indices` single-selection bug in 1.58, so no compatibility monkey-patch remains.
 
 ## Page Object Model (Playwright)
 - Locators are **`@property`** (never methods); actions are **methods** that take no locator params.
@@ -73,41 +73,39 @@ def _by_label(page, test_id, label):   # scope a widget duplicated across tabs
 - **Fragment reruns** (`@st.fragment`) need an extra `wait_for_timeout(500)` after interaction.
 - **`st.rerun()` closes dialogs** — don't expect a `stDialog` to survive a rerun.
 - **Forms batch** their widget changes (no per-widget rerun) — submit, then assert.
-- **Application state is browser-session owned.** `st.session_state.api` holds one
-  `ApplicationAPI` per context; `test_session_isolation.py` verifies that data,
-  plots, and reset operations do not cross contexts. Browser-test classes still
+- **Application state is browser-session owned.** `app.py` caches one `ApplicationAPI` with
+  `scope="session"` and closes it through `on_release`; `test_session_isolation.py` verifies that
+  data, plots, and reset operations do not cross contexts. Browser-test classes still
   reuse `shared_page`, so the autouse class-scoped `_reset_app_state` fixture in
   both conftest files clears that reused context before each class.
 
-## The e2e gate is two resource-bounded passes
+## The e2e gate is serial by default
 ```bash
-# 1) main suite — everything except the Kaleido raster-download class
-pytest tests/e2e -m "requires_browser and not serial" -n 2 --dist loadgroup \
-  --timeout=240 --timeout-method=thread
-# 2) serial pass — the @pytest.mark.serial classes (Kaleido raster downloads), no parallelism
-pytest tests/e2e -m "requires_browser and serial" -n 0 \
+pytest tests/e2e -m "requires_browser" -n 0 \
   --timeout=240 --timeout-method=thread
 ```
-**Two workers are the default ceiling.** Each worker owns a Streamlit server and Chromium browser,
-so browser tests are RAM-bound as well as CPU-bound. Run them in a cgroup/systemd scope when sharing
-a workstation, keep swap disabled for the scope, and use `-n 0` for a focused diagnostic rerun.
-Timeouts and OOMs are test failures: inspect whether the application, synchronization, or resource
-budget is wrong instead of dismissing them as environmental flakes. Hard-won facts from full runs:
+**Two workers are the repository safety ceiling, not a throughput target.** Each worker owns a
+Streamlit server and Chromium browser, so browser tests are RAM-bound as well as CPU-bound. Run them
+in a cgroup/systemd scope when sharing a workstation, keep swap disabled for the scope, and use
+`-n 2 --dist loadgroup` only as an explicit opt-in after checking available memory. Timeouts and
+OOMs are test failures: inspect whether the application, synchronization, or resource budget is
+wrong instead of dismissing them as environmental flakes.
 - **Kaleido raster export (pdf/svg/png)** — `download_section` renders the figure via Kaleido (a
-  Chromium subprocess) *eagerly* before `st.download_button`. Three of those across xdist workers
-  deadlock/starve AND cascade (a stuck export pegs CPU, timing out unrelated chart renders on other
-  workers), so the class stays `serial` (`-n 0`). **App-hardened** (`plotly_download_bytes` now drives
+  Chromium subprocess) *eagerly* before `st.download_button`. Concurrent exports can starve each
+  other, so the class stays `serial` (`-n 0`). `plotly_download_bytes` drives
   `kaleido.calc_fig_sync` directly with a 25s per-attempt timeout + 3× retry, fresh Chrome each
-  attempt) → the serial pass is now reliable (8/8). The other gotcha here: the `<details>` Download
+  attempt. The other gotcha here: the `<details>` Download
   expander can **re-collapse on the format-select rerun**, hiding the button — `_select_format_pill`
   re-opens it afterwards. test_07's role/enabled check uses kaleido-free `html` to stay fast.
-- **Chart renders (`assert_chart_visible`) can exceed `CHART_TIMEOUT` under contention.** A serial
-  rerun helps distinguish resource starvation from an application or synchronization defect, but the
-  original failure still needs a cause and fix. `CHART_TIMEOUT = 60s` bounds the chart assertion;
-  the 240-second thread watchdog covers tier setup and exits a stuck worker without hanging teardown.
+- **Chart render timeouts are failures.** Inspect the screenshot/trace and server state, then rerun
+  the exact case at `-n 0` to distinguish resource starvation from an application or synchronization
+  defect. Fix stale waits, detached controls, or application errors rather than raising timeouts
+  blindly. `CHART_TIMEOUT = 60s` bounds the chart assertion; the 240-second thread watchdog covers
+  tier setup and exits a stuck worker without hanging teardown; `EXPORT_TIMEOUT = 90s` covers one
+  serial export.
 - Observed under starvation: switching engine to Plotly can leave the Matplotlib `stImage` showing
-  (the engine *pill* flips but the fragment hasn't re-rendered yet) — a fragment-rerun timing artifact,
-  not an engine-state bug.
+  (the engine *pill* flips but the fragment has not re-rendered yet). Synchronize the rerun before
+  asserting the chart body.
 
 ## Efficiency pattern (worth it for browser tests)
 Class-scoped page fixtures + ordered, semantically-related tests cut a prior suite from 148 → 37

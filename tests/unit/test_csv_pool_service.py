@@ -166,7 +166,7 @@ class TestCSVLoading:
         assert metadata["rows"] == 3
         assert "dtypes" in metadata
 
-    @pytest.mark.parametrize("separator", [",", ";", "\t"])
+    @pytest.mark.parametrize("separator", [",", ";", "\t", "|"])
     def test_load_csv_file_handles_different_separators(
         self, tmp_path: Path, separator: str
     ) -> None:
@@ -199,6 +199,19 @@ class TestMetadataCaching:
         assert metadata["rows"] == 3
         assert "dtypes" in metadata
         assert "benchmark" in metadata["dtypes"]
+
+    def test_get_csv_metadata_does_not_infer_data_letters_as_delimiters(
+        self, tmp_path: Path
+    ) -> None:
+        """Metadata and full loading must share the bounded delimiter detector."""
+        csv_file = tmp_path / "single-column.csv"
+        csv_file.write_text("benchmark\nalpha\nbeta\n", encoding="utf-8")
+
+        metadata = CsvPoolService._get_csv_metadata(str(csv_file))
+
+        assert metadata is not None
+        assert metadata["columns"] == ["benchmark"]
+        assert metadata["rows"] == 2
 
     def test_get_csv_metadata_uses_cache_on_second_call(self, sample_csv: Path) -> None:
         """Verify metadata cache prevents redundant file reads."""

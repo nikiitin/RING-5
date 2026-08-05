@@ -27,24 +27,29 @@ from src.core.common.security_limits import MAX_PARSE_LINE_COUNT
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_PERL_WORKERS = 2
+
 
 def _default_pool_size() -> int:
     """Resolve the number of persistent Perl workers.
 
-    Defaults to **half the available CPUs** — parse throughput is bounded by this
-    pool, and measurements show the gain flattens out around cores/2. Override with
-    the ``RING5_PERL_POOL_SIZE`` environment variable (an integer >= 1).
+    Defaults to two persistent processes to bound memory on developer machines.
+    Override with ``RING5_PERL_POOL_SIZE`` (an integer >= 1).
     """
     override = os.environ.get("RING5_PERL_POOL_SIZE")
-    if override:
-        try:
-            n = int(override)
-            if n >= 1:
-                return n
-            logger.warning("RING5_PERL_POOL_SIZE=%r is < 1; ignoring", override)
-        except ValueError:
-            logger.warning("RING5_PERL_POOL_SIZE=%r is not an integer; ignoring", override)
-    return max(1, (os.cpu_count() or 4) // 2)
+    if override is None:
+        return DEFAULT_PERL_WORKERS
+
+    try:
+        size = int(override)
+    except ValueError:
+        logger.warning("Ignoring non-integer RING5_PERL_POOL_SIZE=%r", override)
+        return DEFAULT_PERL_WORKERS
+
+    if size < 1:
+        logger.warning("Ignoring non-positive RING5_PERL_POOL_SIZE=%r", override)
+        return DEFAULT_PERL_WORKERS
+    return size
 
 
 @dataclass
@@ -458,7 +463,7 @@ class PerlWorkerPool:
 
         Args:
             pool_size: Number of worker processes to maintain. When ``None``,
-                defaults to half the available CPUs (see ``_default_pool_size``).
+                defaults to two (see ``_default_pool_size``).
         """
         self.pool_size = pool_size if pool_size is not None else _default_pool_size()
         self.workers: list[PerlWorker] = []
@@ -681,7 +686,7 @@ def get_worker_pool(pool_size: int | None = None) -> PerlWorkerPool:
 
     Args:
         pool_size: Number of workers (only used on first call). ``None`` resolves
-            to half the available CPUs (override via ``RING5_PERL_POOL_SIZE``).
+            to two (override via ``RING5_PERL_POOL_SIZE``).
 
     Returns:
         PerlWorkerPool instance

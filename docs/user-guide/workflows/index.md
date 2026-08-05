@@ -13,10 +13,10 @@ redirect_from:
 # Workflows
 
 <!--
-`uman~ring5.workspace.navigation.documentation~1`
+`uman~ring5.workspace.navigation.documentation~2`
 
 Covers:
-- req~ring5.workspace.navigation~1
+- req~ring5.workspace.navigation~2
 -->
 
 Use these pages for recurring tasks:

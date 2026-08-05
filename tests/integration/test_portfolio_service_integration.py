@@ -183,6 +183,16 @@ def test_save_portfolio_empty_name(portfolio_service: Any) -> None:
         portfolio_service.save_portfolio("", pd.DataFrame(), [], {}, 0)
 
 
+@pytest.mark.parametrize("name", ["../alias", "path/alias", ".hidden", "bad\nname"])
+def test_portfolio_names_cannot_alias_after_sanitization(
+    portfolio_service: Any,
+    name: str,
+) -> None:
+    """Reject names that would share a storage path or create unsafe filenames."""
+    with pytest.raises(ValueError, match="Portfolio name"):
+        portfolio_service.save_portfolio(name, pd.DataFrame(), [], {}, 0)
+
+
 def test_load_nonexistent_portfolio(portfolio_service: Any) -> None:
     """Test error handling for loading missing portfolio."""
     with pytest.raises(FileNotFoundError):
