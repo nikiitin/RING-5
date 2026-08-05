@@ -2151,6 +2151,26 @@
       }
     },
     {
+      "id": "portfolio.example-catalog",
+      "group": "reproducibility",
+      "revision": 1,
+      "status": "approved",
+      "title": "Generated example portfolio",
+      "description": "Developers shall be able to generate a self-validating portfolio from deterministic representative data, containing one Plotly- and Matplotlib-renderable example of every registered plot type.",
+      "tags": ["examples", "portfolios", "reproducibility"],
+      "evidence": {
+        "implementation": [
+          "scripts/generate_example_portfolio.py::generate_example_portfolio"
+        ],
+        "tests": [
+          "tests/unit/test_generate_example_portfolio.py::test_every_registered_plot_example_renders"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/portfolios.md#generate-the-example-portfolio"
+        ]
+      }
+    },
+    {
       "id": "portfolio.restore",
       "group": "reproducibility",
       "revision": 1,

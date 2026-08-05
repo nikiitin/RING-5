@@ -55,8 +55,14 @@ make test-e2e         # Playwright workflows
 make test-visual      # local visual diagnostics
 ```
 
-Use markers declared in `pyproject.toml`. Plotly/Kaleido export and other process-owning tests run
-serially. Browser tests use the Chromium installed by `make dev`.
+Use markers declared in `pyproject.toml`. Repository test commands run serially by default.
+`make test-e2e` uses two workers for grouped browser tests so ordered, stateful classes stay together,
+then runs resource-heavy tests serially. Set `E2E_WORKERS=1` when local memory is tighter; the
+`-n auto` hook is also capped at two workers.
+
+Make targets also limit native numerical runtimes to two threads. Set `RING5_NATIVE_THREADS=1` for
+a tighter local budget. Parser deployments can tune `RING5_WORK_POOL_SIZE` and
+`RING5_PERL_POOL_SIZE`; both default to two and each value must be a positive integer.
 
 For a public API addition, extend `tests/integration/test_ring5_public_api.py`. For serialized
 changes, test both current output and loading or migrating an older fixture.

@@ -10,7 +10,10 @@ root_dir = Path(__file__).parent
 if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
+from src.core.common.runtime_limits import configure_native_thread_limits  # noqa: E402
 from src.core.services.workspace_command_catalog import DOCUMENTATION_URL  # noqa: E402
+
+configure_native_thread_limits()
 
 
 def run_app() -> None:

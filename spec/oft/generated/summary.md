@@ -6,13 +6,13 @@
 This file is informative; normative items are in the other generated files.
 
 - Feature groups: 13
-- Detailed requirements: 221
-- Approved current requirements: 221
+- Detailed requirements: 222
+- Approved current requirements: 222
 - Proposed future requirements: 0
 - Draft future requirements: 0
 - In development future requirements: 0
 - Blocked future requirements: 0
-- Generated specification items: 234
+- Generated specification items: 235
 - Live capability bindings: 879
 
 ## Requirements by feature group
@@ -28,7 +28,7 @@ This file is informative; normative items are in the other generated files.
 | Plot Types | 17 | 0 | 0 | 0 | 0 | 17 |
 | Figure Configuration | 31 | 0 | 0 | 0 | 0 | 31 |
 | Rendering and Export | 15 | 0 | 0 | 0 | 0 | 15 |
-| Reproducibility and Portfolios | 13 | 0 | 0 | 0 | 0 | 13 |
+| Reproducibility and Portfolios | 14 | 0 | 0 | 0 | 0 | 14 |
 | Automation API and CLI | 17 | 0 | 0 | 0 | 0 | 17 |
 | Extensibility, Safety, and Quality | 14 | 0 | 0 | 0 | 0 | 14 |
 | Feature Traceability | 11 | 0 | 0 | 0 | 0 | 11 |

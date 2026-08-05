@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import fcntl
 import shutil
+import sqlite3
 import threading
 import time
 from collections.abc import Callable, Generator, Sequence
@@ -378,6 +379,16 @@ class TestParseJobFingerprint:
 
 
 class TestParseJobStore:
+    def test_connections_close_after_each_operation(self, tmp_path: Path) -> None:
+        """Close SQLite descriptors deterministically after each transaction."""
+        store = ParseJobStore(tmp_path / "jobs.sqlite3")
+
+        with store._connect() as connection:
+            connection.execute("SELECT 1").fetchone()
+
+        with pytest.raises(sqlite3.ProgrammingError, match="closed database"):
+            connection.execute("SELECT 1")
+
     def test_transitions_and_bounded_errors(self, tmp_path: Path) -> None:
         _stats_tree(tmp_path)
         request = build_parse_job_request(

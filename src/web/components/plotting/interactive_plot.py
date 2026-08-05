@@ -11,6 +11,7 @@ from typing import Any
 
 import plotly.graph_objects as go
 import streamlit.components.v1 as components
+from plotly.utils import PlotlyJSONEncoder
 
 # Create a reference to the component
 # Use absolute path to ensure robustness
@@ -47,8 +48,12 @@ def interactive_plotly_chart(
     # [impl->req~ring5.figure.interactive-editing~1]
     # [impl->req~ring5.plots.linked-selections~1]
     # [impl->req~ring5.plots.drill-down~1]
-    # Serialize figure to JSON string
-    fig_json: str = fig.to_json() or ""
+    # Avoid a late native orjson import while parser threads may be active.
+    fig_json = json.dumps(
+        fig.to_plotly_json(),
+        cls=PlotlyJSONEncoder,
+        separators=(",", ":"),
+    )
 
     # Render component
     component_value: dict[str, Any] | None = _component_func(
