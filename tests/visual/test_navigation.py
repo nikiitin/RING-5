@@ -1,4 +1,4 @@
-"""Visual tests for cross-page navigation and documentation capture."""
+"""Visual tests for cross-page navigation and capture."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ class TestNavigationWorkflow:
         - navigate_all_pages
         - return_to_home
         """
-        # [test->req~ring5.workspace.navigation~1]
+        # [test->req~ring5.workspace.navigation~2]
         bp = BasePage(shared_page)
         bp.goto_and_wait(live_server_url)
         bp.assert_page_loaded()

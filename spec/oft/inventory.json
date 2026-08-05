@@ -99,11 +99,20 @@
     {
       "id": "workspace.navigation",
       "group": "workspace",
-      "revision": 1,
+      "revision": 2,
       "status": "approved",
       "title": "Page navigation",
       "description": "Users shall navigate between Data Source, Data Managers, Manage Plots, and Save/Load Portfolio from the sidebar, with published documentation exposed as an external link rather than an application page.",
       "tags": ["navigation", "web"],
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "semantic",
+          "title": "Page navigation",
+          "description": "Users shall navigate between Data Source, Data Managers, Manage Plots, Save/Load Portfolio, and Documentation pages from the sidebar.",
+          "reason": "Replaced Documentation routing with a direct link to the published site."
+        }
+      ],
       "evidence": {
         "implementation": ["app.py::run_app"],
         "tests": ["tests/visual/test_navigation.py::TestNavigationWorkflow.test_navigate_all_pages_and_return"],
@@ -1722,7 +1731,6 @@
       "evidence": {
         "implementation": [
           "src/web/components/plotting/config/dual_axis_settings.py::render_dual_axis_display_settings",
-          "src/web/components/plotting/config/dual_axis_settings.py::render_secondary_legend_controls",
           "src/web/components/plotting/config/dual_axis_settings.py::render_right_axis_dot_settings",
           "src/web/components/plotting/config/dual_axis_config.py::_sync_auto_labels",
           "src/web/rendering/config_builder.py::ConfigSpecBuilder.from_config",

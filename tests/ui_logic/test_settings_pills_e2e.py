@@ -890,6 +890,7 @@ class TestLegendItemOrderRename:
 
     @staticmethod
     def _component() -> Any:
+        """Build a legend component with styling widgets isolated."""
         from src.web.components.plotting.settings import LegendSettingsComponent
 
         component = LegendSettingsComponent(plot_id=1, plot_type="grouped_stacked_bar")
@@ -898,6 +899,7 @@ class TestLegendItemOrderRename:
 
     @staticmethod
     def _setup_streamlit(mock_st: MagicMock, tab: str) -> None:
+        """Select one legend tier and provide an expander context."""
         mock_st.pills.return_value = tab
         mock_st.expander.return_value.__enter__ = MagicMock(return_value=MagicMock())
         mock_st.expander.return_value.__exit__ = MagicMock(return_value=False)
@@ -907,6 +909,7 @@ class TestLegendItemOrderRename:
     def test_primary_stacked_items_update_y_columns(
         self, mock_st: MagicMock, mock_reorder: MagicMock
     ) -> None:
+        """Use the primary legend control for left stack-series order."""
         self._setup_streamlit(mock_st, "primary")
         mock_reorder.return_value = (["col_b", "col_a"], {})
 
@@ -920,6 +923,7 @@ class TestLegendItemOrderRename:
     def test_secondary_legend_has_independent_right_axis_order(
         self, mock_st: MagicMock, mock_reorder: MagicMock
     ) -> None:
+        """Keep a separate right-axis legend order on its own tier."""
         self._setup_streamlit(mock_st, "secondary")
         mock_reorder.return_value = (["right_b", "right_a"], {})
         saved: dict[str, Any] = {
@@ -940,6 +944,7 @@ class TestLegendItemOrderRename:
     def test_unified_dual_axis_uses_one_combined_order(
         self, mock_st: MagicMock, mock_reorder: MagicMock
     ) -> None:
+        """Order left and right series together when their legend is unified."""
         self._setup_streamlit(mock_st, "primary")
         mock_reorder.return_value = (["right", "left"], {})
         saved: dict[str, Any] = {
@@ -958,6 +963,7 @@ class TestLegendItemOrderRename:
     def test_color_legend_uses_legend_order_and_labels(
         self, mock_st: MagicMock, mock_reorder: MagicMock
     ) -> None:
+        """Persist categorical color order and display labels from Legends."""
         self._setup_streamlit(mock_st, "primary")
         mock_reorder.return_value = (["slow", "fast"], {"fast": "Fast path"})
         data = pd.DataFrame({"variant": ["fast", "slow", "fast"]})
@@ -972,6 +978,7 @@ class TestLegendItemOrderRename:
     def test_grouped_bar_group_legend_moves_out_of_axis_ordering(
         self, mock_st: MagicMock, mock_reorder: MagicMock
     ) -> None:
+        """Configure grouped-bar legend entries under the primary tier."""
         from src.web.components.plotting.settings import LegendSettingsComponent
 
         self._setup_streamlit(mock_st, "primary")
@@ -990,6 +997,7 @@ class TestLegendItemOrderRename:
     def test_tertiary_numbered_legend_has_own_order_and_labels(
         self, mock_st: MagicMock, mock_reorder: MagicMock
     ) -> None:
+        """Keep numbered annotations independent of two trace legends."""
         self._setup_streamlit(mock_st, "tertiary")
         mock_reorder.return_value = (["g2", "g1"], {"g1": "First"})
         saved: dict[str, Any] = {
@@ -1014,9 +1022,35 @@ class TestLegendItemOrderRename:
 
     @patch("src.web.components.plotting.settings.legend_settings.render_reorderable_list")
     @patch("src.web.components.plotting.settings.legend_settings.st")
+    def test_empty_right_axis_keeps_numbered_items_on_secondary_tab(
+        self, mock_st: MagicMock, mock_reorder: MagicMock
+    ) -> None:
+        """Use the secondary tab when a separate right legend has no items."""
+        self._setup_streamlit(mock_st, "secondary")
+        mock_reorder.return_value = (["g2", "g1"], {})
+        saved: dict[str, Any] = {
+            "dual_axis": True,
+            "unified_legend": False,
+            "y_columns_right": [],
+            "group": "group",
+            "numbered_xaxis_modes": ["Number legend"],
+        }
+
+        result = self._component().render(
+            saved,
+            data=pd.DataFrame({"group": ["g1", "g2"]}),
+            has_secondary=True,
+        )
+
+        assert result["legend2_order"] == ["g2", "g1"]
+        assert mock_reorder.call_args.args[2] == "legend2_items"
+
+    @patch("src.web.components.plotting.settings.legend_settings.render_reorderable_list")
+    @patch("src.web.components.plotting.settings.legend_settings.st")
     def test_series_rename_preserves_other_styles(
         self, mock_st: MagicMock, mock_reorder: MagicMock
     ) -> None:
+        """Change display names without losing unrelated series styling."""
         self._setup_streamlit(mock_st, "primary")
         mock_reorder.return_value = (["col_a", "col_b"], {"col_a": "Alpha"})
         saved: dict[str, Any] = {
@@ -1028,6 +1062,27 @@ class TestLegendItemOrderRename:
 
         assert result["series_styles"]["col_a"]["name"] == "Alpha"
         assert result["series_styles"]["col_b"]["color"] == "#FF0000"
+
+    @patch("src.web.components.plotting.settings.legend_settings.render_reorderable_list")
+    @patch("src.web.components.plotting.settings.legend_settings.st")
+    def test_filtered_categories_preserve_hidden_labels(
+        self, mock_st: MagicMock, mock_reorder: MagicMock
+    ) -> None:
+        """Retain saved labels for legend entries absent from filtered data."""
+        self._setup_streamlit(mock_st, "primary")
+        mock_reorder.return_value = (["visible"], {"visible": "Shown"})
+        data = pd.DataFrame({"variant": ["visible"]})
+        saved: dict[str, Any] = {
+            "color": "variant",
+            "legend_labels": {"visible": "Old", "filtered": "Keep me"},
+        }
+
+        result = self._component().render(saved, data=data)
+
+        assert result["legend_labels"] == {
+            "visible": "Shown",
+            "filtered": "Keep me",
+        }
 
 
 # Legend sizing through the connector pipeline

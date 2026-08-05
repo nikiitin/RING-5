@@ -21,6 +21,7 @@ def _command(
     action: str = "navigate",
     destination: str = "Manage Plots",
 ) -> WorkspaceCommand:
+    """Build a command fixture with a category matching its action."""
     return WorkspaceCommand(
         command_id=command_id,
         title="Go to Manage Plots",
@@ -37,6 +38,7 @@ def _command(
 def test_render_dialog_lists_shortcuts_and_searches_commands(
     mock_st: MagicMock,
 ) -> None:
+    """Render trusted command matches as actionable buttons."""
     from src.web.components.command_palette import CommandPaletteComponent
 
     mock_st.text_input.return_value = "plot"
@@ -61,6 +63,7 @@ def test_render_dialog_lists_shortcuts_and_searches_commands(
 
 @patch("src.web.components.command_palette.st")
 def test_render_dialog_uses_a_link_for_external_documentation(mock_st: MagicMock) -> None:
+    """Render the canonical documentation command as an external link."""
     # [test->req~ring5.workspace.documentation-hub~2]
     from src.web.components.command_palette import CommandPaletteComponent
 
@@ -93,6 +96,7 @@ def test_render_dialog_uses_a_link_for_external_documentation(mock_st: MagicMock
 def test_activate_navigates_focuses_search_and_rejects_untrusted_actions(
     mock_st: MagicMock,
 ) -> None:
+    """Apply internal actions and reject destinations outside the catalog."""
     # [test->req~ring5.workspace.command-palette~1]
     from src.web.components.command_palette import CommandPaletteComponent
 
@@ -125,6 +129,7 @@ def test_activate_navigates_focuses_search_and_rejects_untrusted_actions(
 def test_launcher_installs_one_bridge_with_pending_focus(
     mock_st: MagicMock,
 ) -> None:
+    """Install one keyboard bridge and consume pending focus requests."""
     from src.web.components.command_palette import CommandPaletteComponent
 
     mock_st.button.return_value = False

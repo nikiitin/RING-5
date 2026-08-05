@@ -24,10 +24,12 @@ Tags: status_approved, streamlit, web, workspace
 
 ### Page navigation
 
-`req~ring5.workspace.navigation~1`
+`req~ring5.workspace.navigation~2`
 Status: approved
 
 Users shall navigate between Data Source, Data Managers, Manage Plots, and Save/Load Portfolio from the sidebar, with published documentation exposed as an external link rather than an application page.
+
+History records: 1
 
 Covers:
 - feat~ring5.workspace~1

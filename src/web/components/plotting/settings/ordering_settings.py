@@ -25,6 +25,7 @@ class OrderingSettingsComponent:
     """
 
     def __init__(self, plot_id: int, plot_type: str) -> None:
+        """Bind ordering widgets to one plot and plot type."""
         self.plot_id = plot_id
         self.plot_type = plot_type
 

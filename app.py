@@ -10,7 +10,7 @@ root_dir = Path(__file__).parent
 if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
-DOCUMENTATION_URL = "https://nikiitin.github.io/RING-5/"
+from src.core.services.workspace_command_catalog import DOCUMENTATION_URL  # noqa: E402
 
 
 def run_app() -> None:
@@ -79,7 +79,7 @@ def run_app() -> None:
         st.caption("gem5 Analysis & Visualization")
         st.markdown("---")
 
-        # [impl->req~ring5.workspace.navigation~1]
+        # [impl->req~ring5.workspace.navigation~2]
         _NAV_OPTIONS = [
             "Data Source",
             "Data Managers",
@@ -163,6 +163,7 @@ def run_app() -> None:
     # Data preview (fragment-wrapped — only reruns when its own widgets change).
     @st.fragment
     def _data_preview_fragment() -> None:
+        """Render the current dataset summary in an isolated fragment."""
         # [impl->req~ring5.workspace.data-preview~1]
         current_view = api.get_current_view()
 

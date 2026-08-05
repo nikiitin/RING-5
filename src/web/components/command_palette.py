@@ -46,16 +46,19 @@ class CommandPaletteComponent:
 
     @classmethod
     def _open_dialog(cls, api: ApplicationAPI) -> None:
+        """Open the palette dialog and bind it to the current session API."""
+
         @st.dialog("Command palette", width="large")
         def _dialog() -> None:
+            """Render the decorated dialog body."""
             cls.render_dialog(api)
 
         _dialog()
 
     @classmethod
     def render_dialog(cls, api: ApplicationAPI) -> None:
-        # [impl->req~ring5.workspace.documentation-hub~2]
         """Render searchable command results inside an open dialog."""
+        # [impl->req~ring5.workspace.documentation-hub~2]
         query = st.text_input(
             "Search commands",
             key="_command_palette_query",

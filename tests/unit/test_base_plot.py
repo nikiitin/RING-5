@@ -209,6 +209,25 @@ def test_render_reorderable_list(concrete_plot: Any, mock_streamlit: Any) -> Non
     mock_streamlit.rerun.assert_called()
 
 
+def test_rename_widget_keys_are_collision_resistant(
+    concrete_plot: Any,
+    mock_streamlit: Any,
+) -> None:
+    """Give visually similar legend values distinct stable widget keys."""
+    mock_streamlit.text_input.return_value = ""
+    mock_streamlit.button.return_value = False
+
+    concrete_plot.render_reorderable_list(
+        "Legend items",
+        ["a b", "a_b"],
+        "legend",
+        enable_rename=True,
+    )
+
+    keys = [call.kwargs["key"] for call in mock_streamlit.text_input.call_args_list]
+    assert len(keys) == len(set(keys)) == 2
+
+
 def test_render_advanced_options_shapes(concrete_plot: Any, mock_streamlit: Any) -> None:
     """Test advanced options with shape management."""
     config = {"shapes": []}

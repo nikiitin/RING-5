@@ -60,6 +60,7 @@ class LegendSettingsComponent:
     """
 
     def __init__(self, plot_id: int, plot_type: str) -> None:
+        """Bind legend widgets to one plot and plot type."""
         self.plot_id = plot_id
         self.plot_type = plot_type
 
@@ -138,12 +139,14 @@ class LegendSettingsComponent:
         data: pd.DataFrame | None,
         active_tab: str,
     ) -> PlotConfig:
-        # [impl->req~ring5.figure.ordering-renaming~2]
         """Render ordering and renaming for the selected legend tier."""
+        # [impl->req~ring5.figure.ordering-renaming~2]
         left_series = [str(item) for item in saved_config.get("y_columns") or []]
         right_series = [str(item) for item in saved_config.get("y_columns_right") or []]
         dual_axis = bool(saved_config.get("dual_axis"))
-        separate_legends = dual_axis and not bool(saved_config.get("unified_legend", True))
+        separate_legends = (
+            dual_axis and bool(right_series) and not bool(saved_config.get("unified_legend", True))
+        )
 
         if active_tab == "primary" and left_series:
             if dual_axis and not separate_legends and right_series:
@@ -308,8 +311,14 @@ class LegendSettingsComponent:
         result: PlotConfig = {}
         if new_order != saved_config.get(order_key):
             result[order_key] = new_order
-        if renames != saved_labels:
-            result[labels_key] = renames
+        updated_labels = dict(saved_labels)
+        for item in items:
+            if item in renames:
+                updated_labels[item] = renames[item]
+            else:
+                updated_labels.pop(item, None)
+        if updated_labels != saved_labels:
+            result[labels_key] = updated_labels
         return result
 
     @staticmethod
@@ -319,7 +328,11 @@ class LegendSettingsComponent:
         enabled = "Number legend" in modes or bool(saved_config.get("numbered_xaxis"))
         if not enabled:
             return None
-        if saved_config.get("dual_axis") and not saved_config.get("unified_legend", True):
+        if (
+            saved_config.get("dual_axis")
+            and saved_config.get("y_columns_right")
+            and not saved_config.get("unified_legend", True)
+        ):
             return "tertiary"
         return "secondary"
 

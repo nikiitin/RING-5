@@ -101,7 +101,11 @@ def apply_numbered_xaxis(
 
     # The numbered annotation uses the secondary legend tier, or the tertiary
     # tier when separate left/right trace legends already occupy two tiers.
-    if config.get("dual_axis") and not config.get("unified_legend", True):
+    if (
+        config.get("dual_axis")
+        and config.get("y_columns_right")
+        and not config.get("unified_legend", True)
+    ):
         _prefix = "legend3_"
     else:
         _prefix = "legend2_"

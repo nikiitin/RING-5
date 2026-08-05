@@ -207,7 +207,11 @@ class TestApplyNumberedXaxis:
         [
             ({}, "legend2_order", "legend2_labels"),
             (
-                {"dual_axis": True, "unified_legend": False},
+                {
+                    "dual_axis": True,
+                    "unified_legend": False,
+                    "y_columns_right": ["right"],
+                },
                 "legend3_order",
                 "legend3_labels",
             ),
@@ -237,6 +241,24 @@ class TestApplyNumberedXaxis:
             "2. Alpha",
             "3. b",
         ]
+
+    def test_empty_right_axis_keeps_numbered_legend_on_secondary_tier(
+        self, plot: GroupedStackedBarPlot
+    ) -> None:
+        """Do not reserve a hidden legend tier when no right trace exists."""
+        config: dict[str, Any] = {
+            "dual_axis": True,
+            "unified_legend": False,
+            "y_columns_right": [],
+            "numbered_xaxis_modes": ["Number legend"],
+            "legend2_order": ["b", "a"],
+            "legend2_labels": {"b": "Beta"},
+        }
+
+        _, legend = plot._apply_numbered_xaxis(["a", "b"], config)
+
+        assert legend is not None
+        assert legend["text"].split("<br>") == ["1. Beta", "2. a"]
 
     def test_single_group(self, plot: GroupedStackedBarPlot) -> None:
         """Works correctly with a single group."""

@@ -46,6 +46,7 @@ def _state() -> MagicMock:
         ("sort benchmark", "pipeline", "Latency overview · step 1: Sort"),
         ("paper draft", "portfolio", "paper draft"),
         ("go manage plots", "command", "Go to Manage Plots"),
+        ("open documentation", "documentation", "Open Documentation"),
         ("plot types", "documentation", "Plot types"),
     ],
 )

@@ -2,6 +2,8 @@
 
 from src.core.models.workspace_command_models import WorkspaceCommand
 
+DOCUMENTATION_URL = "https://nikiitin.github.io/RING-5/"
+
 WORKSPACE_COMMANDS = (
     WorkspaceCommand(
         command_id="navigate.data-source",
@@ -49,7 +51,7 @@ WORKSPACE_COMMANDS = (
         description="Open the published RING-5 documentation in a new browser tab.",
         category="navigation",
         action="open_external",
-        destination="https://nikiitin.github.io/RING-5/",
+        destination=DOCUMENTATION_URL,
         shortcuts=("Alt+5",),
         keywords=("help", "guide", "manual", "reference"),
     ),
