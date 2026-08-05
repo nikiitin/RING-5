@@ -897,7 +897,7 @@ class ManagePlotsPage(BasePage):
     def refresh_plot(self) -> None:
         """Click 'Refresh Plot' and wait for the regeneration rerun.
 
-        Refresh reruns to regenerate the figure; under -n 3 that can be slow, so
+        Refresh reruns to regenerate the figure; under xdist that can be slow, so
         we wait for the rerun (expect_rerun) with generous time before callers
         assert the chart — otherwise the regen races a tight assert_chart_visible.
         """

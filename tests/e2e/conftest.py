@@ -53,15 +53,15 @@ _E2E_CSV: Path = _FIXTURES_DIR / "sample_data.csv"
 
 # Timeouts
 LOAD_TIMEOUT: int = 30_000
-# Chart render (Plotly iframe JS resize / Matplotlib st.pyplot) competes with 2
-# other workers' browsers under -n 3, so a render can occasionally exceed 30s;
+# Chart render (Plotly iframe JS resize / Matplotlib st.pyplot) competes with
+# another worker's browser, so a render can occasionally exceed 30s;
 # 60s gives headroom while staying well under the per-test timeout.
 CHART_TIMEOUT: int = 60_000
 E2E_TIMEOUT: int = 60_000
 # Raster downloads (png/svg/pdf) render the figure eagerly via Kaleido before
 # st.download_button, so the button is absent until the
-# export finishes. Three concurrent Kaleido/Chromium exports deadlock/starve
-# under -n 3 (no timeout fixes it), so those tests are marked ``serial`` and run
+# export finishes. Concurrent Kaleido/Chromium exports can deadlock or starve,
+# so those tests are marked ``serial`` and run
 # in a separate -n 0 pass; this 90s headroom comfortably covers a single export.
 EXPORT_TIMEOUT: int = 90_000
 
@@ -97,7 +97,7 @@ def _isolated_data_dir(tmp_path_factory: pytest.TempPathFactory) -> Generator[No
     empty per-worker temp dir for the whole session.
 
     Keeps e2e runs off the user's cluttered ``.ring5`` pool (~150 CSVs that slow
-    the Recent-mode render and caused ``-n 3`` timeouts) and gives each xdist
+    the Recent-mode render and caused parallel timeouts) and gives each xdist
     worker its own clean, fast, race-free pool. ``RING5_DATA_DIR`` is set on
     ``os.environ`` before ``live_server_url`` starts, so the Streamlit server
     subprocess inherits it; the test process resets the path caches so its own
