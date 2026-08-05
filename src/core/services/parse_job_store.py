@@ -6,6 +6,8 @@ import json
 import sqlite3
 import threading
 import time
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 
 from src.core.models import (
@@ -337,11 +339,16 @@ class ParseJobStore:
                 "DELETE FROM published_results WHERE fingerprint = ?", (fingerprint,)
             )
 
-    def _connect(self) -> sqlite3.Connection:
-        """Open a short-lived connection configured for named row access."""
+    @contextmanager
+    def _connect(self) -> Iterator[sqlite3.Connection]:
+        """Yield a transactional connection and always close it afterward."""
         connection = sqlite3.connect(self.db_path, timeout=5.0)
         connection.row_factory = sqlite3.Row
-        return connection
+        try:
+            with connection:
+                yield connection
+        finally:
+            connection.close()
 
     @staticmethod
     def _encode_request(request: ParseJobRequest) -> str:
