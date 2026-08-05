@@ -94,10 +94,42 @@ class TestRenderOrderingUi:
         )
         assert "group_order" in config
 
-    def test_color_column_populates_legend_order(
+    def test_grouped_bar_group_order_is_not_duplicated_under_axes(
         self, mock_st: MagicMock, sample_data: pd.DataFrame
     ) -> None:
-        """When saved_config has 'color' matching a column, legend ordering appears."""
+        """Grouped-bar groups are legend entries and are configured there."""
+        from src.web.components.plotting.settings.ordering_settings import (
+            OrderingSettingsComponent,
+        )
+
+        config: dict[str, Any] = {}
+        OrderingSettingsComponent(1, "grouped_bar").render({"group": "config"}, sample_data, config)
+
+        assert "group_order" not in config
+
+    def test_group_rename_uses_group_renames_config(
+        self, mock_st: MagicMock, sample_data: pd.DataFrame
+    ) -> None:
+        """Group labels use the key consumed by grouped plot rendering."""
+        from src.web.components.plotting.settings.ordering_settings import (
+            render_ordering_ui,
+        )
+
+        config: dict[str, Any] = {}
+        mock_st.text_input.side_effect = lambda label, **_: ("Baseline" if label == "base" else "")
+        render_ordering_ui(
+            plot_id=1,
+            saved_config={"group": "config"},
+            data=sample_data,
+            config=config,
+        )
+        assert config["group_renames"] == {"base": "Baseline"}
+        assert "legend_labels" not in config
+
+    def test_color_column_does_not_render_legend_order_here(
+        self, mock_st: MagicMock, sample_data: pd.DataFrame
+    ) -> None:
+        """Legend-entry ordering belongs to the Legend settings tab."""
         from src.web.components.plotting.settings.ordering_settings import (
             render_ordering_ui,
         )
@@ -109,7 +141,7 @@ class TestRenderOrderingUi:
             data=sample_data,
             config=config,
         )
-        assert "legend_order" in config
+        assert "legend_order" not in config
 
     def test_nonexistent_x_column_skips(
         self, mock_st: MagicMock, sample_data: pd.DataFrame
@@ -128,8 +160,10 @@ class TestRenderOrderingUi:
         )
         assert "xaxis_order" not in config
 
-    def test_all_sections_rendered(self, mock_st: MagicMock, sample_data: pd.DataFrame) -> None:
-        """All three ordering sections when all columns present."""
+    def test_axis_and_group_sections_rendered(
+        self, mock_st: MagicMock, sample_data: pd.DataFrame
+    ) -> None:
+        """Axis and group ordering remain in the Ordering section."""
         from src.web.components.plotting.settings.ordering_settings import (
             render_ordering_ui,
         )
@@ -147,7 +181,7 @@ class TestRenderOrderingUi:
         )
         assert "xaxis_order" in config
         assert "group_order" in config
-        assert "legend_order" in config
+        assert "legend_order" not in config
 
     def test_markdown_header_rendered(self, mock_st: MagicMock, sample_data: pd.DataFrame) -> None:
         """Should render the 'Ordering Control' header."""

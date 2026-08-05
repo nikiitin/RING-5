@@ -46,12 +46,14 @@ def _state() -> MagicMock:
         ("sort benchmark", "pipeline", "Latency overview · step 1: Sort"),
         ("paper draft", "portfolio", "paper draft"),
         ("go manage plots", "command", "Go to Manage Plots"),
+        ("open documentation", "documentation", "Open Documentation"),
         ("plot types", "documentation", "Plot types"),
     ],
 )
 def test_every_workspace_source_is_indexed_and_actionable(
     query: str, kind: str, title: str
 ) -> None:
+    """Return an actionable top result from each indexed workspace source."""
     # [test->req~ring5.workspace.global-search~1]
     response = WorkspaceSearchService.search_workspace(
         _state(),

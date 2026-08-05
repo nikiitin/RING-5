@@ -472,6 +472,33 @@ class TestDualAxisConfigUI:
         assert result["right_axis_type"] == "dots"
         assert result["ylabel_right"] == "Right Label"
 
+    @patch(f"{_MOD}.st")
+    def test_advanced_options_do_not_duplicate_legend_ordering(
+        self, mock_st: MagicMock, plot: GroupedStackedBarPlot
+    ) -> None:
+        """Leave left- and right-series ordering to their legend tabs."""
+        saved_config: dict[str, Any] = {
+            "dual_axis": True,
+            "right_axis_type": "bars",
+            "y_columns": ["Ticks", "Energy"],
+            "y_columns_right": ["IPC"],
+        }
+        mock_st.checkbox.return_value = False
+
+        with (
+            patch.object(plot, "_render_general_settings"),
+            patch.object(plot, "render_specific_advanced_options", return_value={}),
+            patch.object(plot, "_render_dual_axis_display_settings"),
+            patch.object(plot, "_render_reference_line_ui"),
+            patch.object(plot, "_render_shapes_ui", return_value=[]),
+            patch.object(plot, "render_reorderable_list") as reorder,
+        ):
+            result = plot.render_advanced_options(saved_config)
+
+        reorder.assert_not_called()
+        assert "y_columns" not in result
+        assert "y_columns_right" not in result
+
 
 # Y-axis rotation tests
 
@@ -735,6 +762,30 @@ class TestDualAxisLegendUnification:
             legend_attr = getattr(trace, "legend", None)
             assert legend_attr != "legend2"
 
+    def test_unified_legend_honors_combined_item_order(
+        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
+    ) -> None:
+        """A unified legend can interleave left- and right-axis series."""
+        config: dict[str, Any] = {
+            "x": "Benchmark",
+            "group": "Config",
+            "y_columns": ["Ticks", "Energy"],
+            "y_columns_right": ["IPC", "Cycles"],
+            "dual_axis": True,
+            "right_axis_type": "bars",
+            "unified_legend": True,
+            "legend_order": ["IPC", "Ticks", "Cycles", "Energy"],
+        }
+
+        result = plot.create_traces(sample_data, config)
+
+        assert [trace.name for trace in result.traces] == [
+            "IPC",
+            "Ticks",
+            "Cycles",
+            "Energy",
+        ]
+
     def test_separate_legend(self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame) -> None:
         """When unified_legend=False, traces are split into legend + legend2."""
         config: dict[str, Any] = {
@@ -819,6 +870,7 @@ class TestDualAxisDisplaySettingsUI:
         assert "show_y_grid" in config
         assert "y2show_y_grid" in config
         assert "unified_legend" in config
+        assert not any(key.startswith("legend2_") for key in config)
 
 
 # Secondary Y typography tests

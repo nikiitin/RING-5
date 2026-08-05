@@ -512,7 +512,7 @@ def test_heatmap_facet_renaming() -> None:
 
 def test_heatmap_facet_order_and_rename_combined() -> None:
     """Facet ordering and renaming work together."""
-    # [test->req~ring5.figure.ordering-renaming~1]
+    # [test->req~ring5.figure.ordering-renaming~2]
     data = pd.DataFrame(
         {
             "cfg": ["A", "A"],

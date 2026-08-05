@@ -99,11 +99,20 @@
     {
       "id": "workspace.navigation",
       "group": "workspace",
-      "revision": 1,
+      "revision": 2,
       "status": "approved",
       "title": "Page navigation",
-      "description": "Users shall navigate between Data Source, Data Managers, Manage Plots, Save/Load Portfolio, and Documentation pages from the sidebar.",
+      "description": "Users shall navigate between Data Source, Data Managers, Manage Plots, and Save/Load Portfolio from the sidebar, with published documentation exposed as an external link rather than an application page.",
       "tags": ["navigation", "web"],
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "semantic",
+          "title": "Page navigation",
+          "description": "Users shall navigate between Data Source, Data Managers, Manage Plots, Save/Load Portfolio, and Documentation pages from the sidebar.",
+          "reason": "Replaced Documentation routing with a direct link to the published site."
+        }
+      ],
       "evidence": {
         "implementation": ["app.py::run_app"],
         "tests": ["tests/visual/test_navigation.py::TestNavigationWorkflow.test_navigate_all_pages_and_return"],
@@ -155,14 +164,23 @@
     {
       "id": "workspace.documentation-hub",
       "group": "workspace",
-      "revision": 1,
+      "revision": 2,
       "status": "approved",
-      "title": "In-application documentation hub",
-      "description": "The application shall link users to canonical getting-started, workflow, guide, reference, and developer documentation.",
+      "title": "Published documentation link",
+      "description": "The sidebar and command palette shall link directly to the canonical published RING-5 documentation without maintaining a duplicate in-application documentation page.",
       "tags": ["documentation", "web"],
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "semantic",
+          "title": "In-application documentation hub",
+          "description": "The application shall link users to canonical getting-started, workflow, guide, reference, and developer documentation.",
+          "reason": "Replaced the duplicate application page with direct links to the canonical published documentation."
+        }
+      ],
       "evidence": {
-        "implementation": ["src/web/pages/documentation.py::show_documentation_page"],
-        "tests": ["tests/ui_unit/test_documentation_page.py::TestShowDocumentationPage.test_renders_two_guide_sections"],
+        "implementation": ["app.py::run_app", "src/web/components/command_palette.py::CommandPaletteComponent.render_dialog"],
+        "tests": ["tests/ui/test_ui_sanity.py::TestUISanity.test_navigation_sidebar", "tests/ui_unit/test_command_palette.py::test_render_dialog_uses_a_link_for_external_documentation"],
         "documentation": ["docs/index.md#ring-5-documentation"]
       }
     },
@@ -1443,6 +1461,8 @@
         "tests": [
           "tests/ui_logic/test_settings_pills_e2e.py::TestSecondaryLegendConfig",
           "tests/ui_logic/test_settings_pills_e2e.py::TestLegendSizingControls",
+          "tests/ui_logic/test_settings_pills_e2e.py::TestLegendItemOrderRename",
+          "tests/ui_logic/test_settings_pills.py::TestSectionDispatch.test_legend_tiers_match_the_legends_that_are_actually_visible",
           "tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorLegendAnchor",
           "tests/unit/core/visualization/test_connectors.py::TestConfigBuilderLegendOrientation"
         ],
@@ -1598,20 +1618,31 @@
     {
       "id": "figure.ordering-renaming",
       "group": "figure-configuration",
-      "revision": 1,
+      "revision": 2,
       "status": "approved",
       "title": "Category ordering and relabeling",
-      "description": "Users shall reorder and rename applicable X categories, groups, legend items, stack series, Y metrics, and facets without rewriting source data.",
+      "description": "Users shall reorder and rename applicable X categories, groups, Y metrics, and facets under axis settings, while each visible legend tier shall independently own its legend-item and stack-series order and names without rewriting source data.",
       "tags": ["labels", "ordering", "styling"],
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "semantic",
+          "title": "Category ordering and relabeling",
+          "description": "Users shall reorder and rename applicable X categories, groups, legend items, stack series, Y metrics, and facets without rewriting source data.",
+          "reason": "Assigned legend-entry ordering to each visible Legend tab while keeping axis and facet ordering under Axes."
+        }
+      ],
       "evidence": {
         "implementation": [
           "src/web/components/plotting/settings/ordering_settings.py::OrderingSettingsComponent.render",
+          "src/web/components/plotting/settings/legend_settings.py::LegendSettingsComponent._render_legend_items",
           "src/web/pages/ui/plotting/base_plot.py::_relabel_traces",
-          "src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot._apply_renames"
+          "src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot._apply_renames",
+          "src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot._order_unified_legend_traces"
         ],
         "tests": [
           "tests/unit/test_persistent_labels.py::test_multiple_column_persistence",
-          "tests/ui_logic/test_settings_pills_e2e.py::TestStackedSeriesOrderRename",
+          "tests/ui_logic/test_settings_pills_e2e.py::TestLegendItemOrderRename",
           "tests/unit/test_grouped_stacked_bar_create_figure.py::TestCreateFigure.test_with_xaxis_order",
           "tests/unit/test_grouped_stacked_bar_create_figure.py::TestCreateFigure.test_with_group_order",
           "tests/unit/test_heatmap_plot.py::test_heatmap_facet_order_and_rename_combined"
@@ -1700,7 +1731,6 @@
       "evidence": {
         "implementation": [
           "src/web/components/plotting/config/dual_axis_settings.py::render_dual_axis_display_settings",
-          "src/web/components/plotting/config/dual_axis_settings.py::render_secondary_legend_controls",
           "src/web/components/plotting/config/dual_axis_settings.py::render_right_axis_dot_settings",
           "src/web/components/plotting/config/dual_axis_config.py::_sync_auto_labels",
           "src/web/rendering/config_builder.py::ConfigSpecBuilder.from_config",
@@ -4993,7 +5023,6 @@
     "navigation_pages": {
       "Data Managers": "data.summary",
       "Data Source": "ingestion.source-modes",
-      "Documentation": "workspace.documentation-hub",
       "Manage Plots": "plots.create-multiple",
       "Save/Load Portfolio": "portfolio.save"
     },

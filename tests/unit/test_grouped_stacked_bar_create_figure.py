@@ -109,7 +109,7 @@ class TestCreateFigure:
 
     def test_with_xaxis_order(self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame) -> None:
         """Custom x-axis ordering is respected."""
-        # [test->req~ring5.figure.ordering-renaming~1]
+        # [test->req~ring5.figure.ordering-renaming~2]
         config = {
             "x": "Benchmark",
             "group": "Config",
@@ -125,7 +125,7 @@ class TestCreateFigure:
 
     def test_with_group_order(self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame) -> None:
         """Custom group ordering is respected."""
-        # [test->req~ring5.figure.ordering-renaming~1]
+        # [test->req~ring5.figure.ordering-renaming~2]
         config = {
             "x": "Benchmark",
             "group": "Config",
@@ -237,8 +237,10 @@ class TestHelperMethods:
         assert groups == ["g2", "g1"]
 
     def test_apply_renames_basic(self) -> None:
+        """Apply display labels without changing the source DataFrame."""
         plot = GroupedStackedBarPlot(1, "T")
         data = pd.DataFrame({"X": ["A", "B"], "G": ["g1", "g2"]})
+        original = data.copy()
         config = {"xaxis_labels": {"A": "Alpha"}, "group_renames": {"g1": "Group1"}}
         new_data, cats, groups = plot._apply_renames(
             data, "X", "G", ["A", "B"], ["g1", "g2"], config
@@ -246,6 +248,7 @@ class TestHelperMethods:
         assert cats == ["Alpha", "B"]
         assert groups == ["Group1", "g2"]
         assert "Alpha" in new_data["X"].values
+        pd.testing.assert_frame_equal(data, original)
 
     def test_apply_renames_empty(self) -> None:
         plot = GroupedStackedBarPlot(1, "T")

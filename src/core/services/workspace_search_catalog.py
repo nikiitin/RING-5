@@ -2,10 +2,11 @@
 
 from src.core.models.workspace_search_models import WorkspaceSearchEntry
 from src.core.services.workspace_command_catalog import (
+    DOCUMENTATION_URL,
     WORKSPACE_COMMANDS as REGISTERED_WORKSPACE_COMMANDS,
 )
 
-_DOCS_BASE_URL = "https://nikiitin.github.io/RING-5"
+_DOCS_BASE_URL = DOCUMENTATION_URL.rstrip("/")
 
 
 def _documentation(
@@ -14,6 +15,7 @@ def _documentation(
     route: str,
     *keywords: str,
 ) -> WorkspaceSearchEntry:
+    """Build one canonical published-documentation search entry."""
     return WorkspaceSearchEntry(
         kind="documentation",
         title=title,
@@ -26,7 +28,7 @@ def _documentation(
 
 WORKSPACE_COMMANDS = tuple(
     WorkspaceSearchEntry(
-        kind="command",
+        kind="documentation" if command.action == "open_external" else "command",
         title=command.title,
         description=command.description,
         location=command.destination,

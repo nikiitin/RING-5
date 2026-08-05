@@ -181,6 +181,9 @@ class PlotRenderController:
             )
             config_error = True
 
+        # Publication preset selection was removed from plot configuration.
+        current_config.pop("preset_applied", None)
+
         # 4. Refresh logic (via ChartDisplayComponent)
         config_changed: bool = current_config != saved_config
         auto_refresh: bool = self._ui.plot.get_auto_refresh(plot.plot_id)

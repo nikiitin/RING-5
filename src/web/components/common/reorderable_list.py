@@ -4,6 +4,8 @@ This is a self-contained UI component extracted from ``BasePlot``.
 Used by ordering sections, advanced options, and grouped stacked bar plot.
 """
 
+import hashlib
+
 import streamlit as st
 
 from src.core.services.visualization.plot_interaction import resolve_item_order
@@ -63,9 +65,9 @@ def render_reorderable_list(
                 rename_value = renames.get(str(item), "")
                 if rename_value == str(item):
                     rename_value = ""  # treat identity rename as "no rename"
-                # Key is item-name-based (not position-based) so that rename
-                # values persist correctly when items are reordered.
-                _safe_item_key = str(item).replace(" ", "_")
+                # A value-derived key survives reordering without collisions
+                # between labels such as "a b" and "a_b".
+                _safe_item_key = hashlib.sha256(str(item).encode()).hexdigest()[:16]
                 new_name: str = st.text_input(
                     str(item),
                     value=rename_value,

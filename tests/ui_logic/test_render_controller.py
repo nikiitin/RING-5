@@ -176,6 +176,33 @@ class TestConfigGathering:
         assert plot.config["title"] == "My Chart"
         assert plot.config["legend"] is True
 
+    @patch(f"{_CTRL}.PlotRenderController._render_visualization")
+    @patch(f"{_CTRL}.ChartDisplayComponent.render_refresh_controls")
+    @patch(f"{_CTRL}.render_settings_pills")
+    @patch(f"{_CTRL}.st")
+    def test_legacy_publication_preset_marker_is_removed(
+        self,
+        mock_st: MagicMock,
+        mock_pills: MagicMock,
+        mock_refresh: MagicMock,
+        mock_viz: MagicMock,
+    ) -> None:
+        """Discard the obsolete publication-preset marker from old portfolios."""
+        mock_st.selectbox.return_value = "bar"
+        mock_st.toggle.return_value = False
+        mock_pills.return_value = None
+        mock_refresh.return_value = _default_refresh_controls(should_generate=True)
+        data = pd.DataFrame({"time": [1], "value": [2]})
+        plot = StubPlotHandle(
+            plot_type="bar",
+            processed_data=data,
+            config={"preset_applied": "isca"},
+        )
+
+        _make_render_controller().render(plot)
+
+        assert "preset_applied" not in plot.config
+
 
 # Config change detection + refresh
 class TestRefreshLogic:
@@ -240,7 +267,7 @@ class TestRefreshLogic:
         mock_refresh: MagicMock,
         mock_viz: MagicMock,
     ) -> None:
-        """Regenerate once when applying a theme with automatic refresh disabled."""
+        """Force one render after applying a theme with auto-refresh disabled."""
         # [test->req~ring5.figure.theme-presets~1]
         mock_st.selectbox.return_value = "bar"
         mock_st.toggle.return_value = False

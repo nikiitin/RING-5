@@ -11,6 +11,7 @@ if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
 from src.core.common.runtime_limits import configure_native_thread_limits  # noqa: E402
+from src.core.services.workspace_command_catalog import DOCUMENTATION_URL  # noqa: E402
 
 configure_native_thread_limits()
 
@@ -81,16 +82,15 @@ def run_app() -> None:
         st.caption("gem5 Analysis & Visualization")
         st.markdown("---")
 
-        # [impl->req~ring5.workspace.navigation~1]
+        # [impl->req~ring5.workspace.navigation~2]
         _NAV_OPTIONS = [
             "Data Source",
             "Data Managers",
             "Manage Plots",
             "Save/Load Portfolio",
-            "Documentation",
         ]
 
-        if "_nav_page" not in st.session_state:
+        if st.session_state.get("_nav_page") not in _NAV_OPTIONS:
             st.session_state["_nav_page"] = _NAV_OPTIONS[0]
 
         from src.web.components.command_palette import CommandPaletteComponent
@@ -119,6 +119,14 @@ def run_app() -> None:
             if _nav_clicked and not _is_active:
                 st.session_state["_nav_page"] = _nav_item
                 st.rerun()
+
+        # [impl->req~ring5.workspace.documentation-hub~2]
+        st.link_button(
+            "Documentation",
+            DOCUMENTATION_URL,
+            width="stretch",
+            help="Open the published RING-5 documentation",
+        )
 
         page = st.session_state["_nav_page"]
 
@@ -158,6 +166,7 @@ def run_app() -> None:
     # Data preview (fragment-wrapped — only reruns when its own widgets change).
     @st.fragment
     def _data_preview_fragment() -> None:
+        """Render the current dataset summary in an isolated fragment."""
         # [impl->req~ring5.workspace.data-preview~1]
         current_view = api.get_current_view()
 
@@ -196,10 +205,6 @@ def run_app() -> None:
         from src.web.pages.portfolio import show_portfolio_page
 
         show_portfolio_page(api)
-    elif page == "Documentation":
-        from src.web.pages.documentation import show_documentation_page
-
-        show_documentation_page()
 
 
 if __name__ == "__main__":

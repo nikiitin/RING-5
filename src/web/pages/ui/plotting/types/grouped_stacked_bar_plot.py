@@ -21,7 +21,8 @@ from src.web.pages.ui.plotting.utils import GroupedBarUtils
 class GroupedStackedBarPlot(StackedBarPlot):
     """Grouped stacked bar plot with support for multiple stacked statistics and grouping."""
 
-    def __init__(self, plot_id: int, name: str):
+    def __init__(self, plot_id: int, name: str) -> None:
+        """Initialize a grouped stacked plot with its concrete type identifier."""
         # Call through MRO (StackedBarPlot → BarPlot → BasePlot)
         super().__init__(plot_id, name)
         # Override plot_type set by parent chain ("stacked_bar" → "grouped_stacked_bar")
@@ -40,11 +41,10 @@ class GroupedStackedBarPlot(StackedBarPlot):
     def _supports_tertiary_legend(self) -> bool:
         """Tertiary legend is available when dual-axis splits legends.
 
-        When dual-axis is active AND legends are not unified, the
-        secondary pill controls the right-axis legend (legend2_*) and
+        When dual-axis has right-axis series and legends are not unified,
+        the secondary pill controls the right-axis legend (legend2_*) and
         the tertiary pill controls the numbered-xaxis annotation
-        (legend3_*).  Without dual-axis, the secondary pill itself
-        controls the annotation, so no third level is needed.
+        (legend3_*). Otherwise, the secondary pill controls the annotation.
         """
         return True
 
@@ -101,70 +101,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         if saved_config.get("dual_axis"):
             self._render_dual_axis_display_settings(saved_config, config)
 
-        # 2d. Right-axis series configuration (reorder & rename)
-        if saved_config.get("dual_axis"):
-            y_cols_right: list[str] = saved_config.get("y_columns_right", [])
-            if y_cols_right:
-                st.markdown("#### Right-Axis Series Configuration")
-                existing_styles: dict[str, Any] = saved_config.get("series_styles", {})
-                right_rename_map: dict[str, str] = {
-                    k: str(existing_styles[k].get("name", k))
-                    for k in y_cols_right
-                    if k in existing_styles and existing_styles[k].get("name")
-                }
-                with st.expander("Reorder & Rename Right-Axis Series"):
-                    current_right_order = list(y_cols_right)
-                    r_result = self.render_reorderable_list(
-                        "Right-Axis Order",
-                        current_right_order,
-                        "right_ord",
-                        enable_rename=True,
-                        rename_map=right_rename_map or None,
-                    )
-                    new_right_order, right_renames = r_result  # type: ignore[misc]
-                    if new_right_order != current_right_order:
-                        config["y_columns_right"] = new_right_order
-                    if right_renames and isinstance(right_renames, dict):
-                        if "series_styles" not in config:
-                            config["series_styles"] = {}
-                        for k, v in right_renames.items():
-                            if k not in config["series_styles"]:
-                                config["series_styles"][k] = {"name": v}
-                            else:
-                                config["series_styles"][k]["name"] = v
-
-        # 3. Stack Configuration
-        y_cols = saved_config.get("y_columns", [])
-        if y_cols:
-            st.markdown("#### Stack / Legend Configuration")
-            stack_styles: dict[str, Any] = saved_config.get("series_styles", {})
-            stack_rename_map: dict[str, str] = {
-                k: str(stack_styles[k].get("name", k))
-                for k in y_cols
-                if k in stack_styles and stack_styles[k].get("name")
-            }
-            with st.expander("Reorder & Rename"):
-                current_order = list(y_cols)
-                s_result = self.render_reorderable_list(
-                    "Stack Order",
-                    current_order,
-                    "stack_ord",
-                    enable_rename=True,
-                    rename_map=stack_rename_map or None,
-                )
-                new_order, stack_renames = s_result  # type: ignore[misc]
-                if new_order != current_order:
-                    config["y_columns"] = new_order
-                if stack_renames and isinstance(stack_renames, dict):
-                    if "series_styles" not in config:
-                        config["series_styles"] = {}
-                    for k, v in stack_renames.items():
-                        if k not in config["series_styles"]:
-                            config["series_styles"][k] = {"name": v}
-                        else:
-                            config["series_styles"][k]["name"] = v
-
-        # 4. Major Group Configuration (Original X)
+        # 3. Major Group Configuration (Original X)
         x_col = cast(str | None, saved_config.get("x"))
         if data is not None and x_col and x_col in data.columns:
             st.markdown("#### Major Grouping (Outer) Configuration")
@@ -183,7 +120,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
                 if renames_maj:
                     config["xaxis_labels"] = renames_maj
 
-        # 5. Minor Group Configuration (Original Group)
+        # 4. Minor Group Configuration (Original Group)
         group_col = cast(str | None, saved_config.get("group"))
         if data is not None and group_col and group_col in data.columns:
             st.markdown("#### X-Axis / Minor Grouping (Inner) Configuration")
@@ -202,15 +139,15 @@ class GroupedStackedBarPlot(StackedBarPlot):
                 if renames_min:
                     config["group_renames"] = renames_min
 
-        # 6. Reference Line (Normalizer)
+        # 5. Reference Line (Normalizer)
         self._render_reference_line_ui(saved_config, data, config)
 
-        # 7. Annotations
+        # 6. Annotations
         st.markdown("#### Annotations (Shapes)")
         config["shapes"] = self._render_shapes_ui(saved_config)
 
-        # Legend & Interactivity (Standard)
-        st.markdown("#### Legend & Interactivity")
+        # 7. Interactivity
+        st.markdown("#### Interactivity")
         config["enable_editable"] = st.checkbox(
             "Enable Interactive Editing",
             value=saved_config.get("enable_editable", False),
@@ -312,6 +249,9 @@ class GroupedStackedBarPlot(StackedBarPlot):
             )
             traces.extend(right_traces)
 
+        if dual_axis and config.get("unified_legend", True):
+            traces = self._order_unified_legend_traces(traces, config)
+
         payloads = build_drill_down_payload(
             data,
             {
@@ -366,6 +306,30 @@ class GroupedStackedBarPlot(StackedBarPlot):
             secondary_y=dual_axis,
         )
 
+    @staticmethod
+    def _order_unified_legend_traces(
+        traces: list[TraceConfig], config: PlotConfig
+    ) -> list[TraceConfig]:
+        """Apply a combined left/right order to a unified legend."""
+        # [impl->req~ring5.figure.ordering-renaming~2]
+        configured_order = config.get("legend_order")
+        if not configured_order:
+            return traces
+
+        series_styles: dict[str, Any] = config.get("series_styles", {})
+        ordered_names = [
+            str(series_styles.get(key, {}).get("name", key)) for key in configured_order
+        ]
+        rank = {name: index for index, name in enumerate(ordered_names)}
+        fallback = len(rank)
+        return [
+            trace
+            for _, trace in sorted(
+                enumerate(traces),
+                key=lambda indexed: (rank.get(indexed[1].name, fallback), indexed[0]),
+            )
+        ]
+
     def _get_ordered_categories_and_groups(
         self, data: pd.DataFrame, x_col: str, group_col: str, config: PlotConfig
     ) -> tuple[list[str], list[str]]:
@@ -386,7 +350,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         config: PlotConfig,
     ) -> tuple[pd.DataFrame, list[str], list[str]]:
         """Apply renames to data and ordered lists."""
-        # [impl->req~ring5.figure.ordering-renaming~1]
+        # [impl->req~ring5.figure.ordering-renaming~2]
         from src.web.pages.ui.plotting.utils.grouped_stacked_bar_helpers import (
             apply_renames,
         )
@@ -498,16 +462,6 @@ class GroupedStackedBarPlot(StackedBarPlot):
         )
 
         render_dual_axis_display_settings(saved_config, config, self.plot_id)
-
-    def _render_secondary_legend_controls(
-        self, saved_config: PlotConfig, config: PlotConfig
-    ) -> None:
-        """Render full legend controls for the secondary (right-axis) legend."""
-        from src.web.components.plotting.config.dual_axis_settings import (
-            render_secondary_legend_controls,
-        )
-
-        render_secondary_legend_controls(saved_config, config, self.plot_id)
 
     def _render_right_axis_dot_settings(self, saved_config: PlotConfig, config: PlotConfig) -> None:
         """Render dot & line settings for the right (secondary) Y-axis."""
