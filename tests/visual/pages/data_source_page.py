@@ -318,6 +318,11 @@ class DataSourcePage(BasePage):
         return self.page.get_by_role("button", name="Load accepted rows")
 
     @property
+    def loaded_review_success(self) -> Locator:
+        """Confirmation emitted only after reviewed rows enter application state."""
+        return self.page.get_by_text(re.compile(r"Loaded\s+\d+\s+(?:reviewed\s+)?rows")).first
+
+    @property
     def pool_expanders(self) -> Locator:
         """All file card expanders in the Recent section."""
         return self.page.locator("[data-testid='stExpander']")
@@ -645,7 +650,7 @@ class DataSourcePage(BasePage):
         self.wait_for_streamlit()
         expect(self.import_review_header).to_be_visible(timeout=self.RENDER_TIMEOUT)
         self.load_accepted_import_button.click()
-        self.wait_for_streamlit()
+        expect(self.loaded_review_success).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
     def load_recent_csv_by_name(self, filename: str) -> None:
         """Load a specific CSV from the Recent-CSV pool by filename.
@@ -679,9 +684,7 @@ class DataSourcePage(BasePage):
         self.load_accepted_import_button.click()
         self.wait_for_streamlit()
         # Confirm the load actually took (guards against a raced no-op click).
-        expect(
-            self.page.get_by_text(re.compile(r"Loaded\s+\d+\s+(?:reviewed\s+)?rows")).first
-        ).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        expect(self.loaded_review_success).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
     def review_recent_csv_by_name(self, filename: str) -> None:
         """Open the structured import review for a named recent CSV."""
@@ -737,7 +740,9 @@ class DataSourcePage(BasePage):
                 self.parse_option.click()
                 self.wait_for_streamlit(expect_rerun=True)
         self.load_accepted_import_button.click()
-        self.wait_for_streamlit()
+        # Do not infer success from Streamlit's transient running indicator: a
+        # fast or missed rerun can make that wait return before state is stored.
+        expect(self.loaded_review_success).to_be_visible(timeout=self.RENDER_TIMEOUT)
 
     # Assertions
 

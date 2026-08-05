@@ -850,6 +850,11 @@ class ManagePlotsPage(BasePage):
         self.small_multiples_by.click()
         self.page.get_by_role("option", name=column, exact=True).click()
         self.wait_for_streamlit(expect_rerun=True)
+        expect(self.small_multiples_by).to_contain_text(column, timeout=self.RENDER_TIMEOUT)
+        # Streamlit multiselects stay open after an option is chosen. Closing
+        # the popover after the selected chip renders makes controls below the
+        # settings panel actionable without cancelling the selection commit.
+        self.page.keyboard.press("Escape")
 
     def enable_drill_down(self) -> None:
         """Enable point-click source-row exploration and wait for the fragment rerun."""

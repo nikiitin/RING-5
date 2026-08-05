@@ -412,6 +412,7 @@ class TestNamedDatasetWorkspace:
         dm.wait_for_streamlit()
         dm.workspace_join_output_input.fill("validated_join_output")
         _add_multiselect_option(tier1_page, dm.workspace_join_keys, "benchmark_name")
+        tier1_page.keyboard.press("Escape")
         dm.wait_for_streamlit()
         expect(dm.workspace_cardinality_metric).to_contain_text(
             "Conflict",
