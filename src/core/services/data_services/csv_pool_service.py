@@ -263,11 +263,12 @@ class CsvPoolService:
         try:
 
             # Fast row count without loading entire file
-            with open(resolved_path) as f:
+            with open(resolved_path, encoding="utf-8", newline="") as f:
                 row_count = max(0, sum(1 for _ in f) - 1)  # Subtract header
 
             # Read just first row to get columns and types
-            sample_df = pd.read_csv(resolved_path, sep=None, engine="python", nrows=100)
+            separator = CsvPoolService._detect_separator(Path(resolved_path))
+            sample_df = pd.read_csv(resolved_path, sep=separator, nrows=100)
 
             metadata: CsvMetadata = {
                 "columns": list(sample_df.columns),
@@ -278,7 +279,7 @@ class CsvPoolService:
             # Cache it under the resolved key (consistent with the lookup above).
             CsvPoolService._metadata_cache.set(resolved_path, metadata)
             return metadata
-        except (OSError, pd.errors.ParserError, csv.Error, KeyError) as e:
+        except (OSError, UnicodeError, pd.errors.ParserError, csv.Error, KeyError) as e:
             logger.debug("Failed to read CSV metadata for %s: %s", csv_path, e)
             return None
 

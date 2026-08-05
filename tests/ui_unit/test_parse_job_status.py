@@ -77,7 +77,10 @@ def test_success_is_consumed_and_triggers_completion_rerun(mock_st: Any) -> None
         reused=False,
     )
 
-    _panel_body()(api, "job-1")
+    parse_job_status._render_parse_job_panel_snapshot(
+        api,
+        _snapshot(ParseJobStatus.SUCCEEDED),
+    )
 
     api.consume_parse_job.assert_called_once_with("job-1")
     assert parse_job_status._JOB_ID_KEY not in mock_st.session_state
@@ -91,7 +94,10 @@ def test_success_load_error_keeps_job_visible(mock_st: Any) -> None:
     api.consume_parse_job.side_effect = ValueError("invalid CSV")
     mock_st.button.return_value = False
 
-    _panel_body()(api, "job-1")
+    parse_job_status._render_parse_job_panel_snapshot(
+        api,
+        _snapshot(ParseJobStatus.SUCCEEDED),
+    )
 
     assert mock_st.session_state[parse_job_status._JOB_ID_KEY] == "job-1"
     mock_st.error.assert_called_once()
@@ -110,7 +116,10 @@ def test_partial_requires_explicit_load_choice(mock_st: Any) -> None:
     )
     mock_st.button.side_effect = lambda label, **_kwargs: label == "Load Partial"
 
-    _panel_body()(api, "job-1")
+    parse_job_status._render_parse_job_panel_snapshot(
+        api,
+        _snapshot(ParseJobStatus.PARTIAL),
+    )
 
     api.consume_parse_job.assert_called_once_with("job-1", allow_partial=True)
     api.retry_parse_job.assert_not_called()
@@ -125,7 +134,7 @@ def test_failed_job_can_retry(mock_st: Any) -> None:
     api.retry_parse_job.return_value = retried
     mock_st.button.side_effect = lambda label, **_kwargs: label == "Retry"
 
-    _panel_body()(api, "job-1")
+    parse_job_status._render_parse_job_panel_snapshot(api, failed)
 
     api.retry_parse_job.assert_called_once_with("job-1")
     assert mock_st.session_state[parse_job_status._JOB_ID_KEY] == "job-2"
@@ -140,6 +149,17 @@ def test_sidebar_keeps_cancel_accessible_during_navigation(mock_st: Any) -> None
 
     mock_st.progress.assert_called_once()
     api.cancel_parse_job.assert_called_once_with("job-1")
+
+
+def test_terminal_transition_stops_the_polling_fragment(mock_st: Any) -> None:
+    """A terminal observation reruns the app once so subsequent rendering is static."""
+    api = MagicMock()
+    api.get_parse_job.return_value = _snapshot(ParseJobStatus.FAILED)
+
+    _panel_body()(api, "job-1")
+
+    mock_st.rerun.assert_called_once_with(scope="app")
+    mock_st.markdown.assert_not_called()
 
 
 def test_parse_button_submits_background_job_without_waiting() -> None:
