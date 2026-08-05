@@ -79,21 +79,17 @@ def _by_label(page, test_id, label):   # scope a widget duplicated across tabs
   reuse `shared_page`, so the autouse class-scoped `_reset_app_state` fixture in
   both conftest files clears that reused context before each class.
 
-## The e2e gate is two resource-bounded passes
+## The e2e gate is serial by default
 ```bash
-# 1) main suite — everything except the Kaleido raster-download class
-pytest tests/e2e -m "requires_browser and not serial" -n 2 --dist loadgroup \
-  --timeout=240 --timeout-method=thread
-# 2) serial pass — the @pytest.mark.serial classes (Kaleido raster downloads), no parallelism
-pytest tests/e2e -m "requires_browser and serial" -n 0 \
+pytest tests/e2e -m "requires_browser" -n 0 \
   --timeout=240 --timeout-method=thread
 ```
 **Two workers are the repository safety ceiling, not a throughput target.** Each worker owns a
 Streamlit server and Chromium browser, so browser tests are RAM-bound as well as CPU-bound. Run them
 in a cgroup/systemd scope when sharing a workstation, keep swap disabled for the scope, and use
-`-n 0` for a focused diagnostic rerun. Timeouts and OOMs are test failures: inspect whether the
-application, synchronization, or resource budget is wrong instead of dismissing them as
-environmental flakes.
+`-n 2 --dist loadgroup` only as an explicit opt-in after checking available memory. Timeouts and
+OOMs are test failures: inspect whether the application, synchronization, or resource budget is
+wrong instead of dismissing them as environmental flakes.
 - **Kaleido raster export (pdf/svg/png)** — `download_section` renders the figure via Kaleido (a
   Chromium subprocess) *eagerly* before `st.download_button`. Concurrent exports can starve each
   other, so the class stays `serial` (`-n 0`). `plotly_download_bytes` drives

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -117,6 +118,31 @@ def test_generator_refuses_overwrite_without_force(tmp_path: Path) -> None:
     replaced = generate_example_portfolio("Protected", output_dir=tmp_path, force=True)
     assert replaced == first
     assert len(list((tmp_path / ".revisions").rglob("*.json"))) == 2
+
+
+def test_generator_preserves_a_concurrently_created_portfolio(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Enforce the no-overwrite choice again at the atomic persistence boundary."""
+    output = tmp_path / "Contended.json"
+    original_save = PortfolioService.save_portfolio
+
+    def save_after_competitor(
+        service: PortfolioService,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
+        """Create a competing artifact immediately before the real save."""
+        output.write_text("competing process", encoding="utf-8")
+        original_save(service, *args, **kwargs)
+
+    monkeypatch.setattr(PortfolioService, "save_portfolio", save_after_competitor)
+
+    with pytest.raises(FileExistsError, match="already exists"):
+        generate_example_portfolio("Contended", output_dir=tmp_path)
+
+    assert output.read_text(encoding="utf-8") == "competing process"
 
 
 def test_cli_reports_success_and_existing_file_error(

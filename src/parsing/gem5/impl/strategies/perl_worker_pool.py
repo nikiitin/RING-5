@@ -37,15 +37,19 @@ def _default_pool_size() -> int:
     Override with ``RING5_PERL_POOL_SIZE`` (an integer >= 1).
     """
     override = os.environ.get("RING5_PERL_POOL_SIZE")
-    if override:
-        try:
-            n = int(override)
-            if n >= 1:
-                return n
-            logger.warning("RING5_PERL_POOL_SIZE=%r is < 1; ignoring", override)
-        except ValueError:
-            logger.warning("RING5_PERL_POOL_SIZE=%r is not an integer; ignoring", override)
-    return DEFAULT_PERL_WORKERS
+    if override is None:
+        return DEFAULT_PERL_WORKERS
+
+    try:
+        size = int(override)
+    except ValueError:
+        logger.warning("Ignoring non-integer RING5_PERL_POOL_SIZE=%r", override)
+        return DEFAULT_PERL_WORKERS
+
+    if size < 1:
+        logger.warning("Ignoring non-positive RING5_PERL_POOL_SIZE=%r", override)
+        return DEFAULT_PERL_WORKERS
+    return size
 
 
 @dataclass

@@ -26,15 +26,19 @@ DEFAULT_WORKERS = 2
 def _default_workers() -> int:
     """Return the bounded worker count, honoring an explicit deployment override."""
     value = os.environ.get("RING5_WORK_POOL_SIZE")
-    if value:
-        try:
-            workers = int(value)
-            if workers >= 1:
-                return workers
-        except ValueError:
-            pass
-        logger.warning("Ignoring invalid RING5_WORK_POOL_SIZE=%r", value)
-    return DEFAULT_WORKERS
+    if value is None:
+        return DEFAULT_WORKERS
+
+    try:
+        workers = int(value)
+    except ValueError:
+        logger.warning("Ignoring non-integer RING5_WORK_POOL_SIZE=%r", value)
+        return DEFAULT_WORKERS
+
+    if workers < 1:
+        logger.warning("Ignoring non-positive RING5_WORK_POOL_SIZE=%r", value)
+        return DEFAULT_WORKERS
+    return workers
 
 
 class WorkPool:
@@ -45,6 +49,7 @@ class WorkPool:
     _new_lock: threading.Lock = threading.Lock()
 
     def __new__(cls) -> WorkPool:
+        """Return the process-wide singleton, creating it under a lock if needed."""
         with cls._new_lock:
             if cls._instance is None:
                 cls._instance = super().__new__(cls)
@@ -52,6 +57,7 @@ class WorkPool:
             return cls._instance
 
     def __init__(self) -> None:
+        """Initialize the executor configuration once for the singleton instance."""
         # Guard runs under the construction lock so two threads racing the very
         # first WorkPool() can never both run the init body.
         with self._new_lock:
@@ -68,6 +74,7 @@ class WorkPool:
         return cls()
 
     def _get_thread_executor(self) -> ThreadPoolExecutor:
+        """Return the shared executor, constructing it lazily and thread-safely."""
         # Locked lazy creation so concurrent first submits create exactly one
         # executor (the one shutdown() later releases), never a leaked extra.
         with self._executor_lock:

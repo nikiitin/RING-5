@@ -39,9 +39,10 @@ Covers:
 
 -->
 
-Open **Save/Load Portfolio** and enter a descriptive name under **Save Portfolio**. Saving from the
-web application replaces an existing portfolio with the same sanitized name, so check **Manage
-Saved Portfolios** before reusing a name.
+Open **Save/Load Portfolio** and enter a descriptive name under **Save Portfolio**. Names must be
+non-empty, at most 120 characters, and cannot contain control characters, path separators,
+traversal sequences such as `..`, or a leading dot. Saving from the web application replaces an
+existing portfolio with the same exact name, so check **Manage Saved Portfolios** before reusing it.
 
 Saving is also allowed before data is loaded. That creates a configuration-only portfolio for the
 current settings and parser state; it does not invent an empty table.

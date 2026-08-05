@@ -519,6 +519,7 @@ def generate_example_portfolio(
         csv_path=None,
         parse_variables=[],
         figure_spec_enricher=_build_figure_spec,
+        overwrite=force,
     )
 
     # Verify the exact artifact through the public loader and restoration path.

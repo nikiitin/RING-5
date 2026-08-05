@@ -343,12 +343,18 @@ class PortfolioRevisionService:
 
     @staticmethod
     def _validate_name(name: object) -> str:
+        """Validate a portfolio identity without allowing sanitized aliases."""
         if not isinstance(name, str) or not name.strip():
             raise ValueError("Portfolio name must be non-empty text.")
         if len(name) > 120:
             raise ValueError("Portfolio name cannot exceed 120 characters.")
         if any(ord(character) < 32 for character in name):
             raise ValueError("Portfolio name cannot contain control characters.")
+        if sanitize_filename(name) != name:
+            raise ValueError(
+                "Portfolio name cannot contain path separators, traversal sequences, "
+                "or leading dots."
+            )
         return name
 
     @staticmethod

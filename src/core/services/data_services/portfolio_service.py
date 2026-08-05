@@ -115,8 +115,7 @@ class PortfolioService:
             signing_key: Optional shared secret for an HMAC-SHA-256 signature.
             signing_key_id: Non-secret label stored with a signature.
         """
-        if not name:
-            raise ValueError("Portfolio name cannot be empty")
+        save_path = self._portfolio_path(name)
         payload = self.serialize_workspace(
             data,
             plots,
@@ -129,7 +128,6 @@ class PortfolioService:
             signing_key_id=signing_key_id,
         )
 
-        save_path = self._portfolio_path(name)
         try:
             PortfolioRevisionService.retain_and_replace(
                 name,
@@ -338,6 +336,23 @@ class PortfolioService:
         )
 
     def _portfolio_path(self, name: str) -> Path:
-        """Return a sanitized portfolio path contained by the configured root."""
+        """Return an unambiguous portfolio path contained by the configured root.
+
+        Raises:
+            ValueError: If the name is empty, unsafe, or would be changed by
+                filename sanitization and could therefore alias another name.
+        """
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError("Portfolio name cannot be empty")
+        if len(name) > 120:
+            raise ValueError("Portfolio name cannot exceed 120 characters")
+        if any(ord(character) < 32 for character in name):
+            raise ValueError("Portfolio name cannot contain control characters")
+        safe_name = sanitize_filename(name)
+        if safe_name != name:
+            raise ValueError(
+                "Portfolio name cannot contain path separators, traversal sequences, "
+                "or leading dots"
+            )
         directory = self._get_portfolios_dir()
-        return validate_path_within(directory / f"{sanitize_filename(name)}.json", directory)
+        return validate_path_within(directory / f"{safe_name}.json", directory)

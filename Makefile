@@ -6,7 +6,7 @@ export NUMEXPR_NUM_THREADS := $(RING5_NATIVE_THREADS)
 export VECLIB_MAXIMUM_THREADS := $(RING5_NATIVE_THREADS)
 
 VENV_NAME := python_venv
-VENV_BIN := ./$(VENV_NAME)/bin
+VENV_BIN := $(VENV_NAME)/bin
 PYTHON := $(VENV_BIN)/python
 PIP := $(VENV_BIN)/pip
 PYTEST := $(VENV_BIN)/pytest
@@ -151,10 +151,8 @@ test-ci: test-data mock-data test-api
 		--cov-report=xml --cov-fail-under=$(COVERAGE_MIN) --timeout=60
 
 test-e2e:
-	$(PYTEST) tests/e2e -m "requires_browser and not serial" \
-		-n 2 --dist loadgroup --timeout=240 --timeout-method=thread --no-cov
-	$(PYTEST) tests/e2e -m "requires_browser and serial" \
-		-n 0 --timeout=240 --timeout-method=thread --no-cov
+	$(PYTEST) tests/e2e -m "requires_browser" -n 0 \
+		--timeout=240 --timeout-method=thread --no-cov
 
 test-visual:
 	@set -eu; \

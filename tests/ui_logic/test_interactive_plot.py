@@ -9,7 +9,7 @@ Verifies:
 
 import json
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import plotly.graph_objects as go
@@ -69,7 +69,7 @@ class TestInteractivePlotlyChart:
         )
 
         fig = go.Figure()
-        config: Dict[str, Any] = {"displayModeBar": False}
+        config: dict[str, Any] = {"displayModeBar": False}
         interactive_plotly_chart(fig, config=config)
 
         call_kwargs = mock_func.call_args
@@ -140,7 +140,7 @@ class TestInteractivePlotlyChart:
     @patch(f"{MODULE}._component_func")
     def test_returns_component_value(self, mock_func: MagicMock) -> None:
         """Return value from the component function is passed through."""
-        expected: Dict[str, Any] = {"relayoutData": {"xaxis.range": [0, 10]}}
+        expected: dict[str, Any] = {"relayoutData": {"xaxis.range": [0, 10]}}
         mock_func.return_value = expected
 
         from src.web.components.plotting.interactive_plot import (
@@ -168,6 +168,7 @@ class TestInteractivePlotlyChart:
 
 
 def test_browser_component_sanitizes_plotly_click_payloads() -> None:
+    """Keep click events bounded by the browser-side sanitizer."""
     html = (
         Path(__file__).parents[2] / "src/web/components/plotting/custom_plotly/index.html"
     ).read_text(encoding="utf-8")

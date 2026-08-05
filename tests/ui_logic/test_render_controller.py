@@ -128,6 +128,7 @@ class TestTypeSelector:
 
         data = pd.DataFrame({"x": [1]})
         plot = StubPlotHandle(plot_type="bar", processed_data=data)
+        plot.render_config_ui = MagicMock()
         lifecycle = MagicMock()
         api = MagicMock()
         ctrl = _make_render_controller(api=api, lifecycle=lifecycle)
@@ -135,6 +136,7 @@ class TestTypeSelector:
 
         lifecycle.change_plot_type.assert_called_once_with(plot, "line", api.state_manager)
         mock_st.rerun.assert_called_once()
+        plot.render_config_ui.assert_not_called()
 
 
 # Config gathering
@@ -238,6 +240,7 @@ class TestRefreshLogic:
         mock_refresh: MagicMock,
         mock_viz: MagicMock,
     ) -> None:
+        """Regenerate once when applying a theme with automatic refresh disabled."""
         # [test->req~ring5.figure.theme-presets~1]
         mock_st.selectbox.return_value = "bar"
         mock_st.toggle.return_value = False
