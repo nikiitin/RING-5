@@ -112,12 +112,10 @@ class TestFullWorkflow:
         # Now wait for it to disappear (rerun finished)
         running.wait_for(state="hidden", timeout=_PARSE_TIMEOUT)
 
-        # Extra stabilisation: reload the page and wait again
-        shared_page.reload()
-        try:
-            shared_page.wait_for_load_state("networkidle", timeout=30_000)
-        except Exception:
-            pass
+        # Reload through a finite browser lifecycle event; Streamlit keeps
+        # connections open after the page is otherwise ready for interaction.
+        shared_page.reload(wait_until="domcontentloaded")
+        expect(ds.main_header).to_be_visible(timeout=_E2E_TIMEOUT)
         try:
             running.wait_for(state="visible", timeout=5_000)
         except Exception:

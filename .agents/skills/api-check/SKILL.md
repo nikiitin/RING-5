@@ -20,8 +20,8 @@ callers use the facade correctly and the contract holds.
   (arch-check #8).
 - **Parsing** is reached only through the injected `SimulationParser` (gem5 by default via
   `SimulatorRegistry.get_parser("gem5")`) — never a concrete `src/parsing/gem5/...` import in core/web.
-- The parser backend implements exactly 4 protocol methods (`src/parsing/parser_protocol.py`):
-  `submit_parse_async`, `finalize_parsing`, `submit_scan_async`, `aggregate_scan_results`.
+- The parser backend implements the eight methods in `src/parsing/parser_protocol.py`: submit and
+  finalize pairs for full parsing, incremental parsing, parser-playground sampling, and scanning.
 
 ## Async parse/scan — the one correct shape (never wrap synchronously)
 ```python

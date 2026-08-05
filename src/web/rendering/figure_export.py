@@ -241,6 +241,10 @@ def plotly_download_bytes(
     # vector formats scale has no effect, but the API accepts it.
     fig_dict = fig.to_dict()
     opts = {"format": fmt, "width": width, "height": height, "scale": scale}
+    kaleido_options: dict[str, Any] = {"timeout": _KALEIDO_ATTEMPT_TIMEOUT_S}
+    configured_browser = os.environ.get("BROWSER_PATH")
+    if configured_browser:
+        kaleido_options["path"] = configured_browser
     last_exc: Exception | None = None
     for attempt in range(1, _KALEIDO_ATTEMPTS + 1):
         try:
@@ -249,7 +253,7 @@ def plotly_download_bytes(
                 kaleido.calc_fig_sync(
                     fig_dict,
                     opts=opts,
-                    kopts={"timeout": _KALEIDO_ATTEMPT_TIMEOUT_S},
+                    kopts=kaleido_options,
                 ),
             )
             if deterministic:

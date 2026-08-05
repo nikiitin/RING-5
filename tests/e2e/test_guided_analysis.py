@@ -94,9 +94,9 @@ class TestGuidedAnalysis:
             plots.download_button.click()
         plots.wait_for_streamlit(timeout=EXPORT_TIMEOUT, expect_rerun=True)
         # The returned-click fallback records completion after the sidebar has
-        # already rendered in the download-triggered run.  A normal active-page
-        # button run refreshes the sidebar without cancelling the file response.
-        plots.sidebar.get_by_role("button", name="Manage Plots").click()
+        # already rendered in the download-triggered run. Navigating to a sibling
+        # page refreshes the sidebar without cancelling the file response.
+        plots.sidebar.get_by_role("button", name="Data Source").click()
         plots.wait_for_streamlit(expect_rerun=True)
 
         guide.open()

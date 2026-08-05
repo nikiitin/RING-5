@@ -22,6 +22,7 @@ import shutil
 import signal
 import socket
 import subprocess
+import sys
 import time
 from collections.abc import Generator
 from pathlib import Path
@@ -36,7 +37,7 @@ from tests.visual.pages.base_page import BasePage
 
 _ROOT_DIR: Path = Path(__file__).parents[2]
 _APP_PY: Path = _ROOT_DIR / "app.py"
-_PYTHON: str = str(_ROOT_DIR / "python_venv" / "bin" / "python")
+_PYTHON: str = sys.executable
 _SCREENSHOTS_DIR: Path = Path(__file__).parent / "screenshots"
 _ARTIFACTS_DIR: Path = Path(__file__).parent / "artifacts"
 
