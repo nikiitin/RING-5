@@ -621,7 +621,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
 </style>
     <title>RING-5 feature coverage · OpenFastTrace</title>
     <meta name="ring5-inventory-sha256" content="991ce230af04cbc1c157e2ab9749640859dce97a6c05d5371a12908c38e6298c">
-  <meta name="ring5-evidence-sha256" content="8406d1e07a2723a6cb2b6a465c60f34a2e3fc7735ed3cab72d8cce90f293aaa3">
+  <meta name="ring5-evidence-sha256" content="1a65c391ac4ea604d831250ec2a14f3b3d2b4e032d6bb63ec91767da78723364">
 </head>
   <body>
 
@@ -1069,7 +1069,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>The web application shall guide users through source selection, validation, comparison setup, visualization, and export while preserving access to advanced controls.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>11 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>4 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 16 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/guided-analysis.md#L13"><code>docs/user-guide/workflows/guided-analysis.md#follow-a-guided-analysis</code><b>open source ↗</b></a><span>line 13 · <a href="#uman~ring5.workspace.guided-analysis.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/core/models/guided_analysis_models.py#L35"><code>src/core/models/guided_analysis_models.py::GuidedAnalysisProgress</code><b>open source ↗</b></a><span>line 35 · <a href="#impl~ring5.workspace.guided-analysis-1065444684~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/services/guided_analysis_service.py#L81"><code>src/core/services/guided_analysis_service.py::GuidedAnalysisService.assess</code><b>open source ↗</b></a><span>line 81 · <a href="#impl~ring5.workspace.guided-analysis-1152234165~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/application_api.py#L527"><code>src/core/application_api.py::ApplicationAPI.guided_analysis_progress</code><b>open source ↗</b></a><span>line 527 · <a href="#impl~ring5.workspace.guided-analysis-2512631820~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../ring5/_session.py#L1073"><code>ring5/_session.py::Session.guided_analysis_progress</code><b>open source ↗</b></a><span>line 1073 · <a href="#impl~ring5.workspace.guided-analysis-139251626~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/components/guided_analysis.py#L19"><code>src/web/components/guided_analysis.py::GuidedAnalysisComponent.render</code><b>open source ↗</b></a><span>line 19 · <a href="#impl~ring5.workspace.guided-analysis-2928050121~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/components/guided_analysis.py#L33"><code>src/web/components/guided_analysis.py::GuidedAnalysisComponent.render_fragmented</code><b>open source ↗</b></a><span>line 33 · <a href="#impl~ring5.workspace.guided-analysis-2948013535~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/components/guided_analysis.py#L65"><code>src/web/components/guided_analysis.py::GuidedAnalysisComponent.activate</code><b>open source ↗</b></a><span>line 65 · <a href="#impl~ring5.workspace.guided-analysis-2889217008~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/components/guided_analysis.py#L76"><code>src/web/components/guided_analysis.py::GuidedAnalysisComponent.mark_exported</code><b>open source ↗</b></a><span>line 76 · <a href="#impl~ring5.workspace.guided-analysis-3505028428~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/components/data_managers/comparison.py#L27"><code>src/web/components/data_managers/comparison.py::ComparisonManager.render</code><b>open source ↗</b></a><span>line 27 · <a href="#impl~ring5.workspace.guided-analysis-3109972851~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/download_section.py#L51"><code>src/web/pages/ui/plotting/download_section.py::render_download_section</code><b>open source ↗</b></a><span>line 51 · <a href="#impl~ring5.workspace.guided-analysis-3507103685~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../app.py#L17"><code>app.py::run_app</code><b>open source ↗</b></a><span>line 17 · <a href="#impl~ring5.workspace.guided-analysis-1674666463~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_guided_analysis_service.py#L12"><code>tests/unit/test_guided_analysis_service.py::test_progress_is_ordered_and_requires_real_upstream_evidence</code><b>open source ↗</b></a><span>line 12 · <a href="#test~ring5.workspace.guided-analysis-3038227384~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_guided_analysis_public_api.py#L18"><code>tests/integration/test_guided_analysis_public_api.py::test_session_reports_real_progress_through_comparison_render_and_export</code><b>open source ↗</b></a><span>line 18 · <a href="#test~ring5.workspace.guided-analysis-1193934836~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/ui_unit/test_guided_analysis.py#L16"><code>tests/ui_unit/test_guided_analysis.py::test_render_shows_one_next_action_and_navigates</code><b>open source ↗</b></a><span>line 16 · <a href="#test~ring5.workspace.guided-analysis-3009339554~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/e2e/test_guided_analysis.py#L51"><code>tests/e2e/test_guided_analysis.py::TestGuidedAnalysis.test_guides_comparison_then_records_a_real_figure_download</code><b>open source ↗</b></a><span>line 51 · <a href="#test~ring5.workspace.guided-analysis-339951436~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 16 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/guided-analysis.md#L13"><code>docs/user-guide/workflows/guided-analysis.md#follow-a-guided-analysis</code><b>open source ↗</b></a><span>line 13 · <a href="#uman~ring5.workspace.guided-analysis.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/core/models/guided_analysis_models.py#L35"><code>src/core/models/guided_analysis_models.py::GuidedAnalysisProgress</code><b>open source ↗</b></a><span>line 35 · <a href="#impl~ring5.workspace.guided-analysis-1065444684~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/services/guided_analysis_service.py#L81"><code>src/core/services/guided_analysis_service.py::GuidedAnalysisService.assess</code><b>open source ↗</b></a><span>line 81 · <a href="#impl~ring5.workspace.guided-analysis-1152234165~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/application_api.py#L527"><code>src/core/application_api.py::ApplicationAPI.guided_analysis_progress</code><b>open source ↗</b></a><span>line 527 · <a href="#impl~ring5.workspace.guided-analysis-2512631820~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../ring5/_session.py#L1073"><code>ring5/_session.py::Session.guided_analysis_progress</code><b>open source ↗</b></a><span>line 1073 · <a href="#impl~ring5.workspace.guided-analysis-139251626~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/components/guided_analysis.py#L19"><code>src/web/components/guided_analysis.py::GuidedAnalysisComponent.render</code><b>open source ↗</b></a><span>line 19 · <a href="#impl~ring5.workspace.guided-analysis-2928050121~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/components/guided_analysis.py#L33"><code>src/web/components/guided_analysis.py::GuidedAnalysisComponent.render_fragmented</code><b>open source ↗</b></a><span>line 33 · <a href="#impl~ring5.workspace.guided-analysis-2948013535~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/components/guided_analysis.py#L65"><code>src/web/components/guided_analysis.py::GuidedAnalysisComponent.activate</code><b>open source ↗</b></a><span>line 65 · <a href="#impl~ring5.workspace.guided-analysis-2889217008~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/components/guided_analysis.py#L76"><code>src/web/components/guided_analysis.py::GuidedAnalysisComponent.mark_exported</code><b>open source ↗</b></a><span>line 76 · <a href="#impl~ring5.workspace.guided-analysis-3505028428~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/components/data_managers/comparison.py#L27"><code>src/web/components/data_managers/comparison.py::ComparisonManager.render</code><b>open source ↗</b></a><span>line 27 · <a href="#impl~ring5.workspace.guided-analysis-3109972851~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/download_section.py#L57"><code>src/web/pages/ui/plotting/download_section.py::render_download_section</code><b>open source ↗</b></a><span>line 57 · <a href="#impl~ring5.workspace.guided-analysis-2907510898~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../app.py#L17"><code>app.py::run_app</code><b>open source ↗</b></a><span>line 17 · <a href="#impl~ring5.workspace.guided-analysis-1674666463~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_guided_analysis_service.py#L12"><code>tests/unit/test_guided_analysis_service.py::test_progress_is_ordered_and_requires_real_upstream_evidence</code><b>open source ↗</b></a><span>line 12 · <a href="#test~ring5.workspace.guided-analysis-3038227384~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_guided_analysis_public_api.py#L18"><code>tests/integration/test_guided_analysis_public_api.py::test_session_reports_real_progress_through_comparison_render_and_export</code><b>open source ↗</b></a><span>line 18 · <a href="#test~ring5.workspace.guided-analysis-1193934836~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/ui_unit/test_guided_analysis.py#L16"><code>tests/ui_unit/test_guided_analysis.py::test_render_shows_one_next_action_and_navigates</code><b>open source ↗</b></a><span>line 16 · <a href="#test~ring5.workspace.guided-analysis-3009339554~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/e2e/test_guided_analysis.py#L51"><code>tests/e2e/test_guided_analysis.py::TestGuidedAnalysis.test_guides_comparison_then_records_a_real_figure_download</code><b>open source ↗</b></a><span>line 51 · <a href="#test~ring5.workspace.guided-analysis-339951436~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">guidance</span><span class="human-tag">usability</span><span class="human-tag">workspace</span></div></div>
     <a href="#req~ring5.workspace.guided-analysis~1">View canonical OFT trace ↓</a>
@@ -3973,7 +3973,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>Plotly HTML downloads from the web workspace shall include the processed dataframe used to build the figure in a searchable, sortable, paginated table with a client-side CSV download.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 5 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/reference/rendering-export.md#L106"><code>docs/user-guide/reference/rendering-export.md#interactive-source-data</code><b>open source ↗</b></a><span>line 106 · <a href="#uman~ring5.export.plotly-html-source-data.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/web/rendering/interactive_html_export.py#L287"><code>src/web/rendering/interactive_html_export.py::add_interactive_source_data</code><b>open source ↗</b></a><span>line 287 · <a href="#impl~ring5.export.plotly-html-source-data-1164714312~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/download_section.py#L81"><code>src/web/pages/ui/plotting/download_section.py::_render_plotly_download</code><b>open source ↗</b></a><span>line 81 · <a href="#impl~ring5.export.plotly-html-source-data-2165649698~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_plotly_download.py#L83"><code>tests/unit/test_plotly_download.py::TestPlotlyHTML.test_html_can_embed_an_interactive_source_dataframe</code><b>open source ↗</b></a><span>line 83 · <a href="#test~ring5.export.plotly-html-source-data-1345653546~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/e2e/test_export_presets.py#L209"><code>tests/e2e/test_export_presets.py::TestExportDownload.test_07_html_download_completes</code><b>open source ↗</b></a><span>line 209 · <a href="#test~ring5.export.plotly-html-source-data-1688045275~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 5 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/reference/rendering-export.md#L106"><code>docs/user-guide/reference/rendering-export.md#interactive-source-data</code><b>open source ↗</b></a><span>line 106 · <a href="#uman~ring5.export.plotly-html-source-data.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/web/rendering/interactive_html_export.py#L287"><code>src/web/rendering/interactive_html_export.py::add_interactive_source_data</code><b>open source ↗</b></a><span>line 287 · <a href="#impl~ring5.export.plotly-html-source-data-1164714312~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/download_section.py#L87"><code>src/web/pages/ui/plotting/download_section.py::_render_plotly_download</code><b>open source ↗</b></a><span>line 87 · <a href="#impl~ring5.export.plotly-html-source-data-2112200814~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_plotly_download.py#L83"><code>tests/unit/test_plotly_download.py::TestPlotlyHTML.test_html_can_embed_an_interactive_source_dataframe</code><b>open source ↗</b></a><span>line 83 · <a href="#test~ring5.export.plotly-html-source-data-1345653546~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/e2e/test_export_presets.py#L209"><code>tests/e2e/test_export_presets.py::TestExportDownload.test_07_html_download_completes</code><b>open source ↗</b></a><span>line 209 · <a href="#test~ring5.export.plotly-html-source-data-1688045275~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">data</span><span class="human-tag">export</span><span class="human-tag">html</span><span class="human-tag">plotly</span><span class="human-tag">web</span></div></div>
     <a href="#req~ring5.export.plotly-html-source-data~1">View canonical OFT trace ↓</a>
@@ -4033,7 +4033,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>Matplotlib figures shall export as XeLaTeX-compatible PGF, preserving configured figure size and falling back visibly when raster content prevents PGF output.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 5 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/reference/rendering-export.md#L147"><code>docs/user-guide/reference/rendering-export.md#matplotlib-pgf</code><b>open source ↗</b></a><span>line 147 · <a href="#uman~ring5.export.matplotlib-pgf.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/web/rendering/figure_export.py#L305"><code>src/web/rendering/figure_export.py::matplotlib_download_bytes</code><b>open source ↗</b></a><span>line 305 · <a href="#impl~ring5.export.matplotlib-pgf-3227154950~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/download_section.py#L143"><code>src/web/pages/ui/plotting/download_section.py::_render_mpl_download</code><b>open source ↗</b></a><span>line 143 · <a href="#impl~ring5.export.matplotlib-pgf-1940580506~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_matplotlib_download.py#L133"><code>tests/unit/test_matplotlib_download.py::TestMatplotlibPGF</code><b>open source ↗</b></a><span>line 133 · <a href="#test~ring5.export.matplotlib-pgf-3938875601~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_download_section_ui.py#L226"><code>tests/unit/test_download_section_ui.py::TestRenderDownloadSectionMatplotlib.test_pgf_raster_failure_falls_back_visibly_to_pdf</code><b>open source ↗</b></a><span>line 226 · <a href="#test~ring5.export.matplotlib-pgf-2020927603~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 5 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/reference/rendering-export.md#L147"><code>docs/user-guide/reference/rendering-export.md#matplotlib-pgf</code><b>open source ↗</b></a><span>line 147 · <a href="#uman~ring5.export.matplotlib-pgf.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/web/rendering/figure_export.py#L305"><code>src/web/rendering/figure_export.py::matplotlib_download_bytes</code><b>open source ↗</b></a><span>line 305 · <a href="#impl~ring5.export.matplotlib-pgf-3227154950~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/download_section.py#L148"><code>src/web/pages/ui/plotting/download_section.py::_render_mpl_download</code><b>open source ↗</b></a><span>line 148 · <a href="#impl~ring5.export.matplotlib-pgf-842823558~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_matplotlib_download.py#L133"><code>tests/unit/test_matplotlib_download.py::TestMatplotlibPGF</code><b>open source ↗</b></a><span>line 133 · <a href="#test~ring5.export.matplotlib-pgf-3938875601~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_download_section_ui.py#L242"><code>tests/unit/test_download_section_ui.py::TestRenderDownloadSectionMatplotlib.test_pgf_raster_failure_falls_back_visibly_to_pdf</code><b>open source ↗</b></a><span>line 242 · <a href="#test~ring5.export.matplotlib-pgf-959335469~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">export</span><span class="human-tag">latex</span><span class="human-tag">matplotlib</span><span class="human-tag">pgf</span></div></div>
     <a href="#req~ring5.export.matplotlib-pgf~1">View canonical OFT trace ↓</a>
@@ -4053,7 +4053,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>The plot page shall expose only formats supported by the selected engine and generate a correctly named downloadable artifact.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>3 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 6 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/guides/publication-export.md#L70"><code>docs/user-guide/guides/publication-export.md#export-from-the-web-application</code><b>open source ↗</b></a><span>line 70 · <a href="#uman~ring5.export.web-download.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/download_section.py#L52"><code>src/web/pages/ui/plotting/download_section.py::render_download_section</code><b>open source ↗</b></a><span>line 52 · <a href="#impl~ring5.export.web-download-2810553808~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/download_section.py#L82"><code>src/web/pages/ui/plotting/download_section.py::_render_plotly_download</code><b>open source ↗</b></a><span>line 82 · <a href="#impl~ring5.export.web-download-4000137167~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/download_section.py#L144"><code>src/web/pages/ui/plotting/download_section.py::_render_mpl_download</code><b>open source ↗</b></a><span>line 144 · <a href="#impl~ring5.export.web-download-3844956300~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_download_section_ui.py#L40"><code>tests/unit/test_download_section_ui.py::TestRenderDownloadSectionPlotly</code><b>open source ↗</b></a><span>line 40 · <a href="#test~ring5.export.web-download-1244159836~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_download_section_ui.py#L140"><code>tests/unit/test_download_section_ui.py::TestRenderDownloadSectionMatplotlib</code><b>open source ↗</b></a><span>line 140 · <a href="#test~ring5.export.web-download-1553921045~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 6 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/guides/publication-export.md#L70"><code>docs/user-guide/guides/publication-export.md#export-from-the-web-application</code><b>open source ↗</b></a><span>line 70 · <a href="#uman~ring5.export.web-download.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/download_section.py#L58"><code>src/web/pages/ui/plotting/download_section.py::render_download_section</code><b>open source ↗</b></a><span>line 58 · <a href="#impl~ring5.export.web-download-2793735663~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/download_section.py#L88"><code>src/web/pages/ui/plotting/download_section.py::_render_plotly_download</code><b>open source ↗</b></a><span>line 88 · <a href="#impl~ring5.export.web-download-4016938992~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/download_section.py#L149"><code>src/web/pages/ui/plotting/download_section.py::_render_mpl_download</code><b>open source ↗</b></a><span>line 149 · <a href="#impl~ring5.export.web-download-1693463146~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_download_section_ui.py#L40"><code>tests/unit/test_download_section_ui.py::TestRenderDownloadSectionPlotly</code><b>open source ↗</b></a><span>line 40 · <a href="#test~ring5.export.web-download-1244159836~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_download_section_ui.py#L148"><code>tests/unit/test_download_section_ui.py::TestRenderDownloadSectionMatplotlib</code><b>open source ↗</b></a><span>line 148 · <a href="#test~ring5.export.web-download-813397452~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">download</span><span class="human-tag">export</span><span class="human-tag">web</span></div></div>
     <a href="#req~ring5.export.web-download~1">View canonical OFT trace ↓</a>
@@ -8279,11 +8279,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.export.matplotlib-pgf-1940580506~0">
+      <section class="sitem" id="impl~ring5.export.matplotlib-pgf-3227154950~0">
         <details>
-          <summary title="impl~ring5.export.matplotlib-pgf-1940580506~0"><span class="green">&check;</span> <b>ring5.export.matplotlib-pgf-1940580506</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.export.matplotlib-pgf-1940580506~0</p>
-          <p class="origin">src/web/pages/ui/plotting/download_section.py:143</p>
+          <summary title="impl~ring5.export.matplotlib-pgf-3227154950~0"><span class="green">&check;</span> <b>ring5.export.matplotlib-pgf-3227154950</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.export.matplotlib-pgf-3227154950~0</p>
+          <p class="origin">src/web/rendering/figure_export.py:305</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -8292,11 +8292,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.export.matplotlib-pgf-3227154950~0">
+      <section class="sitem" id="impl~ring5.export.matplotlib-pgf-842823558~0">
         <details>
-          <summary title="impl~ring5.export.matplotlib-pgf-3227154950~0"><span class="green">&check;</span> <b>ring5.export.matplotlib-pgf-3227154950</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.export.matplotlib-pgf-3227154950~0</p>
-          <p class="origin">src/web/rendering/figure_export.py:305</p>
+          <summary title="impl~ring5.export.matplotlib-pgf-842823558~0"><span class="green">&check;</span> <b>ring5.export.matplotlib-pgf-842823558</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.export.matplotlib-pgf-842823558~0</p>
+          <p class="origin">src/web/pages/ui/plotting/download_section.py:148</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -8344,11 +8344,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.export.plotly-html-source-data-2165649698~0">
+      <section class="sitem" id="impl~ring5.export.plotly-html-source-data-2112200814~0">
         <details>
-          <summary title="impl~ring5.export.plotly-html-source-data-2165649698~0"><span class="green">&check;</span> <b>ring5.export.plotly-html-source-data-2165649698</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.export.plotly-html-source-data-2165649698~0</p>
-          <p class="origin">src/web/pages/ui/plotting/download_section.py:81</p>
+          <summary title="impl~ring5.export.plotly-html-source-data-2112200814~0"><span class="green">&check;</span> <b>ring5.export.plotly-html-source-data-2112200814</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.export.plotly-html-source-data-2112200814~0</p>
+          <p class="origin">src/web/pages/ui/plotting/download_section.py:87</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -8422,11 +8422,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.export.web-download-2810553808~0">
+      <section class="sitem" id="impl~ring5.export.web-download-1693463146~0">
         <details>
-          <summary title="impl~ring5.export.web-download-2810553808~0"><span class="green">&check;</span> <b>ring5.export.web-download-2810553808</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.export.web-download-2810553808~0</p>
-          <p class="origin">src/web/pages/ui/plotting/download_section.py:52</p>
+          <summary title="impl~ring5.export.web-download-1693463146~0"><span class="green">&check;</span> <b>ring5.export.web-download-1693463146</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.export.web-download-1693463146~0</p>
+          <p class="origin">src/web/pages/ui/plotting/download_section.py:149</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -8435,11 +8435,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.export.web-download-3844956300~0">
+      <section class="sitem" id="impl~ring5.export.web-download-2793735663~0">
         <details>
-          <summary title="impl~ring5.export.web-download-3844956300~0"><span class="green">&check;</span> <b>ring5.export.web-download-3844956300</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.export.web-download-3844956300~0</p>
-          <p class="origin">src/web/pages/ui/plotting/download_section.py:144</p>
+          <summary title="impl~ring5.export.web-download-2793735663~0"><span class="green">&check;</span> <b>ring5.export.web-download-2793735663</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.export.web-download-2793735663~0</p>
+          <p class="origin">src/web/pages/ui/plotting/download_section.py:58</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -8448,11 +8448,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.export.web-download-4000137167~0">
+      <section class="sitem" id="impl~ring5.export.web-download-4016938992~0">
         <details>
-          <summary title="impl~ring5.export.web-download-4000137167~0"><span class="green">&check;</span> <b>ring5.export.web-download-4000137167</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.export.web-download-4000137167~0</p>
-          <p class="origin">src/web/pages/ui/plotting/download_section.py:82</p>
+          <summary title="impl~ring5.export.web-download-4016938992~0"><span class="green">&check;</span> <b>ring5.export.web-download-4016938992</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.export.web-download-4016938992~0</p>
+          <p class="origin">src/web/pages/ui/plotting/download_section.py:88</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -16001,6 +16001,19 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
+      <section class="sitem" id="impl~ring5.workspace.guided-analysis-2907510898~0">
+        <details>
+          <summary title="impl~ring5.workspace.guided-analysis-2907510898~0"><span class="green">&check;</span> <b>ring5.workspace.guided-analysis-2907510898</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.workspace.guided-analysis-2907510898~0</p>
+          <p class="origin">src/web/pages/ui/plotting/download_section.py:57</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.workspace.guided-analysis~1">req~ring5.workspace.guided-analysis~1</a> <span class="origin">spec/oft/generated/requirements.md:195</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
       <section class="sitem" id="impl~ring5.workspace.guided-analysis-2928050121~0">
         <details>
           <summary title="impl~ring5.workspace.guided-analysis-2928050121~0"><span class="green">&check;</span> <b>ring5.workspace.guided-analysis-2928050121</b><small>, rev. 0, impl</small></summary>
@@ -16045,19 +16058,6 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <summary title="impl~ring5.workspace.guided-analysis-3505028428~0"><span class="green">&check;</span> <b>ring5.workspace.guided-analysis-3505028428</b><small>, rev. 0, impl</small></summary>
           <p class="id">impl~ring5.workspace.guided-analysis-3505028428~0</p>
           <p class="origin">src/web/components/guided_analysis.py:76</p>
-          <div class="out">
-            <h6>Out: 1</h6>
-            <ul>
-              <li><a href="#req~ring5.workspace.guided-analysis~1">req~ring5.workspace.guided-analysis~1</a> <span class="origin">spec/oft/generated/requirements.md:195</span></li>
-            </ul>
-          </div>
-        </details>
-      </section>
-      <section class="sitem" id="impl~ring5.workspace.guided-analysis-3507103685~0">
-        <details>
-          <summary title="impl~ring5.workspace.guided-analysis-3507103685~0"><span class="green">&check;</span> <b>ring5.workspace.guided-analysis-3507103685</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.workspace.guided-analysis-3507103685~0</p>
-          <p class="origin">src/web/pages/ui/plotting/download_section.py:51</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -17906,11 +17906,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <div class="in">
             <h6>In: 6</h6>
             <ul>
-              <li><a href="#impl~ring5.export.web-download-2810553808~0">impl~ring5.export.web-download-2810553808~0</a> <span class="origin">src/web/pages/ui/plotting/download_section.py:52</span></li>
-              <li><a href="#impl~ring5.export.web-download-3844956300~0">impl~ring5.export.web-download-3844956300~0</a> <span class="origin">src/web/pages/ui/plotting/download_section.py:144</span></li>
-              <li><a href="#impl~ring5.export.web-download-4000137167~0">impl~ring5.export.web-download-4000137167~0</a> <span class="origin">src/web/pages/ui/plotting/download_section.py:82</span></li>
+              <li><a href="#impl~ring5.export.web-download-1693463146~0">impl~ring5.export.web-download-1693463146~0</a> <span class="origin">src/web/pages/ui/plotting/download_section.py:149</span></li>
+              <li><a href="#impl~ring5.export.web-download-2793735663~0">impl~ring5.export.web-download-2793735663~0</a> <span class="origin">src/web/pages/ui/plotting/download_section.py:58</span></li>
+              <li><a href="#impl~ring5.export.web-download-4016938992~0">impl~ring5.export.web-download-4016938992~0</a> <span class="origin">src/web/pages/ui/plotting/download_section.py:88</span></li>
               <li><a href="#test~ring5.export.web-download-1244159836~0">test~ring5.export.web-download-1244159836~0</a> <span class="origin">tests/unit/test_download_section_ui.py:40</span></li>
-              <li><a href="#test~ring5.export.web-download-1553921045~0">test~ring5.export.web-download-1553921045~0</a> <span class="origin">tests/unit/test_download_section_ui.py:140</span></li>
+              <li><a href="#test~ring5.export.web-download-813397452~0">test~ring5.export.web-download-813397452~0</a> <span class="origin">tests/unit/test_download_section_ui.py:148</span></li>
               <li><a href="#uman~ring5.export.web-download.documentation~1">uman~ring5.export.web-download.documentation~1</a> <span class="origin">docs/user-guide/guides/publication-export.md:70</span></li>
             </ul>
           </div>
@@ -18368,11 +18368,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
               <li><a href="#impl~ring5.workspace.guided-analysis-1674666463~0">impl~ring5.workspace.guided-analysis-1674666463~0</a> <span class="origin">app.py:17</span></li>
               <li><a href="#impl~ring5.workspace.guided-analysis-2512631820~0">impl~ring5.workspace.guided-analysis-2512631820~0</a> <span class="origin">src/core/application_api.py:527</span></li>
               <li><a href="#impl~ring5.workspace.guided-analysis-2889217008~0">impl~ring5.workspace.guided-analysis-2889217008~0</a> <span class="origin">src/web/components/guided_analysis.py:65</span></li>
+              <li><a href="#impl~ring5.workspace.guided-analysis-2907510898~0">impl~ring5.workspace.guided-analysis-2907510898~0</a> <span class="origin">src/web/pages/ui/plotting/download_section.py:57</span></li>
               <li><a href="#impl~ring5.workspace.guided-analysis-2928050121~0">impl~ring5.workspace.guided-analysis-2928050121~0</a> <span class="origin">src/web/components/guided_analysis.py:19</span></li>
               <li><a href="#impl~ring5.workspace.guided-analysis-2948013535~0">impl~ring5.workspace.guided-analysis-2948013535~0</a> <span class="origin">src/web/components/guided_analysis.py:33</span></li>
               <li><a href="#impl~ring5.workspace.guided-analysis-3109972851~0">impl~ring5.workspace.guided-analysis-3109972851~0</a> <span class="origin">src/web/components/data_managers/comparison.py:27</span></li>
               <li><a href="#impl~ring5.workspace.guided-analysis-3505028428~0">impl~ring5.workspace.guided-analysis-3505028428~0</a> <span class="origin">src/web/components/guided_analysis.py:76</span></li>
-              <li><a href="#impl~ring5.workspace.guided-analysis-3507103685~0">impl~ring5.workspace.guided-analysis-3507103685~0</a> <span class="origin">src/web/pages/ui/plotting/download_section.py:51</span></li>
               <li><a href="#test~ring5.workspace.guided-analysis-1193934836~0">test~ring5.workspace.guided-analysis-1193934836~0</a> <span class="origin">tests/integration/test_guided_analysis_public_api.py:18</span></li>
               <li><a href="#test~ring5.workspace.guided-analysis-3009339554~0">test~ring5.workspace.guided-analysis-3009339554~0</a> <span class="origin">tests/ui_unit/test_guided_analysis.py:16</span></li>
               <li><a href="#test~ring5.workspace.guided-analysis-3038227384~0">test~ring5.workspace.guided-analysis-3038227384~0</a> <span class="origin">tests/unit/test_guided_analysis_service.py:12</span></li>
@@ -18860,7 +18860,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
             <h6>In: 5</h6>
             <ul>
               <li><a href="#impl~ring5.export.plotly-html-source-data-1164714312~0">impl~ring5.export.plotly-html-source-data-1164714312~0</a> <span class="origin">src/web/rendering/interactive_html_export.py:287</span></li>
-              <li><a href="#impl~ring5.export.plotly-html-source-data-2165649698~0">impl~ring5.export.plotly-html-source-data-2165649698~0</a> <span class="origin">src/web/pages/ui/plotting/download_section.py:81</span></li>
+              <li><a href="#impl~ring5.export.plotly-html-source-data-2112200814~0">impl~ring5.export.plotly-html-source-data-2112200814~0</a> <span class="origin">src/web/pages/ui/plotting/download_section.py:87</span></li>
               <li><a href="#test~ring5.export.plotly-html-source-data-1345653546~0">test~ring5.export.plotly-html-source-data-1345653546~0</a> <span class="origin">tests/unit/test_plotly_download.py:83</span></li>
               <li><a href="#test~ring5.export.plotly-html-source-data-1688045275~0">test~ring5.export.plotly-html-source-data-1688045275~0</a> <span class="origin">tests/e2e/test_export_presets.py:209</span></li>
               <li><a href="#uman~ring5.export.plotly-html-source-data.documentation~1">uman~ring5.export.plotly-html-source-data.documentation~1</a> <span class="origin">docs/user-guide/reference/rendering-export.md:106</span></li>
@@ -19072,10 +19072,10 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <div class="in">
             <h6>In: 5</h6>
             <ul>
-              <li><a href="#impl~ring5.export.matplotlib-pgf-1940580506~0">impl~ring5.export.matplotlib-pgf-1940580506~0</a> <span class="origin">src/web/pages/ui/plotting/download_section.py:143</span></li>
               <li><a href="#impl~ring5.export.matplotlib-pgf-3227154950~0">impl~ring5.export.matplotlib-pgf-3227154950~0</a> <span class="origin">src/web/rendering/figure_export.py:305</span></li>
-              <li><a href="#test~ring5.export.matplotlib-pgf-2020927603~0">test~ring5.export.matplotlib-pgf-2020927603~0</a> <span class="origin">tests/unit/test_download_section_ui.py:226</span></li>
+              <li><a href="#impl~ring5.export.matplotlib-pgf-842823558~0">impl~ring5.export.matplotlib-pgf-842823558~0</a> <span class="origin">src/web/pages/ui/plotting/download_section.py:148</span></li>
               <li><a href="#test~ring5.export.matplotlib-pgf-3938875601~0">test~ring5.export.matplotlib-pgf-3938875601~0</a> <span class="origin">tests/unit/test_matplotlib_download.py:133</span></li>
+              <li><a href="#test~ring5.export.matplotlib-pgf-959335469~0">test~ring5.export.matplotlib-pgf-959335469~0</a> <span class="origin">tests/unit/test_download_section_ui.py:242</span></li>
               <li><a href="#uman~ring5.export.matplotlib-pgf.documentation~1">uman~ring5.export.matplotlib-pgf.documentation~1</a> <span class="origin">docs/user-guide/reference/rendering-export.md:147</span></li>
             </ul>
           </div>
@@ -23903,11 +23903,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="test~ring5.export.matplotlib-pgf-2020927603~0">
+      <section class="sitem" id="test~ring5.export.matplotlib-pgf-3938875601~0">
         <details>
-          <summary title="test~ring5.export.matplotlib-pgf-2020927603~0"><span class="green">&check;</span> <b>ring5.export.matplotlib-pgf-2020927603</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.export.matplotlib-pgf-2020927603~0</p>
-          <p class="origin">tests/unit/test_download_section_ui.py:226</p>
+          <summary title="test~ring5.export.matplotlib-pgf-3938875601~0"><span class="green">&check;</span> <b>ring5.export.matplotlib-pgf-3938875601</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.export.matplotlib-pgf-3938875601~0</p>
+          <p class="origin">tests/unit/test_matplotlib_download.py:133</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -23916,11 +23916,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="test~ring5.export.matplotlib-pgf-3938875601~0">
+      <section class="sitem" id="test~ring5.export.matplotlib-pgf-959335469~0">
         <details>
-          <summary title="test~ring5.export.matplotlib-pgf-3938875601~0"><span class="green">&check;</span> <b>ring5.export.matplotlib-pgf-3938875601</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.export.matplotlib-pgf-3938875601~0</p>
-          <p class="origin">tests/unit/test_matplotlib_download.py:133</p>
+          <summary title="test~ring5.export.matplotlib-pgf-959335469~0"><span class="green">&check;</span> <b>ring5.export.matplotlib-pgf-959335469</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.export.matplotlib-pgf-959335469~0</p>
+          <p class="origin">tests/unit/test_download_section_ui.py:242</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -24137,11 +24137,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="test~ring5.export.web-download-1553921045~0">
+      <section class="sitem" id="test~ring5.export.web-download-813397452~0">
         <details>
-          <summary title="test~ring5.export.web-download-1553921045~0"><span class="green">&check;</span> <b>ring5.export.web-download-1553921045</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.export.web-download-1553921045~0</p>
-          <p class="origin">tests/unit/test_download_section_ui.py:140</p>
+          <summary title="test~ring5.export.web-download-813397452~0"><span class="green">&check;</span> <b>ring5.export.web-download-813397452</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.export.web-download-813397452~0</p>
+          <p class="origin">tests/unit/test_download_section_ui.py:148</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>

@@ -68,7 +68,12 @@ ci = [
   "msgpack>=1.2.1",
   "urllib3>=2.7.0",
 ]
-e2e = ["pytest-playwright==0.8.0", "pytest-base-url==2.1.0", "playwright==1.62.0"]
+e2e = [
+  "pytest-playwright==0.8.0",
+  "pytest-base-url==2.1.0",
+  "playwright==1.62.0",
+  "imageio==2.37.4",
+]
 
 [project.urls]
 Homepage = "https://nikiitin.github.io/RING-5/"
