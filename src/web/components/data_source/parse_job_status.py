@@ -82,7 +82,7 @@ def _parse_job_panel_fragment(api: ApplicationAPI, job_id: str) -> None:
                 "Load Partial",
                 key=f"load_partial_parse_job_{job_id}",
                 type="primary",
-                use_container_width=True,
+                width="stretch",
             ):
                 try:
                     receipt = api.consume_parse_job(job_id, allow_partial=True)
@@ -97,17 +97,17 @@ def _parse_job_panel_fragment(api: ApplicationAPI, job_id: str) -> None:
                 else:
                     _complete_job(job_id, f"Loaded partial CSV: {receipt.csv_path}")
         with retry_col:
-            _render_retry_button(api, snapshot, use_container_width=True)
+            _render_retry_button(api, snapshot)
         with dismiss_col:
-            _render_dismiss_button(api, snapshot, use_container_width=True)
+            _render_dismiss_button(api, snapshot)
         return
 
     if snapshot.status in {ParseJobStatus.FAILED, ParseJobStatus.CANCELLED}:
         retry_col, dismiss_col = st.columns(2)
         with retry_col:
-            _render_retry_button(api, snapshot, use_container_width=True)
+            _render_retry_button(api, snapshot)
         with dismiss_col:
-            _render_dismiss_button(api, snapshot, use_container_width=True)
+            _render_dismiss_button(api, snapshot)
 
 
 @st.fragment(run_every="1s")
@@ -127,20 +127,21 @@ def _sidebar_parse_job_fragment(api: ApplicationAPI, job_id: str) -> None:
         if st.button(
             "Cancel",
             key=f"sidebar_cancel_parse_job_{job_id}",
-            use_container_width=True,
+            width="stretch",
         ):
             api.cancel_parse_job(job_id)
             st.rerun(scope="app")
     elif st.button(
         "Review on Data Source",
         key=f"review_parse_job_{job_id}",
-        use_container_width=True,
+        width="stretch",
     ):
         st.session_state["_nav_page"] = "Data Source"
         st.rerun(scope="app")
 
 
 def _render_snapshot(snapshot: ParseJobSnapshot, *, compact: bool) -> None:
+    """Render phase, elapsed time, progress, and bounded error details."""
     label = snapshot.status.value.replace("_", " ").title()
     st.caption(f"{label} · {snapshot.elapsed_seconds:.1f}s")
     st.write(snapshot.phase)
@@ -163,13 +164,12 @@ def _render_snapshot(snapshot: ParseJobSnapshot, *, compact: bool) -> None:
 def _render_retry_button(
     api: ApplicationAPI,
     snapshot: ParseJobSnapshot,
-    *,
-    use_container_width: bool,
 ) -> None:
+    """Render the explicit retry action for one terminal attempt."""
     if st.button(
         "Retry",
         key=f"retry_parse_job_{snapshot.job_id}",
-        use_container_width=use_container_width,
+        width="stretch",
     ):
         retried = api.retry_parse_job(snapshot.job_id)
         remember_parse_job(retried)
@@ -179,13 +179,12 @@ def _render_retry_button(
 def _render_dismiss_button(
     api: ApplicationAPI,
     snapshot: ParseJobSnapshot,
-    *,
-    use_container_width: bool,
 ) -> None:
+    """Render acknowledgement and cleanup for one terminal attempt."""
     if st.button(
         "Dismiss",
         key=f"dismiss_parse_job_{snapshot.job_id}",
-        use_container_width=use_container_width,
+        width="stretch",
     ):
         api.dismiss_parse_job(snapshot.job_id)
         _forget_job(snapshot.job_id)
@@ -198,6 +197,7 @@ def _consume_success(
     *,
     source: str,
 ) -> None:
+    """Load a clean result automatically and preserve actionable failures."""
     try:
         receipt = api.consume_parse_job(snapshot.job_id)
     except (FileNotFoundError, ParseJobNotConsumableError) as exc:
@@ -226,7 +226,7 @@ def _render_consumption_error(
     if st.button(
         "Dismiss result",
         key=f"{source}_dismiss_unloadable_parse_job_{snapshot.job_id}",
-        use_container_width=True,
+        width="stretch",
     ):
         api.dismiss_parse_job(snapshot.job_id)
         _forget_job(snapshot.job_id)
@@ -234,12 +234,14 @@ def _render_consumption_error(
 
 
 def _complete_job(job_id: str, message: str) -> None:
+    """Queue a one-shot completion toast and rerun the full application."""
     _forget_job(job_id)
     st.session_state[_FLASH_KEY] = message
     st.rerun(scope="app")
 
 
 def _visible_job_id(api: ApplicationAPI) -> str | None:
+    """Resolve the remembered job, falling back to the active session job."""
     stored = st.session_state.get(_JOB_ID_KEY)
     if isinstance(stored, str):
         if api.get_parse_job(stored) is not None:
@@ -253,5 +255,6 @@ def _visible_job_id(api: ApplicationAPI) -> str | None:
 
 
 def _forget_job(job_id: str) -> None:
+    """Forget the visible job only when its identifier still matches."""
     if st.session_state.get(_JOB_ID_KEY) == job_id:
         st.session_state.pop(_JOB_ID_KEY, None)

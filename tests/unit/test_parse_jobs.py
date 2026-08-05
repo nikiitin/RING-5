@@ -18,6 +18,7 @@ from src.core.application_api import ApplicationAPI
 from src.core.models import (
     InvalidParseJobTransition,
     ParseBatchResult,
+    ParseFileSignature,
     ParseJobConflictError,
     ParseJobNotConsumableError,
     ParseJobNotFoundError,
@@ -201,6 +202,53 @@ class TestParseJobFingerprint:
         )
         assert first.fingerprint != second.fingerprint
 
+    def test_uses_bounded_canonical_file_discovery(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Fingerprint exactly the paths accepted by canonical discovery."""
+        stats = tmp_path / "run" / "stats.txt"
+        stats.parent.mkdir()
+        stats.write_text("simTicks 1\n")
+        discover = MagicMock(return_value=[str(stats)])
+        monkeypatch.setattr(
+            "src.core.services.parse_job_service.find_stats_files",
+            discover,
+        )
+
+        request = build_parse_job_request(
+            stats_path=str(tmp_path),
+            stats_pattern="stats.txt",
+            variables=[],
+            strategy_type="simple",
+        )
+
+        discover.assert_called_once_with(str(tmp_path.resolve()), "stats.txt", sort=True)
+        assert request.file_signatures == (
+            ParseFileSignature(
+                path=str(stats.resolve()),
+                size=stats.stat().st_size,
+                mtime_ns=stats.stat().st_mtime_ns,
+            ),
+        )
+
+    def test_disappearing_discovered_file_fails_fingerprinting(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Surface a file-removal race instead of caching an incomplete request."""
+        missing = tmp_path / "removed" / "stats.txt"
+        monkeypatch.setattr(
+            "src.core.services.parse_job_service.find_stats_files",
+            lambda *_args, **_kwargs: [str(missing)],
+        )
+
+        with pytest.raises(FileNotFoundError):
+            build_parse_job_request(
+                stats_path=str(tmp_path),
+                stats_pattern="stats.txt",
+                variables=[],
+                strategy_type="simple",
+            )
+
     def test_config_and_input_signatures_change_fingerprint(self, tmp_path: Path) -> None:
         _stats_tree(tmp_path)
 
@@ -306,6 +354,9 @@ class TestParseJobStore:
         running = store.transition("job", ParseJobStatus.RUNNING, "Running")
         assert running.started_at is not None
 
+        bounded = store.update_progress("job", completed_files=12, total_files=3, phase="Work")
+        assert bounded.completed_files == bounded.total_files == 3
+
         for index in range(MAX_STORED_ERRORS + 5):
             store.append_error("job", f"{index}-" + ("x" * (MAX_ERROR_LENGTH + 20)))
         snapshot = store.get_job("job")
@@ -337,6 +388,30 @@ class TestParseJobStore:
 
 class TestParseJobFlow:
     # [test->req~ring5.ingestion.session-background-parse~1]
+
+    def test_executor_submission_failure_removes_queued_attempt(
+        self,
+        tmp_path: Path,
+        service_factory: _ServiceFactory,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Leave no phantom queued job when orchestration cannot be scheduled."""
+        _stats_tree(tmp_path)
+        service = service_factory.create(lambda *_args: ParseBatchResult([], []))
+        executor = MagicMock()
+        executor.submit.side_effect = RuntimeError("executor unavailable")
+        monkeypatch.setattr(service, "_get_executor", lambda: executor)
+
+        with pytest.raises(RuntimeError, match="executor unavailable"):
+            service.submit(
+                stats_path=str(tmp_path),
+                stats_pattern="stats.txt",
+                variables=[],
+                strategy_type="simple",
+            )
+
+        assert service._store.list_jobs() == []
+        assert list((service.session_dir / "attempts").iterdir()) == []
 
     def test_success_consumption_and_session_reuse(
         self, tmp_path: Path, service_factory: _ServiceFactory
@@ -576,6 +651,52 @@ class TestParseJobFlow:
             variables=[],
             strategy_type="simple",
         )
+        _wait_for_status(service, replacement.job_id, {ParseJobStatus.SUCCEEDED})
+        assert calls == 2
+
+    def test_missing_unconsumed_csv_is_invalidated_and_reparsed(
+        self, tmp_path: Path, service_factory: _ServiceFactory
+    ) -> None:
+        """Replace an unusable successful record instead of coalescing with it."""
+        _stats_tree(tmp_path)
+        calls = 0
+
+        def submit(
+            _path: str,
+            _pattern: str,
+            _variables: Sequence[JsonValue],
+            _output: str,
+            _strategy: str,
+            _scanned: list[JsonValue] | None,
+            _incremental: bool,
+        ) -> ParseBatchResult:
+            nonlocal calls
+            calls += 1
+            return ParseBatchResult(
+                futures=[_completed_future({"simTicks": {"value": calls}})],
+                var_names=["simTicks"],
+            )
+
+        service = service_factory.create(submit)
+        first = service.submit(
+            stats_path=str(tmp_path),
+            stats_pattern="stats.txt",
+            variables=[],
+            strategy_type="simple",
+        )
+        terminal = _wait_for_status(service, first.job_id, {ParseJobStatus.SUCCEEDED})
+        assert terminal.published_csv_path is not None
+        Path(terminal.published_csv_path).unlink()
+
+        replacement = service.submit(
+            stats_path=str(tmp_path),
+            stats_pattern="stats.txt",
+            variables=[],
+            strategy_type="simple",
+        )
+
+        assert replacement.job_id != first.job_id
+        assert service.get(first.job_id) is None
         _wait_for_status(service, replacement.job_id, {ParseJobStatus.SUCCEEDED})
         assert calls == 2
 

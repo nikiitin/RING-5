@@ -251,6 +251,8 @@ class ParseJobStore:
         phase: str,
     ) -> ParseJobSnapshot:
         """Update bounded progress metadata without changing state."""
+        bounded_total = max(0, total_files)
+        bounded_completed = min(max(0, completed_files), bounded_total)
         with self._lock, self._connect() as connection:
             cursor = connection.execute(
                 """
@@ -258,8 +260,8 @@ class ParseJobStore:
                 WHERE job_id = ?
                 """,
                 (
-                    max(0, completed_files),
-                    max(0, total_files),
+                    bounded_completed,
+                    bounded_total,
                     phase[:MAX_PHASE_LENGTH],
                     job_id,
                 ),
@@ -336,12 +338,14 @@ class ParseJobStore:
             )
 
     def _connect(self) -> sqlite3.Connection:
+        """Open a short-lived connection configured for named row access."""
         connection = sqlite3.connect(self.db_path, timeout=5.0)
         connection.row_factory = sqlite3.Row
         return connection
 
     @staticmethod
     def _encode_request(request: ParseJobRequest) -> str:
+        """Serialize a request while enforcing the session metadata limit."""
         payload = {
             "simulator": request.simulator,
             "parser_contract_version": request.parser_contract_version,
@@ -368,6 +372,7 @@ class ParseJobStore:
 
     @staticmethod
     def _decode_request(encoded: str) -> ParseJobRequest:
+        """Reconstruct an immutable request from trusted session storage."""
         payload = json.loads(encoded)
         signatures = tuple(
             ParseFileSignature(
@@ -392,6 +397,7 @@ class ParseJobStore:
 
     @staticmethod
     def _snapshot_from_row(row: sqlite3.Row) -> ParseJobSnapshot:
+        """Convert one SQLite row into an immutable public snapshot."""
         errors_value = json.loads(str(row["errors_json"]))
         errors = (
             tuple(str(value) for value in errors_value) if isinstance(errors_value, list) else ()

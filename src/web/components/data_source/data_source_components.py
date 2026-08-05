@@ -661,8 +661,8 @@ class DataSourceComponents:
             value=True,
             help=(
                 "Fingerprint all matching inputs, parse only new or changed files, and remove "
-                "rows whose source files were deleted. The cache stays beside the generated "
-                "CSV and is invalidated when parser settings change."
+                "rows whose source files were deleted. The cache stays in this browser session "
+                "and is invalidated when parser settings change."
             ),
             key="parser_incremental_enabled",
         )
@@ -846,9 +846,9 @@ class DataSourceComponents:
 
         _parser_config_fragment()
 
-        # Actions sit outside the fragment so their dialogs can own the complete
-        # async lifecycle. Read widget values from session_state because locals
-        # from the fragment are not in scope.
+        # Actions sit outside the fragment so submission reruns the full app and
+        # exposes the job in both the page and sidebar. Fragment-local widget
+        # values are read from session state.
         st.markdown("---")
         visible_job = get_visible_parse_job(api)
         test_col, parse_col = st.columns(2)

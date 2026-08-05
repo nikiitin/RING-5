@@ -26,9 +26,9 @@ class GuidedAnalysisComponent:
     def render_fragmented(cls, api: ApplicationAPI) -> None:
         """Render guidance in an independently rerunnable sidebar fragment.
 
-        Figure download callbacks already trigger a full application rerun after
-        recording completion.  Periodic polling here can race the browser's
-        download response, so progress is refreshed by that callback rerun.
+        A download records completion in session state, which the next sidebar
+        render observes. Periodic polling can race the browser's download
+        response, so this fragment refreshes only on normal application reruns.
         """
         # [impl->req~ring5.workspace.guided-analysis~1]
         st.fragment(cls.render)(api)

@@ -58,6 +58,7 @@ def run_app() -> None:
         on_release=lambda session_api: session_api.close(),
     )
     def get_api() -> ApplicationAPI:
+        """Return the mutable application facade owned by this browser session."""
         return ApplicationAPI(plot_deserializer=PlotFactory.from_dict)
 
     api = get_api()

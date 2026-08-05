@@ -37,6 +37,7 @@ from src.core.models import (
 from src.core.models.parse_job_models import JsonValue
 from src.core.services.parse_job_store import ParseJobStore
 from src.core.services.parse_job_workspace import ParseJobRuntimeWorkspace
+from src.parsing.framework.file_discovery import find_stats_files
 
 logger = logging.getLogger(__name__)
 
@@ -85,19 +86,15 @@ def build_parse_job_request(
         strip_internal_ids=True,
     )
     signatures: list[ParseFileSignature] = []
-    seen_paths: set[str] = set()
-    for candidate in normalized_path.rglob(normalized_pattern):
-        try:
-            resolved = candidate.resolve()
-            if not resolved.is_file():
-                continue
-            resolved_string = str(resolved)
-            if resolved_string in seen_paths:
-                continue
-            stat = resolved.stat()
-        except OSError:
-            continue
-        seen_paths.add(resolved_string)
+    matching_paths = find_stats_files(
+        str(normalized_path),
+        normalized_pattern,
+        sort=True,
+    )
+    for candidate in matching_paths:
+        resolved = Path(candidate).resolve(strict=True)
+        stat = resolved.stat()
+        resolved_string = str(resolved)
         signatures.append(
             ParseFileSignature(
                 path=resolved_string,
@@ -388,6 +385,7 @@ class ParseJobService:
         attempt: int,
         ignore_cached_result: bool,
     ) -> ParseJobSnapshot:
+        """Coalesce, reuse, or enqueue an already-canonical request."""
         if self._closed:
             raise RuntimeError("Parse job service is closed")
 
@@ -401,7 +399,14 @@ class ParseJobService:
 
         existing = self._store.get_latest_by_fingerprint(request.fingerprint)
         if existing is not None and not ignore_cached_result:
-            return existing
+            published_path = existing.published_csv_path
+            if existing.status == ParseJobStatus.SUCCEEDED and (
+                published_path is None or not Path(published_path).is_file()
+            ):
+                self._store.forget_published(request.fingerprint)
+                self._delete_transient_job(existing.job_id)
+            else:
+                return existing
 
         if not ignore_cached_result:
             published_path = self._store.get_published(request.fingerprint)
@@ -409,16 +414,20 @@ class ParseJobService:
                 if Path(published_path).is_file():
                     job_id = uuid.uuid4().hex
                     attempt_dir = self._create_attempt_dir(job_id)
-                    return self._store.create_job(
-                        job_id,
-                        request,
-                        attempt_dir,
-                        attempt,
-                        status=ParseJobStatus.SUCCEEDED,
-                        phase="Reusing session result from Recent CSVs",
-                        published_csv_path=published_path,
-                        cache_hit=True,
-                    )
+                    try:
+                        return self._store.create_job(
+                            job_id,
+                            request,
+                            attempt_dir,
+                            attempt,
+                            status=ParseJobStatus.SUCCEEDED,
+                            phase="Reusing session result from Recent CSVs",
+                            published_csv_path=published_path,
+                            cache_hit=True,
+                        )
+                    except Exception:
+                        shutil.rmtree(attempt_dir, ignore_errors=True)
+                        raise
                 self._store.forget_published(request.fingerprint)
 
         job_id = uuid.uuid4().hex
@@ -430,11 +439,17 @@ class ParseJobService:
             raise
         event = threading.Event()
         self._cancel_events[job_id] = event
-        executor = self._get_executor()
-        self._orchestration_futures[job_id] = executor.submit(self._run_job, job_id)
+        try:
+            executor = self._get_executor()
+            orchestration = executor.submit(self._run_job, job_id)
+        except Exception:
+            self._delete_transient_job(job_id)
+            raise
+        self._orchestration_futures[job_id] = orchestration
         return snapshot
 
     def _run_job(self, job_id: str) -> None:
+        """Drive one persisted attempt to a terminal state on the session executor."""
         results: list[dict[str, Any]] = []
         try:
             event = self._cancel_events[job_id]
@@ -585,6 +600,8 @@ class ParseJobService:
                     published_csv_path=published_path,
                 )
         except Exception as exc:
+            # The orchestration thread is an exception boundary: every parser
+            # failure must become visible persisted state before the future ends.
             results.clear()
             try:
                 cancel_event = self._cancel_events.get(job_id)
@@ -598,6 +615,7 @@ class ParseJobService:
             logger.error("Background parse job %s failed: %s", job_id, exc, exc_info=True)
 
     def _mark_cancelled(self, job_id: str) -> None:
+        """Finish cancellation and discard reset jobs after workers return."""
         with self._operation_lock:
             snapshot = self._store.get_job(job_id)
             if snapshot is None or snapshot.status.is_terminal:
@@ -612,6 +630,7 @@ class ParseJobService:
                 self._delete_transient_job(job_id)
 
     def _mark_failed(self, job_id: str, phase: str) -> None:
+        """Persist failure unless cancellation won the terminal-state race."""
         with self._operation_lock:
             snapshot = self._store.get_job(job_id)
             if snapshot is None or snapshot.status.is_terminal:
@@ -622,15 +641,18 @@ class ParseJobService:
             self._store.transition(job_id, ParseJobStatus.FAILED, phase)
 
     def _publish_output(self, job_id: str, fingerprint: str, output_path: str) -> str:
+        """Publish under a collision-resistant Recent CSV name."""
         file_name = f"parsed_{fingerprint[:16]}_{job_id}.csv"
         return self._publish_csv(output_path, file_name)
 
     def _create_attempt_dir(self, job_id: str) -> Path:
+        """Create the private temporary directory for one attempt."""
         attempt_dir = self._attempts_dir / job_id
         attempt_dir.mkdir(mode=0o700)
         return attempt_dir
 
     def _get_executor(self) -> ThreadPoolExecutor:
+        """Lazily create the session's single orchestration executor."""
         if self._executor is None:
             self._executor = ThreadPoolExecutor(
                 max_workers=1,
@@ -639,12 +661,14 @@ class ParseJobService:
         return self._executor
 
     def _require_job(self, job_id: str) -> ParseJobSnapshot:
+        """Return a session-owned job or raise a typed lookup error."""
         snapshot = self._store.get_job(job_id)
         if snapshot is None:
             raise ParseJobNotFoundError(f"Unknown parse job: {job_id}")
         return snapshot
 
     def _delete_transient_job(self, job_id: str) -> None:
+        """Remove one persisted attempt and all in-memory handles to it."""
         attempt_dir = self._store.delete_job(job_id)
         shutil.rmtree(attempt_dir, ignore_errors=True)
         self._cancel_events.pop(job_id, None)
@@ -653,11 +677,13 @@ class ParseJobService:
 
 
 def _format_error(exc: BaseException) -> str:
+    """Flatten an exception into one bounded-store-friendly line."""
     message = str(exc).replace("\n", " ").replace("\r", " ")
     return f"{type(exc).__name__}: {message}"
 
 
 def _canonical_json(value: object, *, strip_internal_ids: bool) -> str:
+    """Serialize request metadata deterministically without non-JSON values."""
     normalized = _to_json_value(value, strip_internal_ids=strip_internal_ids)
     return json.dumps(
         normalized,
@@ -669,6 +695,7 @@ def _canonical_json(value: object, *, strip_internal_ids: bool) -> str:
 
 
 def _to_json_value(value: object, *, strip_internal_ids: bool) -> JsonValue:
+    """Convert supported request objects into recursively typed JSON values."""
     if value is None or isinstance(value, (str, int, float, bool)):
         return value
     if isinstance(value, Path):

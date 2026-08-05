@@ -66,7 +66,7 @@ def test_export_marker_and_navigation_reject_untrusted_values(mock_st: MagicMock
 
 
 @patch("src.web.components.guided_analysis.st")
-def test_export_stage_relies_on_download_callback_rerun(mock_st: MagicMock) -> None:
+def test_export_stage_does_not_poll_while_download_is_pending(mock_st: MagicMock) -> None:
     from src.web.components.guided_analysis import GuidedAnalysisComponent
 
     data = pd.DataFrame({"configuration": ["base", "next"], "ipc": [1.0, 1.1]})

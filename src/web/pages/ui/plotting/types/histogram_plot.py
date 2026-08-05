@@ -1,6 +1,6 @@
 """Histogram plot implementation."""
 
-from typing import Any, override
+from typing import Any, cast, override
 
 import pandas as pd
 
@@ -170,7 +170,7 @@ class HistogramPlot(BasePlot):
         buckets.sort(key=lambda x: x[0])
 
         # Extract counts/values for each bucket
-        group_by = config.get("group_by")
+        group_by = cast(str | None, config.get("group_by"))
 
         if group_by and group_by in data.columns:
             # Group data

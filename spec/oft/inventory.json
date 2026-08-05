@@ -456,7 +456,10 @@
       "tags": ["async", "parsing", "sessions"],
       "evidence": {
         "implementation": ["src/core/services/parse_job_service.py::ParseJobService"],
-        "tests": ["tests/unit/test_parse_jobs.py::TestParseJobFlow"],
+        "tests": [
+          "tests/unit/test_parse_jobs.py::TestParseJobFlow",
+          "tests/e2e/test_background_jobs.py::TestBackgroundParseJob.test_parse_loads_without_a_blocking_dialog"
+        ],
         "documentation": ["docs/user-guide/workflows/loading-data.md#session-background-parsing"]
       }
     },

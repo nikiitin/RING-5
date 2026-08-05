@@ -438,6 +438,7 @@ The CLI defaults to the `stats.txt` pattern and strict missing-stat handling. Ru
 
 Next: [Manage Datasets]({{site.baseurl}}/user-guide/workflows/managing-datasets/) or
 [Create and Configure Plots]({{site.baseurl}}/user-guide/workflows/plotting/).
+
 ## Session background parsing
 
 <!--

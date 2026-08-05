@@ -17,8 +17,8 @@ RING-5 tests the UI at four levels — pick the cheapest that covers the behavio
 Run: `make test-unit` (no-browser), `make test-visual` (browser; spins up Streamlit on :8502).
 E2E marker: `-m requires_browser`. Visual is excluded from default collection.
 
-> `tests/ui/conftest.py` monkey-patches a Streamlit **1.53.1** bug (`ButtonGroup.indices` iterating
-> string chars in single-select). If you bump Streamlit, re-check whether that patch is still needed.
+`tests/ui/conftest.py` clears session-scoped cached resources around every AppTest. Streamlit fixed
+the old `ButtonGroup.indices` single-selection bug in 1.58, so no compatibility monkey-patch remains.
 
 ## Page Object Model (Playwright)
 - Locators are **`@property`** (never methods); actions are **methods** that take no locator params.
@@ -40,8 +40,9 @@ def _by_label(page, test_id, label):   # scope a widget duplicated across tabs
 ```
 
 ## Critical Streamlit × Playwright gotchas (these cause most flakes)
-- **Page-ready wait:** `wait_for_load_state("networkidle")` **then** wait for
-  `[data-testid='stStatusWidget']` to disappear. (networkidle alone races the script start.)
+- **Page-ready wait:** navigate with `wait_until="domcontentloaded"`, then wait for
+  `[data-testid='stStatusWidget']` to disappear. Streamlit and chart components keep long-lived
+  connections, so Playwright's `networkidle` state is not a reliable readiness boundary.
 - **Wait for the rerun to *start*, not just end** (the subtle one that silently loses state):
   the status widget appears a beat *after* the triggering click (client→server round-trip). If you
   only wait for it to be *hidden*, you can observe the **pre-rerun** idle state and return too early —
