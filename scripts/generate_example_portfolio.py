@@ -16,11 +16,15 @@ import sys
 from pathlib import Path
 from typing import Any, cast
 
-import pandas as pd
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
+
+from src.core.common.runtime_limits import configure_native_thread_limits  # noqa: E402
+
+configure_native_thread_limits()
+
+import pandas as pd  # noqa: E402: limits must precede native imports
 
 from src.core.common.utils import sanitize_filename  # noqa: E402
 from src.core.models import PlotProtocol  # noqa: E402
@@ -531,6 +535,7 @@ def generate_example_portfolio(
 
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    """Parse command-line arguments without mutating generator state."""
     parser = argparse.ArgumentParser(
         description="Generate a self-contained RING-5 portfolio with all plot examples."
     )

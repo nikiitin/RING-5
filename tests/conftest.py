@@ -4,22 +4,16 @@ Provides common helper functions and fixtures used across multiple
 test directories (unit, ui_unit, integration).
 """
 
-import os
 from collections.abc import Generator
 from typing import Any
 from unittest.mock import MagicMock
 
-for _thread_limit_var in (
-    "OPENBLAS_NUM_THREADS",
-    "OMP_NUM_THREADS",
-    "MKL_NUM_THREADS",
-    "NUMEXPR_NUM_THREADS",
-    "VECLIB_MAXIMUM_THREADS",
-):
-    os.environ.setdefault(_thread_limit_var, "2")
+from src.core.common.runtime_limits import configure_native_thread_limits
 
-import pandas as pd  # noqa: E402
-import pytest  # noqa: E402
+configure_native_thread_limits()
+
+import pandas as pd  # noqa: E402: limits must precede native imports
+import pytest  # noqa: E402: limits must precede native imports
 
 # Register helper fixture plugins so they are available everywhere
 pytest_plugins = ["tests.helpers.gem5_fixtures"]

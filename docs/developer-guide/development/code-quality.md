@@ -21,7 +21,7 @@ and security audits with the repository environment.
 | `make format-check` | Black formatting without modifying files |
 | `make lint` | Flake8 rules |
 | `make type-check` | Mypy over `src` and `ring5` |
-| `make security-audit` | Bandit and dependency vulnerability audit |
+| `make security-audit` | Bandit and a strict audit of resolved project dependencies |
 
 Run a focused tool while editing, then the aggregate target before review. Do not silence a check
 without documenting why the exception preserves the underlying contract.

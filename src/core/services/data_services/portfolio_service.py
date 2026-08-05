@@ -34,12 +34,33 @@ class PortfolioService:
     It interacts with the StateManager to persist/retrieve the full application state.
     """
 
-    def __init__(self, state_manager: StateManager, portfolios_dir: Path | None = None) -> None:
-        """Initialize state access and an optional isolated storage directory."""
+    def __init__(
+        self,
+        state_manager: StateManager,
+        portfolios_dir: Path | None = None,
+        portfolio_revisions_dir: Path | None = None,
+    ) -> None:
+        """Initialize portfolio persistence.
+
+        Args:
+            state_manager: Workspace state used for parser and history metadata.
+            portfolios_dir: Optional portfolio root instead of the application default.
+            portfolio_revisions_dir: Optional revision-history root. A custom
+                portfolio root otherwise keeps its revisions in ``.revisions``.
+        """
         self.state_manager = state_manager
         self._portfolios_dir = portfolios_dir.resolve() if portfolios_dir is not None else None
+        self._portfolio_revisions_dir: Path | None
+        if portfolio_revisions_dir is not None:
+            self._portfolio_revisions_dir = portfolio_revisions_dir.resolve()
+        elif self._portfolios_dir is not None:
+            self._portfolio_revisions_dir = self._portfolios_dir / ".revisions"
+        else:
+            self._portfolio_revisions_dir = None
         if self._portfolios_dir is not None:
             self._portfolios_dir.mkdir(parents=True, exist_ok=True)
+        if self._portfolio_revisions_dir is not None:
+            self._portfolio_revisions_dir.mkdir(parents=True, exist_ok=True)
 
     def _get_portfolios_dir(self) -> Path:
         """Return the configured portfolio directory."""
@@ -115,6 +136,7 @@ class PortfolioService:
                 payload,
                 save_path,
                 overwrite=overwrite,
+                history_root=self._portfolio_revisions_dir,
             )
         except FileExistsError as exc:
             raise FileExistsError(f"Portfolio '{name}' already exists at {save_path}") from exc
@@ -270,12 +292,20 @@ class PortfolioService:
     def list_portfolio_revisions(self, name: str) -> tuple[PortfolioRevisionInfo, ...]:
         # [impl->req~ring5.portfolio.history-diff~1]
         """List immutable saved versions for a named portfolio."""
-        return PortfolioRevisionService.list_revisions(name, self._portfolio_path(name))
+        return PortfolioRevisionService.list_revisions(
+            name,
+            self._portfolio_path(name),
+            history_root=self._portfolio_revisions_dir,
+        )
 
     def load_portfolio_revision(self, name: str, revision_id: str) -> PortfolioData:
         # [impl->req~ring5.portfolio.history-diff~1]
         """Load one checksum-verified portfolio revision."""
-        return PortfolioRevisionService.load_revision(name, revision_id)
+        return PortfolioRevisionService.load_revision(
+            name,
+            revision_id,
+            history_root=self._portfolio_revisions_dir,
+        )
 
     def compare_portfolio_revisions(
         self,
@@ -285,7 +315,12 @@ class PortfolioService:
     ) -> PortfolioDiff:
         # [impl->req~ring5.portfolio.history-diff~1]
         """Return a bounded field-level comparison of two revisions."""
-        return PortfolioRevisionService.compare(name, before_revision, after_revision)
+        return PortfolioRevisionService.compare(
+            name,
+            before_revision,
+            after_revision,
+            history_root=self._portfolio_revisions_dir,
+        )
 
     def delete_portfolio(self, name: str) -> None:
         # [impl->req~ring5.portfolio.manage~1]
@@ -297,8 +332,12 @@ class PortfolioService:
         path = self._portfolio_path(name)
         if path.exists():
             path.unlink()
-        PortfolioRevisionService.delete_history(name)
+        PortfolioRevisionService.delete_history(
+            name,
+            history_root=self._portfolio_revisions_dir,
+        )
 
     def _portfolio_path(self, name: str) -> Path:
+        """Return a sanitized portfolio path contained by the configured root."""
         directory = self._get_portfolios_dir()
         return validate_path_within(directory / f"{sanitize_filename(name)}.json", directory)

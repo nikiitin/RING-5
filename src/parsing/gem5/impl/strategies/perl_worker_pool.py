@@ -459,7 +459,7 @@ class PerlWorkerPool:
 
         Args:
             pool_size: Number of worker processes to maintain. When ``None``,
-                defaults to half the available CPUs (see ``_default_pool_size``).
+                defaults to two (see ``_default_pool_size``).
         """
         self.pool_size = pool_size if pool_size is not None else _default_pool_size()
         self.workers: list[PerlWorker] = []
@@ -682,7 +682,7 @@ def get_worker_pool(pool_size: int | None = None) -> PerlWorkerPool:
 
     Args:
         pool_size: Number of workers (only used on first call). ``None`` resolves
-            to half the available CPUs (override via ``RING5_PERL_POOL_SIZE``).
+            to two (override via ``RING5_PERL_POOL_SIZE``).
 
     Returns:
         PerlWorkerPool instance

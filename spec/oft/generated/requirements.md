@@ -2383,7 +2383,7 @@ Tags: api, portfolios, safety, status_approved
 `req~ring5.portfolio.example-catalog~1`
 Status: approved
 
-Developers shall be able to generate a deterministic, self-validating portfolio containing representative data and one renderable example of every registered plot type.
+Developers shall be able to generate a self-validating portfolio from deterministic representative data, containing one Plotly- and Matplotlib-renderable example of every registered plot type.
 
 Covers:
 - feat~ring5.reproducibility~1

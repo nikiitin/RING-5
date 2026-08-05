@@ -72,6 +72,7 @@ class PortfolioRevisionService:
         current_path: Path,
         *,
         overwrite: bool,
+        history_root: Path | None = None,
     ) -> str:
         """Retain *payload* as a revision and atomically make it current."""
         # [impl->req~ring5.portfolio.history-diff~1]
@@ -79,9 +80,13 @@ class PortfolioRevisionService:
         if current_path.exists() and not overwrite:
             raise FileExistsError(f"Portfolio {name!r} already exists at {current_path}")
         if current_path.exists():
-            cls._record(name, current_path.read_bytes())
+            cls._record(name, current_path.read_bytes(), history_root=history_root)
 
-        revision_id, revision_path, created = cls._record(name, payload)
+        revision_id, revision_path, created = cls._record(
+            name,
+            payload,
+            history_root=history_root,
+        )
         try:
             cls._write_current(current_path, payload, overwrite=overwrite)
         except OSError:
@@ -95,6 +100,8 @@ class PortfolioRevisionService:
         cls,
         name: str,
         current_path: Path,
+        *,
+        history_root: Path | None = None,
     ) -> tuple[PortfolioRevisionInfo, ...]:
         """Return saved versions in capture order, including a legacy baseline."""
         # [impl->req~ring5.portfolio.history-diff~1]
@@ -102,9 +109,13 @@ class PortfolioRevisionService:
         active_revision: str | None = None
         if current_path.exists():
             current = current_path.read_bytes()
-            active_revision, _path, _created = cls._record(name, current)
+            active_revision, _path, _created = cls._record(
+                name,
+                current,
+                history_root=history_root,
+            )
 
-        directory = cls._history_dir(name, create=False)
+        directory = cls._history_dir(name, create=False, history_root=history_root)
         if not directory.exists():
             return ()
         drafts: list[tuple[int, str, str, int, str, int]] = []
@@ -149,10 +160,16 @@ class PortfolioRevisionService:
         )
 
     @classmethod
-    def load_revision(cls, name: str, revision_id: str) -> PortfolioData:
+    def load_revision(
+        cls,
+        name: str,
+        revision_id: str,
+        *,
+        history_root: Path | None = None,
+    ) -> PortfolioData:
         """Load and migrate one checksum-verified immutable revision."""
         cls._validate_name(name)
-        path = cls._revision_path(name, revision_id)
+        path = cls._revision_path(name, revision_id, history_root=history_root)
         if not path.exists():
             raise FileNotFoundError(
                 f"Portfolio revision {revision_id!r} for {name!r} was not found."
@@ -160,11 +177,18 @@ class PortfolioRevisionService:
         return cls._load_document(cls._verified_bytes(path))
 
     @classmethod
-    def compare(cls, name: str, before_revision: str, after_revision: str) -> PortfolioDiff:
+    def compare(
+        cls,
+        name: str,
+        before_revision: str,
+        after_revision: str,
+        *,
+        history_root: Path | None = None,
+    ) -> PortfolioDiff:
         """Compare tracked portfolio fields without inspecting embedded data rows."""
         # [impl->req~ring5.portfolio.history-diff~1]
-        before = cls.load_revision(name, before_revision)
-        after = cls.load_revision(name, after_revision)
+        before = cls.load_revision(name, before_revision, history_root=history_root)
+        after = cls.load_revision(name, after_revision, history_root=history_root)
         before_sections = cls._sections(before)
         after_sections = cls._sections(after)
         entries: list[PortfolioDiffEntry] = []
@@ -192,9 +216,9 @@ class PortfolioRevisionService:
         )
 
     @classmethod
-    def delete_history(cls, name: str) -> None:
+    def delete_history(cls, name: str, *, history_root: Path | None = None) -> None:
         """Delete only the immutable revisions belonging to *name*."""
-        directory = cls._history_dir(name, create=False)
+        directory = cls._history_dir(name, create=False, history_root=history_root)
         if not directory.exists():
             return
         for path in directory.iterdir():
@@ -204,9 +228,21 @@ class PortfolioRevisionService:
         directory.rmdir()
 
     @classmethod
-    def _record(cls, name: str, payload: bytes) -> tuple[str, Path, bool]:
+    def _record(
+        cls,
+        name: str,
+        payload: bytes,
+        *,
+        history_root: Path | None = None,
+    ) -> tuple[str, Path, bool]:
+        """Store immutable bytes once and report whether this call created them."""
         revision_id = hashlib.sha256(payload).hexdigest()
-        path = cls._revision_path(name, revision_id, create_directory=True)
+        path = cls._revision_path(
+            name,
+            revision_id,
+            create_directory=True,
+            history_root=history_root,
+        )
         if path.exists():
             if path.read_bytes() != payload:
                 raise ValueError(f"Portfolio revision {revision_id!r} failed identity validation.")
@@ -267,16 +303,35 @@ class PortfolioRevisionService:
         revision_id: str,
         *,
         create_directory: bool = False,
+        history_root: Path | None = None,
     ) -> Path:
+        """Resolve a validated revision path beneath the selected history root."""
         if not isinstance(revision_id, str) or not _REVISION_ID.fullmatch(revision_id):
             raise ValueError("Portfolio revision IDs must be 64 lowercase hexadecimal characters.")
-        directory = cls._history_dir(name, create=create_directory)
+        directory = cls._history_dir(
+            name,
+            create=create_directory,
+            history_root=history_root,
+        )
         return validate_path_within(directory / f"{revision_id}.json", directory)
 
     @classmethod
-    def _history_dir(cls, name: str, *, create: bool) -> Path:
+    def _history_dir(
+        cls,
+        name: str,
+        *,
+        create: bool,
+        history_root: Path | None = None,
+    ) -> Path:
+        """Resolve the collision-resistant history directory for one portfolio."""
         validated = cls._validate_name(name)
-        root = PathService.get_portfolio_revisions_dir()
+        root = (
+            history_root.resolve()
+            if history_root is not None
+            else PathService.get_portfolio_revisions_dir()
+        )
+        if create:
+            root.mkdir(parents=True, exist_ok=True)
         identity = hashlib.sha256(validated.encode("utf-8")).hexdigest()[:12]
         directory = validate_path_within(
             root / f"{sanitize_filename(validated)}-{identity}",

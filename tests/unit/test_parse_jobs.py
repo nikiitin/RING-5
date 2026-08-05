@@ -341,6 +341,7 @@ class TestParseJobFingerprint:
 
 class TestParseJobStore:
     def test_connections_close_after_each_operation(self, tmp_path: Path) -> None:
+        """Close SQLite descriptors deterministically after each transaction."""
         store = ParseJobStore(tmp_path / "jobs.sqlite3")
 
         with store._connect() as connection:

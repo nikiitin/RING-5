@@ -2126,7 +2126,7 @@
       "revision": 1,
       "status": "approved",
       "title": "Generated example portfolio",
-      "description": "Developers shall be able to generate a deterministic, self-validating portfolio containing representative data and one renderable example of every registered plot type.",
+      "description": "Developers shall be able to generate a self-validating portfolio from deterministic representative data, containing one Plotly- and Matplotlib-renderable example of every registered plot type.",
       "tags": ["examples", "portfolios", "reproducibility"],
       "evidence": {
         "implementation": [

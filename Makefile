@@ -200,7 +200,7 @@ dependency-check:
 
 security-audit:
 	$(VENV_BIN)/bandit -r ring5 src -c pyproject.toml -ll
-	$(VENV_BIN)/pip-audit --progress-spinner off
+	$(VENV_BIN)/pip-audit --strict --progress-spinner off .
 
 oft-generate:
 	$(PYTHON) scripts/generate_oft_inventory.py
