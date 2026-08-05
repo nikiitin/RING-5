@@ -104,6 +104,29 @@ def build_parse_job_request(
         )
     signatures.sort(key=lambda item: item.path)
 
+    companion_inputs: list[dict[str, JsonValue]] = []
+    if strategy_type == "config_aware":
+        companion_paths = {Path(signature.path).parent / "config.ini" for signature in signatures}
+        for companion in sorted(companion_paths):
+            try:
+                resolved_companion = companion.resolve(strict=True)
+                companion_stat = resolved_companion.stat()
+            except FileNotFoundError:
+                companion_inputs.append(
+                    {
+                        "path": str(companion.resolve(strict=False)),
+                        "missing": True,
+                    }
+                )
+            else:
+                companion_inputs.append(
+                    {
+                        "path": str(resolved_companion),
+                        "size": companion_stat.st_size,
+                        "mtime_ns": companion_stat.st_mtime_ns,
+                    }
+                )
+
     fingerprint_payload = {
         "simulator": simulator,
         "parser_contract_version": parser_contract_version,
@@ -120,6 +143,7 @@ def build_parse_job_request(
             }
             for signature in signatures
         ],
+        "strategy_companion_inputs": companion_inputs,
         "incremental": incremental,
     }
     encoded = json.dumps(
@@ -171,6 +195,9 @@ class ParseJobService:
         self._attempts_dir.mkdir(mode=0o700)
         self._store = ParseJobStore(self.session_dir / "jobs.sqlite3")
         self._operation_lock = threading.RLock()
+        # Cancellation must remain signalable while publication waits outside
+        # the serialized state-transition lock.
+        self._cancel_event_lock = threading.Lock()
         self._executor: ThreadPoolExecutor | None = None
         self._cancel_events: dict[str, threading.Event] = {}
         self._file_futures: dict[str, list[Future[dict[str, Any]]]] = {}
@@ -215,12 +242,14 @@ class ParseJobService:
 
     def cancel(self, job_id: str) -> ParseJobSnapshot:
         """Cooperatively cancel only the specified session job."""
+        snapshot = self._require_job(job_id)
+        if snapshot.status.is_terminal:
+            return snapshot
+        self._signal_cancellation(job_id)
         with self._operation_lock:
             snapshot = self._require_job(job_id)
             if snapshot.status.is_terminal:
                 return snapshot
-            event = self._cancel_events.setdefault(job_id, threading.Event())
-            event.set()
             if snapshot.status != ParseJobStatus.CANCELLING:
                 snapshot = self._store.transition(
                     job_id,
@@ -263,7 +292,7 @@ class ParseJobService:
             )
             attempt_dir = self._store.delete_job(job_id)
             shutil.rmtree(attempt_dir, ignore_errors=True)
-            self._cancel_events.pop(job_id, None)
+            self._remove_cancel_event(job_id)
             self._file_futures.pop(job_id, None)
             self._orchestration_futures.pop(job_id, None)
             return self._submit_request(
@@ -307,11 +336,16 @@ class ParseJobService:
                 reused=snapshot.cache_hit,
             )
             if before_cleanup is not None:
-                before_cleanup(receipt)
+                try:
+                    before_cleanup(receipt)
+                except Exception:
+                    if snapshot.status == ParseJobStatus.PARTIAL:
+                        self._discard_published_output(published_path)
+                    raise
             self._store.remember_published(snapshot.fingerprint, published_path)
             attempt_dir = self._store.delete_job(job_id)
             shutil.rmtree(attempt_dir, ignore_errors=True)
-            self._cancel_events.pop(job_id, None)
+            self._remove_cancel_event(job_id)
             self._file_futures.pop(job_id, None)
             self._orchestration_futures.pop(job_id, None)
             return receipt
@@ -324,12 +358,13 @@ class ParseJobService:
                 raise ParseJobNotConsumableError("An active parse job cannot be dismissed")
             attempt_dir = self._store.delete_job(job_id)
             shutil.rmtree(attempt_dir, ignore_errors=True)
-            self._cancel_events.pop(job_id, None)
+            self._remove_cancel_event(job_id)
             self._file_futures.pop(job_id, None)
             self._orchestration_futures.pop(job_id, None)
 
     def reset(self) -> None:
         """Cancel active work and discard every unconsumed session attempt."""
+        self._signal_all_cancellations()
         with self._operation_lock:
             active = self._store.get_active_job()
             for snapshot in self._store.list_jobs():
@@ -338,8 +373,6 @@ class ParseJobService:
             if active is None:
                 return
             self._discard_when_terminal.add(active.job_id)
-            event = self._cancel_events.setdefault(active.job_id, threading.Event())
-            event.set()
             current = self._store.get_job(active.job_id)
             if current is not None and current.status != ParseJobStatus.CANCELLING:
                 self._store.transition(
@@ -352,14 +385,13 @@ class ParseJobService:
 
     def close(self) -> None:
         """Cancel active work, wait for safe parser return, and delete the session."""
+        self._signal_all_cancellations()
         with self._operation_lock:
             if self._closed:
                 return
             self._closed = True
             active = self._store.get_active_job()
             if active is not None:
-                event = self._cancel_events.setdefault(active.job_id, threading.Event())
-                event.set()
                 if active.status != ParseJobStatus.CANCELLING:
                     self._store.transition(
                         active.job_id,
@@ -372,7 +404,8 @@ class ParseJobService:
         if executor is not None:
             executor.shutdown(wait=True, cancel_futures=False)
         with self._operation_lock:
-            self._cancel_events.clear()
+            with self._cancel_event_lock:
+                self._cancel_events.clear()
             self._file_futures.clear()
             self._orchestration_futures.clear()
             self._discard_when_terminal.clear()
@@ -438,7 +471,8 @@ class ParseJobService:
             shutil.rmtree(attempt_dir, ignore_errors=True)
             raise
         event = threading.Event()
-        self._cancel_events[job_id] = event
+        with self._cancel_event_lock:
+            self._cancel_events[job_id] = event
         try:
             executor = self._get_executor()
             orchestration = executor.submit(self._run_job, job_id)
@@ -452,7 +486,9 @@ class ParseJobService:
         """Drive one persisted attempt to a terminal state on the session executor."""
         results: list[dict[str, Any]] = []
         try:
-            event = self._cancel_events[job_id]
+            event = self._get_cancel_event(job_id)
+            if event is None:
+                return
             request = self._store.get_request(job_id)
             attempt_dir = self._store.get_attempt_dir(job_id)
             with self._operation_lock:
@@ -512,6 +548,11 @@ class ParseJobService:
                         completed += 1
                         if result:
                             results.append(result)
+                        else:
+                            self._store.append_error(
+                                job_id,
+                                "Parser returned no usable result for one file",
+                            )
                     except CancelledError:
                         continue
                     except Exception as exc:
@@ -534,12 +575,10 @@ class ParseJobService:
             snapshot = self._store.get_job(job_id)
             if snapshot is None:
                 return
-            reusable_only = (
-                isinstance(batch, IncrementalParseBatchResult)
-                and batch.reused_file_count > 0
-                and snapshot.error_count == 0
+            has_reusable_rows = (
+                isinstance(batch, IncrementalParseBatchResult) and batch.reused_file_count > 0
             )
-            if not results and not reusable_only:
+            if not results and not has_reusable_rows:
                 if snapshot.error_count == 0:
                     self._store.append_error(job_id, "No usable parsing results were produced")
                 self._mark_failed(job_id, "Parsing produced no usable results")
@@ -572,39 +611,50 @@ class ParseJobService:
                 return
             if snapshot.error_count > 0:
                 with self._operation_lock:
-                    if event.is_set():
-                        self._mark_cancelled(job_id)
-                        return
-                    self._store.transition(
-                        job_id,
-                        ParseJobStatus.PARTIAL,
-                        "Some files failed; partial CSV is ready",
-                        output_csv_path=output_path,
-                    )
+                    current = self._store.get_job(job_id)
+                    with self._cancel_event_lock:
+                        cancelled = (
+                            event.is_set()
+                            or current is None
+                            or current.status == ParseJobStatus.CANCELLING
+                        )
+                        if not cancelled:
+                            self._store.transition(
+                                job_id,
+                                ParseJobStatus.PARTIAL,
+                                "Some files failed; partial CSV is ready",
+                                output_csv_path=output_path,
+                            )
+                            return
+                    self._mark_cancelled(job_id)
                 return
 
+            published_path = self._publish_output(job_id, request.fingerprint, output_path)
             with self._operation_lock:
-                if event.is_set():
-                    self._mark_cancelled(job_id)
-                    return
                 current = self._store.get_job(job_id)
-                if current is None or current.status == ParseJobStatus.CANCELLING:
-                    self._mark_cancelled(job_id)
-                    return
-                published_path = self._publish_output(job_id, request.fingerprint, output_path)
-                self._store.transition(
-                    job_id,
-                    ParseJobStatus.SUCCEEDED,
-                    "CSV is ready in Recent CSVs",
-                    output_csv_path=output_path,
-                    published_csv_path=published_path,
-                )
+                with self._cancel_event_lock:
+                    cancelled = (
+                        event.is_set()
+                        or current is None
+                        or current.status == ParseJobStatus.CANCELLING
+                    )
+                    if not cancelled:
+                        self._store.transition(
+                            job_id,
+                            ParseJobStatus.SUCCEEDED,
+                            "CSV is ready in Recent CSVs",
+                            output_csv_path=output_path,
+                            published_csv_path=published_path,
+                        )
+                        return
+                self._discard_published_output(published_path)
+                self._mark_cancelled(job_id)
         except Exception as exc:
             # The orchestration thread is an exception boundary: every parser
             # failure must become visible persisted state before the future ends.
             results.clear()
             try:
-                cancel_event = self._cancel_events.get(job_id)
+                cancel_event = self._get_cancel_event(job_id)
                 if cancel_event is not None and cancel_event.is_set():
                     self._mark_cancelled(job_id)
                 else:
@@ -635,15 +685,51 @@ class ParseJobService:
             snapshot = self._store.get_job(job_id)
             if snapshot is None or snapshot.status.is_terminal:
                 return
-            if snapshot.status == ParseJobStatus.CANCELLING:
-                self._mark_cancelled(job_id)
-                return
-            self._store.transition(job_id, ParseJobStatus.FAILED, phase)
+            with self._cancel_event_lock:
+                event = self._cancel_events.get(job_id)
+                cancelled = snapshot.status == ParseJobStatus.CANCELLING or (
+                    event is not None and event.is_set()
+                )
+                if not cancelled:
+                    self._store.transition(job_id, ParseJobStatus.FAILED, phase)
+                    return
+            self._mark_cancelled(job_id)
 
     def _publish_output(self, job_id: str, fingerprint: str, output_path: str) -> str:
         """Publish under a collision-resistant Recent CSV name."""
         file_name = f"parsed_{fingerprint[:16]}_{job_id}.csv"
         return self._publish_csv(output_path, file_name)
+
+    @staticmethod
+    def _discard_published_output(published_path: str) -> None:
+        """Remove a job-owned Recent CSV when cancellation wins publication."""
+        try:
+            Path(published_path).unlink(missing_ok=True)
+        except OSError:
+            logger.exception("Could not remove cancelled parse output %s", published_path)
+
+    def _get_cancel_event(self, job_id: str) -> threading.Event | None:
+        """Return a cancellation event without racing session cleanup."""
+        with self._cancel_event_lock:
+            return self._cancel_events.get(job_id)
+
+    def _remove_cancel_event(self, job_id: str) -> None:
+        """Forget a cancellation event after its attempt is removed."""
+        with self._cancel_event_lock:
+            self._cancel_events.pop(job_id, None)
+
+    def _signal_cancellation(self, job_id: str) -> None:
+        """Signal cancellation before waiting for serialized job operations."""
+        with self._cancel_event_lock:
+            event = self._cancel_events.get(job_id)
+            if event is not None:
+                event.set()
+
+    def _signal_all_cancellations(self) -> None:
+        """Signal every retained attempt before reset or shutdown waits on publication."""
+        with self._cancel_event_lock:
+            for event in self._cancel_events.values():
+                event.set()
 
     def _create_attempt_dir(self, job_id: str) -> Path:
         """Create the private temporary directory for one attempt."""
@@ -671,7 +757,7 @@ class ParseJobService:
         """Remove one persisted attempt and all in-memory handles to it."""
         attempt_dir = self._store.delete_job(job_id)
         shutil.rmtree(attempt_dir, ignore_errors=True)
-        self._cancel_events.pop(job_id, None)
+        self._remove_cancel_event(job_id)
         self._file_futures.pop(job_id, None)
         self._orchestration_futures.pop(job_id, None)
 

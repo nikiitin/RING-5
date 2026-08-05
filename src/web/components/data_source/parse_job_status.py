@@ -27,15 +27,23 @@ def remember_parse_job(snapshot: ParseJobSnapshot) -> None:
 def render_parse_job_panel(api: ApplicationAPI) -> None:
     """Render detailed parsing progress on the Data Source page."""
     snapshot = get_visible_parse_job(api)
-    if snapshot is not None:
+    if snapshot is None:
+        return
+    if snapshot.status.is_active:
         _parse_job_panel_fragment(api, snapshot.job_id)
+    else:
+        _render_parse_job_panel_snapshot(api, snapshot)
 
 
 def render_sidebar_parse_job(api: ApplicationAPI) -> None:
     """Render compact parsing progress and cancellation in the sidebar."""
     snapshot = get_visible_parse_job(api)
-    if snapshot is not None:
+    if snapshot is None:
+        return
+    if snapshot.status.is_active:
         _sidebar_parse_job_fragment(api, snapshot.job_id)
+    else:
+        _render_sidebar_parse_job_snapshot(api, snapshot)
 
 
 def get_visible_parse_job(api: ApplicationAPI) -> ParseJobSnapshot | None:
@@ -53,11 +61,23 @@ def show_parse_job_flash() -> None:
 
 @st.fragment(run_every="1s")
 def _parse_job_panel_fragment(api: ApplicationAPI, job_id: str) -> None:
-    """Poll and render a full parse-job status card."""
+    """Poll a full status card only while the parse attempt remains active."""
     snapshot = api.get_parse_job(job_id)
     if snapshot is None:
         _forget_job(job_id)
         return
+    if not snapshot.status.is_active:
+        st.rerun(scope="app")
+        return
+    _render_parse_job_panel_snapshot(api, snapshot)
+
+
+def _render_parse_job_panel_snapshot(
+    api: ApplicationAPI,
+    snapshot: ParseJobSnapshot,
+) -> None:
+    """Render full active progress or terminal actions without scheduling polls."""
+    job_id = snapshot.job_id
     if snapshot.status == ParseJobStatus.SUCCEEDED:
         _consume_success(api, snapshot, source="panel")
         return
@@ -112,11 +132,23 @@ def _parse_job_panel_fragment(api: ApplicationAPI, job_id: str) -> None:
 
 @st.fragment(run_every="1s")
 def _sidebar_parse_job_fragment(api: ApplicationAPI, job_id: str) -> None:
-    """Poll and render compact status while the user navigates other pages."""
+    """Poll compact status only while the user has an active parse attempt."""
     snapshot = api.get_parse_job(job_id)
     if snapshot is None:
         _forget_job(job_id)
         return
+    if not snapshot.status.is_active:
+        st.rerun(scope="app")
+        return
+    _render_sidebar_parse_job_snapshot(api, snapshot)
+
+
+def _render_sidebar_parse_job_snapshot(
+    api: ApplicationAPI,
+    snapshot: ParseJobSnapshot,
+) -> None:
+    """Render compact active or terminal status without scheduling polls."""
+    job_id = snapshot.job_id
     if snapshot.status == ParseJobStatus.SUCCEEDED:
         _consume_success(api, snapshot, source="sidebar")
         return

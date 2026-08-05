@@ -661,6 +661,48 @@ class Gem5Parser(SimulationParser):
     ) -> IncrementalParseResult:
         # [impl->req~ring5.ingestion.incremental-parsing~1]
         """Merge changed results with unchanged cache rows and atomically publish both files."""
+        current_paths, rows = Gem5Parser._prepare_incremental_rows(
+            batch,
+            results,
+            require_complete=True,
+        )
+        output_path = Gem5Parser._write_incremental_csv(batch, current_paths, rows)
+        write_cache(
+            Path(batch.cache_path),
+            batch.configuration_hash,
+            batch.var_names,
+            batch.fingerprints,
+            rows,
+        )
+        return IncrementalParseResult(
+            csv_path=str(output_path),
+            parsed_files=batch.parsed_file_count,
+            reused_files=batch.reused_file_count,
+            removed_files=batch.removed_file_count,
+            total_files=batch.total_file_count,
+        )
+
+    @staticmethod
+    def _finalize_partial_incremental_parsing(
+        batch: IncrementalParseBatchResult,
+        results: list[dict[str, Any]],
+    ) -> str:
+        """Write valid cached and changed rows without promoting a partial cache."""
+        current_paths, rows = Gem5Parser._prepare_incremental_rows(
+            batch,
+            results,
+            require_complete=False,
+        )
+        return str(Gem5Parser._write_incremental_csv(batch, current_paths, rows))
+
+    @staticmethod
+    def _prepare_incremental_rows(
+        batch: IncrementalParseBatchResult,
+        results: list[dict[str, Any]],
+        *,
+        require_complete: bool,
+    ) -> tuple[list[str], dict[str, dict[str, str]]]:
+        """Validate worker provenance and combine it with reusable scalar rows."""
         current_fingerprints = fingerprint_inputs(
             [source_path for source_path, _fingerprint in batch.fingerprints],
             batch.strategy_type,
@@ -668,13 +710,17 @@ class Gem5Parser(SimulationParser):
         if current_fingerprints != batch.fingerprints:
             raise RuntimeError(
                 "PARSER: simulator inputs changed during incremental parsing; submit again "
-                "before updating the cache."
+                "before finalizing incremental output."
             )
         expected_changed = set(batch.changed_files)
-        if len(results) != len(expected_changed):
+        if require_complete and len(results) != len(expected_changed):
             raise RuntimeError(
                 "PARSER: incremental finalization received "
                 f"{len(results)} results for {len(expected_changed)} changed files."
+            )
+        if len(results) > len(expected_changed):
+            raise RuntimeError(
+                "PARSER: incremental partial finalization received more results than changed files."
             )
 
         rows = {source_path: dict(cells) for source_path, cells in batch.cached_rows}
@@ -695,12 +741,24 @@ class Gem5Parser(SimulationParser):
             rows[source_path] = row
 
         current_paths = [source_path for source_path, _fingerprint in batch.fingerprints]
-        if set(rows) != set(current_paths):
+        if require_complete and set(rows) != set(current_paths):
             missing_paths = sorted(set(current_paths) - set(rows))
             raise RuntimeError(
                 "PARSER: incremental finalization is missing rows for: " + ", ".join(missing_paths)
             )
+        if not require_complete:
+            current_paths = [source_path for source_path in current_paths if source_path in rows]
+            if not current_paths:
+                raise RuntimeError("PARSER: incremental partial finalization has no usable rows.")
+        return current_paths, rows
 
+    @staticmethod
+    def _write_incremental_csv(
+        batch: IncrementalParseBatchResult,
+        current_paths: list[str],
+        rows: dict[str, dict[str, str]],
+    ) -> Path:
+        """Atomically write ordered incremental rows to the attempt CSV."""
         columns: list[str] = []
         for var_name in batch.var_names:
             matching = [
@@ -753,20 +811,7 @@ class Gem5Parser(SimulationParser):
 
         for warning in validate_parser_csv(output_path):
             logger.warning("CSV contract: %s", warning)
-        write_cache(
-            Path(batch.cache_path),
-            batch.configuration_hash,
-            batch.var_names,
-            batch.fingerprints,
-            rows,
-        )
-        return IncrementalParseResult(
-            csv_path=str(output_path),
-            parsed_files=batch.parsed_file_count,
-            reused_files=batch.reused_file_count,
-            removed_files=batch.removed_file_count,
-            total_files=batch.total_file_count,
-        )
+        return output_path
 
     @staticmethod
     def finalize_parser_playground(
