@@ -62,3 +62,33 @@ def test_portfolio_export_allocates_every_collision_without_overwrite(
     written = _portfolio.render_portfolio("test", str(tmp_path))
     assert len({Path(path).name.casefold() for path in written}) == 4
     assert [Path(path).read_text() for path in written] == ["0", "1", "2", "3"]
+
+
+def test_table_owns_nested_cells_across_constructor_access_and_transformation() -> None:
+    original = pd.DataFrame({"object": [{"values": [1]}]})
+    table = ring5.Table(original)
+    original.iloc[0, 0]["values"].append(2)
+    exposed = table.frame
+    exposed.iloc[0, 0]["values"].append(3)
+    rows = table.rows()
+    rows[0]["object"]["values"].append(4)
+    assert table.rows() == [{"object": {"values": [1]}}]
+    captured = []
+
+    def mutate(frame):
+        frame.iloc[0, 0]["values"].append(5)
+        captured.append(frame)
+        return frame
+
+    transformed = table.apply(mutate)
+    captured[0].iloc[0, 0]["values"].append(6)
+    assert table.rows() == [{"object": {"values": [1]}}]
+    assert transformed.rows() == [{"object": {"values": [1, 5]}}]
+
+    def fail(frame):
+        frame.iloc[0, 0]["values"].append(7)
+        raise ValueError("reject")
+
+    with pytest.raises(ring5.PipelineError, match="reject"):
+        table.apply(fail)
+    assert table.rows() == [{"object": {"values": [1]}}]

@@ -186,18 +186,18 @@ class TestPreviewRepositoryDataIntegrity:
     def test_preview_data_not_modified_by_external_changes(
         self, test_dataframe: Any, preview_repo: Any
     ) -> None:
-        """Test stored preview behavior with DataFrame references."""
+        """Stored previews own their data independently of caller mutations."""
         df = test_dataframe.copy()
         preview_repo.set_preview("isolation_test", df)
 
         # Modify original DataFrame
         df.loc[0, "a"] = 999
 
-        # Stored preview is a reference, so it WILL be modified
+        # Stored previews retain their owned copy.
         stored = preview_repo.get_preview("isolation_test")
-        assert stored.loc[0, "a"] == 999  # Reflects the change
+        assert stored.loc[0, "a"] == 1
 
-        # To prevent this, services should store copies:
+        # Explicit caller copies preserve the same ownership contract:
         df2 = test_dataframe.copy()
         preview_repo.set_preview("safe_test", df2.copy())  # Store a copy
         df2.loc[0, "a"] = 777

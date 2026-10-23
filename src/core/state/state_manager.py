@@ -10,6 +10,9 @@ following the Dependency Inversion Principle.
 """
 
 from collections.abc import Callable
+from contextlib import AbstractContextManager
+
+from src.core.models.preview_models import PreviewContext
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 import pandas as pd
@@ -40,6 +43,14 @@ class StateManager(Protocol):
     Protocol defining the contract for State Management.
     Layer B (ApplicationAPI) depends on this protocol, not the implementation.
     """
+
+    def transaction(self) -> AbstractContextManager[None]:
+        """Hold the session state boundary for atomic compare-and-publish work."""
+        raise NotImplementedError
+
+    def get_source_version(self) -> int:
+        """Return the monotonically increasing source-state version."""
+        raise NotImplementedError
 
     def initialize(self) -> None:
         """Initialize the state manager."""
@@ -280,8 +291,14 @@ class StateManager(Protocol):
         raise NotImplementedError
 
     # Previews
-    def set_preview(self, operation_name: str, data: pd.DataFrame) -> None:
+    def set_preview(
+        self, operation_name: str, data: pd.DataFrame, *, context: PreviewContext | None = None
+    ) -> None:
         """Store a preview DataFrame for an operation."""
+        raise NotImplementedError
+
+    def get_preview_context(self, operation_name: str) -> PreviewContext | None:
+        """Return the source and options retained with a guarded preview."""
         raise NotImplementedError
 
     def get_preview(self, operation_name: str) -> pd.DataFrame | None:

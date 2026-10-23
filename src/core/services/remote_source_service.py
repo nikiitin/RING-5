@@ -127,9 +127,11 @@ def _safe_file_name(selected: str | None, fallback: str) -> str:
         or "\x00" in name
         or any(ord(character) < 32 for character in name)
         or len(name) > MAX_BROWSER_UPLOAD_NAME_LENGTH
-        or Path(name).suffix.lower() not in {".csv", ".json", ".xlsx"}
+        or Path(name).suffix.lower() not in {".csv", ".json", ".xlsx", ".ring5-bundle"}
     ):
-        raise ValueError("Remote source filename must safely end in .csv, .json, or .xlsx.")
+        raise ValueError(
+            "Remote source filename must safely end in .csv, .json, .xlsx, or .ring5-bundle."
+        )
     return name
 
 

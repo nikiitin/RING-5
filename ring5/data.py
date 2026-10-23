@@ -25,11 +25,14 @@ Design notes:
 
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import Any, Callable
 import json
 from pathlib import Path
 
 import pandas as pd
+
+from src.core.common.dataframe_copy import copy_dataframe
 
 from ring5.errors import ColumnNotFoundError, DataLoadError, ExportError, PipelineError
 
@@ -42,7 +45,7 @@ Shaper = Callable[[pd.DataFrame], pd.DataFrame]
 def _to_py(value: Any) -> Any:
     """Coerce a pandas/numpy scalar to a native Python scalar (no numpy leaks to scripts)."""
     item = getattr(value, "item", None)
-    return item() if callable(item) else value
+    return deepcopy(item() if callable(item) else value)
 
 
 class Table:
@@ -53,7 +56,7 @@ class Table:
 
     def __init__(self, frame: pd.DataFrame) -> None:
         # Defensive copy so the Table owns its data and callers can't mutate it underneath.
-        self._df = frame.copy()
+        self._df = copy_dataframe(frame)
 
     # constructors
     @classmethod
@@ -90,7 +93,7 @@ class Table:
     @property
     def frame(self) -> pd.DataFrame:
         """The underlying DataFrame (a copy) — the engine handoff for ``create_plot``."""
-        return self._df.copy()
+        return copy_dataframe(self._df)
 
     @property
     def is_empty(self) -> bool:
@@ -232,7 +235,7 @@ class Table:
         """
         # [impl->req~ring5.quality.immutable-data~1]
         try:
-            return Table(shaper(self._df.copy(deep=True)))
+            return Table(shaper(copy_dataframe(self._df)))
         except KeyError as exc:
             column = str(exc.args[0]) if exc.args else "<unknown>"
             raise ColumnNotFoundError(column, [str(c) for c in self._df.columns]) from exc
