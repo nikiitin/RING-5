@@ -10,7 +10,7 @@ from tests.conftest import columns_side_effect
 
 
 @pytest.fixture
-def mock_streamlit() -> Generator[None, None, None]:
+def mock_streamlit() -> Generator[Any, None, None]:
     with patch("src.web.components.data_source.data_source_components.st") as mock_st:
         mock_st.columns.side_effect = columns_side_effect
         mock_st.session_state = {}
@@ -41,7 +41,7 @@ def mock_api() -> Any:
 
 
 @pytest.fixture
-def mock_card_components() -> Generator[None, None, None]:
+def mock_card_components() -> Generator[Any, None, None]:
     with patch("src.web.components.data_source.data_source_components.CardComponents") as mock_card:
         yield mock_card
 

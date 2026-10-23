@@ -269,7 +269,8 @@ class PipelineController:
                 not step.get("config") or not step["config"].get("type") for step in plot.pipeline
             ):
                 raise ValueError(
-                    "Every displayed pipeline step must have a valid configuration before finalizing."
+                    "Every displayed pipeline step must have a valid configuration "
+                    "before finalizing."
                 )
             confs: list[ShaperStepConfig] = [step["config"] for step in plot.pipeline]
             processed: pd.DataFrame = self._pipeline.apply_shapers(raw_data, confs)

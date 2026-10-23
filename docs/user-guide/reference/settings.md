@@ -59,8 +59,9 @@ Choose a single-column, double-column, or custom publication width and set the h
 RING-5 derives preview dimensions at 100 pixels per inch. Existing pixel dimensions, margins, and
 automatic-margin choices remain intact when opening Layout. New figures use automatic zero margins.
 
-Secondary axis and legend font controls offer explicit inheritance. Keep **Inherit** enabled to
-follow the corresponding primary font, or disable it to choose an independent size.
+Secondary axis fonts inherit the corresponding primary axis font. Secondary legend text inherits
+the primary legend text size; every legend title follows its own legend text size. Disable
+**Inherit** to choose an independent size.
 
 ### Reuse a figure theme
 

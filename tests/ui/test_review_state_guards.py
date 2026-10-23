@@ -23,7 +23,8 @@ api = st.session_state["api"]
 if st.button("Switch source", key="switch"):
     api.select_dataset("B")
 if st.button("Revise source", key="revise"):
-    api.update_selected_dataset(pd.DataFrame({"x": [99.0], "y": [100.0]}), operation="Revise source")
+    api.update_selected_dataset(
+        pd.DataFrame({"x": [99.0], "y": [100.0]}), operation="Revise source")
 PreprocessorManager(api).render()
 """
 
@@ -107,9 +108,11 @@ plot = api.state_manager.get_plots()[0]
 if st.button("Change plot", key="plot_change"):
     plot.config.update({"title": "Updated title"})
 if st.button("Change pipeline", key="pipeline_change"):
-    plot.pipeline = [{"id": 0, "type": "sort", "config": {"type": "sort", "order_dict": {"label": ["A"]}}}]
+    plot.pipeline = [{"id": 0, "type": "sort",
+                      "config": {"type": "sort", "order_dict": {"label": ["A"]}}}]
 if st.button("Change table", key="data_change"):
-    api.update_selected_dataset(pd.DataFrame({"label": ["A"], "value": [7.0]}), operation="Revise table")
+    api.update_selected_dataset(
+        pd.DataFrame({"label": ["A"], "value": [7.0]}), operation="Revise table")
 original_get_data = api.state_manager.get_data
 # Retain every defensive copy so object-id reuse cannot hide the original bug.
 def retained_get_data():
@@ -174,7 +177,8 @@ def test_prepared_bundle_tracks_saved_portfolio_and_snapshot_replacements(
             revised = pd.DataFrame({"value": [2.0]})
             api.data_services.save_portfolio("analysis", revised, [], {}, 0)
         if st.button("Replace snapshot", key="replace_snapshot"):
-            api.update_selected_dataset(pd.DataFrame({"value": [3.0]}), operation="Replace snapshot")
+            api.update_selected_dataset(
+                pd.DataFrame({"value": [3.0]}), operation="Replace snapshot")
             api.save_dataset_snapshot("exact", overwrite=True)
         _render_bundle_download(api, "analysis")
     """)).run()

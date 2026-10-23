@@ -34,52 +34,70 @@ def filtered_selectbox(
     threshold a ``st.text_input`` is rendered for searching and only the top
     ``MAX_DISPLAYED`` matches are shown in the dropdown.
 
+    The current selection stays available across searches, including no matches.
+    The blank option clears it; removal from the source options invalidates it.
+
     Returns the selected option string, or ``None`` if nothing is selected.
     """
-    if len(options) <= SELECTBOX_THRESHOLD:
-        result = st.selectbox(
-            label,
-            options=[""] + options,
-            key=key,
-            help=help,
+    selection_key = f"{key}__selection"
+    visible_key = f"{key}__visible"
+    available = set(options)
+    selected = st.session_state.get(selection_key)
+    if not isinstance(selected, str) or selected not in available:
+        selected = None
+    if key in st.session_state:
+        incoming = st.session_state[key]
+        if incoming in available:
+            selected = incoming
+        elif incoming is None or incoming == "":
+            selected = None
+
+    large = len(options) > SELECTBOX_THRESHOLD
+    filtered = options
+    if large:
+        query = (
+            st.text_input(
+                f"Search ({len(options)} available)",
+                key=f"{key}__search",
+                placeholder=placeholder,
+                help=help,
+            )
+            .strip()
+            .lower()
         )
-        return result if result else None
-
-    # -- Filtered path --
-    search_key = f"{key}__search"
-    query: str = st.text_input(
-        f"Search ({len(options)} available)",
-        key=search_key,
-        placeholder=placeholder,
-        help=help,
-    )
-
-    if query.strip():
-        q = query.strip().lower()
-        filtered = [o for o in options if q in o.lower()]
+        if query:
+            filtered = [option for option in options if query in option.lower()]
+        # The blank clear option and a retained selection count toward the DOM cap.
+        limit = MAX_DISPLAYED - 1
+        displayed = filtered[:limit]
+        if selected is not None and selected not in displayed:
+            displayed = [selected, *displayed[: max(0, limit - 1)]]
+            st.caption("The current selection is retained while filtering.")
+        if not filtered:
+            st.caption("No matches found.")
+        elif len(filtered) > limit:
+            st.caption(f"Showing {len(displayed)} of {len(filtered)} matches — refine your search.")
     else:
-        filtered = options
+        displayed = options
 
-    displayed = filtered[:MAX_DISPLAYED]
-
-    if not displayed:
-        st.caption("No matches found.")
-        return None
-
-    if len(filtered) > MAX_DISPLAYED:
-        st.caption(
-            f"Showing first {MAX_DISPLAYED} of {len(filtered)} matches — refine your search."
-        )
-    elif query.strip():
-        st.caption(f"{len(filtered)} matches.")
-
+    widget_options = ["", *displayed]
+    if key in st.session_state and (
+        st.session_state.get(visible_key) != widget_options
+        or st.session_state[key] not in widget_options
+    ):
+        st.session_state[key] = selected or ""
+    selected_index = widget_options.index(selected) if selected in widget_options else 0
     result = st.selectbox(
         label,
-        options=[""] + displayed,
+        options=widget_options,
+        index=None if key in st.session_state else selected_index,
         key=key,
-        label_visibility="collapsed",
+        help=help,
+        label_visibility="collapsed" if large else "visible",
     )
-    return result if result else None
+    st.session_state[visible_key] = widget_options
+    st.session_state[selection_key] = result if result in available else None
+    return result if result in available else None
 
 
 # filtered_multiselect

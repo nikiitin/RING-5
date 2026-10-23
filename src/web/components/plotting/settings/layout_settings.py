@@ -83,7 +83,8 @@ class LayoutSettingsComponent:
         )
         if saved_width < 0.1 or saved_height < 0.1:
             st.warning(
-                "Preview dimensions must be at least 10 pixels (0.1 inches). Adjust the saved dimensions."
+                "Preview dimensions must be at least 10 pixels (0.1 inches). "
+                "Adjust the saved dimensions."
             )
         c1, c2 = st.columns(2)
         with c1:

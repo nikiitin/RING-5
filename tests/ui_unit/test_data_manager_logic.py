@@ -59,8 +59,8 @@ def test_seeds_reducer_apply(mock_streamlit: Any, mock_api: Any, sample_data: An
 
     # Setup Manager
     manager = SeedsReducerManager(mock_api)
-    manager.get_data = MagicMock(return_value=sample_data)
-    manager.set_data = MagicMock()
+    setattr(manager, "get_data", MagicMock(return_value=sample_data))
+    setattr(manager, "set_data", MagicMock())
 
     # Mock Interactions
     # Multiselects: Categorical (benchmark), Numeric (value)
@@ -98,7 +98,7 @@ def test_seeds_reducer_confirm(mock_streamlit: Any, mock_api: Any, sample_data: 
 
     # Setup Manager
     manager = SeedsReducerManager(mock_api)
-    manager.get_data = MagicMock(return_value=sample_data)
+    setattr(manager, "get_data", MagicMock(return_value=sample_data))
 
     # Pre-load result
     result_df = pd.DataFrame({"benchmark": ["b1"]})
@@ -136,7 +136,7 @@ def test_outlier_remover_run(mock_streamlit: Any, mock_api: Any, sample_data: An
     _, mock_st = mock_streamlit
 
     manager = OutlierRemoverManager(mock_api)
-    manager.get_data = MagicMock(return_value=sample_data)
+    setattr(manager, "get_data", MagicMock(return_value=sample_data))
 
     # Interaction:
     # Selectbox (col) -> "value"

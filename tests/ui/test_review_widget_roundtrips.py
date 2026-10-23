@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from textwrap import dedent
+from typing import cast
 
 import pytest
 from streamlit.testing.v1 import AppTest
@@ -136,7 +138,8 @@ def test_numeric_filter_handles_constant_single_and_unmeasured_columns(
         )
         st.session_state["result"] = ConditionSelectorConfig.render(
             pd.DataFrame({{"metric": pd.Series({values!r}, dtype="float64")}}),
-            {{"type": "selector", "column": "metric", "mode": "range", "range": [0.0, 2.0]}}, "p1_", 1
+            {{"type": "conditionSelector", "column": "metric", "mode": "range",
+              "range": [0.0, 2.0]}}, "p1_", 1
         )
     """)
     assert not app.exception
@@ -166,8 +169,27 @@ def test_pivot_capture_filter_survives_json_restore_and_editor_round_trip() -> N
     assert not app.exception
     assert app.session_state["result"]["selection_filters"] == {"1": ["0"]}
 
+    from src.core.services.data_services.pipeline_config_exchange_service import (
+        PipelineConfigExchangeService,
+    )
+    from src.core.services.shapers.factory import ShaperFactory
+    import pandas as pd
 
-def test_variable_editor_preserves_repeat_on_ordinary_rerun() -> None:
+    payload = PipelineConfigExchangeService.dumps("filtered", "", [app.session_state["result"]])
+    restored = PipelineConfigExchangeService.loads(payload).shapers[0]
+    assert restored["type"] == "pivotLonger"
+    from src.core.models.shaper_models import PivotLongerShaperConfig
+
+    assert cast(PivotLongerShaperConfig, restored)["selection_filters"] == {"1": ["0"]}
+    transformed = ShaperFactory.create_shaper("pivotLonger", restored)(
+        pd.DataFrame({"id": ["x"], "cpu0": [1], "cpu1": [2]})
+    )
+    assert transformed["variable"].tolist() == ["0"]
+    assert transformed["value"].tolist() == [1]
+
+
+@pytest.mark.xdist_group("perl_pool")
+def test_variable_editor_preserves_repeat_on_ordinary_rerun(tmp_path: Path) -> None:
     app = _app("""
         from src.core.application_api import ApplicationAPI
         from src.web.components.data_source.variable_editor import VariableEditor
@@ -183,6 +205,22 @@ def test_variable_editor_preserves_repeat_on_ordinary_rerun() -> None:
     assert app.session_state["result"][0]["repeat"] == "3"
     app.run()
     assert app.session_state["result"][0]["repeat"] == "3"
+
+    from src.core.application_api import ApplicationAPI
+    import pandas as pd
+
+    (tmp_path / "stats.txt").write_text("ipc 2\nipc 4\nipc 6\n", encoding="utf-8")
+    api = ApplicationAPI()
+    try:
+        batch = api.submit_parse_async(
+            str(tmp_path), "stats.txt", app.session_state["result"], str(tmp_path / "out")
+        )
+        results = [future.result(timeout=30) for future in batch.futures]
+        output = api.finalize_parsing(str(tmp_path / "out"), results, var_names=batch.var_names)
+        assert output is not None
+        assert pd.read_csv(output)["ipc"].tolist() == [4.0]
+    finally:
+        api.close()
 
 
 def test_vector_combined_mode_preserves_entries_and_summary_members() -> None:
@@ -400,3 +438,89 @@ def test_enabling_legend_title_inheritance_updates_its_display_immediately() -> 
     assert not app.exception
     assert app.session_state["result"]["legend_title_font_size"] == -1
     assert next(widget for widget in app.number_input if widget.label == "Title Size").value == 12
+
+
+@pytest.mark.parametrize(
+    ("dtype", "cardinality", "included"),
+    [
+        ("object", 101, True),
+        ("str", 101, True),
+        ("string", 101, True),
+        ("category", 101, True),
+        ("int64", 101, False),
+        ("int64", 5, True),
+    ],
+)
+def test_reduction_candidates_cover_pandas_string_and_numeric_contracts(
+    dtype: str, cardinality: int, included: bool
+) -> None:
+    app = _app(f"""
+        import pandas as pd
+        from src.core.application_api import ApplicationAPI
+        from src.web.components.data_managers.seeds_reducer import SeedsReducerManager
+        ids = [i % {cardinality} for i in range(101)]
+        if {dtype!r} != "int64":
+            ids = [str(value) for value in ids]
+        api = ApplicationAPI()
+        api.state_manager.set_data(pd.DataFrame({{
+            "run_id": pd.Series(ids, dtype={dtype!r}), "bench": ["b"] * 101, "metric": range(101)
+        }}))
+        SeedsReducerManager(api).render()
+        api.close()
+    """)
+    assert not app.exception
+    assert (
+        "run_id" in app.selectbox(key="manager.seeds_reducer.target_column").options
+    ) is included
+
+
+def test_pipeline_finalize_rejects_every_incomplete_step_without_replacing_data() -> None:
+    app = _app("""
+        import pandas as pd
+        from src.core.application_api import ApplicationAPI
+        from src.web.controllers.plot.pipeline_controller import PipelineController
+        from src.web.pages.plot_adapters import PipelineExecutorAdapter
+        from src.web.pages.ui.plotting.plot_factory import PlotFactory
+        from src.web.state.ui_state_manager import UIStateManager
+        api = ApplicationAPI()
+        plot = PlotFactory.create_plot("bar", 1, "Figure")
+        plot.replace_processed_data(pd.DataFrame({"kept": [7]}))
+        plot.pipeline = [
+            {"id": 0, "type": "sort", "config": {
+                "type": "sort", "order_dict": {"label": ["a", "b"]}}},
+            {"id": 1, "type": "conditionSelector", "config": {}},
+        ]
+        PipelineController(api, UIStateManager(), PipelineExecutorAdapter())._handle_finalize(
+            plot, pd.DataFrame({"label": ["b", "a"], "value": [2, 1]}))
+        st.session_state["result"] = plot.processed_data.to_dict(orient="list")
+        api.close()
+    """)
+    assert app.session_state["result"] == {"kept": [7]}
+    assert len(app.exception) == 1
+    assert "Every displayed pipeline step" in app.exception[0].message
+
+
+def test_filtered_selectbox_preserves_selection_across_search_clear_and_removed_options() -> None:
+    app = _app("""
+        from src.web.components.common.filtered_selector import filtered_selectbox
+        remove = st.checkbox("Remove selected option", key="remove_option")
+        options = [f"v{i}" for i in range(500) if not remove or i != 250]
+        st.session_state["result"] = filtered_selectbox("Value", options, key="pick")
+    """)
+    assert not app.exception
+    app.text_input(key="pick__search").set_value("v250").run()
+    app.selectbox(key="pick").select("v250").run()
+    assert app.session_state["result"] == "v250"
+    for query in ("", "does-not-exist", "v1"):
+        app.text_input(key="pick__search").set_value(query).run()
+        assert not app.exception
+        assert app.session_state["result"] == "v250"
+        assert app.selectbox(key="pick").value == "v250"
+        assert len(app.selectbox(key="pick").options) <= 50
+    app.selectbox(key="pick").select("").run()
+    assert app.session_state["result"] is None
+    app.text_input(key="pick__search").set_value("v250").run()
+    app.selectbox(key="pick").select("v250").run()
+    app.checkbox(key="remove_option").check().run()
+    assert not app.exception
+    assert app.session_state["result"] is None

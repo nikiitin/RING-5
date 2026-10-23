@@ -68,8 +68,8 @@ def test_mixer_render_numeric_op(mock_streamlit: Any, mock_api: Any, sample_data
     mock_st, _ = mock_streamlit
 
     manager = MixerManager(mock_api)
-    manager.get_data = MagicMock(return_value=sample_data)
-    manager.set_data = MagicMock()
+    setattr(manager, "get_data", MagicMock(return_value=sample_data))
+    setattr(manager, "set_data", MagicMock())
 
     # Interaction parameters.
     mock_st.radio.return_value = "Numerical Operations"
@@ -103,7 +103,7 @@ def test_mixer_confirm(mock_streamlit: Any, mock_api: Any, sample_data: Any) -> 
     mock_st, _ = mock_streamlit
 
     manager = MixerManager(mock_api)
-    manager.get_data = MagicMock(return_value=sample_data)
+    setattr(manager, "get_data", MagicMock(return_value=sample_data))
 
     # Pre-populate result
     result_df = pd.DataFrame({"merged": [1]})
@@ -137,7 +137,7 @@ def test_preprocessor_render_op(mock_streamlit: Any, mock_api: Any, sample_data:
     _, mock_st = mock_streamlit
 
     manager = PreprocessorManager(mock_api)
-    manager.get_data = MagicMock(return_value=sample_data)
+    setattr(manager, "get_data", MagicMock(return_value=sample_data))
 
     # Interaction parameters.
     mock_st.selectbox.side_effect = ["A", "Divide", "B"]
@@ -170,7 +170,7 @@ def test_preprocessor_no_numeric_cols(mock_streamlit: Any, mock_api: Any) -> Non
 
     manager = PreprocessorManager(mock_api)
     # Only string data
-    manager.get_data = MagicMock(return_value=pd.DataFrame({"S": ["x"]}))
+    setattr(manager, "get_data", MagicMock(return_value=pd.DataFrame({"S": ["x"]})))
 
     manager.render()
 
