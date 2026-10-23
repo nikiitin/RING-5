@@ -214,7 +214,8 @@ class FigureSpecToMatplotlib:
             if alpha is not None:
                 handle.set_alpha(alpha)
             if marker_size is not None:
-                handle.set_sizes([float(marker_size)])
+                # Scatter collections use area; configuration specifies diameter.
+                handle.set_sizes([float(marker_size) ** 2])
         elif isinstance(handle, PolyCollection):
             if fill:
                 handle.set_facecolor(fill)

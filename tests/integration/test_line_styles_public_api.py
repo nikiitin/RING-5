@@ -96,3 +96,27 @@ def test_public_line_style_validation_is_typed(field: str, value: object) -> Non
                 config={"x": "sample", "y": "value", field: value},
             )
         assert session.plots == []
+
+
+@pytest.mark.parametrize("per_trace", [False, True])
+def test_public_scatter_marker_diameters_match_after_common_styling(per_trace: bool) -> None:
+    """Global and named overrides retain diameter semantics through both connectors."""
+    from matplotlib import pyplot as plt
+
+    config = {
+        "x": "sample",
+        "y": "value",
+        "marker_size": 10,
+        "series_styles": {"value": {"marker_size": 14}} if per_trace else {},
+    }
+    expected_diameter = 14 if per_trace else 10
+    with ring5.Session() as session:
+        plot = session.create_plot("scatter", data=_data(), config=config)
+        plotly_figure = session.render(plot, engine="plotly")
+        assert plotly_figure.data[0].marker.size == expected_diameter
+        matplotlib_figure = session.render(plot, engine="matplotlib")
+        try:
+            points = matplotlib_figure.axes[0].collections[0]
+            assert points.get_sizes().tolist() == [expected_diameter**2]
+        finally:
+            plt.close(matplotlib_figure)
