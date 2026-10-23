@@ -180,6 +180,7 @@ class FigureSpecToMatplotlib:
         from matplotlib.collections import PathCollection, PolyCollection
         from matplotlib.container import BarContainer
         from matplotlib.lines import Line2D
+        from matplotlib.markers import MarkerStyle
         from matplotlib.patches import Patch
 
         fill = _css_rgb_to_hex(color) if color else None
@@ -210,12 +211,21 @@ class FigureSpecToMatplotlib:
                 handle.set_markersize(marker_size)
         elif isinstance(handle, PathCollection):
             if fill:
-                handle.set_color(fill)
+                handle.set_facecolor(fill)
             if alpha is not None:
                 handle.set_alpha(alpha)
+            if marker:
+                marker_style = MarkerStyle(marker)
+                handle.set_paths(
+                    [marker_style.get_path().transformed(marker_style.get_transform())]
+                )
             if marker_size is not None:
                 # Scatter collections use area; configuration specifies diameter.
                 handle.set_sizes([float(marker_size) ** 2])
+            if edge:
+                handle.set_edgecolor(edge)
+            if edge_width is not None:
+                handle.set_linewidth(edge_width)
         elif isinstance(handle, PolyCollection):
             if fill:
                 handle.set_facecolor(fill)
