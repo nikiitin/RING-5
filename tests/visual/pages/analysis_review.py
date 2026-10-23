@@ -46,7 +46,12 @@ class AnalysisReview(BasePage):
         self.author_input.press("Enter")
         self.wait_for_streamlit(expect_rerun=True)
         self.open()
-        self.status_select.click()
+        # Sidebar scrolling dismisses the popup, so settle it before opening.
+        self.status_select.scroll_into_view_if_needed()
+        status_control = self.expander.get_by_test_id("stSelectbox").filter(
+            has_text="Review status"
+        )
+        status_control.get_by_role("button", name="Open", exact=True).click()
         self.page.get_by_role("option", name=status, exact=True).click()
         self.wait_for_streamlit(expect_rerun=True)
         expect(self.status_select).to_have_value(status)
