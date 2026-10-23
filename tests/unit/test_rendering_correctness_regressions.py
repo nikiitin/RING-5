@@ -530,3 +530,92 @@ def test_histogram_csv_can_mix_legacy_and_inclusive_observation_geometry() -> No
     assert trace.x_positions == [5, 15]
     assert trace.y == [40, 60]
     assert trace.bar_width == [10, 10]
+
+
+def test_grouped_right_lines_keep_aliased_categories_with_a_partial_preferred_order() -> None:
+    from src.web.pages.ui.plotting.types.grouped_stacked_bar_plot import GroupedStackedBarPlot
+
+    data = pd.DataFrame(
+        {
+            "x": ["a", "a", "b", "b"],
+            "g": ["G", "H", "G", "H"],
+            "left": [1, 2, 3, 4],
+            "right": [10, 20, 30, 40],
+        }
+    )
+    result = GroupedStackedBarPlot(1, "Grouped").create_traces(
+        data,
+        {
+            "x": "x",
+            "group": "g",
+            "y_columns": ["left"],
+            "y_columns_right": ["right"],
+            "dual_axis": True,
+            "right_axis_type": "dots",
+            "right_show_lines": True,
+            "right_line_per_group": True,
+            "xaxis_order": ["b"],
+            "xaxis_labels": {"a": "Alpha", "b": "Beta"},
+        },
+    )
+    line = next(trace for trace in result.traces if isinstance(trace, LineTraceConfig))
+    np.testing.assert_allclose(line.x, [0, 1, np.nan, 2, 3], equal_nan=True)
+    np.testing.assert_allclose(line.y, [30, 40, np.nan, 10, 20], equal_nan=True)
+    figure = traces_to_plotly(result)
+    np.testing.assert_allclose(figure.data[-1].y, line.y, equal_nan=True)
+    _, axis = plt.subplots()
+    MatplotlibTraceRenderer.render(result.traces, axis)
+    drawn = getattr(axis, "_ring5_twin").lines[0]
+    np.testing.assert_allclose(drawn.get_ydata(), line.y, equal_nan=True)
+
+
+def test_bar_aligned_dual_axis_keeps_categories_omitted_from_preferred_order() -> None:
+    from src.web.pages.ui.plotting.types.dual_axis_bar_dot_plot import DualAxisBarDotPlot
+
+    data = pd.DataFrame(
+        {
+            "x": ["a", "a", "b", "b"],
+            "g": ["G", "H", "G", "H"],
+            "left": [1, 2, 3, 4],
+            "right": [10, 20, 30, 40],
+        }
+    )
+    result = DualAxisBarDotPlot(1, "Aligned").create_traces(
+        data,
+        {
+            "x": "x",
+            "color": "g",
+            "y_bar": "left",
+            "y_dot": "right",
+            "dot_alignment": "bar",
+            "xaxis_order": ["b"],
+        },
+    )
+    bars = [trace for trace in result.traces if isinstance(trace, BarTraceConfig)]
+    lines = [trace for trace in result.traces if isinstance(trace, LineTraceConfig)]
+    assert [trace.y for trace in lines] == [[30, 10], [40, 20]]
+    assert [trace.x for trace in lines] == [trace.x_positions for trace in bars]
+    assert [trace.x for trace in bars] == [["b", "a"], ["b", "a"]]
+    figure = traces_to_plotly(result)
+    np.testing.assert_allclose(figure.data[1].x, bars[0].x_positions)
+    _, axis = plt.subplots()
+    MatplotlibTraceRenderer.render(result.traces, axis)
+    drawn = getattr(axis, "_ring5_twin").lines
+    assert [list(line.get_ydata()) for line in drawn] == [[30, 10], [40, 20]]
+
+
+def test_default_neutral_data_annotations_render_with_valid_engine_coordinates() -> None:
+    from src.core.models.visualization.annotation_config import AnnotationConfig
+    from src.web.rendering.matplotlib_figure_builder import build_matplotlib_figure_from_traces
+
+    result = TraceBuildResult(
+        traces=[LineTraceConfig(x=[1, 2], y=[2, 3])],
+        annotations=[AnnotationConfig(text="Measured", x=1, y=2)],
+    )
+    interactive = traces_to_plotly(result)
+    assert interactive.layout.annotations[0].xref == "x"
+    assert interactive.layout.annotations[0].yref == "y"
+    static, _ = build_matplotlib_figure_from_traces({}, "line", result)
+    annotation = next(text for text in static.axes[0].texts if text.get_text() == "Measured")
+    assert annotation.xy == (1, 2)
+    assert annotation.xycoords is static.axes[0].transData
