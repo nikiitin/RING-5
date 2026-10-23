@@ -138,6 +138,14 @@ selected path position contains no metadata; otherwise the first extracted value
 The parser records missing values as `NaN`. It reports file failures instead of substituting
 simulator values. Investigate missing variables before reducing or normalizing the data.
 
+Saved portfolios can open and render their stored tables. If re-parsing reports that the original
+source type is ambiguous in saved scan metadata, run **Quick Scan** against the original statistics;
+use **Deep Scan** when variables differ across runs. Review pattern and entry selections, then parse
+again. Keep the variable's intended type when resolving this message.
+
+Parser-contract changes automatically invalidate reusable parse results, so the first run may take
+longer. Previously exported CSV files remain unchanged.
+
 ### Test parser settings before a full run
 
 <!--
