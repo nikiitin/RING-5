@@ -152,3 +152,10 @@ explicit state transaction is rejected before changing data; schedule it after t
 exits. Data and preview repositories, and public `Table` handles, own nested Python object cells
 as well as ordinary numeric arrays, so mutation through a caller's frame cannot change reviewed
 or historical values.
+
+Portfolio restore prepares a fresh repository outside the shared state lock, including CSV
+parsing and injected plot deserializers. Exceptions during preparation retain the current
+repository. Per-item restore warnings remain best-effort. Publication replaces the workspace in
+one transaction and rejects a source change that occurs during preparation. Restore cannot run
+inside an existing state transaction, where foreign deserializers could otherwise inherit its
+lock. Other workspace settings are replaced when the candidate is published.

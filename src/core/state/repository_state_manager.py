@@ -110,6 +110,7 @@ class RepositoryStateManager:
         self._transaction_lock = threading.RLock()
         self._transaction_context = threading.local()
         self._source_version = 0
+        self._plot_deserializer = plot_deserializer
         self._session_repo = SessionRepository(plot_deserializer=plot_deserializer)
 
     @contextmanager
@@ -515,8 +516,38 @@ class RepositoryStateManager:
         """Reset all session repositories."""
         self._session_repo.clear_all()
 
-    @_source_write
     def restore_session(self, portfolio_data: PortfolioData) -> RestoreReport:
         # [impl->req~ring5.portfolio.restore~1]
-        """Restore session state from a portfolio snapshot."""
-        return self._session_repo.restore_from_portfolio(portfolio_data)
+        """Prepare a replacement workspace, then publish it atomically.
+
+        CSV decoding and injected deserializers run outside the state lock.
+        Preparation exceptions retain the current repositories. Reported per-item
+        failures remain best-effort, and successful publication replaces other
+        workspace settings. A concurrent source publication aborts replacement.
+
+        Args:
+            portfolio_data: Verified portfolio snapshot to restore.
+
+        Returns:
+            Report describing data and plots restored or skipped.
+
+        Raises:
+            ValueError: Called inside a transaction, preparation input is invalid,
+                or the source changes while the replacement is prepared.
+        """
+        transaction_depth: int = getattr(self._transaction_context, "depth", 0)
+        if transaction_depth > 0:
+            raise ValueError("Prepare portfolio restores outside a surrounding state transaction.")
+        with self._transaction_lock:
+            expected_version = self._source_version
+            factory = self._plot_deserializer
+        candidate = SessionRepository(plot_deserializer=factory)
+        report = candidate.restore_from_portfolio(portfolio_data)
+        with self._transaction_lock:
+            if self._source_version != expected_version:
+                raise ValueError(
+                    "Workspace source changed while restoring; review and retry the restore."
+                )
+            self._session_repo = candidate
+            self._source_version += 1
+        return report

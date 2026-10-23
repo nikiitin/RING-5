@@ -337,3 +337,69 @@ def test_owned_frame_copy_preserves_explicit_object_dtype(values) -> None:
     copied = copy_dataframe(frame)
     pd.testing.assert_frame_equal(copied, frame)
     assert copied["value"].dtype == object
+
+
+def test_restore_deserializer_can_wait_for_foreign_state_publication() -> None:
+    from src.core.state.repository_state_manager import RepositoryStateManager
+
+    with ThreadPoolExecutor(max_workers=1) as pool:
+
+        def deserialize(spec):
+            pool.submit(state.set_processed_data, pd.DataFrame({"x": [1]})).result(timeout=2)
+            return SimpleNamespace(plot_id=1, name="restored")
+
+        state = RepositoryStateManager(plot_deserializer=deserialize)
+        state.set_data(pd.DataFrame({"old": [9]}))
+        report = state.restore_session({"data_csv": "new\n3\n", "plots": [{"name": "one"}]})
+    assert report.complete
+    assert report.plots_restored == 1
+    assert state.get_data().to_dict("records") == [{"new": 3}]
+
+
+def test_failed_restore_preparation_preserves_existing_repository_and_preview(api) -> None:
+    options = _store(api)
+    repository = api.state_manager._session_repo
+    with pytest.raises(ValueError, match="parser strategy"):
+        api.state_manager.restore_session({"parser_strategy": None})
+    assert api.state_manager._session_repo is repository
+    assert api.state_manager.get_data()["x"].tolist() == [1.0]
+    assert api.preview_matches("scale", operation_config=options)
+
+
+def test_source_publication_during_restore_preparation_rejects_candidate() -> None:
+    from src.core.state.repository_state_manager import RepositoryStateManager
+
+    entered, resume = threading.Event(), threading.Event()
+
+    def deserialize(spec):
+        entered.set()
+        assert resume.wait(2)
+        return SimpleNamespace(plot_id=1, name="restored")
+
+    state = RepositoryStateManager(plot_deserializer=deserialize)
+    state.set_data(pd.DataFrame({"x": [1]}))
+    original_repository = state._session_repo
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        future = pool.submit(
+            state.restore_session, {"data_csv": "x\n2\n", "plots": [{"name": "one"}]}
+        )
+        assert entered.wait(2)
+        state.set_data(pd.DataFrame({"x": [99]}))
+        resume.set()
+        with pytest.raises(ValueError, match="source changed while restoring"):
+            future.result(timeout=2)
+    assert state._session_repo is original_repository
+    assert state.get_data()["x"].tolist() == [99]
+
+
+def test_nested_restore_rejects_before_deserialization_or_publication() -> None:
+    from src.core.state.repository_state_manager import RepositoryStateManager
+
+    called = []
+    state = RepositoryStateManager(plot_deserializer=lambda spec: called.append(spec))
+    state.set_data(pd.DataFrame({"x": [7]}))
+    with state.transaction():
+        with pytest.raises(ValueError, match="outside a surrounding state transaction"):
+            state.restore_session({"data_csv": "x\n2\n", "plots": [{"name": "one"}]})
+    assert called == []
+    assert state.get_data()["x"].tolist() == [7]
