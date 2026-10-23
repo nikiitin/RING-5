@@ -6,6 +6,7 @@ Executed in parallel across multiple stats files.
 from __future__ import annotations
 
 import logging
+import re
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -22,6 +23,7 @@ from src.parsing.gem5.impl.pool.parse_work import ParsedVarsDict, ParseWork
 from src.parsing.gem5.impl.strategies.file_parser_strategy import INTERNAL_SIM_PATH_KEY
 from src.parsing.gem5.impl.strategies.perl_worker_pool import get_worker_pool
 from src.parsing.gem5.types.type_mapper import TypeMapper
+from src.parsing.gem5.types.vector import Vector
 
 # Type aliases for clarity
 # EntryBuffer: baseID -> {entryKey -> [values]}
@@ -219,17 +221,19 @@ class Gem5ParseWork(ParseWork):
 
         normalizedVarType: str = TypeMapper.normalize_type(varType)
 
-        # For Histogram, determine handling based on target configuration
-        if normalizedVarType == "histogram":
-            if expectedType == "vector":
-                normalizedVarType = "vector"
-            elif expectedType in ("distribution", "histogram"):
-                normalizedVarType = expectedType
-        elif normalizedVarType == "vector" and expectedType == "distribution":
-            normalizedVarType = "distribution"
-        elif normalizedVarType == "vector" and expectedType == "histogram":
-            # Vector statistics (::samples, ::mean, ::total) are part of histogram
-            normalizedVarType = "histogram"
+        if normalizedVarType == "histogram" and isinstance(targetVar, Vector):
+            entry = varID.split("::", 1)[1]
+            if re.fullmatch(r"-?\d+", entry):
+                canonical_entry = f"{entry}-{entry}"
+                if canonical_entry in targetVar.entries:
+                    self._bufferEntry(f"{baseID}::{canonical_entry}", varValue)
+                    if entry not in targetVar.entries:
+                        return expectedType
+
+        # Explicit entry-type selections own interpretation; each target model
+        # still validates its required fields and bucket geometry.
+        if TypeMapper.is_entry_type(expectedType):
+            normalizedVarType = expectedType
 
         self._bufferEntry(varID, varValue)
         return normalizedVarType

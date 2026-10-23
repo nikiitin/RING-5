@@ -61,6 +61,12 @@ scalar-pattern vectors retain one entry per selected instance and average its te
 Missing variables, expected instances, dumps, or summary measurements remain `NaN`. Only omitted
 interior frequency buckets in an otherwise complete observed distribution are inferred as zero.
 
+Scans preserve each pattern's original `source_type` to distinguish scalar-instance columns from
+numeric entries of a genuine vector. Saved portfolios without this field still load and can render
+their stored data. Re-parsing requires a fresh scan when legacy aggregated vector metadata has
+entries equal to its instance IDs: those fields alone cannot identify the original type safely.
+Unaggregated concrete metadata and unambiguous vector entries remain supported.
+
 Full and incremental parsing use the same deterministic union of observed columns. A histogram
 bucket discovered in a later file remains in the schema, with `NaN` for files lacking that bucket.
 Raw gem5 histogram endpoints are inclusive integers (`0-9`, `10-19`). Rebinning treats these as
@@ -69,6 +75,19 @@ New integer output bins retain inclusive labels; fractional boundaries use expli
 labels such as `[0,2.5)`. `10+` includes values at or above ten, and `<0` retains negative mass.
 A single target bin is labeled `0+` because it retains all nonnegative values, including overflow.
 The figure layer also supports legacy CSV histograms with shared-edge continuous labels.
+
+gem5 also prints singleton buckets as bare integers, including negative integers. The scanner uses
+histogram geometry or the reserved `gmean` summary to recognize these and emits explicit inclusive
+labels such as `0-0`. Distribution summaries and boundaries distinguish distributions from numeric
+vectors. Both Perl paths reset this context at named and unnamed simulation dump boundaries. If
+the output suppresses all identifying metadata, callers can explicitly select the histogram type;
+numeric vector entries remain vectors during scanning.
+Explicit histogram-to-vector selections accept either raw singleton IDs or the inclusive singleton
+labels returned by the scanner; ordinary vector labels continue to match exactly.
+
+`PARSER_RESULT_VERSION` in `src/core/models/parsing_models.py` is the shared semantic revision for
+incremental rows and durable parse requests. Changing parser meaning or output labels requires
+bumping it so neither cache can return measurements from an older contract.
 
 Config-aware parsing reads `config.ini` as UTF-8 literal values and preserves parameter-name case.
 Percent signs and interpolation-looking workload arguments remain unchanged.

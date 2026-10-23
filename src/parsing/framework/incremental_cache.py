@@ -20,11 +20,11 @@ from src.core.common.security_limits import (
     MAX_PARSE_VARIABLES,
 )
 from src.core.models import ScannedVariable, StatConfig
+from src.core.models.parsing_models import PARSER_RESULT_VERSION
 
 logger = logging.getLogger(__name__)
 
 CACHE_SCHEMA_VERSION = 1
-PARSER_RESULT_VERSION = 2  # Increment when parsing semantics or output labels change.
 DEFAULT_CACHE_NAME = ".ring5-incremental-parse.json"
 
 

@@ -1329,3 +1329,40 @@ class TestParseJobCleanup:
                 variables=[],
                 strategy_type="simple",
             )
+
+
+@pytest.mark.parametrize("old_contract", ["1", "2"])
+def test_parser_semantic_revision_prevents_reusing_old_published_csv(
+    tmp_path: Path,
+    service_factory: _ServiceFactory,
+    old_contract: str,
+) -> None:
+    from src.core.models.parsing_models import PARSER_RESULT_VERSION
+    from src.core.services.parse_job_service import PARSER_CONTRACT_VERSION
+    from src.parsing.framework.incremental_cache import PARSER_RESULT_VERSION as INCREMENTAL_VERSION
+
+    assert PARSER_CONTRACT_VERSION == str(PARSER_RESULT_VERSION)
+    assert INCREMENTAL_VERSION == PARSER_RESULT_VERSION
+    _stats_tree(tmp_path)
+    submit = MagicMock(
+        return_value=ParseBatchResult([_completed_future({"simTicks": 1})], ["simTicks"])
+    )
+    service = service_factory.create(submit)
+    common: dict[str, Any] = {
+        "stats_path": str(tmp_path),
+        "stats_pattern": "stats.txt",
+        "variables": [{"name": "simTicks", "type": "scalar"}],
+        "strategy_type": "simple",
+    }
+    old = service.submit(**common, parser_contract_version=old_contract)
+    _wait_for_status(service, old.job_id, {ParseJobStatus.SUCCEEDED})
+    service.consume(old.job_id)
+    reused_old = service.submit(**common, parser_contract_version=old_contract)
+    assert reused_old.cache_hit
+    service.consume(reused_old.job_id)
+    current = service.submit(**common)
+    assert not current.cache_hit
+    assert current.fingerprint != old.fingerprint
+    _wait_for_status(service, current.job_id, {ParseJobStatus.SUCCEEDED})
+    service.consume(current.job_id)
+    assert submit.call_count == 2

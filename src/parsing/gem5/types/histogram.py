@@ -77,16 +77,25 @@ class Histogram(StatType):
 
         object.__setattr__(self, "_bins", int(bins))
         object.__setattr__(self, "_max_range", float(max_range))
-        object.__setattr__(self, "_entries", list(entries) if entries else None)
+        object.__setattr__(
+            self,
+            "_entries",
+            [self._canonical_bucket_key(entry) for entry in entries] if entries else None,
+        )
         object.__setattr__(self, "_statistics", list(statistics) if statistics else [])
 
         # Pre-initialize content with statistics to ensure column presence
         content: dict[str, list[float]] = {
-            entry: [] for entry in [*(entries or []), *self._statistics]
+            entry: [] for entry in [*(self._entries or []), *self._statistics]
         }
         object.__setattr__(self, "_content", content)
         # Shared by shallow source aliases, just like the content dictionary.
         object.__setattr__(self, "_observations", [])
+
+    @staticmethod
+    def _canonical_bucket_key(key: str) -> str:
+        """Represent a gem5 singleton bucket with explicit inclusive endpoints."""
+        return f"{key}-{key}" if re.fullmatch(r"-?\d+", key) else key
 
     @staticmethod
     def _bin_label(start: float, end: float) -> str:
@@ -155,7 +164,7 @@ class Histogram(StatType):
         for key, vals in value.items():
             val_list = vals if isinstance(vals, list) else [vals]
             try:
-                sample[str(key)] = math.fsum(float(v) for v in val_list)
+                sample[self._canonical_bucket_key(str(key))] = math.fsum(float(v) for v in val_list)
             except (TypeError, ValueError) as error:
                 raise TypeError(
                     f"HISTOGRAM: Value non-convertible to number. Key: {key}, Value: {vals}"
