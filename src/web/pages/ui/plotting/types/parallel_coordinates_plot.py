@@ -38,7 +38,7 @@ def _mapping(value: object, name: str) -> dict[str, object]:
         return {}
     if not isinstance(value, dict) or any(not isinstance(key, str) for key in value):
         raise ValueError(f"Parallel-coordinate {name} must map dimension names to values.")
-    return value
+    return dict(value)
 
 
 def _range(value: object, name: str) -> tuple[float, float]:

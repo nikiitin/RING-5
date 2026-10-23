@@ -13,13 +13,12 @@ Design notes:
     * **Stateless** — all methods are ``@staticmethod``.
     * **No styling** — only draws data; layout/style is handled by
       ``FigureSpecToMatplotlib.apply()``.
-    * **Pre-computed positions** — bar positions, widths, offsets are
-      read directly from ``BarTraceConfig``; no grouping math here.
+    * **Shared coordinates** — categorical bars use one ordered category map;
+      precomputed numeric positions and widths are preserved.
 """
 
 from __future__ import annotations
 
-import logging
 from collections.abc import Sequence
 from typing import Any, Literal, cast
 
@@ -45,10 +44,12 @@ from src.core.models.visualization.trace_config import (
     ViolinTraceConfig,
     WaterfallTraceConfig,
 )
-from src.web.rendering._heatmap_utils import is_dark_cell
+from src.web.rendering._heatmap_utils import (
+    contrasting_text_color,
+    heatmap_colormap,
+    compute_z_extent,
+)
 from src.web.rendering._render_result import MatplotlibRenderResult
-
-logger = logging.getLogger(__name__)
 
 
 def _spline_coordinates(
@@ -123,7 +124,9 @@ class MatplotlibTraceRenderer:
             A ``MatplotlibRenderResult`` with trace count and heatmap metadata.
         """
         # Collect bar traces for stacking computation
-        bar_specs: list[BarTraceConfig] = [t for t in traces if isinstance(t, BarTraceConfig)]
+        bar_specs: list[BarTraceConfig] = [
+            t for t in traces if isinstance(t, BarTraceConfig) and t.visible
+        ]
 
         # Secondary Y handling
         has_secondary = any(t.yaxis == "y2" for t in traces)
@@ -131,9 +134,14 @@ class MatplotlibTraceRenderer:
         if has_secondary:
             ax2 = ax.twinx()
             cast(Any, ax)._ring5_twin = ax2
+            cast(Any, ax2)._ring5_primary = ax
 
         result = MatplotlibRenderResult()
-        categorical_labels: list[str] = []
+        categorical_labels = list(
+            dict.fromkeys(
+                str(value) for trace in bar_specs if not trace.x_positions for value in trace.x
+            )
+        )
         vertical_box_ticks: dict[int, str] = {}
         horizontal_box_ticks: dict[int, str] = {}
 
@@ -150,6 +158,8 @@ class MatplotlibTraceRenderer:
             ax.xaxis.update_units(spline_categories)
 
         for idx, trace in enumerate(traces):
+            if not trace.visible:
+                continue
             is_secondary = trace.yaxis == "y2"
             target = ax2 if (is_secondary and ax2 is not None) else ax
 
@@ -160,12 +170,13 @@ class MatplotlibTraceRenderer:
 
             try:
                 if isinstance(trace, BarTraceConfig):
-                    bar_idx = bar_specs.index(trace)
+                    axis_bars = [bar for bar in bar_specs if bar.yaxis == trace.yaxis]
+                    bar_idx = next(i for i, bar in enumerate(axis_bars) if bar is trace)
                     MatplotlibTraceRenderer._draw_bar(
                         trace,
                         target,
                         bar_idx,
-                        bar_specs,
+                        axis_bars,
                         barmode,
                         categorical_labels,
                         override_color=override_color,
@@ -243,12 +254,9 @@ class MatplotlibTraceRenderer:
                     )
                     result.trace_count += 1
                 else:
-                    logger.warning(
-                        "Unknown TraceConfig type: %s",
-                        type(trace).__name__,
-                    )
-            except Exception:
-                logger.exception("Failed to render trace %s", trace.name)
+                    raise TypeError(f"Unsupported trace type: {type(trace).__name__}.")
+            except (TypeError, ValueError, OverflowError) as exc:
+                raise ValueError(f"Cannot render trace {trace.name!r}: {exc}") from exc
 
         if vertical_box_ticks:
             positions = sorted(vertical_box_ticks)
@@ -284,18 +292,18 @@ class MatplotlibTraceRenderer:
         else:
             # Categorical string axis
             x_pos, eff_bar_width = _compute_categorical_positions(
-                spec, bar_idx, bar_specs, barmode, bargap, bargroupgap
+                spec, bar_idx, bar_specs, barmode, bargap, bargroupgap, categorical_labels
             )
-            is_categorical = True
+            is_categorical = not all(isinstance(value, (int, float)) for value in spec.x)
 
         props: dict[str, Any] = {}
         if eff_bar_width is not None:
             props["width"] = eff_bar_width
 
         # Bar border: controls visual separation between stacked items
-        if bar_border_width > 0:
-            props["edgecolor"] = "white"
-            props["linewidth"] = bar_border_width
+        if bar_border_width > 0 or spec.border_width > 0:
+            props["edgecolor"] = spec.border_color or "white"
+            props["linewidth"] = bar_border_width or spec.border_width
         else:
             props["edgecolor"] = "none"
             props["linewidth"] = 0
@@ -304,11 +312,13 @@ class MatplotlibTraceRenderer:
         y_clean = [float(v) if v is not None else np.nan for v in spec.y]
 
         # 4) Compute stacking bottom
-        if barmode == "stack" and bar_idx > 0:
+        if barmode in {"stack", "relative"} and bar_idx > 0:
             if is_categorical:
-                bottom = _stack_bottom(bar_idx, bar_specs)
+                bottom = _stack_bottom(bar_idx, bar_specs, relative=barmode == "relative")
             else:
-                bottom = _stack_bottom_numeric(bar_idx, bar_specs, x_pos)
+                bottom = _stack_bottom_numeric(
+                    bar_idx, bar_specs, x_pos, relative=barmode == "relative"
+                )
             props["bottom"] = bottom
 
         # 5) Render
@@ -318,14 +328,14 @@ class MatplotlibTraceRenderer:
         if spec.pattern:
             props["hatch"] = spec.pattern
 
-        ax.bar(x_pos, y_clean, label=spec.name, **props)
+        if spec.error_y is not None:
+            props["yerr"] = spec.error_y
+        if spec.opacity != 1.0:
+            props["alpha"] = spec.opacity
+        ax.bar(x_pos, y_clean, label=spec.name if spec.show_in_legend else "_nolegend_", **props)
 
-        if is_categorical and bar_idx == 0:
-            base_positions = list(range(len(spec.x)))
-            ax.xaxis.set_ticks(base_positions)
-            if not categorical_labels:
-                categorical_labels.extend(str(v) for v in spec.x)
-            ax.xaxis.set_ticklabels(categorical_labels)
+        if is_categorical:
+            ax.set_xticks(range(len(categorical_labels)), categorical_labels)
 
     # line
 
@@ -413,7 +423,6 @@ class MatplotlibTraceRenderer:
             "hv": "steps-post",
             "vh": "steps-pre",
             "hvh": "steps-mid",
-            "vhv": "steps-mid",
         }.get(spec.line_shape)
         if drawstyle:
             props["drawstyle"] = drawstyle
@@ -447,7 +456,21 @@ class MatplotlibTraceRenderer:
                 if spec.show_markers:
                     props["markevery"] = marker_indices
 
-        ax.plot(rendered_x, rendered_y, label=spec.name, **props)
+        if spec.line_shape == "vhv" and x_values:
+            ax.xaxis.update_units(x_values)
+            source_x = np.asarray(ax.convert_xunits(x_values), dtype=float).tolist()
+            rendered_x, rendered_y = [source_x[0]], [y_clean[0]]
+            for index in range(1, len(source_x)):
+                middle_y = (y_clean[index - 1] + y_clean[index]) / 2
+                rendered_x.extend([source_x[index - 1], source_x[index], source_x[index]])
+                rendered_y.extend([middle_y, middle_y, y_clean[index]])
+            if spec.show_markers:
+                props["markevery"] = [index * 3 for index in range(len(source_x))]
+
+        artists = ax.plot(rendered_x, rendered_y, label=spec.name, **props)
+        if spec.error_y is not None:
+            errors = [spec.error_y[index] for index in source_indices]
+            ax.errorbar(x_values, y_clean, yerr=errors, fmt="none", color=artists[0].get_color())
         if spec.fill != "none":
             raw_baseline = spec.fill_base or [0.0] * len(spec.y)
             baseline = [float(raw_baseline[index]) for index in source_indices]
@@ -847,11 +870,19 @@ class MatplotlibTraceRenderer:
         color = override_color or spec.color
         if color:
             props["color"] = color
-        if spec.marker_size:
-            props["s"] = spec.marker_size
+        sizes = spec.size_values if spec.size_values is not None else spec.marker_size
+        props["s"] = np.square(sizes)
+        props["marker"] = _MARKER_MAP.get(spec.marker_symbol, "o")
+        props["alpha"] = spec.opacity
+        props["linewidths"] = spec.marker_line_width
+        if spec.marker_line_color:
+            props["edgecolors"] = spec.marker_line_color
 
         y_clean = [float(v) if v is not None else np.nan for v in spec.y]
-        ax.scatter(spec.x, y_clean, label=spec.name, **props)
+        points = ax.scatter(spec.x, y_clean, label=spec.name, **props)
+        if spec.error_y is not None:
+            error_color = color or cast(Any, points).get_facecolors()[0]
+            ax.errorbar(spec.x, y_clean, yerr=spec.error_y, fmt="none", color=error_color)
 
     # histogram
     @staticmethod
@@ -892,17 +923,8 @@ class MatplotlibTraceRenderer:
             dtype=float,
         )
 
-        # Map Plotly colorscale names to matplotlib equivalents.
-        # Palette-derived colorscales arrive as [[pos, hex], ...] lists;
-        # string names use the static lookup table.
-        cmap: Any
-        if isinstance(spec.colorscale, list):
-            from matplotlib.colors import LinearSegmentedColormap
-
-            hex_colors = [str(pair[1]) for pair in spec.colorscale]
-            cmap = LinearSegmentedColormap.from_list("custom_palette", hex_colors)
-        else:
-            cmap = _COLORSCALE_MAP.get(spec.colorscale.lower(), spec.colorscale)
+        compute_z_extent([spec])
+        cmap = heatmap_colormap(spec.colorscale)
 
         # pcolormesh draws vector quadrilaterals (PGF-safe) instead of a
         # raster bitmap (imshow).  Explicit edge arrays make each cell span
@@ -940,8 +962,9 @@ class MatplotlibTraceRenderer:
                         if spec.text_color_mode == "custom":
                             color = spec.text_color
                         else:
-                            dark = is_dark_cell(z_array, i, j)  # type: ignore[arg-type]
-                            color = "white" if dark else "black"
+                            color = contrasting_text_color(
+                                cast(Sequence[float], im.cmap(im.norm(z_array[i, j])))
+                            )
                         ax.text(
                             j + 0.5,
                             i + 0.5,
@@ -965,36 +988,6 @@ class MatplotlibTraceRenderer:
 
 
 # module-level helpers
-_COLORSCALE_MAP: dict[str, str] = {
-    "viridis": "viridis",
-    "viridis_r": "viridis_r",
-    "plasma": "plasma",
-    "plasma_r": "plasma_r",
-    "inferno": "inferno",
-    "inferno_r": "inferno_r",
-    "magma": "magma",
-    "magma_r": "magma_r",
-    "cividis": "cividis",
-    "cividis_r": "cividis_r",
-    "blues": "Blues",
-    "blues_r": "Blues_r",
-    "reds": "Reds",
-    "reds_r": "Reds_r",
-    "greens": "Greens",
-    "greens_r": "Greens_r",
-    "ylgnbu": "YlGnBu",
-    "ylgnbu_r": "YlGnBu_r",
-    "rdbu": "RdBu",
-    "rdbu_r": "RdBu_r",
-    "hot": "hot",
-    "hot_r": "hot_r",
-    "ylorrd": "YlOrRd",
-    "ylorrd_r": "YlOrRd_r",
-    "rdylgn": "RdYlGn",
-    "rdylgn_r": "RdYlGn_r",
-}
-
-
 _DASH_MAP: dict[str, str | tuple[int, tuple[float, ...]]] = {
     "dash": "--",
     "dot": ":",
@@ -1025,64 +1018,41 @@ def _compute_categorical_positions(
     barmode: str,
     bargap: float = 0.2,
     bargroupgap: float = 0.0,
+    categories: list[str] | None = None,
 ) -> tuple[list[float], float]:
-    """Compute bar x-positions for categorical data when not pre-filled.
-
-    For stacked bars all traces share the same integer positions.
-    For grouped bars each trace is offset so bars sit side by side.
-
-    Args:
-        spec: Bar trace whose categorical positions are required.
-        bar_idx: Index of ``spec`` within ``bar_specs``.
-        bar_specs: Bar traces participating in the layout.
-        barmode: Bar arrangement mode, ``"group"`` or ``"stack"``.
-        bargap: Gap between bar groups (0.0–1.0).  A value of 0.2 means
-            20% of the available space between integer ticks is empty.
-        bargroupgap: Gap between bars within a group (0.0–1.0).
-
-    Returns:
-        A tuple of (x_positions, effective_bar_width).
-    """
-    n_categories = len(spec.x)
-    base = list(range(n_categories))
-
-    # Available width for one group = 1.0 - bargap
+    """Map sparse categorical traces to one shared category coordinate system."""
+    labels = categories or list(dict.fromkeys(str(x) for bar in bar_specs for x in bar.x))
+    positions = {label: float(index) for index, label in enumerate(labels)}
+    base = [
+        float(value) if isinstance(value, (int, float)) else positions[str(value)]
+        for value in spec.x
+    ]
     group_width = max(0.05, 1.0 - bargap)
-
-    if barmode == "stack":
-        return ([float(b) for b in base], group_width)
-
-    # Grouped: distribute traces around each integer tick
-    n_traces = len(bar_specs)
-    if n_traces <= 1:
-        return ([float(b) for b in base], group_width)
-
-    # Each bar gets (group_width / n_traces) minus inner gap
-    bar_w = group_width / n_traces
-    if bargroupgap > 0:
-        bar_w = bar_w * (1.0 - bargroupgap)
-
-    # Ensure minimum visible width
-    bar_w = max(0.01, bar_w)
-
-    # Total span occupied by all bars + inner gaps
-    step = group_width / n_traces
-    start_offset = -(n_traces - 1) * step / 2
-    offset = start_offset + bar_idx * step
-    return ([float(b) + offset for b in base], bar_w)
+    if barmode != "group" or len(bar_specs) <= 1:
+        return base, group_width
+    step = group_width / len(bar_specs)
+    width = max(0.01, step * (1.0 - bargroupgap))
+    offset = (bar_idx - (len(bar_specs) - 1) / 2) * step
+    return [value + offset for value in base], width
 
 
 def _stack_bottom(
     bar_idx: int,
     bar_specs: list[BarTraceConfig],
+    *,
+    relative: bool = False,
 ) -> list[float]:
-    """Compute cumulative bottom for stacked bars."""
-    n_positions = len(bar_specs[bar_idx].y) if bar_specs else 0
-    bottom = [0.0] * n_positions
-    for prev in bar_specs[:bar_idx]:
-        for i, v in enumerate(prev.y):
-            if i < n_positions:
-                bottom[i] += float(v) if v is not None else 0.0
+    """Stack matching categories only within the same axis and sign partition."""
+    current = bar_specs[bar_idx]
+    bottom = [0.0] * len(current.y)
+    for previous in bar_specs[:bar_idx]:
+        if previous.yaxis != current.yaxis:
+            continue
+        by_category = dict(zip(map(str, previous.x), previous.y))
+        for index, category in enumerate(current.x):
+            value = by_category.get(str(category))
+            if value is not None and (not relative or (value >= 0) == (current.y[index] >= 0)):
+                bottom[index] += float(value)
     return bottom
 
 
@@ -1090,14 +1060,23 @@ def _stack_bottom_numeric(
     bar_idx: int,
     bar_specs: list[BarTraceConfig],
     x_positions: list[float],
+    *,
+    relative: bool = False,
 ) -> list[float]:
-    """Compute cumulative bottom for numeric-axis stacked bars."""
+    """Stack pre-positioned bars by coordinate without mixing primary/secondary units."""
+    current = bar_specs[bar_idx]
     bottom = [0.0] * len(x_positions)
-    for prev in bar_specs[:bar_idx]:
-        prev_positions = prev.x_positions if prev.x_positions else [float(v) for v in prev.x]
-        for i, xi in enumerate(x_positions):
-            for j, pxi in enumerate(prev_positions):
-                if abs(xi - pxi) < 1e-6 and j < len(prev.y):
-                    bottom[i] += float(prev.y[j]) if prev.y[j] is not None else 0.0
+    for previous in bar_specs[:bar_idx]:
+        if previous.yaxis != current.yaxis:
+            continue
+        positions = previous.x_positions or [float(value) for value in previous.x]
+        for index, coordinate in enumerate(x_positions):
+            for previous_index, other in enumerate(positions):
+                if abs(coordinate - other) < 1e-6 and previous_index < len(previous.y):
+                    value = previous.y[previous_index]
+                    if value is not None and (
+                        not relative or (value >= 0) == (current.y[index] >= 0)
+                    ):
+                        bottom[index] += float(value)
                     break
     return bottom

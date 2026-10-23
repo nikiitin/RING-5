@@ -279,10 +279,12 @@ class ConfigSpecBuilder:
                 grid_dash=config.get("y2_grid_dash", "solid"),
                 grid_alpha=float(config.get("y2_grid_alpha", 1.0)),
                 label_standoff=config.get("yaxis2_title_standoff", -1),
+                title_vshift=float(config.get("yaxis2_title_vshift", 0.0)),
+                tick_dash=config.get("y2tick_dash", "solid"),
                 show_ticks=config.get("show_y2tick_marks", True),
                 show_tick_labels=config.get("show_y2tick_labels", True),
                 tick_font_color=config.get("yaxis2_tickfont_color", ""),
-                tick_side="right",
+                tick_side=config.get("yaxis2_tick_side", "right"),
                 axis_color=config.get("axis_color", "#444"),
                 axis_line_color=config.get("y2_axis_line_color", ""),
                 axis_line_width=float(config.get("y2_axis_line_width", 1.0)),
@@ -451,6 +453,7 @@ class ConfigSpecBuilder:
             enable_stripes=enable_stripes,
             hovermode=hovermode,
             barmode=barmode_raw,
+            font_family=str(config.get("font_family", "serif")),
         )
 
 

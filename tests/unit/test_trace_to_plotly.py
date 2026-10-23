@@ -193,9 +193,11 @@ class TestBoxTrace:
         result = _box_trace(trace)
 
         assert result.orientation == "h"
-        assert list(cast(Any, result.x)) == trace.values
-        assert list(cast(Any, result.y)) == [1.25, 1.25, 1.25]
-        assert result.quartilemethod == "exclusive"
+        assert list(cast(Any, result.x)) == [trace.values]
+        assert list(cast(Any, result.y)) == [1.25]
+        assert list(cast(Any, result.q1)) == [trace.q1]
+        assert list(cast(Any, result.median)) == [trace.median]
+        assert list(cast(Any, result.q3)) == [trace.q3]
         assert result.boxpoints == "all"
         assert result.notched
         assert result.boxmean

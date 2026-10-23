@@ -472,7 +472,9 @@ def _per_group_line_xy(
     (both engines render NaN as a gap). Categories follow ``xaxis_order``.
     """
     x_name = config.get("x")
-    order = config.get("xaxis_order") or list(dict.fromkeys(data[x_name].tolist()))
+    aliases = config.get("xaxis_labels") or {}
+    preferred = [aliases.get(value, value) for value in config.get("xaxis_order", [])]
+    order = order_with_overrides(data[x_name].unique(), preferred)
     xs: list[str | int | float] = []
     ys: list[int | float] = []
     first = True

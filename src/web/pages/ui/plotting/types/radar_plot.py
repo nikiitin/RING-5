@@ -110,7 +110,7 @@ class RadarPlot(BasePlot):
             color = palette[index % len(palette)]
             if isinstance(style, dict) and style.get("use_color") and style.get("color"):
                 color = str(style["color"])
-            resolved = [value if np.isfinite(value) else radial_min for value in values]
+            resolved = [value if np.isfinite(value) else float("nan") for value in values]
             drill_frame = pd.DataFrame({x_col: categories})
             drill_columns = [x_col]
             if color_col:
@@ -127,7 +127,7 @@ class RadarPlot(BasePlot):
                     radial_max=radial_max,
                     start_angle=start_angle,
                     clockwise=bool(config.get("radar_clockwise", True)),
-                    fill_area=bool(config.get("radar_fill", True)),
+                    fill_area=bool(config.get("radar_fill", True)) and all(np.isfinite(resolved)),
                     show_markers=bool(config.get("radar_markers", True)),
                     marker_size=marker_size,
                     line_width=line_width,

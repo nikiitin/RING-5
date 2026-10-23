@@ -271,3 +271,39 @@ class TestHistogramPlotIntegration:
 
         assert fig is not None
         assert len(list(fig.data)) > 0
+
+
+@pytest.mark.parametrize("bucket_size", [None, 1, 5])
+def test_parser_histogram_union_geometry_renders_observed_mass(
+    tmp_path: Path,
+    bucket_size: float | None,
+) -> None:
+    """Different observed bucket geometries survive the async parse/render boundary."""
+    from src.core.models import StatConfig
+    from src.parsing.gem5.impl.gem5_parser import Gem5Parser
+    from src.web.pages.ui.plotting.types.histogram_plot import HistogramPlot
+
+    inputs = tmp_path / "inputs"
+    for name, bucket, count in [("a", "0-0", 1), ("b", "0-9", 2)]:
+        directory = inputs / name
+        directory.mkdir(parents=True)
+        (directory / "stats.txt").write_text(f"h::{bucket} {count} 100% 100%\n")
+    output = tmp_path / "parsed"
+    batch = Gem5Parser.submit_parse_async(
+        str(inputs), "stats.txt", [StatConfig("h", "histogram")], str(output)
+    )
+    results = [future.result() for future in batch.futures]
+    csv_path = Gem5Parser.finalize_parsing(str(output), results, var_names=batch.var_names)
+    assert csv_path is not None
+    data = pd.read_csv(csv_path)
+    assert data[["h..0-0", "h..0-9"]].notna().sum().tolist() == [1, 1]
+    trace = (
+        HistogramPlot(1, "Observed histogram")
+        .create_traces(
+            data,
+            {"histogram_variable": "h", "bucket_size": bucket_size},
+        )
+        .traces[0]
+    )
+    assert sum(trace.y) == pytest.approx(3)
+    assert len(trace.x_positions) == len(trace.y) == len(trace.bar_width)

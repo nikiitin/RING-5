@@ -96,7 +96,7 @@ class BarTraceConfig(TraceConfig):
 
     # Bar positioning (pre-computed)
     x_positions: list[float] = field(default_factory=list)  # center of each bar
-    bar_width: float = 0.8  # width of each bar
+    bar_width: float | list[float] = 0.8  # scalar or one width per bar
     offset: float = 0.0  # horizontal offset for grouped bars
 
     # Bar styling

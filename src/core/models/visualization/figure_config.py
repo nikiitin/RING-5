@@ -28,11 +28,7 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class MarginsConfig:
-    """Figure margins in **points** (1 pt ≈ 1/72 inch).
-
-    Both Plotly and matplotlib understand points.  Plotly converts
-    internally when ``px`` are needed (1 px ≈ 1 pt at 72 dpi).
-    """
+    """Figure margins in pixels, relative to the configured figure dimensions."""
 
     top: float = 40.0
     bottom: float = 80.0
@@ -269,6 +265,7 @@ class FigureConfig:
             series_styles=series_styles,
             trace_overrides=trace_overrides,
             color_palette=data.get("color_palette", default_palette),
+            barmode=data.get("barmode", "group"),
             hatching_sequence=data.get("hatching_sequence", default_hatching),
             reference_lines=reference_lines,
             hovermode=data.get("hovermode", "x unified"),

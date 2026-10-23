@@ -101,11 +101,20 @@ class PlotCreationController:
 
         # Disambiguate duplicate names (for example, ``X`` becomes ``X (2)``) so plots with the
         # same name can't collapse in the pills widget or resolve to the wrong plot.
-        seen: dict[str, int] = {}
+        reserved = {plot.name for plot in plots}
+        used: set[str] = set()
         labels: list[str] = []
-        for p in plots:
-            seen[p.name] = seen.get(p.name, 0) + 1
-            labels.append(p.name if seen[p.name] == 1 else f"{p.name} ({seen[p.name]})")
+        for plot in plots:
+            label = plot.name
+            suffix = 2
+            if label in used:
+                while True:
+                    label = f"{plot.name} ({suffix})"
+                    suffix += 1
+                    if label not in reserved and label not in used:
+                        break
+            used.add(label)
+            labels.append(label)
         label_to_plot = {labels[i]: plots[i] for i in range(len(plots))}
 
         current_id: int | None = self._api.state_manager.get_current_plot_id()

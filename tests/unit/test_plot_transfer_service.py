@@ -123,3 +123,15 @@ def test_rejects_copy_to_self_without_mutation() -> None:
         copy_plot_content(plot, plot, "settings", sections=["labels"])
 
     assert plot.config == snapshot
+
+
+def test_settings_transfer_uses_canonical_tick_and_legend_anchor_keys() -> None:
+    source, target = _Plot(1), _Plot(2)
+    source.config = {
+        "show_xtick_marks": False,
+        "show_ytick_marks": False,
+        "legend_anchor_x": "right",
+        "legend_anchor_y": "bottom",
+    }
+    copy_plot_content(source, target, "settings", sections=["axes", "legends"])
+    assert target.config == source.config

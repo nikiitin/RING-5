@@ -237,3 +237,14 @@ Covers:
 The web interface does not accept an arbitrary TeX preamble, and RING-5 escapes user-controlled
 figure text before TeX-backed export. User-provided number formats are also bounded before they are
 applied to labels.
+
+The interactive chart loads the JavaScript bundle shipped with the installed Python
+Plotly package. It supports Plotly's binary numeric arrays and renders without a CDN
+connection. Dashboards and small multiples support Cartesian, polar, and domain
+panels; a single panel must use one coordinate family.
+
+Matplotlib exports preserve category alignment, primary and secondary axis stacking,
+and configured error bars. Rendering failures raise an error identifying the failed
+series. Heatmap cell labels use the mapped palette color and resolved color bounds
+to select contrasting text. The configured figure width and height describe the
+complete figure, including all heatmap facets.

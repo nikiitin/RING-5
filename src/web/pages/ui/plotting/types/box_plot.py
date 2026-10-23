@@ -197,7 +197,7 @@ class BoxPlot(BasePlot):
                         whisker_cap_width=whisker_cap_width,
                         notched=bool(config.get("notched", False)),
                         show_mean=bool(config.get("show_mean", False)),
-                        show_in_legend=category_index == 0 if color_col else True,
+                        show_in_legend=not any(trace.name == name for trace in traces),
                         legendgroup=name,
                         custom_data={
                             "drilldown": build_drill_down_payload(

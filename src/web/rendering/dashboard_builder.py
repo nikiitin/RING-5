@@ -210,6 +210,52 @@ def _add_plotly_panel_text(
         )
 
 
+def _subplot_family(figure: go.Figure) -> str:
+    """Select the panel family and reject incompatible mixed coordinates."""
+    families = {
+        (
+            "polar"
+            if getattr(trace, "type", "") in {"scatterpolar", "scatterpolargl", "barpolar"}
+            else (
+                "domain"
+                if getattr(trace, "type", "")
+                in {"sankey", "parcoords", "pie", "sunburst", "treemap"}
+                else "xy"
+            )
+        )
+        for trace in figure.data
+    }
+    if len(families) > 1:
+        raise ValueError("A dashboard panel cannot mix Cartesian, polar, and domain traces.")
+    return next(iter(families), "xy")
+
+
+def _add_domain_panel_text(
+    dashboard: go.Figure,
+    x_domain: Sequence[float],
+    y_domain: Sequence[float],
+    label: str,
+    caption: str,
+) -> None:
+    """Place panel labels and captions around polar and domain panels."""
+    for text, x, y, anchor, shift in (
+        (label, x_domain[0], y_domain[1], "left", 22),
+        (caption, sum(x_domain) / 2, y_domain[0], "center", -34),
+    ):
+        if text:
+            dashboard.add_annotation(
+                text=escape(text),
+                x=x,
+                y=y,
+                xref="paper",
+                yref="paper",
+                xanchor=anchor,
+                yanchor="bottom" if shift > 0 else "top",
+                yshift=shift,
+                showarrow=False,
+            )
+
+
 def _render_plotly_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec) -> go.Figure:
     child_figures: list[go.Figure] = []
     secondary_flags: list[bool] = []
@@ -224,20 +270,20 @@ def _render_plotly_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec) -> 
         child_figures.append(child)
         secondary_flags.append(any(getattr(trace, "yaxis", None) == "y2" for trace in child.data))
 
+    families = [_subplot_family(child) for child in child_figures]
     cells: list[list[dict[str, str | bool | int | float] | None]] = []
     for row in range(spec.rows):
-        cells.append(
-            [
-                {
-                    "secondary_y": (
-                        secondary_flags[row * spec.columns + column]
-                        if row * spec.columns + column < len(secondary_flags)
-                        else False
-                    )
-                }
-                for column in range(spec.columns)
-            ]
-        )
+        row_cells: list[dict[str, str | bool | int | float] | None] = []
+        for column in range(spec.columns):
+            index = row * spec.columns + column
+            family = families[index] if index < len(families) else "xy"
+            cell: dict[str, str | bool | int | float] = {"type": family}
+            if family == "xy":
+                cell["secondary_y"] = (
+                    secondary_flags[index] if index < len(secondary_flags) else False
+                )
+            row_cells.append(cell)
+        cells.append(row_cells)
     subplot_titles = list(spec.panel_titles) + [""] * (
         spec.rows * spec.columns - len(spec.panel_titles)
     )
@@ -264,18 +310,54 @@ def _render_plotly_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec) -> 
         for source_trace in child.data:
             trace = copy.deepcopy(source_trace)
             secondary = getattr(trace, "yaxis", None) == "y2"
-            trace.update(xaxis=None, yaxis=None)
-            if spec.shared_legend:
+            family = families[index]
+            if family == "xy":
+                trace.update(xaxis=None, yaxis=None)
+            elif family == "polar":
+                trace.update(subplot=None)
+            else:
+                trace.update(domain=None)
+            if spec.shared_legend and hasattr(trace, "showlegend"):
                 name = str(getattr(trace, "name", ""))
                 originally_visible = getattr(trace, "showlegend", None) is not False
                 trace.showlegend = originally_visible and name not in legend_names
                 if originally_visible:
                     legend_names.add(name)
-            else:
+            elif not spec.shared_legend and hasattr(trace, "legend"):
                 trace.legend = panel_legend
-            dashboard.add_trace(trace, row=row, col=column, secondary_y=secondary)
+            if family == "xy":
+                dashboard.add_trace(trace, row=row, col=column, secondary_y=secondary)
+            else:
+                dashboard.add_trace(trace, row=row, col=column)
 
         target = cast(Any, dashboard.get_subplot(row, column))
+        if families[index] != "xy":
+            if families[index] == "polar":
+                polar_props = child.layout.polar.to_plotly_json()
+                polar_props.pop("domain", None)
+                target.update(polar_props)
+                domain_x, domain_y = target.domain.x, target.domain.y
+            else:
+                domain_x, domain_y = target.x, target.y
+            _add_domain_panel_text(
+                dashboard,
+                domain_x,
+                domain_y,
+                spec.resolved_panel_labels[index],
+                spec.resolved_panel_captions[index],
+            )
+            if not spec.shared_legend:
+                dashboard.update_layout(
+                    {
+                        panel_legend: {
+                            "x": domain_x[1],
+                            "y": domain_y[1],
+                            "xanchor": "right",
+                            "yanchor": "top",
+                        }
+                    }
+                )
+            continue
         target_x, target_y = target.xaxis, target.yaxis
         target_yaxes = list(dashboard.select_yaxes(row=row, col=column))
         target_y2 = target_yaxes[1] if len(target_yaxes) > 1 else None

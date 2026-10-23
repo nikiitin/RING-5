@@ -221,7 +221,7 @@ class ViolinPlot(BasePlot):
                     mean=float(item.values.mean()),
                     show_box=summary_mode in ("box", "box+mean"),
                     show_mean=summary_mode in ("mean", "box+mean"),
-                    show_in_legend=item.category_index == 0 if color_col else True,
+                    show_in_legend=not any(trace.name == item.name for trace in traces),
                     legendgroup=item.name,
                     custom_data={"drilldown": item.drilldown},
                 )
