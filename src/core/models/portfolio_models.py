@@ -56,6 +56,8 @@ class PortfolioData(TypedDict, total=False):
         version: Human-readable portfolio format version.
         timestamp: Save time in ISO 8601 form.
         parse_variables: List of parser variable configurations
+        parser_strategy: Parsing strategy; legacy portfolios default to simple.
+        simulator: Registered backend; legacy portfolios default to gem5.
         stats_path: Base path to simulator stats files
         stats_pattern: Pattern for stats file naming
         csv_path: Path to processed CSV data
@@ -78,6 +80,8 @@ class PortfolioData(TypedDict, total=False):
     parse_variables: list[ParseVariableConfig]
     stats_path: str
     stats_pattern: str
+    parser_strategy: str
+    simulator: str
     csv_path: str
     use_parser: bool
     scanned_variables: list[ScannedVariableDict]

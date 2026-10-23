@@ -31,7 +31,9 @@ python_venv/bin/mypy path/to/module.py
 ```
 
 Start the web application with `make run`. Use `RING5_DATA_DIR` to redirect the CSV pool,
-portfolios, and saved configuration away from the checkout during isolated testing.
+portfolios, and saved configuration during isolated testing. Source checkouts default to `.ring5`
+below the repository. Installed wheels default to the platform user-data directory reported by
+`platformdirs.user_data_path("ring5", appauthor=False)`. The environment override takes precedence.
 
 Optional dependencies are purpose-specific:
 

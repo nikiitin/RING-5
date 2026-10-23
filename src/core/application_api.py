@@ -945,6 +945,7 @@ class ApplicationAPI:
         if self._closed:
             return
         self._closed = True
+        self.cancel_pending_scans()
         if self._parse_jobs is not None:
             self._parse_jobs.close()
         self._background_jobs.close(wait=False)

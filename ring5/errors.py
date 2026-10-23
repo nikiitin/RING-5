@@ -2,9 +2,11 @@
 
 Scripts need exceptions they can catch by meaning, not by scraping mixed
 ``FileNotFoundError``/``ValueError``/``KeyError`` messages out of the core
-layers. Everything raised by the public surface derives from
-:class:`Ring5Error` (core-raised built-ins are re-wrapped at the Session
-boundary with the original as ``__cause__``).
+layers. Session operations translate expected domain failures to
+:class:`Ring5Error`, preserving the original exception as ``__cause__``.
+Python constructors and directly imported low-level shapers retain ordinary
+``TypeError`` and ``ValueError`` validation; use ``Session.shape`` for typed
+pipeline failures.
 """
 
 from __future__ import annotations
@@ -30,7 +32,7 @@ __all__ = [
 
 class Ring5Error(Exception):
     # [impl->req~ring5.api.typed-errors~1]
-    """Base class for every error the public ring5 API raises."""
+    """Base class for expected failures reported by public Session operations."""
 
 
 class ScanError(Ring5Error):

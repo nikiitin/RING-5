@@ -185,7 +185,7 @@ class Table:
             ColumnNotFoundError: A requested sort column is absent.
         """
         self._require_columns(by)
-        return Table(self._df.sort_values(by).reset_index(drop=True))
+        return Table(self._df.sort_values(by, kind="stable").reset_index(drop=True))
 
     def with_scalar_op(self, new_column: str, src_column: str, op: str, value: float) -> "Table":
         """Add ``new_column = src_column <op> value`` for op in ``+ - * /``.
@@ -232,7 +232,7 @@ class Table:
         """
         # [impl->req~ring5.quality.immutable-data~1]
         try:
-            return Table(shaper(self._df))
+            return Table(shaper(self._df.copy(deep=True)))
         except KeyError as exc:
             column = str(exc.args[0]) if exc.args else "<unknown>"
             raise ColumnNotFoundError(column, [str(c) for c in self._df.columns]) from exc

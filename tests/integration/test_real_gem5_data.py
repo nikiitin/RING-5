@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any, cast
 
@@ -6,6 +7,7 @@ import pytest
 from pandas import DataFrame
 
 from src.core.application_api import ApplicationAPI
+from src.core.services.data_services.config_service import ConfigService
 from src.core.models import StatConfig
 from src.core.models.shaper_models import ShaperStepConfig
 
@@ -30,9 +32,13 @@ def temp_output_dir(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
-def facade() -> ApplicationAPI:
+def facade() -> Iterator[ApplicationAPI]:
     """Create an ApplicationAPI instance."""
-    return ApplicationAPI()
+    api = ApplicationAPI()
+    try:
+        yield api
+    finally:
+        api.close()
 
 
 class TestRealDataWithShapers:
@@ -215,12 +221,13 @@ class TestConfigurationPersistence:
     """Tests for configuration save/load."""
 
     def test_save_and_load_configuration(
-        self, temp_output_dir: Path, facade: ApplicationAPI
+        self, temp_output_dir: Path, facade: ApplicationAPI, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Test saving and loading configuration."""
+        """Test saving and loading configuration in an isolated catalog."""
         # Override config dir
         config_pool_dir = Path(temp_output_dir) / "configs"
         config_pool_dir.mkdir(parents=True, exist_ok=True)
+        monkeypatch.setattr(ConfigService, "get_config_dir", lambda: config_pool_dir)
 
         # Save config
         config_path = facade.save_configuration(
@@ -234,6 +241,7 @@ class TestConfigurationPersistence:
         )
 
         assert Path(config_path).exists()
+        assert Path(config_path).parent == config_pool_dir
 
         # Load config
         loaded = facade.load_configuration(config_path)

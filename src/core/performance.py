@@ -11,6 +11,7 @@ import json
 import logging
 import threading
 import time
+import uuid
 from collections import OrderedDict
 from collections.abc import Callable
 from typing import Any, TypeVar, cast
@@ -197,7 +198,7 @@ def compute_data_fingerprint(
     params: dict[str, Any],
     relevant_cols: list[str],
 ) -> str:
-    """Compute an MD5 fingerprint for DataFrame+params cache keying.
+    """Identify the complete input retained by a cached dataframe operation.
 
     Used by cached shapers (mean, normalize) to detect whether the
     input data and configuration have changed since the last run,
@@ -206,7 +207,8 @@ def compute_data_fingerprint(
     Args:
         data: Input DataFrame.
         params: Shaper configuration parameters.
-        relevant_cols: Column names relevant to the computation.
+        relevant_cols: Columns selected by the operation. The complete frame is
+            hashed because cached results retain unselected columns as well.
 
     Returns:
         16-char hex digest suitable as a cache key.
@@ -214,24 +216,34 @@ def compute_data_fingerprint(
 
     # [impl->req~ring5.quality.bounded-caching~1]
 
+    try:
+        attributes = json.dumps(data.attrs, sort_keys=True)
+    except (TypeError, ValueError):
+        # Unknown mutable metadata has no reliable canonical identity. A unique
+        # key deliberately bypasses reuse instead of returning stale attributes.
+        return uuid.uuid4().hex[:16]
+    categorical_types = [
+        (str(column), tuple(dtype.categories), dtype.ordered)
+        for column, dtype in data.dtypes.items()
+        if isinstance(dtype, pd.CategoricalDtype)
+    ]
     fingerprint_parts = [
         f"shape:{data.shape}",
-        f"cols:{sorted(relevant_cols)}",
+        f"columns:{tuple(data.columns)!r}",
+        f"dtypes:{tuple(str(dtype) for dtype in data.dtypes)!r}:{categorical_types!r}",
+        f"index:{data.index.names!r}:{data.index.dtype!r}",
+        f"selected:{sorted(relevant_cols)}",
+        f"attrs:{attributes}",
         # Canonical, order-insensitive serialization (nested dicts/sets in shaper params
         # otherwise hash by insertion order / nondeterministically).
         f"params:{json.dumps(params, sort_keys=True, default=str)}",
     ]
 
-    if len(data) > 0 and relevant_cols:
-        existing = list(dict.fromkeys(c for c in relevant_cols if c in data.columns))
-        if existing:
-            # Hash the full content of the relevant columns (every row), so a
-            # change in any row — not just the first few — busts the cache.
-            row_hashes = pd.util.hash_pandas_object(data[existing], index=False)
-            content_digest = hashlib.md5(
-                row_hashes.to_numpy().tobytes(), usedforsecurity=False
-            ).hexdigest()
-            fingerprint_parts.append(f"content:{content_digest}")
+    try:
+        content = pd.util.hash_pandas_object(data, index=True).to_numpy().tobytes()
+    except (TypeError, ValueError):
+        content = data.to_csv(index=True).encode("utf-8")
+    fingerprint_parts.append(hashlib.md5(content, usedforsecurity=False).hexdigest())
 
     fingerprint = "|".join(fingerprint_parts)
     return hashlib.md5(fingerprint.encode(), usedforsecurity=False).hexdigest()[:16]

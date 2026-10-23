@@ -11,6 +11,8 @@ from pathlib import PurePosixPath
 from typing import Any, cast
 from zipfile import ZIP_DEFLATED, BadZipFile, ZipFile, ZipInfo
 
+from packaging.version import InvalidVersion, Version
+
 from src.core.common.security_limits import (
     MAX_PORTFOLIO_BUNDLE_BYTES,
     MAX_PORTFOLIO_BUNDLE_MEMBERS,
@@ -466,11 +468,19 @@ class PortfolioBundleService:
         lines = ["# Captured Python package versions"]
         ring5_version = environment.get("ring5_version")
         if isinstance(ring5_version, str) and ring5_version:
-            lines.append(f"ring5=={ring5_version}")
+            try:
+                lines.append(f"ring5=={Version(ring5_version)}")
+            except InvalidVersion:
+                lines.append("# RING-5 source checkout: install the matching source revision.")
         for raw_name, raw_version in sorted(versions.items(), key=lambda item: str(item[0])):
             if isinstance(raw_name, str) and isinstance(raw_version, str) and raw_version:
                 if raw_name.lower() != "ring5":
-                    lines.append(f"{raw_name}=={raw_version}")
+                    try:
+                        version = Version(raw_version)
+                    except InvalidVersion:
+                        continue
+                    if raw_name.replace("-", "").replace("_", "").replace(".", "").isalnum():
+                        lines.append(f"{raw_name}=={version}")
         return "\n".join(lines) + "\n"
 
     @staticmethod

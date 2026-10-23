@@ -95,6 +95,14 @@ class SessionRepository:
         Returns:
             A report of what was restored, skipped, and why.
         """
+        strategy = portfolio_data.get("parser_strategy", "simple")
+        simulator = portfolio_data.get("simulator", "gem5")
+        if not isinstance(strategy, str) or not strategy.strip():
+            raise ValueError("Portfolio parser strategy must be non-empty text.")
+        if not isinstance(simulator, str) or not simulator.strip():
+            raise ValueError("Portfolio simulator must be non-empty text.")
+        self.clear_all()
+
         # Restore parser state. Portfolio JSON is untrusted input — a
         # malformed parse_variables list (e.g. plain strings) would crash
         # set_parse_variables, which mutates each entry dict.
@@ -110,6 +118,8 @@ class SessionRepository:
         self.parser_repo.set_parse_variables(parse_vars)
         self.parser_repo.set_stats_path(portfolio_data.get("stats_path", ""))
         self.parser_repo.set_stats_pattern(portfolio_data.get("stats_pattern", "stats.txt"))
+        self.parser_repo.set_parser_strategy(strategy)
+        self.parser_repo.set_simulator(simulator)
         self.parser_repo.set_scanned_variables(portfolio_data.get("scanned_variables", []))
         # Handle 'use_parser' which might store boolean directly
         self.parser_repo.set_using_parser(bool(portfolio_data.get("use_parser", False)))
@@ -216,5 +226,6 @@ class SessionRepository:
         self.config_repo.set_temp_dir("")
         self.history_repo.clear_all()
         self.visualization_repo.clear()
+        self.preview_repo.clear_all_previews()
 
         logger.info("SESSION_REPO: Complete session cleared")

@@ -7,10 +7,13 @@ import copy
 import datetime
 import json
 import logging
+import os
+import tempfile
 import uuid
 from pathlib import Path
 from typing import cast
 
+from src.core.common.file_lock import file_lock
 from src.core.common.utils import sanitize_filename, validate_path_within
 from src.core.models.data_models import (
     PipelineConfigConflictPolicy,
@@ -60,11 +63,15 @@ class ConfigService:
         config_dir = ConfigService.get_config_dir()
         configs: list[SavedConfigEntry] = []
 
-        for config_file in sorted(
-            config_dir.glob("*.json"), key=lambda x: x.stat().st_mtime, reverse=True
-        ):
+        candidates: list[tuple[float, Path]] = []
+        for candidate in config_dir.glob("*.json"):
             try:
-                with open(config_file) as f:
+                candidates.append((candidate.stat().st_mtime, candidate))
+            except OSError:
+                continue
+        for _, config_file in sorted(candidates, reverse=True):
+            try:
+                with open(config_file, encoding="utf-8") as f:
                     config_data = json.load(f)
                 if not isinstance(config_data, dict):
                     logger.debug("Skipping non-object config file %s", config_file)
@@ -77,7 +84,7 @@ class ConfigService:
                         "description": config_data.get("description", "No description"),
                     }
                 )
-            except (OSError, json.JSONDecodeError) as e:
+            except (OSError, UnicodeError, json.JSONDecodeError) as e:
                 logger.debug("Skipping unreadable config file %s: %s", config_file, e)
 
         return configs
@@ -120,9 +127,25 @@ class ConfigService:
             "csv_path": csv_path,
         }
 
-        with open(config_path, "w") as f:
-            json.dump(config_data, f, indent=2)
-
+        temporary: Path | None = None
+        with file_lock(config_dir / ".catalog.lock"):
+            try:
+                with tempfile.NamedTemporaryFile(
+                    mode="w",
+                    encoding="utf-8",
+                    dir=config_dir,
+                    prefix=".config-",
+                    suffix=".tmp",
+                    delete=False,
+                ) as handle:
+                    temporary = Path(handle.name)
+                    json.dump(config_data, handle, indent=2)
+                    handle.flush()
+                    os.fsync(handle.fileno())
+                os.replace(temporary, config_path)
+            finally:
+                if temporary is not None:
+                    temporary.unlink(missing_ok=True)
         return str(config_path)
 
     @staticmethod
@@ -180,43 +203,44 @@ class ConfigService:
                 "Pipeline configuration conflict policy must be error, rename, or replace."
             )
         document = PipelineConfigExchangeService.loads(payload)
-        conflicts = ConfigService._find_configurations_named(document.name)
-        resolved_name = document.name
-        resolution: PipelineConfigConflictResolution = "none"
-        if conflicts and conflict == "error":
-            raise ValueError(
-                f"A saved pipeline configuration named {document.name!r} already exists."
+        with file_lock(ConfigService.get_config_dir() / ".catalog.lock"):
+            conflicts = ConfigService._find_configurations_named(document.name)
+            resolved_name = document.name
+            resolution: PipelineConfigConflictResolution = "none"
+            if conflicts and conflict == "error":
+                raise ValueError(
+                    f"A saved pipeline configuration named {document.name!r} already exists."
+                )
+            if conflicts and conflict == "rename":
+                resolved_name = ConfigService._next_available_name(document.name)
+                resolution = "renamed"
+            elif conflicts and conflict == "replace":
+                resolution = "replaced"
+
+            saved_path = ConfigService.save_configuration(
+                resolved_name,
+                document.description,
+                list(copy.deepcopy(document.shapers)),
+                document.csv_path,
             )
-        if conflicts and conflict == "rename":
-            resolved_name = ConfigService._next_available_name(document.name)
-            resolution = "renamed"
-        elif conflicts and conflict == "replace":
-            resolution = "replaced"
+            if resolution == "replaced":
+                for old_path in conflicts:
+                    if not ConfigService.delete_configuration(old_path):
+                        raise OSError(
+                            f"Could not replace saved pipeline configuration {document.name!r}."
+                        )
 
-        saved_path = ConfigService.save_configuration(
-            resolved_name,
-            document.description,
-            list(copy.deepcopy(document.shapers)),
-            document.csv_path,
-        )
-        if resolution == "replaced":
-            for old_path in conflicts:
-                if not ConfigService.delete_configuration(old_path):
-                    raise OSError(
-                        f"Could not replace saved pipeline configuration {document.name!r}."
-                    )
-
-        return PipelineConfigImportResult(
-            path=saved_path,
-            name=resolved_name,
-            original_name=document.name,
-            description=document.description,
-            shapers=tuple(copy.deepcopy(document.shapers)),
-            csv_path=document.csv_path,
-            schema_version=PIPELINE_CONFIG_SCHEMA_VERSION,
-            migrated=document.migrated,
-            conflict_resolution=resolution,
-        )
+            return PipelineConfigImportResult(
+                path=saved_path,
+                name=resolved_name,
+                original_name=document.name,
+                description=document.description,
+                shapers=tuple(copy.deepcopy(document.shapers)),
+                csv_path=document.csv_path,
+                schema_version=PIPELINE_CONFIG_SCHEMA_VERSION,
+                migrated=document.migrated,
+                conflict_resolution=resolution,
+            )
 
     @staticmethod
     def _find_configurations_named(name: str) -> list[str]:
@@ -275,7 +299,7 @@ class ConfigService:
         # [impl->req~ring5.data.saved-pipeline-configurations~1]
         config_dir = ConfigService.get_config_dir()
         validated_path = validate_path_within(Path(config_path), config_dir)
-        with open(validated_path) as f:
+        with open(validated_path, encoding="utf-8") as f:
             return cast(SavedConfigData, json.load(f))
 
     @staticmethod

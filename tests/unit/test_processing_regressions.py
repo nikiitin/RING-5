@@ -458,8 +458,8 @@ class TestConstructFinalCsvHeaderUnion:
 class TestNormalizeNaNBaseline:
     """Verify Normalize handles NaN and zero baselines safely."""
 
-    def test_nan_baseline_zeros_out_normalized_columns(self) -> None:
-        """When the baseline denominator is NaN, normalized values should be 0.0."""
+    def test_nan_baseline_keeps_normalized_columns_missing(self) -> None:
+        """When the baseline denominator is NaN, normalized values remain missing."""
         from src.core.services.shapers.impl.normalize import Normalize
 
         df = pd.DataFrame(
@@ -480,11 +480,11 @@ class TestNormalizeNaNBaseline:
         )
 
         result = normalizer(df)
-        # Both rows should be 0.0 because the baseline is NaN
-        assert (result["cycles"] == 0.0).all()
+        # Both ratios are undefined because the baseline is unknown.
+        assert result["cycles"].isna().all()
 
-    def test_zero_baseline_zeros_out_normalized_columns(self) -> None:
-        """When the baseline denominator is zero, normalized values should be 0.0."""
+    def test_zero_baseline_keeps_normalized_columns_missing(self) -> None:
+        """When the baseline denominator is zero, normalized values remain missing."""
         from src.core.services.shapers.impl.normalize import Normalize
 
         df = pd.DataFrame(
@@ -505,4 +505,4 @@ class TestNormalizeNaNBaseline:
         )
 
         result = normalizer(df)
-        assert (result["cycles"] == 0.0).all()
+        assert result["cycles"].isna().all()

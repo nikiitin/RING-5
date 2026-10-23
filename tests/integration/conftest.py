@@ -5,6 +5,7 @@ ApplicationAPI and ParseService instances. Synthetic gem5 data fixtures
 are registered via ``tests/helpers/gem5_fixtures.py`` in the root conftest.
 """
 
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any, Dict
 
@@ -33,9 +34,13 @@ def _reset_service_caches() -> Any:
 
 
 @pytest.fixture
-def facade() -> ApplicationAPI:
+def facade() -> Iterator[ApplicationAPI]:
     """Create a fresh ApplicationAPI instance for each test."""
-    return ApplicationAPI()
+    api = ApplicationAPI()
+    try:
+        yield api
+    finally:
+        api.close()
 
 
 @pytest.fixture

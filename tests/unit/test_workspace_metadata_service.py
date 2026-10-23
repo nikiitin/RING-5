@@ -191,3 +191,17 @@ def test_discovery_reports_per_kind_truncation(monkeypatch, portfolios_dir) -> N
     assert response.index_truncated is True
     assert response.available_artifacts > response.indexed_artifacts
     assert sum(artifact.kind == "variable" for artifact in response.artifacts) == 1
+
+
+def test_metadata_pruning_uses_complete_catalog_beyond_display_cap(
+    portfolios_dir, monkeypatch
+) -> None:
+    state = _state()
+    WorkspaceMetadataService.set_metadata(state, ["last"], "portfolio", "last", tags=("keep",))
+    monkeypatch.setattr(metadata_module, "MAX_WORKSPACE_SEARCH_ENTRIES_PER_KIND", 1)
+    WorkspaceMetadataService.set_metadata(
+        state, ["first", "last"], "portfolio", "first", favorite=True
+    )
+    persisted = WorkspaceMetadataService._portfolio_metadata()
+    assert persisted[("portfolio", "last")]["tags"] == ["keep"]
+    assert persisted[("portfolio", "first")]["favorite"] is True

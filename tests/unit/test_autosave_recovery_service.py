@@ -32,6 +32,8 @@ def _state(value: int = 1) -> MagicMock:
     state.is_using_parser.return_value = False
     state.get_stats_path.return_value = ""
     state.get_stats_pattern.return_value = "stats.txt"
+    state.get_parser_strategy.return_value = "simple"
+    state.get_simulator.return_value = "gem5"
     state.get_scanned_variables.return_value = []
     state.get_manager_history.return_value = []
     state.get_portfolio_history.return_value = []
@@ -101,6 +103,9 @@ def test_empty_state_and_invalid_owner_keys_do_not_create_drafts(recovery_dir) -
     state = _state()
     state.get_data.return_value = None
     state.get_config.return_value = {}
+    from src.core.state.repositories.parser_state_repository import ParserStateRepository
+
+    state.get_parse_variables.return_value = ParserStateRepository().get_parse_variables()
 
     assert AutosaveRecoveryService.capture(state, "empty-owner") is None
     with pytest.raises(ValueError, match="non-empty"):

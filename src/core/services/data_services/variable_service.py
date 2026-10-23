@@ -7,6 +7,8 @@ Provides business logic for variable management without UI dependencies.
 
 import uuid
 
+from src.core.common.variable_identity import normalize_variable_ids
+
 from src.core.common.safe_regex import (
     BoundedPattern,
     SafeRegexError,
@@ -190,13 +192,7 @@ class VariableService:
             >>> all("_id" in v for v in vars)
             True
         """
-        updated_vars: list[ParseVariableConfig] = []
-        for var in variables:
-            var_copy = var.copy()
-            if "_id" not in var_copy:
-                var_copy["_id"] = cls.generate_variable_id()
-            updated_vars.append(var_copy)
-        return updated_vars
+        return normalize_variable_ids(variables)
 
     @classmethod
     def filter_internal_stats(

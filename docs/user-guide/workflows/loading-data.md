@@ -459,3 +459,13 @@ already-running parser calls finish safely before their results are discarded. P
 results require an explicit **Load Partial**, **Retry**, or **Dismiss** choice; failed and
 cancelled attempts remain visible until acknowledged. **Clear Data**, **Reset All**, and
 session closure cancel active parsing and remove transient job metadata.
+
+Reviewed datetime columns preserve naive timestamps as naive. Timezone-aware timestamps are
+normalized to UTC, including differing daylight-saving offsets. Mixing aware and naive timestamps
+in one column is rejected during preview. Integer columns retain exact signed 64-bit values, or
+unsigned 64-bit values when needed; mixing negative values with values above the signed range is
+rejected. Larger integers infer as text so their digits are retained.
+
+Excel uploads require a named header for every populated column. Data under a trailing unnamed
+header is rejected for correction. Expanded archive size and worksheet dimensions are bounded
+before conversion, including blank worksheet ranges.

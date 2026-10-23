@@ -10,7 +10,9 @@ into ``src.*``::
 
 Each shaper is a stateless callable: ``Shaper(params)(table) -> table``. Prefer running a
 sequence of them through :meth:`ring5.Session.shape` when you have a pipeline; import the
-classes directly (here) when you need one transform inline.
+classes directly (here) when you need one transform inline. Direct constructors
+and calls raise ordinary ``TypeError`` or ``ValueError`` for invalid inputs;
+``Session.shape`` translates pipeline failures to ``ring5.errors.PipelineError``.
 """
 
 from __future__ import annotations

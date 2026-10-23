@@ -160,7 +160,9 @@ class TestCSVLoading:
         """Verify metadata is cached during DataFrame load."""
         CsvPoolService.load_csv_file(str(sample_csv))
 
-        metadata = CsvPoolService._metadata_cache.get(str(sample_csv))
+        metadata = CsvPoolService._metadata_cache.get(
+            CsvPoolService._compute_file_hash(str(sample_csv))
+        )
         assert metadata is not None
         assert metadata["columns"] == ["benchmark", "value", "cycles"]
         assert metadata["rows"] == 3
@@ -356,7 +358,10 @@ class TestCacheManagement:
             CsvPoolService._dataframe_cache.get(CsvPoolService._compute_file_hash(str(sample_csv)))
             is None
         )
-        assert CsvPoolService._metadata_cache.get(str(sample_csv)) is None
+        assert (
+            CsvPoolService._metadata_cache.get(CsvPoolService._compute_file_hash(str(sample_csv)))
+            is None
+        )
         assert stats["index_size"] == 0
 
     def test_get_cache_stats_returns_metrics(self, sample_csv: Path) -> None:

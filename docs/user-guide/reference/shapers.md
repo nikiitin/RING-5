@@ -49,8 +49,9 @@ normalized = session.shape(
 )
 ```
 
-Normalization requires the baseline row in every group and rejects a zero baseline. When enabled,
-companion `.sd` columns are divided by the same baseline. A pipeline failure raises
+Normalization requires exactly one baseline row in every group. A zero, missing, or nonfinite
+denominator produces missing normalized values; every summed baseline component must be present.
+When enabled, companion `.sd` columns are divided by the absolute baseline. A pipeline failure raises
 `ring5.PipelineError` with the failing step index and shaper type where available.
 
 Serialized configuration is validated by each shaper. Use the web configuration form or the typed
@@ -153,8 +154,10 @@ Covers:
 
 -->
 
-Divides selected numeric columns by the configured non-zero baseline within each group. With
-`normalizeSd` enabled, matching `.sd` columns are divided by the same baseline.
+Divides selected numeric columns by the configured baseline within each group. Undefined ratios
+remain missing. With `normalizeSd` enabled, matching `.sd` columns are divided by the absolute
+baseline, preserving nonnegative uncertainty even for a negative baseline. These errors treat the
+baseline as a fixed reference; uncertainty in the baseline is not propagated.
 
 ### Pivot longer
 
@@ -234,3 +237,12 @@ Covers:
 
 Creates or replaces a column using a row-wise sum, ratio, scalar arithmetic operation, string
 concatenation, or explicit value mapping. The operation returns a new table.
+
+Partial category orders in Sort and Transformer preserve unlisted labels in encounter order and
+retain missing labels. Sort preserves the original column types and the order of tied rows.
+SplitApply requires unique join keys in every transformed group when combining multiple groups;
+include every identifying dimension to prevent an ambiguous many-to-many merge.
+
+Arithmetic Mean computes aggregate standard error as `sqrt(sum(sd²)) / N` over contributing
+measurements. Any unknown contributing uncertainty keeps the aggregate uncertainty missing.
+Geometric and harmonic aggregate uncertainties remain missing.

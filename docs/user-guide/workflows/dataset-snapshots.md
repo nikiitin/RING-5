@@ -30,7 +30,8 @@ types, and the index before adding anything to the workspace. An incomplete, mod
 inexactly decodable snapshot is rejected instead of silently returning changed data.
 
 Snapshots use a versioned, compressed, non-executable RING-5 format under
-`RING5_DATA_DIR/dataset_snapshots` (or `.ring5/dataset_snapshots` by default). They are local caches,
+`RING5_DATA_DIR/dataset_snapshots`. Without an override, source checkouts use
+`.ring5/dataset_snapshots`; installed packages use the platform user-data directory. They are local caches,
 not signed exchange bundles; use a portable-bundle workflow when sharing artifacts with untrusted
 systems. Saving does not overwrite an existing name unless replacement is chosen explicitly.
 

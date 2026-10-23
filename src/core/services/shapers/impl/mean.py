@@ -123,7 +123,7 @@ class Mean(UniDfShaper):
         # [impl->req~ring5.shaping.mean~1]
         # [impl->req~ring5.quality.bounded-caching~1]
         result = data_frame.copy()
-        grouped = result.groupby(self.grouping_columns)
+        grouped = result.groupby(self.grouping_columns, dropna=False)
 
         # Apply appropriate mean aggregation
         if self.mean_algorithm == "arithmean":
@@ -164,19 +164,25 @@ class Mean(UniDfShaper):
         # fabricate.
         for sd in sd_cols:
             if self.mean_algorithm == "arithmean":
-                se = grouped[sd].agg(
-                    lambda s: (
-                        float(np.sqrt(np.square(s.astype(float)).sum()) / len(s))
-                        if len(s)
-                        else np.nan
-                    )
-                )
+                variable = sd.removesuffix(".sd")
+
+                def _standard_error(group: pd.DataFrame) -> float:
+                    values = group.loc[group[variable].notna(), sd].astype(float)
+                    if values.empty or values.isna().any():
+                        return float("nan")
+                    if not np.isfinite(values.to_numpy()).all() or (values < 0).any():
+                        raise ValueError(f"Mean: {sd!r} must contain non-negative finite errors.")
+                    return float(np.sqrt(np.square(values).sum()) / len(values))
+
+                se = grouped[[variable, sd]].apply(_standard_error).rename(sd)
                 mean_df = mean_df.merge(se.reset_index(), on=self.grouping_columns, how="left")
             else:
                 mean_df[sd] = np.nan
 
         # Append to the original data
-        return pd.concat([result, mean_df], ignore_index=True)
+        combined = pd.concat([result, mean_df], ignore_index=True)
+        combined.attrs = data_frame.attrs.copy()
+        return combined
 
     @override
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:

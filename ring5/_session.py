@@ -253,7 +253,7 @@ class Session:
         self._owned_tmpdirs.clear()
         self._parse_jobs.clear()
         self._incremental_output_dirs.clear()
-        self.api.close_background_jobs()
+        self.api.close()
 
     # background jobs
     def background_jobs(self) -> tuple[BackgroundJobInfo, ...]:
@@ -1708,7 +1708,10 @@ class Session:
             raise DataValidationError("Figure accessibility requires a plot type.")
         enabled = copy.deepcopy(dict(config))
         enabled["accessibility_mode"] = True
-        return AccessibilityService.apply_defaults(enabled, plot_type.strip())
+        try:
+            return AccessibilityService.apply_defaults(enabled, plot_type.strip())
+        except (KeyError, TypeError, ValueError) as exc:
+            raise DataValidationError(str(exc)) from exc
 
     def audit_figure_accessibility(
         self,

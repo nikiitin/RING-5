@@ -128,7 +128,9 @@ class WorkspaceMetadataService:
                 metadata = cls._portfolio_metadata()
                 cls._replace_record(metadata, identity, record)
                 existing_portfolios = {
-                    artifact.identifier for artifact in artifacts if artifact.kind == "portfolio"
+                    name.strip()
+                    for name in portfolio_names
+                    if isinstance(name, str) and name.strip()
                 }
                 metadata = {
                     key: value

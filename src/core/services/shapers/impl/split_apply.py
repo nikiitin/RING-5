@@ -179,12 +179,17 @@ class SplitApply(UniDfShaper):
             if pipeline:
                 try:
                     slice_df = self._apply_sub_pipeline(slice_df, pipeline)
-                except Exception as e:
+                except (KeyError, TypeError, ValueError, RuntimeError) as e:
                     raise ValueError(
                         f"SplitApply: Sub-pipeline failed for group "
                         f"{idx} (columns={group_cols}): {e}"
                     ) from e
 
+            if len(self._groups) > 1 and slice_df.duplicated(self._join_columns).any():
+                raise ValueError(
+                    f"SplitApply: Group {idx} has duplicate join keys in "
+                    f"{self._join_columns}; include every row-identifying column."
+                )
             group_results.append(slice_df)
 
         # Merge results: start with first group, outer-join the rest
@@ -194,6 +199,7 @@ class SplitApply(UniDfShaper):
                 subsequent,
                 on=self._join_columns,
                 how="outer",
+                validate="one_to_one",
             )
 
         return merged

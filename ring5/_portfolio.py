@@ -64,10 +64,13 @@ def render_portfolio(
         for plot in plots:
             # Plot names are free-form and may collide after sanitization —
             # disambiguate with the (unique) plot id instead of overwriting.
-            stem = sanitize_filename(plot.name)
-            if stem in used_names:
-                stem = f"{stem}_{plot.plot_id}"
-            used_names.add(stem)
+            base = sanitize_filename(plot.name) or "plot"
+            stem = base
+            suffix = 0
+            while stem.casefold() in used_names:
+                suffix += 1
+                stem = f"{base}_{plot.plot_id}" + (f"_{suffix}" if suffix > 1 else "")
+            used_names.add(stem.casefold())
             target = out / f"{stem}.{effective_fmt}"
             try:
                 fig = session.render(plot, engine=engine)
