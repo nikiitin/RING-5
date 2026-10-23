@@ -165,6 +165,7 @@ class TestSectionDispatch:
         from src.web.pages.ui.plotting.settings_pills import SETTINGS_SECTIONS
 
         plot = self._make_plot()
+        plot._style_ui = MagicMock()
         # Mock all component classes used by render_settings_section
         comp_patches = [
             "src.web.pages.ui.plotting.plot_config_ui.LayoutSettingsComponent",

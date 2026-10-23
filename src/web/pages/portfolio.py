@@ -186,6 +186,13 @@ def _render_bundle_download(api: ApplicationAPI, portfolio_name: str) -> None:
                     portfolio_name,
                     snapshot_name=snapshot_name,
                 )
+                if (
+                    api.portfolio_bundle_signature(portfolio_name, snapshot_name=snapshot_name)
+                    != signature
+                ):
+                    raise ValueError(
+                        "Bundle sources changed while preparing. Prepare the bundle again."
+                    )
                 st.session_state[state_key] = payload
             except Exception as exc:
                 logger.error(
@@ -194,7 +201,9 @@ def _render_bundle_download(api: ApplicationAPI, portfolio_name: str) -> None:
                     exc,
                     exc_info=True,
                 )
+                st.session_state.pop(state_key, None)
                 st.error(f"Portable bundle could not be prepared: {exc}")
+                return
         prepared = st.session_state.get(state_key)
         if isinstance(prepared, bytes):
             st.download_button(

@@ -87,7 +87,14 @@ def test_mixer_render_numeric_op(mock_streamlit: Any, mock_api: Any, sample_data
 
     mock_api.managers.apply_mixer.assert_called()
     # Check result stored via api
-    mock_api.set_preview.assert_called_once_with("mixer", result_df)
+    mock_api.set_preview.assert_called_once()
+    assert mock_api.set_preview.call_args.args[0] == "mixer"
+    assert mock_api.set_preview.call_args.args[1] is result_df
+    assert "operation_config" in mock_api.set_preview.call_args.kwargs
+    assert (
+        mock_api.set_preview.call_args.kwargs["source_signature"]
+        is mock_api.preview_input_signature.return_value
+    )
     mock_st.success.assert_called()
 
 
@@ -108,14 +115,21 @@ def test_mixer_confirm(mock_streamlit: Any, mock_api: Any, sample_data: Any) -> 
     # Configure mock_api
     mock_api.has_preview.return_value = True
     mock_api.get_preview.return_value = result_df
+    mock_api.confirm_preview.return_value = result_df
+    mock_api.get_preview_config.return_value = {
+        "operation": "Sum",
+        "source_cols": ["value"],
+        "dest_col": "merged",
+        "categorical_cols": ["benchmark"],
+        "statistic_cols": ["value"],
+    }
 
     manager.render()
 
     # Check state updated via api orchestrator
-    mock_api.update_selected_dataset.assert_called_once()
-    pd.testing.assert_frame_equal(mock_api.update_selected_dataset.call_args.args[0], result_df)
-    assert mock_api.update_selected_dataset.call_args.kwargs["operation"].startswith("Mixer:")
-    mock_api.clear_preview.assert_called_once_with("mixer")
+    mock_api.confirm_preview.assert_called_once()
+    assert mock_api.confirm_preview.call_args.args == ("mixer",)
+    assert mock_api.confirm_preview.call_args.kwargs["operation"].startswith("Mixer:")
 
 
 def test_preprocessor_render_op(mock_streamlit: Any, mock_api: Any, sample_data: Any) -> None:
@@ -140,7 +154,14 @@ def test_preprocessor_render_op(mock_streamlit: Any, mock_api: Any, sample_data:
     mock_api.managers.apply_operation.assert_called()
 
     # Check result stored via api
-    mock_api.set_preview.assert_called_once_with("preprocessor", result_df)
+    mock_api.set_preview.assert_called_once()
+    assert mock_api.set_preview.call_args.args[0] == "preprocessor"
+    assert mock_api.set_preview.call_args.args[1] is result_df
+    assert "operation_config" in mock_api.set_preview.call_args.kwargs
+    assert (
+        mock_api.set_preview.call_args.kwargs["source_signature"]
+        is mock_api.preview_input_signature.return_value
+    )
 
 
 def test_preprocessor_no_numeric_cols(mock_streamlit: Any, mock_api: Any) -> None:

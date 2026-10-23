@@ -135,7 +135,7 @@ def filtered_multiselect(
     st.session_state[visible_key] = list(displayed)
     widget_kwargs = dict(kwargs)
     if large:
-        widget_kwargs["label_visibility"] = "collapsed"
+        widget_kwargs.setdefault("label_visibility", "collapsed")
         if not displayed:
             st.caption("No matches found.")
         elif len(filtered) > MAX_DISPLAYED:

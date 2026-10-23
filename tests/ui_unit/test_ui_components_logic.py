@@ -41,6 +41,7 @@ def test_render_csv_pool_load(
 
     with (
         patch("pathlib.Path.exists", return_value=True),
+        patch("pathlib.Path.is_file", return_value=True),
         patch.object(DataSourceComponents, "render_import_preview") as render_preview,
     ):
         DataSourceComponents.render_csv_pool(mock_api)
@@ -67,7 +68,10 @@ def test_execute_parser(mock_streamlit: Any, mock_api: Any) -> None:
     mock_api.load_csv_file.return_value = MagicMock()
     mock_api.add_to_csv_pool.return_value = csv_path
 
-    with patch("pathlib.Path.exists", return_value=True):
+    with (
+        patch("pathlib.Path.exists", return_value=True),
+        patch("pathlib.Path.is_file", return_value=True),
+    ):
         # Test async submission
         batch = mock_api.submit_parse_async("/stats", "*.txt", [], "/tmp")
         results = [f.result() for f in batch.futures]

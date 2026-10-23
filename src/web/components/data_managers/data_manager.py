@@ -49,20 +49,25 @@ class DataManager(ABC):
 
     def get_data(self) -> pd.DataFrame | None:
         """Helper to get current data from StateManager."""
-        self._preview_source_signature = self.api.preview_input_signature()
         return self.api.state_manager.get_data()
 
     def set_data(self, data: pd.DataFrame, *, operation: str = "Update dataset") -> None:
         """Update active data and label its named-dataset lineage revision."""
         self.api.update_selected_dataset(data, operation=operation)
 
-    def _store_preview(self, name: str, data: pd.DataFrame, config: dict[str, Any]) -> None:
+    def _store_preview(
+        self,
+        name: str,
+        data: pd.DataFrame,
+        config: dict[str, Any],
+        source_signature: str,
+    ) -> None:
         """Bind a preview to the source and parameters that produced it."""
         self.api.set_preview(
             name,
             data,
             operation_config=config,
-            source_signature=self._preview_source_signature,
+            source_signature=source_signature,
         )
 
     def _preview_available(self, name: str, config: dict[str, Any]) -> bool:

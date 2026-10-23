@@ -150,7 +150,18 @@ class ReportComposer:
                         )
                         fmt = cast(Literal["html", "pdf"], selected_format.lower())
                         payload = render_report(plots, report, fmt=fmt, html_mode=html_mode)
+                        if (
+                            self._api.report_input_signature(
+                                list(selected_ids), include_data=include_table
+                            )
+                            != current_signature[-1]
+                        ):
+                            raise ValueError(
+                                "Report inputs changed while rendering. Build the report again."
+                            )
                     except Exception as exc:
+                        st.session_state.pop(_BYTES_KEY, None)
+                        st.session_state.pop(_SIGNATURE_KEY, None)
                         st.exception(exc)
                     else:
                         st.session_state[_BYTES_KEY] = payload
