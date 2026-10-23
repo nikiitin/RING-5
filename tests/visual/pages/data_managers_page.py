@@ -17,6 +17,7 @@ Covers all 11 tabs:
 from __future__ import annotations
 
 from playwright.sync_api import (
+    Download,
     Locator,
     Page,
     TimeoutError as PlaywrightTimeoutError,
@@ -109,6 +110,26 @@ class DataManagersPage(BasePage):
     def get_tab(self, tab_name: str) -> Locator:
         """Return the tab locator by name."""
         return self.page.get_by_role("tab", name=tab_name)
+
+    # Data Visualization downloads
+
+    @property
+    def prepare_view_download_button(self) -> Locator:
+        """Return the action that prepares the visible table for CSV download."""
+        return self.page.get_by_role("button", name="Download Current View as CSV", exact=True)
+
+    @property
+    def current_view_download_button(self) -> Locator:
+        """Return the download for the prepared visualization table."""
+        return self.page.get_by_role("button", name="Click to Download", exact=True)
+
+    def download_current_view(self) -> Download:
+        """Download the current Data Visualization table through its visible UI."""
+        self.select_tab("Data Visualization")
+        self.prepare_view_download_button.click()
+        with self.page.expect_download() as pending:
+            self.current_view_download_button.click()
+        return pending.value
 
     # Summary tab locators
 
