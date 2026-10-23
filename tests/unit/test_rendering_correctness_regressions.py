@@ -494,3 +494,39 @@ def test_heatmap_contrast_uses_resolved_manual_bounds_in_both_engines(shared: bo
     for axis in matplotlib.axes[:2]:
         assert [text.get_color() for text in axis.texts] == ["white", "white"]
         assert axis.collections[0].get_clim() == (0, 100)
+
+
+@pytest.mark.parametrize(
+    ("columns", "centers", "counts", "widths"),
+    [
+        (["0-0", "0-9"], [0.5, 5.5], [1.2, 1.8], [1, 9]),
+        (["0-1", "1-2"], [0.5, 1.5, 2.5], [0.5, 1.5, 1], [1, 1, 1]),
+    ],
+)
+def test_histogram_geometry_is_inferred_per_observed_row(
+    columns: list[str],
+    centers: list[float],
+    counts: list[float],
+    widths: list[float],
+) -> None:
+    data = pd.DataFrame({f"h..{columns[0]}": [1, np.nan], f"h..{columns[1]}": [np.nan, 2]})
+    trace = HistogramPlot(1, "Histogram").create_traces(data, {"histogram_variable": "h"}).traces[0]
+    assert trace.x_positions == centers
+    assert trace.y == pytest.approx(counts)
+    assert trace.bar_width == widths
+    assert sum(trace.y) == pytest.approx(3)
+
+
+def test_histogram_csv_can_mix_legacy_and_inclusive_observation_geometry() -> None:
+    data = pd.DataFrame(
+        {
+            "h..0-10": [10, np.nan],
+            "h..10-20": [20, np.nan],
+            "h..0-9": [np.nan, 30],
+            "h..10-19": [np.nan, 40],
+        }
+    )
+    trace = HistogramPlot(1, "Histogram").create_traces(data, {"histogram_variable": "h"}).traces[0]
+    assert trace.x_positions == [5, 15]
+    assert trace.y == [40, 60]
+    assert trace.bar_width == [10, 10]

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 import re
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from typing import cast
 
@@ -77,6 +78,49 @@ def parse_histogram_bins(labels: list[str]) -> tuple[list[HistogramBin], list[in
             raise ValueError(f"Empty histogram bucket: {bucket.label!r}.")
         result.append(normalized)
     return result, [index for index, _, _ in parsed]
+
+
+def aggregate_histogram_observations(
+    labels: list[str],
+    rows: Iterable[Sequence[float | None]],
+) -> tuple[list[HistogramBin], list[float]]:
+    """Normalize each observed row's geometry before combining interval mass.
+
+    NaN fields represent intervals absent from that observation's bucket schema.
+    Legacy shared endpoints are inferred only among buckets observed together.
+
+    Raises:
+        ValueError: If an observation is missing or contains invalid counts.
+    """
+    mass: dict[tuple[float | None, float | None], tuple[HistogramBin, list[float]]] = {}
+    for row in rows:
+        measured = [
+            (label, float(value))
+            for label, value in zip(labels, row, strict=True)
+            if value is not None and not math.isnan(float(value))
+        ]
+        if not measured:
+            raise ValueError(
+                "Every histogram observation must contain at least one measured bucket."
+            )
+        if any(not math.isfinite(value) or value < 0 for _, value in measured):
+            raise ValueError("Histogram counts must be finite and nonnegative.")
+        bins, order = parse_histogram_bins([label for label, _ in measured])
+        for bucket, index in zip(bins, order, strict=True):
+            key = (bucket.lower, bucket.upper)
+            if key not in mass:
+                mass[key] = (bucket, [])
+            mass[key][1].append(measured[index][1])
+    if not mass:
+        raise ValueError("A histogram requires at least one measured observation.")
+    ordered = sorted(
+        mass.values(),
+        key=lambda item: (
+            -math.inf if item[0].lower is None else item[0].lower,
+            math.inf if item[0].upper is None else item[0].upper,
+        ),
+    )
+    return [bucket for bucket, _ in ordered], [math.fsum(values) for _, values in ordered]
 
 
 def rebin_histogram(

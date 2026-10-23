@@ -317,13 +317,13 @@ def _render_plotly_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec) -> 
                 trace.update(subplot=None)
             else:
                 trace.update(domain=None)
-            if spec.shared_legend and "showlegend" in cast(set[str], trace._valid_props):
+            if spec.shared_legend and hasattr(trace, "showlegend"):
                 name = str(getattr(trace, "name", ""))
                 originally_visible = getattr(trace, "showlegend", None) is not False
                 trace.showlegend = originally_visible and name not in legend_names
                 if originally_visible:
                     legend_names.add(name)
-            elif not spec.shared_legend and "legend" in cast(set[str], trace._valid_props):
+            elif not spec.shared_legend and hasattr(trace, "legend"):
                 trace.legend = panel_legend
             if family == "xy":
                 dashboard.add_trace(trace, row=row, col=column, secondary_y=secondary)

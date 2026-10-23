@@ -4,7 +4,6 @@ from typing import cast, override
 
 import math
 
-import numpy as np
 import pandas as pd
 
 from src.core.models.visualization.trace_build_result import TraceBuildResult
@@ -16,7 +15,7 @@ from src.web.pages.ui.plotting.types._trace_helpers import build_drill_down_payl
 from src.web.pages.ui.plotting.utils.ordering import order_with_overrides
 from src.web.pages.ui.plotting.utils.histogram_bins import (
     HistogramBin,
-    parse_histogram_bins,
+    aggregate_histogram_observations,
     rebin_histogram,
 )
 
@@ -78,8 +77,8 @@ class HistogramPlot(BasePlot):
         if not bucket_cols:
             raise ValueError(f"No histogram bucket columns found for variable: {histogram_var}")
 
-        bins, order = parse_histogram_bins([column.split("..", 1)[1] for column in bucket_cols])
-        columns = [bucket_cols[index] for index in order]
+        columns = bucket_cols
+        labels = [column.split("..", 1)[1] for column in columns]
         group_by = config.get("group_by")
         if group_by and group_by not in data.columns:
             raise ValueError(f"Histogram grouping column is missing: {group_by!r}.")
@@ -94,22 +93,9 @@ class HistogramPlot(BasePlot):
         for group in groups:
             source = data[data[str(group_by)].astype(str) == str(group)] if group_by else data
             numeric = source[columns].apply(pd.to_numeric, errors="raise")
-            if source.empty or numeric.isna().all(axis=1).any():
-                raise ValueError(
-                    "Every histogram observation must contain at least one measured bucket."
-                )
-            if (
-                np.isinf(numeric.to_numpy(dtype=float, na_value=np.nan)).any()
-                or numeric.lt(0).any().any()
-            ):
-                raise ValueError("Histogram counts must be finite and nonnegative.")
-            measured = [
-                (bucket, float(numeric[column].sum(min_count=1)))
-                for bucket, column in zip(bins, columns, strict=True)
-                if numeric[column].notna().any()
-            ]
-            observed_bins = [bucket for bucket, _ in measured]
-            values = [value for _, value in measured]
+            observed_bins, values = aggregate_histogram_observations(
+                labels, numeric.to_numpy(dtype=float, na_value=float("nan")).tolist()
+            )
             requested_width = config.get("bucket_size")
             display_bins, values = rebin_histogram(
                 observed_bins,
