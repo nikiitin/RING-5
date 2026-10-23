@@ -127,8 +127,7 @@ class ReportComposer:
                 compose_panel,
                 selected_format,
                 html_mode,
-                id(data),
-                data.shape if data is not None else None,
+                self._api.report_input_signature(list(selected_ids), include_data=include_table),
             )
             if st.button(
                 ":material/description: Build report",

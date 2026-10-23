@@ -177,8 +177,8 @@ class TestAxesAxisLineControls:
 
         result = comp.render({}, data=None, has_dual_axis=True)
 
-        assert "y2y_axis_line_width" in result, "Missing Y2 axis line width"
-        assert "y2y_axis_line_color" in result, "Missing Y2 axis line color"
+        assert "y2_axis_line_width" in result, "Missing Y2 axis line width"
+        assert "y2_axis_line_color" in result, "Missing Y2 axis line color"
 
     @patch("src.web.components.plotting.settings.axes_settings.st")
     def test_axis_line_zero_width_hides_line(self, mock_st: MagicMock) -> None:

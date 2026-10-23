@@ -12,6 +12,7 @@ from typing import Any
 import streamlit as st
 
 from src.web.models.plot_models import PlotConfig
+from src.web.state.ui_state_manager import WidgetKeyBuilder
 
 
 def select_option(
@@ -61,6 +62,7 @@ def numeric_input(
     step: int | float | None = None,
     help: str | None = None,
     format: str | None = None,
+    disabled: bool = False,
 ) -> int | float:
     """Render a number_input with config-based defaults."""
     value = config.get(config_key, default)
@@ -71,7 +73,7 @@ def numeric_input(
     elif isinstance(default, int):
         value = int(value)
     wk = widget_key or f"{config_key}_{plot_id}"
-    kwargs: dict[str, Any] = {"label": label, "value": value, "key": wk}
+    kwargs: dict[str, Any] = {"label": label, "value": value, "key": wk, "disabled": disabled}
     if min_value is not None:
         kwargs["min_value"] = min_value
     if max_value is not None:
@@ -84,6 +86,38 @@ def numeric_input(
         kwargs["format"] = format
     result: int | float = st.number_input(**kwargs)
     return result
+
+
+def inherited_font_input(
+    label: str,
+    config: PlotConfig,
+    config_key: str,
+    plot_id: int,
+    *,
+    primary_key: str,
+    widget_key: str,
+    default: int = 12,
+) -> int | float:
+    """Expose an inherited font as an explicit choice without overwriting its sentinel."""
+    saved = config.get(config_key, -1)
+    inherit = st.checkbox(
+        f"Inherit {label.lower()}",
+        value=saved == -1,
+        key=WidgetKeyBuilder.plot_key(plot_id, "inherit", widget_key),
+        help="Follow the corresponding primary font setting.",
+    )
+    display = (config.get(primary_key) or default) if saved == -1 else saved
+    value = numeric_input(
+        label,
+        {**config, config_key: display},
+        config_key,
+        plot_id,
+        widget_key=widget_key,
+        default=default,
+        min_value=1,
+        disabled=inherit,
+    )
+    return -1 if inherit else value
 
 
 def color_picker(

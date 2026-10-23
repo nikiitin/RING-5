@@ -3,7 +3,7 @@ Data Components for RING-5.
 Handles data visualization, inspection, and export.
 """
 
-import tempfile
+from io import BytesIO
 
 import pandas as pd
 import streamlit as st
@@ -137,10 +137,9 @@ class DataComponents:
             )
 
         with col3:
-            excel_buffer = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
-            data.to_excel(excel_buffer.name, index=False, engine="openpyxl")
-            with open(excel_buffer.name, "rb") as f:
-                excel_data = f.read()
+            excel_buffer = BytesIO()
+            data.to_excel(excel_buffer, index=False, engine="openpyxl")
+            excel_data = excel_buffer.getvalue()
 
             st.download_button(
                 label="Download Excel",

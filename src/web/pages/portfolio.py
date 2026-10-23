@@ -162,7 +162,20 @@ def _render_bundle_download(api: ApplicationAPI, portfolio_name: str) -> None:
             key=f"portfolio_bundle_snapshot.{portfolio_name}",
         )
         snapshot_name = selected_snapshot if selected_snapshot in snapshot_names else None
-        state_key = f"portfolio_bundle_bytes.{portfolio_name}.{snapshot_name or 'none'}"
+        try:
+            signature = api.portfolio_bundle_signature(portfolio_name, snapshot_name=snapshot_name)
+        except (OSError, TypeError, ValueError) as error:
+            st.error(f"Portable bundle sources could not be verified: {error}")
+            return
+        cache_prefix = f"portfolio_bundle_bytes.{portfolio_name}."
+        state_key = f"{cache_prefix}{signature}"
+        for cached_key in list(st.session_state):
+            if (
+                isinstance(cached_key, str)
+                and cached_key.startswith(cache_prefix)
+                and cached_key != state_key
+            ):
+                st.session_state.pop(cached_key, None)
         if st.button(
             "Prepare portable bundle",
             key=f"portfolio_bundle_prepare.{portfolio_name}",

@@ -16,6 +16,9 @@ Pipeline** for filtering, normalization, sorting, and reshaping that belongs to 
 
 Keep an unchanged source CSV outside the application. Data-manager confirmations replace the active
 workspace table, while the implementation returns a new DataFrame rather than mutating its input.
+A preview is bound to its source dataset and the operation settings that produced it. Switching
+datasets, changing source data, or editing those settings invalidates the preview; prepare it again
+before confirmation. History records the settings used for the confirmed result.
 
 ## Keep multiple named datasets
 

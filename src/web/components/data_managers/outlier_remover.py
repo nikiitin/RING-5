@@ -2,7 +2,6 @@
 
 from datetime import datetime, timezone
 
-import pandas as pd
 import streamlit as st
 
 from src.core.models.history_models import OperationRecord
@@ -123,6 +122,8 @@ class OutlierRemoverManager(DataManager):
         with col4:
             st.metric("Max", f"{data[outlier_column].max():.4f}")
 
+        operation_config = {"outlier_col": outlier_column, "group_by_cols": group_by_cols}
+
         if st.button(
             "Apply Outlier Remover",
             key=WidgetKeyBuilder.manager_key("outlier_remover", "apply"),
@@ -161,28 +162,27 @@ class OutlierRemoverManager(DataManager):
                 st.dataframe(filtered_df.head(20), width="stretch")
 
                 # Store in PreviewRepository via api
-                self.api.set_preview("outlier_removal", filtered_df)
+                self._store_preview("outlier_removal", filtered_df, operation_config)
 
             except Exception as e:
                 st.exception(e)
 
         # Separate confirmation button outside the first button's scope
-        if self.api.has_preview("outlier_removal"):
+        if self._preview_available("outlier_removal", operation_config):
             if st.button(
                 "Confirm and Apply Outlier Remover",
                 key=WidgetKeyBuilder.manager_key("outlier_remover", "confirm"),
                 type="primary",
             ):
-                confirmed_df: pd.DataFrame | None = self.api.get_preview("outlier_removal")
-                if confirmed_df is not None:
-                    self.set_data(
-                        confirmed_df,
-                        operation="Outlier Removal (IQR)",
-                    )
-                    self.api.clear_preview("outlier_removal")
+                confirmation = self._confirm_preview(
+                    "outlier_removal", operation_config, "Outlier Removal (IQR)"
+                )
+                if confirmation is not None:
+                    confirmed_df, confirmed_config = confirmation
                     record: OperationRecord = {
-                        "source_columns": [outlier_column] + group_by_cols,
-                        "dest_columns": [outlier_column],
+                        "source_columns": [confirmed_config["outlier_col"]]
+                        + confirmed_config["group_by_cols"],
+                        "dest_columns": [confirmed_config["outlier_col"]],
                         "operation": "Outlier Removal (IQR)",
                         "timestamp": datetime.now(timezone.utc).isoformat(),
                     }

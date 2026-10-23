@@ -265,7 +265,13 @@ class PipelineController:
         """
         # [impl->req~ring5.shaping.independent-pipelines~1]
         try:
-            confs: list[ShaperStepConfig] = [s["config"] for s in plot.pipeline if s["config"]]
+            if any(
+                not step.get("config") or not step["config"].get("type") for step in plot.pipeline
+            ):
+                raise ValueError(
+                    "Every displayed pipeline step must have a valid configuration before finalizing."
+                )
+            confs: list[ShaperStepConfig] = [step["config"] for step in plot.pipeline]
             processed: pd.DataFrame = self._pipeline.apply_shapers(raw_data, confs)
             plot.replace_source_data(raw_data)
             plot.replace_processed_data(processed)

@@ -173,9 +173,11 @@ class PlotConfigUIMixin:
             )
 
         if section == "colors":
-            return ColorsSettingsComponent(self.plot_id, self.plot_type).render(
-                saved_config, data=data
-            )
+            return ColorsSettingsComponent(
+                self.plot_id,
+                self.plot_type,
+                series_renderer=self._style_ui.render_series_visuals,
+            ).render(saved_config, data=data)
 
         if section == "advanced":
             return AdvancedSettingsComponent(self.plot_id, self.plot_type).render(

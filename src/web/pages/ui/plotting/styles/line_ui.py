@@ -39,7 +39,7 @@ class LineStyleUI(BaseStyleUI):
 
             line_width = st.number_input(
                 "Line Width",
-                min_value=1,
+                min_value=0,
                 max_value=20,
                 value=current_style.get("line_width", 2),
                 key=f"{key_prefix}lwidth_{self.plot_id}_{key_suffix}",

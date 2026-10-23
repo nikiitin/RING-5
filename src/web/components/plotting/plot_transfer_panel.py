@@ -55,7 +55,15 @@ class PlotTransferPanel:
         suffix = f"_{plot_id}"
         prefix = f"plot.{plot_id}."
         for key in list(st.session_state):
-            if isinstance(key, str) and (key.endswith(suffix) or key.startswith(prefix)):
+            if isinstance(key, str) and (
+                key.endswith(suffix)
+                or key.startswith(prefix)
+                or any(
+                    key.startswith(f"theme_{field}_{plot_id}_")
+                    for field in ("color", "use_col", "orig_col", "rst")
+                )
+                or key.startswith(f"p{plot_id}_")
+            ):
                 st.session_state.pop(key, None)
 
     @staticmethod

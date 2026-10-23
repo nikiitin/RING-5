@@ -3,6 +3,7 @@
 import streamlit as st
 
 from src.web.models.plot_models import PlotConfig
+from src.web.components.plotting.settings.widget_factory import inherited_font_input
 
 
 def render_dual_axis_display_settings(
@@ -37,36 +38,38 @@ def render_dual_axis_display_settings(
         )
 
     # Secondary Y-axis Typography
-    _pri_title_fs: int = int(saved_config.get("yaxis_title_font_size", 14))
-    _pri_tick_fs: int = int(saved_config.get("yaxis_tickfont_size", 12))
     _pri_tick_col: str = saved_config.get("yaxis_tickfont_color", "#444444")
     _pri_standoff: int = int(saved_config.get("yaxis_title_standoff", 0))
 
     st.markdown("**Right Y-Axis Typography**")
     t1, t2 = st.columns(2)
     with t1:
-        config["yaxis2_title_font_size"] = st.number_input(
+        config["yaxis2_title_font_size"] = inherited_font_input(
             "Right Y-Axis Title Font Size",
-            min_value=8,
-            max_value=100,
-            value=saved_config.get("yaxis2_title_font_size", _pri_title_fs),
-            key=f"y2_title_sz_{plot_id}",
+            saved_config,
+            "yaxis2_title_font_size",
+            plot_id,
+            primary_key="yaxis_title_font_size",
+            widget_key=f"y2_title_sz_{plot_id}",
+            default=14,
         )
         config["yaxis2_title_standoff"] = st.slider(
             "Right Y-Axis Title Standoff",
-            min_value=0,
+            min_value=-1,
             max_value=100,
             value=saved_config.get("yaxis2_title_standoff", _pri_standoff),
             key=f"y2_title_standoff_{plot_id}",
             help="Distance between the right Y-axis ticks and the title.",
         )
     with t2:
-        config["yaxis2_tickfont_size"] = st.number_input(
+        config["yaxis2_tickfont_size"] = inherited_font_input(
             "Right Y-Axis Tick Size",
-            min_value=8,
-            max_value=100,
-            value=saved_config.get("yaxis2_tickfont_size", _pri_tick_fs),
-            key=f"y2_tick_sz_{plot_id}",
+            saved_config,
+            "yaxis2_tickfont_size",
+            plot_id,
+            primary_key="yaxis_tickfont_size",
+            widget_key=f"y2_tick_sz_{plot_id}",
+            default=12,
         )
         config["yaxis2_tickfont_color"] = st.color_picker(
             "Right Y-Axis Tick Color",

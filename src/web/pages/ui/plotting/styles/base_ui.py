@@ -23,6 +23,7 @@ from src.web.components.plotting.settings import (
     TypographySettingsComponent,
 )
 from src.web.models.plot_models import PlotConfig
+from src.web.state.ui_state_manager import WidgetKeyBuilder
 from src.web.pages.ui.plotting.styles.colors import to_hex
 from src.web.rendering.widgets import WidgetRenderer
 
@@ -380,6 +381,14 @@ class BaseStyleUI:
             self._render_specific_series_visuals(current_style, val_hash, key_prefix=key_prefix)
 
         return current_style
+
+    def render_series_visuals(self, current_style: dict[str, Any], key_suffix: str) -> None:
+        """Render type-specific series controls in the active settings panel."""
+        self._render_specific_series_visuals(
+            current_style,
+            key_suffix,
+            key_prefix=f"{WidgetKeyBuilder.plot_key(self.plot_id, 'series')}.",
+        )
 
     def _render_specific_series_visuals(
         self, current_style: dict[str, Any], key_suffix: str, key_prefix: str = ""

@@ -69,8 +69,7 @@ class TypographySettingsComponent:
                 self.plot_id,
                 widget_key=f"{key_prefix}title_sz_{self.plot_id}",
                 default=18,
-                min_value=8,
-                max_value=100,
+                min_value=1,
             )
 
             xaxis_title_font_size = numeric_input(
@@ -80,8 +79,7 @@ class TypographySettingsComponent:
                 self.plot_id,
                 widget_key=f"{key_prefix}xaxis_title_sz_{self.plot_id}",
                 default=14,
-                min_value=8,
-                max_value=100,
+                min_value=1,
             )
 
             yaxis_title_font_size = numeric_input(
@@ -91,8 +89,7 @@ class TypographySettingsComponent:
                 self.plot_id,
                 widget_key=f"{key_prefix}yaxis_title_sz_{self.plot_id}",
                 default=14,
-                min_value=8,
-                max_value=100,
+                min_value=1,
             )
 
         with typo_c2:
@@ -104,8 +101,7 @@ class TypographySettingsComponent:
                 self.plot_id,
                 widget_key=f"{key_prefix}xaxis_tick_sz_{self.plot_id}",
                 default=12,
-                min_value=8,
-                max_value=100,
+                min_value=1,
                 help="Overwrites the basic X-axis font size in Advanced Options",
             )
             xaxis_tickfont_color = color_picker(
@@ -124,8 +120,7 @@ class TypographySettingsComponent:
                 self.plot_id,
                 widget_key=f"{key_prefix}yaxis_tick_sz_{self.plot_id}",
                 default=12,
-                min_value=8,
-                max_value=100,
+                min_value=1,
             )
             yaxis_tickfont_color = color_picker(
                 "Y-Axis Label Color",

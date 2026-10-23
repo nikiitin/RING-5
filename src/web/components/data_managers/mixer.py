@@ -2,7 +2,6 @@
 
 from datetime import datetime, timezone
 
-import pandas as pd
 import streamlit as st
 
 from src.core.models.history_models import OperationRecord
@@ -117,6 +116,13 @@ class MixerManager(DataManager):
             key=WidgetKeyBuilder.manager_key("mixer", "new_name"),
         )
 
+        operation_config = {
+            "dest_col": new_col_name,
+            "source_cols": selected_cols,
+            "operation": operation,
+            "separator": separator,
+        }
+
         if st.button("Preview Merge", key=WidgetKeyBuilder.manager_key("mixer", "preview")):
             # Validate inputs first
             validation_errors = self.api.managers.validate_merge_inputs(
@@ -152,29 +158,27 @@ class MixerManager(DataManager):
                 st.dataframe(result_df[cols_to_show].head(), width="stretch")
 
                 # Store in PreviewRepository via api
-                self.api.set_preview("mixer", result_df)
+                self._store_preview("mixer", result_df, operation_config)
 
             except Exception as e:
                 st.exception(e)
 
         # Separate confirmation
-        if self.api.has_preview("mixer"):
+        if self._preview_available("mixer", operation_config):
             if st.button(
                 "Confirm and Merge",
                 key=WidgetKeyBuilder.manager_key("mixer", "confirm"),
                 type="primary",
             ):
-                confirmed_df: pd.DataFrame | None = self.api.get_preview("mixer")
-                if confirmed_df is not None:
-                    self.set_data(
-                        confirmed_df,
-                        operation=f"Mixer: {operation}",
-                    )
-                    self.api.clear_preview("mixer")
+                confirmation = self._confirm_preview(
+                    "mixer", operation_config, f"Mixer: {operation}"
+                )
+                if confirmation is not None:
+                    confirmed_df, confirmed_config = confirmation
                     record: OperationRecord = {
-                        "source_columns": selected_cols,
-                        "dest_columns": [new_col_name],
-                        "operation": f"Mixer: {operation}",
+                        "source_columns": confirmed_config["source_cols"],
+                        "dest_columns": [confirmed_config["dest_col"]],
+                        "operation": f"Mixer: {confirmed_config['operation']}",
                         "timestamp": datetime.now(timezone.utc).isoformat(),
                     }
                     self.api.add_manager_history_record(record)

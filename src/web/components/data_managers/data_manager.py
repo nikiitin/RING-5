@@ -34,8 +34,8 @@ class DataManager(ABC):
 
     @staticmethod
     def _restore_selection(manager: str, field: str, value: Any) -> None:
-        """Seed a manager widget's saved value into session state (if non-empty)."""
-        if value:
+        """Restore a saved value, including an explicitly empty selection."""
+        if value is not None:
             st.session_state[WidgetKeyBuilder.manager_key(manager, field)] = value
 
     @property
@@ -49,8 +49,46 @@ class DataManager(ABC):
 
     def get_data(self) -> pd.DataFrame | None:
         """Helper to get current data from StateManager."""
+        self._preview_source_signature = self.api.preview_input_signature()
         return self.api.state_manager.get_data()
 
     def set_data(self, data: pd.DataFrame, *, operation: str = "Update dataset") -> None:
         """Update active data and label its named-dataset lineage revision."""
         self.api.update_selected_dataset(data, operation=operation)
+
+    def _store_preview(self, name: str, data: pd.DataFrame, config: dict[str, Any]) -> None:
+        """Bind a preview to the source and parameters that produced it."""
+        self.api.set_preview(
+            name,
+            data,
+            operation_config=config,
+            source_signature=self._preview_source_signature,
+        )
+
+    def _preview_available(self, name: str, config: dict[str, Any]) -> bool:
+        """Invalidate a result when its source or operation controls change."""
+        if not self.api.has_preview(name):
+            return False
+        if self.api.preview_matches(name, operation_config=config):
+            return True
+        self.api.clear_preview(name)
+        st.warning(
+            "The dataset or operation settings changed. Create a new preview before confirming."
+        )
+        return False
+
+    def _confirm_preview(
+        self,
+        name: str,
+        config: dict[str, Any],
+        operation: str,
+    ) -> tuple[pd.DataFrame, dict[str, Any]] | None:
+        """Apply a current preview atomically and return its saved history inputs."""
+        stored_config = self.api.get_preview_config(name)
+        try:
+            data = self.api.confirm_preview(name, operation_config=config, operation=operation)
+        except ValueError as error:
+            self.api.clear_preview(name)
+            st.warning(str(error))
+            return None
+        return data, stored_config or {}

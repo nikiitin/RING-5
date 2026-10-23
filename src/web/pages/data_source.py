@@ -52,14 +52,10 @@ class DataSourcePage:
         )
 
         if choice == parse_label:
-            if not self.api.state_manager.is_using_parser():
-                self.api.state_manager.set_use_parser(True)
             DataSourceComponents.render_parser_config(self.api)
         elif choice == "Load from Recent":
             DataSourceComponents.render_csv_pool(self.api)
         else:
-            if self.api.state_manager.is_using_parser():
-                self.api.state_manager.set_use_parser(False)
             st.success(
                 "Upload mode selected — validation and review happen before workspace changes."
             )

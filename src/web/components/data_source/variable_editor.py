@@ -74,6 +74,22 @@ class VariableEditor:
             var_config: ParseVariableConfig = {"name": var_name, "type": var_type, "_id": var_id}
             if var_alias:
                 var_config["alias"] = var_alias
+            try:
+                repeat_default = max(1, int(var.get("repeat", "1")))
+            except (TypeError, ValueError):
+                repeat_default = 1
+                st.warning("Invalid saved repeat count; choose the expected number of dumps.")
+            repeat = int(
+                st.number_input(
+                    "Expected dump repetitions",
+                    min_value=1,
+                    value=repeat_default,
+                    step=1,
+                    key=f"var_repeat_{var_id}",
+                )
+            )
+            if repeat > 1 or "repeat" in var:
+                var_config["repeat"] = str(repeat)
 
             # Type-specific configuration
             if var_type == "vector":
@@ -378,6 +394,8 @@ class VariableEditor:
         if wants_statistics:
             cls._render_vector_statistics_selection(var_config, original_var, var_id)
 
+        selected_statistics = list(var_config.get("vectorEntries", [])) if wants_statistics else []
+
         # Entry selection (only when entries requested)
         if wants_entries:
             entry_options = ["Manual Entry Names"]
@@ -407,6 +425,13 @@ class VariableEditor:
                 )
             else:
                 cls._render_vector_manual_entry(api, var_config, original_var, var_id)
+
+        if wants_statistics and wants_entries:
+            selected_entries = var_config.get("vectorEntries", [])
+            var_config["vectorEntries"] = list(
+                dict.fromkeys([*selected_entries, *selected_statistics])
+            )
+            var_config["useSpecialMembers"] = bool(selected_statistics)
 
     @classmethod
     def _handle_deep_scan(
@@ -635,6 +660,10 @@ class VariableEditor:
         col_stat1, col_stat2 = st.columns(2)
 
         current_entries = original_var.get("vectorEntries", [])
+        if isinstance(current_entries, str):
+            current_entries = [
+                entry.strip() for entry in current_entries.split(",") if entry.strip()
+            ]
 
         with col_stat1:
             extract_total = st.checkbox(

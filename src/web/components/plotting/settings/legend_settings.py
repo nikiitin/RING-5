@@ -28,6 +28,7 @@ from src.web.components.common.reorderable_list import render_reorderable_list
 from src.web.components.plotting.settings.widget_factory import (
     color_picker,
     numeric_input,
+    inherited_font_input,
     select_option,
     toggle,
 )
@@ -447,6 +448,39 @@ class LegendSettingsComponent:
             f"{config_prefix}orientation": orientation,
         }
 
+    def _font_size_input(
+        self,
+        saved_config: PlotConfig,
+        config_prefix: str,
+        key_prefix: str,
+        field: str,
+        label: str,
+        widget_field: str,
+        default: int,
+    ) -> int | float:
+        """Preserve secondary font inheritance and valid small primary fonts."""
+        config_key = f"{config_prefix}{field}"
+        widget_key = f"{key_prefix}{widget_field}_{self.plot_id}"
+        if config_prefix == "legend_":
+            return numeric_input(
+                label,
+                saved_config,
+                config_key,
+                self.plot_id,
+                widget_key=widget_key,
+                default=default,
+                min_value=1,
+            )
+        return inherited_font_input(
+            label,
+            saved_config,
+            config_key,
+            self.plot_id,
+            primary_key=f"legend_{field}",
+            widget_key=widget_key,
+            default=default,
+        )
+
     def _render_legend_appearance(
         self,
         saved_config: PlotConfig,
@@ -478,15 +512,14 @@ class LegendSettingsComponent:
                     widget_key=f"{key_prefix}leg_title_col_{self.plot_id}",
                 )
             with t_c2:
-                legend_title_font_size = numeric_input(
-                    "Title Size",
+                legend_title_font_size = self._font_size_input(
                     saved_config,
-                    f"{config_prefix}title_font_size",
-                    self.plot_id,
-                    widget_key=f"{key_prefix}leg_title_sz_{self.plot_id}",
-                    default=14,
-                    min_value=8,
-                    max_value=100,
+                    config_prefix,
+                    key_prefix,
+                    "title_font_size",
+                    "Title Size",
+                    "leg_title_sz",
+                    14,
                 )
             return {
                 f"{config_prefix}title": legend_title,
@@ -547,15 +580,14 @@ class LegendSettingsComponent:
                 self.plot_id,
                 widget_key=f"{key_prefix}leg_font_col_{self.plot_id}",
             )
-            legend_font_size = numeric_input(
-                "Font Size",
+            legend_font_size = self._font_size_input(
                 saved_config,
-                f"{config_prefix}font_size",
-                self.plot_id,
-                widget_key=f"{key_prefix}leg_font_sz_{self.plot_id}",
-                default=12,
-                min_value=8,
-                max_value=100,
+                config_prefix,
+                key_prefix,
+                "font_size",
+                "Font Size",
+                "leg_font_sz",
+                12,
             )
 
             st.caption("Title Font")
@@ -571,15 +603,14 @@ class LegendSettingsComponent:
                 self.plot_id,
                 widget_key=f"{key_prefix}leg_title_col_{self.plot_id}",
             )
-            legend_title_font_size = numeric_input(
-                "Title Size",
+            legend_title_font_size = self._font_size_input(
                 saved_config,
-                f"{config_prefix}title_font_size",
-                self.plot_id,
-                widget_key=f"{key_prefix}leg_title_sz_{self.plot_id}",
-                default=14,
-                min_value=8,
-                max_value=100,
+                config_prefix,
+                key_prefix,
+                "title_font_size",
+                "Title Size",
+                "leg_title_sz",
+                14,
             )
 
         return {
