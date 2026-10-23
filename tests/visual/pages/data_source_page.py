@@ -40,6 +40,7 @@ class DataSourcePage(BasePage):
 
     def __init__(self, page: Page) -> None:
         super().__init__(page)
+        self._parse_started_without_data = False
 
     # Navigation
 
@@ -440,7 +441,11 @@ class DataSourcePage(BasePage):
     @property
     def parse_job_retry_button(self) -> Locator:
         """Manual retry action shown for partial, failed, or cancelled work."""
-        return self.page.get_by_role("button", name="Retry", exact=True).first
+        return (
+            self.page.get_by_test_id("stMainBlockContainer")
+            .get_by_role("button", name="Retry", exact=True)
+            .first
+        )
 
     @property
     def parse_completion_message(self) -> Locator:
@@ -453,6 +458,18 @@ class DataSourcePage(BasePage):
         )
 
     # Actions
+
+    @property
+    def data_rows_metric(self) -> Locator:
+        """Return the loaded workspace's row-count metric."""
+        return self.page.get_by_test_id("stMetric").filter(has_text="Rows").first
+
+    @property
+    def parse_completion_signal(self) -> Locator:
+        """Return completion evidence allowed by this submission's baseline."""
+        if self._parse_started_without_data:
+            return self.parse_completion_message.or_(self.data_rows_metric).first
+        return self.parse_completion_message
 
     def _is_mode_active(self, option: Locator) -> bool:
         """Return whether a segmented-control radio option is selected."""
@@ -602,7 +619,12 @@ class DataSourcePage(BasePage):
         self.wait_for_streamlit()
 
     def click_parse(self) -> None:
-        """Click the primary 'Parse gem5 Stats Files' button."""
+        """Submit after prior work clears and capture this attempt's data baseline."""
+        self._parse_started_without_data = False
+        expect(self.parse_completion_message).not_to_be_visible(timeout=self.RENDER_TIMEOUT)
+        expect(self.parse_button).to_be_enabled(timeout=self.RENDER_TIMEOUT)
+        expect(self.parse_job_heading).not_to_be_visible(timeout=self.RENDER_TIMEOUT)
+        self._parse_started_without_data = not self.data_rows_metric.is_visible()
         self.parse_button.click()
         self.wait_for_streamlit()
 
@@ -1015,10 +1037,21 @@ class DataSourcePage(BasePage):
     # E2E: Parse workflow
 
     def wait_for_parse_completion(self, *, timeout: int = 60_000) -> None:
-        """Wait for automatic result consumption and verify data is loaded."""
-        expect(self.parse_completion_message).to_be_visible(timeout=timeout)
-        rows_metric = self.page.locator("[data-testid='stMetric']").filter(has_text="Rows").first
-        expect(rows_metric).to_be_visible(timeout=timeout)
+        """Verify consumed output without depending on a one-shot toast.
+
+        A fresh no-data baseline permits an empty-to-loaded transition. Existing
+        data requires a new completion message so retained rows cannot pass.
+        """
+        completion = self.parse_completion_signal
+        self._parse_started_without_data = False
+        expect(completion).to_be_visible(timeout=timeout)
+        expect(self.data_rows_metric.get_by_test_id("stMetricValue")).to_have_text(
+            re.compile(r"^[1-9][\d,]*$"), timeout=timeout
+        )
+        expect(self.parse_button).to_be_enabled(timeout=timeout)
+        expect(self.parse_job_heading).not_to_be_visible(timeout=timeout)
+        expect(self.parse_job_retry_button).not_to_be_visible(timeout=timeout)
+        expect(self.page.get_by_test_id("stException")).not_to_be_visible(timeout=timeout)
 
     def parse_and_wait(self, *, timeout: int = 60_000) -> None:
         """Submit a parse and wait for its automatic background consumption."""
@@ -1027,5 +1060,6 @@ class DataSourcePage(BasePage):
 
     def wait_for_parse_terminal_outcome(self, *, timeout: int = 60_000) -> None:
         """Wait until a parse loads successfully or exposes manual recovery."""
+        self._parse_started_without_data = False
         outcome = self.parse_completion_message.or_(self.parse_job_retry_button).first
         expect(outcome).to_be_visible(timeout=timeout)
