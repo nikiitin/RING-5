@@ -21,7 +21,9 @@ class TestAutosaveRecovery:
         plots = ManagePlotsPage(shared_page)
         plots.navigate()
         plots.create_plot("Interrupted analysis", "bar")
-        AutosaveRecovery(shared_page).assert_draft_available()
+        recovery = AutosaveRecovery(shared_page)
+        recovery.save_current_workspace()
+        recovery.assert_draft_available()
 
         replacement = shared_page.context.new_page()
         try:

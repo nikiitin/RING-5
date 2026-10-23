@@ -78,7 +78,7 @@ def test_parser_strategy_round_trips_and_legacy_restore_defaults() -> None:
     assert restored.parser_repo.get_simulator() == "gem5"
 
 
-def test_autosave_detects_variable_options_and_ignores_only_identity() -> None:
+def test_autosave_detects_custom_variable_options_and_empty_selection() -> None:
     variables = ParserStateRepository().get_parse_variables()
     assert not AutosaveRecoveryService._custom_parse_variables(variables)
     variables[0]["repeat"] = 3
