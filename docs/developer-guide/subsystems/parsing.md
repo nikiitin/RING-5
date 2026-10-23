@@ -82,6 +82,8 @@ labels such as `0-0`. Distribution summaries and boundaries distinguish distribu
 vectors. Both Perl paths reset this context at named and unnamed simulation dump boundaries. If
 the output suppresses all identifying metadata, callers can explicitly select the histogram type;
 numeric vector entries remain vectors during scanning.
+Explicit histogram-to-vector selections accept either raw singleton IDs or the inclusive singleton
+labels returned by the scanner; ordinary vector labels continue to match exactly.
 
 `PARSER_RESULT_VERSION` in `src/core/models/parsing_models.py` is the shared semantic revision for
 incremental rows and durable parse requests. Changing parser meaning or output labels requires

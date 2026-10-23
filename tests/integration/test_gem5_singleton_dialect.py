@@ -146,6 +146,44 @@ def test_distribution_preserves_explicit_entry_type_reinterpretation(
     assert (row[f"d..{labels[0]}"], row[f"d..{labels[1]}"]) == ("9.0", "1.0")
 
 
+@pytest.mark.parametrize("include_raw_entries", [False, True])
+def test_histogram_scan_selected_singleton_labels_cast_to_vector(
+    tmp_path: Path, include_raw_entries: bool
+) -> None:
+    scanned = _scan(
+        tmp_path,
+        "h::samples 12\nh::mean 0\nh::gmean 1\nh::stdev 1\n"
+        "h::-1 2 16.67% 16.67%\nh::0 9 75% 91.67%\nh::1 1 8.33% 100%\n",
+    )
+    histogram = next(variable for variable in scanned if variable.name == "h")
+    assert histogram.type == "histogram"
+    values = {"-1--1": "2.0", "0-0": "9.0", "1-1": "1.0"}
+    selected = [entry for entry in histogram.entries if entry in values]
+    assert set(selected) == set(values)
+    expected = {f"h..{entry}": values[entry] for entry in selected}
+    if include_raw_entries:
+        selected.extend(["-1", "0", "1"])
+        expected.update({"h..-1": "2.0", "h..0": "9.0", "h..1": "1.0"})
+    config = StatConfig("h", "vector", params={"entries": selected})
+    assert _parse(tmp_path, [config], scanned) == expected
+
+
+@pytest.mark.parametrize("source_type", ["vector", "histogram"])
+def test_singleton_cast_aliases_do_not_broaden_vector_labels(
+    tmp_path: Path, source_type: str
+) -> None:
+    summaries = "h::gmean 1\n" if source_type == "histogram" else ""
+    scanned = _scan(tmp_path, summaries + "h::0 9 90% 90%\nh::1 1 10% 100%\n")
+    assert scanned[0].type == source_type
+    selected = ["0", "0-1", "other"]
+    if source_type == "vector":
+        selected.append("0-0")
+    config = StatConfig("h", "vector", params={"entries": selected})
+    row = _parse(tmp_path, [config], scanned)
+    assert row["h..0"] == "9.0"
+    assert all(row[f"h..{entry}"] == "NaN" for entry in selected if entry != "0")
+
+
 def test_explicit_histogram_handles_suppressed_gmean_with_other_summaries(tmp_path: Path) -> None:
     _scan(
         tmp_path,
