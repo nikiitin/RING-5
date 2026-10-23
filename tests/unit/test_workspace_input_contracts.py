@@ -327,3 +327,13 @@ def test_transaction_rejects_foreign_callback_before_source_publication(api) -> 
         assert api.state_manager.get_data()["x"].tolist() == [1.0]
         assert api.preview_matches("scale", operation_config=options)
     assert called == []
+
+
+@pytest.mark.parametrize("values", [["text"], [1], [True], [None], [{"value": [1]}]])
+def test_owned_frame_copy_preserves_explicit_object_dtype(values) -> None:
+    from src.core.common.dataframe_copy import copy_dataframe
+
+    frame = pd.DataFrame({"value": pd.Series(values, dtype=object)})
+    copied = copy_dataframe(frame)
+    pd.testing.assert_frame_equal(copied, frame)
+    assert copied["value"].dtype == object

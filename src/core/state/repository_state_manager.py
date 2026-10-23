@@ -160,7 +160,8 @@ class RepositoryStateManager:
         Raises:
             ValueError: A callback is supplied inside an explicit state transaction.
         """
-        if on_change is not None and getattr(self._transaction_context, "depth", 0):
+        transaction_depth: int = getattr(self._transaction_context, "depth", 0)
+        if on_change is not None and transaction_depth > 0:
             raise ValueError(
                 "State-change callbacks must run after the surrounding transaction exits."
             )

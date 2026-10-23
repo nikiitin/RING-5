@@ -14,5 +14,5 @@ def copy_dataframe(data: pd.DataFrame) -> pd.DataFrame:
             values = np.empty(len(data), dtype=object)
             for index, value in enumerate(data.iloc[:, position]):
                 values[index] = deepcopy(value)
-            result.isetitem(position, values)
+            result.isetitem(position, pd.Series(values, index=result.index, dtype=dtype))
     return result
