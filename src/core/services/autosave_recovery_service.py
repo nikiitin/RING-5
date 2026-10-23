@@ -167,13 +167,23 @@ class AutosaveRecoveryService:
 
     @staticmethod
     def _custom_parse_variables(parse_variables: list[Any]) -> bool:
-        signature = tuple(
-            {key: value for key, value in item.items() if key != "_id"}
-            for item in parse_variables
-            if isinstance(item, dict)
-        )
+        """Compare parser behavior while ignoring identity and explicit defaults."""
+        signature = []
+        for item in parse_variables:
+            if not isinstance(item, dict):
+                continue
+            options = {key: value for key, value in item.items() if key != "_id"}
+            # The editor emits this fallback even for untouched default variables.
+            # Configuration parsing treats all three values as the omitted default.
+            if options.get("type") == "configuration" and options.get("onEmpty") in (
+                None,
+                "",
+                "None",
+            ):
+                options.pop("onEmpty", None)
+            signature.append(options)
         defaults = tuple({"name": name, "type": kind} for name, kind in _DEFAULT_PARSE_VARIABLES)
-        return signature != defaults
+        return tuple(signature) != defaults
 
     @staticmethod
     def _owner(owner_key: object) -> str:
