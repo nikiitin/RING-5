@@ -155,4 +155,10 @@ def test_outlier_remover_run(mock_streamlit: Any, mock_api: Any, sample_data: An
 
     mock_api.managers.remove_outliers.assert_called_once()
     # Check result stored via api
-    mock_api.set_preview.assert_called_once_with("outlier_removal", sample_data)
+    mock_api.set_preview.assert_called_once()
+    assert mock_api.set_preview.call_args.args[0] == "outlier_removal"
+    assert mock_api.set_preview.call_args.args[1] is sample_data
+    assert mock_api.set_preview.call_args.kwargs["operation_config"] == {
+        "outlier_col": "value",
+        "group_by_cols": ["benchmark"],
+    }

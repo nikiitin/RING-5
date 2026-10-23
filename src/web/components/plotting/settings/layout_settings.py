@@ -75,17 +75,23 @@ class LayoutSettingsComponent:
         if preset is None:
             preset = "Double Column (~7.0in)"
 
+        saved_width = float(
+            saved_config.get("width_inches", float(saved_config.get("width", 700)) / 100)
+        )
+        saved_height = float(
+            saved_config.get("height_inches", float(saved_config.get("height", 350)) / 100)
+        )
+        if saved_width < 0.1 or saved_height < 0.1:
+            st.warning(
+                "Preview dimensions must be at least 10 pixels (0.1 inches). Adjust the saved dimensions."
+            )
         c1, c2 = st.columns(2)
         with c1:
             if preset == "Custom":
                 width_inches = st.number_input(
                     "Width (inches)",
-                    min_value=0.01,
-                    value=float(
-                        saved_config.get(
-                            "width_inches", float(saved_config.get("width", 700)) / 100
-                        )
-                    ),
+                    min_value=0.1,
+                    value=max(0.1, saved_width),
                     step=0.5,
                     key=f"wi_{self.plot_id}",
                 )
@@ -101,10 +107,8 @@ class LayoutSettingsComponent:
         with c2:
             height_inches = st.number_input(
                 "Height (inches)",
-                min_value=0.01,
-                value=float(
-                    saved_config.get("height_inches", float(saved_config.get("height", 350)) / 100)
-                ),
+                min_value=0.1,
+                value=max(0.1, saved_height),
                 step=0.5,
                 key=f"hi_{self.plot_id}",
             )

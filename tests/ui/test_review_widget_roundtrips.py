@@ -100,7 +100,12 @@ def test_right_axis_font_inheritance_and_primary_small_fonts_round_trip() -> Non
     """)
     assert not app.exception
     assert app.session_state["result"]["yaxis2_title_font_size"] == -1
-    assert app.number_input(key="y2_title_sz_1").value == 7
+    assert (
+        next(
+            widget for widget in app.number_input if widget.label == "Right Y-Axis Title Font Size"
+        ).value
+        == 7
+    )
     app.checkbox(key="plot.1.inherit_y2_title_sz_1").uncheck().run()
     assert app.session_state["result"]["yaxis2_title_font_size"] == 7
     app.checkbox(key="plot.1.inherit_y2_title_sz_1").check().run()
@@ -269,3 +274,129 @@ def test_plot_transfer_clears_color_override_and_shaper_state() -> None:
     assert app.session_state["result"]["A"]["use_color"] is True
     assert "p1_filter_col_0" not in app.session_state
     assert app.session_state["p2_filter_col_0"] == "other"
+
+
+def test_grouped_stack_missing_saved_group_offers_no_grouping() -> None:
+    app = _app("""
+        import pandas as pd
+        from src.web.components.plotting.config.grouped_stacked_bar_config import render
+        st.session_state["result"] = render(
+            pd.DataFrame({"metric": [1.0, 2.0]}), {"group": "missing", "x": "metric"}, 1)
+    """)
+    assert not app.exception
+    assert app.session_state["result"]["group"] is None
+
+
+@pytest.mark.parametrize(
+    ("initial_parser", "selected_mode"),
+    [(False, "Parse gem5 Stats Files"), (True, "Upload data or portfolio")],
+)
+def test_input_workflow_choice_preserves_active_source(
+    initial_parser: bool, selected_mode: str
+) -> None:
+    app = _app(f"""
+        from unittest.mock import patch
+        import pandas as pd
+        from src.core.application_api import ApplicationAPI
+        from src.web.pages.data_source import DataSourcePage
+        api = ApplicationAPI()
+        api.state_manager.set_data(pd.DataFrame({{"value": [3.0]}}))
+        api.state_manager.set_use_parser({initial_parser!r})
+        st.session_state["data_source_choice"] = {selected_mode!r}
+        with patch("src.web.pages.data_source.DataSourceComponents.render_parser_config"), \\
+             patch("src.web.pages.data_source.DataSourceComponents.render_browser_upload"):
+            DataSourcePage(api).render()
+        st.session_state["result"] = api.state_manager.is_using_parser()
+        api.close()
+    """)
+    assert not app.exception
+    assert app.session_state["result"] is initial_parser
+
+
+@pytest.mark.parametrize("count", [2, 101])
+def test_filtered_multiselect_keeps_explicit_empty_widget_state(count: int) -> None:
+    app = _app(f"""
+        from src.web.components.common.filtered_selector import filtered_multiselect
+        st.session_state["pick"] = []
+        st.session_state["result"] = filtered_multiselect(
+            "Columns", [f"opt{{i}}" for i in range({count})], default=["opt1"], key="pick")
+    """)
+    assert not app.exception
+    assert app.session_state["result"] == []
+    assert app.multiselect(key="pick").value == []
+
+
+@pytest.mark.parametrize("pixels", [10, 1])
+def test_layout_enforces_backend_minimum_without_rejecting_saved_valid_pixels(pixels: int) -> None:
+    app = _app(f"""
+        from src.web.components.plotting.settings.layout_settings import LayoutSettingsComponent
+        st.session_state["result"] = LayoutSettingsComponent(1, "bar").render(
+            {{"width": {pixels}, "height": {pixels}}})
+    """)
+    assert not app.exception
+    assert app.number_input(key="wi_1").min == 0.1
+    assert app.session_state["result"]["width"] == 10
+    assert app.session_state["result"]["height"] == 10
+    assert bool(app.warning) is (pixels < 10)
+
+
+@pytest.mark.parametrize(
+    ("prefix", "own_font", "expected"),
+    [
+        ("legend_", 12, 12),
+        ("legend2_", 20, 20),
+        ("legend2_", -1, 12),
+    ],
+)
+def test_legend_title_inherits_its_own_resolved_text_size(
+    prefix: str, own_font: int, expected: int
+) -> None:
+    app = _app(f"""
+        from src.web.components.plotting.settings.legend_settings import LegendSettingsComponent
+        saved = {{"legend_font_size": 12, "{prefix}font_size": {own_font},
+                 "{prefix}title_font_size": -1}}
+        st.session_state["result"] = LegendSettingsComponent(1, "bar")._render_legend_appearance(
+            saved, "{prefix}", "{prefix}")
+    """)
+    assert not app.exception
+    assert app.session_state["result"][f"{prefix}title_font_size"] == -1
+    title_widget = next(widget for widget in app.number_input if widget.label == "Title Size")
+    assert title_widget.disabled
+    assert title_widget.value == expected
+    if own_font > 0:
+        text_widget = next(widget for widget in app.number_input if widget.label == "Font Size")
+        text_widget.set_value(expected + 3).run()
+        assert not app.exception
+        assert (
+            next(widget for widget in app.number_input if widget.label == "Title Size").value
+            == expected + 3
+        )
+        assert app.session_state["result"][f"{prefix}title_font_size"] == -1
+
+
+def test_active_line_style_panel_preserves_fractional_width() -> None:
+    app = _app("""
+        import pandas as pd
+        from src.web.pages.ui.plotting.types.line_plot import LinePlot
+        saved = {"color": "series", "color_palette": "wong",
+                 "series_styles": {"A": {"line_width": 1.5, "marker_size": 8}}}
+        st.session_state["result"] = LinePlot(1, "Figure").render_settings_section(
+            "colors", saved, pd.DataFrame({"series": ["A"], "metric": [1.0]}))
+    """)
+    assert not app.exception
+    assert app.session_state["result"]["series_styles"]["A"]["line_width"] == 1.5
+    assert next(widget for widget in app.number_input if widget.label == "Line Width").value == 1.5
+
+
+def test_enabling_legend_title_inheritance_updates_its_display_immediately() -> None:
+    app = _app("""
+        from src.web.components.plotting.settings.legend_settings import LegendSettingsComponent
+        st.session_state["result"] = LegendSettingsComponent(1, "bar")._render_legend_appearance(
+            {"legend_font_size": 12, "legend_title_font_size": 22}, "theme_", "legend_")
+    """)
+    assert not app.exception
+    assert next(widget for widget in app.number_input if widget.label == "Title Size").value == 22
+    app.checkbox(key="plot.1.inherit_theme_leg_title_sz_1").check().run()
+    assert not app.exception
+    assert app.session_state["result"]["legend_title_font_size"] == -1
+    assert next(widget for widget in app.number_input if widget.label == "Title Size").value == 12

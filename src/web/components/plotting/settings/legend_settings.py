@@ -461,7 +461,7 @@ class LegendSettingsComponent:
         """Preserve secondary font inheritance and valid small primary fonts."""
         config_key = f"{config_prefix}{field}"
         widget_key = f"{key_prefix}{widget_field}_{self.plot_id}"
-        if config_prefix == "legend_":
+        if config_prefix == "legend_" and field != "title_font_size":
             return numeric_input(
                 label,
                 saved_config,
@@ -471,14 +471,25 @@ class LegendSettingsComponent:
                 default=default,
                 min_value=1,
             )
+        primary_key = "legend_font_size"
+        display_config = saved_config
+        help_text = "Follow the primary legend's text size."
+        if field == "title_font_size":
+            primary_key = f"{config_prefix}font_size"
+            own_font = saved_config.get(primary_key, -1)
+            inherited_font = saved_config.get("legend_font_size", 12)
+            resolved_font = own_font if own_font != -1 else inherited_font
+            display_config = {**saved_config, primary_key: resolved_font}
+            help_text = "Follow this legend's text size."
         return inherited_font_input(
             label,
-            saved_config,
+            display_config,
             config_key,
             self.plot_id,
-            primary_key=f"legend_{field}",
+            primary_key=primary_key,
             widget_key=widget_key,
             default=default,
+            inherit_help=help_text,
         )
 
     def _render_legend_appearance(
@@ -604,7 +615,7 @@ class LegendSettingsComponent:
                 widget_key=f"{key_prefix}leg_title_col_{self.plot_id}",
             )
             legend_title_font_size = self._font_size_input(
-                saved_config,
+                {**saved_config, f"{config_prefix}font_size": legend_font_size},
                 config_prefix,
                 key_prefix,
                 "title_font_size",

@@ -156,9 +156,12 @@ class ReportComposer:
                             )
                             != current_signature[-1]
                         ):
-                            raise ValueError(
+                            st.session_state.pop(_BYTES_KEY, None)
+                            st.session_state.pop(_SIGNATURE_KEY, None)
+                            st.warning(
                                 "Report inputs changed while rendering. Build the report again."
                             )
+                            return
                     except Exception as exc:
                         st.session_state.pop(_BYTES_KEY, None)
                         st.session_state.pop(_SIGNATURE_KEY, None)

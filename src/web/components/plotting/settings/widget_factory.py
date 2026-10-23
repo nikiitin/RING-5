@@ -97,6 +97,7 @@ def inherited_font_input(
     primary_key: str,
     widget_key: str,
     default: int = 12,
+    inherit_help: str = "Follow the corresponding primary font setting.",
 ) -> int | float:
     """Expose an inherited font as an explicit choice without overwriting its sentinel."""
     saved = config.get(config_key, -1)
@@ -104,10 +105,20 @@ def inherited_font_input(
         f"Inherit {label.lower()}",
         value=saved == -1,
         key=WidgetKeyBuilder.plot_key(plot_id, "inherit", widget_key),
-        help="Follow the corresponding primary font setting.",
+        help=inherit_help,
     )
-    display = (config.get(primary_key) or default) if saved == -1 else saved
-    value = numeric_input(
+    display = (config.get(primary_key) or default) if inherit or saved == -1 else saved
+    if inherit:
+        # A derived display key prevents old widget state from freezing the inherited value.
+        display_key = WidgetKeyBuilder.plot_key(
+            plot_id,
+            "inherited_font",
+            widget_key,
+            str(display),
+        )
+        st.number_input(label, value=int(display), min_value=1, key=display_key, disabled=True)
+        return -1
+    return numeric_input(
         label,
         {**config, config_key: display},
         config_key,
@@ -115,9 +126,7 @@ def inherited_font_input(
         widget_key=widget_key,
         default=default,
         min_value=1,
-        disabled=inherit,
     )
-    return -1 if inherit else value
 
 
 def color_picker(

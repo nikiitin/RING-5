@@ -110,7 +110,11 @@ def filtered_multiselect(
     reseed = bool(st.session_state.pop(reseed_key, False))
     if key in st.session_state and not reseed:
         incoming = set(st.session_state[key]) & options_set
-        persistent = (persistent - previous_visible) | incoming
+        persistent = (
+            (persistent - previous_visible) | incoming
+            if visible_key in st.session_state
+            else incoming
+        )
 
     filtered = options
     large = len(options) > MULTISELECT_THRESHOLD
