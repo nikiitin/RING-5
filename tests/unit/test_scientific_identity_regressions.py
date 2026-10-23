@@ -269,3 +269,22 @@ def test_unsupported_metadata_bypasses_cache_without_recursive_failure(kind: str
     first = compute_data_fingerprint(frame, {}, ["value"])
     second = compute_data_fingerprint(frame, {}, ["value"])
     assert first != second
+
+
+def test_range_index_identity_preserves_bounds_name_and_index_type() -> None:
+    """Compact range identities still distinguish retained axis metadata."""
+    from src.core.performance import compute_data_fingerprint
+
+    frame = _frame()
+    indexes = (
+        pd.RangeIndex(0, len(frame), name="row"),
+        pd.RangeIndex(0, len(frame), name="other"),
+        pd.RangeIndex(10, 10 + len(frame), name="row"),
+        pd.Index(list(range(len(frame))), name="row"),
+    )
+    identities = set()
+    for index in indexes:
+        changed = frame.copy()
+        changed.index = index
+        identities.add(compute_data_fingerprint(changed, {}, ["value"]))
+    assert len(identities) == len(indexes)
