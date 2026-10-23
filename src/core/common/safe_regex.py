@@ -149,6 +149,9 @@ def numeric_pattern_id(pattern: str, concrete_name: str) -> str | None:
     Literal punctuation is normalized before the capture expression is built,
     so both ``system.cpu\d+.ipc`` and ``system\.cpu\d+\.ipc`` resolve the
     concrete name ``system.cpu0.ipc`` identically.
+
+    Raises:
+        SafeRegexError: The source/name exceeds a bound or matching times out.
     """
     normalized = normalize_stat_pattern(pattern)
     if len(concrete_name) > MAX_INPUT_LENGTH:
@@ -157,6 +160,13 @@ def numeric_pattern_id(pattern: str, concrete_name: str) -> str | None:
     if marker not in normalized:
         return None
 
-    capture_pattern = "([0-9]+)".join(regex.escape(part) for part in normalized.split(marker))
-    matched = regex.fullmatch(capture_pattern, concrete_name)
-    return "_".join(matched.groups()) if matched else None
+    segments = normalized.split(marker)
+    capture_pattern = "([0-9]+)".join(regex.escape(part) for part in segments)
+    # The source already passed the stat-pattern grammar and length checks.
+    # Generated captures can be longer while retaining bounded matching time.
+    compiled = cast(BoundedPattern, regex.compile(capture_pattern))
+    matched = fullmatch_bounded_regex(compiled, concrete_name)
+    if matched is None:
+        return None
+    # Each generated capture is mandatory, so every matched group contains text.
+    return "_".join(cast(str, matched.group(index)) for index in range(1, len(segments)))
