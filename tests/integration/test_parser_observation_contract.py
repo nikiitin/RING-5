@@ -289,3 +289,31 @@ def test_perl_scanned_numeric_vector_entries_retain_vector_source_type(tmp_path:
             ]
         else:
             assert rows == [{"V..0": "4.0", "V..1": "6.0"}]
+
+
+def test_perl_scan_and_parse_reset_metadata_before_legacy_dump(tmp_path: Path) -> None:
+    """Absent min metadata in a later dump cannot inherit an earlier negative range."""
+    text = (
+        "---------- Begin Simulation Statistics ----------\n"
+        "h::bucket_size 10\nh::min_bucket -10\nh::max_bucket 9\n"
+        "h |5 41.7% 41.7% |7 58.3% 100%\n"
+        "---------- End Simulation Statistics ----------\n"
+        "---------- Begin Simulation Statistics ----------\n"
+        "h::bucket_size 10\nh::max_bucket 9\nh |10 100% 100%\n"
+        "---------- End Simulation Statistics ----------\n"
+    )
+    (tmp_path / "stats.txt").write_text(text, encoding="utf-8")
+    scan = Gem5Parser.aggregate_scan_results(
+        [
+            future.result(timeout=30)
+            for future in Gem5Parser.submit_scan_async(str(tmp_path), "stats.txt")
+        ]
+    )
+    assert not scan.failures
+    assert next(var for var in scan.variables if var.name == "h").entries == ["-10--1", "0-9"]
+    _, rows = _parse(
+        tmp_path / "parse",
+        text,
+        [StatConfig("h", "histogram", repeat=2, params={"bins": 2, "max_range": 10})],
+    )
+    assert rows == [{"h..<0": "2.5", "h..0-9": "8.5", "h..10+": "0.0"}]

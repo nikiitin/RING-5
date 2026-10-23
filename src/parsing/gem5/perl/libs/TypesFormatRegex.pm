@@ -27,6 +27,13 @@ sub resetLineContext {
     %onelineHistogramMetadata = ();
 }
 
+sub _beginStatsDump {
+    my ($line) = @_;
+    return 0 unless $line =~ /^-+\s*Begin Simulation Statistics\s*-+\s*$/;
+    resetLineContext();
+    return 1;
+}
+
 sub _rememberOnelineHistogramMetadata {
     my ($line) = @_;
     if ($line =~ /^($varNameRegex)::(bucket_size|min_bucket|max_bucket)\s+(-?\d+)$commentRegex$/) {
@@ -206,8 +213,7 @@ sub parseAndPrintLineWithFormat {
     my ($line) = @_;
 
     # Dump boundaries preserve temporal observations when bucket geometry changes.
-    if ($line =~ /^-+\s*Begin Simulation Statistics\s*-+\s*$/) {
-        resetLineContext();
+    if (_beginStatsDump($line)) {
         print "dump//\n";
         return;
     }
@@ -264,6 +270,7 @@ sub parseAndPrintLineWithFormat {
 
 sub classifyLine {
     my ($line) = @_;
+    return undef if _beginStatsDump($line);
 
     if (_rememberOnelineHistogramMetadata($line)) {
         return { type => 'oneline_metadata', name => undef, entry => undef };
