@@ -322,3 +322,20 @@ class TestRenderControls:
 
 # NOTE: TestHandleSaveDialog, TestHandleLoadDialog, and save/load callback
 # Pipeline save/load tests were removed with that feature.
+
+
+@patch("src.web.controllers.plot.creation_controller.PlotSelectorComponent.render")
+def test_duplicate_generated_labels_do_not_collide_with_real_plot_names(
+    mock_render: MagicMock,
+) -> None:
+    """Every plot remains individually selectable when names already have suffixes."""
+    plots = [
+        StubPlotHandle(plot_id=index, name=name) for index, name in enumerate(["X", "X", "X (2)"])
+    ]
+    api = MagicMock()
+    api.state_manager.get_plots.return_value = plots
+    api.state_manager.get_current_plot_id.return_value = 0
+    mock_render.return_value = "X (3)"
+    selected = _make_controller(api=api).render_selector()
+    assert selected is plots[1]
+    mock_render.assert_called_once_with(["X", "X (3)", "X (2)"], default_index=0)

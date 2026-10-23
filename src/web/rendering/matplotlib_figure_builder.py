@@ -17,6 +17,7 @@ per-trace colorbars.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Any
 
 import plotly.graph_objects as go
@@ -202,12 +203,64 @@ def apply_dual_axis(twin: Axes, config: dict[str, Any], spec: FigureConfig) -> N
             label_kwargs["fontfamily"] = font_family
         twin.set_ylabel(str(ylabel_right), **label_kwargs)
 
+    y2 = spec.axes.y2 if spec.axes is not None else None
+    if y2 is not None:
+        twin.set_yscale(y2.scale)
+        if y2.range is not None:
+            twin.set_ylim(*y2.range)
+        if y2.tick_values is not None:
+            twin.set_yticks([float(value) for value in y2.tick_values], y2.tick_text)
+        elif y2.dtick is not None and y2.dtick > 0 and y2.scale == "linear":
+            from matplotlib.ticker import MultipleLocator
+
+            twin.yaxis.set_major_locator(MultipleLocator(y2.dtick))
+        on_left = y2.tick_side == "left"
+        twin.tick_params(
+            axis="y",
+            left=on_left and y2.show_ticks,
+            right=not on_left and y2.show_ticks,
+            labelleft=on_left and y2.show_tick_labels,
+            labelright=not on_left and y2.show_tick_labels,
+            pad=y2.tick_pad,
+            labelrotation=y2.tick_angle,
+            colors=y2.tick_font_color or y2.axis_color,
+        )
+        if y2.show_grid:
+            twin.yaxis.grid(
+                True,
+                color=y2.grid_color,
+                linewidth=y2.grid_width,
+                linestyle=FigureSpecToMatplotlib._map_dash_style(y2.grid_dash),
+                alpha=y2.grid_alpha,
+            )
+        else:
+            twin.yaxis.grid(False)
+        twin.yaxis.label.set_color(y2.axis_color)
+        twin.yaxis.labelpad = y2.label_standoff if y2.label_standoff >= 0 else y2.label_pad
+        twin.yaxis.label.set_y(y2.label_position + y2.title_vshift / 100.0)
+        twin.spines["right"].set_color(y2.axis_line_color or y2.axis_color)
+        twin.spines["right"].set_linewidth(y2.axis_line_width)
+        for text in twin.get_yticklabels():
+            if font_family:
+                text.set_fontfamily(font_family)
+
     # Explicit right-axis range + tick font (matches the Plotly y2 handling).
     rng = config.get("range_y2")
     if isinstance(rng, (list, tuple)) and len(rng) == 2:
         twin.set_ylim(float(rng[0]), float(rng[1]))
     if typo is not None and typo.font_size_y2ticks > 0:
         twin.tick_params(axis="y", labelsize=typo.font_size_y2ticks)
+
+    primary = getattr(twin, "_ring5_primary", None)
+    if primary is not None and config.get("unified_legend", True):
+        handles, labels = primary.get_legend_handles_labels()
+        right_handles, right_labels = twin.get_legend_handles_labels()
+        if handles or right_handles:
+            # Reuse the primary legend's complete positioning and typography contract.
+            FigureSpecToMatplotlib._apply_legends(
+                spec, primary, extra_handles=(right_handles, right_labels)
+            )
+        return
 
     # A legend for the right-axis (twin) series — matplotlib's primary legend on the
     # base axes only sees the left-axis handles. Position/style are configurable via
@@ -304,7 +357,7 @@ def _build_multi_heatmap(
         for i, trace in enumerate(heatmap_traces):
             ax = axes_list[i]
             # Per-trace range when not shared
-            if shared:
+            if shared or (cbar_cfg is not None and cbar_cfg.range_mode == "manual"):
                 t_vmin, t_vmax = vmin, vmax
             else:
                 t_min, t_max = compute_z_extent([trace])
@@ -320,7 +373,7 @@ def _build_multi_heatmap(
             render_results.append(rr)
 
             # Apply styling per-axes (skip colorbar — handled below)
-            FigureSpecToMatplotlib.apply(spec, ax, render_result=None)
+            FigureSpecToMatplotlib.apply(spec, ax, render_result=replace(rr, heatmap_image=None))
             ax.set_title(trace.name)
 
         FigureSpecToMatplotlib.apply_multi_heatmap_colorbars(

@@ -290,10 +290,12 @@ class FigureSpecToMatplotlib:
         # Plotly margins are in pixels. Convert to fractions of figure width/height.
         # Ensure we don't divide by zero.
         if dims.width > 0 and dims.height > 0:
-            left = margins.left / dims.width
-            right = 1.0 - (margins.right / dims.width)
-            bottom = margins.bottom / dims.height
-            top = 1.0 - (margins.top / dims.height)
+            pixel_width = dims.width * dims.dpi
+            pixel_height = dims.height * dims.dpi
+            left = margins.left / pixel_width
+            right = 1.0 - (margins.right / pixel_width)
+            bottom = margins.bottom / pixel_height
+            top = 1.0 - (margins.top / pixel_height)
 
             # Clamp values between 0 and 1 to prevent invalid margins
             left = max(0.0, min(0.99, left))
@@ -371,21 +373,15 @@ class FigureSpecToMatplotlib:
                     spec.axes.y.label_position,
                 )
 
-        # Secondary Y-axis (twin axis)
-        if spec.axes.y2 is not None:
-            # Check if twin axis exists
-            for child_ax in ax.figure.get_axes():
-                if child_ax is not ax and hasattr(child_ax, "_twinned_axes"):
-                    y2_label = spec.axes.y2.label
-                    if y2_label:
-                        weight = "bold" if typo.bold_y2label else "normal"
-                        child_ax.set_ylabel(
-                            y2_label,
-                            fontsize=typo.font_size_y2label,
-                            fontweight=weight,
-                            labelpad=spec.axes.y2.label_pad,
-                        )
-                    break
+        # Only the registered twin belongs to this panel; other dashboard axes do not.
+        child_ax = getattr(ax, "_ring5_twin", None)
+        if spec.axes.y2 is not None and child_ax is not None and spec.axes.y2.label:
+            child_ax.set_ylabel(
+                spec.axes.y2.label,
+                fontsize=typo.font_size_y2label,
+                fontweight="bold" if typo.bold_y2label else "normal",
+                labelpad=spec.axes.y2.label_pad,
+            )
 
     @staticmethod
     def _apply_axis_ticks(
@@ -454,6 +450,14 @@ class FigureSpecToMatplotlib:
                 fontsize=typo.font_size_ticks,
                 fontweight=weight,
             )
+
+        if x_axis.label_aliases:
+            positions = ax.get_xticks()
+            labels = [
+                x_axis.label_aliases.get(label.get_text(), label.get_text())
+                for label in ax.get_xticklabels()
+            ]
+            ax.set_xticks(positions, labels)
 
         # Apply horizontal offset to x-ticks if needed
         if x_axis.tick_offset != 0.0:
@@ -578,7 +582,11 @@ class FigureSpecToMatplotlib:
         return f"{v} {h}"
 
     @staticmethod
-    def _apply_legends(spec: FigureConfig, ax: Axes) -> None:
+    def _apply_legends(
+        spec: FigureConfig,
+        ax: Axes,
+        extra_handles: tuple[list[Any], list[str]] | None = None,
+    ) -> None:
         """Render legends with full spacing control."""
         # [impl->req~ring5.figure.legends~1]
         if not spec.legends:
@@ -644,9 +652,12 @@ class FigureSpecToMatplotlib:
             # Primary legend on the main axes
             if legend.role == "primary":
                 handles, labels = ax.get_legend_handles_labels()
+                if extra_handles is not None:
+                    handles.extend(extra_handles[0])
+                    labels.extend(extra_handles[1])
                 if not labels:
                     continue
-                leg = ax.legend(**kwargs)
+                leg = ax.legend(handles, labels, **kwargs)
                 if leg and legend.bold:
                     for text in leg.get_texts():
                         text.set_fontweight("bold")
@@ -1342,8 +1353,7 @@ class FigureSpecToMatplotlib:
             width_in = dims.width
             height_in = dims.height
 
-        # Scale height by number of rows
-        total_height = height_in * nrows
+        total_height = height_in
 
         import matplotlib as mpl
 

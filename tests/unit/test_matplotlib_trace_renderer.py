@@ -423,11 +423,11 @@ class TestRender:
         count = MatplotlibTraceRenderer.render([trace], ax)
         assert count.trace_count == 1
 
-    def test_unknown_trace_type_logged(self, ax: matplotlib.axes.Axes) -> None:
-        """Unknown TraceConfig subtype should log warning, not crash."""
+    def test_unknown_trace_type_fails_visibly(self, ax: matplotlib.axes.Axes) -> None:
+        """A missing series cannot be exported as a successful figure."""
         trace = TraceConfig(name="unknown", x=["a"], y=[1])
-        count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count.trace_count == 0  # fallback doesn't match specific types
+        with pytest.raises(ValueError, match="Cannot render trace 'unknown'"):
+            MatplotlibTraceRenderer.render([trace], ax)
 
 
 # _compute_categorical_positions
@@ -672,21 +672,21 @@ class TestHeatmapRendering:
 class TestIsDarkCell:
     """Tests for contrast-aware text colour helper."""
 
-    def test_high_value_is_dark(self) -> None:
+    def test_viridis_high_value_is_light(self) -> None:
         z = np.array([[0.0, 1.0], [0.5, 0.9]])
-        assert is_dark_cell(z, 0, 1) is True  # 1.0 is max
+        assert is_dark_cell(z, 0, 1) is False
 
-    def test_low_value_is_not_dark(self) -> None:
+    def test_viridis_low_value_is_dark(self) -> None:
         z = np.array([[0.0, 1.0], [0.5, 0.9]])
-        assert is_dark_cell(z, 0, 0) is False  # 0.0 is min
+        assert is_dark_cell(z, 0, 0) is True
 
     def test_nan_returns_false(self) -> None:
         z = np.array([[np.nan, 1.0]])
         assert is_dark_cell(z, 0, 0) is False
 
-    def test_uniform_values_returns_false(self) -> None:
+    def test_uniform_values_use_palette_minimum(self) -> None:
         z = np.array([[5.0, 5.0]])
-        assert is_dark_cell(z, 0, 0) is False  # vmax == vmin
+        assert is_dark_cell(z, 0, 0) is True
 
 
 # heatmap vmin/vmax

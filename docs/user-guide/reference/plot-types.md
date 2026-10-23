@@ -177,3 +177,20 @@ probability, percent, or density normalization.
 
 All plot implementations construct engine-independent traces and can be rendered through Plotly or
 Matplotlib. Backend-specific spacing can still differ, so inspect the target engine before export.
+
+Histogram bucket columns use the suffixes `0-9` for an inclusive integer range,
+`[0,2.5)` for a half-open continuous range, `10+` for overflow, and `<0` for underflow.
+Legacy adjacent ranges that share endpoints, such as `0-10` and `10-20`, load as
+continuous intervals. Histogram rebinning conserves counts; splitting an existing
+interval distributes its count uniformly over the overlapping new intervals. Density
+uses each finite interval's actual width and requires finite bounds. Cumulative
+density is a cumulative probability, including any underflow and overflow counts.
+Bucket schemas can contain overlapping intervals when simulator runs use different
+bucket widths. Rebinning adds the observed mass from each interval; absent interval
+fields are omitted. Every row must contain at least one measured bucket. Malformed
+buckets, entirely missing observations, and negative counts raise an error.
+
+Radar profiles preserve absent category observations as gaps. Adjusting the radial
+scale does not replace missing observations with values. Incomplete profiles remain
+unfilled. Box and violin legends
+include each observed group, including groups absent from the first category.

@@ -125,6 +125,7 @@ class GroupedBarPlot(BasePlot):
 
         # Determine Orders (explicit order first, then remaining sorted)
         ordered_x = order_with_overrides(data[x_col].unique(), config.get("xaxis_order"))
+        ordered_groups: list[str] = []
         if group_col:
             ordered_groups = order_with_overrides(
                 data[group_col].unique(), config.get("group_order")
@@ -132,15 +133,15 @@ class GroupedBarPlot(BasePlot):
 
         # 2. Calculate Manual X Coordinates
         coord_result = GroupedBarUtils.calculate_grouped_coordinates(
-            categories=ordered_x, groups=[], config=config
+            categories=ordered_x, groups=ordered_groups, config=config
         )
 
         # Adapt keys
         x_map = {
             (k[0] if isinstance(k, tuple) else k): v for k, v in coord_result["coord_map"].items()
         }
-        tick_vals = coord_result["tick_vals"]
-        tick_text = coord_result["tick_text"]
+        tick_vals = [center for center, _ in coord_result["cat_centers"]]
+        tick_text = [label for _, label in coord_result["cat_centers"]]
 
         # 3. Create Traces
         traces: list[BarTraceConfig] = []
@@ -149,7 +150,9 @@ class GroupedBarPlot(BasePlot):
         if group_col:
             for grp in ordered_groups:
                 grp_data = data[data[group_col] == grp]
-                x_coords = pd.Series(grp_data[x_col]).map(x_map).tolist()
+                x_coords = [
+                    coord_result["coord_map"][(category, grp)] for category in grp_data[x_col]
+                ]
 
                 sd_col = extract_error_bars(data, y_col, config)
                 error_y_vals: list[float] | None = grp_data[sd_col].tolist() if sd_col else None
@@ -158,6 +161,7 @@ class GroupedBarPlot(BasePlot):
                     BarTraceConfig(
                         name=grp,
                         x_positions=x_coords,
+                        bar_width=coord_result["bar_width"],
                         y=grp_data[y_col].tolist(),
                         error_y=error_y_vals,
                         custom_data={
@@ -175,6 +179,7 @@ class GroupedBarPlot(BasePlot):
             traces.append(
                 BarTraceConfig(
                     x_positions=x_coords,
+                    bar_width=coord_result["bar_width"],
                     y=data[y_col].tolist(),
                     error_y=error_y_vals,
                     custom_data={"drilldown": build_drill_down_payload(data, [x_col])},

@@ -1303,7 +1303,7 @@
       "evidence": {
         "implementation": [
           "src/web/pages/ui/plotting/types/histogram_plot.py::HistogramPlot.create_traces",
-          "src/web/pages/ui/plotting/types/histogram_plot.py::HistogramPlot._extract_bucket_data"
+          "src/web/pages/ui/plotting/utils/histogram_bins.py::parse_histogram_bins"
         ],
         "tests": [
           "tests/unit/test_histogram_plot.py::TestHistogramPlotFigureCreation"

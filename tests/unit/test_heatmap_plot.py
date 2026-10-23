@@ -215,13 +215,12 @@ def test_heatmap_plotly_annotations_have_contrast_colors() -> None:
     annotations = list(fig.layout.annotations)
     assert len(annotations) == 2
 
-    # Cell (0,0) z=1.0 is in the lower half → black text
+    # Viridis maps the minimum to dark purple and maximum to light yellow.
     ann_a = next(a for a in annotations if a.x == "A")
-    assert ann_a.font.color == "black"
+    assert ann_a.font.color == "white"
 
-    # Cell (0,1) z=100.0 is in the upper half → white text
     ann_b = next(a for a in annotations if a.x == "B")
-    assert ann_b.font.color == "white"
+    assert ann_b.font.color == "black"
 
 
 def test_heatmap_subplot_annotations_use_correct_axis_refs() -> None:

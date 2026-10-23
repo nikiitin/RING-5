@@ -30,7 +30,7 @@ from src.core.models.visualization.trace_config import (
     ViolinTraceConfig,
     WaterfallTraceConfig,
 )
-from src.web.rendering._heatmap_utils import is_dark_cell
+from src.web.rendering._heatmap_utils import heatmap_text_colors
 
 
 def _error_y_dict(error_y: list[float] | None) -> dict[str, Any] | None:
@@ -292,11 +292,15 @@ def _box_trace(trace: BoxTraceConfig) -> go.Box:
     """Convert a precomputed ``BoxTraceConfig`` to a Plotly box trace."""
     vertical = trace.orientation == "vertical"
     kwargs: dict[str, Any] = {
-        "x": [trace.position] * len(trace.values) if vertical else trace.values,
-        "y": trace.values if vertical else [trace.position] * len(trace.values),
+        "x": [trace.position] if vertical else [trace.values],
+        "y": [trace.values] if vertical else [trace.position],
         "name": trace.name,
         "orientation": "v" if vertical else "h",
-        "quartilemethod": trace.quartile_method,
+        "q1": [trace.q1],
+        "median": [trace.median],
+        "q3": [trace.q3],
+        "mean": [trace.mean],
+        "notchspan": [(trace.notch_upper - trace.notch_lower) / 2],
         "lowerfence": [trace.lower_whisker],
         "upperfence": [trace.upper_whisker],
         "boxpoints": False if trace.point_mode == "none" else trace.point_mode,
@@ -650,23 +654,27 @@ def _add_heatmap_annotations(
             xref, yref = "x", "y"
 
         font_size = getattr(trace, "text_font_size", 10)
+        text_colors = heatmap_text_colors(trace.z, trace.colorscale)
 
         for i, text_row in enumerate(trace.text):
             for j, cell_text in enumerate(text_row):
                 if not cell_text:
                     continue
-                is_dark = is_dark_cell(trace.z, i, j)
-
                 # Determine text colour
                 color_mode = getattr(trace, "text_color_mode", "contrast")
                 if color_mode == "custom":
                     text_color = getattr(trace, "text_color", "#000000")
                 else:
-                    text_color = "white" if is_dark else "black"
+                    text_color = text_colors[i][j]
 
                 annotations.append(
                     {
                         "text": str(cell_text),
+                        "name": (
+                            "ring5-heatmap-auto"
+                            if color_mode != "custom"
+                            else "ring5-heatmap-custom"
+                        ),
                         "x": trace.col_labels[j],
                         "y": trace.row_labels[i],
                         "xref": xref,
@@ -713,6 +721,7 @@ def _add_heatmap_separator_lines(
             shapes.append(
                 {
                     "type": "line",
+                    "name": "ring5-heatmap-total-right",
                     "x0": x_pos,
                     "x1": x_pos,
                     "y0": -0.5,
@@ -728,6 +737,7 @@ def _add_heatmap_separator_lines(
             shapes.append(
                 {
                     "type": "line",
+                    "name": "ring5-heatmap-total-top",
                     "x0": -0.5,
                     "x1": n_cols - 0.5,
                     "y0": y_pos,
@@ -756,8 +766,8 @@ def _convert_annotations(
             "text": ann.text,
             "x": ann.x,
             "y": ann.y,
-            "xref": ann.xref,
-            "yref": ann.yref,
+            "xref": "x" if ann.xref == "data" else ann.xref,
+            "yref": "y" if ann.yref == "data" else ann.yref,
             "xanchor": ann.xanchor,
             "yanchor": ann.yanchor,
             "showarrow": ann.show_arrow,

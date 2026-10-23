@@ -340,7 +340,7 @@ class TestHistogramCreateFigure:
         from src.web.pages.ui.plotting.types.histogram_plot import HistogramPlot
 
         plot = HistogramPlot(plot_id=1, name="test")
-        vals = plot._normalize_values([10.0, 20.0], {"normalization": "density", "bucket_size": 5})
+        vals = plot._normalize_values([10.0, 20.0], {"normalization": "density"}, widths=[5.0, 5.0])
         total = sum([10.0, 20.0])
         expected = [10.0 / (total * 5), 20.0 / (total * 5)]
         assert vals == pytest.approx(expected)

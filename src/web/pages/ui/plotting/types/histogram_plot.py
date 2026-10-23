@@ -1,7 +1,10 @@
 """Histogram plot implementation."""
 
-from typing import Any, cast, override
+from typing import cast, override
 
+import math
+
+import numpy as np
 import pandas as pd
 
 from src.core.models.visualization.trace_build_result import TraceBuildResult
@@ -11,6 +14,11 @@ from src.web.models.plot_models import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.types._trace_helpers import build_drill_down_payload
 from src.web.pages.ui.plotting.utils.ordering import order_with_overrides
+from src.web.pages.ui.plotting.utils.histogram_bins import (
+    HistogramBin,
+    parse_histogram_bins,
+    rebin_histogram,
+)
 
 
 class HistogramPlot(BasePlot):
@@ -70,22 +78,90 @@ class HistogramPlot(BasePlot):
         if not bucket_cols:
             raise ValueError(f"No histogram bucket columns found for variable: {histogram_var}")
 
-        # Parse bucket ranges and prepare data
-        bucket_data = self._extract_bucket_data(data, bucket_cols, config)
-
-        # Build traces
-        if config.get("group_by"):
-            # Multiple histograms grouped by categorical variable
-            traces = self._add_grouped_histograms(bucket_data, config)
-            barmode = "overlay"
-        else:
-            # Single histogram
-            traces = self._add_single_histogram(bucket_data, config)
-            barmode = "relative"
-
+        bins, order = parse_histogram_bins([column.split("..", 1)[1] for column in bucket_cols])
+        columns = [bucket_cols[index] for index in order]
+        group_by = config.get("group_by")
+        if group_by and group_by not in data.columns:
+            raise ValueError(f"Histogram grouping column is missing: {group_by!r}.")
+        groups = (
+            order_with_overrides(data[str(group_by)].dropna().unique(), config.get("legend_order"))
+            if group_by
+            else [""]
+        )
+        traces: list[BarTraceConfig] = []
+        display_bins: list[HistogramBin] = []
+        centers: list[float] = []
+        for group in groups:
+            source = data[data[str(group_by)].astype(str) == str(group)] if group_by else data
+            numeric = source[columns].apply(pd.to_numeric, errors="raise")
+            if source.empty or numeric.isna().all(axis=1).any():
+                raise ValueError(
+                    "Every histogram observation must contain at least one measured bucket."
+                )
+            if (
+                np.isinf(numeric.to_numpy(dtype=float, na_value=np.nan)).any()
+                or numeric.lt(0).any().any()
+            ):
+                raise ValueError("Histogram counts must be finite and nonnegative.")
+            measured = [
+                (bucket, float(numeric[column].sum(min_count=1)))
+                for bucket, column in zip(bins, columns, strict=True)
+                if numeric[column].notna().any()
+            ]
+            observed_bins = [bucket for bucket, _ in measured]
+            values = [value for _, value in measured]
+            requested_width = config.get("bucket_size")
+            display_bins, values = rebin_histogram(
+                observed_bins,
+                values,
+                float(requested_width) if requested_width is not None else None,
+            )
+            widths = [bucket.width for bucket in display_bins]
+            fallback_width = next((width for width in widths if width is not None), 1.0)
+            centers = [
+                (
+                    (bucket.lower + bucket.upper) / 2
+                    if bucket.lower is not None and bucket.upper is not None
+                    else (
+                        bucket.lower + fallback_width / 2
+                        if bucket.lower is not None
+                        else cast(float, bucket.upper) - fallback_width / 2
+                    )
+                )
+                for bucket in display_bins
+            ]
+            drilldown = (
+                build_drill_down_payload(source.head(1), [str(group_by)]) if group_by else [{}]
+            )
+            traces.append(
+                BarTraceConfig(
+                    name=str(group) if group_by else str(histogram_var),
+                    x=[
+                        bucket.label or str(center)
+                        for bucket, center in zip(display_bins, centers, strict=True)
+                    ],
+                    x_positions=centers,
+                    y=self._normalize_values(values, config, widths),
+                    bar_width=[width if width is not None else fallback_width for width in widths],
+                    opacity=0.7 if group_by else 1.0,
+                    border_width=1.0,
+                    border_color="white",
+                    custom_data={
+                        "drilldown": [drilldown[0] if drilldown else {} for _ in display_bins]
+                    },
+                )
+            )
+        ticks: dict[str, list[float] | list[str] | list[bool]] | None = None
+        if any(bucket.width is None for bucket in display_bins):
+            ticks = {
+                "vals": centers,
+                "text": [
+                    bucket.label or str(center)
+                    for bucket, center in zip(display_bins, centers, strict=True)
+                ],
+            }
         return TraceBuildResult(
-            traces=traces,
-            barmode=barmode,
+            traces=traces, barmode="overlay" if group_by else "relative", custom_x_ticks=ticks
         )
 
     @override
@@ -124,204 +200,40 @@ class HistogramPlot(BasePlot):
 
         return sorted(list(histogram_vars))
 
-    def _extract_bucket_data(
+    def _normalize_values(
         self,
-        data: pd.DataFrame,
-        bucket_cols: list[str],
+        values: list[float],
         config: PlotConfig,
-    ) -> dict[str, Any]:
-        """
-        Extract and process bucket data from DataFrame.
+        widths: list[float | None] | None = None,
+    ) -> list[float]:
+        """Normalize counts using actual widths; cumulative density is a CDF.
 
-        gem5 histogram buckets are flattened into columns named
-        ``"{var}..{start}-{end}"`` (e.g. ``latency..0-99``, ``latency..100-199``).
-        This parses ``start``/``end`` out of each column's ``..start-end`` suffix
-        and pairs them with the row values. This per-bin reshape is intentionally
-        kept here (not in the shaper pipeline): it is histogram-specific view
-        prep that depends on the gem5 column-naming convention, not a reusable
-        data transform (deferred B5 — documented rather than extracted).
-
-        Args:
-            data: Source DataFrame
-            bucket_cols: List of bucket column names (``{var}..{start}-{end}``)
-            config: Plot configuration
-
-        Returns:
-            Dictionary with processed bucket data
-        """
-        # [impl->req~ring5.plot.histogram~1]
-        # Parse bucket ranges
-        buckets: list[tuple[float, float]] = []
-        for col in bucket_cols:
-            bucket_part = col.split("..")[1]
-            if "-" in bucket_part:
-                parts = bucket_part.split("-")
-                try:
-                    start = float(parts[0])
-                    end = float(parts[1])
-                    buckets.append((start, end))
-                except ValueError:
-                    # Skip malformed bucket names
-                    continue
-
-        if not buckets:
-            raise ValueError("No valid bucket ranges found")
-
-        # Sort buckets by start value
-        buckets.sort(key=lambda x: x[0])
-
-        # Extract counts/values for each bucket
-        group_by = cast(str | None, config.get("group_by"))
-
-        if group_by and group_by in data.columns:
-            # Group data
-            groups = data[group_by].dropna().unique()
-            result: dict[str, Any] = {
-                "buckets": buckets,
-                "groups": groups,
-                "data": {},
-                "drilldown": {},
-            }
-
-            for group in groups:
-                group_data = data[data[group_by] == group]
-                values = [
-                    group_data[col].sum() if col in group_data.columns else 0 for col in bucket_cols
-                ]
-                result["data"][str(group)] = values
-                group_filters = build_drill_down_payload(group_data.head(1), [str(group_by)])
-                result["drilldown"][str(group)] = [
-                    group_filters[0] if group_filters else {} for _ in buckets
-                ]
-
-            return result
-        else:
-            # Single histogram
-            values = [data[col].sum() if col in data.columns else 0 for col in bucket_cols]
-            return {
-                "buckets": buckets,
-                "groups": None,
-                "data": {"": values},
-                "drilldown": {"": [{} for _ in buckets]},
-            }
-
-    def _add_single_histogram(
-        self,
-        bucket_data: dict[str, Any],
-        config: PlotConfig,
-    ) -> list[BarTraceConfig]:
-        """
-        Build a single histogram trace.
-
-        Args:
-            bucket_data: Processed bucket data
-            config: Plot configuration
-
-        Returns:
-            List containing a single BarTraceConfig
-        """
-        buckets = bucket_data["buckets"]
-        values = bucket_data["data"][""]
-
-        # Create bin edges and centers
-        x_centers = [(b[0] + b[1]) / 2 for b in buckets]
-
-        # Apply normalization
-        values_normalized = self._normalize_values(values, config)
-
-        trace = BarTraceConfig(
-            name=config.get("histogram_variable", "Histogram"),
-            x=[str(c) for c in x_centers],
-            y=values_normalized,
-            x_positions=x_centers,
-            border_width=1.0,
-            border_color="white",
-            custom_data={"drilldown": bucket_data["drilldown"][""]},
-        )
-        return [trace]
-
-    def _add_grouped_histograms(
-        self,
-        bucket_data: dict[str, Any],
-        config: PlotConfig,
-    ) -> list[BarTraceConfig]:
-        """
-        Build multiple grouped histogram traces.
-
-        Args:
-            bucket_data: Processed bucket data
-            config: Plot configuration
-
-        Returns:
-            List of BarTraceConfig, one per group
-        """
-        buckets = bucket_data["buckets"]
-        groups = order_with_overrides(
-            (str(group) for group in bucket_data["groups"]),
-            config.get("legend_order"),
-        )
-
-        x_centers = [(b[0] + b[1]) / 2 for b in buckets]
-        traces: list[BarTraceConfig] = []
-
-        for group in groups:
-            values = bucket_data["data"].get(str(group), [])
-            values_normalized = self._normalize_values(values, config)
-
-            trace = BarTraceConfig(
-                name=str(group),
-                x=[str(c) for c in x_centers],
-                y=values_normalized,
-                x_positions=x_centers,
-                opacity=0.7,
-                border_width=1.0,
-                border_color="white",
-                custom_data={"drilldown": bucket_data["drilldown"][str(group)]},
-            )
-            traces.append(trace)
-
-        return traces
-
-    def _normalize_values(self, values: list[float], config: PlotConfig) -> list[float]:
-        """
-        Normalize histogram values according to config.
-
-        Args:
-            values: Raw histogram counts
-            config: Plot configuration with normalization mode
-
-        Returns:
-            Normalized values
+        Raises:
+            ValueError: If density is requested for an unbounded interval.
         """
         # [impl->req~ring5.figure.histogram-cumulative~1]
         normalization = config.get("normalization", "count")
-        cumulative = config.get("cumulative", False)
-
-        # Convert to list of floats
-        vals = [float(v) for v in values]
-
-        # Apply normalization
-        total = sum(vals)
-        if total == 0:
-            return vals
-
-        if normalization == "probability":
-            vals = [v / total for v in vals]
-        elif normalization == "percent":
-            vals = [(v / total) * 100 for v in vals]
-        elif normalization == "density":
-            # Density = count / (total * bin_width)
-            # Assuming uniform bin width for simplicity
-            bin_width = config.get("bucket_size", 1)
-            vals = [v / (total * bin_width) for v in vals]
-
-        # Apply cumulative if requested
+        cumulative = bool(config.get("cumulative", False))
+        total = math.fsum(values)
+        if normalization == "density" and not cumulative and (widths is None or None in widths):
+            raise ValueError(
+                "Histogram density requires finite bucket bounds; "
+                "overflow and underflow have unknown widths."
+            )
+        if not total:
+            return values
+        if normalization in {"probability", "percent", "density"}:
+            values = [value / total for value in values]
+        if normalization == "percent":
+            values = [value * 100 for value in values]
         if cumulative:
-            cumulative_vals = []
-            cum_sum = 0.0
-            for v in vals:
-                cum_sum += v
-                cumulative_vals.append(cum_sum)
-            vals = cumulative_vals
-
-        return vals
+            running = 0.0
+            result = []
+            for value in values:
+                running += value
+                result.append(running)
+            return result
+        if normalization == "density":
+            assert widths is not None
+            return [value / cast(float, width) for value, width in zip(values, widths, strict=True)]
+        return values

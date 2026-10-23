@@ -89,10 +89,7 @@ class DualAxisBarDotPlot(BasePlot):
         isolate_last: bool = (
             bool(config.get("isolate_last_group")) and show_lines and line_scope == "series"
         )
-        if config.get("xaxis_order"):
-            ordered_x: list[str] = [str(v) for v in config["xaxis_order"]]
-        else:
-            ordered_x = sorted(data[x_col].unique().tolist())
+        ordered_x = order_with_overrides(data[x_col].unique(), config.get("xaxis_order"))
         last_x: str | None = ordered_x[-1] if ordered_x else None
 
         groups: list[str] = []

@@ -13,14 +13,19 @@ Usage:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any, cast
 
 import plotly.graph_objects as go
 
 from src.core.common.safe_format import plotly_numeric_template
 from src.core.models.visualization.figure_config import FigureConfig
 from src.core.models.visualization.legend_config import LegendConfig
-from src.web.rendering._heatmap_utils import compute_nice_range, compute_z_extent
+from src.web.rendering._heatmap_utils import (
+    heatmap_text_colors,
+    compute_nice_range,
+    compute_z_extent,
+)
 
 if TYPE_CHECKING:
     from src.core.models.visualization.axis_config import AxisConfig
@@ -399,14 +404,42 @@ class FigureSpecToPlotly:
         else:
             # Individual mode: each trace gets its own nice range + colorbar
             for trace in heatmap_traces:
-                t_min, t_max = compute_z_extent([trace])
-                t_zmin, t_zmax, _ = compute_nice_range(t_min, t_max, cbar.nticks)
+                if cbar.range_mode == "manual":
+                    t_zmin, t_zmax = zmin, zmax
+                else:
+                    t_min, t_max = compute_z_extent([trace])
+                    t_zmin, t_zmax, _ = compute_nice_range(t_min, t_max, cbar.nticks)
                 trace.update(
                     zmin=t_zmin,
                     zmax=t_zmax,
                     showscale=True,
                     colorbar=colorbar_dict,
                 )
+
+        for trace in heatmap_traces:
+            xref, yref = trace.xaxis or "x", trace.yaxis or "y"
+            xs, ys = list(trace.x), list(trace.y)
+            annotations = [
+                annotation
+                for annotation in fig.layout.annotations or ()
+                if annotation.name == "ring5-heatmap-auto"
+                and annotation.xref == xref
+                and annotation.yref == yref
+                and annotation.x in xs
+                and annotation.y in ys
+            ]
+            if not annotations:
+                continue
+            colorscale: Any = trace.colorscale
+            if trace.reversescale:
+                colorscale = [
+                    (1 - float(position), color) for position, color in reversed(colorscale)
+                ]
+            text_colors = heatmap_text_colors(
+                cast(Sequence[Sequence[float | None]], trace.z), colorscale, trace.zmin, trace.zmax
+            )
+            for annotation in annotations:
+                annotation.font.color = text_colors[ys.index(annotation.y)][xs.index(annotation.x)]
 
     @staticmethod
     def _build_legend_dict(legend: LegendConfig) -> dict[str, Any]:
@@ -587,28 +620,32 @@ class FigureSpecToPlotly:
             if isinstance(trace, (go.Heatmap, go.Box, go.Violin, go.Sankey, go.Parcoords)):
                 continue
 
-            update: dict[str, Any] = {
-                "texttemplate": texttemplate,
-                "textposition": text_position,
-                "textangle": rotation,
-                "textfont": dict(size=font_size),
-            }
-
-            # Custom color
+            textfont: dict[str, Any] = {"size": font_size}
             if dl.color_mode == "custom" and dl.custom_color:
-                update["textfont"]["color"] = dl.custom_color
-
-            # Constraint handling
-            if dl.size_constraint == "inside":
-                update["constraintext"] = "inside"
-                update["textposition"] = "inside"
+                textfont["color"] = dl.custom_color
+            update: dict[str, Any] = {"texttemplate": texttemplate, "textfont": textfont}
+            if isinstance(trace, (go.Bar, go.Waterfall)):
+                update.update(
+                    textposition=text_position,
+                    textangle=rotation,
+                    constraintext="inside" if dl.size_constraint == "inside" else "none",
+                )
+                if dl.size_constraint == "inside":
+                    update["textposition"] = "inside"
+                if update["textposition"] == "inside" and dl.anchor in ("top", "middle", "bottom"):
+                    update["insidetextanchor"] = dl.anchor
+            elif isinstance(trace, (go.Scatter, go.Scatterpolar)):
+                update["textposition"] = (
+                    "middle center" if text_position == "inside" else "top center"
+                )
+                mode = str(trace.mode or "lines")
+                parts = [part for part in mode.split("+") if part not in ("text", "none")]
+                parts.append("text")
+                update["mode"] = "+".join(parts) or "none"
+                if isinstance(trace, go.Scatterpolar):
+                    update["texttemplate"] = texttemplate.replace("%{y", "%{r")
             else:
-                update["constraintext"] = "none"
-
-            # Inside text anchor (only for "inside" position)
-            is_inside = text_position == "inside" or dl.size_constraint == "inside"
-            if is_inside and dl.anchor in ("top", "middle", "bottom"):
-                update["insidetextanchor"] = dl.anchor
+                continue
 
             trace.update(**update)
 
