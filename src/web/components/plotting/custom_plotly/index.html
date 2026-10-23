@@ -3,7 +3,6 @@
   <head>
     <meta charset="UTF-8" />
     <title>Streamlit Interactive Plotly</title>
-    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <style>
       body {
         margin: 0;
@@ -47,7 +46,13 @@
 
       function onRender(event) {
         var args = event.data.args;
-        if (!args.spec) return;
+        if (!args.spec || !args.plotly_js) return;
+        if (window._ring5_plotly_version !== args.plotly_version) {
+          var bundle = document.createElement("script");
+          bundle.textContent = args.plotly_js;
+          document.head.appendChild(bundle);
+          window._ring5_plotly_version = args.plotly_version;
+        }
 
         var spec = JSON.parse(args.spec);
         var config = args.config ? JSON.parse(args.config) : {};
