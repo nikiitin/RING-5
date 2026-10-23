@@ -64,16 +64,19 @@ class Transformer(UniDfShaper):
 
         try:
             if self.target_type == "factor":
-                # Convert to string first to ensure clean categorical conversion
-                df[self.column] = df[self.column].astype(str)
+                values = df[self.column].astype("string")
                 if self.order and isinstance(self.order, list):
-                    df[self.column] = pd.Categorical(
-                        df[self.column], categories=self.order, ordered=True
+                    categories = list(dict.fromkeys(self.order))
+                    categories.extend(
+                        value for value in pd.unique(values.dropna()) if value not in categories
                     )
+                    df[self.column] = pd.Categorical(values, categories=categories, ordered=True)
+                else:
+                    df[self.column] = values
             elif self.target_type == "scalar":
                 # Invalid scalar values become missing values.
                 df[self.column] = pd.to_numeric(df[self.column], errors="coerce")
-        except Exception as e:
+        except (TypeError, ValueError) as e:
             raise ValueError(
                 f"TRANSFORMER: Failed to convert '{self.column}' to {self.target_type}: {e}"
             ) from e

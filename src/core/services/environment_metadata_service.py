@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 import os
 import platform
 import shutil
@@ -28,6 +29,8 @@ _RUNTIME_DEPENDENCIES = (
     "numpy",
     "openpyxl",
     "pandas",
+    "packaging",
+    "platformdirs",
     "pillow",
     "plotly",
     "python-multipart",
@@ -144,7 +147,7 @@ class EnvironmentMetadataService:
         """
         if refresh:
             _capture_environment.cache_clear()
-        return _capture_environment()
+        return deepcopy(_capture_environment())
 
     @staticmethod
     def from_payload(value: object) -> EnvironmentMetadata | None:

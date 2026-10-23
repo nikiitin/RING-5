@@ -66,7 +66,7 @@ class Sort(UniDfShaper):
         self._verify_preconditions(data_frame)
 
         # Avoid modifying the input dataframe
-        result = data_frame.copy()
+        sort_keys = pd.DataFrame(index=pd.RangeIndex(len(data_frame)))
 
         # Apply categorical ordering to each column specified in order_dict. Values not
         # present in ``orders`` are appended (in first-seen order) so they KEEP their value
@@ -74,16 +74,18 @@ class Sort(UniDfShaper):
         # behavior. (Without this, pandas maps unlisted values to a categorical-NaN that the
         # later astype(str) turns into a real float NaN, silently destroying the label.)
         for column, orders in self.order_dict.items():
-            extra = [v for v in dict.fromkeys(result[column].tolist()) if v not in orders]
-            result[column] = pd.Categorical(
-                result[column], categories=list(orders) + extra, ordered=True
+            preferred = list(dict.fromkeys(value for value in orders if pd.notna(value)))
+            extra = [
+                value
+                for value in pd.unique(data_frame[column])
+                if pd.notna(value) and value not in preferred
+            ]
+            sort_keys[column] = pd.Categorical(
+                data_frame[column], categories=preferred + extra, ordered=True
             )
 
         # Sort values using stable sort to preserve existing relative order for equal categories
-        result = result.sort_values(by=list(self.order_dict.keys()), kind="stable")
-
-        # Convert categorical columns back to strings to prevent downstream issues
-        for column in self.order_dict:
-            result[column] = result[column].astype(str)
-
-        return result
+        if not self.order_dict:
+            return data_frame.copy()
+        positions = sort_keys.sort_values(by=list(self.order_dict), kind="stable").index
+        return data_frame.iloc[positions].copy()

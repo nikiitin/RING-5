@@ -48,7 +48,15 @@ class PipelineService:
         t_start = time.perf_counter()
         current_data = data
 
+        if not isinstance(pipeline_config, list):
+            raise ValueError("A pipeline must be an ordered list of shaper configurations.")
         for i, shaper_config in enumerate(pipeline_config):
+            if not isinstance(shaper_config, dict):
+                raise PipelineStepError(
+                    f"Pipeline step {i} must be a configuration object.",
+                    step_index=i,
+                    shaper_type=None,
+                )
             shaper_type = shaper_config.get("type")
             if not shaper_type:
                 raise PipelineStepError(

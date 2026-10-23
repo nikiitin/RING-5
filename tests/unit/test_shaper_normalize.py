@@ -175,9 +175,8 @@ def test_zero_division() -> None:
 
     result = n(df)
 
-    # Should result in 0 instead of inf/nan
-    assert result["metric"].iloc[0] == 0.0
-    assert result["metric"].iloc[1] == 0.0
+    # An undefined ratio retains missingness rather than inventing a measurement.
+    assert result["metric"].isna().all()
 
 
 def test_different_normalizer_vars() -> None:

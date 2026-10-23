@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import fcntl
 import shutil
 import sqlite3
 import threading
@@ -35,6 +34,7 @@ from src.core.services.parse_job_store import (
     MAX_STORED_ERRORS,
     ParseJobStore,
 )
+from src.core.common.file_lock import AdvisoryFileLock
 from src.core.services.parse_job_workspace import ParseJobRuntimeWorkspace
 
 
@@ -1286,8 +1286,8 @@ class TestParseJobCleanup:
 
         active = jobs_root / "active"
         active.mkdir()
-        active_lock = (active / "runtime.lock").open("a+")
-        fcntl.flock(active_lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        active_lock = AdvisoryFileLock(active / "runtime.lock")
+        active_lock.acquire(blocking=False)
         runtime = ParseJobRuntimeWorkspace(jobs_root)
         try:
             assert not stale.exists()
@@ -1295,8 +1295,7 @@ class TestParseJobCleanup:
             assert runtime.runtime_dir.exists()
         finally:
             runtime.close()
-            fcntl.flock(active_lock.fileno(), fcntl.LOCK_UN)
-            active_lock.close()
+            active_lock.release()
 
     def test_graceful_runtime_shutdown_closes_registered_sessions(self, tmp_path: Path) -> None:
         runtime = ParseJobRuntimeWorkspace(tmp_path / "jobs")

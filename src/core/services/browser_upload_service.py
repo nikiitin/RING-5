@@ -16,6 +16,9 @@ from openpyxl import load_workbook
 
 from src.core.common.security_limits import (
     MAX_BROWSER_UPLOAD_BYTES,
+    MAX_BROWSER_UPLOAD_ARCHIVE_MEMBERS,
+    MAX_BROWSER_UPLOAD_ARCHIVE_MEMBER_BYTES,
+    MAX_BROWSER_UPLOAD_COMPRESSION_RATIO,
     MAX_BROWSER_UPLOAD_CELL_LENGTH,
     MAX_BROWSER_UPLOAD_CELLS,
     MAX_BROWSER_UPLOAD_NAME_LENGTH,
@@ -159,6 +162,20 @@ def _excel_records(content: bytes) -> tuple[tuple[str, ...], list[list[Any]], st
     """Read the first visible worksheet from a validated modern Excel workbook."""
     if not zipfile.is_zipfile(io.BytesIO(content)):
         raise ValueError("Excel upload is not a valid .xlsx archive.")
+    with zipfile.ZipFile(io.BytesIO(content)) as archive:
+        members = archive.infolist()
+        if (
+            len(members) > MAX_BROWSER_UPLOAD_ARCHIVE_MEMBERS
+            or sum(member.file_size for member in members) > MAX_BROWSER_UPLOAD_BYTES
+        ):
+            raise ValueError("Expanded Excel archive exceeds its safe upload limit.")
+        if any(member.file_size > MAX_BROWSER_UPLOAD_ARCHIVE_MEMBER_BYTES for member in members):
+            raise ValueError("Excel archive member exceeds its safe expanded-size limit.")
+        if any(
+            member.file_size > MAX_BROWSER_UPLOAD_COMPRESSION_RATIO * max(member.compress_size, 1)
+            for member in members
+        ):
+            raise ValueError("Excel archive member exceeds its safe compression-ratio limit.")
     try:
         workbook = load_workbook(
             io.BytesIO(content),
@@ -173,6 +190,10 @@ def _excel_records(content: bytes) -> tuple[tuple[str, ...], list[list[Any]], st
         if not visible:
             raise ValueError("Excel upload has no visible worksheet.")
         sheet = visible[0]
+        if (sheet.max_row or 0) > MAX_BROWSER_UPLOAD_ROWS + 1:
+            raise ValueError("Excel worksheet dimensions exceed the row limit.")
+        if (sheet.max_row or 0) * (sheet.max_column or 0) > MAX_BROWSER_UPLOAD_CELLS:
+            raise ValueError("Excel worksheet dimensions exceed the cell limit.")
         records = sheet.iter_rows(values_only=True)
         try:
             raw_header = next(records)
@@ -188,10 +209,14 @@ def _excel_records(content: bytes) -> tuple[tuple[str, ...], list[list[Any]], st
         if any(not value for value in header) or len(set(header)) != len(header):
             raise ValueError("Excel header names must be non-empty and unique.")
         rows: list[list[Any]] = []
-        for raw_row in records:
-            if len(rows) >= MAX_BROWSER_UPLOAD_ROWS:
+        for row_number, raw_row in enumerate(records, start=2):
+            if row_number > MAX_BROWSER_UPLOAD_ROWS + 1:
                 raise ValueError(
                     f"Browser uploads support at most {MAX_BROWSER_UPLOAD_ROWS:,} rows."
+                )
+            if any(value is not None for value in raw_row[len(header) :]):
+                raise ValueError(
+                    f"Excel row {row_number} contains data beyond its named header columns."
                 )
             relevant = raw_row[: len(header)]
             if not any(value is not None for value in relevant):

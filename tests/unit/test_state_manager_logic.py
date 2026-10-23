@@ -73,7 +73,7 @@ def test_set_parse_variables_generate_ids(mock_session_state: Any) -> None:
     # Setup variables without IDs
     vars_config = cast(list[ParseVariableConfig], [{"name": "v1"}])
 
-    with patch("src.core.state.repositories.parser_state_repository.uuid") as mock_uuid:
+    with patch("src.core.common.variable_identity.uuid") as mock_uuid:
         mock_uuid.uuid4.return_value = "uuid-1"
         mgr.set_parse_variables(vars_config)
 

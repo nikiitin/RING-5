@@ -8,7 +8,7 @@ import io
 import math
 import re
 from collections.abc import Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field as dataclass_field
 from datetime import datetime
 from pathlib import Path
 
@@ -42,6 +42,9 @@ class _TypeCandidate:
     number: bool = True
     boolean: bool = True
     datetime: bool = True
+    integer_min: int = 0
+    integer_max: int = 0
+    timezone_kinds: set[bool] = dataclass_field(default_factory=set)
 
     def add(self, value: str | None) -> None:
         """Fold one normalized source value into this candidate."""
@@ -53,6 +56,14 @@ class _TypeCandidate:
         self.number = self.number and _is_number(value)
         self.boolean = self.boolean and _is_boolean(value)
         self.datetime = self.datetime and _is_datetime(value)
+        if _is_integer(value):
+            integer = int(value)
+            self.integer_min = min(self.integer_min, integer)
+            self.integer_max = max(self.integer_max, integer)
+        if _is_datetime(value):
+            self.timezone_kinds.add(
+                datetime.fromisoformat(value.replace("Z", "+00:00")).tzinfo is not None
+            )
 
     def inferred(self) -> ImportColumnType:
         """Return the narrowest type supported by every non-null value."""
@@ -81,10 +92,16 @@ class _Source:
 
 
 def _is_integer(value: str) -> bool:
-    return _INTEGER.fullmatch(value) is not None
+    return (
+        len(value) <= 21
+        and _INTEGER.fullmatch(value) is not None
+        and -(2**63) <= int(value) <= 2**64 - 1
+    )
 
 
 def _is_number(value: str) -> bool:
+    if _INTEGER.fullmatch(value) is not None and not _is_integer(value):
+        return False
     try:
         return math.isfinite(float(value))
     except ValueError:
@@ -305,6 +322,13 @@ def _inspect(
         corrections.get(column, "auto") if corrections.get(column, "auto") != "auto" else kind
         for column, kind in zip(header, inferred, strict=True)
     )
+    for name, kind, candidate in zip(header, effective, candidates, strict=True):
+        if kind == "datetime" and len(candidate.timezone_kinds) > 1:
+            raise ValueError(f"Column {name!r} mixes timezone-aware and naive timestamps.")
+        if kind == "integer" and candidate.integer_min < 0 and candidate.integer_max > 2**63 - 1:
+            raise ValueError(
+                f"Column {name!r} mixes negative values with integers above Int64 range."
+            )
     columns = tuple(
         ImportColumn(name, kind, selected, candidate.nullable)
         for name, kind, selected, candidate in zip(
@@ -391,14 +415,26 @@ class ImportPreviewService:
             raise ValueError("Import result changed after preview; review it again before loading.")
         if not rows:
             raise ValueError("Import has no accepted rows to load.")
-        frame = pd.DataFrame(rows, columns=[column.name for column in preview.columns])
+        frame = pd.DataFrame(
+            rows, columns=[column.name for column in preview.columns], dtype=object
+        )
         for column in preview.columns:
             if column.import_as == "integer":
-                frame[column.name] = frame[column.name].astype("Int64")
+                values = frame[column.name]
+                dtype = (
+                    pd.UInt64Dtype()
+                    if any(value is not None and value > 2**63 - 1 for value in values)
+                    else pd.Int64Dtype()
+                )
+                frame[column.name] = pd.array(values.tolist(), dtype=dtype)
             elif column.import_as == "number":
                 frame[column.name] = frame[column.name].astype("Float64")
             elif column.import_as == "boolean":
                 frame[column.name] = frame[column.name].astype("boolean")
             elif column.import_as == "datetime":
-                frame[column.name] = pd.to_datetime(frame[column.name])
+                values = frame[column.name]
+                aware = any(
+                    isinstance(value, datetime) and value.tzinfo is not None for value in values
+                )
+                frame[column.name] = pd.to_datetime(values, utc=aware)
         return frame

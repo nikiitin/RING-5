@@ -150,7 +150,7 @@ class TestNaNPropagation:
     """Verify correct NaN handling when shapers are chained."""
 
     def test_normalize_all_nan_baseline(self) -> None:
-        """If baseline value is NaN, normalized values should be 0 (zero-denominator path)."""
+        """An unknown baseline keeps the normalized result unknown."""
         df = pd.DataFrame(
             {
                 "config": ["baseline", "test"],
@@ -168,7 +168,7 @@ class TestNaNPropagation:
         )
         result = normalizer(df)
         test_row = result[result["config"] == "test"]
-        assert test_row["metric"].iloc[0] == 0.0
+        assert pd.isna(test_row["metric"].iloc[0])
 
     def test_geomean_all_nan(self) -> None:
         """Geometric mean of all NaN values returns NaN."""

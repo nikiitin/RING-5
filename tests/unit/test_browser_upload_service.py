@@ -250,3 +250,64 @@ def test_csv_uses_browser_specific_size_row_and_cell_limits(
             b"a\n123\n",
             tmp_path,
         )
+
+
+@pytest.mark.parametrize(
+    "limit,value,message",
+    [
+        ("MAX_BROWSER_UPLOAD_ARCHIVE_MEMBERS", 1, "Expanded Excel archive"),
+        ("MAX_BROWSER_UPLOAD_BYTES", 32, "Expanded Excel archive"),
+        ("MAX_BROWSER_UPLOAD_ARCHIVE_MEMBER_BYTES", 32, "expanded-size"),
+        ("MAX_BROWSER_UPLOAD_COMPRESSION_RATIO", 2, "compression-ratio"),
+    ],
+)
+def test_excel_archive_preflight_rejects_resources_before_workbook_loading(
+    monkeypatch, limit, value, message
+) -> None:
+    from zipfile import ZipFile, ZIP_DEFLATED
+    from src.core.services import browser_upload_service as module
+
+    output = io.BytesIO()
+    with ZipFile(output, "w", compression=ZIP_DEFLATED) as archive:
+        archive.writestr("one.xml", "x" * 512)
+        archive.writestr("two.xml", "small")
+    monkeypatch.setattr(module, limit, value)
+
+    def forbidden_loader(*args, **kwargs):
+        raise AssertionError("Oversized archives must be rejected before openpyxl loads members")
+
+    monkeypatch.setattr(module, "load_workbook", forbidden_loader)
+    with pytest.raises(ValueError, match=message):
+        module._excel_records(output.getvalue())
+
+
+@pytest.mark.parametrize("declared_dimensions", [True, False])
+def test_sparse_excel_ranges_are_bounded_even_without_dimensions(
+    monkeypatch, declared_dimensions
+) -> None:
+    from zipfile import ZipFile, ZIP_DEFLATED
+    import re
+    from src.core.services import browser_upload_service as module
+
+    workbook = Workbook()
+    workbook.active.append(["value"])
+    workbook.active.cell(row=20, column=1, value=7)
+    output = io.BytesIO()
+    workbook.save(output)
+    workbook.close()
+    raw = output.getvalue()
+    if not declared_dimensions:
+        rewritten = io.BytesIO()
+        with (
+            ZipFile(io.BytesIO(raw)) as source,
+            ZipFile(rewritten, "w", compression=ZIP_DEFLATED) as target,
+        ):
+            for member in source.infolist():
+                content = source.read(member.filename)
+                if member.filename == "xl/worksheets/sheet1.xml":
+                    content = re.sub(rb"<dimension[^>]*/>", b"", content)
+                target.writestr(member, content)
+        raw = rewritten.getvalue()
+    monkeypatch.setattr(module, "MAX_BROWSER_UPLOAD_ROWS", 10)
+    with pytest.raises(ValueError, match="row limit|at most 10 rows"):
+        module._excel_records(raw)

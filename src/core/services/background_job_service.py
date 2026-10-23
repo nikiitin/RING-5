@@ -43,6 +43,7 @@ class _JobState:
     retry_factory: FutureFactory | None
     retain_result: bool
     completed_units: int = 0
+    cancelled_units: int = 0
     attempt: int = 1
     started_at: str | None = None
     finished_at: str | None = None
@@ -81,16 +82,31 @@ class BackgroundJobService:
         if not callable(operation):
             raise TypeError("Background operation must be callable.")
 
-        def submit_operation() -> Sequence[Future[Any]]:
-            return (self._executor.submit(operation),)
+        ready = threading.Event()
+        identity: list[str] = []
 
-        return self._create(
+        def execute() -> Any:
+            ready.wait()
+            with self._lock:
+                state = self._state(identity[0])
+                state.started_at = self._now()
+                if not state.cancel_requested:
+                    state.status = "running"
+            return operation()
+
+        def submit_operation() -> Sequence[Future[Any]]:
+            return (self._executor.submit(execute),)
+
+        info = self._create(
             kind,
             label,
             submit_operation,
             retry_factory=submit_operation if retryable else None,
             retain_result=True,
         )
+        identity.append(info.job_id)
+        ready.set()
+        return info
 
     def track_futures(
         self,
@@ -153,6 +169,7 @@ class BackgroundJobService:
             state.attempt += 1
             state.generation += 1
             state.completed_units = 0
+            state.cancelled_units = 0
             state.started_at = None
             state.finished_at = None
             state.cancel_requested = False
@@ -281,9 +298,11 @@ class BackgroundJobService:
             state = self._jobs.get(job_id)
             if state is None or state.generation != generation:
                 return
-            if state.started_at is None:
+            if state.started_at is None and not future.cancelled():
                 state.started_at = self._now()
             state.completed_units += 1
+            if future.cancelled():
+                state.cancelled_units += 1
             result: object = _RESULT_MISSING
             if not future.cancelled():
                 try:
@@ -298,7 +317,7 @@ class BackgroundJobService:
             if state.completed_units < state.total_units:
                 state.status = "cancelling" if state.cancel_requested else "running"
                 return
-            if state.cancel_requested:
+            if state.cancel_requested or state.cancelled_units:
                 terminal: BackgroundJobStatus = "cancelled"
             elif state.errors and state.errors[-1].attempt == state.attempt:
                 terminal = "failed"
@@ -318,8 +337,6 @@ class BackgroundJobService:
     def _finish(self, state: _JobState, status: BackgroundJobStatus) -> None:
         state.status = status
         state.finished_at = self._now()
-        if state.started_at is None:
-            state.started_at = state.finished_at
 
     def _log_failure(self, state: _JobState, failure: object) -> None:
         # [impl->req~ring5.workspace.background-jobs~1]
@@ -384,6 +401,9 @@ class BackgroundJobService:
 
     @staticmethod
     def _snapshot(state: _JobState) -> BackgroundJobInfo:
+        if state.status == "queued" and any(future.running() for future in state.futures):
+            state.status = "running"
+            state.started_at = state.started_at or BackgroundJobService._now()
         result_available = (
             state.status == "completed"
             and state.retain_result

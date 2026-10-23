@@ -197,6 +197,8 @@ class CsvPoolService:
             sep=separator,
         )
 
+        if CsvPoolService._compute_file_hash(resolved_path) != cache_key:
+            raise OSError("CSV file changed while it was being read; retry the load.")
         # Cache the DataFrame
         CsvPoolService._dataframe_cache.set(cache_key, result)
 
@@ -206,7 +208,7 @@ class CsvPoolService:
             "rows": len(result),
             "dtypes": {str(col): str(dtype) for col, dtype in result.dtypes.items()},
         }
-        CsvPoolService._metadata_cache.set(resolved_path, metadata)
+        CsvPoolService._metadata_cache.set(cache_key, metadata)
 
         return result.copy(deep=False)
 
@@ -223,7 +225,7 @@ class CsvPoolService:
     @staticmethod
     def _compute_file_hash(file_path: str) -> str:
         """
-        Compute hash of file for cache key (based on path + mtime).
+        Compute a cache key from precise filesystem identity and modification time.
 
         Args:
             file_path: Path to the file
@@ -233,8 +235,17 @@ class CsvPoolService:
         """
         path = Path(file_path)
         if path.exists():
-            mtime = path.stat().st_mtime
-            key = f"{file_path}_{mtime}"
+            stat = path.stat()
+            key = repr(
+                (
+                    str(path.resolve()),
+                    stat.st_dev,
+                    stat.st_ino,
+                    stat.st_mtime_ns,
+                    stat.st_ctime_ns,
+                    stat.st_size,
+                )
+            )
             return hashlib.md5(key.encode(), usedforsecurity=False).hexdigest()[:16]
         return file_path
 
@@ -255,19 +266,20 @@ class CsvPoolService:
         resolved_path = str(Path(csv_path).resolve())
 
         # Check cache
-        cached = CsvPoolService._metadata_cache.get(resolved_path)
+        cache_key = CsvPoolService._compute_file_hash(resolved_path)
+        cached = CsvPoolService._metadata_cache.get(cache_key)
         if cached is not None:
             return cast(CsvMetadata, cached)
 
         # Compute metadata by reading just the header and counting rows
         try:
 
-            # Fast row count without loading entire file
-            with open(resolved_path, encoding="utf-8", newline="") as f:
-                row_count = max(0, sum(1 for _ in f) - 1)  # Subtract header
-
-            # Read just first row to get columns and types
             separator = CsvPoolService._detect_separator(Path(resolved_path))
+            row_count = sum(
+                len(chunk) for chunk in pd.read_csv(resolved_path, sep=separator, chunksize=10_000)
+            )
+
+            # Read a bounded sample to infer columns and types.
             sample_df = pd.read_csv(resolved_path, sep=separator, nrows=100)
 
             metadata: CsvMetadata = {
@@ -276,8 +288,9 @@ class CsvPoolService:
                 "dtypes": {str(col): str(dtype) for col, dtype in sample_df.dtypes.items()},
             }
 
-            # Cache it under the resolved key (consistent with the lookup above).
-            CsvPoolService._metadata_cache.set(resolved_path, metadata)
+            if CsvPoolService._compute_file_hash(resolved_path) != cache_key:
+                raise OSError("CSV file changed while its metadata was being read.")
+            CsvPoolService._metadata_cache.set(cache_key, metadata)
             return metadata
         except (
             OSError,

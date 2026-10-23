@@ -132,7 +132,7 @@ class SemanticMetadataService:
 
     @classmethod
     def convert(cls, data: pd.DataFrame, column: str, target_unit: str) -> pd.DataFrame:
-        """Return a converted copy and update that column's retained unit."""
+        """Convert a metric and its ``.sd`` companion without affine error offsets."""
         # [impl->req~ring5.data.semantic-units~1]
         cls._validate_data(data)
         if not isinstance(column, str) or column not in data.columns:
@@ -159,9 +159,30 @@ class SemanticMetadataService:
             raise ValueError(f"Converting column {column!r} produced non-finite values.")
         result = data.copy(deep=True)
         result[column] = converted
+        sd_column = f"{column}.sd"
+        if sd_column in data.columns:
+            sd_metadata = semantics.for_column(sd_column)
+            sd_source = (
+                _UNITS[cls.normalize_unit(sd_metadata.unit)]
+                if sd_metadata is not None and sd_metadata.unit
+                else source
+            )
+            if sd_source.dimension != target.dimension:
+                raise ValueError(f"Uncertainty column {sd_column!r} has an incompatible unit.")
+            sd = pd.to_numeric(data[sd_column], errors="coerce")
+            if (data[sd_column].notna() & sd.isna()).any() or (sd < 0).any():
+                raise ValueError(f"Uncertainty column {sd_column!r} must be non-negative numeric.")
+            scaled_sd = sd.astype(float) * abs(sd_source.scale / target.scale)
+            if not np.isfinite(scaled_sd.dropna().to_numpy(dtype=float)).all():
+                raise ValueError(f"Converting column {sd_column!r} produced non-finite values.")
+            result[sd_column] = scaled_sd
         updated = DatasetSemantics(
             tuple(
-                ColumnSemantics(item.name, item.label, target_name) if item.name == column else item
+                (
+                    ColumnSemantics(item.name, item.label, target_name)
+                    if item.name in {column, sd_column}
+                    else item
+                )
                 for item in semantics.columns
             )
         )

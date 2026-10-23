@@ -44,6 +44,8 @@ class ItemSelector(Selector):
             raise ValueError("ItemSelector requires 'strings' parameter.")
         if not isinstance(config["strings"], list):
             raise TypeError("ItemSelector 'strings' parameter must be a list.")
+        if self.mode not in {"exact", "contains"}:
+            raise ValueError("ItemSelector mode must be 'exact' or 'contains'.")
         if len(config["strings"]) > MAX_SELECTOR_STRINGS:
             raise ValueError(f"ItemSelector accepts at most {MAX_SELECTOR_STRINGS} search strings.")
         if any(len(str(value)) > MAX_SEARCH_TERM_LENGTH for value in config["strings"]):

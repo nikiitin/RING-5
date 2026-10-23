@@ -1,9 +1,9 @@
 """Shaper for baseline-relative normalization within groups."""
 
 import logging
-import warnings
 from typing import Any, cast, override
 
+import numpy as np
 import pandas as pd
 from pandas import DataFrame
 
@@ -111,7 +111,7 @@ class Normalize(UniDfShaper):
             )
 
         # Group validation
-        groups = data_frame.groupby(self._group_by)
+        groups = data_frame.groupby(self._group_by, dropna=False)
         if len(groups) == 0:
             raise ValueError("No groups found for the specified groupBy columns.")
 
@@ -146,16 +146,16 @@ class Normalize(UniDfShaper):
 
         # Calculate denominator (sum of specified normalizer variables)
         baseline_vars = baseline[self._normalizer_vars]
-        denominator = baseline_vars.iloc[0].sum()
+        denominator = baseline_vars.iloc[0].sum(min_count=len(self._normalizer_vars))
 
-        if pd.isna(denominator) or denominator == 0:
-            # Prevent division by zero: zero out normalized columns
+        if pd.isna(denominator) or denominator == 0 or not np.isfinite(denominator):
+            # An undefined ratio is missing data, never a measured zero.
             for var in self._normalize_vars:
-                result[var] = 0.0
+                result[var] = float("nan")
                 if self._normalize_sd:
                     sd_col = f"{var}.sd"
                     if sd_col in result.columns:
-                        result[sd_col] = 0.0
+                        result[sd_col] = float("nan")
             return result
 
         # Perform the actual scaling
@@ -164,7 +164,7 @@ class Normalize(UniDfShaper):
             if self._normalize_sd:
                 sd_col = f"{var}.sd"
                 if sd_col in result.columns:
-                    result[sd_col] = result[sd_col] / denominator
+                    result[sd_col] = result[sd_col] / abs(denominator)
 
         return result
 
@@ -191,34 +191,16 @@ class Normalize(UniDfShaper):
         # fingerprint-matched frame does not repeat that work on every hit.
         self._verify_preconditions(data_frame)
 
-        with warnings.catch_warnings():
-            # Suppress pandas warning about group keys
-            warnings.filterwarnings(
-                "ignore",
-                category=FutureWarning,
-                message=".*DataFrameGroupBy.apply operated on the grouping columns.*",
-            )
-            # pandas >=2.x compat: groupby().apply() may drop grouping columns
-            # (FutureWarning in 2.x, default in 3.0). Preserve them manually.
-            grouped = data_frame.groupby(self._group_by, group_keys=False)
-            result: pd.DataFrame = grouped.apply(self._normalize_group)
-
-            # pandas >=2.x compat: grouping columns may be dropped, re-add them
-            if not all(col in result.columns for col in self._group_by):
-                # Merge with original group columns
-                for col in self._group_by:
-                    if col not in result.columns:
-                        result[col] = data_frame[col].copy()
-
-            # Preserve the original column order. Re-adding grouping columns
-            # above appends them at the end; pandas 3.0's groupby().apply() drops
-            # them by default, so without this the input order is lost (e.g. the
-            # groupBy column jumps to the end). New columns (e.g. .sd) keep their
-            # trailing position.
-            ordered = [c for c in data_frame.columns if c in result.columns]
-            extra = [c for c in result.columns if c not in ordered]
-            result = result[ordered + extra]
-
+        # Positional row identity survives duplicate caller indexes and grouping
+        # keys containing missing values. Iteration retains grouping columns.
+        grouped = data_frame.reset_index(drop=True).groupby(
+            self._group_by, sort=False, dropna=False
+        )
+        result = pd.concat([self._normalize_group(group) for _, group in grouped]).sort_index(
+            kind="stable"
+        )
+        result.index = data_frame.index.copy()
+        result.attrs = data_frame.attrs.copy()
         return result
 
     @override

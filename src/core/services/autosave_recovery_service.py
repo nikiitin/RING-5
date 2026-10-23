@@ -157,6 +157,9 @@ class AutosaveRecoveryService:
             or state_manager.get_scanned_variables()
             or state_manager.get_stats_path() not in ("", "/path/to/stats")
             or state_manager.get_stats_pattern() != "stats.txt"
+            or state_manager.get_parser_strategy() != "simple"
+            or state_manager.get_simulator() != "gem5"
+            or state_manager.is_using_parser()
             or state_manager.get_csv_path()
             or state_manager.get_manager_history()
             or state_manager.get_portfolio_history()
@@ -164,14 +167,13 @@ class AutosaveRecoveryService:
 
     @staticmethod
     def _custom_parse_variables(parse_variables: list[Any]) -> bool:
-        if not parse_variables:
-            return False
         signature = tuple(
-            (item.get("name"), item.get("type"))
+            {key: value for key, value in item.items() if key != "_id"}
             for item in parse_variables
             if isinstance(item, dict)
         )
-        return signature != _DEFAULT_PARSE_VARIABLES
+        defaults = tuple({"name": name, "type": kind} for name, kind in _DEFAULT_PARSE_VARIABLES)
+        return signature != defaults
 
     @staticmethod
     def _owner(owner_key: object) -> str:
@@ -208,9 +210,9 @@ class AutosaveRecoveryService:
         root = PathService.get_recovery_drafts_dir()
         if root.is_symlink():
             raise ValueError("Recovery draft storage must not be a symbolic link.")
-        directory = validate_path_within(root / owner, root)
-        if directory.is_symlink():
+        if (root / owner).is_symlink():
             raise ValueError("Recovery owner storage must not be a symbolic link.")
+        directory = validate_path_within(root / owner, root)
         if create:
             directory.mkdir(mode=0o700, parents=True, exist_ok=True)
             os.chmod(directory, 0o700)
@@ -253,8 +255,11 @@ class AutosaveRecoveryService:
         )
         temporary = Path(temporary_name)
         try:
-            os.fchmod(descriptor, 0o600)
             with os.fdopen(descriptor, "wb") as handle:
+                if hasattr(os, "fchmod"):
+                    os.fchmod(handle.fileno(), 0o600)
+                else:
+                    os.chmod(temporary, 0o600)
                 handle.write(payload)
                 handle.flush()
                 os.fsync(handle.fileno())

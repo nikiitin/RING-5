@@ -3,6 +3,8 @@
 import os
 from pathlib import Path
 
+from platformdirs import user_data_path
+
 
 class PathService:
     """Resolve and cache repository and application-data directories."""
@@ -39,16 +41,24 @@ class PathService:
     def get_data_dir() -> Path:
         """Get the app data directory (pool, portfolios, configs).
 
-        Defaults to ``<repo>/.ring5`` but honours the ``RING5_DATA_DIR``
-        environment variable when set, so tests (and sandboxes) can redirect all
-        app data to an isolated location instead of the shared repo ``.ring5``.
+        Source checkouts use ``<repo>/.ring5``. Installed packages use the
+        platform user-data directory. ``RING5_DATA_DIR`` overrides either default.
         """
         # [impl->req~ring5.workspace.application-data-directory~1]
         if PathService._data_dir is None:
             override = os.environ.get("RING5_DATA_DIR")
-            PathService._data_dir = (
-                Path(override) if override else PathService.get_root_dir() / ".ring5"
-            )
+            if override:
+                PathService._data_dir = Path(override)
+            else:
+                source_root = Path(__file__).resolve().parents[4]
+                source_checkout = (source_root / "pyproject.toml").is_file() and (
+                    source_root / "app.py"
+                ).is_file()
+                PathService._data_dir = (
+                    PathService.get_root_dir() / ".ring5"
+                    if source_checkout
+                    else user_data_path("ring5", appauthor=False)
+                )
             PathService._data_dir.mkdir(parents=True, exist_ok=True)
         return PathService._data_dir
 

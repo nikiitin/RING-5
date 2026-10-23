@@ -249,3 +249,15 @@ background-job identifiers and lifecycle operations.
 
 When adding a public name, export it lazily where appropriate, document parameters and exceptions,
 add a `public_api` contract test, keep `make test-api` at 100%, and update the User Guide.
+
+Session operations translate expected domain failures into the documented `ring5.errors` types.
+Python configuration constructors and directly imported `ring5.shapers` classes use ordinary
+`TypeError` and `ValueError` validation. Run transformations with `Session.shape` when a typed
+`PipelineError` with step information is required.
+
+Portfolio restore replaces the existing workspace, clears transient previews and named-data
+history, and reports partial restoration failures. Parser strategy and simulator are retained;
+legacy portfolios default to `simple` and `gem5`. Unit conversion also scales a metric's `.sd`
+companion by the absolute unit scale, without applying affine offsets to uncertainties.
+Generated recipe scripts preserve `--help` for usage; a parameter named `help` receives an
+unoccupied `--parameter-help` option, with additional `parameter-` prefixes when needed.

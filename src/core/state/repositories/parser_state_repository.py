@@ -1,7 +1,9 @@
 """In-memory repository for simulator parser configuration."""
 
 import logging
-import uuid
+from copy import deepcopy
+
+from src.core.common.variable_identity import normalize_variable_ids
 
 from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
 
@@ -15,15 +17,17 @@ class ParserStateRepository:
 
     # Default variables for new sessions
     DEFAULT_PARSE_VARIABLES: list[ParseVariableConfig] = [
-        ParseVariableConfig(name="simTicks", type="scalar", _id=str(uuid.uuid4())),
-        ParseVariableConfig(name="benchmark_name", type="configuration", _id=str(uuid.uuid4())),
-        ParseVariableConfig(name="config_description", type="configuration", _id=str(uuid.uuid4())),
+        ParseVariableConfig(name="simTicks", type="scalar", _id=""),
+        ParseVariableConfig(name="benchmark_name", type="configuration", _id=""),
+        ParseVariableConfig(name="config_description", type="configuration", _id=""),
     ]
 
     def __init__(self) -> None:
         """Initialize in-memory storage."""
         # Initialize default state
-        self._parse_variables: list[ParseVariableConfig] = self.DEFAULT_PARSE_VARIABLES.copy()
+        self._parse_variables: list[ParseVariableConfig] = normalize_variable_ids(
+            self.DEFAULT_PARSE_VARIABLES
+        )
         self._stats_path: str = "/path/to/stats"
         self._stats_pattern: str = "stats.txt"
         self._scanned_variables: list[ScannedVariableDict] = []
@@ -36,9 +40,9 @@ class ParserStateRepository:
         Get the list of variables to parse from simulator stats.
 
         Returns:
-            A shallow copy of the parse-variable list (defensive copy-on-read).
+            A deep copy of the parse-variable list (defensive copy-on-read).
         """
-        return list(self._parse_variables)
+        return deepcopy(self._parse_variables)
 
     def set_parse_variables(self, variables: list[ParseVariableConfig]) -> None:
         """
@@ -56,17 +60,7 @@ class ParserStateRepository:
                 hand-edited portfolio) — callers that handle untrusted input
                 filter first and report what they dropped.
         """
-        for var in variables:
-            if not isinstance(var, dict):
-                raise TypeError(
-                    f"Parse variable entries must be dicts, got " f"{type(var).__name__}: {var!r}"
-                )
-
-        copied: list[ParseVariableConfig] = [dict(var) for var in variables]  # type: ignore[misc]
-        for var in copied:
-            if "_id" not in var:
-                var["_id"] = str(uuid.uuid4())
-
+        copied = normalize_variable_ids(variables)
         self._parse_variables = copied
         logger.info("PARSER_REPO: Parse variables updated - %d variables", len(copied))
 
@@ -143,9 +137,9 @@ class ParserStateRepository:
         Get variables discovered via scanning stats files.
 
         Returns:
-            A shallow copy of the scanned-variable list (defensive copy-on-read).
+            A deep copy of the scanned-variable list (defensive copy-on-read).
         """
-        return list(self._scanned_variables)
+        return deepcopy(self._scanned_variables)
 
     def set_scanned_variables(self, variables: list[ScannedVariableDict]) -> None:
         """
@@ -154,7 +148,7 @@ class ParserStateRepository:
         Args:
             variables: List of scanned variable metadata
         """
-        self._scanned_variables = variables
+        self._scanned_variables = deepcopy(variables)
         logger.info("PARSER_REPO: Scanned variables updated - %d variables", len(variables))
 
     def is_using_parser(self) -> bool:

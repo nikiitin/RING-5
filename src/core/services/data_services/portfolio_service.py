@@ -197,6 +197,8 @@ class PortfolioService:
             "use_parser": self.state_manager.is_using_parser(),
             "stats_path": self.state_manager.get_stats_path(),
             "stats_pattern": self.state_manager.get_stats_pattern(),
+            "parser_strategy": self.state_manager.get_parser_strategy(),
+            "simulator": self.state_manager.get_simulator(),
             "scanned_variables": self.state_manager.get_scanned_variables(),
             "manager_history": self.state_manager.get_manager_history(),
             "portfolio_history": self.state_manager.get_portfolio_history(),

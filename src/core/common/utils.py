@@ -90,8 +90,8 @@ def validate_path_within(path: Path, allowed_base: Path) -> Path:
     path_str: str = os.path.normpath(str(path))
     base_str: str = os.path.normpath(str(allowed_base))
     # Resolve to absolute paths for accurate comparison
-    resolved: str = os.path.normpath(os.path.abspath(path_str))
-    base: str = os.path.normpath(os.path.abspath(base_str))
+    resolved: str = str(Path(path_str).resolve())
+    base: str = str(Path(base_str).resolve())
     # Use os.path.commonpath for robust containment check
     # (avoids sibling-path bypass, e.g. "/allowed/base_evil" matching "/allowed/base")
     try:

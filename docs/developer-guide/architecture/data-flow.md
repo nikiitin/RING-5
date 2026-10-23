@@ -57,6 +57,9 @@ thread-safe records are bounded, exposed as immutable snapshots, and scoped to o
 `ApplicationAPI` session. Cancellation distinguishes a request from terminal cancellation, and a
 retry is offered only when the service owns a factory for the complete operation. The web job
 center depends on the application facade and these core models; core does not import Streamlit.
+Callable jobs record their actual execution start. Externally cancelled futures yield a cancelled
+job, including partial cancellations, rather than a successful completion. Queued work cancelled
+before execution has no start timestamp.
 
 Incremental submission first discovers the same bounded file set and hashes complete input
 contents. It filters the normal strategy work items to new or changed paths; it does not introduce
@@ -116,3 +119,15 @@ provenance, and history. `PortfolioMigrator` upgrades older JSON before
 Headless replay loads the same portfolio, renders each restored plot through the selected connector,
 and exports it. A partial restore remains visible; the CLI refuses to upgrade a portfolio when
 re-saving would discard skipped content.
+
+Local configuration imports hold a reentrant thread lock and a portable operating-system file
+lock across logical-name lookup, allocation, and publication. Parse runtimes retain an exclusive
+file lock for their lifetime; startup cleanup removes only unlocked orphan workspaces. Native
+Windows uses `msvcrt`, while Unix uses `flock`. These advisory locks coordinate cooperating
+processes on local filesystems.
+
+Mean and Normalize cache full retained-frame identity, including uncertainties, column labels,
+dtypes, index and semantic attributes. CSV data and metadata caches share precise file identity
+(device, inode, size and nanosecond modification/change times); a file changed during a read is
+rejected rather than published under an earlier signature. Metadata row counts parse CSV records
+so quoted newlines and blank records are handled consistently.
