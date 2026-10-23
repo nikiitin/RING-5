@@ -8,6 +8,7 @@ from collections.abc import Generator
 from pathlib import Path
 from typing import cast
 from unittest.mock import MagicMock, patch
+import os
 
 import pytest
 
@@ -238,9 +239,11 @@ class TestPathService:
     @pytest.fixture(autouse=True)
     def reset_path_caches(self) -> Generator[None, None, None]:
         """Reset PathService class-level caches for test isolation."""
-        PathService.reset_caches()
-        yield
-        PathService.reset_caches()
+        with patch.dict(os.environ):
+            os.environ.pop("RING5_DATA_DIR", None)
+            PathService.reset_caches()
+            yield
+            PathService.reset_caches()
 
     def test_get_root_dir_returns_path(self) -> None:
         root = PathService.get_root_dir()

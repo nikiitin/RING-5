@@ -14,6 +14,7 @@ import pandas as pd
 import pytest
 
 import ring5
+from tests.helpers.html_assertions import assert_plotly_document
 from src.core.services.data_services.path_service import PathService
 
 pytestmark = [pytest.mark.public_api, pytest.mark.xdist_group("ring5_analysis_recipes")]
@@ -159,9 +160,8 @@ def test_parameterized_recipe_round_trip_executes_plots_and_exports(tmp_path: Pa
                 str(output_dir / "values.html"),
                 str(output_dir / "values-copy.html"),
             )
-            assert all(
-                Path(path).read_text().startswith("<html>") for path in result.exported_paths
-            )
+            for path in result.exported_paths:
+                assert_plotly_document(Path(path).read_text(encoding="utf-8"))
             assert session.plots[0].pipeline == []
             assert session.api.get_visualization_config(old_plot.plot_id) is None
 

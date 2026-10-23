@@ -5,29 +5,16 @@
   // Python configuration
   "python.defaultInterpreterPath": "${workspaceFolder}/python_venv/bin/python",
   "python.terminal.activateEnvironment": true,
-  "python.analysis.typeCheckingMode": "strict",
-  "python.analysis.diagnosticSeverityOverrides": {
-    "reportMissingTypeStubs": "warning",
-    "reportUnknownMemberType": "warning",
-    "reportUnknownParameterType": "warning",
-    "reportUnknownVariableType": "warning",
-    "reportUnknownArgumentType": "warning",
-    "reportMissingParameterType": "error",
-    "reportUntypedFunctionDecorator": "warning"
-  },
 
   // Editor behavior
   "editor.suggestSelection": "first",
   "editor.formatOnSave": true,
 
-  // Python formatting
-  "python.formatting.provider": "black",
-  "python.linting.enabled": true,
-  "python.linting.pylintEnabled": false,
-  "python.linting.flake8Enabled": true,
-  "python.linting.banditEnabled": true,
-  "python.linting.mypyEnabled": true,
-  "python.linting.mypyArgs": ["--show-error-codes", "--pretty"],
+  // Python extensions use the repository environment and configuration.
+  "[python]": {"editor.defaultFormatter": "ms-python.black-formatter"},
+  "black-formatter.importStrategy": "fromEnvironment",
+  "flake8.importStrategy": "fromEnvironment",
+  "mypy-type-checker.importStrategy": "fromEnvironment",
 
   // Testing
   "python.testing.pytestEnabled": true,
@@ -64,7 +51,6 @@
   },
 
   // Trunk extension configuration
-  "trunk.pathToTrunk": "${workspaceFolder}/.trunk",
   "trunk.enableFormatOnSave": false,
   "trunk.enableDebugLogs": false
 }

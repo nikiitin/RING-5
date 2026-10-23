@@ -11,6 +11,7 @@ import pandas as pd
 import pytest
 
 import ring5
+from tests.helpers.html_assertions import assert_plotly_document
 
 pytestmark = [pytest.mark.public_api, pytest.mark.xdist_group("ring5_background_jobs")]
 
@@ -62,7 +63,7 @@ def test_background_transformations_and_export_are_non_blocking(tmp_path: Path) 
         exported = _settled(session, export_job.job_id)
         assert exported.kind == "export"
         assert session.background_job_result(exported.job_id) == str(output)
-        assert output.read_text(encoding="utf-8").lstrip().startswith("<html>")
+        assert_plotly_document(output.read_text(encoding="utf-8"))
 
         jobs = session.background_jobs()
         assert isinstance(jobs[0], ring5.BackgroundJobInfo)

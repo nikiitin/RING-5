@@ -7,9 +7,9 @@ export NUMEXPR_NUM_THREADS := $(RING5_NATIVE_THREADS)
 export VECLIB_MAXIMUM_THREADS := $(RING5_NATIVE_THREADS)
 
 VENV_NAME := python_venv
+UV ?= uv
 VENV_BIN := $(VENV_NAME)/bin
 PYTHON := $(VENV_BIN)/python
-PIP := $(VENV_BIN)/pip
 PYTEST := $(VENV_BIN)/pytest
 
 PYTHON_SOURCES := app.py ring5 src scripts tests
@@ -21,8 +21,8 @@ MOCK_CSV := tests/data/mock/inputs/csv/configurer/configurer_test_case01.csv
 COVERAGE_MIN := 84
 NON_BROWSER_TESTS := tests/unit tests/integration tests/ui tests/ui_logic tests/ui_unit \
 	tests/performance tests/tests_principle_compliance
-OFT_VERSION := 4.6.0
-OFT_SHA256 := 4c6194fdd59d5098edb7abd184a8c53002a139794d8a66f10997b27a140bb40a
+OFT_VERSION := 4.11.0
+OFT_SHA256 := f094cd314f0fc4236f513f66fb39260a16f72e2320beb6b4fdeb7940b9b8cf87
 OFT_CACHE_DIR := .cache/openfasttrace
 OFT_JAR := $(OFT_CACHE_DIR)/openfasttrace-$(OFT_VERSION).jar
 OFT_URL := https://repo1.maven.org/maven2/org/itsallcode/openfasttrace/openfasttrace/$(OFT_VERSION)/openfasttrace-$(OFT_VERSION).jar
@@ -34,17 +34,20 @@ OFT_NATIVE_REPORT := $(OFT_CACHE_DIR)/ring5-openfasttrace.html
 OFT_REPORT := spec/oft/generated/report.html
 OFT_EXECUTION_RESULTS_ARG = $(if $(EXECUTION_RESULTS),--execution-results "$(EXECUTION_RESULTS)",)
 
-.PHONY: help venv install dev run example-portfolio playwright-install install-latex check-latex \
+.PHONY: help venv install sync-dev dev lock run example-portfolio playwright-install chrome-install install-latex check-latex \
 	test-data mock-data test test-unit test-nonbrowser test-api test-ci test-export test-latex \
 	test-e2e test-visual \
 	format format-check lint type-check arch-check comments-check docs-check dependency-check \
-	docs-build docs-audit security-audit quality-gate package-check check-outdated pre-commit-install \
+	docs-build docs-audit docs-security security-audit quality-gate package-check check-outdated pre-commit-install \
 	pre-commit oft-generate oft-check oft-download oft-trace oft-trace-all oft-report oft-diff clean
 
 help:
 	@echo "RING-5 development targets"
 	@echo ""
 	@echo "  dev                 Install editable development and browser dependencies"
+	@echo "  sync-dev            Reproduce development dependencies from uv.lock"
+	@echo "  lock                Refresh the dependency lock after editing pyproject.toml"
+	@echo "  chrome-install      Install the Chrome used by Kaleido static exports"
 	@echo "  run                 Start the Streamlit application"
 	@echo "  example-portfolio   Generate the example plot portfolio"
 	@echo "  test-unit           Run fast unit tests"
@@ -66,16 +69,20 @@ help:
 	@echo "  pre-commit          Run all pre-commit hooks"
 
 venv:
-	test -d $(VENV_NAME) || python3 -m venv $(VENV_NAME)
-	$(PIP) install --upgrade pip
+	@command -v $(UV) >/dev/null || { echo "Install uv 0.13.5 before running this target."; exit 1; }
+	test -d $(VENV_NAME) || $(UV) venv --python python3 $(VENV_NAME)
 
 install: venv
-	$(PIP) install .
+	UV_PROJECT_ENVIRONMENT="$(abspath $(VENV_NAME))" $(UV) sync --locked --no-default-groups
 
-dev: venv
-	$(PIP) install -e ".[dev,ci,e2e]"
-	$(VENV_BIN)/playwright install chromium
-	$(MAKE) mock-data
+sync-dev: venv
+	UV_PROJECT_ENVIRONMENT="$(abspath $(VENV_NAME))" $(UV) sync --locked --all-extras
+
+lock:
+	$(UV) lock
+
+dev: sync-dev
+	$(MAKE) playwright-install chrome-install mock-data
 
 run:
 	$(VENV_BIN)/streamlit run app.py
@@ -85,6 +92,9 @@ example-portfolio:
 
 playwright-install: venv
 	$(VENV_BIN)/playwright install chromium
+
+chrome-install:
+	$(VENV_BIN)/kaleido_get_chrome
 
 install-latex:
 	@if command -v apt-get >/dev/null 2>&1; then \
@@ -167,10 +177,10 @@ test-visual:
 		$(PYTEST) tests/visual -n 0 --timeout=120 --no-cov
 
 format:
-	find $(PYTHON_SOURCES) -name '*.py' -print0 | xargs -0 -n 1 $(VENV_BIN)/black --quiet
+	$(VENV_BIN)/black --workers $(RING5_NATIVE_THREADS) $(PYTHON_SOURCES)
 
 format-check:
-	find $(PYTHON_SOURCES) -name '*.py' -print0 | xargs -0 -n 1 $(VENV_BIN)/black --check --diff --quiet
+	$(VENV_BIN)/black --check --diff --workers $(RING5_NATIVE_THREADS) $(PYTHON_SOURCES)
 
 lint:
 	$(VENV_BIN)/flake8 --jobs=1 $(PYTHON_SOURCES) --count --statistics
@@ -196,13 +206,19 @@ docs-build:
 docs-audit:
 	$(PYTHON) scripts/check_built_site.py
 
+docs-security:
+	BUNDLE_GEMFILE=$(CURDIR)/Gemfile bundle exec bundler-audit check --update
+
 dependency-check:
+	$(UV) lock --check
 	$(PYTHON) scripts/analyze_dependencies.py
-	$(PIP) check
+	$(UV) pip check --python $(PYTHON)
 
 security-audit:
 	$(VENV_BIN)/bandit -r ring5 src -c pyproject.toml -ll
-	$(VENV_BIN)/pip-audit --strict --progress-spinner off .
+	@set -eu; requirements=$$(mktemp); trap 'rm -f "$$requirements"' EXIT INT TERM; \
+		$(UV) export --locked --all-extras --no-emit-project --output-file "$$requirements" >/dev/null; \
+		$(VENV_BIN)/pip-audit --strict --progress-spinner off --disable-pip --require-hashes --requirement "$$requirements"
 
 oft-generate:
 	$(PYTHON) scripts/generate_oft_inventory.py
@@ -220,6 +236,7 @@ oft-download:
 		rm -f "$(OFT_JAR)"; \
 	fi
 	@if [ ! -f "$(OFT_JAR)" ]; then \
+		set -eu; \
 		tmp_file=$$(mktemp "$(OFT_CACHE_DIR)/openfasttrace.XXXXXX"); \
 		trap 'rm -f "$$tmp_file"' EXIT INT TERM; \
 		curl --fail --location --silent --show-error "$(OFT_URL)" --output "$$tmp_file"; \
@@ -258,7 +275,7 @@ package-check:
 	$(PYTHON) scripts/check_package_contents.py
 
 check-outdated:
-	$(PIP) list --outdated --format=columns
+	$(UV) pip list --python $(PYTHON) --outdated
 
 pre-commit-install:
 	$(VENV_BIN)/pre-commit install

@@ -1,47 +1,18 @@
-#!/bin/bash
-# RING-5 Quick Launch Script
-# Launches the interactive web application
+#!/usr/bin/env bash
+# Resolve the checkout before looking up its environment or application.
+set -euo pipefail
+cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
 
-echo "RING-5 Interactive Web Application"
-echo "======================"
-echo ""
+if [[ ! -x python_venv/bin/python ]]; then
+    echo "Run 'make dev' in this checkout before launching RING-5." >&2
+    exit 1
+fi
 
-# Bound native numerical runtimes before Streamlit imports pandas/NumPy.
-# Explicit deployment settings remain authoritative.
+# Bound native runtimes before pandas/NumPy are imported.
 export OPENBLAS_NUM_THREADS="${OPENBLAS_NUM_THREADS:-2}"
 export OMP_NUM_THREADS="${OMP_NUM_THREADS:-2}"
 export MKL_NUM_THREADS="${MKL_NUM_THREADS:-2}"
 export NUMEXPR_NUM_THREADS="${NUMEXPR_NUM_THREADS:-2}"
 export VECLIB_MAXIMUM_THREADS="${VECLIB_MAXIMUM_THREADS:-2}"
 
-# Check if virtual environment exists
-if [[ ! -d "python_venv" ]]; then
-	echo "Virtual environment not found!"
-	echo "Run: make build"
-	exit 1
-fi
-
-# Activate virtual environment
-echo "Activating virtual environment..."
-source python_venv/bin/activate
-
-# Check if streamlit is installed
-if ! command -v streamlit &>/dev/null; then
-	echo "Installing Streamlit..."
-	pip install streamlit openpyxl -q
-fi
-
-echo "Environment ready!"
-echo ""
-echo "Starting web application..."
-echo "URL: http://localhost:8501"
-echo ""
-echo "Press Ctrl+C to stop"
-echo "======================"
-echo ""
-
-# Launch Streamlit
-streamlit run app.py --server.headless true
-
-echo ""
-echo "Application stopped."
+exec python_venv/bin/python -m streamlit run app.py --server.headless true "$@"

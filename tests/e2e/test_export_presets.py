@@ -19,6 +19,7 @@ import pytest
 from playwright.sync_api import Page, expect
 
 from tests.e2e.conftest import CHART_TIMEOUT, E2E_TIMEOUT, EXPORT_TIMEOUT
+from tests.helpers.html_assertions import assert_plotly_document
 from tests.visual.pages.manage_plots_page import ManagePlotsPage
 
 pytestmark = pytest.mark.requires_browser
@@ -235,7 +236,7 @@ class TestExportDownload:
         output = tmp_path / download.suggested_filename
         download.save_as(str(output))
         payload = output.read_bytes()
-        assert payload.lower().startswith(b"<html")
+        assert_plotly_document(payload)
         assert b'id="ring5-source-data"' in payload
         assert b"benchmark_name" in payload
 

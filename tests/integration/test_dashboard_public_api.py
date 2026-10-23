@@ -6,6 +6,7 @@ import pandas as pd
 import pytest
 
 import ring5
+from tests.helpers.html_assertions import assert_plotly_document
 
 pytestmark = pytest.mark.public_api
 
@@ -75,7 +76,7 @@ def test_public_dashboard_renders_both_engines_and_exports_whole_figure() -> Non
         assert sum(trace.showlegend is not False for trace in plotly_figure.data) == 1
         assert any(axis.matches for axis in plotly_figure.select_xaxes())
         assert any(axis.matches for axis in plotly_figure.select_yaxes())
-        assert session.export_bytes(plotly_figure, "html").lstrip().startswith(b"<html")
+        assert_plotly_document(session.export_bytes(plotly_figure, "html"))
 
         direct_figure = ring5.render_dashboard(session.plots, dashboard, engine="plotly")
         assert len(direct_figure.data) == 3

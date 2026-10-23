@@ -19,46 +19,27 @@ from __future__ import annotations
 
 import os
 import shutil
-import signal
-import socket
-import subprocess
-import sys
-import time
 from collections.abc import Generator
 from pathlib import Path
 from typing import Any, cast
 
 import pytest
-from playwright.sync_api import Browser, BrowserContext, Page
+from playwright.sync_api import (
+    Browser,
+    BrowserContext,
+    Page,
+    TimeoutError as PlaywrightTimeoutError,
+)
 
+from tests.helpers.streamlit_server import artifact_stem, free_loopback_port, running_streamlit
 from tests.visual.pages.base_page import BasePage
 
 # Helpers
 
 _ROOT_DIR: Path = Path(__file__).parents[2]
 _APP_PY: Path = _ROOT_DIR / "app.py"
-_PYTHON: str = sys.executable
 _SCREENSHOTS_DIR: Path = Path(__file__).parent / "screenshots"
 _ARTIFACTS_DIR: Path = Path(__file__).parent / "artifacts"
-
-
-def _free_port() -> int:
-    """Return a free TCP port on localhost."""
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(("", 0))
-        return int(s.getsockname()[1])
-
-
-def _wait_for_server(port: int, *, timeout: float = 30.0) -> None:
-    """Block until *http://localhost:<port>* responds or timeout expires."""
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        try:
-            with socket.create_connection(("localhost", port), timeout=1.0):
-                return
-        except OSError:
-            time.sleep(0.5)
-    raise TimeoutError(f"Streamlit server did not start within {timeout}s on port {port}")
 
 
 # Session-scoped: server lifecycle
@@ -90,7 +71,7 @@ def _isolated_data_dir(tmp_path_factory: pytest.TempPathFactory) -> Generator[No
 @pytest.fixture(scope="session")
 def _streamlit_port() -> int:
     """Choose a free port once per session."""
-    return _free_port()
+    return free_loopback_port()
 
 
 @pytest.fixture(scope="session")
@@ -103,39 +84,8 @@ def live_server_url(
     The server is started as a subprocess with ``--server.headless true``
     and killed after the entire test session completes.
     """
-    port = _streamlit_port
-    cmd = [
-        _PYTHON,
-        "-m",
-        "streamlit",
-        "run",
-        str(_APP_PY),
-        "--server.port",
-        str(port),
-        "--server.headless",
-        "true",
-        "--server.fileWatcherType",
-        "none",
-        "--browser.gatherUsageStats",
-        "false",
-    ]
-    proc = subprocess.Popen(
-        cmd,
-        cwd=str(_ROOT_DIR),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
-    try:
-        _wait_for_server(port)
-        yield f"http://localhost:{port}"
-    finally:
-        # Graceful shutdown, then force if needed
-        proc.send_signal(signal.SIGTERM)
-        try:
-            proc.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            proc.kill()
-            proc.wait(timeout=5)
+    with running_streamlit(_APP_PY, port=_streamlit_port) as url:
+        yield url
 
 
 # Browser / page configuration
@@ -192,9 +142,9 @@ def _reset_app_state(shared_page: Page, live_server_url: str) -> Generator[None]
 def screenshot_dir(request: pytest.FixtureRequest) -> Path:
     """Return a per-test screenshot directory, cleaned before use.
 
-    Screenshots land in ``tests/visual/screenshots/<test_name>/``.
+    Screenshots land in ``tests/visual/screenshots/<worker-and-test-identity>/``.
     """
-    test_name: str = request.node.name
+    test_name = artifact_stem(request.node.nodeid, os.environ.get("PYTEST_XDIST_WORKER", "main"))
     path = _SCREENSHOTS_DIR / test_name
     if path.exists():
         shutil.rmtree(path)
@@ -206,10 +156,10 @@ def screenshot_dir(request: pytest.FixtureRequest) -> Path:
 def shared_screenshot_dir(request: pytest.FixtureRequest) -> Path:
     """Return a per-class screenshot directory, cleaned once per class.
 
-    Screenshots land in ``tests/visual/screenshots/<ClassName>/``.
+    Screenshots land in ``tests/visual/screenshots/<worker-and-class-identity>/``.
     Used by ordered test classes that share a ``shared_page``.
     """
-    class_name: str = request.node.name
+    class_name = artifact_stem(request.node.nodeid, os.environ.get("PYTEST_XDIST_WORKER", "main"))
     path = _SCREENSHOTS_DIR / class_name
     if path.exists():
         shutil.rmtree(path)
@@ -250,11 +200,18 @@ def _capture_failure_artifacts(
     rep_call = getattr(request.node, "rep_call", None)
     if rep_call is not None and rep_call.failed:
         _ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
-        test_name = request.node.name
-        active_page.screenshot(
-            path=str(_ARTIFACTS_DIR / f"{test_name}_failure.png"),
-            full_page=True,
+        test_name = artifact_stem(
+            request.node.nodeid, os.environ.get("PYTEST_XDIST_WORKER", "main")
         )
+        if not active_page.is_closed():
+            try:
+                active_page.screenshot(
+                    path=str(_ARTIFACTS_DIR / f"{test_name}_failure.png"),
+                    full_page=True,
+                    timeout=10_000,
+                )
+            except PlaywrightTimeoutError:
+                pass
         if tracing:
             context.tracing.stop(path=str(_ARTIFACTS_DIR / f"{test_name}_trace.zip"))
     elif tracing:

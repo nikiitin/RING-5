@@ -9,7 +9,8 @@ permalink: /user-guide/getting-started/installation/
 
 # Install RING-5
 
-RING-5 requires Python 3.12 or newer. Install Git and Make before using the repository targets.
+RING-5 requires Python 3.12 or newer. Install [uv 0.13.5](https://docs.astral.sh/uv/getting-started/installation/)
+for checkout setup. Install Git and Make before using the repository targets.
 Parsing gem5 statistics requires Perl; loading an existing CSV does not.
 
 ## Install a development checkout
@@ -23,7 +24,7 @@ make dev
 ```
 
 The target creates `python_venv`, installs RING-5 in editable mode with development and test
-dependencies, installs Playwright Chromium, and prepares test fixtures. It can take several minutes
+dependencies, installs Playwright Chromium and Kaleido Chrome, and prepares test fixtures. It can take several minutes
 on the first run.
 
 Start the web application:

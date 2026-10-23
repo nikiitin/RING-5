@@ -14,7 +14,7 @@ RING-5 tests the UI at four levels — pick the cheapest that covers the behavio
 | AppTest | `tests/ui/` | `streamlit.testing.v1.AppTest` | no |
 | E2E / visual | `tests/e2e/`, `tests/visual/` | **Playwright** (`requires_browser`), Page Object Model | yes |
 
-Run: `make test-unit` (no-browser), `make test-visual` (browser; spins up Streamlit on :8502).
+Run: `make test-unit` (no-browser), `make test-visual` (browser; starts an isolated Streamlit server).
 E2E marker: `-m requires_browser`. Visual is excluded from default collection.
 
 `tests/ui/conftest.py` clears session-scoped cached resources around every AppTest. Streamlit fixed

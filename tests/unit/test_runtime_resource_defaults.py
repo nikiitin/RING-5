@@ -30,11 +30,14 @@ def test_streamlit_uses_polling_file_watcher() -> None:
 
 
 def test_security_audit_resolves_project_dependencies() -> None:
-    """Audit declared dependencies instead of unrelated host-site packages."""
+    """Audit the complete locked extras without including host-site packages."""
     repository_root = Path(__file__).resolve().parents[2]
     makefile = (repository_root / "Makefile").read_text(encoding="utf-8")
 
-    assert "pip-audit --strict --progress-spinner off ." in makefile
+    target = makefile.split("security-audit:", maxsplit=1)[1].split("oft-generate:", maxsplit=1)[0]
+    assert "export --locked --all-extras --no-emit-project" in target
+    assert "pip-audit --strict" in target
+    assert '--requirement "$$requirements"' in target
 
 
 def test_default_browser_gate_has_bounded_parallelism() -> None:

@@ -5,7 +5,7 @@ transforms tabular results, and renders figures through a Streamlit application 
 `ring5` Python API and CLI. The included parser supports gem5; parser protocols allow additional
 simulators to be added.
 
-RING-5 requires Python 3.12 or newer. Parsing gem5 statistics also requires Perl.
+RING-5 requires Python 3.12 or newer. Parsing gem5 statistics also requires Perl. Checkout setup uses [uv 0.13.5](https://docs.astral.sh/uv/getting-started/installation/).
 
 ## Install and run the web application
 
@@ -17,7 +17,7 @@ make run
 ```
 
 `make dev` creates `python_venv`, installs the application and development dependencies, installs
-the Chromium browser used by Plotly image export, and prepares test data. Open
+Playwright Chromium and the Chrome browser used by Plotly image export, and prepares test data. Open
 <http://localhost:8501> after Streamlit starts.
 
 See the [installation guide](https://nikiitin.github.io/RING-5/user-guide/getting-started/installation/)
