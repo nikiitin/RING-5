@@ -76,7 +76,7 @@ def render(
         default_facet = str(saved_config.get("facet_col", "") or "")
         if default_facet and default_facet in facet_options:
             facet_default_idx = facet_options.index(default_facet)
-        elif "benchmark_name" in facet_options:
+        elif "facet_col" not in saved_config and "benchmark_name" in facet_options:
             facet_default_idx = facet_options.index("benchmark_name")
         else:
             facet_default_idx = 0

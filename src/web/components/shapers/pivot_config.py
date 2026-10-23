@@ -160,7 +160,7 @@ class PivotLongerConfig:
         separator = str(cfg.get("extract_separator", "_"))
 
         # Defaults for variables assigned inside nested conditionals
-        selection_filters: dict[int, list[str]] = {}
+        selection_filters: dict[str, list[str]] = {}
         strategy: str = str(cfg.get("selection_strategy", "discard"))
         merge_label: str = str(cfg.get("merge_label", "other"))
 
@@ -202,7 +202,12 @@ class PivotLongerConfig:
 
                     # --- Selective Value Filtering ---
                     st.markdown("###### Value Filtering")
-                    selection_filters = cast(dict[int, list[str]], cfg.get("selection_filters", {}))
+                    selection_filters = {
+                        str(key): values
+                        for key, values in cast(
+                            dict[str | int, list[str]], cfg.get("selection_filters", {})
+                        ).items()
+                    }
 
                     # We need to know which values are available for each group
                     # to show a selector.
@@ -223,7 +228,7 @@ class PivotLongerConfig:
                         label = labels[i - 1] if i - 1 < len(labels) else f"Group {i}"
 
                         available = sorted(list(group_values.get(i, set())))
-                        selected_vals = selection_filters.get(i, [])
+                        selected_vals = selection_filters.get(str(i), [])
                         selected_vals = [v for v in selected_vals if v in available]
 
                         new_vals = st.multiselect(
@@ -237,7 +242,7 @@ class PivotLongerConfig:
                             ),
                         )
                         if new_vals:
-                            new_selection_filters[i] = new_vals
+                            new_selection_filters[str(i)] = new_vals
 
                     selection_filters = new_selection_filters
 

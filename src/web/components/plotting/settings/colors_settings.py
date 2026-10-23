@@ -10,6 +10,7 @@ Usage::
     config = component.render(saved_config, data=df)
 """
 
+from collections.abc import Callable
 from typing import Any, cast
 
 import pandas as pd
@@ -46,9 +47,16 @@ class ColorsSettingsComponent:
         Plot type identifier (e.g. ``"bar"``, ``"line"``).
     """
 
-    def __init__(self, plot_id: int, plot_type: str) -> None:
+    def __init__(
+        self,
+        plot_id: int,
+        plot_type: str,
+        *,
+        series_renderer: Callable[[dict[str, Any], str], None] | None = None,
+    ) -> None:
         self.plot_id = plot_id
         self.plot_type = plot_type
+        self._series_renderer = series_renderer
 
     def render(
         self,
@@ -374,6 +382,8 @@ class ColorsSettingsComponent:
 
             current_style["color"] = new_color
             current_style["use_color"] = use_custom
+            if self._series_renderer is not None:
+                self._series_renderer(current_style, val_hash)
 
         return current_style
 

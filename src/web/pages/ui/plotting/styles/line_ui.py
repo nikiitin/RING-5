@@ -16,6 +16,9 @@ class LineStyleUI(BaseStyleUI):
         # [impl->req~ring5.figure.series-styling~1]
         with st.expander("Marker & Line", expanded=False):
             symbols = ["circle", "square", "diamond", "cross", "x", "triangle-up", "triangle-down"]
+            saved_symbol = current_style.get("symbol", "circle")
+            if isinstance(saved_symbol, str) and saved_symbol and saved_symbol not in symbols:
+                symbols = [saved_symbol, *symbols]
             new_symbol = st.selectbox(
                 "Marker Symbol",
                 options=symbols,
@@ -31,17 +34,16 @@ class LineStyleUI(BaseStyleUI):
             marker_size = st.number_input(
                 "Marker Size",
                 min_value=0,
-                max_value=50,
-                value=current_style.get("marker_size", 8),
+                value=int(current_style.get("marker_size", 8)),
                 key=f"{key_prefix}msize_{self.plot_id}_{key_suffix}",
             )
             current_style["marker_size"] = marker_size
 
             line_width = st.number_input(
                 "Line Width",
-                min_value=1,
-                max_value=20,
-                value=current_style.get("line_width", 2),
+                min_value=0.0,
+                value=float(current_style.get("line_width", 2.0)),
+                step=0.5,
                 key=f"{key_prefix}lwidth_{self.plot_id}_{key_suffix}",
             )
             current_style["line_width"] = line_width

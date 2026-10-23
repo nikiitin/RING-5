@@ -89,7 +89,7 @@ def configure_shaper(
         except Exception as e:
             st.exception(e)
             logger.error(f"UI: Configuration UI failed for {shaper_type}: {e}", exc_info=True)
-            return cast(ShaperStepConfig, {"type": shaper_type})
+            return cast(ShaperStepConfig, {**safe_config, "type": shaper_type})
 
     logger.warning(f"UI: Unknown shaper type encountered: {shaper_type}")
     return cast(ShaperStepConfig, {"type": shaper_type})

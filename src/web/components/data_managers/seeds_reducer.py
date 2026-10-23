@@ -37,6 +37,7 @@ class SeedsReducerManager(DataManager):
         )
 
         # Get current data
+        source_signature = self.api.preview_input_signature()
         data = self.get_data()
 
         if data is None:
@@ -47,7 +48,11 @@ class SeedsReducerManager(DataManager):
         # Candidates: any column with <=50 unique values OR object/string dtype.
         all_columns: list[str] = list(data.columns)
         candidate_cols: list[str] = [
-            c for c in all_columns if data[c].nunique() <= 50 or data[c].dtype == "object"
+            c
+            for c in all_columns
+            if data[c].nunique() <= 50
+            or pd.api.types.is_string_dtype(data[c].dtype)
+            or isinstance(data[c].dtype, pd.CategoricalDtype)
         ]
 
         if not candidate_cols:
@@ -136,6 +141,12 @@ class SeedsReducerManager(DataManager):
         - This ensures error bars are correctly scaled in normalized plots
         """)
 
+        operation_config = {
+            "reduce_over": reduce_col,
+            "categorical_cols": selected_categorical,
+            "statistic_cols": selected_numeric,
+        }
+
         if st.button(
             "Apply Seeds Reducer",
             key=WidgetKeyBuilder.manager_key("seeds_reducer", "apply"),
@@ -171,28 +182,29 @@ class SeedsReducerManager(DataManager):
                 st.dataframe(result_df.head(20), width="stretch")
 
                 # Store in PreviewRepository via api
-                self.api.set_preview("seeds_reduction", result_df)
+                self._store_preview(
+                    "seeds_reduction", result_df, operation_config, source_signature
+                )
 
             except Exception as e:
                 st.exception(e)
 
         # Separate confirmation button outside the first button's scope
-        if self.api.has_preview("seeds_reduction"):
+        if self._preview_available("seeds_reduction", operation_config):
             if st.button(
                 "Confirm and Apply Seeds Reducer",
                 key=WidgetKeyBuilder.manager_key("seeds_reducer", "confirm"),
                 type="primary",
             ):
-                confirmed_df: pd.DataFrame | None = self.api.get_preview("seeds_reduction")
-                if confirmed_df is not None:
-                    self.set_data(
-                        confirmed_df,
-                        operation="Seeds Reduction (mean + stdev)",
-                    )
-                    self.api.clear_preview("seeds_reduction")
+                confirmation = self._confirm_preview(
+                    "seeds_reduction", operation_config, "Seeds Reduction (mean + stdev)"
+                )
+                if confirmation is not None:
+                    confirmed_df, confirmed_config = confirmation
                     record: OperationRecord = {
-                        "source_columns": selected_categorical + selected_numeric,
-                        "dest_columns": selected_numeric,
+                        "source_columns": confirmed_config["categorical_cols"]
+                        + confirmed_config["statistic_cols"],
+                        "dest_columns": confirmed_config["statistic_cols"],
                         "operation": "Seeds Reduction (mean + stdev)",
                         "timestamp": datetime.now(timezone.utc).isoformat(),
                     }

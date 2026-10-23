@@ -78,9 +78,27 @@ class ConditionSelectorConfig:
                 key=f"{key_prefix}filter_mode_{shaper_id}",
             )
 
-            min_val, max_val = float(data[filter_column].min()), float(data[filter_column].max())
+            finite = data[filter_column].dropna()
+            finite = finite[finite.map(lambda value: float("-inf") < value < float("inf"))]
+            if finite.empty:
+                st.warning(
+                    "This column has no finite values. Choose another column to configure a filter."
+                )
+                return existing_config
+            min_val, max_val = float(finite.min()), float(finite.max())
             if filter_mode == "range":
                 default_range = cast(list[float], existing_config.get("range", [min_val, max_val]))
+                if min_val == max_val:
+                    st.caption(
+                        f"All finite values equal {min_val:g}; this range retains that value."
+                    )
+                    return cast(
+                        ShaperStepConfig,
+                        {"column": filter_column, "mode": "range", "range": [min_val, max_val]},
+                    )
+                default_range = [
+                    max(min_val, min(float(value), max_val)) for value in default_range
+                ]
                 value_range = st.slider(
                     "Value range",
                     min_value=min_val,
@@ -344,9 +362,17 @@ class TransformerConfig:
         """Return the configured target column and data type."""
         col1, col2 = st.columns(2)
         with col1:
+            columns = sorted(data.columns.tolist())
+            saved_column = cast(str | None, existing_config.get("column"))
+            if saved_column and saved_column not in columns:
+                st.warning(
+                    f"Saved transformation column {saved_column!r} is absent. Choose a replacement."
+                )
+                columns = [saved_column, *columns]
             target_col = st.selectbox(
                 "Select Variable to Transform",
-                options=sorted(data.columns.tolist()),
+                options=columns,
+                index=columns.index(saved_column) if saved_column in columns else 0,
                 key=f"{key_prefix}trans_col_{shaper_id}",
             )
         with col2:

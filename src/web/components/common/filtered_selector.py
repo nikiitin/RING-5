@@ -34,52 +34,70 @@ def filtered_selectbox(
     threshold a ``st.text_input`` is rendered for searching and only the top
     ``MAX_DISPLAYED`` matches are shown in the dropdown.
 
+    The current selection stays available across searches, including no matches.
+    The blank option clears it; removal from the source options invalidates it.
+
     Returns the selected option string, or ``None`` if nothing is selected.
     """
-    if len(options) <= SELECTBOX_THRESHOLD:
-        result = st.selectbox(
-            label,
-            options=[""] + options,
-            key=key,
-            help=help,
+    selection_key = f"{key}__selection"
+    visible_key = f"{key}__visible"
+    available = set(options)
+    selected = st.session_state.get(selection_key)
+    if not isinstance(selected, str) or selected not in available:
+        selected = None
+    if key in st.session_state:
+        incoming = st.session_state[key]
+        if incoming in available:
+            selected = incoming
+        elif incoming is None or incoming == "":
+            selected = None
+
+    large = len(options) > SELECTBOX_THRESHOLD
+    filtered = options
+    if large:
+        query = (
+            st.text_input(
+                f"Search ({len(options)} available)",
+                key=f"{key}__search",
+                placeholder=placeholder,
+                help=help,
+            )
+            .strip()
+            .lower()
         )
-        return result if result else None
-
-    # -- Filtered path --
-    search_key = f"{key}__search"
-    query: str = st.text_input(
-        f"Search ({len(options)} available)",
-        key=search_key,
-        placeholder=placeholder,
-        help=help,
-    )
-
-    if query.strip():
-        q = query.strip().lower()
-        filtered = [o for o in options if q in o.lower()]
+        if query:
+            filtered = [option for option in options if query in option.lower()]
+        # The blank clear option and a retained selection count toward the DOM cap.
+        limit = MAX_DISPLAYED - 1
+        displayed = filtered[:limit]
+        if selected is not None and selected not in displayed:
+            displayed = [selected, *displayed[: max(0, limit - 1)]]
+            st.caption("The current selection is retained while filtering.")
+        if not filtered:
+            st.caption("No matches found.")
+        elif len(filtered) > limit:
+            st.caption(f"Showing {len(displayed)} of {len(filtered)} matches — refine your search.")
     else:
-        filtered = options
+        displayed = options
 
-    displayed = filtered[:MAX_DISPLAYED]
-
-    if not displayed:
-        st.caption("No matches found.")
-        return None
-
-    if len(filtered) > MAX_DISPLAYED:
-        st.caption(
-            f"Showing first {MAX_DISPLAYED} of {len(filtered)} matches — refine your search."
-        )
-    elif query.strip():
-        st.caption(f"{len(filtered)} matches.")
-
+    widget_options = ["", *displayed]
+    if key in st.session_state and (
+        st.session_state.get(visible_key) != widget_options
+        or st.session_state[key] not in widget_options
+    ):
+        st.session_state[key] = selected or ""
+    selected_index = widget_options.index(selected) if selected in widget_options else 0
     result = st.selectbox(
         label,
-        options=[""] + displayed,
+        options=widget_options,
+        index=None if key in st.session_state else selected_index,
         key=key,
-        label_visibility="collapsed",
+        help=help,
+        label_visibility="collapsed" if large else "visible",
     )
-    return result if result else None
+    st.session_state[visible_key] = widget_options
+    st.session_state[selection_key] = result if result in available else None
+    return result if result in available else None
 
 
 # filtered_multiselect
@@ -101,85 +119,74 @@ def filtered_multiselect(
 
     Returns the list of selected options (in the order they appear in *options*).
     """
-    if len(options) <= MULTISELECT_THRESHOLD:
-        result: list[str] = st.multiselect(
-            label,
-            options=options,
-            default=default,
-            key=key,
-            help=help,
-            **kwargs,
-        )
-        return result
-
-    # -- Filtered path --
     persist_key = f"{key}__selections"
-    search_key = f"{key}__search"
+    visible_key = f"{key}__visible"
+    reseed_key = f"{key}__reseed"
     options_set = set(options)
-
-    # Initialise persistent selection on first render.
-    if persist_key not in st.session_state:
-        st.session_state[persist_key] = set(default or [])
-    # Prune stale entries that are no longer in the option list.
-    persistent: set[str] = st.session_state[persist_key] & options_set
-
-    # Search input
-    query: str = st.text_input(
-        f"Filter ({len(options)} entries, {len(persistent)} selected)",
-        key=search_key,
-        placeholder="Type to filter...",
-        help=help,
-    )
-
-    if query.strip():
-        q = query.strip().lower()
-        filtered = [o for o in options if q in o.lower()]
-    else:
-        filtered = options
-
-    displayed = filtered[:MAX_DISPLAYED]
-    displayed_set = set(displayed)
-
-    if not displayed:
-        st.caption("No matches found.")
-    elif len(filtered) > MAX_DISPLAYED:
-        st.caption(
-            f"Showing first {MAX_DISPLAYED} of {len(filtered)} matches — refine your search."
+    persistent = set(st.session_state.get(persist_key, default or [])) & options_set
+    previous_visible = set(st.session_state.get(visible_key, []))
+    reseed = bool(st.session_state.pop(reseed_key, False))
+    if key in st.session_state and not reseed:
+        incoming = set(st.session_state[key]) & options_set
+        persistent = (
+            (persistent - previous_visible) | incoming
+            if visible_key in st.session_state
+            else incoming
         )
 
-    # Pre-set widget value to the intersection of persistent selection and
-    # currently visible options.  This avoids Streamlit errors about values
-    # not being in the option list.
-    widget_default = [o for o in displayed if o in persistent]
-    st.session_state[key] = widget_default
-
-    visible_selection: list[str] = st.multiselect(
+    filtered = options
+    large = len(options) > MULTISELECT_THRESHOLD
+    if large:
+        query = (
+            st.text_input(
+                f"Filter ({len(options)} entries, {len(persistent)} selected)",
+                key=f"{key}__search",
+                placeholder="Type to filter...",
+                help=help,
+            )
+            .strip()
+            .lower()
+        )
+        if query:
+            filtered = [option for option in options if query in option.lower()]
+    displayed = filtered[:MAX_DISPLAYED] if large else filtered
+    displayed_set = set(displayed)
+    widget_default = [option for option in displayed if option in persistent]
+    if key in st.session_state and (previous_visible != displayed_set or reseed):
+        st.session_state[key] = widget_default
+    st.session_state[visible_key] = list(displayed)
+    widget_kwargs = dict(kwargs)
+    if large:
+        widget_kwargs.setdefault("label_visibility", "collapsed")
+        if not displayed:
+            st.caption("No matches found.")
+        elif len(filtered) > MAX_DISPLAYED:
+            st.caption(
+                f"Showing first {MAX_DISPLAYED} of {len(filtered)} matches — refine your search."
+            )
+    visible_selection = st.multiselect(
         label,
         options=displayed,
+        default=widget_default if key not in st.session_state else None,
         key=key,
-        label_visibility="collapsed",
+        help=help,
+        **widget_kwargs,
     )
+    persistent = (persistent - displayed_set) | set(visible_selection)
+    st.session_state[persist_key] = persistent
 
-    # Merge back: keep selections not currently visible, update visible ones.
-    new_persistent = {e for e in persistent if e not in displayed_set}
-    new_persistent |= set(visible_selection)
-    st.session_state[persist_key] = new_persistent
-
-    # Bulk actions
-    col_a, col_b, col_c = st.columns([1, 1, 2])
-    with col_a:
-        if st.button("Select all matching", key=f"{key}__sel_all", type="tertiary"):
-            st.session_state[persist_key] = new_persistent | set(filtered)
-            st.rerun()
-    with col_b:
-        if st.button("Clear all", key=f"{key}__clear", type="tertiary"):
-            st.session_state[persist_key] = set()
-            st.rerun()
-    with col_c:
-        total_selected = len(st.session_state[persist_key])
-        if total_selected > 0:
-            st.caption(f"{total_selected} of {len(options)} selected")
-
-    # Return in original option order.
-    final_persistent = st.session_state[persist_key]
-    return [o for o in options if o in final_persistent]
+    if large:
+        col_all, col_clear, col_count = st.columns([1, 1, 2])
+        with col_all:
+            if st.button("Select all matching", key=f"{key}__sel_all", type="tertiary"):
+                st.session_state[persist_key] = persistent | set(filtered)
+                st.session_state[reseed_key] = True
+                st.rerun()
+        with col_clear:
+            if st.button("Clear all", key=f"{key}__clear", type="tertiary"):
+                st.session_state[persist_key] = set()
+                st.session_state[reseed_key] = True
+                st.rerun()
+        with col_count:
+            st.caption(f"{len(st.session_state[persist_key])} of {len(options)} selected")
+    return [option for option in options if option in st.session_state[persist_key]]

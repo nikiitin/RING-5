@@ -141,12 +141,14 @@ class TestPipelineControllerRender:
         # [test->req~ring5.shaping.pipeline-editor~1]
         from src.web.controllers.plot.pipeline_controller import PipelineController
 
-        mock_plot.pipeline = [{"id": 0, "type": "rename", "config": {"mapping": {"x": "X"}}}]
+        mock_plot.pipeline = [
+            {"id": 0, "type": "rename", "config": {"type": "rename", "mapping": {"x": "X"}}}
+        ]
 
         mock_presenter.render_add_shaper.return_value = {"add_clicked": False}
         mock_presenter.render_finalize_button.return_value = True
         mock_step.render_step.return_value = {
-            "new_config": {"mapping": {"x": "X"}},
+            "new_config": {"type": "rename", "mapping": {"x": "X"}},
             "move_up": False,
             "move_down": False,
             "delete": False,

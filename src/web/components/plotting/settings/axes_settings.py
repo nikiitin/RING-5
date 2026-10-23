@@ -48,6 +48,24 @@ _DASH_OPTIONS: list[str] = [
 ]
 
 
+_RIGHT_AXIS_KEYS = {
+    "show_y_grid": "y2show_y_grid",
+    "y_grid_color": "y2_grid_color",
+    "y_grid_width": "y2_grid_width",
+    "y_grid_dash": "y2_grid_dash",
+    "y_grid_alpha": "y2_grid_alpha",
+    "yaxis_tickangle": "yaxis2_tickangle",
+    "yaxis_dtick": "yaxis2_dtick",
+    "show_ytick_marks": "show_y2tick_marks",
+    "yaxis_tick_side": "yaxis2_tick_side",
+    "ytick_dash": "y2tick_dash",
+    "yaxis_title_standoff": "yaxis2_title_standoff",
+    "yaxis_title_vshift": "yaxis2_title_vshift",
+    "y_axis_line_width": "y2_axis_line_width",
+    "y_axis_line_color": "y2_axis_line_color",
+}
+
+
 class SpecificOptionsRenderer(Protocol):
     """Protocol for plot-type-specific advanced option renderers."""
 
@@ -371,10 +389,14 @@ class AxesSettingsComponent:
         prefix : str
             Empty string for left axis, ``"y2"`` for right axis.
         """
+
+        def axis_key(primary: str) -> str:
+            return _RIGHT_AXIS_KEYS[primary] if prefix else primary
+
         label = "Y-Left Axis" if not prefix else "Y-Right Axis"
         st.markdown(f"#### {label} Settings")
 
-        grid_key = f"{prefix}show_y_grid" if prefix else "show_y_grid"
+        grid_key = axis_key("show_y_grid")
         config[grid_key] = toggle(
             "Show Grid",
             saved_config,
@@ -385,10 +407,10 @@ class AxesSettingsComponent:
         )
         if config[grid_key]:
             st.markdown("**Grid Styling**")
-            _ygrid_color_key = f"{prefix}y_grid_color" if prefix else "y_grid_color"
-            _ygrid_width_key = f"{prefix}y_grid_width" if prefix else "y_grid_width"
-            _ygrid_dash_key = f"{prefix}y_grid_dash" if prefix else "y_grid_dash"
-            _ygrid_alpha_key = f"{prefix}y_grid_alpha" if prefix else "y_grid_alpha"
+            _ygrid_color_key = axis_key("y_grid_color")
+            _ygrid_width_key = axis_key("y_grid_width")
+            _ygrid_dash_key = axis_key("y_grid_dash")
+            _ygrid_alpha_key = axis_key("y_grid_alpha")
             _ygc1, _ygc2 = st.columns(2)
             with _ygc1:
                 config[_ygrid_color_key] = color_picker(
@@ -436,10 +458,10 @@ class AxesSettingsComponent:
                     help="0 = fully transparent, 1 = fully opaque",
                 )
 
-        config["yaxis_tickangle"] = slider(
+        config[axis_key("yaxis_tickangle")] = slider(
             "Y-axis Label Rotation",
             saved_config,
-            "yaxis_tickangle",
+            axis_key("yaxis_tickangle"),
             self.plot_id,
             widget_key=f"{prefix}yaxis_angle_{self.plot_id}",
             default=0,
@@ -449,35 +471,35 @@ class AxesSettingsComponent:
             help="Rotate Y-axis labels",
         )
 
-        dtick_key = f"{prefix}yaxis_dtick" if prefix else "yaxis_dtick"
+        dtick_key = axis_key("yaxis_dtick")
         dtick: float = st.number_input(
             f"{label} Step Size (0 for auto)",
             min_value=0.0,
             value=float(saved_config.get(dtick_key) or 0.0),
             key=f"{prefix}ydtick_{self.plot_id}",
         )
-        if dtick > 0:
-            config[dtick_key] = dtick
+        config[dtick_key] = dtick if dtick > 0 else None
 
         # Tick marks
         st.markdown("**Tick Marks & Grid**")
         show_ytick_marks = toggle(
             "Show Y-Axis Tick Marks",
             saved_config,
-            "show_ytick_marks",
+            axis_key("show_ytick_marks"),
             self.plot_id,
             widget_key=f"{prefix}y_show_ticks_{self.plot_id}",
+            default=True,
         )
-        config["show_ytick_marks"] = show_ytick_marks
+        config[axis_key("show_ytick_marks")] = show_ytick_marks
 
-        config["yaxis_tick_side"] = select_option(
+        config[axis_key("yaxis_tick_side")] = select_option(
             "Y-Axis Tick Side",
             ["left", "right"],
             saved_config,
-            "yaxis_tick_side",
+            axis_key("yaxis_tick_side"),
             self.plot_id,
             widget_key=f"{prefix}y_tick_side_{self.plot_id}",
-            default="left",
+            default="right" if prefix else "left",
         )
 
         ytick_dash: str = "solid"
@@ -486,19 +508,19 @@ class AxesSettingsComponent:
                 "Y-Axis Tick Dash Style",
                 _DASH_OPTIONS,
                 saved_config,
-                "ytick_dash",
+                axis_key("ytick_dash"),
                 self.plot_id,
                 widget_key=f"{prefix}y_tickdash_{self.plot_id}",
                 default="solid",
             )
-        config["ytick_dash"] = ytick_dash
+        config[axis_key("ytick_dash")] = ytick_dash
 
         # Y-axis title position
         st.markdown("**Title Position**")
-        config["yaxis_title_standoff"] = slider(
+        config[axis_key("yaxis_title_standoff")] = slider(
             "Y-Axis Title Standoff (Spacing)",
             saved_config,
-            "yaxis_title_standoff",
+            axis_key("yaxis_title_standoff"),
             self.plot_id,
             widget_key=f"{prefix}yaxis_title_standoff_{self.plot_id}",
             default=-1,
@@ -507,10 +529,10 @@ class AxesSettingsComponent:
             help="Distance between Y-axis ticks and the title. -1 = auto (engine default).",
         )
 
-        config["yaxis_title_vshift"] = slider(
+        config[axis_key("yaxis_title_vshift")] = slider(
             "Y-Axis Title Vertical Shift",
             saved_config,
-            "yaxis_title_vshift",
+            axis_key("yaxis_title_vshift"),
             self.plot_id,
             widget_key=f"{prefix}yaxis_title_vshift_{self.plot_id}",
             default=0,
@@ -526,8 +548,8 @@ class AxesSettingsComponent:
 
         # Axis Lines
         st.markdown("**Axis Lines**")
-        width_key = f"{prefix}y_axis_line_width" if prefix else "y_axis_line_width"
-        color_key = f"{prefix}y_axis_line_color" if prefix else "y_axis_line_color"
+        width_key = axis_key("y_axis_line_width")
+        color_key = axis_key("y_axis_line_color")
 
         al_col1, al_col2 = st.columns(2)
         with al_col1:

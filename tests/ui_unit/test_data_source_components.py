@@ -10,7 +10,7 @@ from tests.conftest import columns_side_effect
 
 
 @pytest.fixture
-def mock_streamlit() -> Generator[None, None, None]:
+def mock_streamlit() -> Generator[Any, None, None]:
     with patch("src.web.components.data_source.data_source_components.st") as mock_st:
         mock_st.columns.side_effect = columns_side_effect
         mock_st.session_state = {}
@@ -41,7 +41,7 @@ def mock_api() -> Any:
 
 
 @pytest.fixture
-def mock_card_components() -> Generator[None, None, None]:
+def mock_card_components() -> Generator[Any, None, None]:
     with patch("src.web.components.data_source.data_source_components.CardComponents") as mock_card:
         yield mock_card
 
@@ -65,7 +65,10 @@ def test_render_csv_pool_with_files(
     mock_api.load_csv_pool.return_value = [csv_info]
     mock_api.state_manager.get_csv_pool.return_value = []
 
-    with patch("pathlib.Path.exists", return_value=True):
+    with (
+        patch("pathlib.Path.exists", return_value=True),
+        patch("pathlib.Path.is_file", return_value=True),
+    ):
         mock_card_components.file_info_card.return_value = (True, False, False)
 
         with patch.object(DataSourceComponents, "render_import_preview") as render_preview:
@@ -83,7 +86,10 @@ def test_render_csv_pool_delete(
     mock_api.load_csv_pool.return_value = [csv_info]
     mock_api.state_manager.get_csv_pool.return_value = []
 
-    with patch("pathlib.Path.exists", return_value=True):
+    with (
+        patch("pathlib.Path.exists", return_value=True),
+        patch("pathlib.Path.is_file", return_value=True),
+    ):
         mock_card_components.file_info_card.return_value = (False, False, True)
         mock_api.delete_from_csv_pool.return_value = True
 

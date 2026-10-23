@@ -89,48 +89,22 @@ class PatternIndexSelector:
             st.info(f"Will parse ALL {len(entries)} matching instances")
             return False, entries
 
-        # Render selection for each position
-        st.markdown("**Select which indices to include:**")
-
-        selections: dict[int, list[str]] = {}
-
-        for pos_idx, pos_label in enumerate(positions):
-            if pos_idx not in position_values:
-                continue
-
-            available = sorted(
-                list(position_values[pos_idx]), key=lambda x: int(x) if x.isdigit() else x
-            )
-
-            # Determine defaults
-            if isinstance(current_selection, dict) and pos_idx in current_selection:
-                defaults = [v for v in current_selection[pos_idx] if v in available]
-            else:
-                defaults = available  # All by default
-
-            col1, col2 = st.columns([1, 4])
-
-            with col1:
-                st.markdown(f"**`{pos_label}{{...}}`**")
-
-            with col2:
-                selected = filtered_multiselect(
-                    f"Indices for {pos_label}",
-                    options=available,
-                    default=defaults,
-                    key=f"pattern_pos_{pos_idx}_{var_id}",
-                    help=f"Select which {pos_label} indices to parse",
-                )
-
-                if not selected:
-                    st.warning(f"⚠️ No {pos_label} indices selected!")
-                else:
-                    st.caption(f"✓ Selected {len(selected)}/{len(available)} indices")
-
-                selections[pos_idx] = selected
-
-        # Filter entries based on selections (delegated to service)
-        filtered_entries = PatternIndexService.filter_entries(entries, selections)
+        # Persist concrete entries so correlated multi-position selections remain exact.
+        if isinstance(current_selection, list):
+            defaults = [entry for entry in current_selection if entry in entries]
+        elif isinstance(current_selection, dict):
+            selections = {int(position): values for position, values in current_selection.items()}
+            defaults = PatternIndexService.filter_entries(entries, selections)
+        else:
+            defaults = entries
+        filtered_entries = filtered_multiselect(
+            "Instances to include",
+            options=entries,
+            default=defaults,
+            key=f"pattern_entries_{var_id}",
+            format_func=lambda entry: PatternIndexService.format_entry_display(entry, positions),
+            help="Select exact instances and preserve correlated choices across index positions.",
+        )
 
         # Show summary
         if filtered_entries:

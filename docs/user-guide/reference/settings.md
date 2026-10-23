@@ -56,7 +56,12 @@ Covers:
 -->
 
 Choose a single-column, double-column, or custom publication width and set the height in inches.
-RING-5 derives the Plotly preview dimensions at 100 pixels per inch and uses automatic zero margins.
+RING-5 derives preview dimensions at 100 pixels per inch. Existing pixel dimensions, margins, and
+automatic-margin choices remain intact when opening Layout. New figures use automatic zero margins.
+
+Secondary axis fonts inherit the corresponding primary axis font. Secondary legend text inherits
+the primary legend text size; every legend title follows its own legend text size. Disable
+**Inherit** to choose an independent size.
 
 ### Reuse a figure theme
 

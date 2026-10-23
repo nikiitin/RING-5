@@ -730,10 +730,14 @@ class TestPatternIndexSelector:
         assert use_filter is False
         mock_st.info.assert_called()
 
+    @patch(
+        "src.web.components.data_source.pattern_index_selector.filtered_multiselect",
+        return_value=["0", "1"],
+    )
     @patch("src.web.components.data_source.pattern_index_selector.st")
     @patch("src.web.components.data_source.pattern_index_selector.PatternIndexService")
     def test_render_selector_with_filter_and_selection(
-        self, mock_svc: MagicMock, mock_st: MagicMock
+        self, mock_svc: MagicMock, mock_st: MagicMock, mock_filtered: MagicMock
     ) -> None:
         from src.web.components.data_source.pattern_index_selector import (
             PatternIndexSelector,
@@ -768,6 +772,8 @@ class TestPatternIndexSelector:
         )
         assert use_filter is True
         assert entries == ["0", "1"]
+        mock_filtered.assert_called_once()
+        assert mock_filtered.call_args.kwargs["options"] == ["0", "1", "2"]
         mock_st.success.assert_called()
 
     @patch(
@@ -804,8 +810,9 @@ class TestPatternIndexSelector:
         )
         assert use_filter is True
         assert entries == []
-        mock_st.warning.assert_called()
-        mock_st.error.assert_called()
+        mock_filtered.assert_called_once()
+        mock_st.warning.assert_not_called()
+        mock_st.error.assert_called_once_with("❌ No instances match the current selection!")
 
     @patch("src.web.components.data_source.pattern_index_selector.st")
     @patch("src.web.components.data_source.pattern_index_selector.PatternIndexService")
@@ -933,7 +940,10 @@ class TestDataSourceComponents:
         mock_card.file_info_card.return_value = (False, False, False)
 
         DataSourceComponents.render_csv_pool(api)
-        mock_st.error.assert_called()
+        api.state_manager.set_csv_pool.assert_called_once_with([])
+        mock_card.file_info_card.assert_not_called()
+        mock_st.warning.assert_called_once()
+        mock_st.error.assert_not_called()
 
     @patch("src.web.components.data_source.data_source_components.st")
     @patch("src.web.components.data_source.data_source_components.CardComponents")
@@ -1499,7 +1509,7 @@ class TestDataSourcePage:
         mock_st.segmented_control.return_value = "Upload data or portfolio"
         page = DataSourcePage(api)
         page.render()
-        api.state_manager.set_use_parser.assert_called_with(False)
+        api.state_manager.set_use_parser.assert_not_called()
         mock_st.success.assert_called()
         mock_dsc.render_browser_upload.assert_called_once_with(api)
 

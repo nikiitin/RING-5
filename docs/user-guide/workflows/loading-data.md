@@ -403,6 +403,9 @@ Pattern variables accept the scanner form `system.cpu\d+.ipc` and the equivalent
 form `system\.cpu\d+\.ipc`. Only literal ASCII statistic-name characters and `\d+` numeric
 placeholders are accepted; arbitrary regular expressions are rejected before parsing.
 
+Expected dump repetitions remain editable alongside each variable. **Entries + Statistics** keeps
+both selected ordinary entries and summary members in the parse configuration.
+
 When a pattern has one or more numeric positions, **Select specific indices** filters the discovered
 instances. Enabling it preserves each selected instance as a separate concrete output column;
 leaving it disabled applies the variable type's normal pattern aggregation.

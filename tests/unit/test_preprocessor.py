@@ -214,6 +214,13 @@ class TestPreprocessorRender:
         mock_api.state_manager.get_data.return_value = sample_df
         mock_api.has_preview.return_value = True
         mock_api.get_preview.return_value = preview_df
+        mock_api.confirm_preview.return_value = preview_df
+        mock_api.get_preview_config.return_value = {
+            "operation": "Division",
+            "src1": "cycles",
+            "src2": "instructions",
+            "dest": "ipc",
+        }
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.selectbox.side_effect = ["cycles", "Division", "instructions"]
         mock_st.text_input.return_value = "ipc"
@@ -222,11 +229,18 @@ class TestPreprocessorRender:
 
         mgr = PreprocessorManager(mock_api)
         mgr.render()
-        mock_api.update_selected_dataset.assert_called_once_with(
-            preview_df,
+        mock_api.confirm_preview.assert_called_once_with(
+            "preprocessor",
+            operation_config={
+                "operation": "Division",
+                "src1": "cycles",
+                "src2": "instructions",
+                "dest": "ipc",
+            },
             operation="Preprocessor: Division",
         )
-        mock_api.clear_preview.assert_called_once()
+        mock_api.update_selected_dataset.assert_not_called()
+        mock_api.clear_preview.assert_not_called()
         mock_api.add_manager_history_record.assert_called_once()
 
     @patch("src.web.components.data_managers.preprocessor.HistoryComponents")
@@ -238,6 +252,7 @@ class TestPreprocessorRender:
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_api.has_preview.return_value = True
+        mock_api.preview_matches.return_value = False
         mock_api.get_preview.return_value = None
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.selectbox.side_effect = ["cycles", "Division", "instructions"]

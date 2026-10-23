@@ -59,8 +59,8 @@ def test_seeds_reducer_apply(mock_streamlit: Any, mock_api: Any, sample_data: An
 
     # Setup Manager
     manager = SeedsReducerManager(mock_api)
-    manager.get_data = MagicMock(return_value=sample_data)
-    manager.set_data = MagicMock()
+    setattr(manager, "get_data", MagicMock(return_value=sample_data))
+    setattr(manager, "set_data", MagicMock())
 
     # Mock Interactions
     # Multiselects: Categorical (benchmark), Numeric (value)
@@ -82,7 +82,14 @@ def test_seeds_reducer_apply(mock_streamlit: Any, mock_api: Any, sample_data: An
     mock_api.managers.reduce_seeds.assert_called_once()
 
     # Check result stored via api
-    mock_api.set_preview.assert_called_once_with("seeds_reduction", result_df)
+    mock_api.set_preview.assert_called_once()
+    assert mock_api.set_preview.call_args.args[0] == "seeds_reduction"
+    assert mock_api.set_preview.call_args.args[1] is result_df
+    assert "operation_config" in mock_api.set_preview.call_args.kwargs
+    assert (
+        mock_api.set_preview.call_args.kwargs["source_signature"]
+        is mock_api.preview_input_signature.return_value
+    )
 
 
 def test_seeds_reducer_confirm(mock_streamlit: Any, mock_api: Any, sample_data: Any) -> None:
@@ -91,7 +98,7 @@ def test_seeds_reducer_confirm(mock_streamlit: Any, mock_api: Any, sample_data: 
 
     # Setup Manager
     manager = SeedsReducerManager(mock_api)
-    manager.get_data = MagicMock(return_value=sample_data)
+    setattr(manager, "get_data", MagicMock(return_value=sample_data))
 
     # Pre-load result
     result_df = pd.DataFrame({"benchmark": ["b1"]})
@@ -104,15 +111,23 @@ def test_seeds_reducer_confirm(mock_streamlit: Any, mock_api: Any, sample_data: 
     # Configure mock_api
     mock_api.has_preview.return_value = True
     mock_api.get_preview.return_value = result_df
+    mock_api.confirm_preview.return_value = result_df
+    mock_api.get_preview_config.return_value = {
+        "operation": "Sum",
+        "source_cols": ["value"],
+        "dest_col": "merged",
+        "categorical_cols": ["benchmark"],
+        "statistic_cols": ["value"],
+    }
 
     manager.render()
 
     # Check state updated via api orchestrator
-    mock_api.update_selected_dataset.assert_called_once_with(
-        result_df,
-        operation="Seeds Reduction (mean + stdev)",
+    mock_api.confirm_preview.assert_called_once()
+    assert mock_api.confirm_preview.call_args.args == ("seeds_reduction",)
+    assert (
+        mock_api.confirm_preview.call_args.kwargs["operation"] == "Seeds Reduction (mean + stdev)"
     )
-    mock_api.clear_preview.assert_called_once_with("seeds_reduction")
     mock_st.rerun.assert_called_once()
 
 
@@ -121,7 +136,7 @@ def test_outlier_remover_run(mock_streamlit: Any, mock_api: Any, sample_data: An
     _, mock_st = mock_streamlit
 
     manager = OutlierRemoverManager(mock_api)
-    manager.get_data = MagicMock(return_value=sample_data)
+    setattr(manager, "get_data", MagicMock(return_value=sample_data))
 
     # Interaction:
     # Selectbox (col) -> "value"
@@ -140,4 +155,10 @@ def test_outlier_remover_run(mock_streamlit: Any, mock_api: Any, sample_data: An
 
     mock_api.managers.remove_outliers.assert_called_once()
     # Check result stored via api
-    mock_api.set_preview.assert_called_once_with("outlier_removal", sample_data)
+    mock_api.set_preview.assert_called_once()
+    assert mock_api.set_preview.call_args.args[0] == "outlier_removal"
+    assert mock_api.set_preview.call_args.args[1] is sample_data
+    assert mock_api.set_preview.call_args.kwargs["operation_config"] == {
+        "outlier_col": "value",
+        "group_by_cols": ["benchmark"],
+    }

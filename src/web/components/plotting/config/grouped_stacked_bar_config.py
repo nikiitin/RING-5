@@ -51,13 +51,13 @@ def render(
         filtered_cols: list[str] = [col for col in categorical_cols if col is not None]
         options_list: list[str | None] = [None] + filtered_cols
         group_default_idx: int = 0
-        if saved_config.get("group") and saved_config["group"] in categorical_cols:
-            group_default_idx = categorical_cols.index(saved_config["group"])
+        if saved_config.get("group") in options_list:
+            group_default_idx = options_list.index(saved_config.get("group"))
 
         group_column: str | None = st.selectbox(
             "X-Axis / Minor Grouping (Inner)",
             options=options_list,
-            index=group_default_idx + 1 if saved_config.get("group") else 0,
+            index=group_default_idx,
             key=f"group_{plot_id}",
             help=(
                 "The variable displayed on the X-axis"

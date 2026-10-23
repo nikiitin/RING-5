@@ -55,7 +55,10 @@ class LayoutSettingsComponent:
             "Custom": 0.0,
         }
 
-        default_preset = saved_config.get("document_width_preset", "Double Column (~7.0in)")
+        default_preset = saved_config.get(
+            "document_width_preset",
+            "Custom" if "width" in saved_config else "Double Column (~7.0in)",
+        )
         preset_idx = (
             list(preset_options.keys()).index(default_preset)
             if default_preset in preset_options
@@ -72,14 +75,24 @@ class LayoutSettingsComponent:
         if preset is None:
             preset = "Double Column (~7.0in)"
 
+        saved_width = float(
+            saved_config.get("width_inches", float(saved_config.get("width", 700)) / 100)
+        )
+        saved_height = float(
+            saved_config.get("height_inches", float(saved_config.get("height", 350)) / 100)
+        )
+        if saved_width < 0.1 or saved_height < 0.1:
+            st.warning(
+                "Preview dimensions must be at least 10 pixels (0.1 inches). "
+                "Adjust the saved dimensions."
+            )
         c1, c2 = st.columns(2)
         with c1:
             if preset == "Custom":
                 width_inches = st.number_input(
                     "Width (inches)",
-                    min_value=1.0,
-                    max_value=30.0,
-                    value=float(saved_config.get("width_inches", 7.0)),
+                    min_value=0.1,
+                    value=max(0.1, saved_width),
                     step=0.5,
                     key=f"wi_{self.plot_id}",
                 )
@@ -95,16 +108,15 @@ class LayoutSettingsComponent:
         with c2:
             height_inches = st.number_input(
                 "Height (inches)",
-                min_value=1.0,
-                max_value=30.0,
-                value=float(saved_config.get("height_inches", 3.5)),
+                min_value=0.1,
+                value=max(0.1, saved_height),
                 step=0.5,
                 key=f"hi_{self.plot_id}",
             )
 
         # Plotly expects pixels — scale 1 inch → 100 px for preview.
-        width = int(width_inches * 100)
-        height = int(height_inches * 100)
+        width = round(width_inches * 100)
+        height = round(height_inches * 100)
 
         config: PlotConfig = {
             "document_width_preset": preset,
@@ -112,12 +124,12 @@ class LayoutSettingsComponent:
             "height_inches": height_inches,
             "width": width,
             "height": height,
-            "margin_l": 0,
-            "margin_r": 0,
-            "margin_t": 0,
-            "margin_b": 0,
-            "margin_pad": 0,
-            "automargin": True,
+            "margin_l": saved_config.get("margin_l", 0),
+            "margin_r": saved_config.get("margin_r", 0),
+            "margin_t": saved_config.get("margin_t", 0),
+            "margin_b": saved_config.get("margin_b", 0),
+            "margin_pad": saved_config.get("margin_pad", 0),
+            "automargin": saved_config.get("automargin", True),
         }
         if data is not None:
             config.update(SmallMultiplesSettingsComponent(self.plot_id).render(saved_config, data))
