@@ -28,7 +28,7 @@ conventions and runs the right test layers. For *writing* UI tests, use the
 ## Run the tests (no browser → browser)
 ```bash
 ./python_venv/bin/pytest tests/ui tests/ui_logic tests/ui_unit -q   # AppTest + controllers + mocked-st
-make test-visual                                                    # Playwright, spins Streamlit on :8502
+make test-visual                                                    # Playwright, starts an isolated Streamlit server
 ```
 - `tests/ui/` — Streamlit `AppTest` (no browser). `tests/ui_logic/` — controllers/UI logic.
   `tests/ui_unit/` — components with a mocked `st`.

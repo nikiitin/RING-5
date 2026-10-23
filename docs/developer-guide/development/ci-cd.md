@@ -11,13 +11,15 @@ permalink: /developer-guide/development/ci-cd/
 
 The CI workflow separates quality and package validation, non-browser tests, serial figure exports,
 LaTeX exports, and Streamlit browser tests. The test matrix covers every Python version declared in
-`pyproject.toml`; one job produces the coverage report.
+`pyproject.toml` (3.12–3.15); one job produces the coverage report. Python jobs install the
+checked-in `uv.lock` with uv 0.13.5. An installed-wheel smoke job exercises a headless CSV-to-SVG
+workflow on Linux, macOS, and Windows outside the source checkout.
 
 Run the corresponding local targets before pushing:
 
 ```bash
 make quality-gate
-make docs-build docs-audit
+make docs-build docs-audit docs-security
 make package-check
 make test-ci
 make test-export
@@ -26,7 +28,7 @@ make test-e2e
 ```
 
 The documentation CI job installs the locked root `Gemfile`, performs a Jekyll production build,
-then audits canonical routes, redirects, assets, and internal links in `_site/`. This catches theme
+audits the locked gems against current advisories, then audits canonical routes, redirects, assets, and internal links in `_site/`. This catches theme
 or plugin mismatches that a Markdown-only check cannot see. CodeQL runs separately on pushes, pull
 requests, and its scheduled audit. GitHub Pages uses the same locked build and audit path, and
 deploys only from `main`.

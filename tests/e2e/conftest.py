@@ -18,11 +18,6 @@ Usage::
 from __future__ import annotations
 
 import os
-import signal
-import socket
-import subprocess
-import sys
-import time
 from collections.abc import Generator
 from pathlib import Path
 from typing import Any, cast
@@ -37,6 +32,7 @@ from playwright.sync_api import (
 )
 
 # Page objects — reuse from visual tests
+from tests.helpers.streamlit_server import artifact_stem, free_loopback_port, running_streamlit
 from tests.visual.pages.base_page import BasePage
 from tests.visual.pages.data_managers_page import DataManagersPage
 from tests.visual.pages.data_source_page import DataSourcePage
@@ -46,11 +42,9 @@ from tests.visual.pages.manage_plots_page import ManagePlotsPage
 
 _ROOT_DIR: Path = Path(__file__).parents[2]
 _APP_PY: Path = _ROOT_DIR / "app.py"
-_PYTHON: str = sys.executable
 _FIXTURES_DIR: Path = Path(__file__).parent / "fixtures"
 _ARTIFACTS_DIR: Path = Path(__file__).parent / "artifacts"
 _E2E_CSV: Path = _FIXTURES_DIR / "sample_data.csv"
-_LOOPBACK_HOST = "127.0.0.1"
 
 # Timeouts
 LOAD_TIMEOUT: int = 30_000
@@ -68,25 +62,6 @@ EXPORT_TIMEOUT: int = 90_000
 
 
 # Helpers
-
-
-def _free_port() -> int:
-    """Return a free IPv4 loopback TCP port."""
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind((_LOOPBACK_HOST, 0))
-        return int(s.getsockname()[1])
-
-
-def _wait_for_server(port: int, *, timeout: float = 30.0) -> None:
-    """Block until *http://localhost:<port>* responds or timeout expires."""
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        try:
-            with socket.create_connection((_LOOPBACK_HOST, port), timeout=1.0):
-                return
-        except OSError:
-            time.sleep(0.5)
-    raise TimeoutError(f"Streamlit server did not start within {timeout}s on port {port}")
 
 
 # Session-scoped: server lifecycle
@@ -122,7 +97,7 @@ def _isolated_data_dir(tmp_path_factory: pytest.TempPathFactory) -> Generator[No
 @pytest.fixture(scope="session")
 def _streamlit_port() -> int:
     """Choose a free port once per session."""
-    return _free_port()
+    return free_loopback_port()
 
 
 @pytest.fixture(scope="session")
@@ -132,42 +107,8 @@ def live_server_url(_streamlit_port: int, _isolated_data_dir: None) -> Generator
     Depends on ``_isolated_data_dir`` so ``RING5_DATA_DIR`` is exported before the
     server subprocess (which inherits ``os.environ``) starts.
     """
-    port = _streamlit_port
-    cmd = [
-        _PYTHON,
-        "-m",
-        "streamlit",
-        "run",
-        str(_APP_PY),
-        "--server.port",
-        str(port),
-        "--server.address",
-        _LOOPBACK_HOST,
-        "--server.headless",
-        "true",
-        "--server.fileWatcherType",
-        "none",
-        "--browser.gatherUsageStats",
-        "false",
-    ]
-    proc = subprocess.Popen(
-        cmd,
-        cwd=str(_ROOT_DIR),
-        # Inherit the test runner's streams so application startup/runtime
-        # failures remain visible in CI.  A pipe cannot be used here because
-        # this long-lived process has no consumer and can deadlock once its
-        # buffer fills.
-    )
-    try:
-        _wait_for_server(port)
-        yield f"http://{_LOOPBACK_HOST}:{port}"
-    finally:
-        proc.send_signal(signal.SIGTERM)
-        try:
-            proc.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            proc.kill()
-            proc.wait(timeout=5)
+    with running_streamlit(_APP_PY, port=_streamlit_port) as url:
+        yield url
 
 
 # Browser / page configuration
@@ -267,7 +208,9 @@ def _capture_failure_artifacts(request: pytest.FixtureRequest) -> Generator[None
     rep_call = getattr(request.node, "rep_call", None)
     if rep_call is not None and rep_call.failed:
         _ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
-        test_name = request.node.name
+        test_name = artifact_stem(
+            request.node.nodeid, os.environ.get("PYTEST_XDIST_WORKER", "main")
+        )
         if not active_page.is_closed():
             try:
                 active_page.screenshot(

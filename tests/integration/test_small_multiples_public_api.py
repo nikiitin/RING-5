@@ -8,6 +8,7 @@ import pandas as pd
 import pytest
 
 import ring5
+from tests.helpers.html_assertions import assert_plotly_document
 
 pytestmark = pytest.mark.public_api
 
@@ -74,7 +75,7 @@ def test_small_multiples_render_both_engines_in_order_without_mutation() -> None
         assert all(axis.matches == "x" for axis in xaxes[1:])
         assert all(axis.matches == "y" for axis in yaxes[1:])
         assert len({trace.marker.color for trace in plotly_figure.data}) == 1
-        assert session.export_bytes(plotly_figure, "html").lstrip().startswith(b"<html")
+        assert_plotly_document(session.export_bytes(plotly_figure, "html"))
 
         direct = ring5.render_small_multiples(session.plots, spec, engine="plotly")
         assert len(direct.data) == 3

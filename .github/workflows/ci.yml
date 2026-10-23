@@ -15,54 +15,56 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@26e5b7d197ebf60545ee9667bcbace0be11ccaec # v1.334.0
         with:
           ruby-version: "3.3"
           bundler-cache: true
 
       - name: Set up Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
 
       - name: Build and audit documentation
         run: |
           python -m venv python_venv
-          make docs-build docs-audit
+          make docs-build docs-audit docs-security
 
   oft:
     name: OpenFastTrace HTML report
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
-          cache: pip
 
       - name: Set up Java
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: "17"
 
+      - name: Set up uv
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: "0.13.5"
+          enable-cache: true
+
       - name: Install application
-        run: |
-          python -m venv python_venv
-          python_venv/bin/python -m pip install "pip==26.2.1"
-          python_venv/bin/pip install -e .
+        run: make sync-dev
 
       - name: Generate and verify OFT report
         run: make oft-report
 
       - name: Upload OFT HTML report
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ring5-openfasttrace-report
           path: spec/oft/generated/report.html
@@ -74,19 +76,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
-          cache: pip
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: "0.13.5"
+          enable-cache: true
 
       - name: Install exact dependencies
-        run: |
-          python -m venv python_venv
-          python_venv/bin/python -m pip install "pip==26.2.1"
-          python_venv/bin/pip install -e ".[dev,ci]"
+        run: make sync-dev
 
       - name: Run quality gate
         run: make quality-gate
@@ -101,29 +105,29 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.12", "3.13", "3.14"]
+        python-version: ["3.12", "3.13", "3.14", "3.15"]
     steps:
       - name: Check out repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ matrix.python-version }}
-          cache: pip
 
       - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y perl
 
+      - name: Set up uv
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: "0.13.5"
+          enable-cache: true
+
       - name: Install exact dependencies
-        run: |
-          python -m venv python_venv
-          python_venv/bin/python -m pip install "pip==26.2.1"
-          # The coverage gate collects the full test tree before marker filtering,
-          # so its environment must be able to import the E2E conftest module.
-          python_venv/bin/pip install -e ".[dev,ci,e2e]"
+        run: make sync-dev
 
       - name: Prepare test fixtures
         run: make test-data mock-data
@@ -138,7 +142,7 @@ jobs:
 
       - name: Upload coverage
         if: matrix.python-version == '3.12'
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           files: ./coverage.xml
           flags: unittests
@@ -153,22 +157,24 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.12", "3.13", "3.14"]
+        python-version: ["3.12", "3.13", "3.14", "3.15"]
     steps:
       - name: Check out repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ matrix.python-version }}
-          cache: pip
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: "0.13.5"
+          enable-cache: true
 
       - name: Install exact dependencies
-        run: |
-          python -m venv python_venv
-          python_venv/bin/python -m pip install "pip==26.2.1"
-          python_venv/bin/pip install -e ".[dev,ci]"
+        run: make sync-dev
 
       - name: Install Chrome for Kaleido
         run: python_venv/bin/kaleido_get_chrome
@@ -182,27 +188,67 @@ jobs:
     needs: quality
     steps:
       - name: Check out repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
-          cache: pip
 
       - name: Install LaTeX
         run: |
           sudo apt-get update
           sudo apt-get install -y texlive-latex-base texlive-fonts-recommended texlive-xetex cm-super
 
+      - name: Set up uv
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: "0.13.5"
+          enable-cache: true
+
       - name: Install exact dependencies
-        run: |
-          python -m venv python_venv
-          python_venv/bin/python -m pip install "pip==26.2.1"
-          python_venv/bin/pip install -e ".[dev,ci]"
+        run: make sync-dev
 
       - name: Run LaTeX export tests
         run: make test-latex
+
+  wheel-smoke:
+    name: Installed wheel (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: quality
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            interpreter: bin/python
+          - os: macos-latest
+            interpreter: bin/python
+          - os: windows-latest
+            interpreter: Scripts/python.exe
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: "0.13.5"
+      - name: Build and install wheel
+        run: |
+          uv build --wheel
+          uv venv --python 3.12 "$RUNNER_TEMP/ring5-wheel"
+          uv pip install --python "$RUNNER_TEMP/ring5-wheel/${{ matrix.interpreter }}" dist/*.whl
+      - name: Exercise installed public API outside the checkout
+        run: |
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/ring5-wheel/${{ matrix.interpreter }}" "$GITHUB_WORKSPACE/scripts/verify_installation.py"
 
   e2e:
     name: Streamlit E2E
@@ -211,19 +257,21 @@ jobs:
     needs: quality
     steps:
       - name: Check out repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
-          cache: pip
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: "0.13.5"
+          enable-cache: true
 
       - name: Install exact dependencies
-        run: |
-          python -m venv python_venv
-          python_venv/bin/python -m pip install "pip==26.2.1"
-          python_venv/bin/pip install -e ".[dev,ci,e2e]"
+        run: make sync-dev
 
       - name: Install Chromium
         run: python_venv/bin/playwright install --with-deps chromium
@@ -233,3 +281,15 @@ jobs:
 
       - name: Run E2E tests
         run: make test-e2e
+
+      - name: Upload browser failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: browser-failure-diagnostics
+          path: |
+            tests/e2e/artifacts/
+            tests/visual/artifacts/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 14

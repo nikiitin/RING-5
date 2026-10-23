@@ -7,14 +7,29 @@ cli:
 plugins:
   sources:
     - id: trunk
-      ref: v1.7.4
+      ref: v1.11.0
       uri: https://github.com/trunk-io/plugins
+# The plugin catalog currently stops at Python 3.14.4. Use the maintained
+# standalone build for this runtime until the catalog includes this release.
+downloads:
+  - name: python
+    downloads:
+      - version: 3.14.9
+        os:
+          linux: unknown-linux-gnu
+          macos: apple-darwin
+          windows: pc-windows-msvc
+        cpu:
+          x86_64: x86_64
+          arm_64: aarch64
+        url: https://github.com/astral-sh/python-build-standalone/releases/download/20261021/cpython-${version}+20261021-${cpu}-${os}-install_only_stripped.tar.gz
+        strip_components: 1
 # Many linters and tools depend on runtimes - configure them here. (https://docs.trunk.io/runtimes)
 runtimes:
   enabled:
-    - go@1.21.0
-    - node@22.16.0
-    - python@3.10.8
+    - go@1.27.3
+    - node@24.22.1
+    - python@3.14.9
 # This is the section where you manage your linters. (https://docs.trunk.io/check/configuration)
 lint:
   ignore:
@@ -41,26 +56,26 @@ lint:
             --show-column-numbers ${target}
           success_codes: [0, 1]
   enabled:
-    - oxipng@10.1.0
-    - pyright@1.1.408
-    - flake8@7.3.0
-    - mypy@1.19.1
-    - black@26.1.0:
+    - oxipng@10.2.1
+    - pyright@1.1.414
+    - flake8@7.4.1
+    - mypy@2.4.0
+    - black@26.10.1:
         extra_args: [--config=pyproject.toml]
-    - hadolint@2.14.0
-    - actionlint@1.7.11
-    - isort@8.0.1
+    - hadolint@2.15.1
+    - actionlint@1.7.12
+    - isort@9.0.2
     - bandit@1.9.4:
         extra_args: [-c, pyproject.toml]
-    - checkov@3.2.506
+    - checkov@3.3.30
     - git-diff-check
-    - markdownlint@0.47.0
-    - prettier@3.8.1
-    - ruff@0.15.4
+    - markdownlint@0.49.1
+    - prettier@3.9.10
+    - ruff@0.17.2
     - shellcheck@0.11.0
-    - shfmt@3.6.0
+    - shfmt@3.14.1
     - taplo@0.10.0
-    - trufflehog@3.93.6
+    - trufflehog@3.99.4
     - yamllint@1.38.0
 actions:
   disabled:

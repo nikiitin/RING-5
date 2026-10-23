@@ -10,35 +10,20 @@ enforced by pre-commit, CI, and `make arch-check`. This skill is the gate: run i
 violation, fix at the source (never weaken the check).
 
 ## Run it
+
 ```bash
-make arch-check        # the 8 boundary greps below — exits non-zero on any violation
-make quality-gate      # arch + mypy + black + flake8 + security, one summary (CI-equivalent)
+make arch-check
+make quality-gate
 ```
-`make arch-check` runs exactly these 8 checks (each must return empty):
-1. **no Streamlit in core** — `import streamlit`/`from streamlit` under `src/core/`
-2. **no session_state in core** — `session_state` under `src/core/`
-3. **no `inplace=True`** — anywhere under `src/`
-4. **no bare `except:`** — anywhere under `src/`
-5. **no `eval(`/`exec(`** — under `src/` (excluding tests)
-6. **models → services** — `src/core/models/` must not import `src.core.services` (models depend on nobody)
-7. **parsing → core.services** — `src/parsing/` (Layer A) must not import `src.core.services` (Layer B)
-8. **web → concrete state** — `src/web/` must not name `repository_state_manager` (use the
-   `StateManager` protocol via the `ApplicationAPI` facade)
 
-The same 8 live as local hooks in `.pre-commit-config.yaml` (ids `no-streamlit-in-core` …
-`no-web-to-state-manager`). `make quality-gate` folds a subset into Gate 1 plus mypy/black/flake8/bandit.
+`make arch-check` runs `scripts/check_architecture.py`. The AST checker inspects production
+imports, layer boundaries, session-state access, mutation flags, bare exception handlers, dynamic
+execution, and ellipsis statements. The local `architecture` pre-commit hook runs the same script.
+The required invariants are defined in [AGENTS.md](../../../AGENTS.md).
 
-## The hard architecture rules
-1. **Git is human-only** — never run git mutations.
-2. No Streamlit / `session_state` in `src/core/` or `src/parsing/` (UI state lives only in `src/web/`).
-3. No `inplace=True` on DataFrames in `src/` — return new objects (`.copy()` first).
-4. No bare `except:` — catch specific exceptions; raise/log, never silently swallow.
-5. No `eval()`/`exec()` in `src/`; no `pickle.load` on untrusted data.
-6. **Never fabricate data** — a failed gem5 regex must raise/log, never guess a value.
-7. **Async parse/scan only** — never add a synchronous wrapper.
-
-Rules 6 and 7 are **not greppable** — verify them by reading the touched code, not just by a green
-`make arch-check`. The fabrication rule is the highest-stakes one (see [[ring5-arch-audit-2026-06]]).
+Read touched parsing paths to verify that failures remain visible and submit/finalize contracts
+are preserved. Syntax checks cannot prove those behavioral properties. Git operations follow the
+user's instructions and must preserve unrelated work.
 
 ## What "fix at the source" means
 - Web needs core data? Go through `ApplicationAPI` (`api.managers`/`api.data_services`/`api.shapers`),
@@ -49,12 +34,10 @@ Rules 6 and 7 are **not greppable** — verify them by reading the touched code,
 - Tempted to add `# noqa`/`inplace=True`/a bare except to pass? That's the violation, not the fix.
 
 ## Keep this skill sharp
-This skill is canon, not history — edit it in place (present tense, no changelog) when it drifts:
-- The 8 checks above mirror `arch-check:` in the `Makefile` and the local hooks in
-  `.pre-commit-config.yaml`. If those change, re-read them and update this list — they are the
-  source of truth, this is a summary.
-- When the gate catches a failure mode worth remembering, add it here; if it's a durable project
-  fact, document it in the relevant repository-owned developer guide.
+
+Keep this guide aligned with `scripts/check_architecture.py`, the Make targets, and the local
+pre-commit hooks. Document durable contracts in the developer guide.
 
 ## Verify after
+
 `make arch-check && make quality-gate`

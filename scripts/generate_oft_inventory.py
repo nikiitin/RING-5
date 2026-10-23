@@ -20,6 +20,7 @@ import inspect
 import json
 import re
 import sys
+import yaml
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import fields
 from pathlib import Path
@@ -350,39 +351,43 @@ def validate_ci_oft_artifact(root: Path = ROOT) -> list[str]:
     # [impl->req~ring5.trace.ci-html-artifact~1]
     workflow_path = root / CI_WORKFLOW_PATH
     try:
-        lines = workflow_path.read_text(encoding="utf-8").splitlines()
-    except OSError as exc:
+        document = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as exc:
         return [f"could not read {CI_WORKFLOW_PATH.as_posix()}: {exc}"]
-
-    header = "  oft:"
-    try:
-        start = lines.index(header) + 1
-    except ValueError:
+    jobs = document.get("jobs", {}) if isinstance(document, dict) else {}
+    job = jobs.get("oft") if isinstance(jobs, dict) else None
+    if not isinstance(job, dict):
         return ["CI workflow is missing the dedicated 'oft' job"]
-
-    end = len(lines)
-    for index in range(start, len(lines)):
-        line = lines[index]
-        if line.startswith("  ") and not line.startswith("    ") and line.endswith(":"):
-            end = index
-            break
-    job = "\n".join(lines[start:end])
-    required_tokens = {
-        "the human-readable job name": "name: OpenFastTrace HTML report",
-        "Java setup": "uses: actions/setup-java@v5",
-        "the pinned Java runtime": 'java-version: "17"',
-        "application installation": "python_venv/bin/pip install -e .",
-        "OFT report generation": "make oft-report",
-        "artifact upload": "uses: actions/upload-artifact@v7",
-        "the report artifact name": "name: ring5-openfasttrace-report",
-        "the generated HTML path": "path: spec/oft/generated/report.html",
-        "missing-artifact failure behavior": "if-no-files-found: error",
+    steps = job.get("steps", [])
+    if not isinstance(steps, list):
+        return ["CI OFT job steps must be a list"]
+    actions = {
+        step["uses"].partition("@")[0]: step
+        for step in steps
+        if isinstance(step, dict) and isinstance(step.get("uses"), str)
     }
-    return [
-        f"CI OFT job is missing {label} ({token!r})"
-        for label, token in required_tokens.items()
-        if token not in job
-    ]
+    commands = "\n".join(
+        step["run"] for step in steps if isinstance(step, dict) and isinstance(step.get("run"), str)
+    )
+    java = actions.get("actions/setup-java", {}).get("with", {})
+    upload = actions.get("actions/upload-artifact", {}).get("with", {})
+    if not isinstance(upload, dict):
+        upload = {}
+    java_version = str(java.get("java-version", "")) if isinstance(java, dict) else ""
+    checks = {
+        "the human-readable job name": job.get("name") == "OpenFastTrace HTML report",
+        "Java setup": "actions/setup-java" in actions,
+        "the supported Java runtime": java_version.isdigit() and int(java_version) >= 17,
+        "application installation": bool(
+            re.search(r"make\s+sync-dev\b|pip\s+install\s+-e\s+\.", commands)
+        ),
+        "OFT report generation": bool(re.search(r"make\s+oft-report\b", commands)),
+        "artifact upload": "actions/upload-artifact" in actions,
+        "the report artifact name": upload.get("name") == "ring5-openfasttrace-report",
+        "the generated HTML path": upload.get("path") == "spec/oft/generated/report.html",
+        "missing-artifact failure behavior": upload.get("if-no-files-found") == "error",
+    }
+    return [f"CI OFT job is missing {label}" for label, valid in checks.items() if not valid]
 
 
 def _validate_requirement_history(

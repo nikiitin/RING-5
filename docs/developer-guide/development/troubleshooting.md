@@ -16,7 +16,7 @@ redirect_from:
 
 ## The environment is inconsistent
 
-Run `python_venv/bin/python --version` and `python_venv/bin/pip check`. Re-run `make dev` after a
+Run `python_venv/bin/python --version` and `uv pip check --python python_venv/bin/python`. Re-run `make dev` after a
 dependency change. Do not mix a globally installed command with modules from `python_venv`.
 
 ## Tests cannot find fixture data
