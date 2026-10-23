@@ -9,9 +9,12 @@ import socket
 import subprocess
 import sys
 import time
+import uuid
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from pathlib import Path
+from urllib.error import URLError
+from urllib.request import urlopen
 
 
 def free_loopback_port() -> int:
@@ -50,15 +53,24 @@ def running_streamlit(
         script: Application entry point.
         port: Selected loopback port.
         environment: Environment overrides added to the caller's environment.
-        startup_timeout: Maximum seconds to wait for the listening socket.
+        startup_timeout: Maximum seconds to wait for the owned health endpoint.
 
     Yields:
-        Server base URL after its socket becomes reachable.
+        Server URL under an invocation-specific path after it becomes healthy.
 
     Raises:
-        RuntimeError: The server exits before becoming reachable.
+        RuntimeError: The port is occupied or the server exits during startup.
         TimeoutError: Startup exceeds the deadline.
     """
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as reservation:
+        try:
+            reservation.bind(("127.0.0.1", port))
+        except OSError as exc:
+            raise RuntimeError(f"Streamlit test port {port} is already occupied.") from exc
+    # A fresh base path distinguishes this invocation even if another listener
+    # wins the small bind-to-launch race after the availability check.
+    base_path = f"_ring5_test_{uuid.uuid4().hex}"
+    url = f"http://127.0.0.1:{port}/{base_path}"
     process = subprocess.Popen(
         [
             sys.executable,
@@ -70,6 +82,8 @@ def running_streamlit(
             str(port),
             "--server.address",
             "127.0.0.1",
+            "--server.baseUrlPath",
+            base_path,
             "--server.headless",
             "true",
             "--server.fileWatcherType",
@@ -86,13 +100,16 @@ def running_streamlit(
             if process.poll() is not None:
                 raise RuntimeError(f"Streamlit exited during startup: {process.returncode}")
             try:
-                with socket.create_connection(("127.0.0.1", port), timeout=0.5):
+                with urlopen(url + "/_stcore/health", timeout=0.5) as response:
+                    healthy = response.status == 200 and response.read(16) == b"ok"
+                if healthy and process.poll() is None:
                     break
-            except OSError:
-                if time.monotonic() >= deadline:
-                    raise TimeoutError("Streamlit did not start before the deadline.")
-                time.sleep(0.1)
-        yield f"http://127.0.0.1:{port}"
+            except (OSError, URLError):
+                pass
+            if time.monotonic() >= deadline:
+                raise TimeoutError("Streamlit did not start before the deadline.")
+            time.sleep(0.1)
+        yield url
     finally:
         if process.poll() is None:
             process.terminate()
