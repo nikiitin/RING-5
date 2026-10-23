@@ -27,6 +27,11 @@ class AutosaveRecovery(BasePage):
     def recover_button(self) -> Locator:
         return self.expander.get_by_role("button", name="Recover", exact=True)
 
+    @property
+    def save_button(self) -> Locator:
+        """Return the action that captures the current workspace immediately."""
+        return self.expander.get_by_role("button", name="Save recovery draft now", exact=True)
+
     def open(self) -> None:
         expect(self.expander).to_be_visible(timeout=self.RENDER_TIMEOUT)
         details = self.expander.locator("[data-testid='stExpanderDetails']")
@@ -37,6 +42,12 @@ class AutosaveRecovery(BasePage):
     def assert_draft_available(self) -> None:
         self.open()
         expect(self.recovery_point).to_be_visible(timeout=self.RENDER_TIMEOUT)
+
+    def save_current_workspace(self) -> None:
+        """Capture the active workspace before replacing its browser session."""
+        self.open()
+        self.save_button.click()
+        self.wait_for_streamlit(expect_rerun=True)
 
     def recover(self) -> None:
         self.assert_draft_available()
