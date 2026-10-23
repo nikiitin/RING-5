@@ -20,6 +20,9 @@ from typing import Any
 
 from src.core.models.data_models import ScannedVariableDict
 
+# Shared by durable parse requests and incremental rows; bump on semantic changes.
+PARSER_RESULT_VERSION = 3
+
 # Type alias for StatConfig parameter values
 StatParamValue = str | int | float | bool | list[str] | None
 

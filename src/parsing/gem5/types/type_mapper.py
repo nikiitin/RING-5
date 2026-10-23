@@ -63,7 +63,11 @@ class TypeMapper:
 
     @staticmethod
     def is_scalar_pattern_vector(config: StatConfig, concrete_names: Sequence[str]) -> bool:
-        """Identify a scanner vector whose entries are concrete scalar indices."""
+        """Identify a scanner vector whose entries are concrete scalar indices.
+
+        Raises:
+            ValueError: Legacy metadata cannot distinguish scalar indices from vector entries.
+        """
         source_type = config.params.get("source_type")
         if source_type is not None:
             return config.type == "vector" and source_type == "scalar"
@@ -77,7 +81,13 @@ class TypeMapper:
             ]
         except SafeRegexError:
             return False
-        return all(index is not None for index in indices) and set(indices) == set(entries)
+        if all(index is not None for index in indices) and set(indices) == set(entries):
+            raise ValueError(
+                f"PARSER: Original source type for {config.name!r} is ambiguous "
+                "in saved scan metadata. "
+                "Scan the simulator files again before parsing this pattern."
+            )
+        return False
 
     @classmethod
     def create_stat(cls, var_config: StatConfig | Mapping[str, StatParamValue] | Any) -> "StatType":

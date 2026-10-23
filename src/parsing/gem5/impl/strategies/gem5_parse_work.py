@@ -219,17 +219,10 @@ class Gem5ParseWork(ParseWork):
 
         normalizedVarType: str = TypeMapper.normalize_type(varType)
 
-        # For Histogram, determine handling based on target configuration
-        if normalizedVarType == "histogram":
-            if expectedType == "vector":
-                normalizedVarType = "vector"
-            elif expectedType in ("distribution", "histogram"):
-                normalizedVarType = expectedType
-        elif normalizedVarType == "vector" and expectedType == "distribution":
-            normalizedVarType = "distribution"
-        elif normalizedVarType == "vector" and expectedType == "histogram":
-            # Vector statistics (::samples, ::mean, ::total) are part of histogram
-            normalizedVarType = "histogram"
+        # Explicit entry-type selections own interpretation; each target model
+        # still validates its required fields and bucket geometry.
+        if TypeMapper.is_entry_type(expectedType):
+            normalizedVarType = expectedType
 
         self._bufferEntry(varID, varValue)
         return normalizedVarType

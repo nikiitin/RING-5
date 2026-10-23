@@ -216,6 +216,7 @@ class Gem5Parser(SimulationParser):
                     pattern = compile_bounded_regex(escape_perl_stat_filter(source_name))
                     matched_ids: list[str] = []
                     source_types: set[str] = set()
+                    legacy_vector_sources: list[ScannedVariable] = []
                     matched_id_set: set[str] = set()
 
                     def add_matched_id(pattern_id: str) -> None:
@@ -251,8 +252,12 @@ class Gem5Parser(SimulationParser):
                         if same_pattern or fullmatch_bounded_regex(pattern, sv_name):
                             if sv.source_type is not None:
                                 source_types.add(sv.source_type)
-                            elif sv.type == "scalar":
-                                source_types.add("scalar")
+                            elif sv.type == "scalar" or (
+                                not sv.pattern_indices and r"\d+" not in sv.name
+                            ):
+                                source_types.add(sv.type)
+                            elif sv.type == "vector":
+                                legacy_vector_sources.append(sv)
                             # If sv is already an aggregated pattern, use its constituents
                             if sv.pattern_indices:
                                 for pattern_id in sv.pattern_indices:
@@ -274,6 +279,15 @@ class Gem5Parser(SimulationParser):
                                 add_matched_id(sv_name)
 
                     if matched_ids:
+                        if config.params.get("source_type") is None:
+                            for legacy_source in legacy_vector_sources:
+                                # Inspect the stored schema, not a user's selected subset:
+                                # genuine vector entries may coincidentally equal CPU IDs.
+                                legacy_config = replace(
+                                    config, params={"entries": legacy_source.entries}
+                                )
+                                TypeMapper.is_scalar_pattern_vector(legacy_config, matched_ids)
+                                source_types.add("vector")
                         user_ids_raw = config.params.get("parsed_ids", [])
                         if not isinstance(user_ids_raw, list) or any(
                             not isinstance(pattern_id, str) or not pattern_id

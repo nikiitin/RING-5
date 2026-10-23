@@ -22,14 +22,16 @@ use Scanning::Type::Summary qw($summaryRegex);
 my $filtersRegexes;
 my @storedFilters;
 my %onelineHistogramMetadata;
+my %entryTypeContext;
 
 sub resetLineContext {
     %onelineHistogramMetadata = ();
+    %entryTypeContext = ();
 }
 
 sub _beginStatsDump {
     my ($line) = @_;
-    return 0 unless $line =~ /^-+\s*Begin Simulation Statistics\s*-+\s*$/;
+    return 0 unless $line =~ /^-+\s*Begin Simulation Statistics(?:\s*:\s*.*?)?\s*-+\s*$/;
     resetLineContext();
     return 1;
 }
@@ -41,6 +43,36 @@ sub _rememberOnelineHistogramMetadata {
         return 1;
     }
     return 0;
+}
+
+sub _rememberEntryTypeContext {
+    my ($line) = @_;
+    return unless $line =~ /^($varNameRegex)::(gmean|samples|mean|stdev|underflows|overflows)\s+/;
+    my ($name, $entry) = ($1, $2);
+    if ($entry eq 'gmean') {
+        # gem5 DistPrint emits this reserved summary only for Hist storage.
+        $entryTypeContext{$name} = 'histogram';
+    } elsif ($entry eq 'underflows' || $entry eq 'overflows') {
+        $entryTypeContext{$name} = 'distribution';
+    } elsif (!exists $entryTypeContext{$name}) {
+        $entryTypeContext{$name} = 'distribution';
+    }
+}
+
+sub _classifyNumericEntry {
+    my ($line) = @_;
+    return undef unless $line =~ /^($varNameRegex)::(-?\d+)\s+(?:$complexValueRegex|$scalarValueRegex)$commentRegex$/;
+    my ($name, $entry) = ($1, $2);
+    my $type = $entryTypeContext{$name};
+    my $geometry = $onelineHistogramMetadata{$name};
+    if (!defined $type && defined $geometry
+        && exists $geometry->{bucket_size} && exists $geometry->{max_bucket}) {
+        $type = 'histogram';
+    }
+    # Numeric vector entries have no distribution summaries or boundaries.
+    $type //= 'vector';
+    return { type => $type, name => $name, entry => $entry,
+             value => getValueFromLine(removeCommentFromLine($line)) };
 }
 
 sub _classifyOnelineHistogram {
@@ -225,6 +257,12 @@ sub parseAndPrintLineWithFormat {
     # preceding metadata lines, followed by one pipe-delimited row.  Consume
     # the metadata rather than exposing it as fake vector buckets.
     return if _rememberOnelineHistogramMetadata($line);
+    _rememberEntryTypeContext($line);
+    my $point = _classifyNumericEntry($line);
+    if (defined $point) {
+        print "$point->{type}/$point->{name}::$point->{entry}/$point->{value}\n";
+        return;
+    }
     my $oneline = _classifyOnelineHistogram($line);
     if (defined $oneline) {
         foreach my $item (@{$oneline->{entries}}) {
@@ -274,6 +312,15 @@ sub classifyLine {
 
     if (_rememberOnelineHistogramMetadata($line)) {
         return { type => 'oneline_metadata', name => undef, entry => undef };
+    }
+    _rememberEntryTypeContext($line);
+    my $point = _classifyNumericEntry($line);
+    if (defined $point) {
+        # Scan labels describe geometry; parser keys retain source entry identity
+        # so explicit vector/distribution reinterpretations remain possible.
+        $point->{entry} = "$point->{entry}-$point->{entry}"
+            if $point->{type} eq 'histogram';
+        return $point;
     }
     my $oneline = _classifyOnelineHistogram($line);
     return $oneline if defined $oneline;

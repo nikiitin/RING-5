@@ -35,13 +35,14 @@ from src.core.models import (
     ParseJobStatus,
 )
 from src.core.models.parse_job_models import JsonValue
+from src.core.models.parsing_models import PARSER_RESULT_VERSION
 from src.core.services.parse_job_store import ParseJobStore
 from src.core.services.parse_job_workspace import ParseJobRuntimeWorkspace
 from src.parsing.framework.file_discovery import find_stats_files
 
 logger = logging.getLogger(__name__)
 
-PARSER_CONTRACT_VERSION = "1"
+PARSER_CONTRACT_VERSION = str(PARSER_RESULT_VERSION)
 
 SubmitParse = Callable[
     [str, str, Sequence[JsonValue], str, str, list[JsonValue] | None, bool],
