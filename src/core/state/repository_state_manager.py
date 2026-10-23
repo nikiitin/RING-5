@@ -78,12 +78,19 @@ def _source_write(
         with self._transaction_lock:
             selection = _selection_revision(self) if method.__name__ in named_operations else None
             csv_path = self.get_csv_path() if method.__name__ == "set_csv_path" else None
-            result = method(self, *args, **kwargs)
-            unchanged_selection = selection is not None and selection == _selection_revision(self)
-            unchanged_path = method.__name__ == "set_csv_path" and csv_path == self.get_csv_path()
-            if not unchanged_selection and not unchanged_path:
-                self._source_version += 1
-            return result
+            try:
+                return method(self, *args, **kwargs)
+            finally:
+                # A failed operation may already have published part of its state.
+                # Old previews must not retain authority after that publication.
+                unchanged_selection = selection is not None and selection == _selection_revision(
+                    self
+                )
+                unchanged_path = (
+                    method.__name__ == "set_csv_path" and csv_path == self.get_csv_path()
+                )
+                if not unchanged_selection and not unchanged_path:
+                    self._source_version += 1
 
     return guarded
 
@@ -115,12 +122,18 @@ class RepositoryStateManager:
         with self._transaction_lock:
             return self._source_version
 
+    @_state_write
     def initialize(self) -> None:
         """Re-initialize the session to clean defaults.
 
         Useful for resetting state without constructing a new instance.
         """
-        self._session_repo.initialize_session()
+        clears_source = not self._session_repo.data_repo.has_data()
+        try:
+            self._session_repo.initialize_session()
+        finally:
+            if clears_source:
+                self._source_version += 1
 
     # ==================== Data Management ====================
 
@@ -128,7 +141,6 @@ class RepositoryStateManager:
         """Return the current source data."""
         return self._session_repo.data_repo.get_data()
 
-    @_source_write
     def set_data(
         self,
         data: pd.DataFrame | None,
@@ -143,12 +155,19 @@ class RepositoryStateManager:
         if data is not None:
             data = self._session_repo.enforce_config_dtypes(data)
 
-        self._session_repo.data_repo.set_data(
-            data,
-            on_change,
-            operation=operation,
-            source_datasets=source_datasets,
-        )
+        with self._transaction_lock:
+            try:
+                self._session_repo.data_repo.set_data(
+                    data,
+                    operation=operation,
+                    source_datasets=source_datasets,
+                )
+            finally:
+                self._source_version += 1
+        # Foreign callbacks may wait on work that publishes more session state.
+        # Run them only after the source version is committed and the lock released.
+        if on_change is not None:
+            on_change()
 
     def get_processed_data(self) -> pd.DataFrame | None:
         """Return the current processed data."""
@@ -259,6 +278,7 @@ class RepositoryStateManager:
         """Replace the application configuration."""
         self._session_repo.config_repo.set_config(config)
 
+    @_state_write
     def update_config(self, key: str, value: object) -> None:
         """Set one application configuration value."""
         self._session_repo.config_repo.update_config(key, value)

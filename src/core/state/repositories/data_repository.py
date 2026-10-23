@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 
 import pandas as pd
 
+from src.core.common.dataframe_copy import copy_dataframe
 from src.core.models.dataset_workspace_models import DatasetInfo, DatasetLineage, DatasetRevision
 from src.core.services.data_services.dataset_fingerprint import fingerprint_dataset
 
@@ -43,7 +44,7 @@ class DataRepository:
         Returns:
             A copy of the primary DataFrame (defensive copy-on-read), or None.
         """
-        return self._data.copy() if self._data is not None else None
+        return copy_dataframe(self._data) if self._data is not None else None
 
     def set_data(
         self,
@@ -73,7 +74,7 @@ class DataRepository:
                 source_datasets=source_datasets,
             )
         else:
-            self._data = data.copy(deep=True)
+            self._data = copy_dataframe(data)
 
         if on_change:
             on_change()
@@ -92,7 +93,7 @@ class DataRepository:
         Returns:
             A copy of the processed DataFrame (defensive copy-on-read), or None.
         """
-        return self._processed_data.copy() if self._processed_data is not None else None
+        return copy_dataframe(self._processed_data) if self._processed_data is not None else None
 
     def set_processed_data(self, data: pd.DataFrame | None) -> None:
         """
@@ -101,7 +102,7 @@ class DataRepository:
         Args:
             data: Processed DataFrame to store
         """
-        self._processed_data = data
+        self._processed_data = copy_dataframe(data) if data is not None else None
 
     def has_data(self) -> bool:
         """
@@ -191,7 +192,7 @@ class DataRepository:
             raise ValueError("No dataset is selected.")
         if resolved not in self._datasets:
             raise KeyError(f"Dataset {resolved!r} does not exist.")
-        return self._datasets[resolved].copy(deep=True)
+        return copy_dataframe(self._datasets[resolved])
 
     def select_dataset(self, name: str) -> pd.DataFrame:
         """Select a named dataset and return a defensive copy."""
@@ -201,7 +202,7 @@ class DataRepository:
         self._selected_dataset = resolved
         self._data = self._datasets[resolved]
         self._processed_data = None
-        return self._data.copy(deep=True)
+        return copy_dataframe(self._data)
 
     def remove_dataset(self, name: str) -> None:
         """Remove one dataset while preserving every unrelated dataset."""
@@ -253,7 +254,7 @@ class DataRepository:
             revision = self._revisions[resolved]
         except KeyError as exc:
             raise KeyError(f"Dataset revision {resolved!r} does not exist.") from exc
-        return revision.data.copy(deep=True)
+        return copy_dataframe(revision.data)
 
     def undo_dataset(self, name: str | None = None) -> DatasetRevision:
         """Move a dataset to its preceding same-dataset revision."""
@@ -320,7 +321,7 @@ class DataRepository:
             if source_revision not in parents:
                 parents.append(source_revision)
 
-        snapshot = data.copy(deep=True)
+        snapshot = copy_dataframe(data)
         self._revision_counter += 1
         revision_id = f"rev-{self._revision_counter:06d}"
         revision_ids = self._dataset_revision_ids.setdefault(name, [])
@@ -348,7 +349,7 @@ class DataRepository:
 
     def _activate_revision(self, name: str, revision_id: str) -> DatasetRevision:
         stored = self._revisions[revision_id]
-        restored = stored.data.copy(deep=True)
+        restored = copy_dataframe(stored.data)
         self._current_revision_ids[name] = revision_id
         self._datasets[name] = restored
         if self._selected_dataset == name:

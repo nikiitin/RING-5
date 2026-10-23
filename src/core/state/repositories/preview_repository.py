@@ -3,6 +3,7 @@
 import logging
 from copy import deepcopy
 
+from src.core.common.dataframe_copy import copy_dataframe
 from src.core.models.preview_models import PreviewContext
 
 from pandas import DataFrame
@@ -29,7 +30,7 @@ class PreviewRepository:
         if data is None:
             raise ValueError("Preview data cannot be None")
 
-        self._previews[operation_name] = data.copy(deep=True)
+        self._previews[operation_name] = copy_dataframe(data)
         if context is None:
             self._contexts.pop(operation_name, None)
         else:
@@ -43,7 +44,7 @@ class PreviewRepository:
         if not operation_name:
             return None
         preview = self._previews.get(operation_name)
-        return preview.copy() if preview is not None else None
+        return copy_dataframe(preview) if preview is not None else None
 
     def get_preview_context(self, operation_name: str) -> PreviewContext | None:
         """Return a defensive copy of a guarded preview's source and options."""

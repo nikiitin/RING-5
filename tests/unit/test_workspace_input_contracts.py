@@ -246,3 +246,71 @@ def test_unrelated_named_data_and_redundant_source_controls_keep_preview_valid(a
     state.set_use_parser(state.is_using_parser())
     assert api.preview_input_signature() == before
     assert api.preview_matches("scale", operation_config=options)
+
+
+def test_failed_change_callback_cannot_leave_old_preview_authorized(api) -> None:
+    options = _store(api)
+
+    def rejected_callback():
+        raise RuntimeError("callback failed")
+
+    with pytest.raises(RuntimeError, match="callback failed"):
+        api.state_manager.set_data(pd.DataFrame({"x": [100]}), on_change=rejected_callback)
+    assert not api.preview_matches("scale", operation_config=options)
+    with pytest.raises(ValueError, match="preview it again"):
+        api.confirm_preview("scale", operation_config=options, operation="Scale")
+    assert api.state_manager.get_data()["x"].tolist() == [100]
+
+
+def test_change_callback_can_wait_for_other_state_publication(api) -> None:
+    with ThreadPoolExecutor(max_workers=1) as pool:
+
+        def callback():
+            pool.submit(api.state_manager.set_processed_data, pd.DataFrame({"x": [7]})).result(
+                timeout=2
+            )
+
+        api.state_manager.set_data(pd.DataFrame({"x": [5]}), on_change=callback)
+    assert api.state_manager.get_processed_data()["x"].tolist() == [7]
+
+
+def test_global_config_writes_obey_the_same_state_transaction(api) -> None:
+    attempted, completed = threading.Event(), threading.Event()
+
+    def update():
+        attempted.set()
+        api.state_manager.update_config("font", "changed")
+        completed.set()
+
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        with api.state_manager.transaction():
+            future = pool.submit(update)
+            assert attempted.wait(2)
+            assert not completed.is_set()
+            assert "font" not in api.state_manager.get_config()
+        future.result(timeout=2)
+    assert completed.is_set()
+    assert api.state_manager.get_config()["font"] == "changed"
+
+
+def test_preview_and_confirmed_source_own_nested_object_cells(api) -> None:
+    options = {"kind": "nested"}
+    source = api.preview_input_signature()
+    result = pd.DataFrame({"object": [{"value": [2]}]})
+    api.set_preview("nested", result, operation_config=options, source_signature=source)
+    result.iloc[0, 0]["value"].append(3)
+    exposed = api.get_preview("nested")
+    exposed.iloc[0, 0]["value"].append(999)
+    confirmed = api.confirm_preview("nested", operation_config=options, operation="Nested result")
+    assert confirmed.iloc[0, 0] == {"value": [2]}
+    confirmed.iloc[0, 0]["value"].append(1000)
+    assert api.state_manager.get_data().iloc[0, 0] == {"value": [2]}
+
+
+def test_initialize_invalidates_preview_when_clearing_an_empty_source(api) -> None:
+    api.state_manager.set_data(pd.DataFrame({"x": pd.Series(dtype=float)}))
+    options = _store(api)
+    assert api.preview_matches("scale", operation_config=options)
+    api.state_manager.initialize()
+    assert api.state_manager.get_data() is None
+    assert not api.preview_matches("scale", operation_config=options)
