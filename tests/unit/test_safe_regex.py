@@ -44,14 +44,15 @@ def test_bounded_regex_rejects_long_input() -> None:
 
 
 def test_bounded_regex_times_out_catastrophic_backtracking() -> None:
-    pattern = compile_bounded_regex(r"(a+)+$")
+    # Overlapping alternatives avoid a borderline quadratic-time input.
+    pattern = compile_bounded_regex(r"(a|aa)+$")
 
     with pytest.raises(SafeRegexError, match="matching exceeded"):
         search_bounded_regex(pattern, "a" * (MAX_INPUT_LENGTH - 1) + "!")
 
 
 def test_bounded_fullmatch_times_out_catastrophic_backtracking() -> None:
-    pattern = compile_bounded_regex(r"(a+)+$")
+    pattern = compile_bounded_regex(r"(a|aa)+$")
 
     with pytest.raises(SafeRegexError, match="matching exceeded"):
         fullmatch_bounded_regex(pattern, "a" * (MAX_INPUT_LENGTH - 1) + "!")
