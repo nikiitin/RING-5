@@ -16,6 +16,7 @@ import src.core.common.utils as utils
 from src.core.common.safe_regex import (
     SafeRegexError,
     escape_perl_stat_filter,
+    normalize_stat_pattern,
     numeric_pattern_id,
 )
 from src.core.common.security_limits import MAX_PARSE_VARIABLES
@@ -140,12 +141,14 @@ class Gem5ParseWork(ParseWork):
         r"""Return the numeric ID when *concrete_name* matches a ``\d+`` pattern.
 
         Literal segments are escaped before matching, so this helper never
-        evaluates user-controlled regex syntax.
+        evaluates user-controlled regex syntax. Invalid literal lookup keys are
+        ignored; input bounds and matching timeouts remain visible failures.
         """
         try:
-            return numeric_pattern_id(pattern, concrete_name)
+            normalized = normalize_stat_pattern(pattern)
         except SafeRegexError:
             return None
+        return numeric_pattern_id(normalized, concrete_name)
 
     def _scalar_pattern_entry(
         self, var_id: str, target_var: StatType, vars_to_parse: VarsDictType

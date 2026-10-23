@@ -8,7 +8,7 @@ Ensures consistency between Scanner and Parser.
 from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any
 
-from src.core.common.safe_regex import SafeRegexError, numeric_pattern_id
+from src.core.common.safe_regex import SafeRegexError, normalize_stat_pattern, numeric_pattern_id
 from src.core.models import StatConfig
 from src.core.models.data_models import ScannedVariableDict
 from src.core.models.parsing_models import StatParamValue
@@ -67,6 +67,7 @@ class TypeMapper:
 
         Raises:
             ValueError: Legacy metadata cannot distinguish scalar indices from vector entries.
+            SafeRegexError: Numeric index matching exceeds an input or execution bound.
         """
         source_type = config.params.get("source_type")
         if source_type is not None:
@@ -75,12 +76,10 @@ class TypeMapper:
         if config.type != "vector" or not isinstance(entries, list) or not concrete_names:
             return False
         try:
-            indices = [
-                numeric_pattern_id(config.source_name or config.name, name)
-                for name in concrete_names
-            ]
+            source = normalize_stat_pattern(config.source_name or config.name)
         except SafeRegexError:
             return False
+        indices = [numeric_pattern_id(source, name) for name in concrete_names]
         if all(index is not None for index in indices) and set(indices) == set(entries):
             raise ValueError(
                 f"PARSER: Original source type for {config.name!r} is ambiguous "

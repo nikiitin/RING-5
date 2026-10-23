@@ -95,6 +95,8 @@ Percent signs and interpolation-looking workload arguments remain unchanged.
 ## Failure and security rules
 
 - Do not turn a regex miss, missing statistic, worker failure, or malformed file into zero.
+- Numeric index extraction follows the shared matching timeout; execution-bound failures propagate
+  through source inference and alias lookup rather than becoming missing observations.
 - Preserve path validation and leading-dash checks before work reaches subprocesses.
 - Keep core services and Streamlit out of parsing imports.
 - Release or cancel owned futures without shutting down another session's live work.
