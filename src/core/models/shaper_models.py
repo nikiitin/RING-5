@@ -240,7 +240,7 @@ class PivotLongerShaperConfig(BaseShaperConfig, total=False):
     extract_pattern: str
     extract_group_indices: list[int]
     extract_separator: str
-    selection_filters: dict[int, list[str]]
+    selection_filters: dict[str | int, list[str]]
     selection_strategy: str  # "discard" or "merge"
     merge_label: str  # e.g. "other" or "9+"
 

@@ -16,8 +16,9 @@ from collections import OrderedDict
 from collections.abc import Callable
 from typing import Any, TypeVar, cast
 
-import numpy as np
 import pandas as pd
+
+from src.core.common.content_identity import encode_identity as _cache_identity
 
 logger = logging.getLogger(__name__)
 
@@ -192,51 +193,6 @@ def timed(func: Callable[..., T]) -> Callable[..., T]:
         return result
 
     return wrapper
-
-
-def _cache_identity(value: Any) -> Any:
-    """Encode supported metadata without conflating Python or pandas types."""
-    if value is None or type(value) in (str, bool, int):
-        return [type(value).__name__, value]
-    if type(value) is float:
-        return ["float", value.hex()]
-    if value is pd.NA:
-        return ["pandas.NA"]
-    if value is pd.NaT:
-        return ["pandas.NaT"]
-    if isinstance(value, np.generic):
-        scalar = value.item()
-        if isinstance(scalar, np.generic):
-            raise TypeError("NumPy scalar has no lossless Python scalar representation.")
-        return ["numpy", str(value.dtype), _cache_identity(scalar)]
-    if type(value) in (list, tuple):
-        return [type(value).__name__, [_cache_identity(item) for item in value]]
-    if type(value) is dict:
-        items = [[_cache_identity(key), _cache_identity(item)] for key, item in value.items()]
-        return ["dict", sorted(items, key=lambda item: json.dumps(item[0], sort_keys=True))]
-    if isinstance(value, pd.CategoricalDtype):
-        return ["categorical", _cache_identity(value.categories), value.ordered]
-    if isinstance(value, pd.Index):
-        dtype = (
-            _cache_identity(value.dtype)
-            if isinstance(value.dtype, pd.CategoricalDtype)
-            else repr(value.dtype)
-        )
-        levels = (
-            [_cache_identity(level) for level in value.levels]
-            if isinstance(value, pd.MultiIndex)
-            else None
-        )
-        return [
-            type(value).__qualname__,
-            dtype,
-            _cache_identity(list(value.names)),
-            _cache_identity(value.tolist()),
-            levels,
-        ]
-    if isinstance(value, np.ndarray):
-        return ["ndarray", str(value.dtype), value.shape, _cache_identity(value.tolist())]
-    raise TypeError(f"Unsupported cache identity type: {type(value).__qualname__}")
 
 
 def compute_data_fingerprint(

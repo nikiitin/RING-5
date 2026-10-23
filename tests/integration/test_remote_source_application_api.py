@@ -39,3 +39,46 @@ def test_remote_download_is_staged_for_review_before_load() -> None:
         assert data.to_dict("records") == [{"benchmark": "alpha", "ipc": 1.25}]
     finally:
         api.state_manager.clear_data()
+
+
+def test_remote_bundle_uses_the_verified_browser_upload_boundary(tmp_path, monkeypatch) -> None:
+    from src.core.services.data_services.portfolio_service import PortfolioService
+    from src.core.services.data_services.path_service import PathService
+    from src.core.services.portfolio_bundle_service import PortfolioBundleService
+    from src.core.services.remote_source_service import _safe_file_name
+
+    monkeypatch.setenv("RING5_DATA_DIR", str(tmp_path))
+    PathService.reset_caches()
+    source_api = ApplicationAPI()
+    try:
+        portfolio = PortfolioService(source_api.state_manager).serialize_workspace(None, [], {}, 0)
+        bundle = PortfolioBundleService.create("paper", portfolio)
+    finally:
+        source_api.close()
+
+    class BundleAdapter:
+        def fetch(self, source, policy):
+            name = _safe_file_name(source.file_name, "paper.ring5-bundle")
+            return RemoteDownload(
+                adapter="http",
+                display_uri=source.url,
+                file_name=name,
+                content_type="application/zip",
+                content=bundle,
+            )
+
+    api = ApplicationAPI(remote_source_service=RemoteSourceService({"http": BundleAdapter()}))
+    try:
+        upload = api.fetch_remote_source(
+            HttpSource("https://data.example/paper.ring5-bundle"),
+            RemoteSourcePolicy(("data.example",)),
+        )
+        assert upload.kind == "bundle"
+        assert upload.origin_display == "https://data.example/paper.ring5-bundle"
+        assert api.state_manager.get_data() is None
+        report = api.restore_browser_portfolio_bundle(upload)
+        assert report.complete
+    finally:
+        api.state_manager.clear_data()
+        api.close()
+        PathService.reset_caches()

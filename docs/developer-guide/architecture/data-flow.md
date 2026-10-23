@@ -131,3 +131,18 @@ dtypes, index and semantic attributes. CSV data and metadata caches share precis
 (device, inode, size and nanosecond modification/change times); a file changed during a read is
 rejected rather than published under an earlier signature. Metadata row counts parse CSV records
 so quoted newlines and blank records are handled consistently.
+
+Data-manager previews retain the exact source version, stable source signature, and a defensive
+copy of the options used for computation. Capture `api.preview_input_signature()` before doing
+numerical work; pass that token and `operation_config` to `api.set_preview`. Computation runs
+outside the state transaction. `preview_matches` checks whether confirmation remains available,
+and `confirm_preview` compares source and options and publishes the result in one transaction.
+Legacy previews retain display support and require a fresh guarded preview before confirmation.
+
+`api.report_input_signature` captures selected plot configuration, pipelines, per-plot figure
+configuration, source and processed frames, global settings, source revisions, and provenance.
+Hashing runs after taking defensive snapshots. Repeated reads produce the same signature;
+changes to any retained scientific input invalidate derived report content. Saved bundle caches
+use `api.portfolio_bundle_signature`, which verifies and hashes exact portfolio and optional
+snapshot bytes. Remote `.ring5-bundle` files enter the same verified browser-upload boundary as
+local uploads.

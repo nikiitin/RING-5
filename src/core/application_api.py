@@ -106,6 +106,8 @@ from src.parsing.framework.file_discovery import find_stats_files as _find_stats
 from src.parsing.parser_protocol import SimulationParser
 from src.parsing.registry import SimulatorInfo, SimulatorRegistry
 
+from src.core.services.workspace_input_service import WorkspaceInputService
+
 logger = logging.getLogger(__name__)
 
 
@@ -159,6 +161,11 @@ class ApplicationAPI:
         self._closed = False
 
         logger.info("Application API initialized")
+
+    @property
+    def _workspace_inputs(self) -> WorkspaceInputService:
+        """Bind stateless input validation to the facade's current state boundary."""
+        return WorkspaceInputService(self.state_manager)
 
     # ServicesAPI sub-API access (for UI components)
 
@@ -1615,10 +1622,56 @@ class ApplicationAPI:
 
     # Previews (Delegated to StateManager)
 
-    def set_preview(self, operation_name: str, data: pd.DataFrame) -> None:
-        """Store a preview DataFrame for an operation."""
+    def preview_input_signature(self) -> str:
+        """Capture source identity before computing a data-manager preview."""
+        return self._workspace_inputs.preview_input_signature()
+
+    def set_preview(
+        self,
+        operation_name: str,
+        data: pd.DataFrame,
+        *,
+        operation_config: Mapping[str, Any] | None = None,
+        source_signature: str | None = None,
+    ) -> None:
+        """Store a defensive preview with optional source and reviewed-option guards."""
         # [impl->req~ring5.extension.data-manager~1]
-        self.state_manager.set_preview(operation_name, data)
+        self._workspace_inputs.set_preview(
+            operation_name,
+            data,
+            operation_config=operation_config,
+            source_signature=source_signature,
+        )
+
+    def preview_matches(self, operation_name: str, *, operation_config: Mapping[str, Any]) -> bool:
+        """Whether a preview still matches its source and current options."""
+        return self._workspace_inputs.preview_matches(
+            operation_name, operation_config=operation_config
+        )
+
+    def get_preview_config(self, operation_name: str) -> dict[str, Any] | None:
+        """Return a defensive copy of the reviewed operation options."""
+        return self._workspace_inputs.get_preview_config(operation_name)
+
+    def confirm_preview(
+        self, operation_name: str, *, operation_config: Mapping[str, Any], operation: str
+    ) -> pd.DataFrame:
+        """Atomically confirm an unchanged preview or raise ValueError for stale work."""
+        return self._workspace_inputs.confirm_preview(
+            operation_name, operation_config=operation_config, operation=operation
+        )
+
+    def report_input_signature(
+        self, selected_ids: Sequence[int], *, include_data: bool = True
+    ) -> str:
+        """Identify all figure, data and provenance inputs used by a report."""
+        return self._workspace_inputs.report_input_signature(
+            selected_ids, include_data=include_data
+        )
+
+    def portfolio_bundle_signature(self, name: str, snapshot_name: str | None = None) -> str:
+        """Identify verified saved content used by a portable bundle."""
+        return self._workspace_inputs.portfolio_bundle_signature(name, snapshot_name=snapshot_name)
 
     def get_preview(self, operation_name: str) -> pd.DataFrame | None:
         """Retrieve a preview DataFrame for an operation."""
