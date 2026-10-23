@@ -339,11 +339,22 @@ class ApplicationAPI:
         return replace(upload, origin_display=download.display_uri)
 
     def get_current_view(self) -> dict[str, Any]:
-        """Assemble the current data pipeline state for UI consumption."""
+        """Assemble the current data pipeline state for UI consumption.
+
+        Returns:
+            Dictionary containing ``raw_data`` and ``processed_data`` frames
+            (or None), analysis ``config``, the canonical workspace ``csv_path``
+            (or an empty string/None), and ``selected_dataset_name`` (or None).
+            The selected name identifies active named data. The CSV path is a
+            workspace file association, not provenance for every named dataset.
+            Neither identity field is inserted into analysis configuration.
+        """
         return {
             "raw_data": self.state_manager.get_data(),
             "processed_data": self.state_manager.get_processed_data(),
             "config": self.state_manager.get_config(),
+            "csv_path": self.state_manager.get_csv_path(),
+            "selected_dataset_name": self.state_manager.selected_dataset_name(),
         }
 
     def search_workspace(self, query: str, *, limit: int = 20) -> WorkspaceSearchResponse:
