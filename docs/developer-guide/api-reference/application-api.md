@@ -21,8 +21,12 @@ Covers:
 one instance per browser session rather than constructing services or repositories.
 
 The facade exposes focused sub-APIs for managers, data services, and shapers, plus state operations
-needed by pages. `get_current_view` supplies a read-oriented snapshot for display. Plot
-deserialization is injected so core does not import the web plot factory.
+needed by pages. `get_current_view` supplies `raw_data`, `processed_data`, analysis `config`,
+the canonical workspace `csv_path`, and `selected_dataset_name` for display. Identity fields
+remain separate from configuration. The selected dataset name identifies active named data;
+the workspace CSV path is a file association, not provenance for every retained dataset.
+The header prefers the active name, then the CSV basename, then **Uploaded** when neither exists.
+Plot deserialization is injected so core does not import the web plot factory.
 
 ## Scan and parse
 

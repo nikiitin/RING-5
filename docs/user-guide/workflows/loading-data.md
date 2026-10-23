@@ -14,6 +14,10 @@ redirect_from:
 Start with a gem5 results tree when RING-5 should discover and parse statistics. Start with a CSV
 when another tool already produced the analysis table.
 
+With data loaded, the header shows the row and column counts. **Source** identifies the selected
+named dataset; otherwise it shows the associated CSV filename, or **Uploaded** when no filename
+is associated.
+
 ## Parse gem5 statistics in the web application
 
 <!--

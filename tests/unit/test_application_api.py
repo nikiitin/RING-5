@@ -78,13 +78,19 @@ class TestApplicationAPI:
         """
         application_api.state_manager.get_data.return_value = "raw_df"
         application_api.state_manager.get_processed_data.return_value = "proc_df"
-        application_api.state_manager.get_config.return_value = {"conf": 1}
+        config = {"conf": 1, "csv_path": "/stale/config.csv"}
+        application_api.state_manager.get_config.return_value = config
+        application_api.state_manager.get_csv_path.return_value = "/active/source.csv"
+        application_api.state_manager.selected_dataset_name.return_value = "Active dataset"
 
         view = application_api.get_current_view()
 
         assert view["raw_data"] == "raw_df"
         assert view["processed_data"] == "proc_df"
-        assert view["config"] == {"conf": 1}
+        assert view["config"] == {"conf": 1, "csv_path": "/stale/config.csv"}
+        assert view["csv_path"] == "/active/source.csv"
+        assert view["selected_dataset_name"] == "Active dataset"
+        assert config == {"conf": 1, "csv_path": "/stale/config.csv"}
 
     def test_reset_session(self, application_api: Any) -> None:
         """Test session reset orchestration."""

@@ -173,15 +173,17 @@ def run_app() -> None:
         if current_view["raw_data"] is not None and not current_view["raw_data"].empty:
             col1, col2, col3 = st.columns(3)
             data = current_view["raw_data"]
-            config = current_view["config"]
 
             with col1:
                 st.metric("Rows", len(data), border=True)
             with col2:
                 st.metric("Columns", len(data.columns), border=True)
             with col3:
-                csv_path = config.get("csv_path")
-                if csv_path:
+                dataset_name = current_view["selected_dataset_name"]
+                csv_path = current_view["csv_path"]
+                if dataset_name:
+                    st.metric("Source", dataset_name, border=True)
+                elif csv_path:
                     st.metric("Source", Path(csv_path).name, border=True)
                 else:
                     st.metric("Source", "Uploaded", border=True)
