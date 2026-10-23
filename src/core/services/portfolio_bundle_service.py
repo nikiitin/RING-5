@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import mimetypes
 from collections.abc import Mapping
 from io import BytesIO
@@ -479,7 +480,7 @@ class PortfolioBundleService:
                         version = Version(raw_version)
                     except InvalidVersion:
                         continue
-                    if raw_name.replace("-", "").replace("_", "").replace(".", "").isalnum():
+                    if re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?", raw_name):
                         lines.append(f"{raw_name}=={version}")
         return "\n".join(lines) + "\n"
 

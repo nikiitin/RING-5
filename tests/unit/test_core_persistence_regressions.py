@@ -219,3 +219,16 @@ def test_excel_rejects_data_under_unnamed_trailing_header(tmp_path: Path) -> Non
     workbook.close()
     with pytest.raises(ValueError, match="beyond its named header"):
         BrowserUploadService.inspect("data.xlsx", "", output.getvalue(), tmp_path)
+
+
+def test_bundle_requirements_exclude_invalid_distribution_names() -> None:
+    requirements = PortfolioBundleService._requirements(
+        {
+            "ring5_version": "source checkout",
+            "dependencies": {".bad": "1", "-bad": "1", "λ": "1", "valid-name": "1.2", "a": "2"},
+        }
+    )
+    assert requirements.splitlines()[-2:] == ["a==2", "valid-name==1.2"]
+    assert (
+        ".bad==" not in requirements and "-bad==" not in requirements and "λ==" not in requirements
+    )

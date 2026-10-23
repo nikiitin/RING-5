@@ -16,6 +16,7 @@ from collections import OrderedDict
 from collections.abc import Callable
 from typing import Any, TypeVar, cast
 
+import numpy as np
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -193,57 +194,88 @@ def timed(func: Callable[..., T]) -> Callable[..., T]:
     return wrapper
 
 
+def _cache_identity(value: Any) -> Any:
+    """Encode supported metadata without conflating Python or pandas types."""
+    if value is None or type(value) in (str, bool, int):
+        return [type(value).__name__, value]
+    if type(value) is float:
+        return ["float", value.hex()]
+    if value is pd.NA:
+        return ["pandas.NA"]
+    if value is pd.NaT:
+        return ["pandas.NaT"]
+    if isinstance(value, np.generic):
+        return ["numpy", str(value.dtype), _cache_identity(value.item())]
+    if type(value) in (list, tuple):
+        return [type(value).__name__, [_cache_identity(item) for item in value]]
+    if type(value) is dict:
+        items = [[_cache_identity(key), _cache_identity(item)] for key, item in value.items()]
+        return ["dict", sorted(items, key=lambda item: json.dumps(item[0], sort_keys=True))]
+    if isinstance(value, pd.CategoricalDtype):
+        return ["categorical", _cache_identity(value.categories), value.ordered]
+    if isinstance(value, pd.Index):
+        dtype = (
+            _cache_identity(value.dtype)
+            if isinstance(value.dtype, pd.CategoricalDtype)
+            else repr(value.dtype)
+        )
+        levels = (
+            [_cache_identity(level) for level in value.levels]
+            if isinstance(value, pd.MultiIndex)
+            else None
+        )
+        return [
+            type(value).__qualname__,
+            dtype,
+            _cache_identity(list(value.names)),
+            _cache_identity(value.tolist()),
+            levels,
+        ]
+    if isinstance(value, np.ndarray):
+        return ["ndarray", str(value.dtype), value.shape, _cache_identity(value.tolist())]
+    raise TypeError(f"Unsupported cache identity type: {type(value).__qualname__}")
+
+
 def compute_data_fingerprint(
     data: pd.DataFrame,
     params: dict[str, Any],
     relevant_cols: list[str],
 ) -> str:
-    """Identify the complete input retained by a cached dataframe operation.
-
-    Used by cached shapers (mean, normalize) to detect whether the
-    input data and configuration have changed since the last run,
-    avoiding expensive recalculation when the fingerprint matches.
+    """Identify all retained values, types, axes and metadata of a cached frame.
 
     Args:
-        data: Input DataFrame.
-        params: Shaper configuration parameters.
-        relevant_cols: Columns selected by the operation. The complete frame is
-            hashed because cached results retain unselected columns as well.
+        data: Complete input retained by the cached transformation.
+        params: Shaper configuration.
+        relevant_cols: Columns selected by the operation.
 
     Returns:
-        16-char hex digest suitable as a cache key.
+        A 16-character key; unsupported metadata deliberately bypasses reuse.
     """
-
     # [impl->req~ring5.quality.bounded-caching~1]
-
     try:
-        attributes = json.dumps(data.attrs, sort_keys=True)
-    except (TypeError, ValueError):
-        # Unknown mutable metadata has no reliable canonical identity. A unique
-        # key deliberately bypasses reuse instead of returning stale attributes.
-        return uuid.uuid4().hex[:16]
-    categorical_types = [
-        (str(column), tuple(dtype.categories), dtype.ordered)
-        for column, dtype in data.dtypes.items()
-        if isinstance(dtype, pd.CategoricalDtype)
-    ]
-    fingerprint_parts = [
-        f"shape:{data.shape}",
-        f"columns:{tuple(data.columns)!r}",
-        f"dtypes:{tuple(str(dtype) for dtype in data.dtypes)!r}:{categorical_types!r}",
-        f"index:{data.index.names!r}:{data.index.dtype!r}",
-        f"selected:{sorted(relevant_cols)}",
-        f"attrs:{attributes}",
-        # Canonical, order-insensitive serialization (nested dicts/sets in shaper params
-        # otherwise hash by insertion order / nondeterministically).
-        f"params:{json.dumps(params, sort_keys=True, default=str)}",
-    ]
-
-    try:
+        metadata = _cache_identity(
+            {
+                "columns": data.columns,
+                "index": data.index,
+                "dtypes": [
+                    dtype if isinstance(dtype, pd.CategoricalDtype) else repr(dtype)
+                    for dtype in data.dtypes
+                ],
+                "attrs": data.attrs,
+                "params": params,
+                "selected": relevant_cols,
+                "object_values": [
+                    data.iloc[:, position].tolist()
+                    for position, dtype in enumerate(data.dtypes)
+                    if pd.api.types.is_object_dtype(dtype)
+                ],
+            }
+        )
         content = pd.util.hash_pandas_object(data, index=True).to_numpy().tobytes()
+        digest = hashlib.sha256(json.dumps(metadata, separators=(",", ":")).encode("utf-8"))
+        digest.update(content)
+        return digest.hexdigest()[:16]
     except (TypeError, ValueError):
-        content = data.to_csv(index=True).encode("utf-8")
-    fingerprint_parts.append(hashlib.md5(content, usedforsecurity=False).hexdigest())
-
-    fingerprint = "|".join(fingerprint_parts)
-    return hashlib.md5(fingerprint.encode(), usedforsecurity=False).hexdigest()[:16]
+        # An unsupported mutable object has no reliable canonical identity. Never
+        # collapse it through stringification or reuse another frame's output.
+        return uuid.uuid4().hex[:16]

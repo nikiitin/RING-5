@@ -182,6 +182,7 @@ class Mean(UniDfShaper):
         # Append to the original data
         combined = pd.concat([result, mean_df], ignore_index=True)
         combined.attrs = data_frame.attrs.copy()
+        combined.columns.name = data_frame.columns.name
         return combined
 
     @override

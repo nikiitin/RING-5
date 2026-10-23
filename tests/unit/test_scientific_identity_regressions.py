@@ -204,3 +204,52 @@ def test_normalization_missing_sum_component_and_negative_error_scale() -> None:
     result = Normalize(params)(frame)
     assert result["value"].tolist() == [-1.0, -2.0]
     assert result["value.sd"].tolist() == [0.1, 0.2]
+
+
+@pytest.mark.parametrize("kind", ["mean", "normalize"])
+@pytest.mark.parametrize(
+    "changed", ["column_axis_name", "typed_attrs", "object_values", "category_order"]
+)
+def test_cached_shapers_preserve_typed_retained_identity(kind: str, changed: str) -> None:
+    frame = _frame()
+    frame["retained"] = pd.Series([1, 1], dtype=object)
+    frame.attrs = {"units": ("cycles",)}
+    frame["category"] = pd.Categorical(["a", "b"], categories=["a", "b"], ordered=True)
+    shaper = (
+        Mean(
+            {
+                "meanVars": ["value"],
+                "meanAlgorithm": "arithmean",
+                "groupingColumns": ["bench"],
+                "replacingColumn": "config",
+            }
+        )
+        if kind == "mean"
+        else Normalize(
+            {
+                "normalizeVars": ["value"],
+                "normalizerColumn": "config",
+                "normalizerValue": "base",
+                "groupBy": ["bench"],
+            }
+        )
+    )
+    shaper(frame)
+    other = frame.copy(deep=True)
+    if changed == "column_axis_name":
+        other.columns.name = "alternate"
+    elif changed == "typed_attrs":
+        other.attrs = {"units": ["cycles"]}
+    elif changed == "object_values":
+        other["retained"] = pd.Series(["1", "1"], dtype=object)
+    else:
+        other["category"] = other["category"].cat.reorder_categories(["b", "a"])
+    result = shaper(other)
+    assert result.attrs == other.attrs
+    assert type(result["retained"].iloc[0]) is type(other["retained"].iloc[0])
+    assert result.columns.name == other.columns.name
+    if kind == "normalize":
+        assert list(result["category"].cat.categories) == list(other["category"].cat.categories)
+    else:
+        # Mean may widen a categorical metadata column when appending its aggregate.
+        assert result["category"].iloc[:2].tolist() == other["category"].tolist()
