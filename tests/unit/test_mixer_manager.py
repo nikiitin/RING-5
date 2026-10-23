@@ -202,6 +202,13 @@ class TestMixerRender:
         mock_api.state_manager.get_data.return_value = sample_df
         mock_api.has_preview.return_value = True
         mock_api.get_preview.return_value = merged
+        mock_api.confirm_preview.return_value = merged
+        mock_api.get_preview_config.return_value = {
+            "dest_col": "total",
+            "source_cols": ["cycles", "instructions"],
+            "operation": "Sum",
+            "separator": "_",
+        }
         mock_st.columns.side_effect = _columns_side_effect
         mock_st.segmented_control.return_value = "Numerical Operations"
         mock_st.multiselect.return_value = ["cycles", "instructions"]
@@ -212,11 +219,18 @@ class TestMixerRender:
 
         mgr = MixerManager(mock_api)
         mgr.render()
-        mock_api.update_selected_dataset.assert_called_once_with(
-            merged,
+        mock_api.confirm_preview.assert_called_once_with(
+            "mixer",
+            operation_config={
+                "dest_col": "total",
+                "source_cols": ["cycles", "instructions"],
+                "operation": "Sum",
+                "separator": "_",
+            },
             operation="Mixer: Sum",
         )
-        mock_api.clear_preview.assert_called_once()
+        mock_api.update_selected_dataset.assert_not_called()
+        mock_api.clear_preview.assert_not_called()
         mock_api.add_manager_history_record.assert_called_once()
 
     @patch("src.web.components.data_managers.mixer.UIStateManager")
