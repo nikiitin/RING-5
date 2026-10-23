@@ -55,7 +55,16 @@ class Table:
     __slots__ = ("_df",)
 
     def __init__(self, frame: pd.DataFrame) -> None:
-        # Defensive copy so the Table owns its data and callers can't mutate it underneath.
+        """Own an independent copy of a pandas DataFrame.
+
+        Args:
+            frame: Source data, including any retained metadata and nested object cells.
+
+        Raises:
+            TypeError: The source is not a pandas DataFrame.
+        """
+        if not isinstance(frame, pd.DataFrame):
+            raise TypeError(f"Table requires a pandas DataFrame; got {type(frame).__name__}.")
         self._df = copy_dataframe(frame)
 
     # constructors

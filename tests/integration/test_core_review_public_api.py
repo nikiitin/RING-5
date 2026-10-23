@@ -92,3 +92,19 @@ def test_table_owns_nested_cells_across_constructor_access_and_transformation() 
     with pytest.raises(ring5.PipelineError, match="reject"):
         table.apply(fail)
     assert table.rows() == [{"object": {"values": [1]}}]
+
+
+@pytest.mark.parametrize("returned", [None, 1, pd.Series([1])])
+def test_table_rejects_invalid_callable_results_without_changing_owned_input(returned) -> None:
+    table = ring5.Table.from_rows([{"x": 1, "nested": {"values": [1]}}])
+
+    def invalid_transform(frame):
+        frame["x"] = 99
+        frame.at[0, "nested"]["values"].append(2)
+        return returned
+
+    with pytest.raises(ring5.PipelineError, match="Table requires a pandas DataFrame"):
+        table.apply(invalid_transform)
+    assert table.rows() == [{"x": 1, "nested": {"values": [1]}}]
+    with pytest.raises(TypeError, match="Table requires a pandas DataFrame"):
+        ring5.Table(returned)
