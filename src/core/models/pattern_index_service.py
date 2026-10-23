@@ -156,7 +156,10 @@ class PatternIndexService:
                         {0: ["0"], 1: ["0", "1"]}
 
         Returns:
-            Filtered entries matching the selection
+            Entries containing every selected position with a matching value.
+
+        Raises:
+            ValueError: If a selected position is not a nonnegative integer.
 
         Examples:
             >>> PatternIndexService.filter_entries(
@@ -170,6 +173,8 @@ class PatternIndexService:
             ... )
             []
         """
+        if any(type(position) is not int or position < 0 for position in selections):
+            raise ValueError("Selected index positions must be nonnegative integers.")
         filtered: list[str] = []
 
         for entry in entries:
@@ -182,10 +187,9 @@ class PatternIndexService:
                     matches = False
                     break
 
-                if pos_idx < len(parts):
-                    if parts[pos_idx] not in selected_values:
-                        matches = False
-                        break
+                if pos_idx >= len(parts) or parts[pos_idx] not in selected_values:
+                    matches = False
+                    break
 
             if matches:
                 filtered.append(entry)

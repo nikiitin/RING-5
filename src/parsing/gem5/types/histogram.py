@@ -1,6 +1,7 @@
 """Histogram stat type for range-based frequency distributions."""
 
 import logging
+import math
 import re
 from typing import override
 
@@ -26,7 +27,10 @@ class Histogram(StatType):
 
     Validation:
     - Keys should generally be range strings (e.g., "0-10") or specific markers.
-    - Values are automatically aggregated (summed) if multiple matches occur in one file.
+    - Each assignment records one instance/dump; lists within it are summed.
+    - Missing observations and summaries remain NaN.
+    - Raw integer endpoints and integer output labels are inclusive; fractional
+      output labels are explicitly half-open. Negative mass is retained in `<0`.
     """
 
     # [impl->req~ring5.ingestion.histogram~1]
@@ -77,8 +81,19 @@ class Histogram(StatType):
         object.__setattr__(self, "_statistics", list(statistics) if statistics else [])
 
         # Pre-initialize content with statistics to ensure column presence
-        content: dict[str, list[float]] = {stat: [] for stat in self._statistics}
+        content: dict[str, list[float]] = {
+            entry: [] for entry in [*(entries or []), *self._statistics]
+        }
         object.__setattr__(self, "_content", content)
+        # Shared by shallow source aliases, just like the content dictionary.
+        object.__setattr__(self, "_observations", [])
+
+    @staticmethod
+    def _bin_label(start: float, end: float) -> str:
+        """Label integer buckets inclusively and fractional buckets explicitly."""
+        if float(start).is_integer() and float(end).is_integer():
+            return f"{int(start)}-{int(end) - 1}"
+        return f"[{start:.12g},{end:.12g})"
 
     @property
     def entries(self) -> list[str]:
@@ -93,18 +108,25 @@ class Histogram(StatType):
                 num_std = self._bins - 1
                 bin_width = self._max_range / num_std
                 result.extend(
-                    [f"{int(b * bin_width)}-{int((b + 1) * bin_width)}" for b in range(num_std)]
+                    [self._bin_label(b * bin_width, (b + 1) * bin_width) for b in range(num_std)]
                 )
-                result.append(f"{int(self._max_range)}+")
+                result.append(f"{self._max_range:.12g}+")
             else:
-                bin_width = self._max_range / self._bins
-                result.extend(
-                    [f"{int(b * bin_width)}-{int((b + 1) * bin_width)}" for b in range(self._bins)]
-                )
+                result.append("0+")
         # Priority 3: Discovered raw buckets
         else:
             raw_content = object.__getattribute__(self, "_content")
             result.extend(sorted(list(raw_content.keys())))
+
+        if (
+            not self._entries
+            and self._bins > 0
+            and self._max_range > 0
+            and any(
+                (bounds := self._parse_range_key(key)) and bounds[0] < 0 for key in self._content
+            )
+        ):
+            result.insert(0, "<0")
 
         # Always include extra statistics if they were discovered or configured
         for stat in self._statistics:
@@ -129,35 +151,28 @@ class Histogram(StatType):
         if not isinstance(value, dict):
             raise TypeError(f"HISTOGRAM: Content must be dict, got {type(value).__name__}")
 
-        # Validate values are numeric and aggregate matches
+        sample: dict[str, float] = {}
         for key, vals in value.items():
-            if isinstance(vals, list):
-                val_list = vals
-            else:
-                val_list = [vals]
+            val_list = vals if isinstance(vals, list) else [vals]
+            try:
+                sample[str(key)] = math.fsum(float(v) for v in val_list)
+            except (TypeError, ValueError) as error:
+                raise TypeError(
+                    f"HISTOGRAM: Value non-convertible to number. Key: {key}, Value: {vals}"
+                ) from error
 
-            # Aggregate multiple matches from a single file (e.g. regex across CPUs)
-            # Sum for aggregated value per repeat.
-            aggregated_val = 0.0
-            for v in val_list:
-                try:
-                    aggregated_val += float(v)
-                except (TypeError, ValueError) as e:
-                    raise TypeError(
-                        f"HISTOGRAM: Value non-convertible to number. Key: {key}, Value: {v}"
-                    ) from e
-
-            # Update content
-            str_key = str(key)
-            if str_key not in self._content:
-                self._content[str_key] = []
-
-            self._content[str_key].append(aggregated_val)
+        count = len(self._observations)
+        for key in sample:
+            if key not in self._content:
+                self._content[key] = [float("nan")] * count
+        for key in self._content:
+            self._content[key].append(sample.get(key, float("nan")))
+        self._observations.append(sample)
 
     @override
     def balance_content(self) -> None:
         """
-        Ensure each bucket has exactly `repeat` values by padding with 0.
+        Ensure each bucket has exactly `repeat` values, preserving missingness.
 
         Fails loudly if more values than expected are found, preventing data corruption.
         """
@@ -175,7 +190,8 @@ class Histogram(StatType):
             current_len = len(self._content[bucket])
             if current_len < self._repeat:
                 padding = self._repeat - current_len
-                self._content[bucket].extend([0.0] * padding)
+                self._content[bucket].extend([float("nan")] * padding)
+                object.__setattr__(self, "_padded", self._padded + padding)
             elif current_len > self._repeat:
                 raise RuntimeError(
                     f"HISTOGRAM: Bucket '{bucket}' has more values than expected. "
@@ -187,15 +203,15 @@ class Histogram(StatType):
         """Reduce collected data via mean, applying rebinning if requested."""
         object.__setattr__(self, "_reduced", True)
 
-        # Rebinning takes precedence if configured
-        if self._bins > 0 and self._max_range > 0:
+        # Explicit entry selection has the same precedence as the entries property.
+        if not self._entries and self._bins > 0 and self._max_range > 0:
             self._reduce_with_rebinning()
             return
 
         reduced = {}
         for bucket, values in self._content.items():
             if not values:
-                reduced[bucket] = 0.0
+                reduced[bucket] = float("nan")
             else:
                 reduced[bucket] = sum(values[: self._repeat]) / self._repeat
 
@@ -204,39 +220,38 @@ class Histogram(StatType):
     def _reduce_with_rebinning(self) -> None:
         """Perform reduction by rebinning each simulation's data into target uniform buckets."""
         # [impl->req~ring5.ingestion.histogram-rebinning~1]
-        num_bins = self._bins
-        max_val = self._max_range
+        bin_mapping = self._compute_bin_mapping(self._bins, self._max_range)
+        target_keys = set(self.entries)
+        target_keys.update(
+            key
+            for mappings in bin_mapping.values()
+            if mappings is not None
+            for key, _proportion in mappings
+        )
+        target_keys.update(key for key, mappings in bin_mapping.items() if mappings is None)
+        target_values: dict[str, list[float]] = {key: [] for key in target_keys}
 
-        # Pre-compute bin mapping once (same for all simulations)
-        bin_mapping = self._compute_bin_mapping(num_bins, max_val)
-
-        # Initialize target result set from expected entries
-        target_reduced = {key: 0.0 for key in self.entries}
-
-        # Process each simulation using pre-computed mapping
-        for i in range(self._repeat):
-            for raw_key, values in self._content.items():
-                value = float(values[i]) if i < len(values) else 0.0
-                if value == 0:
-                    continue
-
+        for index in range(self._repeat):
+            sample = self._observations[index] if index < len(self._observations) else {}
+            has_buckets = any(bin_mapping.get(key) is not None for key in sample)
+            # Zeros are justified only within an observed histogram dump.
+            rebinned = {key: 0.0 if has_buckets else float("nan") for key in target_keys}
+            for raw_key, value in sample.items():
                 mappings = bin_mapping.get(raw_key)
                 if mappings is None:
-                    # Summary stat (mean, total, etc.) — accumulate as-is
-                    if raw_key not in target_reduced:
-                        target_reduced[raw_key] = 0.0
-                    target_reduced[raw_key] += value
-                else:
-                    for target_key, proportion in mappings:
-                        if target_key not in target_reduced:
-                            target_reduced[target_key] = 0.0
-                        target_reduced[target_key] += value * proportion
+                    continue
+                for target_key, proportion in mappings:
+                    rebinned[target_key] += value * proportion
+            for key in target_keys:
+                if bin_mapping.get(key) is None and key in self._content:
+                    rebinned[key] = sample.get(key, float("nan"))
+                target_values[key].append(rebinned[key])
 
-        # Calculate population mean across simulations
-        for key in target_reduced:
-            target_reduced[key] /= self._repeat
-
-        object.__setattr__(self, "_reduced_content", target_reduced)
+        object.__setattr__(
+            self,
+            "_reduced_content",
+            {key: math.fsum(values) / self._repeat for key, values in target_values.items()},
+        )
 
     def _compute_bin_mapping(
         self, num_bins: int, max_val: float
@@ -250,7 +265,7 @@ class Histogram(StatType):
         if num_bins > 1:
             num_std_bins = num_bins - 1
             bin_width = max_val / num_std_bins
-            overflow_key = f"{int(max_val)}+"
+            overflow_key = f"{max_val:.12g}+"
         else:
             num_std_bins = num_bins
             bin_width = max_val / num_bins
@@ -264,13 +279,17 @@ class Histogram(StatType):
                 mapping[raw_key] = None
                 continue
 
-            raw_start, raw_end = bounds
+            raw_start, inclusive_end = bounds
+            if inclusive_end < raw_start:
+                raise ValueError(f"HISTOGRAM: Reversed bucket range: {raw_key}")
+            raw_end = inclusive_end + 1
             raw_span = raw_end - raw_start
-            if raw_span <= 0:
-                mapping[raw_key] = []
-                continue
 
             targets: list[tuple[str, float]] = []
+
+            underflow_length = max(0.0, min(raw_end, 0.0) - raw_start)
+            if underflow_length:
+                targets.append(("<0", underflow_length / raw_span))
 
             # Standard bins portion
             effective_end = min(raw_end, max_val)
@@ -282,7 +301,7 @@ class Histogram(StatType):
                     overlap_end = min(effective_end, b_end)
                     if overlap_end > overlap_start:
                         proportion = (overlap_end - overlap_start) / raw_span
-                        target_key = f"{int(b_start)}-{int(b_end)}"
+                        target_key = "0+" if num_bins == 1 else self._bin_label(b_start, b_end)
                         targets.append((target_key, proportion))
 
             # Overflow portion
@@ -295,7 +314,7 @@ class Histogram(StatType):
                     last_b_idx = num_std_bins - 1
                     last_start = last_b_idx * bin_width
                     last_end = (last_b_idx + 1) * bin_width
-                    last_key = f"{int(last_start)}-{int(last_end)}"
+                    last_key = "0+" if num_bins == 1 else self._bin_label(last_start, last_end)
                     targets.append((last_key, proportion))
 
             mapping[raw_key] = targets
@@ -304,7 +323,7 @@ class Histogram(StatType):
 
     def _parse_range_key(self, key: str) -> list[float]:
         """Extract numeric bounds from a range string (e.g., '0-1023')."""
-        match = re.search(r"(\d+)-(\d+)", key)
+        match = re.fullmatch(r"(-?\d+)-(-?\d+)", key)
         if match:
             return [float(match.group(1)), float(match.group(2))]
         if any(c.isdigit() for c in key):

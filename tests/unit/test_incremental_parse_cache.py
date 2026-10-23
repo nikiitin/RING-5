@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 import json
+
+import pytest
+
+import src.parsing.framework.incremental_cache as cache_module
 from pathlib import Path
 
 from src.core.models import ScannedVariable, StatConfig
@@ -57,3 +61,23 @@ def test_config_aware_fingerprint_includes_the_companion_configuration(tmp_path:
     after = fingerprint_inputs([str(source)], "config_aware")
 
     assert before != after
+
+
+def test_parser_semantic_revision_invalidates_pre_fix_cached_measurements(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source = tmp_path / "stats.txt"
+    source.write_text("simTicks 100\n", encoding="utf-8")
+    fingerprints = fingerprint_inputs([str(source)], "simple")
+    config = StatConfig("missing", "distribution", params={"minimum": 0, "maximum": 1})
+    current_revision = cache_module.PARSER_RESULT_VERSION
+    monkeypatch.setattr(cache_module, "PARSER_RESULT_VERSION", current_revision - 1)
+    old_hash = configuration_hash("stats.txt", "simple", [config], None)
+    cache = tmp_path / "cache.json"
+    write_cache(
+        cache, old_hash, ["missing"], fingerprints, {str(source.resolve()): {"missing..0": "0.0"}}
+    )
+    monkeypatch.setattr(cache_module, "PARSER_RESULT_VERSION", current_revision)
+    current_hash = configuration_hash("stats.txt", "simple", [config], None)
+    assert current_hash != old_hash
+    assert load_cache(cache, current_hash) == ([], {})

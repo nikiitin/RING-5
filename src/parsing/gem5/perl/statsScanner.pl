@@ -100,7 +100,7 @@ while (my $line = <$fh>) {
     chomp $line;
     # $line =~ s/\s+$//;
     next if $line =~ /^$/;
-    next if $line =~ /^---/; # standard gem5 divider
+    # Classification consumes dump boundaries before ignoring divider lines.
 
     my $info = TypesFormatRegex::classifyLine($line);
     next unless $info;

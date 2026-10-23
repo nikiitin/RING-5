@@ -4,6 +4,10 @@ Tests for PatternIndexService — pure business logic for pattern variable opera
 Extracted from UI layer (pattern_index_selector.py) to Layer B.
 """
 
+from typing import Any
+
+import pytest
+
 from src.core.models.pattern_index_service import PatternIndexService
 
 
@@ -160,3 +164,15 @@ class TestFormatEntryDisplay:
     def test_empty_entry(self) -> None:
         result = PatternIndexService.format_entry_display("", [])
         assert result == ""
+
+
+def test_filter_entries_requires_each_selected_position() -> None:
+    assert PatternIndexService.filter_entries(["0", "0_1", "0_2", "1_1"], {0: ["0"], 1: ["1"]}) == [
+        "0_1"
+    ]
+
+
+@pytest.mark.parametrize("position", [-1, -2, True, "1"])
+def test_filter_entries_rejects_invalid_positions(position: Any) -> None:
+    with pytest.raises(ValueError, match="nonnegative integers"):
+        PatternIndexService.filter_entries(["0_1"], {position: ["1"]})

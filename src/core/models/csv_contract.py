@@ -6,7 +6,8 @@ The CSV is the "common language" between Layer A (Parsing) and Layer B (Core).
 
 Format Rules:
     1. Header row is mandatory.
-    2. Each row represents one dump interval (begin/end simpoint pair).
+    2. Each row represents one simulation input file. Repeated dumps and matched
+       instances are reduced according to the configured backend contract.
     3. Column names are variable names (hierarchical, dot-separated).
     4. Values are numeric (float) or string (for configuration variables).
     5. Missing/unmeasured numeric values are represented as ``NaN`` (parsed as NaN by pandas).

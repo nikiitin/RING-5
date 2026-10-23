@@ -18,9 +18,9 @@ class Distribution(StatType):
     Content is stored as a dictionary mapping bucket names (underflows, overflows,
     min..max as strings) to frequency lists.
 
-    Aggregation:
-    Similar to Histograms, multiple matches within a single file (e.g., matching across
-    CPU cores) are summed. This assumes the variable represents a countable frequency.
+    Each assignment records one observed instance/dump. Lists within an assignment
+    are summed; separate assignments are averaged over the expected repeat count.
+    Missing observations and summary fields remain NaN.
 
     Validation:
     - minimum and maximum must be specified and reasonable (< SAFETY_MAX_BUCKETS).
@@ -167,6 +167,7 @@ class Distribution(StatType):
             expected.update(str(i) for i in range(self._minimum, self._maximum + 1))
             expected.update(stats_keys)
 
+        sample: dict[str, float] = {}
         for key, vals in value.items():
             str_key = str(key)
 
@@ -201,7 +202,13 @@ class Distribution(StatType):
                     f"DISTRIBUTION: Value error at key {str_key}. Expected numbers, got: {val_list}"
                 ) from e
 
-            self._content[str_key].append(aggregated_val)
+            sample[str_key] = aggregated_val
+
+        for key in self._content:
+            # An omitted interior frequency in a complete distribution is zero.
+            # Summaries are measurements and cannot be inferred from omission.
+            default = float("nan") if key in stats_keys else 0.0
+            self._content[key].append(sample.get(key, default))
 
     @override
     def balance_content(self) -> None:
@@ -212,7 +219,8 @@ class Distribution(StatType):
             current_len = len(self._content[bucket])
             if current_len < self._repeat:
                 padding = self._repeat - current_len
-                self._content[bucket].extend([0.0] * padding)
+                self._content[bucket].extend([float("nan")] * padding)
+                object.__setattr__(self, "_padded", self._padded + padding)
             elif current_len > self._repeat:
                 raise RuntimeError(
                     f"DISTRIBUTION: Bucket '{bucket}' has more values"
@@ -228,7 +236,7 @@ class Distribution(StatType):
 
         for bucket, values in self._content.items():
             if not values:
-                reduced[bucket] = 0.0
+                reduced[bucket] = float("nan")
             else:
                 reduced[bucket] = math.fsum(values[: self._repeat]) / self._repeat
 

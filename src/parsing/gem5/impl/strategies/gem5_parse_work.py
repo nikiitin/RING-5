@@ -41,13 +41,19 @@ class Gem5ParseWork(ParseWork):
     startup overhead (54x speedup). The Perl output format is: Type/VarID::Entry/Value
     """
 
-    def __init__(self, fileToParse: str, varsToParse: VarsDictType) -> None:
+    def __init__(
+        self,
+        fileToParse: str,
+        varsToParse: VarsDictType,
+        source_patterns: dict[str, str] | None = None,
+    ) -> None:
         """
         Initialize the gem5 parse work unit.
 
         Args:
             fileToParse: Absolute path to the gem5 stats.txt file
             varsToParse: Dictionary mapping variable IDs to StatType instances
+            source_patterns: Logical output names mapped to original source patterns.
 
         Raises:
             RuntimeError: If varsToParse is empty
@@ -56,6 +62,7 @@ class Gem5ParseWork(ParseWork):
             raise RuntimeError("Vars to parse is empty!")
         self._fileToParse: str = fileToParse
         self._varsToParse: VarsDictType = varsToParse
+        self._source_patterns = dict(source_patterns or {})
         self._entryBuffer: EntryBufferType = {}  # Unified buffer for entry-based types
         super().__init__()
 
@@ -97,7 +104,15 @@ class Gem5ParseWork(ParseWork):
         """
         for varID, entries in self._entryBuffer.items():
             if varID in varsToParse:
-                varsToParse[varID].content = entries
+                # Each occurrence belongs to a distinct temporal sample. Concrete
+                # source IDs have separate buffers even when their contents are shared.
+                for index in range(max(map(len, entries.values()), default=0)):
+                    sample = {
+                        key: [values[index]]
+                        for key, values in entries.items()
+                        if index < len(values)
+                    }
+                    varsToParse[varID].content = sample
 
     # ========== Variable-ID helpers ==========
 
@@ -130,16 +145,16 @@ class Gem5ParseWork(ParseWork):
         except SafeRegexError:
             return None
 
-    @classmethod
     def _scalar_pattern_entry(
-        cls, var_id: str, target_var: StatType, vars_to_parse: VarsDictType
+        self, var_id: str, target_var: StatType, vars_to_parse: VarsDictType
     ) -> tuple[str, str] | None:
         """Resolve a concrete scalar alias to its logical vector entry."""
         # [impl->req~ring5.ingestion.configuration-fallbacks~1]
         target_content = target_var.content
         target_entries = target_var.entries or []
         for logical_id, logical_var in vars_to_parse.items():
-            entry = cls._numeric_pattern_id(logical_id, var_id)
+            source_pattern = self._source_patterns.get(logical_id, logical_id)
+            entry = self._numeric_pattern_id(source_pattern, var_id)
             if entry is None:
                 continue
             if logical_var.content is target_content and entry in target_entries:
@@ -329,7 +344,14 @@ class Gem5ParseWork(ParseWork):
                 continue
 
             content = var.content
-            if not content or (not isinstance(content, dict) and len(content) < var.repeat):
+            if (
+                not content
+                or (
+                    isinstance(content, dict)
+                    and any(len(values) < var.repeat for values in content.values())
+                )
+                or (not isinstance(content, dict) and len(content) < var.repeat)
+            ):
                 missing.append(varID)
 
         if missing:
@@ -362,7 +384,11 @@ class Gem5ParseWork(ParseWork):
         lines = [line for line in output.splitlines() if line.strip()]
 
         for line in lines:
-            self._processLine(line, varsToParse)
+            if line == "dump//":
+                self._applyBufferedEntries(varsToParse)
+                self._entryBuffer = {}
+            else:
+                self._processLine(line, varsToParse)
 
         self._applyBufferedEntries(varsToParse)
         return self._validateVars(varsToParse)

@@ -17,6 +17,8 @@ class FakeStatConfig:
     is_regex: bool = False
     params: dict[str, Any] = field(default_factory=dict)
     keep_indices: bool = False
+    type: str = "scalar"
+    source_name: str | None = None
 
 
 @dataclass
