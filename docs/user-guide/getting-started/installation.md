@@ -9,8 +9,8 @@ permalink: /user-guide/getting-started/installation/
 
 # Install RING-5
 
-RING-5 requires Python 3.12 or newer. Install [uv 0.13.5](https://docs.astral.sh/uv/getting-started/installation/)
-for checkout setup. Install Git and Make before using the repository targets.
+RING-5 requires Python 3.12 or newer. Install [uv](https://docs.astral.sh/uv/getting-started/installation/)
+for checkout setup. Make uses `uvx` to run uv 0.13.5. Install Git and Make before using the repository targets.
 Parsing gem5 statistics requires Perl; loading an existing CSV does not.
 
 ## Install a development checkout
