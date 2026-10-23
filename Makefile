@@ -170,12 +170,7 @@ test-e2e:
 		--timeout=240 --timeout-method=thread --no-cov
 
 test-visual:
-	@set -eu; \
-		$(VENV_BIN)/streamlit run app.py --server.port 8502 --server.headless true & \
-		server_pid=$$!; \
-		trap 'kill $$server_pid 2>/dev/null || true' EXIT INT TERM; \
-		sleep 5; \
-		$(PYTEST) tests/visual -n 0 --timeout=120 --no-cov
+	$(PYTEST) tests/visual -n 0 --timeout=120 --no-cov
 
 format:
 	$(VENV_BIN)/black --workers $(RING5_NATIVE_THREADS) $(PYTHON_SOURCES)
