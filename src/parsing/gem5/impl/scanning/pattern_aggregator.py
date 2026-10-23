@@ -219,6 +219,7 @@ class PatternAggregator:
         return Gem5ScannedVariable(
             name=regex_pattern,
             type=result_type,
+            source_type=base_type,
             entries=result_entries,
             pattern_indices=pattern_indices,
             **kwargs,

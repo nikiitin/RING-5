@@ -14,6 +14,9 @@ Tests cover:
 - __str__ method
 """
 
+import math
+from typing import Any, cast
+
 import pytest
 
 from src.parsing.gem5.types.base import StatTypeRegistry
@@ -136,7 +139,7 @@ class TestDistributionContentValidation:
         dist = Distribution(minimum=0, maximum=5)
 
         with pytest.raises(TypeError, match="DISTRIBUTION.*Content must be dict"):
-            dist.content = [1, 2, 3]
+            dist.content = cast(Any, [1, 2, 3])
 
     def test_content_setter_missing_underflows_raises(self) -> None:
         dist = Distribution(minimum=0, maximum=1)
@@ -251,16 +254,16 @@ class TestDistributionContentSetting:
 class TestDistributionBalanceContent:
     """Test balance_content method (padding per bucket)."""
 
-    def test_balance_empty_buckets_pads_with_zeros(self) -> None:
+    def test_balance_empty_buckets_preserves_missingness(self) -> None:
         dist = Distribution(repeat=3, minimum=0, maximum=1)
         # No content set
 
         dist.balance_content()
 
         assert dist.is_balanced is True
-        assert dist.content["underflows"] == [0.0, 0.0, 0.0]
-        assert dist.content["0"] == [0.0, 0.0, 0.0]
-        assert dist.content["overflows"] == [0.0, 0.0, 0.0]
+        assert all(math.isnan(value) for value in dist.content["underflows"])
+        assert all(math.isnan(value) for value in dist.content["0"])
+        assert all(math.isnan(value) for value in dist.content["overflows"])
 
     def test_balance_partial_buckets_pads_remainder(self) -> None:
         dist = Distribution(repeat=4, minimum=0, maximum=1)
@@ -270,9 +273,12 @@ class TestDistributionBalanceContent:
 
         dist.balance_content()
 
-        assert dist.content["underflows"] == [1, 0, 0.0, 0.0]
-        assert dist.content["0"] == [10, 20, 0.0, 0.0]
-        assert dist.content["1"] == [30, 0, 0.0, 0.0]
+        assert dist.content["underflows"][:2] == [1, 0]
+        assert all(math.isnan(value) for value in dist.content["underflows"][2:])
+        assert dist.content["0"][:2] == [10, 20]
+        assert all(math.isnan(value) for value in dist.content["0"][2:])
+        assert dist.content["1"][:2] == [30, 0]
+        assert all(math.isnan(value) for value in dist.content["1"][2:])
 
     def test_balance_exact_count_no_change(self) -> None:
         dist = Distribution(repeat=2, minimum=0, maximum=1)
@@ -313,12 +319,8 @@ class TestDistributionReduceDuplicates:
 
     def test_reduce_multiple_values_calculates_mean(self) -> None:
         dist = Distribution(repeat=3, minimum=0, maximum=1)
-        dist.content = {
-            "underflows": [1, 2, 3],
-            "0": [10, 20, 30],
-            "1": [100, 200, 300],
-            "overflows": [0, 0, 0],
-        }
+        for value in (1, 2, 3):
+            dist.content = {"underflows": value, "0": value * 10, "1": value * 100, "overflows": 0}
         dist.balance_content()
 
         dist.reduce_duplicates()
@@ -327,14 +329,14 @@ class TestDistributionReduceDuplicates:
         assert dist.reduced_content["0"] == 20.0
         assert dist.reduced_content["1"] == 200.0
 
-    def test_reduce_empty_bucket_returns_zero(self) -> None:
+    def test_reduce_empty_bucket_returns_nan(self) -> None:
         dist = Distribution(minimum=0, maximum=1)
-        dist.balance_content()  # All buckets padded with zeros
+        dist.balance_content()  # All requested observations are missing.
 
         dist.reduce_duplicates()
 
-        assert dist.reduced_content["underflows"] == 0.0
-        assert dist.reduced_content["0"] == 0.0
+        assert math.isnan(dist.reduced_content["underflows"])
+        assert math.isnan(dist.reduced_content["0"])
 
     def test_reduce_with_statistics(self) -> None:
         dist = Distribution(minimum=0, maximum=1, statistics=["mean"])
@@ -465,4 +467,4 @@ class TestDistributionEdgeCases:
         object.__setattr__(dist, "_balanced", True)  # Hack to bypass guard
         dist.reduce_duplicates()
 
-        assert object.__getattribute__(dist, "_reduced_content")["2"] == 0.0
+        assert math.isnan(object.__getattribute__(dist, "_reduced_content")["2"])

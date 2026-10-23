@@ -17,6 +17,7 @@ from src.core.common.safe_regex import (
     escape_perl_stat_filter,
     fullmatch_bounded_regex,
     normalize_stat_pattern,
+    numeric_pattern_id,
 )
 from src.core.common.utils import normalize_user_path
 from src.core.common.security_limits import (
@@ -58,6 +59,7 @@ from src.parsing.gem5.impl.scanning.pattern_aggregator import PatternAggregator
 from src.parsing.gem5.impl.strategies.factory import StrategyFactory
 from src.parsing.gem5.impl.strategies.file_parser_strategy import INTERNAL_SIM_PATH_KEY
 from src.parsing.gem5.models import Gem5ScannedVariable
+from src.parsing.gem5.types.type_mapper import TypeMapper
 from src.parsing.parser_protocol import SimulationParser
 
 logger = logging.getLogger(__name__)
@@ -75,6 +77,87 @@ def _render_value(val: Any) -> str:
     if isinstance(val, float) and math.isnan(val):
         return MISSING_VALUE
     return str(val)
+
+
+def _flatten_result(result: dict[str, Any], var_names: list[str]) -> dict[str, str]:
+    """Reduce one result into named scalar cells before publishing output."""
+    extras = sorted(
+        name
+        for name, value in result.items()
+        if name not in var_names and not hasattr(value, "balance_content")
+    )
+    ordered_names = list(dict.fromkeys([*var_names, *extras]))
+    row: dict[str, str] = {}
+    for name in ordered_names:
+        if name not in result:
+            continue
+        value = result[name]
+        if hasattr(value, "balance_content"):
+            value.balance_content()
+            value.reduce_duplicates()
+            reduced = value.reduced_content
+            entries = value.entries
+            if entries:
+                if not isinstance(reduced, dict):
+                    raise RuntimeError(
+                        f"PARSER: entry statistic {name!r} did not reduce to a mapping."
+                    )
+                cells = {f"{name}..{entry}": _render_value(reduced.get(entry)) for entry in entries}
+            elif isinstance(reduced, dict):
+                cells = {}  # An unobserved dynamic histogram has no known bucket schema.
+            else:
+                cells = {name: _render_value(reduced)}
+        else:
+            cells = {name: str(value)}
+        if row.keys() & cells.keys():
+            raise RuntimeError(f"PARSER: duplicate output column for {name!r}.")
+        row.update(cells)
+        if len(row) > MAX_INCREMENTAL_CACHE_COLUMNS:
+            raise RuntimeError(
+                f"PARSER: output exceeds the {MAX_INCREMENTAL_CACHE_COLUMNS}-column limit."
+            )
+    return row
+
+
+def _csv_columns(rows: list[dict[str, str]], var_names: list[str]) -> list[str]:
+    """Resolve an order-independent schema without rescanning every cell per variable."""
+    names = set(var_names)
+    schemas: dict[str, set[tuple[str, ...]]] = {name: set() for name in names}
+    extras: set[str] = set()
+    for row in rows:
+        grouped: dict[str, list[str]] = {}
+        for column in row:
+            candidate = column
+            owners: list[str] = []
+            while True:
+                if candidate in names:
+                    owners.append(candidate)
+                if ".." not in candidate:
+                    break
+                candidate = candidate.rsplit("..", 1)[0]
+            if len(owners) > 1:
+                raise RuntimeError(f"PARSER: ambiguous output column {column!r}.")
+            if owners:
+                grouped.setdefault(owners[0], []).append(column)
+            else:
+                extras.add(column)
+        for name, schema_columns in grouped.items():
+            schemas[name].add(tuple(schema_columns))
+
+    columns: list[str] = []
+    for name in dict.fromkeys(var_names):
+        matching = list(
+            dict.fromkeys(column for schema in sorted(schemas[name]) for column in schema)
+        )
+        if name in matching and any(column != name for column in matching):
+            raise RuntimeError(f"PARSER: inconsistent scalar/entry output shape for {name!r}.")
+        columns.extend(matching or [name])
+    columns.extend(sorted(extras))
+    if len(columns) > MAX_INCREMENTAL_CACHE_COLUMNS:
+        raise RuntimeError(
+            f"PARSER: output exceeds the {MAX_INCREMENTAL_CACHE_COLUMNS}-column limit."
+        )
+    return columns
 
 
 class Gem5Parser(SimulationParser):
@@ -132,6 +215,7 @@ class Gem5Parser(SimulationParser):
                     )
                     pattern = compile_bounded_regex(escape_perl_stat_filter(source_name))
                     matched_ids: list[str] = []
+                    source_types: set[str] = set()
                     matched_id_set: set[str] = set()
 
                     def add_matched_id(pattern_id: str) -> None:
@@ -165,6 +249,10 @@ class Gem5Parser(SimulationParser):
                                 # Invalid scan metadata is not a canonical aggregate pattern.
                                 pass
                         if same_pattern or fullmatch_bounded_regex(pattern, sv_name):
+                            if sv.source_type is not None:
+                                source_types.add(sv.source_type)
+                            elif sv.type == "scalar":
+                                source_types.add("scalar")
                             # If sv is already an aggregated pattern, use its constituents
                             if sv.pattern_indices:
                                 for pattern_id in sv.pattern_indices:
@@ -186,68 +274,79 @@ class Gem5Parser(SimulationParser):
                                 add_matched_id(sv_name)
 
                     if matched_ids:
-                        if config.keep_indices:
-                            user_ids_raw = config.params.get("parsed_ids", [])
-                            if not isinstance(user_ids_raw, list) or any(
-                                not isinstance(pattern_id, str) or not pattern_id
-                                for pattern_id in user_ids_raw
-                            ):
-                                raise SafeRegexError(
-                                    "Selected pattern IDs must be a list of non-empty strings."
-                                )
-                            user_ids: list[str] = list(dict.fromkeys(user_ids_raw))
-                            ids_to_expand = user_ids if user_ids else matched_ids
-                            if len(ids_to_expand) > MAX_PARSE_VARIABLES:
-                                raise SafeRegexError(
-                                    f"Pattern selection expands to {len(ids_to_expand)} variables; "
-                                    f"the limit is {MAX_PARSE_VARIABLES}."
-                                )
-                            concrete_names: list[str] = []
-                            for nid in ids_to_expand:
-                                if nid in matched_id_set:
-                                    cname = nid
-                                else:
-                                    try:
-                                        cname = PatternIndexService.reconstruct_concrete_name(
-                                            source_name, nid
-                                        )
-                                    except ValueError as exc:
-                                        raise SafeRegexError(
-                                            f"Selected pattern ID {nid!r} is neither a scanned "
-                                            "concrete name nor a valid numeric ID."
-                                        ) from exc
-                                if cname not in matched_id_set:
-                                    raise SafeRegexError(
-                                        f"Selected pattern ID {nid!r} was not present in the "
-                                        "scan results."
+                        user_ids_raw = config.params.get("parsed_ids", [])
+                        if not isinstance(user_ids_raw, list) or any(
+                            not isinstance(pattern_id, str) or not pattern_id
+                            for pattern_id in user_ids_raw
+                        ):
+                            raise SafeRegexError(
+                                "Selected pattern IDs must be a list of non-empty strings."
+                            )
+                        selected_ids = list(dict.fromkeys(user_ids_raw or matched_ids))
+                        if len(selected_ids) > MAX_PARSE_VARIABLES:
+                            raise SafeRegexError(
+                                f"Pattern selection expands to {len(selected_ids)} variables; "
+                                f"the limit is {MAX_PARSE_VARIABLES}."
+                            )
+                        concrete_names: list[str] = []
+                        for selected in selected_ids:
+                            if selected in matched_id_set:
+                                concrete = selected
+                            else:
+                                try:
+                                    concrete = PatternIndexService.reconstruct_concrete_name(
+                                        source_name, selected
                                     )
-                                concrete_names.append(cname)
-                            concrete_names = list(dict.fromkeys(concrete_names))
-
-                            if len(concrete_names) > 50:
-                                logger.warning(
-                                    "PARSER: Regex '%s' expanded to %d concrete variables — "
-                                    "this may increase memory usage and processing time.",
-                                    source_name,
-                                    len(concrete_names),
+                                except ValueError as exc:
+                                    raise SafeRegexError(
+                                        f"Selected pattern ID {selected!r} is neither a scanned "
+                                        "concrete name nor a valid numeric ID."
+                                    ) from exc
+                            if concrete not in matched_id_set:
+                                raise SafeRegexError(
+                                    f"Selected pattern ID {selected!r} was not present "
+                                    "in the scan results."
                                 )
-                            for cname in concrete_names:
-                                individual = replace(
-                                    config,
-                                    name=cname,
-                                    source_name=cname,
-                                    is_regex=False,
-                                    keep_indices=False,
-                                    params={
-                                        k: v for k, v in config.params.items() if k != "parsed_ids"
-                                    },
+                            if concrete not in concrete_names:
+                                concrete_names.append(concrete)
+                        if len(source_types) > 1:
+                            raise ValueError(f"PARSER: mixed source types for {source_name!r}.")
+                        resolved_params = config.params.copy()
+                        if source_types:
+                            resolved_params["source_type"] = next(iter(source_types))
+                        resolved_config = replace(config, params=resolved_params)
+                        scalar_pattern = TypeMapper.is_scalar_pattern_vector(
+                            resolved_config, matched_ids
+                        )
+                        if config.keep_indices:
+                            for concrete in concrete_names:
+                                params = {
+                                    key: value
+                                    for key, value in resolved_params.items()
+                                    if key != "parsed_ids"
+                                    and not (scalar_pattern and key in ("entries", "vectorEntries"))
+                                }
+                                processed_configs.append(
+                                    replace(
+                                        config,
+                                        name=concrete,
+                                        source_name=concrete,
+                                        type="scalar" if scalar_pattern else config.type,
+                                        is_regex=False,
+                                        keep_indices=False,
+                                        params=params,
+                                    )
                                 )
-                                processed_configs.append(individual)
                             continue
-                        else:
-                            params = config.params.copy()
-                            params["parsed_ids"] = matched_ids
-                            expanded_config = replace(config, params=params)
+                        params = resolved_params.copy()
+                        params["parsed_ids"] = concrete_names
+                        if scalar_pattern:
+                            params["entries"] = [
+                                index
+                                for name in concrete_names
+                                if (index := numeric_pattern_id(source_name, name)) is not None
+                            ]
+                        expanded_config = replace(config, params=params)
                     else:
                         logger.warning(f"PARSER: No matches found for regex '{source_name}'")
                 except SafeRegexError as exc:
@@ -627,32 +726,7 @@ class Gem5Parser(SimulationParser):
         if len(processed) != 1:
             raise RuntimeError("PARSER: incremental strategy changed the per-file row count.")
 
-        public_result = processed[0]
-        ordered_names = list(var_names)
-        ordered_names.extend(sorted(name for name in public_result if name not in ordered_names))
-        row: dict[str, str] = {}
-        for var_name in ordered_names:
-            if var_name not in public_result:
-                continue
-            value = public_result[var_name]
-            if hasattr(value, "balance_content"):
-                value.balance_content()
-                value.reduce_duplicates()
-                entries = getattr(value, "entries", None)
-                if entries:
-                    reduced = value.reduced_content
-                    for entry in entries:
-                        row[f"{var_name}..{entry}"] = _render_value(reduced.get(entry))
-                else:
-                    row[var_name] = _render_value(value.reduced_content)
-            else:
-                row[var_name] = str(value)
-            if len(row) > MAX_INCREMENTAL_CACHE_COLUMNS:
-                raise RuntimeError(
-                    "PARSER: incremental row exceeds the "
-                    f"{MAX_INCREMENTAL_CACHE_COLUMNS}-column cache limit."
-                )
-        return source_path, row
+        return source_path, _flatten_result(processed[0], var_names)
 
     @staticmethod
     def finalize_incremental_parsing(
@@ -759,26 +833,9 @@ class Gem5Parser(SimulationParser):
         rows: dict[str, dict[str, str]],
     ) -> Path:
         """Atomically write ordered incremental rows to the attempt CSV."""
-        columns: list[str] = []
-        for var_name in batch.var_names:
-            matching = [
-                column
-                for source_path in current_paths
-                for column in rows[source_path]
-                if column == var_name or column.startswith(f"{var_name}..")
-            ]
-            for column in matching or [var_name]:
-                if column not in columns:
-                    columns.append(column)
-        extras = sorted(
-            {column for row in rows.values() for column in row if column not in columns}
+        columns = _csv_columns(
+            [rows[source_path] for source_path in current_paths], batch.var_names
         )
-        columns.extend(extras)
-        if len(columns) > MAX_INCREMENTAL_CACHE_COLUMNS:
-            raise RuntimeError(
-                "PARSER: incremental output exceeds the "
-                f"{MAX_INCREMENTAL_CACHE_COLUMNS}-column limit."
-            )
 
         output_dir = Path(batch.output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -895,81 +952,42 @@ class Gem5Parser(SimulationParser):
             return None
         logger.info(f"PERF: Starting construct_final_csv for {len(results)} files")
 
-        # Include variables that are absent from the first result in the CSV header.
-        header_parts: list[str] = []
-        column_map: dict[str, list[str] | None] = {}
-
-        # Use provided var_names to ensure consistent order
-        ordered_names = list(var_names) if var_names else list(results[0].keys())
-        extra_names = sorted(
-            {
-                name
-                for result in results
-                for name, value in result.items()
-                if name not in ordered_names and not hasattr(value, "balance_content")
-            }
-        )
-        ordered_names.extend(extra_names)
-
-        for var_name in ordered_names:
-            # Search all results for the first occurrence of this variable
-            # to determine its entries (union approach for header completeness)
-            found_var = None
-            for res in results:
-                if var_name in res:
-                    found_var = res[var_name]
-                    break
-
-            if found_var is None:
-                column_map[var_name] = None
-                header_parts.append(var_name)
-                continue
-
-            entries = getattr(found_var, "entries", None)
-            if entries:
-                column_map[var_name] = entries
-                header_parts.extend(f"{var_name}..{e}" for e in entries)
-            else:
-                column_map[var_name] = None
-                header_parts.append(var_name)
-
-        os.makedirs(str(normalize_user_path(output_dir)), exist_ok=True)
-        output_path = os.path.join(str(normalize_user_path(output_dir)), "results.csv")
+        ordered_names = list(var_names) if var_names else list(results[0])
+        if not var_names:
+            ordered_names.extend(
+                sorted({name for result in results for name in result if name not in ordered_names})
+            )
+        rows = [_flatten_result(result, ordered_names) for result in results]
+        columns = _csv_columns(rows, ordered_names)
+        output_root = Path(normalize_user_path(output_dir))
+        output_root.mkdir(parents=True, exist_ok=True)
+        output_path = output_root / "results.csv"
 
         t_write_start = time.perf_counter()
-        with open(output_path, "w", encoding="utf-8", newline="") as f:
-            writer = csv.writer(f, quoting=csv.QUOTE_MINIMAL)
-            writer.writerow(header_parts)
-
-            for file_stats in results:
-                row_parts: list[str] = []
-                for var_name in ordered_names:
-                    if var_name not in file_stats:
-                        row_parts.append(MISSING_VALUE)
-                        continue
-
-                    var = file_stats[var_name]
-
-                    # Handle Stat objects vs Raw Data (from ConfigAwareStrategy)
-                    if hasattr(var, "balance_content"):
-                        var.balance_content()
-                        var.reduce_duplicates()
-
-                        entries = column_map[var_name]
-                        if entries is not None:
-                            reduced = var.reduced_content
-                            for e in entries:
-                                row_parts.append(_render_value(reduced.get(e)))
-                        else:
-                            row_parts.append(_render_value(var.reduced_content))
-                    else:
-                        # Raw data (string/int/etc.)
-                        row_parts.append(str(var))
-
-                writer.writerow(row_parts)
+        temporary_name: str | None = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w",
+                encoding="utf-8",
+                newline="",
+                dir=output_root,
+                prefix=".results-",
+                suffix=".csv",
+                delete=False,
+            ) as stream:
+                temporary_name = stream.name
+                writer = csv.writer(stream, quoting=csv.QUOTE_MINIMAL)
+                writer.writerow(columns)
+                for row in rows:
+                    writer.writerow([row.get(column, MISSING_VALUE) for column in columns])
+            os.replace(temporary_name, output_path)
+            temporary_name = None
+        finally:
+            if temporary_name is not None:
+                Path(temporary_name).unlink(missing_ok=True)
         t_write_end = time.perf_counter()
         logger.info(f"PERF: CSV writing loop took {t_write_end - t_write_start:.4f}s")
 
         t_total = time.perf_counter() - t_start
         logger.info(f"PERF: construct_final_csv total took {t_total:.4f}s")
-        return output_path
+        return str(output_path)

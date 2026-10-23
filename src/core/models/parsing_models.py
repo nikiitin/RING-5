@@ -129,12 +129,14 @@ class ScannedVariable:
 
     This is the simulator-agnostic base class.  Simulator-specific
     subclasses may add extra fields such as distribution min/max ranges.
+    ``source_type`` retains the concrete type when pattern aggregation changes it.
     """
 
     name: str
     type: str  # Simulator-specific type string (e.g. "scalar", "vector")
     entries: list[str] = field(default_factory=list)
     pattern_indices: list[str] | None = None
+    source_type: str | None = field(default=None, kw_only=True)
 
     def to_dict(self) -> ScannedVariableDict:
         """Serialize to dictionary for JSON-compatible output.
@@ -149,6 +151,8 @@ class ScannedVariable:
         )
         if self.pattern_indices is not None:
             result["pattern_indices"] = list(self.pattern_indices)
+        if self.source_type is not None:
+            result["source_type"] = self.source_type
         return result
 
     @classmethod
@@ -164,6 +168,7 @@ class ScannedVariable:
             type=data["type"],
             entries=list(data.get("entries", [])),
             pattern_indices=list(pattern_indices) if pattern_indices is not None else None,
+            source_type=data.get("source_type"),
         )
 
 

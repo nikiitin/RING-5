@@ -19,6 +19,7 @@ class Gem5ScannedVariable(ScannedVariable):
     """
     Gem5-specific scanned variable with distribution/histogram metadata.
 
+    Retains the original ``source_type`` for aggregated scalar patterns.
     Adds ``minimum`` and ``maximum`` fields that are populated during
     deep scanning of distribution and histogram stats.  These values
     define the natural data range and are used by the UI to pre-fill
@@ -44,6 +45,7 @@ class Gem5ScannedVariable(ScannedVariable):
             name=data["name"],
             type=data["type"],
             entries=data.get("entries", []),
+            source_type=data.get("source_type"),
             minimum=data.get("minimum"),
             maximum=data.get("maximum"),
             pattern_indices=data.get("pattern_indices"),

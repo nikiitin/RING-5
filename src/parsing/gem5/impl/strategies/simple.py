@@ -20,7 +20,6 @@ from src.core.common.security_limits import (
     MAX_PARSE_TOTAL_BYTES,
     MAX_PARSE_VARIABLES,
 )
-from src.core.common.safe_regex import SafeRegexError, numeric_pattern_id
 from src.core.common.utils import sanitize_log_value
 from src.core.models import StatConfig
 from src.parsing.framework.file_discovery import find_stats_files
@@ -105,7 +104,11 @@ class SimpleStatsStrategy:
         logger.info(f"PERF: Variable map creation took {t_map_end - t_map_start:.4f}s")
 
         t_copy_start = time.perf_counter()
-        works = [Gem5ParseWork(str(file_path), copy.deepcopy(template_map)) for file_path in files]
+        source_patterns = {var.name: var.source_name or var.name for var in variables}
+        works = [
+            Gem5ParseWork(str(file_path), copy.deepcopy(template_map), source_patterns)
+            for file_path in files
+        ]
         t_copy_end = time.perf_counter()
         logger.info(
             f"PERF: Total deepcopy cost for {len(files)} files: {t_copy_end - t_copy_start:.4f}s"
@@ -217,30 +220,10 @@ class SimpleStatsStrategy:
                 )
 
             if parsed_ids:
-                # Resolve repeat count for the logical variable (spatial aggregation).
-                source_pattern = var.source_name or name
-                entry_ids: list[str] = []
-                try:
-                    entry_ids = [
-                        pattern_id
-                        for parsed_id in parsed_ids
-                        if (pattern_id := numeric_pattern_id(source_pattern, parsed_id)) is not None
-                    ]
-                except SafeRegexError:
-                    entry_ids = []
-                configured_entries = var.params.get("entries", [])
-                # Repeated scalar names are exposed by the scanner as a logical
-                # vector whose entries are the numeric IDs.  Each entry contains
-                # one value, so padding it to ``n_ids`` makes every mean NaN.
-                # True vector/distribution patterns still aggregate the same
-                # bucket across all concrete instances and retain repeat=n_ids.
-                scalar_pattern_vector = (
-                    var.type == "vector"
-                    and isinstance(configured_entries, list)
-                    and set(entry_ids) == set(configured_entries)
-                    and len(entry_ids) == n_ids
-                )
-                repeat = var.repeat if scalar_pattern_vector else n_ids
+                # Scalar-pattern vector entries retain individual instance values.
+                # Other patterns average every concrete instance and temporal dump.
+                scalar_pattern_vector = TypeMapper.is_scalar_pattern_vector(var, parsed_ids)
+                repeat = var.repeat if scalar_pattern_vector else n_ids * var.repeat
                 stat_obj = TypeMapper.create_stat(replace(var, repeat=repeat))
                 if n_ids > 50:
                     logger.warning(

@@ -15,7 +15,7 @@ class MockType:
 
         self._type_name = type_name
         self.content = None
-        self.entries = []
+        self.entries: list[str] = []
         self.onEmpty = None
 
 
@@ -29,14 +29,14 @@ class Scalar:
 class Vector:
     def __init__(self) -> None:
         self.content = None
-        self.entries = []
+        self.entries: list[str] = []
         self.repeat = 1
 
 
 class Distribution:
     def __init__(self) -> None:
         self.content = None
-        self.entries = []
+        self.entries: list[str] = []
         self.repeat = 1
 
 
@@ -50,7 +50,7 @@ class Configuration:
 def parser() -> Gem5ParseWork:
     vars_to_parse = {"scalar_var": Scalar(), "vector_var": Vector(), "dist_var": Distribution()}
     # Mock file existence check if needed, but __init__ doesn't check it (checkFile is in __call__)
-    return Gem5ParseWork("dummy.txt", vars_to_parse)
+    return Gem5ParseWork("dummy.txt", cast(VarsDictType, vars_to_parse))
 
 
 def test_init_empty_vars() -> None:
@@ -128,7 +128,9 @@ def test_process_escaped_pattern_scalars_into_vector_entries() -> None:
 
 
 def test_process_output_full_flow(parser: Any) -> None:
+    from src.parsing.gem5.types.vector import Vector as VectorStat
 
+    parser._varsToParse["vector_var"] = VectorStat(repeat=2, entries=["0"])
     output = """scalar/scalar_var/99
 vector/vector_var::0/100
 vector/vector_var::0/101
@@ -145,7 +147,7 @@ distribution/dist_var::max/15
     # _processVector appends to list: _vectorDict[varID][varKey].append(varValue)
     # output had two values for vector_var::0 => ["100", "101"]
     v_content = parsed["vector_var"].content
-    assert v_content["0"] == ["100", "101"]
+    assert v_content["0"] == [100.0, 101.0]
 
     # Check Dist
     d_content = parsed["dist_var"].content

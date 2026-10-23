@@ -5,9 +5,10 @@ Centralizes logic for mapping external (Perl/Scanner) type strings to internal P
 Ensures consistency between Scanner and Parser.
 """
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any
 
+from src.core.common.safe_regex import SafeRegexError, numeric_pattern_id
 from src.core.models import StatConfig
 from src.core.models.data_models import ScannedVariableDict
 from src.core.models.parsing_models import StatParamValue
@@ -44,6 +45,8 @@ class TypeMapper:
             type=cls.normalize_type(raw_type) if raw_type else "",
             entries=list(scan_result.get("entries", [])),
         )
+        if "source_type" in scan_result:
+            result["source_type"] = scan_result["source_type"]
         if "minimum" in scan_result:
             result["minimum"] = scan_result["minimum"]
         if "maximum" in scan_result:
@@ -57,6 +60,24 @@ class TypeMapper:
         """Check if type requires entries (Vector, Distribution, Histogram)."""
         norm = type_name.lower()
         return norm in ("vector", "distribution", "histogram")
+
+    @staticmethod
+    def is_scalar_pattern_vector(config: StatConfig, concrete_names: Sequence[str]) -> bool:
+        """Identify a scanner vector whose entries are concrete scalar indices."""
+        source_type = config.params.get("source_type")
+        if source_type is not None:
+            return config.type == "vector" and source_type == "scalar"
+        entries = config.params.get("entries", [])
+        if config.type != "vector" or not isinstance(entries, list) or not concrete_names:
+            return False
+        try:
+            indices = [
+                numeric_pattern_id(config.source_name or config.name, name)
+                for name in concrete_names
+            ]
+        except SafeRegexError:
+            return False
+        return all(index is not None for index in indices) and set(indices) == set(entries)
 
     @classmethod
     def create_stat(cls, var_config: StatConfig | Mapping[str, StatParamValue] | Any) -> "StatType":

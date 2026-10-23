@@ -24,6 +24,7 @@ from src.core.models import ScannedVariable, StatConfig
 logger = logging.getLogger(__name__)
 
 CACHE_SCHEMA_VERSION = 1
+PARSER_RESULT_VERSION = 2  # Increment when parsing semantics or output labels change.
 DEFAULT_CACHE_NAME = ".ring5-incremental-parse.json"
 
 
@@ -37,6 +38,7 @@ def configuration_hash(
     scanned_payload = [variable.to_dict() for variable in (scanned_vars or ())]
     payload = {
         "cache_schema": CACHE_SCHEMA_VERSION,
+        "parser_result_version": PARSER_RESULT_VERSION,
         "stats_pattern": stats_pattern,
         "strategy": strategy_type,
         "variables": [asdict(variable) for variable in variables],

@@ -1976,9 +1976,7 @@ class TestConfigAwareParseConfigException:
         config_path.write_text("[section]\nkey = val\n")
 
         strategy = ConfigAwareStrategy()
-        with patch(
-            "src.parsing.gem5.impl.strategies.config_aware.configparser.ConfigParser"
-        ) as mock_cp:
+        with patch("src.parsing.gem5.impl.strategies.config_aware._LiteralConfigParser") as mock_cp:
             mock_parser = MagicMock()
             mock_parser.read.side_effect = configparser.Error("parse error")
             mock_cp.return_value = mock_parser

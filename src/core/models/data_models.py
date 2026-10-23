@@ -183,6 +183,7 @@ class ScannedVariableDict(TypedDict, total=False):
     ``name``, ``type``, and ``entries`` are always present.
     """
 
+    source_type: str
     name: Required[str]
     type: Required[str]
     entries: Required[list[str]]

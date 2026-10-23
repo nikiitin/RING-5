@@ -24,6 +24,14 @@ from src.parsing.gem5.impl.strategies.file_parser_strategy import INTERNAL_SIM_P
 logger = logging.getLogger(__name__)
 
 
+class _LiteralConfigParser(configparser.ConfigParser):
+    """Preserve case-sensitive simulator parameter names."""
+
+    def optionxform(self, optionstr: str) -> str:
+        """Return parameter names exactly as serialized by gem5."""
+        return optionstr
+
+
 class ConfigAwareStrategy(SimpleStatsStrategy):
     """
     Advanced parsing strategy that ingests both stats.txt and config.ini.
@@ -75,9 +83,9 @@ class ConfigAwareStrategy(SimpleStatsStrategy):
         Returns:
             Dictionary representation of the config.
         """
-        parser = configparser.ConfigParser()
+        parser = _LiteralConfigParser(interpolation=None)
         try:
-            loaded = parser.read(str(config_path))
+            loaded = parser.read(str(config_path), encoding="utf-8")
             if not loaded or not parser.sections():
                 raise configparser.Error("configuration contains no sections")
             # Convert ConfigParser to dict for easier handling

@@ -29,7 +29,7 @@ sub resetLineContext {
 
 sub _rememberOnelineHistogramMetadata {
     my ($line) = @_;
-    if ($line =~ /^($varNameRegex)::(bucket_size|max_bucket)\s+(-?\d+)$commentRegex$/) {
+    if ($line =~ /^($varNameRegex)::(bucket_size|min_bucket|max_bucket)\s+(-?\d+)$commentRegex$/) {
         $onelineHistogramMetadata{$1}{$2} = int($3);
         return 1;
     }
@@ -50,8 +50,10 @@ sub _classifyOnelineHistogram {
 
     my $bucket_size = $metadata->{bucket_size};
     my $max_bucket = $metadata->{max_bucket};
+    # Older fixtures omit min_bucket and describe histograms starting at zero.
+    my $min_bucket = $metadata->{min_bucket} // 0;
     die "Invalid one-line histogram metadata for $name\n"
-        unless $bucket_size > 0 && $max_bucket >= 0;
+        unless $bucket_size > 0 && $max_bucket >= $min_bucket;
 
     my @groups = split /\s*\|\s*/, $payload;
     my @values;
@@ -61,14 +63,14 @@ sub _classifyOnelineHistogram {
         push @values, $1;
     }
 
-    my $expected = int($max_bucket / $bucket_size) + 1;
+    my $expected = int(($max_bucket - $min_bucket) / $bucket_size) + 1;
     die "One-line histogram bucket count mismatch for $name: expected $expected, found "
         . scalar(@values) . "\n"
         unless scalar(@values) == $expected;
 
     my @entries;
     for (my $index = 0; $index < @values; $index++) {
-        my $start = $index * $bucket_size;
+        my $start = $min_bucket + $index * $bucket_size;
         my $end = $start + $bucket_size - 1;
         $end = $max_bucket if $end > $max_bucket;
         push @entries, { entry => "$start-$end", value => $values[$index] };
@@ -202,6 +204,13 @@ sub setFilterRegexes {
 
 sub parseAndPrintLineWithFormat {
     my ($line) = @_;
+
+    # Dump boundaries preserve temporal observations when bucket geometry changes.
+    if ($line =~ /^-+\s*Begin Simulation Statistics\s*-+\s*$/) {
+        resetLineContext();
+        print "dump//\n";
+        return;
+    }
 
     # Early return optimization: check filter first
     return unless $line =~ $filtersRegexes;
