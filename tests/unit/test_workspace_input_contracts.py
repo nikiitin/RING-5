@@ -314,3 +314,16 @@ def test_initialize_invalidates_preview_when_clearing_an_empty_source(api) -> No
     api.state_manager.initialize()
     assert api.state_manager.get_data() is None
     assert not api.preview_matches("scale", operation_config=options)
+
+
+def test_transaction_rejects_foreign_callback_before_source_publication(api) -> None:
+    options = _store(api)
+    called = []
+    with api.state_manager.transaction():
+        with pytest.raises(ValueError, match="surrounding transaction exits"):
+            api.state_manager.set_data(
+                pd.DataFrame({"x": [900]}), on_change=lambda: called.append(True)
+            )
+        assert api.state_manager.get_data()["x"].tolist() == [1.0]
+        assert api.preview_matches("scale", operation_config=options)
+    assert called == []

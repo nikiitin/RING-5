@@ -1623,7 +1623,14 @@ class ApplicationAPI:
     # Previews (Delegated to StateManager)
 
     def preview_input_signature(self) -> str:
-        """Capture source identity before computing a data-manager preview."""
+        """Capture source identity before computing a data-manager preview.
+
+        Returns:
+            Stable source token to supply when storing the computed preview.
+
+        Raises:
+            ValueError: Source values or metadata cannot be identified safely.
+        """
         return self._workspace_inputs.preview_input_signature()
 
     def set_preview(
@@ -1634,7 +1641,17 @@ class ApplicationAPI:
         operation_config: Mapping[str, Any] | None = None,
         source_signature: str | None = None,
     ) -> None:
-        """Store a defensive preview with optional source and reviewed-option guards."""
+        """Store a defensive preview with optional source and reviewed-option guards.
+
+        Args:
+            operation_name: Session-unique name for this manager operation.
+            data: Computed result; retained independently of caller mutations.
+            operation_config: Options used for computation; None stores a legacy preview.
+            source_signature: Token captured before computation; required with operation_config.
+
+        Raises:
+            ValueError: The source changed, the token is missing, or metadata is unsupported.
+        """
         # [impl->req~ring5.extension.data-manager~1]
         self._workspace_inputs.set_preview(
             operation_name,
@@ -1644,19 +1661,49 @@ class ApplicationAPI:
         )
 
     def preview_matches(self, operation_name: str, *, operation_config: Mapping[str, Any]) -> bool:
-        """Whether a preview still matches its source and current options."""
+        """Check whether a preview still matches its source and current options.
+
+        Args:
+            operation_name: Stored manager operation name.
+            operation_config: Current options to compare with the reviewed options.
+
+        Returns:
+            True for an available guarded preview with unchanged source and options.
+
+        Raises:
+            ValueError: Options contain unsupported or recursive metadata.
+        """
         return self._workspace_inputs.preview_matches(
             operation_name, operation_config=operation_config
         )
 
     def get_preview_config(self, operation_name: str) -> dict[str, Any] | None:
-        """Return a defensive copy of the reviewed operation options."""
+        """Return the options retained with a reviewed manager preview.
+
+        Args:
+            operation_name: Stored manager operation name.
+
+        Returns:
+            Independent options dictionary, or None for an absent or legacy preview.
+        """
         return self._workspace_inputs.get_preview_config(operation_name)
 
     def confirm_preview(
         self, operation_name: str, *, operation_config: Mapping[str, Any], operation: str
     ) -> pd.DataFrame:
-        """Atomically confirm an unchanged preview or raise ValueError for stale work."""
+        """Apply an unchanged preview to source data and consume the stored preview.
+
+        Args:
+            operation_name: Stored manager operation name.
+            operation_config: Current options, which must match the reviewed options.
+            operation: Non-empty operation label recorded in named-dataset lineage.
+
+        Returns:
+            Independent copy of the retained source data after confirmation.
+
+        Raises:
+            ValueError: The preview is absent, legacy, stale, or has different options.
+        """
         return self._workspace_inputs.confirm_preview(
             operation_name, operation_config=operation_config, operation=operation
         )
@@ -1664,13 +1711,36 @@ class ApplicationAPI:
     def report_input_signature(
         self, selected_ids: Sequence[int], *, include_data: bool = True
     ) -> str:
-        """Identify all figure, data and provenance inputs used by a report."""
+        """Identify all figure, data and provenance inputs used by a report.
+
+        Args:
+            selected_ids: Plot identifiers in report order.
+            include_data: Whether the report includes its source table.
+
+        Returns:
+            Stable SHA-256 signature of the complete report input snapshot.
+
+        Raises:
+            ValueError: Plot IDs, options, or retained metadata are invalid.
+        """
         return self._workspace_inputs.report_input_signature(
             selected_ids, include_data=include_data
         )
 
     def portfolio_bundle_signature(self, name: str, snapshot_name: str | None = None) -> str:
-        """Identify verified saved content used by a portable bundle."""
+        """Identify verified saved content used by a portable bundle.
+
+        Args:
+            name: Saved portfolio name.
+            snapshot_name: Optional saved dataset snapshot to include.
+
+        Returns:
+            Stable SHA-256 signature covering exact verified saved bytes.
+
+        Raises:
+            OSError: A saved artifact is missing or unreadable.
+            ValueError: A saved artifact fails integrity or format validation.
+        """
         return self._workspace_inputs.portfolio_bundle_signature(name, snapshot_name=snapshot_name)
 
     def get_preview(self, operation_name: str) -> pd.DataFrame | None:

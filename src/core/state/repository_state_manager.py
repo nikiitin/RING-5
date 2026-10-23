@@ -108,6 +108,7 @@ class RepositoryStateManager:
         """
         # [impl->req~ring5.workspace.session-isolation~1]
         self._transaction_lock = threading.RLock()
+        self._transaction_context = threading.local()
         self._source_version = 0
         self._session_repo = SessionRepository(plot_deserializer=plot_deserializer)
 
@@ -115,7 +116,12 @@ class RepositoryStateManager:
     def transaction(self) -> Iterator[None]:
         """Hold the session boundary for an atomic compare-and-publish sequence."""
         with self._transaction_lock:
-            yield
+            depth = getattr(self._transaction_context, "depth", 0)
+            self._transaction_context.depth = depth + 1
+            try:
+                yield
+            finally:
+                self._transaction_context.depth = depth
 
     def get_source_version(self) -> int:
         """Return the version advanced by source publication or selection."""
@@ -149,7 +155,15 @@ class RepositoryStateManager:
         operation: str = "Update dataset",
         source_datasets: tuple[str, ...] = (),
     ) -> None:
-        """Store source data and optionally invoke a change callback."""
+        """Store source data, then invoke a callback after releasing the publication lock.
+
+        Raises:
+            ValueError: A callback is supplied inside an explicit state transaction.
+        """
+        if on_change is not None and getattr(self._transaction_context, "depth", 0):
+            raise ValueError(
+                "State-change callbacks must run after the surrounding transaction exits."
+            )
         # Copy + enforce configuration-column dtypes via the shared ingestion
         # helper, so fresh loads and portfolio restores agree on dtypes.
         if data is not None:

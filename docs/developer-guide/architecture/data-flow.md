@@ -146,3 +146,9 @@ changes to any retained scientific input invalidate derived report content. Save
 use `api.portfolio_bundle_signature`, which verifies and hashes exact portfolio and optional
 snapshot bytes. Remote `.ring5-bundle` files enter the same verified browser-upload boundary as
 local uploads.
+
+State-change callbacks run after publication releases its lock. A callback supplied inside an
+explicit state transaction is rejected before changing data; schedule it after the transaction
+exits. Data and preview repositories, and public `Table` handles, own nested Python object cells
+as well as ordinary numeric arrays, so mutation through a caller's frame cannot change reviewed
+or historical values.
