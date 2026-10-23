@@ -205,7 +205,10 @@ def _cache_identity(value: Any) -> Any:
     if value is pd.NaT:
         return ["pandas.NaT"]
     if isinstance(value, np.generic):
-        return ["numpy", str(value.dtype), _cache_identity(value.item())]
+        scalar = value.item()
+        if isinstance(scalar, np.generic):
+            raise TypeError("NumPy scalar has no lossless Python scalar representation.")
+        return ["numpy", str(value.dtype), _cache_identity(scalar)]
     if type(value) in (list, tuple):
         return [type(value).__name__, [_cache_identity(item) for item in value]]
     if type(value) is dict:
@@ -275,7 +278,7 @@ def compute_data_fingerprint(
         digest = hashlib.sha256(json.dumps(metadata, separators=(",", ":")).encode("utf-8"))
         digest.update(content)
         return digest.hexdigest()[:16]
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, RecursionError):
         # An unsupported mutable object has no reliable canonical identity. Never
         # collapse it through stringification or reuse another frame's output.
         return uuid.uuid4().hex[:16]

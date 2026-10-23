@@ -253,3 +253,19 @@ def test_cached_shapers_preserve_typed_retained_identity(kind: str, changed: str
     else:
         # Mean may widen a categorical metadata column when appending its aggregate.
         assert result["category"].iloc[:2].tolist() == other["category"].tolist()
+
+
+@pytest.mark.parametrize("kind", ["extended_scalar", "cyclic_metadata"])
+def test_unsupported_metadata_bypasses_cache_without_recursive_failure(kind: str) -> None:
+    from src.core.performance import compute_data_fingerprint
+
+    frame = _frame()
+    if kind == "extended_scalar":
+        frame.attrs = {"precision": np.longdouble("1.25")}
+    else:
+        cycle: list[object] = []
+        cycle.append(cycle)
+        frame.attrs = {"cycle": cycle}
+    first = compute_data_fingerprint(frame, {}, ["value"])
+    second = compute_data_fingerprint(frame, {}, ["value"])
+    assert first != second
