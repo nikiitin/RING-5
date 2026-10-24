@@ -1,0 +1,1184 @@
+{
+  "verified_date": "2026-10-24",
+  "python": {
+    "required": ">=3.12",
+    "local_matrix": [
+      "3.12.15",
+      "3.13.17",
+      "3.14.9",
+      "3.15.1"
+    ],
+    "uv": "0.13.5",
+    "lock": "uv.lock",
+    "bootstrap": "Make invokes uvx --isolated --from uv==0.13.5 uv."
+  },
+  "python_dependencies": [
+    {
+      "name": "packaging",
+      "group": "runtime",
+      "requirement": "packaging==26.3",
+      "locked_versions": [
+        "26.3"
+      ],
+      "latest_verified": "26.3",
+      "source": "https://pypi.org/project/packaging/"
+    },
+    {
+      "name": "platformdirs",
+      "group": "runtime",
+      "requirement": "platformdirs==4.13.5",
+      "locked_versions": [
+        "4.13.5"
+      ],
+      "latest_verified": "4.13.5",
+      "source": "https://pypi.org/project/platformdirs/"
+    },
+    {
+      "name": "pandas",
+      "group": "runtime",
+      "requirement": "pandas==3.1.0",
+      "locked_versions": [
+        "3.1.0"
+      ],
+      "latest_verified": "3.1.0",
+      "source": "https://pypi.org/project/pandas/"
+    },
+    {
+      "name": "scipy",
+      "group": "runtime",
+      "requirement": "scipy==1.18.1",
+      "locked_versions": [
+        "1.18.1"
+      ],
+      "latest_verified": "1.18.1",
+      "source": "https://pypi.org/project/scipy/"
+    },
+    {
+      "name": "numpy",
+      "group": "runtime",
+      "requirement": "numpy==2.5.4",
+      "locked_versions": [
+        "2.5.4"
+      ],
+      "latest_verified": "2.5.4",
+      "source": "https://pypi.org/project/numpy/"
+    },
+    {
+      "name": "matplotlib",
+      "group": "runtime",
+      "requirement": "matplotlib==3.11.2",
+      "locked_versions": [
+        "3.11.2"
+      ],
+      "latest_verified": "3.11.2",
+      "source": "https://pypi.org/project/matplotlib/"
+    },
+    {
+      "name": "streamlit",
+      "group": "runtime",
+      "requirement": "streamlit==1.66.1",
+      "locked_versions": [
+        "1.66.1"
+      ],
+      "latest_verified": "1.66.1",
+      "source": "https://pypi.org/project/streamlit/"
+    },
+    {
+      "name": "openpyxl",
+      "group": "runtime",
+      "requirement": "openpyxl==3.1.5",
+      "locked_versions": [
+        "3.1.5"
+      ],
+      "latest_verified": "3.1.5",
+      "source": "https://pypi.org/project/openpyxl/"
+    },
+    {
+      "name": "plotly",
+      "group": "runtime",
+      "requirement": "plotly==7.1.0",
+      "locked_versions": [
+        "7.1.0"
+      ],
+      "latest_verified": "7.1.0",
+      "source": "https://pypi.org/project/plotly/"
+    },
+    {
+      "name": "kaleido",
+      "group": "runtime",
+      "requirement": "kaleido==1.5.0",
+      "locked_versions": [
+        "1.5.0"
+      ],
+      "latest_verified": "1.5.0",
+      "source": "https://pypi.org/project/kaleido/"
+    },
+    {
+      "name": "choreographer",
+      "group": "runtime",
+      "requirement": "choreographer==1.4.0",
+      "locked_versions": [
+        "1.4.0"
+      ],
+      "latest_verified": "1.4.0",
+      "source": "https://pypi.org/project/choreographer/"
+    },
+    {
+      "name": "regex",
+      "group": "runtime",
+      "requirement": "regex==2026.9.29",
+      "locked_versions": [
+        "2026.9.29"
+      ],
+      "latest_verified": "2026.9.29",
+      "source": "https://pypi.org/project/regex/"
+    },
+    {
+      "name": "click",
+      "group": "runtime",
+      "requirement": "click>=8.5.0",
+      "locked_versions": [
+        "8.5.0"
+      ],
+      "latest_verified": "8.5.0",
+      "source": "https://pypi.org/project/click/"
+    },
+    {
+      "name": "gitpython",
+      "group": "runtime",
+      "requirement": "gitpython>=3.2.1",
+      "locked_versions": [
+        "3.2.1"
+      ],
+      "latest_verified": "3.2.1",
+      "source": "https://pypi.org/project/gitpython/"
+    },
+    {
+      "name": "pillow",
+      "group": "runtime",
+      "requirement": "pillow>=13.0.0",
+      "locked_versions": [
+        "13.0.0"
+      ],
+      "latest_verified": "13.0.0",
+      "source": "https://pypi.org/project/pillow/"
+    },
+    {
+      "name": "python-multipart",
+      "group": "runtime",
+      "requirement": "python-multipart>=0.0.32",
+      "locked_versions": [
+        "0.0.32"
+      ],
+      "latest_verified": "0.0.32",
+      "source": "https://pypi.org/project/python-multipart/"
+    },
+    {
+      "name": "starlette",
+      "group": "runtime",
+      "requirement": "starlette>=1.9.0",
+      "locked_versions": [
+        "1.9.0"
+      ],
+      "latest_verified": "1.9.0",
+      "source": "https://pypi.org/project/starlette/"
+    },
+    {
+      "name": "tornado",
+      "group": "runtime",
+      "requirement": "tornado>=6.6",
+      "locked_versions": [
+        "6.6"
+      ],
+      "latest_verified": "6.6",
+      "source": "https://pypi.org/project/tornado/"
+    },
+    {
+      "name": "pytest",
+      "group": "dev",
+      "requirement": "pytest==9.1.1",
+      "locked_versions": [
+        "9.1.1"
+      ],
+      "latest_verified": "9.1.1",
+      "source": "https://pypi.org/project/pytest/"
+    },
+    {
+      "name": "pytest-cov",
+      "group": "dev",
+      "requirement": "pytest-cov==7.1.0",
+      "locked_versions": [
+        "7.1.0"
+      ],
+      "latest_verified": "7.1.0",
+      "source": "https://pypi.org/project/pytest-cov/"
+    },
+    {
+      "name": "pytest-xdist",
+      "group": "dev",
+      "requirement": "pytest-xdist==3.8.0",
+      "locked_versions": [
+        "3.8.0"
+      ],
+      "latest_verified": "3.8.0",
+      "source": "https://pypi.org/project/pytest-xdist/"
+    },
+    {
+      "name": "black",
+      "group": "dev",
+      "requirement": "black==26.10.1",
+      "locked_versions": [
+        "26.10.1"
+      ],
+      "latest_verified": "26.10.1",
+      "source": "https://pypi.org/project/black/"
+    },
+    {
+      "name": "flake8",
+      "group": "dev",
+      "requirement": "flake8==7.4.1",
+      "locked_versions": [
+        "7.4.1"
+      ],
+      "latest_verified": "7.4.1",
+      "source": "https://pypi.org/project/flake8/"
+    },
+    {
+      "name": "flake8-pyproject",
+      "group": "dev",
+      "requirement": "flake8-pyproject==1.2.4",
+      "locked_versions": [
+        "1.2.4"
+      ],
+      "latest_verified": "1.2.4",
+      "source": "https://pypi.org/project/flake8-pyproject/"
+    },
+    {
+      "name": "mypy",
+      "group": "dev",
+      "requirement": "mypy==2.4.0",
+      "locked_versions": [
+        "2.4.0"
+      ],
+      "latest_verified": "2.4.0",
+      "source": "https://pypi.org/project/mypy/"
+    },
+    {
+      "name": "pre-commit",
+      "group": "dev",
+      "requirement": "pre-commit==4.7.0",
+      "locked_versions": [
+        "4.7.0"
+      ],
+      "latest_verified": "4.7.0",
+      "source": "https://pypi.org/project/pre-commit/"
+    },
+    {
+      "name": "pytest-randomly",
+      "group": "dev",
+      "requirement": "pytest-randomly==5.0.0",
+      "locked_versions": [
+        "5.0.0"
+      ],
+      "latest_verified": "5.0.0",
+      "source": "https://pypi.org/project/pytest-randomly/"
+    },
+    {
+      "name": "pytest-order",
+      "group": "dev",
+      "requirement": "pytest-order==1.5.0",
+      "locked_versions": [
+        "1.5.0"
+      ],
+      "latest_verified": "1.5.0",
+      "source": "https://pypi.org/project/pytest-order/"
+    },
+    {
+      "name": "pandas-stubs",
+      "group": "dev",
+      "requirement": "pandas-stubs==3.0.5.260914",
+      "locked_versions": [
+        "3.0.5.260914"
+      ],
+      "latest_verified": "3.0.5.260914",
+      "source": "https://pypi.org/project/pandas-stubs/"
+    },
+    {
+      "name": "plotly-stubs",
+      "group": "dev",
+      "requirement": "plotly-stubs==0.1.4",
+      "locked_versions": [
+        "0.1.4"
+      ],
+      "latest_verified": "0.1.4",
+      "source": "https://pypi.org/project/plotly-stubs/"
+    },
+    {
+      "name": "scipy-stubs",
+      "group": "dev",
+      "requirement": "scipy-stubs==1.18.1.1",
+      "locked_versions": [
+        "1.18.1.1"
+      ],
+      "latest_verified": "1.18.1.1",
+      "source": "https://pypi.org/project/scipy-stubs/"
+    },
+    {
+      "name": "build",
+      "group": "dev",
+      "requirement": "build==1.6.1",
+      "locked_versions": [
+        "1.6.1"
+      ],
+      "latest_verified": "1.6.1",
+      "source": "https://pypi.org/project/build/"
+    },
+    {
+      "name": "twine",
+      "group": "dev",
+      "requirement": "twine==7.0.0",
+      "locked_versions": [
+        "7.0.0"
+      ],
+      "latest_verified": "7.0.0",
+      "source": "https://pypi.org/project/twine/"
+    },
+    {
+      "name": "pyyaml",
+      "group": "ci",
+      "requirement": "PyYAML==6.0.3",
+      "locked_versions": [
+        "6.0.3"
+      ],
+      "latest_verified": "6.0.3",
+      "source": "https://pypi.org/project/PyYAML/"
+    },
+    {
+      "name": "bandit",
+      "group": "ci",
+      "requirement": "bandit[toml]==1.9.4",
+      "locked_versions": [
+        "1.9.4"
+      ],
+      "latest_verified": "1.9.4",
+      "source": "https://pypi.org/project/bandit/"
+    },
+    {
+      "name": "pytest-timeout",
+      "group": "ci",
+      "requirement": "pytest-timeout==2.4.0",
+      "locked_versions": [
+        "2.4.0"
+      ],
+      "latest_verified": "2.4.0",
+      "source": "https://pypi.org/project/pytest-timeout/"
+    },
+    {
+      "name": "pip-audit",
+      "group": "ci",
+      "requirement": "pip-audit==2.10.1",
+      "locked_versions": [
+        "2.10.1"
+      ],
+      "latest_verified": "2.10.1",
+      "source": "https://pypi.org/project/pip-audit/"
+    },
+    {
+      "name": "idna",
+      "group": "ci",
+      "requirement": "idna>=3.20",
+      "locked_versions": [
+        "3.20"
+      ],
+      "latest_verified": "3.20",
+      "source": "https://pypi.org/project/idna/"
+    },
+    {
+      "name": "msgpack",
+      "group": "ci",
+      "requirement": "msgpack>=1.2.3",
+      "locked_versions": [
+        "1.2.3"
+      ],
+      "latest_verified": "1.2.3",
+      "source": "https://pypi.org/project/msgpack/"
+    },
+    {
+      "name": "urllib3",
+      "group": "ci",
+      "requirement": "urllib3>=2.8.0",
+      "locked_versions": [
+        "2.8.0"
+      ],
+      "latest_verified": "2.8.0",
+      "source": "https://pypi.org/project/urllib3/"
+    },
+    {
+      "name": "pytest-playwright",
+      "group": "e2e",
+      "requirement": "pytest-playwright==0.10.0",
+      "locked_versions": [
+        "0.10.0"
+      ],
+      "latest_verified": "0.10.0",
+      "source": "https://pypi.org/project/pytest-playwright/"
+    },
+    {
+      "name": "pytest-base-url",
+      "group": "e2e",
+      "requirement": "pytest-base-url==2.1.0",
+      "locked_versions": [
+        "2.1.0"
+      ],
+      "latest_verified": "2.1.0",
+      "source": "https://pypi.org/project/pytest-base-url/"
+    },
+    {
+      "name": "playwright",
+      "group": "e2e",
+      "requirement": "playwright==1.64.1",
+      "locked_versions": [
+        "1.64.1"
+      ],
+      "latest_verified": "1.64.1",
+      "source": "https://pypi.org/project/playwright/"
+    },
+    {
+      "name": "imageio",
+      "group": "e2e",
+      "requirement": "imageio==2.38.1",
+      "locked_versions": [
+        "2.38.1"
+      ],
+      "latest_verified": "2.38.1",
+      "source": "https://pypi.org/project/imageio/"
+    },
+    {
+      "name": "setuptools",
+      "group": "build",
+      "requirement": "setuptools==84.2.1",
+      "locked_versions": [],
+      "latest_verified": "84.2.1",
+      "source": "https://pypi.org/project/setuptools/"
+    },
+    {
+      "name": "wheel",
+      "group": "build",
+      "requirement": "wheel==0.48.0",
+      "locked_versions": [],
+      "latest_verified": "0.48.0",
+      "source": "https://pypi.org/project/wheel/"
+    }
+  ],
+  "actions": {
+    "actions/checkout": {
+      "tag": "v7.0.1",
+      "sha": "3d3c42e5aac5ba805825da76410c181273ba90b1"
+    },
+    "actions/setup-python": {
+      "tag": "v7.1.0",
+      "sha": "6d4fd22b20465ccc0f7354476588e8df7c9ca0e0"
+    },
+    "actions/setup-java": {
+      "tag": "v6.1.0",
+      "sha": "b843ebf9b913146b38da2eaa7aeddf76074ae1ad"
+    },
+    "actions/upload-artifact": {
+      "tag": "v7.0.2",
+      "sha": "cf430e030ddbb5b0abf93d22962f4752f3646cd9"
+    },
+    "actions/configure-pages": {
+      "tag": "v6.0.0",
+      "sha": "45bfe0192ca1faeb007ade9deae92b16b8254a0d"
+    },
+    "actions/upload-pages-artifact": {
+      "tag": "v5.0.0",
+      "sha": "fc324d3547104276b827a68afc52ff2a11cc49c9"
+    },
+    "actions/deploy-pages": {
+      "tag": "v5.0.1",
+      "sha": "368f82528645a54fb793d4d04e342629a3f51346"
+    },
+    "ruby/setup-ruby": {
+      "tag": "v1.334.0",
+      "sha": "26e5b7d197ebf60545ee9667bcbace0be11ccaec"
+    },
+    "codecov/codecov-action": {
+      "tag": "v7.1.1",
+      "sha": "303a32d7a59b442fa8d48b6a1cc6825c09c847a5"
+    },
+    "github/codeql-action": {
+      "tag": "v4.39.1",
+      "sha": "9b3254085494b55a0f7c4c2b3d2d52cc712ce370"
+    },
+    "astral-sh/setup-uv": {
+      "tag": "v10.3.2",
+      "sha": "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e"
+    }
+  },
+  "documentation": {
+    "ruby_tested": "3.3.13",
+    "bundler": "4.0.23",
+    "lock": "Gemfile.lock",
+    "audit": "bundler-audit 0.9.3",
+    "compatible_major_constraints": {
+      "json": "Jekyll requires the 2.x series",
+      "liquid": "Jekyll requires the 4.x series",
+      "rouge": "Jekyll excludes 5.x",
+      "terminal-table": "Jekyll excludes 4.x"
+    },
+    "ruby_latest_compatible_patch": "3.3.13",
+    "ruby_source": "https://www.ruby-lang.org/en/news/2026/10/23/ruby-3-3-13-released/",
+    "ruby_image_digest": "sha256:feb86cb7e42c69ae2804ed5fc0a29e7f6b4ec0eaa78bb056a03321891544aa25",
+    "registry_evidence": [
+      {
+        "name": "bundler-audit",
+        "latest": "0.9.3",
+        "source": "https://rubygems.org/api/v1/gems/bundler-audit.json"
+      },
+      {
+        "name": "bundler",
+        "latest": "4.0.23",
+        "source": "https://rubygems.org/api/v1/gems/bundler.json"
+      },
+      {
+        "name": "just-the-docs",
+        "latest": "0.12.0",
+        "source": "https://rubygems.org/api/v1/gems/just-the-docs.json"
+      },
+      {
+        "name": "webrick",
+        "latest": "1.9.2",
+        "source": "https://rubygems.org/api/v1/gems/webrick.json"
+      },
+      {
+        "name": "base64",
+        "latest": "0.3.0",
+        "source": "https://rubygems.org/api/v1/gems/base64.json"
+      },
+      {
+        "name": "csv",
+        "latest": "3.3.6",
+        "source": "https://rubygems.org/api/v1/gems/csv.json"
+      },
+      {
+        "name": "jekyll",
+        "latest": "4.4.1",
+        "source": "https://rubygems.org/api/v1/gems/jekyll.json"
+      },
+      {
+        "name": "jekyll-redirect-from",
+        "latest": "0.17.0",
+        "source": "https://rubygems.org/api/v1/gems/jekyll-redirect-from.json"
+      }
+    ]
+  },
+  "external_tools": {
+    "openfasttrace": "4.11.0",
+    "trunk": "1.25.0",
+    "trunk_plugins": "1.11.0",
+    "trunk_python": "3.14.9",
+    "trunk_node_lts": "24.22.1",
+    "trunk_go": "1.27.3",
+    "plotly_javascript": {
+      "python_bundle": "4.1.1",
+      "latest_independent_release": "4.1.2",
+      "selection": "Use the JavaScript bundle shipped by Plotly.py 7.1.0 to preserve schema compatibility."
+    },
+    "primary_sources": {
+      "uv": "https://github.com/astral-sh/uv/releases/tag/0.13.5",
+      "trunk": "https://trunk.io/releases/latest",
+      "trunk_plugins": "https://github.com/trunk-io/plugins/releases/tag/v1.11.0",
+      "pre_commit_hooks": "https://github.com/pre-commit/pre-commit-hooks/releases/tag/v6.0.0",
+      "openfasttrace": "https://github.com/itsallcode/openfasttrace/releases/tag/4.11.0",
+      "go": "https://go.dev/dl/?mode=json",
+      "node_lts": "https://nodejs.org/dist/index.json",
+      "plotly_js": "https://github.com/plotly/plotly.js/releases/tag/v4.1.2",
+      "ruby": "https://www.ruby-lang.org/en/news/2026/10/23/ruby-3-3-13-released/"
+    }
+  },
+  "validation_status": "All planned local gates pass on frozen source 95f778d6; native Windows/macOS and remote CI remain unexecuted.",
+  "verified_at_utc": "2026-10-23T22:36:43.300883+00:00",
+  "date_timezone": "Europe/Madrid",
+  "compatibility_notes": [
+    "Node 24.22.1 is the selected current LTS; Node 26.12.1 is the current non-LTS release.",
+    "Ruby 3.3.13 is the current patch in the supported 3.3 documentation CI line; newer minor and major lines require separate compatibility validation.",
+    "All 46 declared Python releases meet Python >=3.12. The application lock records 44 requirements; setuptools and wheel are pinned separately in build-system requirements.",
+    "Node 24 Actions require runner >=2.327.1. Authenticated checkout commands in Docker container actions require >=2.329.0."
+  ],
+  "refresh_summary": {
+    "python_requirements": {
+      "declared": 46,
+      "artifact_records": 46,
+      "stable_registry_checks_passed": 46,
+      "requirement_or_lock_mismatches": 0,
+      "newer_stable_releases": 0,
+      "lock_root_requires_dist_matches": 44,
+      "build_dependencies_outside_application_lock": 2,
+      "source_template": "https://pypi.org/pypi/{name}/json"
+    },
+    "actions": {
+      "workflow_occurrences": 39,
+      "unique_repositories": 11,
+      "immutable_sha_and_tag_matches": 11,
+      "newer_stable_action_releases": 0,
+      "annotated_tags_dereferenced": [
+        "codecov/codecov-action",
+        "github/codeql-action"
+      ],
+      "codeql_note": "Latest release endpoint also contains separate codeql-bundle tags; stable Action remains v4.39.1."
+    },
+    "ruby_direct_dependencies": {
+      "all_seven_at_latest_stable": true,
+      "bundler_latest": "4.0.23",
+      "source_template": "https://rubygems.org/api/v1/gems/{name}.json",
+      "constrained_transitive_current_majors": {
+        "json": "3.1.0",
+        "liquid": "5.14.0",
+        "rouge": "5.1.0",
+        "terminal-table": "4.0.0"
+      },
+      "jekyll_constraints": {
+        "json": "~>2.6",
+        "liquid": "~>4.0",
+        "rouge": ">=3.0,<5.0",
+        "terminal-table": ">=1.8,<4.0"
+      }
+    }
+  },
+  "trunk_linter_inventory": {
+    "verified_at_utc": "2026-10-23T22:36:43.300883+00:00",
+    "configuration": ".trunk/trunk.yaml",
+    "summary": {
+      "tool_names": 19,
+      "explicit_version_pins": 18,
+      "versioned_tools_at_latest_stable": 18,
+      "newer_stable_linter_releases": 0
+    },
+    "tools": [
+      {
+        "name": "oxipng",
+        "pinned_version": "10.2.1",
+        "latest_compatible_stable": "10.2.1",
+        "provider": "GitHub",
+        "source": "https://github.com/oxipng/oxipng/releases/tag/v10.2.1",
+        "also_declared_in_pyproject": false,
+        "status": "current stable",
+        "release_published_at": "2026-09-02T19:50:49Z",
+        "linux_x86_64_release_asset": "oxipng-10.2.1-x86_64-unknown-linux-gnu.tar.gz"
+      },
+      {
+        "name": "pyright",
+        "pinned_version": "1.1.414",
+        "latest_compatible_stable": "1.1.414",
+        "provider": "npm",
+        "source": "https://registry.npmjs.org/pyright/latest",
+        "also_declared_in_pyproject": false,
+        "status": "current stable",
+        "package": "pyright",
+        "engines": {
+          "node": ">=14.0.0"
+        }
+      },
+      {
+        "name": "flake8",
+        "pinned_version": "7.4.1",
+        "latest_compatible_stable": "7.4.1",
+        "provider": "PyPI",
+        "source": "https://pypi.org/pypi/flake8/json",
+        "also_declared_in_pyproject": true,
+        "status": "current stable",
+        "release_published_at": "2026-09-23T12:21:58.085120Z",
+        "requires_python": [
+          ">=3.10"
+        ],
+        "configured_python_satisfies_metadata": true
+      },
+      {
+        "name": "mypy",
+        "pinned_version": "2.4.0",
+        "latest_compatible_stable": "2.4.0",
+        "provider": "PyPI",
+        "source": "https://pypi.org/pypi/mypy/json",
+        "also_declared_in_pyproject": true,
+        "status": "current stable",
+        "release_published_at": "2026-10-01T20:38:41.545255Z",
+        "requires_python": [
+          ">=3.10"
+        ],
+        "configured_python_satisfies_metadata": true
+      },
+      {
+        "name": "black",
+        "pinned_version": "26.10.1",
+        "latest_compatible_stable": "26.10.1",
+        "provider": "PyPI",
+        "source": "https://pypi.org/pypi/black/json",
+        "also_declared_in_pyproject": true,
+        "status": "current stable",
+        "release_published_at": "2026-10-10T04:13:38.808236Z",
+        "requires_python": [
+          ">=3.10"
+        ],
+        "configured_python_satisfies_metadata": true
+      },
+      {
+        "name": "hadolint",
+        "pinned_version": "2.15.1",
+        "latest_compatible_stable": "2.15.1",
+        "provider": "GitHub",
+        "source": "https://github.com/hadolint/hadolint/releases/tag/v2.15.1",
+        "also_declared_in_pyproject": false,
+        "status": "current stable",
+        "release_published_at": "2026-07-31T10:13:06Z",
+        "linux_x86_64_release_asset": "hadolint-linux-x86_64"
+      },
+      {
+        "name": "actionlint",
+        "pinned_version": "1.7.12",
+        "latest_compatible_stable": "1.7.12",
+        "provider": "GitHub",
+        "source": "https://github.com/rhysd/actionlint/releases/tag/v1.7.12",
+        "also_declared_in_pyproject": false,
+        "status": "current stable",
+        "release_published_at": "2026-03-30T17:49:21Z",
+        "linux_x86_64_release_asset": "actionlint_1.7.12_linux_amd64.tar.gz"
+      },
+      {
+        "name": "isort",
+        "pinned_version": "9.0.2",
+        "latest_compatible_stable": "9.0.2",
+        "provider": "PyPI",
+        "source": "https://pypi.org/pypi/isort/json",
+        "also_declared_in_pyproject": false,
+        "status": "current stable",
+        "release_published_at": "2026-09-28T19:20:58.339925Z",
+        "requires_python": [
+          ">=3.10.0"
+        ],
+        "configured_python_satisfies_metadata": true
+      },
+      {
+        "name": "bandit",
+        "pinned_version": "1.9.4",
+        "latest_compatible_stable": "1.9.4",
+        "provider": "PyPI",
+        "source": "https://pypi.org/pypi/bandit/json",
+        "also_declared_in_pyproject": true,
+        "status": "current stable",
+        "release_published_at": "2026-02-25T06:44:13.694900Z",
+        "requires_python": [
+          ">=3.10"
+        ],
+        "configured_python_satisfies_metadata": true
+      },
+      {
+        "name": "checkov",
+        "pinned_version": "3.3.30",
+        "latest_compatible_stable": "3.3.30",
+        "provider": "PyPI",
+        "source": "https://pypi.org/pypi/checkov/json",
+        "also_declared_in_pyproject": false,
+        "status": "current stable",
+        "release_published_at": "2026-10-20T13:00:16.988422Z",
+        "requires_python": [
+          ">=3.9"
+        ],
+        "configured_python_satisfies_metadata": true
+      },
+      {
+        "name": "git-diff-check",
+        "pinned_version": null,
+        "latest_compatible_stable": null,
+        "provider": "Git executable",
+        "source": "https://github.com/trunk-io/plugins/blob/v1.11.0/linters/git-diff-check/plugin.yaml",
+        "status": "unversioned built-in",
+        "note": "Runs git diff --check; uses the available Git executable rather than a separate linter release."
+      },
+      {
+        "name": "markdownlint",
+        "pinned_version": "0.49.1",
+        "latest_compatible_stable": "0.49.1",
+        "provider": "npm",
+        "source": "https://registry.npmjs.org/markdownlint-cli/latest",
+        "also_declared_in_pyproject": false,
+        "status": "current stable",
+        "package": "markdownlint-cli",
+        "engines": {
+          "node": ">=22"
+        }
+      },
+      {
+        "name": "prettier",
+        "pinned_version": "3.9.10",
+        "latest_compatible_stable": "3.9.10",
+        "provider": "npm",
+        "source": "https://registry.npmjs.org/prettier/latest",
+        "also_declared_in_pyproject": false,
+        "status": "current stable",
+        "package": "prettier",
+        "engines": {
+          "node": ">=14"
+        }
+      },
+      {
+        "name": "ruff",
+        "pinned_version": "0.17.2",
+        "latest_compatible_stable": "0.17.2",
+        "provider": "PyPI",
+        "source": "https://pypi.org/pypi/ruff/json",
+        "also_declared_in_pyproject": false,
+        "status": "current stable",
+        "release_published_at": "2026-10-22T18:37:14.956985Z",
+        "requires_python": [
+          ">=3.7"
+        ],
+        "configured_python_satisfies_metadata": true
+      },
+      {
+        "name": "shellcheck",
+        "pinned_version": "0.11.0",
+        "latest_compatible_stable": "0.11.0",
+        "provider": "GitHub",
+        "source": "https://github.com/koalaman/shellcheck/releases/tag/v0.11.0",
+        "also_declared_in_pyproject": false,
+        "status": "current stable",
+        "release_published_at": "2025-08-04T00:27:19Z",
+        "linux_x86_64_release_asset": "shellcheck-v0.11.0.linux.x86_64.tar.gz"
+      },
+      {
+        "name": "shfmt",
+        "pinned_version": "3.14.1",
+        "latest_compatible_stable": "3.14.1",
+        "provider": "GitHub",
+        "source": "https://github.com/mvdan/sh/releases/tag/v3.14.1",
+        "also_declared_in_pyproject": false,
+        "status": "current stable",
+        "release_published_at": "2026-09-06T15:02:21Z",
+        "linux_x86_64_release_asset": "shfmt_v3.14.1_linux_amd64"
+      },
+      {
+        "name": "taplo",
+        "pinned_version": "0.10.0",
+        "latest_compatible_stable": "0.10.0",
+        "provider": "GitHub",
+        "source": "https://github.com/tamasfe/taplo/releases/tag/0.10.0",
+        "also_declared_in_pyproject": false,
+        "status": "current stable",
+        "release_published_at": "2025-05-23T04:06:45Z",
+        "linux_x86_64_release_asset": "taplo-linux-x86_64.gz"
+      },
+      {
+        "name": "trufflehog",
+        "pinned_version": "3.99.4",
+        "latest_compatible_stable": "3.99.4",
+        "provider": "GitHub",
+        "source": "https://github.com/trufflesecurity/trufflehog/releases/tag/v3.99.4",
+        "also_declared_in_pyproject": false,
+        "status": "current stable",
+        "release_published_at": "2026-10-22T15:02:40Z",
+        "linux_x86_64_release_asset": "trufflehog_3.99.4_linux_amd64.tar.gz"
+      },
+      {
+        "name": "yamllint",
+        "pinned_version": "1.38.0",
+        "latest_compatible_stable": "1.38.0",
+        "provider": "PyPI",
+        "source": "https://pypi.org/pypi/yamllint/json",
+        "also_declared_in_pyproject": false,
+        "status": "current stable",
+        "release_published_at": "2026-01-13T07:47:51.343950Z",
+        "requires_python": [
+          ">=3.10"
+        ],
+        "configured_python_satisfies_metadata": true
+      }
+    ],
+    "runtimes": {
+      "python": "3.14.9",
+      "node_lts": "24.22.1",
+      "go": "1.27.3"
+    },
+    "compatibility_notes": [
+      "The Trunk plugin definitions at v1.11.0 confirm markdownlint uses npm markdownlint-cli, pyright uses npm pyright, and prettier uses npm prettier.",
+      "markdownlint-cli 0.49.1 requires Node >=22; configured Node 24.22.1 satisfies it. Pyright requires Node >=14.0.0 and Prettier >=14.",
+      "All eight Python-distributed linter versions accept the configured Python 3.14.9 according to current Requires-Python metadata.",
+      "All seven downloaded binary linters publish Linux x86_64 assets for their pinned stable version; no host Rust or Go compiler upgrade is required to use those prebuilt assets.",
+      "This is a registry, release-asset and runtime-metadata verification; tools were not upgraded or installed as part of the inventory refresh."
+    ]
+  },
+  "pre_commit_inventory": {
+    "independent_remote_pins": [
+      {
+        "repository": "https://github.com/pre-commit/pre-commit-hooks",
+        "pinned_revision": "v6.0.0",
+        "latest_stable": "v6.0.0",
+        "source": "https://github.com/pre-commit/pre-commit-hooks/releases/tag/v6.0.0",
+        "release_published_at": "2025-08-09T19:31:54Z",
+        "hook_count": 14,
+        "absent_from_prior_inventory": true
+      }
+    ],
+    "other_independent_version_pins": [],
+    "local_hooks": "Local system-language hooks call python_venv tools and repository scripts. Their Python tool versions are governed by pyproject.toml/uv.lock; there are no additional_dependencies pins."
+  },
+  "system_prerequisites": [
+    {
+      "name": "git",
+      "tested_version": "2.56.0",
+      "latest_stable": "2.56.0",
+      "source": "https://www.kernel.org/pub/software/scm/git/",
+      "policy": "Required contributor/build prerequisite; no repository version pin. Also supplies git-diff-check."
+    },
+    {
+      "name": "gnu_make",
+      "tested_version": "4.4.1",
+      "latest_stable": "4.4.1",
+      "source": "https://ftp.gnu.org/gnu/make/",
+      "policy": "Required for documented developer Make targets; no repository version pin."
+    },
+    {
+      "name": "perl",
+      "tested_version": "5.44.0",
+      "latest_stable": "5.44.0",
+      "source": "https://www.perl.org/get.html",
+      "policy": "Required for gem5 parsing, optional when loading existing CSV data. No explicit minimum version is declared.",
+      "compatibility_validation": "Exact frozen source 95f778d6 on isolated CPAN-checksum-verified Perl 5.44.0: 694 selected checks and 107 unfiltered real parser, asynchronous facade and regex-bound integrations pass. All 184 audited subprocesses use v5.44.0. Eleven syntax checks passed on the same Perl modules in the earlier scoped run. The system interpreter remains v5.42.3.",
+      "tested_versions": [
+        "5.42.3",
+        "5.44.0"
+      ],
+      "observed_system_version": "5.42.3",
+      "compatibility_evidence": "/tmp/ring5-010/perl-5.44-final-compatibility.json",
+      "historical_compatibility_evidence": "/tmp/ring5-010/perl-5.44-compatibility.json"
+    },
+    {
+      "name": "java",
+      "tested_version": "OpenJDK Red Hat 25.0.4.1+1",
+      "ci_selected_line": "17",
+      "documented_minimum": "17",
+      "latest_supported_line_patches": {
+        "17": "17.0.21.0.2",
+        "21": "21.0.13.0.2",
+        "25": "25.0.5.0.2"
+      },
+      "latest_lts_line": "25",
+      "latest_current_release": "27.0.1.0.2",
+      "source": "https://ops.java/releases/?lang=en",
+      "minimum_source": "https://github.com/itsallcode/openfasttrace/blob/4.11.0/README.md",
+      "current_release_source": "https://jdk.java.net/27/",
+      "policy": "OFT 4.x requires Java 17 or newer. CI intentionally exercises the minimum Java 17 line; local OFT execution uses Java 25. Newer vendor patches are recorded without upgrading the system runtime.",
+      "latest_patch_reference": "Oracle/OpenJDK release catalog; distribution build suffixes and availability can differ.",
+      "temurin_latest_published_examples": {
+        "17": "17.0.21+9",
+        "21": "21.0.13+9",
+        "25": "25.0.5+8"
+      },
+      "regular_cpu_release_versions": {
+        "17": "17.0.21",
+        "21": "21.0.13",
+        "25": "25.0.5",
+        "27": "27.0.1"
+      },
+      "compatibility_validation": {
+        "tested_temurin_versions": [
+          "17.0.20.1+1",
+          "25.0.4.1+1",
+          "27+35",
+          "17.0.21+9",
+          "25.0.5+8"
+        ],
+        "result": "All five runtime configurations pass approved/full catalog traces and expected proposed-gap negative controls; 20 expected outcomes. Read-only mounts and verified checksums preserve the host runtime.",
+        "current_runtime_method": "17.0.21+9 and 25.0.5+8 use checksum-verified runtime overlays within pinned official containers.",
+        "limitation": "Temurin 27.0.1 was not published in the queried official release source; 27+35 was tested. Linux amd64 validation only.",
+        "evidence": "java-oft-compatibility.json"
+      }
+    },
+    {
+      "name": "xelatex",
+      "tested_version": "XeTeX 3.141592653-2.6-0.999995",
+      "tested_distribution": "TeX Live 2023",
+      "latest_distribution": "TeX Live 2026",
+      "latest_distribution_release_date": "2026-03-01",
+      "source": "https://tug.org/texlive/",
+      "engine_source": "https://tug.org/xetex/",
+      "policy": "Optional system tool for PGF/LaTeX export. Repository checks executable availability and export behavior, without pinning the distribution year or requiring the newest installed system TeX.",
+      "test_evidence": "/home/vnicolas/.cache/ring5-010/logs/acceptance-final-latex.log",
+      "note": "XeTeX is distributed with TeX Live; no independent latest engine version is inferred from the distribution year."
+    }
+  ],
+  "perl_current_stable_validation": {
+    "verified_at_utc": "2026-10-23T22:36:43.299355+00:00",
+    "source": {
+      "archive": "/tmp/ring5-010/perl-5.44-source/perl-5.44.0.tar.xz",
+      "source": "https://www.cpan.org/src/5.0/perl-5.44.0.tar.xz",
+      "checksum_source": "https://www.cpan.org/src/5.0/perl-5.44.0.tar.xz.sha256.txt",
+      "sha256": "505cf43912e9480495c344c70260452e32aa2a73c546a026b3f100053b23ce91",
+      "verified": true
+    },
+    "prefix": "/tmp/ring5-010/perl-5.44.0",
+    "build": "Normal-user Configure -des with isolated prefix, -Uinstallusrbinperl, no manpage install; make -j2 and make install passed.",
+    "source_worktree": "/tmp/ring5-010/validation",
+    "source_commit_observed": "e70ddd6f22618b57e427724e92bb057fb4c87a39",
+    "parser_source_matches_frozen_commit": "7a395e2fa2f97baf92483e8d165596cbe13701a5",
+    "python": "3.12.15",
+    "test_results": [
+      {
+        "scope": "Selected parser/scanner/unit/integration regressions",
+        "passed": 672,
+        "deselected": 3357,
+        "seconds": 18.91,
+        "log": "/tmp/ring5-010/perl-5.44-parser-selected.log"
+      },
+      {
+        "scope": "Unfiltered real Perl/data/parser and histogram integration suites",
+        "passed": 83,
+        "seconds": 17.98,
+        "log": "/tmp/ring5-010/perl-5.44-parser-real.log"
+      },
+      {
+        "scope": "All Perl source modules and scripts syntax checks",
+        "passed": 11
+      }
+    ],
+    "interpreter_proof": {
+      "method": "Command-specific PATH prefers isolated prefix. PERL5OPT audit module rejects any interpreter except v5.44.0 and records each successful process start.",
+      "audit_module": "/tmp/ring5-010/perl-audit/Ring5PerlAudit.pm",
+      "audit_log": "/tmp/ring5-010/perl-5.44-process-audit.tsv",
+      "audited_processes": 190,
+      "unique_process_ids": 190,
+      "interpreter": "/tmp/ring5-010/perl-5.44.0/bin/perl",
+      "version": "v5.44.0",
+      "program_counts": {
+        "fileParserServer.pl": 9,
+        "statsScanner.pl": 163,
+        "-e": 5,
+        "fileParser.pl": 5,
+        "RegexUtils.pm": 1,
+        "Configuration.pm": 1,
+        "Distribution.pm": 1,
+        "Histogram.pm": 1,
+        "Scalar.pm": 1,
+        "Summary.pm": 1,
+        "Vector.pm": 1,
+        "TypesFormatRegex.pm": 1
+      },
+      "scanner_and_worker_resolution": "shutil.which and PerlWorkerPool.perl_exe both resolve the isolated prefix.",
+      "audit_record_scope": {
+        "lines": "1-190",
+        "record_count": 190,
+        "prefix_sha256": "1c0f18866840460199318ebf7e4e6646757615d92707515f6aa1b7cc6deb9a0d",
+        "note": "The diagnostic TSV accumulated later runs. Only its first 190 lines belong to this historical result."
+      }
+    },
+    "test_harness_adaptation": {
+      "reason": "One existing unit fixture intentionally mocks shutil.which(perl) as /usr/bin/perl, including a test that launches a real line-limit subprocess.",
+      "initial_result": "671 passed, one version-guard failure from that hardcoded fixture, not a production incompatibility.",
+      "adapter": "/tmp/ring5-010/perl-audit/ring5_perl_compat.py",
+      "change": "A temporary external pytest plugin selects the isolated interpreter for that single real line-limit fixture. Test assertions and repository source remain unchanged."
+    },
+    "compatibility_findings": [],
+    "system_perl_unchanged": "/usr/bin/perl remains v5.42.3",
+    "repository_source_mutations": false,
+    "limitations": [
+      "The complete upstream Perl core test suite was not run; the requested RING-5 parser and real-data suites were run.",
+      "No browser, Kaleido or native OS matrix was run in this compatibility check."
+    ],
+    "historical_scope": "Earlier e70ddd6f validation snapshot; selected parser source matched 7a395e2f. Final source validation is recorded separately."
+  },
+  "verification_scope": "46 Python requirements, 39 workflow references across 11 Action repositories, 19 Trunk tools (18 explicit pins), pre-commit hooks, documentation gems and explicit system prerequisites; overlapping tools are not separate dependency totals.",
+  "verification_times": {
+    "python_and_actions": "2026-10-23T22:13:45.366320+00:00",
+    "trunk_system_and_perl": "2026-10-23T22:36:43.300883+00:00",
+    "independent_primary_refresh_note": "Exact observed request timestamps are preserved in the independent evidence logs; this entry is a report update time, not an assertion that every registry was queried at this instant.",
+    "independent_primary_report_update": "2026-10-24T00:12:39.089294+00:00",
+    "final_source_perl": "2026-10-23T23:28:09.048221+00:00",
+    "independent_primary_refresh": "2026-10-24T00:12:04.805478+00:00"
+  },
+  "perl_final_source_validation": {
+    "checked_at_utc": "2026-10-23T23:28:09.048221+00:00",
+    "source_head": "95f778d6a05cd26b482aeac1cbd31d0d4a1fbc6b",
+    "worktree": "/tmp/ring5-010/validation",
+    "python": "Python 3.12.15",
+    "perl_prefix": "/tmp/ring5-010/perl-5.44.0",
+    "gates": [
+      {
+        "name": "selected_parser_regressions",
+        "passed": 694,
+        "deselected": 3348,
+        "seconds": 20.45,
+        "log": "/tmp/ring5-010/perl-5.44-final-selected.log"
+      },
+      {
+        "name": "unfiltered_real_parser_and_async_facade_integrations_plus_regex_bounds",
+        "passed": 107,
+        "seconds": 17.77,
+        "log": "/tmp/ring5-010/perl-5.44-final-real.log"
+      }
+    ],
+    "interpreter_proof": {
+      "audit": "/tmp/ring5-010/perl-5.44-final-process-audit.tsv",
+      "records": 184,
+      "distinct_process_ids": 184,
+      "executables": [
+        "/tmp/ring5-010/perl-5.44.0/bin/perl"
+      ],
+      "versions": [
+        "v5.44.0"
+      ],
+      "program_counts": {
+        "-e": 5,
+        "fileParser.pl": 4,
+        "fileParserServer.pl": 8,
+        "statsScanner.pl": 167
+      },
+      "module": "/tmp/ring5-010/perl-final-audit/Ring5PerlAudit.pm",
+      "guard": "Every Perl process aborts before execution unless $^V is v5.44.0; isolated prefix comes first in PATH."
+    },
+    "test_harness_adaptation": {
+      "plugin": "/tmp/ring5-010/perl-final-audit/ring5_perl_compat.py",
+      "scope": "Only test_scan_file_reports_line_limit_instead_of_returning_partial_results changes its mocked scanner._perl_exe from /usr/bin/perl to the isolated prefix immediately before the test; source and test assertions unchanged."
+    },
+    "system_perl_unchanged": "v5.42.3",
+    "source_edits": false,
+    "browser_or_kaleido_jobs": false,
+    "parser_source_matches_reviewed_head": "09b7ddc7db5e99e4b128fad9c63a99da5ca899a0"
+  },
+  "independent_inventory_review": {
+    "status": "approved_with_final_perl_provenance_update",
+    "review": "/tmp/ring5-010/dependencies-java-independent-final-review.json",
+    "primary_sources": "/tmp/ring5-010/staged-dependency-primary-refresh.json",
+    "additional_refs": "/tmp/ring5-010/final-primary-ref-checks.json",
+    "scope": "90 primary registry checks, all 11 Action tags dereferenced to immutable SHAs, three current Docker manifests and the complete historical Java matrix proof."
+  },
+  "final_local_validation": {
+    "tested_source_head": "95f778d6a05cd26b482aeac1cbd31d0d4a1fbc6b",
+    "integration_source_head": "ab82e56c7266d4d3eb33c969c4df48a19fd20c58",
+    "record_updated_at_utc": "2026-10-24T00:17:55.685315+00:00",
+    "closure_map": "review.json",
+    "python_matrix": {
+      "versions": [
+        "3.12.15",
+        "3.13.17",
+        "3.14.9",
+        "3.15.1"
+      ],
+      "passed_per_version": 4929,
+      "skipped_per_version": 0
+    },
+    "public_api": {
+      "passed": 296,
+      "line_and_branch_coverage_percent": 100
+    },
+    "combined_coverage_percent": 86.7,
+    "browser": {
+      "parallel_passed": 176,
+      "serial_passed": 8
+    },
+    "serial_exports_passed": 26,
+    "real_latex_passed": 5,
+    "visual_smoke_passed": 3,
+    "quality_package_docs_installed_wheel": "passed",
+    "native_platform_limits": "Native Linux only; configured Windows/macOS installed-wheel CI has not been executed remotely. No push."
+  }
+}
