@@ -51,13 +51,14 @@ class DoctorReport:
         return self.perl.found
 
     def __str__(self) -> str:
+        """Return the diagnostic summary with portable ASCII status and hint labels."""
         lines = ["RING-5 dependency check:"]
         for dep in (self.perl, self.chrome, self.xelatex):
-            mark = "✓" if dep.found else "✗"
+            mark = "OK" if dep.found else "MISSING"
             where = dep.path or "not found"
-            lines.append(f"  {mark} {dep.name:<8} {where}  ({dep.needed_for})")
+            lines.append(f"  [{mark}] {dep.name:<8} {where}  ({dep.needed_for})")
             if not dep.found:
-                lines.append(f"      → {dep.install_hint}")
+                lines.append(f"      hint: {dep.install_hint}")
         lines.append(
             "  Always available: plotly HTML export, matplotlib png/svg/pdf export, "
             "shapers, portfolios."
