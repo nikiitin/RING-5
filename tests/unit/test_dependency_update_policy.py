@@ -7,11 +7,17 @@ from pathlib import Path
 
 import pytest
 
-from scripts.dependency_update_policy import assess_changes
+from scripts.dependency_update_policy import PolicyDecision, assess_changes
 
 ROOT = Path(__file__).resolve().parents[2]
 SHA_A = "a" * 40
 SHA_B = "b" * 40
+
+
+def assert_invalid_lock(decision: PolicyDecision) -> None:
+    """Keep malformed-lock controls independent of the native review exclusion."""
+    assert not decision.eligible
+    assert any(not reason.startswith("Lock-only") for reason in decision.reasons)
 
 
 def artifact(name: str, version: str, *, host: str = "files.pythonhosted.org") -> str:
@@ -75,7 +81,10 @@ def test_python_version_only_updates_are_eligible(new: str) -> None:
 @pytest.mark.parametrize("new", ["2.0.0", "0.4.0"])
 def test_breaking_versions_require_explicit_policy(new: str) -> None:
     old = "0.3.9" if new.startswith("0") else "1.9.9"
-    changes = {"uv.lock": (lock(old), lock(new))}
+    changes = {
+        "pyproject.toml": (project(old), project(new)),
+        "uv.lock": (lock(old), lock(new)),
+    }
     assert not assess_changes(changes).eligible
     assert assess_changes(changes, allow_major=True).eligible
 
@@ -85,8 +94,7 @@ def test_breaking_versions_require_explicit_policy(new: str) -> None:
 )
 def test_downgrades_and_unknown_versions_never_merge(new: str) -> None:
     decision = assess_changes({"uv.lock": (lock(), lock(new))}, allow_major=True)
-    assert not decision.eligible
-    assert decision.reasons
+    assert_invalid_lock(decision)
 
 
 def test_grouped_transitive_major_blocks_otherwise_safe_direct_patch() -> None:
@@ -98,8 +106,61 @@ def test_grouped_transitive_major_blocks_otherwise_safe_direct_patch() -> None:
 
 def test_lock_only_transitive_minor_is_classified() -> None:
     decision = assess_changes({"uv.lock": (lock(), lock(transitive="2.4.0"))})
-    assert decision.eligible, decision.reasons
+    assert not decision.eligible
+    assert any("Lock-only" in reason for reason in decision.reasons)
     assert [(x.name, x.current) for x in decision.updates] == [("child", "2.4.0")]
+
+
+@pytest.mark.parametrize("unchanged_manifest", [False, True])
+def test_native_lock_exclusion_cannot_be_waived_by_major_policy_or_unchanged_manifest(
+    unchanged_manifest: bool,
+) -> None:
+    changes = {"uv.lock": (lock(), lock(transitive="3.0.0"))}
+    if unchanged_manifest:
+        changes["pyproject.toml"] = (project(), project())
+    decision = assess_changes(changes, allow_major=True)
+    assert not decision.eligible
+    assert any("Lock-only" in reason for reason in decision.reasons)
+    assert [(update.name, update.current) for update in decision.updates] == [("child", "3.0.0")]
+
+
+@pytest.mark.parametrize(
+    "manifest",
+    [
+        project() + "\n# formatting only\n",
+        project().replace('name = "ring5"', "name= 'ring5'"),
+        project().replace("demo==1.2.3", "demo==1.2.3.0"),
+    ],
+)
+def test_manifest_padding_and_equivalent_versions_do_not_waive_lock_exclusion(
+    manifest: str,
+) -> None:
+    decision = assess_changes(
+        {
+            "pyproject.toml": (project(), manifest),
+            "uv.lock": (lock(), lock(transitive="2.4.0")),
+        }
+    )
+    assert not decision.eligible
+    assert not decision.native_reviewable
+    assert any("Lock-only" in reason for reason in decision.reasons)
+
+
+def test_genuine_visible_release_changes_remain_native_reviewable() -> None:
+    package = assess_changes(
+        {
+            "pyproject.toml": (project(), project("1.2.4")),
+            "uv.lock": (lock(), lock("1.2.4")),
+        }
+    )
+    action = assess_changes(
+        {
+            ".github/workflows/ci.yml": (workflow(), workflow("v7.0.2", SHA_B)),
+            "uv.lock": (lock(), lock(transitive="2.4.0")),
+        }
+    )
+    assert package.eligible and package.native_reviewable, package.reasons
+    assert action.eligible and action.native_reviewable, action.reasons
 
 
 @pytest.mark.parametrize(
@@ -159,12 +220,12 @@ def test_direct_python_update_requires_lock_and_build_pin_can_stand_alone() -> N
 def test_lock_source_artifact_and_schema_substitutions_are_rejected(
     mutation: Callable[[str], str],
 ) -> None:
-    assert not assess_changes({"uv.lock": (lock(), mutation(lock("1.2.4")))}).eligible
+    assert_invalid_lock(assess_changes({"uv.lock": (lock(), mutation(lock("1.2.4")))}))
 
 
 def test_same_version_artifact_replacement_never_becomes_release_update() -> None:
     decision = assess_changes({"uv.lock": (lock(), lock().replace("1" * 64, "2" * 64))})
-    assert not decision.eligible
+    assert_invalid_lock(decision)
     assert decision.updates == ()
 
 
@@ -175,12 +236,13 @@ def test_package_addition_requires_review() -> None:
         + artifact("extra", "1.0.0")
         + "\n"
     )
-    assert not assess_changes({"uv.lock": (lock(), lock("1.2.4") + extra)}).eligible
+    assert_invalid_lock(assess_changes({"uv.lock": (lock(), lock("1.2.4") + extra)}))
 
 
 def test_ruby_transitive_update_is_classified_without_executing_gemfile() -> None:
     decision = assess_changes({"Gemfile.lock": (ruby_lock(), ruby_lock(child="2.2.0"))})
-    assert decision.eligible, decision.reasons
+    assert not decision.eligible
+    assert any("Lock-only" in reason for reason in decision.reasons)
     assert [(x.ecosystem, x.name, x.current) for x in decision.updates] == [
         ("bundler", "child", "2.2.0")
     ]
@@ -197,9 +259,9 @@ def test_ruby_transitive_update_is_classified_without_executing_gemfile() -> Non
     ],
 )
 def test_ruby_source_platform_and_runtime_changes_escalate(mutation: Callable[[str], str]) -> None:
-    assert not assess_changes(
-        {"Gemfile.lock": (ruby_lock(), mutation(ruby_lock(child="2.2.0")))}
-    ).eligible
+    assert_invalid_lock(
+        assess_changes({"Gemfile.lock": (ruby_lock(), mutation(ruby_lock(child="2.2.0")))})
+    )
 
 
 def test_gemfile_executable_injection_and_constraint_relaxation_are_rejected() -> None:
@@ -324,7 +386,8 @@ def test_current_real_gem_lock_platforms_and_workflow_shape() -> None:
             )
         }
     )
-    assert decision.eligible, decision.reasons
+    assert not decision.eligible
+    assert any("Lock-only" in reason for reason in decision.reasons)
     for filename in ["ci", "codeql", "pages"]:
         path = f".github/workflows/{filename}.yml"
         before = (ROOT / path).read_text()
@@ -363,7 +426,7 @@ def test_exact_python_pin_and_local_lock_metadata_must_agree() -> None:
 def test_malformed_dependency_graph_and_release_identity_are_rejected(
     mutation: Callable[[str], str],
 ) -> None:
-    assert not assess_changes({"uv.lock": (lock(), mutation(lock("1.2.4")))}).eligible
+    assert_invalid_lock(assess_changes({"uv.lock": (lock(), mutation(lock("1.2.4")))}))
 
 
 def test_duplicate_locked_package_and_unsupported_version_are_visible() -> None:
@@ -373,9 +436,9 @@ def test_duplicate_locked_package_and_unsupported_version_are_visible() -> None:
         + artifact("demo", "1.2.4")
         + "\n"
     )
-    assert not assess_changes({"uv.lock": (lock(), duplicated)}).eligible
+    assert_invalid_lock(assess_changes({"uv.lock": (lock(), duplicated)}))
     unknown = lock("1.2.4").replace('version = "1.2.4"', "version = 42")
-    assert not assess_changes({"uv.lock": (lock(), unknown)}).eligible
+    assert_invalid_lock(assess_changes({"uv.lock": (lock(), unknown)}))
 
 
 def test_ruby_manifest_and_lock_constraints_cannot_disagree() -> None:
@@ -384,9 +447,9 @@ def test_ruby_manifest_and_lock_constraints_cannot_disagree() -> None:
     assert not assess_changes(
         {"Gemfile": (before, after), "Gemfile.lock": (ruby_lock(), ruby_lock("4.4.2"))}
     ).eligible
-    assert not assess_changes(
-        {"Gemfile.lock": (ruby_lock(), ruby_lock("5.0.0"))}, allow_major=True
-    ).eligible
+    assert_invalid_lock(
+        assess_changes({"Gemfile.lock": (ruby_lock(), ruby_lock("5.0.0"))}, allow_major=True)
+    )
 
 
 def test_unknown_and_duplicated_ruby_lock_sections_are_manual() -> None:
@@ -395,7 +458,7 @@ def test_unknown_and_duplicated_ruby_lock_sections_are_manual() -> None:
         ruby_lock(child="2.2.0") + "\nGEM\n",
         ruby_lock(child="2.2.0") + "\nCHECKSUMS\n  demo deadbeef\n",
     ]:
-        assert not assess_changes({"Gemfile.lock": (ruby_lock(), head)}).eligible
+        assert_invalid_lock(assess_changes({"Gemfile.lock": (ruby_lock(), head)}))
 
 
 def test_allow_major_requires_an_actual_boolean() -> None:
@@ -444,7 +507,7 @@ def test_unchanged_local_pin_and_absent_nonexact_requirement_cannot_be_skipped()
     after = before.replace('version = "26.10.1"', 'version = "26.10.2"').replace(
         "black-26.10.1", "black-26.10.2"
     )
-    assert not assess_changes({"uv.lock": (before, after)}).eligible
+    assert_invalid_lock(assess_changes({"uv.lock": (before, after)}))
     old = project().replace("demo==", "missing>=")
     new = old.replace("1.2.3", "1.2.4")
     assert not assess_changes(

@@ -32,11 +32,12 @@ class VersionChange:
 
 @dataclass(frozen=True)
 class PolicyDecision:
-    """Eligibility, concrete blockers, and all detected release changes."""
+    """Eligibility, blockers, releases, and meaningful non-lock review scope."""
 
     eligible: bool
     reasons: tuple[str, ...]
     updates: tuple[VersionChange, ...]
+    native_reviewable: bool = True
 
 
 _VERSION = re.compile(r"(?:0|[1-9][0-9]*)(?:\.(?:0|[1-9][0-9]*)){0,7}\Z")
@@ -132,6 +133,7 @@ class _Assessment:
         self.updates: list[VersionChange] = []
         self.requirement_rules: dict[str, tuple[str, str]] = {}
         self.gem_requirements: dict[str, str] | None = None
+        self.native_reviewable = False
 
     def block(self, reason: str) -> None:
         """Record one unique reason that prevents automatic merging."""
@@ -184,6 +186,7 @@ class _Assessment:
             self.block("pyproject.toml: only versions of existing requirements may change.")
         for name in sorted(old.keys() & new.keys()):
             self.version(VersionChange("uv", name, old[name], new[name]))
+            self.native_reviewable |= _ordered(old[name]) != _ordered(new[name])
         document = tomllib.loads(after)
         containers = [document.get("project", {}).get("dependencies", [])]
         containers.extend(document.get("project", {}).get("optional-dependencies", {}).values())
@@ -423,6 +426,7 @@ class _Assessment:
                     "Gemfile: dependency identity, constraints or executable settings changed."
                 )
             self.version(VersionChange("bundler", left["name"], left["version"], right["version"]))
+            self.native_reviewable |= _ordered(left["version"]) != _ordered(right["version"])
 
     def gemlock(self, before: str, after: str, manifest_changed: bool) -> None:
         """Classify locked gems while preserving source, platform and runtime policy."""
@@ -581,6 +585,7 @@ class _Assessment:
                     right["tag"],
                 )
             )
+            self.native_reviewable = True
 
 
 def assess_changes(
@@ -645,6 +650,13 @@ def assess_changes(
             )
     if "Gemfile" in valid and "Gemfile.lock" not in valid:
         policy.block("Gemfile: declaration changes need a matching Gemfile.lock update.")
+    if any(path.endswith(".lock") for path in valid) and not policy.native_reviewable:
+        policy.block(
+            "Lock-only release updates require human review because native code review excludes "
+            "lock files; non-version edits to other files do not change this limitation."
+        )
     if not policy.updates:
         policy.block("No supported release version changes were detected.")
-    return PolicyDecision(not policy.reasons, tuple(policy.reasons), tuple(policy.updates))
+    return PolicyDecision(
+        not policy.reasons, tuple(policy.reasons), tuple(policy.updates), policy.native_reviewable
+    )
