@@ -13,7 +13,7 @@ The CI workflow separates quality and package validation, non-browser tests, ser
 LaTeX exports, and Streamlit browser tests. The test matrix covers every Python version declared in
 `pyproject.toml` (3.12–3.15); one job produces the coverage report. Python jobs install the
 checked-in `uv.lock` with uv 0.13.5. An installed-wheel smoke job exercises a headless CSV-to-SVG
-workflow on Linux, macOS, and Windows outside the source checkout.
+workflow and real process-lock exclusion on Linux, macOS, and Windows outside the source checkout.
 
 Run the corresponding local targets before pushing:
 

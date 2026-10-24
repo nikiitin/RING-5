@@ -13,7 +13,7 @@ This file is informative; normative items are in the other generated files.
 - In development future requirements: 0
 - Blocked future requirements: 0
 - Generated specification items: 235
-- Live capability bindings: 879
+- Live capability bindings: 886
 
 ## Requirements by feature group
 
@@ -35,7 +35,7 @@ This file is informative; normative items are in the other generated files.
 
 ## Drift-checked capability sources
 
-- `application_api_members`: 107
+- `application_api_members`: 113
 - `axes_config_fields`: 11
 - `axis_config_fields`: 31
 - `cli_commands`: 7
@@ -65,7 +65,7 @@ This file is informative; normative items are in the other generated files.
 - `restore_report_fields`: 5
 - `scan_job_members`: 2
 - `scan_result_fields`: 3
-- `scanned_variable_fields`: 4
+- `scanned_variable_fields`: 5
 - `series_style_config_fields`: 9
 - `session_methods`: 116
 - `settings_sections`: 8

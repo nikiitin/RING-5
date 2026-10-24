@@ -9,8 +9,9 @@ permalink: /developer-guide/development/setup/
 
 # Development setup
 
-RING-5 requires Python 3.12 or newer. Install [uv 0.13.5](https://docs.astral.sh/uv/getting-started/installation/)
-for checkout setup. Install Git, Make, and Perl before running parser tests.
+RING-5 requires Python 3.12 or newer. Install [uv](https://docs.astral.sh/uv/getting-started/installation/)
+for checkout setup. Make uses `uvx` to run the pinned project tool, uv 0.13.5.
+Install Git, Make, and Perl before running parser tests.
 
 ```bash
 git clone https://github.com/nikiitin/RING-5.git

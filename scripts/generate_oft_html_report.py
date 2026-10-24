@@ -90,7 +90,7 @@ def main(argv: list[str] | None = None) -> int:
             execution_results,
         )
         args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(report, encoding="utf-8")
+        args.output.write_text(report.rstrip() + "\n", encoding="utf-8")
     except (OSError, OftHtmlReportError, ValueError) as exc:
         print(f"error: {exc}")
         return 2

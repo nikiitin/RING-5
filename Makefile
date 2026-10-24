@@ -7,7 +7,8 @@ export NUMEXPR_NUM_THREADS := $(RING5_NATIVE_THREADS)
 export VECLIB_MAXIMUM_THREADS := $(RING5_NATIVE_THREADS)
 
 VENV_NAME := python_venv
-UV ?= uv
+UV_VERSION := 0.13.5
+UV ?= uvx --isolated --from uv==$(UV_VERSION) uv
 VENV_BIN := $(VENV_NAME)/bin
 PYTHON := $(VENV_BIN)/python
 PYTEST := $(VENV_BIN)/pytest
@@ -69,7 +70,7 @@ help:
 	@echo "  pre-commit          Run all pre-commit hooks"
 
 venv:
-	@command -v $(UV) >/dev/null || { echo "Install uv 0.13.5 before running this target."; exit 1; }
+	@$(UV) --version >/dev/null || { echo "Install uv (including uvx) before running this target."; exit 1; }
 	test -d $(VENV_NAME) || $(UV) venv --python python3 $(VENV_NAME)
 
 install: venv
@@ -169,12 +170,7 @@ test-e2e:
 		--timeout=240 --timeout-method=thread --no-cov
 
 test-visual:
-	@set -eu; \
-		$(VENV_BIN)/streamlit run app.py --server.port 8502 --server.headless true & \
-		server_pid=$$!; \
-		trap 'kill $$server_pid 2>/dev/null || true' EXIT INT TERM; \
-		sleep 5; \
-		$(PYTEST) tests/visual -n 0 --timeout=120 --no-cov
+	$(PYTEST) tests/visual -n 0 --timeout=120 --no-cov
 
 format:
 	$(VENV_BIN)/black --workers $(RING5_NATIVE_THREADS) $(PYTHON_SOURCES)

@@ -244,11 +244,19 @@ jobs:
         run: |
           uv build --wheel
           uv venv --python 3.12 "$RUNNER_TEMP/ring5-wheel"
-          uv pip install --python "$RUNNER_TEMP/ring5-wheel/${{ matrix.interpreter }}" dist/*.whl
+          uv pip install --python "$RUNNER_TEMP/ring5-wheel/${{ matrix.interpreter }}" dist/*.whl "pytest==9.1.1"
       - name: Exercise installed public API outside the checkout
         run: |
           cd "$RUNNER_TEMP"
           "$RUNNER_TEMP/ring5-wheel/${{ matrix.interpreter }}" "$GITHUB_WORKSPACE/scripts/verify_installation.py"
+      - name: Verify native process lock exclusion
+        run: |
+          cd "$RUNNER_TEMP"
+          touch pytest-wheel.ini
+          "$RUNNER_TEMP/ring5-wheel/${{ matrix.interpreter }}" -m pytest \
+            --noconftest --import-mode=importlib -c pytest-wheel.ini \
+            "$GITHUB_WORKSPACE/tests/unit/test_file_lock_portability.py" \
+            -k "lock_excludes_other_process or lock_failed_acquisition" -q
 
   e2e:
     name: Streamlit E2E

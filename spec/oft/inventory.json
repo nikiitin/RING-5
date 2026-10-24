@@ -362,7 +362,7 @@
       "tags": ["gem5", "vector", "variables"],
       "evidence": {
         "implementation": ["src/parsing/gem5/types/vector.py::Vector"],
-        "tests": ["tests/unit/test_vector_type.py::TestVectorReduceDuplicates"],
+        "tests": ["tests/unit/test_vector_type.py::TestVectorReduceDuplicates", "tests/integration/test_facade_reduction.py::TestFacadeReduction.test_vector_reduction"],
         "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
@@ -5785,6 +5785,7 @@
       "entries": "ingestion.variable-entry-selection",
       "name": "ingestion.variable-scan",
       "pattern_indices": "ingestion.pattern-index-selection",
+      "source_type": "ingestion.variable-scan",
       "type": "ingestion.variable-scan"
     },
     "scan_result_fields": {

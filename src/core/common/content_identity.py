@@ -59,6 +59,16 @@ def encode_identity(value: Any) -> Any:
         return ["dict", sorted(items, key=lambda item: json.dumps(item[0], sort_keys=True))]
     if isinstance(value, pd.CategoricalDtype):
         return ["categorical", encode_identity(value.categories), value.ordered]
+    if isinstance(value, pd.RangeIndex):
+        # Range parameters fully identify these values. Expanding every row
+        # defeats cache reuse before the transformation can be skipped.
+        return [
+            type(value).__qualname__,
+            value.start,
+            value.stop,
+            value.step,
+            encode_identity(list(value.names)),
+        ]
     if isinstance(value, pd.Index):
         dtype = (
             encode_identity(value.dtype)
