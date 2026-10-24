@@ -11,6 +11,8 @@ from __future__ import annotations
 import argparse
 import base64
 from dataclasses import asdict, dataclass
+from datetime import UTC, datetime, timedelta
+from enum import StrEnum
 import html
 import json
 import os
@@ -23,15 +25,53 @@ from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 from scripts.dependency_update_policy import assess_changes
 
-COPILOT = "copilot-pull-request-reviewer[bot]"
+COPILOT_REQUEST_LOGIN = "copilot-pull-request-reviewer[bot]"
+COPILOT_USER_ID = 175728472
+COPILOT_NODE_ID = "BOT_kgDOCnlnWA"
 DEPENDABOT = "dependabot[bot]"
 SHA = re.compile(r"[0-9a-f]{40}")
 REPOSITORY = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
 LOGIN = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?")
+REVIEW_WAIT_LIMIT = timedelta(hours=24)
 
 
 class ApiError(RuntimeError):
     """A GitHub request or response cannot be safely used."""
+
+
+@dataclass(frozen=True)
+class _ReviewerIdentity:
+    """Stable identifiers of the authoritative native review bot."""
+
+    user_id: int
+    node_id: str
+
+    def matches(self, actor: Any) -> bool:
+        """Require the bot type and both immutable identifiers, independent of login."""
+        return (
+            isinstance(actor, dict)
+            and actor.get("type") == "Bot"
+            and type(actor.get("id")) is int
+            and actor["id"] == self.user_id
+            and actor.get("node_id") == self.node_id
+        )
+
+
+class _RequestState(StrEnum):
+    """Durable request intent and confirmed acceptance or pending observation."""
+
+    INTENT = "intent"
+    ACCEPTED = "accepted"
+    OBSERVED = "observed"
+
+
+@dataclass(frozen=True)
+class _ReviewRequestReceipt:
+    """A workflow-authored request state dated by the GitHub comment server."""
+
+    comment_id: int
+    created_at: datetime
+    state: _RequestState
 
 
 class _NoRedirect(HTTPRedirectHandler):
@@ -47,6 +87,18 @@ class GitHubClient:
 
     def __init__(self, token: str) -> None:
         self.token = token
+        self._copilot_identity: _ReviewerIdentity | None = None
+        self._copilot_receipts: dict[tuple[str, int, str], _ReviewRequestReceipt] = {}
+
+    def copilot_identity(self) -> _ReviewerIdentity:
+        """Resolve and cache the pinned native review bot through its request alias."""
+        if self._copilot_identity is None:
+            actor = self.request("GET", f"/users/{quote(COPILOT_REQUEST_LOGIN, safe='')}")
+            identity = _ReviewerIdentity(COPILOT_USER_ID, COPILOT_NODE_ID)
+            if not identity.matches(actor):
+                raise ApiError("The native review request alias did not resolve to the pinned bot")
+            self._copilot_identity = identity
+        return self._copilot_identity
 
     def request(self, method: str, path: str, payload: dict[str, Any] | None = None) -> Any:
         """Send a request to the fixed GitHub API origin without logging credentials."""
@@ -245,16 +297,20 @@ def _ci_state(
 def _review_state(
     client: GitHubClient, root: str, pr: dict[str, Any], repository: str
 ) -> tuple[bool, list[str]]:
-    latest: dict[str, dict[str, Any]] = {}
+    identity = client.copilot_identity()
+    copilot_key = ("bot", identity.node_id)
+    latest: dict[tuple[str, str], dict[str, Any]] = {}
     for review in sorted(
         client.paginate(f"{root}/pulls/{pr['number']}/reviews"), key=lambda item: item["id"]
     ):
         if review.get("state") != "PENDING":
-            latest[review["user"]["login"]] = review
-    copilot = latest.get(COPILOT)
+            actor = review["user"]
+            key = copilot_key if identity.matches(actor) else ("login", actor["login"])
+            latest[key] = review
+    copilot = latest.get(copilot_key)
     approved = bool(
         copilot
-        and copilot["user"].get("type") == "Bot"
+        and identity.matches(copilot["user"])
         and copilot.get("commit_id") == pr["head"]["sha"]
         and copilot.get("state") == "APPROVED"
     )
@@ -302,11 +358,120 @@ def _review_state(
     raise ApiError("Review thread pagination exceeds the controller limit")
 
 
-def _request_copilot(client: GitHubClient, root: str, pr: dict[str, Any]) -> None:
-    if not any(user["login"] == COPILOT for user in pr.get("requested_reviewers", [])):
-        client.request(
-            "POST", f"{root}/pulls/{pr['number']}/requested_reviewers", {"reviewers": [COPILOT]}
-        )
+def _receipt_marker(head: str) -> str:
+    """Bind an acceptance receipt to one complete pull request commit identity."""
+    return f"<!-- ring5-native-review-request:{_sha(head)} -->"
+
+
+def _parse_receipt(comment: dict[str, Any], head: str) -> _ReviewRequestReceipt | None:
+    """Accept only workflow-bot receipts with a server timestamp and exact head marker."""
+    author = comment.get("user") or {}
+    body = comment.get("body")
+    if (
+        not isinstance(author, dict)
+        or author.get("login") != "github-actions[bot]"
+        or author.get("type") != "Bot"
+        or not isinstance(body, str)
+    ):
+        return None
+    lines = body.splitlines()
+    if not lines or lines[0] != _receipt_marker(head):
+        return None
+    if type(comment.get("id")) is not int or comment["id"] <= 0:
+        raise ApiError("The native review receipt has no valid server comment identity")
+    try:
+        created_at = datetime.fromisoformat(comment["created_at"])
+    except (KeyError, TypeError, ValueError) as error:
+        raise ApiError("The native review receipt has no valid server timestamp") from error
+    if created_at.utcoffset() is None:
+        raise ApiError("The native review receipt timestamp must include its timezone")
+    try:
+        state_line = lines[1]
+        if not state_line.startswith("State: "):
+            raise ValueError("Missing workflow state label")
+        state = _RequestState(state_line.removeprefix("State: "))
+    except (IndexError, ValueError) as error:
+        raise ApiError("The native review receipt has no recognized workflow state") from error
+    return _ReviewRequestReceipt(comment["id"], created_at, state)
+
+
+def _request_receipt(
+    client: GitHubClient, root: str, pr: dict[str, Any]
+) -> _ReviewRequestReceipt | None:
+    """Read and cache a durable receipt without caching the absence of one."""
+    head = _sha(pr["head"]["sha"])
+    key = (root, pr["number"], head)
+    if key not in client._copilot_receipts:
+        receipts = [
+            receipt
+            for comment in client.paginate(f"{root}/issues/{pr['number']}/comments")
+            if (receipt := _parse_receipt(comment, head)) is not None
+        ]
+        if receipts:
+            client._copilot_receipts[key] = min(receipts, key=lambda item: item.created_at)
+    return client._copilot_receipts.get(key)
+
+
+def _write_receipt(
+    client: GitHubClient,
+    root: str,
+    pr: dict[str, Any],
+    state: _RequestState,
+    previous: _ReviewRequestReceipt | None = None,
+) -> _ReviewRequestReceipt:
+    """Persist and verify a state transition before trusting it or making a paid call."""
+    head = _sha(pr["head"]["sha"])
+    descriptions = {
+        _RequestState.INTENT: "Native review request intent recorded while assessing commit ",
+        _RequestState.ACCEPTED: "Native review request accepted while assessing commit ",
+        _RequestState.OBSERVED: (
+            "A pending native review request was observed while this commit was current: "
+        ),
+    }
+    path = (
+        f"{root}/issues/comments/{previous.comment_id}"
+        if previous is not None
+        else f"{root}/issues/{pr['number']}/comments"
+    )
+    comment = client.request(
+        "PATCH" if previous is not None else "POST",
+        path,
+        {
+            "body": _receipt_marker(head)
+            + f"\nState: {state.value}\n"
+            + descriptions[state]
+            + head
+            + ". This receipt does not indicate that a review is queued or running "
+            "for this commit."
+        },
+    )
+    if not isinstance(comment, dict) or (receipt := _parse_receipt(comment, head)) is None:
+        raise ApiError("GitHub did not return a trusted native review acceptance receipt")
+    if (
+        receipt.state != state
+        or previous is not None
+        and (receipt.comment_id != previous.comment_id or receipt.created_at != previous.created_at)
+    ):
+        raise ApiError("GitHub did not preserve the native review receipt transition")
+    client._copilot_receipts[(root, pr["number"], head)] = receipt
+    return receipt
+
+
+def _request_copilot(client: GitHubClient, root: str, pr: dict[str, Any]) -> _ReviewRequestReceipt:
+    """Make at most one paid attempt after persisting an immutable-head intent."""
+    identity = client.copilot_identity()
+    receipt = _request_receipt(client, root, pr)
+    if receipt is not None:
+        return receipt
+    if any(identity.matches(user) for user in pr.get("requested_reviewers", [])):
+        return _write_receipt(client, root, pr, _RequestState.OBSERVED)
+    intent = _write_receipt(client, root, pr, _RequestState.INTENT)
+    client.request(
+        "POST",
+        f"{root}/pulls/{pr['number']}/requested_reviewers",
+        {"reviewers": [COPILOT_REQUEST_LOGIN]},
+    )
+    return _write_receipt(client, root, pr, _RequestState.ACCEPTED, previous=intent)
 
 
 def _escalate(
@@ -317,6 +482,7 @@ def _escalate(
     reasons: list[str],
     *,
     request_reviews: bool = True,
+    request_copilot: bool = True,
 ) -> None:
     marker = f"<!-- ring5-dependency-automation:{pr['head']['sha']} -->"
     comments = client.paginate(f"{root}/issues/{pr['number']}/comments")
@@ -330,6 +496,15 @@ def _escalate(
         ),
         None,
     )
+    guidance = (
+        "Copilot's review must identify affected APIs and scientific behavior, link upstream "
+        "release or migration notes, and propose the source changes and regression tests needed "
+        "to support this version. Inspect its review and the linked CI logs before deciding. "
+        "Use **Fix with Copilot** to prepare an adaptation when appropriate. "
+        if request_reviews and request_copilot
+        else "Inspect the dependency changes, upstream migration notes "
+        "and linked CI logs manually. "
+    )
     body = (
         marker
         + f"\n@{reviewer}, this dependency update needs your attention.\n\n"
@@ -337,11 +512,9 @@ def _escalate(
             f"- {html.escape(reason).replace('@', '＠').replace('`', chr(39))}"
             for reason in reasons
         )
-        + "\n\nCopilot's review must identify affected APIs and scientific behavior, link upstream "
-        "release or migration notes, and propose the source changes and regression tests needed "
-        "to support this version. Inspect its review and the linked CI logs before deciding. "
-        "Use **Fix with Copilot** to prepare an adaptation when appropriate. Source adaptations "
-        "require human review. No approval or branch protection is bypassed.\n"
+        + "\n\n"
+        + guidance
+        + "Source adaptations require human review. No approval or branch protection is bypassed.\n"
     )
     if existing is None:
         client.request("POST", f"{root}/issues/{pr['number']}/comments", {"body": body})
@@ -354,9 +527,16 @@ def _escalate(
             for review in reviews
             if review.get("commit_id") == pr["head"]["sha"] and review.get("state") != "PENDING"
         }
-        if existing is None or COPILOT not in completed:
+        if request_copilot:
             try:
-                _request_copilot(client, root, pr)
+                identity = client.copilot_identity()
+                if not any(
+                    identity.matches(review["user"])
+                    and review.get("commit_id") == pr["head"]["sha"]
+                    and review.get("state") != "PENDING"
+                    for review in reviews
+                ):
+                    _request_copilot(client, root, pr)
             except ApiError:
                 # Keep the notification visible while a later run retries unavailable review.
                 pass
@@ -381,9 +561,13 @@ def evaluate_pr(
     *,
     apply: bool = False,
     reviewer: str = "",
+    now: datetime | None = None,
 ) -> Outcome:
     """Assess and optionally process one authenticated, dependency-only pull request."""
     root = _repo_path(repository)
+    checked_at = now if now is not None else datetime.now(UTC)
+    if checked_at.utcoffset() is None:
+        raise ValueError("The review clock must include its timezone")
     pr = client.request("GET", f"{root}/pulls/{number}")
     head = _sha(pr["head"]["sha"])
     reviewer = reviewer or config.get("default_reviewer") or repository.split("/")[0]
@@ -392,12 +576,12 @@ def evaluate_pr(
     if not _eligible(pr, repository, config):
         return Outcome(number, head, "ignored", ("Not an eligible same-repository Dependabot PR",))
 
-    def blocked(reasons: list[str]) -> Outcome:
+    def blocked(reasons: list[str], *, request_copilot: bool = True) -> Outcome:
         if apply:
             fresh = client.request("GET", f"{root}/pulls/{number}")
             if fresh["head"]["sha"] != head or not _eligible(fresh, repository, config):
                 return Outcome(number, head, "waiting", ("PR changed before escalation",))
-            _escalate(client, root, fresh, reviewer, reasons)
+            _escalate(client, root, fresh, reviewer, reasons, request_copilot=request_copilot)
         return Outcome(number, head, "needs_review", tuple(reasons))
 
     commits = client.paginate(f"{root}/pulls/{number}/commits")
@@ -437,7 +621,10 @@ def evaluate_pr(
     }
     policy = assess_changes(changes, allow_major=config["allow_major"])
     if not policy.eligible:
-        return blocked(list(policy.reasons))
+        return blocked(
+            list(policy.reasons),
+            request_copilot=policy.native_reviewable,
+        )
     _action_provenance(client, policy.updates)
     protection = protection_problems(client, root, config)
     if protection:
@@ -447,13 +634,32 @@ def evaluate_pr(
     if failed or review_problems:
         return blocked(failed + review_problems)
     if not approved:
-        if apply:
-            try:
-                _request_copilot(client, root, pr)
-            except ApiError:
-                return blocked(
-                    ["Copilot review could not be requested; verify its entitlement and settings"]
-                )
+        try:
+            receipt = (
+                _request_copilot(client, root, pr) if apply else _request_receipt(client, root, pr)
+            )
+        except ApiError:
+            return blocked(
+                ["The native review request or acceptance receipt could not be verified"],
+                request_copilot=False,
+            )
+        if receipt is not None and receipt.state == _RequestState.INTENT:
+            return blocked(
+                [
+                    "A durable native review intent has unconfirmed completion; automatic retry "
+                    "is suppressed to avoid duplicate charges. "
+                    "Inspect the existing request manually"
+                ],
+                request_copilot=False,
+            )
+        if receipt is not None and checked_at - receipt.created_at >= REVIEW_WAIT_LIMIT:
+            return blocked(
+                [
+                    "No qualifying current-head native review was recorded within 24 hours of "
+                    "the workflow receipt; inspect review availability and repository policy"
+                ],
+                request_copilot=False,
+            )
         return Outcome(
             number, head, "waiting_copilot", ("Waiting for Copilot approval of this head",)
         )

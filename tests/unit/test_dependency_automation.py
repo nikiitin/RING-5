@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import copy
+from datetime import UTC, datetime, timedelta
 import json
 from pathlib import Path
 from typing import Any
@@ -18,6 +19,18 @@ BASE = "b" * 40
 OTHER = "c" * 40
 REPOSITORY = "owner/project"
 ROOT = f"/repos/{REPOSITORY}"
+NOW = datetime(2026, 10, 24, 12, tzinfo=UTC)
+
+
+def reviewer_actor(login: str = "Copilot", **fields: Any) -> dict[str, Any]:
+    """Represent the same immutable native bot under either API login spelling."""
+    return {
+        "login": login,
+        "type": "Bot",
+        "id": controller.COPILOT_USER_ID,
+        "node_id": controller.COPILOT_NODE_ID,
+        **fields,
+    }
 
 
 @pytest.fixture
@@ -39,6 +52,14 @@ class FakeClient(controller.GitHubClient):
     """Model API state and retain every attempted mutation."""
 
     def __init__(self) -> None:
+        super().__init__("fake")
+        self.identity_response = reviewer_actor()
+        self.identity_reads = 0
+        self.server_time = NOW
+        self.receipt_error = False
+        self.receipt_update_error = False
+        self.native_response_error = False
+        self.intent_response_error = False
         self.pr: dict[str, Any] = {
             "number": 1,
             "state": "open",
@@ -64,7 +85,7 @@ class FakeClient(controller.GitHubClient):
         self.reviews: list[dict[str, Any]] = [
             {
                 "id": 1,
-                "user": {"login": controller.COPILOT, "type": "Bot"},
+                "user": reviewer_actor(controller.COPILOT_REQUEST_LOGIN),
                 "commit_id": HEAD,
                 "state": "APPROVED",
             }
@@ -151,7 +172,7 @@ class FakeClient(controller.GitHubClient):
                 "data": {
                     "repository": {
                         "pullRequest": {
-                            "headRefOid": HEAD,
+                            "headRefOid": self.pr["head"]["sha"],
                             "reviewDecision": self.review_decision,
                             "reviewThreads": {
                                 "nodes": self.threads,
@@ -162,6 +183,9 @@ class FakeClient(controller.GitHubClient):
                 }
             }
         if method == "GET":
+            if path.startswith("/users/"):
+                self.identity_reads += 1
+                return copy.deepcopy(self.identity_response)
             if path == ROOT + "/pulls/1":
                 self.reads += 1
                 result = copy.deepcopy(self.pr)
@@ -203,20 +227,46 @@ class FakeClient(controller.GitHubClient):
         assert payload is not None
         self.writes.append((method, path, payload))
         if path.endswith("/requested_reviewers"):
-            if self.request_error and controller.COPILOT in payload["reviewers"]:
+            if self.request_error and controller.COPILOT_REQUEST_LOGIN in payload["reviewers"]:
                 raise controller.ApiError("GitHub request failed with HTTP 403")
             if self.maintainer_error_once and payload["reviewers"] == ["owner"]:
                 self.maintainer_error_once = False
                 raise controller.ApiError("Temporary review-request failure")
-            self.pr["requested_reviewers"] += [{"login": name} for name in payload["reviewers"]]
+            self.pr["requested_reviewers"] += [
+                (
+                    reviewer_actor(name)
+                    if name == controller.COPILOT_REQUEST_LOGIN
+                    else {"login": name}
+                )
+                for name in payload["reviewers"]
+            ]
+            if (
+                self.native_response_error
+                and controller.COPILOT_REQUEST_LOGIN in payload["reviewers"]
+            ):
+                raise controller.ApiError("Native request response lost")
+        if method == "PATCH" and "/issues/comments/" in path:
+            if self.receipt_update_error and "ring5-native-review-request:" in payload["body"]:
+                raise controller.ApiError("Receipt update failed")
+            comment = next(
+                item for item in self.comments if item["id"] == int(path.rsplit("/", 1)[1])
+            )
+            comment["body"] = payload["body"]
+            return copy.deepcopy(comment)
         if path.endswith("/comments"):
+            if self.receipt_error and "ring5-native-review-request:" in payload["body"]:
+                raise controller.ApiError("Receipt persistence failed")
             self.comments.append(
                 {
                     "id": len(self.comments) + 1,
                     "user": {"login": "github-actions[bot]", "type": "Bot"},
                     "body": payload["body"],
+                    "created_at": self.server_time.isoformat(),
                 }
             )
+            if self.intent_response_error and "State: intent" in payload["body"]:
+                raise controller.ApiError("Intent response lost")
+            return copy.deepcopy(self.comments[-1])
         if path.endswith("/merge"):
             if self.lost_merge_response:
                 self.pr["state"] = "closed"
@@ -237,9 +287,9 @@ def client(monkeypatch: pytest.MonkeyPatch) -> FakeClient:
 
 
 def assess(
-    client: FakeClient, config: dict[str, Any], *, apply: bool = False
+    client: FakeClient, config: dict[str, Any], *, apply: bool = False, now: datetime = NOW
 ) -> controller.Outcome:
-    return controller.evaluate_pr(client, REPOSITORY, 1, config, apply=apply)
+    return controller.evaluate_pr(client, REPOSITORY, 1, config, apply=apply, now=now)
 
 
 def test_dry_run_never_mutates_even_when_ready(client: FakeClient, config: dict[str, Any]) -> None:
@@ -374,9 +424,15 @@ def test_stale_copilot_approval_waits_for_new_review(
 ) -> None:
     client.reviews[0]["commit_id"] = OTHER
     assert assess(client, config, apply=True).state == "waiting_copilot"
-    assert client.writes == [
-        ("POST", ROOT + "/pulls/1/requested_reviewers", {"reviewers": [controller.COPILOT]})
+    assert client.writes[1:2] == [
+        (
+            "POST",
+            ROOT + "/pulls/1/requested_reviewers",
+            {"reviewers": [controller.COPILOT_REQUEST_LOGIN]},
+        )
     ]
+    assert len(client.comments) == 1
+    assert "request accepted" in client.comments[0]["body"]
 
 
 @pytest.mark.parametrize(
@@ -603,3 +659,387 @@ def test_action_release_tag_must_resolve_to_pin(client: FakeClient) -> None:
     client.tag_sha = BASE
     with pytest.raises(controller.ApiError, match="does not match"):
         controller._action_provenance(client, [update])
+
+
+@pytest.mark.parametrize("login", ["Copilot", controller.COPILOT_REQUEST_LOGIN])
+def test_native_approval_matches_verified_identity_under_both_logins(
+    client: FakeClient, config: dict[str, Any], login: str
+) -> None:
+    client.reviews[0]["user"] = reviewer_actor(login)
+    assert assess(client, config).state == "ready"
+    assert assess(client, config).state == "ready"
+    assert client.identity_reads == 1
+    assert client.writes == []
+
+
+@pytest.mark.parametrize(
+    "fields",
+    [
+        {"type": "User"},
+        {"id": controller.COPILOT_USER_ID + 1},
+        {"node_id": "BOT_unrelated"},
+        {"id": None},
+        {"node_id": None},
+    ],
+)
+@pytest.mark.parametrize("login", ["Copilot", controller.COPILOT_REQUEST_LOGIN])
+def test_display_name_and_bot_alias_cannot_spoof_approval(
+    client: FakeClient, config: dict[str, Any], fields: dict[str, Any], login: str
+) -> None:
+    client.reviews[0]["user"] = reviewer_actor(login, **fields)
+    assert assess(client, config).state == "waiting_copilot"
+    assert client.writes == []
+
+
+@pytest.mark.parametrize("fields", [{"type": "User"}, {"id": 1}, {"node_id": "BOT_other"}])
+def test_unverified_alias_resolution_cannot_authorize_requests_or_merges(
+    client: FakeClient, config: dict[str, Any], fields: dict[str, Any]
+) -> None:
+    client.identity_response.update(fields)
+    with pytest.raises(controller.ApiError, match="pinned bot"):
+        assess(client, config, apply=True)
+    assert client.writes == []
+
+
+@pytest.mark.parametrize("latest_state", ["APPROVED", "COMMENTED", "DISMISSED"])
+def test_latest_native_review_uses_identity_across_login_spellings(
+    client: FakeClient, config: dict[str, Any], latest_state: str
+) -> None:
+    client.reviews[0]["state"] = "CHANGES_REQUESTED"
+    client.reviews.append(
+        {
+            "id": 2,
+            "user": reviewer_actor(),
+            "commit_id": HEAD,
+            "state": latest_state,
+        }
+    )
+    expected = "ready" if latest_state == "APPROVED" else "needs_review"
+    assert assess(client, config).state == expected
+    assert client.writes == []
+
+
+def test_completed_canonical_review_is_not_requested_again_during_escalation(
+    client: FakeClient, config: dict[str, Any]
+) -> None:
+    client.reviews[0]["user"] = reviewer_actor()
+    client.reviews[0]["state"] = "COMMENTED"
+    assert assess(client, config, apply=True).state == "needs_review"
+    assert not any(
+        payload == {"reviewers": [controller.COPILOT_REQUEST_LOGIN]}
+        for _, _, payload in client.writes
+    )
+
+
+def test_acceptance_receipt_suppresses_repeated_paid_requests_across_runs(
+    client: FakeClient, config: dict[str, Any]
+) -> None:
+    client.reviews = []
+    assert assess(client, config, apply=True).state == "waiting_copilot"
+    assert len(client.comments) == 1
+    receipt = client.comments[0]
+    assert "request accepted" in receipt["body"]
+    assert "does not indicate" in receipt["body"]
+    assert "@" not in receipt["body"]
+    client.pr["requested_reviewers"] = []
+    before = copy.deepcopy(client.writes)
+    assert assess(client, config, apply=True).state == "waiting_copilot"
+    client._copilot_receipts.clear()
+    assert assess(client, config, apply=True).state == "waiting_copilot"
+    assert client.writes == before
+    assert client.identity_reads == 1
+
+
+@pytest.mark.parametrize("login", ["Copilot", controller.COPILOT_REQUEST_LOGIN])
+def test_existing_pending_actor_gets_observation_receipt_without_paid_request(
+    client: FakeClient, config: dict[str, Any], login: str
+) -> None:
+    client.reviews = []
+    client.pr["requested_reviewers"] = [reviewer_actor(login)]
+    assert assess(client, config, apply=True).state == "waiting_copilot"
+    assert len(client.comments) == 1
+    assert "pending native review request was observed" in client.comments[0]["body"]
+    assert not any(path.endswith("/requested_reviewers") for _, path, _ in client.writes)
+
+
+@pytest.mark.parametrize("fields", [{"type": "User"}, {"id": 1}, {"node_id": "BOT_other"}])
+def test_spoofed_pending_actor_cannot_suppress_the_verified_native_request(
+    client: FakeClient, config: dict[str, Any], fields: dict[str, Any]
+) -> None:
+    client.reviews = []
+    client.pr["requested_reviewers"] = [reviewer_actor(**fields)]
+    assert assess(client, config, apply=True).state == "waiting_copilot"
+    assert any(
+        payload == {"reviewers": [controller.COPILOT_REQUEST_LOGIN]}
+        for _, _, payload in client.writes
+    )
+    assert "request accepted" in client.comments[0]["body"]
+
+
+def test_receipt_timeout_escalates_once_without_another_native_request(
+    client: FakeClient, config: dict[str, Any]
+) -> None:
+    client.reviews = []
+    assert assess(client, config, apply=True).state == "waiting_copilot"
+    assert (
+        assess(client, config, apply=True, now=NOW + timedelta(hours=24, seconds=-1)).state
+        == "waiting_copilot"
+    )
+    result = assess(client, config, apply=True, now=NOW + timedelta(hours=24))
+    assert result.state == "needs_review"
+    assert "24 hours" in result.reasons[0]
+    assert len(client.comments) == 2
+    assert "@owner" in client.comments[1]["body"]
+    before = copy.deepcopy(client.writes)
+    assert assess(client, config, apply=True, now=NOW + timedelta(hours=25)).state == "needs_review"
+    assert client.writes == before
+    assert (
+        sum(
+            payload == {"reviewers": [controller.COPILOT_REQUEST_LOGIN]}
+            for _, _, payload in client.writes
+        )
+        == 1
+    )
+
+
+def test_late_current_head_approval_supersedes_the_receipt_timeout(
+    client: FakeClient, config: dict[str, Any]
+) -> None:
+    client.reviews = []
+    assert assess(client, config, apply=True).state == "waiting_copilot"
+    later = NOW + timedelta(hours=25)
+    assert assess(client, config, apply=True, now=later).state == "needs_review"
+    client.reviews = [{"id": 1, "user": reviewer_actor(), "commit_id": HEAD, "state": "APPROVED"}]
+    client.writes.clear()
+    assert assess(client, config, now=later).state == "ready"
+    assert client.writes == []
+
+
+def test_new_head_with_stale_pending_actor_and_old_approval_gets_its_own_deadline(
+    client: FakeClient, config: dict[str, Any]
+) -> None:
+    client.reviews = []
+    assert assess(client, config, apply=True).state == "waiting_copilot"
+    client.pr["head"]["sha"] = OTHER
+    client.server_time = NOW + timedelta(hours=1)
+    client.reviews = [{"id": 1, "user": reviewer_actor(), "commit_id": HEAD, "state": "APPROVED"}]
+    for runs in client.runs.values():
+        for run in runs:
+            run["head_sha"] = OTHER
+            run["pull_requests"][0]["head"]["sha"] = OTHER
+    assert assess(client, config, apply=True, now=client.server_time).state == "waiting_copilot"
+    assert len(client.comments) == 2
+    assert controller._receipt_marker(OTHER) in client.comments[1]["body"]
+    assert "observed" in client.comments[1]["body"]
+    assert (
+        assess(client, config, apply=True, now=NOW + timedelta(hours=24, minutes=30)).state
+        == "waiting_copilot"
+    )
+    assert assess(client, config, apply=True, now=NOW + timedelta(hours=25)).state == "needs_review"
+    assert not any(path.endswith("/merge") for _, path, _ in client.writes)
+
+
+@pytest.mark.parametrize("pending", [False, True])
+def test_dry_run_does_not_create_a_request_or_observation_receipt(
+    client: FakeClient, config: dict[str, Any], pending: bool
+) -> None:
+    client.reviews = []
+    client.pr["requested_reviewers"] = [reviewer_actor()] if pending else []
+    assert assess(client, config).state == "waiting_copilot"
+    assert client.writes == []
+
+
+@pytest.mark.parametrize(
+    ("author", "head"),
+    [
+        ({"login": "github-actions[bot]", "type": "User"}, HEAD),
+        ({"login": "unrelated[bot]", "type": "Bot"}, HEAD),
+        ({"login": "github-actions[bot]", "type": "Bot"}, OTHER),
+    ],
+)
+def test_forged_or_stale_receipt_cannot_suppress_a_new_request(
+    client: FakeClient, config: dict[str, Any], author: dict[str, str], head: str
+) -> None:
+    client.reviews = []
+    client.comments = [
+        {
+            "id": 1,
+            "user": author,
+            "body": controller._receipt_marker(head) + "\nforged or stale",
+            "created_at": (NOW - timedelta(days=7)).isoformat(),
+        }
+    ]
+    assert assess(client, config, apply=True).state == "waiting_copilot"
+    assert any(
+        payload == {"reviewers": [controller.COPILOT_REQUEST_LOGIN]}
+        for _, _, payload in client.writes
+    )
+    assert len(client.comments) == 2
+
+
+def test_intent_persistence_failure_cannot_make_a_paid_request(
+    client: FakeClient, config: dict[str, Any]
+) -> None:
+    client.reviews = []
+    client.receipt_error = True
+    result = assess(client, config, apply=True)
+    assert result.state == "needs_review"
+    assert "receipt could not be verified" in result.reasons[0]
+    assert len(client.comments) == 1
+    assert "@owner" in client.comments[0]["body"]
+    client._copilot_receipts.clear()
+    assert assess(client, config, apply=True).state == "needs_review"
+    assert (
+        sum(
+            payload == {"reviewers": [controller.COPILOT_REQUEST_LOGIN]}
+            for _, _, payload in client.writes
+        )
+        == 0
+    )
+    assert not any(path.endswith("/merge") for _, path, _ in client.writes)
+
+
+@pytest.mark.parametrize(
+    ("failure", "paid_attempts"),
+    [
+        ("receipt_update_error", 1),
+        ("native_response_error", 1),
+        ("request_error", 1),
+        ("intent_response_error", 0),
+    ],
+)
+def test_unconfirmed_intent_never_retries_after_restart_and_missing_pending_actor(
+    client: FakeClient, config: dict[str, Any], failure: str, paid_attempts: int
+) -> None:
+    client.reviews = []
+    setattr(client, failure, True)
+    assert assess(client, config, apply=True).state == "needs_review"
+    assert "State: intent" in client.comments[0]["body"]
+    restarted = FakeClient()
+    restarted.pr = copy.deepcopy(client.pr)
+    restarted.pr["requested_reviewers"] = [
+        actor
+        for actor in restarted.pr["requested_reviewers"]
+        if actor["login"] != controller.COPILOT_REQUEST_LOGIN
+    ]
+    restarted.reviews = []
+    restarted.comments = copy.deepcopy(client.comments)
+    result = assess(restarted, config, apply=True)
+    assert result.state == "needs_review"
+    assert "unconfirmed completion" in result.reasons[0]
+    assert len(restarted.comments) == 2
+    assert not any(
+        payload == {"reviewers": [controller.COPILOT_REQUEST_LOGIN]}
+        for _, _, payload in restarted.writes
+    )
+    assert (
+        sum(
+            payload == {"reviewers": [controller.COPILOT_REQUEST_LOGIN]}
+            for _, _, payload in client.writes
+        )
+        == paid_attempts
+    )
+    restarted.reviews = [
+        {"id": 1, "user": reviewer_actor(), "commit_id": HEAD, "state": "APPROVED"}
+    ]
+    restarted.writes.clear()
+    assert assess(restarted, config).state == "ready"
+    assert restarted.writes == []
+
+
+@pytest.mark.parametrize("timestamp", [None, "invalid", "2026-10-24T12:00:00"])
+def test_unusable_trusted_receipt_timestamp_is_visible_and_cannot_trigger_another_request(
+    client: FakeClient, config: dict[str, Any], timestamp: str | None
+) -> None:
+    client.reviews = []
+    client.comments = [
+        {
+            "id": 1,
+            "user": {"login": "github-actions[bot]", "type": "Bot"},
+            "body": controller._receipt_marker(HEAD) + "\naccepted",
+            "created_at": timestamp,
+        }
+    ]
+    result = assess(client, config, apply=True)
+    assert result.state == "needs_review"
+    assert "receipt could not be verified" in result.reasons[0]
+    assert len(client.comments) == 2
+    assert "@owner" in client.comments[1]["body"]
+    assert not any(
+        payload == {"reviewers": [controller.COPILOT_REQUEST_LOGIN]}
+        for _, _, payload in client.writes
+    )
+
+
+def test_expired_receipt_dry_run_only_reports_needed_escalation(
+    client: FakeClient, config: dict[str, Any]
+) -> None:
+    client.reviews = []
+    assert assess(client, config, apply=True).state == "waiting_copilot"
+    client.writes.clear()
+    assert assess(client, config, now=NOW + timedelta(days=1)).state == "needs_review"
+    assert client.writes == []
+
+
+@pytest.mark.parametrize(
+    ("suffix", "expected"),
+    [
+        ("", "needs_review"),
+        ("\n", "needs_review"),
+        ("\r\nState: intent\r\nIntent recorded", "needs_review"),
+        ("\r\nState: accepted\r\nRequest accepted", "waiting_copilot"),
+        ("\nState: unknown\nUnrecognized state", "needs_review"),
+    ],
+)
+def test_trusted_exact_head_receipt_header_is_never_ignored_to_make_a_paid_request(
+    client: FakeClient, config: dict[str, Any], suffix: str, expected: str
+) -> None:
+    client.reviews = []
+    client.comments = [
+        {
+            "id": 1,
+            "user": {"login": "github-actions[bot]", "type": "Bot"},
+            "body": controller._receipt_marker(HEAD) + suffix,
+            "created_at": NOW.isoformat(),
+        }
+    ]
+    assert assess(client, config, apply=True).state == expected
+    assert not any(
+        payload == {"reviewers": [controller.COPILOT_REQUEST_LOGIN]}
+        for _, _, payload in client.writes
+    )
+
+
+@pytest.mark.parametrize("padding", [False, True])
+def test_lock_only_update_escalates_without_requesting_excluded_native_review(
+    client: FakeClient, config: dict[str, Any], monkeypatch: pytest.MonkeyPatch, padding: bool
+) -> None:
+    from scripts.dependency_update_policy import assess_changes
+
+    before = (Path(__file__).resolve().parents[2] / "uv.lock").read_text()
+    after = before.replace('version = "1.17.0"', 'version = "1.17.1"').replace(
+        "six-1.17.0", "six-1.17.1"
+    )
+    assert before != after
+    monkeypatch.setattr(controller, "assess_changes", assess_changes)
+    project = (Path(__file__).resolve().parents[2] / "pyproject.toml").read_text()
+    if padding:
+        client.files.append({"filename": "pyproject.toml", "status": "modified"})
+        client.pr["changed_files"] = 2
+
+    def content(_client: Any, _root: str, path: str, ref: str) -> str:
+        if path == "uv.lock":
+            return before if ref == BASE else after
+        return project if ref == BASE else project + "\n# formatting only\n"
+
+    monkeypatch.setattr(controller, "_content", content)
+    result = assess(client, config, apply=True)
+    assert result.state == "needs_review"
+    assert any("Lock-only" in reason for reason in result.reasons)
+    assert len(client.comments) == 1
+    assert "@owner" in client.comments[0]["body"]
+    assert not any(
+        payload == {"reviewers": [controller.COPILOT_REQUEST_LOGIN]}
+        for _, _, payload in client.writes
+    )
+    assert not any(path.endswith("/merge") for _, path, _ in client.writes)

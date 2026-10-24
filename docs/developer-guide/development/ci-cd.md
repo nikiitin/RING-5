@@ -53,6 +53,31 @@ not satisfy the gate. The branch must contain current `main`; GitHub's native pr
 allow the merge. A required merge queue is unsupported and keeps the controller blocked. Labels and
 an approving sentence in a review comment do not authorize a merge.
 
+The request alias and review author's displayed login can differ. The controller resolves the
+alias once per process and binds pending requests and completed reviews to the verified bot's
+immutable numeric and node identifiers. A successful review-request API response alone does not
+prove that a review is queued or running. Before any paid request, the workflow persists and verifies
+one non-mention intent receipt per head, then updates that receipt after API acceptance. If intent
+persistence fails, it sends no paid request. An interrupted request or receipt update leaves a durable
+unconfirmed intent: the workflow escalates instead of automatically retrying an ambiguous paid call.
+A later qualifying current-head approval can still satisfy the gate.
+The server's comment creation time dates the workflow intent or first pending observation, not a
+native review start. Accepted and observed receipts escalate after 24 hours without a qualifying
+current-head review. Receipts must be authored by the workflow bot; dry runs create no requests or
+receipts, and subsequent runs read the same receipt even when pending reviewer lists omit the bot.
+Receipt-producing operations therefore run in the trusted Actions workflow; the local commands
+below inspect configuration and pull requests without `--apply`.
+If a pending actor already exists, the receipt records its first observation while this head is
+current. That observation does not prove the native request belongs to this head; only a qualifying
+current-head review satisfies the gate, and the same 24-hour recovery deadline applies.
+
+GitHub [excludes lock files from native code review](https://docs.github.com/en/copilot/reference/review-excluded-files).
+Lock-only release updates therefore require human review and escalate without another native review
+request. Comments, whitespace or equivalent version spellings in a manifest do not waive this rule;
+eligibility requires a meaningful non-lock dependency or Action version change.
+For manifest or Action updates, the controller still validates changed lock files as data and requires
+the compatibility CI gates; a native approval does not mean the excluded lock files were reviewed.
+
 The controller permits only its defined dependency-file and action-pin changes, keeps major updates
 manual by default, and submits a squash merge with the exact reviewed head SHA. It cannot bypass
 native rules or manufacture an approval. When a compatibility gap needs attention, it posts one
