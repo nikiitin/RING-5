@@ -3,7 +3,7 @@
 
 Run from the repository root:
 
-    python scripts/generate_example_portfolio.py
+    python -m scripts.generate_example_portfolio
 
 The resulting portfolio appears on the application's Save/Load Portfolio
 page. Use ``--output-dir`` to generate into an isolated directory instead.
@@ -16,11 +16,7 @@ import sys
 from pathlib import Path
 from typing import Any, cast
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-from src.core.common.runtime_limits import configure_native_thread_limits  # noqa: E402
+from src.core.common.runtime_limits import configure_native_thread_limits
 
 configure_native_thread_limits()
 

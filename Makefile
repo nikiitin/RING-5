@@ -89,7 +89,7 @@ run:
 	$(VENV_BIN)/streamlit run app.py
 
 example-portfolio:
-	$(PYTHON) scripts/generate_example_portfolio.py
+	$(PYTHON) -m scripts.generate_example_portfolio
 
 playwright-install: venv
 	$(VENV_BIN)/playwright install chromium
@@ -132,7 +132,7 @@ test-data:
 
 mock-data: test-data
 	@if [ ! -f "$(MOCK_CSV)" ]; then \
-		$(PYTHON) scripts/generate_mock_fixtures.py; \
+		$(PYTHON) -m scripts.generate_mock_fixtures; \
 	fi
 
 test-unit:
@@ -185,14 +185,14 @@ type-check:
 	$(VENV_BIN)/mypy src ring5 --show-error-codes --pretty
 
 arch-check:
-	$(PYTHON) scripts/check_architecture.py
+	$(PYTHON) -m scripts.check_architecture
 
 comments-check:
-	$(PYTHON) scripts/check_comments.py
+	$(PYTHON) -m scripts.check_comments
 
 docs-check:
-	$(PYTHON) scripts/check_public_docstrings.py
-	$(PYTHON) scripts/check_doc_structure.py
+	$(PYTHON) -m scripts.check_public_docstrings
+	$(PYTHON) -m scripts.check_doc_structure
 
 docs-build:
 	rm -rf _site
@@ -200,14 +200,14 @@ docs-build:
 		--source docs --destination _site
 
 docs-audit:
-	$(PYTHON) scripts/check_built_site.py
+	$(PYTHON) -m scripts.check_built_site
 
 docs-security:
 	BUNDLE_GEMFILE=$(CURDIR)/Gemfile bundle exec bundler-audit check --update
 
 dependency-check:
 	$(UV) lock --check
-	$(PYTHON) scripts/analyze_dependencies.py
+	$(PYTHON) -m scripts.analyze_dependencies
 	$(UV) pip check --python $(PYTHON)
 
 security-audit:
@@ -217,10 +217,10 @@ security-audit:
 		$(VENV_BIN)/pip-audit --strict --progress-spinner off --disable-pip --require-hashes --requirement "$$requirements"
 
 oft-generate:
-	$(PYTHON) scripts/generate_oft_inventory.py
+	$(PYTHON) -m scripts.generate_oft_inventory
 
 oft-check:
-	$(PYTHON) scripts/generate_oft_inventory.py --check
+	$(PYTHON) -m scripts.generate_oft_inventory --check
 
 oft-download:
 	@command -v java >/dev/null 2>&1 || { echo "Java 17 or newer is required."; exit 1; }
@@ -252,14 +252,14 @@ oft-report: oft-generate oft-download
 	-java -jar "$(OFT_JAR)" trace --output-format html --report-verbosity all \
 		--details-section-display collapse --output-file "$(OFT_NATIVE_REPORT)" $(OFT_SOURCES)
 	@test -s "$(OFT_NATIVE_REPORT)"
-	$(PYTHON) scripts/generate_oft_html_report.py \
+	$(PYTHON) -m scripts.generate_oft_html_report \
 		--oft-html "$(OFT_NATIVE_REPORT)" --output "$(OFT_REPORT)" $(OFT_EXECUTION_RESULTS_ARG)
-	$(PYTHON) scripts/generate_oft_inventory.py --check
+	$(PYTHON) -m scripts.generate_oft_inventory --check
 	@echo "Open $(OFT_REPORT) in a browser."
 
 oft-diff:
 	@test -n "$(BASE)" || { echo "Use: make oft-diff BASE=<git-revision>"; exit 2; }
-	$(PYTHON) scripts/diff_oft_inventory.py "$(BASE)"
+	$(PYTHON) -m scripts.diff_oft_inventory "$(BASE)"
 
 quality-gate: arch-check comments-check docs-check dependency-check oft-check format-check lint type-check security-audit
 	@echo "Quality gate passed."
@@ -268,7 +268,7 @@ package-check:
 	rm -rf build dist ring5.egg-info
 	$(PYTHON) -m build
 	$(VENV_BIN)/twine check dist/*
-	$(PYTHON) scripts/check_package_contents.py
+	$(PYTHON) -m scripts.check_package_contents
 
 check-outdated:
 	$(UV) pip list --python $(PYTHON) --outdated
