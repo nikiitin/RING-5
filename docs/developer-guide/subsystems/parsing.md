@@ -34,8 +34,9 @@ shutdown drains accepted work and rejects new submissions with a recoverable err
 executor threads have settled. A later submission recreates the executor. Repeated waiting
 shutdowns can join the same retirement; a worker cannot wait for its own shutdown. Session cleanup
 cancels only owned futures and never shuts down this shared pool.
-The public `ring5.shutdown()` waits for accepted file tasks before closing the Perl processes
-they use; the next parse or scan recreates both pools.
+The public `ring5.shutdown()` waits for accepted file tasks and keeps admission closed while
+closing their Perl processes. Concurrent global closes serialize; a failed close keeps admission
+closed until a global retry succeeds. The next parse or scan then recreates both pools.
 
 The gem5 implementation under `src/parsing/gem5/` uses Python orchestration and persistent Perl
 workers. Strategies under `src/parsing/gem5/impl/strategies/` control ingestion. Pattern aggregation

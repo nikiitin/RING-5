@@ -2538,6 +2538,7 @@
           "ring5/__init__.py::shutdown",
           "src/parsing/framework/work_pool.py::WorkPool.submit",
           "src/parsing/framework/work_pool.py::WorkPool.shutdown",
+          "src/parsing/framework/work_pool.py::WorkPool.shutdown_scope",
           "src/parsing/gem5/impl/strategies/perl_worker_pool.py::get_worker_pool",
           "src/parsing/gem5/impl/strategies/perl_worker_pool.py::shutdown_worker_pool"
         ],
@@ -2546,6 +2547,7 @@
           "tests/unit/test_work_pool_lifecycle.py::TestWorkPoolLifecycle",
           "tests/integration/test_global_parser_shutdown.py::test_global_shutdown_closes_perl_only_after_accepted_work_settles",
           "tests/integration/test_global_parser_shutdown.py::test_real_parse_survives_global_shutdown_and_recreates_both_pools",
+          "tests/integration/test_global_parser_shutdown.py::test_global_shutdown_rejects_real_parse_through_perl_teardown",
           "tests/unit/test_perl_worker_pool.py::TestWorkerPoolIntegration.test_singleton_pool",
           "tests/integration/test_worker_pool_integration.py::TestWorkerPoolIntegration.test_worker_pool_reused_across_multiple_parses"
         ],

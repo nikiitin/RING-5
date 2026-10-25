@@ -312,8 +312,8 @@ def shutdown() -> None:
     from src.parsing.gem5.impl.strategies.perl_worker_pool import shutdown_worker_pool
 
     try:
-        WorkPool.get_instance().shutdown(wait=True)
-        shutdown_worker_pool()
+        with WorkPool.get_instance().shutdown_scope():
+            shutdown_worker_pool()
     except RuntimeError as exc:
         raise JobError(f"Unable to shut down worker pools: {exc}") from exc
 

@@ -12,8 +12,9 @@ import atexit
 import logging
 import os
 import threading
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from concurrent.futures import Future, ThreadPoolExecutor
+from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +65,8 @@ class WorkPool:
             self._thread_executor: ThreadPoolExecutor | None = None
             self._retiring_executor: ThreadPoolExecutor | None = None
             self._executor_lock = threading.Lock()
+            self._global_shutdown_lock = threading.Lock()
+            self._admission_closed = False
             self._worker_context = threading.local()
             self._initialized = True
 
@@ -96,8 +99,8 @@ class WorkPool:
         if not captured:
             return []
         with self._executor_lock:
-            if self._retiring_executor is not None:
-                raise RuntimeError("Work pool is shutting down; retry after running work settles.")
+            if self._admission_closed or self._retiring_executor is not None:
+                raise RuntimeError("Work pool is shutting down; retry after shutdown completes.")
             if self._thread_executor is None:
                 self._thread_executor = ThreadPoolExecutor(
                     max_workers=self._num_workers,
@@ -109,6 +112,32 @@ class WorkPool:
     def _mark_worker(self) -> None:
         """Identify owned worker threads without inspecting executor internals."""
         self._worker_context.active = True
+
+    def _check_shutdown_thread(self) -> None:
+        """Reject self-join before acquiring locks another caller may hold while draining."""
+        if getattr(self._worker_context, "active", False):
+            raise RuntimeError("Work pool workers cannot wait for their own shutdown.")
+
+    @contextmanager
+    def shutdown_scope(self) -> Iterator[None]:
+        # [impl->req~ring5.api.process-lifecycle~1]
+        """Drain work and keep admission closed while dependencies are released.
+
+        Global shutdowns serialize independently of the submission lock. Failed
+        draining or dependency cleanup leaves admission closed until a successful
+        global retry. Ordinary session cleanup does not enter this scope.
+
+        Raises:
+            RuntimeError: An owned worker attempts to wait for its own shutdown.
+        """
+        self._check_shutdown_thread()
+        with self._global_shutdown_lock:
+            with self._executor_lock:
+                self._admission_closed = True
+            self.shutdown(wait=True)
+            yield
+            with self._executor_lock:
+                self._admission_closed = False
 
     def shutdown(self, wait: bool = False) -> None:
         # [impl->req~ring5.api.process-lifecycle~1]
@@ -124,8 +153,8 @@ class WorkPool:
         Raises:
             RuntimeError: An owned worker tries to wait for its own shutdown.
         """
-        if wait and getattr(self._worker_context, "active", False):
-            raise RuntimeError("Work pool workers cannot wait for their own shutdown.")
+        if wait:
+            self._check_shutdown_thread()
         starts_retirement = False
         with self._executor_lock:
             if self._thread_executor is not None:
