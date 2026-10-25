@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import pytest
 
 from src.core.services.shapers.impl.mean import Mean
 from src.core.services.shapers.impl.sort import Sort
@@ -59,7 +60,7 @@ class TestMeanExtended:
             {
                 "meanAlgorithm": "geomean",
                 "meanVars": ["Value"],
-                "groupingColumn": "Group",
+                "groupingColumns": ["Group"],
                 "replacingColumn": "Group",  # dummy
             }
         )
@@ -80,7 +81,7 @@ class TestMeanExtended:
             {
                 "meanAlgorithm": "hmean",
                 "meanVars": ["Value"],
-                "groupingColumn": "Group",
+                "groupingColumns": ["Group"],
                 "replacingColumn": "Group",
             }
         )
@@ -112,3 +113,16 @@ class TestSortShaper:
             ("B", "warm"),
         ]
         assert data["group"].tolist() == ["B", "A", "B", "A"]
+
+
+def test_mean_requires_grouping_columns_without_alias_conversion() -> None:
+    """An obsolete singular field cannot select a different construction path."""
+    with pytest.raises(ValueError, match="groupingColumns"):
+        Mean(
+            {
+                "meanAlgorithm": "arithmean",
+                "meanVars": ["value"],
+                "groupingColumn": "group",
+                "replacingColumn": "label",
+            }
+        )

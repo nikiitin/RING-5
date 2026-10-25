@@ -142,8 +142,7 @@ patterns, conventional distributions, range histograms, and pipe-delimited one-l
 all supported by the public parse workflow.
 
 `create_plot` registers a plot and `render` renders it. `plot` performs both. Plot identifiers come
-from `ring5.available_plot_types()`; display names are accepted but identifiers are preferable in
-versioned scripts. Mapping configurations are validated before registration for required fields,
+from `ring5.available_plot_types()`. Scripts and saved configurations use those exact identifiers. Mapping configurations are validated before registration for required fields,
 field types, and referenced columns. Every downstream engine failure is normalized to `RenderError`.
 `ring5.available_shaper_types()` provides the equivalent registry for pipelines.
 

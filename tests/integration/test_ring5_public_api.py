@@ -988,15 +988,27 @@ class TestErrorSurface:
 class TestApiErgonomics:
     """Common plotting workflows remain concise and discoverable."""
 
-    def test_plot_accepts_typed_spec_and_display_name(self) -> None:
+    def test_plot_accepts_typed_spec_and_registry_identifier(self) -> None:
         data = pd.DataFrame({"benchmark": ["a", "b"], "ipc": [1.0, 1.5]})
         spec = ring5.FigureSpec(x="benchmark", y_columns=["ipc"], title="IPC")
 
         with ring5.Session() as session:
-            figure = session.plot("Bar Chart", data=data, config=spec, engine="plotly")
+            figure = session.plot("bar", data=data, config=spec, engine="plotly")
 
             assert figure.layout.title.text == "IPC"
             assert session.plots[0].plot_type == "bar"
+
+    @pytest.mark.parametrize(
+        "identifier",
+        ["Bar Chart", "BAR", " bar", "bar ", "grouped-bar", "grouped bar", "groupedBar"],
+    )
+    def test_plot_rejects_non_registry_spellings(self, identifier: str) -> None:
+        with ring5.Session() as session:
+            with pytest.raises(ring5.DataValidationError, match="Unknown plot type"):
+                session.create_plot(
+                    identifier, data=pd.DataFrame({"x": [1], "y": [2]}), config={"x": "x", "y": "y"}
+                )
+            assert session.plots == []
 
     def test_available_plot_types_are_public(self) -> None:
         # [test->req~ring5.api.registry-discovery~1]
