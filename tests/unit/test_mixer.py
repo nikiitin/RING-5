@@ -75,7 +75,7 @@ class TestApplyMixerSumOperation:
 
     def test_sum_with_sd_propagation(self, dataframe_with_sd: Any) -> None:
 
-        # [test->req~ring5.data.error-propagation~1]
+        # [test->req~ring5.data.error-propagation~2]
         df = dataframe_with_sd
 
         result = MixerService.apply_mixer(
@@ -138,7 +138,7 @@ class TestApplyMixerMeanOperation:
 
     def test_mean_with_sd_propagation(self, dataframe_with_sd: Any) -> None:
 
-        # [test->req~ring5.data.error-propagation~1]
+        # [test->req~ring5.data.error-propagation~2]
         df = dataframe_with_sd
 
         result = MixerService.apply_mixer(

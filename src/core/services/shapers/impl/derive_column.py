@@ -13,10 +13,16 @@ NaN/zero conventions mirror the rest of RING-5: ``sum`` is NaN-skipping like
 
 from typing import Any, cast, override
 
-import numpy as np
 import pandas as pd
 
 from src.core.common.dataframe_utils import concat_columns
+from src.core.common.numerical_operations import (
+    ArithmeticOperator,
+    ZeroDenominatorPolicy,
+    aggregate_rows,
+    apply_binary,
+    divide_columns,
+)
 from src.core.models.shaper_models import DeriveColumnShaperConfig
 from src.core.services.shapers.uni_df_shaper import UniDfShaper
 
@@ -50,6 +56,8 @@ class DeriveColumn(UniDfShaper):
             raise ValueError(f"DeriveColumn op '{self.op}' requires a non-empty 'sources' list.")
         if self.op == "ratio" and len(self.sources) != 2:
             raise ValueError("DeriveColumn op 'ratio' requires exactly two 'sources' [num, den].")
+        if self.op == "ratio" and self.zero_denominator not in ("nan", "propagate"):
+            raise ValueError("DeriveColumn 'zero_denominator' must be 'nan' or 'propagate'.")
         if self.op in ("scalar", "map") and len(self.sources) != 1:
             raise ValueError(f"DeriveColumn op '{self.op}' requires exactly one 'sources' column.")
         if self.op == "scalar":
@@ -76,24 +84,21 @@ class DeriveColumn(UniDfShaper):
         result = data_frame.copy()
 
         if self.op == "sum":
-            result[self.dest] = result[self.sources].sum(axis=1)
+            result[self.dest] = aggregate_rows(data_frame[self.sources], "sum")
         elif self.op == "concat":
-            result[self.dest] = concat_columns(result, self.sources, self.separator)
+            result[self.dest] = concat_columns(data_frame, self.sources, self.separator)
         elif self.op == "ratio":
             numerator, denominator = self.sources
-            den = result[denominator]
-            if self.zero_denominator == "nan":
-                den = den.replace(0, np.nan)
-            result[self.dest] = result[numerator] / den
+            result[self.dest] = divide_columns(
+                data_frame[numerator],
+                data_frame[denominator],
+                cast(ZeroDenominatorPolicy, self.zero_denominator),
+            )
         elif self.op == "scalar":
-            col = result[self.sources[0]]
             value = float(cast(float, self.scalar))
-            result[self.dest] = {
-                "+": col + value,
-                "-": col - value,
-                "*": col * value,
-                "/": col / value,
-            }[self.scalar_op]
+            result[self.dest] = apply_binary(
+                data_frame[self.sources[0]], value, cast(ArithmeticOperator, self.scalar_op)
+            )
         else:  # "map"
             result[self.dest] = result[self.sources[0]].map(self.mapping)
 

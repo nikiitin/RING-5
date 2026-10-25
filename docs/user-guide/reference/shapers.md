@@ -241,6 +241,11 @@ Covers:
 Creates or replaces a column using a row-wise sum, ratio, scalar arithmetic operation, string
 concatenation, or explicit value mapping. The operation returns a new table.
 
+Row sums skip missing values and produce zero for an all-missing row. Ratios default to
+`zero_denominator="nan"`; `"propagate"` retains raw division results, including infinities. Scalar
+division always uses raw division. Derived-column steps calculate values without adding an SD
+companion. Numeric Mixer operations combine available uncertainty separately.
+
 Partial category orders in Sort and Transformer preserve unlisted labels in encounter order and
 retain missing labels. Sort preserves the original column types and the order of tied rows.
 SplitApply requires unique join keys in every transformed group when combining multiple groups;

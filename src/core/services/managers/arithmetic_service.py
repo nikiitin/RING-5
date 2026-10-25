@@ -7,11 +7,28 @@ merge with standard deviation propagation. Used to create derived
 metrics from base statistics.
 """
 
+from collections import Counter
+
 import numpy as np
 import pandas as pd
 
 from src.core.common.dataframe_utils import concat_columns
+from src.core.common.numerical_operations import aggregate_rows, apply_binary, divide_columns
 from src.core.models.arithmetic_models import ArithmeticOperation, MixerOperation
+
+
+def _missing_values(values: pd.Series) -> pd.Series:
+    """Include numerical NaNs independently of a dtype's missing-value mask."""
+    missing = values.isna()
+    comparable = values.mask(missing, 0)
+    return missing | comparable.ne(comparable).fillna(True)
+
+
+def _sd_magnitude(values: pd.Series, present: pd.Series) -> pd.Series:
+    """Return magnitudes for contributing measurements without squaring SDs."""
+    values = values.mask(_missing_values(values), np.nan).infer_objects()
+    magnitude = pd.Series(np.hypot(0.0, values), index=values.index)
+    return magnitude.where(present, 0.0)
 
 
 class ArithmeticService:
@@ -39,13 +56,13 @@ class ArithmeticService:
         except ValueError as exc:
             raise ValueError(f"Unknown operation: {operation}") from exc
         if op == ArithmeticOperation.DIVISION:
-            result[dest] = s1 / s2.replace(0, np.nan)
+            result[dest] = divide_columns(s1, s2)
         elif op == ArithmeticOperation.SUM:
-            result[dest] = s1 + s2
+            result[dest] = apply_binary(s1, s2, "+")
         elif op == ArithmeticOperation.SUBTRACTION:
-            result[dest] = s1 - s2
+            result[dest] = apply_binary(s1, s2, "-")
         elif op == ArithmeticOperation.MULTIPLICATION:
-            result[dest] = s1 * s2
+            result[dest] = apply_binary(s1, s2, "*")
         else:
             raise ValueError(f"Unsupported arithmetic operation: {op}")
 
@@ -63,7 +80,10 @@ class ArithmeticService:
 
         Supports Sum, Mean, and Concatenate operations.
         For numeric operations, automatically propagates standard deviation
-        columns with the canonical .sd suffix.
+        columns with the canonical .sd suffix. Missing source values are skipped;
+        unknown SDs of contributing values remain unknown. Mean SDs use each
+        row's nonmissing source count. Repeated selections use correlated weights;
+        an undefined estimate keeps its uncertainty missing.
 
         Args:
             df: Source DataFrame.
@@ -79,7 +99,7 @@ class ArithmeticService:
             ValueError: If the operation is not supported.
         """
         # [impl->req~ring5.data.configuration-mixer~1]
-        # [impl->req~ring5.data.error-propagation~1]
+        # [impl->req~ring5.data.error-propagation~2]
         # [impl->req~ring5.data.numeric-mixer~1]
         try:
             op = MixerOperation(operation)
@@ -89,39 +109,70 @@ class ArithmeticService:
             raise ValueError("At least one source column must be selected.")
 
         result = df.copy()
+        source_values = df[source_cols]
 
         if op == MixerOperation.SUM:
-            result[dest_col] = result[source_cols].sum(axis=1)
+            result[dest_col] = aggregate_rows(source_values, "sum")
         elif op == MixerOperation.MEAN:
-            result[dest_col] = result[source_cols].mean(axis=1)
+            result[dest_col] = aggregate_rows(source_values, "mean")
         elif op == MixerOperation.CONCATENATE:
-            result[dest_col] = concat_columns(result, source_cols, separator)
+            result[dest_col] = concat_columns(df, source_cols, separator)
         else:
             raise ValueError(f"Unsupported mixer operation: {op}")
 
         if op in (MixerOperation.SUM, MixerOperation.MEAN):
-            variance_series = None
-            has_sd = False
-
-            for col in source_cols:
-                sd_col = f"{col}.sd"
-                if sd_col in result.columns:
-                    has_sd = True
-                    variance = result[sd_col] ** 2
-                    if variance_series is None:
-                        variance_series = variance
-                    else:
-                        variance_series = variance_series.fillna(0) + variance.fillna(0)
-
-            if has_sd and variance_series is not None:
-                new_sd_col = f"{dest_col}.sd"
-                if op == MixerOperation.SUM:
-                    result[new_sd_col] = np.sqrt(variance_series)
-                else:  # Mean
-                    n = len(source_cols)
-                    result[new_sd_col] = np.sqrt(variance_series) / n
+            deviation = ArithmeticService._mixer_deviation(df, source_cols, result[dest_col], op)
+            if deviation is not None:
+                result[f"{dest_col}.sd"] = deviation
 
         return result
+
+    @staticmethod
+    def _mixer_deviation(
+        frame: pd.DataFrame,
+        source_cols: list[str],
+        estimate: pd.Series,
+        operation: MixerOperation,
+    ) -> pd.Series | None:
+        # [impl->req~ring5.data.error-propagation~2]
+        """Combine distinct-source SDs with correlated repeated-source weights.
+
+        Row scaling avoids intermediate overflow and premature underflow. Two streaming
+        passes keep memory proportional to the row count, not the column count.
+        """
+        multiplicities = Counter(source_cols)
+        companions = [col for col in multiplicities if f"{col}.sd" in frame.columns]
+        if not companions:
+            return None
+
+        scale = pd.Series(0.0, index=frame.index)
+        unknown = pd.Series(False, index=frame.index)
+        infinite = pd.Series(False, index=frame.index)
+        count = pd.Series(0, index=frame.index, dtype="int64")
+        for col, weight in multiplicities.items():
+            present = ~_missing_values(frame[col])
+            if operation == MixerOperation.MEAN:
+                count = count + present.astype("int64") * weight
+            if f"{col}.sd" in frame.columns:
+                magnitude = _sd_magnitude(frame[f"{col}.sd"], present)
+                unknown = unknown | _missing_values(magnitude)
+                infinite = infinite | magnitude.eq(np.inf).fillna(False)
+                scale = pd.Series(np.fmax(scale, magnitude), index=frame.index)
+
+        undefined = _missing_values(estimate)
+        active = ~(unknown | infinite | undefined)
+        safe_scale = scale.where(active & scale.ne(0), 1.0)
+        normalized = pd.Series(0.0, index=frame.index)
+        for col in companions:
+            magnitude = _sd_magnitude(frame[f"{col}.sd"], ~_missing_values(frame[col]))
+            component = (magnitude / safe_scale).where(active, 0.0)
+            normalized = pd.Series(
+                np.hypot(normalized, component * multiplicities[col]), index=frame.index
+            )
+        if operation == MixerOperation.MEAN:
+            normalized = normalized / count.where(count.ne(0))
+        deviation = safe_scale * normalized
+        return deviation.mask(infinite, np.inf).mask(unknown | undefined)
 
     @staticmethod
     def validate_merge_inputs(

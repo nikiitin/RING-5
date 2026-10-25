@@ -638,11 +638,14 @@
       "evidence": {
         "implementation": [
           "src/core/services/managers/arithmetic_service.py::ArithmeticService.apply_operation",
-          "src/web/components/data_managers/preprocessor.py::PreprocessorManager.render"
+          "src/web/components/data_managers/preprocessor.py::PreprocessorManager.render",
+          "src/core/common/numerical_operations.py::apply_binary",
+          "src/core/common/numerical_operations.py::divide_columns"
         ],
         "tests": [
           "tests/unit/test_parser_data_source_services.py::TestArithmeticService",
-          "tests/unit/test_preprocessor.py::TestPreprocessorRender.test_confirm_applies_data"
+          "tests/unit/test_preprocessor.py::TestPreprocessorRender.test_confirm_applies_data",
+          "tests/unit/test_numerical_operation_contracts.py::test_binary_manager_and_scalar_shaper_share_elementwise_values"
         ],
         "documentation": [
           "docs/user-guide/workflows/managing-datasets.md#binary-arithmetic"
@@ -660,12 +663,14 @@
       "evidence": {
         "implementation": [
           "src/core/services/managers/arithmetic_service.py::ArithmeticService.apply_mixer",
-          "src/web/components/data_managers/mixer.py::MixerManager.render"
+          "src/web/components/data_managers/mixer.py::MixerManager.render",
+          "src/core/common/numerical_operations.py::aggregate_rows"
         ],
         "tests": [
           "tests/unit/test_mixer.py::TestApplyMixerSumOperation",
           "tests/unit/test_mixer.py::TestApplyMixerMeanOperation",
-          "tests/unit/test_mixer_manager.py::TestMixerRender.test_confirm_applies_data"
+          "tests/unit/test_mixer_manager.py::TestMixerRender.test_confirm_applies_data",
+          "tests/unit/test_numerical_operation_contracts.py::test_row_sums_skip_missing_while_binary_addition_propagates_it"
         ],
         "documentation": [
           "docs/user-guide/workflows/managing-datasets.md#numeric-column-mixing"
@@ -697,18 +702,33 @@
     {
       "id": "data.error-propagation",
       "group": "data-management",
-      "revision": 1,
+      "revision": 2,
       "status": "approved",
       "title": "Mixer error propagation",
-      "description": "When source columns have .sd or _stdev companions, numeric mixing shall propagate uncertainty into a companion output standard deviation.",
+      "description": "Numeric mixing shall combine recorded .sd uncertainty for nonmissing source values, treating distinct source columns as independent and repeated selections of one column as correlated weights. Missing contributing SDs and undefined estimates shall keep output uncertainty missing; mean SD shall use the row's nonmissing source count. Sources without SD columns add no recorded variance.",
       "tags": ["data", "mixer", "statistics"],
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "semantic",
+          "title": "Mixer error propagation",
+          "description": "When source columns have .sd or _stdev companions, numeric mixing shall propagate uncertainty into a companion output standard deviation.",
+          "reason": "Define canonical SD propagation for missing contributors, weighted repeated sources, mean scaling, and undefined estimates."
+        }
+      ],
       "evidence": {
         "implementation": [
-          "src/core/services/managers/arithmetic_service.py::ArithmeticService.apply_mixer"
+          "src/core/services/managers/arithmetic_service.py::ArithmeticService.apply_mixer",
+          "src/core/services/managers/arithmetic_service.py::ArithmeticService._mixer_deviation"
         ],
         "tests": [
           "tests/unit/test_mixer.py::TestApplyMixerSumOperation.test_sum_with_sd_propagation",
-          "tests/unit/test_mixer.py::TestApplyMixerMeanOperation.test_mean_with_sd_propagation"
+          "tests/unit/test_mixer.py::TestApplyMixerMeanOperation.test_mean_with_sd_propagation",
+          "tests/unit/test_numerical_operation_contracts.py::test_mixer_uncertainty_uses_only_contributing_values_and_keeps_unknown_sd",
+          "tests/unit/test_numerical_operation_contracts.py::test_mixer_extreme_sd_scales_do_not_overflow_or_underflow",
+          "tests/unit/test_numerical_operation_contracts.py::test_mean_preserves_the_smallest_representable_sd",
+          "tests/unit/test_numerical_operation_contracts.py::test_repeated_source_weights_are_fully_correlated",
+          "tests/unit/test_numerical_operation_contracts.py::test_an_undefined_estimate_keeps_its_uncertainty_missing"
         ],
         "documentation": [
           "docs/user-guide/workflows/managing-datasets.md#uncertainty-propagation"
@@ -1045,12 +1065,17 @@
       "tags": ["derived_column", "shapers", "transformation"],
       "evidence": {
         "implementation": [
-          "src/core/services/shapers/impl/derive_column.py::DeriveColumn.__call__"
+          "src/core/services/shapers/impl/derive_column.py::DeriveColumn.__call__",
+          "src/core/common/numerical_operations.py::apply_binary",
+          "src/core/common/numerical_operations.py::aggregate_rows",
+          "src/core/common/numerical_operations.py::divide_columns"
         ],
         "tests": [
           "tests/unit/test_derive_and_group_shapers.py::test_derive_sum_skips_nan_like_pandas",
           "tests/unit/test_derive_and_group_shapers.py::test_derive_ratio_zero_denominator_becomes_nan",
-          "tests/unit/test_derive_and_group_shapers.py::test_derive_scalar_and_concat_and_map"
+          "tests/unit/test_derive_and_group_shapers.py::test_derive_scalar_and_concat_and_map",
+          "tests/unit/test_numerical_operation_contracts.py::test_binary_manager_and_scalar_shaper_share_elementwise_values",
+          "tests/unit/test_numerical_operation_contracts.py::test_row_sums_skip_missing_while_binary_addition_propagates_it"
         ],
         "documentation": [
           "docs/user-guide/reference/shapers.md#derive-column"
