@@ -1307,30 +1307,16 @@ class TestUniDfShaper:
     """Tests for dataframe input validation."""
 
     def test_none_input_raises(self) -> None:
-        from src.core.services.shapers.uni_df_shaper import UniDfShaper
+        from src.core.services.shapers.impl.sort import Sort
 
-        class DummyShaper(UniDfShaper):
-            def _verify_params(self) -> bool:
-                return True
-
-            def _transform(self, data_frame: Any) -> Any:
-                return data_frame
-
-        shaper = DummyShaper({"type": "dummy"})
+        shaper = Sort({"order_dict": {}})
         with pytest.raises(ValueError, match="cannot be None"):
             shaper(cast(Any, None))
 
     def test_non_dataframe_input_raises(self) -> None:
-        from src.core.services.shapers.uni_df_shaper import UniDfShaper
+        from src.core.services.shapers.impl.sort import Sort
 
-        class DummyShaper(UniDfShaper):
-            def _verify_params(self) -> bool:
-                return True
-
-            def _transform(self, data_frame: Any) -> Any:
-                return data_frame
-
-        shaper = DummyShaper({"type": "dummy"})
+        shaper = Sort({"order_dict": {}})
         with pytest.raises(ValueError, match="Expected pandas DataFrame"):
             shaper(cast(Any, "not a dataframe"))
 
@@ -1358,11 +1344,7 @@ class TestSelectorValidation:
 
         from src.core.services.shapers.impl.selector import Selector
 
-        class ConcreteSelector(Selector):
-            def _transform(self, data_frame: Any) -> Any:
-                return data_frame
-
-        selector = ConcreteSelector({"column": "nonexistent"})
+        selector = Selector({"column": "nonexistent"})
         with pytest.raises(ValueError, match="not found in dataframe"):
             selector(pd.DataFrame({"a": [1]}))
 
@@ -1683,49 +1665,31 @@ class TestShaperBase:
     """Tests for base shaper parameters and preconditions."""
 
     def test_non_dict_params_raises(self) -> None:
-        from src.core.services.shapers.shaper import Shaper
-
-        class DummyShaper(Shaper):
-            def _verify_params(self) -> bool:
-                return super()._verify_params()
+        from src.core.services.shapers.impl.sort import Sort
 
         with pytest.raises(ValueError, match="must be a dictionary"):
-            DummyShaper("not_a_dict")  # type: ignore[arg-type]
+            Sort("not_a_dict")  # type: ignore[arg-type]
 
     def test_preconditions_none_df(self) -> None:
-        from src.core.services.shapers.shaper import Shaper
+        from src.core.services.shapers.impl.sort import Sort
 
-        class DummyShaper(Shaper):
-            def _verify_params(self) -> bool:
-                return True
-
-        shaper = DummyShaper({"type": "dummy"})
+        shaper = Sort({"order_dict": {}})
         with pytest.raises(ValueError, match="cannot be None"):
             shaper._verify_preconditions(None)  # type: ignore[arg-type]
 
     def test_preconditions_empty_df(self) -> None:
         import pandas as pd
+        from src.core.services.shapers.impl.sort import Sort
 
-        from src.core.services.shapers.shaper import Shaper
-
-        class DummyShaper(Shaper):
-            def _verify_params(self) -> bool:
-                return True
-
-        shaper = DummyShaper({"type": "dummy"})
+        shaper = Sort({"order_dict": {}})
         with pytest.raises(ValueError, match="empty"):
             shaper._verify_preconditions(pd.DataFrame())
 
     def test_call_delegates_to_preconditions(self) -> None:
         import pandas as pd
+        from src.core.services.shapers.impl.sort import Sort
 
-        from src.core.services.shapers.shaper import Shaper
-
-        class DummyShaper(Shaper):
-            def _verify_params(self) -> bool:
-                return True
-
-        shaper = DummyShaper({"type": "dummy"})
+        shaper = Sort({"order_dict": {}})
         df = pd.DataFrame({"a": [1]})
         result = shaper(df)
         pd.testing.assert_frame_equal(result, df)
@@ -1742,7 +1706,7 @@ class TestItemSelectorVerify:
             ItemSelector,
         )
 
-        with pytest.raises(ValueError, match="'strings'"):
+        with pytest.raises(ValueError, match="strings"):
             ItemSelector({"column": "x"})
 
     def test_non_list_strings_raises(self) -> None:

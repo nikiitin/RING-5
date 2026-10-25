@@ -211,3 +211,20 @@ with ring5.Session() as session:
 `FigureSpec` covers common figure settings. Its `extra` mapping carries supported flat renderer
 configuration when a setting is not represented by a typed field. Treat those extra keys as a more
 specialized interface and test them against both engines.
+
+## Pipeline validation
+
+Portfolios preserve unfinished pipeline editor settings. A saved draft does not run until its
+required fields are complete.
+
+Complete every transformation before previewing, finalizing, exporting, or submitting a background
+pipeline. The same configuration checks run at each boundary: unknown fields, unsupported modes,
+wrong value types and incomplete nested steps produce an error before any step executes. Data-dependent
+checks, such as missing columns or an ambiguous normalization baseline, run against the selected table.
+
+SplitApply supports at most 100 total steps and 20 nested levels. PivotLonger value-filter group keys
+use decimal strings such as `"1"`; `"0"` refers to the whole match. Invalid capture groups are rejected.
+
+Registered Python plugins can be executed and stored in a pipeline. A plugin without a web configuration
+editor keeps its existing configuration when opened in the application. Register the plugin before
+loading or executing pipelines that use it.

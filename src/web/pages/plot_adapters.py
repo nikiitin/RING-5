@@ -2,8 +2,8 @@
 Plot Adapters — bridge old concrete classes to protocol contracts.
 
 These adapters wrap the static/class-method services (``PlotService``,
-``PlotFactory``) and standalone functions (``apply_shapers``,
-``configure_shaper``) into instance-method objects that satisfy the protocol
+``PlotFactory``), facade shaper operations, and the ``configure_shaper`` editor
+into instance-method objects that satisfy the protocol
 contracts defined in ``src.web.models.plot_protocols``.
 
 Layer: Pages (Layer 1) — MAY import from ``pages.ui.plotting.*``.
@@ -19,7 +19,7 @@ Usage::
 
     lifecycle = PlotLifecycleAdapter()
     registry  = PlotTypeRegistryAdapter()
-    pipeline  = PipelineExecutorAdapter()
+    pipeline  = PipelineExecutorAdapter(api.shapers)
 
     creation = PlotCreationController(api, ui_state, lifecycle, registry)
     pipeline_ctrl = PipelineController(api, ui_state, pipeline)
@@ -28,16 +28,17 @@ Usage::
 
 from typing import TYPE_CHECKING, cast
 
+from collections.abc import Mapping, Sequence
 import pandas as pd
 
-from src.core.models.shaper_models import ShaperStepConfig
 from src.web.models.plot_protocols import PlotHandle
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 from src.web.pages.ui.plotting.plot_service import PlotService
-from src.web.pages.ui.shaper_config import apply_shapers, configure_shaper
+from src.web.pages.ui.shaper_config import configure_shaper
 
 if TYPE_CHECKING:
+    from src.core.services.shapers.shapers_api import ShapersAPI
     from src.core.state.state_manager import StateManager
 
 
@@ -81,27 +82,35 @@ class PlotTypeRegistryAdapter:
 
 class PipelineExecutorAdapter:
     """
-    Adapts ``apply_shapers()`` and ``configure_shaper()`` functions
-    to ``PipelineExecutor`` protocol.
-
-    Wraps the standalone shaper functions into an instance-method interface.
+    Executes through the shapers facade and dispatches editor components.
     """
+
+    def __init__(self, shapers: "ShapersAPI") -> None:
+        """Use the session facade for execution and current editor metadata."""
+        self._shapers = shapers
 
     def apply_shapers(
         self,
         data: pd.DataFrame,
-        configs: list[ShaperStepConfig],
+        configs: Sequence[Mapping[str, object]],
     ) -> pd.DataFrame:
         """Apply a sequence of shaper configs to data."""
-        return apply_shapers(data, configs)
+        return self._shapers.process_pipeline(data, configs)
 
     def configure_shaper(
         self,
         shaper_type: str,
         data: pd.DataFrame,
         shaper_id: int,
-        config: ShaperStepConfig | None,
+        config: Mapping[str, object] | None,
         owner_id: int | None = None,
-    ) -> ShaperStepConfig:
+    ) -> Mapping[str, object]:
         """Render shaper-specific config widgets and return config dict."""
-        return configure_shaper(shaper_type, data, shaper_id, config, owner_id=owner_id)
+        return configure_shaper(
+            shaper_type,
+            data,
+            shaper_id,
+            config,
+            owner_id=owner_id,
+            display_names=self._shapers.get_shaper_display_names(),
+        )

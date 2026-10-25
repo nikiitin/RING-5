@@ -1,9 +1,4 @@
-"""
-Normalize Config - UI Configuration for Normalization Shaper.
-
-Provides Streamlit components for configuring the Normalize shaper, which
-applies numerical normalization (min-max, z-score, etc.) to data columns.
-"""
+"""Streamlit controls for normalization against a baseline within each group."""
 
 from typing import cast
 
@@ -120,7 +115,7 @@ class NormalizeConfig:
                 "normalizerVars": list(normalizer_vars) if normalizer_vars else [],
                 "normalizeVars": list(normalize_vars) if normalize_vars else [],
                 "normalizerColumn": str(normalizer_column or ""),
-                "normalizerValue": str(normalizer_value) if normalizer_value is not None else "",
+                "normalizerValue": normalizer_value,
                 "groupBy": list(group_by) if group_by else [],
                 "normalizeSd": bool(normalize_sd),
             },

@@ -6,13 +6,13 @@ and restoration across all layers, plus the RestoreReport returned by
 ``restore_session`` so callers can see what was (and wasn't) restored.
 """
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any, TypedDict
 
 from src.core.models.typed_table_models import TypedTablePayload
 from src.core.models.data_models import ScannedVariableDict
 from src.core.models.history_models import OperationRecord
-from src.core.models.shaper_models import ShaperStepConfig
 
 
 @dataclass(frozen=True)
@@ -90,6 +90,6 @@ class PortfolioData(TypedDict, total=False):
     plots: list[dict[str, Any]]
     plot_counter: int
     config: dict[str, Any]
-    shapers: list[ShaperStepConfig]
+    shapers: list[Mapping[str, object]]
     manager_history: list[OperationRecord]
     portfolio_history: list[OperationRecord]

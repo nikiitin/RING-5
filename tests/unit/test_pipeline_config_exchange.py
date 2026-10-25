@@ -125,16 +125,16 @@ def test_import_conflicts_can_stop_rename_or_replace(config_dir: Path) -> None:
                 "name": "x",
                 "shapers": [{"type": "missingPlugin"}],
             },
-            "unknown shaper type",
+            "Unknown shaper type",
         ),
         (
             {
                 "format": PIPELINE_CONFIG_FORMAT,
                 "schema_version": 1,
                 "name": "x",
-                "shapers": [{"type": "columnSelector", "columns": []}],
+                "shapers": [{"type": "columnSelector", "columns": [123]}],
             },
-            "is missing",
+            "must be a string",
         ),
         (
             {

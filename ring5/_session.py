@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 import pandas as pd
 
 from src.core.application_api import ApplicationAPI
+from src.core.common.dataframe_copy import copy_dataframe
 from src.core.common.stat_config_codec import StatConfigCodec
 from src.core.models.accessibility_models import AccessibilityReport
 from src.core.models.report_models import AnalysisReport, ReportFigure
@@ -75,9 +76,9 @@ from src.core.models.analysis_review_models import (
     AnalysisReviewTargetResponse,
     AnalysisReviewThread,
 )
+
 from src.core.models.recovery_models import RecoveryDraftCapture, RecoveryDraftInfo
 from src.core.models.guided_analysis_models import GuidedAnalysisProgress
-from src.core.models.shaper_models import ShaperStepConfig
 from src.core.models.visualization.engine import EngineMode
 from src.parsing.parser_protocol import SimulationParser
 from src.web.pages.ui.plotting.base_plot import BasePlot
@@ -1840,7 +1841,7 @@ class Session:
     def export_pipeline_configuration(
         self,
         name: str,
-        pipeline: list[ShaperStepConfig],
+        pipeline: Sequence[Mapping[str, object]],
         *,
         description: str = "",
         csv_path: str | None = None,
@@ -1894,7 +1895,7 @@ class Session:
             raise PipelineError(str(exc)) from exc
 
     def shape(
-        self, data: "pd.DataFrame | Table", pipeline: list[ShaperStepConfig]
+        self, data: "pd.DataFrame | Table", pipeline: Sequence[Mapping[str, object]]
     ) -> "pd.DataFrame | Table":
         """Run a shaper pipeline; failures carry the step index and type.
 
@@ -1903,7 +1904,7 @@ class Session:
 
         Args:
             data: Input table or DataFrame.
-            pipeline: Ordered shaper configurations.
+            pipeline: Ordered configuration mappings for built-in or registered plugin shapers.
 
         Returns:
             Shaped data of the same public type as ``data``.
@@ -1924,20 +1925,21 @@ class Session:
     def shape_submit(
         self,
         data: "pd.DataFrame | Table",
-        pipeline: list[ShaperStepConfig],
+        pipeline: Sequence[Mapping[str, object]],
         *,
         label: str = "Shape data",
     ) -> BackgroundJobInfo:
         # [impl->req~ring5.workspace.background-jobs~1]
         """Submit a shaper pipeline without blocking the calling thread.
 
-        The input data and pipeline are defensively copied at submission.
+        The full pipeline is validated before submission. Input data and admitted configurations
+        are defensively copied before background work starts.
         Poll :meth:`background_jobs`, then pass the finished record to
         :meth:`background_job_result`.
 
         Args:
             data: Input DataFrame or :class:`ring5.Table`.
-            pipeline: Ordered shaper configurations.
+            pipeline: Ordered configuration mappings for built-in or registered plugin shapers.
             label: Human-readable job-center label.
 
         Returns:
@@ -1947,11 +1949,11 @@ class Session:
             JobError: Submission metadata or the session job center is invalid.
         """
         frame, was_table = _unwrap_table(data)
-        captured_data: pd.DataFrame | Table = frame.copy(deep=True)
-        if was_table:
-            captured_data = _rewrap_table(cast(pd.DataFrame, captured_data))
-        captured_pipeline = copy.deepcopy(pipeline)
         try:
+            captured_pipeline = self.api.shapers.validate_pipeline(pipeline)
+            captured_data: pd.DataFrame | Table = copy_dataframe(frame)
+            if was_table:
+                captured_data = _rewrap_table(cast(pd.DataFrame, captured_data))
             return self.api.submit_background_operation(
                 "transformation",
                 label,
@@ -3443,7 +3445,7 @@ class Session:
         description: str = "",
         parameters: Sequence[RecipeParameter] = (),
         source: RecipeSource | None = None,
-        transformations: Sequence[ShaperStepConfig] = (),
+        transformations: Sequence[Mapping[str, object]] = (),
         exports: Sequence[RecipeExport] = (),
     ) -> AnalysisRecipe:
         """Capture this session's source, plots, and pipelines as a recipe.
@@ -3773,7 +3775,7 @@ class Session:
                 name=plot_spec.name,
             )
             plot.pipeline = [
-                {"id": index, "type": config["type"], "config": copy.deepcopy(config)}
+                {"id": index, "type": cast(str, config["type"]), "config": copy.deepcopy(config)}
                 for index, config in enumerate(plot_spec.pipeline)
             ]
             plot.pipeline_counter = len(plot.pipeline)

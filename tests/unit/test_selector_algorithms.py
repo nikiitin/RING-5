@@ -123,7 +123,7 @@ class TestItemSelector:
     @pytest.mark.parametrize("mode", ["prefix", "EXACT", "", None])
     def test_item_selector_rejects_invalid_mode(self, mode: str | None) -> None:
         """Invalid modes must not silently become substring matching."""
-        with pytest.raises(ValueError, match="mode must be 'exact' or 'contains'"):
+        with pytest.raises(ValueError, match="mode must be one of"):
             ItemSelector({"column": "name", "strings": ["alph"], "mode": mode})
 
     def test_item_selector_contains_treats_patterns_as_literals(self) -> None:

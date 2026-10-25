@@ -38,7 +38,6 @@ from src.core.models.recipe_models import (
     RecipeScalar,
     RecipeSource,
 )
-from src.core.models.shaper_models import ShaperStepConfig
 from src.core.services.data_services.path_service import PathService
 from src.core.services.data_services.pipeline_config_exchange_service import (
     PipelineConfigExchangeService,
@@ -86,7 +85,7 @@ class AnalysisRecipeService:
         description: str = "",
         parameters: Sequence[RecipeParameter] = (),
         source: RecipeSource | None = None,
-        transformations: Sequence[ShaperStepConfig] = (),
+        transformations: Sequence[Mapping[str, object]] = (),
         exports: Sequence[RecipeExport] = (),
     ) -> AnalysisRecipe:
         """Capture current source provenance, plots, and pipelines as a recipe.
@@ -383,7 +382,7 @@ class AnalysisRecipeService:
                 raise TypeError(f"Recipe scanned variable {index} entries must be text values.")
 
     @staticmethod
-    def _validate_pipeline(pipeline: Sequence[ShaperStepConfig], location: str) -> None:
+    def _validate_pipeline(pipeline: Sequence[Mapping[str, object]], location: str) -> None:
         if len(pipeline) > MAX_ANALYSIS_RECIPE_TRANSFORMATIONS:
             raise ValueError(f"Recipe {location} exceeds the transformation limit.")
         AnalysisRecipeService._validate_json_value(list(pipeline), depth=0)
@@ -402,7 +401,7 @@ class AnalysisRecipeService:
         PipelineConfigExchangeService.dumps(
             "Recipe validation",
             "",
-            list(copy.deepcopy(pipeline)),
+            pipeline,
         )
 
     @staticmethod
@@ -476,7 +475,7 @@ class AnalysisRecipeService:
             description=recipe.description,
             parameters=recipe.parameters,
             source=AnalysisRecipeService._source_from_payload(source_payload),
-            transformations=tuple(cast(list[ShaperStepConfig], transformations)),
+            transformations=tuple(cast(Sequence[Mapping[str, object]], transformations)),
             plots=tuple(
                 AnalysisRecipeService._plot_from_payload(item)
                 for item in cast(list[dict[str, Any]], plots)
@@ -693,7 +692,7 @@ class AnalysisRecipeService:
             source=AnalysisRecipeService._source_from_payload(value.get("source")),
             transformations=tuple(
                 cast(
-                    list[ShaperStepConfig],
+                    Sequence[Mapping[str, object]],
                     _require_list(value.get("transformations"), "transformations"),
                 )
             ),
@@ -770,7 +769,7 @@ class AnalysisRecipeService:
             config=copy.deepcopy(_require_mapping(mapping.get("config"), "plot config")),
             pipeline=tuple(
                 cast(
-                    list[ShaperStepConfig],
+                    Sequence[Mapping[str, object]],
                     _require_list(mapping.get("pipeline", []), "plot pipeline"),
                 )
             ),

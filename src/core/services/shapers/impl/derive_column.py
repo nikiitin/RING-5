@@ -23,51 +23,24 @@ from src.core.common.numerical_operations import (
     apply_binary,
     divide_columns,
 )
-from src.core.models.shaper_models import DeriveColumnShaperConfig
+from src.core.models.shaper_models import DeriveColumnShaperConfig, ShaperValue
 from src.core.services.shapers.uni_df_shaper import UniDfShaper
-
-_OPS = frozenset({"sum", "ratio", "scalar", "concat", "map"})
-_SCALAR_OPS = frozenset({"+", "-", "*", "/"})
 
 
 class DeriveColumn(UniDfShaper):
     """Create/overwrite ``dest`` from ``sources`` via one of: sum, ratio, scalar, concat, map."""
 
     def __init__(self, params: dict[str, Any]) -> None:
-        config = cast(DeriveColumnShaperConfig, params)
-        self.dest: str = config.get("dest", "")
-        self.op: str = config.get("op", "")
-        self.sources: list[str] = list(config.get("sources", []))
+        super().__init__(params)
+        config = cast(DeriveColumnShaperConfig, self.params)
+        self.dest: str = config["dest"]
+        self.op: str = config["op"]
+        self.sources: list[str] = config["sources"]
         self.scalar: float | None = config.get("scalar")
         self.scalar_op: str = config.get("scalar_op", "/")
         self.separator: str = config.get("separator", "_")
-        self.mapping: dict[str, str] = dict(config.get("mapping", {}))
+        self.mapping: dict[str, ShaperValue | None] = config.get("mapping", {})
         self.zero_denominator: str = config.get("zero_denominator", "nan")
-        super().__init__(params)
-
-    @override
-    def _verify_params(self) -> bool:
-        super()._verify_params()
-        if not self.dest:
-            raise ValueError("DeriveColumn requires a 'dest' column name.")
-        if self.op not in _OPS:
-            raise ValueError(f"DeriveColumn 'op' must be one of {sorted(_OPS)}; got {self.op!r}.")
-        if self.op in ("sum", "concat") and not self.sources:
-            raise ValueError(f"DeriveColumn op '{self.op}' requires a non-empty 'sources' list.")
-        if self.op == "ratio" and len(self.sources) != 2:
-            raise ValueError("DeriveColumn op 'ratio' requires exactly two 'sources' [num, den].")
-        if self.op == "ratio" and self.zero_denominator not in ("nan", "propagate"):
-            raise ValueError("DeriveColumn 'zero_denominator' must be 'nan' or 'propagate'.")
-        if self.op in ("scalar", "map") and len(self.sources) != 1:
-            raise ValueError(f"DeriveColumn op '{self.op}' requires exactly one 'sources' column.")
-        if self.op == "scalar":
-            if self.scalar is None:
-                raise ValueError("DeriveColumn op 'scalar' requires a 'scalar' value.")
-            if self.scalar_op not in _SCALAR_OPS:
-                raise ValueError("DeriveColumn 'scalar_op' must be one of '+', '-', '*', '/'.")
-        if self.op == "map" and not self.mapping:
-            raise ValueError("DeriveColumn op 'map' requires a non-empty 'mapping'.")
-        return True
 
     @override
     def _verify_preconditions(self, data_frame: pd.DataFrame) -> bool:

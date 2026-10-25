@@ -9,6 +9,7 @@ from pandas import DataFrame
 from src.core.models.shaper_models import ShaperStepConfig
 from src.web.pages.ui.shaper_config import configure_shaper
 from tests.conftest import columns_side_effect
+from src.core.services.shapers.factory import ShaperFactory
 
 
 # Mock streamlit
@@ -44,14 +45,22 @@ def test_configure_column_selector(mock_streamlit: Any, sample_data: Any) -> Non
     # Setup mock return values
     mock_streamlit.multiselect.return_value = ["metric"]
 
-    config = configure_shaper("columnSelector", sample_data, 1, {})  # type: ignore
+    config = configure_shaper(
+        "columnSelector", sample_data, 1, {}, display_names=ShaperFactory.get_display_name_map()
+    )
 
     assert config.get("type") == "columnSelector"
     assert config.get("columns") == ["metric"]
 
     # Verify existing config usage
     existing = cast(ShaperStepConfig, {"columns": ["dataset"]})
-    configure_shaper("columnSelector", sample_data, 1, existing)
+    configure_shaper(
+        "columnSelector",
+        sample_data,
+        1,
+        existing,
+        display_names=ShaperFactory.get_display_name_map(),
+    )
     # Check default was passed correctly
     kwargs = mock_streamlit.multiselect.call_args[1]
     assert kwargs["default"] == ["dataset"]
@@ -63,7 +72,9 @@ def test_configure_filter_numeric(mock_streamlit: Any, sample_data: Any) -> None
     mock_streamlit.selectbox.side_effect = ["metric", "greater_than"]
     mock_streamlit.number_input.return_value = 15.0
 
-    config = configure_shaper("conditionSelector", sample_data, 1, {})  # type: ignore
+    config = configure_shaper(
+        "conditionSelector", sample_data, 1, {}, display_names=ShaperFactory.get_display_name_map()
+    )
 
     assert config.get("type") == "conditionSelector"
     assert config.get("column") == "metric"
@@ -78,7 +89,9 @@ def test_configure_filter_categorical(mock_streamlit: Any, sample_data: Any) -> 
 
     mock_streamlit.multiselect.side_effect = lambda *args, **kwargs: [kwargs["options"][0]]
 
-    config = configure_shaper("conditionSelector", sample_data, 1, {})  # type: ignore
+    config = configure_shaper(
+        "conditionSelector", sample_data, 1, {}, display_names=ShaperFactory.get_display_name_map()
+    )
 
     assert config.get("type") == "conditionSelector"
     assert config.get("column") == "dataset"
@@ -96,7 +109,9 @@ def test_configure_mean(mock_streamlit: Any, sample_data: Any) -> None:
     ]
     mock_streamlit.multiselect.side_effect = [["metric"], ["dataset"]]  # Variables  # Group by
 
-    config = configure_shaper("mean", sample_data, 1, {})  # type: ignore
+    config = configure_shaper(
+        "mean", sample_data, 1, {}, display_names=ShaperFactory.get_display_name_map()
+    )
 
     assert config.get("type") == "mean"
     assert config.get("meanAlgorithm") == "arithmean"

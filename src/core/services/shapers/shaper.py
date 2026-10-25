@@ -10,6 +10,7 @@ enabling users to create custom analysis pipelines.
 """
 
 from abc import ABC, abstractmethod
+from copy import deepcopy
 from typing import Any
 
 import pandas as pd
@@ -37,23 +38,10 @@ class Shaper(ABC):
         if not isinstance(params, dict):
             raise ValueError("Shaper parameters must be a dictionary.")
 
-        self.params: dict[str, Any] = params
-        self._verify_params()
+        from src.core.services.shapers.factory import ShaperFactory
 
-    @abstractmethod
-    def _verify_params(self) -> bool:
-        """
-        Verify that the initialization parameters are valid.
-
-        Returns:
-            True if valid
-
-        Raises:
-            ValueError: If mandatory parameters are missing or incorrect
-        """
-        if self.params is None:
-            raise ValueError("Shaper: parameters cannot be None.")
-        return True
+        ShaperFactory.validate_implementation(type(self), params)
+        self.params: dict[str, Any] = deepcopy(params)
 
     def _verify_preconditions(self, data_frame: pd.DataFrame) -> bool:
         """
@@ -70,10 +58,13 @@ class Shaper(ABC):
         """
         if data_frame is None:
             raise ValueError("Shaper: Input dataframe cannot be None.")
+        if not isinstance(data_frame, pd.DataFrame):
+            raise ValueError(f"Shaper: Expected pandas DataFrame, got {type(data_frame).__name__}.")
         if data_frame.empty:
             raise ValueError("Shaper: Cannot operate on an empty dataframe.")
         return True
 
+    @abstractmethod
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
         """
         Execute the transformation on the data.

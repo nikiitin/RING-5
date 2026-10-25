@@ -73,7 +73,7 @@ def show_manage_plots_page(api: ApplicationAPI) -> None:
     # These are lightweight wrappers — no I/O in constructors.
     lifecycle: PlotLifecycleAdapter = PlotLifecycleAdapter()
     registry: PlotTypeRegistryAdapter = PlotTypeRegistryAdapter()
-    pipeline_executor: PipelineExecutorAdapter = PipelineExecutorAdapter()
+    pipeline_executor: PipelineExecutorAdapter = PipelineExecutorAdapter(api.shapers)
 
     # Controllers (dependency-injected, stateless)
     creation: PlotCreationController = PlotCreationController(api, ui_state, lifecycle, registry)

@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 
 from src.core.models.shaper_models import ShaperStepConfig
+from src.core.services.shapers.factory import ShaperFactory
 
 # Helpers
 
@@ -94,6 +95,7 @@ class TestSplitApplyConfigRender:
             existing_config=cast(Any, {}),
             key_prefix="p_",
             shaper_id=0,
+            display_names=ShaperFactory.get_display_name_map(),
         )
 
         assert result.get("joinColumns") == ["benchmark", "config"]
@@ -133,6 +135,7 @@ class TestSplitApplyConfigRender:
             existing_config=cast(Any, {"joinColumns": ["benchmark"]}),
             key_prefix="p_",
             shaper_id=0,
+            display_names=ShaperFactory.get_display_name_map(),
         )
 
         assert result.get("joinColumns") == ["benchmark"]
@@ -147,20 +150,17 @@ class TestSplitApplyConfigSubStepDelegation:
     @patch(
         f"{_MOD}._SUB_SHAPER_DISPATCH",
         {
-            "Mean Calculator": (
-                "mean",
-                MagicMock(
-                    return_value={
-                        "meanAlgorithm": "arithmean",
-                        "meanVars": ["ipc"],
-                        "groupingColumns": ["config"],
-                        "replacingColumn": "benchmark",
-                    }
-                ),
+            "mean": MagicMock(
+                return_value={
+                    "meanAlgorithm": "arithmean",
+                    "meanVars": ["ipc"],
+                    "groupingColumns": ["config"],
+                    "replacingColumn": "benchmark",
+                }
             ),
-            "Normalize": ("normalize", MagicMock(return_value={})),
-            "Sort": ("sort", MagicMock(return_value={})),
-            "Filter": ("conditionSelector", MagicMock(return_value={})),
+            "normalize": MagicMock(return_value={}),
+            "sort": MagicMock(return_value={}),
+            "conditionSelector": MagicMock(return_value={}),
         },
     )
     @patch(f"{_MOD}.st")
@@ -183,6 +183,7 @@ class TestSplitApplyConfigSubStepDelegation:
             existing_step=cast(Any, {}),
             key_base="k",
             step_index=0,
+            display_names=ShaperFactory.get_display_name_map(),
         )
 
         assert result is not None
@@ -190,27 +191,24 @@ class TestSplitApplyConfigSubStepDelegation:
         assert result.get("meanAlgorithm") == "arithmean"
 
         # Verify the real render function was called
-        _, render_fn = _SUB_SHAPER_DISPATCH["Mean Calculator"]
+        render_fn = _SUB_SHAPER_DISPATCH["mean"]
         render_fn.assert_called_once()  # type: ignore[attr-defined]
 
     @patch(
         f"{_MOD}._SUB_SHAPER_DISPATCH",
         {
-            "Mean Calculator": ("mean", MagicMock(return_value={})),
-            "Normalize": (
-                "normalize",
-                MagicMock(
-                    return_value={
-                        "normalizerVars": ["ipc"],
-                        "normalizeVars": ["ipc"],
-                        "normalizerColumn": "config",
-                        "normalizerValue": "base",
-                        "groupBy": ["benchmark"],
-                    }
-                ),
+            "mean": MagicMock(return_value={}),
+            "normalize": MagicMock(
+                return_value={
+                    "normalizerVars": ["ipc"],
+                    "normalizeVars": ["ipc"],
+                    "normalizerColumn": "config",
+                    "normalizerValue": "base",
+                    "groupBy": ["benchmark"],
+                }
             ),
-            "Sort": ("sort", MagicMock(return_value={})),
-            "Filter": ("conditionSelector", MagicMock(return_value={})),
+            "sort": MagicMock(return_value={}),
+            "conditionSelector": MagicMock(return_value={}),
         },
     )
     @patch(f"{_MOD}.st")
@@ -232,29 +230,27 @@ class TestSplitApplyConfigSubStepDelegation:
             existing_step=cast(Any, {}),
             key_base="k",
             step_index=0,
+            display_names=ShaperFactory.get_display_name_map(),
         )
 
         assert result is not None
         assert result.get("type") == "normalize"
         assert result.get("normalizerColumn") == "config"
 
-        _, render_fn = _SUB_SHAPER_DISPATCH["Normalize"]
+        render_fn = _SUB_SHAPER_DISPATCH["normalize"]
         render_fn.assert_called_once()  # type: ignore[attr-defined]
 
     @patch(
         f"{_MOD}._SUB_SHAPER_DISPATCH",
         {
-            "Mean Calculator": ("mean", MagicMock(return_value={})),
-            "Normalize": ("normalize", MagicMock(return_value={})),
-            "Sort": (
-                "sort",
-                MagicMock(
-                    return_value={
-                        "order_dict": {"config": ["opt", "base"]},
-                    }
-                ),
+            "mean": MagicMock(return_value={}),
+            "normalize": MagicMock(return_value={}),
+            "sort": MagicMock(
+                return_value={
+                    "order_dict": {"config": ["opt", "base"]},
+                }
             ),
-            "Filter": ("conditionSelector", MagicMock(return_value={})),
+            "conditionSelector": MagicMock(return_value={}),
         },
     )
     @patch(f"{_MOD}.st")
@@ -276,27 +272,25 @@ class TestSplitApplyConfigSubStepDelegation:
             existing_step=cast(Any, {}),
             key_base="k",
             step_index=0,
+            display_names=ShaperFactory.get_display_name_map(),
         )
 
         assert result is not None
         assert result.get("type") == "sort"
 
-        _, render_fn = _SUB_SHAPER_DISPATCH["Sort"]
+        render_fn = _SUB_SHAPER_DISPATCH["sort"]
         render_fn.assert_called_once()  # type: ignore[attr-defined]
 
     @patch(
         f"{_MOD}._SUB_SHAPER_DISPATCH",
         {
-            "Mean Calculator": ("mean", MagicMock(return_value={})),
-            "Normalize": ("normalize", MagicMock(return_value={})),
-            "Sort": ("sort", MagicMock(return_value={})),
-            "Filter": (
-                "conditionSelector",
-                MagicMock(
-                    return_value={
-                        "conditionColumn": "benchmark",
-                    }
-                ),
+            "mean": MagicMock(return_value={}),
+            "normalize": MagicMock(return_value={}),
+            "sort": MagicMock(return_value={}),
+            "conditionSelector": MagicMock(
+                return_value={
+                    "conditionColumn": "benchmark",
+                }
             ),
         },
     )
@@ -319,12 +313,13 @@ class TestSplitApplyConfigSubStepDelegation:
             existing_step=cast(Any, {}),
             key_base="k",
             step_index=0,
+            display_names=ShaperFactory.get_display_name_map(),
         )
 
         assert result is not None
         assert result.get("type") == "conditionSelector"
 
-        _, render_fn = _SUB_SHAPER_DISPATCH["Filter"]
+        render_fn = _SUB_SHAPER_DISPATCH["conditionSelector"]
         render_fn.assert_called_once()  # type: ignore[attr-defined]
 
 
@@ -337,20 +332,17 @@ class TestSplitApplyConfigWithStep:
     @patch(
         f"{_MOD}._SUB_SHAPER_DISPATCH",
         {
-            "Mean Calculator": (
-                "mean",
-                MagicMock(
-                    return_value={
-                        "meanAlgorithm": "arithmean",
-                        "meanVars": ["ipc"],
-                        "groupingColumns": ["config"],
-                        "replacingColumn": "benchmark",
-                    }
-                ),
+            "mean": MagicMock(
+                return_value={
+                    "meanAlgorithm": "arithmean",
+                    "meanVars": ["ipc"],
+                    "groupingColumns": ["config"],
+                    "replacingColumn": "benchmark",
+                }
             ),
-            "Normalize": ("normalize", MagicMock(return_value={})),
-            "Sort": ("sort", MagicMock(return_value={})),
-            "Filter": ("conditionSelector", MagicMock(return_value={})),
+            "normalize": MagicMock(return_value={}),
+            "sort": MagicMock(return_value={}),
+            "conditionSelector": MagicMock(return_value={}),
         },
     )
     @patch(f"{_MOD}._init_dispatch")
@@ -390,6 +382,7 @@ class TestSplitApplyConfigWithStep:
             existing_config=cast(Any, {}),
             key_prefix="p_",
             shaper_id=0,
+            display_names=ShaperFactory.get_display_name_map(),
         )
 
         groups = result.get("groups", [])
@@ -438,6 +431,7 @@ class TestSplitApplyConfigNGroups:
             existing_config=cast(Any, {}),
             key_prefix="p_",
             shaper_id=0,
+            display_names=ShaperFactory.get_display_name_map(),
         )
 
         groups = result.get("groups", [])
@@ -484,6 +478,7 @@ class TestSplitApplyConfigNGroups:
             existing_config=cast(Any, {}),
             key_prefix="p_",
             shaper_id=0,
+            display_names=ShaperFactory.get_display_name_map(),
         )
 
         groups = result.get("groups", [])
@@ -533,6 +528,7 @@ class TestSplitApplyConfigNGroups:
             existing_config=cast(Any, existing),
             key_prefix="p_",
             shaper_id=0,
+            display_names=ShaperFactory.get_display_name_map(),
         )
 
         assert len(result.get("groups", [])) == 3
@@ -551,20 +547,17 @@ class TestSplitApplyConfigExistingPipeline:
     @patch(
         f"{_MOD}._SUB_SHAPER_DISPATCH",
         {
-            "Mean Calculator": (
-                "mean",
-                MagicMock(
-                    return_value={
-                        "meanAlgorithm": "geomean",
-                        "meanVars": ["ipc"],
-                        "groupingColumns": ["config"],
-                        "replacingColumn": "benchmark",
-                    }
-                ),
+            "mean": MagicMock(
+                return_value={
+                    "meanAlgorithm": "geomean",
+                    "meanVars": ["ipc"],
+                    "groupingColumns": ["config"],
+                    "replacingColumn": "benchmark",
+                }
             ),
-            "Normalize": ("normalize", MagicMock(return_value={})),
-            "Sort": ("sort", MagicMock(return_value={})),
-            "Filter": ("conditionSelector", MagicMock(return_value={})),
+            "normalize": MagicMock(return_value={}),
+            "sort": MagicMock(return_value={}),
+            "conditionSelector": MagicMock(return_value={}),
         },
     )
     @patch(f"{_MOD}._init_dispatch")
@@ -619,6 +612,7 @@ class TestSplitApplyConfigExistingPipeline:
             existing_config=cast(Any, existing),
             key_prefix="p_",
             shaper_id=0,
+            display_names=ShaperFactory.get_display_name_map(),
         )
 
         groups = result.get("groups", [])
@@ -628,7 +622,7 @@ class TestSplitApplyConfigExistingPipeline:
         assert pipeline_a[0].get("meanAlgorithm") == "geomean"
 
         # Verify the existing_step was passed to the delegated renderer
-        _, render_fn = _SUB_SHAPER_DISPATCH["Mean Calculator"]
+        render_fn = _SUB_SHAPER_DISPATCH["mean"]
         call_args = render_fn.call_args  # type: ignore[attr-defined]
         passed_existing = call_args[0][1]  # 2nd positional arg
         assert passed_existing["type"] == "mean"
@@ -644,10 +638,10 @@ class TestSplitApplyConfigKeyPrefixing:
     @patch(
         f"{_MOD}._SUB_SHAPER_DISPATCH",
         {
-            "Mean Calculator": ("mean", MagicMock(return_value={"meanAlgorithm": "arithmean"})),
-            "Normalize": ("normalize", MagicMock(return_value={})),
-            "Sort": ("sort", MagicMock(return_value={})),
-            "Filter": ("conditionSelector", MagicMock(return_value={})),
+            "mean": MagicMock(return_value={"meanAlgorithm": "arithmean"}),
+            "normalize": MagicMock(return_value={}),
+            "sort": MagicMock(return_value={}),
+            "conditionSelector": MagicMock(return_value={}),
         },
     )
     @patch(f"{_MOD}.st")
@@ -669,9 +663,10 @@ class TestSplitApplyConfigKeyPrefixing:
             existing_step=cast(Any, {}),
             key_base="p_sa_g1_0_s0",
             step_index=0,
+            display_names=ShaperFactory.get_display_name_map(),
         )
 
-        _, render_fn = _SUB_SHAPER_DISPATCH["Mean Calculator"]
+        render_fn = _SUB_SHAPER_DISPATCH["mean"]
         call_args = render_fn.call_args  # type: ignore[attr-defined]
         # key_prefix should be "p_sa_g1_0_s0_"
         assert call_args[0][2] == "p_sa_g1_0_s0_"
@@ -696,13 +691,13 @@ class TestInitDispatch:
         mod._init_dispatch()
 
         assert mod._STATE["initialized"] is True
-        assert "Mean Calculator" in mod._SUB_SHAPER_DISPATCH
-        assert "Normalize" in mod._SUB_SHAPER_DISPATCH
-        assert "Sort" in mod._SUB_SHAPER_DISPATCH
-        assert "Filter" in mod._SUB_SHAPER_DISPATCH
+        assert "mean" in mod._SUB_SHAPER_DISPATCH
+        assert "normalize" in mod._SUB_SHAPER_DISPATCH
+        assert "sort" in mod._SUB_SHAPER_DISPATCH
+        assert "conditionSelector" in mod._SUB_SHAPER_DISPATCH
 
         # Each entry is (type_str, callable)
-        for _display_name, (type_str, render_fn) in mod._SUB_SHAPER_DISPATCH.items():
+        for type_str, render_fn in mod._SUB_SHAPER_DISPATCH.items():
             assert isinstance(type_str, str)
             assert callable(render_fn)
 

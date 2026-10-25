@@ -21,30 +21,11 @@ class Sort(UniDfShaper):
             params: Must contain 'order_dict' which maps column names to
                     a list of values defining the preferred sort order.
         """
-        config = cast(SortShaperConfig, params)
-        self.order_dict: dict[str, list[str]] = config.get("order_dict", {})
         super().__init__(params)
-
-    @override
-    def _verify_params(self) -> bool:
-        """Verify that 'order_dict' is correctly structured."""
-        super()._verify_params()
         config = cast(SortShaperConfig, self.params)
-
-        if "order_dict" not in config:
-            raise ValueError("Sort requires 'order_dict' parameter.")
-
-        order_dict = config["order_dict"]
-        if not isinstance(order_dict, dict):
-            raise TypeError("Sort 'order_dict' parameter must be a dictionary.")
-
-        for col, values in order_dict.items():
-            if not isinstance(col, str):
-                raise TypeError(f"Sort column name '{col}' must be a string.")
-            if not isinstance(values, list):
-                raise TypeError(f"Sort order values for column '{col}' must be a list.")
-
-        return True
+        self.order_dict: dict[str, list[str | int | float | bool | None]] = config.get(
+            "order_dict", {}
+        )
 
     @override
     def _verify_preconditions(self, data_frame: pd.DataFrame) -> bool:

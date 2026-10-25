@@ -389,6 +389,6 @@ def test_local_load_rejects_obsolete_schema(empty_config_dir: Path, record: dict
 def test_invalid_save_leaves_catalog_unchanged(empty_config_dir: Path) -> None:
     """Invalid pipeline content is rejected before writing a local record."""
     invalid = cast(list[ShaperStepConfig], [{"type": "normalize", "baseline": "old"}])
-    with pytest.raises(ValueError, match="missing"):
+    with pytest.raises(ValueError, match="normalizeVars"):
         ConfigService.save_configuration("Invalid", "", invalid)
     assert list(empty_config_dir.iterdir()) == []

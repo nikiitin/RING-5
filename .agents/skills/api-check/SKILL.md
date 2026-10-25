@@ -14,7 +14,7 @@ callers use the facade correctly and the contract holds.
   in `src/core/services/services_impl.py`:
   - `api.managers` → `ManagersAPI` (arithmetic / outlier / reduction / mixer data managers)
   - `api.data_services` → `DataServicesAPI` (CSV pool, paths, variables, portfolio, pattern index)
-  - `api.shapers` → `ShapersAPI` (`ShaperFactory` + `PipelineService`)
+  - `api.shapers` → `ShapersAPI` (`ShaperFactory` + `PipelineService`, plus current editor metadata via `get_shaper_display_names()`)
 - **State** lives behind the facade's `RepositoryStateManager` (single source of truth). Web uses the
   `StateManager` **protocol** via the facade — it must never import `repository_state_manager`
   (arch-check #8).

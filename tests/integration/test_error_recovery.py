@@ -37,7 +37,7 @@ class TestShaperPipelineErrors:
 
     def test_column_selector_missing_params_raises(self) -> None:
         """ColumnSelector without 'columns' param raises ValueError."""
-        with pytest.raises(ValueError, match="requires 'columns'"):
+        with pytest.raises(ValueError, match="columns"):
             ShaperFactory.create_shaper("columnSelector", cast(Any, {}))
 
     def test_column_selector_missing_column_raises(self, rich_sample_data: pd.DataFrame) -> None:

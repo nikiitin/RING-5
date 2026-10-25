@@ -11,7 +11,6 @@ from typing import Any, cast
 
 import pandas as pd
 
-from src.core.common.security_limits import MAX_SEARCH_TERM_LENGTH, MAX_SELECTOR_STRINGS
 from src.core.models.shaper_models import ItemSelectorConfig
 from src.core.services.shapers.impl.selector import Selector
 
@@ -30,29 +29,10 @@ class ItemSelector(Selector):
             params: Must contain 'column' and 'strings'.
                 - mode (str): 'exact' (default) or 'contains'.
         """
-        config = cast(ItemSelectorConfig, params)
-        self.strings: list[str] = [str(s) for s in config.get("strings", [])]
-        self.mode: str = config.get("mode", "exact")
         super().__init__(params)
-
-    def _verify_params(self) -> bool:
-        """Verify that 'strings' parameter is a valid list."""
-        super()._verify_params()
         config = cast(ItemSelectorConfig, self.params)
-
-        if "strings" not in config:
-            raise ValueError("ItemSelector requires 'strings' parameter.")
-        if not isinstance(config["strings"], list):
-            raise TypeError("ItemSelector 'strings' parameter must be a list.")
-        if self.mode not in {"exact", "contains"}:
-            raise ValueError("ItemSelector mode must be 'exact' or 'contains'.")
-        if len(config["strings"]) > MAX_SELECTOR_STRINGS:
-            raise ValueError(f"ItemSelector accepts at most {MAX_SELECTOR_STRINGS} search strings.")
-        if any(len(str(value)) > MAX_SEARCH_TERM_LENGTH for value in config["strings"]):
-            raise ValueError(
-                f"ItemSelector search strings cannot exceed {MAX_SEARCH_TERM_LENGTH} characters."
-            )
-        return True
+        self.strings: list[str] = config["strings"]
+        self.mode: str = config.get("mode", "exact")
 
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
         """Filter the dataframe to only include rows with matching strings."""

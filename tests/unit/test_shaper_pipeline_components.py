@@ -1,10 +1,10 @@
 """Tests for shaper configuration, pipeline components, and data management."""
 
-from typing import Any, cast
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
-import pytest
+from src.core.services.shapers.factory import ShaperFactory
 
 
 def _columns_side_effect(*args: Any, **kwargs: Any) -> list[MagicMock]:
@@ -27,7 +27,9 @@ class TestShaperConfig:
         from src.web.pages.ui.shaper_config import configure_shaper
 
         df = pd.DataFrame({"a": [1]})
-        result = configure_shaper("unknownType", df, 1, None)
+        result = configure_shaper(
+            "unknownType", df, 1, None, display_names=ShaperFactory.get_display_name_map()
+        )
 
         assert result.get("type") == "unknownType"
 
@@ -39,48 +41,12 @@ class TestShaperConfig:
         df = pd.DataFrame({"a": [1]})
 
         with patch.dict(CONFIG_DISPATCH, {"columnSelector": mock_render}):
-            result = configure_shaper("columnSelector", df, 1, None)
+            result = configure_shaper(
+                "columnSelector", df, 1, None, display_names=ShaperFactory.get_display_name_map()
+            )
 
         mock_st.exception.assert_called()
         assert result.get("type") == "columnSelector"
-
-
-class TestShaperApplication:
-    """Tests for applying shaper configurations."""
-
-    @patch("src.web.pages.ui.shaper_config.st")
-    def test_apply_none_data_raises(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.shaper_config import apply_shapers
-
-        with pytest.raises(ValueError, match="Cannot apply shapers to None"):
-            apply_shapers(None, [])  # type: ignore[arg-type]
-
-    @patch("src.web.pages.ui.shaper_config.apply_shapers")
-    def test_apply_transformer_branch(self, mock_apply: MagicMock) -> None:
-        from src.web.pages.ui.shaper_config import apply_shapers
-
-        df = pd.DataFrame({"a": [1]})
-        apply_shapers(df, cast(Any, [{"type": "transformer"}]))
-        mock_apply.assert_called()
-
-    @patch("src.web.pages.ui.shaper_config.st")
-    def test_apply_rejects_no_type(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.shaper_config import apply_shapers
-
-        df = pd.DataFrame({"a": [1]})
-        # Cast to Any then to list[ShaperStepConfig] to satisfy Pyright
-        with pytest.raises(ValueError, match="registered shaper type"):
-            apply_shapers(df, cast(Any, [{}]))
-
-    @patch("src.web.pages.ui.shaper_config.st")
-    def test_apply_incomplete_config_rejects(self, mock_st: MagicMock) -> None:
-        from src.web.pages.ui.shaper_config import apply_shapers
-
-        df = pd.DataFrame({"a": [1]})
-        # normalize requires normalizeVars, normalizerColumn, etc.
-        # Cast to Any then to list[ShaperStepConfig] to satisfy Pyright
-        with pytest.raises(ValueError, match="Missing required parameter"):
-            apply_shapers(df, cast(Any, [{"type": "normalize"}]))
 
 
 class TestPipelineComponent:
@@ -94,7 +60,9 @@ class TestPipelineComponent:
         mock_st.selectbox.return_value = "Sort"
         mock_st.button.return_value = True
 
-        result = PipelineComponent.render_add_shaper(plot_id=1)
+        result = PipelineComponent.render_add_shaper(
+            plot_id=1, display_names=ShaperFactory.get_display_name_map()
+        )
 
         assert result["add_clicked"] is True
         assert result["shaper_type"] == "sort"

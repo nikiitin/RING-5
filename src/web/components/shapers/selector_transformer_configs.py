@@ -370,11 +370,11 @@ class GroupPredicateSelectorConfig:
             key=f"{key_prefix}gpred_bcol_{shaper_id}",
         )
         bvals = (
-            [str(v) for v in data[baseline_column].unique()]
+            data[baseline_column].dropna().unique().tolist()
             if baseline_column in data.columns
             else []
         )
-        bv_default = cast(str, existing_config.get("baselineValue", ""))
+        bv_default = existing_config.get("baselineValue", "")
         if bvals:
             baseline_value = c2.selectbox(
                 "Baseline value",
@@ -384,7 +384,7 @@ class GroupPredicateSelectorConfig:
             )
         else:
             baseline_value = c2.text_input(
-                "Baseline value", value=bv_default, key=f"{key_prefix}gpred_bval_{shaper_id}"
+                "Baseline value", value="", key=f"{key_prefix}gpred_bval_{shaper_id}"
             )
         pc_default = cast(str, existing_config.get("predicateColumn", ""))
         predicate_column = st.selectbox(
@@ -421,7 +421,7 @@ class GroupPredicateSelectorConfig:
             {
                 "groupBy": group_by,
                 "baselineColumn": str(baseline_column or ""),
-                "baselineValue": str(baseline_value or ""),
+                "baselineValue": baseline_value,
                 "predicateColumn": str(predicate_column or ""),
                 "drop_when": drop_when,
                 "action": action,

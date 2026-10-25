@@ -6,8 +6,6 @@ from typing import Any, TypedDict
 
 import streamlit as st
 
-from src.core.services.shapers.factory import ShaperFactory
-
 
 class PipelineExchangeResult(TypedDict):
     """User intent returned by the pipeline exchange controls."""
@@ -27,10 +25,6 @@ class PipelineComponent:
 
     Does NOT apply shapers, modify pipeline state, or trigger reruns.
     """
-
-    # Single source of truth: delegate to ShaperFactory
-    SHAPER_DISPLAY_MAP: dict[str, str] = ShaperFactory.get_display_name_map()
-    REVERSE_MAP: dict[str, str] = {v: k for k, v in SHAPER_DISPLAY_MAP.items()}
 
     @staticmethod
     def render_section_header() -> None:
@@ -99,10 +93,7 @@ class PipelineComponent:
                 "Pipeline configuration JSON",
                 type=["json"],
                 key=f"pipeline_import_{plot_id}",
-                help=(
-                    "Accepts RING-5 versioned files and legacy saved configurations "
-                    "up to 256 KiB."
-                ),
+                help=("Accepts current RING-5 pipeline configurations " "up to 256 KiB."),
             )
             conflict_options: list[str] = ["error", "rename", "replace"]
             conflict_labels = {
@@ -149,11 +140,12 @@ class PipelineComponent:
         return f"{stem or 'pipeline'}.ring5-pipeline.json"
 
     @staticmethod
-    def render_add_shaper(plot_id: int) -> dict[str, Any]:
+    def render_add_shaper(plot_id: int, display_names: dict[str, str]) -> dict[str, Any]:
         """Render the 'Add transformation' selector and Add button.
 
         Args:
             plot_id: Plot ID for widget key uniqueness.
+            display_names: Current facade-provided labels in editor order.
 
         Returns:
             Dict with ``add_clicked`` and ``shaper_type``.
@@ -162,7 +154,7 @@ class PipelineComponent:
         with col1:
             display_type: str | None = st.selectbox(
                 "Add transformation",
-                list(PipelineComponent.SHAPER_DISPLAY_MAP.keys()),
+                list(display_names),
                 key=f"shaper_add_{plot_id}",
             )
         with col2:
@@ -172,9 +164,7 @@ class PipelineComponent:
                 key=f"add_shaper_btn_{plot_id}",
             )
 
-        shaper_type: str = PipelineComponent.SHAPER_DISPLAY_MAP.get(
-            display_type or "", "columnSelector"
-        )
+        shaper_type: str = display_names.get(display_type or "", "columnSelector")
         return {"add_clicked": add_clicked, "shaper_type": shaper_type}
 
     @staticmethod

@@ -6,7 +6,6 @@ from dataclasses import dataclass, field
 from typing import Any, Literal, Mapping
 
 from src.core.models.data_models import ScannedVariableDict
-from src.core.models.shaper_models import ShaperStepConfig
 
 RecipeParameterType = Literal["string", "integer", "number", "boolean", "path"]
 RecipeScalar = str | int | float | bool
@@ -74,7 +73,7 @@ class RecipePlot:
     name: str
     plot_type: str
     config: Mapping[str, Any]
-    pipeline: tuple[ShaperStepConfig, ...] = ()
+    pipeline: tuple[Mapping[str, object], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -116,7 +115,7 @@ class AnalysisRecipe:
     source: RecipeSource
     description: str = ""
     parameters: tuple[RecipeParameter, ...] = ()
-    transformations: tuple[ShaperStepConfig, ...] = ()
+    transformations: tuple[Mapping[str, object], ...] = ()
     plots: tuple[RecipePlot, ...] = ()
     exports: tuple[RecipeExport, ...] = ()
     schema_version: int = 2

@@ -202,12 +202,7 @@ class PivotLongerConfig:
 
                     # --- Selective Value Filtering ---
                     st.markdown("###### Value Filtering")
-                    selection_filters = {
-                        str(key): values
-                        for key, values in cast(
-                            dict[str | int, list[str]], cfg.get("selection_filters", {})
-                        ).items()
-                    }
+                    selection_filters = cast(dict[str, list[str]], cfg.get("selection_filters", {}))
 
                     # We need to know which values are available for each group
                     # to show a selector.

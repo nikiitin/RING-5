@@ -151,13 +151,15 @@ def test_numeric_filter_handles_constant_single_and_unmeasured_columns(
 def test_opening_range_editor_preserves_the_scientific_selection(values) -> None:
     app = _app(f"""
         import pandas as pd
-        from src.web.pages.ui.shaper_config import configure_shaper, apply_shapers
+        from src.web.pages.ui.shaper_config import configure_shaper
+        from src.core.services.shapers.shapers_impl import DefaultShapersAPI
         frame = pd.DataFrame({{"metric": pd.Series({values!r}, dtype="float64")}})
         saved = {{"type": "conditionSelector", "column": "metric", "mode": "range",
                   "range": [0.0, 2.0]}}
-        configured = configure_shaper("conditionSelector", frame, 1, saved, owner_id=1)
+        configured = configure_shaper(
+            "conditionSelector", frame, 1, saved, owner_id=1, display_names={{}})
         st.session_state["configured"] = configured
-        st.session_state["rows"] = len(apply_shapers(frame, [configured]))
+        st.session_state["rows"] = len(DefaultShapersAPI().process_pipeline(frame, [configured]))
     """)
     assert not app.exception
     assert app.session_state["configured"]["range"] == [0.0, 2.0]
@@ -190,7 +192,9 @@ def test_invalid_nonempty_pipeline_never_publishes_a_shortened_result(configs) -
             plot.replace_processed_data(pd.DataFrame({{"kept": [7]}}))
             plot.pipeline = [{{"id": i, "type": config["type"], "config": config}}
                              for i, config in enumerate({configs!r})]
-            PipelineController(api, UIStateManager(), PipelineExecutorAdapter())._handle_finalize(
+            PipelineController(
+                api, UIStateManager(), PipelineExecutorAdapter(api.shapers)
+            )._handle_finalize(
                 plot, pd.DataFrame({{"metric": [10.0]}})
             )
             st.session_state["source"] = plot.source_data.to_dict("list")
@@ -199,7 +203,8 @@ def test_invalid_nonempty_pipeline_never_publishes_a_shortened_result(configs) -
             api.close()
     """)
     assert len(app.exception) == 1
-    assert "Failed to apply shaper" in app.exception[0].message
+    assert "Pipeline step" in app.exception[0].message
+    assert "invalid" in app.exception[0].message
     assert app.session_state["source"] == {"original": [3]}
     assert app.session_state["processed"] == {"kept": [7]}
 
@@ -549,7 +554,9 @@ def test_pipeline_finalize_rejects_every_incomplete_step_without_replacing_data(
                 "type": "sort", "order_dict": {"label": ["a", "b"]}}},
             {"id": 1, "type": "conditionSelector", "config": {}},
         ]
-        PipelineController(api, UIStateManager(), PipelineExecutorAdapter())._handle_finalize(
+        PipelineController(
+                api, UIStateManager(), PipelineExecutorAdapter(api.shapers)
+            )._handle_finalize(
             plot, pd.DataFrame({"label": ["b", "a"], "value": [2, 1]}))
         st.session_state["result"] = plot.processed_data.to_dict(orient="list")
         api.close()

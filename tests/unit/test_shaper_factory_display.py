@@ -4,6 +4,8 @@ Tests for ShaperFactory display name methods.
 Tests the business logic in Layer B shaper factory.
 """
 
+import pytest
+
 from src.core.services.shapers.factory import ShaperFactory
 
 # ShaperFactory Display Names
@@ -42,8 +44,9 @@ class TestShaperFactoryDisplayNames:
         assert ShaperFactory.get_display_name("mean") == "Mean Calculator"
         assert ShaperFactory.get_display_name("columnSelector") == "Column Selector"
 
-    def test_get_display_name_unknown_returns_type_id(self) -> None:
-        assert ShaperFactory.get_display_name("unknownType") == "unknownType"
+    def test_get_display_name_rejects_unknown_type(self) -> None:
+        with pytest.raises(ValueError, match="Unknown shaper type"):
+            ShaperFactory.get_display_name("unknownType")
 
     def test_display_name_map_only_includes_registered_types(self) -> None:
         """Display names for unregistered types should not appear."""

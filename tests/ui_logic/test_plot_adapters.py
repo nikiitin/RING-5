@@ -7,6 +7,7 @@ import pandas as pd
 
 from src.core.models.shaper_models import ShaperStepConfig
 from tests.ui_logic.conftest import StubPlotHandle
+from src.core.services.shapers.shapers_impl import DefaultShapersAPI
 
 
 # PlotLifecycleAdapter
@@ -119,11 +120,11 @@ class TestPipelineExecutorAdapter:
         """apply_shapers passes data and configs through."""
         from src.web.pages.plot_adapters import PipelineExecutorAdapter
 
-        adapter = PipelineExecutorAdapter()
+        adapter = PipelineExecutorAdapter(DefaultShapersAPI())
         configs = cast(list[ShaperStepConfig], [{"type": "sort", "config": {}}])
 
         with patch(
-            "src.web.pages.plot_adapters.apply_shapers",
+            "src.core.services.shapers.shapers_impl.DefaultShapersAPI.process_pipeline",
             return_value=sample_data,
         ) as mock_apply:
             result = adapter.apply_shapers(sample_data, configs)
@@ -134,7 +135,7 @@ class TestPipelineExecutorAdapter:
         """configure_shaper passes all args including optional owner_id."""
         from src.web.pages.plot_adapters import PipelineExecutorAdapter
 
-        adapter = PipelineExecutorAdapter()
+        adapter = PipelineExecutorAdapter(DefaultShapersAPI())
         existing = cast(ShaperStepConfig, {"type": "normalize"})
 
         with patch(
@@ -142,21 +143,35 @@ class TestPipelineExecutorAdapter:
             return_value=cast(ShaperStepConfig, {"type": "normalize", "target": "x"}),
         ) as mock_cfg:
             result = adapter.configure_shaper("normalize", sample_data, 1, existing, owner_id=5)
-            mock_cfg.assert_called_once_with("normalize", sample_data, 1, existing, owner_id=5)
+            mock_cfg.assert_called_once_with(
+                "normalize",
+                sample_data,
+                1,
+                existing,
+                owner_id=5,
+                display_names=DefaultShapersAPI().get_shaper_display_names(),
+            )
             assert result.get("type") == "normalize"
 
     def test_configure_shaper_no_owner_id(self, sample_data: pd.DataFrame) -> None:
         """configure_shaper defaults owner_id to None."""
         from src.web.pages.plot_adapters import PipelineExecutorAdapter
 
-        adapter = PipelineExecutorAdapter()
+        adapter = PipelineExecutorAdapter(DefaultShapersAPI())
 
         with patch(
             "src.web.pages.plot_adapters.configure_shaper",
             return_value=cast(ShaperStepConfig, {"type": "sort"}),
         ) as mock_cfg:
             adapter.configure_shaper("sort", sample_data, 2, None)
-            mock_cfg.assert_called_once_with("sort", sample_data, 2, None, owner_id=None)
+            mock_cfg.assert_called_once_with(
+                "sort",
+                sample_data,
+                2,
+                None,
+                owner_id=None,
+                display_names=DefaultShapersAPI().get_shaper_display_names(),
+            )
 
 
 # Protocol conformance
@@ -184,6 +199,6 @@ class TestAdapterProtocolConformance:
         """PipelineExecutorAdapter has apply_shapers and configure_shaper."""
         from src.web.pages.plot_adapters import PipelineExecutorAdapter
 
-        adapter = PipelineExecutorAdapter()
+        adapter = PipelineExecutorAdapter(DefaultShapersAPI())
         assert callable(getattr(adapter, "apply_shapers", None))
         assert callable(getattr(adapter, "configure_shaper", None))

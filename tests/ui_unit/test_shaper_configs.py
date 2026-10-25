@@ -5,6 +5,8 @@ from __future__ import annotations
 from unittest.mock import patch
 
 import pandas as pd
+import pytest
+from tests.conftest import columns_side_effect
 
 from src.core.services.shapers.factory import ShaperFactory
 
@@ -74,3 +76,56 @@ def test_group_predicate_config_round_trips():
         "groupPredicateSelector", {"type": "groupPredicateSelector", **cfg}
     )(_df())
     assert set(out["bench"]) == {"a"}  # group "b" has base p == 0 → dropped
+
+
+@pytest.mark.parametrize("baseline", [0, False, 1.5])
+def test_baseline_editors_preserve_numeric_and_boolean_values(baseline) -> None:
+    from src.web.components.shapers.normalize_config import NormalizeConfig
+    from src.web.components.shapers.selector_transformer_configs import GroupPredicateSelectorConfig
+
+    frame = pd.DataFrame(
+        {"bench": ["a", "a"], "policy": pd.Categorical([baseline, "other"]), "v": [2.0, 6.0]}
+    )
+    with patch("src.web.components.shapers.normalize_config.st") as st:
+        st.columns.side_effect = columns_side_effect
+        st.multiselect.side_effect = [["v"], ["v"], ["bench"]]
+        st.selectbox.side_effect = ["policy", baseline]
+        st.checkbox.return_value = True
+        normalized = NormalizeConfig.render(frame, {}, "", 1)
+    assert type(normalized["normalizerValue"]) is type(baseline)
+    assert normalized["normalizerValue"] == baseline
+    result = ShaperFactory.create_shaper("normalize", normalized)(frame)
+    assert result["v"].tolist() == [1.0, 3.0]
+    with patch("src.web.components.shapers.selector_transformer_configs.st") as st:
+        first, second = columns_side_effect(2), columns_side_effect(2)
+        st.columns.side_effect = [first, second]
+        first[0].selectbox.return_value = "policy"
+        first[1].selectbox.return_value = baseline
+        second[0].selectbox.return_value = "zero"
+        second[1].selectbox.return_value = "keep"
+        st.selectbox.return_value = "v"
+        st.multiselect.return_value = ["bench"]
+        selected = GroupPredicateSelectorConfig.render(frame, {}, "", 2)
+    assert type(selected["baselineValue"]) is type(baseline)
+    assert selected["baselineValue"] == baseline
+    assert (
+        len(
+            ShaperFactory.create_shaper("groupPredicateSelector", selected)(
+                frame.assign(v=[0.0, 6.0])
+            )
+        )
+        == 2
+    )
+
+
+def test_sort_editor_keeps_numeric_category_orders() -> None:
+    from src.web.components.shapers.sort_config import SortConfig
+
+    frame = pd.DataFrame({"policy": pd.Categorical([2, 1]), "v": [20, 10]})
+    with patch("src.web.components.shapers.sort_config.st") as st:
+        st.multiselect.side_effect = [["policy"], [1, 2]]
+        config = SortConfig.render(frame, {"order_dict": {"policy": [1, 2]}}, "", 1)
+    assert config["order_dict"] == {"policy": [1, 2]}
+    result = ShaperFactory.create_shaper("sort", config)(frame)
+    assert result["policy"].tolist() == [1, 2]
+    assert result["v"].tolist() == [10, 20]

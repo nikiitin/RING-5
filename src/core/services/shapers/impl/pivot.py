@@ -70,22 +70,8 @@ class PivotLonger(Shaper):
 
     def __init__(self, params: dict[str, str | list[str]]) -> None:
         """Initialize with PivotLongerShaperConfig."""
-        self.config = cast(PivotLongerShaperConfig, params)
         super().__init__(params)
-
-    @override
-    def _verify_params(self) -> bool:
-        """Verify required parameters are present."""
-        super()._verify_params()
-        if "id_vars" not in self.config or not self.config["id_vars"]:
-            raise ValueError("PivotLonger requires 'id_vars'.")
-        if "value_vars" not in self.config or not self.config["value_vars"]:
-            raise ValueError("PivotLonger requires 'value_vars'.")
-        if "var_name" not in self.config:
-            raise ValueError("PivotLonger requires 'var_name'.")
-        if "value_name" not in self.config:
-            raise ValueError("PivotLonger requires 'value_name'.")
-        return True
+        self.config = cast(PivotLongerShaperConfig, self.params)
 
     @override
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
@@ -117,9 +103,9 @@ class PivotLonger(Shaper):
         if pattern:
             try:
                 var_name = self.config["var_name"]
-                pattern = str(self.config.get("extract_pattern", ""))
-                group_indices = list(self.config.get("extract_group_indices", [1]))
-                separator = str(self.config.get("extract_separator", "_"))
+                pattern = self.config.get("extract_pattern", "")
+                group_indices = self.config.get("extract_group_indices", [1])
+                separator = self.config.get("extract_separator", "_")
 
                 # Selective unpivoting logic
                 filters = self.config.get("selection_filters", {})
@@ -207,20 +193,8 @@ class PivotWider(Shaper):
 
     def __init__(self, params: dict[str, str | list[str]]) -> None:
         """Initialize with PivotWiderShaperConfig."""
-        self.config = cast(PivotWiderShaperConfig, params)
         super().__init__(params)
-
-    @override
-    def _verify_params(self) -> bool:
-        """Verify required parameters are present."""
-        super()._verify_params()
-        if "index" not in self.config or not self.config["index"]:
-            raise ValueError("PivotWider requires 'index' columns.")
-        if "columns" not in self.config or not self.config["columns"]:
-            raise ValueError("PivotWider requires a 'columns' target.")
-        if "values" not in self.config or not self.config["values"]:
-            raise ValueError("PivotWider requires a 'values' target.")
-        return True
+        self.config = cast(PivotWiderShaperConfig, self.params)
 
     @override
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:

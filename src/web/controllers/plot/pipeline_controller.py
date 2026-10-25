@@ -19,6 +19,7 @@ Architecture Note — Streamlit usage:
 """
 
 import copy
+from collections.abc import Mapping
 import logging
 from typing import Any, cast
 
@@ -31,7 +32,6 @@ from src.core.models.data_models import (
     PipelineConfigImportResult,
     PipelineStep,
 )
-from src.core.models.shaper_models import ShaperStepConfig
 from src.web.components.common.pipeline import PipelineComponent, PipelineExchangeResult
 from src.web.components.common.pipeline_step import (
     PipelineStepComponent,
@@ -94,9 +94,11 @@ class PipelineController:
             )
 
         # 1. Add shaper (via component)
-        add_result: dict[str, Any] = PipelineComponent.render_add_shaper(plot.plot_id)
+        add_result: dict[str, Any] = PipelineComponent.render_add_shaper(
+            plot.plot_id, self._api.shapers.get_shaper_display_names()
+        )
         if add_result["add_clicked"]:
-            empty_config: ShaperStepConfig = cast(ShaperStepConfig, {})
+            empty_config: Mapping[str, object] = {}
             plot.pipeline.append(
                 {
                     "id": plot.pipeline_counter,
@@ -165,10 +167,13 @@ class PipelineController:
 
         imported_pipeline: list[PipelineStep] = []
         for config in result.shapers:
+            identifier = config["type"]
+            if not isinstance(identifier, str):
+                raise ValueError("An imported shaper type must be text.")
             imported_pipeline.append(
                 {
                     "id": plot.pipeline_counter,
-                    "type": config["type"],
+                    "type": identifier,
                     "config": copy.deepcopy(config),
                 }
             )
@@ -189,6 +194,7 @@ class PipelineController:
             raw_data: The original uploaded data (before any shapers).
         """
         # [impl->req~ring5.shaping.pipeline-editor~1]
+        labels = {value: key for key, value in self._api.shapers.get_shaper_display_names().items()}
         step_input: pd.DataFrame = raw_data
         for idx, shaper in enumerate(plot.pipeline):
             try:
@@ -197,6 +203,7 @@ class PipelineController:
                     plot_id=plot.plot_id,
                     idx=idx,
                     shaper_type=shaper["type"],
+                    display_name=labels.get(shaper["type"], shaper["type"]),
                     shaper_id=shaper["id"],
                     step_input=step_input,
                     current_config=shaper.get("config", {}),
@@ -270,7 +277,7 @@ class PipelineController:
                     "Every displayed pipeline step must have a valid configuration "
                     "before finalizing."
                 )
-            confs: list[ShaperStepConfig] = [step["config"] for step in plot.pipeline]
+            confs: list[Mapping[str, object]] = [step["config"] for step in plot.pipeline]
             processed: pd.DataFrame = self._pipeline.apply_shapers(raw_data, confs)
             plot.replace_source_data(raw_data)
             plot.replace_processed_data(processed)
