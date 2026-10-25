@@ -49,52 +49,6 @@ class HistoryComponents:
         st.dataframe(df, width="stretch", hide_index=True)
 
     @staticmethod
-    def render_global_history(
-        all_records: list[OperationRecord],
-        delete_callback: Callable[[OperationRecord], None],
-        *,
-        key_prefix: str = "global",
-    ) -> None:
-        """Render the last 10 global operations across all managers.
-
-        Shows a compact history of recent operations regardless of which
-        manager created them, with a Delete button per entry.
-
-        Args:
-            all_records: Full manager history list (already capped at 10).
-            delete_callback: Called with the record to delete.
-            key_prefix: Unique prefix for widget keys to avoid duplicates
-                when rendered in multiple tabs.
-        """
-        if not all_records:
-            return
-
-        recent = list(reversed(all_records))[:10]
-
-        with st.expander(f"Recent Activity ({len(recent)} operations)", expanded=False):
-            for i, record in enumerate(recent):
-                cols = st.columns([2, 2, 2, 2, 1])
-                with cols[0]:
-                    st.caption("Time")
-                    st.text(record["timestamp"][:16].replace("T", " "))
-                with cols[1]:
-                    st.caption("Operation")
-                    st.text(record["operation"])
-                with cols[2]:
-                    st.caption("Source")
-                    st.text(", ".join(record["source_columns"]))
-                with cols[3]:
-                    st.caption("Destination")
-                    st.text(", ".join(record["dest_columns"]))
-                with cols[4]:
-                    st.button(
-                        "🗑️",
-                        key=f"hist_{key_prefix}_del_{i}",
-                        help="Delete entry",
-                        on_click=lambda r=record: delete_callback(r),
-                    )
-
-    @staticmethod
     def render_manager_history(
         all_records: list[OperationRecord],
         operation_prefix: str,

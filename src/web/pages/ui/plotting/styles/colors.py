@@ -1,21 +1,7 @@
-"""
-Shared color utilities for consistent palette loading.
-"""
+"""Color conversion for Streamlit pickers."""
 
 import logging
 import re
-
-from src.core.services.visualization.palette_service import resolve_palette
-
-
-def get_palette_colors(palette_name: str) -> list[str]:
-    """
-    Get a list of colors for a given palette name.
-
-    Delegates to the unified ``resolve_palette()`` in the core
-    visualization layer.  Returns hex color strings.
-    """
-    return resolve_palette(palette_name)
 
 
 def to_hex(color_str: str) -> str:

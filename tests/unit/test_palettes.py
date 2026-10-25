@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import re
 
+import pytest
+
 from src.core.models.visualization.palettes import PALETTE_REGISTRY
 from src.core.services.visualization.palette_service import (
     get_palette_names,
@@ -67,10 +69,11 @@ class TestResolvePalette:
         assert len(colors) == 8
         assert colors[0] == "#000000"
 
-    def test_resolve_plotly_name(self) -> None:
-        colors = resolve_palette("D3")
+    @pytest.mark.parametrize("name, first", [("D3", "#1F77B4"), ("Plotly", "#636EFA")])
+    def test_resolve_plotly_name(self, name: str, first: str) -> None:
+        colors = resolve_palette(name)
         assert len(colors) == 10
-        assert colors[0] == "#1F77B4"
+        assert colors[0] == first
 
     def test_resolve_case_insensitive(self) -> None:
         colors_lower = resolve_palette("d3")

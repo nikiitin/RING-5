@@ -1,13 +1,10 @@
-"""
-Card Components for RING-5.
-Handles information cards for files, configurations, etc.
-"""
+"""Information cards for recent CSV files."""
 
 import datetime
 
 import streamlit as st
 
-from src.core.models.data_models import CsvPoolEntry, SavedConfigEntry
+from src.core.models.data_models import CsvPoolEntry
 
 
 class CardComponents:
@@ -44,31 +41,3 @@ class CardComponents:
                 delete_clicked = st.button("Delete", key=f"delete_{index}")
 
             return load_clicked, preview_clicked, delete_clicked
-
-    @staticmethod
-    def config_info_card(config_info: SavedConfigEntry, index: int) -> tuple[bool, bool]:
-        """
-        Display a configuration information card with actions.
-
-        Args:
-            config_info: Dictionary with config information
-            index: Unique index for the card
-
-        Returns:
-            Tuple of (load_clicked, delete_clicked)
-        """
-        modified_time = datetime.datetime.fromtimestamp(config_info["modified"])
-
-        with st.expander(f"{config_info['name']}", expanded=(index == 0)):
-            st.text(f"Modified: {modified_time.strftime('%Y-%m-%d %H:%M:%S')}")
-            st.text(f"Description: {config_info['description']}")
-
-            col1, col2 = st.columns(2)
-
-            with col1:
-                load_clicked = st.button("Load This Configuration", key=f"load_cfg_{index}")
-
-            with col2:
-                delete_clicked = st.button("Delete", key=f"delete_cfg_{index}")
-
-            return load_clicked, delete_clicked
