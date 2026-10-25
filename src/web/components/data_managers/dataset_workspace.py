@@ -257,6 +257,17 @@ class DatasetWorkspaceManager:
                 key=WidgetKeyBuilder.manager_key("workspace", "compare_threshold"),
             )
         )
+        preferred_direction: Literal["higher", "lower"] = (
+            "higher" if direction == "Higher is better" else "lower"
+        )
+        operation_config = {
+            "baseline": baseline,
+            "candidate": candidate,
+            "key_columns": list(keys),
+            "metric_columns": list(metrics),
+            "directions": preferred_direction,
+            "thresholds": threshold,
+        }
         if st.button(
             "Compare Retained Datasets",
             key=WidgetKeyBuilder.manager_key("workspace", "compare_apply"),
@@ -265,18 +276,28 @@ class DatasetWorkspaceManager:
                 st.error("Select at least one comparison key and metric.")
             else:
                 try:
+                    inputs = self.api.capture_preview_inputs((baseline, candidate))
                     result = self.api.compare_datasets(
                         baseline,
                         candidate,
                         keys,
                         metrics,
-                        directions="higher" if direction == "Higher is better" else "lower",
+                        directions=preferred_direction,
                         thresholds=threshold,
+                    )
+                    self.api.set_preview(
+                        _COMPARISON_PREVIEW,
+                        result,
+                        operation_config=operation_config,
+                        inputs=inputs,
                     )
                 except (KeyError, TypeError, ValueError) as exc:
                     st.error(str(exc))
-                else:
-                    self.api.set_preview(_COMPARISON_PREVIEW, result)
+        if self.api.has_preview(_COMPARISON_PREVIEW) and not self.api.preview_matches(
+            _COMPARISON_PREVIEW, operation_config=operation_config
+        ):
+            self.api.clear_preview(_COMPARISON_PREVIEW)
+            st.info("Comparison sources or settings changed. Compare the datasets again.")
         preview = self.api.get_preview(_COMPARISON_PREVIEW)
         if preview is not None:
             st.dataframe(preview, width="stretch")

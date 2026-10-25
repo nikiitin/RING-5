@@ -15,7 +15,12 @@ from src.core.models.preview_models import PreviewContext
 
 import pandas as pd
 
-from src.core.models.dataset_workspace_models import DatasetInfo, DatasetLineage, DatasetRevision
+from src.core.models.dataset_workspace_models import (
+    DatasetInfo,
+    DatasetInputIdentity,
+    DatasetLineage,
+    DatasetRevision,
+)
 from src.core.models.plot_protocol import PlotProtocol
 from src.core.models.portfolio_models import PortfolioData, RestoreReport
 from src.core.models.data_models import (
@@ -261,6 +266,10 @@ class RepositoryStateManager:
         """Return the selected retained dataset name."""
         return self._session_repo.data_repo.selected_dataset_name()
 
+    def get_dataset_input_identity(self, name: str | None = None) -> DatasetInputIdentity:
+        """Return the current input identity without copying revision history."""
+        return self._session_repo.data_repo.get_dataset_input_identity(name)
+
     def get_dataset_lineage(self, name: str | None = None) -> DatasetLineage:
         """Return revision metadata and recovery capabilities for a dataset."""
         return self._session_repo.data_repo.get_dataset_lineage(name)
@@ -458,7 +467,7 @@ class RepositoryStateManager:
 
     @_state_write
     def set_preview(
-        self, operation_name: str, data: pd.DataFrame, *, context: PreviewContext | None = None
+        self, operation_name: str, data: pd.DataFrame, *, context: PreviewContext
     ) -> None:
         """Store preview data for an operation."""
         self._session_repo.preview_repo.set_preview(operation_name, data, context=context)

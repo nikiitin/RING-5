@@ -101,6 +101,7 @@ from src.parsing.parser_protocol import SimulationParser
 from src.parsing.registry import SimulatorInfo, SimulatorRegistry
 
 from src.core.services.workspace_input_service import WorkspaceInputService
+from src.core.models.preview_models import PreviewInputs
 
 logger = logging.getLogger(__name__)
 
@@ -1489,42 +1490,46 @@ class ApplicationAPI:
 
     # Previews (Delegated to StateManager)
 
-    def preview_input_signature(self) -> str:
-        """Capture source identity before computing a data-manager preview.
+    def capture_preview_inputs(self, dataset_names: Sequence[str] = ()) -> PreviewInputs:
+        """Capture the exact sources before computing a data-manager preview.
+
+        Args:
+            dataset_names: Ordered named sources; empty selects the active data source.
 
         Returns:
-            Stable source token to supply when storing the computed preview.
+            Immutable active-source or named-revision identities for storing the result.
 
         Raises:
-            ValueError: Source values or metadata cannot be identified safely.
+            ValueError: Source names or metadata cannot be identified safely.
+            KeyError: A named dataset does not exist.
         """
-        return self._workspace_inputs.preview_input_signature()
+        return self._workspace_inputs.capture_preview_inputs(dataset_names)
 
     def set_preview(
         self,
         operation_name: str,
         data: pd.DataFrame,
         *,
-        operation_config: Mapping[str, Any] | None = None,
-        source_signature: str | None = None,
+        operation_config: Mapping[str, Any],
+        inputs: PreviewInputs,
     ) -> None:
-        """Store a defensive preview with optional source and reviewed-option guards.
+        """Store an owned preview with required input and reviewed-option guards.
 
         Args:
             operation_name: Session-unique name for this manager operation.
             data: Computed result; retained independently of caller mutations.
-            operation_config: Options used for computation; None stores a legacy preview.
-            source_signature: Token captured before computation; required with operation_config.
+            operation_config: Exact options used for computation.
+            inputs: Input identities captured before computation.
 
         Raises:
-            ValueError: The source changed, the token is missing, or metadata is unsupported.
+            ValueError: Captured sources changed or required review metadata is invalid.
         """
         # [impl->req~ring5.extension.data-manager~1]
         self._workspace_inputs.set_preview(
             operation_name,
             data,
             operation_config=operation_config,
-            source_signature=source_signature,
+            inputs=inputs,
         )
 
     def preview_matches(self, operation_name: str, *, operation_config: Mapping[str, Any]) -> bool:
@@ -1551,7 +1556,7 @@ class ApplicationAPI:
             operation_name: Stored manager operation name.
 
         Returns:
-            Independent options dictionary, or None for an absent or legacy preview.
+            Independent reviewed options, or None when no preview is stored.
         """
         return self._workspace_inputs.get_preview_config(operation_name)
 
@@ -1569,7 +1574,7 @@ class ApplicationAPI:
             Independent copy of the retained source data after confirmation.
 
         Raises:
-            ValueError: The preview is absent, legacy, stale, or has different options.
+            ValueError: The preview is absent, stale, display-only, or has different options.
         """
         return self._workspace_inputs.confirm_preview(
             operation_name, operation_config=operation_config, operation=operation
@@ -1611,8 +1616,8 @@ class ApplicationAPI:
         return self._workspace_inputs.portfolio_bundle_signature(name, snapshot_name=snapshot_name)
 
     def get_preview(self, operation_name: str) -> pd.DataFrame | None:
-        """Retrieve a preview DataFrame for an operation."""
-        return self.state_manager.get_preview(operation_name)
+        """Return an owned preview only while all of its captured sources are current."""
+        return self._workspace_inputs.get_preview(operation_name)
 
     def has_preview(self, operation_name: str) -> bool:
         """Check if a preview exists for an operation."""

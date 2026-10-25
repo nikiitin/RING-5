@@ -10,6 +10,7 @@ import pandas as pd
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
+from src.core.models.preview_models import PreviewInputs
 from src.web.state.ui_state_manager import WidgetKeyBuilder
 
 
@@ -60,14 +61,14 @@ class DataManager(ABC):
         name: str,
         data: pd.DataFrame,
         config: dict[str, Any],
-        source_signature: str,
+        inputs: PreviewInputs,
     ) -> None:
         """Bind a preview to the source and parameters that produced it."""
         self.api.set_preview(
             name,
             data,
             operation_config=config,
-            source_signature=source_signature,
+            inputs=inputs,
         )
 
     def _preview_available(self, name: str, config: dict[str, Any]) -> bool:

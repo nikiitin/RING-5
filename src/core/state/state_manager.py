@@ -17,7 +17,12 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 import pandas as pd
 
-from src.core.models.dataset_workspace_models import DatasetInfo, DatasetLineage, DatasetRevision
+from src.core.models.dataset_workspace_models import (
+    DatasetInfo,
+    DatasetInputIdentity,
+    DatasetLineage,
+    DatasetRevision,
+)
 from src.core.models.plot_protocol import PlotProtocol
 from src.core.models.portfolio_models import PortfolioData, RestoreReport
 from src.core.models.data_models import (
@@ -115,6 +120,10 @@ class StateManager(Protocol):
 
     def selected_dataset_name(self) -> str | None:
         """Return the selected retained dataset name."""
+        raise NotImplementedError
+
+    def get_dataset_input_identity(self, name: str | None = None) -> DatasetInputIdentity:
+        """Return the current workspace generation and named revision identity."""
         raise NotImplementedError
 
     def get_dataset_lineage(self, name: str | None = None) -> DatasetLineage:
@@ -287,7 +296,7 @@ class StateManager(Protocol):
 
     # Previews
     def set_preview(
-        self, operation_name: str, data: pd.DataFrame, *, context: PreviewContext | None = None
+        self, operation_name: str, data: pd.DataFrame, *, context: PreviewContext
     ) -> None:
         """Store a preview DataFrame for an operation."""
         raise NotImplementedError

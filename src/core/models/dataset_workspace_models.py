@@ -19,6 +19,15 @@ class DatasetInfo:
 
 
 @dataclass(frozen=True, slots=True)
+class DatasetInputIdentity:
+    """Identify a named revision within one non-reusable workspace generation."""
+
+    workspace_generation: str
+    dataset_name: str
+    revision_id: str
+
+
+@dataclass(frozen=True, slots=True)
 class DatasetSnapshotInfo:
     """Inspectable metadata for one reusable, fingerprinted dataset snapshot."""
 

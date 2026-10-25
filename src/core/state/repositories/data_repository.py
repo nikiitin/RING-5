@@ -4,12 +4,18 @@ import logging
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
+from uuid import uuid4
 
 import pandas as pd
 
 from src.core.common.dataframe_copy import copy_dataframe
 from src.core.common.content_identity import frame_signature
-from src.core.models.dataset_workspace_models import DatasetInfo, DatasetLineage, DatasetRevision
+from src.core.models.dataset_workspace_models import (
+    DatasetInfo,
+    DatasetInputIdentity,
+    DatasetLineage,
+    DatasetRevision,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +42,7 @@ class DataRepository:
         self._current_revision_ids: dict[str, str] = {}
         self._redo_revision_ids: dict[str, list[str]] = {}
         self._revision_counter = 0
+        self._workspace_generation = uuid4().hex
 
     def get_data(self) -> pd.DataFrame | None:
         """
@@ -126,6 +133,7 @@ class DataRepository:
         self._current_revision_ids.clear()
         self._redo_revision_ids.clear()
         self._revision_counter = 0
+        self._workspace_generation = uuid4().hex
         logger.info("DATA_REPO: All data cleared (primary + processed)")
 
     def add_dataset(
@@ -226,6 +234,13 @@ class DataRepository:
     def selected_dataset_name(self) -> str | None:
         """Return the active dataset name, if the active view is named."""
         return self._selected_dataset
+
+    def get_dataset_input_identity(self, name: str | None = None) -> DatasetInputIdentity:
+        """Return current identity without materializing revision history."""
+        resolved = self._resolve_dataset_name(name)
+        return DatasetInputIdentity(
+            self._workspace_generation, resolved, self._current_revision_ids[resolved]
+        )
 
     def get_dataset_lineage(self, name: str | None = None) -> DatasetLineage:
         """Return all retained revisions and recovery capabilities for a dataset."""

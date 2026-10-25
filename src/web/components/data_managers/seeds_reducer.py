@@ -37,7 +37,7 @@ class SeedsReducerManager(DataManager):
         )
 
         # Get current data
-        source_signature = self.api.preview_input_signature()
+        preview_inputs = self.api.capture_preview_inputs()
         data = self.get_data()
 
         if data is None:
@@ -182,9 +182,7 @@ class SeedsReducerManager(DataManager):
                 st.dataframe(result_df.head(20), width="stretch")
 
                 # Store in PreviewRepository via api
-                self._store_preview(
-                    "seeds_reduction", result_df, operation_config, source_signature
-                )
+                self._store_preview("seeds_reduction", result_df, operation_config, preview_inputs)
 
             except Exception as e:
                 st.exception(e)

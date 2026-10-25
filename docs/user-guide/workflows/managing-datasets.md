@@ -349,6 +349,13 @@ Seeds Reducer, Outlier Remover, Preprocessor, Mixer, and Compare calculate into 
 active workspace table changes only after the corresponding confirmation control is selected.
 Discarding or replacing a preview leaves the active table unchanged.
 
+The named-workspace comparison tracks both dataset revisions and its selected keys, metrics,
+direction and tolerance. Replacing, deleting, undoing or restoring either compared source hides
+its old result; compare again to inspect current measurements. Edits to unrelated datasets and
+active-table selection leave an unchanged named comparison available. Reset and portfolio restore
+invalidate captures from the previous workspace, including captures of identically named tables.
+
+
 ## Reduce repeated runs
 
 <!--

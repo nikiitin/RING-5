@@ -579,7 +579,9 @@
           "tests/unit/test_seeds_reducer.py::TestSeedsReducerRender.test_confirm_applies_data",
           "tests/unit/test_outlier_remover.py::TestOutlierRemoverRender.test_confirm_applies_data",
           "tests/unit/test_preprocessor.py::TestPreprocessorRender.test_confirm_applies_data",
-          "tests/unit/test_mixer_manager.py::TestMixerRender.test_confirm_applies_data"
+          "tests/unit/test_mixer_manager.py::TestMixerRender.test_confirm_applies_data",
+          "tests/unit/test_preview_input_scopes.py::test_pre_reset_named_inputs_cannot_publish_against_reused_names_and_revision_ids",
+          "tests/ui/test_preview_input_scopes.py::test_changed_comparison_controls_hide_stale_results_until_recomputed"
         ],
         "documentation": [
           "docs/user-guide/workflows/managing-datasets.md#preview-and-confirm-changes"
@@ -5588,7 +5590,7 @@
       "portfolio_bundle_signature": "portfolio.portable-bundles",
       "preview_import": "ingestion.import-preview",
       "inspect_browser_upload": "ingestion.browser-upload",
-      "preview_input_signature": "data.preview-confirm",
+      "capture_preview_inputs": "data.preview-confirm",
       "preview_matches": "data.preview-confirm",
       "report_input_signature": "export.batch-reports",
       "restore_browser_portfolio": "ingestion.browser-upload",

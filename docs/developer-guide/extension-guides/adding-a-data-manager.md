@@ -27,8 +27,10 @@ Covers:
 2. Add the method to `ManagersAPI` and its concrete implementation.
 3. Add a UI manager derived from the shared data-manager base. Read data through the API, collect
    configuration, and call the service.
-4. Store preview output through the preview API. Replace active data only after an explicit
-   confirmation.
+4. Capture `api.capture_preview_inputs()` before computation. Store through
+   `api.set_preview(name, result, operation_config=options, inputs=captured)`, and replace active
+   data only after `confirm_preview` validates the user's explicit confirmation. Named comparisons
+   capture both dataset names and validate current options before displaying the result.
 5. Record a typed operation-history entry with source columns, destination columns, operation, and
    timestamp.
 6. Add the manager to the **Data Managers** page without moving validation into the page.

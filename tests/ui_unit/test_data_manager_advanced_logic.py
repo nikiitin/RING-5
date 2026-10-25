@@ -92,8 +92,8 @@ def test_mixer_render_numeric_op(mock_streamlit: Any, mock_api: Any, sample_data
     assert mock_api.set_preview.call_args.args[1] is result_df
     assert "operation_config" in mock_api.set_preview.call_args.kwargs
     assert (
-        mock_api.set_preview.call_args.kwargs["source_signature"]
-        is mock_api.preview_input_signature.return_value
+        mock_api.set_preview.call_args.kwargs["inputs"]
+        is mock_api.capture_preview_inputs.return_value
     )
     mock_st.success.assert_called()
 
@@ -159,8 +159,8 @@ def test_preprocessor_render_op(mock_streamlit: Any, mock_api: Any, sample_data:
     assert mock_api.set_preview.call_args.args[1] is result_df
     assert "operation_config" in mock_api.set_preview.call_args.kwargs
     assert (
-        mock_api.set_preview.call_args.kwargs["source_signature"]
-        is mock_api.preview_input_signature.return_value
+        mock_api.set_preview.call_args.kwargs["inputs"]
+        is mock_api.capture_preview_inputs.return_value
     )
 
 

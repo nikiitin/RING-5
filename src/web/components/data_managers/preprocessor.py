@@ -34,7 +34,7 @@ class PreprocessorManager(DataManager):
         """)
 
         # Get current data
-        source_signature = self.api.preview_input_signature()
+        preview_inputs = self.api.capture_preview_inputs()
         data = self.get_data()
 
         if data is None:
@@ -149,9 +149,7 @@ class PreprocessorManager(DataManager):
                 st.dataframe(preview_data[new_col_name].describe().to_frame(), width="stretch")
 
                 # Store in PreviewRepository via api
-                self._store_preview(
-                    "preprocessor", preview_data, operation_config, source_signature
-                )
+                self._store_preview("preprocessor", preview_data, operation_config, preview_inputs)
 
             except Exception as e:
                 st.exception(e)

@@ -301,16 +301,16 @@ class TestPreviewManagement:
         assert manager.has_preview("normalize") is False
         assert manager.get_preview("normalize") is None
 
-    def test_set_and_get_preview(self, manager: RepositoryStateManager) -> None:
+    def test_set_and_get_preview(self, manager: RepositoryStateManager, preview_context) -> None:
         df = pd.DataFrame({"x": [1, 2, 3]})
-        manager.set_preview("normalize", df)
+        manager.set_preview("normalize", df, context=preview_context)
         assert manager.has_preview("normalize") is True
         result = manager.get_preview("normalize")
         assert result is not None
         assert len(result) == 3
 
-    def test_clear_preview(self, manager: RepositoryStateManager) -> None:
-        manager.set_preview("filter", pd.DataFrame({"x": [1]}))
+    def test_clear_preview(self, manager: RepositoryStateManager, preview_context) -> None:
+        manager.set_preview("filter", pd.DataFrame({"x": [1]}), context=preview_context)
         manager.clear_preview("filter")
         assert manager.has_preview("filter") is False
 
