@@ -350,10 +350,49 @@ def test_restore_deserializer_can_wait_for_foreign_state_publication() -> None:
 
         state = RepositoryStateManager(plot_deserializer=deserialize)
         state.set_data(pd.DataFrame({"old": [9]}))
-        report = state.restore_session({"data_csv": "new\n3\n", "plots": [{"name": "one"}]})
-    assert report.complete
-    assert report.plots_restored == 1
-    assert state.get_data().to_dict("records") == [{"new": 3}]
+        with pytest.raises(ValueError, match="Workspace changed while restoring"):
+            state.restore_session({"data_csv": "new\n3\n", "plots": [{"name": "one"}]})
+    assert state.get_data().to_dict("records") == [{"old": 9}]
+    assert state.get_processed_data().to_dict("records") == [{"x": 1}]
+
+
+@pytest.mark.parametrize("write", ["unselected_dataset", "configuration", "preview"])
+def test_restore_rejects_concurrent_writes_without_invalidating_source_preview(write) -> None:
+    from src.core.state.repository_state_manager import RepositoryStateManager
+
+    entered, resume = threading.Event(), threading.Event()
+
+    def deserialize(spec):
+        entered.set()
+        assert resume.wait(5)
+        return SimpleNamespace(plot_id=1, name="restored")
+
+    state = RepositoryStateManager(plot_deserializer=deserialize)
+    state.add_dataset("active", pd.DataFrame({"x": [1]}))
+    version = state.get_source_version()
+    repository = state._session_repo
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        future = pool.submit(state.restore_session, {"plots": [{"name": "one"}]})
+        assert entered.wait(5)
+        try:
+            if write == "unselected_dataset":
+                state.add_dataset("candidate", pd.DataFrame({"x": [99]}), select=False)
+            elif write == "configuration":
+                state.update_config("edited", True)
+            else:
+                state.set_preview("candidate", pd.DataFrame({"x": [99]}))
+            assert state.get_source_version() == version
+        finally:
+            resume.set()
+        with pytest.raises(ValueError, match="Workspace changed while restoring"):
+            future.result(timeout=5)
+    assert state._session_repo is repository
+    if write == "unselected_dataset":
+        assert "candidate" in [dataset.name for dataset in state.list_datasets()]
+    elif write == "configuration":
+        assert state.get_config()["edited"] is True
+    else:
+        assert state.has_preview("candidate")
 
 
 def test_failed_restore_preparation_preserves_existing_repository_and_preview(api) -> None:
@@ -386,7 +425,7 @@ def test_source_publication_during_restore_preparation_rejects_candidate() -> No
         assert entered.wait(2)
         state.set_data(pd.DataFrame({"x": [99]}))
         resume.set()
-        with pytest.raises(ValueError, match="source changed while restoring"):
+        with pytest.raises(ValueError, match="Workspace changed while restoring"):
             future.result(timeout=2)
     assert state._session_repo is original_repository
     assert state.get_data()["x"].tolist() == [99]

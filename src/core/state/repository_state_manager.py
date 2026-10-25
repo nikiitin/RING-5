@@ -49,7 +49,10 @@ def _state_write(
     @wraps(method)
     def guarded(self: RepositoryStateManager, *args: _P.args, **kwargs: _P.kwargs) -> _R:
         with self._transaction_lock:
-            return method(self, *args, **kwargs)
+            try:
+                return method(self, *args, **kwargs)
+            finally:
+                self._workspace_version += 1
 
     return guarded
 
@@ -81,6 +84,7 @@ def _source_write(
             try:
                 return method(self, *args, **kwargs)
             finally:
+                self._workspace_version += 1
                 # A failed operation may already have published part of its state.
                 # Old previews must not retain authority after that publication.
                 unchanged_selection = selection is not None and selection == _selection_revision(
@@ -110,6 +114,7 @@ class RepositoryStateManager:
         self._transaction_lock = threading.RLock()
         self._transaction_context = threading.local()
         self._source_version = 0
+        self._workspace_version = 0
         self._plot_deserializer = plot_deserializer
         self._session_repo = SessionRepository(plot_deserializer=plot_deserializer)
 
@@ -180,6 +185,7 @@ class RepositoryStateManager:
                 )
             finally:
                 self._source_version += 1
+                self._workspace_version += 1
         # Foreign callbacks may wait on work that publishes more session state.
         # Run them only after the source version is committed and the lock released.
         if on_change is not None:
@@ -523,7 +529,7 @@ class RepositoryStateManager:
         CSV decoding and injected deserializers run outside the state lock.
         Preparation exceptions retain the current repositories. Reported per-item
         failures remain best-effort, and successful publication replaces other
-        workspace settings. A concurrent source publication aborts replacement.
+        workspace settings. A concurrent state-manager write aborts replacement.
 
         Args:
             portfolio_data: Verified portfolio snapshot to restore.
@@ -533,21 +539,20 @@ class RepositoryStateManager:
 
         Raises:
             ValueError: Called inside a transaction, preparation input is invalid,
-                or the source changes while the replacement is prepared.
+                or the workspace changes while the replacement is prepared.
         """
         transaction_depth: int = getattr(self._transaction_context, "depth", 0)
         if transaction_depth > 0:
             raise ValueError("Prepare portfolio restores outside a surrounding state transaction.")
         with self._transaction_lock:
-            expected_version = self._source_version
+            expected_version = self._workspace_version
             factory = self._plot_deserializer
         candidate = SessionRepository(plot_deserializer=factory)
         report = candidate.restore_from_portfolio(portfolio_data)
         with self._transaction_lock:
-            if self._source_version != expected_version:
-                raise ValueError(
-                    "Workspace source changed while restoring; review and retry the restore."
-                )
+            if self._workspace_version != expected_version:
+                raise ValueError("Workspace changed while restoring; review and retry the restore.")
             self._session_repo = candidate
             self._source_version += 1
+            self._workspace_version += 1
         return report

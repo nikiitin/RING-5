@@ -108,9 +108,13 @@ class TestShaperPipelineOperations:
 
     @pytest.mark.order(7)
     def test_07_finalize_pipeline(self, tier1_page: Page) -> None:
-        """Finalizing refreshes the visualization without navigation."""
+        """Incomplete normalization blocks publication until the step is removed."""
         mp = ManagePlotsPage(tier1_page)
         mp.finalize_pipeline()
+        expect(mp.no_processed_data_warning).to_be_visible(timeout=E2E_TIMEOUT)
+        mp.delete_step(1)
+        mp.finalize_pipeline()
+        expect(mp.no_processed_data_warning).not_to_be_visible(timeout=E2E_TIMEOUT)
         mp.assert_visualization_section_visible()
 
 

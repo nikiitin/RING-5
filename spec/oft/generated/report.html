@@ -620,8 +620,8 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
 
 </style>
     <title>RING-5 feature coverage · OpenFastTrace</title>
-    <meta name="ring5-inventory-sha256" content="1e96e2adc3feeb1febb6de7a834ace3b34e7acb2a911176ed4fafd1b5b695885">
-  <meta name="ring5-evidence-sha256" content="5f8d26dc39ca95bee0e8a6c60e0576c6a2df3bbbf3048910e017b6d68f589df2">
+    <meta name="ring5-inventory-sha256" content="222e1db3169f55fed8cb2c4c2d8d8fdd81a3582129afa895277294a398024f7a">
+  <meta name="ring5-evidence-sha256" content="a02b9eff5f5fc55c4dd61c48547e5752858e26887024a1e5d2abb40876f47d89">
 </head>
   <body>
 
@@ -849,7 +849,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>Each browser session shall own independent mutable data, parser, plot, preview, and history state while sharing only explicitly thread-safe process pools.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>1 exact origin</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 4 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/developer-guide/api-reference/state-manager.md#L16"><code>docs/developer-guide/api-reference/state-manager.md#state-manager</code><b>open source ↗</b></a><span>line 16 · <a href="#uman~ring5.workspace.session-isolation.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/core/state/repository_state_manager.py#L109"><code>src/core/state/repository_state_manager.py::RepositoryStateManager.__init__</code><b>open source ↗</b></a><span>line 109 · <a href="#impl~ring5.workspace.session-isolation-3051426184~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../app.py#L59"><code>app.py::run_app</code><b>open source ↗</b></a><span>line 59 · <a href="#impl~ring5.workspace.session-isolation-2082616072~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/e2e/test_session_isolation.py#L26"><code>tests/e2e/test_session_isolation.py::test_browser_sessions_keep_data_plots_and_reset_isolated</code><b>open source ↗</b></a><span>line 26 · <a href="#test~ring5.workspace.session-isolation-3554749424~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 4 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/developer-guide/api-reference/state-manager.md#L16"><code>docs/developer-guide/api-reference/state-manager.md#state-manager</code><b>open source ↗</b></a><span>line 16 · <a href="#uman~ring5.workspace.session-isolation.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/core/state/repository_state_manager.py#L113"><code>src/core/state/repository_state_manager.py::RepositoryStateManager.__init__</code><b>open source ↗</b></a><span>line 113 · <a href="#impl~ring5.workspace.session-isolation-855518825~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../app.py#L59"><code>app.py::run_app</code><b>open source ↗</b></a><span>line 59 · <a href="#impl~ring5.workspace.session-isolation-2082616072~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/e2e/test_session_isolation.py#L26"><code>tests/e2e/test_session_isolation.py::test_browser_sessions_keep_data_plots_and_reset_isolated</code><b>open source ↗</b></a><span>line 26 · <a href="#test~ring5.workspace.session-isolation-3554749424~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">isolation</span><span class="human-tag">state</span><span class="human-tag">web</span></div></div>
     <a href="#req~ring5.workspace.session-isolation~1">View canonical OFT trace ↓</a>
@@ -889,7 +889,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>Users shall be able to clear loaded data, plots, and session state from the sidebar without affecting other browser sessions.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>1 exact origin</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 4 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/getting-started/concepts.md#L13"><code>docs/user-guide/getting-started/concepts.md#core-concepts</code><b>open source ↗</b></a><span>line 13 · <a href="#uman~ring5.workspace.reset.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../app.py#L142"><code>app.py::run_app</code><b>open source ↗</b></a><span>line 142 · <a href="#impl~ring5.workspace.reset-1876673016~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/state/repository_state_manager.py#L204"><code>src/core/state/repository_state_manager.py::RepositoryStateManager.clear_data</code><b>open source ↗</b></a><span>line 204 · <a href="#impl~ring5.workspace.reset-885265590~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/ui/test_e2e_data_loaded.py#L173"><code>tests/ui/test_e2e_data_loaded.py::TestSidebarWithData.test_clear_data_button_clears_state</code><b>open source ↗</b></a><span>line 173 · <a href="#test~ring5.workspace.reset-3496616399~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 4 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/getting-started/concepts.md#L13"><code>docs/user-guide/getting-started/concepts.md#core-concepts</code><b>open source ↗</b></a><span>line 13 · <a href="#uman~ring5.workspace.reset.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../app.py#L142"><code>app.py::run_app</code><b>open source ↗</b></a><span>line 142 · <a href="#impl~ring5.workspace.reset-1876673016~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/state/repository_state_manager.py#L210"><code>src/core/state/repository_state_manager.py::RepositoryStateManager.clear_data</code><b>open source ↗</b></a><span>line 210 · <a href="#impl~ring5.workspace.reset-1607112047~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/ui/test_e2e_data_loaded.py#L173"><code>tests/ui/test_e2e_data_loaded.py::TestSidebarWithData.test_clear_data_button_clears_state</code><b>open source ↗</b></a><span>line 173 · <a href="#test~ring5.workspace.reset-3496616399~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">reset</span><span class="human-tag">state</span><span class="human-tag">web</span></div></div>
     <a href="#req~ring5.workspace.reset~1">View canonical OFT trace ↓</a>
@@ -1497,7 +1497,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>Web parsing shall submit immediately, retain bounded progress across reruns and navigation within one browser session, coalesce identical requests, support cooperative job-specific cancellation and explicit retry, publish successful CSVs atomically, and clean transient job data on consumption, acknowledgement, reset, release, shutdown, or orphan recovery.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>1 exact origin</strong></li><li data-readiness="ready"><span>Test</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 4 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/loading-data.md#L460"><code>docs/user-guide/workflows/loading-data.md#session-background-parsing</code><b>open source ↗</b></a><span>line 460 · <a href="#uman~ring5.ingestion.session-background-parse.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/core/services/parse_job_service.py#L175"><code>src/core/services/parse_job_service.py::ParseJobService</code><b>open source ↗</b></a><span>line 175 · <a href="#impl~ring5.ingestion.session-background-parse-732826853~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_parse_jobs.py#L440"><code>tests/unit/test_parse_jobs.py::TestParseJobFlow</code><b>open source ↗</b></a><span>line 440 · <a href="#test~ring5.ingestion.session-background-parse-3891763755~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/e2e/test_background_jobs.py#L52"><code>tests/e2e/test_background_jobs.py::TestBackgroundParseJob.test_parse_loads_without_a_blocking_dialog</code><b>open source ↗</b></a><span>line 52 · <a href="#test~ring5.ingestion.session-background-parse-2097317091~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 4 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/loading-data.md#L460"><code>docs/user-guide/workflows/loading-data.md#session-background-parsing</code><b>open source ↗</b></a><span>line 460 · <a href="#uman~ring5.ingestion.session-background-parse.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/core/services/parse_job_service.py#L147"><code>src/core/services/parse_job_service.py::ParseJobService</code><b>open source ↗</b></a><span>line 147 · <a href="#impl~ring5.ingestion.session-background-parse-441754153~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_parse_jobs.py#L442"><code>tests/unit/test_parse_jobs.py::TestParseJobFlow</code><b>open source ↗</b></a><span>line 442 · <a href="#test~ring5.ingestion.session-background-parse-2626962323~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/e2e/test_background_jobs.py#L52"><code>tests/e2e/test_background_jobs.py::TestBackgroundParseJob.test_parse_loads_without_a_blocking_dialog</code><b>open source ↗</b></a><span>line 52 · <a href="#test~ring5.ingestion.session-background-parse-2097317091~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">async</span><span class="human-tag">parsing</span><span class="human-tag">sessions</span></div></div>
     <a href="#req~ring5.ingestion.session-background-parse~1">View canonical OFT trace ↓</a>
@@ -1577,7 +1577,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>Browser-submitted statistics paths shall be resolved below the roots configured by RING5_ALLOWED_STATS_ROOTS, and the Data Source page shall display the active roots.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>1 exact origin</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 4 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/loading-data.md#L104"><code>docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application</code><b>open source ↗</b></a><span>line 104 · <a href="#uman~ring5.ingestion.web-path-authorization.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/core/common/utils.py#L209"><code>src/core/common/utils.py::validate_web_stats_path</code><b>open source ↗</b></a><span>line 209 · <a href="#impl~ring5.ingestion.web-path-authorization-3476564743~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/components/data_source/data_source_components.py#L636"><code>src/web/components/data_source/data_source_components.py::DataSourceComponents.render_parser_config</code><b>open source ↗</b></a><span>line 636 · <a href="#impl~ring5.ingestion.web-path-authorization-2637734663~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_utils.py#L166"><code>tests/unit/test_utils.py::TestValidateWebStatsPath.test_allowed_root_accepts_child</code><b>open source ↗</b></a><span>line 166 · <a href="#test~ring5.ingestion.web-path-authorization-3174836474~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 4 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/loading-data.md#L104"><code>docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application</code><b>open source ↗</b></a><span>line 104 · <a href="#uman~ring5.ingestion.web-path-authorization.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/core/common/utils.py#L210"><code>src/core/common/utils.py::validate_web_stats_path</code><b>open source ↗</b></a><span>line 210 · <a href="#impl~ring5.ingestion.web-path-authorization-2435214315~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/components/data_source/data_source_components.py#L636"><code>src/web/components/data_source/data_source_components.py::DataSourceComponents.render_parser_config</code><b>open source ↗</b></a><span>line 636 · <a href="#impl~ring5.ingestion.web-path-authorization-2637734663~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_utils.py#L166"><code>tests/unit/test_utils.py::TestValidateWebStatsPath.test_allowed_root_accepts_child</code><b>open source ↗</b></a><span>line 166 · <a href="#test~ring5.ingestion.web-path-authorization-3174836474~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">paths</span><span class="human-tag">security</span><span class="human-tag">web</span></div></div>
     <a href="#req~ring5.ingestion.web-path-authorization~1">View canonical OFT trace ↓</a>
@@ -1817,7 +1817,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>Parsing shall detect new or changed simulator outputs and update prior results without reparsing unchanged files.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>9 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>5 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 15 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/loading-data.md#L194"><code>docs/user-guide/workflows/loading-data.md#reuse-unchanged-simulator-files</code><b>open source ↗</b></a><span>line 194 · <a href="#uman~ring5.ingestion.incremental-parsing.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/core/models/parsing_models.py#L53"><code>src/core/models/parsing_models.py::IncrementalParseBatchResult</code><b>open source ↗</b></a><span>line 53 · <a href="#impl~ring5.ingestion.incremental-parsing-875417290~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/parsing/framework/incremental_cache.py#L59"><code>src/parsing/framework/incremental_cache.py::fingerprint_inputs</code><b>open source ↗</b></a><span>line 59 · <a href="#impl~ring5.ingestion.incremental-parsing-1955826305~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/parsing/framework/incremental_cache.py#L194"><code>src/parsing/framework/incremental_cache.py::write_cache</code><b>open source ↗</b></a><span>line 194 · <a href="#impl~ring5.ingestion.incremental-parsing-900521236~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/parsing/gem5/impl/gem5_parser.py#L436"><code>src/parsing/gem5/impl/gem5_parser.py::Gem5Parser.submit_incremental_parse_async</code><b>open source ↗</b></a><span>line 436 · <a href="#impl~ring5.ingestion.incremental-parsing-3470349578~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/parsing/gem5/impl/gem5_parser.py#L750"><code>src/parsing/gem5/impl/gem5_parser.py::Gem5Parser.finalize_incremental_parsing</code><b>open source ↗</b></a><span>line 750 · <a href="#impl~ring5.ingestion.incremental-parsing-1157335688~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/application_api.py#L1172"><code>src/core/application_api.py::ApplicationAPI.submit_incremental_parse_async</code><b>open source ↗</b></a><span>line 1172 · <a href="#impl~ring5.ingestion.incremental-parsing-3430217984~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/application_api.py#L1208"><code>src/core/application_api.py::ApplicationAPI.finalize_incremental_parsing</code><b>open source ↗</b></a><span>line 1208 · <a href="#impl~ring5.ingestion.incremental-parsing-4266425942~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../ring5/_session.py#L516"><code>ring5/_session.py::Session.parse_submit</code><b>open source ↗</b></a><span>line 516 · <a href="#impl~ring5.ingestion.incremental-parsing-1407203580~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/components/data_source/data_source_components.py#L634"><code>src/web/components/data_source/data_source_components.py::DataSourceComponents.render_parser_config</code><b>open source ↗</b></a><span>line 634 · <a href="#impl~ring5.ingestion.incremental-parsing-3993980248~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_incremental_parse_cache.py#L22"><code>tests/unit/test_incremental_parse_cache.py::test_cache_is_plain_json_and_rejects_stale_or_malformed_records</code><b>open source ↗</b></a><span>line 22 · <a href="#test~ring5.ingestion.incremental-parsing-448891375~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_incremental_parsing.py#L23"><code>tests/integration/test_incremental_parsing.py::test_incremental_parse_reuses_updates_and_removes_exact_source_rows</code><b>open source ↗</b></a><span>line 23 · <a href="#test~ring5.ingestion.incremental-parsing-3459697181~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_incremental_parse_component.py#L22"><code>tests/unit/test_incremental_parse_component.py::test_incremental_background_job_finalizes_an_all_reused_batch</code><b>open source ↗</b></a><span>line 22 · <a href="#test~ring5.ingestion.incremental-parsing-3888350008~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_application_api_delegation.py#L245"><code>tests/unit/test_application_api_delegation.py::TestIncrementalParsing.test_submit_and_finalize_delegate_to_parser</code><b>open source ↗</b></a><span>line 245 · <a href="#test~ring5.ingestion.incremental-parsing-3941950690~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/e2e/test_data_source.py#L66"><code>tests/e2e/test_data_source.py::TestDataSourcePageStructure.test_incremental_parse_control_is_visible_and_enabled</code><b>open source ↗</b></a><span>line 66 · <a href="#test~ring5.ingestion.incremental-parsing-3961916519~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 15 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/loading-data.md#L194"><code>docs/user-guide/workflows/loading-data.md#reuse-unchanged-simulator-files</code><b>open source ↗</b></a><span>line 194 · <a href="#uman~ring5.ingestion.incremental-parsing.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/core/models/parsing_models.py#L53"><code>src/core/models/parsing_models.py::IncrementalParseBatchResult</code><b>open source ↗</b></a><span>line 53 · <a href="#impl~ring5.ingestion.incremental-parsing-875417290~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/common/input_identity.py#L19"><code>src/core/common/input_identity.py::fingerprint_inputs</code><b>open source ↗</b></a><span>line 19 · <a href="#impl~ring5.ingestion.incremental-parsing-1290104331~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/parsing/framework/incremental_cache.py#L127"><code>src/parsing/framework/incremental_cache.py::write_cache</code><b>open source ↗</b></a><span>line 127 · <a href="#impl~ring5.ingestion.incremental-parsing-147868654~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/parsing/gem5/impl/gem5_parser.py#L436"><code>src/parsing/gem5/impl/gem5_parser.py::Gem5Parser.submit_incremental_parse_async</code><b>open source ↗</b></a><span>line 436 · <a href="#impl~ring5.ingestion.incremental-parsing-3470349578~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/parsing/gem5/impl/gem5_parser.py#L750"><code>src/parsing/gem5/impl/gem5_parser.py::Gem5Parser.finalize_incremental_parsing</code><b>open source ↗</b></a><span>line 750 · <a href="#impl~ring5.ingestion.incremental-parsing-1157335688~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/application_api.py#L1172"><code>src/core/application_api.py::ApplicationAPI.submit_incremental_parse_async</code><b>open source ↗</b></a><span>line 1172 · <a href="#impl~ring5.ingestion.incremental-parsing-3430217984~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/application_api.py#L1208"><code>src/core/application_api.py::ApplicationAPI.finalize_incremental_parsing</code><b>open source ↗</b></a><span>line 1208 · <a href="#impl~ring5.ingestion.incremental-parsing-4266425942~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../ring5/_session.py#L516"><code>ring5/_session.py::Session.parse_submit</code><b>open source ↗</b></a><span>line 516 · <a href="#impl~ring5.ingestion.incremental-parsing-1407203580~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/components/data_source/data_source_components.py#L634"><code>src/web/components/data_source/data_source_components.py::DataSourceComponents.render_parser_config</code><b>open source ↗</b></a><span>line 634 · <a href="#impl~ring5.ingestion.incremental-parsing-3993980248~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_incremental_parse_cache.py#L22"><code>tests/unit/test_incremental_parse_cache.py::test_cache_is_plain_json_and_rejects_stale_or_malformed_records</code><b>open source ↗</b></a><span>line 22 · <a href="#test~ring5.ingestion.incremental-parsing-448891375~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_incremental_parsing.py#L23"><code>tests/integration/test_incremental_parsing.py::test_incremental_parse_reuses_updates_and_removes_exact_source_rows</code><b>open source ↗</b></a><span>line 23 · <a href="#test~ring5.ingestion.incremental-parsing-3459697181~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_incremental_parse_component.py#L22"><code>tests/unit/test_incremental_parse_component.py::test_incremental_background_job_finalizes_an_all_reused_batch</code><b>open source ↗</b></a><span>line 22 · <a href="#test~ring5.ingestion.incremental-parsing-3888350008~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_application_api_delegation.py#L245"><code>tests/unit/test_application_api_delegation.py::TestIncrementalParsing.test_submit_and_finalize_delegate_to_parser</code><b>open source ↗</b></a><span>line 245 · <a href="#test~ring5.ingestion.incremental-parsing-3941950690~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/e2e/test_data_source.py#L66"><code>tests/e2e/test_data_source.py::TestDataSourcePageStructure.test_incremental_parse_control_is_visible_and_enabled</code><b>open source ↗</b></a><span>line 66 · <a href="#test~ring5.ingestion.incremental-parsing-3961916519~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">incremental</span><span class="human-tag">parsing</span><span class="human-tag">performance</span></div></div>
     <a href="#req~ring5.ingestion.incremental-parsing~1">View canonical OFT trace ↓</a>
@@ -2253,7 +2253,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>Each plot shall own an ordered shaper pipeline whose output does not mutate workspace data or another plot.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>3 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>3 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 7 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/plotting.md#L64"><code>docs/user-guide/workflows/plotting.md#shape-data-for-this-plot</code><b>open source ↗</b></a><span>line 64 · <a href="#uman~ring5.shaping.independent-pipelines.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/core/services/shapers/pipeline_service.py#L46"><code>src/core/services/shapers/pipeline_service.py::PipelineService.process_pipeline</code><b>open source ↗</b></a><span>line 46 · <a href="#impl~ring5.shaping.independent-pipelines-496400414~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/base_plot.py#L49"><code>src/web/pages/ui/plotting/base_plot.py::BasePlot.__init__</code><b>open source ↗</b></a><span>line 49 · <a href="#impl~ring5.shaping.independent-pipelines-2371863027~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/controllers/plot/pipeline_controller.py#L266"><code>src/web/controllers/plot/pipeline_controller.py::PipelineController._handle_finalize</code><b>open source ↗</b></a><span>line 266 · <a href="#impl~ring5.shaping.independent-pipelines-1391737400~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_shaper_config_validate.py#L223"><code>tests/unit/test_shaper_config_validate.py::TestApplyShapers.test_does_not_mutate_original_data</code><b>open source ↗</b></a><span>line 223 · <a href="#test~ring5.shaping.independent-pipelines-2471691742~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_transformation_pipeline.py#L89"><code>tests/integration/test_transformation_pipeline.py::TestTransformationPipeline.test_multi_shaper_pipeline</code><b>open source ↗</b></a><span>line 89 · <a href="#test~ring5.shaping.independent-pipelines-3512490497~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_controller_presenter.py#L343"><code>tests/integration/test_controller_presenter.py::TestPlotLifecycleIntegration.test_duplicate_creates_independent_copy</code><b>open source ↗</b></a><span>line 343 · <a href="#test~ring5.shaping.independent-pipelines-2857936635~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 7 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/plotting.md#L64"><code>docs/user-guide/workflows/plotting.md#shape-data-for-this-plot</code><b>open source ↗</b></a><span>line 64 · <a href="#uman~ring5.shaping.independent-pipelines.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/core/services/shapers/pipeline_service.py#L46"><code>src/core/services/shapers/pipeline_service.py::PipelineService.process_pipeline</code><b>open source ↗</b></a><span>line 46 · <a href="#impl~ring5.shaping.independent-pipelines-496400414~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/base_plot.py#L49"><code>src/web/pages/ui/plotting/base_plot.py::BasePlot.__init__</code><b>open source ↗</b></a><span>line 49 · <a href="#impl~ring5.shaping.independent-pipelines-2371863027~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/controllers/plot/pipeline_controller.py#L266"><code>src/web/controllers/plot/pipeline_controller.py::PipelineController._handle_finalize</code><b>open source ↗</b></a><span>line 266 · <a href="#impl~ring5.shaping.independent-pipelines-1391737400~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_shaper_config_validate.py#L219"><code>tests/unit/test_shaper_config_validate.py::TestApplyShapers.test_does_not_mutate_original_data</code><b>open source ↗</b></a><span>line 219 · <a href="#test~ring5.shaping.independent-pipelines-905977237~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_transformation_pipeline.py#L89"><code>tests/integration/test_transformation_pipeline.py::TestTransformationPipeline.test_multi_shaper_pipeline</code><b>open source ↗</b></a><span>line 89 · <a href="#test~ring5.shaping.independent-pipelines-3512490497~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_controller_presenter.py#L343"><code>tests/integration/test_controller_presenter.py::TestPlotLifecycleIntegration.test_duplicate_creates_independent_copy</code><b>open source ↗</b></a><span>line 343 · <a href="#test~ring5.shaping.independent-pipelines-2857936635~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">pipeline</span><span class="human-tag">plots</span><span class="human-tag">shapers</span></div></div>
     <a href="#req~ring5.shaping.independent-pipelines~1">View canonical OFT trace ↓</a>
@@ -2553,7 +2553,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>Users shall import and export versioned saved shaper configurations with validation, conflict handling, and migration support.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>8 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>5 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 14 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/plotting.md#L96"><code>docs/user-guide/workflows/plotting.md#share-a-pipeline-configuration</code><b>open source ↗</b></a><span>line 96 · <a href="#uman~ring5.shaping.config-import-export.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/core/services/data_services/pipeline_config_exchange_service.py#L79"><code>src/core/services/data_services/pipeline_config_exchange_service.py::PipelineConfigExchangeService.dumps</code><b>open source ↗</b></a><span>line 79 · <a href="#impl~ring5.shaping.config-import-export-272413924~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/services/data_services/pipeline_config_exchange_service.py#L130"><code>src/core/services/data_services/pipeline_config_exchange_service.py::PipelineConfigExchangeService.loads</code><b>open source ↗</b></a><span>line 130 · <a href="#impl~ring5.shaping.config-import-export-1661804579~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/services/data_services/config_service.py#L169"><code>src/core/services/data_services/config_service.py::ConfigService.export_configuration</code><b>open source ↗</b></a><span>line 169 · <a href="#impl~ring5.shaping.config-import-export-1778823975~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/services/data_services/config_service.py#L200"><code>src/core/services/data_services/config_service.py::ConfigService.import_configuration</code><b>open source ↗</b></a><span>line 200 · <a href="#impl~ring5.shaping.config-import-export-4123360131~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/components/common/pipeline.py#L67"><code>src/web/components/common/pipeline.py::PipelineComponent.render_exchange</code><b>open source ↗</b></a><span>line 67 · <a href="#impl~ring5.shaping.config-import-export-3161841626~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/controllers/plot/pipeline_controller.py#L155"><code>src/web/controllers/plot/pipeline_controller.py::PipelineController._handle_exchange_import</code><b>open source ↗</b></a><span>line 155 · <a href="#impl~ring5.shaping.config-import-export-3848984787~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../ring5/_session.py#L1874"><code>ring5/_session.py::Session.export_pipeline_configuration</code><b>open source ↗</b></a><span>line 1874 · <a href="#impl~ring5.shaping.config-import-export-199100115~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../ring5/_session.py#L1901"><code>ring5/_session.py::Session.import_pipeline_configuration</code><b>open source ↗</b></a><span>line 1901 · <a href="#impl~ring5.shaping.config-import-export-1739613572~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_pipeline_config_exchange.py#L39"><code>tests/unit/test_pipeline_config_exchange.py::test_export_is_deterministic_versioned_and_validated</code><b>open source ↗</b></a><span>line 39 · <a href="#test~ring5.shaping.config-import-export-890351568~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_pipeline_config_exchange.py#L62"><code>tests/unit/test_pipeline_config_exchange.py::test_import_migrates_legacy_record_and_preserves_content</code><b>open source ↗</b></a><span>line 62 · <a href="#test~ring5.shaping.config-import-export-2224831298~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_pipeline_config_exchange.py#L96"><code>tests/unit/test_pipeline_config_exchange.py::test_import_conflicts_can_stop_rename_or_replace</code><b>open source ↗</b></a><span>line 96 · <a href="#test~ring5.shaping.config-import-export-921655682~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_ring5_public_api.py#L877"><code>tests/integration/test_ring5_public_api.py::TestPipelineConfigurationExchange.test_versioned_round_trip_and_typed_conflict</code><b>open source ↗</b></a><span>line 877 · <a href="#test~ring5.shaping.config-import-export-3043669714~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/e2e/test_shaper_pipeline.py#L211"><code>tests/e2e/test_shaper_pipeline.py::TestPipelineConfigurationExchange.test_download_then_import_and_use</code><b>open source ↗</b></a><span>line 211 · <a href="#test~ring5.shaping.config-import-export-4261074300~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 14 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/plotting.md#L96"><code>docs/user-guide/workflows/plotting.md#share-a-pipeline-configuration</code><b>open source ↗</b></a><span>line 96 · <a href="#uman~ring5.shaping.config-import-export.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/core/services/data_services/pipeline_config_exchange_service.py#L79"><code>src/core/services/data_services/pipeline_config_exchange_service.py::PipelineConfigExchangeService.dumps</code><b>open source ↗</b></a><span>line 79 · <a href="#impl~ring5.shaping.config-import-export-272413924~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/services/data_services/pipeline_config_exchange_service.py#L130"><code>src/core/services/data_services/pipeline_config_exchange_service.py::PipelineConfigExchangeService.loads</code><b>open source ↗</b></a><span>line 130 · <a href="#impl~ring5.shaping.config-import-export-1661804579~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/services/data_services/config_service.py#L169"><code>src/core/services/data_services/config_service.py::ConfigService.export_configuration</code><b>open source ↗</b></a><span>line 169 · <a href="#impl~ring5.shaping.config-import-export-1778823975~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/services/data_services/config_service.py#L200"><code>src/core/services/data_services/config_service.py::ConfigService.import_configuration</code><b>open source ↗</b></a><span>line 200 · <a href="#impl~ring5.shaping.config-import-export-4123360131~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/components/common/pipeline.py#L67"><code>src/web/components/common/pipeline.py::PipelineComponent.render_exchange</code><b>open source ↗</b></a><span>line 67 · <a href="#impl~ring5.shaping.config-import-export-3161841626~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/controllers/plot/pipeline_controller.py#L155"><code>src/web/controllers/plot/pipeline_controller.py::PipelineController._handle_exchange_import</code><b>open source ↗</b></a><span>line 155 · <a href="#impl~ring5.shaping.config-import-export-3848984787~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../ring5/_session.py#L1874"><code>ring5/_session.py::Session.export_pipeline_configuration</code><b>open source ↗</b></a><span>line 1874 · <a href="#impl~ring5.shaping.config-import-export-199100115~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../ring5/_session.py#L1901"><code>ring5/_session.py::Session.import_pipeline_configuration</code><b>open source ↗</b></a><span>line 1901 · <a href="#impl~ring5.shaping.config-import-export-1739613572~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_pipeline_config_exchange.py#L39"><code>tests/unit/test_pipeline_config_exchange.py::test_export_is_deterministic_versioned_and_validated</code><b>open source ↗</b></a><span>line 39 · <a href="#test~ring5.shaping.config-import-export-890351568~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_pipeline_config_exchange.py#L62"><code>tests/unit/test_pipeline_config_exchange.py::test_import_migrates_legacy_record_and_preserves_content</code><b>open source ↗</b></a><span>line 62 · <a href="#test~ring5.shaping.config-import-export-2224831298~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_pipeline_config_exchange.py#L96"><code>tests/unit/test_pipeline_config_exchange.py::test_import_conflicts_can_stop_rename_or_replace</code><b>open source ↗</b></a><span>line 96 · <a href="#test~ring5.shaping.config-import-export-921655682~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_ring5_public_api.py#L877"><code>tests/integration/test_ring5_public_api.py::TestPipelineConfigurationExchange.test_versioned_round_trip_and_typed_conflict</code><b>open source ↗</b></a><span>line 877 · <a href="#test~ring5.shaping.config-import-export-3043669714~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/e2e/test_shaper_pipeline.py#L215"><code>tests/e2e/test_shaper_pipeline.py::TestPipelineConfigurationExchange.test_download_then_import_and_use</code><b>open source ↗</b></a><span>line 215 · <a href="#test~ring5.shaping.config-import-export-344968199~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">configuration</span><span class="human-tag">shapers</span><span class="human-tag">versioning</span></div></div>
     <a href="#req~ring5.shaping.config-import-export~1">View canonical OFT trace ↓</a>
@@ -4261,7 +4261,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>Users shall load a named portfolio and restore every compatible data, plot, pipeline, configuration, provenance, and history item into the current session.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 5 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/portfolios.md#L35"><code>docs/user-guide/workflows/portfolios.md#save-and-restore-in-the-web-application</code><b>open source ↗</b></a><span>line 35 · <a href="#uman~ring5.portfolio.restore.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/core/state/repository_state_manager.py#L520"><code>src/core/state/repository_state_manager.py::RepositoryStateManager.restore_session</code><b>open source ↗</b></a><span>line 520 · <a href="#impl~ring5.portfolio.restore-1579423457~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/state/repositories/session_repository.py#L82"><code>src/core/state/repositories/session_repository.py::SessionRepository.restore_from_portfolio</code><b>open source ↗</b></a><span>line 82 · <a href="#impl~ring5.portfolio.restore-2738399957~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_repository_state_manager.py#L345"><code>tests/unit/test_repository_state_manager.py::TestRestoreSession</code><b>open source ↗</b></a><span>line 345 · <a href="#test~ring5.portfolio.restore-2152503775~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_portfolio_service_integration.py#L241"><code>tests/integration/test_portfolio_service_integration.py::test_restore_report_complete_with_deserializer</code><b>open source ↗</b></a><span>line 241 · <a href="#test~ring5.portfolio.restore-216510837~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 5 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/portfolios.md#L35"><code>docs/user-guide/workflows/portfolios.md#save-and-restore-in-the-web-application</code><b>open source ↗</b></a><span>line 35 · <a href="#uman~ring5.portfolio.restore.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/core/state/repository_state_manager.py#L526"><code>src/core/state/repository_state_manager.py::RepositoryStateManager.restore_session</code><b>open source ↗</b></a><span>line 526 · <a href="#impl~ring5.portfolio.restore-2020893703~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/state/repositories/session_repository.py#L82"><code>src/core/state/repositories/session_repository.py::SessionRepository.restore_from_portfolio</code><b>open source ↗</b></a><span>line 82 · <a href="#impl~ring5.portfolio.restore-2738399957~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_repository_state_manager.py#L345"><code>tests/unit/test_repository_state_manager.py::TestRestoreSession</code><b>open source ↗</b></a><span>line 345 · <a href="#test~ring5.portfolio.restore-2152503775~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_portfolio_service_integration.py#L241"><code>tests/integration/test_portfolio_service_integration.py::test_restore_report_complete_with_deserializer</code><b>open source ↗</b></a><span>line 241 · <a href="#test~ring5.portfolio.restore-216510837~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">persistence</span><span class="human-tag">portfolios</span><span class="human-tag">restore</span></div></div>
     <a href="#req~ring5.portfolio.restore~1">View canonical OFT trace ↓</a>
@@ -4917,7 +4917,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>Core managers, shapers, and public table operations shall return new data objects and preserve caller-owned inputs.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>3 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>3 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 7 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/developer-guide/architecture/design-patterns.md#L44"><code>docs/developer-guide/architecture/design-patterns.md#immutable-data-operations</code><b>open source ↗</b></a><span>line 44 · <a href="#uman~ring5.quality.immutable-data.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/core/services/managers/arithmetic_service.py#L30"><code>src/core/services/managers/arithmetic_service.py::ArithmeticService.apply_operation</code><b>open source ↗</b></a><span>line 30 · <a href="#impl~ring5.quality.immutable-data-1693287212~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/services/shapers/pipeline_service.py#L47"><code>src/core/services/shapers/pipeline_service.py::PipelineService.process_pipeline</code><b>open source ↗</b></a><span>line 47 · <a href="#impl~ring5.quality.immutable-data-2916668902~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../ring5/data.py#L245"><code>ring5/data.py::Table.apply</code><b>open source ↗</b></a><span>line 245 · <a href="#impl~ring5.quality.immutable-data-577782577~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/integration/test_ring5_api_completeness.py#L209"><code>tests/integration/test_ring5_api_completeness.py::test_manager_operations_preserve_dataframe_and_table</code><b>open source ↗</b></a><span>line 209 · <a href="#test~ring5.quality.immutable-data-327231950~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_shaper_config_validate.py#L224"><code>tests/unit/test_shaper_config_validate.py::TestApplyShapers.test_does_not_mutate_original_data</code><b>open source ↗</b></a><span>line 224 · <a href="#test~ring5.quality.immutable-data-944410963~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_ring5_convenience_api.py#L17"><code>tests/unit/test_ring5_convenience_api.py::TestTable</code><b>open source ↗</b></a><span>line 17 · <a href="#test~ring5.quality.immutable-data-2504427654~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 7 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/developer-guide/architecture/design-patterns.md#L44"><code>docs/developer-guide/architecture/design-patterns.md#immutable-data-operations</code><b>open source ↗</b></a><span>line 44 · <a href="#uman~ring5.quality.immutable-data.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/core/services/managers/arithmetic_service.py#L30"><code>src/core/services/managers/arithmetic_service.py::ArithmeticService.apply_operation</code><b>open source ↗</b></a><span>line 30 · <a href="#impl~ring5.quality.immutable-data-1693287212~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/services/shapers/pipeline_service.py#L47"><code>src/core/services/shapers/pipeline_service.py::PipelineService.process_pipeline</code><b>open source ↗</b></a><span>line 47 · <a href="#impl~ring5.quality.immutable-data-2916668902~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../ring5/data.py#L245"><code>ring5/data.py::Table.apply</code><b>open source ↗</b></a><span>line 245 · <a href="#impl~ring5.quality.immutable-data-577782577~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/integration/test_ring5_api_completeness.py#L209"><code>tests/integration/test_ring5_api_completeness.py::test_manager_operations_preserve_dataframe_and_table</code><b>open source ↗</b></a><span>line 209 · <a href="#test~ring5.quality.immutable-data-327231950~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_shaper_config_validate.py#L220"><code>tests/unit/test_shaper_config_validate.py::TestApplyShapers.test_does_not_mutate_original_data</code><b>open source ↗</b></a><span>line 220 · <a href="#test~ring5.quality.immutable-data-1755588~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_ring5_convenience_api.py#L17"><code>tests/unit/test_ring5_convenience_api.py::TestTable</code><b>open source ↗</b></a><span>line 17 · <a href="#test~ring5.quality.immutable-data-2504427654~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">data</span><span class="human-tag">immutability</span><span class="human-tag">quality</span></div></div>
     <a href="#req~ring5.quality.immutable-data~1">View canonical OFT trace ↓</a>
@@ -4957,7 +4957,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>Untrusted file names, paths, glob and regular-expression patterns, option lists, and text-search inputs shall be sanitized, contained, or bounded before filesystem or matching work.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>6 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>6 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 13 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/reference/troubleshooting.md#L56"><code>docs/user-guide/reference/troubleshooting.md#input-bounds-and-path-containment</code><b>open source ↗</b></a><span>line 56 · <a href="#uman~ring5.quality.input-security.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/core/common/utils.py#L60"><code>src/core/common/utils.py::sanitize_filename</code><b>open source ↗</b></a><span>line 60 · <a href="#impl~ring5.quality.input-security-2632809584~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/common/utils.py#L129"><code>src/core/common/utils.py::sanitize_glob_pattern</code><b>open source ↗</b></a><span>line 129 · <a href="#impl~ring5.quality.input-security-3846681667~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/common/utils.py#L210"><code>src/core/common/utils.py::validate_web_stats_path</code><b>open source ↗</b></a><span>line 210 · <a href="#impl~ring5.quality.input-security-387903231~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/common/safe_regex.py#L53"><code>src/core/common/safe_regex.py::compile_bounded_regex</code><b>open source ↗</b></a><span>line 53 · <a href="#impl~ring5.quality.input-security-2319179408~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/common/safe_regex.py#L80"><code>src/core/common/safe_regex.py::search_bounded_regex</code><b>open source ↗</b></a><span>line 80 · <a href="#impl~ring5.quality.input-security-3705555376~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/components/common/bounded_options.py#L21"><code>src/web/components/common/bounded_options.py::bounded_unique_strings</code><b>open source ↗</b></a><span>line 21 · <a href="#impl~ring5.quality.input-security-3186201406~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_utils.py#L69"><code>tests/unit/test_utils.py::TestSanitizeFilename</code><b>open source ↗</b></a><span>line 69 · <a href="#test~ring5.quality.input-security-3329550898~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_utils.py#L153"><code>tests/unit/test_utils.py::TestValidateWebStatsPath</code><b>open source ↗</b></a><span>line 153 · <a href="#test~ring5.quality.input-security-2493235346~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_safe_regex.py#L33"><code>tests/unit/test_safe_regex.py::test_bounded_regex_rejects_long_pattern</code><b>open source ↗</b></a><span>line 33 · <a href="#test~ring5.quality.input-security-4078448397~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_safe_regex.py#L39"><code>tests/unit/test_safe_regex.py::test_bounded_regex_rejects_long_input</code><b>open source ↗</b></a><span>line 39 · <a href="#test~ring5.quality.input-security-1915236680~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_bounded_options.py#L11"><code>tests/unit/test_bounded_options.py::test_unique_options_are_capped</code><b>open source ↗</b></a><span>line 11 · <a href="#test~ring5.quality.input-security-3093302862~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_bounded_options.py#L19"><code>tests/unit/test_bounded_options.py::test_oversized_values_are_omitted</code><b>open source ↗</b></a><span>line 19 · <a href="#test~ring5.quality.input-security-3368075104~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 13 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/reference/troubleshooting.md#L56"><code>docs/user-guide/reference/troubleshooting.md#input-bounds-and-path-containment</code><b>open source ↗</b></a><span>line 56 · <a href="#uman~ring5.quality.input-security.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/core/common/utils.py#L60"><code>src/core/common/utils.py::sanitize_filename</code><b>open source ↗</b></a><span>line 60 · <a href="#impl~ring5.quality.input-security-2632809584~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/common/utils.py#L130"><code>src/core/common/utils.py::sanitize_glob_pattern</code><b>open source ↗</b></a><span>line 130 · <a href="#impl~ring5.quality.input-security-2154284775~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/common/utils.py#L211"><code>src/core/common/utils.py::validate_web_stats_path</code><b>open source ↗</b></a><span>line 211 · <a href="#impl~ring5.quality.input-security-2188261994~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/common/safe_regex.py#L53"><code>src/core/common/safe_regex.py::compile_bounded_regex</code><b>open source ↗</b></a><span>line 53 · <a href="#impl~ring5.quality.input-security-2319179408~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/common/safe_regex.py#L80"><code>src/core/common/safe_regex.py::search_bounded_regex</code><b>open source ↗</b></a><span>line 80 · <a href="#impl~ring5.quality.input-security-3705555376~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/components/common/bounded_options.py#L21"><code>src/web/components/common/bounded_options.py::bounded_unique_strings</code><b>open source ↗</b></a><span>line 21 · <a href="#impl~ring5.quality.input-security-3186201406~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_utils.py#L69"><code>tests/unit/test_utils.py::TestSanitizeFilename</code><b>open source ↗</b></a><span>line 69 · <a href="#test~ring5.quality.input-security-3329550898~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_utils.py#L153"><code>tests/unit/test_utils.py::TestValidateWebStatsPath</code><b>open source ↗</b></a><span>line 153 · <a href="#test~ring5.quality.input-security-2493235346~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_safe_regex.py#L33"><code>tests/unit/test_safe_regex.py::test_bounded_regex_rejects_long_pattern</code><b>open source ↗</b></a><span>line 33 · <a href="#test~ring5.quality.input-security-4078448397~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_safe_regex.py#L39"><code>tests/unit/test_safe_regex.py::test_bounded_regex_rejects_long_input</code><b>open source ↗</b></a><span>line 39 · <a href="#test~ring5.quality.input-security-1915236680~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_bounded_options.py#L11"><code>tests/unit/test_bounded_options.py::test_unique_options_are_capped</code><b>open source ↗</b></a><span>line 11 · <a href="#test~ring5.quality.input-security-3093302862~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_bounded_options.py#L19"><code>tests/unit/test_bounded_options.py::test_oversized_values_are_omitted</code><b>open source ↗</b></a><span>line 19 · <a href="#test~ring5.quality.input-security-3368075104~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">limits</span><span class="human-tag">security</span><span class="human-tag">validation</span></div></div>
     <a href="#req~ring5.quality.input-security~1">View canonical OFT trace ↓</a>
@@ -10791,6 +10791,19 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
+      <section class="sitem" id="impl~ring5.ingestion.incremental-parsing-1290104331~0">
+        <details>
+          <summary title="impl~ring5.ingestion.incremental-parsing-1290104331~0"><span class="green">&check;</span> <b>ring5.ingestion.incremental-parsing-1290104331</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.ingestion.incremental-parsing-1290104331~0</p>
+          <p class="origin">src/core/common/input_identity.py:19</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.ingestion.incremental-parsing~1">req~ring5.ingestion.incremental-parsing~1</a> <span class="origin">spec/oft/generated/requirements.md:719</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
       <section class="sitem" id="impl~ring5.ingestion.incremental-parsing-1407203580~0">
         <details>
           <summary title="impl~ring5.ingestion.incremental-parsing-1407203580~0"><span class="green">&check;</span> <b>ring5.ingestion.incremental-parsing-1407203580</b><small>, rev. 0, impl</small></summary>
@@ -10804,11 +10817,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.ingestion.incremental-parsing-1955826305~0">
+      <section class="sitem" id="impl~ring5.ingestion.incremental-parsing-147868654~0">
         <details>
-          <summary title="impl~ring5.ingestion.incremental-parsing-1955826305~0"><span class="green">&check;</span> <b>ring5.ingestion.incremental-parsing-1955826305</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.ingestion.incremental-parsing-1955826305~0</p>
-          <p class="origin">src/parsing/framework/incremental_cache.py:59</p>
+          <summary title="impl~ring5.ingestion.incremental-parsing-147868654~0"><span class="green">&check;</span> <b>ring5.ingestion.incremental-parsing-147868654</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.ingestion.incremental-parsing-147868654~0</p>
+          <p class="origin">src/parsing/framework/incremental_cache.py:127</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -10874,19 +10887,6 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <summary title="impl~ring5.ingestion.incremental-parsing-875417290~0"><span class="green">&check;</span> <b>ring5.ingestion.incremental-parsing-875417290</b><small>, rev. 0, impl</small></summary>
           <p class="id">impl~ring5.ingestion.incremental-parsing-875417290~0</p>
           <p class="origin">src/core/models/parsing_models.py:53</p>
-          <div class="out">
-            <h6>Out: 1</h6>
-            <ul>
-              <li><a href="#req~ring5.ingestion.incremental-parsing~1">req~ring5.ingestion.incremental-parsing~1</a> <span class="origin">spec/oft/generated/requirements.md:719</span></li>
-            </ul>
-          </div>
-        </details>
-      </section>
-      <section class="sitem" id="impl~ring5.ingestion.incremental-parsing-900521236~0">
-        <details>
-          <summary title="impl~ring5.ingestion.incremental-parsing-900521236~0"><span class="green">&check;</span> <b>ring5.ingestion.incremental-parsing-900521236</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.ingestion.incremental-parsing-900521236~0</p>
-          <p class="origin">src/parsing/framework/incremental_cache.py:194</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -11363,11 +11363,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.ingestion.session-background-parse-732826853~0">
+      <section class="sitem" id="impl~ring5.ingestion.session-background-parse-441754153~0">
         <details>
-          <summary title="impl~ring5.ingestion.session-background-parse-732826853~0"><span class="green">&check;</span> <b>ring5.ingestion.session-background-parse-732826853</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.ingestion.session-background-parse-732826853~0</p>
-          <p class="origin">src/core/services/parse_job_service.py:175</p>
+          <summary title="impl~ring5.ingestion.session-background-parse-441754153~0"><span class="green">&check;</span> <b>ring5.ingestion.session-background-parse-441754153</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.ingestion.session-background-parse-441754153~0</p>
+          <p class="origin">src/core/services/parse_job_service.py:147</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -11506,11 +11506,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.ingestion.web-path-authorization-2637734663~0">
+      <section class="sitem" id="impl~ring5.ingestion.web-path-authorization-2435214315~0">
         <details>
-          <summary title="impl~ring5.ingestion.web-path-authorization-2637734663~0"><span class="green">&check;</span> <b>ring5.ingestion.web-path-authorization-2637734663</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.ingestion.web-path-authorization-2637734663~0</p>
-          <p class="origin">src/web/components/data_source/data_source_components.py:636</p>
+          <summary title="impl~ring5.ingestion.web-path-authorization-2435214315~0"><span class="green">&check;</span> <b>ring5.ingestion.web-path-authorization-2435214315</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.ingestion.web-path-authorization-2435214315~0</p>
+          <p class="origin">src/core/common/utils.py:210</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -11519,11 +11519,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.ingestion.web-path-authorization-3476564743~0">
+      <section class="sitem" id="impl~ring5.ingestion.web-path-authorization-2637734663~0">
         <details>
-          <summary title="impl~ring5.ingestion.web-path-authorization-3476564743~0"><span class="green">&check;</span> <b>ring5.ingestion.web-path-authorization-3476564743</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.ingestion.web-path-authorization-3476564743~0</p>
-          <p class="origin">src/core/common/utils.py:209</p>
+          <summary title="impl~ring5.ingestion.web-path-authorization-2637734663~0"><span class="green">&check;</span> <b>ring5.ingestion.web-path-authorization-2637734663</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.ingestion.web-path-authorization-2637734663~0</p>
+          <p class="origin">src/web/components/data_source/data_source_components.py:636</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -13612,11 +13612,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.portfolio.restore-1579423457~0">
+      <section class="sitem" id="impl~ring5.portfolio.restore-2020893703~0">
         <details>
-          <summary title="impl~ring5.portfolio.restore-1579423457~0"><span class="green">&check;</span> <b>ring5.portfolio.restore-1579423457</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.portfolio.restore-1579423457~0</p>
-          <p class="origin">src/core/state/repository_state_manager.py:520</p>
+          <summary title="impl~ring5.portfolio.restore-2020893703~0"><span class="green">&check;</span> <b>ring5.portfolio.restore-2020893703</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.portfolio.restore-2020893703~0</p>
+          <p class="origin">src/core/state/repository_state_manager.py:526</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -14093,6 +14093,32 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
+      <section class="sitem" id="impl~ring5.quality.input-security-2154284775~0">
+        <details>
+          <summary title="impl~ring5.quality.input-security-2154284775~0"><span class="green">&check;</span> <b>ring5.quality.input-security-2154284775</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.quality.input-security-2154284775~0</p>
+          <p class="origin">src/core/common/utils.py:130</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.quality.input-security~1">req~ring5.quality.input-security~1</a> <span class="origin">spec/oft/generated/requirements.md:2883</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="impl~ring5.quality.input-security-2188261994~0">
+        <details>
+          <summary title="impl~ring5.quality.input-security-2188261994~0"><span class="green">&check;</span> <b>ring5.quality.input-security-2188261994</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.quality.input-security-2188261994~0</p>
+          <p class="origin">src/core/common/utils.py:211</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.quality.input-security~1">req~ring5.quality.input-security~1</a> <span class="origin">spec/oft/generated/requirements.md:2883</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
       <section class="sitem" id="impl~ring5.quality.input-security-2319179408~0">
         <details>
           <summary title="impl~ring5.quality.input-security-2319179408~0"><span class="green">&check;</span> <b>ring5.quality.input-security-2319179408</b><small>, rev. 0, impl</small></summary>
@@ -14137,32 +14163,6 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <summary title="impl~ring5.quality.input-security-3705555376~0"><span class="green">&check;</span> <b>ring5.quality.input-security-3705555376</b><small>, rev. 0, impl</small></summary>
           <p class="id">impl~ring5.quality.input-security-3705555376~0</p>
           <p class="origin">src/core/common/safe_regex.py:80</p>
-          <div class="out">
-            <h6>Out: 1</h6>
-            <ul>
-              <li><a href="#req~ring5.quality.input-security~1">req~ring5.quality.input-security~1</a> <span class="origin">spec/oft/generated/requirements.md:2883</span></li>
-            </ul>
-          </div>
-        </details>
-      </section>
-      <section class="sitem" id="impl~ring5.quality.input-security-3846681667~0">
-        <details>
-          <summary title="impl~ring5.quality.input-security-3846681667~0"><span class="green">&check;</span> <b>ring5.quality.input-security-3846681667</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.quality.input-security-3846681667~0</p>
-          <p class="origin">src/core/common/utils.py:129</p>
-          <div class="out">
-            <h6>Out: 1</h6>
-            <ul>
-              <li><a href="#req~ring5.quality.input-security~1">req~ring5.quality.input-security~1</a> <span class="origin">spec/oft/generated/requirements.md:2883</span></li>
-            </ul>
-          </div>
-        </details>
-      </section>
-      <section class="sitem" id="impl~ring5.quality.input-security-387903231~0">
-        <details>
-          <summary title="impl~ring5.quality.input-security-387903231~0"><span class="green">&check;</span> <b>ring5.quality.input-security-387903231</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.quality.input-security-387903231~0</p>
-          <p class="origin">src/core/common/utils.py:210</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -16160,11 +16160,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.workspace.reset-1876673016~0">
+      <section class="sitem" id="impl~ring5.workspace.reset-1607112047~0">
         <details>
-          <summary title="impl~ring5.workspace.reset-1876673016~0"><span class="green">&check;</span> <b>ring5.workspace.reset-1876673016</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.workspace.reset-1876673016~0</p>
-          <p class="origin">app.py:142</p>
+          <summary title="impl~ring5.workspace.reset-1607112047~0"><span class="green">&check;</span> <b>ring5.workspace.reset-1607112047</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.workspace.reset-1607112047~0</p>
+          <p class="origin">src/core/state/repository_state_manager.py:210</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -16173,11 +16173,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.workspace.reset-885265590~0">
+      <section class="sitem" id="impl~ring5.workspace.reset-1876673016~0">
         <details>
-          <summary title="impl~ring5.workspace.reset-885265590~0"><span class="green">&check;</span> <b>ring5.workspace.reset-885265590</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.workspace.reset-885265590~0</p>
-          <p class="origin">src/core/state/repository_state_manager.py:204</p>
+          <summary title="impl~ring5.workspace.reset-1876673016~0"><span class="green">&check;</span> <b>ring5.workspace.reset-1876673016</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.workspace.reset-1876673016~0</p>
+          <p class="origin">app.py:142</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -16199,11 +16199,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.workspace.session-isolation-3051426184~0">
+      <section class="sitem" id="impl~ring5.workspace.session-isolation-855518825~0">
         <details>
-          <summary title="impl~ring5.workspace.session-isolation-3051426184~0"><span class="green">&check;</span> <b>ring5.workspace.session-isolation-3051426184</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.workspace.session-isolation-3051426184~0</p>
-          <p class="origin">src/core/state/repository_state_manager.py:109</p>
+          <summary title="impl~ring5.workspace.session-isolation-855518825~0"><span class="green">&check;</span> <b>ring5.workspace.session-isolation-855518825</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.workspace.session-isolation-855518825~0</p>
+          <p class="origin">src/core/state/repository_state_manager.py:113</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -16424,8 +16424,8 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <div class="in">
             <h6>In: 4</h6>
             <ul>
+              <li><a href="#impl~ring5.ingestion.web-path-authorization-2435214315~0">impl~ring5.ingestion.web-path-authorization-2435214315~0</a> <span class="origin">src/core/common/utils.py:210</span></li>
               <li><a href="#impl~ring5.ingestion.web-path-authorization-2637734663~0">impl~ring5.ingestion.web-path-authorization-2637734663~0</a> <span class="origin">src/web/components/data_source/data_source_components.py:636</span></li>
-              <li><a href="#impl~ring5.ingestion.web-path-authorization-3476564743~0">impl~ring5.ingestion.web-path-authorization-3476564743~0</a> <span class="origin">src/core/common/utils.py:209</span></li>
               <li><a href="#test~ring5.ingestion.web-path-authorization-3174836474~0">test~ring5.ingestion.web-path-authorization-3174836474~0</a> <span class="origin">tests/unit/test_utils.py:166</span></li>
               <li><a href="#uman~ring5.ingestion.web-path-authorization.documentation~1">uman~ring5.ingestion.web-path-authorization.documentation~1</a> <span class="origin">docs/user-guide/workflows/loading-data.md:104</span></li>
             </ul>
@@ -16717,12 +16717,12 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <div class="in">
             <h6>In: 13</h6>
             <ul>
+              <li><a href="#impl~ring5.quality.input-security-2154284775~0">impl~ring5.quality.input-security-2154284775~0</a> <span class="origin">src/core/common/utils.py:130</span></li>
+              <li><a href="#impl~ring5.quality.input-security-2188261994~0">impl~ring5.quality.input-security-2188261994~0</a> <span class="origin">src/core/common/utils.py:211</span></li>
               <li><a href="#impl~ring5.quality.input-security-2319179408~0">impl~ring5.quality.input-security-2319179408~0</a> <span class="origin">src/core/common/safe_regex.py:53</span></li>
               <li><a href="#impl~ring5.quality.input-security-2632809584~0">impl~ring5.quality.input-security-2632809584~0</a> <span class="origin">src/core/common/utils.py:60</span></li>
               <li><a href="#impl~ring5.quality.input-security-3186201406~0">impl~ring5.quality.input-security-3186201406~0</a> <span class="origin">src/web/components/common/bounded_options.py:21</span></li>
               <li><a href="#impl~ring5.quality.input-security-3705555376~0">impl~ring5.quality.input-security-3705555376~0</a> <span class="origin">src/core/common/safe_regex.py:80</span></li>
-              <li><a href="#impl~ring5.quality.input-security-3846681667~0">impl~ring5.quality.input-security-3846681667~0</a> <span class="origin">src/core/common/utils.py:129</span></li>
-              <li><a href="#impl~ring5.quality.input-security-387903231~0">impl~ring5.quality.input-security-387903231~0</a> <span class="origin">src/core/common/utils.py:210</span></li>
               <li><a href="#test~ring5.quality.input-security-1915236680~0">test~ring5.quality.input-security-1915236680~0</a> <span class="origin">tests/unit/test_safe_regex.py:39</span></li>
               <li><a href="#test~ring5.quality.input-security-2493235346~0">test~ring5.quality.input-security-2493235346~0</a> <span class="origin">tests/unit/test_utils.py:153</span></li>
               <li><a href="#test~ring5.quality.input-security-3093302862~0">test~ring5.quality.input-security-3093302862~0</a> <span class="origin">tests/unit/test_bounded_options.py:11</span></li>
@@ -16846,7 +16846,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
             <h6>In: 4</h6>
             <ul>
               <li><a href="#impl~ring5.workspace.session-isolation-2082616072~0">impl~ring5.workspace.session-isolation-2082616072~0</a> <span class="origin">app.py:59</span></li>
-              <li><a href="#impl~ring5.workspace.session-isolation-3051426184~0">impl~ring5.workspace.session-isolation-3051426184~0</a> <span class="origin">src/core/state/repository_state_manager.py:109</span></li>
+              <li><a href="#impl~ring5.workspace.session-isolation-855518825~0">impl~ring5.workspace.session-isolation-855518825~0</a> <span class="origin">src/core/state/repository_state_manager.py:113</span></li>
               <li><a href="#test~ring5.workspace.session-isolation-3554749424~0">test~ring5.workspace.session-isolation-3554749424~0</a> <span class="origin">tests/e2e/test_session_isolation.py:26</span></li>
               <li><a href="#uman~ring5.workspace.session-isolation.documentation~1">uman~ring5.workspace.session-isolation.documentation~1</a> <span class="origin">docs/developer-guide/api-reference/state-manager.md:16</span></li>
             </ul>
@@ -17081,8 +17081,8 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <div class="in">
             <h6>In: 4</h6>
             <ul>
+              <li><a href="#impl~ring5.workspace.reset-1607112047~0">impl~ring5.workspace.reset-1607112047~0</a> <span class="origin">src/core/state/repository_state_manager.py:210</span></li>
               <li><a href="#impl~ring5.workspace.reset-1876673016~0">impl~ring5.workspace.reset-1876673016~0</a> <span class="origin">app.py:142</span></li>
-              <li><a href="#impl~ring5.workspace.reset-885265590~0">impl~ring5.workspace.reset-885265590~0</a> <span class="origin">src/core/state/repository_state_manager.py:204</span></li>
               <li><a href="#test~ring5.workspace.reset-3496616399~0">test~ring5.workspace.reset-3496616399~0</a> <span class="origin">tests/ui/test_e2e_data_loaded.py:173</span></li>
               <li><a href="#uman~ring5.workspace.reset.documentation~1">uman~ring5.workspace.reset.documentation~1</a> <span class="origin">docs/user-guide/getting-started/concepts.md:13</span></li>
             </ul>
@@ -18760,14 +18760,14 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
             <h6>In: 15</h6>
             <ul>
               <li><a href="#impl~ring5.ingestion.incremental-parsing-1157335688~0">impl~ring5.ingestion.incremental-parsing-1157335688~0</a> <span class="origin">src/parsing/gem5/impl/gem5_parser.py:750</span></li>
+              <li><a href="#impl~ring5.ingestion.incremental-parsing-1290104331~0">impl~ring5.ingestion.incremental-parsing-1290104331~0</a> <span class="origin">src/core/common/input_identity.py:19</span></li>
               <li><a href="#impl~ring5.ingestion.incremental-parsing-1407203580~0">impl~ring5.ingestion.incremental-parsing-1407203580~0</a> <span class="origin">ring5/_session.py:516</span></li>
-              <li><a href="#impl~ring5.ingestion.incremental-parsing-1955826305~0">impl~ring5.ingestion.incremental-parsing-1955826305~0</a> <span class="origin">src/parsing/framework/incremental_cache.py:59</span></li>
+              <li><a href="#impl~ring5.ingestion.incremental-parsing-147868654~0">impl~ring5.ingestion.incremental-parsing-147868654~0</a> <span class="origin">src/parsing/framework/incremental_cache.py:127</span></li>
               <li><a href="#impl~ring5.ingestion.incremental-parsing-3430217984~0">impl~ring5.ingestion.incremental-parsing-3430217984~0</a> <span class="origin">src/core/application_api.py:1172</span></li>
               <li><a href="#impl~ring5.ingestion.incremental-parsing-3470349578~0">impl~ring5.ingestion.incremental-parsing-3470349578~0</a> <span class="origin">src/parsing/gem5/impl/gem5_parser.py:436</span></li>
               <li><a href="#impl~ring5.ingestion.incremental-parsing-3993980248~0">impl~ring5.ingestion.incremental-parsing-3993980248~0</a> <span class="origin">src/web/components/data_source/data_source_components.py:634</span></li>
               <li><a href="#impl~ring5.ingestion.incremental-parsing-4266425942~0">impl~ring5.ingestion.incremental-parsing-4266425942~0</a> <span class="origin">src/core/application_api.py:1208</span></li>
               <li><a href="#impl~ring5.ingestion.incremental-parsing-875417290~0">impl~ring5.ingestion.incremental-parsing-875417290~0</a> <span class="origin">src/core/models/parsing_models.py:53</span></li>
-              <li><a href="#impl~ring5.ingestion.incremental-parsing-900521236~0">impl~ring5.ingestion.incremental-parsing-900521236~0</a> <span class="origin">src/parsing/framework/incremental_cache.py:194</span></li>
               <li><a href="#test~ring5.ingestion.incremental-parsing-3459697181~0">test~ring5.ingestion.incremental-parsing-3459697181~0</a> <span class="origin">tests/integration/test_incremental_parsing.py:23</span></li>
               <li><a href="#test~ring5.ingestion.incremental-parsing-3888350008~0">test~ring5.ingestion.incremental-parsing-3888350008~0</a> <span class="origin">tests/unit/test_incremental_parse_component.py:22</span></li>
               <li><a href="#test~ring5.ingestion.incremental-parsing-3941950690~0">test~ring5.ingestion.incremental-parsing-3941950690~0</a> <span class="origin">tests/unit/test_application_api_delegation.py:245</span></li>
@@ -18797,9 +18797,9 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
               <li><a href="#impl~ring5.shaping.independent-pipelines-1391737400~0">impl~ring5.shaping.independent-pipelines-1391737400~0</a> <span class="origin">src/web/controllers/plot/pipeline_controller.py:266</span></li>
               <li><a href="#impl~ring5.shaping.independent-pipelines-2371863027~0">impl~ring5.shaping.independent-pipelines-2371863027~0</a> <span class="origin">src/web/pages/ui/plotting/base_plot.py:49</span></li>
               <li><a href="#impl~ring5.shaping.independent-pipelines-496400414~0">impl~ring5.shaping.independent-pipelines-496400414~0</a> <span class="origin">src/core/services/shapers/pipeline_service.py:46</span></li>
-              <li><a href="#test~ring5.shaping.independent-pipelines-2471691742~0">test~ring5.shaping.independent-pipelines-2471691742~0</a> <span class="origin">tests/unit/test_shaper_config_validate.py:223</span></li>
               <li><a href="#test~ring5.shaping.independent-pipelines-2857936635~0">test~ring5.shaping.independent-pipelines-2857936635~0</a> <span class="origin">tests/integration/test_controller_presenter.py:343</span></li>
               <li><a href="#test~ring5.shaping.independent-pipelines-3512490497~0">test~ring5.shaping.independent-pipelines-3512490497~0</a> <span class="origin">tests/integration/test_transformation_pipeline.py:89</span></li>
+              <li><a href="#test~ring5.shaping.independent-pipelines-905977237~0">test~ring5.shaping.independent-pipelines-905977237~0</a> <span class="origin">tests/unit/test_shaper_config_validate.py:219</span></li>
               <li><a href="#uman~ring5.shaping.independent-pipelines.documentation~1">uman~ring5.shaping.independent-pipelines.documentation~1</a> <span class="origin">docs/user-guide/workflows/plotting.md:64</span></li>
             </ul>
           </div>
@@ -19357,9 +19357,9 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
               <li><a href="#impl~ring5.quality.immutable-data-1693287212~0">impl~ring5.quality.immutable-data-1693287212~0</a> <span class="origin">src/core/services/managers/arithmetic_service.py:30</span></li>
               <li><a href="#impl~ring5.quality.immutable-data-2916668902~0">impl~ring5.quality.immutable-data-2916668902~0</a> <span class="origin">src/core/services/shapers/pipeline_service.py:47</span></li>
               <li><a href="#impl~ring5.quality.immutable-data-577782577~0">impl~ring5.quality.immutable-data-577782577~0</a> <span class="origin">ring5/data.py:245</span></li>
+              <li><a href="#test~ring5.quality.immutable-data-1755588~0">test~ring5.quality.immutable-data-1755588~0</a> <span class="origin">tests/unit/test_shaper_config_validate.py:220</span></li>
               <li><a href="#test~ring5.quality.immutable-data-2504427654~0">test~ring5.quality.immutable-data-2504427654~0</a> <span class="origin">tests/unit/test_ring5_convenience_api.py:17</span></li>
               <li><a href="#test~ring5.quality.immutable-data-327231950~0">test~ring5.quality.immutable-data-327231950~0</a> <span class="origin">tests/integration/test_ring5_api_completeness.py:209</span></li>
-              <li><a href="#test~ring5.quality.immutable-data-944410963~0">test~ring5.quality.immutable-data-944410963~0</a> <span class="origin">tests/unit/test_shaper_config_validate.py:224</span></li>
               <li><a href="#uman~ring5.quality.immutable-data.documentation~1">uman~ring5.quality.immutable-data.documentation~1</a> <span class="origin">docs/developer-guide/architecture/design-patterns.md:44</span></li>
             </ul>
           </div>
@@ -19892,7 +19892,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
               <li><a href="#impl~ring5.shaping.config-import-export-4123360131~0">impl~ring5.shaping.config-import-export-4123360131~0</a> <span class="origin">src/core/services/data_services/config_service.py:200</span></li>
               <li><a href="#test~ring5.shaping.config-import-export-2224831298~0">test~ring5.shaping.config-import-export-2224831298~0</a> <span class="origin">tests/unit/test_pipeline_config_exchange.py:62</span></li>
               <li><a href="#test~ring5.shaping.config-import-export-3043669714~0">test~ring5.shaping.config-import-export-3043669714~0</a> <span class="origin">tests/integration/test_ring5_public_api.py:877</span></li>
-              <li><a href="#test~ring5.shaping.config-import-export-4261074300~0">test~ring5.shaping.config-import-export-4261074300~0</a> <span class="origin">tests/e2e/test_shaper_pipeline.py:211</span></li>
+              <li><a href="#test~ring5.shaping.config-import-export-344968199~0">test~ring5.shaping.config-import-export-344968199~0</a> <span class="origin">tests/e2e/test_shaper_pipeline.py:215</span></li>
               <li><a href="#test~ring5.shaping.config-import-export-890351568~0">test~ring5.shaping.config-import-export-890351568~0</a> <span class="origin">tests/unit/test_pipeline_config_exchange.py:39</span></li>
               <li><a href="#test~ring5.shaping.config-import-export-921655682~0">test~ring5.shaping.config-import-export-921655682~0</a> <span class="origin">tests/unit/test_pipeline_config_exchange.py:96</span></li>
               <li><a href="#uman~ring5.shaping.config-import-export.documentation~1">uman~ring5.shaping.config-import-export.documentation~1</a> <span class="origin">docs/user-guide/workflows/plotting.md:96</span></li>
@@ -20202,7 +20202,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <div class="in">
             <h6>In: 5</h6>
             <ul>
-              <li><a href="#impl~ring5.portfolio.restore-1579423457~0">impl~ring5.portfolio.restore-1579423457~0</a> <span class="origin">src/core/state/repository_state_manager.py:520</span></li>
+              <li><a href="#impl~ring5.portfolio.restore-2020893703~0">impl~ring5.portfolio.restore-2020893703~0</a> <span class="origin">src/core/state/repository_state_manager.py:526</span></li>
               <li><a href="#impl~ring5.portfolio.restore-2738399957~0">impl~ring5.portfolio.restore-2738399957~0</a> <span class="origin">src/core/state/repositories/session_repository.py:82</span></li>
               <li><a href="#test~ring5.portfolio.restore-2152503775~0">test~ring5.portfolio.restore-2152503775~0</a> <span class="origin">tests/unit/test_repository_state_manager.py:345</span></li>
               <li><a href="#test~ring5.portfolio.restore-216510837~0">test~ring5.portfolio.restore-216510837~0</a> <span class="origin">tests/integration/test_portfolio_service_integration.py:241</span></li>
@@ -21337,9 +21337,9 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <div class="in">
             <h6>In: 4</h6>
             <ul>
-              <li><a href="#impl~ring5.ingestion.session-background-parse-732826853~0">impl~ring5.ingestion.session-background-parse-732826853~0</a> <span class="origin">src/core/services/parse_job_service.py:175</span></li>
+              <li><a href="#impl~ring5.ingestion.session-background-parse-441754153~0">impl~ring5.ingestion.session-background-parse-441754153~0</a> <span class="origin">src/core/services/parse_job_service.py:147</span></li>
               <li><a href="#test~ring5.ingestion.session-background-parse-2097317091~0">test~ring5.ingestion.session-background-parse-2097317091~0</a> <span class="origin">tests/e2e/test_background_jobs.py:52</span></li>
-              <li><a href="#test~ring5.ingestion.session-background-parse-3891763755~0">test~ring5.ingestion.session-background-parse-3891763755~0</a> <span class="origin">tests/unit/test_parse_jobs.py:440</span></li>
+              <li><a href="#test~ring5.ingestion.session-background-parse-2626962323~0">test~ring5.ingestion.session-background-parse-2626962323~0</a> <span class="origin">tests/unit/test_parse_jobs.py:442</span></li>
               <li><a href="#uman~ring5.ingestion.session-background-parse.documentation~1">uman~ring5.ingestion.session-background-parse.documentation~1</a> <span class="origin">docs/user-guide/workflows/loading-data.md:460</span></li>
             </ul>
           </div>
@@ -26831,11 +26831,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="test~ring5.ingestion.session-background-parse-3891763755~0">
+      <section class="sitem" id="test~ring5.ingestion.session-background-parse-2626962323~0">
         <details>
-          <summary title="test~ring5.ingestion.session-background-parse-3891763755~0"><span class="green">&check;</span> <b>ring5.ingestion.session-background-parse-3891763755</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.ingestion.session-background-parse-3891763755~0</p>
-          <p class="origin">tests/unit/test_parse_jobs.py:440</p>
+          <summary title="test~ring5.ingestion.session-background-parse-2626962323~0"><span class="green">&check;</span> <b>ring5.ingestion.session-background-parse-2626962323</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.ingestion.session-background-parse-2626962323~0</p>
+          <p class="origin">tests/unit/test_parse_jobs.py:442</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -29210,6 +29210,19 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
+      <section class="sitem" id="test~ring5.quality.immutable-data-1755588~0">
+        <details>
+          <summary title="test~ring5.quality.immutable-data-1755588~0"><span class="green">&check;</span> <b>ring5.quality.immutable-data-1755588</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.quality.immutable-data-1755588~0</p>
+          <p class="origin">tests/unit/test_shaper_config_validate.py:220</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.quality.immutable-data~1">req~ring5.quality.immutable-data~1</a> <span class="origin">spec/oft/generated/requirements.md:2855</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
       <section class="sitem" id="test~ring5.quality.immutable-data-2504427654~0">
         <details>
           <summary title="test~ring5.quality.immutable-data-2504427654~0"><span class="green">&check;</span> <b>ring5.quality.immutable-data-2504427654</b><small>, rev. 0, test</small></summary>
@@ -29228,19 +29241,6 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <summary title="test~ring5.quality.immutable-data-327231950~0"><span class="green">&check;</span> <b>ring5.quality.immutable-data-327231950</b><small>, rev. 0, test</small></summary>
           <p class="id">test~ring5.quality.immutable-data-327231950~0</p>
           <p class="origin">tests/integration/test_ring5_api_completeness.py:209</p>
-          <div class="out">
-            <h6>Out: 1</h6>
-            <ul>
-              <li><a href="#req~ring5.quality.immutable-data~1">req~ring5.quality.immutable-data~1</a> <span class="origin">spec/oft/generated/requirements.md:2855</span></li>
-            </ul>
-          </div>
-        </details>
-      </section>
-      <section class="sitem" id="test~ring5.quality.immutable-data-944410963~0">
-        <details>
-          <summary title="test~ring5.quality.immutable-data-944410963~0"><span class="green">&check;</span> <b>ring5.quality.immutable-data-944410963</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.quality.immutable-data-944410963~0</p>
-          <p class="origin">tests/unit/test_shaper_config_validate.py:224</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -29678,11 +29678,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="test~ring5.shaping.config-import-export-4261074300~0">
+      <section class="sitem" id="test~ring5.shaping.config-import-export-344968199~0">
         <details>
-          <summary title="test~ring5.shaping.config-import-export-4261074300~0"><span class="green">&check;</span> <b>ring5.shaping.config-import-export-4261074300</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.shaping.config-import-export-4261074300~0</p>
-          <p class="origin">tests/e2e/test_shaper_pipeline.py:211</p>
+          <summary title="test~ring5.shaping.config-import-export-344968199~0"><span class="green">&check;</span> <b>ring5.shaping.config-import-export-344968199</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.shaping.config-import-export-344968199~0</p>
+          <p class="origin">tests/e2e/test_shaper_pipeline.py:215</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -29808,19 +29808,6 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="test~ring5.shaping.independent-pipelines-2471691742~0">
-        <details>
-          <summary title="test~ring5.shaping.independent-pipelines-2471691742~0"><span class="green">&check;</span> <b>ring5.shaping.independent-pipelines-2471691742</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.shaping.independent-pipelines-2471691742~0</p>
-          <p class="origin">tests/unit/test_shaper_config_validate.py:223</p>
-          <div class="out">
-            <h6>Out: 1</h6>
-            <ul>
-              <li><a href="#req~ring5.shaping.independent-pipelines~1">req~ring5.shaping.independent-pipelines~1</a> <span class="origin">spec/oft/generated/requirements.md:1017</span></li>
-            </ul>
-          </div>
-        </details>
-      </section>
       <section class="sitem" id="test~ring5.shaping.independent-pipelines-2857936635~0">
         <details>
           <summary title="test~ring5.shaping.independent-pipelines-2857936635~0"><span class="green">&check;</span> <b>ring5.shaping.independent-pipelines-2857936635</b><small>, rev. 0, test</small></summary>
@@ -29839,6 +29826,19 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <summary title="test~ring5.shaping.independent-pipelines-3512490497~0"><span class="green">&check;</span> <b>ring5.shaping.independent-pipelines-3512490497</b><small>, rev. 0, test</small></summary>
           <p class="id">test~ring5.shaping.independent-pipelines-3512490497~0</p>
           <p class="origin">tests/integration/test_transformation_pipeline.py:89</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.shaping.independent-pipelines~1">req~ring5.shaping.independent-pipelines~1</a> <span class="origin">spec/oft/generated/requirements.md:1017</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="test~ring5.shaping.independent-pipelines-905977237~0">
+        <details>
+          <summary title="test~ring5.shaping.independent-pipelines-905977237~0"><span class="green">&check;</span> <b>ring5.shaping.independent-pipelines-905977237</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.shaping.independent-pipelines-905977237~0</p>
+          <p class="origin">tests/unit/test_shaper_config_validate.py:219</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>

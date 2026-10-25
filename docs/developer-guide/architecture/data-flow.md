@@ -114,7 +114,9 @@ configuration, rendering engine, and a cache key before reusing a figure.
 
 Portfolio saving serializes the active table, plots, plot configuration, pipelines, parser
 provenance, and history. `PortfolioMigrator` upgrades older JSON before
-`StateManager.restore_session` restores compatible items and returns a `RestoreReport`.
+`StateManager.restore_session` restores items and returns a `RestoreReport`. Preparation runs
+outside the state lock; publication rejects any intervening state-manager write, including
+unselected dataset results. Preview invalidation separately tracks changes to the selected source.
 
 Headless replay loads the same portfolio, renders each restored plot through the selected connector,
 and exports it. A partial restore remains visible; the CLI refuses to upgrade a portfolio when

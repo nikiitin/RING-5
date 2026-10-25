@@ -92,6 +92,14 @@ sub addEntry {
     }
 }
 
+sub processPendingEntries {
+    my ($entries) = @_;
+    foreach my $item (@$entries) {
+        manageType($item->{name}, 'vector', \%discovered_vars);
+        addEntry($item->{name}, $item->{entry}, \%discovered_vars);
+    }
+}
+
 while (my $line = <$fh>) {
     if (++$line_count > $max_lines) {
         die "Scanner line limit exceeded ($max_lines lines): $filename\n";
@@ -105,6 +113,10 @@ while (my $line = <$fh>) {
     my $info = TypesFormatRegex::classifyLine($line);
     next unless $info;
 
+    if ($info->{type} eq 'pending_entries') {
+        processPendingEntries($info->{entries});
+        next;
+    }
     next if $info->{type} eq 'oneline_metadata';
 
     my $name = $info->{name};
@@ -133,6 +145,7 @@ while (my $line = <$fh>) {
     addEntry($name, $entry, \%discovered_vars);
 }
 
+processPendingEntries(TypesFormatRegex::finishLineContext());
 close($fh);
 
 # Output Results

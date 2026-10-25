@@ -183,3 +183,21 @@ def test_owner_directory_symlinks_are_refused_before_capture(
     with pytest.raises(ValueError, match="owner storage must not be a symbolic link"):
         AutosaveRecoveryService.capture(_state(), "linked-owner")
     assert not tuple(outside.iterdir())
+
+
+@pytest.mark.parametrize("operation", ["load", "delete"])
+def test_same_owner_draft_symlink_cannot_alias_another_draft(
+    recovery_dir: Path, operation: str
+) -> None:
+    capture = AutosaveRecoveryService.capture(_state(), "owner")
+    assert capture is not None
+    directory = recovery_dir / hashlib.sha256(b"owner").hexdigest()
+    target = directory / f"{capture.draft.draft_id}.json"
+    contents = target.read_bytes()
+    alias_id = "0" * 20 + "-" + "a" * 64
+    alias = directory / f"{alias_id}.json"
+    alias.symlink_to(target.name)
+    with pytest.raises(ValueError, match="drafts must not be symbolic links"):
+        getattr(AutosaveRecoveryService, operation)("owner", alias_id)
+    assert target.read_bytes() == contents
+    assert alias.is_symlink()

@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use Exporter 'import';
 our $VERSION = '1.00';
-our @EXPORT  = qw(parseAndPrintLineWithFormat setFilterRegexes classifyLine resetLineContext);
+our @EXPORT  = qw(parseAndPrintLineWithFormat setFilterRegexes classifyLine resetLineContext finishLineContext printLineContext);
 
 # Imports from new modular packages
 use Scanning::RegexUtils qw(:all);
@@ -23,16 +23,19 @@ my $filtersRegexes;
 my @storedFilters;
 my %onelineHistogramMetadata;
 my %entryTypeContext;
+my @pendingGeometry;
+my %identifiedHistograms;
 
 sub resetLineContext {
     %onelineHistogramMetadata = ();
     %entryTypeContext = ();
+    @pendingGeometry = ();
+    %identifiedHistograms = ();
 }
 
 sub _beginStatsDump {
     my ($line) = @_;
     return 0 unless $line =~ /^-+\s*Begin Simulation Statistics(?:\s*:\s*.*?)?\s*-+\s*$/;
-    resetLineContext();
     return 1;
 }
 
@@ -40,9 +43,23 @@ sub _rememberOnelineHistogramMetadata {
     my ($line) = @_;
     if ($line =~ /^($varNameRegex)::(bucket_size|min_bucket|max_bucket)\s+(-?\d+)$commentRegex$/) {
         $onelineHistogramMetadata{$1}{$2} = int($3);
+        push @pendingGeometry, { type => 'vector', name => $1, entry => $2, value => $3 };
         return 1;
     }
     return 0;
+}
+
+# Geometry-looking vector entries remain data unless a histogram identifies them.
+sub finishLineContext {
+    my @entries = grep { !$identifiedHistograms{$_->{name}} } @pendingGeometry;
+    @pendingGeometry = ();
+    return \@entries;
+}
+
+sub printLineContext {
+    foreach my $entry (@{finishLineContext()}) {
+        print "vector/$entry->{name}::$entry->{entry}/$entry->{value}\n";
+    }
 }
 
 sub _rememberEntryTypeContext {
@@ -71,6 +88,7 @@ sub _classifyNumericEntry {
     }
     # Numeric vector entries have no distribution summaries or boundaries.
     $type //= 'vector';
+    $identifiedHistograms{$name} = 1 if $type eq 'histogram';
     return { type => $type, name => $name, entry => $entry,
              value => getValueFromLine(removeCommentFromLine($line)) };
 }
@@ -87,6 +105,7 @@ sub _classifyOnelineHistogram {
     die "Incomplete one-line histogram metadata for $name\n"
         unless exists $metadata->{bucket_size} && exists $metadata->{max_bucket};
 
+    $identifiedHistograms{$name} = 1;
     my $bucket_size = $metadata->{bucket_size};
     my $max_bucket = $metadata->{max_bucket};
     # Older fixtures omit min_bucket and describe histograms starting at zero.
@@ -246,6 +265,8 @@ sub parseAndPrintLineWithFormat {
 
     # Dump boundaries preserve temporal observations when bucket geometry changes.
     if (_beginStatsDump($line)) {
+        printLineContext();
+        resetLineContext();
         print "dump//\n";
         return;
     }
@@ -308,7 +329,11 @@ sub parseAndPrintLineWithFormat {
 
 sub classifyLine {
     my ($line) = @_;
-    return undef if _beginStatsDump($line);
+    if (_beginStatsDump($line)) {
+        my $pending = finishLineContext();
+        resetLineContext();
+        return @$pending ? { type => 'pending_entries', entries => $pending } : undef;
+    }
 
     if (_rememberOnelineHistogramMetadata($line)) {
         return { type => 'oneline_metadata', name => undef, entry => undef };

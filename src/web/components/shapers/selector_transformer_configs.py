@@ -88,17 +88,20 @@ class ConditionSelectorConfig:
             min_val, max_val = float(finite.min()), float(finite.max())
             if filter_mode == "range":
                 default_range = cast(list[float], existing_config.get("range", [min_val, max_val]))
+                lower, upper = (float(value) for value in default_range)
+                # Observed extrema describe the widget, not the saved predicate.
+                min_val, max_val = min(min_val, lower), max(max_val, upper)
                 if min_val == max_val:
-                    st.caption(
-                        f"All finite values equal {min_val:g}; this range retains that value."
+                    lower = st.number_input(
+                        "Lower bound", value=lower, key=f"{key_prefix}filter_lower_{shaper_id}"
+                    )
+                    upper = st.number_input(
+                        "Upper bound", value=upper, key=f"{key_prefix}filter_upper_{shaper_id}"
                     )
                     return cast(
                         ShaperStepConfig,
-                        {"column": filter_column, "mode": "range", "range": [min_val, max_val]},
+                        {"column": filter_column, "mode": "range", "range": [lower, upper]},
                     )
-                default_range = [
-                    max(min_val, min(float(value), max_val)) for value in default_range
-                ]
                 value_range = st.slider(
                     "Value range",
                     min_value=min_val,
