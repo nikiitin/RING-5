@@ -27,7 +27,7 @@ class LineStyleUI(BaseStyleUI):
                     if current_style.get("symbol") in symbols
                     else 0
                 ),
-                key=f"{key_prefix}sym_{self.plot_id}_{key_suffix}",
+                key=f"{key_prefix}sym_{key_suffix}",
             )
             current_style["symbol"] = new_symbol
 
@@ -35,7 +35,7 @@ class LineStyleUI(BaseStyleUI):
                 "Marker Size",
                 min_value=0,
                 value=int(current_style.get("marker_size", 8)),
-                key=f"{key_prefix}msize_{self.plot_id}_{key_suffix}",
+                key=f"{key_prefix}msize_{key_suffix}",
             )
             current_style["marker_size"] = marker_size
 
@@ -44,7 +44,7 @@ class LineStyleUI(BaseStyleUI):
                 min_value=0.0,
                 value=float(current_style.get("line_width", 2.0)),
                 step=0.5,
-                key=f"{key_prefix}lwidth_{self.plot_id}_{key_suffix}",
+                key=f"{key_prefix}lwidth_{key_suffix}",
             )
             current_style["line_width"] = line_width
 

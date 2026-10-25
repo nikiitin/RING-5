@@ -13,6 +13,8 @@ from typing import Any, cast
 import pandas as pd
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.core.models.visualization.palettes import PALETTE_REGISTRY
 from src.core.services.visualization.palette_service import (
     get_palette_names,
@@ -80,7 +82,9 @@ class ColorsSettingsComponent:
         """
         # [impl->req~ring5.figure.colors~1]
         # [impl->req~ring5.figure.accessible-themes~1]
-        transition_key = f"_ring5_accessibility_mode_seen_{self.plot_id}"
+        transition_key = WidgetKeyBuilder.plot_key(
+            self.plot_id, "widgets.appearance._ring5_accessibility_mode_seen"
+        )
         previous_accessibility_mode = bool(
             st.session_state.get(
                 transition_key,
@@ -93,7 +97,9 @@ class ColorsSettingsComponent:
                 saved_config,
                 "accessibility_mode",
                 self.plot_id,
-                widget_key=f"accessible_theme_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, "widgets.appearance.accessible_theme"
+                ),
                 help=(
                     "Use color-vision-safe defaults and add patterns or marker symbols so "
                     "series do not rely on color alone."
@@ -112,7 +118,9 @@ class ColorsSettingsComponent:
         st.markdown("#### :material/palette: Color Palette")
         palette_names = get_palette_names()
         default_palette = "ring5_accessible" if accessibility_mode else "wong"
-        palette_widget_key = f"palette_select_{self.plot_id}"
+        palette_widget_key = WidgetKeyBuilder.plot_key(
+            self.plot_id, "widgets.appearance.palette_select"
+        )
         if accessibility_just_enabled:
             st.session_state[palette_widget_key] = default_palette
         saved_palette = (
@@ -233,7 +241,7 @@ class ColorsSettingsComponent:
         reverse_colorscale: bool = st.checkbox(
             "Reverse Color Scale",
             value=saved_config.get("reverse_colorscale", False),
-            key=f"hm_rev_cs_{self.plot_id}",
+            key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.hm_rev_cs"),
             help="Reverse the direction of the color scale.",
         )
 
@@ -331,14 +339,23 @@ class ColorsSettingsComponent:
         """
         c2, c3 = st.columns([1, 2])
 
-        picker_key = f"{key_prefix}color_{self.plot_id}_{val_hash}_{palette_name}"
-        override_key = f"{key_prefix}use_col_{self.plot_id}_{val_hash}"
+        picker_key = WidgetKeyBuilder.plot_key(
+            self.plot_id, f"widgets.appearance.{key_prefix}color_{val_hash}_{palette_name}"
+        )
+        override_key = WidgetKeyBuilder.plot_key(
+            self.plot_id, f"widgets.appearance.{key_prefix}use_col_{val_hash}"
+        )
 
         with c2:
             st.color_picker(
                 "Original",
                 default_color,
-                key=(f"{key_prefix}orig_col_{self.plot_id}" f"_{val_hash}_{palette_name}"),
+                key=(
+                    WidgetKeyBuilder.plot_key(
+                        self.plot_id,
+                        f"widgets.appearance.{key_prefix}orig_col_{val_hash}_{palette_name}",
+                    )
+                ),
                 disabled=True,
                 label_visibility="collapsed",
             )
@@ -346,7 +363,9 @@ class ColorsSettingsComponent:
 
             if st.button(
                 "Rewind",
-                key=f"{key_prefix}rst_{self.plot_id}_{val_hash}",
+                key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}rst_{val_hash}"
+                ),
                 help="Reset to palette color",
             ):
                 current_style["use_color"] = False
@@ -395,7 +414,9 @@ class ColorsSettingsComponent:
             saved_config,
             "transparent_bg",
             self.plot_id,
-            widget_key=f"{key_prefix}trans_bg_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(
+                self.plot_id, f"widgets.appearance.{key_prefix}trans_bg"
+            ),
             help="Make the plot background fully transparent.",
         )
 
@@ -413,12 +434,16 @@ class ColorsSettingsComponent:
                 plot_bgcolor = st.color_picker(
                     "Plot Background",
                     curr_plot_bg,
-                    key=f"{key_prefix}bg_plot_{self.plot_id}",
+                    key=WidgetKeyBuilder.plot_key(
+                        self.plot_id, f"widgets.appearance.{key_prefix}bg_plot"
+                    ),
                 )
                 paper_bgcolor = st.color_picker(
                     "Paper (Outer) Background",
                     curr_paper_bg,
-                    key=f"{key_prefix}bg_paper_{self.plot_id}",
+                    key=WidgetKeyBuilder.plot_key(
+                        self.plot_id, f"widgets.appearance.{key_prefix}bg_paper"
+                    ),
                 )
             else:
                 plot_bgcolor = "rgba(0,0,0,0)"
@@ -429,7 +454,9 @@ class ColorsSettingsComponent:
                 saved_config,
                 "grid_color",
                 self.plot_id,
-                widget_key=f"{key_prefix}grid_col_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}grid_col"
+                ),
                 default="#e5e5e5",
             )
 
@@ -439,7 +466,9 @@ class ColorsSettingsComponent:
                 saved_config,
                 "axis_color",
                 self.plot_id,
-                widget_key=f"{key_prefix}axis_col_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}axis_col"
+                ),
                 default="#444444",
             )
             axis_line_width = numeric_input(
@@ -447,7 +476,9 @@ class ColorsSettingsComponent:
                 saved_config,
                 "axis_line_width",
                 self.plot_id,
-                widget_key=f"{key_prefix}axis_lw_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}axis_lw"
+                ),
                 default=1.0,
                 min_value=0.0,
                 max_value=10.0,
@@ -461,7 +492,9 @@ class ColorsSettingsComponent:
                     saved_config,
                     "enable_stripes",
                     self.plot_id,
-                    widget_key=f"{key_prefix}stripes_{self.plot_id}",
+                    widget_key=WidgetKeyBuilder.plot_key(
+                        self.plot_id, f"widgets.appearance.{key_prefix}stripes"
+                    ),
                     help="Adds a diagonal pattern to bars for better differentiation.",
                 )
             else:

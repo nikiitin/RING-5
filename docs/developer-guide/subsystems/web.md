@@ -28,6 +28,22 @@ submodels in core. The web models package owns structural interaction protocols.
 `src/web/state/ui_state_manager.py` owns transient widget and interaction state. Persistent data,
 plots, parser configuration, and history go through `ApplicationAPI` and the core state manager.
 
+`WidgetKeyBuilder.plot_key` constructs `plot.<id>.*` keys. Plot controls and pipeline editors use
+`plot.<id>.widgets.*`; appearance controls use `plot.<id>.widgets.appearance.*`. Theme exchange
+controls stay in `widgets.theme.*`, so applying a theme resets appearance without clearing the
+controls handling that action. Nested pipeline editors retain their shaper and group identities
+within the owning plot's namespace.
+
+`UIStateManager.plot.reset_widgets` clears one plot's widgets or a named widget section. Copying
+configuration schedules this reset before the destination's next controls render; the updated plot
+configuration supplies their defaults. Shape edits retain one typed UI draft against the published
+shape list, so adding, deleting or resizing a shape survives manual-refresh mode and settings
+navigation. Deletion resets shifted row controls before their next render. Plot deletion uses
+`plot.cleanup`, while workspace reset and restoration use `cleanup_all`.
+These operations preserve other plots and global preferences within their defined scope. Native
+figure disposal belongs to the render owner. Navigation uses `nav.current_page` through the typed
+navigation accessor; data-manager history requests use `manager.<name>.load_trigger`.
+
 ## Plot settings
 
 Plot configuration has two entry points: `render_config_ui` selects data mappings, and
@@ -64,6 +80,7 @@ stack total from its bar. Explicit category orders retain unlisted categories in
 ## Streamlit rules
 
 - Give widgets stable, per-object keys.
+- Read auto-refresh from its actual toggle; do not assign to its widget key after rendering it.
 - Use a form when several inputs should commit together and a fragment when a local rerun is safe.
 - Use `st.rerun()` after state mutations that must rebuild sibling components.
 - Do not cache a mutable per-session API globally.

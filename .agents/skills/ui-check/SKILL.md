@@ -14,10 +14,12 @@ conventions and runs the right test layers. For *writing* UI tests, use the
   (`src/web/pages/`) wire controllers (`src/web/controllers/plot/`: creation/pipeline/render) to
   self-contained components (`src/web/components/`). A new "presenter" module is a regression.
 - **UI state is namespaced & typed** via `src/web/state/ui_state_manager.py::UIStateManager` —
-  keys are `plot.{id}.*`, `manager.*`, `nav.*`, `export.*` (built by `WidgetKeyBuilder`). Raw ad-hoc
-  `st.session_state["auto_42"]` strings are the anti-pattern.
-- **Per-plot widget keys are unique**: `f"{prefix}_{field}_{plot_id}"` — shared keys across plots
-  cause cross-talk.
+  plot controls use `plot.<id>.widgets.*`, with appearance controls in `widgets.appearance.*`;
+  data managers use `manager.<name>.*`, and navigation uses `nav.current_page`.
+  Construct plot/manager keys through `WidgetKeyBuilder`. Use `plot.reset_widgets` before rendering
+  reset controls, `plot.cleanup` for deletion, and `cleanup_all` for workspace reset/restore.
+- **Per-plot widget keys are unique**: preserve semantic series, group and shaper identities within
+  the owning plot's namespace. Shared keys or suffix-based cleanup cause cross-talk.
 - **Dual engine**: rendering goes through `FigureConfig` → connectors; the engine is switched by the
   `ring5_engine_mode` session key (`EngineManager`). Default palette is `wong`. The plot class never
   calls `go.*`/`plt.*` (see `plot-type-check`).

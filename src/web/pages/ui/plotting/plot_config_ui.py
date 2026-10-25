@@ -17,6 +17,8 @@ from typing import TYPE_CHECKING
 import pandas as pd
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.core.common.numbered_axis import numbered_axis_modes
 from src.core.models.plot_config import ShapeConfig
 from src.web.components.plotting.settings import (
@@ -205,7 +207,7 @@ class PlotConfigUIMixin:
                     max_value=1.0,
                     value=saved_config.get("bargap", 0.2),
                     step=0.05,
-                    key=f"bargap_{self.plot_id}",
+                    key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.bargap"),
                 )
 
             with col_bar2:
@@ -216,7 +218,9 @@ class PlotConfigUIMixin:
                         max_value=1.0,
                         value=saved_config.get("bargroupgap", 0.0),
                         step=0.05,
-                        key=f"bargroupgap_{self.plot_id}",
+                        key=WidgetKeyBuilder.plot_key(
+                            self.plot_id, "widgets.appearance.bargroupgap"
+                        ),
                     )
 
                 if "stacked" in self.plot_type:
@@ -226,7 +230,9 @@ class PlotConfigUIMixin:
                         max_value=5.0,
                         value=saved_config.get("bar_border_width", 0.0),
                         step=0.5,
-                        key=f"bar_border_{self.plot_id}",
+                        key=WidgetKeyBuilder.plot_key(
+                            self.plot_id, "widgets.appearance.bar_border"
+                        ),
                         help=(
                             "Adds a white border around each bar segment"
                             " to separate stacked items."

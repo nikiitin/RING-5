@@ -112,7 +112,7 @@ class TestTypeSelector:
             "Plot Type",
             options=["bar", "line", "scatter"],
             index=0,  # grouped_bar not in list, defaults to 0
-            key="plot_type_sel_42",
+            key="plot.42.widgets.plot_type_sel",
         )
 
     @patch(f"{_CTRL}.render_settings_pills")
@@ -294,14 +294,14 @@ class TestRefreshLogic:
     @patch(f"{_CTRL}.ChartDisplayComponent.render_refresh_controls")
     @patch(f"{_CTRL}.render_settings_pills")
     @patch(f"{_CTRL}.st")
-    def test_auto_refresh_stored_in_ui_state(
+    def test_auto_refresh_control_uses_current_toggle_value(
         self,
         mock_st: MagicMock,
         mock_pills: MagicMock,
         mock_refresh: MagicMock,
         mock_viz: MagicMock,
     ) -> None:
-        """Auto-refresh toggle value is persisted to UI state."""
+        """Read the current control without publishing a second auto-refresh value."""
         mock_st.selectbox.return_value = "bar"
         mock_st.toggle.return_value = False
         mock_pills.return_value = None
@@ -314,7 +314,8 @@ class TestRefreshLogic:
         ctrl = _make_render_controller(ui_state=ui_state)
         ctrl.render(plot)
 
-        ui_state.plot.set_auto_refresh.assert_called_once_with(10, False)
+        mock_refresh.assert_called_once_with(plot_id=10, auto_refresh=True, config_changed=False)
+        mock_viz.assert_called_once_with(plot, True)
 
 
 # Error resilience

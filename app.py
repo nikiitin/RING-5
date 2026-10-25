@@ -66,6 +66,9 @@ def run_app() -> None:
         """Return the mutable application facade owned by this browser session."""
         return ApplicationAPI(plot_deserializer=PlotFactory.from_dict)
 
+    from src.web.state.ui_state_manager import UIStateManager
+
+    ui_state = UIStateManager()
     api = get_api()
     st.session_state.api = api
 
@@ -90,8 +93,8 @@ def run_app() -> None:
             "Save/Load Portfolio",
         ]
 
-        if st.session_state.get("_nav_page") not in _NAV_OPTIONS:
-            st.session_state["_nav_page"] = _NAV_OPTIONS[0]
+        if ui_state.nav.get_current_page() not in _NAV_OPTIONS:
+            ui_state.nav.set_current_page(_NAV_OPTIONS[0])
 
         from src.web.components.command_palette import CommandPaletteComponent
         from src.web.components.analysis_review import AnalysisReviewComponent
@@ -109,7 +112,7 @@ def run_app() -> None:
         st.markdown("---")
 
         for _nav_item in _NAV_OPTIONS:
-            _is_active = st.session_state["_nav_page"] == _nav_item
+            _is_active = ui_state.nav.get_current_page() == _nav_item
             _nav_clicked = st.button(
                 _nav_item,
                 key=f"nav_{_nav_item}",
@@ -117,7 +120,7 @@ def run_app() -> None:
                 type="primary" if _is_active else "tertiary",
             )
             if _nav_clicked and not _is_active:
-                st.session_state["_nav_page"] = _nav_item
+                ui_state.nav.set_current_page(_nav_item)
                 st.rerun()
 
         # [impl->req~ring5.workspace.documentation-hub~2]
@@ -128,7 +131,7 @@ def run_app() -> None:
             help="Open the published RING-5 documentation",
         )
 
-        page = st.session_state["_nav_page"]
+        page = ui_state.nav.get_current_page()
 
         st.markdown("---")
 
@@ -147,6 +150,7 @@ def run_app() -> None:
             help="Clear loaded CSV data and plots",
         ):
             api.reset_session()
+            ui_state.cleanup_all()
             st.session_state.pop(GuidedAnalysisComponent.EXPORT_STATE_KEY, None)
             st.rerun()
 
@@ -157,6 +161,7 @@ def run_app() -> None:
             help="Reset entire application to defaults",
         ):
             api.reset_session()
+            ui_state.cleanup_all()
             st.session_state.pop(GuidedAnalysisComponent.EXPORT_STATE_KEY, None)
             st.rerun()
 

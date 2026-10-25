@@ -26,6 +26,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.core.application_api import ApplicationAPI
 from src.core.common.content_identity import content_signature, frame_signature
 from src.core.models.visualization.engine import EngineMode
@@ -47,7 +49,7 @@ logger = logging.getLogger(__name__)
 
 def _drill_down_key(plot_id: int, suffix: str) -> str:
     """Return a plot-scoped key for transient drill-down browser state."""
-    return f"plot.{plot_id}.drill_down.{suffix}"
+    return WidgetKeyBuilder.plot_key(plot_id, f"drill_down.{suffix}")
 
 
 def _supports_drill_down(figure: go.Figure) -> bool:
@@ -129,7 +131,7 @@ class PlotRenderController:
             index=(
                 available_types.index(plot.plot_type) if plot.plot_type in available_types else 0
             ),
-            key=f"plot_type_sel_{plot.plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot.plot_id, "widgets.plot_type_sel"),
         )
         type_changed: bool = (
             isinstance(new_type, str) and new_type in available_types and new_type != plot.plot_type
@@ -137,6 +139,7 @@ class PlotRenderController:
 
         if type_changed and new_type is not None:
             self._lifecycle.change_plot_type(plot, new_type, self._api.state_manager)
+            self._ui.plot.reset_widgets(plot.plot_id)
             st.rerun()
             return
 
@@ -162,7 +165,7 @@ class PlotRenderController:
             show_adv: bool = st.toggle(
                 "Show advanced settings",
                 value=False,
-                key=f"show_advanced_{plot.plot_id}",
+                key=WidgetKeyBuilder.plot_key(plot.plot_id, "widgets.show_advanced"),
             )
             selected_section: str | None = render_settings_pills(show_advanced=show_adv)
             extra_config: PlotConfig = plot.render_settings_section(
@@ -192,9 +195,6 @@ class PlotRenderController:
             auto_refresh=auto_refresh,
             config_changed=config_changed,
         )
-
-        # Update auto-refresh in UI state
-        self._ui.plot.set_auto_refresh(plot.plot_id, controls["auto_refresh"])
 
         should_gen: bool = (controls["should_generate"] or refresh_requested) and not config_error
         # With auto-refresh disabled, keep the persisted config paired with the
@@ -391,7 +391,7 @@ class PlotRenderController:
                                 return
                 # Handle relayout events (zoom, pan, legend drag)
                 elif interaction_data:
-                    last_event_key = f"plot.{plot.plot_id}.last_relayout"
+                    last_event_key = WidgetKeyBuilder.plot_key(plot.plot_id, "last_relayout")
                     last_event = st.session_state.get(last_event_key)
                     if interaction_data != last_event:
                         if plot.update_from_relayout(interaction_data):

@@ -5,6 +5,8 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.web.components.plotting.config.base_plot_config import (
     detect_column_types,
     render_color_selector,
@@ -32,7 +34,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             "X-axis values",
             options=numeric_cols,
             index=x_index,
-            key=f"x_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.x"),
         )
         color = render_color_selector(saved_config, plot_id, categorical_cols)
     with label_column:
@@ -66,7 +68,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
                         "Cumulative distribution",
                     )
                 ),
-                key=f"ecdf_direction_{plot_id}",
+                key=WidgetKeyBuilder.plot_key(plot_id, "widgets.ecdf_direction"),
             )
             or "Cumulative distribution"
         )
@@ -82,7 +84,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
                         "Proportion (0 to 1)",
                     )
                 ),
-                key=f"ecdf_y_mode_{plot_id}",
+                key=WidgetKeyBuilder.plot_key(plot_id, "widgets.ecdf_y_mode"),
             )
             or "Proportion (0 to 1)"
         )
@@ -90,7 +92,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
         show_markers = st.checkbox(
             "Show observed thresholds",
             value=bool(saved_config.get("ecdf_markers", False)),
-            key=f"ecdf_markers_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.ecdf_markers"),
         )
         marker_size = st.slider(
             "Marker size",
@@ -98,7 +100,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             max_value=16,
             value=int(saved_config.get("marker_size", 6)),
             disabled=not show_markers,
-            key=f"ecdf_marker_size_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.ecdf_marker_size"),
         )
 
     return {

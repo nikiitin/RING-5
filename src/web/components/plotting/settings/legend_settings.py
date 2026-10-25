@@ -19,6 +19,8 @@ from typing import Any
 import pandas as pd
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.core.common.numbered_axis import numbered_axis_modes, numbered_legend_prefix
 from src.web.components.common.bounded_options import bounded_unique_strings
 from src.web.components.common.reorderable_list import render_reorderable_list
@@ -95,7 +97,7 @@ class LegendSettingsComponent:
             routing_config["unified_legend"] = st.checkbox(
                 "Unified Legend (all items in one legend)",
                 value=saved_config.get("unified_legend", True),
-                key=f"unified_legend_{self.plot_id}",
+                key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.unified_legend"),
             )
             saved_config.update(routing_config)
             numbered = "Number legend" in (numbered_axis_modes(saved_config) or [])
@@ -117,7 +119,7 @@ class LegendSettingsComponent:
             options=list(_labels.keys()),
             format_func=lambda x: _labels.get(x, str(x)),
             selection_mode="single",
-            key=f"legend_nav_{self.plot_id}",
+            key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.legend_nav"),
             default="primary",
         )
 
@@ -404,7 +406,9 @@ class LegendSettingsComponent:
                 saved_config,
                 f"{config_prefix}x",
                 self.plot_id,
-                widget_key=f"{key_prefix}leg_x_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}leg_x"
+                ),
                 default=1.02 if config_prefix == "legend_" else 1.0,
                 step=0.05,
                 format="%.2f",
@@ -421,7 +425,9 @@ class LegendSettingsComponent:
                 saved_config,
                 f"{config_prefix}y",
                 self.plot_id,
-                widget_key=f"{key_prefix}leg_y_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}leg_y"
+                ),
                 default=1.0,
                 step=0.05,
                 format="%.2f",
@@ -443,7 +449,9 @@ class LegendSettingsComponent:
             saved_config,
             f"{config_prefix}orientation",
             self.plot_id,
-            widget_key=f"{key_prefix}leg_orient_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(
+                self.plot_id, f"widgets.appearance.{key_prefix}leg_orient"
+            ),
             default="vertical",
         )
 
@@ -465,7 +473,9 @@ class LegendSettingsComponent:
     ) -> int | float:
         """Preserve secondary font inheritance and valid small primary fonts."""
         config_key = f"{config_prefix}{field}"
-        widget_key = f"{key_prefix}{widget_field}_{self.plot_id}"
+        widget_key = WidgetKeyBuilder.plot_key(
+            self.plot_id, f"widgets.appearance.{key_prefix}{widget_field}"
+        )
         if config_prefix == "legend_" and field != "title_font_size":
             return numeric_input(
                 label,
@@ -515,7 +525,9 @@ class LegendSettingsComponent:
             legend_title = st.text_area(
                 "Title",
                 value=saved_config.get(f"{config_prefix}title", ""),
-                key=f"{key_prefix}leg_title_txt_{self.plot_id}",
+                key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}leg_title_txt"
+                ),
                 height=68,
             )
             t_c1, t_c2 = st.columns(2)
@@ -525,7 +537,9 @@ class LegendSettingsComponent:
                     saved_config,
                     f"{config_prefix}title_font_color",
                     self.plot_id,
-                    widget_key=f"{key_prefix}leg_title_col_{self.plot_id}",
+                    widget_key=WidgetKeyBuilder.plot_key(
+                        self.plot_id, f"widgets.appearance.{key_prefix}leg_title_col"
+                    ),
                 )
             with t_c2:
                 legend_title_font_size = self._font_size_input(
@@ -556,14 +570,18 @@ class LegendSettingsComponent:
                 saved_config,
                 f"{config_prefix}transparent",
                 self.plot_id,
-                widget_key=f"{key_prefix}trans_leg_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}trans_leg"
+                ),
             )
 
             if not transparent_legend:
                 legend_bgcolor = st.color_picker(
                     "Background Color",
                     bg_col,
-                    key=f"{key_prefix}leg_bg_col_{self.plot_id}",
+                    key=WidgetKeyBuilder.plot_key(
+                        self.plot_id, f"widgets.appearance.{key_prefix}leg_bg_col"
+                    ),
                 )
             else:
                 legend_bgcolor = "rgba(0,0,0,0)"
@@ -574,14 +592,18 @@ class LegendSettingsComponent:
                 saved_config,
                 f"{config_prefix}border_color",
                 self.plot_id,
-                widget_key=f"{key_prefix}leg_bord_col_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}leg_bord_col"
+                ),
             )
             legend_border_width = numeric_input(
                 "Border Width",
                 saved_config,
                 f"{config_prefix}border_width",
                 self.plot_id,
-                widget_key=f"{key_prefix}leg_bord_wd_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}leg_bord_wd"
+                ),
                 default=0,
                 min_value=0,
                 max_value=5,
@@ -594,7 +616,9 @@ class LegendSettingsComponent:
                 saved_config,
                 f"{config_prefix}font_color",
                 self.plot_id,
-                widget_key=f"{key_prefix}leg_font_col_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}leg_font_col"
+                ),
             )
             legend_font_size = self._font_size_input(
                 saved_config,
@@ -610,14 +634,18 @@ class LegendSettingsComponent:
             legend_title = st.text_input(
                 "Legend Title",
                 value=saved_config.get(f"{config_prefix}title", ""),
-                key=f"{key_prefix}leg_title_txt_{self.plot_id}",
+                key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}leg_title_txt"
+                ),
             )
             legend_title_font_color = color_picker(
                 "Title Color",
                 saved_config,
                 f"{config_prefix}title_font_color",
                 self.plot_id,
-                widget_key=f"{key_prefix}leg_title_col_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}leg_title_col"
+                ),
             )
             legend_title_font_size = self._font_size_input(
                 {**saved_config, f"{config_prefix}font_size": legend_font_size},
@@ -655,7 +683,9 @@ class LegendSettingsComponent:
             saved_config,
             f"{config_prefix}ncols",
             self.plot_id,
-            widget_key=f"{key_prefix}leg_ncols_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(
+                self.plot_id, f"widgets.appearance.{key_prefix}leg_ncols"
+            ),
             default=0,
             min_value=0,
             max_value=20,
@@ -674,7 +704,9 @@ class LegendSettingsComponent:
                 saved_config,
                 f"{config_prefix}tracegroupgap",
                 self.plot_id,
-                widget_key=f"{key_prefix}leg_tracegap_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}leg_tracegap"
+                ),
                 default=10,
                 min_value=-20,
                 max_value=200,
@@ -685,7 +717,9 @@ class LegendSettingsComponent:
                 saved_config,
                 f"{config_prefix}column_spacing",
                 self.plot_id,
-                widget_key=f"{key_prefix}leg_colspace_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}leg_colspace"
+                ),
                 default=0.5,
                 min_value=0.0,
                 max_value=20.0,
@@ -703,7 +737,9 @@ class LegendSettingsComponent:
                 saved_config,
                 f"{config_prefix}itemwidth",
                 self.plot_id,
-                widget_key=f"{key_prefix}leg_itemwidth_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}leg_itemwidth"
+                ),
                 default=30,
                 min_value=0,
                 max_value=200,
@@ -718,7 +754,9 @@ class LegendSettingsComponent:
                 saved_config,
                 f"{config_prefix}handletextpad",
                 self.plot_id,
-                widget_key=f"{key_prefix}leg_htpad_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}leg_htpad"
+                ),
                 default=0.3,
                 min_value=0.0,
                 max_value=20.0,
@@ -755,7 +793,9 @@ class LegendSettingsComponent:
             saved_config,
             f"{config_prefix}colorbar_shared",
             self.plot_id,
-            widget_key=f"{key_prefix}cbar_shared_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(
+                self.plot_id, f"widgets.appearance.{key_prefix}cbar_shared"
+            ),
             default=True,
             help="Use a single colorbar for all subplots with a unified range.",
         )
@@ -769,7 +809,9 @@ class LegendSettingsComponent:
                 else 0
             ),
             horizontal=True,
-            key=f"{key_prefix}cbar_range_mode_{self.plot_id}",
+            key=WidgetKeyBuilder.plot_key(
+                self.plot_id, f"widgets.appearance.{key_prefix}cbar_range_mode"
+            ),
             help="Auto computes nice rounded boundaries; manual lets you set exact values.",
         )
 
@@ -783,7 +825,9 @@ class LegendSettingsComponent:
                     saved_config,
                     f"{config_prefix}colorbar_zmin",
                     self.plot_id,
-                    widget_key=f"{key_prefix}cbar_zmin_{self.plot_id}",
+                    widget_key=WidgetKeyBuilder.plot_key(
+                        self.plot_id, f"widgets.appearance.{key_prefix}cbar_zmin"
+                    ),
                     default=0.0,
                     step=1.0,
                     format="%.2f",
@@ -794,7 +838,9 @@ class LegendSettingsComponent:
                     saved_config,
                     f"{config_prefix}colorbar_zmax",
                     self.plot_id,
-                    widget_key=f"{key_prefix}cbar_zmax_{self.plot_id}",
+                    widget_key=WidgetKeyBuilder.plot_key(
+                        self.plot_id, f"widgets.appearance.{key_prefix}cbar_zmax"
+                    ),
                     default=100.0,
                     step=1.0,
                     format="%.2f",
@@ -807,7 +853,9 @@ class LegendSettingsComponent:
                 saved_config,
                 f"{config_prefix}colorbar_nticks",
                 self.plot_id,
-                widget_key=f"{key_prefix}cbar_nticks_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}cbar_nticks"
+                ),
                 default=5,
                 min_value=2,
                 max_value=20,
@@ -819,7 +867,9 @@ class LegendSettingsComponent:
                 saved_config,
                 f"{config_prefix}colorbar_tick_decimals",
                 self.plot_id,
-                widget_key=f"{key_prefix}cbar_tick_dec_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}cbar_tick_dec"
+                ),
                 default=2,
                 min_value=0,
                 max_value=6,
@@ -833,7 +883,9 @@ class LegendSettingsComponent:
                 saved_config,
                 f"{config_prefix}colorbar_tick_angle",
                 self.plot_id,
-                widget_key=f"{key_prefix}cbar_tick_angle_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}cbar_tick_angle"
+                ),
                 default=0.0,
                 min_value=-90.0,
                 max_value=90.0,
@@ -848,7 +900,9 @@ class LegendSettingsComponent:
                 saved_config,
                 f"{config_prefix}colorbar_tick_side",
                 self.plot_id,
-                widget_key=f"{key_prefix}cbar_tick_side_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}cbar_tick_side"
+                ),
                 default="right",
             )
 

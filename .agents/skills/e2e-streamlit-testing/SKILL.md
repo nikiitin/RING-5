@@ -117,7 +117,7 @@ save/load) so each class doesn't redo expensive setup.
 ## Manage Plots preconditions (the usual cause of "nothing renders")
 Data must be loaded; the shaper pipeline must be **finalized**; X/Y axes must be set — only then does
 the chart render. Happy path: Data Source → parse → Manage Plots → create plot → add shaper →
-finalize → select X/Y → refresh. Session-state keys are `plot_id`-suffixed for isolation.
+finalize → select X/Y → refresh. Plot controls use `plot.<id>.widgets.*` session keys for isolation.
 
 ## Verify after
 `make test-unit` for no-browser layers; `make test-visual` (or

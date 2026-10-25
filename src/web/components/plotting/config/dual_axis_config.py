@@ -5,6 +5,8 @@ from typing import Any
 import pandas as pd
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.web.components.plotting.config.base_plot_config import (
     detect_column_types,
     render_color_selector,
@@ -39,7 +41,7 @@ def _sync_auto_labels(
         "ylabel_dot": (previous_dot, y_dot),
     }
     for field, (previous_default, current_default) in derived_values.items():
-        widget_key = f"{field}_{plot_id}"
+        widget_key = WidgetKeyBuilder.plot_key(plot_id, f"widgets.{field}")
         saved_field = "ylabel_bar" if field == "ylabel" else field
         current_value = st.session_state.get(widget_key, saved_config.get(saved_field))
         if current_value == previous_default:
@@ -79,7 +81,7 @@ def render(
             "X-axis",
             options=x_options,
             index=x_default_idx,
-            key=f"x_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.x"),
         )
 
     with col2:
@@ -97,7 +99,7 @@ def render(
             "Y-axis (Bars – left)",
             options=numeric_cols,
             index=y_bar_idx,
-            key=f"y_bar_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.y_bar"),
         )
 
     with yc2:
@@ -109,7 +111,7 @@ def render(
             "Y-axis (Dots – right)",
             options=numeric_cols,
             index=y_dot_idx,
-            key=f"y_dot_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.y_dot"),
         )
 
     _sync_auto_labels(saved_config, plot_id, x_column, y_bar, y_dot)
@@ -131,7 +133,7 @@ def render(
         default_legend_title=default_legend_title,
     )
 
-    ylabel_dot_key = f"ylabel_dot_{plot_id}"
+    ylabel_dot_key = WidgetKeyBuilder.plot_key(plot_id, "widgets.ylabel_dot")
     if ylabel_dot_key in st.session_state:
         ylabel_dot = st.text_input("Right Y-axis Label", key=ylabel_dot_key)
     else:
@@ -148,7 +150,7 @@ def render(
         show_lines: bool = st.checkbox(
             "Show lines connecting dots",
             value=saved_config.get("show_lines", True),
-            key=f"show_lines_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.show_lines"),
         )
     with dc2:
         dot_symbol_options: list[str] = [
@@ -168,7 +170,7 @@ def render(
             "Dot Symbol",
             options=dot_symbol_options,
             index=dot_symbol_idx,
-            key=f"dot_symbol_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.dot_symbol"),
         )
     with dc3:
         dot_size: int = st.number_input(
@@ -176,7 +178,7 @@ def render(
             min_value=2,
             max_value=30,
             value=saved_config.get("dot_size", 10),
-            key=f"dot_size_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.dot_size"),
         )
 
     dc4, dc5 = st.columns(2)
@@ -186,7 +188,7 @@ def render(
             min_value=1,
             max_value=10,
             value=saved_config.get("line_width", 2),
-            key=f"line_width_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.line_width"),
             disabled=not show_lines,
         )
     with dc5:
@@ -195,7 +197,7 @@ def render(
             dot_color = st.color_picker(
                 "Dot Color",
                 value=saved_config.get("dot_color", "#EF553B"),
-                key=f"dot_color_{plot_id}",
+                key=WidgetKeyBuilder.plot_key(plot_id, "widgets.dot_color"),
             )
 
     placement_options = {
@@ -234,7 +236,7 @@ def render(
             "Dot placement",
             options=placement_labels,
             index=placement_index,
-            key=f"dot_alignment_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.dot_alignment"),
             help=(
                 "Place each right-axis dot at the benchmark center, or align it "
                 "directly with the grouped bar for the same configuration."
@@ -245,7 +247,7 @@ def render(
             "Line connection scope",
             options=connection_labels,
             index=connection_index,
-            key=f"line_scope_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.line_scope"),
             disabled=not show_lines,
             help=(
                 "Connect each configuration across benchmarks, or connect configurations "

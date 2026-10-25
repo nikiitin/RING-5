@@ -26,6 +26,8 @@ from typing import Any, cast
 import pandas as pd
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.core.application_api import ApplicationAPI
 from src.core.models.data_models import (
     PipelineConfigConflictPolicy,
@@ -85,7 +87,7 @@ class PipelineController:
             PipelineComponent.render_no_data_warning()
             return
 
-        feedback_key = f"pipeline_import_feedback_{plot.plot_id}"
+        feedback_key = WidgetKeyBuilder.plot_key(plot.plot_id, "widgets.pipeline_import_feedback")
         feedback = st.session_state.pop(feedback_key, None)
         if isinstance(feedback, dict):
             PipelineComponent.render_import_success(

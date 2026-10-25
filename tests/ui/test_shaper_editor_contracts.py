@@ -50,13 +50,15 @@ def test_mapping_editor_retains_json_scalar_values_and_typed_edits() -> None:
     ]
     app.run()
     _unchanged(app)
-    app.text_area(key="p1_dc_map_1").set_value(json.dumps({"a": 7, "b": True, "c": None})).run()
+    app.text_area(key="plot.1.widgets.pipeline.dc_map_1").set_value(
+        json.dumps({"a": 7, "b": True, "c": None})
+    ).run()
     assert not app.exception
     mapping = app.session_state["configured"]["mapping"]
     assert type(mapping["a"]) is int and mapping["a"] == 7
     assert mapping["b"] is True and mapping["c"] is None
     assert app.session_state["after"]["value"].tolist() == [7, True, None]
-    app.text_area(key="p1_dc_map_1").set_value("[" * 2_000 + "]" * 2_000).run()
+    app.text_area(key="plot.1.widgets.pipeline.dc_map_1").set_value("[" * 2_000 + "]" * 2_000).run()
     assert not app.exception
     assert app.error
     _unchanged(app)
@@ -97,7 +99,7 @@ def test_omitted_normalizer_variables_retain_constructor_default() -> None:
     )
     _unchanged(app)
     assert "normalizerVars" not in app.session_state["configured"]
-    assert app.multiselect(key="p1_normalizer_vars_1").value == ["v"]
+    assert app.multiselect(key="plot.1.widgets.pipeline.normalizer_vars_1").value == ["v"]
     app.run()
     _unchanged(app)
 

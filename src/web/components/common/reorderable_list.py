@@ -8,6 +8,8 @@ import hashlib
 
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.core.services.visualization.plot_interaction import resolve_item_order
 
 
@@ -45,7 +47,7 @@ def render_reorderable_list(
     st.markdown(f"**{label}**")
 
     # Initialize in session state if needed
-    ss_key: str = f"{key_prefix}_order_{plot_id}"
+    ss_key: str = WidgetKeyBuilder.plot_key(plot_id, f"widgets.appearance.{key_prefix}_order")
     if ss_key not in st.session_state:
         st.session_state[ss_key] = resolve_item_order(items, default_order=default_order)
 
@@ -71,7 +73,9 @@ def render_reorderable_list(
                 new_name: str = st.text_input(
                     str(item),
                     value=rename_value,
-                    key=f"{key_prefix}_rename_{_safe_item_key}_{plot_id}",
+                    key=WidgetKeyBuilder.plot_key(
+                        plot_id, f"widgets.appearance.{key_prefix}_rename_{_safe_item_key}"
+                    ),
                     label_visibility="collapsed",
                     placeholder=str(item),
                 )
@@ -86,7 +90,12 @@ def render_reorderable_list(
                 st.text(display_text)
         with c2:
             if i > 0:
-                if st.button("↑", key=f"{key_prefix}_up_{i}_{plot_id}"):
+                if st.button(
+                    "↑",
+                    key=WidgetKeyBuilder.plot_key(
+                        plot_id, f"widgets.appearance.{key_prefix}_up_{i}"
+                    ),
+                ):
                     current_items[i], current_items[i - 1] = (
                         current_items[i - 1],
                         current_items[i],
@@ -95,7 +104,12 @@ def render_reorderable_list(
                     st.rerun()
         with c3:
             if i < len(current_items) - 1:
-                if st.button("↓", key=f"{key_prefix}_down_{i}_{plot_id}"):
+                if st.button(
+                    "↓",
+                    key=WidgetKeyBuilder.plot_key(
+                        plot_id, f"widgets.appearance.{key_prefix}_down_{i}"
+                    ),
+                ):
                     current_items[i], current_items[i + 1] = (
                         current_items[i + 1],
                         current_items[i],

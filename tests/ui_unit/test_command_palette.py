@@ -34,9 +34,11 @@ def _command(
     )
 
 
+@patch("src.web.state.ui_state_manager.st")
 @patch("src.web.components.command_palette.st")
 def test_render_dialog_lists_shortcuts_and_searches_commands(
     mock_st: MagicMock,
+    mock_ui_st: MagicMock,
 ) -> None:
     """Render trusted command matches as actionable buttons."""
     from src.web.components.command_palette import CommandPaletteComponent
@@ -61,8 +63,11 @@ def test_render_dialog_lists_shortcuts_and_searches_commands(
     mock_st.iframe.assert_not_called()
 
 
+@patch("src.web.state.ui_state_manager.st")
 @patch("src.web.components.command_palette.st")
-def test_render_dialog_uses_a_link_for_external_documentation(mock_st: MagicMock) -> None:
+def test_render_dialog_uses_a_link_for_external_documentation(
+    mock_st: MagicMock, mock_ui_st: MagicMock
+) -> None:
     """Render the canonical documentation command as an external link."""
     # [test->req~ring5.workspace.documentation-hub~2]
     from src.web.components.command_palette import CommandPaletteComponent
@@ -92,17 +97,20 @@ def test_render_dialog_uses_a_link_for_external_documentation(mock_st: MagicMock
     mock_st.button.assert_not_called()
 
 
+@patch("src.web.state.ui_state_manager.st")
 @patch("src.web.components.command_palette.st")
 def test_activate_navigates_focuses_search_and_rejects_untrusted_actions(
     mock_st: MagicMock,
+    mock_ui_st: MagicMock,
 ) -> None:
     """Apply internal actions and reject destinations outside the catalog."""
     # [test->req~ring5.workspace.command-palette~1]
     from src.web.components.command_palette import CommandPaletteComponent
 
     mock_st.session_state = {}
+    mock_ui_st.session_state = mock_st.session_state
     CommandPaletteComponent.activate(_command())
-    assert mock_st.session_state["_nav_page"] == "Manage Plots"
+    assert mock_st.session_state["nav.current_page"] == "Manage Plots"
 
     CommandPaletteComponent.activate(
         _command(
@@ -125,9 +133,11 @@ def test_activate_navigates_focuses_search_and_rejects_untrusted_actions(
         CommandPaletteComponent.activate(object())  # type: ignore[arg-type]
 
 
+@patch("src.web.state.ui_state_manager.st")
 @patch("src.web.components.command_palette.st")
 def test_launcher_installs_one_bridge_with_pending_focus(
     mock_st: MagicMock,
+    mock_ui_st: MagicMock,
 ) -> None:
     """Install one keyboard bridge and consume pending focus requests."""
     from src.web.components.command_palette import CommandPaletteComponent
@@ -137,6 +147,7 @@ def test_launcher_installs_one_bridge_with_pending_focus(
         "_workspace_search_focus_pending": True,
         "_command_palette_focus_pending": True,
     }
+    mock_ui_st.session_state = mock_st.session_state
 
     CommandPaletteComponent.render(MagicMock())
 

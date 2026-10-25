@@ -28,7 +28,7 @@ def test_result_panel_explains_filters_rows_and_back_action(mock_st: MagicMock) 
     assert displayed["seed"].tolist() == [0, 1]
     mock_st.button.assert_called_once_with(
         ":material/arrow_back: Back to full plot",
-        key="plot.2.drill_down.close",
+        key="plot.2.widgets.drill_down.close",
     )
 
 

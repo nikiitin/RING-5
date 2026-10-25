@@ -10,6 +10,8 @@ from typing import Any, override
 import pandas as pd
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import (
     BarTraceConfig,
@@ -277,7 +279,7 @@ class DualAxisBarDotPlot(BasePlot):
                 max_value=1.0,
                 value=saved_config.get("bargap", 0.2),
                 step=0.05,
-                key=f"bargap_{self.plot_id}",
+                key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.bargap"),
             )
 
         st.markdown("#### Dot & Line Settings")
@@ -286,7 +288,7 @@ class DualAxisBarDotPlot(BasePlot):
             config["show_lines"] = st.checkbox(
                 "Show lines",
                 value=saved_config.get("show_lines", True),
-                key=f"adv_show_lines_{self.plot_id}",
+                key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.adv_show_lines"),
             )
         with dc2:
             symbols: list[str] = [
@@ -306,7 +308,7 @@ class DualAxisBarDotPlot(BasePlot):
                     if saved_config.get("dot_symbol") in symbols
                     else 0
                 ),
-                key=f"adv_dot_sym_{self.plot_id}",
+                key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.adv_dot_sym"),
             )
         with dc3:
             config["dot_size"] = st.number_input(
@@ -314,7 +316,7 @@ class DualAxisBarDotPlot(BasePlot):
                 min_value=2,
                 max_value=30,
                 value=saved_config.get("dot_size", 10),
-                key=f"adv_dot_size_{self.plot_id}",
+                key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.adv_dot_size"),
             )
 
         dc4, dc5 = st.columns(2)
@@ -324,7 +326,7 @@ class DualAxisBarDotPlot(BasePlot):
                 min_value=1,
                 max_value=10,
                 value=saved_config.get("line_width", 2),
-                key=f"adv_line_width_{self.plot_id}",
+                key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.adv_line_width"),
                 disabled=not config["show_lines"],
             )
         with dc5:
@@ -332,7 +334,7 @@ class DualAxisBarDotPlot(BasePlot):
                 config["dot_color"] = st.color_picker(
                     "Dot Color",
                     value=saved_config.get("dot_color", "#EF553B"),
-                    key=f"adv_dot_color_{self.plot_id}",
+                    key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.adv_dot_color"),
                 )
 
         placement_labels = ["Benchmark center", "Aligned with each bar"]
@@ -354,7 +356,7 @@ class DualAxisBarDotPlot(BasePlot):
                     if saved_placement in placement_values
                     else 0
                 ),
-                key=f"adv_dot_alignment_{self.plot_id}",
+                key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.adv_dot_alignment"),
             )
             config["dot_alignment"] = placement_values[placement_labels.index(selected_placement)]
         with pc2:
@@ -366,7 +368,7 @@ class DualAxisBarDotPlot(BasePlot):
                     if saved_connection in connection_values
                     else 0
                 ),
-                key=f"adv_line_scope_{self.plot_id}",
+                key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.adv_line_scope"),
                 disabled=not config["show_lines"],
             )
             config["line_scope"] = connection_values[connection_labels.index(selected_connection)]
@@ -377,7 +379,7 @@ class DualAxisBarDotPlot(BasePlot):
             max_value=2.0,
             value=float(saved_config.get("bargroupgap", 0.6)),
             step=0.1,
-            key=f"adv_bargroupgap_{self.plot_id}",
+            key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.adv_bargroupgap"),
             disabled=config["dot_alignment"] != "bar",
         )
 
@@ -388,7 +390,7 @@ class DualAxisBarDotPlot(BasePlot):
             config["isolate_last_group"] = st.checkbox(
                 "Isolate Last Category",
                 value=saved_config.get("isolate_last_group", False),
-                key=f"iso_last_{self.plot_id}",
+                key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.iso_last"),
                 help=(
                     "Removes the connecting line to the last X-axis category. "
                     "Useful when the last element is a mean/summary."

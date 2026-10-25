@@ -84,7 +84,6 @@ class TestPlotRenderControllerIntegration:
         ui_state = MagicMock(spec=UIStateManager)
         ui_state.plot = MagicMock()
         ui_state.plot.get_auto_refresh.return_value = True
-        ui_state.plot.set_auto_refresh.return_value = None
 
         controller = PlotRenderController(
             api=api,

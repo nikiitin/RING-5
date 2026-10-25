@@ -46,7 +46,12 @@ def test_configure_column_selector(mock_streamlit: Any, sample_data: Any) -> Non
     mock_streamlit.multiselect.return_value = ["metric"]
 
     config = configure_shaper(
-        "columnSelector", sample_data, 1, {}, display_names=ShaperFactory.get_display_name_map()
+        "columnSelector",
+        sample_data,
+        1,
+        {},
+        display_names=ShaperFactory.get_display_name_map(),
+        owner_id=0,
     )
 
     assert config.get("type") == "columnSelector"
@@ -60,6 +65,7 @@ def test_configure_column_selector(mock_streamlit: Any, sample_data: Any) -> Non
         1,
         existing,
         display_names=ShaperFactory.get_display_name_map(),
+        owner_id=0,
     )
     # Check default was passed correctly
     kwargs = mock_streamlit.multiselect.call_args[1]
@@ -73,7 +79,12 @@ def test_configure_filter_numeric(mock_streamlit: Any, sample_data: Any) -> None
     mock_streamlit.number_input.return_value = 15.0
 
     config = configure_shaper(
-        "conditionSelector", sample_data, 1, {}, display_names=ShaperFactory.get_display_name_map()
+        "conditionSelector",
+        sample_data,
+        1,
+        {},
+        display_names=ShaperFactory.get_display_name_map(),
+        owner_id=0,
     )
 
     assert config.get("type") == "conditionSelector"
@@ -90,7 +101,12 @@ def test_configure_filter_categorical(mock_streamlit: Any, sample_data: Any) -> 
     mock_streamlit.multiselect.side_effect = lambda *args, **kwargs: [kwargs["options"][0]]
 
     config = configure_shaper(
-        "conditionSelector", sample_data, 1, {}, display_names=ShaperFactory.get_display_name_map()
+        "conditionSelector",
+        sample_data,
+        1,
+        {},
+        display_names=ShaperFactory.get_display_name_map(),
+        owner_id=0,
     )
 
     assert config.get("type") == "conditionSelector"
@@ -110,7 +126,7 @@ def test_configure_mean(mock_streamlit: Any, sample_data: Any) -> None:
     mock_streamlit.multiselect.side_effect = [["metric"], ["dataset"]]  # Variables  # Group by
 
     config = configure_shaper(
-        "mean", sample_data, 1, {}, display_names=ShaperFactory.get_display_name_map()
+        "mean", sample_data, 1, {}, display_names=ShaperFactory.get_display_name_map(), owner_id=0
     )
 
     assert config.get("type") == "mean"

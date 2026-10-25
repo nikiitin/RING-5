@@ -10,6 +10,8 @@ import logging
 
 import streamlit as st
 
+from src.web.state.ui_state_manager import UIStateManager
+
 from src.core.application_api import ApplicationAPI
 from src.core.models.environment_models import EnvironmentComparison
 from src.core.models.portfolio_integrity_models import PortfolioIntegrityReport
@@ -325,6 +327,7 @@ def _portfolio_fragment(api: ApplicationAPI) -> None:
                         ),
                     )
                     report = api.state_manager.restore_session(data)
+                    UIStateManager().cleanup_all()
                     if not report.complete:
                         issues: list[str] = list(report.plots_skipped)
                         if report.data_error:

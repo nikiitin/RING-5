@@ -195,6 +195,8 @@ Covers:
 `FigureSpec` serializes engine-independent text annotations; the Matplotlib connector applies their
 text, coordinates, and optional arrow styling. In the web application, editable line, circle, and
 rectangle shapes are Plotly layout shapes and remain Plotly-specific.
+The [shape editor]({{site.baseurl}}/user-guide/reference/settings/#edit-shapes) preserves literal
+coordinates and native defaults, with an explicit number/text choice for edits.
 
 ### Typed FigureSpec
 

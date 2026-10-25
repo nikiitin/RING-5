@@ -8,6 +8,8 @@ Usage::
 
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.web.components.plotting.settings.widget_factory import (
     color_picker,
     numeric_input,
@@ -69,7 +71,9 @@ class DataLabelsSettingsComponent:
             saved_config,
             "show_values",
             self.plot_id,
-            widget_key=f"{key_prefix}show_val_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(
+                self.plot_id, f"widgets.appearance.{key_prefix}show_val"
+            ),
             default=True if is_heatmap else False,
         )
 
@@ -99,7 +103,9 @@ class DataLabelsSettingsComponent:
             saved_config,
             "text_color_mode",
             self.plot_id,
-            widget_key=f"{key_prefix}tx_col_mode_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(
+                self.plot_id, f"widgets.appearance.{key_prefix}tx_col_mode"
+            ),
             default="contrast" if is_heatmap else "auto",
             help=(
                 "Auto: uses theme default. Contrast:"
@@ -115,7 +121,9 @@ class DataLabelsSettingsComponent:
                 saved_config,
                 "text_color",
                 self.plot_id,
-                widget_key=f"{key_prefix}tx_col_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}tx_col"
+                ),
             )
 
         text_font_size = numeric_input(
@@ -123,7 +131,9 @@ class DataLabelsSettingsComponent:
             saved_config,
             "text_font_size",
             self.plot_id,
-            widget_key=f"{key_prefix}tx_font_sz_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(
+                self.plot_id, f"widgets.appearance.{key_prefix}tx_font_sz"
+            ),
             default=10,
             min_value=6,
             max_value=40,
@@ -136,7 +146,9 @@ class DataLabelsSettingsComponent:
                 saved_config,
                 "text_rotation",
                 self.plot_id,
-                widget_key=f"{key_prefix}tx_rot_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}tx_rot"
+                ),
                 default=0,
                 min_value=-90,
                 max_value=90,
@@ -152,7 +164,9 @@ class DataLabelsSettingsComponent:
                 saved_config,
                 "text_position",
                 self.plot_id,
-                widget_key=f"{key_prefix}tx_pos_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}tx_pos"
+                ),
             )
 
             text_anchor = select_option(
@@ -161,13 +175,15 @@ class DataLabelsSettingsComponent:
                 saved_config,
                 "text_anchor",
                 self.plot_id,
-                widget_key=f"{key_prefix}tx_anc_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}tx_anc"
+                ),
             )
 
         text_format = st.text_input(
             "Value Number Format (d3-format)",
             value=default_format,
-            key=f"{key_prefix}tx_fmt_{self.plot_id}",
+            key=WidgetKeyBuilder.plot_key(self.plot_id, f"widgets.appearance.{key_prefix}tx_fmt"),
             help=("e.g. .2f for 2 decimals, .4g for significant" " digits, .1% for percentage."),
         )
 
@@ -178,7 +194,9 @@ class DataLabelsSettingsComponent:
             saved_config,
             "text_display_logic",
             self.plot_id,
-            widget_key=f"{key_prefix}tx_logic_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(
+                self.plot_id, f"widgets.appearance.{key_prefix}tx_logic"
+            ),
         )
 
         text_threshold = 0.0
@@ -188,7 +206,9 @@ class DataLabelsSettingsComponent:
                 saved_config,
                 "text_threshold",
                 self.plot_id,
-                widget_key=f"{key_prefix}tx_thresh_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}tx_thresh"
+                ),
                 default=0.0,
             )
 
@@ -200,7 +220,9 @@ class DataLabelsSettingsComponent:
                 saved_config,
                 "text_constraint",
                 self.plot_id,
-                widget_key=f"{key_prefix}tx_const_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}tx_const"
+                ),
                 help="If inside, text will be resized or hidden to fit within the bars.",
             )
 
@@ -231,7 +253,9 @@ class DataLabelsSettingsComponent:
             saved_config,
             "show_totals",
             self.plot_id,
-            widget_key=f"{key_prefix}show_totals_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(
+                self.plot_id, f"widgets.appearance.{key_prefix}show_totals"
+            ),
         )
         if not config["show_totals"]:
             return config
@@ -245,7 +269,9 @@ class DataLabelsSettingsComponent:
                     saved_config,
                     "totals_position",
                     self.plot_id,
-                    widget_key=f"{key_prefix}hm_totals_pos_{self.plot_id}",
+                    widget_key=WidgetKeyBuilder.plot_key(
+                        self.plot_id, f"widgets.appearance.{key_prefix}hm_totals_pos"
+                    ),
                     default="right",
                 )
             with right:
@@ -255,7 +281,9 @@ class DataLabelsSettingsComponent:
                     saved_config,
                     "totals_aggregation",
                     self.plot_id,
-                    widget_key=f"{key_prefix}hm_totals_agg_{self.plot_id}",
+                    widget_key=WidgetKeyBuilder.plot_key(
+                        self.plot_id, f"widgets.appearance.{key_prefix}hm_totals_agg"
+                    ),
                     default="mean",
                 )
             return config
@@ -264,7 +292,9 @@ class DataLabelsSettingsComponent:
         config["net_total_format"] = st.text_input(
             "Total Number Format",
             value=saved_config.get("net_total_format", ".2f"),
-            key=f"{key_prefix}total_format_{self.plot_id}",
+            key=WidgetKeyBuilder.plot_key(
+                self.plot_id, f"widgets.appearance.{key_prefix}total_format"
+            ),
         )
         left, right = st.columns(2)
         with left:

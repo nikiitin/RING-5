@@ -91,7 +91,8 @@ def test_every_family_navigates_every_real_settings_pill(
         assert required.get(section.key, set()).issubset(emitted), (kind, section.key)
         if section.key == "axes":
             has_numbered_widget = any(
-                widget.key == f"numbered_modes_{app.session_state['plot'].plot_id}"
+                widget.key
+                == f"plot.{app.session_state['plot'].plot_id}.widgets.appearance.numbered_modes"
                 for widget in app.button_group
             )
             assert has_numbered_widget is (kind == "grouped_stacked_bar")
@@ -114,15 +115,21 @@ def test_bar_totals_survive_value_label_toggles_and_render_real_values(
         total_font_color="#123456",
     )
     plot = app.session_state["plot"]
-    checkbox = app.checkbox(key=f"theme_show_totals_{plot.plot_id}")
+    checkbox = app.checkbox(key=f"plot.{plot.plot_id}.widgets.appearance.theme_show_totals")
     assert checkbox.value
-    app.checkbox(key=f"theme_show_val_{plot.plot_id}").uncheck().run()
+    app.checkbox(key=f"plot.{plot.plot_id}.widgets.appearance.theme_show_val").uncheck().run()
     assert app.session_state["plot"].config["show_totals"]
-    assert app.checkbox(key=f"theme_show_totals_{plot.plot_id}").value
-    app.text_input(key=f"theme_total_format_{plot.plot_id}").set_value(".0f").run()
-    app.selectbox(key=f"total_position_{plot.plot_id}").select("Inside").run()
-    app.selectbox(key=f"total_anchor_{plot.plot_id}").select("Middle").run()
-    app.number_input(key=f"total_rotation_{plot.plot_id}").set_value(45).run()
+    assert app.checkbox(key=f"plot.{plot.plot_id}.widgets.appearance.theme_show_totals").value
+    app.text_input(key=f"plot.{plot.plot_id}.widgets.appearance.theme_total_format").set_value(
+        ".0f"
+    ).run()
+    app.selectbox(key=f"plot.{plot.plot_id}.widgets.appearance.total_position").select(
+        "Inside"
+    ).run()
+    app.selectbox(key=f"plot.{plot.plot_id}.widgets.appearance.total_anchor").select("Middle").run()
+    app.number_input(key=f"plot.{plot.plot_id}.widgets.appearance.total_rotation").set_value(
+        45
+    ).run()
     assert not app.exception
     plot, figure = _render(app, engine)
     assert plot.last_traces is not None
@@ -145,10 +152,12 @@ def test_group_layout_controls_change_existing_geometry(example_cases: dict[str,
     # [test->req~ring5.figure.alternate-category-shading~1]
     app = _app(example_cases["grouped_bar"], "layout")
     plot = app.session_state["plot"]
-    app.checkbox(key=f"show_separators_{plot.plot_id}").check().run()
-    app.checkbox(key=f"shade_alternate_{plot.plot_id}").check().run()
-    app.checkbox(key=f"isolate_last_group_{plot.plot_id}").check().run()
-    app.number_input(key=f"isolation_gap_{plot.plot_id}").set_value(1.5).run()
+    app.checkbox(key=f"plot.{plot.plot_id}.widgets.appearance.show_separators").check().run()
+    app.checkbox(key=f"plot.{plot.plot_id}.widgets.appearance.shade_alternate").check().run()
+    app.checkbox(key=f"plot.{plot.plot_id}.widgets.appearance.isolate_last_group").check().run()
+    app.number_input(key=f"plot.{plot.plot_id}.widgets.appearance.isolation_gap").set_value(
+        1.5
+    ).run()
     assert not app.exception
     for engine in ("plotly", "matplotlib"):
         plot, figure = _render(app, engine)
@@ -166,7 +175,7 @@ def test_numbered_axes_widget_has_three_modes_and_empty_is_current_off(
     # [test->req~ring5.figure.numbered-xaxis~1]
     app = _app(example_cases["grouped_stacked_bar"], "axes")
     plot = app.session_state["plot"]
-    modes = app.button_group(key=f"numbered_modes_{plot.plot_id}")
+    modes = app.button_group(key=f"plot.{plot.plot_id}.widgets.appearance.numbered_modes")
     assert len(modes.options) == 3
     modes.set_value(["Labels", "Numbers", "Number legend"]).run()
     assert app.session_state["emitted"]["numbered_xaxis_modes"] == [
@@ -177,7 +186,9 @@ def test_numbered_axes_widget_has_three_modes_and_empty_is_current_off(
     assert not {"numbered_xaxis", "show_numbered_ticks", "show_numbered_legend"}.intersection(
         app.session_state["emitted"]
     )
-    app.button_group(key=f"numbered_modes_{plot.plot_id}").set_value([]).run()
+    app.button_group(key=f"plot.{plot.plot_id}.widgets.appearance.numbered_modes").set_value(
+        []
+    ).run()
     assert not app.exception
     assert app.session_state["emitted"]["numbered_xaxis_modes"] == []
 
@@ -256,18 +267,30 @@ def test_right_axis_fonts_trace_controls_and_legend_tiers_use_active_pills(
         else:
             assert figure.axes[1].yaxis.label.get_fontsize() == 7
             assert all(label.get_fontsize() == 7 for label in figure.axes[1].get_yticklabels())
-    app.checkbox(key=f"plot.{plot.plot_id}.inherit_y2_title_sz_{plot.plot_id}").uncheck().run()
+    app.checkbox(
+        key=f"plot.{plot.plot_id}.widgets.appearance.inherit_yaxis2_title_font_size"
+    ).uncheck().run()
     assert app.session_state["plot"].config["yaxis2_title_font_size"] == 7
-    app.number_input(key=f"y2_title_sz_{plot.plot_id}").set_value(23).run()
+    app.number_input(key=f"plot.{plot.plot_id}.widgets.appearance.y2_title_sz").set_value(23).run()
     app.button_group(key="settings_nav").set_value("axes").run()
-    app.button_group(key=f"axis_nav_{plot.plot_id}").set_value("y_right").run()
-    app.selectbox(key=f"right_dot_sym_{plot.plot_id}").select("diamond").run()
-    app.number_input(key=f"right_dot_size_{plot.plot_id}").set_value(13).run()
-    app.number_input(key=f"right_line_w_{plot.plot_id}").set_value(4).run()
+    app.button_group(key=f"plot.{plot.plot_id}.widgets.appearance.axis_nav").set_value(
+        "y_right"
+    ).run()
+    app.selectbox(key=f"plot.{plot.plot_id}.widgets.appearance.right_dot_sym").select(
+        "diamond"
+    ).run()
+    app.number_input(key=f"plot.{plot.plot_id}.widgets.appearance.right_dot_size").set_value(
+        13
+    ).run()
+    app.number_input(key=f"plot.{plot.plot_id}.widgets.appearance.right_line_w").set_value(4).run()
     app.button_group(key="settings_nav").set_value("legends").run()
-    app.checkbox(key=f"unified_legend_{plot.plot_id}").uncheck().run()
-    assert len(app.button_group(key=f"legend_nav_{plot.plot_id}").options) == 3
-    app.button_group(key=f"legend_nav_{plot.plot_id}").set_value("tertiary").run()
+    app.checkbox(key=f"plot.{plot.plot_id}.widgets.appearance.unified_legend").uncheck().run()
+    assert (
+        len(app.button_group(key=f"plot.{plot.plot_id}.widgets.appearance.legend_nav").options) == 3
+    )
+    app.button_group(key=f"plot.{plot.plot_id}.widgets.appearance.legend_nav").set_value(
+        "tertiary"
+    ).run()
     assert "legend3_font_size" in app.session_state["emitted"]
     assert not app.exception
     for engine in ("plotly", "matplotlib"):
@@ -305,12 +328,20 @@ def test_major_label_fonts_and_placement_have_separate_owners(
 ) -> None:
     app = _app(example_cases["grouped_stacked_bar"], "typography")
     plot = app.session_state["plot"]
-    app.number_input(key=f"major_label_size_{plot.plot_id}").set_value(21).run()
-    app.color_picker(key=f"major_label_color_{plot.plot_id}").set_value("#123456").run()
+    app.number_input(key=f"plot.{plot.plot_id}.widgets.appearance.major_label_size").set_value(
+        21
+    ).run()
+    app.color_picker(key=f"plot.{plot.plot_id}.widgets.appearance.major_label_color").set_value(
+        "#123456"
+    ).run()
     assert "major_label_offset" not in app.session_state["emitted"]
     app.button_group(key="settings_nav").set_value("axes").run()
-    app.button_group(key=f"axis_nav_{plot.plot_id}").set_value("group").run()
-    app.number_input(key=f"grp_lbl_dist_{plot.plot_id}").set_value(-0.3).run()
+    app.button_group(key=f"plot.{plot.plot_id}.widgets.appearance.axis_nav").set_value(
+        "group"
+    ).run()
+    app.number_input(key=f"plot.{plot.plot_id}.widgets.appearance.grp_lbl_dist").set_value(
+        -0.3
+    ).run()
     assert "major_label_size" not in app.session_state["emitted"]
     assert not app.exception
     for engine in ("plotly", "matplotlib"):

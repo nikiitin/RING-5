@@ -16,6 +16,8 @@ from typing import Any, cast
 import pandas as pd
 import streamlit as st
 
+from src.web.state.ui_state_manager import UIStateManager
+
 from src.core.application_api import ApplicationAPI
 from src.core.common.security_limits import (
     MAX_BROWSER_UPLOAD_BYTES,
@@ -277,6 +279,7 @@ class DataSourceComponents:
                         signing_key=bundle_signing_key,
                         require_signature=require_signature,
                     )
+                    UIStateManager().cleanup_all()
                     if report.complete:
                         st.toast("Portable bundle restored.", icon="✅")
                     else:
@@ -340,6 +343,7 @@ class DataSourceComponents:
                         signing_key=portfolio_signing_key,
                         require_signature=require_signature,
                     )
+                    UIStateManager().cleanup_all()
                     if report.complete:
                         st.toast("Uploaded portfolio restored.", icon="✅")
                     else:

@@ -62,14 +62,7 @@ def show_manage_plots_page(api: ApplicationAPI) -> None:
     # ApplicationAPI initializes this session's repositories in its constructor.
     ui_state: UIStateManager = UIStateManager()
 
-    # Apply pending widget updates from interactive plot events
-    pending = ui_state.plot.consume_pending_updates()
-    if pending:
-        for key, value in pending.items():
-            if key in st.session_state:
-                st.session_state[key] = value
-
-    # Create adapters (bridge old static/class methods to protocol contracts).
+    # Adapt plot strategies to the controller protocols.
     # These are lightweight wrappers — no I/O in constructors.
     lifecycle: PlotLifecycleAdapter = PlotLifecycleAdapter()
     registry: PlotTypeRegistryAdapter = PlotTypeRegistryAdapter()

@@ -396,8 +396,8 @@ class TestPlotConfigComponents:
         )
 
         assert group_values == ["baseline", "optimized"]
-        assert mock_st.session_state["group_filter_column_4"] == "config_description"
-        assert mock_st.session_state["group_filter_4"] == ["baseline", "optimized"]
+        assert mock_st.session_state["plot.4.widgets.group_filter_column"] == "config_description"
+        assert mock_st.session_state["plot.4.widgets.group_filter"] == ["baseline", "optimized"]
 
     @patch("src.web.components.plotting.config.plot_config_components.st")
     def test_filter_no_group_col(self, mock_st: MagicMock) -> None:
@@ -506,9 +506,9 @@ class TestPlotConfigComponents:
         )
 
         mock_st.session_state = {
-            "title_7": "Updated title",
-            "xlabel_7": "Updated X",
-            "ylabel_7": "Updated Y",
+            "plot.7.widgets.title": "Updated title",
+            "plot.7.widgets.xlabel": "Updated X",
+            "plot.7.widgets.ylabel": "Updated Y",
         }
         mock_st.text_input.side_effect = lambda _label, **kwargs: mock_st.session_state[
             kwargs["key"]

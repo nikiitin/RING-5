@@ -36,7 +36,7 @@ class PipelineStepComponent:
         is_first: bool,
         is_last: bool,
         configure_fn: Callable[
-            [str, pd.DataFrame, int, Mapping[str, object] | None, int | None],
+            [str, pd.DataFrame, int, Mapping[str, object] | None, int],
             Mapping[str, object],
         ],
         apply_fn: Callable[

@@ -11,6 +11,8 @@ Usage::
 
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.web.components.plotting.settings.widget_factory import (
     color_picker,
     inherited_font_input,
@@ -64,7 +66,9 @@ class TypographySettingsComponent:
                 saved_config,
                 "title_font_size",
                 self.plot_id,
-                widget_key=f"{key_prefix}title_sz_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}title_sz"
+                ),
                 default=18,
                 min_value=1,
             )
@@ -74,7 +78,9 @@ class TypographySettingsComponent:
                 saved_config,
                 "xaxis_title_font_size",
                 self.plot_id,
-                widget_key=f"{key_prefix}xaxis_title_sz_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}xaxis_title_sz"
+                ),
                 default=14,
                 min_value=1,
             )
@@ -84,7 +90,9 @@ class TypographySettingsComponent:
                 saved_config,
                 "yaxis_title_font_size",
                 self.plot_id,
-                widget_key=f"{key_prefix}yaxis_title_sz_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}yaxis_title_sz"
+                ),
                 default=14,
                 min_value=1,
             )
@@ -96,7 +104,9 @@ class TypographySettingsComponent:
                 saved_config,
                 "xaxis_tickfont_size",
                 self.plot_id,
-                widget_key=f"{key_prefix}xaxis_tick_sz_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}xaxis_tick_sz"
+                ),
                 default=12,
                 min_value=1,
             )
@@ -105,7 +115,9 @@ class TypographySettingsComponent:
                 saved_config,
                 "xaxis_tickfont_color",
                 self.plot_id,
-                widget_key=f"{key_prefix}xaxis_tick_col_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}xaxis_tick_col"
+                ),
                 default="#444444",
             )
 
@@ -114,7 +126,9 @@ class TypographySettingsComponent:
                 saved_config,
                 "yaxis_tickfont_size",
                 self.plot_id,
-                widget_key=f"{key_prefix}yaxis_tick_sz_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}yaxis_tick_sz"
+                ),
                 default=12,
                 min_value=1,
             )
@@ -123,7 +137,9 @@ class TypographySettingsComponent:
                 saved_config,
                 "yaxis_tickfont_color",
                 self.plot_id,
-                widget_key=f"{key_prefix}yaxis_tick_col_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{key_prefix}yaxis_tick_col"
+                ),
                 default="#444444",
             )
 
@@ -162,7 +178,9 @@ class TypographySettingsComponent:
                 "yaxis2_title_font_size",
                 self.plot_id,
                 primary_key="yaxis_title_font_size",
-                widget_key=f"y2_title_sz_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, "widgets.appearance.y2_title_sz"
+                ),
                 default=14,
             )
             config["yaxis2_tickfont_size"] = inherited_font_input(
@@ -171,7 +189,7 @@ class TypographySettingsComponent:
                 "yaxis2_tickfont_size",
                 self.plot_id,
                 primary_key="yaxis_tickfont_size",
-                widget_key=f"y2_tick_sz_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.y2_tick_sz"),
                 default=12,
             )
             config["yaxis2_tickfont_color"] = color_picker(
@@ -180,6 +198,8 @@ class TypographySettingsComponent:
                 "yaxis2_tickfont_color",
                 self.plot_id,
                 default=saved_config.get("yaxis_tickfont_color", "#444444"),
-                widget_key=f"y2_tick_col_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, "widgets.appearance.y2_tick_col"
+                ),
             )
         return config

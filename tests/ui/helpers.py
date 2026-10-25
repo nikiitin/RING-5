@@ -206,7 +206,7 @@ def navigate_to(at: AppTest, page_name: str) -> AppTest:
     """
     at.sidebar.button(key=f"nav_{page_name}").click().run()
     assert not at.exception, f"Navigation to {page_name!r} raised an exception."
-    selected = at.session_state["_nav_page"]
+    selected = at.session_state["nav.current_page"]
     assert selected == page_name, f"Navigation selected {selected!r}, expected {page_name!r}."
     return at
 

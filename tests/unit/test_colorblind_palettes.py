@@ -154,7 +154,9 @@ class TestPaletteSelector:
         assert result["color_palette"] == "ring5_accessible"
         assert result["enable_stripes"] is True
         assert result["xaxis_tickfont_size"] == 12
-        assert mock_st.session_state["palette_select_1"] == "ring5_accessible"
+        assert (
+            mock_st.session_state["plot.1.widgets.appearance.palette_select"] == "ring5_accessible"
+        )
         assert mock_select_option.call_args.args[2]["color_palette"] == "ring5_accessible"
         mock_st.success.assert_called_once()
 

@@ -21,6 +21,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.core.models.visualization.trace_build_result import RuleLine, SeparatorLine, ShadedRegion
 from src.core.models.visualization.trace_config import TraceConfig
 from src.web.components.plotting.interactive_plot import interactive_plotly_chart
@@ -55,10 +57,14 @@ class ChartDisplayComponent:
             new_auto: bool = st.toggle(
                 "Auto-refresh",
                 value=auto_refresh,
-                key=f"auto_t_{plot_id}",
+                key=WidgetKeyBuilder.plot_key(plot_id, "widgets.auto_refresh"),
             )
         with r2:
-            manual: bool = st.button("Refresh Plot", key=f"refresh_{plot_id}", width="stretch")
+            manual: bool = st.button(
+                "Refresh Plot",
+                key=WidgetKeyBuilder.plot_key(plot_id, "widgets.refresh"),
+                width="stretch",
+            )
 
         should_generate: bool = manual or (new_auto and config_changed)
 
@@ -85,7 +91,7 @@ class ChartDisplayComponent:
             ),
             selection_mode="single",
             default=current_engine,
-            key=f"engine_selector_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.engine_selector"),
         )
         return engine_choice
 
@@ -133,7 +139,7 @@ class ChartDisplayComponent:
         relayout_data: dict[str, Any] | None = interactive_plotly_chart(
             fig,
             config=plotly_config,
-            key=f"chart_{plot_id}_{component_generation}",
+            key=WidgetKeyBuilder.plot_key(plot_id, f"widgets.chart_{component_generation}"),
             capture_click=capture_click,
         )
 
@@ -161,8 +167,8 @@ class ChartDisplayComponent:
         of the same plot are the same figure. This method only adds the
         Streamlit display and the session cache the download section reads.
         """
-        mpl_state_key = f"plot.{plot_id}.mpl_fig"
-        spec_state_key = f"plot.{plot_id}.mpl_spec"
+        mpl_state_key = WidgetKeyBuilder.plot_key(plot_id, "mpl_fig")
+        spec_state_key = WidgetKeyBuilder.plot_key(plot_id, "mpl_spec")
 
         # 0. Close previous matplotlib figure to prevent memory leak
         old_fig = st.session_state.get(mpl_state_key)
@@ -200,8 +206,8 @@ class ChartDisplayComponent:
         spec: Any = None,
     ) -> None:
         """Display and cache a complete Matplotlib figure built elsewhere."""
-        mpl_state_key = f"plot.{plot_id}.mpl_fig"
-        spec_state_key = f"plot.{plot_id}.mpl_spec"
+        mpl_state_key = WidgetKeyBuilder.plot_key(plot_id, "mpl_fig")
+        spec_state_key = WidgetKeyBuilder.plot_key(plot_id, "mpl_spec")
         old_fig = st.session_state.get(mpl_state_key)
         if old_fig is not None and old_fig is not mpl_fig:
             plt.close(old_fig)

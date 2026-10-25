@@ -3,6 +3,8 @@
 import pandas as pd
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.web.components.plotting.config.base_plot_config import (
     detect_column_types,
     render_common_config,
@@ -45,7 +47,7 @@ def render(
         "Group by",
         options=categorical_cols,
         index=group_default_idx,
-        key=f"group_{plot_id}",
+        key=WidgetKeyBuilder.plot_key(plot_id, "widgets.group"),
     )
 
     # X and group filter multi-selects

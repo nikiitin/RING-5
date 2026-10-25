@@ -26,6 +26,8 @@ from typing import Protocol
 import pandas as pd
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.core.common.numbered_axis import NUMBERED_AXIS_MODES, numbered_axis_modes
 from src.web.components.plotting.settings.widget_factory import (
     color_picker,
@@ -153,7 +155,7 @@ class AxesSettingsComponent:
             options=list(_axis_labels.keys()),
             format_func=lambda x: _axis_labels.get(x, str(x)),
             selection_mode="single",
-            key=f"axis_nav_{self.plot_id}",
+            key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.axis_nav"),
             default="x",
         )
 
@@ -206,7 +208,9 @@ class AxesSettingsComponent:
                     saved_config,
                     "x_grid_color",
                     self.plot_id,
-                    widget_key=f"x_grid_color_{self.plot_id}",
+                    widget_key=WidgetKeyBuilder.plot_key(
+                        self.plot_id, "widgets.appearance.x_grid_color"
+                    ),
                     default="#e5e5e5",
                 )
             with _xgc2:
@@ -215,7 +219,9 @@ class AxesSettingsComponent:
                     saved_config,
                     "x_grid_width",
                     self.plot_id,
-                    widget_key=f"x_grid_width_{self.plot_id}",
+                    widget_key=WidgetKeyBuilder.plot_key(
+                        self.plot_id, "widgets.appearance.x_grid_width"
+                    ),
                     default=1.0,
                     min_value=0.1,
                     max_value=10.0,
@@ -229,7 +235,9 @@ class AxesSettingsComponent:
                     saved_config,
                     "x_grid_dash",
                     self.plot_id,
-                    widget_key=f"x_grid_dash_{self.plot_id}",
+                    widget_key=WidgetKeyBuilder.plot_key(
+                        self.plot_id, "widgets.appearance.x_grid_dash"
+                    ),
                     default="solid",
                 )
             with _xgc4:
@@ -238,7 +246,9 @@ class AxesSettingsComponent:
                     saved_config,
                     "x_grid_alpha",
                     self.plot_id,
-                    widget_key=f"x_grid_alpha_{self.plot_id}",
+                    widget_key=WidgetKeyBuilder.plot_key(
+                        self.plot_id, "widgets.appearance.x_grid_alpha"
+                    ),
                     default=1.0,
                     min_value=0.0,
                     max_value=1.0,
@@ -250,7 +260,7 @@ class AxesSettingsComponent:
             saved_config,
             "xaxis_tickangle",
             self.plot_id,
-            widget_key=f"xaxis_angle_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.xaxis_angle"),
             default=-45,
             min_value=-90,
             max_value=90,
@@ -265,7 +275,7 @@ class AxesSettingsComponent:
             saved_config,
             "show_xtick_marks",
             self.plot_id,
-            widget_key=f"x_show_ticks_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.x_show_ticks"),
         )
         config["show_xtick_marks"] = show_xtick_marks
 
@@ -275,7 +285,7 @@ class AxesSettingsComponent:
             saved_config,
             "xaxis_tick_side",
             self.plot_id,
-            widget_key=f"x_tick_side_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.x_tick_side"),
             default="bottom",
         )
 
@@ -287,7 +297,7 @@ class AxesSettingsComponent:
                 saved_config,
                 "xtick_dash",
                 self.plot_id,
-                widget_key=f"x_tickdash_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.x_tickdash"),
                 default="solid",
             )
         config["xtick_dash"] = xtick_dash
@@ -356,7 +366,7 @@ class AxesSettingsComponent:
                 options=list(NUMBERED_AXIS_MODES),
                 default=numbered_axis_modes(saved_config) or [],
                 selection_mode="multi",
-                key=f"numbered_modes_{self.plot_id}",
+                key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.numbered_modes"),
             )
             config["numbered_xaxis_modes"] = numbered_axis_modes(
                 {"numbered_xaxis_modes": [] if modes is None else modes}
@@ -394,7 +404,9 @@ class AxesSettingsComponent:
             saved_config,
             grid_key,
             self.plot_id,
-            widget_key=f"{prefix}show_y_grid_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(
+                self.plot_id, f"widgets.appearance.{prefix}show_y_grid"
+            ),
             default=True if not prefix else False,
         )
         if config[grid_key]:
@@ -410,7 +422,9 @@ class AxesSettingsComponent:
                     saved_config,
                     _ygrid_color_key,
                     self.plot_id,
-                    widget_key=f"{prefix}y_grid_color_{self.plot_id}",
+                    widget_key=WidgetKeyBuilder.plot_key(
+                        self.plot_id, f"widgets.appearance.{prefix}y_grid_color"
+                    ),
                     default="#e5e5e5",
                 )
             with _ygc2:
@@ -419,7 +433,9 @@ class AxesSettingsComponent:
                     saved_config,
                     _ygrid_width_key,
                     self.plot_id,
-                    widget_key=f"{prefix}y_grid_width_{self.plot_id}",
+                    widget_key=WidgetKeyBuilder.plot_key(
+                        self.plot_id, f"widgets.appearance.{prefix}y_grid_width"
+                    ),
                     default=1.0,
                     min_value=0.1,
                     max_value=10.0,
@@ -433,7 +449,9 @@ class AxesSettingsComponent:
                     saved_config,
                     _ygrid_dash_key,
                     self.plot_id,
-                    widget_key=f"{prefix}y_grid_dash_{self.plot_id}",
+                    widget_key=WidgetKeyBuilder.plot_key(
+                        self.plot_id, f"widgets.appearance.{prefix}y_grid_dash"
+                    ),
                     default="solid",
                 )
             with _ygc4:
@@ -442,7 +460,9 @@ class AxesSettingsComponent:
                     saved_config,
                     _ygrid_alpha_key,
                     self.plot_id,
-                    widget_key=f"{prefix}y_grid_alpha_{self.plot_id}",
+                    widget_key=WidgetKeyBuilder.plot_key(
+                        self.plot_id, f"widgets.appearance.{prefix}y_grid_alpha"
+                    ),
                     default=1.0,
                     min_value=0.0,
                     max_value=1.0,
@@ -455,7 +475,9 @@ class AxesSettingsComponent:
             saved_config,
             axis_key("yaxis_tickangle"),
             self.plot_id,
-            widget_key=f"{prefix}yaxis_angle_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(
+                self.plot_id, f"widgets.appearance.{prefix}yaxis_angle"
+            ),
             default=0,
             min_value=-90,
             max_value=90,
@@ -468,7 +490,7 @@ class AxesSettingsComponent:
             f"{label} Step Size (0 for auto)",
             min_value=0.0,
             value=float(saved_config.get(dtick_key) or 0.0),
-            key=f"{prefix}ydtick_{self.plot_id}",
+            key=WidgetKeyBuilder.plot_key(self.plot_id, f"widgets.appearance.{prefix}ydtick"),
         )
         config[dtick_key] = dtick if dtick > 0 else None
 
@@ -479,7 +501,9 @@ class AxesSettingsComponent:
             saved_config,
             axis_key("show_ytick_marks"),
             self.plot_id,
-            widget_key=f"{prefix}y_show_ticks_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(
+                self.plot_id, f"widgets.appearance.{prefix}y_show_ticks"
+            ),
             default=True,
         )
         config[axis_key("show_ytick_marks")] = show_ytick_marks
@@ -490,7 +514,9 @@ class AxesSettingsComponent:
             saved_config,
             axis_key("yaxis_tick_side"),
             self.plot_id,
-            widget_key=f"{prefix}y_tick_side_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(
+                self.plot_id, f"widgets.appearance.{prefix}y_tick_side"
+            ),
             default="right" if prefix else "left",
         )
 
@@ -502,7 +528,9 @@ class AxesSettingsComponent:
                 saved_config,
                 axis_key("ytick_dash"),
                 self.plot_id,
-                widget_key=f"{prefix}y_tickdash_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{prefix}y_tickdash"
+                ),
                 default="solid",
             )
         config[axis_key("ytick_dash")] = ytick_dash
@@ -514,7 +542,9 @@ class AxesSettingsComponent:
             saved_config,
             axis_key("yaxis_title_standoff"),
             self.plot_id,
-            widget_key=f"{prefix}yaxis_title_standoff_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(
+                self.plot_id, f"widgets.appearance.{prefix}yaxis_title_standoff"
+            ),
             default=-1,
             min_value=-1,
             max_value=200,
@@ -526,7 +556,9 @@ class AxesSettingsComponent:
             saved_config,
             axis_key("yaxis_title_vshift"),
             self.plot_id,
-            widget_key=f"{prefix}yaxis_title_vshift_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(
+                self.plot_id, f"widgets.appearance.{prefix}yaxis_title_vshift"
+            ),
             default=0,
             min_value=-500,
             max_value=500,
@@ -550,7 +582,9 @@ class AxesSettingsComponent:
                 saved_config,
                 width_key,
                 self.plot_id,
-                widget_key=f"{prefix}y_axis_line_width_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{prefix}y_axis_line_width"
+                ),
                 default=1.0,
                 min_value=0.0,
                 max_value=10.0,
@@ -563,7 +597,9 @@ class AxesSettingsComponent:
                 saved_config,
                 color_key,
                 self.plot_id,
-                widget_key=f"{prefix}y_axis_line_color_{self.plot_id}",
+                widget_key=WidgetKeyBuilder.plot_key(
+                    self.plot_id, f"widgets.appearance.{prefix}y_axis_line_color"
+                ),
                 default="#444444",
             )
 
@@ -601,7 +637,7 @@ class AxesSettingsComponent:
             saved_config,
             "major_label_offset",
             self.plot_id,
-            widget_key=f"grp_lbl_dist_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.grp_lbl_dist"),
             default=-0.15,
             min_value=-1.0,
             max_value=0.0,
@@ -618,7 +654,7 @@ class AxesSettingsComponent:
             saved_config,
             "group_label_alternate",
             self.plot_id,
-            widget_key=f"grp_alt_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.grp_alt"),
             default=True,
             help="Stagger group labels to avoid overlap.",
         )
@@ -627,7 +663,7 @@ class AxesSettingsComponent:
             saved_config,
             "group_label_alt_spacing",
             self.plot_id,
-            widget_key=f"grp_alt_sp_{self.plot_id}",
+            widget_key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.grp_alt_sp"),
             default=0.05,
             min_value=0.0,
             max_value=0.5,

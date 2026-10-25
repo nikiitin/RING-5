@@ -31,6 +31,7 @@ def mock_streamlit() -> Generator[None, None, None]:
         patch("src.web.components.plotting.settings.engine_settings.st", mock_st),
         patch("src.web.components.common.reorderable_list.st", mock_st),
         patch("src.web.components.plotting.settings.shapes_settings.st", mock_st),
+        patch("src.web.state.ui_state_manager.st", mock_st),
         patch("src.web.components.plotting.settings.reference_line_settings.st", mock_st),
         patch("src.web.components.plotting.settings.ordering_settings.st", mock_st),
     ):
@@ -38,6 +39,7 @@ def mock_streamlit() -> Generator[None, None, None]:
             [MagicMock() for _ in range(n)] if isinstance(n, int) else [MagicMock() for _ in n]
         )
         mock_st.session_state = {}
+        mock_st.checkbox.side_effect = lambda _label, **kwargs: kwargs.get("value", False)
         mock_st.expander.return_value.__enter__.return_value = MagicMock()
         yield mock_st
 
@@ -53,9 +55,9 @@ def test_advanced_section_shapes_add(mock_streamlit: Any) -> None:
     mock_streamlit.color_picker.return_value = "#000000"
     mock_streamlit.number_input.return_value = 2
 
-    def button_side_effect(label: Any, key: Any = None, **kwargs: Any) -> int:
+    def button_side_effect(label: Any, key: Any = None, **kwargs: Any) -> bool:
 
-        if key == "add_shape_1":
+        if key == "plot.1.widgets.appearance.add_shape":
             return True
         return False
 
@@ -79,11 +81,9 @@ def test_advanced_section_shapes_edit_delete(mock_streamlit: Any) -> None:
         "shapes": [{"type": "line", "x0": 0, "y0": 0, "x1": 1, "y1": 1, "line": {"color": "red"}}]
     }
 
-    mock_streamlit.session_state["edit_shapes_1"] = True
+    def button_side_effect(label: Any, key: Any = None, **kwargs: Any) -> bool:
 
-    def button_side_effect(label: Any, key: Any = None, **kwargs: Any) -> int:
-
-        if key == "del_shape_0_1":
+        if key == "plot.1.widgets.appearance.shape_rows.del_shape_0":
             return True
         return False
 
@@ -117,11 +117,11 @@ def test_render_reorderable_list(mock_streamlit: Any) -> None:
 
     result = render_reorderable_list("List", items, "test", plot_id=plot.plot_id)
     assert result == items
-    assert mock_streamlit.session_state["test_order_1"] == items
+    assert mock_streamlit.session_state["plot.1.widgets.appearance.test_order"] == items
 
-    def button_side_effect(label: Any, key: Any = None, **kwargs: Any) -> int:
+    def button_side_effect(label: Any, key: Any = None, **kwargs: Any) -> bool:
 
-        if key == "test_down_0_1":
+        if key == "plot.1.widgets.appearance.test_down_0":
             return True
         return False
 
@@ -130,4 +130,4 @@ def test_render_reorderable_list(mock_streamlit: Any) -> None:
     # The second render moves the first item down once.
     render_reorderable_list("List", items, "test", plot_id=plot.plot_id)
     expected = ["B", "A", "C"]
-    assert mock_streamlit.session_state["test_order_1"] == expected
+    assert mock_streamlit.session_state["plot.1.widgets.appearance.test_order"] == expected

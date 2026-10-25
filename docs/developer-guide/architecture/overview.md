@@ -58,6 +58,8 @@ so a headless Matplotlib render follows the application path below the Streamlit
 `RepositoryStateManager` delegates to repositories for session data, parser configuration,
 previews, plots, visualization state, and history. Web-only transient state remains behind
 `UIStateManager`. Core and parsing code never access `st.session_state`.
+Plot widget state uses exact `plot.<id>.widgets.*` ownership. Scoped widget resets, plot deletion,
+and workspace restoration clear their corresponding namespaces through the same web state owner.
 
 ## Extension boundary
 

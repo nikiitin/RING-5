@@ -14,6 +14,8 @@ from typing import cast
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+
+from src.web.state.ui_state_manager import WidgetKeyBuilder
 from kaleido.errors import ChromeNotFoundError
 from matplotlib.figure import Figure as MplFigure
 
@@ -97,7 +99,7 @@ def _render_plotly_download(
         "Format",
         options=["html", "png", "svg", "pdf"],
         default="html",
-        key=f"dl_fmt_{plot_id}",
+        key=WidgetKeyBuilder.plot_key(plot_id, "widgets.dl_fmt"),
     )
     if fmt is None:
         return
@@ -139,7 +141,7 @@ def _render_plotly_download(
         mime=get_plotly_mime(fmt_typed),
         on_click=_mark_guided_analysis_exported,
         width="stretch",
-        key=f"dl_btn_{plot_id}",
+        key=WidgetKeyBuilder.plot_key(plot_id, "widgets.dl_btn"),
     )
     _record_reported_download(downloaded)
 
@@ -148,20 +150,20 @@ def _render_mpl_download(plot_id: int, plot_name: str) -> None:
     # [impl->req~ring5.export.matplotlib-pgf~1]
     # [impl->req~ring5.export.web-download~1]
     """Format pills + download button for the Matplotlib path."""
-    mpl_fig: MplFigure | None = st.session_state.get(f"plot.{plot_id}.mpl_fig")
+    mpl_fig: MplFigure | None = st.session_state.get(WidgetKeyBuilder.plot_key(plot_id, "mpl_fig"))
     if mpl_fig is None:
         st.warning("No matplotlib figure available for download.")
         return
 
     # Resolved FigureConfig cached by the chart display. The exporter ignores
     # custom LaTeX preambles and escapes all figure text for PGF.
-    spec = st.session_state.get(f"plot.{plot_id}.mpl_spec")
+    spec = st.session_state.get(WidgetKeyBuilder.plot_key(plot_id, "mpl_spec"))
 
     fmt = st.pills(
         "Format",
         options=["pdf", "pgf", "png", "svg"],
         default="pdf",
-        key=f"dl_fmt_{plot_id}",
+        key=WidgetKeyBuilder.plot_key(plot_id, "widgets.dl_fmt"),
     )
     if fmt is None:
         return
@@ -186,6 +188,6 @@ def _render_mpl_download(plot_id: int, plot_name: str) -> None:
         mime=get_matplotlib_mime(fmt_typed),
         on_click=_mark_guided_analysis_exported,
         width="stretch",
-        key=f"dl_btn_{plot_id}",
+        key=WidgetKeyBuilder.plot_key(plot_id, "widgets.dl_btn"),
     )
     _record_reported_download(downloaded)

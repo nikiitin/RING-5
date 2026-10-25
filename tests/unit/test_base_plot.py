@@ -137,9 +137,9 @@ def test_auto_labels_follow_axis_changes_without_overwriting_custom_text(mock_st
     from src.web.components.plotting.config.base_plot_config import _sync_auto_labels
 
     mock_st.session_state = {
-        "title_7": "seed by benchmark_name",
-        "xlabel_7": "benchmark_name",
-        "ylabel_7": "Publication value",
+        "plot.7.widgets.title": "seed by benchmark_name",
+        "plot.7.widgets.xlabel": "benchmark_name",
+        "plot.7.widgets.ylabel": "Publication value",
     }
     saved_config = {
         "x": "benchmark_name",
@@ -152,9 +152,9 @@ def test_auto_labels_follow_axis_changes_without_overwriting_custom_text(mock_st
     _sync_auto_labels(saved_config, 7, "config_description", "system.cpu.ipc")
 
     assert mock_st.session_state == {
-        "title_7": "system.cpu.ipc by config_description",
-        "xlabel_7": "config_description",
-        "ylabel_7": "Publication value",
+        "plot.7.widgets.title": "system.cpu.ipc by config_description",
+        "plot.7.widgets.xlabel": "config_description",
+        "plot.7.widgets.ylabel": "Publication value",
     }
     assert saved_config == {
         "x": "benchmark_name",
@@ -189,7 +189,7 @@ def test_render_reorderable_list(concrete_plot: Any, mock_streamlit: Any) -> Non
     render_reorderable_list("Label", items, "test_key", plot_id=concrete_plot.plot_id)
 
     # Verify state initialization
-    key = f"test_key_order_{concrete_plot.plot_id}"
+    key = f"plot.{concrete_plot.plot_id}.widgets.appearance.test_key_order"
     assert key in mock_streamlit.session_state
     assert mock_streamlit.session_state[key] == items
 
@@ -199,7 +199,7 @@ def test_render_reorderable_list(concrete_plot: Any, mock_streamlit: Any) -> Non
     # Pattern: up_{i}
     def button_side_effect(label: Any, key: Any, **kwargs: Any) -> int:
 
-        if key == f"test_key_up_1_{concrete_plot.plot_id}":
+        if key == f"plot.{concrete_plot.plot_id}.widgets.appearance.test_key_up_1":
             return True
         return False
 

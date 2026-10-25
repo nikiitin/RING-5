@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import streamlit as st
 
+from src.web.state.ui_state_manager import UIStateManager
+
 from src.core.application_api import ApplicationAPI
 from src.core.models.workspace_search_models import WorkspaceSearchResult
 
@@ -107,4 +109,4 @@ class WorkspaceSearchComponent:
         elif result.kind == "variable":
             st.session_state["var_search_box__search"] = result.identifier
 
-        st.session_state["_nav_page"] = result.location
+        UIStateManager().nav.set_current_page(result.location)

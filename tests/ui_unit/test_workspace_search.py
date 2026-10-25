@@ -26,8 +26,11 @@ def _result(
     )
 
 
+@patch("src.web.state.ui_state_manager.st")
 @patch("src.web.components.workspace_search.st")
-def test_render_shows_bounded_actions_and_documentation_links(mock_st: MagicMock) -> None:
+def test_render_shows_bounded_actions_and_documentation_links(
+    mock_st: MagicMock, mock_ui_st: MagicMock
+) -> None:
     from src.web.components.workspace_search import WorkspaceSearchComponent
 
     mock_st.expander.return_value.__enter__.return_value = MagicMock()
@@ -64,12 +67,16 @@ def test_render_shows_bounded_actions_and_documentation_links(mock_st: MagicMock
     mock_st.warning.assert_called_once()
 
 
+@patch("src.web.state.ui_state_manager.st")
 @patch("src.web.components.workspace_search.st")
-def test_activate_selects_entities_and_rejects_stale_targets(mock_st: MagicMock) -> None:
+def test_activate_selects_entities_and_rejects_stale_targets(
+    mock_st: MagicMock, mock_ui_st: MagicMock
+) -> None:
     # [test->req~ring5.workspace.global-search~1]
     from src.web.components.workspace_search import WorkspaceSearchComponent
 
     mock_st.session_state = {"plot_selector": "old"}
+    mock_ui_st.session_state = mock_st.session_state
     api = MagicMock()
     plot = MagicMock(plot_id=7)
     api.state_manager.get_plots.return_value = [plot]
@@ -92,7 +99,7 @@ def test_activate_selects_entities_and_rejects_stale_targets(mock_st: MagicMock)
         _result("variable", "system.cpu.ipc", "Data Source", "system.cpu.ipc"),
     )
     assert mock_st.session_state["var_search_box__search"] == "system.cpu.ipc"
-    assert mock_st.session_state["_nav_page"] == "Data Source"
+    assert mock_st.session_state["nav.current_page"] == "Data Source"
 
     WorkspaceSearchComponent.activate(
         api,

@@ -18,7 +18,7 @@ class BaseStyleUI:
         self._render_specific_series_visuals(
             current_style,
             key_suffix,
-            key_prefix=f"{WidgetKeyBuilder.plot_key(self.plot_id, 'series')}.",
+            key_prefix=f"{WidgetKeyBuilder.plot_key(self.plot_id, 'widgets.appearance.series')}.",
         )
 
     def _render_specific_series_visuals(
