@@ -169,8 +169,6 @@ def copy_plot_content(
         if replacement_reason is not None:
             raise ValueError(replacement_reason)
         target.config = copy.deepcopy(source.config)
-        target.legend_mappings = copy.deepcopy(source.legend_mappings)
-        target.legend_mappings_by_column = copy.deepcopy(source.legend_mappings_by_column)
         target.invalidate_figure()
         return PlotTransferResult(
             source.plot_id,

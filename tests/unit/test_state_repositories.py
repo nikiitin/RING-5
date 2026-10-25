@@ -775,7 +775,7 @@ class TestSessionRepository:
         portfolio: dict = {
             "parser_strategy": "simple",
             "simulator": "gem5",  # type: ignore[type-arg]
-            "plots": [{"type": "bar", "id": 1}],
+            "plots": [{"plot_type": "bar", "id": 1}],
             "plot_counter": 5,
         }
 

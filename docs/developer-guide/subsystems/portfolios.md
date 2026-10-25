@@ -36,8 +36,8 @@ Covers:
 
 -->
 
-The supported portfolio schema is version 7. Serialized files declare `schema_version: 7`,
-`version: "7.0"`, their parser strategy and simulator, environment metadata, and an integrity
+The supported portfolio schema is version 8. Serialized files declare `schema_version: 8`,
+`version: "8.0"`, their parser strategy and simulator, environment metadata, and an integrity
 manifest. Missing or unsupported schema versions raise a typed version error before restoration.
 No reader infers old defaults, translates keys, or rewrites a file into the current schema.
 
@@ -105,3 +105,9 @@ without bulk list conversion.
 The budget includes category and MultiIndex levels, compact range axes, padded dtypes and nested
 attribute arrays. Container byte limits remain independent; a compact file cannot declare an
 unbounded decoded table.
+
+Plot documents use the fields admitted by `src/core/common/plot_payload.py`. Legend names live in
+`config.legend_labels`; copies, comparisons and portfolio restoration use that same configuration.
+Unknown plot fields raise errors before restoration or publication. Explicit `FigureConfig.from_dict`
+decoding rejects unknown typography names. A saved `figure_spec` records resolved styling metadata
+for inspection; restoration uses the plot configuration.

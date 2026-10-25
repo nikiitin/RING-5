@@ -162,8 +162,6 @@ class WorkspaceInputService:
                         "config": deepcopy(plot.config),
                         "pipeline": deepcopy(plot.pipeline),
                         "pipeline_counter": plot.pipeline_counter,
-                        "legend_mappings": deepcopy(plot.legend_mappings),
-                        "legend_mappings_by_column": deepcopy(plot.legend_mappings_by_column),
                         "figure_config": (asdict(figure_config) if figure_config else None),
                         "source_data": (
                             plot.source_data.copy(deep=True)

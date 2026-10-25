@@ -40,5 +40,10 @@ configuration without backend imports.
 - Models do not call services, read application state, or import Streamlit or rendering engines.
 - Round-trip tests cover `to_dict` and `from_dict` behavior for persisted models.
 
+Serialized plots use `validate_plot_fields` in `src/core/common/plot_payload.py` before data
+decoding. Visible legend labels belong to `config.legend_labels`; adding persistent plot fields
+requires updating the writer, field contract and restoration together. `FigureConfig.from_dict`
+passes exact typography fields to `TypographyConfig` and rejects unknown names.
+
 Use the source definitions as the field-level reference. This page records ownership and stability,
 not a copied inventory that can drift.

@@ -148,8 +148,6 @@ def _plot():
         config={"x": "category", "y": "value"},
         pipeline=[],
         pipeline_counter=0,
-        legend_mappings={},
-        legend_mappings_by_column={},
         source_data=frame.copy(),
         processed_data=frame.copy(),
     )

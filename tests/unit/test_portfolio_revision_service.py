@@ -59,9 +59,9 @@ def _payload(
                     "y": "value",
                     "title": title,
                     "line_width": line_width,
+                    "legend_labels": {"A": title},
                 },
                 "pipeline": [{"type": step, "column": "value"}],
-                "legend_mappings": {"A": title},
                 "figure_spec": {"title": title, "line_width": line_width},
             }
         ],

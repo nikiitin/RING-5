@@ -60,8 +60,6 @@ class BasePlot(PlotConfigUIMixin, ABC):
         self.last_figure_cache_key: str | None = None
         self.pipeline: list[PipelineStep] = []
         self.pipeline_counter: int = 0
-        self.legend_mappings_by_column: dict[str, dict[str, str]] = {}
-        self.legend_mappings: dict[str, str] = {}
 
         # Initialize Style Manager
         self._style_ui = StyleUIFactory.get_strategy(self.plot_id, self.plot_type)
@@ -191,6 +189,4 @@ class BasePlot(PlotConfigUIMixin, ABC):
             "processed_data": TypedTableCodec.encode(self.processed_data),
             "pipeline": self.pipeline,
             "pipeline_counter": self.pipeline_counter,
-            "legend_mappings_by_column": self.legend_mappings_by_column,
-            "legend_mappings": self.legend_mappings,
         }

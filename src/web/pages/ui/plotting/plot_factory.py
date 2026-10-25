@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, TypedDict
 
 from src.core.common.typed_table_codec import TypedTableCodec
 from src.core.common.numbered_axis import numbered_axis_modes
+from src.core.common.plot_payload import validate_plot_fields
 
 if TYPE_CHECKING:
     from .base_plot import BasePlot
@@ -145,6 +146,7 @@ class PlotFactory:
         Returns:
             Restored plot instance.
         """
+        validate_plot_fields(data)
         numbered_axis_modes(data.get("config", {}))
         plot = cls.create_plot(
             plot_type=data["plot_type"],
@@ -154,11 +156,6 @@ class PlotFactory:
         plot.config = data.get("config", {})
         plot.pipeline = data.get("pipeline", [])
         plot.pipeline_counter = data.get("pipeline_counter", 0)
-        plot.legend_mappings_by_column = data.get("legend_mappings_by_column", {})
-        plot.legend_mappings = data.get("legend_mappings", {})
-
-        if "processed_semantics" in data:
-            raise ValueError("Unsupported retired plot table fields.")
         plot.replace_source_data(TypedTableCodec.decode(data["source_data"]))
         plot.replace_processed_data(TypedTableCodec.decode(data["processed_data"]))
         return plot

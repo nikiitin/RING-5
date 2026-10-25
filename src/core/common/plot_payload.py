@@ -1,0 +1,39 @@
+"""Field admission for the current serialized plot document."""
+
+from typing import Any
+
+_PLOT_FIELDS = frozenset(
+    {
+        "id",
+        "name",
+        "plot_type",
+        "config",
+        "source_data",
+        "processed_data",
+        "pipeline",
+        "pipeline_counter",
+        "figure_spec",
+    }
+)
+
+
+def validate_plot_fields(payload: dict[str, Any]) -> None:
+    """Reject unsupported plot state before deserialization or publication.
+
+    The optional figure specification records resolved styling. Editable config
+    and pipeline drafts retain their current nested contracts.
+
+    Args:
+        payload: A serialized plot mapping admitted by the current portfolio format.
+
+    Raises:
+        ValueError: The document contains fields outside the current plot contract.
+    """
+    # [impl->req~ring5.portfolio.schema~1]
+    if any(not isinstance(key, str) for key in payload):
+        raise ValueError("Plot fields must have text names.")
+    unknown = payload.keys() - _PLOT_FIELDS
+    if unknown:
+        raise ValueError(
+            f"Unsupported plot fields in the current typed representation: {sorted(unknown)}."
+        )

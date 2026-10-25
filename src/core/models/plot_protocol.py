@@ -27,8 +27,6 @@ class PlotProtocol(Protocol):
     config: dict[str, Any]
     pipeline: list[PipelineStep]
     pipeline_counter: int
-    legend_mappings_by_column: dict[str, dict[str, str]]
-    legend_mappings: dict[str, str]
     source_data: pd.DataFrame | None
     processed_data: pd.DataFrame | None
 

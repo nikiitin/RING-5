@@ -33,6 +33,8 @@ Covers:
    `src/web/components/plotting/config/` only for new fields, with per-plot widget keys.
 6. Keep additional state serializable through `BasePlot.to_dict` and portfolio restore. Plot
    tables use the shared typed table codec; do not introduce another table representation.
+   Persistent fields require coordinated additions to the writer, `plot_payload.py` field contract
+   and `PlotFactory.from_dict` restoration.
 
 The registry identifier is stored in portfolios and accepted by the public API. Use its exact
 canonical spelling. A rename replaces all producers, consumers and fixtures without an alias.

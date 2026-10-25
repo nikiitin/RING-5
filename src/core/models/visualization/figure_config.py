@@ -190,6 +190,10 @@ class FigureConfig:
         as the raw dicts that ``to_dict`` produced — their concrete TraceConfig
         subclasses are not reconstructed — so a round-trip preserves field
         values but is not object-identical for traces.
+
+        Raises:
+            TypeError: A nested dataclass contains unsupported fields.
+            ValueError: Typography is not a serialized object.
         """
         from src.core.models.visualization.annotation_config import (
             AnnotationConfig,
@@ -212,11 +216,9 @@ class FigureConfig:
         dimensions = DimensionConfig(margins=margins, **dims_data)
 
         typo_data = data.get("typography", {})
-        # Filter to known fields so a legacy portfolio carrying since-removed keys
-        # (e.g. the old legend3 font-size fields) loads instead of raising TypeError.
-        typo_fields = TypographyConfig.__dataclass_fields__
-        typo_kwargs = {k: v for k, v in typo_data.items() if k in typo_fields}
-        typography = TypographyConfig(**typo_kwargs) if typo_kwargs else TypographyConfig()
+        if not isinstance(typo_data, dict):
+            raise ValueError("Figure typography must be an object.")
+        typography = TypographyConfig(**typo_data)
 
         axes_data = data.get("axes", {})
         axes = AxesConfig.from_dict(axes_data) if axes_data else AxesConfig()

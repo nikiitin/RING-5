@@ -1,6 +1,7 @@
 """Public API coverage for save-time execution-environment provenance."""
 
 from __future__ import annotations
+from src.core.models.portfolio_contract import CURRENT_PORTFOLIO_SCHEMA_VERSION
 
 import json
 from pathlib import Path
@@ -22,7 +23,7 @@ def test_saved_environment_is_public_and_matches_same_runtime(portfolios_dir: Pa
         comparison = session.compare_portfolio_environment("environment_probe")
 
     document = json.loads((portfolios_dir / "environment_probe.json").read_text())
-    assert document["schema_version"] == 7
+    assert document["schema_version"] == CURRENT_PORTFOLIO_SCHEMA_VERSION
     assert document["environment_metadata"] == current.to_dict()
     assert isinstance(current, ring5.EnvironmentMetadata)
     assert isinstance(comparison, ring5.EnvironmentComparison)

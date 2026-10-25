@@ -1,5 +1,6 @@
 """Current writer round trips and public rejection before state publication."""
 
+from src.core.models.portfolio_contract import CURRENT_PORTFOLIO_SCHEMA_VERSION
 import json
 from pathlib import Path
 
@@ -36,7 +37,7 @@ def test_current_writer_round_trip_retains_provenance(portfolios_dir: Path) -> N
     with ring5.Session() as session:
         session.save_portfolio("current")
         document = json.loads((portfolios_dir / "current.json").read_text())
-        assert document["schema_version"] == 7
+        assert document["schema_version"] == CURRENT_PORTFOLIO_SCHEMA_VERSION
         assert document["parser_strategy"] == "simple"
         assert document["simulator"] == "gem5"
         assert document["environment_metadata"]

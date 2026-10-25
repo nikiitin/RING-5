@@ -16,7 +16,7 @@ Covers:
 - req~ring5.workspace.application-data-directory~1
 -->
 
-A portfolio stores the current table as a typed payload together with plot definitions, shaper pipelines,
+A portfolio stores exact typed tables together with plot definitions, shaper pipelines,
 parser configuration, and operation history. Use it to reopen or batch-render a RING-5 workspace.
 Keep original simulator output and analysis code separately; a portfolio is not a substitute for
 research data storage.
@@ -222,7 +222,7 @@ portfolio to see its versions in save order, their source mode, plot count, curr
 short content ID. Choose an earlier and later version, then select **Compare saved versions**.
 
 The comparison groups field-level changes into **Data sources**, **Pipelines**, **Plots**, and
-**Figure settings**. Embedded CSV rows are deliberately excluded: changing only stored table
+**Figure settings**. Embedded table values are deliberately excluded: changing only stored table
 values does not expose those values in this report. Comparisons stop after 5,000 field changes and
 show a warning when that safety limit is reached. Deleting a portfolio also deletes all of its
 retained versions.
@@ -428,7 +428,7 @@ with ring5.Session() as session:
 
 `Session.save_portfolio` refuses to overwrite by default. Pass `overwrite=True` only when replacing
 the named snapshot is intentional. `load_portfolio` returns a `RestoreReport` with data, plot, and
-parse-variable outcomes. Every newly saved schema-V7 portfolio captures its execution environment
+parse-variable outcomes. Every newly saved schema-V8 portfolio captures its execution environment
 and an integrity manifest. Workspace data and each plot’s source and processed tables retain
 their exact supported values, dtypes, axes and attributes. Empty tables remain present tables.
 Unsupported objects or cyclic metadata are rejected before a save replaces retained files.

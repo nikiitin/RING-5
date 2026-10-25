@@ -441,10 +441,6 @@ class PortfolioRevisionService:
                     "name": raw_plot.get("name"),
                     "plot_type": raw_plot.get("plot_type"),
                     "data_bindings": bindings,
-                    "legend_mappings": copy.deepcopy(raw_plot.get("legend_mappings", {})),
-                    "legend_mappings_by_column": copy.deepcopy(
-                        raw_plot.get("legend_mappings_by_column", {})
-                    ),
                     "semantics": cls._table_semantics(raw_plot.get("processed_data")),
                 }
             )
