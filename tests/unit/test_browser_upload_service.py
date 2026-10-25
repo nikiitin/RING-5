@@ -7,6 +7,8 @@ import json
 from pathlib import Path
 
 import pytest
+
+from tests.helpers.portfolios import portfolio_document
 from openpyxl import Workbook
 
 from src.core.services.browser_upload_service import BrowserUploadService
@@ -92,14 +94,7 @@ def test_upload_validation_rejects_unsafe_or_mismatched_content(
 
 
 def test_portfolio_is_summarized_and_revalidated_before_restore(tmp_path: Path) -> None:
-    payload = json.dumps(
-        {
-            "schema_version": 3,
-            "data_csv": "benchmark,ipc\nalpha,1.25\n",
-            "plots": [],
-            "config": {},
-        }
-    ).encode()
+    payload = json.dumps(portfolio_document(data_csv="benchmark,ipc\nalpha,1.25\n")).encode()
     upload = BrowserUploadService.inspect(
         "analysis.json",
         "application/json",
@@ -120,13 +115,7 @@ def test_portfolio_is_summarized_and_revalidated_before_restore(tmp_path: Path) 
 
 def test_signed_portfolio_upload_requires_matching_secret_when_requested(tmp_path: Path) -> None:
     # [test->req~ring5.portfolio.signed-manifests~1]
-    document = {
-        "schema_version": 4,
-        "version": "4.0",
-        "data_csv": "benchmark,ipc\nalpha,1.25\n",
-        "plots": [],
-        "config": {},
-    }
+    document = portfolio_document(data_csv="benchmark,ipc\nalpha,1.25\n")
     document["integrity_manifest"] = PortfolioIntegrityService.create_manifest(
         document,
         signing_key="shared upload secret",
@@ -157,13 +146,7 @@ def test_signed_portfolio_upload_requires_matching_secret_when_requested(tmp_pat
 
 def test_modified_manifest_portfolio_upload_is_rejected_before_staging(tmp_path: Path) -> None:
     # [test->req~ring5.portfolio.signed-manifests~1]
-    document = {
-        "schema_version": 4,
-        "version": "4.0",
-        "data_csv": "benchmark,ipc\nalpha,1.25\n",
-        "plots": [],
-        "config": {},
-    }
+    document = portfolio_document(data_csv="benchmark,ipc\nalpha,1.25\n")
     document["integrity_manifest"] = PortfolioIntegrityService.create_manifest(document)
     document["data_csv"] = "benchmark,ipc\nalpha,9.99\n"
 
@@ -178,13 +161,7 @@ def test_modified_manifest_portfolio_upload_is_rejected_before_staging(tmp_path:
 
 def test_portable_bundle_is_summarized_and_reverified_before_restore(tmp_path: Path) -> None:
     # [test->req~ring5.portfolio.portable-bundles~1]
-    document = {
-        "schema_version": 4,
-        "version": "4.0",
-        "data_csv": "benchmark,ipc\nalpha,1.25\n",
-        "plots": [],
-        "config": {},
-    }
+    document = portfolio_document(data_csv="benchmark,ipc\nalpha,1.25\n")
     document["integrity_manifest"] = PortfolioIntegrityService.create_manifest(document)
     payload = PortfolioBundleService.create(
         "portable-analysis",

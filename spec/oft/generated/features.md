@@ -108,7 +108,7 @@ Tags: export, rendering, status_approved
 `feat~ring5.reproducibility~1`
 Status: approved
 
-RING-5 snapshots, migrates, restores, and replays complete figure portfolios.
+RING-5 snapshots, validates, restores, and replays complete figure portfolios.
 
 Needs: req
 

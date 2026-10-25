@@ -58,7 +58,9 @@ def test_restore_replaces_existing_data_and_previews(data_csv: str) -> None:
     repository.data_repo.add_dataset("old", pd.DataFrame({"x": [1]}))
     repository.data_repo.set_processed_data(pd.DataFrame({"x": [99]}))
     repository.preview_repo.set_preview("reduction", pd.DataFrame({"x": [88]}))
-    report = repository.restore_from_portfolio({"data_csv": data_csv, "plots": []})
+    report = repository.restore_from_portfolio(
+        {"parser_strategy": "simple", "simulator": "gem5", "data_csv": data_csv, "plots": []}
+    )
     assert repository.data_repo.get_data() is None
     assert repository.data_repo.get_processed_data() is None
     assert repository.data_repo.list_datasets() == ()
@@ -66,16 +68,16 @@ def test_restore_replaces_existing_data_and_previews(data_csv: str) -> None:
     assert bool(report.data_error) == bool(data_csv)
 
 
-def test_parser_strategy_round_trips_and_legacy_restore_defaults() -> None:
+def test_parser_strategy_round_trips_and_missing_provenance_is_rejected() -> None:
     state = RepositoryStateManager()
     state.set_parser_strategy("config_aware")
     payload = PortfolioService(state).serialize_workspace(None, [], {}, 0)
     restored = SessionRepository()
     restored.restore_from_portfolio(json.loads(payload))
     assert restored.parser_repo.get_parser_strategy() == "config_aware"
-    restored.restore_from_portfolio({})
-    assert restored.parser_repo.get_parser_strategy() == "simple"
-    assert restored.parser_repo.get_simulator() == "gem5"
+    with pytest.raises(ValueError, match="parser strategy"):
+        restored.restore_from_portfolio({})
+    assert restored.parser_repo.get_parser_strategy() == "config_aware"
 
 
 def test_autosave_detects_custom_variable_options_and_empty_selection() -> None:

@@ -1,4 +1,4 @@
-"""Save, migrate, and restore application portfolios."""
+"""Save, validate, and restore application portfolios."""
 
 import json
 import logging
@@ -22,7 +22,10 @@ from src.core.services.data_services.portfolio_revision_service import (
     PortfolioRevisionService,
 )
 from src.core.services.environment_metadata_service import EnvironmentMetadataService
-from src.core.services.portfolio_migrator import PortfolioMigrator
+from src.core.models.portfolio_contract import (
+    CURRENT_PORTFOLIO_SCHEMA_VERSION,
+    validate_portfolio_schema,
+)
 from src.core.services.portfolio_integrity_service import PortfolioIntegrityService
 from src.core.state.state_manager import StateManager
 from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
@@ -155,6 +158,7 @@ class PortfolioService:
         signing_key_id: str = "default",
     ) -> bytes:
         """Serialize current state into the integrity-checked portfolio format."""
+        # [impl->req~ring5.portfolio.environment-metadata~1]
         # [impl->req~ring5.workspace.autosave-recovery~1]
         logger = logging.getLogger(__name__)
         serialized_plots: list[dict[str, Any]] = []
@@ -183,7 +187,7 @@ class PortfolioService:
             else {}
         )
         portfolio_data: dict[str, Any] = {
-            "schema_version": PortfolioMigrator.CURRENT_VERSION,
+            "schema_version": CURRENT_PORTFOLIO_SCHEMA_VERSION,
             "version": "4.0",
             "timestamp": pd.Timestamp.now().isoformat(),
             "environment_metadata": EnvironmentMetadataService.capture().to_dict(),
@@ -220,8 +224,7 @@ class PortfolioService:
         # [impl->req~ring5.portfolio.signed-manifests~1]
         """Load a portfolio JSON by name.
 
-        Runs schema migration via :class:`PortfolioMigrator` to ensure
-        backward compatibility with older portfolio formats.
+        Requires the current schema and a valid integrity manifest.
         """
         load_path = self._portfolio_path(name)
         if not load_path.exists():
@@ -233,12 +236,13 @@ class PortfolioService:
             raise ValueError("Portfolio JSON must contain one top-level object.")
         raw: dict[str, Any] = value
 
+        validate_portfolio_schema(raw)
         report = PortfolioIntegrityService.verify(raw, signing_key=signing_key)
         PortfolioIntegrityService.require_restorable(
             report,
             require_signature=require_signature,
         )
-        return cast(PortfolioData, PortfolioMigrator.migrate(raw))
+        return cast(PortfolioData, raw)
 
     def verify_portfolio(
         self,
@@ -263,6 +267,7 @@ class PortfolioService:
             raw = json.load(handle)
         if not isinstance(raw, dict):
             raise ValueError("Portfolio JSON must contain one top-level object.")
+        validate_portfolio_schema(raw)
         return PortfolioIntegrityService.verify(raw, signing_key=signing_key)
 
     def export_portfolio_bytes(self, name: str) -> bytes:
@@ -284,9 +289,9 @@ class PortfolioService:
             raise ValueError(f"Portfolio '{name}' is not valid UTF-8 JSON.") from exc
         if not isinstance(value, dict):
             raise ValueError("Portfolio JSON must contain one top-level object.")
+        validate_portfolio_schema(value)
         report = PortfolioIntegrityService.verify(value)
         PortfolioIntegrityService.require_restorable(report)
-        PortfolioMigrator.migrate(value)
         return payload
 
     def list_portfolio_revisions(self, name: str) -> tuple[PortfolioRevisionInfo, ...]:

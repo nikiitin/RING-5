@@ -98,7 +98,7 @@ def test_compare_distinguishes_changes_unavailable_and_unrecorded() -> None:
     comparison = EnvironmentMetadataService.compare(recorded, current=current)
     by_component = {(item.section, item.component): item for item in comparison.differences}
 
-    assert comparison.recorded_available is True
+    assert comparison.recorded == recorded
     assert comparison.exact_match is False
     assert comparison.changed_count == 2
     assert comparison.review_count == 3
@@ -107,10 +107,8 @@ def test_compare_distinguishes_changes_unavailable_and_unrecorded() -> None:
     assert by_component[("Dependency", "scipy")].status == "not-recorded"
     assert by_component[("External tool", "chrome")].status == "unavailable"
 
-    legacy = EnvironmentMetadataService.compare(None, current=current)
-    assert legacy.recorded_available is False
-    assert legacy.exact_match is False
-    assert {item.status for item in legacy.differences} == {"not-recorded"}
+    with pytest.raises(ValueError, match="must be an object"):
+        EnvironmentMetadataService.from_payload(None)
 
 
 def test_external_tool_probes_are_bounded_and_failure_safe(

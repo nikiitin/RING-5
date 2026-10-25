@@ -26,7 +26,7 @@ from src.core.models.portfolio_revision_models import (
     PortfolioRevisionInfo,
 )
 from src.core.services.data_services.path_service import PathService
-from src.core.services.portfolio_migrator import PortfolioMigrator
+from src.core.models.portfolio_contract import validate_portfolio_schema
 from src.core.services.portfolio_integrity_service import PortfolioIntegrityService
 
 _REVISION_ID = re.compile(r"^[0-9a-f]{64}$")
@@ -77,6 +77,7 @@ class PortfolioRevisionService:
         """Retain *payload* as a revision and atomically make it current."""
         # [impl->req~ring5.portfolio.history-diff~1]
         cls._validate_name(name)
+        cls._load_document(payload)
         if current_path.exists() and not overwrite:
             raise FileExistsError(f"Portfolio {name!r} already exists at {current_path}")
         if current_path.exists():
@@ -103,7 +104,7 @@ class PortfolioRevisionService:
         *,
         history_root: Path | None = None,
     ) -> tuple[PortfolioRevisionInfo, ...]:
-        """Return saved versions in capture order, including a legacy baseline."""
+        """Return saved versions in capture order, including the current saved baseline."""
         # [impl->req~ring5.portfolio.history-diff~1]
         cls._validate_name(name)
         active_revision: str | None = None
@@ -167,7 +168,7 @@ class PortfolioRevisionService:
         *,
         history_root: Path | None = None,
     ) -> PortfolioData:
-        """Load and migrate one checksum-verified immutable revision."""
+        """Load one current checksum-verified immutable revision."""
         cls._validate_name(name)
         path = cls._revision_path(name, revision_id, history_root=history_root)
         if not path.exists():
@@ -236,6 +237,7 @@ class PortfolioRevisionService:
         history_root: Path | None = None,
     ) -> tuple[str, Path, bool]:
         """Store immutable bytes once and report whether this call created them."""
+        cls._load_document(payload)
         revision_id = hashlib.sha256(payload).hexdigest()
         path = cls._revision_path(
             name,
@@ -371,9 +373,10 @@ class PortfolioRevisionService:
         value = json.loads(raw.decode("utf-8"))
         if not isinstance(value, dict):
             raise ValueError("Portfolio revision must contain a JSON object.")
+        validate_portfolio_schema(value)
         integrity = PortfolioIntegrityService.verify(value)
         PortfolioIntegrityService.require_restorable(integrity)
-        return cast(PortfolioData, PortfolioMigrator.migrate(value))
+        return cast(PortfolioData, value)
 
     @staticmethod
     def _created_at(data: PortfolioData, modified: float) -> str:

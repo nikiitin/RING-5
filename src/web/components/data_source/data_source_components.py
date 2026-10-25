@@ -297,7 +297,6 @@ class DataSourceComponents:
         if inspection.kind == "portfolio":
             st.markdown("#### Review portfolio restoration")
             integrity_labels = {
-                "legacy-unverified": "Legacy — no manifest",
                 "checksum-valid": "Checksums match — unsigned",
                 "signature-unverified": "Checksums match — signature needs secret",
                 "signature-valid": "Checksums and signature verified",

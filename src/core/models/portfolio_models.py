@@ -40,7 +40,6 @@ class RestoreReport:
 
     @property
     def complete(self) -> bool:
-        # [impl->req~ring5.portfolio.upgrade-protection~1]
         """True when nothing was skipped or lost."""
         return (
             self.data_error is None and not self.plots_skipped and self.parse_variables_skipped == 0
@@ -52,12 +51,12 @@ class PortfolioData(TypedDict, total=False):
     Type definition for portfolio restoration data.
 
     Attributes:
-        schema_version: Integer migration version.
+        schema_version: Current serialized schema version.
         version: Human-readable portfolio format version.
         timestamp: Save time in ISO 8601 form.
         parse_variables: List of parser variable configurations
-        parser_strategy: Parsing strategy; legacy portfolios default to simple.
-        simulator: Registered backend; legacy portfolios default to gem5.
+        parser_strategy: Explicit parsing strategy.
+        simulator: Explicit registered simulator backend.
         stats_path: Base path to simulator stats files
         stats_pattern: Pattern for stats file naming
         csv_path: Path to processed CSV data
@@ -87,8 +86,8 @@ class PortfolioData(TypedDict, total=False):
     scanned_variables: list[ScannedVariableDict]
     data_csv: str
     data_semantics: dict[str, dict[str, str]]
-    environment_metadata: dict[str, Any] | None
-    integrity_manifest: dict[str, Any] | None
+    environment_metadata: dict[str, Any]
+    integrity_manifest: dict[str, Any]
     plots: list[dict[str, Any]]
     plot_counter: int
     config: dict[str, Any]

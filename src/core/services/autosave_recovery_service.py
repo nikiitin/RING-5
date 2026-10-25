@@ -29,7 +29,7 @@ from src.core.models import PlotProtocol, PortfolioData, RecoveryDraftCapture, R
 from src.core.services.data_services.path_service import PathService
 from src.core.services.data_services.portfolio_service import PortfolioService
 from src.core.services.portfolio_integrity_service import PortfolioIntegrityService
-from src.core.services.portfolio_migrator import PortfolioMigrator
+from src.core.models.portfolio_contract import validate_portfolio_schema
 from src.core.state.state_manager import StateManager
 
 _DRAFT_ID = re.compile(r"^[0-9]{20}-[0-9a-f]{64}$")
@@ -122,9 +122,10 @@ class AutosaveRecoveryService:
             raise ValueError("Recovery draft is not valid UTF-8 portfolio JSON.") from exc
         if not isinstance(value, dict):
             raise ValueError("Recovery draft must contain one portfolio object.")
+        validate_portfolio_schema(value)
         report = PortfolioIntegrityService.verify(value)
         PortfolioIntegrityService.require_restorable(report)
-        return cast(PortfolioData, PortfolioMigrator.migrate(value))
+        return cast(PortfolioData, value)
 
     @classmethod
     def delete(cls, owner_key: str, draft_id: str) -> None:

@@ -715,7 +715,9 @@ class TestSessionRepository:
 
     def test_restore_from_portfolio_parser_state(self, repo: SessionRepository) -> None:
         """Test restoring parser-related state from portfolio data."""
-        portfolio: dict = {  # type: ignore[type-arg]
+        portfolio: dict = {
+            "parser_strategy": "simple",
+            "simulator": "gem5",  # type: ignore[type-arg]
             "parse_variables": [{"name": "ipc", "type": "scalar", "_id": "id1"}],
             "stats_path": "/restored/path",
             "stats_pattern": "stats_custom.txt",
@@ -740,7 +742,9 @@ class TestSessionRepository:
         df = pd.DataFrame({"col": [10, 20, 30]})
         csv_str = df.to_csv(index=False)
 
-        portfolio: dict = {  # type: ignore[type-arg]
+        portfolio: dict = {
+            "parser_strategy": "simple",
+            "simulator": "gem5",  # type: ignore[type-arg]
             "data_csv": csv_str,
             "plots": [],
         }
@@ -760,7 +764,9 @@ class TestSessionRepository:
             operation="mix",
             timestamp="2026-01-01",
         )
-        portfolio: dict = {  # type: ignore[type-arg]
+        portfolio: dict = {
+            "parser_strategy": "simple",
+            "simulator": "gem5",  # type: ignore[type-arg]
             "manager_history": [record],
             "portfolio_history": [record, record],
             "plots": [],
@@ -775,7 +781,9 @@ class TestSessionRepository:
         self, repo_with_deserializer: SessionRepository
     ) -> None:
         """Test restoring plots from portfolio data."""
-        portfolio: dict = {  # type: ignore[type-arg]
+        portfolio: dict = {
+            "parser_strategy": "simple",
+            "simulator": "gem5",  # type: ignore[type-arg]
             "plots": [{"type": "bar", "id": 1}],
             "plot_counter": 5,
         }

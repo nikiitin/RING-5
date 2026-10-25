@@ -95,8 +95,8 @@ class SessionRepository:
         Returns:
             A report of what was restored, skipped, and why.
         """
-        strategy = portfolio_data.get("parser_strategy", "simple")
-        simulator = portfolio_data.get("simulator", "gem5")
+        strategy = portfolio_data.get("parser_strategy")
+        simulator = portfolio_data.get("simulator")
         if not isinstance(strategy, str) or not strategy.strip():
             raise ValueError("Portfolio parser strategy must be non-empty text.")
         if not isinstance(simulator, str) or not simulator.strip():

@@ -147,74 +147,13 @@ class TestRenderCommand:
         (portfolios_dir / "future.json").write_text(json.dumps({"schema_version": 99}))
         code = main(["render", "future", "-o", str(tmp_path / "figs")])
         assert code == 2
-        assert "newer than this RING-5" in capsys.readouterr().err
+        assert "Unsupported portfolio schema_version" in capsys.readouterr().err
 
 
-class TestUpgradeCommand:
-    # [test->req~ring5.portfolio.upgrade-protection~1]
-    def test_upgrade_persists_current_schema(
-        self, portfolios_dir: Path, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        # V1 on disk: no schema_version, export_* keys
-        v1 = {
-            "data_csv": "x,y\na,1\n",
-            "plots": [
-                {
-                    "id": 0,
-                    "name": "p",
-                    "plot_type": "bar",
-                    "config": {"x": "x", "y": "y", "export_format": "png"},
-                    "processed_data": "x,y\na,1\n",
-                }
-            ],
-            "plot_counter": 1,
-            "config": {},
-            "parse_variables": [],
-        }
-        (portfolios_dir / "old.json").write_text(json.dumps(v1))
-
-        code = main(["upgrade", "old"])
-        assert code == 0
-
-        upgraded = json.loads((portfolios_dir / "old.json").read_text())
-        assert upgraded["schema_version"] == 4
-        assert upgraded["environment_metadata"] is not None
-        assert "export_format" not in upgraded["plots"][0]["config"]
-
-
-class TestUpgradeRefusal:
-    # [test->req~ring5.portfolio.upgrade-protection~1]
-    def test_upgrade_refuses_incomplete_restore(
-        self, portfolios_dir: Path, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        """Re-saving a partial restore would permanently destroy what could
-        not be loaded — upgrade must refuse and leave the file untouched."""
-        bad = {
-            "data_csv": "x,y\na,1\n",
-            "plots": [
-                {
-                    "id": 0,
-                    "name": "future_plot",
-                    "plot_type": "no_such_plot_type",
-                    "config": {},
-                    "processed_data": "x,y\na,1\n",
-                }
-            ],
-            "plot_counter": 1,
-            "config": {},
-            "parse_variables": [],
-        }
-        target = portfolios_dir / "bad.json"
-        target.write_text(json.dumps(bad))
-        before = target.read_bytes()
-
-        code = main(["upgrade", "bad"])
-
-        assert code == 2
-        assert target.read_bytes() == before, "upgrade modified a file it refused"
-        err = capsys.readouterr().err
-        assert "refusing to upgrade" in err
-        assert "future_plot" in err
+def test_upgrade_is_not_a_supported_command() -> None:
+    with pytest.raises(SystemExit) as error:
+        build_parser().parse_args(["upgrade", "old"])
+    assert error.value.code == 2
 
 
 class TestRecipeMatrixCommand:

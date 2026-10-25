@@ -351,7 +351,14 @@ def test_restore_deserializer_can_wait_for_foreign_state_publication() -> None:
         state = RepositoryStateManager(plot_deserializer=deserialize)
         state.set_data(pd.DataFrame({"old": [9]}))
         with pytest.raises(ValueError, match="Workspace changed while restoring"):
-            state.restore_session({"data_csv": "new\n3\n", "plots": [{"name": "one"}]})
+            state.restore_session(
+                {
+                    "parser_strategy": "simple",
+                    "simulator": "gem5",
+                    "data_csv": "new\n3\n",
+                    "plots": [{"name": "one"}],
+                }
+            )
     assert state.get_data().to_dict("records") == [{"old": 9}]
     assert state.get_processed_data().to_dict("records") == [{"x": 1}]
 
@@ -372,7 +379,10 @@ def test_restore_rejects_concurrent_writes_without_invalidating_source_preview(w
     version = state.get_source_version()
     repository = state._session_repo
     with ThreadPoolExecutor(max_workers=1) as pool:
-        future = pool.submit(state.restore_session, {"plots": [{"name": "one"}]})
+        future = pool.submit(
+            state.restore_session,
+            {"parser_strategy": "simple", "simulator": "gem5", "plots": [{"name": "one"}]},
+        )
         assert entered.wait(5)
         try:
             if write == "unselected_dataset":
@@ -420,7 +430,13 @@ def test_source_publication_during_restore_preparation_rejects_candidate() -> No
     original_repository = state._session_repo
     with ThreadPoolExecutor(max_workers=1) as pool:
         future = pool.submit(
-            state.restore_session, {"data_csv": "x\n2\n", "plots": [{"name": "one"}]}
+            state.restore_session,
+            {
+                "parser_strategy": "simple",
+                "simulator": "gem5",
+                "data_csv": "x\n2\n",
+                "plots": [{"name": "one"}],
+            },
         )
         assert entered.wait(2)
         state.set_data(pd.DataFrame({"x": [99]}))
@@ -439,6 +455,13 @@ def test_nested_restore_rejects_before_deserialization_or_publication() -> None:
     state.set_data(pd.DataFrame({"x": [7]}))
     with state.transaction():
         with pytest.raises(ValueError, match="outside a surrounding state transaction"):
-            state.restore_session({"data_csv": "x\n2\n", "plots": [{"name": "one"}]})
+            state.restore_session(
+                {
+                    "parser_strategy": "simple",
+                    "simulator": "gem5",
+                    "data_csv": "x\n2\n",
+                    "plots": [{"name": "one"}],
+                }
+            )
     assert called == []
     assert state.get_data()["x"].tolist() == [7]

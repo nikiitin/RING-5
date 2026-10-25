@@ -80,7 +80,7 @@ Browser uploads cross a separate `BrowserUploadService` trust boundary. It valid
 declared media type, byte size, and parse structure before staging content below the session's
 temporary directory. CSV stays delimited text; flat JSON and the first visible Excel worksheet are
 normalized to bounded UTF-8 CSV and then enter the normal `ImportPreview` path. A portfolio is
-migrated and summarized without state mutation, re-fingerprinted on confirmation, and only then
+validated and summarized without state mutation, re-fingerprinted on confirmation, and only then
 passed to `StateManager.restore_session`.
 
 Remote sources enter that same boundary through `RemoteSourceService`. Its HTTP, system-SSH, and
@@ -111,14 +111,13 @@ configuration, rendering engine, and a cache key before reusing a figure.
 ## Save and restore
 
 Portfolio saving serializes the active table, plots, plot configuration, pipelines, parser
-provenance, and history. `PortfolioMigrator` upgrades older JSON before
+provenance, and history. `validate_portfolio_schema` rejects unsupported schemas before
 `StateManager.restore_session` restores items and returns a `RestoreReport`. Preparation runs
 outside the state lock; publication rejects any intervening state-manager write, including
 unselected dataset results. Preview invalidation separately tracks changes to the selected source.
 
 Headless replay loads the same portfolio, renders each restored plot through the selected connector,
-and exports it. A partial restore remains visible; the CLI refuses to upgrade a portfolio when
-re-saving would discard skipped content.
+and exports it. A partial restore remains visible through `RestoreReport`.
 
 Local configuration imports hold a reentrant thread lock and a portable operating-system file
 lock across logical-name lookup, allocation, and publication. Parse runtimes retain an exclusive

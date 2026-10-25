@@ -9,7 +9,7 @@ import pandas as pd
 import pytest
 
 import ring5
-from src.core.services.portfolio_migrator import PortfolioVersionError as CoreVersionError
+from src.core.models.portfolio_contract import PortfolioVersionError as CoreVersionError
 
 pytestmark = [pytest.mark.public_api, pytest.mark.xdist_group("ring5_portfolios")]
 

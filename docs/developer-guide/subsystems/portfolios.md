@@ -18,41 +18,37 @@ configuration, and output digests. Its optional signature is HMAC-SHA-256 over t
 statement. The service returns `PortfolioIntegrityReport`; checksum validity and signature validity
 remain separate so no caller can accidentally describe unsigned content as authenticated.
 
-`PortfolioMigrator` upgrades older schema versions before restore. `StateManager.restore_session`
+`validate_portfolio_schema` accepts only the current serialized format before restore. `StateManager.restore_session`
 restores items independently and returns `RestoreReport`, which makes skipped plots, malformed parse
 variables, and data errors visible.
 
 `ring5.render_portfolio` uses the same restore path, then renders and exports every restored plot.
-The CLI upgrade command re-saves only a complete restore.
 
-## Compatibility rules
+
+## Schema contract
 
 <!--
-`uman~ring5.portfolio.migration.documentation~1`
+`uman~ring5.portfolio.schema.documentation~1`
 
 Covers:
-- req~ring5.portfolio.migration~1
+- req~ring5.portfolio.schema~1
 
 -->
 
-- Increment and migrate the schema for a breaking serialized change.
-- Schema V3 adds environment metadata. V1/V2 migration records it as `null`; historical values must
-  never be inferred from the machine performing migration.
-- Schema V4 adds `integrity_manifest`. V1–V3 migration records it as `null`; generating checksums
-  during migration would create false historical evidence.
-- Preserve plot and shaper identifiers or translate them during migration.
-- Keep plot configuration JSON-compatible and retain figure-config enrichment where required.
-- Treat portfolio JSON as untrusted input: sanitize names, validate paths, and validate fields.
-- Test old fixtures, partial restore reporting, duplicate names, and current round trips.
+The supported portfolio schema is version 4. Serialized files declare `schema_version: 4`,
+`version: "4.0"`, their parser strategy and simulator, environment metadata, and an integrity
+manifest. Missing or unsupported schema versions raise a typed version error before restoration.
+No reader infers old defaults, translates keys, or rewrites a file into the current schema.
 
-Do not silently drop incompatible state while overwriting a portfolio.
+Treat portfolio JSON as untrusted input: sanitize names, validate paths, and verify content before
+restoration. Test current writer round trips, partial restore reporting, duplicate names, and
+rejection of unsupported schemas. Do not overwrite a partial restore without reviewing its report.
 
 ## Integrity trust boundary
 
 New saves always create a checksum manifest. `PortfolioService`, `PortfolioRevisionService`, and
-`BrowserUploadService` verify the manifest before migration or restoration; mismatched and malformed
-content must not reach `StateManager.restore_session`. Legacy portfolios remain readable with the
-explicit `legacy-unverified` result.
+`BrowserUploadService` validate the schema and verify the manifest before restoration. Missing, mismatched, or malformed
+manifests must not reach `StateManager.restore_session`.
 
 The whole-document digest excludes only `integrity_manifest`. Named sections are diagnostic subsets:
 
@@ -81,6 +77,6 @@ and Python requirements. One exact `.ring5-snapshot` and bounded files below `re
 
 Readers reject duplicate, encrypted, unsupported-compression, absolute, backslash, traversal,
 undeclared, oversized, or checksum-mismatched members before returning content. The nested snapshot
-is decoded and fingerprint-verified in memory. The portfolio integrity policy runs before migration
-or `restore_session`. Neither ZIP layer is extracted to a filesystem, and browser inspection remains
+is decoded and fingerprint-verified in memory. The portfolio schema and integrity checks run before
+`restore_session`. Neither ZIP layer is extracted to a filesystem, and browser inspection remains
 non-mutating until explicit restoration.

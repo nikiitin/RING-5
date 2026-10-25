@@ -9,6 +9,8 @@ from unittest.mock import patch
 
 import pytest
 
+from tests.helpers.portfolios import portfolio_document
+
 from src.core.services.data_services.path_service import PathService
 from src.core.services.data_services.portfolio_revision_service import (
     PortfolioRevisionService,
@@ -34,9 +36,7 @@ def _payload(
     step: str = "sort",
     data_value: int = 1,
 ) -> bytes:
-    document: dict[str, Any] = {
-        "schema_version": 3,
-        "version": "3.0",
+    fields: dict[str, Any] = {
         "timestamp": timestamp,
         "data_csv": f"category,value\nA,{data_value}\n",
         "csv_path": None if parser else "/data/results.csv",
@@ -67,7 +67,7 @@ def _payload(
         "manager_history": [],
         "portfolio_history": [],
     }
-    return json.dumps(document, indent=2).encode()
+    return json.dumps(portfolio_document(**fields), indent=2).encode()
 
 
 def test_retains_exact_versions_and_identifies_current(
@@ -231,3 +231,24 @@ def test_comparison_is_bounded(revision_storage: tuple[Path, Path]) -> None:
 
     assert difference.change_count == 2
     assert difference.truncated
+
+
+@pytest.mark.parametrize("mutation", ["schema", "manifest"])
+def test_rejected_revision_does_not_publish_or_retain_content(
+    revision_storage: tuple[Path, Path], mutation: str
+) -> None:
+    """Reject unsupported or unverifiable input before touching current/history files."""
+    current, history = revision_storage
+    original = _payload(timestamp="2026-10-25T10:00:00")
+    current.write_bytes(original)
+    document = json.loads(original)
+    if mutation == "schema":
+        document["schema_version"] = 3
+    else:
+        document.pop("integrity_manifest")
+    with pytest.raises(ValueError):
+        PortfolioRevisionService.retain_and_replace(
+            "Study", json.dumps(document).encode(), current, overwrite=True
+        )
+    assert current.read_bytes() == original
+    assert not list(history.rglob("*.json"))

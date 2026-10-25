@@ -13,7 +13,7 @@ import streamlit as st
 from src.core.application_api import ApplicationAPI
 from src.core.models import EnvironmentComparison, PortfolioIntegrityReport
 from src.core.services.environment_metadata_service import EnvironmentMetadataService
-from src.core.services.portfolio_migrator import PortfolioVersionError
+from src.core.models.portfolio_contract import PortfolioVersionError
 from src.web.components.report_composer import ReportComposer
 from src.web.components.analysis_recipe_component import AnalysisRecipeComponent
 from src.web.components.portfolio_history_component import PortfolioHistoryComponent
@@ -32,7 +32,8 @@ def _render_environment_comparison(api: ApplicationAPI, portfolio_name: str) -> 
     """Show save-time environment evidence before a portfolio is restored."""
     try:
         portfolio = api.data_services.load_portfolio(portfolio_name)
-        comparison = EnvironmentMetadataService.compare(portfolio.get("environment_metadata"))
+        recorded = EnvironmentMetadataService.from_payload(portfolio.get("environment_metadata"))
+        comparison = EnvironmentMetadataService.compare(recorded)
     except Exception as exc:
         logger.warning(
             "PORTFOLIO: environment metadata for '%s' could not be inspected: %s",
@@ -66,9 +67,7 @@ def _render_environment_comparison(api: ApplicationAPI, portfolio_name: str) -> 
 
 def _render_environment_status(comparison: EnvironmentComparison) -> None:
     """Render one concise interpretation above environment details."""
-    if not comparison.recorded_available:
-        st.info("Environment not recorded — this portfolio predates environment capture.")
-    elif comparison.exact_match:
+    if comparison.exact_match:
         st.success("Saved environment matches this RING-5 runtime exactly.")
     else:
         st.warning(
@@ -82,7 +81,7 @@ def _render_integrity_status(report: PortfolioIntegrityReport) -> None:
         st.success(report.message)
     elif report.status == "checksum-valid":
         st.info(report.message)
-    elif report.status in {"legacy-unverified", "signature-unverified"}:
+    elif report.status == "signature-unverified":
         st.warning(report.message)
     else:
         st.error(report.message)

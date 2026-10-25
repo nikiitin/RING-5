@@ -127,7 +127,7 @@ exposes the same result through the session-owned background-job lifecycle.
 save order. `compare_portfolio_revisions` returns a bounded `PortfolioDiff` whose entries cover
 source provenance, pipelines, plot definitions, and appearance settings but never embedded table
 rows. `restore_portfolio_revision` restores one retained version without changing the saved current
-version. Storage, checksum, and identifier failures use `PortfolioError`; newer schemas use
+version. Storage, checksum, and identifier failures use `PortfolioError`; unsupported schemas use
 `PortfolioVersionError`.
 
 `scan_limit=0` means exhaustive variable discovery up to the global 10,000-file ceiling; a positive
@@ -257,7 +257,7 @@ Python configuration constructors and directly imported `ring5.shapers` classes 
 
 Portfolio restore replaces the existing workspace, clears transient previews and named-data
 history, and reports partial restoration failures. Parser strategy and simulator are retained;
-legacy portfolios default to `simple` and `gem5`. Unit conversion also scales a metric's `.sd`
+serialized portfolios must declare both fields. Unit conversion also scales a metric's `.sd`
 companion by the absolute unit scale, without applying affine offsets to uncertainties.
 Generated recipe scripts preserve `--help` for usage; a parameter named `help` receives an
 unoccupied `--parameter-help` option, with additional `parameter-` prefixes when needed.

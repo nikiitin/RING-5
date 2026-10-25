@@ -105,19 +105,10 @@ class PortfolioIntegrityService:
             signing_key: Optional shared secret for HMAC verification.
 
         Returns:
-            A structured result that distinguishes legacy, checksum-only,
+            A structured result that distinguishes invalid manifests, checksum-only,
             unverified-signature, verified-signature, and modified states.
         """
         manifest = portfolio.get("integrity_manifest")
-        if manifest is None:
-            return PortfolioIntegrityReport(
-                status="legacy-unverified",
-                message="Legacy portfolio — no integrity manifest is available.",
-                checksum_valid=None,
-                signature_present=False,
-                signature_valid=None,
-                key_id=None,
-            )
         parsed = cls._parse_manifest(manifest)
         if isinstance(parsed, str):
             return PortfolioIntegrityReport(

@@ -130,12 +130,7 @@ class PortfolioError(Ring5Error):
 
 class PortfolioVersionError(PortfolioError):
     # [impl->req~ring5.api.typed-errors~1]
-    """The portfolio was written by a newer RING-5 schema.
-
-    Mirrors the core migrator's guard (raised at the Session boundary so it
-    belongs to the :class:`Ring5Error` hierarchy): loading anyway would
-    silently downgrade the file and destroy the newer data on re-save.
-    """
+    """The portfolio does not declare the supported current schema version."""
 
 
 class RecipeError(PortfolioError):

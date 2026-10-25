@@ -132,15 +132,15 @@ def test_whole_document_checksum_covers_metadata_outside_named_sections() -> Non
     assert all(section.matches for section in report.sections)
 
 
-def test_legacy_and_invalid_manifests_are_explicit() -> None:
-    legacy = PortfolioIntegrityService.verify(_portfolio())
+def test_missing_and_invalid_manifests_block_restoration() -> None:
+    missing = PortfolioIntegrityService.verify(_portfolio())
     malformed = _portfolio()
     malformed["integrity_manifest"] = {"format": "unknown"}
 
     invalid = PortfolioIntegrityService.verify(malformed)
 
-    assert legacy.status == "legacy-unverified"
-    assert legacy.safe_to_restore
+    assert missing.status == "invalid-manifest"
+    assert not missing.safe_to_restore
     assert invalid.status == "invalid-manifest"
     assert not invalid.safe_to_restore
 
