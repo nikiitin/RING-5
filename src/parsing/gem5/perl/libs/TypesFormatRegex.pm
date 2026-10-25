@@ -12,7 +12,6 @@ use Scanning::Type::Scalar qw($scalarRegex);
 use Scanning::Type::Distribution qw($distRegex);
 use Scanning::Type::Histogram qw($histogramRegex);
 use Scanning::Type::Vector qw($vectorRegex);
-use Scanning::Type::Summary qw($summaryRegex);
 
 my $filtersRegexes;
 my %onelineHistogramMetadata;
@@ -192,7 +191,7 @@ sub classifyLine {
     if ($line =~ $distRegex) {
         return [_record('distribution', $line)];
     }
-    if ($line =~ $summaryRegex) {
+    if ($line =~ /^$varNameRegex$summariesEntryRegex\s+$scalarValueRegex$/) {
         return [_record('summary', $line)];
     }
     if ($line =~ $vectorRegex) {

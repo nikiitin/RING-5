@@ -20,7 +20,6 @@ RUNTIME_FILES = frozenset(
         "src/parsing/gem5/perl/libs/Scanning/Type/Distribution.pm",
         "src/parsing/gem5/perl/libs/Scanning/Type/Histogram.pm",
         "src/parsing/gem5/perl/libs/Scanning/Type/Scalar.pm",
-        "src/parsing/gem5/perl/libs/Scanning/Type/Summary.pm",
         "src/parsing/gem5/perl/libs/Scanning/Type/Vector.pm",
         "src/web/components/plotting/custom_plotly/index.html",
     }
