@@ -161,25 +161,25 @@ class TestPaletteSelector:
         mock_st.success.assert_called_once()
 
 
-class TestCssRgbToHex:
-    """Verify CSS rgb() → hex conversion for Matplotlib compatibility."""
+class TestCssColorToMatplotlib:
+    """Verify the precision-preserving CSS color projection for Matplotlib."""
 
     def test_basic_rgb_conversion(self) -> None:
-        from src.web.rendering._color_utils import css_rgb_to_hex
+        from src.web.rendering._color_utils import css_color_to_matplotlib
 
-        assert css_rgb_to_hex("rgb(102,194,165)") == "#66c2a5"
+        assert css_color_to_matplotlib("rgb(102,194,165)") == (102 / 255, 194 / 255, 165 / 255)
 
     def test_rgb_with_spaces(self) -> None:
-        from src.web.rendering._color_utils import css_rgb_to_hex
+        from src.web.rendering._color_utils import css_color_to_matplotlib
 
-        assert css_rgb_to_hex("rgb( 255 , 0 , 128 )") == "#ff0080"
+        assert css_color_to_matplotlib("rgb( 255 , 0 , 128 )") == (1.0, 0.0, 128 / 255)
 
     def test_hex_passthrough(self) -> None:
-        from src.web.rendering._color_utils import css_rgb_to_hex
+        from src.web.rendering._color_utils import css_color_to_matplotlib
 
-        assert css_rgb_to_hex("#E69F00") == "#E69F00"
+        assert css_color_to_matplotlib("#E69F00") == "#E69F00"
 
     def test_named_color_passthrough(self) -> None:
-        from src.web.rendering._color_utils import css_rgb_to_hex
+        from src.web.rendering._color_utils import css_color_to_matplotlib
 
-        assert css_rgb_to_hex("red") == "red"
+        assert css_color_to_matplotlib("red") == "red"

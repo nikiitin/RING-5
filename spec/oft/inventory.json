@@ -1497,10 +1497,13 @@
         "implementation": [
           "src/web/components/plotting/settings/legend_settings.py::LegendSettingsComponent.render",
           "src/web/rendering/plotly_connector.py::FigureSpecToPlotly._apply_legends",
-          "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_legends"
+          "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_legends",
+          "src/web/rendering/_color_utils.py::color_with_alpha"
         ],
         "tests": [
           "tests/integration/test_prepared_native_rendering.py::test_native_legend_opacity_preserves_embedded_alpha_and_explicit_override",
+          "tests/integration/test_native_rendering_review_regressions.py::test_plotly_opacity_preserves_current_static_css_function_admission",
+          "tests/integration/test_native_rendering_review_regressions.py::test_registered_legend_roles_keep_owned_styles_on_one_panel_or_twin",
           "tests/integration/test_prepared_native_rendering.py::test_dashboard_owns_each_child_legend_role_and_preserves_numbered_annotation_style",
           "tests/ui_logic/test_settings_pills_e2e.py::TestSecondaryLegendConfig",
           "tests/ui_logic/test_settings_pills_e2e.py::TestLegendSizingControls",
@@ -3215,6 +3218,7 @@
       "evidence": {
         "implementation": [
           "ring5/_plot_validation.py::validate_plot_config",
+          "src/core/common/plot_payload.py::validate_plot_config_values",
           "ring5/_session.py::Session.create_plot",
           "ring5/_session.py::Session.render"
         ],
@@ -3224,7 +3228,9 @@
           "tests/integration/test_ring5_api_completeness.py::test_invalid_plot_config_does_not_register_and_render_errors_are_typed",
           "tests/integration/test_ring5_public_api.py::TestErrorSurface.test_invalid_engine_lists_choices",
           "tests/integration/test_ring5_public_api.py::TestApiErgonomics.test_unknown_plot_type_lists_valid_choices",
-          "tests/integration/test_neutral_trace_contract.py::test_public_constructor_and_restore_admit_a_registered_plot"
+          "tests/integration/test_neutral_trace_contract.py::test_public_constructor_and_restore_admit_a_registered_plot",
+          "tests/integration/test_native_rendering_review_regressions.py::test_noncanonical_orientation_rejects_before_public_or_restore_publication",
+          "tests/integration/test_native_rendering_review_regressions.py::test_canonical_orientation_values_reach_both_native_models"
         ],
         "documentation": [
           "docs/developer-guide/api-reference/public-python-api.md#workspace"
@@ -4497,6 +4503,7 @@
           "src/web/components/analysis_recipe_component.py::AnalysisRecipeComponent.render"
         ],
         "tests": [
+          "tests/integration/test_native_rendering_review_regressions.py::test_recipe_orientation_is_checked_only_after_parameter_materialization",
           "tests/unit/test_analysis_recipe_service.py::test_recipe_json_is_deterministic_versioned_and_materializes_typed_values",
           "tests/unit/test_analysis_recipe_service.py::test_recipe_storage_protects_names_and_lists_valid_records",
           "tests/unit/test_analysis_recipe_service.py::test_capture_retains_parser_variables_plot_configs_and_pipelines",

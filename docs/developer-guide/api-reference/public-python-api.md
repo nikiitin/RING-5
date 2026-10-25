@@ -231,7 +231,13 @@ round trips. `DualAxisOpts.legend` configures the separate right-axis legend; nu
 use the available secondary or tertiary style independently. Raw mappings use `legend2_*` for
 the separate right legend and `anchor_x`/`anchor_y` in every legend tier. Explicit `bgalpha`
 replaces opacity encoded in `bgcolor`; omitting it preserves an RGBA color's embedded opacity
-and each native renderer's default for opaque colors.
+and each native renderer's default for opaque colors. Plotly preserves RGB/HSL/HWB,
+Lab/LCh/OKLab/OKLCh component precision when applying this override. Its current Python validator
+cannot encode per-legend opacity for `color(profile ...)` or resolve DDK `var(...)` colors.
+Those forms remain accepted without `bgalpha`; requesting the override raises `RenderError`
+and asks for a concrete supported color. Matplotlib's static projection accepts named,
+hexadecimal, RGB and HSL colors; convert other color spaces before using that engine.
+Legend orientations use exactly `horizontal` or `vertical` in every tier.
 
 ### Public coordinates and decorations
 

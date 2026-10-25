@@ -37,15 +37,16 @@ def test_public_plot_rejects_retired_legend_keys_before_retaining_state(
 ) -> None:
     # [test->req~ring5.portfolio.schema~1]
     with ring5.Session() as session:
-        config = (
-            ring5.FigureSpec(x="x", y_columns=["y"], extra={key: "left"})
-            if typed
-            else {"x": "x", "y": "y", key: "left"}
-        )
-        with pytest.raises(ring5.DataValidationError, match="Unsupported separate-legend keys"):
-            session.create_plot(
-                "bar", data=ring5.Table(pd.DataFrame({"x": ["a"], "y": [2.0]})), config=config
-            )
+        if typed:
+            with pytest.raises(ValueError, match="Unsupported separate-legend keys"):
+                ring5.FigureSpec(x="x", y_columns=["y"], extra={key: "left"})
+        else:
+            with pytest.raises(ring5.DataValidationError, match="Unsupported separate-legend keys"):
+                session.create_plot(
+                    "bar",
+                    data=ring5.Table(pd.DataFrame({"x": ["a"], "y": [2.0]})),
+                    config={"x": "x", "y": "y", key: "left"},
+                )
         assert not session.plots
 
 

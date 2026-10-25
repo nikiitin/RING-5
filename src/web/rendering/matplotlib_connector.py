@@ -23,7 +23,7 @@ from src.core.models.visualization.figure_config import FigureConfig
 from src.core.models.visualization.legend_config import ColorbarConfig, LegendConfig
 from src.core.models.visualization.trace_build_result import RuleLine, SeparatorLine, ShadedRegion
 from src.web.rendering._render_result import MatplotlibRenderResult
-from src.web.rendering._color_utils import css_rgb_to_hex, css_color_to_matplotlib
+from src.web.rendering._color_utils import css_color_to_matplotlib
 from src.web.rendering._connector_protocol import validate_annotation_types
 from src.web.rendering.latex_security import escape_latex_text
 
@@ -158,8 +158,8 @@ class FigureSpecToMatplotlib:
         from matplotlib.markers import MarkerStyle
         from matplotlib.patches import Patch
 
-        fill = css_rgb_to_hex(color) if color else None
-        edge = css_rgb_to_hex(edge_color) if edge_color else None
+        fill = css_color_to_matplotlib(color) if color else None
+        edge = css_color_to_matplotlib(edge_color) if edge_color else None
 
         if isinstance(handle, BarContainer):
             for patch in handle.patches:
@@ -661,7 +661,7 @@ class FigureSpecToMatplotlib:
 
         if legend.bgcolor:
             kwargs["facecolor"] = css_color_to_matplotlib(legend.bgcolor)
-            if isinstance(kwargs["facecolor"], tuple):
+            if isinstance(kwargs["facecolor"], tuple) and len(kwargs["facecolor"]) == 4:
                 kwargs["framealpha"] = kwargs["facecolor"][3]
         if legend.bgalpha >= 0:
             kwargs["framealpha"] = legend.bgalpha
@@ -691,6 +691,16 @@ class FigureSpecToMatplotlib:
             native.get_frame().set_linewidth(legend.border_width)
 
     @staticmethod
+    def _clear_owned_legends(ax: Axes) -> None:
+        """Remove only role artists recorded by this renderer on these axes."""
+        owned = getattr(ax, "_ring5_legend_artists", {})
+        for artist in owned.values():
+            attached = any(candidate is artist for candidate in ax.artists)
+            if attached or ax.get_legend() is artist:
+                artist.remove()
+        cast(Any, ax)._ring5_legend_artists = {}
+
+    @staticmethod
     def _apply_legends(
         spec: FigureConfig,
         ax: Axes,
@@ -700,6 +710,10 @@ class FigureSpecToMatplotlib:
     ) -> None:
         """Render legends with full spacing control."""
         # [impl->req~ring5.figure.legends~1]
+        owned_twin = getattr(ax, "_ring5_twin", None)
+        targets = [ax] if owned_twin is None else [ax, owned_twin]
+        for target in targets:
+            FigureSpecToMatplotlib._clear_owned_legends(target)
         if not spec.legends:
             return
 
@@ -709,11 +723,17 @@ class FigureSpecToMatplotlib:
 
             kwargs = FigureSpecToMatplotlib._legend_kwargs(legend)
 
-            target = ax if legend.role == "primary" else getattr(ax, "_ring5_twin", None)
-            if legend.role not in ("primary", "secondary") or target is None:
+            if legend.role not in ("primary", "secondary"):
                 continue
+            target = ax if legend.role == "primary" else owned_twin
+            if target is None:
+                if render_result is None:
+                    continue
+                target = ax
             if render_result is not None:
-                handles = list(render_result.legend_handles.get(legend.role, []))
+                handles = [
+                    handle for role, handle in render_result.legend_handles if role == legend.role
+                ]
                 labels = [str(handle.get_label()) for handle in handles]
             else:
                 handles, labels = target.get_legend_handles_labels()
@@ -723,9 +743,13 @@ class FigureSpecToMatplotlib:
                     labels.extend(extra_handles[1])
             if not labels:
                 continue
+            previous = target.get_legend()
+            if previous is not None and not any(artist is previous for artist in target.artists):
+                target.add_artist(previous)
             leg = target.legend(handles, labels, **kwargs)
             if leg is not None:
                 FigureSpecToMatplotlib._style_legend(legend, leg)
+                cast(Any, target)._ring5_legend_artists[legend.role] = leg
 
     @staticmethod
     def _escape_latex(text: str) -> str:
@@ -827,7 +851,7 @@ class FigureSpecToMatplotlib:
         qualitative palettes return CSS ``rgb(r,g,b)`` strings, normalised to hex first.
         """
         if spec.color_palette:
-            hex_colors = [css_rgb_to_hex(c) for c in spec.color_palette]
+            hex_colors = [css_color_to_matplotlib(c) for c in spec.color_palette]
             ax.set_prop_cycle(color=hex_colors)
 
     @staticmethod

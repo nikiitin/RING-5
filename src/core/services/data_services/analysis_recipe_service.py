@@ -27,7 +27,7 @@ from src.core.common.security_limits import (
 )
 from src.core.common.utils import sanitize_filename, validate_path_within
 from src.core.common.stat_config_codec import StatConfigCodec
-from src.core.common.plot_payload import validate_plot_config_keys
+from src.core.common.plot_payload import validate_plot_config_keys, validate_plot_config_values
 from src.core.models.data_models import ScannedVariableDict
 from src.core.models.parsing_models import ScannedVariable
 from src.core.models.recipe_models import (
@@ -512,6 +512,8 @@ class AnalysisRecipeService:
             ),
         )
         AnalysisRecipeService.validate(materialized)
+        for plot in materialized.plots:
+            validate_plot_config_values(plot.config)
         return materialized
 
     @staticmethod

@@ -478,6 +478,7 @@ def _render_matplotlib_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec)
     )
     axes = list(raw_axes.flat)
     first_figure_spec: Any = None
+    panel_render_results = []
     try:
         for index, (plot, panel_title) in enumerate(zip(plots, spec.panel_titles)):
             ax = axes[index]
@@ -491,7 +492,7 @@ def _render_matplotlib_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec)
                 )
             if first_figure_spec is None:
                 first_figure_spec = prepared.spec
-            draw_matplotlib_axes(prepared, ax, apply_margins=False)
+            panel_render_results.append(draw_matplotlib_axes(prepared, ax, apply_margins=False))
             ax.set_title(panel_title)
             panel_label = spec.resolved_panel_labels[index]
             if panel_label:
@@ -529,19 +530,17 @@ def _render_matplotlib_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec)
 
         if spec.shared_legend:
             handles_by_label: dict[str, Any] = {}
-            for ax in axes[: len(plots)]:
+            for ax, rendered in zip(axes[: len(plots)], panel_render_results, strict=True):
+                for _, handle in rendered.legend_handles:
+                    label = str(handle.get_label())
+                    if label and not label.startswith("_"):
+                        handles_by_label.setdefault(label, handle)
                 candidates = [ax]
                 twin = getattr(ax, "_ring5_twin", None)
                 if twin is not None:
                     candidates.append(twin)
                 for candidate in candidates:
-                    handles, labels = candidate.get_legend_handles_labels()
-                    for handle, label in zip(handles, labels):
-                        if label and not label.startswith("_"):
-                            handles_by_label.setdefault(label, handle)
-                    legend = candidate.get_legend()
-                    if legend is not None:
-                        legend.remove()
+                    FigureSpecToMatplotlib._clear_owned_legends(candidate)
             if handles_by_label:
                 primary_legend = first_figure_spec.legends[0]
                 options = FigureSpecToMatplotlib._legend_kwargs(primary_legend)

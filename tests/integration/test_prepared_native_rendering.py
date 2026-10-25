@@ -121,7 +121,7 @@ def test_native_routes_prepare_once_and_preserve_axis_roles(
         ):
             with (
                 patch(
-                    "src.web.rendering.trace_to_plotly.traces_to_plotly",
+                    "src.web.rendering.plotly_figure_builder.traces_to_plotly",
                     side_effect=AssertionError("Plotly on MPL"),
                 )
                 if engine == "matplotlib"

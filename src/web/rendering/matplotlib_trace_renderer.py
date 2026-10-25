@@ -282,7 +282,7 @@ class MatplotlibTraceRenderer:
             handles, _ = target.get_legend_handles_labels()
             for handle in handles:
                 if id(handle) not in recorded_handles:
-                    result.legend_handles.setdefault(trace.legend_role, []).append(handle)
+                    result.legend_handles.append((trace.legend_role, handle))
                     recorded_handles.add(id(handle))
 
         if vertical_box_ticks:

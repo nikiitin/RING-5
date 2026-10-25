@@ -40,6 +40,21 @@ def validate_plot_config_keys(config: Mapping[str, Any]) -> None:
         )
 
 
+def validate_plot_config_values(config: Mapping[str, Any]) -> None:
+    """Validate concrete common figure values.
+
+    Raises:
+        ValueError: A legend orientation is not exactly horizontal or vertical.
+    """
+    # [impl->req~ring5.api.plot-validation~1]
+    for prefix in ("legend_", "legend2_", "legend3_"):
+        key = f"{prefix}orientation"
+        if key in config and (
+            not isinstance(config[key], str) or config[key] not in ("horizontal", "vertical")
+        ):
+            raise ValueError(f"{key} must be exactly 'horizontal' or 'vertical'.")
+
+
 def validate_plot_fields(payload: dict[str, Any]) -> None:
     """Reject unsupported plot state before deserialization or publication.
 
@@ -63,3 +78,4 @@ def validate_plot_fields(payload: dict[str, Any]) -> None:
     config = payload.get("config", {})
     if isinstance(config, Mapping):
         validate_plot_config_keys(config)
+        validate_plot_config_values(config)

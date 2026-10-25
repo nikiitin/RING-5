@@ -166,9 +166,13 @@ class ConfigSpecBuilder:
             A FigureConfig populated from config values.
             Uses ``dpi=1`` so width/height are effectively in pixels.
         """
-        from src.core.common.plot_payload import validate_plot_config_keys
+        from src.core.common.plot_payload import (
+            validate_plot_config_keys,
+            validate_plot_config_values,
+        )
 
         validate_plot_config_keys(config)
+        validate_plot_config_values(config)
         is_bar = "bar" in plot_type
         symmetric_y_titles = plot_type == "grouped_stacked_bar" and bool(config.get("dual_axis"))
 
@@ -535,9 +539,7 @@ def _build_legend_from_config(
     )
 
     # Orientation (horizontal / vertical)
-    _orient_raw = str(config.get(f"{prefix}orientation", "vertical")).lower()
-    if _orient_raw not in ("horizontal", "vertical"):
-        _orient_raw = "vertical"
+    _orient_raw = config.get(f"{prefix}orientation", "vertical")
 
     # Position and anchor derivation
     pos_x = float(config.get(f"{prefix}x", 1.02 if role == "primary" else -1.0))

@@ -17,4 +17,4 @@ class MatplotlibRenderResult:
     # Raw category coordinates survive tick ordering and display-label aliases.
     x_category_positions: dict[str, float] = field(default_factory=dict)
     # Native handles retain their owning neutral legend role after series restyling.
-    legend_handles: dict[str, list[Any]] = field(default_factory=dict)
+    legend_handles: list[tuple[str, Any]] = field(default_factory=list)

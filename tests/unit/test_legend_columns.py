@@ -37,21 +37,18 @@ class TestLegendStyling:
         assert fig.layout.legend.x == 0.5
         assert fig.layout.legend.y == 1.05
 
-    def test_legend_orientation_not_applied_from_config(self, applicator: Any) -> None:
-        """
-        Orientation field was removed from UI — verify it's not applied.
-        """
+    def test_legend_orientation_applied_from_config(self, applicator: Any) -> None:
+        """Apply the canonical orientation emitted by the active legend controls."""
         fig = go.Figure()
         fig.add_trace(go.Bar(y=[1, 2], name="Test"))
 
         config = {
-            "legend_orientation": "h",  # present but dead field
+            "legend_orientation": "horizontal",
         }
 
         fig = applicator.apply_styles(fig, config)
 
-        # Orientation should remain at Plotly default (vertical)
-        assert fig.layout.legend.orientation in (None, "v")
+        assert fig.layout.legend.orientation == "h"
 
     def test_legend_anchor_not_applied_from_config(self, applicator: Any) -> None:
         """

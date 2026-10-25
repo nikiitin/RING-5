@@ -101,7 +101,7 @@ class LegendConfig:
     Attributes:
         role: Semantic role identifier.
             - ``"primary"``   — main trace legend
-            - ``"secondary"`` — secondary axis traces
+            - ``"secondary"`` — separate trace legend, independent of Y-axis choice
             - ``"tertiary"``  — tertiary annotation legend (numbered items)
         visible: Whether this legend is rendered.
         font_size: Text size in points (-1 = inherit from primary).

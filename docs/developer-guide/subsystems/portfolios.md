@@ -43,7 +43,10 @@ No reader infers old defaults, translates keys, or rewrites a file into the curr
 Editable plot configuration uses `legend2_*` for a separate right legend and
 `anchor_x`/`anchor_y` in every legend tier. Retired `dual_legend_*` and tier
 `xanchor`/`yanchor` configuration keys fail before plot restoration. Recipe schema 4 shares the
-same key admission while retaining unmaterialized parameter values.
+same key admission while retaining unmaterialized parameter values. Concrete common values
+use a separate `validate_plot_config_values` stage: every legend orientation is exactly
+`horizontal` or `vertical`. Recipe save/load retain template values; materialization applies
+the concrete-value guard after parameter substitution.
 
 Treat portfolio JSON as untrusted input: sanitize names, validate paths, and verify content before
 restoration. Test current writer round trips, partial restore reporting, duplicate names, and

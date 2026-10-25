@@ -33,7 +33,7 @@ def _sample_config(**overrides: Any) -> dict[str, Any]:
         "xaxis_tickangle": -45,
         "xaxis_tickfont_size": 12,
         "yaxis_tickfont_size": 12,
-        "legend_orientation": "v",
+        "legend_orientation": "vertical",
         "legend_x": 1.02,
         "legend_y": 1.0,
         "legend_font_size": 12,
@@ -160,13 +160,13 @@ class TestConfigSpecLegend:
         assert leg.position_x == 0.5
         assert leg.position_y == 0.9
 
-    def test_legend_orientation_always_default(self) -> None:
-        """Orientation removed from UI — always model default ('vertical')."""
-        spec = ConfigSpecBuilder.from_config(_sample_config(legend_orientation="h"))
-        assert spec.legends[0].orientation == "vertical"
+    def test_legend_orientation_horizontal(self) -> None:
+        """Preserve the canonical horizontal orientation."""
+        spec = ConfigSpecBuilder.from_config(_sample_config(legend_orientation="horizontal"))
+        assert spec.legends[0].orientation == "horizontal"
 
     def test_legend_orientation_vertical(self) -> None:
-        spec = ConfigSpecBuilder.from_config(_sample_config(legend_orientation="v"))
+        spec = ConfigSpecBuilder.from_config(_sample_config(legend_orientation="vertical"))
         assert spec.legends[0].orientation == "vertical"
 
     def test_legend_border(self) -> None:

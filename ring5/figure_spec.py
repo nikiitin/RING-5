@@ -253,6 +253,13 @@ class FigureSpec:
         if self.numbered_xaxis_modes is not None:
             numbered_axis_modes({"numbered_xaxis_modes": list(self.numbered_xaxis_modes)})
         numbered_axis_modes(self.extra)
+        from src.core.common.plot_payload import (
+            validate_plot_config_keys,
+            validate_plot_config_values,
+        )
+
+        validate_plot_config_keys(self.extra)
+        validate_plot_config_values(self.extra)
         _own_fields(self)
 
     def to_config(self) -> dict[str, Any]:
@@ -366,9 +373,13 @@ class FigureSpec:
             _emit_legend(cfg, self.number_legend, prefix)
         cfg.update(self.extra)  # escape hatch wins
         cfg = cast(dict[str, Any], _mutable_values(cfg))
-        from src.core.common.plot_payload import validate_plot_config_keys
+        from src.core.common.plot_payload import (
+            validate_plot_config_keys,
+            validate_plot_config_values,
+        )
 
         validate_plot_config_keys(cfg)
+        validate_plot_config_values(cfg)
         numbered_axis_modes(cfg)
         return cfg
 

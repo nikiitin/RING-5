@@ -41,7 +41,7 @@ _BASE_CONFIG: dict[str, Any] = {
     "xaxis_tickangle": -45,
     "xaxis_tickfont_size": 12,
     "yaxis_tickfont_size": 12,
-    "legend_orientation": "v",
+    "legend_orientation": "vertical",
     "legend_x": 1.02,
     "legend_y": 1.0,
     "legend_font_size": 11,

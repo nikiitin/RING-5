@@ -49,7 +49,7 @@ Callers preserve failures and pass current scanned-variable records for numeric 
 Each record requires concrete `SourceInstance` identities and numeric display coordinates.
 `params.selected_sources` selects concrete names; workers receive a precompiled direct routing plan.
 
-Portfolio schema 7 stores each parser variable as exactly `{state: "draft", fields: ...}` or
+Portfolio schema 9 stores each parser variable as exactly `{state: "draft", fields: ...}` or
 `{state: "runnable", config: ...}`. Drafts preserve incomplete current editor input; runnable
 snapshots contain every `StatConfig` field. UI identifiers never enter the saved format and are
 regenerated when restored. Recipes require runnable variables and use recipe schema 4. Template
