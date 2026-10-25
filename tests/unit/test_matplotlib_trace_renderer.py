@@ -174,9 +174,13 @@ class TestRender:
 
         line = ax.lines[0]
         assert result.trace_count == 1
-        assert len(line.get_xdata()) > 4
+        x_values = np.asarray(line.get_xdata())
+        assert len(x_values) > 4
         assert all(np.isfinite(line.get_ydata()))
-        assert len(line.get_markevery()) == 4
+        marker_indices = line.get_markevery()
+        assert isinstance(marker_indices, list)
+        assert len(marker_indices) == 4
+        np.testing.assert_array_equal(x_values[marker_indices], [0, 1, 3, 4])
         assert line.get_linewidth() == 3.5
         assert line.get_marker() == "D"
         assert line.get_markersize() == 10
@@ -201,9 +205,11 @@ class TestRender:
 
         MatplotlibTraceRenderer.render(traces, ax)
 
-        assert len(ax.lines[0].get_xdata()) > 3
-        assert len(ax.lines[1].get_xdata()) > 4
-        assert 2.0 in ax.lines[0].get_xdata()
+        partial_x = np.asarray(ax.lines[0].get_xdata())
+        complete_x = np.asarray(ax.lines[1].get_xdata())
+        assert len(partial_x) > 3
+        assert len(complete_x) > 4
+        assert 2.0 in partial_x
         assert [tick.get_text() for tick in ax.get_xticklabels()] == ["A", "B", "C", "D"]
 
     def test_ecdf_line_uses_post_step_drawstyle(self, ax: matplotlib.axes.Axes) -> None:
@@ -346,7 +352,12 @@ class TestRender:
         assert result.trace_count == 1
         assert len(ax.lines) == 4
         assert {text.get_text() for text in ax.texts} >= {"Kind", "Score", "A", "B"}
-        assert sorted(line.get_alpha() for line in ax.lines[:2]) == [0.1, 0.8]
+        alphas = []
+        for line in ax.lines[:2]:
+            alpha = line.get_alpha()
+            assert alpha is not None
+            alphas.append(alpha)
+        assert sorted(alphas) == [0.1, 0.8]
         assert not ax.axison
 
     def test_vertical_and_horizontal_violins_use_precomputed_density(

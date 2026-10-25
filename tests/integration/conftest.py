@@ -1,8 +1,7 @@
-"""Conftest for tests/integration/ — integration tests.
+"""Shared integration fixtures for application lifetimes and service storage.
 
-Provides fixtures that wrap the synthetic gem5 data with ready-to-use
-ApplicationAPI and ParseService instances. Synthetic gem5 data fixtures
-are registered via ``tests/helpers/gem5_fixtures.py`` in the root conftest.
+Synthetic gem5 data fixtures come from ``tests/helpers/gem5_fixtures.py``,
+registered in the root conftest.
 """
 
 from collections.abc import Iterator
