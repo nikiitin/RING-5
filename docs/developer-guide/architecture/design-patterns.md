@@ -5,8 +5,6 @@ parent: Architecture
 grand_parent: Developer Guide
 nav_order: 5
 permalink: /developer-guide/architecture/design-patterns/
-redirect_from:
-  - /engineering-reference/architecture/design-patterns/
 ---
 
 # Design patterns

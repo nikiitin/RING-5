@@ -5,9 +5,6 @@ parent: Extension Guides
 grand_parent: Developer Guide
 nav_order: 1
 permalink: /developer-guide/extension-guides/adding-a-parser/
-redirect_from:
-  - /developer-guide/parsing/adding-a-new-parser/
-  - /engineering-reference/development/adding-a-parser/
 ---
 
 # Add a parser

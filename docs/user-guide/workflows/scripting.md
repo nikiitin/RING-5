@@ -5,8 +5,6 @@ parent: Workflows
 grand_parent: User Guide
 nav_order: 5
 permalink: /user-guide/workflows/scripting/
-redirect_from:
-  - /user-guide/features/scripting/
 ---
 
 # Automate with Python and the CLI

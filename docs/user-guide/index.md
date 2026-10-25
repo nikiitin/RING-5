@@ -4,8 +4,6 @@ title: User Guide
 nav_order: 2
 has_children: true
 permalink: /user-guide/
-redirect_from:
-  - /user-guide/pages/documentation/
 ---
 
 # User Guide

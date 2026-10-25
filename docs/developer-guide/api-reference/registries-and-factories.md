@@ -5,8 +5,6 @@ parent: Stable Interfaces
 grand_parent: Developer Guide
 nav_order: 6
 permalink: /developer-guide/api-reference/registries-and-factories/
-redirect_from:
-  - /engineering-reference/reference/factory-registry/
 ---
 
 # Registries and factories

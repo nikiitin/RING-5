@@ -5,8 +5,6 @@ parent: Reference
 grand_parent: User Guide
 nav_order: 3
 permalink: /user-guide/reference/settings/
-redirect_from:
-  - /user-guide/features/settings/
 ---
 
 # Figure settings

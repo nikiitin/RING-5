@@ -5,9 +5,6 @@ parent: Analysis Guides
 grand_parent: User Guide
 nav_order: 1
 permalink: /user-guide/guides/compare-configurations/
-redirect_from:
-  - /user-guide/tutorials/compare-simulations/
-  - /user-guide/tutorials/normalize-data/
 ---
 
 # Compare configurations

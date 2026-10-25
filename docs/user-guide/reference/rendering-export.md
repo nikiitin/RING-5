@@ -5,9 +5,6 @@ parent: Reference
 grand_parent: User Guide
 nav_order: 4
 permalink: /user-guide/reference/rendering-export/
-redirect_from:
-  - /user-guide/features/dual-engine/
-  - /user-guide/reference/supported-formats/
 ---
 
 # Rendering and export

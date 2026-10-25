@@ -5,10 +5,6 @@ parent: Getting Started
 grand_parent: User Guide
 nav_order: 3
 permalink: /user-guide/getting-started/first-analysis/
-redirect_from:
-  - /user-guide/getting-started/first-steps/
-  - /user-guide/tutorials/create-bar-chart/
-  - /user-guide/tutorials/load-and-explore/
 ---
 
 # First analysis

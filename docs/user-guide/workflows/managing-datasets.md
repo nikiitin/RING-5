@@ -5,8 +5,6 @@ parent: Workflows
 grand_parent: User Guide
 nav_order: 2
 permalink: /user-guide/workflows/managing-datasets/
-redirect_from:
-  - /user-guide/pages/data-managers/
 ---
 
 # Manage datasets

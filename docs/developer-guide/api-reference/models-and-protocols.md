@@ -5,11 +5,6 @@ parent: Stable Interfaces
 grand_parent: Developer Guide
 nav_order: 4
 permalink: /developer-guide/api-reference/models-and-protocols/
-redirect_from:
-  - /developer-guide/core/
-  - /developer-guide/core/models-reference/
-  - /engineering-reference/reference/models-catalog/
-  - /engineering-reference/reference/protocol-catalog/
 ---
 
 # Models and protocols
