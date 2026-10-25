@@ -752,3 +752,32 @@ def test_unsupported_backend_variable_can_be_explicitly_deleted() -> None:
     app.button(key="delete_var_custom").click().run()
     assert not app.exception
     assert app.session_state["result"] == []
+
+
+def test_editor_and_compiler_preserve_case_sensitive_scanner_entry_roles() -> None:
+    app = _app("""
+        from dataclasses import replace
+        from unittest.mock import patch
+        from src.core.application_api import ApplicationAPI
+        from src.web.components.data_source.variable_editor import VariableEditor
+        api = ApplicationAPI()
+        scanned = {"name": "v", "type": "vector",
+                   "entries": ["mean", "Mean", "stdev", "STDEV", "CustomSummary"]}
+        info = replace(api.get_simulator_info("gem5"),
+                       internal_stats=frozenset({"mean", "stdev", "CustomSummary"}))
+        try:
+            with patch.object(api, "get_simulator_info", return_value=info):
+                draft = api.draft_from_scanned_variable(scanned)
+                draft["_id"] = "case_roles"
+                result = VariableEditor.render(api, [draft], [scanned])
+                st.session_state["configured"] = api.compile_parse_variables(result)[0]
+        finally:
+            api.close()
+    """)
+    assert not app.exception
+    widget = app.multiselect(key="vector_entries_select_case_roles")
+    assert widget.options == ["Mean", "STDEV"]
+    assert widget.value == ["Mean", "STDEV"]
+    configured = app.session_state["configured"]
+    assert configured.params["entries"] == ["Mean", "STDEV"]
+    assert configured.params["statistics"] == ["mean", "stdev", "CustomSummary"]

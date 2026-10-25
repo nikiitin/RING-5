@@ -264,17 +264,15 @@ class TestFilterInternalStats:
 
         assert result == ["cpu0"]
 
-    def test_case_insensitive_filtering(self) -> None:
-        """Should filter internal stats regardless of case."""
-        entries = ["CPU0", "TOTAL", "Mean", "STDEV", "cpu1"]
-        result = VariableService.filter_internal_stats(
-            entries, internal_stats=SimulatorRegistry.get_info("gem5").internal_stats
-        )
+    def test_filters_exact_declared_roles_without_folding_source_entry_case(self) -> None:
+        """Source entries and simulator summary names are case-sensitive."""
+        entries = ["mean", "Mean", "stdev", "STDEV", "CustomSummary"]
+        internal_stats = frozenset({"mean", "stdev", "CustomSummary"})
 
-        assert "cpu1" in result
-        assert "CPU0" in result
-        assert "TOTAL" not in result
-        assert "Mean" not in result
+        result = VariableService.filter_internal_stats(entries, internal_stats)
+
+        assert result == ["Mean", "STDEV"]
+        assert entries == ["mean", "Mean", "stdev", "STDEV", "CustomSummary"]
 
     def test_preserves_non_internal_entries(self) -> None:
         """Should keep all non-internal entries."""

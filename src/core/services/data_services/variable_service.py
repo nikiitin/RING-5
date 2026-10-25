@@ -189,7 +189,7 @@ class VariableService:
 
         Args:
             entries: List of entry names to filter
-            internal_stats: Explicit internal names from the selected SimulatorInfo.
+            internal_stats: Exact case-sensitive summary names from the selected SimulatorInfo.
 
         Returns:
             Filtered list with internal stats removed, sorted alphabetically
@@ -202,7 +202,7 @@ class VariableService:
             >>> filtered
             ['cpu0', 'cpu1']
         """
-        filtered = [e for e in entries if e.lower() not in internal_stats]
+        filtered = [entry for entry in entries if entry not in internal_stats]
         return sorted(filtered)
 
     @classmethod
