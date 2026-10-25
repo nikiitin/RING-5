@@ -192,7 +192,7 @@ class DataServicesAPI(Protocol):
     def filter_internal_stats(
         self,
         entries: list[str],
-        internal_stats: frozenset[str] | None = None,
+        internal_stats: frozenset[str],
     ) -> list[str]:
         """Filter out internal simulator statistics from entry list."""
         raise NotImplementedError
@@ -210,6 +210,7 @@ class DataServicesAPI(Protocol):
         self,
         snapshot: list[ScannedVariableDict],
         var_name: str,
+        internal_stats: frozenset[str],
     ) -> list[str]:
         """Aggregate entries for a variable across scanned files."""
         raise NotImplementedError
@@ -234,6 +235,7 @@ class DataServicesAPI(Protocol):
         self,
         available_variables: list[ScannedVariableDict],
         var_name: str,
+        internal_stats: frozenset[str],
     ) -> list[str]:
         """Find all entries for a variable by searching available/scanned variables."""
         raise NotImplementedError

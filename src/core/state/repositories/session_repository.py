@@ -7,6 +7,7 @@ import logging
 
 import pandas as pd
 
+from src.core.common.stat_config_codec import StatConfigCodec
 from src.core.models import PortfolioData, RestoreReport
 from src.core.models.plot_protocol import PlotDeserializer, PlotProtocol
 from src.core.state.repositories.config_repository import ConfigRepository
@@ -107,7 +108,12 @@ class SessionRepository:
         # malformed parse_variables list (e.g. plain strings) would crash
         # set_parse_variables, which mutates each entry dict.
         raw_vars = portfolio_data.get("parse_variables", [])
-        parse_vars = [v for v in raw_vars if isinstance(v, dict)]
+        parse_vars = []
+        for value in raw_vars:
+            try:
+                parse_vars.append(StatConfigCodec.from_snapshot(value))
+            except (TypeError, ValueError):
+                logger.warning("SESSION_REPO: Skipped an invalid parser variable snapshot.")
         vars_skipped = len(raw_vars) - len(parse_vars)
         if vars_skipped:
             logger.warning(

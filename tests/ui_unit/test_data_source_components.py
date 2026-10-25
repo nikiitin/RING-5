@@ -126,6 +126,9 @@ def test_render_parser_config_submits_the_bounded_playground(
     mock_api: Any,
     tmp_path: Any,
 ) -> None:
+    from src.core.application_api import ApplicationAPI
+
+    mock_api.compile_parse_variables.side_effect = ApplicationAPI.compile_parse_variables
     # [test->req~ring5.ingestion.parser-playground~1]
     mock_streamlit.button.side_effect = lambda label, **kwargs: "Test configuration" in label
     mock_streamlit.pills.return_value = "gem5"
@@ -163,7 +166,7 @@ def test_render_parser_config_submits_the_bounded_playground(
     mock_api.submit_parser_playground_async.assert_called_once_with(
         str(tmp_path / "stats"),
         "custom*.txt",
-        [{"name": "simTicks", "type": "scalar"}],
+        ApplicationAPI.compile_parse_variables([{"name": "simTicks", "type": "scalar"}]),
         str(tmp_path / "parser_playground"),
         scanned_vars=[],
         strategy_type="simple",

@@ -13,7 +13,7 @@ This file is informative; normative items are in the other generated files.
 - In development future requirements: 0
 - Blocked future requirements: 0
 - Generated specification items: 234
-- Live capability bindings: 868
+- Live capability bindings: 861
 
 ## Requirements by feature group
 
@@ -35,7 +35,7 @@ This file is informative; normative items are in the other generated files.
 
 ## Drift-checked capability sources
 
-- `application_api_members`: 97
+- `application_api_members`: 99
 - `axes_config_fields`: 11
 - `axis_config_fields`: 31
 - `cli_commands`: 6
@@ -55,7 +55,7 @@ This file is informative; normative items are in the other generated files.
 - `matplotlib_formats`: 4
 - `navigation_pages`: 4
 - `parse_job_members`: 2
-- `parse_variable_fields`: 18
+- `parse_variable_fields`: 9
 - `parser_strategies`: 2
 - `plot_types`: 17
 - `plotly_formats`: 4

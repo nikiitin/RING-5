@@ -21,6 +21,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
+from src.core.common.stat_config_codec import StatConfigCodec
 from src.core.common.input_identity import fingerprint_inputs
 from src.core.common.utils import normalize_user_path, validate_stats_pattern
 from src.core.models import (
@@ -82,7 +83,10 @@ def build_parse_job_request(
         raise NotADirectoryError(f"Stats path is not a directory: {stats_path}")
 
     normalized_pattern = validate_stats_pattern(stats_pattern)
-    variables_json = _canonical_json(list(variables), strip_internal_ids=True)
+    variables_json = _canonical_json(
+        [StatConfigCodec.to_payload(StatConfigCodec.from_payload(value)) for value in variables],
+        strip_internal_ids=False,
+    )
     scanned_json = _canonical_json(
         list(scanned_variables) if scanned_variables is not None else [],
         strip_internal_ids=True,

@@ -42,9 +42,11 @@ def test_background_gem5_parse_publishes_and_loads_recent_csv(
         snapshot = api.submit_parse_job(
             str(stats_root),
             "stats.txt",
-            cast(
-                list[ParseVariableConfig],
-                [{"name": "simTicks", "type": "scalar"}],
+            api.compile_parse_variables(
+                cast(
+                    list[ParseVariableConfig],
+                    [{"name": "simTicks", "type": "scalar"}],
+                )
             ),
             incremental=incremental,
         )

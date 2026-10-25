@@ -34,18 +34,18 @@ def test_parser_state_owns_nested_configuration_and_unique_identity() -> None:
     assert second.get_parse_variables() == original
     assert first.get_parse_variables()[0]["_id"] != original[0]["_id"]
     entries = [
-        {"name": name, "type": "scalar", "_id": identifier, "metadata": {"x": []}}
+        {"name": name, "type": "vector", "_id": identifier, "params": {"entries": ["0"]}}
         for name, identifier in zip("abcde", ["same", "same", "", None, 3], strict=True)
     ]
     first.set_parse_variables(entries)
-    entries[0]["metadata"]["x"].append("external")
+    entries[0]["params"]["entries"].append("external")
     variables = first.get_parse_variables()
     identifiers = [item["_id"] for item in variables]
     assert len(set(identifiers)) == 5
     assert all(isinstance(identifier, str) and identifier for identifier in identifiers)
-    assert variables[0]["metadata"] == {"x": []}
-    variables[0]["metadata"]["x"].append("external")
-    assert first.get_parse_variables()[0]["metadata"] == {"x": []}
+    assert variables[0]["params"]["entries"] == ["0"]
+    variables[0]["params"]["entries"].append("external")
+    assert first.get_parse_variables()[0]["params"]["entries"] == ["0"]
     first.set_parse_variables(
         [item for item in first.get_parse_variables() if item["_id"] != "same"]
     )

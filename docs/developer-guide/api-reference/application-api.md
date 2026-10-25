@@ -35,8 +35,25 @@ only scans submitted by that instance, allowing `cancel_pending_scans` and `rele
 to avoid affecting another browser session.
 
 `submit_parse_async` returns a batch with futures and variable names. `finalize_parsing` assembles
-completed parse results. Callers preserve failures and pass scanned-variable metadata for pattern
-expansion.
+completed parse results. Runnable submissions accept only typed `StatConfig` values. The UI keeps
+editable `ParseVariableConfig` drafts and calls `compile_parse_variables` at submission; unfinished
+names, entry selections, or bounds raise a visible validation error without starting workers.
+`StatConfigCodec` owns validation, exact wire serialization, and draft projection. Its fields and
+per-type options use snake_case, integer repetition counts, and separate `entries`/`statistics`
+lists inside one nested `params` dictionary. Every editor draft has the same structural fields
+as `StatConfig`, plus its UI-only `_id`; no flat option shape is accepted.
+`draft_from_scanned_variable` uses the selected simulator metadata to project scanner entries and
+summaries through that same codec. Backend creation, durable jobs, the public parse API, and recipes use the same codec.
+Callers preserve failures and pass scanned-variable metadata for pattern expansion.
+
+Portfolio schema 5 stores each parser variable as exactly `{state: "draft", fields: ...}` or
+`{state: "runnable", config: ...}`. Drafts preserve incomplete current editor input; runnable
+snapshots contain every `StatConfig` field. UI identifiers never enter the saved format and are
+regenerated when restored. Recipes require runnable variables and use recipe schema 2. Template
+operands are validated as declared placeholders, then compiled after materialization.
+
+Entry-filtering methods require the selected `SimulatorInfo.internal_stats` explicitly. A
+simulator's summary names are metadata, so a generic service never guesses a gem5 default.
 
 ## Data and previews
 

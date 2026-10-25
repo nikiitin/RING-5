@@ -298,7 +298,21 @@ overwrite silently; select **Replace a saved recipe with this name** only when r
 intentional. The **Saved** tab shows the source, parameter, transformation, plot, and download
 counts and downloads a portable `ring5.analysis-recipe` JSON file. The **Import** tab validates
 that versioned file before saving it. Recipe JSON is limited to 512 KiB and does not embed dataset
-rows.
+rows. Recipe schema 2 stores complete runnable `StatConfig` payloads; incomplete parser editor
+drafts remain savable in portfolios but cannot become an executable recipe. To construct a parser
+recipe in Python, serialize the public dataclass with `dataclasses.asdict`:
+
+```python
+from dataclasses import asdict
+import ring5
+
+stat = ring5.StatConfig(name="IPC", source_name="system.cpu.ipc", type="scalar")
+source = ring5.RecipeSource(
+    kind="parser",
+    path="simulations",
+    variables=(asdict(stat),),
+)
+```
 
 Python can construct recipes with shared transformations and arbitrary typed parameters as well as
 run recipes captured by the web application:

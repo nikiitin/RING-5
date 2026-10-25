@@ -371,7 +371,7 @@ class TestMultiplePatternGroups:
             name=r"system\.cpu\d+\.ipc",
             type="vector",
             is_regex=True,
-            params={"entries": ["IntAlu", "IntMult"], "vectorEntries": ["IntAlu", "IntMult"]},
+            params={"entries": ["IntAlu", "IntMult"]},
         )
         scanned = [
             ScannedVariable(
@@ -383,5 +383,5 @@ class TestMultiplePatternGroups:
 
         result = _expand_regex(config, scanned)
         assert result.params["entries"] == ["IntAlu", "IntMult"]
-        assert result.params["vectorEntries"] == ["IntAlu", "IntMult"]
+        assert result.params["entries"] == ["IntAlu", "IntMult"]
         assert result.params["parsed_ids"] == ["system.cpu0.ipc"]

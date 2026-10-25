@@ -18,7 +18,8 @@ from src.core.common.security_limits import (
     PARSE_BATCH_TIMEOUT_SECONDS,
     PARSER_PLAYGROUND_TIMEOUT_SECONDS,
 )
-from src.core.models import StatConfig
+from src.core.common.stat_config_codec import StatConfigCodec
+from src.core.models import ScannedVariable, StatConfig
 
 from ring5._scan import ScanJob
 from ring5.errors import MissingStatError, ParseError, ScanError
@@ -42,15 +43,14 @@ class ParseResult:
         csv_path: The assembled CSV.
         missing_stats: Requested variables that produced no value in any
             file (the parser writes NaN for these — never a fabricated 0).
-        parsed_files: Files parsed by workers. ``None`` is reserved for results from older
-            integrations that do not report a count.
+        parsed_files: Number of files parsed by workers.
         reused_files: Unchanged finalized rows reused by incremental mode.
         removed_files: Cached source rows removed because their inputs disappeared.
     """
 
     csv_path: str
     missing_stats: list[str] = field(default_factory=list)
-    parsed_files: int | None = None
+    parsed_files: int = field(kw_only=True)
     reused_files: int = 0
     removed_files: int = 0
 
@@ -224,11 +224,11 @@ def build_stat_configs(
     *,
     pattern: str = "stats.txt",
     scan_limit: int = 10,
-) -> tuple[list[StatConfig | dict[str, Any]], list[Any]]:
+) -> tuple[list[StatConfig], list[ScannedVariable]]:
     """Resolve variable names against a scan of the tree.
 
     Plain string names are looked up in the scan result and converted to
-    the same variable dicts the web UI submits — carrying the scanned
+    runnable StatConfig values through the current codec — carrying the scanned
     metadata the parser needs (vector/histogram ``entries``, distribution
     ``minimum``/``maximum``) and the pattern-variable flag. A bare
     name+type config would crash vectors and silently parse distributions
@@ -267,32 +267,19 @@ def build_stat_configs(
         raise ScanError(str(exc)) from exc
 
     by_name = {v.name: v for v in scan.variables}
-    configs: list[StatConfig | dict[str, Any]] = []
+    configs: list[StatConfig] = []
     unknown: list[str] = []
     for var in variables:
         if isinstance(var, StatConfig):
             if not var.is_regex and PatternIndexService.is_pattern_variable(var.name):
                 var = dc_replace(var, is_regex=True)
-            configs.append(var)
+            configs.append(StatConfigCodec.validate(var))
             continue
         found = by_name.get(var)
         if found is None:
             unknown.append(var)
             continue
-        # The dict shape the web UI submits — ApplicationAPI's conversion
-        # carries every key into StatConfig.params, where TypeMapper reads
-        # entries (vector/histogram) and minimum/maximum (distribution).
-        config: dict[str, Any] = {"name": found.name, "type": found.type}
-        entries = getattr(found, "entries", None)
-        if entries:
-            config["entries"] = list(entries)
-        minimum = getattr(found, "minimum", None)
-        if minimum is not None:
-            config["minimum"] = minimum
-        maximum = getattr(found, "maximum", None)
-        if maximum is not None:
-            config["maximum"] = maximum
-        configs.append(config)
+        configs.append(StatConfigCodec.from_draft(api.draft_from_scanned_variable(found.to_dict())))
 
     if unknown:
         sample = ", ".join(sorted(by_name)[:8])

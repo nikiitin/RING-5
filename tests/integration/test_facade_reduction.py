@@ -85,7 +85,7 @@ class TestFacadeReduction:
         batch = facade.submit_parse_async(
             stats_path=stats_path,
             stats_pattern="stats.txt*",
-            variables=variables,
+            variables=facade.compile_parse_variables(variables),
             output_dir=output_dir,
             scanned_vars=scanned_vars,
         )

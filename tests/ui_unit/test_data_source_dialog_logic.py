@@ -47,7 +47,7 @@ def mock_api() -> Any:
         e.strip() for e in s.split(",") if e.strip()
     ]
     api.data_services.format_entries_as_string.side_effect = lambda entries: ", ".join(entries)
-    api.data_services.filter_internal_stats.side_effect = lambda entries: entries
+    api.data_services.filter_internal_stats.side_effect = lambda entries, internal_stats: entries
     api.data_services.has_variable_with_name.return_value = False
     return api
 
@@ -101,7 +101,7 @@ def test_variable_config_dialog_manual_entry_vector(components_bundle: Any, mock
     assert args is not None
     new_vars = args[0][0]
     assert new_vars[0]["type"] == "vector"
-    entries = new_vars[0]["vectorEntries"]
+    entries = new_vars[0]["params"]["entries"]
     # VariableEditor stores list of strings
     assert "cpu0" in entries
 

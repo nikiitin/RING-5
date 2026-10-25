@@ -7,6 +7,7 @@ import pandas as pd
 import pytest
 
 from src.core.application_api import ApplicationAPI
+from src.core.models.parsing_models import StatConfig
 from src.core.models.data_models import ParseVariableConfig
 from src.core.services.data_services.config_service import ConfigService
 from src.core.services.data_services.csv_pool_service import CsvPoolService
@@ -113,7 +114,7 @@ class TestGem5Parsing:
         batch = facade.submit_parse_async(
             stats_path=str(self.TEST_DATA_DIR),
             stats_pattern="stats.txt",
-            variables=selected_vars,
+            variables=[StatConfig(name=v.name, type=v.type) for v in selected_vars],
             output_dir=str(output_dir),
             scanned_vars=all_variables,
         )
@@ -194,7 +195,11 @@ system.mem.ctrl::1024-2047                    5      50.00%     100.00%      # H
             )
 
             parse_batch = facade.submit_parse_async(
-                str(stats_dir), "stats.txt", variables, str(output_dir), scanned_vars=vars_found
+                str(stats_dir),
+                "stats.txt",
+                facade.compile_parse_variables(variables),
+                str(output_dir),
+                scanned_vars=vars_found,
             )
 
             # Wait for parsing to complete

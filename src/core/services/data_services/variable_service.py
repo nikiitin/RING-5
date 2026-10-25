@@ -48,22 +48,6 @@ def _safe_fullmatch(pattern: BoundedPattern, value: str) -> bool:
 class VariableService:
     """Service for managing parser variables with CRUD operations."""
 
-    # Scientific filter: Internal statistics that should not appear as
-    # regular entries.  The default set covers common simulator
-    # meta-statistics.  Callers can override via the
-    # ``internal_stats`` parameter of ``filter_internal_stats``.
-    DEFAULT_INTERNAL_STATS: frozenset[str] = frozenset(
-        {
-            "total",
-            "mean",
-            "gmean",
-            "stdev",
-            "samples",
-            "overflows",
-            "underflows",
-        }
-    )
-
     @staticmethod
     def generate_variable_id() -> str:
         """
@@ -198,17 +182,14 @@ class VariableService:
     def filter_internal_stats(
         cls,
         entries: list[str],
-        internal_stats: frozenset[str] | None = None,
+        internal_stats: frozenset[str],
     ) -> list[str]:
         """
         Filter out internal simulator statistics from entry list.
 
         Args:
             entries: List of entry names to filter
-            internal_stats: Set of stat names to exclude.  Defaults to
-                ``DEFAULT_INTERNAL_STATS`` if not provided.  Callers
-                can pass ``SimulatorInfo.internal_stats`` from the
-                active simulator registry entry for accurate filtering.
+            internal_stats: Exact case-sensitive summary names from the selected SimulatorInfo.
 
         Returns:
             Filtered list with internal stats removed, sorted alphabetically
@@ -216,12 +197,12 @@ class VariableService:
         Examples:
             >>> service = VariableService()
             >>> entries = ["cpu0", "total", "mean", "cpu1", "stdev"]
-            >>> filtered = service.filter_internal_stats(entries)
+            >>> internal = frozenset({"total", "mean", "stdev"})
+            >>> filtered = service.filter_internal_stats(entries, internal)
             >>> filtered
             ['cpu0', 'cpu1']
         """
-        exclude = internal_stats if internal_stats is not None else cls.DEFAULT_INTERNAL_STATS
-        filtered = [e for e in entries if e.lower() not in exclude]
+        filtered = [entry for entry in entries if entry not in internal_stats]
         return sorted(filtered)
 
     @classmethod
@@ -267,7 +248,7 @@ class VariableService:
 
     @classmethod
     def aggregate_discovered_entries(
-        cls, snapshot: list[ScannedVariableDict], var_name: str
+        cls, snapshot: list[ScannedVariableDict], var_name: str, internal_stats: frozenset[str]
     ) -> list[str]:
         r"""
         Aggregate all discovered entries for a variable across scanned files.
@@ -275,6 +256,7 @@ class VariableService:
         Args:
             snapshot: List of scanned variable results from multiple files
             var_name: Variable name to aggregate entries for (supports regex)
+            internal_stats: Explicit summary names from the selected simulator.
 
         Returns:
             Sorted list of unique entries with internal stats filtered out
@@ -285,7 +267,8 @@ class VariableService:
             ...     {"name": "system.cpu0.ipc", "entries": ["cpu0", "total"]},
             ...     {"name": "system.cpu1.ipc", "entries": ["cpu1", "mean"]}
             ... ]
-            >>> entries = service.aggregate_discovered_entries(snapshot, r"system\.cpu\d+\.ipc")
+            >>> entries = service.aggregate_discovered_entries(
+            ...     snapshot, r"system\.cpu\d+\.ipc", frozenset({"total", "mean"}))
             >>> entries
             ['cpu0', 'cpu1']
         """
@@ -303,7 +286,7 @@ class VariableService:
             if var_name_match and entries:
                 found_entries.update(entries)
 
-        return cls.filter_internal_stats(list(found_entries))
+        return cls.filter_internal_stats(list(found_entries), internal_stats)
 
     @classmethod
     def aggregate_distribution_range(
@@ -399,6 +382,7 @@ class VariableService:
         cls,
         available_variables: list[ScannedVariableDict],
         var_name: str,
+        internal_stats: frozenset[str],
     ) -> list[str]:
         r"""
         Find all entries for a variable by searching available/scanned variables.
@@ -411,6 +395,7 @@ class VariableService:
             available_variables: List of scanned variable dicts with 'name'
                                  and 'entries' keys.
             var_name: Variable name or regex pattern to search for.
+            internal_stats: Explicit summary names from the selected simulator.
 
         Returns:
             Sorted list of unique, non-internal entries found across matches.
@@ -421,7 +406,7 @@ class VariableService:
             ...     {"name": "system.cpu.ipc", "entries": ["cpu0", "cpu1", "total"]},
             ...     {"name": "system.mem.lat", "entries": ["bank0"]},
             ... ]
-            >>> service.find_entries_for_variable(avail, "system.cpu.ipc")
+            >>> service.find_entries_for_variable(avail, "system.cpu.ipc", frozenset({"total"}))
             ['cpu0', 'cpu1']
         """
         found_entries: set[str] = set()
@@ -439,7 +424,7 @@ class VariableService:
             if matched and v_entries:
                 found_entries.update(v_entries)
 
-        return cls.filter_internal_stats(list(found_entries))
+        return cls.filter_internal_stats(list(found_entries), internal_stats)
 
     @classmethod
     def update_scanned_entries(

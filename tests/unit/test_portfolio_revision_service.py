@@ -11,6 +11,7 @@ import pytest
 
 from tests.helpers.portfolios import portfolio_document
 
+from src.core.common.stat_config_codec import StatConfigCodec
 from src.core.services.data_services.path_service import PathService
 from src.core.services.data_services.portfolio_revision_service import (
     PortfolioRevisionService,
@@ -59,7 +60,9 @@ def _payload(
         ],
         "plot_counter": 1,
         "config": {},
-        "parse_variables": ([{"name": "ipc", "type": "scalar"}] if parser else []),
+        "parse_variables": (
+            [StatConfigCodec.to_snapshot({"name": "ipc", "type": "scalar"})] if parser else []
+        ),
         "use_parser": parser,
         "stats_path": "/simulations" if parser else None,
         "stats_pattern": "stats*.txt",

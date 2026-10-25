@@ -207,7 +207,7 @@ class DefaultDataServicesAPI:
     def filter_internal_stats(
         self,
         entries: list[str],
-        internal_stats: frozenset[str] | None = None,
+        internal_stats: frozenset[str],
     ) -> list[str]:
         """Filter out internal simulator statistics from entry list."""
         return VariableService.filter_internal_stats(entries, internal_stats)
@@ -225,9 +225,10 @@ class DefaultDataServicesAPI:
         self,
         snapshot: list[ScannedVariableDict],
         var_name: str,
+        internal_stats: frozenset[str],
     ) -> list[str]:
         """Aggregate entries for a variable across scanned files."""
-        return VariableService.aggregate_discovered_entries(snapshot, var_name)
+        return VariableService.aggregate_discovered_entries(snapshot, var_name, internal_stats)
 
     def aggregate_distribution_range(
         self,
@@ -249,9 +250,12 @@ class DefaultDataServicesAPI:
         self,
         available_variables: list[ScannedVariableDict],
         var_name: str,
+        internal_stats: frozenset[str],
     ) -> list[str]:
         """Find all entries for a variable by searching available/scanned variables."""
-        return VariableService.find_entries_for_variable(available_variables, var_name)
+        return VariableService.find_entries_for_variable(
+            available_variables, var_name, internal_stats
+        )
 
     def update_scanned_entries(
         self,

@@ -85,7 +85,7 @@ def test_empty_editor_defaults_do_not_delay_the_first_meaningful_autosave(
     variables = state.get_parse_variables()
     for variable in variables:
         if variable["type"] == "configuration":
-            variable["onEmpty"] = "None"
+            variable.setdefault("params", {})["on_empty"] = "None"
     state.set_parse_variables(variables)
     api = MagicMock()
     api.create_recovery_draft.side_effect = lambda key: AutosaveRecoveryService.capture(state, key)

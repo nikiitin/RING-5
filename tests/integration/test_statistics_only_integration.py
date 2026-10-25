@@ -44,7 +44,7 @@ system.mem.latency_dist::total               500
 
     def test_distribution_statistics_only_parsing(self, stats_file: Path, tmp_path: Path) -> None:
         """Test parsing distribution with only statistics (no buckets)."""
-        # Configure variable with statisticsOnly=True
+        # Configure variable with statistics_only=True
         variables = [
             StatConfig(
                 name="system.mem.latency_dist",
@@ -97,8 +97,8 @@ system.mem.latency_dist::total               500
         assert df["system.mem.latency_dist..total"].iloc[0] == 500
 
     def test_distribution_full_mode_parsing(self, stats_file: Path, tmp_path: Path) -> None:
-        """Test parsing distribution with full buckets (statisticsOnly=False)."""
-        # Configure variable with statisticsOnly=False
+        """Test parsing distribution with full buckets (statistics_only=False)."""
+        # Configure variable with statistics_only=False
         variables = [
             StatConfig(
                 name="system.mem.latency_dist",

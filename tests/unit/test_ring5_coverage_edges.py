@@ -15,6 +15,7 @@ from unittest.mock import MagicMock, patch
 
 import matplotlib.pyplot as plt
 import pandas as pd
+from src.core.common.stat_config_codec import StatConfigCodec
 import plotly.graph_objects as go
 import pytest
 from kaleido.errors import ChromeNotFoundError
@@ -149,6 +150,9 @@ def test_build_stat_configs_explicit_and_distribution_metadata() -> None:
     api.submit_scan_async.side_effect = None
     api.submit_scan_async.return_value = [_future(ScanFileResult("stats", [distribution]))]
     api.finalize_scan.return_value = ScanResult([distribution], scanned_files=1)
+    api.draft_from_scanned_variable.side_effect = lambda variable: StatConfigCodec.from_scanned(
+        variable, frozenset()
+    )
     configs, _ = _parse.build_stat_configs(
         api,
         "runs",
@@ -160,13 +164,9 @@ def test_build_stat_configs_explicit_and_distribution_metadata() -> None:
     )
     assert configs[0].is_regex  # type: ignore[union-attr]
     assert not configs[1].is_regex  # type: ignore[union-attr]
-    assert configs[2] == {
-        "name": "dist",
-        "type": "distribution",
-        "entries": ["0"],
-        "minimum": 0,
-        "maximum": 4,
-    }
+    assert configs[2] == StatConfig(
+        name="dist", type="distribution", params={"minimum": 0, "maximum": 4}
+    )
 
 
 def test_plot_validation_rejects_each_invalid_shape() -> None:
@@ -407,7 +407,7 @@ def test_cli_warning_file_error_and_module_entry(
     fake_session = MagicMock()
     fake_session.__enter__.return_value = fake_session
     fake_session.__exit__.return_value = None
-    fake_session.parse.return_value = _parse.ParseResult(str(source), ["x"])
+    fake_session.parse.return_value = _parse.ParseResult(str(source), ["x"], parsed_files=0)
     with patch("ring5._session.Session", return_value=fake_session):
         assert (
             ring5_cli.main(

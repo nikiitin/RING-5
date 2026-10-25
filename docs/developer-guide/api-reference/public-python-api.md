@@ -33,8 +33,18 @@ restore portfolios. Use it as a context manager so pending session work and temp
 are released.
 
 `Session.scan_submit` returns an owned `ScanJob`; `Session.scan` waits and returns `ScanResult`.
-Likewise, `parse_submit` returns `ParseJob` and `parse` returns `ParseResult`. A job can be cancelled
-without touching work from another handle. `Session.load` returns a DataFrame. `shape`,
+Likewise, `parse_submit` returns `ParseJob` and `parse` returns `ParseResult`. A job can be
+cancelled without touching work from another handle.
+
+Use `ring5.StatConfig` for explicit runnable parser settings. Configuration fields and `params`
+use snake_case; `repeat` is a positive integer, `entries` and `statistics` are separate text lists,
+and `source_name` preserves an output alias without replacing the simulator statistic. Invalid
+configuration raises `ParseError`; dictionary and duck-object execution routes are unsupported.
+Histogram `statistics_only=True` extracts only configured summaries and retains missing summaries
+as NaN. Saved editor drafts remain editable, while jobs and analysis recipes require runnable
+configurations.
+
+`Session.load` returns a DataFrame. `shape`,
 `reduce_seeds`, `remove_outliers`, `apply_operation`, and `mix_columns` preserve `ring5.Table` when
 given one. `Session.compare` returns a `Table` when both baseline and candidate inputs are tables;
 otherwise it returns a DataFrame.

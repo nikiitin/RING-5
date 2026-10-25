@@ -16,7 +16,7 @@ def test_public_search_finds_dynamic_and_static_workspace_content(portfolios_dir
     with ring5.Session() as session:
         session.add_dataset("nightly experiment", data)
         session.api.state_manager.set_parse_variables(
-            [{"name": "system.cpu.ipc", "type": "scalar", "alias": "IPC", "_id": "v1"}]
+            [{"source_name": "system.cpu.ipc", "type": "scalar", "name": "IPC", "_id": "v1"}]
         )
         session.api.state_manager.set_scanned_variables(
             [{"name": "system.cpu.ipc", "type": "scalar", "entries": []}]

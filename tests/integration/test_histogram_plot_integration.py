@@ -68,7 +68,7 @@ class TestHistogramPlotIntegration:
                     {
                         "name": "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles",
                         "type": "histogram",
-                        "entries": (htm_var.entries or [])[:5],  # Use first 5 buckets
+                        "params": {"entries": (htm_var.entries or [])[:5]},
                     },
                 )
             ]
@@ -76,7 +76,7 @@ class TestHistogramPlotIntegration:
             parse_batch = facade.submit_parse_async(
                 str(stats_dir),
                 "stats.txt",
-                variables,
+                facade.compile_parse_variables(variables),
                 tmpdir,
                 scanned_vars=vars_found,
             )
@@ -152,7 +152,7 @@ class TestHistogramPlotIntegration:
                 {
                     "name": "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles",
                     "type": "histogram",
-                    "entries": (htm_var.entries or [])[:5],
+                    "params": {"entries": (htm_var.entries or [])[:5]},
                 },
             ),
         ]
@@ -160,7 +160,7 @@ class TestHistogramPlotIntegration:
         parse_batch = facade.submit_parse_async(
             str(stats_dir),
             "stats.txt",
-            variables,
+            facade.compile_parse_variables(variables),
             str(output_dir),
             scanned_vars=vars_found,
         )

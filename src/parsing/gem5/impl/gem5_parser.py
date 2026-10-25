@@ -338,7 +338,7 @@ class Gem5Parser(SimulationParser):
                                     key: value
                                     for key, value in resolved_params.items()
                                     if key != "parsed_ids"
-                                    and not (scalar_pattern and key in ("entries", "vectorEntries"))
+                                    and not (scalar_pattern and key in ("entries", "entries"))
                                 }
                                 processed_configs.append(
                                     replace(

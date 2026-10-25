@@ -9,6 +9,7 @@ from typing import Any, cast
 import pandas as pd
 
 from src.core.common.utils import sanitize_filename, validate_path_within
+from src.core.common.stat_config_codec import StatConfigCodec
 from src.core.models import (
     ParseVariableConfig,
     PlotProtocol,
@@ -24,6 +25,7 @@ from src.core.services.data_services.portfolio_revision_service import (
 from src.core.services.environment_metadata_service import EnvironmentMetadataService
 from src.core.models.portfolio_contract import (
     CURRENT_PORTFOLIO_SCHEMA_VERSION,
+    CURRENT_PORTFOLIO_VERSION,
     validate_portfolio_schema,
 )
 from src.core.services.portfolio_integrity_service import PortfolioIntegrityService
@@ -188,7 +190,7 @@ class PortfolioService:
         )
         portfolio_data: dict[str, Any] = {
             "schema_version": CURRENT_PORTFOLIO_SCHEMA_VERSION,
-            "version": "4.0",
+            "version": CURRENT_PORTFOLIO_VERSION,
             "timestamp": pd.Timestamp.now().isoformat(),
             "environment_metadata": EnvironmentMetadataService.capture().to_dict(),
             "data_csv": data_csv,
@@ -197,7 +199,9 @@ class PortfolioService:
             "plots": serialized_plots,
             "plot_counter": plot_counter,
             "config": config,
-            "parse_variables": parse_variables or [],
+            "parse_variables": [
+                StatConfigCodec.to_snapshot(draft) for draft in (parse_variables or [])
+            ],
             "use_parser": self.state_manager.is_using_parser(),
             "stats_path": self.state_manager.get_stats_path(),
             "stats_pattern": self.state_manager.get_stats_pattern(),

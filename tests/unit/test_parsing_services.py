@@ -12,6 +12,8 @@ import os
 
 import pytest
 
+from src.core.common.stat_config_codec import StatConfigCodec
+
 from src.core.models import ScanFileResult, ScannedVariable, StatConfig
 from src.core.models.parsing_models import StatParamValue
 from src.core.services.data_services.path_service import PathService
@@ -63,8 +65,8 @@ class TestTypeMapper:
 
     def test_create_stat_from_dict(self) -> None:
         config = cast(dict[str, StatParamValue], {"name": "ipc", "type": "scalar"})
-        stat = TypeMapper.create_stat(config)
-        assert stat is not None
+        with pytest.raises(TypeError, match="StatConfig instances"):
+            TypeMapper.create_stat(config)  # type: ignore[arg-type]
 
     def test_create_stat_vector_with_entries(self) -> None:
         config = StatConfig(
@@ -76,23 +78,22 @@ class TestTypeMapper:
         assert stat is not None
 
     def test_create_stat_distribution(self) -> None:
-        config = {
-            "type": "distribution",
-            "name": "latency",
-            "minimum": 0,
-            "maximum": 200,
-        }
+        config = StatConfig(
+            name="latency", type="distribution", params={"minimum": 0, "maximum": 200}
+        )
         stat = TypeMapper.create_stat(config)
         assert stat is not None
 
     def test_create_stat_histogram(self) -> None:
-        config = {
-            "type": "histogram",
-            "name": "mem_ctrl.readLatency",
-            "bins": 5,
-            "max_range": 200.0,
-            "entries": ["0-39", "40-79", "80-119", "120-159", "160-199"],
-        }
+        config = StatConfig(
+            name="mem_ctrl.readLatency",
+            type="histogram",
+            params={
+                "bins": 5,
+                "max_range": 200.0,
+                "entries": ["0-39", "40-79", "80-119", "120-159", "160-199"],
+            },
+        )
         stat = TypeMapper.create_stat(config)
         assert stat is not None
 
@@ -103,11 +104,11 @@ class TestTypeMapper:
 
     def test_create_stat_missing_type_raises(self) -> None:
         with pytest.raises(ValueError, match="type"):
-            TypeMapper.create_stat({"name": "x"})
+            StatConfigCodec.from_draft({"name": "x"})
 
     def test_create_stat_empty_type_raises(self) -> None:
         with pytest.raises(ValueError, match="type"):
-            TypeMapper.create_stat({"name": "x", "type": ""})
+            StatConfigCodec.from_draft({"name": "x", "type": ""})
 
 
 # ScannerService

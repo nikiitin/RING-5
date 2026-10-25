@@ -26,7 +26,8 @@ from src.core.common.security_limits import (
     MAX_PIPELINE_CONFIG_NAME_LENGTH,
 )
 from src.core.common.utils import sanitize_filename, validate_path_within
-from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
+from src.core.common.stat_config_codec import StatConfigCodec
+from src.core.models.data_models import ScannedVariableDict
 from src.core.models.recipe_models import (
     AnalysisRecipe,
     AnalysisRecipeInfo,
@@ -46,7 +47,7 @@ from src.core.services.shapers.factory import ShaperFactory
 from src.core.state.state_manager import StateManager
 
 ANALYSIS_RECIPE_FORMAT = "ring5.analysis-recipe"
-ANALYSIS_RECIPE_SCHEMA_VERSION = 1
+ANALYSIS_RECIPE_SCHEMA_VERSION = 2
 
 _PARAMETER_NAME = re.compile(r"^[A-Za-z][A-Za-z0-9_]{0,63}$")
 _PLACEHOLDER = re.compile(r"{{\s*([A-Za-z][A-Za-z0-9_]{0,63})\s*}}")
@@ -131,7 +132,10 @@ class AnalysisRecipeService:
             path = self._state_manager.get_stats_path()
             if not path:
                 raise ValueError("The active parser source has no statistics path.")
-            variables = tuple(copy.deepcopy(self._state_manager.get_parse_variables()))
+            variables = tuple(
+                StatConfigCodec.to_payload(StatConfigCodec.from_draft(draft))
+                for draft in self._state_manager.get_parse_variables()
+            )
             if not variables:
                 raise ValueError("The active parser source has no parser variables.")
             return RecipeSource(
@@ -354,15 +358,15 @@ class AnalysisRecipeService:
             return
         if not source.variables:
             raise ValueError("Parser recipe sources require at least one variable.")
-        for index, variable in enumerate(source.variables):
-            if not isinstance(variable, dict):
-                raise TypeError(f"Recipe parser variable {index} must be an object.")
-            name = variable.get("name")
-            var_type = variable.get("type")
-            if not isinstance(name, str) or not name:
-                raise ValueError(f"Recipe parser variable {index} requires a name.")
-            if not isinstance(var_type, str) or not var_type:
-                raise ValueError(f"Recipe parser variable {index} requires a type.")
+        for variable in source.variables:
+            if AnalysisRecipeService._placeholder_names(variable):
+                StatConfigCodec.validate_template_payload(
+                    variable,
+                    lambda value: isinstance(value, str)
+                    and bool(_EXACT_PLACEHOLDER.fullmatch(value)),
+                )
+            else:
+                StatConfigCodec.from_payload(variable)
         for index, scanned_variable in enumerate(source.scanned_variables):
             if not isinstance(scanned_variable, dict):
                 raise TypeError(f"Recipe scanned variable {index} must be an object.")
@@ -741,7 +745,7 @@ class AnalysisRecipeService:
             path=_require_string(mapping.get("path"), "source path"),
             pattern=_require_string(mapping.get("pattern", "stats.txt"), "source pattern"),
             strategy=_require_string(mapping.get("strategy", "simple"), "source strategy"),
-            variables=tuple(cast(list[ParseVariableConfig], variables)),
+            variables=tuple(cast(list[dict[str, Any]], variables)),
             scanned_variables=tuple(cast(list[ScannedVariableDict], scanned)),
             scan_limit=_require_int(mapping.get("scan_limit", 10), "source scan_limit"),
             strict=_require_bool(mapping.get("strict", True), "source strict"),

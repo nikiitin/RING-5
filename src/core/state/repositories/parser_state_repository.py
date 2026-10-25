@@ -3,6 +3,7 @@
 import logging
 from copy import deepcopy
 
+from src.core.common.stat_config_codec import StatConfigCodec
 from src.core.common.variable_identity import normalize_variable_ids
 
 from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
@@ -17,9 +18,9 @@ class ParserStateRepository:
 
     # Default variables for new sessions
     DEFAULT_PARSE_VARIABLES: list[ParseVariableConfig] = [
-        ParseVariableConfig(name="simTicks", type="scalar", _id=""),
-        ParseVariableConfig(name="benchmark_name", type="configuration", _id=""),
-        ParseVariableConfig(name="config_description", type="configuration", _id=""),
+        ParseVariableConfig(name="simTicks", type="scalar", params={}, _id=""),
+        ParseVariableConfig(name="benchmark_name", type="configuration", params={}, _id=""),
+        ParseVariableConfig(name="config_description", type="configuration", params={}, _id=""),
     ]
 
     def __init__(self) -> None:
@@ -60,7 +61,9 @@ class ParserStateRepository:
                 hand-edited portfolio) — callers that handle untrusted input
                 filter first and report what they dropped.
         """
-        copied = normalize_variable_ids(variables)
+        copied = normalize_variable_ids(
+            [StatConfigCodec.validate_draft(value) for value in variables]
+        )
         self._parse_variables = copied
         logger.info("PARSER_REPO: Parse variables updated - %d variables", len(copied))
 

@@ -10,7 +10,7 @@ Validates:
 1. ``StatConfig.keep_indices`` defaults to ``False``.
 2. The field is frozen-immutable.
 3. ``dataclasses.replace`` preserves / overrides the flag.
-4. ``ApplicationAPI.submit_parse_async`` propagates ``keepIndices`` from
+4. ``ApplicationAPI.submit_parse_async`` propagates ``keep_indices`` from
    variable dictionaries.
 5. ``Gem5Parser`` and ``ParseService`` expand regex configs into individual
    concrete configs when ``keep_indices=True``.
@@ -82,11 +82,11 @@ class TestStatConfigKeepIndices:
         assert config.keep_indices is True
 
 
-# Integration: ApplicationAPI propagates keepIndices from dicts
+# Integration: ApplicationAPI propagates keep_indices from dicts
 
 
 class TestApplicationAPIKeepIndices:
-    """Verify ApplicationAPI sets keep_indices from ``keepIndices`` dict key."""
+    """Verify ApplicationAPI sets keep_indices from ``keep_indices`` dict key."""
 
     def _make_api(self) -> Any:
         from src.core.application_api import ApplicationAPI
@@ -96,17 +96,17 @@ class TestApplicationAPIKeepIndices:
         return api
 
     def test_dict_with_keep_indices_true(self) -> None:
-        """A dict variable with keepIndices=True should produce keep_indices=True."""
+        """A dict variable with keep_indices=True should produce keep_indices=True."""
         api = self._make_api()
         api._parser.submit_parse_async.return_value = MagicMock(futures=[])
 
         variables: list[dict[str, Any]] = [
-            {"name": r"system.cpu\d+.ipc", "type": "scalar", "keepIndices": True},
+            {"name": r"system.cpu\d+.ipc", "type": "scalar", "keep_indices": True},
         ]
         api.submit_parse_async(
             stats_path="/fake/path",
             stats_pattern="stats.txt",
-            variables=variables,
+            variables=api.compile_parse_variables(variables),
             output_dir="/tmp/out",
         )
 
@@ -116,7 +116,7 @@ class TestApplicationAPIKeepIndices:
         assert configs[0].keep_indices is True
 
     def test_dict_with_keep_indices_false(self) -> None:
-        """A dict variable without keepIndices should default to False."""
+        """A dict variable without keep_indices should default to False."""
         api = self._make_api()
         api._parser.submit_parse_async.return_value = MagicMock(futures=[])
 
@@ -126,7 +126,7 @@ class TestApplicationAPIKeepIndices:
         api.submit_parse_async(
             stats_path="/fake/path",
             stats_pattern="stats.txt",
-            variables=variables,
+            variables=api.compile_parse_variables(variables),
             output_dir="/tmp/out",
         )
 
@@ -146,7 +146,7 @@ class TestApplicationAPIKeepIndices:
         api.submit_parse_async(
             stats_path="/fake/path",
             stats_pattern="stats.txt",
-            variables=variables,
+            variables=api.compile_parse_variables(variables),
             output_dir="/tmp/out",
         )
 
@@ -301,7 +301,7 @@ class TestKeepIndicesExpansion:
             type="vector",
             is_regex=True,
             keep_indices=True,
-            params={"vectorEntries": ["hits", "misses"]},
+            params={"entries": ["hits", "misses"]},
         )
         scanned = [
             ScannedVariable(
@@ -320,7 +320,7 @@ class TestKeepIndicesExpansion:
         assert len(result) == 2
         for r in result:
             assert r.type == "vector"
-            assert r.params.get("vectorEntries") == ["hits", "misses"]
+            assert r.params.get("entries") == ["hits", "misses"]
 
     def test_keep_indices_no_matches(self) -> None:
         """When no scanned vars match, keep_indices config passes through unchanged."""
@@ -545,7 +545,7 @@ class TestKeepIndicesUserFiltered:
             keep_indices=True,
             params={
                 "parsed_ids": ["0", "2"],
-                "vectorEntries": ["hits", "misses"],
+                "entries": ["hits", "misses"],
             },
         )
         scanned = [
@@ -564,7 +564,7 @@ class TestKeepIndicesUserFiltered:
         assert result[1].name == "system.cpu2.numCycles"
         # Vector entries are preserved
         for r in result:
-            assert r.params.get("vectorEntries") == ["hits", "misses"]
+            assert r.params.get("entries") == ["hits", "misses"]
             assert "parsed_ids" not in r.params
 
     def test_user_filtered_multidim_numeric_ids(self) -> None:

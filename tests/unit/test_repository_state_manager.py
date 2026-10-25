@@ -15,6 +15,7 @@ from unittest.mock import MagicMock
 import pandas as pd
 import pytest
 
+from src.core.common.stat_config_codec import StatConfigCodec
 from src.core.models.data_models import (
     CsvPoolEntry,
     ParseVariableConfig,
@@ -351,7 +352,7 @@ class TestRestoreSession:
             {
                 "parser_strategy": "simple",
                 "simulator": "gem5",
-                "parse_variables": [{"name": "ipc", "type": "scalar"}],
+                "parse_variables": [StatConfigCodec.to_snapshot({"name": "ipc", "type": "scalar"})],
                 "stats_path": "/data/stats.txt",
                 "stats_pattern": "stats*.txt",
                 "csv_path": "/output.csv",

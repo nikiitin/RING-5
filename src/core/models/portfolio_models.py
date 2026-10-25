@@ -9,7 +9,7 @@ and restoration across all layers, plus the RestoreReport returned by
 from dataclasses import dataclass, field
 from typing import Any, TypedDict
 
-from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
+from src.core.models.data_models import ScannedVariableDict
 from src.core.models.history_models import OperationRecord
 from src.core.models.shaper_models import ShaperStepConfig
 
@@ -54,7 +54,7 @@ class PortfolioData(TypedDict, total=False):
         schema_version: Current serialized schema version.
         version: Human-readable portfolio format version.
         timestamp: Save time in ISO 8601 form.
-        parse_variables: List of parser variable configurations
+        parse_variables: Explicit current draft/runnable parser variable snapshots
         parser_strategy: Explicit parsing strategy.
         simulator: Explicit registered simulator backend.
         stats_path: Base path to simulator stats files
@@ -76,7 +76,7 @@ class PortfolioData(TypedDict, total=False):
     schema_version: int
     version: str
     timestamp: str
-    parse_variables: list[ParseVariableConfig]
+    parse_variables: list[dict[str, Any]]
     stats_path: str
     stats_pattern: str
     parser_strategy: str

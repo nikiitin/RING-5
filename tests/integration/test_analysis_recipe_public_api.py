@@ -14,6 +14,8 @@ import pandas as pd
 import pytest
 
 import ring5
+from src.core.common.stat_config_codec import StatConfigCodec
+from src.core.models.parsing_models import StatConfig
 from tests.helpers.html_assertions import assert_plotly_document
 from src.core.services.data_services.path_service import PathService
 
@@ -210,7 +212,7 @@ def test_recipe_capture_and_errors_use_the_public_contract(tmp_path: Path) -> No
                 session.export_analysis_recipe("invalid")  # type: ignore[arg-type]
             with pytest.raises(ring5.RecipeError, match="schema version"):
                 session.import_analysis_recipe(
-                    payload.replace(b'"schema_version": 1', b'"schema_version": 2')
+                    payload.replace(b'"schema_version": 2', b'"schema_version": 3')
                 )
 
         with ring5.Session() as empty_session:
@@ -224,23 +226,12 @@ def test_parser_recipe_uses_captured_variable_metadata_and_source_errors_are_typ
     # [test->req~ring5.portfolio.analysis-recipes~1]
     parsed_csv = tmp_path / "parsed.csv"
     pd.DataFrame({"simTicks": [123]}).to_csv(parsed_csv, index=False)
-    variables = cast(
-        tuple[dict[str, object], ...],
-        (
-            {
-                "name": "simTicks",
-                "type": "scalar",
-                "_id": "ticks",
-                "repeat": "1",
-                "statisticsOnly": True,
-                "keepIndices": True,
-            },
-            {
-                "name": "system.cpu.ipc",
-                "alias": "ipc",
-                "type": "scalar",
-                "_id": "ipc",
-            },
+    variables = (
+        StatConfigCodec.to_payload(
+            StatConfig(name="simTicks", type="scalar", statistics_only=True, keep_indices=True)
+        ),
+        StatConfigCodec.to_payload(
+            StatConfig(name="ipc", type="scalar", source_name="system.cpu.ipc")
         ),
     )
     recipe = ring5.AnalysisRecipe(
@@ -274,11 +265,16 @@ def test_parser_recipe_uses_captured_variable_metadata_and_source_errors_are_typ
                 path="/simulations",
                 variables=cast(
                     tuple[dict[str, object], ...],
-                    ({"name": "x", "type": "scalar", "repeat": "many"},),
+                    (
+                        {
+                            **StatConfigCodec.to_payload(StatConfig(name="x", type="scalar")),
+                            "repeat": "many",
+                        },
+                    ),
                 ),  # type: ignore[arg-type]
             ),
         )
-        with pytest.raises(ring5.RecipeError, match="invalid repeat metadata"):
+        with pytest.raises(ring5.RecipeError, match="repeat must be a positive integer"):
             session.run_analysis_recipe(invalid_repeat)
 
         csv_recipe = ring5.AnalysisRecipe(

@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 import pandas as pd
 
 from src.core.application_api import ApplicationAPI
+from src.core.common.stat_config_codec import StatConfigCodec
 from src.core.models import (
     AccessibilityReport,
     AnalysisReport,
@@ -80,7 +81,6 @@ from src.core.models import (
     RecoveryDraftInfo,
     GuidedAnalysisProgress,
 )
-from src.core.models.data_models import ParseVariableConfig
 from src.core.models.shaper_models import ShaperStepConfig
 from src.core.models.visualization.engine import EngineMode
 from src.parsing.parser_protocol import SimulationParser
@@ -427,9 +427,12 @@ class Session:
             ScanError: Variable discovery failed.
             ParseError: The parser rejected the bounded submission.
         """
-        configs, scanned = _parse.build_stat_configs(
-            self.api, stats_path, variables, pattern=pattern, scan_limit=scan_limit
-        )
+        try:
+            configs, scanned = _parse.build_stat_configs(
+                self.api, stats_path, variables, pattern=pattern, scan_limit=scan_limit
+            )
+        except (TypeError, ValueError) as exc:
+            raise ParseError(f"Invalid statistic configuration: {exc}") from exc
         created_output = output_dir is None
         if created_output:
             out_dir = tempfile.mkdtemp(prefix="ring5_parser_playground_")
@@ -441,12 +444,12 @@ class Session:
             batch = self.api.submit_parser_playground_async(
                 stats_path,
                 pattern,
-                cast(list[ParseVariableConfig | StatConfig], list(configs)),
+                configs,
                 out_dir,
                 strategy_type=strategy,
                 scanned_vars=scanned,
             )
-        except (FileNotFoundError, OSError, RuntimeError, ValueError) as exc:
+        except (FileNotFoundError, OSError, RuntimeError, TypeError, ValueError) as exc:
             if created_output:
                 shutil.rmtree(out_dir, ignore_errors=True)
                 self._owned_tmpdirs.remove(out_dir)
@@ -510,9 +513,12 @@ class Session:
         # [impl->req~ring5.ingestion.incremental-parsing~1]
         # [impl->req~ring5.ingestion.async-parse~1]
         # [impl->req~ring5.ingestion.parse-output-provenance~1]
-        configs, scanned = _parse.build_stat_configs(
-            self.api, stats_path, variables, pattern=pattern, scan_limit=scan_limit
-        )
+        try:
+            configs, scanned = _parse.build_stat_configs(
+                self.api, stats_path, variables, pattern=pattern, scan_limit=scan_limit
+            )
+        except (TypeError, ValueError) as exc:
+            raise ParseError(f"Invalid statistic configuration: {exc}") from exc
         created_output = False
         if output_dir is None and incremental:
             cache_key = (
@@ -541,7 +547,7 @@ class Session:
                 batch = self.api.submit_incremental_parse_async(
                     stats_path,
                     pattern,
-                    cast(list[ParseVariableConfig | StatConfig], list(configs)),
+                    configs,
                     out_dir,
                     strategy_type=strategy,
                     scanned_vars=scanned,
@@ -551,12 +557,12 @@ class Session:
                 batch = self.api.submit_parse_async(
                     stats_path,
                     pattern,
-                    cast(list[ParseVariableConfig | StatConfig], list(configs)),
+                    configs,
                     out_dir,
                     strategy_type=strategy,
                     scanned_vars=scanned,
                 )
-        except (FileNotFoundError, ValueError, RuntimeError) as exc:
+        except (FileNotFoundError, TypeError, ValueError, RuntimeError) as exc:
             if created_output:
                 shutil.rmtree(out_dir, ignore_errors=True)
                 self._owned_tmpdirs.remove(out_dir)
@@ -570,16 +576,8 @@ class Session:
         sm.set_stats_path(stats_path)
         sm.set_stats_pattern(pattern)
         sm.set_parser_strategy(strategy)
-        sm.set_parse_variables(
-            cast(
-                list[ParseVariableConfig],
-                [
-                    dict(c) if isinstance(c, dict) else {"name": c.name, "type": c.type}
-                    for c in configs
-                ],
-            )
-        )
-        sm.set_scanned_variables([v.to_dict() if hasattr(v, "to_dict") else v for v in scanned])
+        sm.set_parse_variables([StatConfigCodec.to_draft(config) for config in configs])
+        sm.set_scanned_variables([variable.to_dict() for variable in scanned])
         job = _parse.ParseJob(
             api=self.api,
             futures=list(batch.futures),
@@ -3729,7 +3727,9 @@ class Session:
                 data = self.api.data_services.load_csv_file(source.path)
                 source_path = source.path
             else:
-                parser_variables = _recipe_stat_configs(source.variables)
+                parser_variables = [
+                    StatConfigCodec.from_payload(value) for value in source.variables
+                ]
                 parsed = self.parse(
                     source.path,
                     cast(list[str | StatConfig], parser_variables),
@@ -4014,35 +4014,3 @@ def _require_columns(data: pd.DataFrame, columns: list[str]) -> None:
     for col in columns:
         if col not in data.columns:
             raise ColumnNotFoundError(col, list(data.columns))
-
-
-def _recipe_stat_configs(
-    variables: Sequence[ParseVariableConfig],
-) -> list[StatConfig]:
-    """Convert captured parser-variable dictionaries without losing metadata."""
-    from src.core.models.pattern_index_service import PatternIndexService
-
-    configs: list[StatConfig] = []
-    for variable in variables:
-        source_name = variable["name"]
-        alias = variable.get("alias")
-        output_name = alias or source_name
-        try:
-            repeat = int(variable.get("repeat", 1))
-        except (TypeError, ValueError) as exc:
-            raise RecipeError(
-                f"Parser variable {source_name!r} has invalid repeat metadata."
-            ) from exc
-        configs.append(
-            StatConfig(
-                name=output_name,
-                source_name=source_name if alias else None,
-                type=str(variable["type"]).lower(),
-                repeat=repeat,
-                params=cast(dict[str, Any], copy.deepcopy(dict(variable))),
-                statistics_only=bool(variable.get("statisticsOnly", False)),
-                is_regex=PatternIndexService.is_pattern_variable(source_name),
-                keep_indices=bool(variable.get("keepIndices", False)),
-            )
-        )
-    return configs
