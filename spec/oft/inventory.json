@@ -492,8 +492,11 @@
       "description": "Parsing shall expose failed files and missing statistics and represent unavailable simulator values as NaN rather than fabricating zeroes.",
       "tags": ["errors", "integrity", "parsing"],
       "evidence": {
-        "implementation": ["ring5/_parse.py::ParseJob.finalize", "src/parsing/gem5/impl/gem5_parser.py::Gem5Parser.finalize_parsing", "ring5/errors.py::ParseError"],
+        "implementation": ["ring5/_parse.py::ParseJob.finalize", "src/parsing/gem5/impl/gem5_parser.py::Gem5Parser.finalize_parsing", "ring5/errors.py::ParseError",
+          "src/parsing/gem5/types/base.py::population_mean"],
         "tests": ["tests/unit/test_missing_data_integrity.py::TestMissingScalarBecomesNaN",
+          "tests/unit/test_stat_observation_presence.py::test_worker_diagnostics_distinguish_absence_from_measured_nan_and_text_policy",
+          "tests/unit/test_stat_population_mean.py::test_each_numeric_kind_uses_the_same_range_safe_population_mean",
           "tests/integration/test_gem5_classifier_contract.py::test_semantic_records_preserve_source_values_labels_and_summary_roles",
           "tests/integration/test_gem5_summary_contract.py::test_literal_summary_suffix_names_keep_their_source_identity"],
         "documentation": ["docs/user-guide/reference/troubleshooting.md#parsing-finds-no-files-or-variables"]

@@ -3,7 +3,7 @@
 import math
 from typing import cast, override
 
-from src.parsing.gem5.types.base import Observation, StatType, register_type
+from src.parsing.gem5.types.base import Observation, StatType, population_mean, register_type
 
 
 @register_type("scalar")
@@ -29,15 +29,19 @@ class Scalar(StatType[list[float], float]):
         self._values.append(float(cast(float, value)))
 
     @override
+    def _missing_count(self) -> int:
+        return max(self.repeat - len(self._values), 0)
+
+    @override
     def _balance(self) -> int:
         if len(self._values) > self.repeat:
             raise RuntimeError(
                 f"SCALAR: More values ({len(self._values)}) than expected ({self.repeat})."
             )
-        padding = self.repeat - len(self._values)
+        padding = self.missing_measurement_count
         self._values.extend([math.nan] * padding)
         return padding
 
     @override
     def _reduce(self) -> float:
-        return sum(self._values) / self.repeat
+        return population_mean(self._values)

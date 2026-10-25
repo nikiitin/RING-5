@@ -149,15 +149,7 @@ class Gem5ParseWork:
             if spec.output_type == "configuration":
                 # The typed text accumulator owns its explicit empty-input policy.
                 continue
-            content = accumulator.content
-            if (
-                not content
-                or (
-                    isinstance(content, dict)
-                    and any(len(values) < accumulator.repeat for values in content.values())
-                )
-                or (not isinstance(content, dict) and len(content) < accumulator.repeat)
-            ):
+            if accumulator.missing_measurement_count:
                 missing.append(name)
         if missing:
             logger.warning(

@@ -32,7 +32,11 @@ contract**.
    list-valued frame or dynamic attribute dispatch is an ingestion route. Collection closes
    after balancing; reduction before balancing raises; successful balance/reduce calls are
    idempotent. Content/result inspection returns defensive snapshots. Ingestion/reduction
-   must not truncate floats (no `int()` coercion).
+   must not truncate floats (no `int()` coercion). Numeric population means share one owner;
+   exercise finite sums beyond float range, cancellation with tiny residuals, subnormal values,
+   measured zero, NaN and both signs of infinity without skipping missing observations.
+   Missing-output diagnostics use actual observation presence, not derived NaN views; measured
+   NaN values must remain distinguishable from absent entry/source measurements.
 5. **One Perl classifier.** `TypesFormatRegex::classifyLine` produces semantic records for both
    scanning and persistent parsing. Preserve raw source entries separately from inclusive scan
    labels, summary roles, deferred geometry, and dump events. Keep histogram classification before

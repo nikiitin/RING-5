@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import math
+import statistics
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Mapping
 from typing import ClassVar, Generic, TypeVar, final
@@ -20,7 +21,7 @@ ResultT = TypeVar("ResultT", bound=StatResult, covariant=True)
 class StatType(ABC, Generic[ContentT, ResultT]):
     """Collect observations, balance missing samples, then reduce exactly once.
 
-    Subclasses implement storage and the three protected hooks. Public lifecycle
+    Subclasses implement storage and the protected observation/lifecycle hooks. Public lifecycle
     methods own phase transitions, so a failed operation never publishes a result.
     """
 
@@ -61,6 +62,15 @@ class StatType(ABC, Generic[ContentT, ResultT]):
     def padded_count(self) -> int:
         """Return the number of missing measurements filled with NaN."""
         return self._padded
+
+    @property
+    def missing_measurement_count(self) -> int:
+        """Return absent numeric measurements, distinguishing observed NaN values."""
+        return self._padded if self._balanced else self._missing_count()
+
+    @abstractmethod
+    def _missing_count(self) -> int:
+        """Count absent measurements from owned observation presence."""
 
     @property
     @abstractmethod
@@ -177,10 +187,30 @@ def entry_names(value: list[str] | None, option: str) -> tuple[str, ...]:
     return tuple(value)
 
 
-def frequency_mean(values: list[float], repeat: int) -> float:
-    """Retain accurate finite sums and IEEE missing/nonfinite frequency values."""
-    total = math.fsum(values) if all(math.isfinite(value) for value in values) else sum(values)
-    return total / repeat
+def population_mean(values: list[float]) -> float:
+    """Average balanced measurements without losing finite range or missingness.
+
+    IEEE NaN and infinite observations are resolved before finite summation.
+    Exact rational summation handles finite totals that exceed float range even
+    though their population mean remains representable.
+    """
+    # [impl->req~ring5.ingestion.parse-integrity~1]
+    if not values:
+        raise ValueError("A population mean requires balanced observations.")
+    if any(math.isnan(value) for value in values):
+        return math.nan
+    positive_infinity = math.inf in values
+    negative_infinity = -math.inf in values
+    if positive_infinity and negative_infinity:
+        return math.nan
+    if positive_infinity:
+        return math.inf
+    if negative_infinity:
+        return -math.inf
+    try:
+        return math.fsum(values) / len(values)
+    except OverflowError:
+        return statistics.mean(values)
 
 
 class FrameStatType(StatType[dict[str, list[float]], dict[str, float]], ABC):
@@ -221,28 +251,30 @@ class FrameStatType(StatType[dict[str, list[float]], dict[str, float]], ABC):
     def _prepare_frame(self, sample: dict[str, float]) -> dict[str, float]:
         """Apply concrete entry schema rules to an already validated frame."""
 
+    def _missing_count(self) -> int:
+        entries = self._content_entries
+        if not entries:
+            return self.repeat
+        return sum(
+            max(self.repeat - sum(entry in sample for sample in self._frames), 0)
+            for entry in entries
+        )
+
     def _balance(self) -> int:
         if len(self._frames) > self.repeat:
             raise RuntimeError(
                 f"{self._type_name.upper()}: More observations ({len(self._frames)}) "
                 f"than expected ({self.repeat})."
             )
-        padding = sum(
-            self.repeat - sum(entry in sample for sample in self._frames)
-            for entry in self._content_entries
-        )
+        padding = self.missing_measurement_count
         self._frames.extend({} for _ in range(self.repeat - len(self._frames)))
         return padding
 
     def _reduce(self) -> dict[str, float]:
         return {
-            entry: self._reduce_values([sample.get(entry, math.nan) for sample in self._frames])
+            entry: population_mean([sample.get(entry, math.nan) for sample in self._frames])
             for entry in self._content_entries
         }
-
-    def _reduce_values(self, values: list[float]) -> float:
-        """Average one entry while retaining its concrete summation policy."""
-        return sum(values) / self.repeat
 
 
 class StatTypeRegistry:

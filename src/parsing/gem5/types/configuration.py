@@ -39,6 +39,10 @@ class Configuration(StatType[list[str], str]):
         self._values.append(value)
 
     @override
+    def _missing_count(self) -> int:
+        return 0
+
+    @override
     def _balance(self) -> int:
         return 0
 

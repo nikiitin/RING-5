@@ -50,7 +50,8 @@ the type string in the gem5 registry metadata. Classification order matters wher
 Implement typed `add_observation` storage hooks and inherit the public lifecycle from `StatType`.
 A numeric point, literal configuration string, or numeric mapping represents one observation;
 convert numeric wire text in the worker before ingestion. Declare ordinary slots and return defensive
-content snapshots. Implement `_balance()` to validate expected counts and return missing-value
+content snapshots. Implement `_missing_count()` from actual observation presence, keeping observed
+NaN distinct from absence. Implement `_balance()` to validate expected counts and return missing-value
 padding, then `_reduce()` to compute the typed result. Frame kinds can use `FrameStatType` with an
 exact entry schema and `_prepare_frame()` hook. Collection ends after balancing; reduction follows
 balancing; completed stages are idempotent. Reduced content is readable only after both succeed.

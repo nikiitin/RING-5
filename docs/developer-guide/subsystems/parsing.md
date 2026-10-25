@@ -74,6 +74,10 @@ calls are idempotent. Content, result and entry inspection returns defensive sna
 kinds retain one point list or one frame list as their authoritative store. Configuration retains
 the first literal string, or its explicit `on_empty` value when no observation is present. Text such
 as `NA` remains literal; only absent numeric cells and numeric NaN use the missing-value marker.
+All numeric kinds share a population mean that preserves finite results when their intermediate
+sum overflows. Missing values propagate, cancellation retains small residuals, and infinite
+observations follow explicit IEEE semantics. Missing-output diagnostics and padding share an
+actual-observation presence count, so a measured NaN is distinct from an absent entry or source.
 
 Summary measurements are named entries of their source statistic, selected through its
 `statistics` field. They use ordinary entry buffering in the worker. Source names retain their

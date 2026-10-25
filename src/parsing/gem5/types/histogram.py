@@ -5,7 +5,7 @@ import math
 import re
 from typing import override
 
-from src.parsing.gem5.types.base import FrameStatType, entry_names, frequency_mean, register_type
+from src.parsing.gem5.types.base import FrameStatType, entry_names, population_mean, register_type
 
 logger = logging.getLogger(__name__)
 
@@ -193,7 +193,7 @@ class Histogram(FrameStatType):
                     rebinned[key] = sample.get(key, float("nan"))
                 target_values[key].append(rebinned[key])
 
-        return {key: frequency_mean(values, self.repeat) for key, values in target_values.items()}
+        return {key: population_mean(values) for key, values in target_values.items()}
 
     def _compute_bin_mapping(
         self, num_bins: int, max_val: float

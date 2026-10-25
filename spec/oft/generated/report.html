@@ -620,8 +620,8 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
 
 </style>
     <title>RING-5 feature coverage · OpenFastTrace</title>
-    <meta name="ring5-inventory-sha256" content="db2f5e3a518ce4039fc3827eee434d89b7370f43232db5c9af96a85c66390dc7">
-  <meta name="ring5-evidence-sha256" content="68a72d6e1be8e874f6d2f46bb5805a5bd6c57f37c81433a302b6dfa5859d0365">
+    <meta name="ring5-inventory-sha256" content="b0305f848677af3e8a550d852734c80d23c62f3072b363e5546f7619a28ddce4">
+  <meta name="ring5-evidence-sha256" content="dc738effece9fc7ea27e8701fb2ff0fa17b443013914bd837fcf47b6b3efb41b">
 </head>
   <body>
 
@@ -1357,7 +1357,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>The gem5 backend shall parse distribution summaries and preserve their configured fields without inventing unavailable values.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>1 exact origin</strong></li><li data-readiness="ready"><span>Test</span><strong>1 exact origin</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 3 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/reference/plot-types.md#L72"><code>docs/user-guide/reference/plot-types.md#selection-guide</code><b>open source ↗</b></a><span>line 72 · <a href="#uman~ring5.ingestion.distribution.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/parsing/gem5/types/distribution.py#L15"><code>src/parsing/gem5/types/distribution.py::Distribution</code><b>open source ↗</b></a><span>line 15 · <a href="#impl~ring5.ingestion.distribution-2981043044~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_distribution_type.py#L295"><code>tests/unit/test_distribution_type.py::TestDistributionReduceDuplicates</code><b>open source ↗</b></a><span>line 295 · <a href="#test~ring5.ingestion.distribution-2680904103~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 3 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/reference/plot-types.md#L72"><code>docs/user-guide/reference/plot-types.md#selection-guide</code><b>open source ↗</b></a><span>line 72 · <a href="#uman~ring5.ingestion.distribution.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/parsing/gem5/types/distribution.py#L14"><code>src/parsing/gem5/types/distribution.py::Distribution</code><b>open source ↗</b></a><span>line 14 · <a href="#impl~ring5.ingestion.distribution-618647537~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_distribution_type.py#L295"><code>tests/unit/test_distribution_type.py::TestDistributionReduceDuplicates</code><b>open source ↗</b></a><span>line 295 · <a href="#test~ring5.ingestion.distribution-2680904103~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">distribution</span><span class="human-tag">gem5</span><span class="human-tag">variables</span></div></div>
     <a href="#req~ring5.ingestion.distribution~1">View canonical OFT trace ↓</a>
@@ -1417,7 +1417,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>A regex statistic matching several simulator values shall aggregate according to the variable type while retaining traceable source semantics.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>1 exact origin</strong></li><li data-readiness="ready"><span>Test</span><strong>1 exact origin</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 3 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/developer-guide/subsystems/parsing.md#L49"><code>docs/developer-guide/subsystems/parsing.md#variable-types-and-csv</code><b>open source ↗</b></a><span>line 49 · <a href="#uman~ring5.ingestion.pattern-aggregation.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/parsing/gem5/types/base.py#L135"><code>src/parsing/gem5/types/base.py::StatType.reduce_duplicates</code><b>open source ↗</b></a><span>line 135 · <a href="#impl~ring5.ingestion.pattern-aggregation-2978286720~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/integration/test_pattern_aggregation_integration.py#L16"><code>tests/integration/test_pattern_aggregation_integration.py::TestScannerPatternAggregation</code><b>open source ↗</b></a><span>line 16 · <a href="#test~ring5.ingestion.pattern-aggregation-1185586634~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 3 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/developer-guide/subsystems/parsing.md#L49"><code>docs/developer-guide/subsystems/parsing.md#variable-types-and-csv</code><b>open source ↗</b></a><span>line 49 · <a href="#uman~ring5.ingestion.pattern-aggregation.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/parsing/gem5/types/base.py#L145"><code>src/parsing/gem5/types/base.py::StatType.reduce_duplicates</code><b>open source ↗</b></a><span>line 145 · <a href="#impl~ring5.ingestion.pattern-aggregation-1734190510~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/integration/test_pattern_aggregation_integration.py#L16"><code>tests/integration/test_pattern_aggregation_integration.py::TestScannerPatternAggregation</code><b>open source ↗</b></a><span>line 16 · <a href="#test~ring5.ingestion.pattern-aggregation-1185586634~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">aggregation</span><span class="human-tag">parsing</span><span class="human-tag">regex</span></div></div>
     <a href="#req~ring5.ingestion.pattern-aggregation~1">View canonical OFT trace ↓</a>
@@ -1515,9 +1515,9 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
     </div>
   </div>
   <p>Parsing shall expose failed files and missing statistics and represent unavailable simulator values as NaN rather than fabricating zeroes.</p>
-  <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>3 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>3 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
+  <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>4 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>5 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 7 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/reference/troubleshooting.md#L27"><code>docs/user-guide/reference/troubleshooting.md#parsing-finds-no-files-or-variables</code><b>open source ↗</b></a><span>line 27 · <a href="#uman~ring5.ingestion.parse-integrity.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../ring5/_parse.py#L92"><code>ring5/_parse.py::ParseJob.finalize</code><b>open source ↗</b></a><span>line 92 · <a href="#impl~ring5.ingestion.parse-integrity-311573239~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/parsing/gem5/impl/gem5_parser.py#L514"><code>src/parsing/gem5/impl/gem5_parser.py::Gem5Parser.finalize_parsing</code><b>open source ↗</b></a><span>line 514 · <a href="#impl~ring5.ingestion.parse-integrity-327997301~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../ring5/errors.py#L45"><code>ring5/errors.py::ParseError</code><b>open source ↗</b></a><span>line 45 · <a href="#impl~ring5.ingestion.parse-integrity-3232485984~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_missing_data_integrity.py#L47"><code>tests/unit/test_missing_data_integrity.py::TestMissingScalarBecomesNaN</code><b>open source ↗</b></a><span>line 47 · <a href="#test~ring5.ingestion.parse-integrity-44264663~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_gem5_classifier_contract.py#L63"><code>tests/integration/test_gem5_classifier_contract.py::test_semantic_records_preserve_source_values_labels_and_summary_roles</code><b>open source ↗</b></a><span>line 63 · <a href="#test~ring5.ingestion.parse-integrity-160938014~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_gem5_summary_contract.py#L31"><code>tests/integration/test_gem5_summary_contract.py::test_literal_summary_suffix_names_keep_their_source_identity</code><b>open source ↗</b></a><span>line 31 · <a href="#test~ring5.ingestion.parse-integrity-3718672656~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 10 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/reference/troubleshooting.md#L27"><code>docs/user-guide/reference/troubleshooting.md#parsing-finds-no-files-or-variables</code><b>open source ↗</b></a><span>line 27 · <a href="#uman~ring5.ingestion.parse-integrity.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../ring5/_parse.py#L92"><code>ring5/_parse.py::ParseJob.finalize</code><b>open source ↗</b></a><span>line 92 · <a href="#impl~ring5.ingestion.parse-integrity-311573239~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/parsing/gem5/impl/gem5_parser.py#L514"><code>src/parsing/gem5/impl/gem5_parser.py::Gem5Parser.finalize_parsing</code><b>open source ↗</b></a><span>line 514 · <a href="#impl~ring5.ingestion.parse-integrity-327997301~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../ring5/errors.py#L45"><code>ring5/errors.py::ParseError</code><b>open source ↗</b></a><span>line 45 · <a href="#impl~ring5.ingestion.parse-integrity-3232485984~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/parsing/gem5/types/base.py#L197"><code>src/parsing/gem5/types/base.py::population_mean</code><b>open source ↗</b></a><span>line 197 · <a href="#impl~ring5.ingestion.parse-integrity-383658368~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_missing_data_integrity.py#L47"><code>tests/unit/test_missing_data_integrity.py::TestMissingScalarBecomesNaN</code><b>open source ↗</b></a><span>line 47 · <a href="#test~ring5.ingestion.parse-integrity-44264663~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_stat_observation_presence.py#L83"><code>tests/unit/test_stat_observation_presence.py::test_worker_diagnostics_distinguish_absence_from_measured_nan_and_text_policy</code><b>open source ↗</b></a><span>line 83 · <a href="#test~ring5.ingestion.parse-integrity-3392539318~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_stat_population_mean.py#L68"><code>tests/unit/test_stat_population_mean.py::test_each_numeric_kind_uses_the_same_range_safe_population_mean</code><b>open source ↗</b></a><span>line 68 · <a href="#test~ring5.ingestion.parse-integrity-1633767843~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_gem5_classifier_contract.py#L63"><code>tests/integration/test_gem5_classifier_contract.py::test_semantic_records_preserve_source_values_labels_and_summary_roles</code><b>open source ↗</b></a><span>line 63 · <a href="#test~ring5.ingestion.parse-integrity-160938014~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_gem5_summary_contract.py#L31"><code>tests/integration/test_gem5_summary_contract.py::test_literal_summary_suffix_names_keep_their_source_identity</code><b>open source ↗</b></a><span>line 31 · <a href="#test~ring5.ingestion.parse-integrity-3718672656~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">errors</span><span class="human-tag">integrity</span><span class="human-tag">parsing</span></div></div>
     <a href="#req~ring5.ingestion.parse-integrity~1">View canonical OFT trace ↓</a>
@@ -10614,11 +10614,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.ingestion.distribution-2981043044~0">
+      <section class="sitem" id="impl~ring5.ingestion.distribution-618647537~0">
         <details>
-          <summary title="impl~ring5.ingestion.distribution-2981043044~0"><span class="green">&check;</span> <b>ring5.ingestion.distribution-2981043044</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.ingestion.distribution-2981043044~0</p>
-          <p class="origin">src/parsing/gem5/types/distribution.py:15</p>
+          <summary title="impl~ring5.ingestion.distribution-618647537~0"><span class="green">&check;</span> <b>ring5.ingestion.distribution-618647537</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.ingestion.distribution-618647537~0</p>
+          <p class="origin">src/parsing/gem5/types/distribution.py:14</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -11030,6 +11030,19 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
+      <section class="sitem" id="impl~ring5.ingestion.parse-integrity-383658368~0">
+        <details>
+          <summary title="impl~ring5.ingestion.parse-integrity-383658368~0"><span class="green">&check;</span> <b>ring5.ingestion.parse-integrity-383658368</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.ingestion.parse-integrity-383658368~0</p>
+          <p class="origin">src/parsing/gem5/types/base.py:197</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.ingestion.parse-integrity~1">req~ring5.ingestion.parse-integrity~1</a> <span class="origin">spec/oft/generated/requirements.md:509</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
       <section class="sitem" id="impl~ring5.ingestion.parse-output-provenance-1377375251~0">
         <details>
           <summary title="impl~ring5.ingestion.parse-output-provenance-1377375251~0"><span class="green">&check;</span> <b>ring5.ingestion.parse-output-provenance-1377375251</b><small>, rev. 0, impl</small></summary>
@@ -11212,11 +11225,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.ingestion.pattern-aggregation-2978286720~0">
+      <section class="sitem" id="impl~ring5.ingestion.pattern-aggregation-1734190510~0">
         <details>
-          <summary title="impl~ring5.ingestion.pattern-aggregation-2978286720~0"><span class="green">&check;</span> <b>ring5.ingestion.pattern-aggregation-2978286720</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.ingestion.pattern-aggregation-2978286720~0</p>
-          <p class="origin">src/parsing/gem5/types/base.py:135</p>
+          <summary title="impl~ring5.ingestion.pattern-aggregation-1734190510~0"><span class="green">&check;</span> <b>ring5.ingestion.pattern-aggregation-1734190510</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.ingestion.pattern-aggregation-1734190510~0</p>
+          <p class="origin">src/parsing/gem5/types/base.py:145</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -17914,7 +17927,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <div class="in">
             <h6>In: 3</h6>
             <ul>
-              <li><a href="#impl~ring5.ingestion.distribution-2981043044~0">impl~ring5.ingestion.distribution-2981043044~0</a> <span class="origin">src/parsing/gem5/types/distribution.py:15</span></li>
+              <li><a href="#impl~ring5.ingestion.distribution-618647537~0">impl~ring5.ingestion.distribution-618647537~0</a> <span class="origin">src/parsing/gem5/types/distribution.py:14</span></li>
               <li><a href="#test~ring5.ingestion.distribution-2680904103~0">test~ring5.ingestion.distribution-2680904103~0</a> <span class="origin">tests/unit/test_distribution_type.py:295</span></li>
               <li><a href="#uman~ring5.ingestion.distribution.documentation~1">uman~ring5.ingestion.distribution.documentation~1</a> <span class="origin">docs/user-guide/reference/plot-types.md:72</span></li>
             </ul>
@@ -19861,7 +19874,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <div class="in">
             <h6>In: 3</h6>
             <ul>
-              <li><a href="#impl~ring5.ingestion.pattern-aggregation-2978286720~0">impl~ring5.ingestion.pattern-aggregation-2978286720~0</a> <span class="origin">src/parsing/gem5/types/base.py:135</span></li>
+              <li><a href="#impl~ring5.ingestion.pattern-aggregation-1734190510~0">impl~ring5.ingestion.pattern-aggregation-1734190510~0</a> <span class="origin">src/parsing/gem5/types/base.py:145</span></li>
               <li><a href="#test~ring5.ingestion.pattern-aggregation-1185586634~0">test~ring5.ingestion.pattern-aggregation-1185586634~0</a> <span class="origin">tests/integration/test_pattern_aggregation_integration.py:16</span></li>
               <li><a href="#uman~ring5.ingestion.pattern-aggregation.documentation~1">uman~ring5.ingestion.pattern-aggregation.documentation~1</a> <span class="origin">docs/developer-guide/subsystems/parsing.md:49</span></li>
             </ul>
@@ -22303,12 +22316,15 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <h6>Needs: impl, test, uman</h6>
           <p class="origin">spec/oft/generated/requirements.md:509</p>
           <div class="in">
-            <h6>In: 7</h6>
+            <h6>In: 10</h6>
             <ul>
               <li><a href="#impl~ring5.ingestion.parse-integrity-311573239~0">impl~ring5.ingestion.parse-integrity-311573239~0</a> <span class="origin">ring5/_parse.py:92</span></li>
               <li><a href="#impl~ring5.ingestion.parse-integrity-3232485984~0">impl~ring5.ingestion.parse-integrity-3232485984~0</a> <span class="origin">ring5/errors.py:45</span></li>
               <li><a href="#impl~ring5.ingestion.parse-integrity-327997301~0">impl~ring5.ingestion.parse-integrity-327997301~0</a> <span class="origin">src/parsing/gem5/impl/gem5_parser.py:514</span></li>
+              <li><a href="#impl~ring5.ingestion.parse-integrity-383658368~0">impl~ring5.ingestion.parse-integrity-383658368~0</a> <span class="origin">src/parsing/gem5/types/base.py:197</span></li>
               <li><a href="#test~ring5.ingestion.parse-integrity-160938014~0">test~ring5.ingestion.parse-integrity-160938014~0</a> <span class="origin">tests/integration/test_gem5_classifier_contract.py:63</span></li>
+              <li><a href="#test~ring5.ingestion.parse-integrity-1633767843~0">test~ring5.ingestion.parse-integrity-1633767843~0</a> <span class="origin">tests/unit/test_stat_population_mean.py:68</span></li>
+              <li><a href="#test~ring5.ingestion.parse-integrity-3392539318~0">test~ring5.ingestion.parse-integrity-3392539318~0</a> <span class="origin">tests/unit/test_stat_observation_presence.py:83</span></li>
               <li><a href="#test~ring5.ingestion.parse-integrity-3718672656~0">test~ring5.ingestion.parse-integrity-3718672656~0</a> <span class="origin">tests/integration/test_gem5_summary_contract.py:31</span></li>
               <li><a href="#test~ring5.ingestion.parse-integrity-44264663~0">test~ring5.ingestion.parse-integrity-44264663~0</a> <span class="origin">tests/unit/test_missing_data_integrity.py:47</span></li>
               <li><a href="#uman~ring5.ingestion.parse-integrity.documentation~1">uman~ring5.ingestion.parse-integrity.documentation~1</a> <span class="origin">docs/user-guide/reference/troubleshooting.md:27</span></li>
@@ -26925,6 +26941,32 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <summary title="test~ring5.ingestion.parse-integrity-160938014~0"><span class="green">&check;</span> <b>ring5.ingestion.parse-integrity-160938014</b><small>, rev. 0, test</small></summary>
           <p class="id">test~ring5.ingestion.parse-integrity-160938014~0</p>
           <p class="origin">tests/integration/test_gem5_classifier_contract.py:63</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.ingestion.parse-integrity~1">req~ring5.ingestion.parse-integrity~1</a> <span class="origin">spec/oft/generated/requirements.md:509</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="test~ring5.ingestion.parse-integrity-1633767843~0">
+        <details>
+          <summary title="test~ring5.ingestion.parse-integrity-1633767843~0"><span class="green">&check;</span> <b>ring5.ingestion.parse-integrity-1633767843</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.ingestion.parse-integrity-1633767843~0</p>
+          <p class="origin">tests/unit/test_stat_population_mean.py:68</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.ingestion.parse-integrity~1">req~ring5.ingestion.parse-integrity~1</a> <span class="origin">spec/oft/generated/requirements.md:509</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="test~ring5.ingestion.parse-integrity-3392539318~0">
+        <details>
+          <summary title="test~ring5.ingestion.parse-integrity-3392539318~0"><span class="green">&check;</span> <b>ring5.ingestion.parse-integrity-3392539318</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.ingestion.parse-integrity-3392539318~0</p>
+          <p class="origin">tests/unit/test_stat_observation_presence.py:83</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -34349,7 +34391,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
     </section>
   </main>
   <nav>
-    <span class="green">&check;</span> 1961 total <meter value="1961" max="1961">100%</meter> | <a href="#feat">feat</a> &middot; <a href="#impl">impl</a> &middot; <a href="#req">req</a> &middot; <a href="#test">test</a> &middot; <a href="#uman">uman</a>  </nav>
+    <span class="green">&check;</span> 1964 total <meter value="1964" max="1964">100%</meter> | <a href="#feat">feat</a> &middot; <a href="#impl">impl</a> &middot; <a href="#req">req</a> &middot; <a href="#test">test</a> &middot; <a href="#uman">uman</a>  </nav>
 
 <script>
 (() => {

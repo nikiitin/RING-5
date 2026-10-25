@@ -46,7 +46,8 @@ Stat types self-register; there are two halves — **Python** (model + reduction
    @register_type("mytype")
    class MyType(StatType[list[float], float]):
        # Declare slots and owned storage. Implement content as a defensive snapshot,
-       # _add_observation(value), _balance() -> padding_count, and _reduce() -> result.
+       # _add_observation(value), _missing_count() -> count, _balance() -> padding_count,
+       # and _reduce() -> result. Presence counts distinguish absent values from measured NaN.
        # Inherit the public lifecycle methods; they enforce collection → balance → reduce.
        ...
    ```

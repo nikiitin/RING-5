@@ -1,9 +1,8 @@
 """Distribution accumulator for fixed integer buckets and explicit boundaries."""
 
-import math
 from typing import override
 
-from src.parsing.gem5.types.base import FrameStatType, entry_names, frequency_mean, register_type
+from src.parsing.gem5.types.base import FrameStatType, entry_names, register_type
 
 SAFETY_MAX_BUCKETS = 100_000
 
@@ -92,13 +91,10 @@ class Distribution(FrameStatType):
                     f"[{self.minimum}, {self.maximum}]."
                 )
         return {
-            key: sample.get(key, math.nan if key in self._statistics else 0.0)
+            key: sample.get(key, 0.0)
             for key in self._entries
+            if key in sample or key not in self._statistics
         }
-
-    @override
-    def _reduce_values(self, values: list[float]) -> float:
-        return frequency_mean(values, self.repeat)
 
     def __str__(self) -> str:
         return f"Distribution(range=[{self.minimum}, {self.maximum}], repeat={self.repeat})"
