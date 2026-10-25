@@ -1505,7 +1505,8 @@
           "tests/ui_logic/test_settings_pills_e2e.py::TestLegendItemOrderRename",
           "tests/ui_logic/test_settings_pills.py::TestSectionDispatch.test_legend_tiers_match_the_legends_that_are_actually_visible",
           "tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorLegendAnchor",
-          "tests/unit/core/visualization/test_connectors.py::TestConfigBuilderLegendOrientation"
+          "tests/unit/core/visualization/test_connectors.py::TestConfigBuilderLegendOrientation",
+          "tests/unit/test_figure_preparation.py::test_numbered_annotation_does_not_create_a_trace_legend_on_another_panel"
         ],
         "documentation": [
           "docs/user-guide/reference/settings.md#legends"
@@ -1657,7 +1658,7 @@
           "tests/ui/test_shape_coordinate_contract.py::test_native_partial_path_and_default_shapes_roundtrip_without_invented_fields",
           "tests/ui/test_shape_coordinate_contract.py::test_deleting_the_invalid_row_skips_its_decoder_and_retains_manual_refresh_contract",
           "tests/unit/test_annotation_pixel_contract.py::test_pixel_shifts_translate_complete_native_annotation_at_export_dpi",
-          "tests/unit/test_annotation_pixel_contract.py::test_live_annotation_bridges_preserve_typed_metadata_and_serialization"
+          "tests/unit/test_annotation_pixel_contract.py::test_typed_annotations_preserve_native_metadata_and_serialization"
         ],
         "documentation": [
           "docs/developer-guide/api-reference/public-python-api.md#annotations-and-web-shapes"
@@ -1685,7 +1686,7 @@
         "implementation": [
           "src/web/components/plotting/settings/ordering_settings.py::OrderingSettingsComponent.render",
           "src/web/components/plotting/settings/legend_settings.py::LegendSettingsComponent._render_legend_items",
-          "src/web/pages/ui/plotting/base_plot.py::_relabel_traces",
+          "src/web/rendering/figure_preparation.py::_relabel_traces",
           "src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot._apply_renames",
           "src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot._order_unified_legend_traces"
         ],
@@ -1745,7 +1746,8 @@
           "tests/unit/test_numbered_xaxis.py::TestApplyNumberedXaxis",
           "tests/unit/test_numbered_xaxis.py::TestCreateFigureNumberedXaxis",
           "tests/unit/test_numbered_axis_contract.py::test_every_mode_subset_keeps_measurements_and_numbering_consistent",
-          "tests/ui/test_plot_settings_contracts.py::test_numbered_axes_widget_has_three_modes_and_empty_is_current_off"
+          "tests/ui/test_plot_settings_contracts.py::test_numbered_axes_widget_has_three_modes_and_empty_is_current_off",
+          "tests/unit/test_figure_preparation.py::test_numbered_font_role_resolves_for_real_public_native_renders"
         ],
         "documentation": [
           "docs/user-guide/guides/publication-export.md#check-typography-and-axes"
@@ -1930,6 +1932,7 @@
         "implementation": [
           "src/core/models/visualization/trace_build_result.py::TraceBuildResult",
           "src/web/pages/ui/plotting/base_plot.py::BasePlot.create_figure",
+          "src/web/rendering/figure_preparation.py::prepare_figure",
           "src/web/rendering/_connector_protocol.py::validate_trace_types"
         ],
         "tests": [
@@ -1937,7 +1940,9 @@
           "tests/unit/test_trace_to_plotly.py::TestConvertTrace",
           "tests/integration/test_neutral_trace_contract.py::test_both_converters_reject_unknown_families_before_drawing",
           "tests/integration/test_neutral_trace_contract.py::test_public_render_exposes_unknown_trace_as_typed_error",
-          "tests/integration/test_neutral_trace_contract.py::test_supported_trace_subclasses_preserve_data_in_both_engines"
+          "tests/integration/test_neutral_trace_contract.py::test_supported_trace_subclasses_preserve_data_in_both_engines",
+          "tests/unit/test_figure_preparation.py::test_all_registered_examples_prepare_once_without_constructing_native_figures",
+          "tests/unit/test_figure_preparation.py::test_preparation_owns_callback_config_and_reusable_trace_metadata"
         ],
         "documentation": [
           "docs/developer-guide/subsystems/visualization.md#engine-independent-traces"
@@ -3629,7 +3634,8 @@
           "src/web/components/data_managers/schema_contract.py::SchemaContractManager._render_conversion",
           "src/web/pages/ui/plotting/base_plot.py::BasePlot.create_figure",
           "src/web/pages/ui/plotting/base_plot.py::BasePlot.to_dict",
-          "src/web/pages/ui/plotting/plot_factory.py::PlotFactory.from_dict"
+          "src/web/pages/ui/plotting/plot_factory.py::PlotFactory.from_dict",
+          "src/web/rendering/figure_preparation.py::prepare_figure"
         ],
         "tests": [
           "tests/e2e/test_data_managers.py::TestDatasetSchemaContract.test_apply_semantic_metadata_from_human_first_editor",
@@ -4113,7 +4119,8 @@
           "src/web/pages/ui/plotting/base_plot.py::BasePlot.create_figure",
           "src/web/rendering/dashboard_builder.py::_render_matplotlib_dashboard",
           "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_hatching",
-          "src/web/rendering/matplotlib_trace_renderer.py::MatplotlibTraceRenderer._draw_bar"
+          "src/web/rendering/matplotlib_trace_renderer.py::MatplotlibTraceRenderer._draw_bar",
+          "src/web/rendering/figure_preparation.py::prepare_figure"
         ],
         "tests": [
           "tests/e2e/test_settings.py::TestAccessibleTheme.test_enable_theme_selects_safe_palette_and_passes_visible_audit",

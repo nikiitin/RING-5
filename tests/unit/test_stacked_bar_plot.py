@@ -1,9 +1,4 @@
-"""Unit tests for StackedBarPlot — stacked bar plot implementation.
-
-Covers create_figure, _prepare_data, _get_hover_template,
-_create_stacked_figure, _add_bar_trace, _build_totals_annotations,
-and _get_total_position.
-"""
+"""Stacked-bar trace construction, filtering and typed total annotations."""
 
 from typing import Any
 
@@ -128,8 +123,8 @@ class TestBuildTotalsAnnotations:
         df["__total"] = df["ipc"] + df["cpi"]
         annotations = plot._build_totals_annotations(df, "benchmark", {})
         assert len(annotations) == 4
-        assert annotations[0]["xref"] == "x"
-        assert annotations[0]["yref"] == "y"
+        assert annotations[0].xref == "data"
+        assert annotations[0].yref == "data"
 
     def test_threshold_filters(self) -> None:
         plot = StackedBarPlot(1, "test")
@@ -144,7 +139,7 @@ class TestBuildTotalsAnnotations:
         df = pd.DataFrame({"x": ["a"], "v": [3.14159]})
         df["__total"] = df["v"]
         annotations = plot._build_totals_annotations(df, "x", {"net_total_format": ".1f"})
-        assert annotations[0]["text"] == "3.1"
+        assert annotations[0].text == "3.1"
 
     def test_font_config(self) -> None:
         plot = StackedBarPlot(1, "test")
@@ -155,8 +150,8 @@ class TestBuildTotalsAnnotations:
             "total_font_color": "#FF0000",
         }
         annotations = plot._build_totals_annotations(df, "x", config)
-        assert annotations[0]["font"]["size"] == 16
-        assert annotations[0]["font"]["color"] == "#FF0000"
+        assert annotations[0].font_size == 16
+        assert annotations[0].font_color == "#FF0000"
 
     def test_rotation_and_offset(self) -> None:
         plot = StackedBarPlot(1, "test")
@@ -164,8 +159,8 @@ class TestBuildTotalsAnnotations:
         df["__total"] = df["v"]
         config: dict[str, Any] = {"total_rotation": 45, "total_offset": 5}
         annotations = plot._build_totals_annotations(df, "x", config)
-        assert annotations[0]["textangle"] == 45
-        assert annotations[0]["yshift"] == 5
+        assert annotations[0].text_angle == 45
+        assert annotations[0].y_shift_pixels == 5
 
 
 # _build_bar_trace

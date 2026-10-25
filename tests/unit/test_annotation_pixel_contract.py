@@ -7,7 +7,6 @@ from typing import Any, Literal, cast
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import plotly.graph_objects as go
 import pytest
 from matplotlib.path import Path
 
@@ -15,7 +14,7 @@ import ring5
 from src.core.models.visualization.annotation_config import AnnotationConfig
 from src.core.models.visualization.figure_config import FigureConfig
 from src.core.models.visualization.trace_build_result import TraceBuildResult
-from src.web.rendering.config_builder import _annotation_from_dict, _extract_annotations
+from src.web.rendering.config_builder import _extract_annotations
 from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
 from src.web.rendering.trace_to_plotly import traces_to_plotly
 
@@ -87,25 +86,27 @@ def test_pixel_shifts_translate_complete_native_annotation_at_export_dpi(
         plt.close(figure)
 
 
-def test_live_annotation_bridges_preserve_typed_metadata_and_serialization() -> None:
+def test_typed_annotations_preserve_native_metadata_and_serialization() -> None:
     # [test->req~ring5.figure.shapes-annotations~1]
-    raw = {
-        "text": "Measured",
-        "x": 2,
-        "y": 3,
-        "xref": "x",
-        "yref": "paper",
-        "xshift": -12,
-        "yshift": 7,
-        "showarrow": True,
-        "arrowhead": 3,
-        "arrowcolor": "red",
-        "font": {"family": "monospace", "size": 12, "color": "blue", "weight": "bold"},
-        "align": "right",
-    }
-    original = deepcopy(raw)
-    direct = _annotation_from_dict(raw)
-    extracted = _extract_annotations(go.Figure(layout={"annotations": [raw]}).layout)[0]
+    direct = AnnotationConfig(
+        text="Measured",
+        x=2,
+        y=3,
+        yref="paper",
+        x_shift_pixels=-12,
+        y_shift_pixels=7,
+        show_arrow=True,
+        arrow_head=3,
+        arrow_color="red",
+        font_family="monospace",
+        font_size=12,
+        font_color="blue",
+        font_bold=True,
+        align="right",
+    )
+    native = traces_to_plotly(TraceBuildResult(annotations=[direct]))
+    original = deepcopy(native.to_plotly_json())
+    extracted = _extract_annotations(native.layout)[0]
     assert direct == extracted
     assert direct.x_shift_pixels == -12 and direct.y_shift_pixels == 7
     assert direct.font_family == "monospace" and direct.font_bold
@@ -113,7 +114,7 @@ def test_live_annotation_bridges_preserve_typed_metadata_and_serialization() -> 
     assert direct.align == "right"
     config = FigureConfig(annotations=[direct])
     assert FigureConfig.from_dict(config.to_dict()) == config
-    assert raw == original
+    assert native.to_plotly_json() == original
 
 
 def test_annotation_inherits_figure_family_without_mutating_the_spec() -> None:
@@ -148,7 +149,9 @@ def test_public_stack_totals_preserve_pixel_offset_and_raw_categories(offset: in
             },
         )
         interactive = cast(Any, session.render(plot, engine="plotly"))
-        assert [(ann.x, ann.y, ann.text, ann.yshift) for ann in interactive.layout.annotations] == [
+        assert [
+            (ann.x, ann.y, ann.text, ann.yshift or 0) for ann in interactive.layout.annotations
+        ] == [
             ("a", 4, "4", offset),
             ("b", 6, "6", offset),
         ]

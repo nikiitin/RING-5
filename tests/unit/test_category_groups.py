@@ -151,12 +151,12 @@ class TestGroupAnnotations:
             [(1.0, "G1")], font_size=9, font_color="#222222", y_offset=-0.3
         )
         (ann,) = anns
-        assert ann["text"] == "<b>G1</b>"
-        assert ann["x"] == 1.0 and ann["y"] == -0.3
-        assert ann["xref"] == "x" and ann["yref"] == "paper"
-        assert ann["xanchor"] == "center" and ann["yanchor"] == "top"
-        assert ann["font"] == {"size": 9, "color": "#222222"}
-        assert ann["textangle"] == 0
+        assert ann.text == "<b>G1</b>"
+        assert ann.x == 1.0 and ann.y == -0.3
+        assert ann.xref == "data" and ann.yref == "paper"
+        assert ann.xanchor == "center" and ann.yanchor == "top"
+        assert (ann.font_size, ann.font_color) == (9, "#222222")
+        assert ann.text_angle == 0
 
 
 class TestMajorLabelRotationOverrides:
@@ -164,14 +164,14 @@ class TestMajorLabelRotationOverrides:
         anns = GroupedBarUtils.build_category_annotations(
             [(0.0, "a"), (1.0, "mean")], rotation=30.0, rotation_overrides={"mean": 90.0}
         )
-        assert [a["textangle"] for a in anns] == [30.0, 90.0]
-        assert [a["xanchor"] for a in anns] == ["right", "right"]
+        assert [a.text_angle for a in anns] == [30.0, 90.0]
+        assert [a.xanchor for a in anns] == ["right", "right"]
 
     def test_override_to_horizontal_recenters(self):
         anns = GroupedBarUtils.build_category_annotations(
             [(0.0, "a"), (1.0, "mean")], rotation=30.0, rotation_overrides={"mean": 0.0}
         )
-        assert anns[1]["textangle"] == 0.0 and anns[1]["xanchor"] == "center"
+        assert anns[1].text_angle == 0.0 and anns[1].xanchor == "center"
 
     def test_spec_emits_overrides(self):
         cfg = FigureSpec(major_label_rotation_overrides={"mean": 90}).to_config()

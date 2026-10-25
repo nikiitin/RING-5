@@ -1,7 +1,6 @@
 """Base plot class with common functionality."""
 
 from abc import ABC, abstractmethod
-from dataclasses import replace
 from typing import Any
 
 import pandas as pd
@@ -10,29 +9,12 @@ import plotly.graph_objects as go
 from src.core.common.dataframe_copy import copy_dataframe
 from src.core.models.data_models import PipelineStep
 from src.core.models.visualization.trace_build_result import TraceBuildResult
-from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
 from src.core.common.typed_table_codec import TypedTableCodec
-from src.core.services.visualization.accessibility_service import AccessibilityService
 from src.core.models.plot_config import PlotConfig
 from src.web.rendering.relayout import update_config_from_relayout
+from src.web.rendering.figure_preparation import prepare_figure
 from src.web.pages.ui.plotting.plot_config_ui import PlotConfigUIMixin
 from src.web.pages.ui.plotting.styles import StyleApplicator, StyleUIFactory
-
-
-def _relabel_traces(
-    result: TraceBuildResult, legend_labels: dict[str, str] | None
-) -> TraceBuildResult:
-    """Apply custom legend labels to the engine-agnostic trace names.
-
-    Renaming ``TraceConfig.name`` here — before any connector runs — is the
-    single source of truth for legend relabeling, so BOTH the Plotly and
-    Matplotlib engines honor it (each reads ``trace.name`` for the legend entry).
-    """
-    # [impl->req~ring5.figure.ordering-renaming~2]
-    if not legend_labels:
-        return result
-    new_traces = [replace(t, name=legend_labels.get(t.name, t.name)) for t in result.traces]
-    return replace(result, traces=new_traces)
 
 
 class BasePlot(PlotConfigUIMixin, ABC):
@@ -101,16 +83,9 @@ class BasePlot(PlotConfigUIMixin, ABC):
         """
         from src.web.rendering.trace_to_plotly import traces_to_plotly
 
-        effective_config = SemanticMetadataService.enrich_figure_config(data, config)
-        effective_config = AccessibilityService.apply_defaults(effective_config, self.plot_type)
-        if effective_config is not config:
-            self.config = effective_config
-            config = self.config
-        result = self.create_traces(data, config)
-        result = AccessibilityService.apply_non_color_encodings(result, config)
-        # Apply legend relabeling once, engine-agnostically, so both Plotly and
-        # Matplotlib (which renders from ``last_traces``) show the custom names.
-        result = _relabel_traces(result, config.get("legend_labels"))
+        prepared = prepare_figure(data, config, self.plot_type, self.create_traces)
+        self.config = prepared.config
+        result = prepared.trace_result
         self.last_traces = result
         fig = traces_to_plotly(result)
 

@@ -32,7 +32,7 @@ Usage::
 from __future__ import annotations
 
 from copy import deepcopy
-from dataclasses import fields
+from dataclasses import fields, replace
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -58,6 +58,16 @@ def resolve_config(spec: FigureConfig) -> FigureConfig:
     _resolve_typography(resolved.typography)
     _resolve_legends(resolved.legends)
     _resolve_axes(resolved.axes)
+    legends = {legend.role: legend for legend in resolved.legends}
+    annotations = []
+    for annotation in resolved.annotations:
+        if annotation.legend_role is not None and annotation.font_size == SENTINEL_INT:
+            legend = legends.get(annotation.legend_role)
+            if legend is None:
+                raise ValueError(f"Missing {annotation.legend_role} legend style for annotation.")
+            annotation = replace(annotation, font_size=legend.font_size)
+        annotations.append(annotation)
+    object.__setattr__(resolved, "annotations", annotations)
     return resolved
 
 

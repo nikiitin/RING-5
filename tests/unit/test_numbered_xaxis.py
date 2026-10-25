@@ -89,20 +89,20 @@ class TestApplyNumberedXaxis:
         _, legend = plot._apply_numbered_xaxis(tick_text, config)
 
         assert legend is not None
-        assert legend["xref"] == "paper"
-        assert legend["yref"] == "paper"
-        assert legend["x"] == 1.05
-        assert legend["y"] == 0.5
-        assert legend["font"]["size"] == 12
-        assert legend["showarrow"] is False
+        assert legend.xref == "paper"
+        assert legend.yref == "paper"
+        assert legend.x == 1.05
+        assert legend.y == 0.5
+        assert legend.font_size == 12
+        assert legend.show_arrow is False
         # Box-style legend properties
-        assert legend["xanchor"] == "left"
-        assert legend["yanchor"] == "bottom"
-        assert legend["align"] == "left"
-        assert legend["bordercolor"] == "#333333"
-        assert legend["borderwidth"] == 1
-        assert legend["borderpad"] == 6
-        assert legend["bgcolor"] == "#FFFFFF"
+        assert legend.xanchor == "left"
+        assert legend.yanchor == "bottom"
+        assert legend.align == "left"
+        assert legend.border_color == "#333333"
+        assert legend.border_width == 1
+        assert legend.border_pad == 6
+        assert legend.bgcolor == "#FFFFFF"
 
     def test_legend_text_contains_all_groups(self, plot: GroupedStackedBarPlot) -> None:
         """Legend text includes all unique groups with numbering."""
@@ -112,7 +112,7 @@ class TestApplyNumberedXaxis:
         _, legend = plot._apply_numbered_xaxis(tick_text, config)
         assert legend is not None
 
-        text: str = legend["text"]
+        text: str = legend.text
         assert "1. c1" in text
         assert "2. c2" in text
         assert "3. c3" in text
@@ -125,7 +125,7 @@ class TestApplyNumberedXaxis:
         _, legend = plot._apply_numbered_xaxis(tick_text, config)
         assert legend is not None
 
-        text: str = legend["text"]
+        text: str = legend.text
         # Column-wise: col-0=[1.a, 2.b], col-1=[3.c, 4.d]
         # Row 0: 1.a  3.c  |  Row 1: 2.b  4.d
         rows = text.split("<br>")
@@ -152,7 +152,7 @@ class TestApplyNumberedXaxis:
         _, legend = plot._apply_numbered_xaxis(tick_text, config)
         assert legend is not None
 
-        rows = legend["text"].split("<br>")
+        rows = legend.text.split("<br>")
 
         # Column-wise layout: col-0=["1. short", "2. very_long_name"],
         #                     col-1=["3. medium", "4. x"]
@@ -175,7 +175,7 @@ class TestApplyNumberedXaxis:
 
         _, legend = plot._apply_numbered_xaxis(tick_text, config)
         assert legend is not None
-        rows = legend["text"].split("<br>")
+        rows = legend.text.split("<br>")
         assert len(rows) == 3
         assert "1. x" in rows[0]
         assert "2. y" in rows[1]
@@ -190,7 +190,7 @@ class TestApplyNumberedXaxis:
 
         assert result_text == ["", "", "", "", "", ""]
         assert legend is not None
-        text: str = legend["text"]
+        text: str = legend.text
         assert text.index("1. zeta") < text.index("2. alpha") < text.index("3. mid")
 
     @pytest.mark.parametrize(
@@ -227,7 +227,7 @@ class TestApplyNumberedXaxis:
 
         assert result_text == ["2", "3", "1"]
         assert legend is not None
-        assert legend["text"].split("<br>") == [
+        assert legend.text.split("<br>") == [
             "1. Charlie",
             "2. Alpha",
             "3. b",
@@ -249,7 +249,7 @@ class TestApplyNumberedXaxis:
         _, legend = plot._apply_numbered_xaxis(["a", "b"], config)
 
         assert legend is not None
-        assert legend["text"].split("<br>") == ["1. Beta", "2. a"]
+        assert legend.text.split("<br>") == ["1. Beta", "2. a"]
 
     def test_single_group(self, plot: GroupedStackedBarPlot) -> None:
         """Works correctly with a single group."""
@@ -260,7 +260,7 @@ class TestApplyNumberedXaxis:
 
         assert result_text == [""]
         assert legend is not None
-        assert "1. only" in legend["text"]
+        assert "1. only" in legend.text
 
 
 # Integration: create_figure with numbered_xaxis

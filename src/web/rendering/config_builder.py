@@ -614,74 +614,13 @@ def _extract_annotations(layout: Any) -> list[AnnotationConfig]:
     return annotations
 
 
-def _annotation_from_dict(ann: dict[str, Any]) -> AnnotationConfig:
-    """Project computed layout annotation metadata into the typed figure contract."""
-    raw_x = ann.get("x", 0)
-    raw_y = ann.get("y", 0)
-    try:
-        x_val: float | str = float(raw_x)
-    except (ValueError, TypeError):
-        x_val = str(raw_x) if raw_x is not None else 0.0
-    try:
-        y_val: float | str = float(raw_y)
-    except (ValueError, TypeError):
-        y_val = str(raw_y) if raw_y is not None else 0.0
-
-    # Plotly builds a Font object iff the "font" key is present (truthy even when empty);
-    # absent/None font ⇒ the (-1, "#444") sentinels _extract_annotations uses.
-    font = ann.get("font")
-    if "font" in ann and font is not None:
-        font_size = int((font.get("size") or 0))
-        font_color = str(font.get("color") or "#444")
-    else:
-        font_size = -1
-        font_color = "#444"
-
-    anchor_kwargs: dict[str, Any] = {}
-    xanchor = ann.get("xanchor")
-    if xanchor:
-        anchor_kwargs["xanchor"] = xanchor
-    yanchor = ann.get("yanchor")
-    if yanchor:
-        anchor_kwargs["yanchor"] = yanchor
-
-    return AnnotationConfig(
-        text=ann.get("text", ""),
-        x=x_val,
-        y=y_val,
-        xref="paper" if ann.get("xref", "") == "paper" else "data",
-        yref="paper" if ann.get("yref", "") == "paper" else "data",
-        show_arrow=bool(ann.get("showarrow", False)),
-        arrow_head=int(ann.get("arrowhead", 0) or 0),
-        arrow_color=str(ann.get("arrowcolor", "#444") or "#444"),
-        x_shift_pixels=float(ann.get("xshift", 0) or 0),
-        y_shift_pixels=float(ann.get("yshift", 0) or 0),
-        font_size=font_size,
-        font_color=font_color,
-        font_family=str(font.get("family") or "") if font is not None else "",
-        font_bold=font.get("weight") == "bold" if font is not None else False,
-        text_angle=float(ann.get("textangle", 0) or 0),
-        border_width=float(ann.get("borderwidth", 0) or 0),
-        border_color=str(ann.get("bordercolor", "") or ""),
-        border_pad=float(ann.get("borderpad", 0) or 0),
-        bgcolor=str(ann.get("bgcolor", "") or ""),
-        align=ann.get("align", "left") or "left",
-        **anchor_kwargs,
-    )
-
-
 def enrich_from_traces(spec: FigureConfig, result: TraceBuildResult) -> None:
-    """Fill *spec* from the engine-agnostic trace-build result — the Plotly-free twin of
-    :meth:`PlotlyFigureSpecBuilder.enrich_from_plotly`.
+    """Merge computed neutral metadata into one freshly built, owned spec.
 
-    The matplotlib path uses this so it never has to construct a Plotly figure. It captures
-    the same data ``enrich_from_plotly`` does — x-axis tick values/labels, barmode, and
-    annotations — directly from ``TraceBuildResult`` (where ``create_traces`` already put
-    them). ``legend3`` (tertiary legend) has no engine-agnostic source — it is produced
-    only during Plotly styling — so it is intentionally not handled here; a plot that needs
-    a programmatic legend3 must keep the Plotly-enriched build path. Modifies *spec* in
-    place (a freshly-built, caller-owned spec, exactly like ``enrich_from_plotly``).
+    Configured and computed annotations share the typed annotation channel.
+    Annotation font roles reference configured styles without creating trace legends.
     """
+
     ticks = result.custom_x_ticks
     if ticks:
         vals = ticks.get("vals")
@@ -704,12 +643,7 @@ def enrich_from_traces(spec: FigureConfig, result: TraceBuildResult) -> None:
     if barmode_str in ("group", "stack", "overlay", "relative"):
         object.__setattr__(spec, "barmode", barmode_str)
 
-    # Only merge if the spec has none (mirror enrich_from_plotly's guard). Order matches
-    # traces_to_plotly: result.annotations first, then the raw layout_annotations.
-    if not spec.annotations:
-        anns: list[AnnotationConfig] = list(result.annotations)
-        anns.extend(_annotation_from_dict(d) for d in result.layout_annotations)
-        object.__setattr__(spec, "annotations", anns)
+    object.__setattr__(spec, "annotations", [*spec.annotations, *result.annotations])
 
 
 def build_figure_spec_dict(config: dict[str, Any], plot_type: str) -> dict[str, Any] | None:

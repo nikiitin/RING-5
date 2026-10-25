@@ -14,7 +14,8 @@ from plotly.subplots import make_subplots
 from src.core.models.visualization.dashboard_spec import DashboardSpec
 from src.core.models.visualization.trace_config import HeatmapTraceConfig
 from src.core.services.visualization.config_resolver import resolve_config
-from src.web.pages.ui.plotting.base_plot import BasePlot, _relabel_traces
+from src.web.pages.ui.plotting.base_plot import BasePlot
+from src.web.rendering.figure_preparation import _relabel_traces
 from src.web.rendering.config_builder import ConfigSpecBuilder, enrich_from_traces
 from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
 from src.web.rendering.matplotlib_figure_builder import (

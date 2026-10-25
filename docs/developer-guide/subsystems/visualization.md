@@ -37,8 +37,15 @@ Covers:
 -->
 
 Every registered plot type produces a typed `TraceBuildResult` before backend rendering. It carries
-bar, line, scatter, histogram, or heatmap traces plus backend-neutral separators, shaded regions,
-rules, annotations, tick positions, and secondary-axis metadata.
+concrete trace families plus backend-neutral separators, shaded regions, rules, typed
+`AnnotationConfig` entries, tick positions, and secondary-axis metadata. Histogram plots emit bar
+traces with shared measured bucket geometry.
+
+`src/web/rendering/figure_preparation.py::prepare_figure` owns effective semantic/accessibility
+configuration, one trace callback, non-color encoding and relabeling, and one typed styling
+build/resolve. It returns an owned `PreparedFigure` without constructing native figures.
+`BasePlot.create_figure` and the single-plot Plotly report route use this preparation. Numbered
+annotations carry their semantic legend role; the central resolver applies inherited font sizes.
 
 Plot types live under `src/web/pages/ui/plotting/types/` because their configuration UI and current
 composition are web-owned. They emit models from `src/core/models/visualization/` and do not create

@@ -5,13 +5,14 @@ All functions are stateless — no UI or Streamlit imports.
 """
 
 import math
-from typing import Any
+from typing import Any, Literal, cast
 
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.basedatatypes import BaseTraceType
 
 from src.core.common.numbered_axis import numbered_axis_modes, numbered_legend_prefix
+from src.core.models.visualization.annotation_config import AnnotationConfig
 from src.core.models.visualization.trace_config import (
     BarTraceConfig,
     LineTraceConfig,
@@ -65,7 +66,7 @@ def apply_renames(
 def apply_numbered_xaxis(
     tick_text: list[str],
     config: dict[str, Any],
-) -> tuple[list[str], dict[str, Any] | None]:
+) -> tuple[list[str], AnnotationConfig | None]:
     """Replace tick labels with numbered indices and build legend annotation.
 
     Supports multiselect modes via ``config["numbered_xaxis_modes"]``:
@@ -85,7 +86,7 @@ def apply_numbered_xaxis(
         config: Plot configuration dict.
 
     Returns:
-        Tuple of (possibly-replaced tick_text, legend annotation dict or None).
+        Replaced tick text and optional typed number-legend annotation.
     """
     # [impl->req~ring5.figure.numbered-xaxis~1]
     modes = numbered_axis_modes(config)
@@ -187,35 +188,37 @@ def apply_numbered_xaxis(
             f"rgba({int(round(_r * 255))},{int(round(_g * 255))},"
             f"{int(round(_b * 255))},{float(_bgalpha)})"
         )
-    # Resolve the annotation's legend tier before either engine consumes it.
-    # Keep the number box's default size while sharing normal legend inheritance.
-    legend_config = {f"{_prefix}font_size": 10, **config}
-    resolved = resolve_config(ConfigSpecBuilder.from_config(legend_config))
-    legend_role = "tertiary" if _prefix == "legend3_" else "secondary"
-    font_size = next(legend.font_size for legend in resolved.legends if legend.role == legend_role)
+    font_size = int(config.get(f"{_prefix}font_size", 10))
     font_color: str = str(config.get(f"{_prefix}font_color", "#333333"))
     border_color: str = str(config.get(f"{_prefix}border_color", "#333333"))
     border_width: int = int(config.get(f"{_prefix}border_width", 1))
-    xanchor: str = str(config.get(f"{_prefix}xanchor", "left"))
-    yanchor: str = str(config.get(f"{_prefix}yanchor", "bottom"))
+    xanchor = cast(
+        Literal["left", "center", "right", "auto"], str(config.get(f"{_prefix}xanchor", "left"))
+    )
+    yanchor = cast(
+        Literal["top", "middle", "bottom", "auto"], str(config.get(f"{_prefix}yanchor", "bottom"))
+    )
 
     # Use monospace font family so that column padding aligns correctly.
     font_family: str = str(config.get(f"{_prefix}font_family", "monospace"))
 
-    legend_annotation: dict[str, Any] = dict(
+    legend_annotation = AnnotationConfig(
+        annotation_type="boxed",
         x=legend_x,
         y=legend_y,
         xref="paper",
         yref="paper",
         text=legend_text,
-        showarrow=False,
-        font=dict(size=font_size, color=font_color, family=font_family),
+        font_size=font_size,
+        font_color=font_color,
+        font_family=font_family,
+        legend_role="tertiary" if _prefix == "legend3_" else "secondary",
         align="left",
         xanchor=xanchor,
         yanchor=yanchor,
-        bordercolor=border_color,
-        borderwidth=border_width,
-        borderpad=6,
+        border_color=border_color,
+        border_width=border_width,
+        border_pad=6,
         bgcolor=bgcolor,
     )
 
@@ -224,7 +227,7 @@ def apply_numbered_xaxis(
 
 def build_category_annotations(
     cat_centers: list[tuple[float, str]], config: dict[str, Any]
-) -> list[dict[str, Any]]:
+) -> list[AnnotationConfig]:
     """Build annotations for category labels (grouped bars only)."""
     stagger_dy = (
         config.get("group_label_alt_spacing", 0.05)
@@ -244,7 +247,7 @@ def build_category_annotations(
 
 def build_category_group_annotations(
     group_centers: list[tuple[float, str]], config: dict[str, Any]
-) -> list[dict[str, Any]]:
+) -> list[AnnotationConfig]:
     """Build annotations for category super-group labels."""
     return GroupedBarUtils.build_category_group_annotations(
         group_centers=group_centers,

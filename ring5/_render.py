@@ -54,12 +54,6 @@ def render_figure(plot: BasePlot, *, engine: EngineMode = "plotly") -> Figure:
         raise RenderError(f"Plot '{plot.name}' has no processed data to render.")
 
     try:
-        effective_config = SemanticMetadataService.enrich_figure_config(
-            plot.processed_data, plot.config
-        )
-        effective_config = AccessibilityService.apply_defaults(effective_config, plot.plot_type)
-        if effective_config is not plot.config:
-            plot.config = effective_config
         if engine == "plotly":
             # UI sequence (render_controller.py): create_figure + apply_common_layout.
             plotly_fig = plot.create_figure(plot.processed_data, plot.config)
@@ -73,10 +67,17 @@ def render_figure(plot: BasePlot, *, engine: EngineMode = "plotly") -> Figure:
         # relabel create_figure would apply, then the traces-direct matplotlib builder.
         import matplotlib.pyplot as plt
 
-        from src.web.pages.ui.plotting.base_plot import _relabel_traces
+        from src.web.rendering.figure_preparation import _relabel_traces
         from src.web.rendering.matplotlib_figure_builder import (
             build_matplotlib_figure_from_traces,
         )
+
+        effective_config = SemanticMetadataService.enrich_figure_config(
+            plot.processed_data, plot.config
+        )
+        effective_config = AccessibilityService.apply_defaults(effective_config, plot.plot_type)
+        if effective_config is not plot.config:
+            plot.config = effective_config
 
         traces_result = plot.create_traces(plot.processed_data, plot.config)
         traces_result = AccessibilityService.apply_non_color_encodings(traces_result, plot.config)

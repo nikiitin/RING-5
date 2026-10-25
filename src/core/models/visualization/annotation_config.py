@@ -31,6 +31,9 @@ class AnnotationConfig:
       - Pixel shifts translate the complete annotation, including its arrow.
         Positive X moves right; positive Y moves up. Matplotlib scales these
         logical pixels with the figure's initial render DPI during export.
+
+    A ``legend_role`` resolves a font size of -1 from that legend's style.
+    Explicit sizes and the annotation's font family remain independent.
     """
 
     # Content
@@ -65,6 +68,7 @@ class AnnotationConfig:
     font_family: str = ""  # empty = inherit figure family
     x_shift_pixels: float = 0.0
     y_shift_pixels: float = 0.0
+    legend_role: Literal["secondary", "tertiary"] | None = None
 
 
 @dataclass(frozen=True)

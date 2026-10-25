@@ -124,22 +124,6 @@ class TestTracesToPlotly:
         assert len(annotations) == 1
         assert annotations[0].text == "Hello"
 
-    def test_layout_annotations_appended(self) -> None:
-        layout_ann: list[dict[str, Any]] = [{"text": "raw", "x": 0, "y": 0}]
-        result = TraceBuildResult(layout_annotations=layout_ann)
-        fig = traces_to_plotly(result)
-        annotations = cast(Any, fig.layout).annotations
-        assert annotations is not None
-        assert len(annotations) == 1
-
-    def test_both_annotation_types_combined(self) -> None:
-        ann = AnnotationConfig(text="typed", x=0, y=0, xref="paper", yref="paper")
-        layout_ann: list[dict[str, Any]] = [{"text": "raw", "x": 1, "y": 1}]
-        result = TraceBuildResult(annotations=[ann], layout_annotations=layout_ann)
-        fig = traces_to_plotly(result)
-        annotations = cast(Any, fig.layout).annotations
-        assert len(annotations) == 2
-
 
 # _convert_trace dispatch
 

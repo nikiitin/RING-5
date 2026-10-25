@@ -258,7 +258,7 @@ class TestHelperMethods:
         config = {"major_label_size": 16, "major_label_color": "#333"}
         anns = plot._build_category_annotations(centers, config)
         assert len(anns) == 2
-        assert anns[0]["font"]["size"] == 16
+        assert anns[0].font_size == 16
 
     def test_apply_common_layout_enforces_hover(self) -> None:
         plot = GroupedStackedBarPlot(1, "T")

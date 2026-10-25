@@ -22,7 +22,8 @@ from src.core.common.utils import sanitize_filename
 from src.core.models.report_models import AnalysisReport, ReportFigure, ReportTable
 from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
 from src.core.services.visualization.accessibility_service import AccessibilityService
-from src.web.pages.ui.plotting.base_plot import BasePlot, _relabel_traces
+from src.web.pages.ui.plotting.base_plot import BasePlot
+from src.web.rendering.figure_preparation import _relabel_traces, prepare_figure
 from src.web.rendering.dashboard_builder import render_dashboard
 from src.web.rendering.interactive_html_export import (
     interactive_source_data_assets,
@@ -52,15 +53,11 @@ def _single_plot_plotly(plot: BasePlot) -> go.Figure:
     """Render one plot through the engine-independent Plotly path."""
     if plot.processed_data is None:
         raise ValueError(f"Report plot '{plot.name}' has no processed data.")
-    effective = SemanticMetadataService.enrich_figure_config(plot.processed_data, plot.config)
-    effective = AccessibilityService.apply_defaults(effective, plot.plot_type)
-    traces = plot.create_traces(plot.processed_data, effective)
-    traces = AccessibilityService.apply_non_color_encodings(traces, effective)
-    traces = _relabel_traces(traces, effective.get("legend_labels"))
-    figure = traces_to_plotly(traces)
-    if not traces.traces:
+    prepared = prepare_figure(plot.processed_data, plot.config, plot.plot_type, plot.create_traces)
+    figure = traces_to_plotly(prepared.trace_result)
+    if not prepared.trace_result.traces:
         figure.update_layout(title_text="Please select at least one X and one Y column.")
-    return plot.apply_common_layout(figure, effective)
+    return plot.apply_common_layout(figure, prepared.config)
 
 
 def _figure_png(plots: Sequence[BasePlot], by_id: dict[int, BasePlot], item: ReportFigure) -> bytes:

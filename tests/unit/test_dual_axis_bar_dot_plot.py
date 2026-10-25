@@ -221,7 +221,7 @@ class TestDualAxisBarDotPlotAlignedLayout:
         assert result.custom_x_ticks is not None
         assert result.custom_x_ticks["vals"] == pytest.approx([0.0, 1.0, 2.6, 3.6, 5.2, 6.2])
         assert result.custom_x_ticks["text"] == ["High", "Low", "High", "Low", "High", "Low"]
-        assert [annotation["text"] for annotation in result.layout_annotations] == [
+        assert [annotation.text for annotation in result.annotations] == [
             "<b>A</b>",
             "<b>B</b>",
             "<b>C</b>",

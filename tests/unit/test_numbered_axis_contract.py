@@ -186,8 +186,6 @@ def test_every_mode_subset_keeps_measurements_and_numbering_consistent(
         expected = ["", ""]
     assert plot.last_traces.custom_x_ticks is not None
     assert plot.last_traces.custom_x_ticks["text"] == expected
-    legends = [
-        a for a in plot.last_traces.layout_annotations if str(a.get("text", "")).startswith("1.")
-    ]
+    legends = [a for a in plot.last_traces.annotations if str(a.text).startswith("1.")]
     assert bool(legends) == ("Number legend" in modes)
     pd.testing.assert_frame_equal(data, original)

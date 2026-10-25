@@ -265,19 +265,19 @@ class TestRelabelTraces:
         return TraceBuildResult(traces=[TraceConfig(name=n) for n in names])
 
     def test_none_labels_no_change(self) -> None:
-        from src.web.pages.ui.plotting.base_plot import _relabel_traces
+        from src.web.rendering.figure_preparation import _relabel_traces
 
         result = _relabel_traces(self._result("original"), None)
         assert [t.name for t in result.traces] == ["original"]
 
     def test_empty_labels_no_change(self) -> None:
-        from src.web.pages.ui.plotting.base_plot import _relabel_traces
+        from src.web.rendering.figure_preparation import _relabel_traces
 
         result = _relabel_traces(self._result("original"), {})
         assert [t.name for t in result.traces] == ["original"]
 
     def test_partial_labels(self) -> None:
-        from src.web.pages.ui.plotting.base_plot import _relabel_traces
+        from src.web.rendering.figure_preparation import _relabel_traces
 
         result = _relabel_traces(self._result("a", "b"), {"a": "Alpha"})
         assert [t.name for t in result.traces] == ["Alpha", "b"]

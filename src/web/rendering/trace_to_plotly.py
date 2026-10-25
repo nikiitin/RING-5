@@ -174,13 +174,8 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
         # Shades first (drawn under), then separators, then span rules.
         layout_updates["shapes"] = shade_shapes + separator_shapes + rule_shapes
 
-    if result.annotations or result.layout_annotations:
-        all_annotations: list[dict[str, Any]] = []
-        if result.annotations:
-            all_annotations.extend(_convert_annotations(result.annotations))
-        if result.layout_annotations:
-            all_annotations.extend(result.layout_annotations)
-        layout_updates["annotations"] = all_annotations
+    if result.annotations:
+        layout_updates["annotations"] = _convert_annotations(result.annotations)
 
     fig.update_layout(**layout_updates)
 

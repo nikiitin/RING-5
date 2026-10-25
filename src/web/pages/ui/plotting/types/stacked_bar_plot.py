@@ -1,10 +1,11 @@
 """Stacked bar plot implementation."""
 
-from typing import Any, override
+from typing import Literal, override
 
 import pandas as pd
 
 from src.core.common.safe_format import safe_format_number
+from src.core.models.visualization.annotation_config import AnnotationConfig
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import BarTraceConfig
 from src.web.components.plotting.config import stacked_bar_config
@@ -49,14 +50,14 @@ class StackedBarPlot(BasePlot):
         traces = self._create_stacked_traces(data, x_col, y_cols, config, hover_template)
 
         # Build annotations
-        layout_annotations: list[dict[str, Any]] = []
+        annotations: list[AnnotationConfig] = []
         if config.get("show_totals"):
-            layout_annotations = self._build_totals_annotations(data, x_col, config)
+            annotations = self._build_totals_annotations(data, x_col, config)
 
         return TraceBuildResult(
             traces=traces,
             barmode="stack",
-            layout_annotations=layout_annotations,
+            annotations=annotations,
         )
 
     def _prepare_data(
@@ -148,7 +149,7 @@ class StackedBarPlot(BasePlot):
 
     def _build_totals_annotations(
         self, data: pd.DataFrame, x_col: str, config: PlotConfig
-    ) -> list[dict[str, Any]]:
+    ) -> list[AnnotationConfig]:
         """Build annotations for stack totals."""
         # [impl->req~ring5.figure.stack-totals~1]
         total_fmt = config.get("net_total_format", ".2f")
@@ -172,17 +173,16 @@ class StackedBarPlot(BasePlot):
             y_pos, yanchor = self._get_total_position(val, position_option, anchor_option)
 
             annotations.append(
-                dict(
+                AnnotationConfig(
+                    annotation_type="bar_value",
                     x=x_pos,
                     y=y_pos,
-                    xref="x",
-                    yref="y",
                     text=fmt_val(val),
-                    showarrow=False,
-                    font=dict(size=font_size, color=font_color),
+                    font_size=font_size,
+                    font_color=font_color,
                     yanchor=yanchor,
-                    yshift=offset,
-                    textangle=rotation,
+                    y_shift_pixels=offset,
+                    text_angle=rotation,
                 )
             )
 
@@ -190,7 +190,7 @@ class StackedBarPlot(BasePlot):
 
     def _get_total_position(
         self, val: float, position_option: str, anchor_option: str
-    ) -> tuple[float, str]:
+    ) -> tuple[float, Literal["bottom", "top", "middle"]]:
         """Calculate Y position and anchor for total annotation."""
         if position_option == "Outside":
             return val, "bottom"
