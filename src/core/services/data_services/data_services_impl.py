@@ -209,15 +209,6 @@ class DefaultDataServicesAPI:
         """Filter out internal simulator statistics from entry list."""
         return VariableService.filter_internal_stats(entries, internal_stats)
 
-    def find_variable_by_name(
-        self,
-        variables: list[ParseVariableConfig],
-        name: str,
-        exact: bool = True,
-    ) -> ParseVariableConfig | None:
-        """Find a variable by name (exact or regex match)."""
-        return VariableService.find_variable_by_name(variables, name, exact)
-
     def aggregate_discovered_entries(
         self,
         snapshot: list[ScannedVariableDict],
@@ -243,17 +234,6 @@ class DefaultDataServicesAPI:
         """Format list of entries as comma-separated string."""
         return VariableService.format_entries_as_string(entries)
 
-    def find_entries_for_variable(
-        self,
-        available_variables: list[ScannedVariableDict],
-        var_name: str,
-        internal_stats: frozenset[str],
-    ) -> list[str]:
-        """Find all entries for a variable by searching available/scanned variables."""
-        return VariableService.find_entries_for_variable(
-            available_variables, var_name, internal_stats
-        )
-
     def has_variable_with_name(
         self,
         variables: list[ParseVariableConfig],
@@ -261,13 +241,6 @@ class DefaultDataServicesAPI:
     ) -> bool:
         """Check if a variable with the given name already exists."""
         return VariableService.has_variable_with_name(variables, name)
-
-    def build_statistics_list(
-        self,
-        selected: dict[str, bool],
-    ) -> list[str]:
-        """Build a list of selected statistics from a boolean mapping."""
-        return VariableService.build_statistics_list(selected)
 
     # -- Portfolio Management --
 

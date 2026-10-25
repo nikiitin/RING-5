@@ -1,7 +1,4 @@
-from collections.abc import Generator
 from pathlib import Path
-from typing import Any, cast
-from unittest.mock import patch
 
 import pandas as pd
 import pytest
@@ -9,51 +6,13 @@ import pytest
 from src.core.application_api import ApplicationAPI
 from src.core.services.data_services.config_service import ConfigService
 from src.core.services.data_services.csv_pool_service import CsvPoolService
-from src.core.services.data_services.path_service import PathService
+
+pytestmark = pytest.mark.usefixtures("isolated_application_data")
 
 
-@pytest.fixture
-def facade(tmp_path: Any) -> Generator[ApplicationAPI, None, None]:
-    """
-    Fixture creates a ApplicationAPI instance with temporary directories.
-    Patches PathService to use temp directories for isolation.
-    """
-    # Reset class-level caches for test isolation
-    PathService.reset_caches()
-    CsvPoolService.clear_caches()
-    ConfigService.reset_caches()
-
-    # Create temp structure
-    ring5_dir = tmp_path / ".ring5"
-    ring5_dir.mkdir()
-    csv_pool = ring5_dir / "csv_pool"
-    csv_pool.mkdir()
-    config_pool = ring5_dir / "saved_configs"
-    config_pool.mkdir()
-
-    # Patch PathService.get_data_dir to return our temp dir
-    with patch(
-        "src.core.services.data_services.path_service.PathService.get_data_dir",
-        return_value=ring5_dir,
-    ):
-        with patch(
-            "src.core.services.data_services.csv_pool_service.PathService.get_data_dir",
-            return_value=ring5_dir,
-        ):
-            with patch(
-                "src.core.services.data_services.config_service.PathService.get_data_dir",
-                return_value=ring5_dir,
-            ):
-                # Initialize facade (will use patched paths)
-                f = ApplicationAPI()
-                # Override paths on facade too for backward compatibility
-                cast(Any, f).ring5_data_dir = ring5_dir
-                cast(Any, f).csv_pool_dir = csv_pool
-                cast(Any, f).config_pool_dir = config_pool
-                yield f
-
-
-def test_csv_pool_operations(facade: Any, tmp_path: Any) -> None:
+def test_csv_pool_operations(
+    facade: ApplicationAPI, tmp_path: Path, isolated_application_data: Path
+) -> None:
     """Test adding, listing, loading, and deleting CSV files."""
 
     # Create a dummy CSV
@@ -64,7 +23,8 @@ def test_csv_pool_operations(facade: Any, tmp_path: Any) -> None:
     # Add to pool
     added_path = facade.data_services.add_to_csv_pool(str(dummy_csv))
     assert Path(added_path).exists()
-    assert Path(added_path).parent == facade.csv_pool_dir
+    assert Path(added_path).parent == CsvPoolService.get_pool_dir()
+    assert CsvPoolService.get_pool_dir() == isolated_application_data / "csv_pool"
 
     # List pool
     pool = facade.data_services.load_csv_pool()
@@ -83,7 +43,9 @@ def test_csv_pool_operations(facade: Any, tmp_path: Any) -> None:
     assert len(facade.data_services.load_csv_pool()) == 0
 
 
-def test_configuration_operations(facade: Any, tmp_path: Any) -> None:
+def test_configuration_operations(
+    facade: ApplicationAPI, tmp_path: Path, isolated_application_data: Path
+) -> None:
     """Test saving, listing, loading, and deleting configurations."""
 
     # Save Config
@@ -98,6 +60,8 @@ def test_configuration_operations(facade: Any, tmp_path: Any) -> None:
     )
 
     assert Path(config_path).exists()
+    assert Path(config_path).parent == ConfigService.get_config_dir()
+    assert ConfigService.get_config_dir() == isolated_application_data / "saved_configs"
 
     # List Configs
     configs = facade.data_services.load_saved_configs()
@@ -117,12 +81,12 @@ def test_configuration_operations(facade: Any, tmp_path: Any) -> None:
     assert len(facade.data_services.load_saved_configs()) == 0
 
 
-def test_csv_pool_sorting(facade: Any, tmp_path: Any) -> None:
+def test_csv_pool_sorting(facade: ApplicationAPI, tmp_path: Path) -> None:
     """Test that CSV pool is sorted by modification time (reverse)."""
 
     # Create 3 files with different times
     for i in range(3):
-        p = facade.csv_pool_dir / f"file_{i}.csv"
+        p = CsvPoolService.get_pool_dir() / f"file_{i}.csv"
         p.touch()
         # Force mtime difference
         import os

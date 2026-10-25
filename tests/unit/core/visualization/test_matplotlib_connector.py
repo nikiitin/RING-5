@@ -232,6 +232,45 @@ class TestMatplotlibAnnotations:
 
     # [test->req~ring5.figure.shapes-annotations~1]
 
+    def test_html_br_converted_to_newline(self, ax: Axes) -> None:
+        spec = FigureConfig(
+            annotations=[
+                AnnotationConfig(
+                    text="Line1<br>Line2<br/>Line3", x=0.5, y=0.5, xref="paper", yref="paper"
+                )
+            ]
+        )
+        FigureSpecToMatplotlib._apply_annotations(spec, ax)
+        assert len(ax.texts) == 1
+        assert ax.texts[0].get_text() == "Line1\nLine2\nLine3"
+
+    def test_bordered_annotation_has_bbox(self, ax: Axes) -> None:
+        spec = FigureConfig(
+            annotations=[
+                AnnotationConfig(
+                    text="Boxed",
+                    x=0.5,
+                    y=0.5,
+                    xref="paper",
+                    yref="paper",
+                    border_width=1.0,
+                    border_color="#333",
+                    bgcolor="#ffffff",
+                )
+            ]
+        )
+        FigureSpecToMatplotlib._apply_annotations(spec, ax)
+        assert len(ax.texts) == 1
+        bbox = ax.texts[0].get_bbox_patch()
+        assert bbox is not None
+        assert bbox.get_linewidth() == 1.0
+        assert bbox.get_edgecolor() == to_rgba("#333")
+        assert bbox.get_facecolor() == to_rgba("#ffffff")
+
+    def test_empty_annotations_noop(self, ax: Axes) -> None:
+        FigureSpecToMatplotlib._apply_annotations(FigureConfig(annotations=[]), ax)
+        assert len(ax.texts) == 0
+
     def test_annotation_without_arrow_has_no_arrowpatch(self, ax: Axes) -> None:
         spec = FigureConfig(
             annotations=[AnnotationConfig(text="plain", x=0.5, y=0.5, xref="paper", yref="paper")]

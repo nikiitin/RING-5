@@ -24,13 +24,11 @@ class TestScannerFunctional:
         pytest.skip("Test data not found")
         return None  # Unreachable, but makes return type explicit
 
-    def test_scan_real_stats(self, test_data_path: Any) -> None:
+    def test_scan_real_stats(self, test_data_path: Any, facade: ApplicationAPI) -> None:
         """
         Test scanning actual gem5 stats files using valid futures.
         """
         # [test->req~ring5.ingestion.variable-scan~1]
-        facade = ApplicationAPI()
-
         # Submit Scan
         futures = facade.submit_scan_async(test_data_path, "stats.txt", limit=5)
 

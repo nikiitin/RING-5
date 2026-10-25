@@ -37,12 +37,6 @@ def sample_benchmark_data() -> pd.DataFrame:
     )
 
 
-@pytest.fixture
-def facade() -> ApplicationAPI:
-    """Create ApplicationAPI instance for testing."""
-    return ApplicationAPI()
-
-
 class TestTransformationPipeline:
     """Integration tests for shaper pipeline workflows."""
 
@@ -113,7 +107,9 @@ class TestTransformationPipeline:
             mcf_idx < omnetpp_idx for mcf_idx in mcf_indices for omnetpp_idx in omnetpp_indices
         )
 
-    def test_pipeline_with_mean_aggregation(self, sample_benchmark_data: pd.DataFrame) -> None:
+    def test_pipeline_with_mean_aggregation(
+        self, sample_benchmark_data: pd.DataFrame, facade: ApplicationAPI
+    ) -> None:
         """
         Test pipeline with mean aggregation shaper.
         """
@@ -128,7 +124,6 @@ class TestTransformationPipeline:
             }
         ]
 
-        facade = ApplicationAPI()
         result = facade.shapers.process_pipeline(sample_benchmark_data, pipeline)
 
         # Verify mean rows were added
@@ -138,12 +133,12 @@ class TestTransformationPipeline:
         mean_rows = result[result["benchmark"] == "geomean"]
         assert len(mean_rows) == 2  # One for each config
 
-    def test_pipeline_error_handling(self, sample_benchmark_data: pd.DataFrame) -> None:
+    def test_pipeline_error_handling(
+        self, sample_benchmark_data: pd.DataFrame, facade: ApplicationAPI
+    ) -> None:
         """
         Test error handling in pipeline execution.
         """
-        facade = ApplicationAPI()
-
         # Test with invalid shaper type
         invalid_pipeline: list[ShaperStepConfig] = cast(Any, [{"type": "invalid_shaper"}])
 
@@ -163,8 +158,9 @@ class TestTransformationPipeline:
         with pytest.raises((ValueError, KeyError)):
             facade.shapers.process_pipeline(sample_benchmark_data, invalid_normalize)
 
+    @pytest.mark.usefixtures("isolated_application_data")
     def test_complex_pipeline_workflow(
-        self, sample_benchmark_data: pd.DataFrame, tmp_path: Path
+        self, sample_benchmark_data: pd.DataFrame, tmp_path: Path, facade: ApplicationAPI
     ) -> None:
         """
         Test complex end-to-end workflow:
@@ -174,8 +170,6 @@ class TestTransformationPipeline:
         4. Load pipeline
         5. Apply to new data
         """
-        facade = ApplicationAPI()
-
         # Save sample data to CSV
         csv_path = tmp_path / "sample.csv"
         sample_benchmark_data.to_csv(csv_path, index=False)
@@ -216,3 +210,37 @@ class TestTransformationPipeline:
         pd.testing.assert_frame_equal(
             transformed.reset_index(drop=True), retransformed.reset_index(drop=True)
         )
+
+    @pytest.mark.usefixtures("isolated_application_data")
+    def test_saved_pipeline_replays_loaded_csv(
+        self, tmp_path: Path, facade: ApplicationAPI
+    ) -> None:
+        source = pd.DataFrame(
+            {
+                "benchmark": ["bm1", "bm2", "bm3", "bm4"],
+                "config": ["A", "B", "A", "B"],
+                "ipc": [1.5, 2.0, 1.8, 2.2],
+                "latency": [100, 80, 90, 75],
+            }
+        )
+        csv_path = tmp_path / "results.csv"
+        source.to_csv(csv_path, index=False)
+        pipeline: list[ShaperStepConfig] = [
+            {"type": "columnSelector", "columns": ["benchmark", "ipc", "latency"]},
+            {"type": "columnSelector", "columns": ["benchmark", "ipc"]},
+        ]
+        pool_path = facade.data_services.add_to_csv_pool(str(csv_path))
+        config_path = facade.data_services.save_configuration(
+            "test_pipeline", "CSV replay", pipeline, pool_path
+        )
+        loaded = facade.data_services.load_configuration(config_path)
+        saved_csv_path = loaded["csv_path"]
+        assert isinstance(saved_csv_path, str) and saved_csv_path == pool_path
+        loaded_frame = facade.data_services.load_csv_file(saved_csv_path)
+        original = loaded_frame.copy(deep=True)
+        steps = loaded["shapers"]
+        first = facade.shapers.process_pipeline(loaded_frame, steps[:1])
+        replayed = facade.shapers.process_pipeline(loaded_frame, steps)
+        pd.testing.assert_frame_equal(first, source[["benchmark", "ipc", "latency"]])
+        pd.testing.assert_frame_equal(replayed, source[["benchmark", "ipc"]])
+        pd.testing.assert_frame_equal(loaded_frame, original)

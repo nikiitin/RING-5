@@ -64,6 +64,13 @@ class TestPaletteRegistry:
 class TestResolvePalette:
     """Tests for resolve_palette()."""
 
+    @pytest.mark.parametrize("name", get_palette_names())
+    def test_every_advertised_palette_resolves_to_registered_copy(self, name: str) -> None:
+        colors = resolve_palette(name)
+        assert colors == PALETTE_REGISTRY[name]
+        assert colors is not PALETTE_REGISTRY[name]
+        assert colors and all(_HEX_RE.fullmatch(color) for color in colors)
+
     def test_resolve_known_name(self) -> None:
         colors = resolve_palette("wong")
         assert len(colors) == 8
@@ -139,6 +146,21 @@ class TestIsColorblindSafe:
     """Tests for is_colorblind_safe()."""
 
     # [test->req~ring5.figure.colors~1]
+
+    @pytest.mark.parametrize(
+        "name",
+        [
+            "ring5_accessible",
+            "ring5_accessible_dark",
+            "wong",
+            "okabe_ito",
+            "tol_bright",
+            "viridis_8",
+            "seaborn_cb",
+        ],
+    )
+    def test_declared_safe_palette_is_marked(self, name: str) -> None:
+        assert is_colorblind_safe(name) is True
 
     def test_wong_is_colorblind_safe(self) -> None:
         assert is_colorblind_safe("wong") is True
