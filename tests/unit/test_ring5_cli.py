@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 from unittest.mock import patch
 from xml.etree import ElementTree as ET
@@ -601,7 +602,8 @@ class TestReportScheduleCommand:
         self._write_recipe(recipe)
         parameters.write_text(json.dumps({"input_csv": str(source)}))
 
-        with patch("ring5.cli.time.sleep") as sleep:
+        with patch("ring5.cli.time", wraps=time, spec=time) as watch_time:
+            watch_time.sleep.return_value = None
             code = main(
                 [
                     "report-schedule",
@@ -623,7 +625,7 @@ class TestReportScheduleCommand:
 
         assert code == 0
         assert [result["outcome"] for result in results] == ["generated", "unchanged"]
-        sleep.assert_called_once_with(0.1)
+        watch_time.sleep.assert_called_once_with(0.1)
 
     def test_first_scheduled_observation_waits_for_stability(
         self, tmp_path: Path, capsys: pytest.CaptureFixture[str]

@@ -872,10 +872,12 @@ Tags: configuration, data, mixer, status_approved
 
 ### Mixer error propagation
 
-`req~ring5.data.error-propagation~1`
+`req~ring5.data.error-propagation~2`
 Status: approved
 
-When source columns have .sd or _stdev companions, numeric mixing shall propagate uncertainty into a companion output standard deviation.
+Numeric mixing shall combine recorded .sd uncertainty for nonmissing source values, treating distinct source columns as independent and repeated selections of one column as correlated weights. Missing contributing SDs and undefined estimates shall keep output uncertainty missing; mean SD shall use the row's nonmissing source count. Sources without SD columns add no recorded variance.
+
+History records: 1
 
 Covers:
 - feat~ring5.data-management~1

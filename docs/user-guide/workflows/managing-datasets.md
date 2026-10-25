@@ -437,7 +437,8 @@ Covers:
 -->
 
 **Mixer** creates a named sum or arithmetic mean from two or more numeric columns. The source
-columns remain in the result.
+columns remain in the result. Both operations skip missing source values. An all-missing row sums
+to zero and has a missing mean. Binary arithmetic propagates missing operands.
 
 ### Configuration label mixing
 
@@ -455,16 +456,26 @@ in selection order with the configured separator. This mode does not calculate u
 ### Uncertainty propagation
 
 <!--
-`uman~ring5.data.error-propagation.documentation~1`
+`uman~ring5.data.error-propagation.documentation~2`
 
 Covers:
-- req~ring5.data.error-propagation~1
+- req~ring5.data.error-propagation~2
 
 -->
 
 For numeric sums and means, Mixer looks for a `.sd` companion for each source column.
-When at least one is present, it combines variances and writes `<result>.sd`; means divide the
-combined standard deviation by the number of source columns.
+When at least one is present, it combines recorded variances and writes `<result>.sd`. Only
+nonmissing source values contribute. A missing SD value for a contributing measurement keeps the
+result SD missing; uncertainty attached to a skipped source value is also skipped. Mean SDs divide
+by the number of nonmissing source values in each row.
+
+Distinct source columns are combined as independent measurements. Repeating one column weights
+the same measurement, so its repeated contributions are fully correlated. An undefined result
+estimate, such as a sum of opposing infinities, also keeps its uncertainty missing.
+
+Sources without an `.sd` column add no recorded variance. If no companions exist, Mixer creates no
+result `.sd` column. An all-missing row has zero recorded sum uncertainty and missing mean
+uncertainty when companions are configured.
 
 Name derived columns for the quantity and unit they contain. For example, a division is not
 automatically IPC unless the numerator and denominator have the correct semantics.
