@@ -10,7 +10,7 @@ from src.web.components.common.reorderable_list import (
     render_reorderable_list,
 )
 from src.web.components.common.bounded_options import bounded_unique_strings
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 
 
 class OrderingSettingsComponent:

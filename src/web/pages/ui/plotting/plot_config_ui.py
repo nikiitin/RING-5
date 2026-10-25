@@ -29,7 +29,7 @@ from src.web.components.plotting.settings import (
     ThemePresetsSettingsComponent,
     TypographySettingsComponent,
 )
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 
 if TYPE_CHECKING:
     from src.web.pages.ui.plotting.styles import BaseStyleUI

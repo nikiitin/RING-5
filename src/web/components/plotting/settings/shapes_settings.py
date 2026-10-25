@@ -12,7 +12,7 @@ from src.core.services.visualization.plot_interaction import (
     try_float,
     try_float_edit,
 )
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 
 
 class ShapesSettingsComponent:

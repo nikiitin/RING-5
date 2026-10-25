@@ -11,7 +11,7 @@ from src.web.components.plotting.config.base_plot_config import (
     render_xy_selectors,
 )
 from src.web.components.plotting.config.plot_config_components import PlotConfigComponents
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 
 _MODES = {"Overlay": "overlay", "Stack values": "stack", "100% stacked": "normalize"}
 _INTERPOLATIONS = {"Linear": "linear", "Step after": "hv", "Step before": "vh"}

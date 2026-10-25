@@ -13,7 +13,7 @@ from typing import Any
 import pandas as pd
 
 from src.core.models.visualization.trace_config import TraceConfig
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 from src.web.pages.ui.plotting.utils.ordering import order_with_overrides
 
 

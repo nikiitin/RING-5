@@ -6,7 +6,7 @@ import streamlit as st
 
 from src.core.models.figure_theme_models import FigureThemeContext
 from src.core.services.visualization.figure_theme_service import FigureThemeService
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 
 
 class ThemePresetsSettingsComponent:

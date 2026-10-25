@@ -1,13 +1,4 @@
-"""
-Integration test — validates the full architecture stack works end-to-end.
-
-Tests that:
-    1. All new modules import correctly
-    2. Layer dependency rules are respected
-    3. PlotFactory + StyleApplicator integrate correctly
-    4. Models + UIStateManager + Controller protocols are consistent
-    5. Controllers delegate to presenters (no direct st.* rendering)
-"""
+"""Exercise plot controllers, rendering and state through current layer contracts."""
 
 import re
 from pathlib import Path
@@ -18,28 +9,12 @@ import plotly.graph_objects as go
 import pytest
 
 from src.core.models.data_models import PipelineStep
-from src.web.models.plot_models import (
-    AnnotationShapeConfig,
-    MarginsConfig,
-    PlotDisplayConfig,
-    SeriesStyleConfig,
-    TypographyConfig,
-)
 
 # Module Import Tests
 
 
 class TestModuleImports:
-    """Verify all new modules import without errors."""
-
-    def test_import_models(self) -> None:
-        """Models module imports correctly."""
-        from src.web.models import plot_models
-
-        assert hasattr(plot_models, "PlotDisplayConfig")
-        # Pipeline-step type is the canonical PipelineStep in core.models —
-        # it is intentionally NOT duplicated in the web layer.
-        assert not hasattr(plot_models, "ShaperStep")
+    """Verify current modules import without errors."""
 
     def test_import_state(self) -> None:
         """UIStateManager imports correctly."""
@@ -95,8 +70,8 @@ class TestLayerDependencies:
     """Verify layer dependency rules are respected."""
 
     def test_models_have_no_streamlit_import(self) -> None:
-        """Layer 5 (Models) must NOT import streamlit."""
-        import src.web.models.plot_models as models_mod
+        """Core configuration models must not import Streamlit."""
+        import src.core.models.plot_config as models_mod
 
         # Check that no streamlit module is loaded by this module
         source: str = Path(models_mod.__file__).read_text()  # type: ignore[arg-type]
@@ -185,48 +160,6 @@ class TestFigureEngineIntegration:
 
 
 # Model TypedDict Compatibility
-
-
-class TestModelCompatibility:
-    """Verify new TypedDicts are compatible with existing config patterns."""
-
-    def test_pipeline_step_creation(self) -> None:
-        """PipelineStep can be created with required fields."""
-        step: PipelineStep = cast(
-            Any, {"id": 0, "type": "sort", "config": {"order_dict": {"x": ["a"]}}}
-        )
-        assert step["type"] == "sort"
-
-    def test_margins_config(self) -> None:
-        """MarginsConfig works as TypedDict."""
-        margins: MarginsConfig = {"top": 80, "bottom": 120}
-        assert margins["top"] == 80
-
-    def test_plot_display_config_partial(self) -> None:
-        """PlotDisplayConfig allows partial initialization."""
-        config: PlotDisplayConfig = {"x": "benchmark", "y": "ipc"}
-        assert config["x"] == "benchmark"
-
-    def test_typography_config(self) -> None:
-        """TypographyConfig works as TypedDict."""
-        typo: TypographyConfig = {"font_size": 14, "title_font_size": 18}
-        assert typo["font_size"] == 14
-
-    def test_series_style_config(self) -> None:
-        """SeriesStyleConfig works as TypedDict."""
-        style: SeriesStyleConfig = {"name": "Custom", "color": "#FF0000"}
-        assert style["color"] == "#FF0000"
-
-    def test_annotation_shape_config(self) -> None:
-        """AnnotationShapeConfig works as TypedDict."""
-        shape: AnnotationShapeConfig = {
-            "type": "line",
-            "x0": 0.0,
-            "y0": 0.0,
-            "x1": 1.0,
-            "y1": 1.0,
-        }
-        assert shape["type"] == "line"
 
 
 # Controller Boundary Tests

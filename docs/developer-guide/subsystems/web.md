@@ -19,6 +19,10 @@ Plot controllers under `src/web/controllers/plot/` handle creation, pipeline edi
 They depend on protocols in `src/web/models/plot_protocols.py`; adapters in
 `src/web/pages/plot_adapters.py` connect current plot services to those protocols.
 
+Editable `PlotConfig` mappings live in `src/core/models/plot_config.py` and accept registered
+plot-specific fields. Rendering resolves them into the typed `FigureConfig` and visualization
+submodels in core. The web models package owns structural interaction protocols.
+
 `src/web/state/ui_state_manager.py` owns transient widget and interaction state. Persistent data,
 plots, parser configuration, and history go through `ApplicationAPI` and the core state manager.
 

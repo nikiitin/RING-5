@@ -13,7 +13,7 @@ from src.web.components.plotting.config.base_plot_config import (
 from src.web.components.plotting.config.plot_config_components import (
     PlotConfigComponents,
 )
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 
 _ORIENTATION_LABELS = {"Vertical": "vertical", "Horizontal": "horizontal"}
 _QUARTILE_LABELS = {

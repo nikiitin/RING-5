@@ -13,7 +13,7 @@ from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
 from src.core.common.typed_table_codec import TypedTableCodec
 from src.core.services.visualization.accessibility_service import AccessibilityService
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 from src.web.rendering.relayout import update_config_from_relayout
 from src.web.pages.ui.plotting.plot_config_ui import PlotConfigUIMixin
 from src.web.pages.ui.plotting.styles import StyleApplicator, StyleUIFactory

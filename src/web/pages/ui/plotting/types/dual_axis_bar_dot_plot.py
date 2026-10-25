@@ -18,7 +18,7 @@ from src.core.models.visualization.trace_config import (
     TraceConfig,
 )
 from src.web.components.plotting.config import dual_axis_config
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.types._trace_helpers import (
     build_drill_down_payload,
