@@ -18,6 +18,9 @@ contract**.
    `submit_parse_async` / `finalize_parsing`; backends implement the complete `SimulationParser`
    protocol, including incremental and playground submission/finalization and scan aggregation.
    **No synchronous wrapper** may be added.
+   Incremental finalization has one `complete: bool = True` contract. Partial mode retains valid
+   cached and changed rows without promoting the success cache; both modes verify fingerprints
+   and exact unique provenance. Counts distinguish accepted rows from the planned file total.
 3. **Explicit source metadata.** Every runnable config declares `params.source_type`; numeric
    patterns require `scanned_vars` with concrete `SourceInstance` names and numeric coordinates.
    `selected_sources` contains concrete names only. Resolve once before workers, never reconstruct

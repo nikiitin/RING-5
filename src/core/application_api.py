@@ -1021,21 +1021,7 @@ class ApplicationAPI:
     ) -> str | None:
         """Adapt the job finalizer callback to the parser primitive."""
         if isinstance(batch, IncrementalParseBatchResult):
-            if complete:
-                return self.finalize_incremental_parsing(batch, results).csv_path
-            # Partial rows must not enter the parser's durable success cache.
-            # Keep that capability private so SimulationParser's public contract stays unchanged.
-            partial_finalizer = getattr(
-                self._parser,
-                "_finalize_partial_incremental_parsing",
-                None,
-            )
-            if callable(partial_finalizer):
-                return cast(str, partial_finalizer(batch, results))
-            if batch.cached_rows:
-                raise RuntimeError(
-                    "Parser backend cannot retain reused rows in a partial incremental result"
-                )
+            return self.finalize_incremental_parsing(batch, results, complete=complete).csv_path
         return self.finalize_parsing(
             output_dir,
             results,
@@ -1168,10 +1154,22 @@ class ApplicationAPI:
         self,
         batch: IncrementalParseBatchResult,
         results: list[dict[str, Any]],
+        *,
+        complete: bool = True,
     ) -> IncrementalParseResult:
         # [impl->req~ring5.ingestion.incremental-parsing~1]
-        """Merge changed parser results with unchanged cached rows."""
-        return self._parser.finalize_incremental_parsing(batch, results)
+        """Publish changed and cached rows through the explicit backend completion contract.
+
+        Args:
+            batch: Submitted input and cache-reuse plan.
+            results: Successful changed-file results.
+            complete: Require all planned rows and promote the success cache.
+                False publishes accepted rows without changing that cache.
+
+        Returns:
+            Published CSV and accepted counts against the planned total file count.
+        """
+        return self._parser.finalize_incremental_parsing(batch, results, complete=complete)
 
     def submit_parser_playground_async(
         self,

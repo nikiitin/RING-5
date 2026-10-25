@@ -78,7 +78,15 @@ class IncrementalParseBatchResult:
 
 @dataclass(frozen=True)
 class IncrementalParseResult:
-    """Final CSV and human-readable incremental update counts."""
+    """Published CSV and incremental update counts.
+
+    Attributes:
+        csv_path: CSV containing accepted changed and reused rows.
+        parsed_files: Accepted changed-file results included in this output.
+        reused_files: Unchanged rows accepted from the submitted reuse plan.
+        removed_files: Previous input files removed from the current plan.
+        total_files: Planned input count; may exceed parsed plus reused for partial output.
+    """
 
     csv_path: str
     parsed_files: int

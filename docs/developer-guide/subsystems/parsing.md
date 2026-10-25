@@ -137,6 +137,13 @@ and configuration-aware companion files are hashed in full; unchanged timestamps
 authorize reusing changed data. Missing companion inputs fail before submission. Inputs are checked
 again before finalization; a changed input fails the job instead of publishing under a stale identity.
 
+`finalize_incremental_parsing(batch, results, complete=True)` is the backend and facade contract
+for complete and partial incremental work. Complete finalization requires every planned row and
+updates the success cache. Passing `complete=False` publishes valid changed and reused rows while
+leaving that cache unchanged; no usable rows is an error. Both modes validate input fingerprints
+and exact, unique source provenance before publication. Results count accepted changed and reused
+rows against the planned `total_files`, so a partial result can contain fewer rows than that total.
+
 `PARSER_RESULT_VERSION` in `src/core/models/parsing_models.py` is the shared semantic revision for
 incremental rows and durable parse requests. Changing parser meaning or output labels requires
 bumping it so neither cache can return measurements from an older contract.

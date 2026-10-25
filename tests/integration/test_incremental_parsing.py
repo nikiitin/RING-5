@@ -119,3 +119,46 @@ def test_incremental_cache_cannot_replace_output_or_simulator_input(tmp_path: Pa
                 )
 
     assert source.read_text(encoding="utf-8") == "simTicks 100 # ticks\n"
+
+
+def test_explicit_partial_finalization_retains_cached_rows_after_a_real_worker_failure(tmp_path):
+    inputs = tmp_path / "inputs"
+    _write_run(inputs, "cached", 100)
+    accepted = _write_run(inputs, "accepted", 200)
+    failed = _write_run(inputs, "failed", 300)
+    output = tmp_path / "output"
+    configured = ring5.StatConfig("simTicks", "scalar", params={"source_type": "scalar"})
+    with ring5.Session() as session:
+        initial = session.api.submit_incremental_parse_async(
+            str(inputs), "stats.txt", [configured], str(output)
+        )
+        session.api.finalize_incremental_parsing(
+            initial, [future.result(timeout=30) for future in initial.futures]
+        )
+        cache = output / ".ring5-incremental-parse.json"
+        before_cache = cache.read_bytes()
+        accepted.write_text("simTicks 250\n", encoding="utf-8")
+        failed.write_text("simTicks=unsupported\n", encoding="utf-8")
+        batch = session.api.submit_incremental_parse_async(
+            str(inputs), "stats.txt", [configured], str(output)
+        )
+        successful = []
+        failures = []
+        for future in batch.futures:
+            try:
+                successful.append(future.result(timeout=30))
+            except RuntimeError as exc:
+                failures.append(str(exc))
+        assert len(successful) == len(failures) == 1
+        assert "Raw source kind mismatch" in failures[0]
+
+        result = session.api.finalize_incremental_parsing(batch, successful, complete=False)
+
+        assert sorted(pd.read_csv(result.csv_path)["simTicks"].tolist()) == [100, 250]
+        assert (result.parsed_files, result.reused_files, result.total_files) == (1, 1, 3)
+        assert cache.read_bytes() == before_cache
+        partial_output = Path(result.csv_path).read_bytes()
+        with pytest.raises(RuntimeError, match="1 results for 2 changed files"):
+            session.api.finalize_incremental_parsing(batch, successful)
+        assert Path(result.csv_path).read_bytes() == partial_output
+        assert cache.read_bytes() == before_cache

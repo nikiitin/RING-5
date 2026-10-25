@@ -560,42 +560,46 @@ class Gem5Parser(SimulationParser):
     def finalize_incremental_parsing(
         batch: IncrementalParseBatchResult,
         results: list[dict[str, Any]],
+        *,
+        complete: bool = True,
     ) -> IncrementalParseResult:
         # [impl->req~ring5.ingestion.incremental-parsing~1]
-        """Merge changed results with unchanged cache rows and atomically publish both files."""
+        """Publish valid incremental rows and promote the cache only for complete work.
+
+        Args:
+            batch: Reviewed input fingerprints, changed files and reusable rows.
+            results: Successful changed-file results with exact provenance.
+            complete: Require all planned rows and replace the success cache.
+                False retains accepted cached and changed rows without cache promotion.
+
+        Returns:
+            Published CSV, accepted changed/reused counts and the planned file total.
+
+        Raises:
+            TypeError: The completion mode is not a boolean.
+            RuntimeError: Provenance is invalid, inputs changed, or no partial rows are usable.
+        """
+        if type(complete) is not bool:
+            raise TypeError("Incremental completion mode must be a boolean.")
         current_paths, rows = Gem5Parser._prepare_incremental_rows(
-            batch,
-            results,
-            require_complete=True,
+            batch, results, require_complete=complete
         )
         output_path = Gem5Parser._write_incremental_csv(batch, current_paths, rows)
-        write_cache(
-            Path(batch.cache_path),
-            batch.configuration_hash,
-            batch.var_names,
-            batch.fingerprints,
-            rows,
-        )
+        if complete:
+            write_cache(
+                Path(batch.cache_path),
+                batch.configuration_hash,
+                batch.var_names,
+                batch.fingerprints,
+                rows,
+            )
         return IncrementalParseResult(
             csv_path=str(output_path),
-            parsed_files=batch.parsed_file_count,
+            parsed_files=len(results),
             reused_files=batch.reused_file_count,
             removed_files=batch.removed_file_count,
             total_files=batch.total_file_count,
         )
-
-    @staticmethod
-    def _finalize_partial_incremental_parsing(
-        batch: IncrementalParseBatchResult,
-        results: list[dict[str, Any]],
-    ) -> str:
-        """Write valid cached and changed rows without promoting a partial cache."""
-        current_paths, rows = Gem5Parser._prepare_incremental_rows(
-            batch,
-            results,
-            require_complete=False,
-        )
-        return str(Gem5Parser._write_incremental_csv(batch, current_paths, rows))
 
     @staticmethod
     def _prepare_incremental_rows(

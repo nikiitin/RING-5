@@ -55,6 +55,11 @@ snapshots contain every `StatConfig` field. UI identifiers never enter the saved
 regenerated when restored. Recipes require runnable variables and use recipe schema 3. Template
 operands are validated as declared placeholders, then compiled after materialization.
 
+`finalize_incremental_parsing` accepts the keyword-only `complete` flag, defaulting to `True`.
+Both modes retain accepted reusable rows and validate provenance. `complete=False` permits partial
+output without promoting the success cache; no usable rows fails visibly. Returned counts describe
+accepted changed/reused files and the planned total. Every backend implements this same contract.
+
 Entry-filtering methods require the selected `SimulatorInfo.internal_stats` explicitly. A
 simulator's summary names are metadata, so a generic service never guesses a gem5 default.
 
