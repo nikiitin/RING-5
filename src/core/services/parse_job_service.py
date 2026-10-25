@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from src.core.common.input_identity import fingerprint_inputs
-from src.core.common.utils import normalize_user_path, sanitize_glob_pattern
+from src.core.common.utils import normalize_user_path, validate_stats_pattern
 from src.core.models import (
     IncrementalParseBatchResult,
     ParseBatchResult,
@@ -81,7 +81,7 @@ def build_parse_job_request(
     if not normalized_path.is_dir():
         raise NotADirectoryError(f"Stats path is not a directory: {stats_path}")
 
-    normalized_pattern = sanitize_glob_pattern(stats_pattern)
+    normalized_pattern = validate_stats_pattern(stats_pattern)
     variables_json = _canonical_json(list(variables), strip_internal_ids=True)
     scanned_json = _canonical_json(
         list(scanned_variables) if scanned_variables is not None else [],

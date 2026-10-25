@@ -231,29 +231,3 @@ class Normalize(UniDfShaper):
 
         result: DataFrame = self._normalize_with_cache(data_frame, fingerprint)
         return copy_dataframe(result)
-
-
-if __name__ == "__main__":
-    # Self-test block
-    test_df = pd.DataFrame(
-        {
-            "config": ["baseline", "eval"],
-            "bench": ["B1", "B1"],
-            "cycles": [1000, 1500],
-            "energy": [50, 60],
-        }
-    )
-
-    normalizer = Normalize(
-        {
-            "normalizeVars": ["cycles", "energy"],
-            "normalizerColumn": "config",
-            "normalizerValue": "baseline",
-            "groupBy": ["bench"],
-        }
-    )
-
-    logger.debug("Pre-normalization:")
-    logger.debug(test_df)
-    logger.debug("\nPost-normalization:")
-    logger.debug(normalizer(test_df))

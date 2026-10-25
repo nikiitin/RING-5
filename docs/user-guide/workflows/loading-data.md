@@ -110,7 +110,8 @@ On **Data Source**, select **Parse gem5 Stats Files** and set:
 
 - **Stats directory path** to the common root of the gem5 runs.
 - **File pattern** to the statistics filename, normally `stats.txt`. Wildcards such as `*.txt` are
-  accepted.
+  accepted. Patterns contain one filename token: letters, digits, dots, underscores, hyphens,
+  `*`, or `?`. Empty patterns, whitespace, directory separators, and `..` are rejected.
 - **Select ingestion strategy** to a strategy provided by the selected simulator. Keep the default
   unless your dataset needs a different registered strategy.
 

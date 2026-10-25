@@ -217,8 +217,9 @@ print(session.inspect_semantics(converted).to_frame())
 
 Conversions return a new table and require a declared source unit. Only compatible dimensions are
 accepted: time, frequency, length, data size, power, energy, voltage, current, temperature, and
-ratio/percent. `supported_units()` returns the exact canonical spellings. Temperature conversion
-handles offsets as well as scale; incompatible or non-numeric conversions raise
+ratio/percent. `supported_units()` returns the exact canonical spellings, including ASCII `us` and
+`um` for microseconds and micrometres. Unit names and alternate symbols are unsupported.
+Temperature conversion handles offsets as well as scale; incompatible or non-numeric conversions raise
 `DataValidationError` before changing data.
 
 `Table.to_csv()` keeps the CSV standards-compliant and, when metadata is present, writes a
