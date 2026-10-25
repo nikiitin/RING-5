@@ -2603,7 +2603,9 @@
       "tags": ["extensibility", "plots", "registry"],
       "evidence": {
         "implementation": ["src/web/pages/ui/plotting/plot_factory.py::PlotFactory.get_plot_metadata", "src/web/pages/ui/plotting/plot_factory.py::PlotFactory.register_plot_type"],
-        "tests": ["tests/unit/test_plot_factory.py::TestPlotFactoryRegistration", "tests/unit/test_plot_factory.py::TestPlotFactoryMetadata"],
+        "tests": ["tests/unit/test_plot_factory.py::TestPlotFactoryRegistration", "tests/unit/test_plot_factory.py::TestPlotFactoryMetadata",
+          "tests/integration/test_neutral_trace_contract.py::test_public_constructor_and_restore_admit_a_registered_plot"
+        ],
         "documentation": ["docs/developer-guide/extension-guides/adding-a-plot-type.md#implement-and-register"]
       }
     },
@@ -3192,7 +3194,8 @@
           "tests/integration/test_ring5_api_completeness.py::test_every_registered_plot_accepts_validated_config",
           "tests/integration/test_ring5_api_completeness.py::test_invalid_plot_config_does_not_register_and_render_errors_are_typed",
           "tests/integration/test_ring5_public_api.py::TestErrorSurface.test_invalid_engine_lists_choices",
-          "tests/integration/test_ring5_public_api.py::TestApiErgonomics.test_unknown_plot_type_lists_valid_choices"
+          "tests/integration/test_ring5_public_api.py::TestApiErgonomics.test_unknown_plot_type_lists_valid_choices",
+          "tests/integration/test_neutral_trace_contract.py::test_public_constructor_and_restore_admit_a_registered_plot"
         ],
         "documentation": [
           "docs/developer-guide/api-reference/public-python-api.md#workspace"

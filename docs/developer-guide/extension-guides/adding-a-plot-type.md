@@ -44,6 +44,8 @@ trace sequence before drawing, including hidden traces. A bare `TraceConfig` or 
 family raises `TypeError`; public `Session.render` exposes the failure as `ring5.RenderError`.
 Histograms use the shared bucket geometry and emit `BarTraceConfig` with explicit positions and
 widths. Supported trace families may be subclassed by registered plot implementations.
+Registered extensions validate their own mapping fields in the trace callback. The public
+constructor validates common options before registering the plot.
 
 ## Test and verify
 

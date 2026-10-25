@@ -620,8 +620,8 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
 
 </style>
     <title>RING-5 feature coverage · OpenFastTrace</title>
-    <meta name="ring5-inventory-sha256" content="067c87efad417ef160e3a1d8496ce1e55505a6c4012677bcfe9b4f43311a676a">
-  <meta name="ring5-evidence-sha256" content="140c303fdd0bd4a0518022c767ce023024c4f7d4472d75e539a51ff073850d7b">
+    <meta name="ring5-inventory-sha256" content="eae44d509d5e54d0aae61b71b9874d57853f58620a34964ceab65c5f2b9efc08">
+  <meta name="ring5-evidence-sha256" content="9cc1c0fac926b3a9d549a11fa6018ea270e403ec04707215469848ac9a988a85">
 </head>
   <body>
 
@@ -3893,7 +3893,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>Every plot type shall build typed engine-independent traces before either rendering connector is invoked.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>3 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>5 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 9 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/developer-guide/subsystems/visualization.md#L32"><code>docs/developer-guide/subsystems/visualization.md#engine-independent-traces</code><b>open source ↗</b></a><span>line 32 · <a href="#uman~ring5.render.engine-independent-traces.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/core/models/visualization/trace_build_result.py#L68"><code>src/core/models/visualization/trace_build_result.py::TraceBuildResult</code><b>open source ↗</b></a><span>line 68 · <a href="#impl~ring5.render.engine-independent-traces-308628754~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/base_plot.py#L86"><code>src/web/pages/ui/plotting/base_plot.py::BasePlot.create_figure</code><b>open source ↗</b></a><span>line 86 · <a href="#impl~ring5.render.engine-independent-traces-2572312044~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/rendering/_connector_protocol.py#L55"><code>src/web/rendering/_connector_protocol.py::validate_trace_types</code><b>open source ↗</b></a><span>line 55 · <a href="#impl~ring5.render.engine-independent-traces-2261928299~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_trace_to_plotly.py#L42"><code>tests/unit/test_trace_to_plotly.py::TestTracesToPlotly</code><b>open source ↗</b></a><span>line 42 · <a href="#test~ring5.render.engine-independent-traces-2988966774~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_trace_to_plotly.py#L148"><code>tests/unit/test_trace_to_plotly.py::TestConvertTrace</code><b>open source ↗</b></a><span>line 148 · <a href="#test~ring5.render.engine-independent-traces-1100686752~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_neutral_trace_contract.py#L33"><code>tests/integration/test_neutral_trace_contract.py::test_both_converters_reject_unknown_families_before_drawing</code><b>open source ↗</b></a><span>line 33 · <a href="#test~ring5.render.engine-independent-traces-2382297312~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_neutral_trace_contract.py#L56"><code>tests/integration/test_neutral_trace_contract.py::test_public_render_exposes_unknown_trace_as_typed_error</code><b>open source ↗</b></a><span>line 56 · <a href="#test~ring5.render.engine-independent-traces-2047293025~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_neutral_trace_contract.py#L76"><code>tests/integration/test_neutral_trace_contract.py::test_supported_trace_subclasses_preserve_data_in_both_engines</code><b>open source ↗</b></a><span>line 76 · <a href="#test~ring5.render.engine-independent-traces-2834636971~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 9 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/developer-guide/subsystems/visualization.md#L32"><code>docs/developer-guide/subsystems/visualization.md#engine-independent-traces</code><b>open source ↗</b></a><span>line 32 · <a href="#uman~ring5.render.engine-independent-traces.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/core/models/visualization/trace_build_result.py#L68"><code>src/core/models/visualization/trace_build_result.py::TraceBuildResult</code><b>open source ↗</b></a><span>line 68 · <a href="#impl~ring5.render.engine-independent-traces-308628754~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/base_plot.py#L86"><code>src/web/pages/ui/plotting/base_plot.py::BasePlot.create_figure</code><b>open source ↗</b></a><span>line 86 · <a href="#impl~ring5.render.engine-independent-traces-2572312044~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/rendering/_connector_protocol.py#L55"><code>src/web/rendering/_connector_protocol.py::validate_trace_types</code><b>open source ↗</b></a><span>line 55 · <a href="#impl~ring5.render.engine-independent-traces-2261928299~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_trace_to_plotly.py#L42"><code>tests/unit/test_trace_to_plotly.py::TestTracesToPlotly</code><b>open source ↗</b></a><span>line 42 · <a href="#test~ring5.render.engine-independent-traces-2988966774~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_trace_to_plotly.py#L148"><code>tests/unit/test_trace_to_plotly.py::TestConvertTrace</code><b>open source ↗</b></a><span>line 148 · <a href="#test~ring5.render.engine-independent-traces-1100686752~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_neutral_trace_contract.py#L56"><code>tests/integration/test_neutral_trace_contract.py::test_both_converters_reject_unknown_families_before_drawing</code><b>open source ↗</b></a><span>line 56 · <a href="#test~ring5.render.engine-independent-traces-2047293025~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_neutral_trace_contract.py#L79"><code>tests/integration/test_neutral_trace_contract.py::test_public_render_exposes_unknown_trace_as_typed_error</code><b>open source ↗</b></a><span>line 79 · <a href="#test~ring5.render.engine-independent-traces-1146500105~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_neutral_trace_contract.py#L99"><code>tests/integration/test_neutral_trace_contract.py::test_supported_trace_subclasses_preserve_data_in_both_engines</code><b>open source ↗</b></a><span>line 99 · <a href="#test~ring5.render.engine-independent-traces-354115260~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">architecture</span><span class="human-tag">rendering</span><span class="human-tag">traces</span></div></div>
     <a href="#req~ring5.render.engine-independent-traces~1">View canonical OFT trace ↓</a>
@@ -4687,9 +4687,9 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
     </div>
   </div>
   <p>The public plotting boundary shall reject unknown plot types, missing or mistyped mappings, absent referenced columns, and invalid engine choices before registering or rendering a plot.</p>
-  <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>3 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>5 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
+  <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>3 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>6 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 9 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/developer-guide/api-reference/public-python-api.md#L18"><code>docs/developer-guide/api-reference/public-python-api.md#workspace</code><b>open source ↗</b></a><span>line 18 · <a href="#uman~ring5.api.plot-validation.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../ring5/_plot_validation.py#L128"><code>ring5/_plot_validation.py::validate_plot_config</code><b>open source ↗</b></a><span>line 128 · <a href="#impl~ring5.api.plot-validation-2341594988~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../ring5/_session.py#L2311"><code>ring5/_session.py::Session.create_plot</code><b>open source ↗</b></a><span>line 2311 · <a href="#impl~ring5.api.plot-validation-4087870852~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../ring5/_session.py#L2383"><code>ring5/_session.py::Session.render</code><b>open source ↗</b></a><span>line 2383 · <a href="#impl~ring5.api.plot-validation-1168312997~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_ring5_coverage_edges.py#L182"><code>tests/unit/test_ring5_coverage_edges.py::test_plot_validation_rejects_each_invalid_shape</code><b>open source ↗</b></a><span>line 182 · <a href="#test~ring5.api.plot-validation-1210101489~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_ring5_api_completeness.py#L315"><code>tests/integration/test_ring5_api_completeness.py::test_every_registered_plot_accepts_validated_config</code><b>open source ↗</b></a><span>line 315 · <a href="#test~ring5.api.plot-validation-600658500~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_ring5_api_completeness.py#L334"><code>tests/integration/test_ring5_api_completeness.py::test_invalid_plot_config_does_not_register_and_render_errors_are_typed</code><b>open source ↗</b></a><span>line 334 · <a href="#test~ring5.api.plot-validation-1547395291~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_ring5_public_api.py#L931"><code>tests/integration/test_ring5_public_api.py::TestErrorSurface.test_invalid_engine_lists_choices</code><b>open source ↗</b></a><span>line 931 · <a href="#test~ring5.api.plot-validation-3382073513~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_ring5_public_api.py#L988"><code>tests/integration/test_ring5_public_api.py::TestApiErgonomics.test_unknown_plot_type_lists_valid_choices</code><b>open source ↗</b></a><span>line 988 · <a href="#test~ring5.api.plot-validation-23344424~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 10 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/developer-guide/api-reference/public-python-api.md#L18"><code>docs/developer-guide/api-reference/public-python-api.md#workspace</code><b>open source ↗</b></a><span>line 18 · <a href="#uman~ring5.api.plot-validation.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../ring5/_plot_validation.py#L128"><code>ring5/_plot_validation.py::validate_plot_config</code><b>open source ↗</b></a><span>line 128 · <a href="#impl~ring5.api.plot-validation-2341594988~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../ring5/_session.py#L2311"><code>ring5/_session.py::Session.create_plot</code><b>open source ↗</b></a><span>line 2311 · <a href="#impl~ring5.api.plot-validation-4087870852~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../ring5/_session.py#L2383"><code>ring5/_session.py::Session.render</code><b>open source ↗</b></a><span>line 2383 · <a href="#impl~ring5.api.plot-validation-1168312997~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_ring5_coverage_edges.py#L182"><code>tests/unit/test_ring5_coverage_edges.py::test_plot_validation_rejects_each_invalid_shape</code><b>open source ↗</b></a><span>line 182 · <a href="#test~ring5.api.plot-validation-1210101489~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_ring5_api_completeness.py#L315"><code>tests/integration/test_ring5_api_completeness.py::test_every_registered_plot_accepts_validated_config</code><b>open source ↗</b></a><span>line 315 · <a href="#test~ring5.api.plot-validation-600658500~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_ring5_api_completeness.py#L334"><code>tests/integration/test_ring5_api_completeness.py::test_invalid_plot_config_does_not_register_and_render_errors_are_typed</code><b>open source ↗</b></a><span>line 334 · <a href="#test~ring5.api.plot-validation-1547395291~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_ring5_public_api.py#L931"><code>tests/integration/test_ring5_public_api.py::TestErrorSurface.test_invalid_engine_lists_choices</code><b>open source ↗</b></a><span>line 931 · <a href="#test~ring5.api.plot-validation-3382073513~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_ring5_public_api.py#L988"><code>tests/integration/test_ring5_public_api.py::TestApiErgonomics.test_unknown_plot_type_lists_valid_choices</code><b>open source ↗</b></a><span>line 988 · <a href="#test~ring5.api.plot-validation-23344424~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_neutral_trace_contract.py#L118"><code>tests/integration/test_neutral_trace_contract.py::test_public_constructor_and_restore_admit_a_registered_plot</code><b>open source ↗</b></a><span>line 118 · <a href="#test~ring5.api.plot-validation-3500207156~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">api</span><span class="human-tag">plots</span><span class="human-tag">validation</span></div></div>
     <a href="#req~ring5.api.plot-validation~1">View canonical OFT trace ↓</a>
@@ -4815,9 +4815,9 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
     </div>
   </div>
   <p>PlotFactory shall support runtime registration of BasePlot subclasses under caller-provided identifiers with optional UI metadata.</p>
-  <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
+  <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>3 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 5 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/developer-guide/extension-guides/adding-a-plot-type.md#L18"><code>docs/developer-guide/extension-guides/adding-a-plot-type.md#implement-and-register</code><b>open source ↗</b></a><span>line 18 · <a href="#uman~ring5.extension.plot-registry.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/plot_factory.py#L181"><code>src/web/pages/ui/plotting/plot_factory.py::PlotFactory.get_plot_metadata</code><b>open source ↗</b></a><span>line 181 · <a href="#impl~ring5.extension.plot-registry-1407481384~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/plot_factory.py#L202"><code>src/web/pages/ui/plotting/plot_factory.py::PlotFactory.register_plot_type</code><b>open source ↗</b></a><span>line 202 · <a href="#impl~ring5.extension.plot-registry-1837084453~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_plot_factory.py#L33"><code>tests/unit/test_plot_factory.py::TestPlotFactoryRegistration</code><b>open source ↗</b></a><span>line 33 · <a href="#test~ring5.extension.plot-registry-2584551462~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_plot_factory.py#L54"><code>tests/unit/test_plot_factory.py::TestPlotFactoryMetadata</code><b>open source ↗</b></a><span>line 54 · <a href="#test~ring5.extension.plot-registry-904874295~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 6 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/developer-guide/extension-guides/adding-a-plot-type.md#L18"><code>docs/developer-guide/extension-guides/adding-a-plot-type.md#implement-and-register</code><b>open source ↗</b></a><span>line 18 · <a href="#uman~ring5.extension.plot-registry.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/plot_factory.py#L181"><code>src/web/pages/ui/plotting/plot_factory.py::PlotFactory.get_plot_metadata</code><b>open source ↗</b></a><span>line 181 · <a href="#impl~ring5.extension.plot-registry-1407481384~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/plot_factory.py#L202"><code>src/web/pages/ui/plotting/plot_factory.py::PlotFactory.register_plot_type</code><b>open source ↗</b></a><span>line 202 · <a href="#impl~ring5.extension.plot-registry-1837084453~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_plot_factory.py#L33"><code>tests/unit/test_plot_factory.py::TestPlotFactoryRegistration</code><b>open source ↗</b></a><span>line 33 · <a href="#test~ring5.extension.plot-registry-2584551462~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_plot_factory.py#L54"><code>tests/unit/test_plot_factory.py::TestPlotFactoryMetadata</code><b>open source ↗</b></a><span>line 54 · <a href="#test~ring5.extension.plot-registry-904874295~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_neutral_trace_contract.py#L117"><code>tests/integration/test_neutral_trace_contract.py::test_public_constructor_and_restore_admit_a_registered_plot</code><b>open source ↗</b></a><span>line 117 · <a href="#test~ring5.extension.plot-registry-511646608~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">extensibility</span><span class="human-tag">plots</span><span class="human-tag">registry</span></div></div>
     <a href="#req~ring5.extension.plot-registry~1">View canonical OFT trace ↓</a>
@@ -18151,10 +18151,10 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
               <li><a href="#impl~ring5.render.engine-independent-traces-2572312044~0">impl~ring5.render.engine-independent-traces-2572312044~0</a> <span class="origin">src/web/pages/ui/plotting/base_plot.py:86</span></li>
               <li><a href="#impl~ring5.render.engine-independent-traces-308628754~0">impl~ring5.render.engine-independent-traces-308628754~0</a> <span class="origin">src/core/models/visualization/trace_build_result.py:68</span></li>
               <li><a href="#test~ring5.render.engine-independent-traces-1100686752~0">test~ring5.render.engine-independent-traces-1100686752~0</a> <span class="origin">tests/unit/test_trace_to_plotly.py:148</span></li>
+              <li><a href="#test~ring5.render.engine-independent-traces-1146500105~0">test~ring5.render.engine-independent-traces-1146500105~0</a> <span class="origin">tests/integration/test_neutral_trace_contract.py:79</span></li>
               <li><a href="#test~ring5.render.engine-independent-traces-2047293025~0">test~ring5.render.engine-independent-traces-2047293025~0</a> <span class="origin">tests/integration/test_neutral_trace_contract.py:56</span></li>
-              <li><a href="#test~ring5.render.engine-independent-traces-2382297312~0">test~ring5.render.engine-independent-traces-2382297312~0</a> <span class="origin">tests/integration/test_neutral_trace_contract.py:33</span></li>
-              <li><a href="#test~ring5.render.engine-independent-traces-2834636971~0">test~ring5.render.engine-independent-traces-2834636971~0</a> <span class="origin">tests/integration/test_neutral_trace_contract.py:76</span></li>
               <li><a href="#test~ring5.render.engine-independent-traces-2988966774~0">test~ring5.render.engine-independent-traces-2988966774~0</a> <span class="origin">tests/unit/test_trace_to_plotly.py:42</span></li>
+              <li><a href="#test~ring5.render.engine-independent-traces-354115260~0">test~ring5.render.engine-independent-traces-354115260~0</a> <span class="origin">tests/integration/test_neutral_trace_contract.py:99</span></li>
               <li><a href="#uman~ring5.render.engine-independent-traces.documentation~1">uman~ring5.render.engine-independent-traces.documentation~1</a> <span class="origin">docs/developer-guide/subsystems/visualization.md:32</span></li>
             </ul>
           </div>
@@ -20481,7 +20481,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <h6>Needs: impl, test, uman</h6>
           <p class="origin">spec/oft/generated/requirements.md:2711</p>
           <div class="in">
-            <h6>In: 9</h6>
+            <h6>In: 10</h6>
             <ul>
               <li><a href="#impl~ring5.api.plot-validation-1168312997~0">impl~ring5.api.plot-validation-1168312997~0</a> <span class="origin">ring5/_session.py:2383</span></li>
               <li><a href="#impl~ring5.api.plot-validation-2341594988~0">impl~ring5.api.plot-validation-2341594988~0</a> <span class="origin">ring5/_plot_validation.py:128</span></li>
@@ -20490,6 +20490,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
               <li><a href="#test~ring5.api.plot-validation-1547395291~0">test~ring5.api.plot-validation-1547395291~0</a> <span class="origin">tests/integration/test_ring5_api_completeness.py:334</span></li>
               <li><a href="#test~ring5.api.plot-validation-23344424~0">test~ring5.api.plot-validation-23344424~0</a> <span class="origin">tests/integration/test_ring5_public_api.py:988</span></li>
               <li><a href="#test~ring5.api.plot-validation-3382073513~0">test~ring5.api.plot-validation-3382073513~0</a> <span class="origin">tests/integration/test_ring5_public_api.py:931</span></li>
+              <li><a href="#test~ring5.api.plot-validation-3500207156~0">test~ring5.api.plot-validation-3500207156~0</a> <span class="origin">tests/integration/test_neutral_trace_contract.py:118</span></li>
               <li><a href="#test~ring5.api.plot-validation-600658500~0">test~ring5.api.plot-validation-600658500~0</a> <span class="origin">tests/integration/test_ring5_api_completeness.py:315</span></li>
               <li><a href="#uman~ring5.api.plot-validation.documentation~1">uman~ring5.api.plot-validation.documentation~1</a> <span class="origin">docs/developer-guide/api-reference/public-python-api.md:18</span></li>
             </ul>
@@ -21076,11 +21077,12 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <h6>Needs: impl, test, uman</h6>
           <p class="origin">spec/oft/generated/requirements.md:2797</p>
           <div class="in">
-            <h6>In: 5</h6>
+            <h6>In: 6</h6>
             <ul>
               <li><a href="#impl~ring5.extension.plot-registry-1407481384~0">impl~ring5.extension.plot-registry-1407481384~0</a> <span class="origin">src/web/pages/ui/plotting/plot_factory.py:181</span></li>
               <li><a href="#impl~ring5.extension.plot-registry-1837084453~0">impl~ring5.extension.plot-registry-1837084453~0</a> <span class="origin">src/web/pages/ui/plotting/plot_factory.py:202</span></li>
               <li><a href="#test~ring5.extension.plot-registry-2584551462~0">test~ring5.extension.plot-registry-2584551462~0</a> <span class="origin">tests/unit/test_plot_factory.py:33</span></li>
+              <li><a href="#test~ring5.extension.plot-registry-511646608~0">test~ring5.extension.plot-registry-511646608~0</a> <span class="origin">tests/integration/test_neutral_trace_contract.py:117</span></li>
               <li><a href="#test~ring5.extension.plot-registry-904874295~0">test~ring5.extension.plot-registry-904874295~0</a> <span class="origin">tests/unit/test_plot_factory.py:54</span></li>
               <li><a href="#uman~ring5.extension.plot-registry.documentation~1">uman~ring5.extension.plot-registry.documentation~1</a> <span class="origin">docs/developer-guide/extension-guides/adding-a-plot-type.md:18</span></li>
             </ul>
@@ -22725,6 +22727,19 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <summary title="test~ring5.api.plot-validation-3382073513~0"><span class="green">&check;</span> <b>ring5.api.plot-validation-3382073513</b><small>, rev. 0, test</small></summary>
           <p class="id">test~ring5.api.plot-validation-3382073513~0</p>
           <p class="origin">tests/integration/test_ring5_public_api.py:931</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.api.plot-validation~1">req~ring5.api.plot-validation~1</a> <span class="origin">spec/oft/generated/requirements.md:2711</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="test~ring5.api.plot-validation-3500207156~0">
+        <details>
+          <summary title="test~ring5.api.plot-validation-3500207156~0"><span class="green">&check;</span> <b>ring5.api.plot-validation-3500207156</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.api.plot-validation-3500207156~0</p>
+          <p class="origin">tests/integration/test_neutral_trace_contract.py:118</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -24623,6 +24638,19 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <summary title="test~ring5.extension.plot-registry-2584551462~0"><span class="green">&check;</span> <b>ring5.extension.plot-registry-2584551462</b><small>, rev. 0, test</small></summary>
           <p class="id">test~ring5.extension.plot-registry-2584551462~0</p>
           <p class="origin">tests/unit/test_plot_factory.py:33</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.extension.plot-registry~1">req~ring5.extension.plot-registry~1</a> <span class="origin">spec/oft/generated/requirements.md:2797</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="test~ring5.extension.plot-registry-511646608~0">
+        <details>
+          <summary title="test~ring5.extension.plot-registry-511646608~0"><span class="green">&check;</span> <b>ring5.extension.plot-registry-511646608</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.extension.plot-registry-511646608~0</p>
+          <p class="origin">tests/integration/test_neutral_trace_contract.py:117</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -29948,6 +29976,19 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
+      <section class="sitem" id="test~ring5.render.engine-independent-traces-1146500105~0">
+        <details>
+          <summary title="test~ring5.render.engine-independent-traces-1146500105~0"><span class="green">&check;</span> <b>ring5.render.engine-independent-traces-1146500105</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.render.engine-independent-traces-1146500105~0</p>
+          <p class="origin">tests/integration/test_neutral_trace_contract.py:79</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.render.engine-independent-traces~1">req~ring5.render.engine-independent-traces~1</a> <span class="origin">spec/oft/generated/requirements.md:2161</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
       <section class="sitem" id="test~ring5.render.engine-independent-traces-2047293025~0">
         <details>
           <summary title="test~ring5.render.engine-independent-traces-2047293025~0"><span class="green">&check;</span> <b>ring5.render.engine-independent-traces-2047293025</b><small>, rev. 0, test</small></summary>
@@ -29961,37 +30002,24 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="test~ring5.render.engine-independent-traces-2382297312~0">
-        <details>
-          <summary title="test~ring5.render.engine-independent-traces-2382297312~0"><span class="green">&check;</span> <b>ring5.render.engine-independent-traces-2382297312</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.render.engine-independent-traces-2382297312~0</p>
-          <p class="origin">tests/integration/test_neutral_trace_contract.py:33</p>
-          <div class="out">
-            <h6>Out: 1</h6>
-            <ul>
-              <li><a href="#req~ring5.render.engine-independent-traces~1">req~ring5.render.engine-independent-traces~1</a> <span class="origin">spec/oft/generated/requirements.md:2161</span></li>
-            </ul>
-          </div>
-        </details>
-      </section>
-      <section class="sitem" id="test~ring5.render.engine-independent-traces-2834636971~0">
-        <details>
-          <summary title="test~ring5.render.engine-independent-traces-2834636971~0"><span class="green">&check;</span> <b>ring5.render.engine-independent-traces-2834636971</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.render.engine-independent-traces-2834636971~0</p>
-          <p class="origin">tests/integration/test_neutral_trace_contract.py:76</p>
-          <div class="out">
-            <h6>Out: 1</h6>
-            <ul>
-              <li><a href="#req~ring5.render.engine-independent-traces~1">req~ring5.render.engine-independent-traces~1</a> <span class="origin">spec/oft/generated/requirements.md:2161</span></li>
-            </ul>
-          </div>
-        </details>
-      </section>
       <section class="sitem" id="test~ring5.render.engine-independent-traces-2988966774~0">
         <details>
           <summary title="test~ring5.render.engine-independent-traces-2988966774~0"><span class="green">&check;</span> <b>ring5.render.engine-independent-traces-2988966774</b><small>, rev. 0, test</small></summary>
           <p class="id">test~ring5.render.engine-independent-traces-2988966774~0</p>
           <p class="origin">tests/unit/test_trace_to_plotly.py:42</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.render.engine-independent-traces~1">req~ring5.render.engine-independent-traces~1</a> <span class="origin">spec/oft/generated/requirements.md:2161</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="test~ring5.render.engine-independent-traces-354115260~0">
+        <details>
+          <summary title="test~ring5.render.engine-independent-traces-354115260~0"><span class="green">&check;</span> <b>ring5.render.engine-independent-traces-354115260</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.render.engine-independent-traces-354115260~0</p>
+          <p class="origin">tests/integration/test_neutral_trace_contract.py:99</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -34335,7 +34363,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
     </section>
   </main>
   <nav>
-    <span class="green">&check;</span> 1960 total <meter value="1960" max="1960">100%</meter> | <a href="#feat">feat</a> &middot; <a href="#impl">impl</a> &middot; <a href="#req">req</a> &middot; <a href="#test">test</a> &middot; <a href="#uman">uman</a>  </nav>
+    <span class="green">&check;</span> 1962 total <meter value="1962" max="1962">100%</meter> | <a href="#feat">feat</a> &middot; <a href="#impl">impl</a> &middot; <a href="#req">req</a> &middot; <a href="#test">test</a> &middot; <a href="#uman">uman</a>  </nav>
 
 <script>
 (() => {
