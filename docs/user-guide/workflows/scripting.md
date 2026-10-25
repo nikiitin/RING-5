@@ -279,5 +279,4 @@ ring5 parse STATS_PATH --variable NAME --output FILE
 ring5 render PORTFOLIO --out-dir DIRECTORY
 ring5 recipe-matrix RECIPE --matrix MATRIX --output-dir DIRECTORY
 ring5 report-schedule RECIPE --report FILE [--parameters JSON]
-ring5 upgrade PORTFOLIO
 ```

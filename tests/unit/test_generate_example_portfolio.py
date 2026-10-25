@@ -21,7 +21,7 @@ from scripts.generate_example_portfolio import (
 )
 from src.core.services.data_services.path_service import PathService
 from src.core.services.data_services.portfolio_service import PortfolioService
-from src.core.services.portfolio_migrator import PortfolioMigrator
+from src.core.models.portfolio_contract import CURRENT_PORTFOLIO_SCHEMA_VERSION
 from src.core.state.repository_state_manager import RepositoryStateManager
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 from src.web.rendering.matplotlib_figure_builder import build_matplotlib_figure_from_traces
@@ -79,7 +79,7 @@ def test_generated_portfolio_round_trips(
     assert output == tmp_path / "Example Cases.json"
     assert output.is_file()
     raw = json.loads(output.read_text())
-    assert raw["schema_version"] == PortfolioMigrator.CURRENT_VERSION
+    assert raw["schema_version"] == CURRENT_PORTFOLIO_SCHEMA_VERSION
     assert len(raw["plots"]) == len(PlotFactory.get_available_plot_types())
     assert all("figure_spec" in plot for plot in raw["plots"])
 

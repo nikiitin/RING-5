@@ -3024,7 +3024,7 @@ class Session:
         require_signature: bool = False,
     ) -> PortfolioData:
         """Read a portfolio while translating storage errors to public errors."""
-        from src.core.services.portfolio_migrator import (
+        from src.core.models.portfolio_contract import (
             PortfolioVersionError as CoreVersionError,
         )
 
@@ -3051,7 +3051,7 @@ class Session:
         revision_id: str,
     ) -> PortfolioData:
         """Read one portfolio revision while preserving public error types."""
-        from src.core.services.portfolio_migrator import (
+        from src.core.models.portfolio_contract import (
             PortfolioVersionError as CoreVersionError,
         )
 
@@ -3086,7 +3086,7 @@ class Session:
 
         Raises:
             PortfolioError: The portfolio or its environment metadata is invalid.
-            PortfolioVersionError: The portfolio uses a newer schema.
+            PortfolioVersionError: The portfolio uses an unsupported schema.
         """
         from src.core.services.environment_metadata_service import EnvironmentMetadataService
 
@@ -3172,11 +3172,18 @@ class Session:
 
         Raises:
             PortfolioError: The portfolio cannot be read or inspected.
+            PortfolioVersionError: The portfolio uses an unsupported schema.
         """
+        from src.core.models.portfolio_contract import PortfolioVersionError as CoreVersionError
+
+        from ring5.errors import PortfolioVersionError
+
         try:
             return self.api.data_services.verify_portfolio(name, signing_key=signing_key)
         except FileNotFoundError as exc:
             raise PortfolioError(str(exc)) from exc
+        except CoreVersionError as exc:
+            raise PortfolioVersionError(str(exc)) from exc
         except (OSError, TypeError, ValueError) as exc:
             raise PortfolioError(f"Portfolio '{name}' could not be verified: {exc}") from exc
 
@@ -3200,7 +3207,7 @@ class Session:
 
         Raises:
             PortfolioError: The portfolio does not exist.
-            PortfolioVersionError: It was written by a newer RING-5.
+            PortfolioVersionError: The portfolio uses an unsupported schema.
         """
         data = self._read_portfolio_data(
             name,
@@ -3389,9 +3396,9 @@ class Session:
 
         Raises:
             PortfolioError: Either revision is missing, invalid, or unreadable.
-            PortfolioVersionError: A revision uses a newer portfolio schema.
+            PortfolioVersionError: A revision uses an unsupported portfolio schema.
         """
-        from src.core.services.portfolio_migrator import (
+        from src.core.models.portfolio_contract import (
             PortfolioVersionError as CoreVersionError,
         )
 
@@ -3430,7 +3437,7 @@ class Session:
 
         Raises:
             PortfolioError: The revision is unavailable or cannot be restored.
-            PortfolioVersionError: The revision uses a newer portfolio schema.
+            PortfolioVersionError: The revision uses an unsupported portfolio schema.
         """
         data = self._read_portfolio_revision_data(name, revision_id)
         try:

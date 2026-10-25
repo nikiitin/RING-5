@@ -264,6 +264,8 @@ def test_restore_survives_malformed_parse_variables(
     manager = RepositoryStateManager()
     report = manager.restore_session(
         {
+            "parser_strategy": "simple",
+            "simulator": "gem5",
             "parse_variables": ["system.cpu.ipc", "system.cpu.numCycles"],
             "data_csv": "a,b\n1,2\n",
             "plots": [],

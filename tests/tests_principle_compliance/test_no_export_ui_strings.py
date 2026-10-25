@@ -11,7 +11,6 @@ _INTERNAL_EXPORT_MODULES = {
     "download_section.py",
     "plot_service.py",
     "data_components.py",
-    "portfolio_migrator.py",
 }
 
 

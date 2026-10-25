@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from typing import Literal
 
 PortfolioIntegrityStatus = Literal[
-    "legacy-unverified",
     "checksum-valid",
     "signature-unverified",
     "signature-valid",
@@ -46,8 +45,8 @@ class PortfolioIntegrityReport:
     Attributes:
         status: Stable machine-readable verification outcome.
         message: Concise human-readable interpretation.
-        checksum_valid: Whole-document checksum result, or ``None`` for legacy
-            and structurally invalid manifests.
+        checksum_valid: Whole-document checksum result, or ``None`` for structurally invalid
+            manifests.
         signature_present: Whether the manifest carries an HMAC signature.
         signature_valid: Signature result, or ``None`` when not checked.
         key_id: Non-secret identifier recorded for the signing key.
@@ -66,7 +65,6 @@ class PortfolioIntegrityReport:
     def safe_to_restore(self) -> bool:
         """Whether content checks permit restoration under the default policy."""
         return self.status in {
-            "legacy-unverified",
             "checksum-valid",
             "signature-unverified",
             "signature-valid",

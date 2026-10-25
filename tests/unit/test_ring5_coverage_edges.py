@@ -396,7 +396,7 @@ def test_session_plot_and_portfolio_error_edges() -> None:
                     session.load_portfolio("p")
 
 
-def test_cli_warning_restore_details_file_error_and_module_entry(
+def test_cli_warning_file_error_and_module_entry(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     # [test->req~ring5.cli.parse~1]
@@ -414,14 +414,6 @@ def test_cli_warning_restore_details_file_error_and_module_entry(
             == 0
         )
     assert "warning" in capsys.readouterr().out
-
-    fake_session.load_portfolio.return_value = RestoreReport(
-        data_error="bad csv", parse_variables_skipped=2
-    )
-    with patch("ring5._session.Session", return_value=fake_session):
-        assert ring5_cli.main(["upgrade", "p"]) == 2
-    error_text = capsys.readouterr().err
-    assert "bad csv" in error_text and "2 malformed" in error_text
 
     with patch("ring5._portfolio.render_portfolio", side_effect=FileNotFoundError("gone")):
         assert ring5_cli.main(["render", "p", "-o", str(tmp_path)]) == 2

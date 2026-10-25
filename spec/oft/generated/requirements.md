@@ -2426,19 +2426,19 @@ Needs: impl, test, uman
 
 Tags: errors, portfolios, restore, status_approved
 
-### Portfolio schema migration
+### Current portfolio schema
 
-`req~ring5.portfolio.migration~1`
+`req~ring5.portfolio.schema~1`
 Status: approved
 
-Older supported portfolio schemas shall migrate deterministically before restoration, while newer unknown schemas shall fail with a typed version error.
+Serialized portfolios shall declare the exact current schema, parser provenance, environment metadata, and integrity manifest; unsupported versions shall fail with a typed version error.
 
 Covers:
 - feat~ring5.reproducibility~1
 
 Needs: impl, test, uman
 
-Tags: migration, portfolios, schema, status_approved
+Tags: portfolios, schema, status_approved, validation
 
 ### Portfolio listing and deletion
 
@@ -2467,20 +2467,6 @@ Covers:
 Needs: impl, test, uman
 
 Tags: automation, portfolios, rendering, status_approved
-
-### Safe portfolio upgrade
-
-`req~ring5.portfolio.upgrade-protection~1`
-Status: approved
-
-The CLI shall refuse to re-save a partially restored portfolio because doing so would permanently discard skipped content.
-
-Covers:
-- feat~ring5.reproducibility~1
-
-Needs: impl, test, uman
-
-Tags: cli, migration, portfolios, safety, status_approved
 
 ### Parameterized analysis recipes
 

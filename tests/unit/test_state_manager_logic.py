@@ -102,7 +102,14 @@ def test_restore_session_state(mock_session_state: Any) -> None:
     mgr = StateManager()
 
     portfolio_data = cast(
-        PortfolioData, {"csv_path": "/mock/test.csv", "plot_counter": 5, "plots": []}
+        PortfolioData,
+        {
+            "parser_strategy": "simple",
+            "simulator": "gem5",
+            "csv_path": "/mock/test.csv",
+            "plot_counter": 5,
+            "plots": [],
+        },
     )
 
     mgr.restore_session(portfolio_data)

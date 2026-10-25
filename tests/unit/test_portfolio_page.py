@@ -296,7 +296,7 @@ class TestPortfolioEnvironment:
         ]
 
     @patch("src.web.pages.portfolio.st")
-    def test_environment_status_distinguishes_legacy_and_changed(self, mock_st: MagicMock) -> None:
+    def test_environment_status_reports_changed_values(self, mock_st: MagicMock) -> None:
         from src.core.models import (
             EnvironmentComparison,
             EnvironmentDifference,
@@ -305,9 +305,6 @@ class TestPortfolioEnvironment:
         from src.web.pages.portfolio import _render_environment_status
 
         current = EnvironmentMetadata(1, "1", "3.12", "CPython", "Linux", "x86_64")
-        _render_environment_status(EnvironmentComparison(None, current, ()))
-        mock_st.info.assert_called_once()
-
         changed = EnvironmentDifference("Runtime", "RING-5", "0.9", "1", "changed")
         _render_environment_status(EnvironmentComparison(current, current, (changed,)))
         mock_st.warning.assert_called_once_with(

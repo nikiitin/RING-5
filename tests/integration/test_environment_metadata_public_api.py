@@ -9,6 +9,7 @@ from typing import Any
 import pytest
 
 import ring5
+from tests.helpers.portfolios import portfolio_document
 
 pytestmark = [pytest.mark.public_api, pytest.mark.xdist_group("ring5_portfolios")]
 
@@ -26,12 +27,12 @@ def test_saved_environment_is_public_and_matches_same_runtime(portfolios_dir: Pa
     assert isinstance(current, ring5.EnvironmentMetadata)
     assert isinstance(comparison, ring5.EnvironmentComparison)
     assert all(isinstance(item, ring5.EnvironmentDifference) for item in comparison.differences)
-    assert comparison.recorded_available is True
+    assert isinstance(comparison.recorded, ring5.EnvironmentMetadata)
     assert comparison.exact_match is True
     assert comparison.changed_count == 0
 
 
-def test_legacy_portfolio_environment_is_explicitly_not_recorded(
+def test_environment_comparison_requires_current_schema(
     portfolios_dir: Path,
 ) -> None:
     (portfolios_dir / "legacy_environment.json").write_text(
@@ -39,25 +40,24 @@ def test_legacy_portfolio_environment_is_explicitly_not_recorded(
     )
 
     with ring5.Session() as session:
-        comparison = session.compare_portfolio_environment("legacy_environment")
-
-    assert comparison.recorded_available is False
-    assert comparison.exact_match is False
-    assert {item.status for item in comparison.differences} == {"not-recorded"}
+        with pytest.raises(ring5.PortfolioVersionError):
+            session.compare_portfolio_environment("legacy_environment")
 
 
 def test_portfolio_environment_errors_remain_in_public_error_hierarchy(
     portfolios_dir: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     (portfolios_dir / "bad_environment.json").write_text(
-        json.dumps({"schema_version": 3, "environment_metadata": [], "plots": []})
+        json.dumps(portfolio_document(environment_metadata={"format_version": 999}))
     )
     (portfolios_dir / "future_environment.json").write_text(json.dumps({"schema_version": 5}))
 
     with ring5.Session() as session:
         with pytest.raises(ring5.PortfolioError, match="invalid environment metadata"):
             session.compare_portfolio_environment("bad_environment")
-        with pytest.raises(ring5.PortfolioVersionError, match="newer than this RING-5"):
+        with pytest.raises(
+            ring5.PortfolioVersionError, match="Unsupported portfolio schema_version"
+        ):
             session.compare_portfolio_environment("future_environment")
         with pytest.raises(ring5.PortfolioError, match="not found"):
             session.compare_portfolio_environment("missing_environment")

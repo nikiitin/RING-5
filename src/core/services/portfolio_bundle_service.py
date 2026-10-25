@@ -29,7 +29,7 @@ from src.core.models import (
 from src.core.models.portfolio_bundle_models import PortfolioBundleArtifactRole
 from src.core.services.data_services.dataset_snapshot_service import DatasetSnapshotService
 from src.core.services.portfolio_integrity_service import PortfolioIntegrityService
-from src.core.services.portfolio_migrator import PortfolioMigrator
+from src.core.models.portfolio_contract import validate_portfolio_schema
 from src.core.services.environment_metadata_service import EnvironmentMetadataService
 
 _FORMAT = "ring5.portfolio-bundle"
@@ -88,9 +88,9 @@ class PortfolioBundleService:
         """
         resolved_name = cls._bounded_name(name, "Bundle")
         portfolio_raw = cls._json_object(portfolio_bytes, "Portfolio")
+        validate_portfolio_schema(portfolio_raw)
         integrity = PortfolioIntegrityService.verify(portfolio_raw)
         PortfolioIntegrityService.require_restorable(integrity)
-        PortfolioMigrator.migrate(portfolio_raw)
         if signing_key is not None:
             portfolio_raw = dict(portfolio_raw)
             portfolio_raw["integrity_manifest"] = PortfolioIntegrityService.create_manifest(
@@ -232,12 +232,13 @@ class PortfolioBundleService:
 
         portfolio_artifact = by_role["portfolio"][0]
         portfolio_raw = cls._json_object(archive[portfolio_artifact.path], "Portfolio")
+        validate_portfolio_schema(portfolio_raw)
         integrity = PortfolioIntegrityService.verify(portfolio_raw, signing_key=signing_key)
         PortfolioIntegrityService.require_restorable(
             integrity,
             require_signature=require_signature,
         )
-        portfolio = cast(PortfolioData, PortfolioMigrator.migrate(portfolio_raw))
+        portfolio = cast(PortfolioData, portfolio_raw)
 
         source_artifact = by_role["source-manifest"][0]
         source_manifest = cls._json_object(archive[source_artifact.path], "Source manifest")
@@ -461,9 +462,7 @@ class PortfolioBundleService:
         }
 
     @staticmethod
-    def _requirements(environment: object) -> str:
-        if not isinstance(environment, Mapping):
-            return "# Environment metadata was not recorded.\n"
+    def _requirements(environment: Mapping[str, Any]) -> str:
         dependencies = environment.get("dependencies")
         versions = dependencies if isinstance(dependencies, Mapping) else {}
         lines = ["# Captured Python package versions"]
@@ -485,10 +484,8 @@ class PortfolioBundleService:
         return "\n".join(lines) + "\n"
 
     @staticmethod
-    def _environment(value: object) -> dict[str, Any] | None:
+    def _environment(value: object) -> dict[str, Any]:
         recorded = EnvironmentMetadataService.from_payload(value)
-        if recorded is None:
-            return None
         normalized = recorded.to_dict()
         if value != normalized:
             raise ValueError("Portfolio environment metadata has unexpected fields.")

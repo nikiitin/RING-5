@@ -22,6 +22,8 @@ def _portfolio_bytes(*, signed: bool = False) -> bytes:
     portfolio = {
         "schema_version": 4,
         "version": "4.0",
+        "parser_strategy": "simple",
+        "simulator": "gem5",
         "timestamp": "2026-07-21T10:00:00+00:00",
         "environment_metadata": {
             "format_version": 1,

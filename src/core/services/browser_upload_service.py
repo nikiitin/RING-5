@@ -33,7 +33,7 @@ from src.core.models.browser_upload_models import (
 from src.core.models.portfolio_models import PortfolioData
 from src.core.models.portfolio_bundle_models import PortfolioBundleContents
 from src.core.services.import_preview_service import ImportPreviewService
-from src.core.services.portfolio_migrator import PortfolioMigrator
+from src.core.models.portfolio_contract import validate_portfolio_schema
 from src.core.services.portfolio_integrity_service import PortfolioIntegrityService
 from src.core.services.portfolio_bundle_service import PortfolioBundleService
 
@@ -279,7 +279,7 @@ def _portfolio(
     signing_key: str | bytes | None = None,
     require_signature: bool = False,
 ) -> dict[str, Any]:
-    """Validate and migrate a recognizable RING-5 portfolio object."""
+    """Validate a current RING-5 portfolio object."""
     if not isinstance(value, dict):
         raise ValueError("Portfolio JSON must contain one top-level object.")
     if "plots" not in value or not ({"data_csv", "schema_version"} & set(value)):
@@ -291,12 +291,13 @@ def _portfolio(
     if "config" in value and not isinstance(value["config"], dict):
         raise ValueError("Portfolio config must be an object.")
     try:
+        validate_portfolio_schema(value)
         integrity = PortfolioIntegrityService.verify(value, signing_key=signing_key)
         PortfolioIntegrityService.require_restorable(
             integrity,
             require_signature=require_signature,
         )
-        return PortfolioMigrator.migrate(cast(dict[str, Any], value))
+        return cast(dict[str, Any], value)
     except (TypeError, ValueError) as exc:
         raise ValueError(f"Portfolio schema validation failed: {exc}") from exc
 

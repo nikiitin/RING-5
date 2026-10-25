@@ -1,7 +1,7 @@
 """Canonical rendering-engine vocabulary — the single source of truth.
 
 The engine names, the valid-engine set, and the default engine live here
-(Layer A, models) so that both the core domain (e.g. portfolio migration)
+(Layer A, models) so that both the core domain (e.g. portfolio persistence)
 and the web rendering layer (``EngineManager``) share one definition with
 zero duplication.
 

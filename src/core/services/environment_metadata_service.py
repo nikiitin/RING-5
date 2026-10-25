@@ -150,27 +150,25 @@ class EnvironmentMetadataService:
         return deepcopy(_capture_environment())
 
     @staticmethod
-    def from_payload(value: object) -> EnvironmentMetadata | None:
-        """Validate optional environment metadata from portfolio JSON.
+    def from_payload(value: object) -> EnvironmentMetadata:
+        """Validate current environment metadata from portfolio JSON.
 
         Args:
             value: Raw ``environment_metadata`` portfolio value.
 
         Returns:
-            Validated metadata, or ``None`` for an older portfolio.
+            Validated current environment metadata.
 
         Raises:
-            ValueError: A present payload is malformed.
+            ValueError: The payload is absent or malformed.
         """
-        if value is None:
-            return None
         if not isinstance(value, Mapping):
-            raise ValueError("Portfolio environment metadata must be an object or null.")
+            raise ValueError("Portfolio environment metadata must be an object.")
         return EnvironmentMetadata.from_dict(value)
 
     @staticmethod
     def compare(
-        recorded: EnvironmentMetadata | Mapping[str, Any] | None,
+        recorded: EnvironmentMetadata | Mapping[str, Any],
         *,
         current: EnvironmentMetadata | None = None,
     ) -> EnvironmentComparison:
@@ -178,7 +176,7 @@ class EnvironmentMetadataService:
         """Compare recorded portfolio metadata with the current runtime.
 
         Args:
-            recorded: Validated metadata, raw portfolio mapping, or ``None``.
+            recorded: Validated metadata or its raw portfolio mapping.
             current: Optional deterministic current-runtime value for callers/tests.
 
         Returns:
@@ -192,7 +190,7 @@ class EnvironmentMetadataService:
         )
         live = current or EnvironmentMetadataService.capture()
         live_rows = _metadata_rows(live)
-        saved_rows = _metadata_rows(saved) if saved is not None else {}
+        saved_rows = _metadata_rows(saved)
         differences: list[EnvironmentDifference] = []
         for section, component in sorted(set(live_rows) | set(saved_rows)):
             key = (section, component)

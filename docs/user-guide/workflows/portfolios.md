@@ -443,19 +443,6 @@ ring5 render paper-a --out-dir figures/ \
 Rendering defaults to deterministic output, Matplotlib PDF, or Plotly HTML. The command stops with a
 typed error when a plot cannot be restored, rendered, or exported.
 
-## Upgrade a saved portfolio
-
-<!--
-`uman~ring5.portfolio.upgrade-protection.documentation~1`
-
-Covers:
-- req~ring5.portfolio.upgrade-protection~1
-
--->
-
-Use `ring5 upgrade NAME` to migrate and re-save an older portfolio only after a complete restore.
-The command refuses to write a partial restore because that would discard skipped content.
-
 ## Generate the example portfolio
 
 <!--

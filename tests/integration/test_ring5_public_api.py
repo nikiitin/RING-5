@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, cast, get_args
+from typing import cast, get_args
 from xml.etree import ElementTree as ET
 
 import pandas as pd
@@ -795,49 +795,13 @@ class TestPortfolioReplay:
         assert written[0].endswith("replay_plot.pdf")
         assert open(written[0], "rb").read(5) == b"%PDF-"
 
-    def test_v1_portfolio_replays(self, tmp_path: Path, portfolios_dir: Path) -> None:
-        """The long-horizon reproducibility contract: V1 files keep working."""
-        v1: dict[str, Any] = {
-            # V1: no schema_version key, export_* keys, no engine field
-            "version": "2.0",
-            "data_csv": "bench,ipc\na,1.0\nb,2.0\n",
-            "csv_path": None,
-            "plots": [
-                {
-                    "id": 0,
-                    "name": "v1_plot",
-                    "plot_type": "bar",
-                    "config": {
-                        "x": "bench",
-                        "y": "ipc",
-                        "title": "V1",
-                        "export_format": "png",
-                        "export_dpi": 300,
-                    },
-                    "processed_data": "bench,ipc\na,1.0\nb,2.0\n",
-                    "pipeline": [],
-                    "pipeline_counter": 0,
-                    "legend_mappings_by_column": {},
-                    "legend_mappings": {},
-                }
-            ],
-            "plot_counter": 1,
-            "config": {},
-            "parse_variables": [],
-        }
-        (portfolios_dir / "v1_probe.json").write_text(json.dumps(v1))
-
-        written = ring5.render_portfolio(
-            "v1_probe", str(tmp_path / "figs"), engine="matplotlib", fmt="pdf"
-        )
-        assert len(written) == 1
-        assert open(written[0], "rb").read(5) == b"%PDF-"
-
     def test_future_portfolio_refused(self, tmp_path: Path, portfolios_dir: Path) -> None:
-        # [test->req~ring5.portfolio.migration~1]
+        # [test->req~ring5.portfolio.schema~1]
         """Forward-version files are refused, never silently downgraded."""
         (portfolios_dir / "future.json").write_text(json.dumps({"schema_version": 5}))
-        with pytest.raises(ring5.PortfolioVersionError, match="newer than this RING-5"):
+        with pytest.raises(
+            ring5.PortfolioVersionError, match="Unsupported portfolio schema_version"
+        ):
             ring5.render_portfolio("future", str(tmp_path / "figs"))
 
     def test_missing_portfolio_typed_error(self, tmp_path: Path, portfolios_dir: Path) -> None:

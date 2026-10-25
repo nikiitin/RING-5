@@ -8,8 +8,6 @@ Subcommands::
     ring5 recipe-matrix RECIPE -m MATRIX -o out/
     ring5 regression-gate BASE.csv CAND.csv -k benchmark -m ipc
     ring5 report-schedule RECIPE -o report.html
-    ring5 upgrade PORTFOLIO               # persist a portfolio at the
-                                          # current schema version
 """
 
 from __future__ import annotations
@@ -82,37 +80,6 @@ def _cmd_render(args: argparse.Namespace) -> int:
     )
     for path in written:
         print(f"wrote {path}")
-    return 0
-
-
-def _cmd_upgrade(args: argparse.Namespace) -> int:
-    # [impl->req~ring5.portfolio.upgrade-protection~1]
-    from ring5._session import Session
-
-    with Session() as session:
-        report = session.load_portfolio(args.portfolio)
-        if not report.complete:
-            # Re-saving a partial restore would permanently destroy whatever
-            # could not be loaded (data, plots, parse variables) — refuse.
-            print(
-                f"error: refusing to upgrade '{args.portfolio}' — the restore "
-                "was incomplete and re-saving would permanently drop:",
-                file=sys.stderr,
-            )
-            for reason in report.plots_skipped:
-                print(f"  plot not restored — {reason}", file=sys.stderr)
-            if report.data_error:
-                print(f"  data not restored — {report.data_error}", file=sys.stderr)
-            if report.parse_variables_skipped:
-                print(
-                    f"  {report.parse_variables_skipped} malformed parse-variable "
-                    "entries would be dropped",
-                    file=sys.stderr,
-                )
-            print("fix the portfolio (or this RING-5 version) first", file=sys.stderr)
-            return 2
-        session.save_portfolio(args.portfolio, overwrite=True)
-    print(f"portfolio '{args.portfolio}' re-saved at the current schema version")
     return 0
 
 
@@ -415,10 +382,6 @@ def build_parser() -> argparse.ArgumentParser:
         help="skip the byte-stable output knobs",
     )
     render_p.set_defaults(func=_cmd_render)
-
-    upgrade_p = sub.add_parser("upgrade", help="re-save a portfolio at the current schema version")
-    upgrade_p.add_argument("portfolio", help="portfolio name")
-    upgrade_p.set_defaults(func=_cmd_upgrade)
 
     matrix_p = sub.add_parser(
         "recipe-matrix",

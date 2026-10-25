@@ -349,6 +349,8 @@ class TestRestoreSession:
         portfolio_data: PortfolioData = cast(
             PortfolioData,
             {
+                "parser_strategy": "simple",
+                "simulator": "gem5",
                 "parse_variables": [{"name": "ipc", "type": "scalar"}],
                 "stats_path": "/data/stats.txt",
                 "stats_pattern": "stats*.txt",

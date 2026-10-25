@@ -113,9 +113,9 @@ as PGF; the web application warns and downloads PDF instead.
 
 ## A portfolio restores partially
 
-Read every `RestoreReport` field in Python or every warning in the web application. Do not upgrade
-or overwrite the source portfolio until the data and all intended plots restore. Newer portfolio
-schema versions cannot be loaded by older RING-5 releases.
+Read every `RestoreReport` field in Python or every warning in the web application. Do not overwrite the source
+portfolio until the data and all intended plots restore. Only the current portfolio schema is
+accepted.
 
 ## Are there application keyboard shortcuts?
 

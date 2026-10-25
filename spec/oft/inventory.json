@@ -59,7 +59,7 @@
     {
       "id": "reproducibility",
       "title": "Reproducibility and Portfolios",
-      "description": "RING-5 snapshots, migrates, restores, and replays complete figure portfolios.",
+      "description": "RING-5 snapshots, validates, restores, and replays complete figure portfolios.",
       "tags": ["portfolios", "reproducibility"]
     },
     {
@@ -2217,24 +2217,24 @@
       }
     },
     {
-      "id": "portfolio.migration",
+      "id": "portfolio.schema",
       "group": "reproducibility",
       "revision": 1,
       "status": "approved",
-      "title": "Portfolio schema migration",
-      "description": "Older supported portfolio schemas shall migrate deterministically before restoration, while newer unknown schemas shall fail with a typed version error.",
-      "tags": ["migration", "portfolios", "schema"],
+      "title": "Current portfolio schema",
+      "description": "Serialized portfolios shall declare the exact current schema, parser provenance, environment metadata, and integrity manifest; unsupported versions shall fail with a typed version error.",
+      "tags": ["validation", "portfolios", "schema"],
       "evidence": {
         "implementation": [
-          "src/core/services/portfolio_migrator.py::PortfolioMigrator.migrate"
+          "src/core/models/portfolio_contract.py::validate_portfolio_schema"
         ],
         "tests": [
-          "tests/integration/test_portfolio_migration.py::TestV1LoadAndMigrate",
-          "tests/integration/test_portfolio_migration.py::TestV2Migration",
+          "tests/integration/test_portfolio_schema.py::test_obsolete_schema_is_rejected_before_state_changes",
+          "tests/unit/test_portfolio_contract.py::test_unsupported_schema_is_rejected",
           "tests/integration/test_ring5_public_api.py::TestPortfolioReplay.test_future_portfolio_refused"
         ],
         "documentation": [
-          "docs/developer-guide/subsystems/portfolios.md#compatibility-rules"
+          "docs/developer-guide/subsystems/portfolios.md#schema-contract"
         ]
       }
     },
@@ -2281,28 +2281,6 @@
         ],
         "documentation": [
           "docs/user-guide/workflows/portfolios.md#render-every-saved-plot"
-        ]
-      }
-    },
-    {
-      "id": "portfolio.upgrade-protection",
-      "group": "reproducibility",
-      "revision": 1,
-      "status": "approved",
-      "title": "Safe portfolio upgrade",
-      "description": "The CLI shall refuse to re-save a partially restored portfolio because doing so would permanently discard skipped content.",
-      "tags": ["cli", "migration", "portfolios", "safety"],
-      "evidence": {
-        "implementation": [
-          "ring5/cli.py::_cmd_upgrade",
-          "src/core/models/portfolio_models.py::RestoreReport.complete"
-        ],
-        "tests": [
-          "tests/unit/test_ring5_cli.py::TestUpgradeCommand",
-          "tests/unit/test_ring5_cli.py::TestUpgradeRefusal"
-        ],
-        "documentation": [
-          "docs/user-guide/workflows/portfolios.md#upgrade-a-saved-portfolio"
         ]
       }
     },
@@ -2495,7 +2473,7 @@
         "implementation": ["ring5/cli.py::_cmd_parse"],
         "tests": [
           "tests/unit/test_ring5_cli.py::TestParseCommand",
-          "tests/unit/test_ring5_coverage_edges.py::test_cli_warning_restore_details_file_error_and_module_entry"
+          "tests/unit/test_ring5_coverage_edges.py::test_cli_warning_file_error_and_module_entry"
         ],
         "documentation": [
           "docs/user-guide/workflows/scripting.md#parse-statistics-to-csv"
@@ -4464,7 +4442,7 @@
           "src/core/services/data_services/portfolio_service.py::PortfolioService.verify_portfolio",
           "src/core/services/data_services/portfolio_service.py::PortfolioService.load_portfolio",
           "src/core/services/browser_upload_service.py::BrowserUploadService.load_portfolio",
-          "src/core/services/portfolio_migrator.py::PortfolioMigrator._migrate_v3_to_v4",
+          "src/core/services/portfolio_integrity_service.py::PortfolioIntegrityService.verify",
           "ring5/_session.py::Session.verify_portfolio",
           "ring5/_session.py::Session.load_portfolio",
           "src/web/pages/portfolio.py::_render_integrity_review"
@@ -4501,7 +4479,7 @@
           "src/core/services/environment_metadata_service.py::EnvironmentMetadataService.capture",
           "src/core/services/environment_metadata_service.py::EnvironmentMetadataService.compare",
           "src/core/services/data_services/portfolio_service.py::PortfolioService.save_portfolio",
-          "src/core/services/portfolio_migrator.py::PortfolioMigrator._migrate_v2_to_v3",
+          "src/core/services/data_services/portfolio_service.py::PortfolioService.serialize_workspace",
           "ring5/_session.py::Session.environment_metadata",
           "ring5/_session.py::Session.compare_portfolio_environment",
           "src/web/pages/portfolio.py::_render_environment_comparison"
@@ -5389,8 +5367,7 @@
       "recipe-matrix": "automation.batch-matrices",
       "regression-gate": "automation.ci-regression-gates",
       "report-schedule": "automation.scheduled-reporting",
-      "render": "cli.render",
-      "upgrade": "portfolio.upgrade-protection"
+      "render": "cli.render"
     },
     "cli_options": {
       "parse:lenient": "ingestion.parse-integrity",
@@ -5429,8 +5406,7 @@
       "render:format": "export.web-download",
       "render:no_deterministic": "export.deterministic",
       "render:out_dir": "cli.render",
-      "render:portfolio": "cli.render",
-      "upgrade:portfolio": "portfolio.upgrade-protection"
+      "render:portfolio": "cli.render"
     },
     "application_api_members": {
       "add_current_dataset": "data.multi-dataset-workspace",
