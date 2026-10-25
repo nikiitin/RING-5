@@ -15,12 +15,12 @@ Settings change figure presentation after a plot maps processed columns. **Layou
 
 | Section | Use it for |
 | --- | --- |
-| Layout | Physical or preview dimensions and automatic margins |
+| Layout | Physical or preview dimensions, automatic margins, and grouped-bar spacing |
 | Themes | Coherent built-ins plus customized theme import and export |
 | Typography | Title, axis-title, and tick-label sizes and colors |
 | Legends | Visibility, placement, orientation, labels, and spacing |
 | Axes | Ranges, scales, ticks, grids, label rotation, and axis-specific controls |
-| Data Labels | Values drawn on marks, numeric format, placement, and thresholds |
+| Data Labels | Values drawn on marks, stack or heatmap totals, placement, and thresholds |
 | Colors | Palettes, per-series overrides, backgrounds, grid styling, and supported patterns |
 | Advanced | Reference shapes, error bars, default download configuration, and engine controls |
 
@@ -56,6 +56,9 @@ Covers:
 Choose a single-column, double-column, or custom publication width and set the height in inches.
 RING-5 derives preview dimensions at 100 pixels per inch. Existing pixel dimensions, margins, and
 automatic-margin choices remain intact when opening Layout. New figures use automatic zero margins.
+
+Grouped and grouped-stacked bars also expose category separators, alternating shading, and the
+optional extra gap before the last category here.
 
 Secondary axis fonts inherit the corresponding primary axis font. Secondary legend text inherits
 the primary legend text size; every legend title follows its own legend text size. Disable
@@ -126,7 +129,9 @@ Covers:
 
 The web controls set title, axis-title, and tick-label sizes and tick colors. The typed Python figure
 configuration additionally carries a global font family; legend and data-label typography are set
-in their own sections.
+in their own sections. Applicable dual-axis plots expose independent right-axis sizes with an
+**Inherit** choice. Grouped-stacked bars also set their major category-label font here; label
+placement remains under **Axes**.
 
 ### Axes
 
@@ -140,6 +145,10 @@ Covers:
 
 Configure axis titles, explicit ranges, tick steps and angles, tick marks, grids, axis lines, and
 axis-title placement. Applicable dual-axis plots expose the same controls for the right axis.
+Grouped-stacked bars offer **Numbers**, **Number legend**, and **Labels** as independent X-axis
+modes. Clear the selection to use ordinary axis labels. Selecting only **Number legend** hides the
+tick text and retains the mapping box. Right-axis dots and connecting lines are configured under
+**Y-Right**.
 
 ### Legends
 
@@ -154,6 +163,9 @@ Covers:
 Primary, secondary, and numbered legends have independent visibility, position, orientation,
 anchors, column sizing, font, background, border, marker, and spacing settings when the plot type
 provides those legend tiers.
+Grouped-stacked dual-axis figures can use a unified trace legend or separate left/right legends.
+The number legend uses the secondary tier when it is free and the tertiary tier when both trace
+legends are shown.
 
 ### Colors
 
@@ -262,8 +274,9 @@ Covers:
 
 -->
 
-Stacked plots can label stack totals with a format, visibility threshold, position, anchor,
-typography, offset, and rotation.
+Under **Data Labels**, stacked and grouped-stacked plots can label stack totals with a format,
+visibility threshold, position, anchor, typography, offset, and rotation. **Show Stack Totals** is
+independent of **Show Values**; hiding individual values does not turn off totals.
 
 ### Heatmap summaries
 
@@ -302,8 +315,8 @@ Covers:
 -->
 
 Grouped and grouped-stacked bars can shade alternating major categories with a chosen background
-color. This works alongside vertical separators and the optional extra gap before an isolated final
-category.
+color under **Layout**. This works alongside vertical separators and the optional extra gap before
+an isolated final category.
 
 ### Series styling
 
@@ -315,9 +328,9 @@ Covers:
 
 -->
 
-Where a plot type supports them, per-series overrides set color, display name, bar pattern, marker
-symbol and size, line width, opacity, and borders. **Rewind** returns a series to its current palette
-color.
+Under **Colors**, applicable plots expose per-series color, display name, bar pattern, marker symbol
+and size, and line width. Typed renderer styles also carry opacity and borders. **Rewind** returns
+a series to its current palette color.
 
 ## Working method
 

@@ -50,9 +50,9 @@ class TestApplyNumberedXaxis:
     # [test->req~ring5.figure.numbered-xaxis~1]
 
     def test_disabled_returns_original(self, plot: GroupedStackedBarPlot) -> None:
-        """When numbered_xaxis is False, tick_text is returned unchanged."""
+        """An empty mode selection retains ordinary tick text."""
         tick_text: list[str] = ["c1", "c2", "c3", "c1", "c2", "c3"]
-        config: dict[str, Any] = {"numbered_xaxis": False}
+        config: dict[str, Any] = {"numbered_xaxis_modes": []}
 
         result_text, legend = plot._apply_numbered_xaxis(tick_text, config)
 
@@ -60,7 +60,7 @@ class TestApplyNumberedXaxis:
         assert legend is None
 
     def test_missing_key_returns_original(self, plot: GroupedStackedBarPlot) -> None:
-        """When numbered_xaxis key is absent, tick_text is returned unchanged."""
+        """An absent mode selection retains ordinary tick text."""
         tick_text: list[str] = ["x", "y"]
         result_text, legend = plot._apply_numbered_xaxis(tick_text, {})
         assert result_text == tick_text
@@ -69,7 +69,7 @@ class TestApplyNumberedXaxis:
     def test_enabled_replaces_with_empty(self, plot: GroupedStackedBarPlot) -> None:
         """When enabled, tick_text entries become empty strings (ticks hidden)."""
         tick_text: list[str] = ["c1", "c2", "c3", "c1", "c2", "c3"]
-        config: dict[str, Any] = {"numbered_xaxis": True}
+        config: dict[str, Any] = {"numbered_xaxis_modes": ["Number legend"]}
 
         result_text, legend = plot._apply_numbered_xaxis(tick_text, config)
 
@@ -80,10 +80,10 @@ class TestApplyNumberedXaxis:
         """Legend annotation has correct Plotly annotation keys for box style."""
         tick_text: list[str] = ["alpha", "beta"]
         config: dict[str, Any] = {
-            "numbered_xaxis": True,
-            "numbered_legend_x": 1.05,
-            "numbered_legend_y": 0.5,
-            "numbered_legend_size": 12,
+            "legend2_x": 1.05,
+            "legend2_y": 0.5,
+            "legend2_font_size": 12,
+            "numbered_xaxis_modes": ["Number legend"],
         }
 
         _, legend = plot._apply_numbered_xaxis(tick_text, config)
@@ -107,7 +107,7 @@ class TestApplyNumberedXaxis:
     def test_legend_text_contains_all_groups(self, plot: GroupedStackedBarPlot) -> None:
         """Legend text includes all unique groups with numbering."""
         tick_text: list[str] = ["c1", "c2", "c3", "c1", "c2", "c3"]
-        config: dict[str, Any] = {"numbered_xaxis": True}
+        config: dict[str, Any] = {"numbered_xaxis_modes": ["Number legend"]}
 
         _, legend = plot._apply_numbered_xaxis(tick_text, config)
         assert legend is not None
@@ -118,12 +118,9 @@ class TestApplyNumberedXaxis:
         assert "3. c3" in text
 
     def test_column_wrapping(self, plot: GroupedStackedBarPlot) -> None:
-        """numbered_legend_columns fills columns top-to-bottom (column-wise)."""
+        """Legend columns fill top-to-bottom."""
         tick_text: list[str] = ["a", "b", "c", "d", "a", "b", "c", "d"]
-        config: dict[str, Any] = {
-            "numbered_xaxis": True,
-            "numbered_legend_columns": 2,
-        }
+        config: dict[str, Any] = {"legend2_ncols": 2, "numbered_xaxis_modes": ["Number legend"]}
 
         _, legend = plot._apply_numbered_xaxis(tick_text, config)
         assert legend is not None
@@ -150,10 +147,7 @@ class TestApplyNumberedXaxis:
             "medium",
             "x",
         ]
-        config: dict[str, Any] = {
-            "numbered_xaxis": True,
-            "numbered_legend_columns": 2,
-        }
+        config: dict[str, Any] = {"legend2_ncols": 2, "numbered_xaxis_modes": ["Number legend"]}
 
         _, legend = plot._apply_numbered_xaxis(tick_text, config)
         assert legend is not None
@@ -175,12 +169,9 @@ class TestApplyNumberedXaxis:
         assert _visual_len(rows[1]) == len("2. very_long_name  4. x     ")
 
     def test_single_column_means_vertical_list(self, plot: GroupedStackedBarPlot) -> None:
-        """numbered_legend_columns=1 means one entry per line (vertical list)."""
+        """One legend column means one entry per line."""
         tick_text: list[str] = ["x", "y", "z"]
-        config: dict[str, Any] = {
-            "numbered_xaxis": True,
-            "numbered_legend_columns": 1,
-        }
+        config: dict[str, Any] = {"legend2_ncols": 1, "numbered_xaxis_modes": ["Number legend"]}
 
         _, legend = plot._apply_numbered_xaxis(tick_text, config)
         assert legend is not None
@@ -193,7 +184,7 @@ class TestApplyNumberedXaxis:
     def test_preserves_insertion_order(self, plot: GroupedStackedBarPlot) -> None:
         """Numbering preserves insertion order, not alphabetical."""
         tick_text: list[str] = ["zeta", "alpha", "mid", "zeta", "alpha", "mid"]
-        config: dict[str, Any] = {"numbered_xaxis": True}
+        config: dict[str, Any] = {"numbered_xaxis_modes": ["Number legend"]}
 
         result_text, legend = plot._apply_numbered_xaxis(tick_text, config)
 
@@ -263,7 +254,7 @@ class TestApplyNumberedXaxis:
     def test_single_group(self, plot: GroupedStackedBarPlot) -> None:
         """Works correctly with a single group."""
         tick_text: list[str] = ["only"]
-        config: dict[str, Any] = {"numbered_xaxis": True}
+        config: dict[str, Any] = {"numbered_xaxis_modes": ["Number legend"]}
 
         result_text, legend = plot._apply_numbered_xaxis(tick_text, config)
 
@@ -282,7 +273,7 @@ class TestCreateFigureNumberedXaxis:
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """X-axis ticks should be completely hidden when feature is enabled."""
-        config = _base_config(numbered_xaxis=True)
+        config = _base_config(numbered_xaxis_modes=["Number legend"])
         fig = plot.create_figure(sample_data, config)
 
         layout = cast(Any, fig.layout)
@@ -295,7 +286,7 @@ class TestCreateFigureNumberedXaxis:
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """Figure should contain the numbered legend annotation."""
-        config = _base_config(numbered_xaxis=True)
+        config = _base_config(numbered_xaxis_modes=["Number legend"])
         fig = plot.create_figure(sample_data, config)
 
         layout = cast(Any, fig.layout)
@@ -314,7 +305,7 @@ class TestCreateFigureNumberedXaxis:
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """Without the feature, ticks are original group names."""
-        config = _base_config(numbered_xaxis=False)
+        config = _base_config(numbered_xaxis_modes=[])
         fig = plot.create_figure(sample_data, config)
 
         layout = cast(Any, fig.layout)
@@ -331,8 +322,8 @@ class TestCreateFigureNumberedXaxis:
     ) -> None:
         """Numbered legends show renamed labels, not originals."""
         config = _base_config(
-            numbered_xaxis=True,
             group_renames={"c1": "ConfigAlpha", "c2": "ConfigBeta"},
+            numbered_xaxis_modes=["Number legend"],
         )
         fig = plot.create_figure(sample_data, config)
 
@@ -347,10 +338,10 @@ class TestCreateFigureNumberedXaxis:
     ) -> None:
         """Custom legend_x, legend_y and legend_size are applied."""
         config = _base_config(
-            numbered_xaxis=True,
-            numbered_legend_x=0.0,
-            numbered_legend_y=-0.40,
-            numbered_legend_size=14,
+            legend2_x=0.0,
+            legend2_y=-0.4,
+            legend2_font_size=14,
+            numbered_xaxis_modes=["Number legend"],
         )
         fig = plot.create_figure(sample_data, config)
 
@@ -365,7 +356,7 @@ class TestCreateFigureNumberedXaxis:
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
     ) -> None:
         """Major group annotations (benchmarks) are preserved alongside numbered legend."""
-        config = _base_config(numbered_xaxis=True)
+        config = _base_config(numbered_xaxis_modes=["Number legend"])
         fig = plot.create_figure(sample_data, config)
 
         layout = cast(Any, fig.layout)

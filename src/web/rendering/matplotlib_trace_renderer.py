@@ -98,6 +98,7 @@ class MatplotlibTraceRenderer:
         bar_border_width: float = 0.0,
         heatmap_vmin: float | None = None,
         heatmap_vmax: float | None = None,
+        category_order: Sequence[str] | None = None,
     ) -> MatplotlibRenderResult:
         # [impl->req~ring5.render.matplotlib~1]
         # [impl->req~ring5.extension.render-connector~1]
@@ -116,6 +117,8 @@ class MatplotlibTraceRenderer:
             bar_border_width: Border width around each bar (stacked).
             heatmap_vmin: Optional lower bound for heatmap color normalization.
             heatmap_vmax: Optional upper bound for heatmap color normalization.
+            category_order: Explicit raw category order; unlisted categories
+                retain their encounter order.
 
         Secondary-Y traces (``yaxis='y2'``) are rendered on a twin axis
         created via ``ax.twinx()``, stored as ``ax._ring5_twin``.
@@ -142,6 +145,25 @@ class MatplotlibTraceRenderer:
                 str(value) for trace in bar_specs if not trace.x_positions for value in trace.x
             )
         )
+        if category_order:
+            known_categories = set(categorical_labels)
+            ordered = list(
+                dict.fromkeys(
+                    str(value) for value in category_order if str(value) in known_categories
+                )
+            )
+            ordered_set = set(ordered)
+            categorical_labels = ordered + [
+                label for label in categorical_labels if label not in ordered_set
+            ]
+        category_positions = {label: float(index) for index, label in enumerate(categorical_labels)}
+        result.x_category_positions = {
+            value: category_positions[value]
+            for trace in bar_specs
+            if not trace.x_positions
+            for value in trace.x
+            if isinstance(value, str)
+        }
         vertical_box_ticks: dict[int, str] = {}
         horizontal_box_ticks: dict[int, str] = {}
 

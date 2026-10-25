@@ -1,8 +1,4 @@
-"""Legend settings component — primary, secondary, and tertiary legends.
-
-Extracted from ``BasePlot._section_legends()`` and
-``BaseStyleUI._render_legend_section()`` / sub-methods as a standalone
-component following the component-only architecture (P1, P9).
+"""Legend settings component — independent primary, secondary and tertiary controls.
 
 The component renders a nested pills navigation for primary/secondary/
 tertiary legends and delegates to position, appearance, and sizing
@@ -23,6 +19,7 @@ from typing import Any
 import pandas as pd
 import streamlit as st
 
+from src.core.common.numbered_axis import numbered_axis_modes, numbered_legend_prefix
 from src.web.components.common.bounded_options import bounded_unique_strings
 from src.web.components.common.reorderable_list import render_reorderable_list
 from src.web.components.plotting.settings.widget_factory import (
@@ -91,6 +88,22 @@ class LegendSettingsComponent:
             Legend configuration keys (prefixed per legend level).
         """
         # [impl->req~ring5.figure.legends~1]
+        saved_config = dict(saved_config)
+        routing_config: PlotConfig = {}
+        if self.plot_type == "grouped_stacked_bar" and saved_config.get("dual_axis"):
+            # [impl->req~ring5.figure.dual-axis-controls~1]
+            routing_config["unified_legend"] = st.checkbox(
+                "Unified Legend (all items in one legend)",
+                value=saved_config.get("unified_legend", True),
+                key=f"unified_legend_{self.plot_id}",
+            )
+            saved_config.update(routing_config)
+            numbered = "Number legend" in (numbered_axis_modes(saved_config) or [])
+            separate = (
+                bool(saved_config.get("y_columns_right")) and not saved_config["unified_legend"]
+            )
+            has_secondary = separate or numbered
+            has_tertiary = separate and numbered
         _labels: dict[str, str] = {
             "primary": ":material/legend_toggle: Primary",
         }
@@ -132,7 +145,7 @@ class LegendSettingsComponent:
                 if key.startswith(cfg_prefix):
                     preserved[key] = value
 
-        return {**preserved, **active_config, **item_config}
+        return {**preserved, **active_config, **item_config, **routing_config}
 
     def _render_legend_items(
         self,
@@ -334,17 +347,9 @@ class LegendSettingsComponent:
     @staticmethod
     def _numbered_legend_level(saved_config: PlotConfig) -> str | None:
         """Return the tier used by the numbered X-axis annotation legend."""
-        modes = saved_config.get("numbered_xaxis_modes") or []
-        enabled = "Number legend" in modes or bool(saved_config.get("numbered_xaxis"))
-        if not enabled:
+        if "Number legend" not in (numbered_axis_modes(saved_config) or []):
             return None
-        if (
-            saved_config.get("dual_axis")
-            and saved_config.get("y_columns_right")
-            and not saved_config.get("unified_legend", True)
-        ):
-            return "tertiary"
-        return "secondary"
+        return "tertiary" if numbered_legend_prefix(saved_config) == "legend3_" else "secondary"
 
     @staticmethod
     def _numbered_legend_items(

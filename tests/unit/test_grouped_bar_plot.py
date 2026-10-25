@@ -25,7 +25,7 @@ def sample_data() -> DataFrame:
 
 @pytest.fixture
 def mock_streamlit() -> Generator[None, None, None]:
-    with patch("src.web.pages.ui.plotting.types.grouped_bar_plot.st") as mock_st:
+    with patch("src.web.components.plotting.config.grouped_bar_config.st") as mock_st:
         with (
             patch("src.web.components.plotting.config.base_plot_config.st", mock_st),
             patch("src.web.components.plotting.config.grouped_bar_config.st", mock_st),
@@ -116,22 +116,3 @@ def test_create_figure_with_error_bars_and_filters(sample_data: Any) -> None:
     assert bar_trace.error_y is not None
     error_y = cast(bar_mod.ErrorY, bar_trace.error_y)
     assert error_y.array is not None
-
-
-def test_render_advanced_options_filtering(sample_data: Any) -> None:
-
-    plot = GroupedBarPlot(1, "Test Plot")
-    config = {"x": "Category", "group": "Group", "x_filter": ["Bench1"], "group_filter": ["X"]}
-
-    with patch(
-        "src.web.pages.ui.plotting.types.grouped_bar_plot.BasePlot.render_advanced_options"
-    ) as mock_super:
-        plot.render_advanced_options(config, sample_data)
-
-        # Verify passed data is filtered
-        # A, X -> Should be 1 row
-        args, _ = mock_super.call_args
-        filtered_df = args[1]
-        assert len(filtered_df) == 1
-        assert filtered_df.iloc[0]["Category"] == "Bench1"
-        assert filtered_df.iloc[0]["Group"] == "X"

@@ -21,8 +21,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-# Valid modes for the numbered x-axis multiselect (see grouped_stacked_bar_helpers).
-_NUMBERED_MODES = frozenset({"Numbers", "Labels", "Number legend"})
+from src.core.common.numbered_axis import numbered_axis_modes, numbered_legend_prefix
 
 
 @dataclass
@@ -91,7 +90,7 @@ class FigureSpec:
     """Typed description of a (grouped/stacked) bar figure for headless rendering.
 
     Build one, call :meth:`to_config`, and pass the result as the ``config`` to
-    :meth:`ring5.Session.create_plot` (then :func:`ring5.render_figure`). Only the
+    :meth:`ring5.Session.create_plot` (then :meth:`ring5.Session.render`). Only the
     knobs you set matter; everything else uses sensible publication defaults. Reach
     the long tail of flat-config keys via :attr:`extra`.
     """
@@ -167,7 +166,7 @@ class FigureSpec:
     category_group_rule_y: float | None = None  # default: just above the label
     category_group_rule_inset: float = 0.35  # x-units trimmed at each rule end
 
-    # Numbered x-axis + legends + reference line
+    # Grouped-stacked numbering: None is unspecified; [] explicitly disables it.
     numbered_xaxis_modes: list[str] | None = None
     number_legend: LegendOpts | None = None  # styles the "1. .. / 2. .." box
     legend: LegendOpts = field(default_factory=LegendOpts)
@@ -186,9 +185,7 @@ class FigureSpec:
         if self.y_range is not None and len(self.y_range) != 2:
             raise ValueError("y_range must be a 2-tuple (min, max)")
         if self.numbered_xaxis_modes is not None:
-            bad = [m for m in self.numbered_xaxis_modes if m not in _NUMBERED_MODES]
-            if bad:
-                raise ValueError(f"numbered_xaxis_modes {bad} not in {sorted(_NUMBERED_MODES)}")
+            numbered_axis_modes({"numbered_xaxis_modes": self.numbered_xaxis_modes})
 
     def to_config(self) -> dict[str, Any]:
         """Emit the flat config dict consumed by ``ConfigSpecBuilder.from_config``."""
@@ -279,8 +276,6 @@ class FigureSpec:
                 cfg["category_group_rule_y"] = self.category_group_rule_y
 
         _emit_legend(cfg, self.legend, "legend_", anchor_keys=("anchor_x", "anchor_y"))
-        if self.number_legend is not None:
-            _emit_legend(cfg, self.number_legend, "legend2_", anchor_keys=("xanchor", "yanchor"))
 
         if self.reference_line is not None:
             rl = self.reference_line
@@ -298,7 +293,11 @@ class FigureSpec:
         if self.dual_axis is not None:
             self._emit_dual_axis(cfg, self.dual_axis)
 
+        if self.number_legend is not None:
+            prefix = numbered_legend_prefix({**cfg, **self.extra})
+            _emit_legend(cfg, self.number_legend, prefix, anchor_keys=("xanchor", "yanchor"))
         cfg.update(self.extra)  # escape hatch wins
+        numbered_axis_modes(cfg)
         return cfg
 
     @staticmethod
@@ -678,14 +677,18 @@ class FigureSpecBuilder:
         )
 
     def numbered_xaxis(self, *modes: str) -> "FigureSpecBuilder":
-        """Enable numbered x-axis modes.
+        """Set grouped-stacked numbering, or disable it with no modes.
 
         Args:
-            *modes: Any of ``"Numbers"``, ``"Labels"``, and ``"Number legend"``.
+            *modes: Unique choices from ``"Numbers"``, ``"Labels"``, and ``"Number legend"``.
 
         Returns:
             This builder.
+
+        Raises:
+            ValueError: A mode is unsupported or appears more than once.
         """
+        numbered_axis_modes({"numbered_xaxis_modes": list(modes)})
         return self._set(numbered_xaxis_modes=list(modes))
 
     def legend(self, **opts: Any) -> "FigureSpecBuilder":

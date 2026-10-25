@@ -16,7 +16,7 @@ from tests.conftest import columns_side_effect
 @pytest.fixture
 def mock_streamlit() -> Generator[None, None, None]:
     with (
-        patch("src.web.pages.ui.plotting.types.grouped_stacked_bar_plot.st") as mock_st,
+        patch("src.web.components.plotting.config.grouped_stacked_bar_config.st") as mock_st,
         patch("src.web.components.plotting.config.plot_config_components.st", mock_st),
     ):
         mock_st.session_state = {}

@@ -1,10 +1,9 @@
 """Grouped stacked bar plot implementation."""
 
-from typing import Any, cast, override
+from typing import Any, override
 
 import pandas as pd
 import plotly.graph_objects as go
-import streamlit as st
 
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import TraceConfig
@@ -52,109 +51,6 @@ class GroupedStackedBarPlot(StackedBarPlot):
     def render_config_ui(self, data: pd.DataFrame, saved_config: PlotConfig) -> PlotConfig:
         """Render configuration UI for grouped stacked bar plot."""
         return grouped_stacked_bar_config.render(data, saved_config, self.plot_id)
-
-    def _render_stack_total_options(self, saved_config: PlotConfig, config: PlotConfig) -> None:
-        """Render options for Stack Totals."""
-        from src.web.components.plotting.config.grouped_stacked_bar_theme import (
-            render_stack_total_options,
-        )
-
-        render_stack_total_options(saved_config, config, self.plot_id)
-
-    @override
-    def render_theme_options(
-        self, saved_config: PlotConfig, items: list[str] | None = None
-    ) -> PlotConfig:
-        """Override to add specific styling options."""
-        # Get base theme options
-        stacks = saved_config.get("y_columns", [])
-        config = super().render_theme_options(saved_config, items=stacks)
-
-        # Add grouped-stacked-bar-specific theme extras
-        from src.web.components.plotting.config.grouped_stacked_bar_theme import (
-            render_grouped_theme_extras,
-        )
-
-        render_grouped_theme_extras(saved_config, config, self.plot_id)
-
-        return config
-
-    @override
-    def render_advanced_options(
-        self, saved_config: PlotConfig, data: pd.DataFrame | None = None
-    ) -> PlotConfig:
-        """Custom Advanced Options for Grouped Stacked Bar."""
-        config: dict[str, Any] = {}
-
-        # 1. General Settings
-        self._render_general_settings(saved_config, config)
-
-        # 2. Specific Bar Settings
-        specific = self.render_specific_advanced_options(saved_config, data)
-        config.update(specific)
-
-        # 2b. Right-axis dot/line settings (only when dual_axis + dots)
-        if saved_config.get("dual_axis") and saved_config.get("right_axis_type") == "dots":
-            self._render_right_axis_dot_settings(saved_config, config)
-
-        # 2c. Dual-axis display settings (grid lines, legend unification)
-        if saved_config.get("dual_axis"):
-            self._render_dual_axis_display_settings(saved_config, config)
-
-        # 3. Major Group Configuration (Original X)
-        x_col = cast(str | None, saved_config.get("x"))
-        if data is not None and x_col and x_col in data.columns:
-            st.markdown("#### Major Grouping (Outer) Configuration")
-            with st.expander("Reorder & Rename Major Groups"):
-                unique_x = sorted(data[x_col].unique().tolist())
-                maj_result = self.render_reorderable_list(
-                    "Major Group Order",
-                    unique_x,
-                    "xaxis",
-                    default_order=saved_config.get("xaxis_order"),
-                    enable_rename=True,
-                    rename_map=saved_config.get("xaxis_labels"),
-                )
-                order_maj, renames_maj = maj_result  # type: ignore[misc]
-                config["xaxis_order"] = order_maj
-                if renames_maj:
-                    config["xaxis_labels"] = renames_maj
-
-        # 4. Minor Group Configuration (Original Group)
-        group_col = cast(str | None, saved_config.get("group"))
-        if data is not None and group_col and group_col in data.columns:
-            st.markdown("#### X-Axis / Minor Grouping (Inner) Configuration")
-            with st.expander("Reorder & Rename Minor Groups"):
-                unique_g = sorted(data[group_col].unique().tolist())
-                min_result = self.render_reorderable_list(
-                    "Minor Group Order",
-                    unique_g,
-                    "group",
-                    default_order=saved_config.get("group_order"),
-                    enable_rename=True,
-                    rename_map=saved_config.get("group_renames"),
-                )
-                order_min, renames_min = min_result  # type: ignore[misc]
-                config["group_order"] = order_min
-                if renames_min:
-                    config["group_renames"] = renames_min
-
-        # 5. Reference Line (Normalizer)
-        self._render_reference_line_ui(saved_config, data, config)
-
-        # 6. Annotations
-        st.markdown("#### Annotations (Shapes)")
-        config["shapes"] = self._render_shapes_ui(saved_config)
-
-        # 7. Interactivity
-        st.markdown("#### Interactivity")
-        config["enable_editable"] = st.checkbox(
-            "Enable Interactive Editing",
-            value=saved_config.get("enable_editable", False),
-            key=f"editable_{self.plot_id}",
-        )
-
-        return config
 
     @override
     def create_traces(self, data: pd.DataFrame, config: PlotConfig) -> TraceBuildResult:
@@ -452,24 +348,6 @@ class GroupedStackedBarPlot(StackedBarPlot):
         )
 
         apply_separate_legends(fig, config)
-
-    def _render_dual_axis_display_settings(
-        self, saved_config: PlotConfig, config: PlotConfig
-    ) -> None:
-        """Render dual-axis display settings: grid, typography, legend."""
-        from src.web.components.plotting.config.dual_axis_settings import (
-            render_dual_axis_display_settings,
-        )
-
-        render_dual_axis_display_settings(saved_config, config, self.plot_id)
-
-    def _render_right_axis_dot_settings(self, saved_config: PlotConfig, config: PlotConfig) -> None:
-        """Render dot & line settings for the right (secondary) Y-axis."""
-        from src.web.components.plotting.config.dual_axis_settings import (
-            render_right_axis_dot_settings,
-        )
-
-        render_right_axis_dot_settings(saved_config, config, self.plot_id)
 
     def _build_right_axis_traces(
         self,

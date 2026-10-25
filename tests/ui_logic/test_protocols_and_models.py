@@ -68,13 +68,7 @@ class TestRenderablePlotProtocol:
         result = plot.render_config_ui(data, config)
         assert isinstance(result, dict)
 
-        result = plot.render_advanced_options(config, data)
-        assert isinstance(result, dict)
-
-        result = plot.render_display_options(config)
-        assert isinstance(result, dict)
-
-        result = plot.render_theme_options(config)
+        result = plot.render_settings_section("layout", config, data)
         assert isinstance(result, dict)
 
 

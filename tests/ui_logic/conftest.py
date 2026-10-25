@@ -46,15 +46,6 @@ class StubPlotHandle:
     def render_config_ui(self, data: pd.DataFrame, config: dict[str, Any]) -> dict[str, Any]:
         return config
 
-    def render_advanced_options(self, config: dict[str, Any], data: pd.DataFrame) -> dict[str, Any]:
-        return config
-
-    def render_display_options(self, config: dict[str, Any]) -> dict[str, Any]:
-        return config
-
-    def render_theme_options(self, config: dict[str, Any]) -> dict[str, Any]:
-        return config
-
     def render_settings_section(
         self,
         section: str | None,

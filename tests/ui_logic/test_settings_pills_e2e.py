@@ -53,7 +53,7 @@ class TestTypographyNoAxisLeak:
             "top_axis_line_color",
             "right_axis_line_width",
             "right_axis_line_color",
-            "numbered_xaxis",
+            "numbered_xaxis_modes",
         }
     )
 
@@ -129,7 +129,7 @@ class TestAxesAxisLineControls:
     def test_x_axis_outputs_axis_line_keys(self, mock_st: MagicMock) -> None:
         """X-Axis sub-pill outputs bottom/top axis line width+color."""
         comp = self._make_component()
-        mock_st.pills.return_value = "x"
+        mock_st.pills.side_effect = lambda label, **kw: "x" if label == "Axis" else []
         mock_st.checkbox.return_value = True
         mock_st.slider.return_value = -45
         mock_st.number_input.return_value = 1.0
@@ -184,7 +184,7 @@ class TestAxesAxisLineControls:
     def test_axis_line_zero_width_hides_line(self, mock_st: MagicMock) -> None:
         """Axis line with width=0 is accepted (hides the line)."""
         comp = self._make_component()
-        mock_st.pills.return_value = "x"
+        mock_st.pills.side_effect = lambda label, **kw: "x" if label == "Axis" else []
         mock_st.checkbox.return_value = True
         mock_st.slider.return_value = -45
         mock_st.number_input.return_value = 0.0
@@ -203,7 +203,7 @@ class TestAxesAxisLineControls:
 
 
 class TestNumberedXAxis:
-    """Verify numbered X-axis checkbox is in Axes → X-Axis."""
+    """Verify current numbered-axis modes are owned by Axes → X-Axis."""
 
     def _make_component(self) -> Any:
         from src.web.components.plotting.settings import (
@@ -214,9 +214,9 @@ class TestNumberedXAxis:
 
     @patch("src.web.components.plotting.settings.axes_settings.st")
     def test_numbered_xaxis_key_present(self, mock_st: MagicMock) -> None:
-        """X-Axis sub-pill outputs 'numbered_xaxis' key."""
+        """X-Axis sub-pill outputs the canonical modes list."""
         comp = self._make_component()
-        mock_st.pills.return_value = "x"
+        mock_st.pills.side_effect = lambda label, **kw: "x" if label == "Axis" else []
         mock_st.checkbox.return_value = False
         mock_st.slider.return_value = -45
         mock_st.number_input.return_value = 1.0
@@ -226,13 +226,13 @@ class TestNumberedXAxis:
 
         result = comp.render({}, data=pd.DataFrame({"a": [1]}))
 
-        assert "numbered_xaxis" in result, "Missing numbered_xaxis checkbox"
+        assert result["numbered_xaxis_modes"] == []
 
     @patch("src.web.components.plotting.settings.axes_settings.st")
-    def test_numbered_xaxis_enabled(self, mock_st: MagicMock) -> None:
-        """When checked, numbered_xaxis is True."""
+    def test_numbered_xaxis_selection(self, mock_st: MagicMock) -> None:
+        """Current multiselect values are returned without derived booleans."""
         comp = self._make_component()
-        mock_st.pills.return_value = "x"
+        mock_st.pills.side_effect = lambda label, **kw: "x" if label == "Axis" else ["Labels"]
         mock_st.checkbox.return_value = True
         mock_st.slider.return_value = -45
         mock_st.number_input.return_value = 1.0
@@ -242,8 +242,7 @@ class TestNumberedXAxis:
 
         with patch("src.web.components.plotting.settings.widget_factory.st", mock_st):
             result = comp.render({}, data=pd.DataFrame({"a": [1]}))
-
-        assert result["numbered_xaxis"] is True
+        assert result["numbered_xaxis_modes"] == ["Labels"]
 
 
 # Group-label offset
@@ -317,7 +316,7 @@ class TestLegendRenameReorder:
     def test_ordering_fn_called_on_x_axis(self, mock_st: MagicMock) -> None:
         """render_ordering_fn is called when X-axis sub-pill is active."""
         comp = self._make_component()
-        mock_st.pills.return_value = "x"
+        mock_st.pills.side_effect = lambda label, **kw: "x" if label == "Axis" else []
         mock_st.checkbox.return_value = True
         mock_st.slider.return_value = -45
         mock_st.number_input.return_value = 1.0
@@ -465,7 +464,7 @@ class TestNoSettingsLeakage:
 
         # Axes (X-axis sub-pill)
         axes = AxesSettingsComponent(plot_id=1, plot_type="bar")
-        mock_axes_st.pills.return_value = "x"
+        mock_axes_st.pills.side_effect = lambda label, **kw: "x" if label == "Axis" else []
         mock_axes_st.checkbox.return_value = True
         mock_axes_st.slider.return_value = -45
         mock_axes_st.number_input.return_value = 1.0
@@ -656,25 +655,6 @@ class TestNumberedXAxisMultiselect:
         assert isinstance(result["numbered_xaxis_modes"], list)
 
     @patch("src.web.components.plotting.settings.axes_settings.st")
-    def test_backward_compat_numbered_xaxis_bool(self, mock_st: MagicMock) -> None:
-        """numbered_xaxis boolean computed from modes for backward compat."""
-        comp = self._make_component()
-        mock_st.pills.side_effect = lambda label, **kw: (
-            "x" if label == "Sub-Axis" else kw.get("default", [])
-        )
-        mock_st.checkbox.return_value = True
-        mock_st.slider.return_value = -45
-        mock_st.number_input.return_value = 1.0
-        mock_st.columns.side_effect = columns_side_effect
-        mock_st.color_picker.return_value = "#444444"
-        mock_st.selectbox.return_value = "solid"
-
-        result = comp.render({}, data=pd.DataFrame({"a": [1]}))
-
-        assert "numbered_xaxis" in result, "Missing numbered_xaxis compat key"
-        assert isinstance(result["numbered_xaxis"], bool)
-
-    @patch("src.web.components.plotting.settings.axes_settings.st")
     def test_modes_with_selection(self, mock_st: MagicMock) -> None:
         """When modes are selected, they propagate to the config."""
         comp = self._make_component()
@@ -695,47 +675,10 @@ class TestNumberedXAxisMultiselect:
         modes = result["numbered_xaxis_modes"]
         assert "Numbers" in modes
         assert "Number legend" in modes
-        assert result["numbered_xaxis"] is True
-
-    @patch("src.web.components.plotting.settings.axes_settings.st")
-    def test_show_numbered_ticks_derived(self, mock_st: MagicMock) -> None:
-        """show_numbered_ticks is True when 'Numbers' is in modes."""
-        comp = self._make_component()
-        mock_st.pills.side_effect = lambda label, **kw: ("x" if label == "Axis" else ["Numbers"])
-        mock_st.checkbox.return_value = True
-        mock_st.slider.return_value = -45
-        mock_st.number_input.return_value = 1.0
-        mock_st.columns.side_effect = columns_side_effect
-        mock_st.color_picker.return_value = "#444444"
-        mock_st.selectbox.return_value = "solid"
-
-        result = comp.render({}, data=pd.DataFrame({"a": [1]}))
-
-        assert result.get("show_numbered_ticks") is True
-        assert result.get("show_numbered_legend") is False
-
-    @patch("src.web.components.plotting.settings.axes_settings.st")
-    def test_show_numbered_legend_derived(self, mock_st: MagicMock) -> None:
-        """show_numbered_legend is True when 'Number legend' is in modes."""
-        comp = self._make_component()
-        mock_st.pills.side_effect = lambda label, **kw: (
-            "x" if label == "Axis" else ["Number legend"]
-        )
-        mock_st.checkbox.return_value = True
-        mock_st.slider.return_value = -45
-        mock_st.number_input.return_value = 1.0
-        mock_st.columns.side_effect = columns_side_effect
-        mock_st.color_picker.return_value = "#444444"
-        mock_st.selectbox.return_value = "solid"
-
-        result = comp.render({}, data=pd.DataFrame({"a": [1]}))
-
-        assert result.get("show_numbered_legend") is True
-        assert result.get("show_numbered_ticks") is False
 
     @patch("src.web.components.plotting.settings.axes_settings.st")
     def test_empty_modes_no_numbered(self, mock_st: MagicMock) -> None:
-        """No modes selected → numbered_xaxis is False."""
+        """An empty mode selection remains an explicit empty list."""
         comp = self._make_component()
         mock_st.pills.side_effect = lambda label, **kw: ("x" if label == "Axis" else [])
         mock_st.checkbox.return_value = True
@@ -748,31 +691,6 @@ class TestNumberedXAxisMultiselect:
         result = comp.render({}, data=pd.DataFrame({"a": [1]}))
 
         assert result["numbered_xaxis_modes"] == []
-        assert result["numbered_xaxis"] is False
-
-    @patch("src.web.components.plotting.settings.axes_settings.st")
-    def test_old_boolean_compat_migrates_to_modes(self, mock_st: MagicMock) -> None:
-        """Old saved_config with numbered_xaxis=True migrates to modes."""
-        comp = self._make_component()
-        # The pills call for sub-axis returns "x",
-        # The pills call for numbered modes returns whatever was default
-        mock_st.pills.side_effect = lambda label, **kw: (
-            "x" if label == "Sub-Axis" else kw.get("default", [])
-        )
-        mock_st.checkbox.return_value = True
-        mock_st.slider.return_value = -45
-        mock_st.number_input.return_value = 1.0
-        mock_st.columns.side_effect = columns_side_effect
-        mock_st.color_picker.return_value = "#444444"
-        mock_st.selectbox.return_value = "solid"
-
-        # Old config has boolean numbered_xaxis=True but no modes
-        old_config: dict[str, Any] = {"numbered_xaxis": True}
-        result = comp.render(old_config, data=pd.DataFrame({"a": [1]}))
-
-        # Should still have modes and compat key
-        assert "numbered_xaxis_modes" in result
-        assert "numbered_xaxis" in result
 
 
 # Data-label progressive disclosure
@@ -901,6 +819,7 @@ class TestLegendItemOrderRename:
     def _setup_streamlit(mock_st: MagicMock, tab: str) -> None:
         """Select one legend tier and provide an expander context."""
         mock_st.pills.return_value = tab
+        mock_st.checkbox.side_effect = lambda *args, **kwargs: kwargs.get("value", False)
         mock_st.expander.return_value.__enter__ = MagicMock(return_value=MagicMock())
         mock_st.expander.return_value.__exit__ = MagicMock(return_value=False)
 

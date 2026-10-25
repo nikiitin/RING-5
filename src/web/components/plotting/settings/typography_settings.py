@@ -1,11 +1,7 @@
 """Typography settings component — font sizes and colors.
 
-Extracted from ``BaseStyleUI._render_typography_section()`` as a standalone
-component following the component-only architecture (P1, P9).
-
 Tick marks, grid dash styles, tick label distance, Y-axis title position,
-and group label settings live in ``AxesSettingsComponent`` where they
-semantically belong.
+and group label placement live in ``AxesSettingsComponent``.
 
 Usage::
 
@@ -17,6 +13,7 @@ import streamlit as st
 
 from src.web.components.plotting.settings.widget_factory import (
     color_picker,
+    inherited_font_input,
     numeric_input,
 )
 from src.web.models.plot_models import PlotConfig
@@ -102,7 +99,6 @@ class TypographySettingsComponent:
                 widget_key=f"{key_prefix}xaxis_tick_sz_{self.plot_id}",
                 default=12,
                 min_value=1,
-                help="Overwrites the basic X-axis font size in Advanced Options",
             )
             xaxis_tickfont_color = color_picker(
                 "X-Axis Label Color",
@@ -131,7 +127,7 @@ class TypographySettingsComponent:
                 default="#444444",
             )
 
-        return {
+        config: PlotConfig = {
             "title_font_size": title_font_size,
             "xaxis_title_font_size": xaxis_title_font_size,
             "yaxis_title_font_size": yaxis_title_font_size,
@@ -140,3 +136,50 @@ class TypographySettingsComponent:
             "yaxis_tickfont_size": yaxis_tickfont_size,
             "yaxis_tickfont_color": yaxis_tickfont_color,
         }
+
+        if self.plot_type == "grouped_stacked_bar":
+            st.markdown("#### Group Label Fonts")
+            config["major_label_size"] = numeric_input(
+                "Major Label Font Size",
+                saved_config,
+                "major_label_size",
+                self.plot_id,
+                default=14,
+                min_value=1,
+            )
+            config["major_label_color"] = color_picker(
+                "Major Label Font Color",
+                saved_config,
+                "major_label_color",
+                self.plot_id,
+                default="#000000",
+            )
+        if self.plot_type == "dual_axis_bar_dot" or saved_config.get("dual_axis"):
+            st.markdown("#### Right Y-Axis Fonts")
+            config["yaxis2_title_font_size"] = inherited_font_input(
+                "Right Y-Axis Title Font Size",
+                saved_config,
+                "yaxis2_title_font_size",
+                self.plot_id,
+                primary_key="yaxis_title_font_size",
+                widget_key=f"y2_title_sz_{self.plot_id}",
+                default=14,
+            )
+            config["yaxis2_tickfont_size"] = inherited_font_input(
+                "Right Y-Axis Tick Size",
+                saved_config,
+                "yaxis2_tickfont_size",
+                self.plot_id,
+                primary_key="yaxis_tickfont_size",
+                widget_key=f"y2_tick_sz_{self.plot_id}",
+                default=12,
+            )
+            config["yaxis2_tickfont_color"] = color_picker(
+                "Right Y-Axis Tick Color",
+                saved_config,
+                "yaxis2_tickfont_color",
+                self.plot_id,
+                default=saved_config.get("yaxis_tickfont_color", "#444444"),
+                widget_key=f"y2_tick_col_{self.plot_id}",
+            )
+        return config

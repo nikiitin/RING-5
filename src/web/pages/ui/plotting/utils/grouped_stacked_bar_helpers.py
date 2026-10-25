@@ -11,14 +11,17 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.basedatatypes import BaseTraceType
 
+from src.core.common.numbered_axis import numbered_axis_modes, numbered_legend_prefix
 from src.core.models.visualization.trace_config import (
     BarTraceConfig,
     LineTraceConfig,
     ScatterTraceConfig,
     TraceConfig,
 )
+from src.core.services.visualization.config_resolver import resolve_config
 from src.web.pages.ui.plotting.utils.grouped_bar_utils import GroupedBarUtils
 from src.web.pages.ui.plotting.utils.ordering import order_with_overrides
+from src.web.rendering.config_builder import ConfigSpecBuilder
 
 
 def get_ordered_categories_and_groups(
@@ -77,8 +80,6 @@ def apply_numbered_xaxis(
     - Numbers + Legend → numbered ticks + annotation box
     - All three → ``"1. genome"`` ticks + annotation box
 
-    Falls back to old boolean ``config["numbered_xaxis"]`` for compat.
-
     Args:
         tick_text: Original tick label strings (may repeat across categories).
         config: Plot configuration dict.
@@ -87,15 +88,9 @@ def apply_numbered_xaxis(
         Tuple of (possibly-replaced tick_text, legend annotation dict or None).
     """
     # [impl->req~ring5.figure.numbered-xaxis~1]
-    # Determine active modes (new multiselect or old boolean)
-    modes: list[str] = config.get("numbered_xaxis_modes", [])
+    modes = numbered_axis_modes(config)
     if not modes:
-        # Backward compat: old boolean → legend-only (ticks hidden)
-        if not config.get("numbered_xaxis"):
-            return tick_text, None
-        modes = ["Number legend"]
-        if config.get("show_numbered_ticks", False):
-            modes.append("Numbers")
+        return tick_text, None
 
     has_numbers: bool = "Numbers" in modes
     has_labels: bool = "Labels" in modes
@@ -103,14 +98,7 @@ def apply_numbered_xaxis(
 
     # The numbered annotation uses the secondary legend tier, or the tertiary
     # tier when separate left/right trace legends already occupy two tiers.
-    if (
-        config.get("dual_axis")
-        and config.get("y_columns_right")
-        and not config.get("unified_legend", True)
-    ):
-        _prefix = "legend3_"
-    else:
-        _prefix = "legend2_"
+    _prefix = numbered_legend_prefix(config)
 
     # Unique groups preserving insertion order, then apply this annotation
     # legend's independent ordering and display labels.
@@ -147,8 +135,8 @@ def apply_numbered_xaxis(
         f"{i + 1}. {legend_labels.get(group, group)}" for i, group in enumerate(unique_groups)
     ]
 
-    # Column count: prefer legend pill's ncols, fall back to old config key
-    max_cols: int = int(config.get(f"{_prefix}ncols", config.get("numbered_legend_columns", 1)))
+    # Zero columns means automatic sizing; annotations use one text column.
+    max_cols: int = int(config.get(f"{_prefix}ncols", 1))
     # Treat 0 (auto) as 1 for annotation text layout
     if max_cols <= 0:
         max_cols = 1
@@ -182,11 +170,9 @@ def apply_numbered_xaxis(
         # One entry per line (vertical, like a standard legend)
         legend_text = "<br>".join(legend_parts)
 
-    legend_x: float = float(config.get(f"{_prefix}x", config.get("numbered_legend_x", 1.02)))
-    legend_y: float = float(config.get(f"{_prefix}y", config.get("numbered_legend_y", 0.0)))
-    bgcolor: str = str(
-        config.get(f"{_prefix}bgcolor", config.get("numbered_legend_bgcolor", "#FFFFFF"))
-    )
+    legend_x: float = float(config.get(f"{_prefix}x", 1.02))
+    legend_y: float = float(config.get(f"{_prefix}y", 0.0))
+    bgcolor: str = str(config.get(f"{_prefix}bgcolor", "#FFFFFF"))
     # bgalpha makes the box background (semi-)transparent — the same knob the trace
     # legends use. The number box is an annotation shared by the Plotly and Matplotlib
     # paths; fold alpha into an rgba() string (Plotly-native, and the Matplotlib
@@ -201,7 +187,12 @@ def apply_numbered_xaxis(
             f"rgba({int(round(_r * 255))},{int(round(_g * 255))},"
             f"{int(round(_b * 255))},{float(_bgalpha)})"
         )
-    font_size: int = int(config.get(f"{_prefix}font_size", config.get("numbered_legend_size", 10)))
+    # Resolve the annotation's legend tier before either engine consumes it.
+    # Keep the number box's default size while sharing normal legend inheritance.
+    legend_config = {f"{_prefix}font_size": 10, **config}
+    resolved = resolve_config(ConfigSpecBuilder.from_config(legend_config))
+    legend_role = "tertiary" if _prefix == "legend3_" else "secondary"
+    font_size = next(legend.font_size for legend in resolved.legends if legend.role == legend_role)
     font_color: str = str(config.get(f"{_prefix}font_color", "#333333"))
     border_color: str = str(config.get(f"{_prefix}border_color", "#333333"))
     border_width: int = int(config.get(f"{_prefix}border_width", 1))
@@ -279,30 +270,22 @@ def apply_dual_axis_titles(fig: go.Figure, config: dict[str, Any]) -> None:
         fig: Plotly figure (``make_subplots`` with ``secondary_y``).
         config: Full plot configuration.
     """
-    # Resolve primary settings
+    typography = resolve_config(ConfigSpecBuilder.from_config(config)).typography
     ylabel_left: str = config.get("ylabel", "")
     ylabel_right: str = config.get("ylabel_right", "")
 
-    primary_font_size: int = int(config.get("yaxis_title_font_size", 14))
+    primary_font_size = typography.font_size_ylabel
     primary_standoff: int = int(config.get("yaxis_title_standoff", 0))
     font_color: str = config.get("axis_color", "#444444")
 
-    # Resolve secondary settings (fall back to primary)
-    yaxis2_fs_raw: Any = config.get("yaxis2_title_font_size")
-    secondary_font_size: int = (
-        int(yaxis2_fs_raw) if yaxis2_fs_raw is not None else primary_font_size
-    )
+    secondary_font_size = typography.font_size_y2label
     yaxis2_so_raw: Any = config.get("yaxis2_title_standoff")
     secondary_standoff: int = int(yaxis2_so_raw) if yaxis2_so_raw is not None else primary_standoff
 
-    # Secondary Y tick styling (fall back to primary)
-    primary_tick_size: int = int(config.get("yaxis_tickfont_size", 12))
+    # Colors have independent defaults; font inheritance uses the typed resolver.
     primary_tick_color: str = config.get("yaxis_tickfont_color", "#444444")
 
-    y2_tick_size_raw: Any = config.get("yaxis2_tickfont_size")
-    secondary_tick_size: int = (
-        int(y2_tick_size_raw) if y2_tick_size_raw is not None else primary_tick_size
-    )
+    secondary_tick_size = typography.font_size_y2ticks
     y2_tick_color_raw: Any = config.get("yaxis2_tickfont_color")
     secondary_tick_color: str = (
         str(y2_tick_color_raw) if y2_tick_color_raw is not None else primary_tick_color

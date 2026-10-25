@@ -908,8 +908,8 @@ class FigureSpecToPlotly:
         in ``AxisConfig.label_aliases`` and resolved here into ``tickmode``,
         ``tickvals``, and ``ticktext``.
 
-        When ``category_order`` is also set, the order is used for
-        ``tickvals``; otherwise, values are sorted alphabetically.
+        Explicit category order comes first, followed by unlisted values in
+        encounter order. Without an explicit order, values are alphabetical.
         """
 
         if not axis.label_aliases:
@@ -917,20 +917,20 @@ class FigureSpecToPlotly:
 
         mapping: dict[str, str] = axis.label_aliases
 
-        # Determine order: explicit category_order if set, else sorted unique
+        unique_vals: list[str] = []
+        seen: set[str] = set()
+        for trace in _fig_traces(fig):
+            if hasattr(trace, "x") and trace.x is not None:
+                for x_val in trace.x:
+                    key = str(x_val)
+                    if key not in seen:
+                        unique_vals.append(key)
+                        seen.add(key)
+
         if axis.category_order is not None:
-            ordered = list(axis.category_order)
+            ordered = list(dict.fromkeys(axis.category_order))
+            ordered.extend(value for value in unique_vals if value not in ordered)
         else:
-            # Collect unique x-values from traces
-            unique_vals: list[str] = []
-            seen: set[str] = set()
-            for trace in _fig_traces(fig):
-                if hasattr(trace, "x") and trace.x is not None:
-                    for x_val in trace.x:
-                        key = str(x_val)
-                        if key not in seen:
-                            unique_vals.append(key)
-                            seen.add(key)
             ordered = sorted(unique_vals)
 
         # Build tickvals/ticktext: map through aliases, preserving originals

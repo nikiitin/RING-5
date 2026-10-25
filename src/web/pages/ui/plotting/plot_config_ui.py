@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING
 import pandas as pd
 import streamlit as st
 
+from src.core.common.numbered_axis import numbered_axis_modes
 from src.core.models.plot_config import ShapeConfig
 from src.web.components.plotting.settings import (
     AdvancedSettingsComponent,
@@ -65,19 +66,6 @@ class PlotConfigUIMixin:
         Returns:
             Current configuration dictionary
         """
-
-    def render_display_options(self, saved_config: PlotConfig) -> PlotConfig:
-        """Render sizing and layout options via LayoutSettingsComponent."""
-        component = LayoutSettingsComponent(self.plot_id, self.plot_type)
-        return component.render(saved_config)
-
-    def render_theme_options(
-        self, saved_config: PlotConfig, items: list[str] | None = None
-    ) -> PlotConfig:
-        """Render theme/style options via the style UI strategy."""
-        return self._style_ui.render_style_ui(
-            saved_config, self.processed_data, items=items, key_prefix="theme_"
-        )
 
     def _supports_secondary_legend(self) -> bool:
         """Whether this plot type supports a secondary legend pill.
@@ -131,10 +119,7 @@ class PlotConfigUIMixin:
             )
 
         if section == "legends":
-            numbered_legend = bool(
-                "Number legend" in (saved_config.get("numbered_xaxis_modes") or [])
-                or saved_config.get("numbered_xaxis")
-            )
+            numbered_legend = "Number legend" in (numbered_axis_modes(saved_config) or [])
             has_separate_axis_legend = bool(
                 saved_config.get("dual_axis")
                 and not saved_config.get("unified_legend", True)
@@ -202,55 +187,6 @@ class PlotConfigUIMixin:
 
         EngineSettingsComponent(self.plot_id, self.plot_type).render(saved_config, config)
 
-    def render_advanced_options(
-        self, saved_config: PlotConfig, data: pd.DataFrame | None = None
-    ) -> PlotConfig:
-        """Render advanced options (legend, error bars, download format, axis settings).
-
-        Should be called within an expander.
-
-        Args:
-            saved_config: Previously saved configuration
-            data: The data being plotted (optional, needed for ordering options)
-
-        Returns:
-            Configuration dictionary with advanced options
-        """
-        config: PlotConfig = {}
-
-        # 1. General & Axis Settings
-        self._render_general_settings(saved_config, config)
-
-        # 2. Specific Settings (Plot Type Specific)
-        specific_config = self.render_specific_advanced_options(saved_config, data)
-        config.update(specific_config)
-
-        # 3. Ordering Control (includes inline X-axis & legend rename)
-        if data is not None:
-            self._render_ordering_ui(saved_config, data, config)
-
-        # 4. Legend & Interactivity
-        st.markdown("#### Legend & Interactivity")
-        config["enable_editable"] = st.checkbox(
-            "Enable Interactive Editing",
-            value=saved_config.get("enable_editable", False),
-            key=f"editable_{self.plot_id}",
-            help="Allows you to drag the legend/title and click to edit text directly on the plot.",
-        )
-
-        # Preserve existing series styles (renaming now inline in ordering)
-        if "series_styles" not in config:
-            config["series_styles"] = saved_config.get("series_styles", {})
-
-        # 5. Reference Line
-        self._render_reference_line_ui(saved_config, data, config)
-
-        # 6. Annotations
-        st.markdown("#### Annotations (Shapes)")
-        config["shapes"] = self._render_shapes_ui(saved_config)
-
-        return config
-
     def render_specific_advanced_options(
         self, saved_config: PlotConfig, data: pd.DataFrame | None = None
     ) -> PlotConfig:
@@ -298,71 +234,6 @@ class PlotConfigUIMixin:
                     )
         return config
 
-    def _render_general_settings(self, saved_config: PlotConfig, config: PlotConfig) -> None:
-        """Helper to render general settings.
-
-        Args:
-            saved_config: Previously saved configuration
-            config: Current configuration to update
-        """
-        st.markdown("#### General & Axis")
-        col1, col2 = st.columns(2)
-        with col1:
-            config["show_error_bars"] = st.checkbox(
-                "Show Error Bars (if .sd columns exist)",
-                value=saved_config.get("show_error_bars", False),
-                key=f"error_bars_{self.plot_id}",
-            )
-
-            # Y-axis Stepping
-            dtick: float = st.number_input(
-                "Y-axis Step Size (0 for auto)",
-                min_value=0.0,
-                value=float(saved_config.get("yaxis_dtick") or 0.0),
-                key=f"ydtick_{self.plot_id}",
-            )
-            if dtick > 0:
-                config["yaxis_dtick"] = dtick
-
-        with col2:
-            download_formats: list[str] = ["html", "png", "pdf", "svg"]
-            default_fmt_idx: int = 0
-            if saved_config.get("download_format") in download_formats:
-                default_fmt_idx = download_formats.index(saved_config["download_format"])
-
-            config["download_format"] = st.selectbox(
-                "Default Download Format",
-                options=download_formats,
-                index=default_fmt_idx,
-                key=f"download_fmt_{self.plot_id}",
-            )
-
-            # Download Scale
-            config["export_scale"] = st.selectbox(
-                "Download Scale (Resolution)",
-                options=[1, 2, 3],
-                index=[1, 2, 3].index(saved_config.get("export_scale", 1)),
-                key=f"exp_scale_{self.plot_id}",
-                help="1x = Screen Resolution (WYSIWYG). 3x = High Res (Publication).",
-            )
-
-            # Dimension Preview
-            w: int = saved_config.get("width", 800)
-            h: int = saved_config.get("height", 500)
-            s: int = config["export_scale"]
-            st.caption(f"Download Size: {w * s} x {h * s} px")
-            st.caption("Change base dimensions in 'Layout' settings.")
-
-            config["xaxis_tickangle"] = st.slider(
-                "X-axis Label Rotation",
-                min_value=-90,
-                max_value=90,
-                value=saved_config.get("xaxis_tickangle", -45),
-                step=15,
-                key=f"xaxis_angle_{self.plot_id}",
-                help="Rotate X-axis labels to prevent overlap",
-            )
-
     def _render_ordering_ui(
         self, saved_config: PlotConfig, data: pd.DataFrame, config: PlotConfig
     ) -> None:
@@ -380,36 +251,6 @@ class PlotConfigUIMixin:
         )
 
         return ShapesSettingsComponent(self.plot_id, self.plot_type).render(saved_config)
-
-    def render_reorderable_list(
-        self,
-        label: str,
-        items: list[str],
-        key_prefix: str,
-        legend_labels: dict[str, str] | None = None,
-        default_order: list[str] | None = None,
-        enable_rename: bool = False,
-        rename_map: dict[str, str] | None = None,
-    ) -> list[str] | tuple[list[str], dict[str, str]]:
-        """Render a list that can be reordered using up/down buttons.
-
-        Delegates to the standalone ``render_reorderable_list`` component.
-        Kept as a thin wrapper for backward compatibility with subclasses.
-        """
-        from src.web.components.common.reorderable_list import (
-            render_reorderable_list,
-        )
-
-        return render_reorderable_list(
-            label=label,
-            items=items,
-            key_prefix=key_prefix,
-            plot_id=self.plot_id,
-            legend_labels=legend_labels,
-            default_order=default_order,
-            enable_rename=enable_rename,
-            rename_map=rename_map,
-        )
 
     def _render_reference_line_ui(
         self,

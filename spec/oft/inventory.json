@@ -1711,19 +1711,33 @@
       "status": "approved",
       "title": "Numbered X-axis labels",
       "description": "Grouped figures shall optionally replace or supplement long category labels with numbers and a separately configurable number legend.",
-      "tags": ["labels", "numbered_axis", "styling"],
+      "tags": [
+        "labels",
+        "numbered_axis",
+        "styling"
+      ],
       "evidence": {
         "implementation": [
-          "src/web/pages/ui/plotting/utils/grouped_stacked_bar_helpers.py::apply_numbered_xaxis"
+          "src/web/pages/ui/plotting/utils/grouped_stacked_bar_helpers.py::apply_numbered_xaxis",
+          "src/core/common/numbered_axis.py::numbered_axis_modes"
         ],
         "tests": [
           "tests/unit/test_numbered_xaxis.py::TestApplyNumberedXaxis",
-          "tests/unit/test_numbered_xaxis.py::TestCreateFigureNumberedXaxis"
+          "tests/unit/test_numbered_xaxis.py::TestCreateFigureNumberedXaxis",
+          "tests/unit/test_numbered_axis_contract.py::test_every_mode_subset_keeps_measurements_and_numbering_consistent",
+          "tests/ui/test_plot_settings_contracts.py::test_numbered_axes_widget_has_three_modes_and_empty_is_current_off"
         ],
         "documentation": [
           "docs/user-guide/guides/publication-export.md#check-typography-and-axes"
         ]
-      }
+      },
+      "history": [
+        {
+          "revision": 1,
+          "reason": "Bind active settings-pill controls and real widget-to-renderer regressions.",
+          "change_type": "evidence"
+        }
+      ]
     },
     {
       "id": "figure.category-groups",
@@ -1756,10 +1770,14 @@
       "status": "approved",
       "title": "Dual-axis configuration",
       "description": "Applicable plots shall expose right-axis mappings, range, title, dot or bar mode, marker and line styling, per-group lines, and unified or separate legends.",
-      "tags": ["dual_axis", "settings", "styling"],
+      "tags": [
+        "dual_axis",
+        "settings",
+        "styling"
+      ],
       "evidence": {
         "implementation": [
-          "src/web/components/plotting/config/dual_axis_settings.py::render_dual_axis_display_settings",
+          "src/web/components/plotting/settings/legend_settings.py::LegendSettingsComponent.render",
           "src/web/components/plotting/config/dual_axis_settings.py::render_right_axis_dot_settings",
           "src/web/components/plotting/config/dual_axis_config.py::_sync_auto_labels",
           "src/web/rendering/config_builder.py::ConfigSpecBuilder.from_config",
@@ -1772,12 +1790,20 @@
           "tests/unit/test_grouped_dual_config.py::TestDualAxisRenderConfigUI.test_generated_labels_follow_explicit_axis_changes",
           "tests/unit/core/visualization/test_config_spec_builder.py::TestConfigSpecAxes.test_dual_axis_maps_right_label_range_and_grid",
           "tests/unit/test_grouped_stacked_dual_axis.py::TestDualAxisCreateFigure",
-          "tests/e2e/test_dual_axis.py::TestDualAxisRendering"
+          "tests/e2e/test_dual_axis.py::TestDualAxisRendering",
+          "tests/ui/test_plot_settings_contracts.py::test_right_axis_fonts_trace_controls_and_legend_tiers_use_active_pills"
         ],
         "documentation": [
           "docs/user-guide/reference/plot-types.md#dual-axis-controls"
         ]
-      }
+      },
+      "history": [
+        {
+          "revision": 1,
+          "reason": "Bind active settings-pill controls and real widget-to-renderer regressions.",
+          "change_type": "evidence"
+        }
+      ]
     },
     {
       "id": "figure.dual-axis-dot-layout",
@@ -2897,21 +2923,33 @@
       "status": "approved",
       "title": "Stack total annotations",
       "description": "Stacked and grouped-stacked plots shall optionally label stack totals with configurable numeric format, threshold, typography, position, anchor, offset, and rotation.",
-      "tags": ["annotations", "stacked", "totals"],
+      "tags": [
+        "annotations",
+        "stacked",
+        "totals"
+      ],
       "evidence": {
         "implementation": [
-          "src/web/components/plotting/config/grouped_stacked_bar_theme.py::render_stack_total_options",
+          "src/web/components/plotting/settings/data_labels_settings.py::DataLabelsSettingsComponent._render_totals",
           "src/web/pages/ui/plotting/types/stacked_bar_plot.py::StackedBarPlot._build_totals_annotations"
         ],
         "tests": [
           "tests/unit/test_stacked_histogram_config.py::TestStackedBarCreateFigure.test_show_totals_annotations",
           "tests/unit/test_stacked_histogram_config.py::TestStackedBarCreateFigure.test_totals_threshold_skips_small",
-          "tests/unit/test_grouped_stacked_options.py::TestRenderStackTotalOptions"
+          "tests/ui/test_plot_settings_contracts.py::test_bar_totals_survive_value_label_toggles_and_render_real_values",
+          "tests/unit/test_categorical_total_annotations.py::test_stack_total_values_and_coordinates_survive_reorder_and_duplicate_display_names"
         ],
         "documentation": [
           "docs/user-guide/reference/settings.md#stack-totals"
         ]
-      }
+      },
+      "history": [
+        {
+          "revision": 1,
+          "reason": "Bind active settings-pill controls and real widget-to-renderer regressions.",
+          "change_type": "evidence"
+        }
+      ]
     },
     {
       "id": "figure.heatmap-summary-controls",
@@ -2920,11 +2958,16 @@
       "status": "approved",
       "title": "Heatmap totals and threshold labels",
       "description": "Heatmaps shall optionally add a total row, reverse their color scale, and show all, above-threshold, or below-threshold formatted cell labels with configurable missing-cell text.",
-      "tags": ["heatmap", "labels", "totals"],
+      "tags": [
+        "heatmap",
+        "labels",
+        "totals"
+      ],
       "evidence": {
         "implementation": [
           "src/web/pages/ui/plotting/types/heatmap_plot.py::HeatmapPlot.create_traces",
-          "src/web/components/plotting/settings/data_labels_settings.py::DataLabelsSettingsComponent.render"
+          "src/web/components/plotting/settings/data_labels_settings.py::DataLabelsSettingsComponent.render",
+          "src/web/components/plotting/settings/data_labels_settings.py::DataLabelsSettingsComponent._render_totals"
         ],
         "tests": [
           "tests/unit/test_heatmap_plot.py::test_heatmap_totals_right_adds_column",
@@ -3033,22 +3076,33 @@
       "status": "approved",
       "title": "Alternate category shading",
       "description": "Grouped and grouped-stacked bar charts shall optionally shade alternating major categories with a selected color while retaining category separators and isolation spacing.",
-      "tags": ["grouped_bar", "shading", "settings"],
+      "tags": [
+        "grouped_bar",
+        "shading",
+        "settings"
+      ],
       "evidence": {
         "implementation": [
           "src/web/pages/ui/plotting/utils/grouped_bar_utils.py::GroupedBarUtils.create_shade_shape",
           "src/web/pages/ui/plotting/utils/grouped_bar_utils.py::GroupedBarUtils.calculate_grouped_coordinates",
           "src/web/pages/ui/plotting/types/grouped_bar_plot.py::GroupedBarPlot.create_traces",
-          "src/web/components/plotting/config/grouped_stacked_bar_theme.py::render_grouped_theme_extras"
+          "src/web/components/plotting/settings/layout_settings.py::LayoutSettingsComponent._render_grouped_bars"
         ],
         "tests": [
           "tests/unit/test_grouped_bar_utils.py::TestGroupedBarUtils.test_calculate_grouped_coordinates_shade_alternate",
-          "tests/unit/test_grouped_stacked_options.py::TestRenderThemeOptions.test_adds_major_group_styling"
+          "tests/ui/test_plot_settings_contracts.py::test_group_layout_controls_change_existing_geometry"
         ],
         "documentation": [
           "docs/user-guide/reference/settings.md#alternate-category-shading"
         ]
-      }
+      },
+      "history": [
+        {
+          "revision": 1,
+          "reason": "Bind active settings-pill controls and real widget-to-renderer regressions.",
+          "change_type": "evidence"
+        }
+      ]
     },
     {
       "id": "figure.series-styling",
@@ -3057,10 +3111,14 @@
       "status": "approved",
       "title": "Per-series visual styling",
       "description": "Applicable web plots shall configure per-series override color, display name, bar pattern, marker symbol and size, and line width, while typed renderer styles shall also carry opacity and border settings.",
-      "tags": ["markers", "series", "styles"],
+      "tags": [
+        "markers",
+        "series",
+        "styles"
+      ],
       "evidence": {
         "implementation": [
-          "src/web/pages/ui/plotting/styles/base_ui.py::BaseStyleUI._render_series_item",
+          "src/web/pages/ui/plotting/styles/base_ui.py::BaseStyleUI.render_series_visuals",
           "src/web/pages/ui/plotting/styles/bar_ui.py::BarStyleUI._render_specific_series_visuals",
           "src/web/pages/ui/plotting/styles/line_ui.py::LineStyleUI._render_specific_series_visuals",
           "src/web/rendering/plotly_connector.py::FigureSpecToPlotly._apply_series_styling",
@@ -3071,12 +3129,20 @@
           "tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorSeriesStyling",
           "tests/unit/core/visualization/test_matplotlib_connector_styling.py::TestTraceOverrides",
           "tests/unit/core/visualization/test_matplotlib_connector_styling.py::TestSeriesStyling",
-          "tests/unit/test_style_applicator.py::TestApplyStyles.test_full_pipeline"
+          "tests/unit/test_style_applicator.py::TestApplyStyles.test_full_pipeline",
+          "tests/ui/test_plot_settings_contracts.py::test_live_colors_preserve_type_specific_patterns_and_markers"
         ],
         "documentation": [
           "docs/user-guide/reference/settings.md#series-styling"
         ]
-      }
+      },
+      "history": [
+        {
+          "revision": 1,
+          "reason": "Bind active settings-pill controls and real widget-to-renderer regressions.",
+          "change_type": "evidence"
+        }
+      ]
     },
     {
       "id": "export.plotly-scale",
@@ -3147,11 +3213,26 @@
       "status": "approved",
       "title": "Figure-settings extension contract",
       "description": "Top-level figure-settings sections shall use stable keys and progressive-disclosure metadata; option widgets shall derive per-plot keys and safe persisted defaults through the shared widget factory.",
-      "tags": ["extension", "settings", "visualization"],
+      "tags": [
+        "extension",
+        "settings",
+        "visualization"
+      ],
       "evidence": {
-        "implementation": ["src/web/pages/ui/plotting/settings_pills.py::SettingsSection", "src/web/pages/ui/plotting/settings_pills.py::render_settings_pills", "src/web/components/plotting/settings/widget_factory.py::select_option"],
-        "tests": ["tests/unit/test_settings_pills.py::TestSettingsSection", "tests/unit/test_settings_pills.py::TestRenderSettingsPills", "tests/ui_logic/test_settings_pills.py::TestSectionDispatch"],
-        "documentation": ["docs/developer-guide/extension-guides/adding-a-settings-panel.md#implement-a-visual-setting"]
+        "implementation": [
+          "src/web/pages/ui/plotting/settings_pills.py::SettingsSection",
+          "src/web/pages/ui/plotting/settings_pills.py::render_settings_pills",
+          "src/web/components/plotting/settings/widget_factory.py::select_option"
+        ],
+        "tests": [
+          "tests/unit/test_settings_pills.py::TestSettingsSection",
+          "tests/unit/test_settings_pills.py::TestRenderSettingsPills",
+          "tests/ui_logic/test_settings_pills.py::TestSectionDispatch",
+          "tests/ui/test_plot_settings_contracts.py::test_every_family_navigates_every_real_settings_pill"
+        ],
+        "documentation": [
+          "docs/developer-guide/extension-guides/adding-a-settings-panel.md#implement-a-visual-setting"
+        ]
       }
     },
     {

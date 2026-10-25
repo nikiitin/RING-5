@@ -139,7 +139,7 @@ class FigureSpecToMatplotlib:
             FigureSpecToMatplotlib._apply_legends(spec, ax)
             FigureSpecToMatplotlib._apply_reference_lines(spec, ax)
             FigureSpecToMatplotlib._apply_data_labels(spec, ax)
-            FigureSpecToMatplotlib._apply_annotations(spec, ax)
+            FigureSpecToMatplotlib._apply_annotations(spec, ax, render_result)
             FigureSpecToMatplotlib._apply_hatching(spec, ax)
             if apply_margins:
                 FigureSpecToMatplotlib._apply_margins(spec, ax)
@@ -909,16 +909,19 @@ class FigureSpecToMatplotlib:
                 pass
 
     @staticmethod
-    def _apply_annotations(spec: FigureConfig, ax: Axes) -> None:
+    def _apply_annotations(
+        spec: FigureConfig,
+        ax: Axes,
+        render_result: MatplotlibRenderResult | None = None,
+    ) -> None:
         """Render text annotations from spec onto the matplotlib axes.
 
         Handles ``xref``/``yref`` coordinate systems: ``"data"`` maps to
         data coordinates, ``"paper"`` maps to axes-fraction coordinates.
 
-        Annotations with string data-coordinates (categorical x/y values)
-        are resolved via the axis unit converter.  If the axis is numeric
-        and the coordinate is a category name that can't be converted, the
-        annotation is silently skipped.
+        Categorical bar annotations use the renderer's raw category positions,
+        independently of displayed tick renames. Other string coordinates use
+        the axis unit converter; unknown categories are skipped.
         """
         # [impl->req~ring5.figure.shapes-annotations~1]
         if not spec.annotations:
@@ -935,16 +938,16 @@ class FigureSpecToMatplotlib:
             x_coord: float | str = ann.x
             y_coord: float | str = ann.y
 
-            # String coordinates with data-ref need conversion to the
-            # axis's numeric scale.  E.g. 'Highway' on a numeric axis
-            # for grouped stacked bar plots cannot be placed.
             if isinstance(x_coord, str) and ann.xref == "data":
-                try:
-                    x_coord = ax.xaxis.convert_units(x_coord)
-                    if x_coord is None:
+                if render_result is not None and x_coord in render_result.x_category_positions:
+                    x_coord = render_result.x_category_positions[x_coord]
+                else:
+                    try:
+                        x_coord = ax.xaxis.convert_units(x_coord)
+                        if x_coord is None:
+                            continue
+                    except (munits.ConversionError, ValueError, TypeError):
                         continue
-                except (munits.ConversionError, ValueError, TypeError):
-                    continue
 
             if isinstance(y_coord, str) and ann.yref == "data":
                 try:

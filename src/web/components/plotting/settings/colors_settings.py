@@ -1,8 +1,4 @@
-"""Colors settings component — palette, per-series overrides, backgrounds.
-
-Extracted from ``BasePlot._section_colors()`` and
-``BaseStyleUI._render_series_section()`` / ``_render_backgrounds_section()``
-as a standalone component following the component-only architecture (P1, P9).
+"""Colors settings component — palettes, per-series overrides and backgrounds.
 
 Usage::
 
@@ -10,6 +6,7 @@ Usage::
     config = component.render(saved_config, data=df)
 """
 
+import copy
 from collections.abc import Callable
 from typing import Any, cast
 
@@ -279,7 +276,7 @@ class ColorsSettingsComponent:
         """Render colour pickers for each series item."""
         series_styles_raw = saved_config.get("series_styles", {})
         series_styles: dict[str, Any] = (
-            cast(dict[str, Any], series_styles_raw) if series_styles_raw else {}
+            copy.deepcopy(cast(dict[str, Any], series_styles_raw)) if series_styles_raw else {}
         )
         unique_vals = self._get_unique_values(saved_config, data, items)
 

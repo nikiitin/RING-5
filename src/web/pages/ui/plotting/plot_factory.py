@@ -6,6 +6,7 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, TypedDict
 
 from src.core.common.typed_table_codec import TypedTableCodec
+from src.core.common.numbered_axis import numbered_axis_modes
 
 if TYPE_CHECKING:
     from .base_plot import BasePlot
@@ -144,6 +145,7 @@ class PlotFactory:
         Returns:
             Restored plot instance.
         """
+        numbered_axis_modes(data.get("config", {}))
         plot = cls.create_plot(
             plot_type=data["plot_type"],
             plot_id=data["id"],

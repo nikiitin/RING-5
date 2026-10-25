@@ -6,6 +6,7 @@ import pytest
 
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.web.pages.ui.plotting.base_plot import BasePlot
+from src.web.components.common.reorderable_list import render_reorderable_list
 
 
 class ConcretePlot(BasePlot):
@@ -26,6 +27,8 @@ class ConcretePlot(BasePlot):
 def mock_streamlit() -> Generator[None, None, None]:
     with (
         patch("src.web.pages.ui.plotting.plot_config_ui.st") as mock_st,
+        patch("src.web.components.plotting.settings.advanced_settings.st", mock_st),
+        patch("src.web.components.plotting.settings.engine_settings.st", mock_st),
         patch("src.web.components.common.reorderable_list.st", mock_st),
         patch("src.web.components.plotting.settings.shapes_settings.st", mock_st),
         patch("src.web.components.plotting.settings.reference_line_settings.st", mock_st),
@@ -39,7 +42,7 @@ def mock_streamlit() -> Generator[None, None, None]:
         yield mock_st
 
 
-def test_render_advanced_options_shapes_add(mock_streamlit: Any) -> None:
+def test_advanced_section_shapes_add(mock_streamlit: Any) -> None:
 
     plot = ConcretePlot(1, "Test Plot", "scatter")
     config = {"shapes": []}
@@ -58,7 +61,7 @@ def test_render_advanced_options_shapes_add(mock_streamlit: Any) -> None:
 
     mock_streamlit.button.side_effect = button_side_effect
 
-    result = plot.render_advanced_options(config, None)
+    result = plot.render_settings_section("advanced", config, None)
 
     # Rendering leaves the input configuration unchanged.
     assert config["shapes"] == []
@@ -69,7 +72,7 @@ def test_render_advanced_options_shapes_add(mock_streamlit: Any) -> None:
     assert shape_cfg["y0"] == 0.0
 
 
-def test_render_advanced_options_shapes_edit_delete(mock_streamlit: Any) -> None:
+def test_advanced_section_shapes_edit_delete(mock_streamlit: Any) -> None:
 
     plot = ConcretePlot(1, "Test Plot", "scatter")
     config = {
@@ -100,7 +103,7 @@ def test_render_advanced_options_shapes_edit_delete(mock_streamlit: Any) -> None
 
     mock_streamlit.rerun = MagicMock()
 
-    result = plot.render_advanced_options(config, None)
+    result = plot.render_settings_section("advanced", config, None)
 
     # Deletion leaves the input configuration unchanged.
     assert len(config["shapes"]) == 1
@@ -112,7 +115,7 @@ def test_render_reorderable_list(mock_streamlit: Any) -> None:
     plot = ConcretePlot(1, "Test Plot", "bar")
     items = ["A", "B", "C"]
 
-    result = plot.render_reorderable_list("List", items, "test")
+    result = render_reorderable_list("List", items, "test", plot_id=plot.plot_id)
     assert result == items
     assert mock_streamlit.session_state["test_order_1"] == items
 
@@ -125,6 +128,6 @@ def test_render_reorderable_list(mock_streamlit: Any) -> None:
     mock_streamlit.button.side_effect = button_side_effect
 
     # The second render moves the first item down once.
-    plot.render_reorderable_list("List", items, "test")
+    render_reorderable_list("List", items, "test", plot_id=plot.plot_id)
     expected = ["B", "A", "C"]
     assert mock_streamlit.session_state["test_order_1"] == expected
