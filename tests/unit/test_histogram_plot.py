@@ -38,21 +38,21 @@ class TestHistogramPlotConfiguration:
         data = pd.DataFrame(
             {
                 "benchmark": ["A", "B", "C"],
-                "latency..0-10": [5, 8, 3],
-                "latency..10-20": [10, 12, 9],
-                "latency..20-30": [3, 5, 2],
+                "latency..0-9": [5, 8, 3],
+                "latency..10-19": [10, 12, 9],
+                "latency..20-29": [3, 5, 2],
             }
         )
 
         mock_common.return_value = {
             "x": "benchmark",
-            "y": "latency..0-10",
+            "y": "latency..0-9",
             "title": "Test Histogram",
             "xlabel": "X Label",
             "ylabel": "Y Label",
         }
         mock_detect.return_value = (
-            ["latency..0-10", "latency..10-20", "latency..20-30"],
+            ["latency..0-9", "latency..10-19", "latency..20-29"],
             ["benchmark"],
         )
 
@@ -80,20 +80,20 @@ class TestHistogramPlotConfiguration:
             {
                 "benchmark": ["A", "A", "B", "B"],
                 "config": ["X", "Y", "X", "Y"],
-                "latency..0-10": [5, 8, 3, 6],
-                "latency..10-20": [10, 12, 9, 11],
+                "latency..0-9": [5, 8, 3, 6],
+                "latency..10-19": [10, 12, 9, 11],
             }
         )
 
         mock_common.return_value = {
             "x": "benchmark",
-            "y": "latency..0-10",
+            "y": "latency..0-9",
             "title": "Test",
             "xlabel": "X",
             "ylabel": "Y",
         }
         mock_detect.return_value = (
-            ["latency..0-10", "latency..10-20"],
+            ["latency..0-9", "latency..10-19"],
             ["benchmark", "config"],
         )
 
@@ -119,10 +119,10 @@ class TestHistogramPlotFigureCreation:
         # Data with histogram buckets
         data = pd.DataFrame(
             {
-                "latency..0-10": [5],
-                "latency..10-20": [10],
-                "latency..20-30": [3],
-                "latency..30-40": [1],
+                "latency..0-9": [5],
+                "latency..10-19": [10],
+                "latency..20-29": [3],
+                "latency..30-39": [1],
             }
         )
 
@@ -149,9 +149,9 @@ class TestHistogramPlotFigureCreation:
         data = pd.DataFrame(
             {
                 "benchmark": ["A", "B", None],
-                "latency..0-10": [5, 8, 100],
-                "latency..10-20": [10, 12, 100],
-                "latency..20-30": [3, 5, 100],
+                "latency..0-9": [5, 8, 100],
+                "latency..10-19": [10, 12, 100],
+                "latency..20-29": [3, 5, 100],
             }
         )
 
@@ -181,11 +181,11 @@ class TestHistogramPlotFigureCreation:
         # Data with fine-grained buckets
         data = pd.DataFrame(
             {
-                "latency..0-5": [3],
-                "latency..5-10": [5],
-                "latency..10-15": [7],
-                "latency..15-20": [4],
-                "latency..20-25": [2],
+                "latency..0-4": [3],
+                "latency..5-9": [5],
+                "latency..10-14": [7],
+                "latency..15-19": [4],
+                "latency..20-24": [2],
             }
         )
 
@@ -211,10 +211,10 @@ class TestHistogramPlotFigureCreation:
 
         data = pd.DataFrame(
             {
-                "latency..0-10": [10],
-                "latency..10-20": [20],
-                "latency..20-30": [30],
-                "latency..30-40": [40],
+                "latency..0-9": [10],
+                "latency..10-19": [20],
+                "latency..20-29": [30],
+                "latency..30-39": [40],
             }
         )
 

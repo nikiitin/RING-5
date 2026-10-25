@@ -160,7 +160,7 @@ class TestPlotCreation:
         """Create a histogram; with scalar data it shows the no-vars guidance.
 
         The histogram plot needs gem5 histogram-bucket columns (e.g.
-        ``latency..0-10``, ``latency..10-20``). The e2e fixture has only scalar
+        ``latency..0-9``, ``latency..10-19``). The e2e fixture has only scalar
         columns, so a chart cannot render — the app surfaces an informative
         warning instead of crashing, and that graceful behaviour is what we
         verify (the histogram plot type is exercised end-to-end, sans data).

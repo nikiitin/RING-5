@@ -136,7 +136,8 @@ Raw gem5 histogram endpoints are inclusive integers (`0-9`, `10-19`). Rebinning 
 New integer output bins retain inclusive labels; fractional boundaries use explicit half-open
 labels such as `[0,2.5)`. `10+` includes values at or above ten, and `<0` retains negative mass.
 A single target bin is labeled `0+` because it retains all nonnegative values, including overflow.
-The figure layer also supports legacy CSV histograms with shared-edge continuous labels.
+The figure layer requires nonoverlapping buckets within each observation and explicit
+half-open labels for continuous intervals. It resolves each label independently of its neighbors.
 
 gem5 also prints singleton buckets as bare integers, including negative integers. The scanner uses
 histogram geometry or the reserved `gmean` summary to recognize these and emits explicit inclusive

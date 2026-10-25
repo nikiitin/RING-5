@@ -59,7 +59,7 @@ def build_example_data() -> pd.DataFrame:
         "Large L2": (0.25, 0.34, 0.24, 0.12, 0.05),
         "Prefetch": (0.32, 0.36, 0.20, 0.09, 0.03),
     }
-    bucket_names = ["0-20", "20-40", "40-60", "60-80", "80-100"]
+    bucket_names = ["[0,20)", "[20,40)", "[40,60)", "[60,80)", "[80,100)"]
 
     records: list[dict[str, str | int | float]] = []
     for benchmark_index, benchmark in enumerate(BENCHMARK_ORDER):
