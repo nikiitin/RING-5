@@ -22,6 +22,7 @@ configure_native_thread_limits()
 
 import pandas as pd  # noqa: E402: limits must precede native imports
 
+from ring5 import RenderError, Session  # noqa: E402
 from src.core.common.utils import sanitize_filename  # noqa: E402
 from src.core.models import PlotProtocol  # noqa: E402
 from src.core.models.data_models import PipelineStep, ShaperStepConfig  # noqa: E402
@@ -145,8 +146,6 @@ def _make_plot(
     plot.processed_data = data.copy()
     plot.pipeline = pipeline or []
     plot.pipeline_counter = len(plot.pipeline)
-    # Validate the example at generation time instead of writing broken state.
-    plot.generate_figure()
     return plot
 
 
@@ -461,6 +460,9 @@ def build_example_plots(data: pd.DataFrame) -> list[BasePlot]:
         missing = sorted(expected_types - generated_types)
         extra = sorted(generated_types - expected_types)
         raise RuntimeError(f"Example plot coverage mismatch; missing={missing}, extra={extra}")
+    with Session() as session:
+        for plot in plots:
+            session.render(plot)
     return plots
 
 
@@ -525,8 +527,9 @@ def generate_example_portfolio(
     restored_plots = restored.get_plots()
     if len(restored_plots) != len(plots) or restored.get_data() is None:
         raise RuntimeError("Generated portfolio failed its restore verification")
-    for restored_plot in restored_plots:
-        cast(BasePlot, restored_plot).generate_figure()
+    with Session() as session:
+        for restored_plot in restored_plots:
+            session.render(cast(BasePlot, restored_plot))
 
     return output_path
 
@@ -563,7 +566,7 @@ def main(argv: list[str] | None = None) -> int:
             output_dir=args.output_dir,
             force=args.force,
         )
-    except (FileExistsError, OSError, RuntimeError, ValueError) as exc:
+    except (FileExistsError, OSError, RenderError, RuntimeError, ValueError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
 

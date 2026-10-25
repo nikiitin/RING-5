@@ -137,11 +137,5 @@ class RadarPlot(BasePlot):
             )
         return TraceBuildResult(traces=traces)
 
-    @override
-    def get_legend_column(self, config: PlotConfig) -> str | None:
-        """Return the optional series grouping column."""
-        color = config.get("color")
-        return str(color) if color else None
-
 
 __all__ = ["RadarPlot"]

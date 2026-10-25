@@ -131,8 +131,6 @@ class PlotFactory:
             available = ", ".join(cls.get_available_plot_types())
             raise ValueError(f"Unknown plot type {plot_type!r}. Available types: {available}.")
 
-        # Subclasses add plot_type in their __init__ before calling super()
-        # Type checker doesn't know subclass signatures, but we validate at runtime
         return plot_constructor(plot_id, name)
 
     @classmethod

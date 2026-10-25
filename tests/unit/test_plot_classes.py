@@ -108,15 +108,6 @@ class TestBarPlot:
         assert fig is not None
         assert len(list(fig.data)) > 0
 
-    def test_get_legend_column(self) -> None:
-        """Test getting legend column."""
-        plot = BarPlot(1, "Test")
-        config = {"color": "category"}
-        assert plot.get_legend_column(config) == "category"
-
-        config = {"color": None}
-        assert plot.get_legend_column(config) is None
-
     def test_to_dict(self, sample_data: Any) -> None:
         """Test serialization to dictionary."""
         plot = BarPlot(1, "Test")
@@ -152,12 +143,6 @@ class TestGroupedBarPlot:
         assert fig is not None
         assert len(list(fig.data)) >= 2  # Multiple groups
 
-    def test_get_legend_column(self) -> None:
-        """Test getting legend column for grouped bar."""
-        plot = GroupedBarPlot(1, "Test")
-        config = {"group": "group_column"}
-        assert plot.get_legend_column(config) == "group_column"
-
 
 class TestGroupedStackedBarPlot:
     """Test GroupedStackedBarPlot functionality."""
@@ -177,12 +162,6 @@ class TestGroupedStackedBarPlot:
         }
         fig = plot.create_figure(sample_data, config)
         assert fig is not None
-
-    def test_get_legend_column(self) -> None:
-        """Test getting legend column for grouped stacked bar."""
-        plot = GroupedStackedBarPlot(1, "Test")
-        config = {"stack": "stack_column"}
-        assert plot.get_legend_column(config) is None
 
 
 class TestLinePlot:

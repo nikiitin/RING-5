@@ -202,11 +202,6 @@ class TestCreateFigure:
         fig = plot.create_figure(sample_data, config)
         assert isinstance(fig, go.Figure)
 
-    def test_get_legend_column_returns_none(self, plot: GroupedStackedBarPlot) -> None:
-        """GroupedStacked legend column is always None."""
-        assert plot.get_legend_column({"group": "Config"}) is None
-        assert plot.get_legend_column({}) is None
-
 
 class TestHelperMethods:
     """Test helper behavior used by grouped-stacked figure creation."""

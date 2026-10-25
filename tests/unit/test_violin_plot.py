@@ -89,7 +89,6 @@ def test_horizontal_half_violin_uses_hard_span_and_category_legend() -> None:
     assert max(first.density_coordinates) == max(first.values)
     assert not first.show_box and first.show_mean
     assert result.custom_y_ticks == {"vals": [0.0, 1.0], "text": ["A", "B"]}
-    assert plot.get_legend_column({"x": "benchmark"}) == "benchmark"
 
 
 def test_constant_and_singleton_distributions_have_finite_density() -> None:

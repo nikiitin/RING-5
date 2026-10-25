@@ -205,8 +205,3 @@ class TestLayout:
         """Layout barmode is group for dual-axis bar-dot."""
         result = plot.create_traces(sample_data, base_config)
         assert result.barmode == "group"
-
-    def test_get_legend_column(self, plot: DualAxisBarDotPlot) -> None:
-        assert plot.get_legend_column({"color": "Config"}) == "Config"
-        assert plot.get_legend_column({}) is None
-        assert plot.get_legend_column({"color": None}) is None

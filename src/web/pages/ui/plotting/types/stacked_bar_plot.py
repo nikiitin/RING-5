@@ -202,8 +202,3 @@ class StackedBarPlot(BasePlot):
             elif anchor_option == "Start":
                 return 0, "bottom"
         return val, "bottom"
-
-    @override
-    def get_legend_column(self, config: PlotConfig) -> str | None:
-        """Get legend column for stacked bar plot."""
-        return None

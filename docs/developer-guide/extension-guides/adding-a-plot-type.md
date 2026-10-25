@@ -23,7 +23,7 @@ Covers:
 -->
 
 1. Subclass `BasePlot`, pass a snake-case identifier to its constructor, and implement
-   `create_traces` plus `get_legend_column` when grouping creates legend entries.
+   `create_traces` and `render_config_ui`. Call `super().__init__(plot_id, name, "my_plot")`.
 2. Return trace models from `src/core/models/visualization/`. Keep styling in figure configuration
    and connectors.
 3. Export the class from `src/web/pages/ui/plotting/types/__init__.py`.
@@ -31,16 +31,19 @@ Covers:
    `src/web/pages/ui/plotting/plot_factory.py`.
 5. Reuse common mapping components. Add a focused component under
    `src/web/components/plotting/config/` only for new fields, with per-plot widget keys.
-6. Ensure every new state value is JSON-compatible so `BasePlot.to_dict` and portfolio restore
-   round-trip it.
+6. Keep additional state serializable through `BasePlot.to_dict` and portfolio restore. Plot
+   tables use the shared typed table codec; do not introduce another table representation.
 
 The registry identifier is stored in portfolios and accepted by the public API. Use its exact
 canonical spelling. A rename replaces all producers, consumers and fixtures without an alias.
 
 ## Test and verify
 
-Unit-test trace values, ordering, missing columns, and error-bar behavior. Render representative data
-through both connectors. Add integration coverage for non-trivial configuration or public API use.
+Unit-test trace values, ordering, missing columns, and error-bar behavior. Use `Session.render` to
+render configured plots through both Plotly and Matplotlib, including plots restored from a
+portfolio. `BasePlot.create_figure` prepares Plotly traces and `apply_common_layout` applies shared
+styling; headless clients use the public session to run the complete rendering sequence. Add
+integration coverage for non-trivial configuration or public API use.
 
 ```bash
 make arch-check

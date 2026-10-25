@@ -7,6 +7,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import pytest
 
+from ring5 import Session
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
@@ -23,9 +24,6 @@ class ConcretePlot(BasePlot):
         from src.core.models.visualization.trace_config import ScatterTraceConfig
 
         return TraceBuildResult(traces=[ScatterTraceConfig(name="trace1", x=[1, 2], y=[3, 4])])
-
-    def get_legend_column(self, config: dict) -> str:
-        return "col"
 
 
 @pytest.fixture
@@ -185,25 +183,25 @@ class TestUpdateFromRelayoutLegend:
         assert plot.last_figure_cache_key is None
 
 
-class TestGenerateFigure:
-    """Tests for generate_figure method."""
+class TestSessionRender:
+    """Public rendering preserves plot artifacts and legend relabeling."""
 
-    def test_no_data_raises_error(self, plot: ConcretePlot) -> None:
-        plot.processed_data = None
-        with pytest.raises(ValueError, match="no processed data"):
-            plot.generate_figure()
-
-    def test_generate_with_data(self, plot: ConcretePlot) -> None:
+    def test_render_caches_plotly_figure(self, plot: ConcretePlot) -> None:
         plot.processed_data = pd.DataFrame({"x": [1, 2], "y": [3, 4]})
-        fig = plot.generate_figure()
+        plot.last_figure_cache_key = "old"
+        with Session() as session:
+            fig = session.render(plot)
         assert isinstance(fig, go.Figure)
         assert plot.last_generated_fig is fig
+        assert plot.last_figure_cache_key is None
 
-    def test_generate_with_legend_labels(self, plot: ConcretePlot) -> None:
+    def test_render_with_legend_labels(self, plot: ConcretePlot) -> None:
         """When legend_labels in config, the trace legend names are relabeled."""
         plot.processed_data = pd.DataFrame({"x": [1], "y": [2]})
         plot.config["legend_labels"] = {"trace1": "Renamed"}
-        fig = plot.generate_figure()
+        with Session() as session:
+            fig = session.render(plot)
+        assert isinstance(fig, go.Figure)
         assert cast(go.Scatter, fig.data[0]).name == "Renamed"
 
 

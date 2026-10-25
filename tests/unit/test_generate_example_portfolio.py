@@ -4,13 +4,15 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import matplotlib.pyplot as plt
 import pandas as pd
 import pytest
+import plotly.graph_objects as go
 from matplotlib.figure import Figure
 
+from ring5 import RenderError, Session
 from scripts.generate_example_portfolio import (
     BENCHMARK_ORDER,
     CONFIGURATION_ORDER,
@@ -24,7 +26,7 @@ from src.core.services.data_services.portfolio_service import PortfolioService
 from src.core.models.portfolio_contract import CURRENT_PORTFOLIO_SCHEMA_VERSION
 from src.core.state.repository_state_manager import RepositoryStateManager
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
-from src.web.rendering.matplotlib_figure_builder import build_matplotlib_figure_from_traces
+from src.web.pages.ui.plotting.base_plot import BasePlot
 
 
 def test_example_data_is_deterministic_and_complete() -> None:
@@ -40,7 +42,26 @@ def test_example_data_is_deterministic_and_complete() -> None:
     assert {"ipc.sd", "energy_j.sd", "l2_miss_rate.sd"}.issubset(first.columns)
 
 
-def test_every_registered_plot_example_renders() -> None:
+def _assert_rendered_plot(plot: BasePlot, figure: go.Figure | Figure) -> None:
+    """Check actual marks and labels, rather than only a figure's existence."""
+    assert plot.last_traces is not None
+    assert plot.last_traces.traces
+    if isinstance(figure, go.Figure):
+        assert figure.data
+        assert figure.layout.title.text == plot.config["title"]
+        assert [trace.name for trace in figure.data] == [
+            trace.name for trace in plot.last_traces.traces
+        ]
+    else:
+        assert figure.axes
+        assert any(
+            axis.lines or axis.patches or axis.collections or axis.images for axis in figure.axes
+        )
+        assert figure.number not in plt.get_fignums()
+
+
+@pytest.mark.parametrize("engine", ["plotly", "matplotlib"])
+def test_every_registered_plot_example_renders(engine: Literal["plotly", "matplotlib"]) -> None:
     """Render the complete registry through both supported figure engines."""
     # [test->req~ring5.portfolio.example-catalog~1]
     data = build_example_data()
@@ -50,25 +71,20 @@ def test_every_registered_plot_example_renders() -> None:
     assert all(plot.last_generated_fig is not None for plot in plots)
     assert all(plot.processed_data is not None for plot in plots)
     assert any(plot.pipeline for plot in plots)
-    for plot in plots:
-        assert plot.last_traces is not None
-        figure, _spec = build_matplotlib_figure_from_traces(
-            plot.config,
-            plot.plot_type,
-            plot.last_traces,
-        )
-        try:
-            assert isinstance(figure, Figure)
-            assert figure.axes
-        finally:
-            plt.close(figure)
+    with Session() as session:
+        for plot in plots:
+            figure = session.render(plot, engine=engine)
+            _assert_rendered_plot(plot, figure)
 
 
+@pytest.mark.parametrize("engine", ["plotly", "matplotlib"])
 def test_generated_portfolio_round_trips(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    engine: Literal["plotly", "matplotlib"],
 ) -> None:
     """Keep custom output isolated and restore its integrity-checked artifact."""
+    # [test->req~ring5.portfolio.example-catalog~1]
     monkeypatch.setattr(
         PathService,
         "get_portfolio_revisions_dir",
@@ -89,6 +105,11 @@ def test_generated_portfolio_round_trips(
     state_manager.restore_session(loaded)
     assert state_manager.get_data() is not None
     assert len(state_manager.get_plots()) == len(PlotFactory.get_available_plot_types())
+    with Session() as session:
+        for plot in state_manager.get_plots():
+            assert isinstance(plot, BasePlot)
+            figure = session.render(plot, engine=engine)
+            _assert_rendered_plot(plot, figure)
     revisions = service.list_portfolio_revisions("Example Cases")
     assert len(revisions) == 1
     assert len(list((tmp_path / ".revisions").rglob("*.json"))) == 1
@@ -156,3 +177,20 @@ def test_cli_reports_success_and_existing_file_error(
     assert "Generated portfolio:" in capsys.readouterr().out
     assert main(args) == 1
     assert "--force" in capsys.readouterr().err
+
+
+def test_cli_reports_public_render_validation_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Reject an invalid example before persisting an incomplete catalog."""
+
+    def reject_render(_session: Session, _plot: BasePlot) -> None:
+        raise RenderError("invalid example traces")
+
+    monkeypatch.setattr(Session, "render", reject_render)
+
+    assert main(["--output-dir", str(tmp_path)]) == 1
+    assert "invalid example traces" in capsys.readouterr().err
+    assert not list(tmp_path.glob("*.json"))

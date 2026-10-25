@@ -70,11 +70,3 @@ class TestScatterPlotCreateFigure:
         }
         fig = plot.create_figure(data, config)
         assert isinstance(fig, go.Figure)
-
-    def test_get_legend_column_with_color(self) -> None:
-        plot = ScatterPlot(1, "test")
-        assert plot.get_legend_column({"color": "cat"}) == "cat"
-
-    def test_get_legend_column_without_color(self) -> None:
-        plot = ScatterPlot(1, "test")
-        assert plot.get_legend_column({}) is None

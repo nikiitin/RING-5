@@ -169,10 +169,5 @@ class WaterfallPlot(BasePlot):
         )
         return TraceBuildResult(traces=[trace])
 
-    @override
-    def get_legend_column(self, config: PlotConfig) -> str | None:
-        """Waterfall bar meaning is encoded by fixed semantic colors."""
-        return None
-
 
 __all__ = ["WaterfallPlot"]

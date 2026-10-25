@@ -329,8 +329,3 @@ class HeatmapPlot(BasePlot):
             )
 
         return TraceBuildResult(traces=traces)
-
-    @override
-    def get_legend_column(self, config: PlotConfig) -> str | None:
-        """Heatmap has no legend column — color is the z-value."""
-        return None

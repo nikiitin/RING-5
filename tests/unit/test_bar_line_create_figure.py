@@ -1,4 +1,4 @@
-"""Tests for BarPlot and LinePlot create_figure + get_legend_column."""
+"""Tests for BarPlot and LinePlot figure construction."""
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -109,14 +109,6 @@ class TestBarPlotCreateFigure:
         fig = plot.create_figure(sample_data, config)
         assert isinstance(fig, go.Figure)
 
-    def test_get_legend_column_with_color(self) -> None:
-        plot = BarPlot(1, "test")
-        assert plot.get_legend_column({"color": "protocol"}) == "protocol"
-
-    def test_get_legend_column_without_color(self) -> None:
-        plot = BarPlot(1, "test")
-        assert plot.get_legend_column({}) is None
-
 
 # LinePlot
 
@@ -203,8 +195,3 @@ class TestLinePlotCreateFigure:
         result = plot.create_traces(sample_data, config)
         # X values are categorical strings
         assert all(isinstance(v, str) for v in result.traces[0].x)
-
-    def test_get_legend_column(self) -> None:
-        plot = LinePlot(1, "test")
-        assert plot.get_legend_column({"color": "protocol"}) == "protocol"
-        assert plot.get_legend_column({}) is None

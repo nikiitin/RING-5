@@ -23,19 +23,20 @@ directly when adding a plot type.
 
    class MyPlot(BasePlot):
        def __init__(self, plot_id: int, name: str) -> None:
-           self.plot_type = "my_plot"          # set BEFORE super().__init__
-           super().__init__(plot_id, name)
+           super().__init__(plot_id, name, "my_plot")
+
+       def render_config_ui(self, data: pd.DataFrame, saved_config: PlotConfig) -> PlotConfig:
+           return render_common_with_color(data, saved_config, self.plot_id)
 
        def create_traces(self, data: pd.DataFrame, config: PlotConfig) -> TraceBuildResult:
            # build TraceConfig objects from data + config; return TraceBuildResult
            ...
-
-       def get_legend_column(self, config: PlotConfig) -> str | None:
-           # which column groups traces into legend entries (color/group col), or None
-           ...
    ```
+   Import `render_common_with_color` from
+   `src/web/components/plotting/config/base_plot_config.py` for shared X/Y/color controls.
    `create_figure()` is provided by `BasePlot` (delegates to `create_traces` + `trace_to_plotly`);
-   only override it if you genuinely need to.
+   `apply_common_layout()` applies shared Plotly styling. Headless callers use public
+   `Session.render(plot, engine=...)` for the complete sequence.
 
 2. **Export** the class from `src/web/pages/ui/plotting/types/__init__.py`.
 
@@ -50,13 +51,14 @@ directly when adding a plot type.
    (`detect_column_types`, `render_xy_selectors`, …). Keep widget keys per-plot-unique:
    `f"{prefix}_{field}_{plot_id}"`.
 
-5. **Serialization** is automatic via `BasePlot.to_dict`/`from_dict` + `PlotFactory` — make sure any
-   new state is plain/JSON-serializable so portfolios round-trip.
+5. **Serialization** uses `BasePlot.to_dict` + `PlotFactory.from_dict`. Plot tables use the shared
+   typed table codec; keep additional state JSON-serializable so portfolios round-trip.
 
 6. **Tests:**
    - unit in `tests/unit/` — exercise `create_traces`/`create_figure` with `sample_data`
      (root conftest fixture) for the new type;
-   - integration in `tests/integration/` for the full render path if non-trivial;
+   - render configured and restored plots through public `Session.render` with both engines;
+   - integration in `tests/integration/` for non-trivial workflows;
    - keep `mypy`/`black`/`flake8` clean.
 
 ## Rules & gotchas

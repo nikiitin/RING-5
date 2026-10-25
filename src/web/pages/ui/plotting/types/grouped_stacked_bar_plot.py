@@ -488,8 +488,3 @@ class GroupedStackedBarPlot(StackedBarPlot):
         )
 
         return build_right_axis_traces(data, x_coord_col, y_cols, trace_type, bar_width, config)
-
-    @override
-    def get_legend_column(self, config: PlotConfig) -> str | None:
-        """Get legend column for grouped stacked bar plot."""
-        return None

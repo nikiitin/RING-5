@@ -236,10 +236,5 @@ class ViolinPlot(BasePlot):
             custom_y_ticks=category_ticks if orientation == "horizontal" else None,
         )
 
-    @override
-    def get_legend_column(self, config: PlotConfig) -> str | None:
-        """Return the color group, or category for ungrouped violins."""
-        return str(config.get("color") or config.get("x"))
-
 
 __all__ = ["ViolinPlot"]

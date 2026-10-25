@@ -244,10 +244,5 @@ class SankeyPlot(BasePlot):
         )
         return TraceBuildResult(traces=[trace])
 
-    @override
-    def get_legend_column(self, config: PlotConfig) -> str | None:
-        """Sankey link colors encode endpoint semantics rather than a data column."""
-        return None
-
 
 __all__ = ["SankeyPlot"]

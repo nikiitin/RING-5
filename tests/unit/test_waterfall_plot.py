@@ -93,7 +93,6 @@ def test_waterfall_can_hide_connectors_labels_and_final_total() -> None:
     assert not trace.show_values
     assert trace.bar_width == 0.5
     assert trace.opacity == 0.6
-    assert WaterfallPlot(2, "Simple").get_legend_column({}) is None
 
 
 @pytest.mark.parametrize(

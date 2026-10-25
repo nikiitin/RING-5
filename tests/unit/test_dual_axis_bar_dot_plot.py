@@ -386,13 +386,6 @@ class TestDualAxisBarDotPlotErrorBars:
 class TestDualAxisBarDotPlotLegend:
     """Test legend behavior."""
 
-    def test_get_legend_column(self) -> None:
-        """Test getting legend column."""
-        plot = DualAxisBarDotPlot(1, "Test")
-        assert plot.get_legend_column({"color": "Config"}) == "Config"
-        assert plot.get_legend_column({"color": None}) is None
-        assert plot.get_legend_column({}) is None
-
     def test_legend_group_pairing(self, sample_data: pd.DataFrame, base_config: dict) -> None:
         """Test that bar and dot traces with the same group have matching legendgroup."""
         plot = DualAxisBarDotPlot(1, "Test")

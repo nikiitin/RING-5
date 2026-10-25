@@ -2,7 +2,7 @@
 
 Covers create_figure, _prepare_data, _get_hover_template,
 _create_stacked_figure, _add_bar_trace, _build_totals_annotations,
-_get_total_position, and get_legend_column.
+and _get_total_position.
 """
 
 from typing import Any
@@ -271,14 +271,3 @@ class TestCreateFigure:
         config = {**_base_config(), "show_totals": True}
         fig = plot.create_figure(_sample_df(), config)
         assert len(fig.to_plotly_json()["layout"].get("annotations", [])) == 4  # One per row
-
-
-# get_legend_column
-
-
-class TestGetLegendColumn:
-    """Tests for get_legend_column."""
-
-    def test_returns_none(self) -> None:
-        plot = StackedBarPlot(1, "test")
-        assert plot.get_legend_column({}) is None

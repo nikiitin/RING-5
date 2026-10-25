@@ -236,12 +236,6 @@ class TestStackedBarCreateFigure:
         annotations = cast("tuple[Any, ...]", layout.annotations)
         assert len(annotations) == 0
 
-    def test_get_legend_column(self) -> None:
-        from src.web.pages.ui.plotting.types.stacked_bar_plot import StackedBarPlot
-
-        plot = StackedBarPlot(plot_id=1, name="test")
-        assert plot.get_legend_column({}) is None
-
 
 class TestHistogramRenderConfigUI:
     """Tests for histogram configuration controls."""
@@ -362,13 +356,6 @@ class TestHistogramCreateFigure:
         plot = HistogramPlot(plot_id=1, name="test")
         vals = plot._normalize_values([0.0, 0.0], {"normalization": "probability"})
         assert vals == [0.0, 0.0]
-
-    def test_get_legend_column(self) -> None:
-        from src.web.pages.ui.plotting.types.histogram_plot import HistogramPlot
-
-        plot = HistogramPlot(plot_id=1, name="test")
-        assert plot.get_legend_column({"group_by": "bench"}) == "bench"
-        assert plot.get_legend_column({}) is None
 
     def test_detect_histogram_variables(self) -> None:
         from src.web.pages.ui.plotting.types.histogram_plot import HistogramPlot

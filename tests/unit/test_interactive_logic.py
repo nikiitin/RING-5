@@ -11,10 +11,6 @@ class MockPlot(BasePlot):
 
         return TraceBuildResult(traces=[])
 
-    def get_legend_column(self, config: Any) -> None:
-
-        return None
-
     def process_data(self, data: Any) -> None:
 
         return data
