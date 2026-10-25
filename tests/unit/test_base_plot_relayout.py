@@ -132,8 +132,8 @@ class TestUpdateFromRelayoutLegend:
         assert plot.config["legend_x"] == 0.8
         assert plot.config["legend_y"] == 0.95
         # Anchors should be set
-        assert plot.config["legend_xanchor"] == "left"
-        assert plot.config["legend_yanchor"] == "top"
+        assert plot.config["legend_anchor_x"] == "left"
+        assert plot.config["legend_anchor_y"] == "top"
 
     def test_legend2_position_drag(self, plot: ConcretePlot) -> None:
         """Multi-column legends may have legend2, legend3, etc."""
@@ -144,7 +144,7 @@ class TestUpdateFromRelayoutLegend:
     def test_legend_anchor_change(self, plot: ConcretePlot) -> None:
         result = plot.update_from_relayout({"legend.xanchor": "right"})
         assert result is True
-        assert plot.config["legend_xanchor"] == "right"
+        assert plot.config["legend_anchor_x"] == "right"
 
     def test_legend_title_update(self, plot: ConcretePlot) -> None:
         result = plot.update_from_relayout({"legend.title.text": "My Legend"})

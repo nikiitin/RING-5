@@ -237,7 +237,9 @@ cannot encode per-legend opacity for `color(profile ...)` or resolve DDK `var(..
 Those forms remain accepted without `bgalpha`; requesting the override raises `RenderError`
 and asks for a concrete supported color. Matplotlib's static projection accepts named,
 hexadecimal, RGB and HSL colors; convert other color spaces before using that engine.
-Legend orientations use exactly `horizontal` or `vertical` in every tier.
+Legend orientations use exactly `horizontal` or `vertical` in every tier. Flat
+`legend_xanchor`/`legend_yanchor` keys and their secondary/tertiary equivalents are rejected;
+Plotly relayout events retain their native dotted wire names and decode to the canonical keys.
 
 ### Public coordinates and decorations
 

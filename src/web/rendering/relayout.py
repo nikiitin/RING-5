@@ -93,36 +93,19 @@ def update_config_from_relayout(
             updated["range_y"] = None
             changed = True
 
-    # 2. Legend Position (Drag)
-    for key, val in relayout_data.items():
-        if not key.startswith("legend"):
-            continue
-
-        parts: list[str] = key.split(".")
-        if len(parts) != 2:
-            continue
-
-        legend_name: str = parts[0]  # "legend" or "legend2", etc.
-        prop: str = parts[1]  # "x", "y", "xanchor", etc.
-
-        # Build config key: legend.x -> legend_x, legend2.x -> legend2_x
-        config_key: str
-        if legend_name == "legend":
-            config_key = f"legend_{prop}"
-        else:
-            config_key = f"{legend_name}_{prop}"
-
-        if prop in ("x", "y"):
-            if update_if_new(config_key, val):
-                # Also set anchor when position changes
-                if prop == "x":
-                    anchor_key = config_key.replace("_x", "_xanchor")
-                    updated[anchor_key] = "left"
-                elif prop == "y":
-                    anchor_key = config_key.replace("_y", "_yanchor")
-                    updated[anchor_key] = "top"
-        elif prop in ("xanchor", "yanchor"):
-            update_if_new(config_key, val)
+    # Native wire anchor names become the current engine-independent keys.
+    for legend_name in ("legend", "legend2", "legend3"):
+        for axis, default_anchor in (("x", "left"), ("y", "top")):
+            position_event = f"{legend_name}.{axis}"
+            anchor_event = f"{legend_name}.{axis}anchor"
+            anchor_key = f"{legend_name}_anchor_{axis}"
+            if position_event in relayout_data and update_if_new(
+                f"{legend_name}_{axis}", relayout_data[position_event]
+            ):
+                if anchor_event not in relayout_data:
+                    update_if_new(anchor_key, default_anchor)
+            if anchor_event in relayout_data:
+                update_if_new(anchor_key, relayout_data[anchor_event])
 
     # 3. Legend Title (Edit)
     if "legend.title.text" in relayout_data:

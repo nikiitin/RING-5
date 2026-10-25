@@ -302,7 +302,10 @@ Covers:
 -->
 
 Plotly relayout events persist supported zoom and pan ranges, legend positions and anchors, and an
-edited primary legend title into plot configuration.
+edited primary legend title into plot configuration. Native `legend.xanchor`/`legend.yanchor`
+events (and their `legend2`/`legend3` equivalents) are stored as `anchor_x`/`anchor_y` in the
+corresponding legend tier. Explicit anchors win when the same event also moves a legend;
+position-only changes use left/top anchors. Saved configuration uses those canonical keys.
 
 ### Edit shapes
 

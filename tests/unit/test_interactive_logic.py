@@ -45,20 +45,20 @@ def test_update_from_relayout_legend_drag() -> None:
     assert changed is True
     assert plot.config["legend_x"] == 0.5
     assert plot.config["legend_y"] == 0.5
-    assert plot.config["legend_xanchor"] == "left"
-    assert plot.config["legend_yanchor"] == "top"
+    assert plot.config["legend_anchor_x"] == "left"
+    assert plot.config["legend_anchor_y"] == "top"
 
 
 def test_update_from_relayout_anchor_sync() -> None:
     plot = MockPlot(1, "test", "bar")
-    plot.config = {"legend_xanchor": "auto"}
+    plot.config = {"legend_anchor_x": "auto"}
 
     relayout_data = {"legend.xanchor": "right", "legend.yanchor": "bottom"}
 
     changed = plot.update_from_relayout(relayout_data)
     assert changed is True
-    assert plot.config["legend_xanchor"] == "right"
-    assert plot.config["legend_yanchor"] == "bottom"
+    assert plot.config["legend_anchor_x"] == "right"
+    assert plot.config["legend_anchor_y"] == "bottom"
 
 
 def test_update_from_relayout_autosize() -> None:

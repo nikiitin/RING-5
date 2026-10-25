@@ -1923,7 +1923,8 @@
         ],
         "tests": [
           "tests/ui_logic/test_interactive_plot.py::TestInteractivePlotlyChart",
-          "tests/unit/test_relayout.py::TestUpdateConfigFromRelayout"
+          "tests/unit/test_relayout.py::TestUpdateConfigFromRelayout",
+          "tests/integration/test_legend_relayout_contract.py::test_real_legend_wire_events_rerender_and_replay_with_canonical_owned_config"
         ],
         "documentation": [
           "docs/user-guide/reference/settings.md#interactive-editing"

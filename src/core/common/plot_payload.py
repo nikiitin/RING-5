@@ -31,12 +31,20 @@ def validate_plot_config_keys(config: Mapping[str, Any]) -> None:
         key
         for key in config
         if key.startswith("dual_legend_")
-        or key in {"legend2_xanchor", "legend2_yanchor", "legend3_xanchor", "legend3_yanchor"}
+        or key
+        in {
+            "legend_xanchor",
+            "legend_yanchor",
+            "legend2_xanchor",
+            "legend2_yanchor",
+            "legend3_xanchor",
+            "legend3_yanchor",
+        }
     )
     if retired:
         raise ValueError(
-            f"Unsupported separate-legend keys: {', '.join(retired)}. "
-            "Use legend2_/legend3_ fields with anchor_x/anchor_y."
+            f"Unsupported legend configuration keys: {', '.join(retired)}. "
+            "Use legend_/legend2_/legend3_ fields with anchor_x/anchor_y."
         )
 
 

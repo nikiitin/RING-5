@@ -42,7 +42,8 @@ manifest. Missing or unsupported schema versions raise a typed version error bef
 No reader infers old defaults, translates keys, or rewrites a file into the current schema.
 Editable plot configuration uses `legend2_*` for a separate right legend and
 `anchor_x`/`anchor_y` in every legend tier. Retired `dual_legend_*` and tier
-`xanchor`/`yanchor` configuration keys fail before plot restoration. Recipe schema 4 shares the
+`xanchor`/`yanchor` configuration keys in every tier, including the primary legend, fail before
+plot restoration. Recipe schema 4 shares the
 same key admission while retaining unmaterialized parameter values. Concrete common values
 use a separate `validate_plot_config_values` stage: every legend orientation is exactly
 `horizontal` or `vertical`. Recipe save/load retain template values; materialization applies
