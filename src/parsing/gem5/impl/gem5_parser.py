@@ -410,9 +410,12 @@ class Gem5Parser(SimulationParser):
     ) -> Path:
         """Keep parser publication and cache records separate from planned simulator inputs."""
         target = output_path.expanduser().resolve()
-        inputs = {Path(path).expanduser().resolve() for path in source_paths}
+        planned_inputs = tuple(Path(path).expanduser() for path in source_paths)
+        inputs = {path.resolve() for path in planned_inputs}
         if strategy_type == "config_aware":
-            inputs.update(path.parent / "config.ini" for path in tuple(inputs))
+            # Companion ownership follows the work item's planned source path;
+            # resolve its actual target just as output/cache targets are resolved.
+            inputs.update((path.parent / "config.ini").resolve() for path in planned_inputs)
         cache = cache_path.expanduser().resolve() if cache_path is not None else None
         if target in inputs or cache in inputs or cache == target:
             raise ValueError(
@@ -441,11 +444,11 @@ class Gem5Parser(SimulationParser):
         # [impl->req~ring5.ingestion.pattern-index-selection~1]
         if type(batch) is not ParseBatchResult:
             raise TypeError("Full parsing requires its exact ParseBatchResult context.")
-        table = ParsedOutputIO.resolve(
-            results, batch.var_names, batch.source_paths, complete=complete
-        )
         target = Gem5Parser._admit_target_paths(
             Path(batch.output_dir) / "results.csv", batch.source_paths, batch.strategy_type
+        )
+        table = ParsedOutputIO.resolve(
+            results, batch.var_names, batch.source_paths, complete=complete
         )
         return ParsedOutputIO.publish(target, table)
 
@@ -467,16 +470,16 @@ class Gem5Parser(SimulationParser):
                 "Incremental finalization received more results than planned changed sources."
             )
         paths = tuple(source_path for source_path, _ in batch.fingerprints)
+        cache = Path(batch.cache_path)
+        target = Gem5Parser._admit_target_paths(
+            Path(batch.output_dir) / "results.csv", paths, batch.strategy_type, cache
+        )
         if fingerprint_inputs(paths, batch.strategy_type) != batch.fingerprints:
             raise RuntimeError(
                 "PARSER: simulator inputs changed during incremental parsing; submit again."
             )
         combined = (*batch.cached_results, *results)
         table = ParsedOutputIO.resolve(combined, batch.var_names, paths, complete=complete)
-        cache = Path(batch.cache_path)
-        target = Gem5Parser._admit_target_paths(
-            Path(batch.output_dir) / "results.csv", paths, batch.strategy_type, cache
-        )
         encoded = (
             encode_cache(batch.configuration_hash, batch.var_names, batch.fingerprints, combined)
             if complete

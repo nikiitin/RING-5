@@ -375,3 +375,96 @@ def test_explicit_text_output_from_scalar_source_keeps_literal_token(
     assert values[0].variables[0].cells[0].value == literal
     output = Gem5Parser.finalize_parsing(batch, values)
     assert ParsedOutputIO.read(output).rows == ((literal,),)
+
+
+@pytest.mark.parametrize("mode", ["full_output", "incremental_cache"])
+def test_config_alias_to_publication_target_rejects_before_submission(
+    tmp_path: Path, mode: str
+) -> None:
+    source = _source(tmp_path / "inputs", "run")
+    output_dir = tmp_path / "out"
+    output_dir.mkdir()
+    protected = output_dir / "results.csv" if mode == "full_output" else tmp_path / "cache.json"
+    protected.write_text("[system]\nCase=protected\n", encoding="utf-8")
+    companion = source.parent / "config.ini"
+    companion.symlink_to(protected)
+    before = protected.read_bytes()
+    with pytest.raises(ValueError, match="must not replace"):
+        if mode == "full_output":
+            Gem5Parser.submit_parse_async(
+                str(source.parent), "stats.txt", _variables("NA"), str(output_dir), "config_aware"
+            )
+        else:
+            Gem5Parser.submit_incremental_parse_async(
+                str(source.parent),
+                "stats.txt",
+                _variables("NA"),
+                str(output_dir),
+                "config_aware",
+                cache_path=str(protected),
+            )
+    assert protected.read_bytes() == before and companion.is_symlink()
+
+
+@pytest.mark.parametrize("mode", ["full_output", "incremental_cache"])
+def test_config_alias_retargeted_after_worker_completion_rejects_finalization(
+    tmp_path: Path, mode: str
+) -> None:
+    source = _source(tmp_path / "inputs", "run")
+    original = tmp_path / "original.ini"
+    original.write_text("[system]\nCase=original\n", encoding="utf-8")
+    companion = source.parent / "config.ini"
+    companion.symlink_to(original)
+    output_dir = tmp_path / "out"
+    output_dir.mkdir()
+    protected = output_dir / "results.csv" if mode == "full_output" else tmp_path / "cache.json"
+    protected.write_bytes(b"previous committed content")
+    if mode == "full_output":
+        batch = Gem5Parser.submit_parse_async(
+            str(source.parent), "stats.txt", _variables("NA"), str(output_dir), "config_aware"
+        )
+    else:
+        batch = Gem5Parser.submit_incremental_parse_async(
+            str(source.parent),
+            "stats.txt",
+            _variables("NA"),
+            str(output_dir),
+            "config_aware",
+            cache_path=str(protected),
+        )
+    results = _collect(batch)
+    assert json.loads(results[0].metadata[1].value) == {"system": {"Case": "original"}}
+    companion.unlink()
+    companion.symlink_to(protected)
+    with pytest.raises(ValueError, match="must not replace"):
+        if mode == "full_output":
+            Gem5Parser.finalize_parsing(batch, results)
+        else:
+            Gem5Parser.finalize_incremental_parsing(batch, results)
+    assert protected.read_bytes() == b"previous committed content"
+    assert original.read_text(encoding="utf-8") == "[system]\nCase=original\n"
+
+
+def test_shared_configuration_symlinks_preserve_full_and_incremental_metadata(
+    tmp_path: Path,
+) -> None:
+    inputs = tmp_path / "inputs"
+    shared = tmp_path / "shared.ini"
+    shared.write_text("[system]\nCase=shared 95% μ\n", encoding="utf-8")
+    for name in ("a", "b"):
+        source = _source(inputs, name)
+        (source.parent / "config.ini").symlink_to(shared)
+    full = Gem5Parser.submit_parse_async(
+        str(inputs), "stats.txt", _variables("001"), str(tmp_path / "full"), "config_aware"
+    )
+    full_output = Gem5Parser.finalize_parsing(full, _collect(full))
+    incremental = Gem5Parser.submit_incremental_parse_async(
+        str(inputs), "stats.txt", _variables("001"), str(tmp_path / "incremental"), "config_aware"
+    )
+    inc_output = Gem5Parser.finalize_incremental_parsing(incremental, _collect(incremental))
+    assert inc_output.output.sha256 == full_output.sha256
+    frame = ParsedOutputIO.to_frame(full_output)
+    assert [json.loads(value) for value in frame["config_json"]] == [
+        {"system": {"Case": "shared 95% μ"}}
+    ] * 2
+    assert shared.read_text(encoding="utf-8") == "[system]\nCase=shared 95% μ\n"
