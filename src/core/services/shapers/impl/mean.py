@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import gmean, hmean
 
+from src.core.common.dataframe_copy import copy_dataframe
 from src.core.models.shaper_models import MeanShaperConfig
 from src.core.performance import cached, compute_data_fingerprint
 from src.core.services.shapers.uni_df_shaper import UniDfShaper
@@ -105,7 +106,7 @@ class Mean(UniDfShaper):
 
     @cached(ttl=300, maxsize=16, key_func=lambda self, df, fp: fp)
     def _calculate_mean_with_cache(
-        self, data_frame: pd.DataFrame, fingerprint: str
+        self, data_frame: pd.DataFrame, fingerprint: str | None
     ) -> pd.DataFrame:
         """
         Execute mean calculation with fingerprint-based caching.
@@ -122,7 +123,7 @@ class Mean(UniDfShaper):
         """
         # [impl->req~ring5.shaping.mean~1]
         # [impl->req~ring5.quality.bounded-caching~1]
-        result = data_frame.copy()
+        result = copy_dataframe(data_frame)
         grouped = result.groupby(self.grouping_columns, dropna=False)
 
         # Apply appropriate mean aggregation
@@ -202,6 +203,4 @@ class Mean(UniDfShaper):
         relevant_cols = self.mean_vars + self.grouping_columns + [self.replacing_column]
         fingerprint = compute_data_fingerprint(data_frame, self._params, relevant_cols)
 
-        # Use cached calculation. Shallow copy (CoW) so callers can never
-        # mutate the cache-resident frame in place and poison later hits.
-        return self._calculate_mean_with_cache(data_frame, fingerprint).copy(deep=False)
+        return copy_dataframe(self._calculate_mean_with_cache(data_frame, fingerprint))

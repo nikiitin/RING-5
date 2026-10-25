@@ -26,14 +26,17 @@ expensive parse, join, or transformation sequence.
 The catalog shows the recorded source name, dimensions, compressed size, and full SHA-256 content
 fingerprint. Loading is deliberately a verified operation: **Verify and Load Snapshot** checks both
 the stored payload checksum and the fingerprint reconstructed from values, column labels, data
-types, and the index before adding anything to the workspace. An incomplete, modified, or
+types, axis metadata, and retained semantic attributes before adding anything to the workspace. An incomplete, modified, or
 inexactly decodable snapshot is rejected instead of silently returning changed data.
 
-Snapshots use a versioned, compressed, non-executable RING-5 format under
+Snapshots use format version 2, a compressed, non-executable RING-5 format under
 `RING5_DATA_DIR/dataset_snapshots`. Without an override, source checkouts use
 `.ring5/dataset_snapshots`; installed packages use the platform user-data directory. They are local caches,
 not signed exchange bundles; use a portable-bundle workflow when sharing artifacts with untrusted
 systems. Saving does not overwrite an existing name unless replacement is chosen explicitly.
+Range axes retain their exact bounds, step, and name. Normalized semantic labels and units are
+supported attributes; other dataframe attributes or values that cannot round-trip exactly are
+rejected before a snapshot is written. Readers accept only the current format version.
 
 The public API provides the same lifecycle:
 

@@ -6,19 +6,16 @@ application performance.
 """
 
 import functools
-import hashlib
-import json
 import logging
 import threading
 import time
-import uuid
 from collections import OrderedDict
 from collections.abc import Callable
 from typing import Any, TypeVar, cast
 
 import pandas as pd
 
-from src.core.common.content_identity import encode_identity as _cache_identity
+from src.core.common.content_identity import content_signature, frame_signature
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +102,7 @@ def cached(
     ttl: float | None = None,
     maxsize: int = 128,
     cache_instance: SimpleCache | None = None,
-    key_func: Callable[..., str] | None = None,
+    key_func: Callable[..., str | None] | None = None,
 ) -> Callable[[Callable[..., T]], Callable[..., T]]:
     """
     Decorator to cache function results with optional custom key generation.
@@ -115,8 +112,8 @@ def cached(
         maxsize: Maximum cache size
         cache_instance: Existing cache to use
         key_func: Optional function to generate cache key from args/kwargs.
-                  If None, uses default stringification.
-                  Signature: key_func(*args, **kwargs) -> str
+                  Otherwise, supported arguments receive a typed content identity.
+                  Returning ``None`` bypasses the cache for that invocation.
 
     Example:
         # Simple caching (default key generation)
@@ -135,12 +132,17 @@ def cached(
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> T:
-            # Generate cache key using custom function or default
             if key_func is not None:
                 cache_key = key_func(*args, **kwargs)
             else:
-                # Default: stringify all arguments (works for primitives)
-                cache_key = f"{func.__name__}:{str(args)}:{str(kwargs)}"
+                try:
+                    cache_key = content_signature(
+                        (func.__module__, func.__qualname__, args, kwargs)
+                    )
+                except ValueError:
+                    cache_key = None
+            if cache_key is None:
+                return func(*args, **kwargs)
 
             # Try cache first
             cached_value = cache.get(cache_key)
@@ -199,7 +201,7 @@ def compute_data_fingerprint(
     data: pd.DataFrame,
     params: dict[str, Any],
     relevant_cols: list[str],
-) -> str:
+) -> str | None:
     """Identify all retained values, types, axes and metadata of a cached frame.
 
     Args:
@@ -208,33 +210,16 @@ def compute_data_fingerprint(
         relevant_cols: Columns selected by the operation.
 
     Returns:
-        A 16-character key; unsupported metadata deliberately bypasses reuse.
+        A typed content identity, or ``None`` to bypass this optimization cache.
     """
     # [impl->req~ring5.quality.bounded-caching~1]
     try:
-        metadata = _cache_identity(
+        return content_signature(
             {
-                "columns": data.columns,
-                "index": data.index,
-                "dtypes": [
-                    dtype if isinstance(dtype, pd.CategoricalDtype) else repr(dtype)
-                    for dtype in data.dtypes
-                ],
-                "attrs": data.attrs,
+                "data": frame_signature(data),
                 "params": params,
                 "selected": relevant_cols,
-                "object_values": [
-                    data.iloc[:, position].tolist()
-                    for position, dtype in enumerate(data.dtypes)
-                    if pd.api.types.is_object_dtype(dtype)
-                ],
             }
         )
-        content = pd.util.hash_pandas_object(data, index=True).to_numpy().tobytes()
-        digest = hashlib.sha256(json.dumps(metadata, separators=(",", ":")).encode("utf-8"))
-        digest.update(content)
-        return digest.hexdigest()[:16]
-    except (TypeError, ValueError, RecursionError):
-        # An unsupported mutable object has no reliable canonical identity. Never
-        # collapse it through stringification or reuse another frame's output.
-        return uuid.uuid4().hex[:16]
+    except ValueError:
+        return None

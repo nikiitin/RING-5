@@ -13,6 +13,7 @@ from src.core.services.shapers.impl.mean import Mean
 from src.core.services.shapers.impl.normalize import Normalize
 from src.core.services.shapers.impl.sort import Sort
 from src.core.services.shapers.impl.split_apply import SplitApply
+from src.core.common.dataframe_copy import copy_dataframe
 
 
 def _frame() -> pd.DataFrame:
@@ -268,7 +269,43 @@ def test_unsupported_metadata_bypasses_cache_without_recursive_failure(kind: str
         frame.attrs = {"cycle": cycle}
     first = compute_data_fingerprint(frame, {}, ["value"])
     second = compute_data_fingerprint(frame, {}, ["value"])
-    assert first != second
+    assert first is None
+    assert second is None
+
+
+@pytest.mark.parametrize("kind", ["mean", "normalize"])
+def test_supported_object_cell_caches_own_their_retained_values(kind: str) -> None:
+    original = _frame()
+    original["retained"] = [["kept"], ["kept"]]
+    original.attrs = {"cache_contract": f"owned-object-{kind}"}
+    shaper = (
+        Mean(
+            {
+                "meanVars": ["value"],
+                "meanAlgorithm": "arithmean",
+                "groupingColumns": ["bench"],
+                "replacingColumn": "config",
+            }
+        )
+        if kind == "mean"
+        else Normalize(
+            {
+                "normalizeVars": ["value"],
+                "normalizerColumn": "config",
+                "normalizerValue": "base",
+                "groupBy": ["bench"],
+            }
+        )
+    )
+    supplied = copy_dataframe(original)
+    first = shaper(supplied)
+    first["retained"].iloc[0].append("returned-result-mutation")
+    supplied["retained"].iloc[1].append("source-mutation")
+
+    cached = shaper(copy_dataframe(original))
+
+    assert all(value == ["kept"] for value in cached["retained"])
+    assert all(value == ["kept"] for value in original["retained"])
 
 
 def test_range_index_identity_preserves_bounds_name_and_index_type() -> None:

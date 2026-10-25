@@ -17,8 +17,6 @@ Architecture Note — Streamlit usage:
     delegated to ``ChartDisplayComponent``.
 """
 
-import hashlib
-import json
 import logging
 from copy import deepcopy
 from collections.abc import Mapping
@@ -29,6 +27,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
+from src.core.common.content_identity import content_signature, frame_signature
 from src.core.models.visualization.engine import EngineMode
 from src.web.components.common.chart_display import ChartDisplayComponent
 from src.web.components.plotting.drill_down_panel import DrillDownPanel, point_label
@@ -247,15 +246,17 @@ class PlotRenderController:
                 return
 
         # Cache identity
-        data_hash: str = self._compute_data_hash(plot.processed_data)
-        cache_key: str = self._compute_figure_cache_key(
+        data_hash = self._compute_data_hash(plot.processed_data)
+        cache_key = self._compute_figure_cache_key(
             plot.plot_id,
             plot.config,
             data_hash,
             active_engine,
         )
         cache_matches = (
-            plot.last_generated_fig is not None and plot.last_figure_cache_key == cache_key
+            cache_key is not None
+            and plot.last_generated_fig is not None
+            and plot.last_figure_cache_key == cache_key
         )
 
         multiples_spec = None
@@ -414,14 +415,14 @@ class PlotRenderController:
     def _compute_figure_cache_key(
         plot_id: int,
         config: PlotConfig,
-        data_hash: str,
+        data_hash: str | None,
         engine: EngineMode = "plotly",
-    ) -> str:
-        """
-        Compute stable cache key for plot figure.
+    ) -> str | None:
+        """Identify retained data, configuration and engine for figure reuse.
 
-        Uses config hash + data hash to detect when regeneration is needed.
-        Ignores transient UI state (legend positions, zoom/pan).
+        All persisted configuration, including zoom and legend positions,
+        affects the identity. Transient widgets and browser events are stored
+        separately. Unsupported metadata bypasses this optimization cache.
 
         Args:
             plot_id: Unique plot identifier.
@@ -430,46 +431,29 @@ class PlotRenderController:
             engine: Active rendering engine.
 
         Returns:
-            Cache key string.
+            Cache identity, or ``None`` when reuse cannot be verified.
         """
         # [impl->req~ring5.plots.independent-state~1]
-        cache_relevant_config = {
-            k: v for k, v in config.items() if k not in {"xaxis_range", "yaxis_range"}
-        }
-        config_json = json.dumps(cache_relevant_config, sort_keys=True, default=str)
-        config_hash = hashlib.md5(config_json.encode(), usedforsecurity=False).hexdigest()[:8]
-        return f"plot_{plot_id}_{engine}_{config_hash}_{data_hash}"
+        if data_hash is None:
+            return None
+        try:
+            return content_signature(
+                {"plot_id": plot_id, "config": config, "data": data_hash, "engine": engine}
+            )
+        except ValueError:
+            return None
 
     @staticmethod
-    def _compute_data_hash(data: pd.DataFrame) -> str:
-        """
-        Compute a full-content hash of a DataFrame for cache invalidation.
+    def _compute_data_hash(data: pd.DataFrame) -> str | None:
+        """Identify all retained frame content without coercing unsupported values.
 
         Args:
             data: DataFrame to hash.
 
         Returns:
-            Hash string.
+            Frame identity, or ``None`` to bypass figure reuse.
         """
-        schema = json.dumps(
-            {
-                "shape": data.shape,
-                "columns": [str(column) for column in data.columns],
-                "dtypes": [str(dtype) for dtype in data.dtypes],
-            },
-            sort_keys=True,
-        ).encode()
-        digest = hashlib.md5(schema, usedforsecurity=False)
         try:
-            row_hashes = pd.util.hash_pandas_object(data, index=True)
-            digest.update(row_hashes.to_numpy().tobytes())
-        except (TypeError, ValueError):
-            # Object columns may contain unhashable containers. JSON provides
-            # a deterministic fallback while still inspecting every value.
-            serialized = data.to_json(
-                orient="split",
-                date_format="iso",
-                default_handler=str,
-            )
-            digest.update(serialized.encode())
-        return digest.hexdigest()[:12]
+            return frame_signature(data)
+        except ValueError:
+            return None

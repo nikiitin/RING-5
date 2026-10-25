@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from pandas import DataFrame
 
+from src.core.common.dataframe_copy import copy_dataframe
 from src.core.models.shaper_models import NormalizeShaperConfig
 from src.core.performance import cached, compute_data_fingerprint
 from src.core.services.shapers.uni_df_shaper import UniDfShaper
@@ -169,7 +170,9 @@ class Normalize(UniDfShaper):
         return result
 
     @cached(ttl=300, maxsize=32, key_func=lambda self, df, fp: fp)
-    def _normalize_with_cache(self, data_frame: pd.DataFrame, fingerprint: str) -> pd.DataFrame:
+    def _normalize_with_cache(
+        self, data_frame: pd.DataFrame, fingerprint: str | None
+    ) -> pd.DataFrame:
         """
         Execute normalization with fingerprint-based caching.
 
@@ -201,7 +204,7 @@ class Normalize(UniDfShaper):
         )
         result.index = data_frame.index.copy()
         result.attrs = data_frame.attrs.copy()
-        return result
+        return copy_dataframe(result)
 
     @override
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
@@ -214,7 +217,7 @@ class Normalize(UniDfShaper):
         Returns:
             New dataframe with normalized columns.
         """
-        # Compute fingerprint for caching (only hash metadata, not entire DataFrame).
+        # Include every retained value, not only the columns being normalized.
         # Include ``normalizer_vars`` because it supplies the denominator (see
         # ``_normalize_group``) and can differ from ``normalize_vars``; omitting it lets a
         # different baseline value return a stale (wrong) normalized frame within the TTL.
@@ -226,11 +229,8 @@ class Normalize(UniDfShaper):
         )
         fingerprint = compute_data_fingerprint(data_frame, self._params, relevant_cols)
 
-        # Use cache with fingerprint as key (NOT the DataFrame itself).
-        # Shallow copy (CoW) so callers can never mutate the cache-resident
-        # frame in place and poison later hits.
         result: DataFrame = self._normalize_with_cache(data_frame, fingerprint)
-        return result.copy(deep=False)
+        return copy_dataframe(result)
 
 
 if __name__ == "__main__":

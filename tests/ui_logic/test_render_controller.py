@@ -14,6 +14,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
+import pytest
 import plotly.graph_objects as go
 
 from src.core.models.visualization.drill_down_result import DrillDownResult
@@ -417,12 +418,29 @@ class TestFigureIdentity:
         ) != PlotRenderController._compute_data_hash(second)
 
     def test_unhashable_object_values_are_fingerprinted(self) -> None:
-        """Container-valued cells use the deterministic serialization fallback."""
+        """Container-valued cells retain their canonical typed identity."""
+        from src.core.common.content_identity import frame_signature
         from src.web.controllers.plot.render_controller import PlotRenderController
 
         data = pd.DataFrame({"value": [[1, 2], {"key": "value"}]})
 
-        assert len(PlotRenderController._compute_data_hash(data)) == 12
+        assert PlotRenderController._compute_data_hash(data) == frame_signature(data)
+
+    @pytest.mark.parametrize("field", ["range_x", "range_y", "legend_x", "legend_y"])
+    def test_retained_interactive_configuration_changes_figure_identity(self, field: str) -> None:
+        from src.web.controllers.plot.render_controller import PlotRenderController
+
+        key = PlotRenderController._compute_figure_cache_key
+        before = {field: [0, 1] if field.startswith("range_") else 0.1}
+        after = {field: [0, 2] if field.startswith("range_") else 0.2}
+        assert key(1, before, "data") != key(1, after, "data")
+
+    def test_configuration_values_keep_their_types_in_render_identity(self) -> None:
+        from src.web.controllers.plot.render_controller import PlotRenderController
+
+        key = PlotRenderController._compute_figure_cache_key
+        assert key(1, {"custom": 1}, "data") != key(1, {"custom": "1"}, "data")
+        assert key(1, {"custom": object()}, "data") is None
 
     @patch(f"{_CTRL}.EngineManager")
     @patch(f"{_CTRL}.ChartDisplayComponent")
@@ -442,6 +460,25 @@ class TestFigureIdentity:
         ctrl._render_visualization(plot, should_generate=False)
 
         plot.create_figure.assert_called_once()
+
+    @patch(f"{_CTRL}.EngineManager")
+    @patch(f"{_CTRL}.ChartDisplayComponent")
+    def test_unsupported_metadata_renders_without_reusing_an_unverified_figure(
+        self, mock_chart: MagicMock, mock_engine: MagicMock
+    ) -> None:
+        mock_engine.get_engine.return_value = "plotly"
+        mock_chart.render_engine_selector.return_value = "plotly"
+        data = pd.DataFrame({"value": [1]})
+        data.attrs["custom"] = object()
+        plot = StubPlotHandle(processed_data=data)
+        plot.create_figure = MagicMock(return_value=MagicMock())
+        ctrl = _make_render_controller()
+
+        ctrl._render_visualization(plot, should_generate=False)
+        ctrl._render_visualization(plot, should_generate=False)
+
+        assert plot.create_figure.call_count == 2
+        assert plot.last_figure_cache_key is None
 
     @patch(f"{_CTRL}.EngineManager")
     @patch(f"{_CTRL}.ChartDisplayComponent")
