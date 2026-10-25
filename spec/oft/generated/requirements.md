@@ -1227,7 +1227,7 @@ Tags: derived_column, shapers, status_approved, transformation
 `req~ring5.shaping.config-import-export~1`
 Status: approved
 
-Users shall import and export versioned saved shaper configurations with validation, conflict handling, and migration support.
+Users shall import and export versioned saved shaper configurations with validation and conflict handling.
 
 Covers:
 - feat~ring5.shaping~1

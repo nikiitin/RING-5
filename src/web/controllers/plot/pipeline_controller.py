@@ -90,7 +90,6 @@ class PipelineController:
         if isinstance(feedback, dict):
             PipelineComponent.render_import_success(
                 str(feedback["name"]),
-                migrated=bool(feedback["migrated"]),
                 resolution=str(feedback["resolution"]),
             )
 
@@ -128,7 +127,6 @@ class PipelineController:
             if imported is not None:
                 st.session_state[feedback_key] = {
                     "name": imported.name,
-                    "migrated": imported.migrated,
                     "resolution": imported.conflict_resolution,
                 }
                 st.rerun()

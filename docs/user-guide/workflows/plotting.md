@@ -112,11 +112,10 @@ logical name already exists, and select **Import, save, and use**:
 - **Replace the saved configuration** writes the validated import, then removes the older record
   with the same logical name.
 
-The importer accepts current versioned files and migrates legacy unversioned saved-configuration
-JSON. It rejects unknown future versions, unregistered or incomplete shapers, non-finite values,
+The importer accepts the current versioned schema. It rejects unversioned files, other versions, unregistered or incomplete shapers, non-finite values,
 unsupported fields, and files larger than 256 KiB before changing the active pipeline. A successful
-import is also saved in the local configuration catalog and reports whether migration or conflict
-handling occurred. It becomes the active editor pipeline; select **Finalize Pipeline for Plotting**
+import is also saved in the local configuration catalog and reports any name conflict
+handling. It becomes the active editor pipeline; select **Finalize Pipeline for Plotting**
 after reviewing its previews to update the plot data.
 
 Python scripts use the same validation and conflict rules:

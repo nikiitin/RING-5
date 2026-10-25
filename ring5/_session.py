@@ -1883,16 +1883,15 @@ class Session:
         *,
         conflict: PipelineConfigConflictPolicy = "error",
     ) -> PipelineConfigImportResult:
-        """Validate, migrate, and save one portable pipeline configuration.
+        """Validate and save one current portable pipeline configuration.
 
         Args:
-            payload: UTF-8 JSON text or bytes, limited to 256 KiB. Legacy
-                unversioned saved-configuration records are accepted.
+            payload: Current versioned UTF-8 JSON text or bytes, limited to 256 KiB.
             conflict: Logical-name policy: ``"error"``, ``"rename"``, or
                 ``"replace"``.
 
         Returns:
-            Saved configuration and migration/conflict details.
+            Saved configuration and conflict details.
 
         Raises:
             PipelineError: The document is invalid, unsupported, or conflicts

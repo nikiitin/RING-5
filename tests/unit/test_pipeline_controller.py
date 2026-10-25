@@ -104,7 +104,6 @@ class TestPipelineControllerRender:
             shapers=({"type": "columnSelector", "columns": ["x"]},),
             csv_path=None,
             schema_version=1,
-            migrated=True,
             conflict_resolution="renamed",
         )
         mock_api.import_configuration.return_value = result

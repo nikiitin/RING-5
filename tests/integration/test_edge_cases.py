@@ -177,7 +177,10 @@ class TestConfigServiceEdgeCases:
 
         # Valid config
         valid = config_dir / "valid.json"
-        valid.write_text('{"name": "valid", "description": "ok", "shapers": []}')
+        valid.write_text(
+            '{"format": "ring5.pipeline-configuration", "schema_version": 1, '
+            '"name": "valid", "description": "ok", "shapers": []}'
+        )
 
         # Invalid JSON
         invalid = config_dir / "corrupt.json"

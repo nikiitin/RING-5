@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import cast
 
 from src.core.common.file_lock import file_lock
+from src.core.common.security_limits import MAX_PIPELINE_CONFIG_BYTES
 from src.core.common.utils import sanitize_filename, validate_path_within
 from src.core.models.data_models import (
     PipelineConfigConflictPolicy,
@@ -25,7 +26,6 @@ from src.core.models.data_models import (
 from src.core.models.shaper_models import ShaperStepConfig
 from src.core.services.data_services.path_service import PathService
 from src.core.services.data_services.pipeline_config_exchange_service import (
-    PIPELINE_CONFIG_FORMAT,
     PIPELINE_CONFIG_SCHEMA_VERSION,
     PipelineConfigExchangeService,
 )
@@ -71,11 +71,7 @@ class ConfigService:
                 continue
         for _, config_file in sorted(candidates, reverse=True):
             try:
-                with open(config_file, encoding="utf-8") as f:
-                    config_data = json.load(f)
-                if not isinstance(config_data, dict):
-                    logger.debug("Skipping non-object config file %s", config_file)
-                    continue
+                config_data = ConfigService.load_configuration(str(config_file))
                 configs.append(
                     {
                         "path": str(config_file),
@@ -84,7 +80,7 @@ class ConfigService:
                         "description": config_data.get("description", "No description"),
                     }
                 )
-            except (OSError, UnicodeError, json.JSONDecodeError) as e:
+            except (OSError, UnicodeError, ValueError) as e:
                 logger.debug("Skipping unreadable config file %s: %s", config_file, e)
 
         return configs
@@ -117,29 +113,22 @@ class ConfigService:
         config_dir = ConfigService.get_config_dir()
         config_path = validate_path_within(config_dir / config_filename, config_dir)
 
-        config_data: SavedConfigData = {
-            "format": PIPELINE_CONFIG_FORMAT,
-            "schema_version": PIPELINE_CONFIG_SCHEMA_VERSION,
-            "name": name,
-            "description": description,
-            "timestamp": timestamp,
-            "shapers": shapers_config,
-            "csv_path": csv_path,
-        }
+        payload = PipelineConfigExchangeService.dumps(
+            name, description, shapers_config, csv_path, timestamp=timestamp
+        )
 
         temporary: Path | None = None
         with file_lock(config_dir / ".catalog.lock"):
             try:
                 with tempfile.NamedTemporaryFile(
-                    mode="w",
-                    encoding="utf-8",
+                    mode="wb",
                     dir=config_dir,
                     prefix=".config-",
                     suffix=".tmp",
                     delete=False,
                 ) as handle:
                     temporary = Path(handle.name)
-                    json.dump(config_data, handle, indent=2)
+                    handle.write(payload)
                     handle.flush()
                     os.fsync(handle.fileno())
                 os.replace(temporary, config_path)
@@ -180,7 +169,7 @@ class ConfigService:
         *,
         conflict: PipelineConfigConflictPolicy = "error",
     ) -> PipelineConfigImportResult:
-        """Validate and save a current or legacy portable configuration.
+        """Validate and save a current portable configuration.
 
         Logical-name conflicts can be rejected, renamed with a numeric suffix,
         or replaced. Replacement writes the new record before removing older
@@ -191,7 +180,7 @@ class ConfigService:
             conflict: ``"error"``, ``"rename"``, or ``"replace"``.
 
         Returns:
-            Saved path, normalized content, migration flag, and conflict result.
+            Saved path, normalized content, and conflict result.
 
         Raises:
             TypeError: Payload is not text or bytes.
@@ -238,7 +227,6 @@ class ConfigService:
                 shapers=tuple(copy.deepcopy(document.shapers)),
                 csv_path=document.csv_path,
                 schema_version=PIPELINE_CONFIG_SCHEMA_VERSION,
-                migrated=document.migrated,
                 conflict_resolution=resolution,
             )
 
@@ -299,8 +287,10 @@ class ConfigService:
         # [impl->req~ring5.data.saved-pipeline-configurations~1]
         config_dir = ConfigService.get_config_dir()
         validated_path = validate_path_within(Path(config_path), config_dir)
-        with open(validated_path, encoding="utf-8") as f:
-            return cast(SavedConfigData, json.load(f))
+        with open(validated_path, "rb") as handle:
+            payload = handle.read(MAX_PIPELINE_CONFIG_BYTES + 1)
+        PipelineConfigExchangeService.loads(payload)
+        return cast(SavedConfigData, json.loads(payload))
 
     @staticmethod
     def delete_configuration(config_path: str) -> bool:

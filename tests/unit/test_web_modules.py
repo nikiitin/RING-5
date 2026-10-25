@@ -63,7 +63,7 @@ class TestStateManager:
         from src.core.state.repository_state_manager import RepositoryStateManager as StateManager
 
         mgr = StateManager()
-        test_config = {"shapers": cast(Any, [{"type": "test"}])}
+        test_config = {"shapers": cast(Any, [{"type": "columnSelector", "columns": ["ipc"]}])}
         mgr.set_config(test_config)
 
         retrieved = mgr.get_config()
@@ -211,7 +211,7 @@ class TestApplicationAPI:
             config_path = api.save_configuration(
                 name="test_config",
                 description="Test description",
-                shapers_config=cast(Any, [{"type": "test"}]),
+                shapers_config=cast(Any, [{"type": "columnSelector", "columns": ["ipc"]}]),
                 csv_path="/path/to/csv",
             )
 
@@ -233,7 +233,13 @@ class TestApplicationAPI:
         config_dir = self.test_dir / "saved_configs"
         config_dir.mkdir(parents=True, exist_ok=True)
 
-        test_config = {"name": "test", "description": "Test config", "shapers": [{"type": "test"}]}
+        test_config = {
+            "format": "ring5.pipeline-configuration",
+            "schema_version": 1,
+            "name": "test",
+            "description": "Test config",
+            "shapers": [{"type": "columnSelector", "columns": ["ipc"]}],
+        }
         config_file = config_dir / "config.json"
         with open(config_file, "w") as f:
             json.dump(test_config, f)

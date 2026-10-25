@@ -87,7 +87,7 @@ def test_configuration_operations(facade: Any, tmp_path: Any) -> None:
     """Test saving, listing, loading, and deleting configurations."""
 
     # Save Config
-    shapers_config = [{"type": "filter", "id": "1"}]
+    shapers_config = [{"type": "columnSelector", "columns": ["ipc"]}]
     # Use valid path string, doesn't need to exist for this test usually, but safer
     csv_path = str(tmp_path / "fake.csv")
     config_path = facade.save_configuration(

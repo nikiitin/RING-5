@@ -129,11 +129,9 @@ class PipelineComponent:
         }
 
     @staticmethod
-    def render_import_success(name: str, *, migrated: bool, resolution: str) -> None:
-        """Show a concise import result with migration and conflict details."""
+    def render_import_success(name: str, *, resolution: str) -> None:
+        """Show a concise import result with conflict details."""
         details: list[str] = []
-        if migrated:
-            details.append("legacy format migrated")
         if resolution != "none":
             details.append(f"name conflict {resolution}")
         suffix = f" ({'; '.join(details)})" if details else ""
