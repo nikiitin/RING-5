@@ -26,7 +26,7 @@ def test_pivot_longer_selective_discard():
         "value_name": "ipc",
         "extract_pattern": r"system\.cpu(\d+)\.ipc",
         "extract_group_indices": [1],
-        "selection_filters": {1: ["0", "1"]},
+        "selection_filters": {"1": ["0", "1"]},
         "selection_strategy": "discard",
     }
 
@@ -55,7 +55,7 @@ def test_pivot_longer_selective_merge():
         "value_name": "val",
         "extract_pattern": r"cpu(\d+)",
         "extract_group_indices": [1],
-        "selection_filters": {1: ["0"]},
+        "selection_filters": {"1": ["0"]},
         "selection_strategy": "merge",
         "merge_label": "others",
     }
@@ -90,7 +90,7 @@ def test_pivot_longer_multi_group_extraction():
         "extract_pattern": r"l(\d+)_cntrl(\d+)",
         "extract_group_indices": [1, 2],
         "extract_separator": "-",
-        "selection_filters": {1: ["0", "1"], 2: ["0", "1"]},
+        "selection_filters": {"1": ["0", "1"], "2": ["0", "1"]},
         "selection_strategy": "discard",
     }
 

@@ -24,11 +24,11 @@ def base_data() -> DataFrame:
 
 def test_init_validation() -> None:
     # Missing required params
-    # Now handled in Normalize._verify_params and raised in BaseShaper constructor
-    with pytest.raises(ValueError, match="Missing required parameter 'normalizeVars'"):
+    # Constructor validation uses the registered Normalize definition.
+    with pytest.raises(ValueError, match="normalizeVars"):
         Normalize({})
 
-    with pytest.raises(ValueError, match="Missing required parameter 'normalizerColumn'"):
+    with pytest.raises(ValueError, match="normalizerColumn"):
         Normalize({"normalizeVars": ["m"]})
 
     # Valid init

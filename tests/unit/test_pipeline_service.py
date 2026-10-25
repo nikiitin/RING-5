@@ -49,7 +49,7 @@ class TestProcessPipeline:
         """A malformed step must raise — silently skipping it would return
         un-transformed data while the caller believes the pipeline ran."""
         pipeline = cast(list[ShaperStepConfig], [bad_step])
-        with pytest.raises(ValueError, match="has no 'type'"):
+        with pytest.raises(ValueError, match="registered shaper type"):
             PipelineService.process_pipeline(sample_df, pipeline)
 
     def test_step_without_type_reports_index(self, sample_df: pd.DataFrame) -> None:

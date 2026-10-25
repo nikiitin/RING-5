@@ -46,42 +46,18 @@ class Mean(UniDfShaper):
                 - replacingColumn (str): Column where the algorithm name
                   will be stored in the new rows.
         """
+        super().__init__(params)
         # Use cast for type-safe access to params
-        config = cast(MeanShaperConfig, params)
+        config = cast(MeanShaperConfig, self.params)
 
-        # Assigning attributes before super().__init__
-        self.mean_vars: list[str] = config.get("meanVars", [])
-        self.mean_algorithm: str = config.get("meanAlgorithm", "")
-        self.replacing_column: str = config.get("replacingColumn", "")
+        self.mean_vars: list[str] = config["meanVars"]
+        self.mean_algorithm: str = config["meanAlgorithm"]
+        self.replacing_column: str = config["replacingColumn"]
 
-        if not isinstance(config.get("groupingColumns"), list):
-            raise ValueError("Mean: 'groupingColumns' must be a list.")
         self.grouping_columns: list[str] = config["groupingColumns"]
 
         # Store params for fingerprinting
-        self._params = params
-
-        super().__init__(params)
-
-    @override
-    def _verify_params(self) -> bool:
-        """Validate parameter structure and algorithm choice."""
-        super()._verify_params()
-        config = cast(MeanShaperConfig, self.params)
-
-        if "meanAlgorithm" not in config or config["meanAlgorithm"] not in [
-            "arithmean",
-            "geomean",
-            "hmean",
-        ]:
-            raise ValueError(
-                "Mean: 'meanAlgorithm' must be one of 'arithmean', 'geomean', or 'hmean'."
-            )
-
-        if not isinstance(config.get("meanVars"), list):
-            raise TypeError("Mean: 'meanVars' must be a list.")
-
-        return True
+        self._params = self.params
 
     @override
     def _verify_preconditions(self, data_frame: pd.DataFrame) -> bool:

@@ -3,6 +3,7 @@ Configuration Service
 Manages saving and loading of configuration files.
 """
 
+from collections.abc import Mapping, Sequence
 import copy
 import datetime
 import json
@@ -23,7 +24,6 @@ from src.core.models.data_models import (
     SavedConfigData,
     SavedConfigEntry,
 )
-from src.core.models.shaper_models import ShaperStepConfig
 from src.core.services.data_services.path_service import PathService
 from src.core.services.data_services.pipeline_config_exchange_service import (
     PIPELINE_CONFIG_SCHEMA_VERSION,
@@ -89,7 +89,7 @@ class ConfigService:
     def save_configuration(
         name: str,
         description: str,
-        shapers_config: list[ShaperStepConfig],
+        shapers_config: Sequence[Mapping[str, object]],
         csv_path: str | None = None,
     ) -> str:
         """
@@ -141,7 +141,7 @@ class ConfigService:
     def export_configuration(
         name: str,
         description: str,
-        shapers_config: list[ShaperStepConfig],
+        shapers_config: Sequence[Mapping[str, object]],
         csv_path: str | None = None,
     ) -> bytes:
         """Serialize a validated configuration as portable versioned JSON.

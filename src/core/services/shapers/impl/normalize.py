@@ -8,7 +8,7 @@ import pandas as pd
 from pandas import DataFrame
 
 from src.core.common.dataframe_copy import copy_dataframe
-from src.core.models.shaper_models import NormalizeShaperConfig
+from src.core.models.shaper_models import NormalizeShaperConfig, ShaperValue
 from src.core.performance import cached, compute_data_fingerprint
 from src.core.services.shapers.uni_df_shaper import UniDfShaper
 
@@ -32,50 +32,23 @@ class Normalize(UniDfShaper):
                 - normalizeVars (List[str]): Columns to normalize.
                 - normalizerVars (Optional[List[str]]): Columns to sum for the baseline value.
                 - normalizerColumn (str): Column that identifies the baseline row.
-                - normalizerValue (str): Value in normalizerColumn that indicates the baseline.
+                - normalizerValue (str | int | float | bool): Baseline category value.
                 - groupBy (List[str]): Columns used to define groups.
                 - normalizeSd (Optional[bool]): Whether to normalize .sd columns. Defaults to True.
         """
+        super().__init__(params)
         # Use cast for type-safe access
-        config = cast(NormalizeShaperConfig, params)
+        config = cast(NormalizeShaperConfig, self.params)
 
-        # Assign properties before super().__init__ as _verify_params needs them
-        self._normalize_vars: list[str] = config.get("normalizeVars", [])
-        self._normalizer_column: str = config.get("normalizerColumn", "")
-        self._normalizer_value: str = config.get("normalizerValue", "")
-        self._group_by: list[str] = config.get("groupBy", [])
+        self._normalize_vars: list[str] = config["normalizeVars"]
+        self._normalizer_column: str = config["normalizerColumn"]
+        self._normalizer_value: ShaperValue = config["normalizerValue"]
+        self._group_by: list[str] = config["groupBy"]
         self._normalizer_vars: list[str] = config.get("normalizerVars", self._normalize_vars)
         self._normalize_sd: bool = config.get("normalizeSd", True)
 
         # Store params for caching fingerprint
-        self._params = params
-
-        super().__init__(params)
-
-        # Type validation
-        self._validate_init_types()
-
-    @override
-    def _verify_params(self) -> bool:
-        """Verify that mandatory parameters exist in the params dict."""
-        super()._verify_params()
-        config = cast(NormalizeShaperConfig, self.params)
-        required = ["normalizeVars", "normalizerColumn", "normalizerValue", "groupBy"]
-        for r in required:
-            if r not in config:
-                raise ValueError(f"Normalize: Missing required parameter '{r}'")
-        return True
-
-    def _validate_init_types(self) -> None:
-        """Validate that initialization parameters have correct types."""
-        if not isinstance(self._normalize_vars, list):
-            raise TypeError("normalizeVars must be a list")
-        if not isinstance(self._group_by, list):
-            raise TypeError("groupBy must be a list")
-        if not isinstance(self._normalizer_column, str):
-            raise TypeError("normalizerColumn must be a string")
-        if not isinstance(self._normalize_sd, bool):
-            raise TypeError("normalizeSd must be a boolean")
+        self._params = self.params
 
     @override
     def _verify_preconditions(self, data_frame: pd.DataFrame) -> bool:

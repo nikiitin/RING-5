@@ -20,10 +20,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
+from collections.abc import Mapping, Sequence
 import pandas as pd
 
 from src.core.models.data_models import PipelineStep
-from src.core.models.shaper_models import ShaperStepConfig
 
 if TYPE_CHECKING:
     import plotly.graph_objects as go
@@ -172,14 +172,13 @@ class PipelineExecutor(Protocol):
     """
     Contract for pipeline operations (apply shapers, configure shaper UI).
 
-    The page layer wraps ``apply_shapers()`` and ``configure_shaper()``
-    functions into an adapter that satisfies this protocol.
+    The page adapter combines the session shapers facade with configuration components.
     """
 
     def apply_shapers(
         self,
         data: pd.DataFrame,
-        configs: list[ShaperStepConfig],
+        configs: Sequence[Mapping[str, object]],
     ) -> pd.DataFrame:
         """Apply a shaper pipeline to data."""
         raise NotImplementedError
@@ -189,8 +188,8 @@ class PipelineExecutor(Protocol):
         shaper_type: str,
         data: pd.DataFrame,
         shaper_id: int,
-        config: ShaperStepConfig | None,
+        config: Mapping[str, object] | None,
         owner_id: int | None = None,
-    ) -> ShaperStepConfig:
+    ) -> Mapping[str, object]:
         """Render a shaper editor and return its configuration."""
         raise NotImplementedError

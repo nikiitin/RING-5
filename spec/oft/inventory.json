@@ -2457,7 +2457,8 @@
         "implementation": ["ring5/_session.py::available_plot_types", "ring5/shapers.py::available_shaper_types"],
         "tests": [
           "tests/integration/test_ring5_public_api.py::TestApiErgonomics.test_available_plot_types_are_public",
-          "tests/integration/test_ring5_api_completeness.py::test_public_registries_are_complete"
+          "tests/integration/test_ring5_api_completeness.py::test_public_registries_are_complete",
+          "tests/integration/test_ring5_shaper_registration.py::test_public_definition_registration_and_typed_rejection"
         ],
         "documentation": [
           "docs/user-guide/workflows/scripting.md#discover-and-handle-errors"
@@ -2612,7 +2613,7 @@
       "tags": ["extensibility", "registry", "shapers"],
       "evidence": {
         "implementation": ["src/core/services/shapers/factory.py::ShaperFactory.register", "src/core/services/shapers/factory.py::ShaperFactory.get_display_name_map", "src/core/services/shapers/factory.py::ShaperFactory.create_shaper"],
-        "tests": ["tests/unit/test_factory_registries.py::TestShaperFactoryRegistry", "tests/unit/test_shaper_factory_display.py::TestShaperFactoryDisplayNames"],
+        "tests": ["tests/unit/test_factory_registries.py::TestShaperFactoryRegistry", "tests/unit/test_shaper_factory_display.py::TestShaperFactoryDisplayNames", "tests/integration/test_ring5_shaper_registration.py::test_public_definition_registration_and_typed_rejection"],
         "documentation": ["docs/developer-guide/extension-guides/adding-a-shaper.md#implement-and-register"]
       }
     },
@@ -5713,6 +5714,8 @@
     },
     "shapers_api_members": {
       "create_shaper": "extension.shaper-registry",
+      "get_shaper_display_names": "extension.shaper-registry",
+      "validate_pipeline": "extension.shaper-registry",
       "get_available_shaper_types": "api.registry-discovery",
       "process_pipeline": "shaping.independent-pipelines"
     },
@@ -6065,6 +6068,9 @@
       "PivotLonger": "shaping.pivot-longer",
       "PivotWider": "shaping.pivot-wider",
       "Selector": "extension.shaper-registry",
+      "Shaper": "extension.shaper-registry",
+      "ShaperDefinition": "extension.shaper-registry",
+      "register_shaper": "extension.shaper-registry",
       "Sort": "shaping.sort",
       "SplitApply": "shaping.split-apply",
       "Transformer": "shaping.transformer",

@@ -2,23 +2,18 @@
 
 from __future__ import annotations
 
-import copy
+from collections.abc import Mapping, Sequence
 import json
-import math
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any
 
 from src.core.common.security_limits import (
     MAX_PIPELINE_CONFIG_BYTES,
-    MAX_PIPELINE_CONFIG_DEPTH,
     MAX_PIPELINE_CONFIG_DESCRIPTION_LENGTH,
     MAX_PIPELINE_CONFIG_NAME_LENGTH,
-    MAX_PIPELINE_CONFIG_STEPS,
-    MAX_PIPELINE_CONFIG_STRING_LENGTH,
 )
-from src.core.models.shaper_models import ShaperStepConfig
 from src.core.services.shapers.factory import ShaperFactory
-from src.core.services.shapers.validation import validate_shaper_config
+from src.core.services.shapers.definition import validate_config_values
 
 PIPELINE_CONFIG_FORMAT = "ring5.pipeline-configuration"
 PIPELINE_CONFIG_SCHEMA_VERSION = 1
@@ -45,7 +40,7 @@ class _PipelineConfigDocument:
 
     name: str
     description: str
-    shapers: tuple[ShaperStepConfig, ...]
+    shapers: tuple[Mapping[str, object], ...]
     csv_path: str | None
 
 
@@ -56,7 +51,7 @@ class PipelineConfigExchangeService:
     def dumps(
         name: str,
         description: str,
-        shapers: list[ShaperStepConfig],
+        shapers: Sequence[Mapping[str, object]],
         csv_path: str | None = None,
         *,
         timestamp: str | None = None,
@@ -78,16 +73,17 @@ class PipelineConfigExchangeService:
             ValueError: The configuration is invalid or cannot be serialized.
         """
         # [impl->req~ring5.shaping.config-import-export~1]
-        document = PipelineConfigExchangeService._validate_document(
-            {
-                "format": PIPELINE_CONFIG_FORMAT,
-                "schema_version": PIPELINE_CONFIG_SCHEMA_VERSION,
-                "name": name,
-                "description": description,
-                "shapers": shapers,
-                "csv_path": csv_path,
-            },
-        )
+        current: dict[str, Any] = {
+            "format": PIPELINE_CONFIG_FORMAT,
+            "schema_version": PIPELINE_CONFIG_SCHEMA_VERSION,
+            "name": name,
+            "description": description,
+            "shapers": list(ShaperFactory.validate_pipeline(shapers)),
+            "csv_path": csv_path,
+        }
+        if timestamp is not None:
+            current["timestamp"] = timestamp
+        document = PipelineConfigExchangeService._validate_document(current)
         payload = {
             "format": PIPELINE_CONFIG_FORMAT,
             "schema_version": PIPELINE_CONFIG_SCHEMA_VERSION,
@@ -97,8 +93,6 @@ class PipelineConfigExchangeService:
             "csv_path": document.csv_path,
         }
         if timestamp is not None:
-            if not isinstance(timestamp, str):
-                raise ValueError("Pipeline configuration timestamp must be text.")
             payload["timestamp"] = timestamp
         try:
             encoded = (
@@ -155,6 +149,10 @@ class PipelineConfigExchangeService:
 
     @staticmethod
     def _validate_document(value: dict[str, Any]) -> _PipelineConfigDocument:
+        try:
+            validate_config_values(value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"Pipeline configuration contains invalid JSON values: {exc}") from exc
         required = {"format", "schema_version", "name", "shapers"}
         if not required.issubset(value):
             raise ValueError("Pipeline configuration has missing or unsupported fields.")
@@ -175,7 +173,6 @@ class PipelineConfigExchangeService:
                 "Pipeline configuration has unsupported fields: " + ", ".join(unknown) + "."
             )
 
-        PipelineConfigExchangeService._validate_json_value(value, depth=0)
         name = value.get("name")
         if not isinstance(name, str) or not name.strip():
             raise ValueError("Pipeline configuration name must not be empty.")
@@ -201,108 +198,10 @@ class PipelineConfigExchangeService:
         if not isinstance(shapers, list):
             raise ValueError("Pipeline configuration shapers must be a list.")
 
-        validated: list[ShaperStepConfig] = []
-        counter = [0]
-        for index, step in enumerate(shapers):
-            validated.append(
-                PipelineConfigExchangeService._validate_step(
-                    step,
-                    location=str(index),
-                    depth=0,
-                    counter=counter,
-                )
-            )
+        validated = ShaperFactory.validate_pipeline(shapers)
         return _PipelineConfigDocument(
             name=name,
             description=description,
             shapers=tuple(validated),
             csv_path=csv_path,
         )
-
-    @staticmethod
-    def _validate_step(
-        value: object,
-        *,
-        location: str,
-        depth: int,
-        counter: list[int],
-    ) -> ShaperStepConfig:
-        counter[0] += 1
-        if counter[0] > MAX_PIPELINE_CONFIG_STEPS:
-            raise ValueError(
-                f"Pipeline configuration exceeds the {MAX_PIPELINE_CONFIG_STEPS}-step limit."
-            )
-        if depth > MAX_PIPELINE_CONFIG_DEPTH:
-            raise ValueError("Pipeline configuration nesting is too deep.")
-        if not isinstance(value, dict):
-            raise ValueError(f"Pipeline step {location} must be an object.")
-        shaper_type = value.get("type")
-        if not isinstance(shaper_type, str) or not shaper_type:
-            raise ValueError(f"Pipeline step {location} must declare a shaper type.")
-        if shaper_type not in ShaperFactory.get_available_types():
-            raise ValueError(f"Pipeline step {location} uses unknown shaper type {shaper_type!r}.")
-
-        step = cast(ShaperStepConfig, copy.deepcopy(value))
-        complete, missing = validate_shaper_config(shaper_type, step)
-        if not complete:
-            raise ValueError(
-                f"Pipeline step {location} ({shaper_type}) is missing: "
-                + ", ".join(missing or ())
-                + "."
-            )
-        try:
-            ShaperFactory.create_shaper(shaper_type, step)
-        except (KeyError, TypeError, ValueError) as exc:
-            raise ValueError(f"Pipeline step {location} ({shaper_type}) is invalid: {exc}") from exc
-        if shaper_type == "mean":
-            replacing_column = step.get("replacingColumn")  # type: ignore[typeddict-item]
-            if not isinstance(replacing_column, str) or not replacing_column:
-                raise ValueError(f"Pipeline step {location} (mean) is missing: replacingColumn.")
-
-        if shaper_type == "splitApply":
-            groups = step.get("groups", [])  # type: ignore[typeddict-item]
-            if isinstance(groups, list):
-                for group_index, group in enumerate(groups):
-                    if not isinstance(group, dict):
-                        continue
-                    nested = group.get("pipeline", [])
-                    if not isinstance(nested, list):
-                        continue
-                    for nested_index, nested_step in enumerate(nested):
-                        PipelineConfigExchangeService._validate_step(
-                            nested_step,
-                            location=f"{location}.{group_index}.{nested_index}",
-                            depth=depth + 1,
-                            counter=counter,
-                        )
-        return step
-
-    @staticmethod
-    def _validate_json_value(value: object, *, depth: int) -> None:
-        if depth > MAX_PIPELINE_CONFIG_DEPTH:
-            raise ValueError("Pipeline configuration nesting is too deep.")
-        if isinstance(value, str):
-            if len(value) > MAX_PIPELINE_CONFIG_STRING_LENGTH:
-                raise ValueError(
-                    "Pipeline configuration text value exceeds "
-                    f"{MAX_PIPELINE_CONFIG_STRING_LENGTH} characters."
-                )
-            return
-        if value is None or isinstance(value, (bool, int)):
-            return
-        if isinstance(value, float):
-            if not math.isfinite(value):
-                raise ValueError("Pipeline configuration numbers must be finite.")
-            return
-        if isinstance(value, list):
-            for item in value:
-                PipelineConfigExchangeService._validate_json_value(item, depth=depth + 1)
-            return
-        if isinstance(value, dict):
-            for key, item in value.items():
-                if not isinstance(key, str):
-                    raise ValueError("Pipeline configuration object keys must be text.")
-                PipelineConfigExchangeService._validate_json_value(key, depth=depth + 1)
-                PipelineConfigExchangeService._validate_json_value(item, depth=depth + 1)
-            return
-        raise ValueError("Pipeline configuration contains a non-JSON value.")

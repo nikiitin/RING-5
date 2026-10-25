@@ -25,7 +25,7 @@ import pandas as pd  # noqa: E402: limits must precede native imports
 from ring5 import RenderError, Session  # noqa: E402
 from src.core.common.utils import sanitize_filename  # noqa: E402
 from src.core.models.plot_protocol import PlotProtocol  # noqa: E402
-from src.core.models.data_models import PipelineStep, ShaperStepConfig  # noqa: E402
+from src.core.models.data_models import PipelineStep  # noqa: E402
 from src.core.services.data_services.path_service import PathService  # noqa: E402
 from src.core.services.data_services.portfolio_service import PortfolioService  # noqa: E402
 from src.core.services.shapers.pipeline_service import PipelineService  # noqa: E402
@@ -106,7 +106,7 @@ def build_example_data() -> pd.DataFrame:
 
 def _pipeline_step(step_id: int, step_type: str, **config: Any) -> PipelineStep:
     """Build one nested pipeline step with the required type marker."""
-    typed_config = cast(ShaperStepConfig, {"type": step_type, **config})
+    typed_config = {"type": step_type, **config}
     return PipelineStep(id=step_id, type=step_type, config=typed_config)
 
 

@@ -11,6 +11,7 @@ from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
+from src.core.services.shapers.factory import ShaperFactory
 
 # PlotCreationComponent Tests
 
@@ -164,7 +165,9 @@ class TestPipelineComponent:
         mock_st.selectbox.return_value = "Sort"
         mock_st.button.return_value = True
 
-        result: dict[str, Any] = PipelineComponent.render_add_shaper(plot_id=1)
+        result: dict[str, Any] = PipelineComponent.render_add_shaper(
+            plot_id=1, display_names=ShaperFactory.get_display_name_map()
+        )
 
         assert result["add_clicked"] is True
         assert result["shaper_type"] == "sort"
@@ -180,11 +183,10 @@ class TestPipelineComponent:
         assert result is True
 
     def test_shaper_display_map_consistency(self) -> None:
-        """SHAPER_DISPLAY_MAP and REVERSE_MAP are consistent."""
-        from src.web.components.common.pipeline import PipelineComponent
+        """Canonical editor labels identify their registered operation."""
 
-        for display_name, internal_type in PipelineComponent.SHAPER_DISPLAY_MAP.items():
-            assert PipelineComponent.REVERSE_MAP[internal_type] == display_name
+        for display_name, internal_type in ShaperFactory.get_display_name_map().items():
+            assert ShaperFactory.get_display_name(internal_type) == display_name
 
     @patch("src.web.components.common.pipeline.st")
     def test_render_shaper_controls_returns_expected_keys(self, mock_st: MagicMock) -> None:
@@ -353,7 +355,6 @@ class TestPipelineStepComponent:
             PipelineStepResult,
         )
 
-        mock_pp.REVERSE_MAP = {"sort": "Sort"}
         mock_pp.render_shaper_controls.return_value = {
             "move_up": False,
             "move_down": False,
@@ -378,6 +379,7 @@ class TestPipelineStepComponent:
             is_last=False,
             configure_fn=configure_fn,
             apply_fn=apply_fn,
+            display_name="Mean Calculator",
         )
 
         expected: list[str] = [
@@ -402,7 +404,6 @@ class TestPipelineStepComponent:
             PipelineStepComponent,
         )
 
-        mock_pp.REVERSE_MAP = {"sort": "Sort"}
         mock_pp.render_shaper_controls.return_value = {
             "move_up": False,
             "move_down": False,
@@ -426,6 +427,7 @@ class TestPipelineStepComponent:
             is_last=True,
             configure_fn=configure_fn,
             apply_fn=apply_fn,
+            display_name="Mean Calculator",
         )
 
         configure_fn.assert_called_once_with("sort", df, 42, {}, 5)
@@ -442,7 +444,6 @@ class TestPipelineStepComponent:
             PipelineStepComponent,
         )
 
-        mock_pp.REVERSE_MAP = {"sort": "Sort"}
         mock_pp.render_shaper_controls.return_value = {
             "move_up": False,
             "move_down": False,
@@ -466,6 +467,7 @@ class TestPipelineStepComponent:
             is_last=True,
             configure_fn=configure_fn,
             apply_fn=apply_fn,
+            display_name="Mean Calculator",
         )
 
         mock_st.exception.assert_called_once()

@@ -1,6 +1,5 @@
 """Streamlit editors for selector and transformer shapers."""
 
-import json
 import math
 from numbers import Integral, Real
 from typing import Any, cast, get_args
@@ -9,6 +8,7 @@ import pandas as pd
 import streamlit as st
 
 from src.core.models.shaper_models import ConditionSelectorMode, ShaperStepConfig
+from src.web.components.common.scalar_values import scalar_token
 
 
 class ColumnSelectorConfig:
@@ -78,25 +78,15 @@ class ConditionSelectorConfig:
         edited = st.number_input(label, value=float(number), key=key)
         return number if edited == number else edited
 
-    @staticmethod
-    def _choice_token(value: Any) -> str:
-        """Identify JSON scalar choices without merging integer and text labels."""
-        if value is not None and type(value) not in (str, int, float, bool):
-            raise ValueError("This column contains membership values the editor cannot represent.")
-        try:
-            return json.dumps([type(value).__name__, value], allow_nan=False)
-        except ValueError as exc:
-            raise ValueError("Non-finite membership values cannot be edited.") from exc
-
     @classmethod
     def _membership(cls, values: pd.Series, selected: Any, key: str) -> list[Any]:
         """Retain typed choices, including saved members absent from current rows."""
         if not isinstance(selected, list):
             raise ValueError("Membership requires a values list.")
-        choices = {cls._choice_token(value): value for value in selected}
+        choices = {scalar_token(value): value for value in selected}
         for value in values.unique().tolist():
             try:
-                token = cls._choice_token(value)
+                token = scalar_token(value)
             except ValueError:
                 # Missing/extension values cannot be serialized as current JSON
                 # operands. Saved unsupported operands are rejected above.
@@ -107,7 +97,7 @@ class ConditionSelectorConfig:
         tokens = st.multiselect(
             "Keep rows where value is:",
             options=list(choices),
-            default=[cls._choice_token(value) for value in selected],
+            default=[scalar_token(value) for value in selected],
             format_func=lambda token: repr(choices[token]),
             key=key,
         )
@@ -370,11 +360,11 @@ class GroupPredicateSelectorConfig:
             key=f"{key_prefix}gpred_bcol_{shaper_id}",
         )
         bvals = (
-            [str(v) for v in data[baseline_column].unique()]
+            data[baseline_column].dropna().unique().tolist()
             if baseline_column in data.columns
             else []
         )
-        bv_default = cast(str, existing_config.get("baselineValue", ""))
+        bv_default = existing_config.get("baselineValue", "")
         if bvals:
             baseline_value = c2.selectbox(
                 "Baseline value",
@@ -384,7 +374,7 @@ class GroupPredicateSelectorConfig:
             )
         else:
             baseline_value = c2.text_input(
-                "Baseline value", value=bv_default, key=f"{key_prefix}gpred_bval_{shaper_id}"
+                "Baseline value", value="", key=f"{key_prefix}gpred_bval_{shaper_id}"
             )
         pc_default = cast(str, existing_config.get("predicateColumn", ""))
         predicate_column = st.selectbox(
@@ -421,7 +411,7 @@ class GroupPredicateSelectorConfig:
             {
                 "groupBy": group_by,
                 "baselineColumn": str(baseline_column or ""),
-                "baselineValue": str(baseline_value or ""),
+                "baselineValue": baseline_value,
                 "predicateColumn": str(predicate_column or ""),
                 "drop_when": drop_when,
                 "action": action,

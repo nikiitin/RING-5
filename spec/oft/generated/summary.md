@@ -13,7 +13,7 @@ This file is informative; normative items are in the other generated files.
 - In development future requirements: 0
 - Blocked future requirements: 0
 - Generated specification items: 234
-- Live capability bindings: 861
+- Live capability bindings: 866
 
 ## Requirements by feature group
 
@@ -60,7 +60,7 @@ This file is informative; normative items are in the other generated files.
 - `plot_types`: 17
 - `plotly_formats`: 4
 - `public_exports`: 125
-- `public_shaper_exports`: 15
+- `public_shaper_exports`: 18
 - `render_engines`: 2
 - `restore_report_fields`: 5
 - `scan_job_members`: 2
@@ -71,7 +71,7 @@ This file is informative; normative items are in the other generated files.
 - `settings_sections`: 8
 - `shaper_config_fields`: 13
 - `shaper_types`: 13
-- `shapers_api_members`: 3
+- `shapers_api_members`: 5
 - `simulator_file_patterns`: 1
 - `simulator_internal_stats`: 13
 - `simulators`: 1

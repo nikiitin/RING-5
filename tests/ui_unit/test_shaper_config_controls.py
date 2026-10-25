@@ -7,6 +7,7 @@ import pytest
 
 from src.core.models.shaper_models import ShaperStepConfig
 from src.web.pages.ui.shaper_config import configure_shaper
+from src.core.services.shapers.factory import ShaperFactory
 
 
 @pytest.fixture
@@ -45,7 +46,14 @@ def test_configure_normalize_ui(mock_streamlit: Any) -> None:
     ]
     mock_streamlit.checkbox.return_value = True  # normalize_sd
 
-    config = configure_shaper("normalize", df, 1, cast(ShaperStepConfig, {}), owner_id=1)
+    config = configure_shaper(
+        "normalize",
+        df,
+        1,
+        cast(ShaperStepConfig, {}),
+        owner_id=1,
+        display_names=ShaperFactory.get_display_name_map(),
+    )
 
     assert config.get("type") == "normalize"
     assert config.get("normalizerVars") == ["A"]
@@ -64,7 +72,14 @@ def test_configure_transformer_ui(mock_streamlit: Any) -> None:
     mock_streamlit.segmented_control.return_value = "Factor (String/Categorical)"  # target_type_str
     mock_streamlit.multiselect.return_value = ["1", "2", "3"]  # order_list
 
-    config = configure_shaper("transformer", df, 1, cast(ShaperStepConfig, {}), owner_id=1)
+    config = configure_shaper(
+        "transformer",
+        df,
+        1,
+        cast(ShaperStepConfig, {}),
+        owner_id=1,
+        display_names=ShaperFactory.get_display_name_map(),
+    )
 
     assert config.get("type") == "transformer"
     assert config.get("target_type") == "factor"
@@ -80,7 +95,14 @@ def test_configure_filter_ui_numeric(mock_streamlit: Any) -> None:
     mock_streamlit.selectbox.side_effect = ["A", "range"]
     mock_streamlit.number_input.side_effect = [10.0, 20.0]
 
-    config = configure_shaper("conditionSelector", df, 1, cast(ShaperStepConfig, {}), owner_id=1)
+    config = configure_shaper(
+        "conditionSelector",
+        df,
+        1,
+        cast(ShaperStepConfig, {}),
+        owner_id=1,
+        display_names=ShaperFactory.get_display_name_map(),
+    )
 
     assert config.get("type") == "conditionSelector"
     assert config.get("mode") == "range"
@@ -97,7 +119,14 @@ def test_configure_filter_ui_categorical(mock_streamlit: Any) -> None:
         kwargs["options"][2],
     ]
 
-    config = configure_shaper("conditionSelector", df, 1, cast(ShaperStepConfig, {}), owner_id=1)
+    config = configure_shaper(
+        "conditionSelector",
+        df,
+        1,
+        cast(ShaperStepConfig, {}),
+        owner_id=1,
+        display_names=ShaperFactory.get_display_name_map(),
+    )
 
     assert config.get("type") == "conditionSelector"
     assert config.get("column") == "B"

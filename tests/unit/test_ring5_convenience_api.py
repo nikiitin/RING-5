@@ -86,6 +86,9 @@ def test_grouped_bar_coordinates_public_wrapper() -> None:
 
 def test_shapers_are_available_from_the_supported_module() -> None:
     expected = {
+        "Shaper",
+        "ShaperDefinition",
+        "register_shaper",
         "Mean",
         "Normalize",
         "Selector",

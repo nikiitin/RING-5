@@ -1,12 +1,12 @@
 """Apply independent pipelines to column groups and merge their results."""
 
 import logging
+from collections.abc import Mapping, Sequence
 from typing import Any, cast, override
 
 import pandas as pd
 
 from src.core.models.shaper_models import (
-    ShaperStepConfig,
     SplitApplyGroupConfig,
     SplitApplyShaperConfig,
 )
@@ -35,55 +35,11 @@ class SplitApply(UniDfShaper):
                     - columns (List[str]): Numeric columns for this group.
                     - pipeline (List[Dict]): Shaper configs to apply.
         """
-        config = cast(SplitApplyShaperConfig, params)
-        self._join_columns: list[str] = config.get("joinColumns", [])
-        self._groups: list[SplitApplyGroupConfig] = config.get("groups", [])
-        self._params = params
-
         super().__init__(params)
-
-    @override
-    def _verify_params(self) -> bool:
-        """Validate parameter structure."""
-        super()._verify_params()
-
-        if not self._join_columns:
-            raise ValueError("SplitApply: 'joinColumns' must be a non-empty list.")
-        if not isinstance(self._join_columns, list):
-            raise TypeError("SplitApply: 'joinColumns' must be a list.")
-
-        if not self._groups or len(self._groups) < 2:
-            raise ValueError("SplitApply: 'groups' must contain at least 2 groups.")
-        if len(self._groups) > 4:
-            raise ValueError(
-                "SplitApply: 'groups' must contain at most 4 groups " f"(got {len(self._groups)})."
-            )
-
-        # Validate each group
-        all_group_cols: list[str] = []
-        for idx, group in enumerate(self._groups):
-            cols = group.get("columns", [])
-            if not cols:
-                raise ValueError(
-                    f"SplitApply: Group {idx} must have a non-empty " f"'columns' list."
-                )
-            if not isinstance(cols, list):
-                raise TypeError(f"SplitApply: Group {idx} 'columns' must be a list.")
-            pipeline = group.get("pipeline", [])
-            if not isinstance(pipeline, list):
-                raise TypeError(f"SplitApply: Group {idx} 'pipeline' must be a list.")
-
-            # Check for overlapping columns
-            for col in cols:
-                if col in all_group_cols:
-                    raise ValueError(
-                        f"SplitApply: Column '{col}' appears in "
-                        f"multiple groups. Each column must belong "
-                        f"to exactly one group."
-                    )
-                all_group_cols.append(col)
-
-        return True
+        config = cast(SplitApplyShaperConfig, self.params)
+        self._join_columns: list[str] = config["joinColumns"]
+        self._groups: list[SplitApplyGroupConfig] = config["groups"]
+        self._params = self.params
 
     @override
     def _verify_preconditions(self, data_frame: pd.DataFrame) -> bool:
@@ -110,12 +66,12 @@ class SplitApply(UniDfShaper):
     @staticmethod
     def _apply_sub_pipeline(
         data: pd.DataFrame,
-        pipeline: list[ShaperStepConfig],
+        pipeline: Sequence[Mapping[str, object]],
     ) -> pd.DataFrame:
         """Apply a sequence of shapers to a DataFrame slice.
 
-        Uses ShaperFactory to create each shaper. This is intentionally
-        a late import to avoid circular dependencies.
+        The core pipeline engine owns admission and execution. The import is local
+        because its factory registers SplitApply.
 
         Args:
             data: Input DataFrame (join columns + group columns).
@@ -125,17 +81,9 @@ class SplitApply(UniDfShaper):
             Transformed DataFrame.
         """
         # [impl->req~ring5.shaping.split-apply~1]
-        # Late import to avoid circular dependency with factory
-        from src.core.services.shapers.factory import ShaperFactory
+        from src.core.services.shapers.pipeline_service import PipelineService
 
-        result: pd.DataFrame = data.copy()
-        for step_cfg in pipeline:
-            shaper_type = step_cfg.get("type")
-            if not shaper_type:
-                continue
-            shaper = ShaperFactory.create_shaper(shaper_type, step_cfg)
-            result = shaper(result)
-        return result
+        return PipelineService.process_pipeline(data.copy(), pipeline)
 
     @override
     def __call__(self, data_frame: pd.DataFrame) -> pd.DataFrame:
@@ -164,7 +112,7 @@ class SplitApply(UniDfShaper):
         group_results: list[pd.DataFrame] = []
         for idx, group in enumerate(self._groups):
             group_cols: list[str] = list(group.get("columns", []))
-            pipeline: list[ShaperStepConfig] = group.get("pipeline", [])
+            pipeline: Sequence[Mapping[str, object]] = group.get("pipeline", [])
 
             # Include matching .sd columns automatically
             sd_cols: list[str] = [

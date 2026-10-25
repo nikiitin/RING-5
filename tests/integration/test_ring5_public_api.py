@@ -877,7 +877,7 @@ class TestPipelineConfigurationExchange:
                         "Incomplete",
                         cast(
                             list[ring5.ShaperStepConfig],
-                            [{"type": "columnSelector", "columns": []}],
+                            [{"type": "columnSelector", "columns": [123]}],
                         ),
                     )
 

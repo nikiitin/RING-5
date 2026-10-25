@@ -169,119 +169,125 @@ class PivotLongerConfig:
                 compiled = compile_bounded_regex(extract_pattern)
                 num_groups = compiled.groups
 
-                if num_groups > 0:
-                    st.markdown("###### Selection Options")
-                    labels = PatternIndexService.extract_index_positions(
-                        extract_pattern.replace(r"(\d+)", r"\d+")
+                st.markdown("###### Selection Options")
+                labels = PatternIndexService.extract_index_positions(
+                    extract_pattern.replace(r"(\d+)", r"\d+")
+                )
+
+                options = {}
+                for i in range(1, num_groups + 1):
+                    label = labels[i - 1] if i - 1 < len(labels) else f"Group {i}"
+                    options[i] = f"{label} (Group {i})"
+
+                options[0] = "Whole Match (Group 0)"
+
+                selected_defaults = [i for i in group_indices if i in options]
+                if not selected_defaults and "extract_group_indices" not in cfg:
+                    selected_defaults = [0]
+                selected_opt_ids = st.multiselect(
+                    "Sections to Keep",
+                    options=sorted(list(options.keys())),
+                    default=selected_defaults,
+                    format_func=lambda x: options[x],
+                    key=f"{key_prefix}pl_groups_{shaper_id}",
+                    help="Select one or more capture groups to keep and join.",
+                )
+                group_indices = [int(i) for i in selected_opt_ids]
+
+                if len(group_indices) > 1:
+                    separator = st.text_input(
+                        "Separator",
+                        value=separator,
+                        key=f"{key_prefix}pl_sep_{shaper_id}",
+                        help="Separator to join multiple selected groups.",
                     )
 
-                    options = {}
-                    for i in range(1, num_groups + 1):
-                        label = labels[i - 1] if i - 1 < len(labels) else f"Group {i}"
-                        options[i] = f"{label} (Group {i})"
+                # --- Selective Value Filtering ---
+                st.markdown("###### Value Filtering")
+                selection_filters = cast(dict[str, list[str]], cfg.get("selection_filters", {}))
 
-                    options[0] = "Whole Match (Group 0)"
+                # We need to know which values are available for each group
+                # to show a selector.
+                group_values: dict[int, set[str]] = {i: set() for i in range(num_groups + 1)}
+                if value_vars:
+                    for v in value_vars:
+                        m = search_bounded_regex(compiled, str(v))
+                        if m:
+                            for i in range(num_groups + 1):
+                                group = m.group(i)
+                                if group is not None:
+                                    group_values[i].add(group)
 
-                    selected_opt_ids = st.multiselect(
-                        "Sections to Keep",
-                        options=sorted(list(options.keys())),
-                        default=[i for i in group_indices if i in options],
-                        format_func=lambda x: options[x],
-                        key=f"{key_prefix}pl_groups_{shaper_id}",
-                        help="Select one or more capture groups to keep and join.",
-                    )
-                    group_indices = [int(i) for i in selected_opt_ids]
-
-                    if len(group_indices) > 1:
-                        separator = st.text_input(
-                            "Separator",
-                            value=separator,
-                            key=f"{key_prefix}pl_sep_{shaper_id}",
-                            help="Separator to join multiple selected groups.",
+                filter_groups = set(group_indices)
+                for key in selection_filters:
+                    if (
+                        not key.isascii()
+                        or not key.isdecimal()
+                        or str(int(key)) != key
+                        or int(key) > num_groups
+                    ):
+                        raise ValueError(
+                            "Saved filter groups must name current canonical capture groups."
                         )
-
-                    # --- Selective Value Filtering ---
-                    st.markdown("###### Value Filtering")
-                    selection_filters = {
-                        str(key): values
-                        for key, values in cast(
-                            dict[str | int, list[str]], cfg.get("selection_filters", {})
-                        ).items()
-                    }
-
-                    # We need to know which values are available for each group
-                    # to show a selector.
-                    group_values: dict[int, set[str]] = {i: set() for i in range(num_groups + 1)}
-                    if value_vars:
-                        for v in value_vars:
-                            m = search_bounded_regex(compiled, str(v))
-                            if m:
-                                for i in range(num_groups + 1):
-                                    group = m.group(i)
-                                    if group is not None:
-                                        group_values[i].add(group)
-
-                    new_selection_filters = {}
-                    for i in group_indices:
-                        if i == 0:
-                            continue  # Skip whole match for per-group filtering usually
-                        label = labels[i - 1] if i - 1 < len(labels) else f"Group {i}"
-
-                        available = sorted(list(group_values.get(i, set())))
-                        selected_vals = selection_filters.get(str(i), [])
-                        selected_vals = [v for v in selected_vals if v in available]
-
-                        new_vals = st.multiselect(
-                            f"Keep values for {label}",
-                            options=available,
-                            default=selected_vals,
-                            key=f"{key_prefix}pl_filter_{i}_{shaper_id}",
-                            help=(
-                                f"Select specific values to keep for {label}. "
-                                "Leave empty to keep all."
-                            ),
-                        )
-                        if new_vals:
-                            new_selection_filters[str(i)] = new_vals
-
-                    selection_filters = new_selection_filters
-
-                    strategy = str(cfg.get("selection_strategy", "discard"))
-                    strategy_idx = 0 if strategy == "discard" else 1
-
-                    strategy = st.radio(
-                        "Missing values strategy",
-                        options=["discard", "merge"],
-                        index=strategy_idx,
-                        horizontal=True,
-                        key=f"{key_prefix}pl_strategy_{shaper_id}",
-                        help="How to handle rows that don't match the selected values.",
+                    filter_groups.add(int(key))
+                new_selection_filters = {}
+                for i in sorted(filter_groups):
+                    label = (
+                        "Whole match"
+                        if i == 0
+                        else (labels[i - 1] if i - 1 < len(labels) else f"Group {i}")
                     )
 
-                    merge_label = str(cfg.get("merge_label", "other"))
-                    if strategy == "merge":
-                        merge_label = st.text_input(
-                            "Merge Label",
-                            value=merge_label,
-                            key=f"{key_prefix}pl_merge_label_{shaper_id}",
-                            help="Label for the merged 'other' row (e.g., '9+').",
-                        )
+                    selected_vals = selection_filters.get(str(i), [])
+                    available = sorted(group_values.get(i, set()) | set(selected_vals))
 
-                    # Preview
-                    if value_vars:
-                        sample = str(value_vars[0])
-                        is_filtered = bool(selection_filters)
-                        preview = extract_with_pattern(
-                            sample, extract_pattern, group_indices, separator
-                        )
-                        msg = f"Preview: `{sample}` → `{preview}`"
-                        if is_filtered:
-                            msg += " (Filtered)"
-                        st.info(msg)
-                else:
-                    st.warning(
-                        "Pattern has no capture groups (parentheses). " "Defaults to whole match."
+                    new_vals = st.multiselect(
+                        f"Keep values for {label}",
+                        options=available,
+                        default=selected_vals,
+                        key=f"{key_prefix}pl_filter_{i}_{shaper_id}",
+                        help=(
+                            f"Select specific values to keep for {label}. "
+                            "Leave empty to keep all."
+                        ),
                     )
+                    if new_vals:
+                        new_selection_filters[str(i)] = new_vals
+
+                selection_filters = new_selection_filters
+
+                strategy = str(cfg.get("selection_strategy", "discard"))
+                strategy_idx = 0 if strategy == "discard" else 1
+
+                strategy = st.radio(
+                    "Missing values strategy",
+                    options=["discard", "merge"],
+                    index=strategy_idx,
+                    horizontal=True,
+                    key=f"{key_prefix}pl_strategy_{shaper_id}",
+                    help="How to handle rows that don't match the selected values.",
+                )
+
+                merge_label = str(cfg.get("merge_label", "other"))
+                if strategy == "merge":
+                    merge_label = st.text_input(
+                        "Merge Label",
+                        value=merge_label,
+                        key=f"{key_prefix}pl_merge_label_{shaper_id}",
+                        help="Label for the merged 'other' row (e.g., '9+').",
+                    )
+
+                # Preview
+                if value_vars:
+                    sample = str(value_vars[0])
+                    is_filtered = bool(selection_filters)
+                    preview = extract_with_pattern(
+                        sample, extract_pattern, group_indices, separator
+                    )
+                    msg = f"Preview: `{sample}` → `{preview}`"
+                    if is_filtered:
+                        msg += " (Filtered)"
+                    st.info(msg)
             except (SafeRegexError, ValueError) as exc:
                 st.error(str(exc))
 

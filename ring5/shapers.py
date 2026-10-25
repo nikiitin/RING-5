@@ -17,6 +17,9 @@ and calls raise ordinary ``TypeError`` or ``ValueError`` for invalid inputs;
 
 from __future__ import annotations
 
+from ring5.errors import PipelineError
+from src.core.services.shapers.definition import ShaperDefinition
+from src.core.services.shapers.shaper import Shaper
 from src.core.services.shapers.impl.derive_column import DeriveColumn
 from src.core.services.shapers.impl.mean import Mean
 from src.core.services.shapers.impl.normalize import Normalize
@@ -44,7 +47,27 @@ def available_shaper_types() -> tuple[str, ...]:
     return tuple(ShaperFactory.get_available_types())
 
 
+def register_shaper(definition: ShaperDefinition) -> None:
+    """Register one current plugin definition for pipeline construction.
+
+    Args:
+        definition: Strategy, exact TypedDict configuration, label and validator.
+
+    Raises:
+        PipelineError: Definition is malformed or duplicates an existing registration.
+    """
+    from src.core.services.shapers.factory import ShaperFactory
+
+    try:
+        ShaperFactory.register(definition)
+    except (TypeError, ValueError) as exc:
+        raise PipelineError(str(exc)) from exc
+
+
 __all__ = [
+    "Shaper",
+    "ShaperDefinition",
+    "register_shaper",
     "Mean",
     "Normalize",
     "Selector",

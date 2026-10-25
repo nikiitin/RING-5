@@ -76,7 +76,7 @@ def test_background_transformations_and_export_are_non_blocking(tmp_path: Path) 
 
 def test_failed_background_job_has_bounded_error_and_retries() -> None:
     # [test->req~ring5.workspace.background-jobs~1]
-    invalid_pipeline = cast(list[ring5.ShaperStepConfig], [{"type": "does-not-exist"}])
+    invalid_pipeline = [{"type": "columnSelector", "columns": ["does-not-exist"]}]
 
     with ring5.Session() as session:
         submitted = session.shape_submit(

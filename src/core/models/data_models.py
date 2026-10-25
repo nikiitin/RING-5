@@ -14,11 +14,9 @@ Categories:
     - Cache monitoring: CacheStatsEntry, CacheStatsInfo
 """
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Literal, Required, TypedDict
-
-# ShaperStepConfig is referenced by SavedConfigData and PipelineStep below.
-from src.core.models.shaper_models import ShaperStepConfig
 
 # CSV Pool
 
@@ -85,7 +83,7 @@ class SavedConfigData(TypedDict, total=False):
     schema_version: int
     description: str
     timestamp: str
-    shapers: Required[list["ShaperStepConfig"]]
+    shapers: Required[list[Mapping[str, object]]]
     csv_path: str | None
 
 
@@ -112,7 +110,7 @@ class PipelineConfigImportResult:
     name: str
     original_name: str
     description: str
-    shapers: tuple[ShaperStepConfig, ...]
+    shapers: tuple[Mapping[str, object], ...]
     csv_path: str | None
     schema_version: int
     conflict_resolution: PipelineConfigConflictResolution
@@ -174,15 +172,16 @@ class PipelineStep(TypedDict):
     """A single step in a plot's data processing pipeline.
 
     This is the **nested** format stored in ``BasePlot.pipeline``,
-    where the shaper parameters are inside a ``config`` sub-dict.
+    where draft shaper parameters are inside a ``config`` mapping. Drafts may be incomplete;
+    execution and standalone pipeline exchange validate the complete runnable contract.
 
-    Distinct from ``ShaperStepConfig`` which is the **flat** format
+    The config mapping contains the **flat** current operation format
     used by ``PipelineService`` for JSON persistence.
     """
 
     id: int
     type: str
-    config: ShaperStepConfig
+    config: Mapping[str, object]
 
 
 # Column Info (DataFrame summary for UI)

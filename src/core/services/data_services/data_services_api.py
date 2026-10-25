@@ -39,7 +39,6 @@ from src.core.models.data_models import (
     SavedConfigEntry,
     ScannedVariableDict,
 )
-from src.core.models.shaper_models import ShaperStepConfig
 
 
 @runtime_checkable
@@ -78,7 +77,7 @@ class DataServicesAPI(Protocol):
         self,
         name: str,
         description: str,
-        shapers_config: list[ShaperStepConfig],
+        shapers_config: Sequence[Mapping[str, object]],
         csv_path: str | None = None,
     ) -> str:
         """Save a configuration to disk. Returns saved file path."""
@@ -92,7 +91,7 @@ class DataServicesAPI(Protocol):
         self,
         name: str,
         description: str,
-        shapers_config: list[ShaperStepConfig],
+        shapers_config: Sequence[Mapping[str, object]],
         csv_path: str | None = None,
     ) -> bytes:
         """Serialize a validated configuration as portable versioned JSON."""
@@ -359,7 +358,7 @@ class DataServicesAPI(Protocol):
         description: str = "",
         parameters: Sequence[RecipeParameter] = (),
         source: RecipeSource | None = None,
-        transformations: Sequence[ShaperStepConfig] = (),
+        transformations: Sequence[Mapping[str, object]] = (),
         exports: Sequence[RecipeExport] = (),
     ) -> AnalysisRecipe:
         """Capture current source provenance, plots, and pipelines as a recipe."""

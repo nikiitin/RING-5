@@ -2,15 +2,16 @@
 
 Applies a sequence of shapers to a DataFrame. This is the single
 canonical pipeline-execution engine, exposed to the UI through
-``ApplicationAPI.apply_shapers`` / ``ShapersAPI.process_pipeline``.
+``ApplicationAPI.shapers.process_pipeline``.
 """
 
 import logging
+from collections.abc import Mapping, Sequence
 import time
 
 import pandas as pd
 
-from src.core.models.shaper_models import ShaperStepConfig
+from src.core.services.shapers.definition import ShaperValidationError
 from src.core.services.shapers.factory import ShaperFactory
 
 logger = logging.getLogger(__name__)
@@ -35,7 +36,7 @@ class PipelineService:
 
     @staticmethod
     def process_pipeline(
-        data: pd.DataFrame, pipeline_config: list[ShaperStepConfig]
+        data: pd.DataFrame, pipeline_config: Sequence[Mapping[str, object]]
     ) -> pd.DataFrame:
         """Apply a sequence of shapers to a DataFrame.
 
@@ -46,26 +47,19 @@ class PipelineService:
         # [impl->req~ring5.shaping.independent-pipelines~1]
         # [impl->req~ring5.quality.immutable-data~1]
         t_start = time.perf_counter()
+        if not isinstance(data, pd.DataFrame):
+            raise ValueError("Pipeline input must be a pandas DataFrame.")
         current_data = data
 
-        if not isinstance(pipeline_config, list):
-            raise ValueError("A pipeline must be an ordered list of shaper configurations.")
-        for i, shaper_config in enumerate(pipeline_config):
-            if not isinstance(shaper_config, dict):
-                raise PipelineStepError(
-                    f"Pipeline step {i} must be a configuration object.",
-                    step_index=i,
-                    shaper_type=None,
-                )
-            shaper_type = shaper_config.get("type")
-            if not shaper_type:
-                raise PipelineStepError(
-                    f"Pipeline step {i} has no 'type' key (got: {shaper_config!r}). "
-                    "Every step must name a registered shaper type.",
-                    step_index=i,
-                    shaper_type=None,
-                )
+        try:
+            captured = ShaperFactory.validate_pipeline(pipeline_config)
+        except ShaperValidationError as exc:
+            raise PipelineStepError(
+                str(exc), step_index=exc.step_index, shaper_type=exc.shaper_type
+            ) from exc
 
+        for i, shaper_config in enumerate(captured):
+            shaper_type = ShaperFactory.get_definition(shaper_config["type"]).identifier
             try:
                 t_shaper_start = time.perf_counter()
                 shaper = ShaperFactory.create_shaper(shaper_type, shaper_config)
