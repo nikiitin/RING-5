@@ -7,7 +7,7 @@ import logging
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
-from src.core.models import (
+from src.core.models.parse_job_models import (
     ParseJobNotConsumableError,
     ParseJobNotFoundError,
     ParseJobSnapshot,

@@ -18,15 +18,15 @@ import pytest
 from src.core.common.stat_config_codec import StatConfigCodec
 from src.core.models.parsing_models import StatConfig
 from src.core.application_api import ApplicationAPI
-from src.core.models import (
+from src.core.models.parse_job_models import (
     InvalidParseJobTransition,
-    ParseBatchResult,
     ParseFileSignature,
     ParseJobConflictError,
     ParseJobNotConsumableError,
     ParseJobNotFoundError,
     ParseJobStatus,
 )
+from src.core.models.parsing_models import ParseBatchResult
 from src.core.models.parse_job_models import JsonValue
 from src.core.services.parse_job_service import (
     ParseJobService,

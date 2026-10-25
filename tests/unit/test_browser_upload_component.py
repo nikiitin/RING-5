@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-from src.core.models import BrowserUpload, PortfolioBundleInfo, PortfolioIntegrityReport
+from src.core.models.browser_upload_models import BrowserUpload
+from src.core.models.portfolio_bundle_models import PortfolioBundleInfo
+from src.core.models.portfolio_integrity_models import PortfolioIntegrityReport
 from src.web.components.data_source.data_source_components import DataSourceComponents
 from tests.conftest import columns_side_effect
 

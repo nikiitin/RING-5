@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.core.models import DatasetInfo
+from src.core.models.dataset_workspace_models import DatasetInfo
 from src.core.services import workspace_metadata_service as metadata_module
 from src.core.services.workspace_metadata_service import WorkspaceMetadataService
 

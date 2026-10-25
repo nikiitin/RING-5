@@ -10,7 +10,7 @@ import time
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
-from src.core.models import RecoveryDraftInfo
+from src.core.models.recovery_models import RecoveryDraftInfo
 
 _RECOVERY_QUERY_KEY = "_ring5_recovery"
 _RECOVERY_TOKEN = re.compile(r"^[A-Za-z0-9_-]{32,128}$")

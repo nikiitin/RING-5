@@ -26,7 +26,9 @@ from src.core.common.security_limits import (
     MAX_RECOVERY_TOTAL_BYTES,
 )
 from src.core.common.utils import validate_path_within
-from src.core.models import PlotProtocol, PortfolioData, RecoveryDraftCapture, RecoveryDraftInfo
+from src.core.models.plot_protocol import PlotProtocol
+from src.core.models.portfolio_models import PortfolioData
+from src.core.models.recovery_models import RecoveryDraftCapture, RecoveryDraftInfo
 from src.core.services.data_services.path_service import PathService
 from src.core.services.data_services.portfolio_service import PortfolioService
 from src.core.services.portfolio_integrity_service import PortfolioIntegrityService

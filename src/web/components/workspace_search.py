@@ -5,7 +5,7 @@ from __future__ import annotations
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
-from src.core.models import WorkspaceSearchResult
+from src.core.models.workspace_search_models import WorkspaceSearchResult
 
 _NAVIGATION_PAGES = frozenset(
     {"Data Source", "Data Managers", "Manage Plots", "Save/Load Portfolio"}

@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.core.models import ColumnSemantics, DatasetSemantics
+from src.core.models.semantic_metadata_models import ColumnSemantics, DatasetSemantics
 from src.core.common.content_identity import frame_signature
 from src.core.state.repositories.data_repository import DataRepository
 from src.core.services.data_services.dataset_snapshot_service import DatasetSnapshotService

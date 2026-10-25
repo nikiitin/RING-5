@@ -10,22 +10,20 @@ from typing import Any
 
 import pandas as pd
 
-from src.core.models import (
+from src.core.models.recipe_models import (
     AnalysisRecipe,
     AnalysisRecipeInfo,
-    DatasetSnapshotInfo,
-    PlotProtocol,
-    PortfolioData,
-    PortfolioBundleContents,
-    PortfolioBundleInfo,
-    PortfolioDiff,
-    PortfolioIntegrityReport,
-    PortfolioRevisionInfo,
     RecipeExport,
     RecipeParameter,
     RecipeScalar,
     RecipeSource,
 )
+from src.core.models.dataset_workspace_models import DatasetSnapshotInfo
+from src.core.models.plot_protocol import PlotProtocol
+from src.core.models.portfolio_models import PortfolioData
+from src.core.models.portfolio_bundle_models import PortfolioBundleContents, PortfolioBundleInfo
+from src.core.models.portfolio_revision_models import PortfolioDiff, PortfolioRevisionInfo
+from src.core.models.portfolio_integrity_models import PortfolioIntegrityReport
 from src.core.models.data_models import (
     CacheStatsInfo,
     CsvPoolEntry,

@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.core.models import AccessibilityFinding, AccessibilityReport
+from src.core.models.accessibility_models import AccessibilityFinding, AccessibilityReport
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import (
     BarTraceConfig,

@@ -11,7 +11,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from src.core.application_api import ApplicationAPI
-from src.core.models import ScanFileResult
+from src.core.models.parsing_models import ScanFileResult
 from src.parsing.framework.work_pool import WorkPool, _shutdown_workpool
 
 

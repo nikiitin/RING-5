@@ -18,7 +18,7 @@ import pandas as pd
 from src.core.common.utils import sanitize_filename, validate_path_within
 from src.core.common.content_identity import frame_signature
 from src.core.common.security_limits import MAX_PORTFOLIO_BUNDLE_BYTES
-from src.core.models import DatasetSnapshotInfo
+from src.core.models.dataset_workspace_models import DatasetSnapshotInfo
 from src.core.services.data_services.path_service import PathService
 from src.core.common.typed_table_codec import TypedTableCodec
 

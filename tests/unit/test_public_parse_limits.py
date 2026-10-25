@@ -8,7 +8,7 @@ import pytest
 
 from ring5._parse import ParseJob, build_stat_configs
 from ring5.errors import ParseError, ScanError
-from src.core.models import ScanFileResult, ScannedVariable, ScanResult
+from src.core.models.parsing_models import ScanFileResult, ScannedVariable, ScanResult
 
 pytestmark = pytest.mark.public_api
 

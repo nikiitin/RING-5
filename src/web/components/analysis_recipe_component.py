@@ -8,7 +8,7 @@ from dataclasses import replace
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
-from src.core.models import AnalysisRecipe, RecipeExport, RecipeParameter
+from src.core.models.recipe_models import AnalysisRecipe, RecipeExport, RecipeParameter
 
 
 class AnalysisRecipeComponent:

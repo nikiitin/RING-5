@@ -28,7 +28,12 @@ def test_injected_backend_custom_options_survive_submission_and_saved_provenance
     from concurrent.futures import Future
     from unittest.mock import MagicMock
 
-    from src.core.models import ParseBatchResult, ScanFileResult, ScanResult, ScannedVariable
+    from src.core.models.parsing_models import (
+        ParseBatchResult,
+        ScanFileResult,
+        ScanResult,
+        ScannedVariable,
+    )
     from src.parsing.parser_protocol import SimulationParser
 
     parser = MagicMock(spec=SimulationParser)

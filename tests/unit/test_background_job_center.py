@@ -5,7 +5,7 @@ from __future__ import annotations
 from contextlib import nullcontext
 from unittest.mock import MagicMock, patch
 
-from src.core.models import BackgroundJobInfo, BackgroundJobLogEntry
+from src.core.models.background_job_models import BackgroundJobInfo, BackgroundJobLogEntry
 
 
 def _job(

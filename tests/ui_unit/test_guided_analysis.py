@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from src.core.models import GuidedAnalysisStage
+from src.core.models.guided_analysis_models import GuidedAnalysisStage
 from src.core.services.guided_analysis_service import GuidedAnalysisService
 
 

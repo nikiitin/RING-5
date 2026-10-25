@@ -5,7 +5,7 @@ Tests the pattern detection and aggregation logic for repeated gem5 variables.
 
 from typing import cast
 
-from src.core.models import ScannedVariable
+from src.core.models.parsing_models import ScannedVariable
 from src.parsing.gem5.impl.scanning.pattern_aggregator import PatternAggregator
 from src.parsing.gem5.models import Gem5ScannedVariable
 

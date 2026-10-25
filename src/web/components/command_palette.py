@@ -7,7 +7,7 @@ import json
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
-from src.core.models import WorkspaceCommand
+from src.core.models.workspace_command_models import WorkspaceCommand
 
 _NAVIGATION_PAGES = frozenset(
     {"Data Source", "Data Managers", "Manage Plots", "Save/Load Portfolio"}

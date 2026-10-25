@@ -10,14 +10,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.core.models import (
+from src.core.models.recipe_models import (
     AnalysisRecipe,
     RecipeExport,
     RecipeParameter,
     RecipePlot,
     RecipeSource,
-    ShaperStepConfig,
 )
+from src.core.models.shaper_models import ShaperStepConfig
 from src.core.services.data_services.analysis_recipe_service import (
     ANALYSIS_RECIPE_FORMAT,
     AnalysisRecipeService,

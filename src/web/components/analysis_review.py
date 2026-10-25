@@ -7,7 +7,7 @@ import hashlib
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
-from src.core.models import (
+from src.core.models.analysis_review_models import (
     AnalysisReviewStatus,
     AnalysisReviewTarget,
     AnalysisReviewTargetKind,

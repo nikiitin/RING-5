@@ -9,7 +9,7 @@ import streamlit as st
 
 from src.core.application_api import ApplicationAPI
 from src.core.common.utils import sanitize_filename
-from src.core.models import AnalysisReport, ReportFigure
+from src.core.models.report_models import AnalysisReport, ReportFigure
 from src.core.services.environment_metadata_service import EnvironmentMetadataService
 from src.core.services.report_service import ReportService
 from src.web.pages.ui.plotting.base_plot import BasePlot

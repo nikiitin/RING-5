@@ -8,12 +8,8 @@ from typing import cast
 import pandas as pd
 import streamlit as st
 
-from src.core.models import (
-    ColumnContract,
-    ColumnSemantics,
-    DatasetSchemaContract,
-    DatasetSemantics,
-)
+from src.core.models.schema_contract_models import ColumnContract, DatasetSchemaContract
+from src.core.models.semantic_metadata_models import ColumnSemantics, DatasetSemantics
 from src.core.models.schema_contract_models import ContractValue, SchemaDataType
 from src.web.components.data_managers.data_manager import DataManager
 from src.web.state.ui_state_manager import WidgetKeyBuilder

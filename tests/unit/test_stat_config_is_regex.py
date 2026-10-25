@@ -17,7 +17,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.core.models import ScannedVariable, StatConfig
+from src.core.models.parsing_models import ScannedVariable, StatConfig
 
 # Unit tests for StatConfig.is_regex field
 

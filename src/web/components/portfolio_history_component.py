@@ -8,7 +8,7 @@ from typing import Any
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
-from src.core.models import PortfolioDiff, PortfolioRevisionInfo
+from src.core.models.portfolio_revision_models import PortfolioDiff, PortfolioRevisionInfo
 
 _SECTION_LABELS = {
     "data_sources": "Data sources",

@@ -24,9 +24,8 @@ from typing import Any
 from src.core.common.stat_config_codec import StatConfigCodec
 from src.core.common.input_identity import fingerprint_inputs
 from src.core.common.utils import normalize_user_path, validate_stats_pattern
-from src.core.models import (
-    IncrementalParseBatchResult,
-    ParseBatchResult,
+from src.core.models.parsing_models import IncrementalParseBatchResult, ParseBatchResult
+from src.core.models.parse_job_models import (
     ParseFileSignature,
     ParseJobConflictError,
     ParseJobNotConsumableError,

@@ -4,7 +4,7 @@ from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 
-from src.core.models import ParserPlaygroundBatchResult, ScanResult
+from src.core.models.parsing_models import ParserPlaygroundBatchResult, ScanResult
 from src.web.components.data_source.data_source_components import DataSourceComponents
 from tests.conftest import columns_side_effect
 

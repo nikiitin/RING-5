@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 from src.core.common.stat_config_codec import StatConfigCodec
 from src.core.common.safe_regex import SafeRegexError, normalize_stat_pattern, numeric_pattern_id
-from src.core.models import StatConfig
+from src.core.models.parsing_models import StatConfig
 from src.core.models.data_models import ScannedVariableDict
 from src.core.models.parsing_models import StatParamValue
 from src.parsing.gem5.types import StatTypeRegistry

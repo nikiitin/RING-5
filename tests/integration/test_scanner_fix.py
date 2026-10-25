@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.core.application_api import ApplicationAPI
-from src.core.models import ScanResult
+from src.core.models.parsing_models import ScanResult
 from src.core.models.data_models import ParseVariableConfig
 from src.web.components.data_source.data_source_components import DataSourceComponents
 from src.web.components.data_source.variable_editor import VariableEditor

@@ -5,7 +5,7 @@ from __future__ import annotations
 from concurrent.futures import Future
 from unittest.mock import MagicMock, patch
 
-from src.core.models import ParserPlaygroundBatchResult, ParserPlaygroundResult
+from src.core.models.parsing_models import ParserPlaygroundBatchResult, ParserPlaygroundResult
 
 
 def _context() -> MagicMock:

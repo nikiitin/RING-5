@@ -5,7 +5,7 @@ from __future__ import annotations
 from contextlib import nullcontext
 from unittest.mock import MagicMock, patch
 
-from src.core.models import (
+from src.core.models.portfolio_revision_models import (
     PortfolioDiff,
     PortfolioDiffEntry,
     PortfolioRevisionInfo,

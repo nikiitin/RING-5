@@ -9,7 +9,7 @@ from typing import IO, Any
 
 import pytest
 
-from src.core.models import RecipeSource
+from src.core.models.recipe_models import RecipeSource
 from src.core.services.scheduled_report_service import (
     ScheduledReportError,
     ScheduledReportPublishError,

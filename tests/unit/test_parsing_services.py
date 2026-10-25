@@ -14,7 +14,7 @@ import pytest
 
 from src.core.common.stat_config_codec import StatConfigCodec
 
-from src.core.models import ScanFileResult, ScannedVariable, StatConfig
+from src.core.models.parsing_models import ScanFileResult, ScannedVariable, StatConfig
 from src.core.models.parsing_models import StatParamValue
 from src.core.services.data_services.path_service import PathService
 from src.parsing.gem5.models import Gem5ScannedVariable

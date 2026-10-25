@@ -13,7 +13,7 @@ import streamlit as st
 from src.core.application_api import ApplicationAPI
 from src.core.common.security_limits import MAX_SCAN_FILES, SCAN_BATCH_TIMEOUT_SECONDS
 from src.core.common.utils import validate_web_stats_path
-from src.core.models import ScanFileResult
+from src.core.models.parsing_models import ScanFileResult
 from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
 from src.web.components.common.filtered_selector import (
     filtered_multiselect,

@@ -14,7 +14,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.core.models import StatConfig
+from src.core.models.parsing_models import StatConfig
 from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
 from src.parsing.gem5.impl.strategies.gem5_parse_work import Gem5ParseWork
 from src.parsing.gem5.impl.strategies.perl_worker_pool import (

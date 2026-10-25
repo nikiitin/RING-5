@@ -17,7 +17,7 @@ from src.core.common.security_limits import (
     MAX_PARSE_FILES,
     MAX_PARSE_VARIABLES,
 )
-from src.core.models import ScannedVariable, StatConfig
+from src.core.models.parsing_models import ScannedVariable, StatConfig
 from src.core.models.parsing_models import PARSER_RESULT_VERSION
 
 logger = logging.getLogger(__name__)

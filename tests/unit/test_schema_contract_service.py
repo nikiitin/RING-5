@@ -3,7 +3,7 @@
 import pandas as pd
 import pytest
 
-from src.core.models import ColumnContract, DatasetSchemaContract
+from src.core.models.schema_contract_models import ColumnContract, DatasetSchemaContract
 from src.core.services.managers.schema_contract_service import SchemaContractService
 
 

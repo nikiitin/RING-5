@@ -29,7 +29,7 @@ from pathlib import Path
 import pandas as pd
 
 from src.core.application_api import ApplicationAPI
-from src.core.models import StatConfig
+from src.core.models.parsing_models import StatConfig
 
 logging.basicConfig(level=logging.WARNING)
 

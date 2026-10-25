@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from src.core.models import (
+from src.core.models.recipe_models import (
     AnalysisRecipe,
     AnalysisRecipeRunResult,
     RecipeExport,

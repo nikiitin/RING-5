@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from src.core.models import AnalysisRecipe, RecipeParameter
+from src.core.models.recipe_models import AnalysisRecipe, RecipeParameter
 from src.core.services.data_services.analysis_recipe_service import AnalysisRecipeService
 
 

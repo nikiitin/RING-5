@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from src.core.models import FigureTheme
+from src.core.models.figure_theme_models import FigureTheme
 from src.core.services.visualization.accessibility_service import AccessibilityService
 from src.core.services.visualization.figure_theme_service import FigureThemeService
 

@@ -279,7 +279,7 @@ def test_parser_histogram_union_geometry_renders_observed_mass(
     bucket_size: float | None,
 ) -> None:
     """Different observed bucket geometries survive the async parse/render boundary."""
-    from src.core.models import StatConfig
+    from src.core.models.parsing_models import StatConfig
     from src.parsing.gem5.impl.gem5_parser import Gem5Parser
     from src.web.pages.ui.plotting.types.histogram_plot import HistogramPlot
 

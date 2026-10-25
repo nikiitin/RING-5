@@ -13,52 +13,53 @@ import pandas as pd
 
 from src.core.common.security_limits import MAX_BACKGROUND_JOB_LABEL_LENGTH
 from src.core.common.stat_config_codec import StatConfigCodec
-from src.core.models import (
-    BackgroundJobInfo,
-    BackgroundJobKind,
-    BrowserUpload,
+from src.core.models.background_job_models import BackgroundJobInfo, BackgroundJobKind
+from src.core.models.browser_upload_models import BrowserUpload
+from src.core.models.dataset_workspace_models import (
     DatasetInfo,
     DatasetLineage,
     DatasetRevision,
     DatasetSnapshotInfo,
-    DashboardSpec,
-    DrillDownResult,
-    ImportOptions,
-    ImportPreview,
-    IncrementalParseBatchResult,
-    IncrementalParseResult,
     JoinCardinality,
     JoinDiagnostics,
-    LinkedSelectionSpec,
-    PlotConfigurationComparison,
-    PlotTransferMode,
-    PlotTransferResult,
-    RestoreReport,
-    SmallMultiplesSpec,
+)
+from src.core.models.visualization.dashboard_spec import DashboardSpec
+from src.core.models.visualization.drill_down_result import DrillDownResult
+from src.core.models.import_models import ImportOptions, ImportPreview
+from src.core.models.parsing_models import (
+    IncrementalParseBatchResult,
+    IncrementalParseResult,
     ParseBatchResult,
-    ParseJobReceipt,
-    ParseJobSnapshot,
     ParserPlaygroundBatchResult,
     ParserPlaygroundResult,
     ScanFileResult,
     ScannedVariable,
     ScanResult,
     StatConfig,
-    WorkspaceSearchResponse,
-    WorkspaceCommandSearchResponse,
+)
+from src.core.models.visualization.linked_selection_spec import LinkedSelectionSpec
+from src.core.models.visualization.plot_configuration_comparison import PlotConfigurationComparison
+from src.core.models.visualization.plot_transfer_result import PlotTransferMode, PlotTransferResult
+from src.core.models.portfolio_models import RestoreReport
+from src.core.models.visualization.small_multiples_spec import SmallMultiplesSpec
+from src.core.models.parse_job_models import ParseJobReceipt, ParseJobSnapshot
+from src.core.models.workspace_search_models import WorkspaceSearchResponse
+from src.core.models.workspace_command_models import WorkspaceCommandSearchResponse
+from src.core.models.workspace_metadata_models import (
     WorkspaceArtifact,
     WorkspaceArtifactKind,
     WorkspaceArtifactResponse,
+)
+from src.core.models.analysis_review_models import (
     AnalysisReviewResponse,
     AnalysisReviewStatus,
     AnalysisReviewTarget,
     AnalysisReviewTargetKind,
     AnalysisReviewTargetResponse,
     AnalysisReviewThread,
-    RecoveryDraftCapture,
-    RecoveryDraftInfo,
-    GuidedAnalysisProgress,
 )
+from src.core.models.recovery_models import RecoveryDraftCapture, RecoveryDraftInfo
+from src.core.models.guided_analysis_models import GuidedAnalysisProgress
 from src.core.models.browser_upload_models import BrowserUploadRequest
 from src.core.models.remote_source_models import RemoteSource, RemoteSourcePolicy
 from src.core.models.data_models import (
@@ -69,7 +70,7 @@ from src.core.models.data_models import (
 from src.core.models.history_models import OperationRecord
 from src.core.models.parse_job_models import JsonValue
 from src.core.models.plot_protocol import PlotDeserializer
-from src.core.models.visualization import FigureConfig
+from src.core.models.visualization.figure_config import FigureConfig
 from src.core.services.data_services.data_services_api import DataServicesAPI
 from src.core.services.background_job_service import BackgroundJobService
 from src.core.services.browser_upload_service import BrowserUploadService

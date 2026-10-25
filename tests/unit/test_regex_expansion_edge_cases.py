@@ -18,7 +18,7 @@ import re
 from dataclasses import replace
 from typing import Any, cast
 
-from src.core.models import ScannedVariable, StatConfig
+from src.core.models.parsing_models import ScannedVariable, StatConfig
 
 
 def _expand_regex(

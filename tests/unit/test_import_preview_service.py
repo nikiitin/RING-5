@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from src.core.models import ImportColumnCorrection, ImportOptions
+from src.core.models.import_models import ImportColumnCorrection, ImportOptions
 from src.core.services.import_preview_service import ImportPreviewService
 
 

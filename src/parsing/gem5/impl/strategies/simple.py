@@ -21,7 +21,7 @@ from src.core.common.security_limits import (
     MAX_PARSE_VARIABLES,
 )
 from src.core.common.utils import sanitize_log_value
-from src.core.models import StatConfig
+from src.core.models.parsing_models import StatConfig
 from src.parsing.framework.file_discovery import find_stats_files
 from src.parsing.gem5.impl.strategies.gem5_parse_work import Gem5ParseWork
 from src.parsing.gem5.impl.strategies.file_parser_strategy import INTERNAL_SIM_PATH_KEY

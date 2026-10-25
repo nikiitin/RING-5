@@ -24,7 +24,7 @@ import pandas as pd  # noqa: E402: limits must precede native imports
 
 from ring5 import RenderError, Session  # noqa: E402
 from src.core.common.utils import sanitize_filename  # noqa: E402
-from src.core.models import PlotProtocol  # noqa: E402
+from src.core.models.plot_protocol import PlotProtocol  # noqa: E402
 from src.core.models.data_models import PipelineStep, ShaperStepConfig  # noqa: E402
 from src.core.services.data_services.path_service import PathService  # noqa: E402
 from src.core.services.data_services.portfolio_service import PortfolioService  # noqa: E402

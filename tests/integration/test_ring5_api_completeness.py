@@ -14,7 +14,7 @@ import pytest
 import ring5
 from ring5._parse import ParseJob, ParserPlaygroundJob
 from ring5._scan import ScanJob
-from src.core.models import (
+from src.core.models.parsing_models import (
     ParserPlaygroundBatchResult,
     ScanFileResult,
     ScannedVariable,

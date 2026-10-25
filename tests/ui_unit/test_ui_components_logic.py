@@ -57,7 +57,7 @@ def test_execute_parser(mock_streamlit: Any, mock_api: Any) -> None:
     mock_future = MagicMock()
     mock_future.result.return_value = {"data": "test"}
 
-    from src.core.models import ParseBatchResult
+    from src.core.models.parsing_models import ParseBatchResult
 
     mock_api.submit_parse_async.return_value = ParseBatchResult(
         futures=[mock_future], var_names=["test_var"]

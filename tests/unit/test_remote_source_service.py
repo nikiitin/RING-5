@@ -11,7 +11,7 @@ from urllib.error import URLError
 
 import pytest
 
-from src.core.models import HttpSource, RemoteSourcePolicy, S3Source, SshSource
+from src.core.models.remote_source_models import HttpSource, RemoteSourcePolicy, S3Source, SshSource
 from src.core.services.remote_source_service import (
     HttpRemoteSourceAdapter,
     S3RemoteSourceAdapter,

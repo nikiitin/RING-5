@@ -8,7 +8,7 @@ from pandas import DataFrame
 
 from src.core.application_api import ApplicationAPI
 from src.core.services.data_services.config_service import ConfigService
-from src.core.models import StatConfig
+from src.core.models.parsing_models import StatConfig
 from src.core.models.shaper_models import ShaperStepConfig
 
 # Path to real gem5 test data

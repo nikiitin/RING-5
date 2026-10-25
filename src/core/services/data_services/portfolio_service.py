@@ -10,14 +10,11 @@ import pandas as pd
 
 from src.core.common.utils import sanitize_filename, validate_path_within
 from src.core.common.stat_config_codec import StatConfigCodec
-from src.core.models import (
-    ParseVariableConfig,
-    PlotProtocol,
-    PortfolioData,
-    PortfolioDiff,
-    PortfolioIntegrityReport,
-    PortfolioRevisionInfo,
-)
+from src.core.models.data_models import ParseVariableConfig
+from src.core.models.plot_protocol import PlotProtocol
+from src.core.models.portfolio_models import PortfolioData
+from src.core.models.portfolio_revision_models import PortfolioDiff, PortfolioRevisionInfo
+from src.core.models.portfolio_integrity_models import PortfolioIntegrityReport
 from src.core.services.data_services.path_service import PathService
 from src.core.services.data_services.portfolio_revision_service import (
     PortfolioRevisionService,

@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.core.application_api import ApplicationAPI
-from src.core.models import PortfolioData
+from src.core.models.portfolio_models import PortfolioData
 from src.web.pages.portfolio import show_portfolio_page
 
 

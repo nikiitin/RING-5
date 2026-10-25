@@ -13,7 +13,7 @@ Example:
 import logging
 import re
 
-from src.core.models import ScannedVariable
+from src.core.models.parsing_models import ScannedVariable
 from src.parsing.gem5.models import Gem5ScannedVariable
 
 logger: logging.Logger = logging.getLogger(__name__)

@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.core.models import WorkspaceArtifact, WorkspaceArtifactResponse
+from src.core.models.workspace_metadata_models import WorkspaceArtifact, WorkspaceArtifactResponse
 
 
 def _response(artifact: WorkspaceArtifact) -> WorkspaceArtifactResponse:

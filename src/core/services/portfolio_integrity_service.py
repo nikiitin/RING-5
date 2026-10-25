@@ -9,7 +9,10 @@ import re
 from collections.abc import Mapping
 from typing import Any, cast
 
-from src.core.models import PortfolioIntegrityReport, PortfolioIntegritySection
+from src.core.models.portfolio_integrity_models import (
+    PortfolioIntegrityReport,
+    PortfolioIntegritySection,
+)
 
 _DIGEST = re.compile(r"^[0-9a-f]{64}$")
 _SECTION_NAMES = ("inputs", "configuration", "outputs")

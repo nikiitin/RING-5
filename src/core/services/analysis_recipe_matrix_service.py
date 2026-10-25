@@ -18,13 +18,15 @@ from src.core.common.security_limits import (
     MAX_BACKGROUND_JOB_ERROR_LENGTH,
 )
 from src.core.common.utils import sanitize_filename, sanitize_log_value
-from src.core.models import (
+from src.core.models.recipe_models import (
     AnalysisRecipe,
-    AnalysisRecipeMatrixCase,
-    AnalysisRecipeMatrixResult,
     AnalysisRecipeRunResult,
     RecipeExport,
     RecipeScalar,
+)
+from src.core.models.recipe_matrix_models import (
+    AnalysisRecipeMatrixCase,
+    AnalysisRecipeMatrixResult,
 )
 from src.core.services.data_services.analysis_recipe_service import AnalysisRecipeService
 

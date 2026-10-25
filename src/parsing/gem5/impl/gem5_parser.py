@@ -33,7 +33,7 @@ from src.core.common.security_limits import (
     MAX_REGEX_EXPANSION_SECONDS,
     MAX_REGEX_MATCH_ATTEMPTS,
 )
-from src.core.models import (
+from src.core.models.parsing_models import (
     IncrementalParseBatchResult,
     IncrementalParseResult,
     ParseBatchResult,

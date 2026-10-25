@@ -4,12 +4,8 @@ from unittest.mock import MagicMock, patch
 
 import pandas as pd
 
-from src.core.models import (
-    ColumnSemantics,
-    DatasetSchemaContract,
-    DatasetSemantics,
-    SchemaValidationReport,
-)
+from src.core.models.semantic_metadata_models import ColumnSemantics, DatasetSemantics
+from src.core.models.schema_contract_models import DatasetSchemaContract, SchemaValidationReport
 from src.web.components.data_managers.schema_contract import SchemaContractManager
 
 

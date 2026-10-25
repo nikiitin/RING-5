@@ -8,7 +8,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.core.models import RecoveryDraftInfo, RestoreReport
+from src.core.models.recovery_models import RecoveryDraftInfo
+from src.core.models.portfolio_models import RestoreReport
 
 
 @patch("src.web.components.autosave_recovery.time.monotonic", return_value=120.0)

@@ -7,7 +7,8 @@ from datetime import datetime
 import pandas as pd
 import pytest
 
-from src.core.models import EnvironmentMetadata, ReportFigure
+from src.core.models.environment_models import EnvironmentMetadata
+from src.core.models.report_models import ReportFigure
 from src.core.services.report_service import ReportService
 
 
