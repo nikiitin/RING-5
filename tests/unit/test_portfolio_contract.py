@@ -7,7 +7,7 @@ import pytest
 from src.core.models.portfolio_contract import PortfolioVersionError, validate_portfolio_schema
 
 
-@pytest.mark.parametrize("version", [None, 0, 1, 2, 3, 4, 6, 99, "5", 5.0, True, False])
+@pytest.mark.parametrize("version", [None, 0, 1, 2, 3, 4, 5, 7, 99, "6", 6.0, True, False])
 def test_unsupported_schema_is_rejected(version) -> None:
     # [test->req~ring5.portfolio.schema~1]
     with pytest.raises(PortfolioVersionError, match="Unsupported portfolio schema_version"):
@@ -16,8 +16,8 @@ def test_unsupported_schema_is_rejected(version) -> None:
 
 def test_current_schema_validation_preserves_input() -> None:
     value = {
-        "schema_version": 5,
-        "version": "5.0",
+        "schema_version": 6,
+        "version": "6.0",
         "parser_strategy": "simple",
         "simulator": "gem5",
         "environment_metadata": {},
@@ -35,8 +35,8 @@ def test_current_schema_validation_preserves_input() -> None:
 )
 def test_current_schema_requires_explicit_metadata(field: str) -> None:
     value = {
-        "schema_version": 5,
-        "version": "5.0",
+        "schema_version": 6,
+        "version": "6.0",
         "parser_strategy": "simple",
         "simulator": "gem5",
         "environment_metadata": {},

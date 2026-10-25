@@ -30,7 +30,7 @@ from src.core.models import PlotProtocol, PortfolioData, RecoveryDraftCapture, R
 from src.core.services.data_services.path_service import PathService
 from src.core.services.data_services.portfolio_service import PortfolioService
 from src.core.services.portfolio_integrity_service import PortfolioIntegrityService
-from src.core.models.portfolio_contract import validate_portfolio_schema
+from src.core.services.data_services.portfolio_validation_service import validate_portfolio_document
 from src.core.state.state_manager import StateManager
 
 _DRAFT_ID = re.compile(r"^[0-9]{20}-[0-9a-f]{64}$")
@@ -123,7 +123,7 @@ class AutosaveRecoveryService:
             raise ValueError("Recovery draft is not valid UTF-8 portfolio JSON.") from exc
         if not isinstance(value, dict):
             raise ValueError("Recovery draft must contain one portfolio object.")
-        validate_portfolio_schema(value)
+        validate_portfolio_document(value)
         report = PortfolioIntegrityService.verify(value)
         PortfolioIntegrityService.require_restorable(report)
         return cast(PortfolioData, value)
@@ -152,7 +152,7 @@ class AutosaveRecoveryService:
         parse_variables: list[Any],
     ) -> bool:
         return bool(
-            (isinstance(data, pd.DataFrame) and not data.empty)
+            isinstance(data, pd.DataFrame)
             or plots
             or config
             or AutosaveRecoveryService._custom_parse_variables(parse_variables)

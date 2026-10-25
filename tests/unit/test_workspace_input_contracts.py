@@ -1,6 +1,7 @@
 """Source-bound preview confirmation and complete stable artifact identities."""
 
 from __future__ import annotations
+from src.core.common.typed_table_codec import TypedTableCodec
 
 import threading
 from concurrent.futures import ThreadPoolExecutor
@@ -355,7 +356,7 @@ def test_restore_deserializer_can_wait_for_foreign_state_publication() -> None:
                 {
                     "parser_strategy": "simple",
                     "simulator": "gem5",
-                    "data_csv": "new\n3\n",
+                    "data": TypedTableCodec.encode(pd.DataFrame({"new": [3]})),
                     "plots": [{"name": "one"}],
                 }
             )
@@ -434,7 +435,7 @@ def test_source_publication_during_restore_preparation_rejects_candidate() -> No
             {
                 "parser_strategy": "simple",
                 "simulator": "gem5",
-                "data_csv": "x\n2\n",
+                "data": TypedTableCodec.encode(pd.DataFrame({"x": [2]})),
                 "plots": [{"name": "one"}],
             },
         )
@@ -459,7 +460,7 @@ def test_nested_restore_rejects_before_deserialization_or_publication() -> None:
                 {
                     "parser_strategy": "simple",
                     "simulator": "gem5",
-                    "data_csv": "x\n2\n",
+                    "data": TypedTableCodec.encode(pd.DataFrame({"x": [2]})),
                     "plots": [{"name": "one"}],
                 }
             )

@@ -13,6 +13,7 @@ Each repository is tested in isolation with no mocking required
 (except SessionRepository.restore_from_portfolio which needs BasePlot).
 """
 
+from src.core.common.typed_table_codec import TypedTableCodec
 from typing import cast
 from unittest.mock import MagicMock
 
@@ -698,15 +699,14 @@ class TestSessionRepository:
         assert repo.config_repo.get_csv_path() == "/restored.csv"
         assert repo.config_repo.get_config() == {"restored": True}
 
-    def test_restore_from_portfolio_with_data_csv(self, repo: SessionRepository) -> None:
-        """Test restoring data from CSV string in portfolio."""
+    def test_restore_from_portfolio_with_typed_data(self, repo: SessionRepository) -> None:
+        """Restore the exact table payload from a portfolio."""
         df = pd.DataFrame({"col": [10, 20, 30]})
-        csv_str = df.to_csv(index=False)
 
         portfolio: dict = {
             "parser_strategy": "simple",
             "simulator": "gem5",  # type: ignore[type-arg]
-            "data_csv": csv_str,
+            "data": TypedTableCodec.encode(df),
             "plots": [],
         }
 

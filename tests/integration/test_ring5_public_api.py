@@ -798,7 +798,7 @@ class TestPortfolioReplay:
     def test_future_portfolio_refused(self, tmp_path: Path, portfolios_dir: Path) -> None:
         # [test->req~ring5.portfolio.schema~1]
         """Forward-version files are refused, never silently downgraded."""
-        (portfolios_dir / "future.json").write_text(json.dumps({"schema_version": 6}))
+        (portfolios_dir / "future.json").write_text(json.dumps({"schema_version": 7}))
         with pytest.raises(
             ring5.PortfolioVersionError, match="Unsupported portfolio schema_version"
         ):

@@ -1,6 +1,7 @@
 """Unit coverage for bounded private local workspace recovery drafts."""
 
 from __future__ import annotations
+from src.core.common.typed_table_codec import TypedTableCodec
 
 import hashlib
 from copy import deepcopy
@@ -55,10 +56,10 @@ def test_capture_deduplicates_lists_loads_and_isolates_owner_namespaces(recovery
     assert duplicate is not None and duplicate.created is False
     assert duplicate.draft.draft_id == first.draft.draft_id
     assert AutosaveRecoveryService.list_drafts("browser-secret-b") == ()
-    assert (
-        AutosaveRecoveryService.load("browser-secret-a", first.draft.draft_id)["data_csv"]
-        == "value\n1\n"
+    restored = TypedTableCodec.decode(
+        AutosaveRecoveryService.load("browser-secret-a", first.draft.draft_id)["data"]
     )
+    pd.testing.assert_frame_equal(restored, pd.DataFrame({"value": [1]}))
     owner_directory = recovery_dir / hashlib.sha256(b"browser-secret-a").hexdigest()
     assert owner_directory.stat().st_mode & 0o777 == 0o700
     assert next(owner_directory.glob("*.json")).stat().st_mode & 0o777 == 0o600

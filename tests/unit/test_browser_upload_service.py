@@ -1,6 +1,8 @@
 """Tests for bounded browser-upload validation and normalization."""
 
 from __future__ import annotations
+from src.core.common.typed_table_codec import TypedTableCodec
+import pandas as pd
 
 import io
 import json
@@ -94,7 +96,11 @@ def test_upload_validation_rejects_unsafe_or_mismatched_content(
 
 
 def test_portfolio_is_summarized_and_revalidated_before_restore(tmp_path: Path) -> None:
-    payload = json.dumps(portfolio_document(data_csv="benchmark,ipc\nalpha,1.25\n")).encode()
+    payload = json.dumps(
+        portfolio_document(
+            data=TypedTableCodec.encode(pd.DataFrame({"benchmark": ["alpha"], "ipc": [1.25]}))
+        )
+    ).encode()
     upload = BrowserUploadService.inspect(
         "analysis.json",
         "application/json",
@@ -103,10 +109,12 @@ def test_portfolio_is_summarized_and_revalidated_before_restore(tmp_path: Path) 
     )
 
     assert upload.kind == "portfolio"
-    assert upload.portfolio_schema_version == 5
+    assert upload.portfolio_schema_version == 6
     assert upload.portfolio_plot_count == 0
     assert upload.portfolio_has_data is True
-    assert BrowserUploadService.load_portfolio(upload)["data_csv"].startswith("benchmark")
+    assert TypedTableCodec.decode(BrowserUploadService.load_portfolio(upload)["data"])[
+        "benchmark"
+    ].tolist() == ["alpha"]
 
     Path(upload.source_path).write_text("{}", encoding="utf-8")
     with pytest.raises(ValueError, match="changed after validation"):
@@ -115,7 +123,9 @@ def test_portfolio_is_summarized_and_revalidated_before_restore(tmp_path: Path) 
 
 def test_signed_portfolio_upload_requires_matching_secret_when_requested(tmp_path: Path) -> None:
     # [test->req~ring5.portfolio.signed-manifests~1]
-    document = portfolio_document(data_csv="benchmark,ipc\nalpha,1.25\n")
+    document = portfolio_document(
+        data=TypedTableCodec.encode(pd.DataFrame({"benchmark": ["alpha"], "ipc": [1.25]}))
+    )
     document["integrity_manifest"] = PortfolioIntegrityService.create_manifest(
         document,
         signing_key="shared upload secret",
@@ -141,14 +151,16 @@ def test_signed_portfolio_upload_requires_matching_secret_when_requested(tmp_pat
         signing_key="shared upload secret",
         require_signature=True,
     )
-    assert restored["data_csv"].startswith("benchmark")
+    assert TypedTableCodec.decode(restored["data"])["benchmark"].tolist() == ["alpha"]
 
 
 def test_modified_manifest_portfolio_upload_is_rejected_before_staging(tmp_path: Path) -> None:
     # [test->req~ring5.portfolio.signed-manifests~1]
-    document = portfolio_document(data_csv="benchmark,ipc\nalpha,1.25\n")
+    document = portfolio_document(
+        data=TypedTableCodec.encode(pd.DataFrame({"benchmark": ["alpha"], "ipc": [1.25]}))
+    )
     document["integrity_manifest"] = PortfolioIntegrityService.create_manifest(document)
-    document["data_csv"] = "benchmark,ipc\nalpha,9.99\n"
+    document["data"] = TypedTableCodec.encode(pd.DataFrame({"benchmark": ["alpha"], "ipc": [9.99]}))
 
     with pytest.raises(ValueError, match="does not match"):
         BrowserUploadService.inspect(
@@ -161,7 +173,9 @@ def test_modified_manifest_portfolio_upload_is_rejected_before_staging(tmp_path:
 
 def test_portable_bundle_is_summarized_and_reverified_before_restore(tmp_path: Path) -> None:
     # [test->req~ring5.portfolio.portable-bundles~1]
-    document = portfolio_document(data_csv="benchmark,ipc\nalpha,1.25\n")
+    document = portfolio_document(
+        data=TypedTableCodec.encode(pd.DataFrame({"benchmark": ["alpha"], "ipc": [1.25]}))
+    )
     document["integrity_manifest"] = PortfolioIntegrityService.create_manifest(document)
     payload = PortfolioBundleService.create(
         "portable-analysis",

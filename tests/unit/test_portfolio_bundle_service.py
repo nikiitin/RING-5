@@ -1,6 +1,7 @@
 """Tests for bounded portable analysis bundle creation and validation."""
 
 from __future__ import annotations
+from src.core.common.typed_table_codec import TypedTableCodec
 
 import json
 import hashlib
@@ -20,8 +21,8 @@ from src.core.services.portfolio_integrity_service import PortfolioIntegrityServ
 
 def _portfolio_bytes(*, signed: bool = False) -> bytes:
     portfolio = {
-        "schema_version": 5,
-        "version": "5.0",
+        "schema_version": 6,
+        "version": "6.0",
         "parser_strategy": "simple",
         "simulator": "gem5",
         "timestamp": "2026-07-21T10:00:00+00:00",
@@ -36,8 +37,7 @@ def _portfolio_bytes(*, signed: bool = False) -> bytes:
             "renderers": {"plotly": "6.5.0"},
             "external_tools": {},
         },
-        "data_csv": "benchmark,ipc\nalpha,1.25\n",
-        "data_semantics": {},
+        "data": TypedTableCodec.encode(pd.DataFrame({"benchmark": ["alpha"], "ipc": [1.25]})),
         "csv_path": "/research/results.csv",
         "plots": [],
         "plot_counter": 0,

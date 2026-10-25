@@ -2,68 +2,21 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import copy
-from typing import Any, Final
+from typing import Any
 
 import numpy as np
 import pandas as pd
 
+from src.core.common.semantic_metadata import (
+    SEMANTICS_ATTR,
+    UNIT_DEFINITIONS,
+    inspect_semantics,
+    validate_unit,
+    semantics_to_payload,
+    validate_semantic_data,
+)
 from src.core.models.semantic_metadata_models import ColumnSemantics, DatasetSemantics
-
-SEMANTICS_ATTR: Final = "ring5.semantic_columns"
-
-
-@dataclass(frozen=True, slots=True)
-class _Unit:
-    dimension: str
-    scale: float
-    offset: float = 0.0
-
-
-# Values convert to their dimension's base unit as ``value * scale + offset``.
-_UNITS: Final[dict[str, _Unit]] = {
-    "ns": _Unit("time", 1e-9),
-    "us": _Unit("time", 1e-6),
-    "ms": _Unit("time", 1e-3),
-    "s": _Unit("time", 1.0),
-    "min": _Unit("time", 60.0),
-    "h": _Unit("time", 3600.0),
-    "Hz": _Unit("frequency", 1.0),
-    "kHz": _Unit("frequency", 1e3),
-    "MHz": _Unit("frequency", 1e6),
-    "GHz": _Unit("frequency", 1e9),
-    "nm": _Unit("length", 1e-9),
-    "um": _Unit("length", 1e-6),
-    "mm": _Unit("length", 1e-3),
-    "cm": _Unit("length", 1e-2),
-    "m": _Unit("length", 1.0),
-    "km": _Unit("length", 1e3),
-    "B": _Unit("data", 1.0),
-    "KB": _Unit("data", 1e3),
-    "MB": _Unit("data", 1e6),
-    "GB": _Unit("data", 1e9),
-    "TB": _Unit("data", 1e12),
-    "KiB": _Unit("data", 1024.0),
-    "MiB": _Unit("data", 1024.0**2),
-    "GiB": _Unit("data", 1024.0**3),
-    "W": _Unit("power", 1.0),
-    "mW": _Unit("power", 1e-3),
-    "kW": _Unit("power", 1e3),
-    "J": _Unit("energy", 1.0),
-    "mJ": _Unit("energy", 1e-3),
-    "kJ": _Unit("energy", 1e3),
-    "V": _Unit("voltage", 1.0),
-    "mV": _Unit("voltage", 1e-3),
-    "kV": _Unit("voltage", 1e3),
-    "A": _Unit("current", 1.0),
-    "mA": _Unit("current", 1e-3),
-    "K": _Unit("temperature", 1.0),
-    "°C": _Unit("temperature", 1.0, 273.15),
-    "°F": _Unit("temperature", 5.0 / 9.0, 255.3722222222222),
-    "ratio": _Unit("ratio", 1.0),
-    "%": _Unit("ratio", 0.01),
-}
 
 
 class SemanticMetadataService:
@@ -77,7 +30,7 @@ class SemanticMetadataService:
     ) -> pd.DataFrame:
         """Return a copy carrying validated metadata in dataframe attributes."""
         # [impl->req~ring5.data.semantic-units~1]
-        cls._validate_data(data)
+        validate_semantic_data(data)
         if not isinstance(semantics, DatasetSemantics):
             raise TypeError("semantics must be a DatasetSemantics value.")
         missing = [column.name for column in semantics.columns if column.name not in data.columns]
@@ -88,43 +41,35 @@ class SemanticMetadataService:
                 ColumnSemantics(
                     column.name,
                     column.label,
-                    cls.validate_unit(column.unit) if column.unit else "",
+                    validate_unit(column.unit) if column.unit else "",
                 )
                 for column in semantics.columns
             )
         )
         result = data.copy(deep=True)
         result.attrs = dict(data.attrs)
-        result.attrs[SEMANTICS_ATTR] = cls.to_payload(normalized)
+        result.attrs[SEMANTICS_ATTR] = semantics_to_payload(normalized)
         return result
 
-    @classmethod
-    def inspect(cls, data: pd.DataFrame) -> DatasetSemantics:
+    @staticmethod
+    def inspect(data: pd.DataFrame) -> DatasetSemantics:
         """Decode retained metadata, rejecting malformed external attributes."""
-        if not isinstance(data, pd.DataFrame):
-            raise TypeError("Semantic metadata requires a pandas DataFrame.")
-        raw = data.attrs.get(SEMANTICS_ATTR, {})
-        if raw in (None, {}):
-            return DatasetSemantics()
-        cls._validate_data(data)
-        return cls.from_payload(
-            raw, available_columns=tuple(str(column) for column in data.columns)
-        )
+        return inspect_semantics(data)
 
     @classmethod
     def convert(cls, data: pd.DataFrame, column: str, target_unit: str) -> pd.DataFrame:
         """Convert a metric and its ``.sd`` companion without affine error offsets."""
         # [impl->req~ring5.data.semantic-units~1]
-        cls._validate_data(data)
+        validate_semantic_data(data)
         if not isinstance(column, str) or column not in data.columns:
             raise KeyError(f"Semantic column {column!r} does not exist.")
         semantics = cls.inspect(data)
         declared = semantics.for_column(column)
         if declared is None or not declared.unit:
             raise ValueError(f"Column {column!r} has no declared source unit.")
-        source_name = cls.validate_unit(declared.unit)
-        target_name = cls.validate_unit(target_unit)
-        source, target = _UNITS[source_name], _UNITS[target_name]
+        source_name = validate_unit(declared.unit)
+        target_name = validate_unit(target_unit)
+        source, target = UNIT_DEFINITIONS[source_name], UNIT_DEFINITIONS[target_name]
         if source.dimension != target.dimension:
             raise ValueError(
                 f"Cannot convert {source_name!r} to {target_name!r}: units are not compatible."
@@ -144,7 +89,7 @@ class SemanticMetadataService:
         if sd_column in data.columns:
             sd_metadata = semantics.for_column(sd_column)
             sd_source = (
-                _UNITS[cls.validate_unit(sd_metadata.unit)]
+                UNIT_DEFINITIONS[validate_unit(sd_metadata.unit)]
                 if sd_metadata is not None and sd_metadata.unit
                 else source
             )
@@ -168,13 +113,13 @@ class SemanticMetadataService:
             )
         )
         result.attrs = dict(data.attrs)
-        result.attrs[SEMANTICS_ATTR] = cls.to_payload(updated)
+        result.attrs[SEMANTICS_ATTR] = semantics_to_payload(updated)
         return result
 
     @staticmethod
     def supported_units() -> tuple[str, ...]:
         """Return canonical units in stable declaration order."""
-        return tuple(_UNITS)
+        return tuple(UNIT_DEFINITIONS)
 
     @classmethod
     def enrich_figure_config(
@@ -237,52 +182,3 @@ class SemanticMetadataService:
             return metadata[0].display_label
         units = {value.unit for value in metadata}
         return f"Value ({metadata[0].unit})" if len(units) == 1 and metadata[0].unit else ""
-
-    @staticmethod
-    def validate_unit(unit: str) -> str:
-        """Return an exact canonical unit token or raise ``ValueError``."""
-        if not isinstance(unit, str) or not unit:
-            raise ValueError("Units must be non-empty strings.")
-        if unit not in _UNITS:
-            choices = ", ".join(_UNITS)
-            raise ValueError(f"Unsupported unit {unit!r}. Supported units: {choices}.")
-        return unit
-
-    @staticmethod
-    def to_payload(semantics: DatasetSemantics) -> dict[str, dict[str, str]]:
-        """Encode semantics as stable JSON-compatible data."""
-        return {
-            column.name: {"label": column.label, "unit": column.unit}
-            for column in semantics.columns
-        }
-
-    @classmethod
-    def from_payload(
-        cls,
-        payload: Any,
-        *,
-        available_columns: tuple[str, ...] | None = None,
-    ) -> DatasetSemantics:
-        """Decode and validate metadata from snapshots or portfolios."""
-        if not isinstance(payload, dict):
-            raise ValueError("Semantic metadata must map column names to labels and units.")
-        columns: list[ColumnSemantics] = []
-        for name, values in payload.items():
-            if not isinstance(name, str) or not isinstance(values, dict):
-                raise ValueError("Semantic metadata entries are invalid.")
-            label, unit = values.get("label", ""), values.get("unit", "")
-            if not isinstance(label, str) or not isinstance(unit, str):
-                raise ValueError("Semantic labels and units must be strings.")
-            if available_columns is not None and name not in available_columns:
-                raise ValueError(f"Semantic column {name!r} does not exist in the dataset.")
-            columns.append(ColumnSemantics(name, label, cls.validate_unit(unit) if unit else ""))
-        return DatasetSemantics(tuple(columns))
-
-    @staticmethod
-    def _validate_data(data: pd.DataFrame) -> None:
-        if not isinstance(data, pd.DataFrame):
-            raise TypeError("Semantic metadata requires a pandas DataFrame.")
-        if any(not isinstance(column, str) or not column for column in data.columns):
-            raise ValueError("Semantic metadata requires non-empty string column names.")
-        if data.columns.duplicated().any():
-            raise ValueError("Semantic metadata requires unique column names.")

@@ -29,7 +29,7 @@ from src.core.models import (
 from src.core.models.portfolio_bundle_models import PortfolioBundleArtifactRole
 from src.core.services.data_services.dataset_snapshot_service import DatasetSnapshotService
 from src.core.services.portfolio_integrity_service import PortfolioIntegrityService
-from src.core.models.portfolio_contract import validate_portfolio_schema
+from src.core.services.data_services.portfolio_validation_service import validate_portfolio_document
 from src.core.services.environment_metadata_service import EnvironmentMetadataService
 
 _FORMAT = "ring5.portfolio-bundle"
@@ -88,7 +88,7 @@ class PortfolioBundleService:
         """
         resolved_name = cls._bounded_name(name, "Bundle")
         portfolio_raw = cls._json_object(portfolio_bytes, "Portfolio")
-        validate_portfolio_schema(portfolio_raw)
+        validate_portfolio_document(portfolio_raw)
         integrity = PortfolioIntegrityService.verify(portfolio_raw)
         PortfolioIntegrityService.require_restorable(integrity)
         if signing_key is not None:
@@ -232,7 +232,7 @@ class PortfolioBundleService:
 
         portfolio_artifact = by_role["portfolio"][0]
         portfolio_raw = cls._json_object(archive[portfolio_artifact.path], "Portfolio")
-        validate_portfolio_schema(portfolio_raw)
+        validate_portfolio_document(portfolio_raw)
         integrity = PortfolioIntegrityService.verify(portfolio_raw, signing_key=signing_key)
         PortfolioIntegrityService.require_restorable(
             integrity,
@@ -244,7 +244,7 @@ class PortfolioBundleService:
         source_manifest = cls._json_object(archive[source_artifact.path], "Source manifest")
         if (
             source_manifest.get("format") != "ring5.source-manifest"
-            or source_manifest.get("format_version") != 1
+            or source_manifest.get("format_version") != 2
             or not isinstance(source_manifest.get("sources"), list)
             or len(source_manifest["sources"]) > 32
         ):
@@ -447,17 +447,17 @@ class PortfolioBundleService:
                 )
         elif portfolio.get("csv_path"):
             sources.append({"kind": "csv", "location": portfolio.get("csv_path")})
-        data_csv = portfolio.get("data_csv")
+        data = portfolio.get("data")
         embedded_digest = (
-            hashlib.sha256(data_csv.encode("utf-8")).hexdigest()
-            if isinstance(data_csv, str)
+            hashlib.sha256(PortfolioBundleService._json_bytes(data, indent=0)).hexdigest()
+            if data is not None
             else None
         )
         return {
             "format": "ring5.source-manifest",
-            "format_version": 1,
+            "format_version": 2,
             "sources": sources,
-            "embedded_data_sha256": embedded_digest,
+            "embedded_table_sha256": embedded_digest,
             "parse_variables": portfolio.get("parse_variables", []),
         }
 

@@ -7,6 +7,9 @@ import math
 from typing import Any
 
 import pytest
+import pandas as pd
+
+from src.core.common.typed_table_codec import TypedTableCodec
 
 from src.core.services.portfolio_integrity_service import (
     PortfolioIntegrityError,
@@ -16,12 +19,11 @@ from src.core.services.portfolio_integrity_service import (
 
 def _portfolio() -> dict[str, Any]:
     return {
-        "schema_version": 4,
-        "version": "4.0",
+        "schema_version": 6,
+        "version": "6.0",
         "timestamp": "2026-07-21T10:00:00+00:00",
         "environment_metadata": {"ring5_version": "1.0"},
-        "data_csv": "benchmark,ipc\na,1.2\n",
-        "data_semantics": {"ipc": {"unit": "instructions/cycle"}},
+        "data": TypedTableCodec.encode(pd.DataFrame({"benchmark": ["a"], "ipc": [1.2]})),
         "csv_path": "/results/input.csv",
         "plots": [
             {
@@ -29,8 +31,12 @@ def _portfolio() -> dict[str, Any]:
                 "name": "IPC",
                 "plot_type": "bar",
                 "config": {"x": "benchmark", "y": "ipc"},
-                "processed_data": "benchmark,ipc\na,1.2\n",
-                "processed_semantics": {"ipc": {"unit": "instructions/cycle"}},
+                "source_data": TypedTableCodec.encode(
+                    pd.DataFrame({"benchmark": ["a"], "ipc": [1.2]})
+                ),
+                "processed_data": TypedTableCodec.encode(
+                    pd.DataFrame({"benchmark": ["a"], "ipc": [1.2]})
+                ),
                 "pipeline": [],
             }
         ],
@@ -98,10 +104,18 @@ def test_signature_requires_the_matching_secret_for_authentication() -> None:
 @pytest.mark.parametrize(
     ("mutation", "changed_section"),
     [
-        (lambda value: value.__setitem__("data_csv", "benchmark,ipc\na,9.9\n"), "inputs"),
+        (
+            lambda value: value.__setitem__(
+                "data", TypedTableCodec.encode(pd.DataFrame({"benchmark": ["a"], "ipc": [9.9]}))
+            ),
+            "inputs",
+        ),
         (lambda value: value["config"].__setitem__("theme", "changed"), "configuration"),
         (
-            lambda value: value["plots"][0].__setitem__("processed_data", "benchmark,ipc\na,9.9\n"),
+            lambda value: value["plots"][0].__setitem__(
+                "processed_data",
+                TypedTableCodec.encode(pd.DataFrame({"benchmark": ["a"], "ipc": [9.9]})),
+            ),
             "outputs",
         ),
     ],

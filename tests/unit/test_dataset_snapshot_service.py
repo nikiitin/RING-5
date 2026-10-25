@@ -200,15 +200,13 @@ def test_snapshot_retains_supported_binary_and_complex_values(snapshots_dir: Pat
     assert frame_signature(restored) == frame_signature(data)
 
 
-@pytest.mark.parametrize("kind", ["supported_but_unrepresented", "unsupported", "cyclic"])
+@pytest.mark.parametrize("kind", ["unsupported", "cyclic"])
 def test_snapshot_rejects_unsavable_attributes_before_publication(
     snapshots_dir: Path, kind: str
 ) -> None:
     original = pd.DataFrame({"value": [1]})
     changed = original.copy()
-    if kind == "supported_but_unrepresented":
-        changed.attrs = {"custom": {"unit": "cycles"}}
-    elif kind == "unsupported":
+    if kind == "unsupported":
         changed.attrs = {"custom": object()}
     else:
         cycle: list[object] = []
@@ -219,12 +217,12 @@ def test_snapshot_rejects_unsavable_attributes_before_publication(
         DatasetSnapshotService.save_snapshot("kept", original, source_dataset="source")
         path = next(snapshots_dir.glob("*.ring5-snapshot"))
         before = path.read_bytes()
-        with pytest.raises(ValueError, match="attributes|unsupported|recursive"):
+        with pytest.raises(ValueError, match="(?i)attributes|unsupported|recursive|budget"):
             DatasetSnapshotService.save_snapshot(
                 "kept", changed, source_dataset="source", overwrite=True
             )
         assert path.read_bytes() == before
-        with pytest.raises(ValueError, match="attributes|unsupported|recursive"):
+        with pytest.raises(ValueError, match="(?i)attributes|unsupported|recursive|budget"):
             DatasetSnapshotService.save_snapshot("rejected", changed, source_dataset="source")
         assert list(snapshots_dir.glob("*.ring5-snapshot")) == [path]
 
@@ -238,10 +236,54 @@ def test_snapshot_rejects_retired_identity_format(snapshots_dir: Path) -> None:
         with ZipFile(path) as archive:
             manifest = json.loads(archive.read("manifest.json"))
             payload = archive.read("data.json")
-        assert manifest["format_version"] == 2
-        manifest["format_version"] = 1
+        assert manifest["format_version"] == 3
+        manifest["format_version"] = 2
         with ZipFile(path, "w", compression=ZIP_DEFLATED) as archive:
             archive.writestr("manifest.json", json.dumps(manifest))
             archive.writestr("data.json", payload)
         with pytest.raises(ValueError, match="Unsupported dataset snapshot version"):
             DatasetSnapshotService.load_snapshot("current")
+
+
+def test_snapshot_preserves_typed_custom_attributes(snapshots_dir: Path) -> None:
+    data = pd.DataFrame({"value": [1]})
+    data.attrs = {"custom": {"run": np.int32(7), "values": [None, b"x", 1j]}}
+    with patch.object(PathService, "get_dataset_snapshots_dir", return_value=snapshots_dir):
+        DatasetSnapshotService.save_snapshot("attrs", data, source_dataset="source")
+        _, restored = DatasetSnapshotService.load_snapshot("attrs")
+    assert frame_signature(restored) == frame_signature(data)
+    assert type(restored.attrs["custom"]["run"]) is np.int32
+
+
+@pytest.mark.parametrize("field", ["unexpected", "row_count", "column_count"])
+def test_snapshot_manifest_rejects_unknown_keys_and_boolean_dimensions(
+    snapshots_dir: Path, field: str
+) -> None:
+    with patch.object(PathService, "get_dataset_snapshots_dir", return_value=snapshots_dir):
+        DatasetSnapshotService.save_snapshot(
+            "strict", pd.DataFrame({"x": [1]}), source_dataset="source"
+        )
+        path = next(snapshots_dir.glob("*.ring5-snapshot"))
+        with ZipFile(path) as archive:
+            manifest = json.loads(archive.read("manifest.json"))
+            payload = archive.read("data.json")
+        manifest[field] = True
+        with ZipFile(path, "w") as archive:
+            archive.writestr("manifest.json", json.dumps(manifest))
+            archive.writestr("data.json", payload)
+        with pytest.raises(ValueError, match="manifest field"):
+            DatasetSnapshotService.load_snapshot("strict")
+
+
+def test_snapshot_rejects_duplicate_archive_members(snapshots_dir: Path) -> None:
+    with patch.object(PathService, "get_dataset_snapshots_dir", return_value=snapshots_dir):
+        DatasetSnapshotService.save_snapshot(
+            "strict", pd.DataFrame({"x": [1]}), source_dataset="source"
+        )
+        path = next(snapshots_dir.glob("*.ring5-snapshot"))
+        with ZipFile(path) as archive:
+            manifest = archive.read("manifest.json")
+        with ZipFile(path, "a") as archive, pytest.warns(UserWarning, match="Duplicate name"):
+            archive.writestr("manifest.json", manifest)
+        with pytest.raises(ValueError, match="archive members"):
+            DatasetSnapshotService.load_snapshot("strict")

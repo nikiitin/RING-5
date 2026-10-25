@@ -3,6 +3,7 @@
 import pandas as pd
 import pytest
 
+from src.core.common.semantic_metadata import semantics_from_payload
 from src.core.models import ColumnSemantics, DatasetSemantics
 from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
 from src.core.services.managers.schema_contract_service import SchemaContractService
@@ -112,7 +113,7 @@ def test_unit_aliases_are_rejected_at_metadata_and_conversion_boundaries(unit: s
         SemanticMetadataService.attach(source, semantics)
     assert source.attrs == {}
     with pytest.raises(ValueError, match="Unsupported unit"):
-        SemanticMetadataService.from_payload({"latency": {"label": "Latency", "unit": unit}})
+        semantics_from_payload({"latency": {"label": "Latency", "unit": unit}})
     annotated = _annotated()
     with pytest.raises(ValueError, match="Unsupported unit"):
         SemanticMetadataService.convert(annotated, "latency", unit)

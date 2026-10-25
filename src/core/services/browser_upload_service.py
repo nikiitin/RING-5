@@ -33,7 +33,7 @@ from src.core.models.browser_upload_models import (
 from src.core.models.portfolio_models import PortfolioData
 from src.core.models.portfolio_bundle_models import PortfolioBundleContents
 from src.core.services.import_preview_service import ImportPreviewService
-from src.core.models.portfolio_contract import validate_portfolio_schema
+from src.core.services.data_services.portfolio_validation_service import validate_portfolio_document
 from src.core.services.portfolio_integrity_service import PortfolioIntegrityService
 from src.core.services.portfolio_bundle_service import PortfolioBundleService
 
@@ -282,16 +282,14 @@ def _portfolio(
     """Validate a current RING-5 portfolio object."""
     if not isinstance(value, dict):
         raise ValueError("Portfolio JSON must contain one top-level object.")
-    if "plots" not in value or not ({"data_csv", "schema_version"} & set(value)):
+    if "plots" not in value or not ({"data", "schema_version"} & set(value)):
         raise ValueError("JSON does not contain a recognizable RING-5 portfolio.")
     if not isinstance(value.get("plots"), list):
         raise ValueError("Portfolio plots must be an array.")
-    if "data_csv" in value and not isinstance(value["data_csv"], str):
-        raise ValueError("Portfolio data_csv must be text.")
     if "config" in value and not isinstance(value["config"], dict):
         raise ValueError("Portfolio config must be an object.")
     try:
-        validate_portfolio_schema(value)
+        validate_portfolio_document(value)
         integrity = PortfolioIntegrityService.verify(value, signing_key=signing_key)
         PortfolioIntegrityService.require_restorable(
             integrity,
@@ -312,7 +310,7 @@ def _kind(file_name: str, value: Any | None, request: BrowserUploadRequest) -> B
         is_portfolio = (
             isinstance(value, dict)
             and "plots" in value
-            and bool({"data_csv", "schema_version"} & set(value))
+            and bool({"data", "schema_version"} & set(value))
         )
         detected = "portfolio" if is_portfolio else "json"
     elif suffix == ".ring5-bundle":
@@ -375,13 +373,14 @@ class BrowserUploadService:
                 f"Declared media type {normalized_media!r} does not match {kind} upload."
             )
 
+        bundle_info = PortfolioBundleService.inspect(content) if kind == "bundle" else None
+        portfolio = _portfolio(json_value) if kind == "portfolio" else None
         digest = hashlib.sha256(content).hexdigest()
         destination.mkdir(parents=True, exist_ok=True)
         source = destination / f"{digest}{Path(clean_name).suffix.lower()}"
         source.write_bytes(content)
 
         if kind == "bundle":
-            bundle_info = PortfolioBundleService.inspect(content)
             return BrowserUpload(
                 file_name=clean_name,
                 content_type=normalized_media or "not provided",
@@ -393,7 +392,7 @@ class BrowserUploadService:
             )
 
         if kind == "portfolio":
-            portfolio = _portfolio(json_value)
+            portfolio = cast(dict[str, Any], portfolio)
             integrity = PortfolioIntegrityService.verify(cast(dict[str, Any], json_value))
             return BrowserUpload(
                 file_name=clean_name,
@@ -404,7 +403,7 @@ class BrowserUploadService:
                 source_path=str(source.resolve()),
                 portfolio_schema_version=int(portfolio["schema_version"]),
                 portfolio_plot_count=len(portfolio.get("plots", [])),
-                portfolio_has_data=bool(portfolio.get("data_csv")),
+                portfolio_has_data=portfolio.get("data") is not None,
                 portfolio_integrity_status=integrity.status,
                 portfolio_signing_key_id=integrity.key_id,
             )

@@ -425,8 +425,10 @@ with ring5.Session() as session:
 
 `Session.save_portfolio` refuses to overwrite by default. Pass `overwrite=True` only when replacing
 the named snapshot is intentional. `load_portfolio` returns a `RestoreReport` with data, plot, and
-parse-variable outcomes. Every newly saved schema-V4 portfolio captures its execution environment
-and an integrity manifest.
+parse-variable outcomes. Every newly saved schema-V6 portfolio captures its execution environment
+and an integrity manifest. Workspace data and each plot’s source and processed tables retain
+their exact supported values, dtypes, axes and attributes. Empty tables remain present tables.
+Unsupported objects or cyclic metadata are rejected before a save replaces retained files.
 
 ## Render every saved plot
 

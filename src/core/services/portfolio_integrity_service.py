@@ -15,8 +15,7 @@ _DIGEST = re.compile(r"^[0-9a-f]{64}$")
 _SECTION_NAMES = ("inputs", "configuration", "outputs")
 _INPUT_KEYS = (
     "csv_path",
-    "data_csv",
-    "data_semantics",
+    "data",
     "parse_variables",
     "scanned_variables",
     "stats_path",
@@ -30,7 +29,7 @@ _CONFIGURATION_KEYS = (
     "portfolio_history",
     "shapers",
 )
-_OUTPUT_PLOT_KEYS = ("id", "processed_data", "processed_semantics")
+_OUTPUT_PLOT_KEYS = ("id", "source_data", "processed_data")
 _MAX_SIGNING_KEY_BYTES = 4096
 _MAX_KEY_ID_LENGTH = 128
 

@@ -3493,8 +3493,8 @@
           "src/core/models/schema_contract_models.py::ColumnContract",
           "src/core/models/semantic_metadata_models.py::ColumnSemantics",
           "src/core/models/semantic_metadata_models.py::DatasetSemantics",
-          "src/core/services/data_services/dataset_snapshot_service.py::DatasetSnapshotService._encode_frame",
-          "src/core/services/data_services/dataset_snapshot_service.py::DatasetSnapshotService._decode_frame",
+          "src/core/common/typed_table_codec.py::TypedTableCodec._encode_frame",
+          "src/core/common/typed_table_codec.py::TypedTableCodec.decode",
           "src/core/services/data_services/portfolio_service.py::PortfolioService.save_portfolio",
           "src/core/services/managers/semantic_metadata_service.py::SemanticMetadataService.attach",
           "src/core/services/managers/semantic_metadata_service.py::SemanticMetadataService.convert",
@@ -3552,6 +3552,7 @@
         "tests": [
           "tests/unit/test_dataset_snapshot_service.py::test_save_list_load_overwrite_and_delete_exact_snapshot",
           "tests/unit/test_dataset_snapshot_service.py::test_snapshot_preserves_range_axes_and_canonical_lineage_identity",
+          "tests/unit/test_typed_table_codec.py::test_json_round_trip_preserves_scientific_identity",
           "tests/unit/test_dataset_snapshot_service.py::test_load_rejects_checksum_and_fingerprint_tampering",
           "tests/unit/test_parsing_services.py::TestPathService.test_get_dataset_snapshots_dir_creates_directory",
           "tests/integration/test_ring5_public_api.py::TestReusableDatasetSnapshots.test_save_list_reload_overwrite_and_delete",

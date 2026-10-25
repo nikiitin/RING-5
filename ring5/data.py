@@ -32,6 +32,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.core.common.semantic_metadata import semantics_to_payload
 from src.core.common.dataframe_copy import copy_dataframe
 
 from ring5.errors import ColumnNotFoundError, DataLoadError, ExportError, PipelineError
@@ -155,7 +156,7 @@ class Table:
                             {
                                 "format": "ring5.semantic-columns",
                                 "version": 1,
-                                "columns": SemanticMetadataService.to_payload(semantics),
+                                "columns": semantics_to_payload(semantics),
                             },
                             indent=2,
                             ensure_ascii=False,

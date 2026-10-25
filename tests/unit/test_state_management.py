@@ -1,5 +1,6 @@
 """Tests for repository state backed by Streamlit session state."""
 
+from src.core.common.typed_table_codec import TypedTableCodec
 from collections.abc import Generator
 from typing import Any, cast
 from unittest.mock import patch
@@ -81,7 +82,7 @@ def test_session_restoration(mock_session_state: Any) -> None:
             "csv_path": "/mock/path.csv",
             "plot_counter": 42,
             "config": {"theme": "scientific"},
-            "data_csv": "col1,col2\nval1,val2",
+            "data": TypedTableCodec.encode(pd.DataFrame({"col1": ["val1"], "col2": ["val2"]})),
         },
     )
 

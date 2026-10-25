@@ -10,9 +10,10 @@ Tests the state management and session persistence layer:
 This validates the state management infrastructure for long-running analysis sessions.
 """
 
+from src.core.common.typed_table_codec import TypedTableCodec
 from collections.abc import Generator
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 from unittest.mock import patch
 
 import pandas as pd
@@ -115,18 +116,10 @@ class TestStateManagement:
 
         # Verify data integrity
         assert loaded is not None
-        assert "data_csv" in loaded or "data" in loaded
+        assert "data" in loaded
         assert "plots" in loaded
         assert "config" in loaded
-
-        # Verify data matches
-        if "data_csv" in loaded:
-            import io
-
-            loaded_data = pd.read_csv(io.StringIO(loaded["data_csv"]))
-        else:
-            loaded_any = cast(dict[str, Any], loaded)
-            loaded_data = loaded_any["data"]
+        loaded_data = TypedTableCodec.decode(loaded["data"])
 
         pd.testing.assert_frame_equal(
             data.reset_index(drop=True), loaded_data.reset_index(drop=True)
@@ -201,13 +194,7 @@ class TestStateManagement:
         assert len(recovered["plots"]) > 0
 
         # Verify can continue work
-        if "data_csv" in recovered:
-            import io
-
-            recovered_data = pd.read_csv(io.StringIO(recovered["data_csv"]))
-        else:
-            recovered_any = cast(dict[str, Any], recovered)
-            recovered_data = recovered_any["data"]
+        recovered_data = TypedTableCodec.decode(recovered["data"])
 
         new_row = pd.DataFrame({"benchmark": ["lbm"], "config": ["baseline"], "ipc": [2.0]})
 

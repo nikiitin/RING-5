@@ -7,9 +7,11 @@ from typing import Any
 import pandas as pd
 import plotly.graph_objects as go
 
+from src.core.common.dataframe_copy import copy_dataframe
 from src.core.models.data_models import PipelineStep
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
+from src.core.common.typed_table_codec import TypedTableCodec
 from src.core.services.visualization.accessibility_service import AccessibilityService
 from src.web.models.plot_models import PlotConfig
 from src.web.rendering.relayout import update_config_from_relayout
@@ -163,10 +165,9 @@ class BasePlot(PlotConfigUIMixin, ABC):
         # [impl->req~ring5.plots.drill-down~1]
         """Store a private source snapshot for reversible row exploration.
 
-        The snapshot is deliberately excluded from portfolio serialization;
-        restored legacy plots fall back to their saved processed data.
+        Portfolios retain this snapshot independently from processed plot data.
         """
-        self.source_data = data.copy(deep=True) if data is not None else None
+        self.source_data = copy_dataframe(data) if data is not None else None
 
     @abstractmethod
     def get_legend_column(self, config: PlotConfig) -> str | None:
@@ -214,18 +215,8 @@ class BasePlot(PlotConfigUIMixin, ABC):
             "name": self.name,
             "plot_type": self.plot_type,
             "config": self.config,
-            "processed_data": (
-                self.processed_data.to_csv(index=False)
-                if isinstance(self.processed_data, pd.DataFrame)
-                else None
-            ),
-            "processed_semantics": (
-                SemanticMetadataService.to_payload(
-                    SemanticMetadataService.inspect(self.processed_data)
-                )
-                if isinstance(self.processed_data, pd.DataFrame)
-                else {}
-            ),
+            "source_data": TypedTableCodec.encode(self.source_data),
+            "processed_data": TypedTableCodec.encode(self.processed_data),
             "pipeline": self.pipeline,
             "pipeline_counter": self.pipeline_counter,
             "legend_mappings_by_column": self.legend_mappings_by_column,
