@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 from src.core.common.typed_table_codec import TypedTableCodec
+from src.core.common.plot_render_state import PlotRenderState
 
 import threading
 from concurrent.futures import ThreadPoolExecutor
@@ -345,6 +346,8 @@ def test_restore_deserializer_can_wait_for_foreign_state_publication() -> None:
     from src.core.state.repository_state_manager import RepositoryStateManager
 
     restored_plot = MagicMock(spec=PlotProtocol)
+    restored_plot.render_state = PlotRenderState()
+    restored_plot.render_state.publish("candidate", restored_plot.invalidate_figure)
     restored_plot.plot_id = 1
     restored_plot.name = "restored"
 
@@ -377,6 +380,8 @@ def test_restore_rejects_concurrent_writes_without_invalidating_source_preview(
     from src.core.state.repository_state_manager import RepositoryStateManager
 
     restored_plot = MagicMock(spec=PlotProtocol)
+    restored_plot.render_state = PlotRenderState()
+    restored_plot.render_state.publish("candidate", restored_plot.invalidate_figure)
     restored_plot.plot_id = 1
     restored_plot.name = "restored"
 
@@ -433,6 +438,8 @@ def test_source_publication_during_restore_preparation_rejects_candidate() -> No
     from src.core.state.repository_state_manager import RepositoryStateManager
 
     restored_plot = MagicMock(spec=PlotProtocol)
+    restored_plot.render_state = PlotRenderState()
+    restored_plot.render_state.publish("candidate", restored_plot.invalidate_figure)
     restored_plot.plot_id = 1
     restored_plot.name = "restored"
 

@@ -368,3 +368,60 @@ def test_native_publication_retains_verified_key_and_clears_all_metadata_togethe
         _assert_borrowed_content(figure)
     else:
         assert list(cast(Any, figure.data[0]).y) == [3.0, 4.0]
+
+
+@pytest.mark.public_api
+@pytest.mark.parametrize("engine", ["plotly", "matplotlib"])
+@pytest.mark.parametrize("phase", ["before_detach", "during_cleanup"])
+def test_real_native_retirement_cannot_clear_a_new_publication_or_readmitted_plot(
+    engine: Literal["plotly", "matplotlib"], phase: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # [test->req~ring5.plots.delete~1]
+    entered, release, armed = Event(), Event(), Event()
+    with ring5.Session() as session:
+        plot = _plot(session)
+        original_release = plot._release_figure_manager
+        prior: list[Any] = []
+
+        def retire(figure: Any) -> None:
+            if armed.is_set() and phase == "during_cleanup" and figure is prior[0]:
+                entered.set()
+                assert release.wait(5)
+            original_release(figure)
+
+        monkeypatch.setattr(plot, "_release_figure_manager", retire)
+        prior.append(session.render(plot, engine=engine))
+        armed.set()
+        manager = session.api.state_manager
+        unrelated, axis = plt.subplots()
+        axis.plot([0.0], [9.0])
+        try:
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                if phase == "before_detach":
+                    with manager.transaction():
+                        manager.set_plots([])
+                        fresh = pool.submit(session.render, plot, engine=engine).result(timeout=5)
+                else:
+                    pending = pool.submit(manager.set_plots, [])
+                    try:
+                        assert entered.wait(5)
+                        assert plot.last_generated_fig is None
+                        manager.add_plot(plot)
+                        fresh = session.render(plot, engine=engine)
+                    finally:
+                        release.set()
+                    pending.result(timeout=5)
+            assert plot.last_generated_fig is fresh
+            assert plot.last_traces is not None and plot.last_figure_spec is not None
+            assert plot.last_figure_cache_key is None
+            assert manager.get_plots() == ([plot] if phase == "during_cleanup" else [])
+            assert plt.figure(unrelated.number) is unrelated
+            if engine == "matplotlib":
+                _assert_borrowed_content(cast(MplFigure, prior[0]))
+                _assert_borrowed_content(cast(MplFigure, fresh))
+            else:
+                assert list(cast(Any, prior[0]).data[0].y) == [3.0, 4.0]
+                assert list(cast(Any, fresh).data[0].y) == [3.0, 4.0]
+        finally:
+            release.set()
+            plt.close(unrelated)

@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import logging
 import threading
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 from functools import wraps
 import shutil
 from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any, Concatenate, ParamSpec, TypeVar
 
+from src.core.common.plot_render_state import PlotRenderBinding
 from src.core.models.preview_models import PreviewContext
 
 import pandas as pd
@@ -32,6 +33,7 @@ from src.core.models.data_models import (
 from src.core.models.history_models import OperationRecord
 from src.core.models.plot_protocol import PlotDeserializer
 from src.core.models.visualization.figure_config import FigureConfig
+from src.core.state.repositories.plot_repository import PlotRetirement
 from src.core.state.repositories.session_repository import SessionRepository
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -48,7 +50,7 @@ def _state_write(
 
     @wraps(method)
     def guarded(self: RepositoryStateManager, *args: _P.args, **kwargs: _P.kwargs) -> _R:
-        with self._transaction_lock:
+        with self.transaction():
             try:
                 return method(self, *args, **kwargs)
             finally:
@@ -78,7 +80,7 @@ def _source_write(
 
     @wraps(method)
     def guarded(self: RepositoryStateManager, *args: _P.args, **kwargs: _P.kwargs) -> _R:
-        with self._transaction_lock:
+        with self.transaction():
             selection = _selection_revision(self) if method.__name__ in named_operations else None
             csv_path = self.get_csv_path() if method.__name__ == "set_csv_path" else None
             try:
@@ -120,14 +122,43 @@ class RepositoryStateManager:
 
     @contextmanager
     def transaction(self) -> Iterator[None]:
-        """Hold the session boundary for an atomic compare-and-publish sequence."""
-        with self._transaction_lock:
-            depth = getattr(self._transaction_context, "depth", 0)
-            self._transaction_context.depth = depth + 1
-            try:
-                yield
-            finally:
-                self._transaction_context.depth = depth
+        """Publish atomically, then retire removed bindings after the outer lock exits.
+
+        Cleanup failures propagate after committed state; remaining callbacks still run.
+        """
+        retired: list[PlotRenderBinding[Any]] = []
+        try:
+            with self._transaction_lock:
+                depth = getattr(self._transaction_context, "depth", 0)
+                if depth == 0:
+                    self._transaction_context.retirements = []
+                self._transaction_context.depth = depth + 1
+                try:
+                    yield
+                finally:
+                    self._transaction_context.depth = depth
+                    if depth == 0:
+                        pending = self._transaction_context.retirements
+                        self._transaction_context.retirements = []
+                        live = {id(plot) for plot in self.get_plots()}
+                        seen: set[int] = set()
+                        for retirement in pending:
+                            if id(retirement.plot) in live or id(retirement.binding) in seen:
+                                continue
+                            seen.add(id(retirement.binding))
+                            binding = retirement.detach()
+                            if binding is not None:
+                                retired.append(binding)
+        finally:
+            # ExitStack attempts every closure, propagating failures after committed state.
+            # Neither workspace nor render-slot locks are held during foreign cleanup.
+            with ExitStack() as cleanup:
+                for binding in reversed(retired):
+                    cleanup.callback(binding.dispose)
+
+    def _queue_retirements(self, retirements: tuple[PlotRetirement, ...]) -> None:
+        """Record exact bindings for the surrounding publication transaction."""
+        self._transaction_context.retirements.extend(retirements)
 
     def get_source_version(self) -> int:
         """Return the version advanced by source publication or selection."""
@@ -218,7 +249,7 @@ class RepositoryStateManager:
         self._session_repo.data_repo.clear_data()
         self._session_repo.config_repo.set_csv_path("")
         self._session_repo.config_repo.set_temp_dir("")
-        self._session_repo.plot_repo.clear_plots()
+        self._queue_retirements(self._session_repo.plot_repo.clear_plots())
         self._session_repo.plot_repo.set_plot_counter(0)
         self._session_repo.plot_repo.set_current_plot_id(None)
 
@@ -417,7 +448,7 @@ class RepositoryStateManager:
     @_state_write
     def set_plots(self, plots: list[PlotProtocol]) -> None:
         """Replace registered plots."""
-        self._session_repo.plot_repo.set_plots(plots)
+        self._queue_retirements(self._session_repo.plot_repo.set_plots(plots))
 
     @_state_write
     def add_plot(self, plot_obj: PlotProtocol) -> None:
@@ -524,7 +555,7 @@ class RepositoryStateManager:
     @_source_write
     def clear_all(self) -> None:
         """Reset all session repositories."""
-        self._session_repo.clear_all()
+        self._queue_retirements(self._session_repo.clear_all())
 
     def restore_session(self, portfolio_data: PortfolioData) -> RestoreReport:
         # [impl->req~ring5.portfolio.restore~1]
@@ -551,17 +582,29 @@ class RepositoryStateManager:
         with self._transaction_lock:
             expected_version = self._workspace_version
             factory = self._plot_deserializer
-        candidate = SessionRepository(plot_deserializer=factory)
+        admitted: list[PlotRetirement] = []
+
+        def deserialize(payload: dict[str, Any]) -> PlotProtocol | None:
+            if factory is None:
+                return None
+            plot = factory(payload)
+            if plot is not None:
+                admitted.append(PlotRetirement.capture(plot))
+            return plot
+
+        candidate = SessionRepository(
+            plot_deserializer=deserialize if factory is not None else None
+        )
         published = False
         try:
             report = candidate.restore_from_portfolio(portfolio_data)
-            with self._transaction_lock:
+            with self.transaction():
                 if self._workspace_version != expected_version:
                     raise ValueError(
                         "Workspace changed while restoring; review and retry the restore."
                     )
-                self._session_repo.plot_repo.invalidate_removed_plots(
-                    candidate.plot_repo.get_plots()
+                self._queue_retirements(
+                    self._session_repo.plot_repo.removed_bindings(candidate.plot_repo.get_plots())
                 )
                 self._session_repo = candidate
                 self._source_version += 1
@@ -570,7 +613,5 @@ class RepositoryStateManager:
             return report
         finally:
             if not published:
-                with self._transaction_lock:
-                    candidate.plot_repo.invalidate_removed_plots(
-                        self._session_repo.plot_repo.get_plots()
-                    )
+                with self.transaction():
+                    self._queue_retirements(tuple(admitted))

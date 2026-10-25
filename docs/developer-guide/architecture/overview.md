@@ -61,6 +61,13 @@ previews, plots, visualization state, and history. Web-only transient state rema
 Plot widget state uses exact `plot.<id>.widgets.*` ownership. Scoped widget resets, plot deletion,
 and workspace restoration clear their corresponding namespaces through the same web state owner.
 
+Plot artifacts use the native-free `PlotRenderState` owner. A repository replacement records each
+removed identity and its exact binding generation. The outermost state transaction preserves
+identities retained in the final workspace, detaches matching generations, then releases its locks
+before invoking retirement callbacks. Restore candidates capture their generation on admission.
+A newer independent publication survives stale cleanup. Cleanup failures remain visible after the
+workspace and its version guards commit; every retired binding receives a cleanup attempt.
+
 ## Extension boundary
 
 Registries select simulator backends, parsing strategies, plots, and shapers through exact canonical

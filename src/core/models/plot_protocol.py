@@ -11,6 +11,7 @@ from typing import Any, Protocol, runtime_checkable
 
 import pandas as pd
 
+from src.core.common.plot_render_state import PlotRenderState
 from src.core.models.data_models import PipelineStep
 
 
@@ -19,6 +20,8 @@ class PlotProtocol(Protocol):
     """
     Protocol defining the core properties of a Plot object.
     Decouples the Core layer from the Web layer's plotting implementation.
+    ``render_state`` owns exact payload/retirement pairs. Repository removal detaches
+    those bindings without invoking an overridable plot lifecycle method.
     """
 
     plot_id: int
@@ -29,6 +32,7 @@ class PlotProtocol(Protocol):
     pipeline_counter: int
     source_data: pd.DataFrame | None
     processed_data: pd.DataFrame | None
+    render_state: PlotRenderState[Any]
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize the plot to a dictionary."""

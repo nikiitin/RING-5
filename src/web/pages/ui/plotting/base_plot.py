@@ -2,6 +2,8 @@
 
 from abc import ABC, abstractmethod
 import copy
+from dataclasses import dataclass, replace
+from functools import partial
 from typing import Any, Self
 
 import pandas as pd
@@ -9,6 +11,7 @@ import plotly.graph_objects as go
 from matplotlib.figure import Figure as MplFigure
 
 from src.core.common.dataframe_copy import copy_dataframe
+from src.core.common.plot_render_state import PlotRenderState
 from src.core.models.data_models import PipelineStep
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.common.typed_table_codec import TypedTableCodec
@@ -18,6 +21,17 @@ from src.web.rendering.relayout import update_config_from_relayout
 from src.web.rendering.figure_preparation import PreparedFigure, prepare_figure
 from src.web.pages.ui.plotting.plot_config_ui import PlotConfigUIMixin
 from src.web.pages.ui.plotting.styles import StyleApplicator, StyleUIFactory
+
+
+@dataclass(frozen=True, slots=True)
+class _RenderPayload:
+    """Keep the native artifact and its exact preparation metadata together."""
+
+    figure: go.Figure | MplFigure | None = None
+    traces: TraceBuildResult | None = None
+    spec: FigureConfig | None = None
+    cache_key: str | None = None
+    config: PlotConfig | None = None
 
 
 class BasePlot(PlotConfigUIMixin, ABC):
@@ -40,16 +54,59 @@ class BasePlot(PlotConfigUIMixin, ABC):
         self.config: PlotConfig = {}
         self.source_data: pd.DataFrame | None = None
         self.processed_data: pd.DataFrame | None = None
-        self.last_generated_fig: go.Figure | MplFigure | None = None
-        self.last_traces: TraceBuildResult | None = None
-        self.last_figure_spec: FigureConfig | None = None
-        self.last_figure_cache_key: str | None = None
+        self.render_state: PlotRenderState[_RenderPayload] = PlotRenderState()
         self.pipeline: list[PipelineStep] = []
         self.pipeline_counter: int = 0
 
         # Initialize Style Manager
         self._style_ui = StyleUIFactory.get_strategy(self.plot_id, self.plot_type)
         self._applicator = StyleApplicator(self.plot_type)
+
+    def _render_payload(self) -> _RenderPayload:
+        binding = self.render_state.snapshot()
+        return binding.payload if binding is not None else _RenderPayload()
+
+    @property
+    def last_generated_fig(self) -> go.Figure | MplFigure | None:
+        """Return the native artifact from the current owned generation."""
+        return self._render_payload().figure
+
+    @last_generated_fig.setter
+    def last_generated_fig(self, figure: go.Figure | MplFigure | None) -> None:
+        """Publish the controller's native artifact as a new owned generation."""
+        self._publish_render_payload(replace(self._render_payload(), figure=figure))
+
+    @property
+    def last_traces(self) -> TraceBuildResult | None:
+        """Return the neutral trace result bound to the current artifact."""
+        return self._render_payload().traces
+
+    @last_traces.setter
+    def last_traces(self, traces: TraceBuildResult | None) -> None:
+        """Bind the trace hook's neutral output to the current generation."""
+        self._publish_render_payload(replace(self._render_payload(), traces=traces))
+
+    @property
+    def last_figure_spec(self) -> FigureConfig | None:
+        """Return the resolved specification bound to the current artifact."""
+        return self._render_payload().spec
+
+    @property
+    def last_figure_cache_key(self) -> str | None:
+        """Return the reuse identity bound to the current artifact."""
+        return self._render_payload().cache_key
+
+    @last_figure_cache_key.setter
+    def last_figure_cache_key(self, cache_key: str | None) -> None:
+        """Bind the controller's reuse identity to the current generation."""
+        self._publish_render_payload(replace(self._render_payload(), cache_key=cache_key))
+
+    def _publish_render_payload(self, payload: _RenderPayload) -> None:
+        previous = self.render_state.publish(
+            payload, partial(self._release_figure_manager, payload.figure)
+        )
+        if previous is not None:
+            previous.dispose()
 
     @abstractmethod
     def create_traces(self, data: pd.DataFrame, config: PlotConfig) -> TraceBuildResult:
@@ -125,8 +182,9 @@ class BasePlot(PlotConfigUIMixin, ABC):
     def invalidate_figure(self) -> None:
         """Release the owned manager and discard derived render references."""
         # [impl->req~ring5.plots.delete~1]
-        self._release_figure_manager(self.last_generated_fig)
-        self._clear_render_state()
+        retired = self.render_state.detach(self.render_state.snapshot())
+        if retired is not None:
+            retired.dispose()
 
     @staticmethod
     def _release_figure_manager(figure: go.Figure | MplFigure | None) -> None:
@@ -138,10 +196,7 @@ class BasePlot(PlotConfigUIMixin, ABC):
 
     def _clear_render_state(self) -> None:
         """Forget references without releasing a figure borrowed by a shallow copy."""
-        self.last_generated_fig = None
-        self.last_traces = None
-        self.last_figure_spec = None
-        self.last_figure_cache_key = None
+        self.render_state = PlotRenderState()
 
     def copy_without_render_state(self) -> Self:
         """Return a shallow domain view without borrowing the source's artifacts."""
@@ -167,13 +222,10 @@ class BasePlot(PlotConfigUIMixin, ABC):
         if isinstance(figure, MplFigure):
             figure._ring5_spec = prepared.spec  # type: ignore[attr-defined]
         self._release_figure_manager(figure)
-        if self.last_generated_fig is not figure:
-            self._release_figure_manager(self.last_generated_fig)
         self.config = prepared.config
-        self.last_traces = prepared.trace_result
-        self.last_figure_spec = prepared.spec
-        self.last_figure_cache_key = cache_key
-        self.last_generated_fig = figure
+        self._publish_render_payload(
+            _RenderPayload(figure, prepared.trace_result, prepared.spec, cache_key, prepared.config)
+        )
 
     def replace_processed_data(self, data: pd.DataFrame | None) -> None:
         """Replace processed data and atomically invalidate render artifacts.
