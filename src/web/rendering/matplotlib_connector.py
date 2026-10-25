@@ -4,7 +4,7 @@ Matplotlib connector — translate a resolved FigureConfig into matplotlib calls
 It reads from the shared FigureConfig — the single styling source of truth.
 
 Usage:
-    from src.web.rendering import FigureSpecToMatplotlib
+    from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
 
     resolved = resolve_config(spec)
     FigureSpecToMatplotlib.apply(resolved, ax)
