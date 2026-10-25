@@ -620,8 +620,8 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
 
 </style>
     <title>RING-5 feature coverage · OpenFastTrace</title>
-    <meta name="ring5-inventory-sha256" content="5da87846a643f8a78564cf5f7a141b32c2be0006f7cc642c927a509857a28597">
-  <meta name="ring5-evidence-sha256" content="c1723582249f628848b0026a55e45d47305d9a7fedb1e1a091b306ee746abb7e">
+    <meta name="ring5-inventory-sha256" content="de6214216751857df710005b7074616e44d0f59be044fe14f35287b49fa72428">
+  <meta name="ring5-evidence-sha256" content="9f1f8d0e9126c7f20bdf7a0e9d6f507155693e20c77c3de2d93884aabeb4a89b">
 </head>
   <body>
 
@@ -2205,7 +2205,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>Datasets shall retain column units and semantic labels, support compatible unit conversion, and use that metadata in figures and exports.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>20 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>12 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 33 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/managing-datasets.md#L180"><code>docs/user-guide/workflows/managing-datasets.md#retain-semantic-labels-and-units</code><b>open source ↗</b></a><span>line 180 · <a href="#uman~ring5.data.semantic-units.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../ring5/_session.py#L1604"><code>ring5/_session.py::Session.apply_semantics</code><b>open source ↗</b></a><span>line 1604 · <a href="#impl~ring5.data.semantic-units-2694379961~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../ring5/_session.py#L1635"><code>ring5/_session.py::Session.inspect_semantics</code><b>open source ↗</b></a><span>line 1635 · <a href="#impl~ring5.data.semantic-units-4226587152~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../ring5/_session.py#L1664"><code>ring5/_session.py::Session.convert_unit</code><b>open source ↗</b></a><span>line 1664 · <a href="#impl~ring5.data.semantic-units-2073370381~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../ring5/_session.py#L1674"><code>ring5/_session.py::Session.supported_units</code><b>open source ↗</b></a><span>line 1674 · <a href="#impl~ring5.data.semantic-units-1595362875~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../ring5/data.py#L130"><code>ring5/data.py::Table.to_csv</code><b>open source ↗</b></a><span>line 130 · <a href="#impl~ring5.data.semantic-units-1969120788~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/models/schema_contract_models.py#L22"><code>src/core/models/schema_contract_models.py::ColumnContract</code><b>open source ↗</b></a><span>line 22 · <a href="#impl~ring5.data.semantic-units-2218586436~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/models/semantic_metadata_models.py#L14"><code>src/core/models/semantic_metadata_models.py::ColumnSemantics</code><b>open source ↗</b></a><span>line 14 · <a href="#impl~ring5.data.semantic-units-873198156~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/models/semantic_metadata_models.py#L44"><code>src/core/models/semantic_metadata_models.py::DatasetSemantics</code><b>open source ↗</b></a><span>line 44 · <a href="#impl~ring5.data.semantic-units-2189485986~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/common/typed_table_codec.py#L334"><code>src/core/common/typed_table_codec.py::TypedTableCodec._encode_frame</code><b>open source ↗</b></a><span>line 334 · <a href="#impl~ring5.data.semantic-units-2025337209~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/common/typed_table_codec.py#L269"><code>src/core/common/typed_table_codec.py::TypedTableCodec.decode</code><b>open source ↗</b></a><span>line 269 · <a href="#impl~ring5.data.semantic-units-2154848697~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/services/data_services/portfolio_service.py#L99"><code>src/core/services/data_services/portfolio_service.py::PortfolioService.save_portfolio</code><b>open source ↗</b></a><span>line 99 · <a href="#impl~ring5.data.semantic-units-3402635879~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/services/managers/semantic_metadata_service.py#L32"><code>src/core/services/managers/semantic_metadata_service.py::SemanticMetadataService.attach</code><b>open source ↗</b></a><span>line 32 · <a href="#impl~ring5.data.semantic-units-2740182444~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/services/managers/semantic_metadata_service.py#L62"><code>src/core/services/managers/semantic_metadata_service.py::SemanticMetadataService.convert</code><b>open source ↗</b></a><span>line 62 · <a href="#impl~ring5.data.semantic-units-366528578~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/services/managers/semantic_metadata_service.py#L131"><code>src/core/services/managers/semantic_metadata_service.py::SemanticMetadataService.enrich_figure_config</code><b>open source ↗</b></a><span>line 131 · <a href="#impl~ring5.data.semantic-units-2378189478~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/state/repositories/session_repository.py#L84"><code>src/core/state/repositories/session_repository.py::SessionRepository.restore_from_portfolio</code><b>open source ↗</b></a><span>line 84 · <a href="#impl~ring5.data.semantic-units-4017727021~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/components/data_managers/schema_contract.py#L35"><code>src/web/components/data_managers/schema_contract.py::SchemaContractManager.render</code><b>open source ↗</b></a><span>line 35 · <a href="#impl~ring5.data.semantic-units-149197649~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/components/data_managers/schema_contract.py#L141"><code>src/web/components/data_managers/schema_contract.py::SchemaContractManager._render_conversion</code><b>open source ↗</b></a><span>line 141 · <a href="#impl~ring5.data.semantic-units-1315402569~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/base_plot.py#L89"><code>src/web/pages/ui/plotting/base_plot.py::BasePlot.create_figure</code><b>open source ↗</b></a><span>line 89 · <a href="#impl~ring5.data.semantic-units-2412473299~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/base_plot.py#L206"><code>src/web/pages/ui/plotting/base_plot.py::BasePlot.to_dict</code><b>open source ↗</b></a><span>line 206 · <a href="#impl~ring5.data.semantic-units-4172112528~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/plot_factory.py#L140"><code>src/web/pages/ui/plotting/plot_factory.py::PlotFactory.from_dict</code><b>open source ↗</b></a><span>line 140 · <a href="#impl~ring5.data.semantic-units-247143080~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/e2e/test_data_managers.py#L467"><code>tests/e2e/test_data_managers.py::TestDatasetSchemaContract.test_apply_semantic_metadata_from_human_first_editor</code><b>open source ↗</b></a><span>line 467 · <a href="#test~ring5.data.semantic-units-3095882984~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_portfolio_service_integration.py#L127"><code>tests/integration/test_portfolio_service_integration.py::test_portfolio_retains_data_and_plot_semantics</code><b>open source ↗</b></a><span>line 127 · <a href="#test~ring5.data.semantic-units-2613421146~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_ring5_public_api.py#L426"><code>tests/integration/test_ring5_public_api.py::TestDatasetSemanticMetadata.test_semantics_drive_conversion_figure_labels_and_csv_export</code><b>open source ↗</b></a><span>line 426 · <a href="#test~ring5.data.semantic-units-1508487049~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_ring5_public_api.py#L481"><code>tests/integration/test_ring5_public_api.py::TestDatasetSemanticMetadata.test_semantic_errors_use_the_public_validation_type</code><b>open source ↗</b></a><span>line 481 · <a href="#test~ring5.data.semantic-units-1867739341~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_dataset_snapshot_service.py#L106"><code>tests/unit/test_dataset_snapshot_service.py::test_snapshot_retains_semantic_labels_and_units</code><b>open source ↗</b></a><span>line 106 · <a href="#test~ring5.data.semantic-units-179729660~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_schema_contract_manager.py#L87"><code>tests/unit/test_schema_contract_manager.py::test_render_applies_semantic_metadata_to_active_data</code><b>open source ↗</b></a><span>line 87 · <a href="#test~ring5.data.semantic-units-78722230~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_semantic_metadata_service.py#L25"><code>tests/unit/test_semantic_metadata_service.py::test_attach_inspect_and_convert_compatible_units_without_mutation</code><b>open source ↗</b></a><span>line 25 · <a href="#test~ring5.data.semantic-units-2520548824~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_semantic_metadata_service.py#L42"><code>tests/unit/test_semantic_metadata_service.py::test_temperature_conversion_supports_offsets</code><b>open source ↗</b></a><span>line 42 · <a href="#test~ring5.data.semantic-units-3454833077~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_semantic_metadata_service.py#L62"><code>tests/unit/test_semantic_metadata_service.py::test_conversion_rejects_invalid_requests</code><b>open source ↗</b></a><span>line 62 · <a href="#test~ring5.data.semantic-units-2229810137~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_semantic_metadata_service.py#L68"><code>tests/unit/test_semantic_metadata_service.py::test_figure_labels_are_inferred_but_explicit_labels_win</code><b>open source ↗</b></a><span>line 68 · <a href="#test~ring5.data.semantic-units-2246611942~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_semantic_metadata_service.py#L84"><code>tests/unit/test_semantic_metadata_service.py::test_parallel_dimensions_receive_semantic_labels</code><b>open source ↗</b></a><span>line 84 · <a href="#test~ring5.data.semantic-units-380188854~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_semantic_metadata_service.py#L97"><code>tests/unit/test_semantic_metadata_service.py::test_schema_inference_retains_existing_semantic_metadata</code><b>open source ↗</b></a><span>line 97 · <a href="#test~ring5.data.semantic-units-1765595285~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 33 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/managing-datasets.md#L180"><code>docs/user-guide/workflows/managing-datasets.md#retain-semantic-labels-and-units</code><b>open source ↗</b></a><span>line 180 · <a href="#uman~ring5.data.semantic-units.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../ring5/_session.py#L1604"><code>ring5/_session.py::Session.apply_semantics</code><b>open source ↗</b></a><span>line 1604 · <a href="#impl~ring5.data.semantic-units-2694379961~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../ring5/_session.py#L1635"><code>ring5/_session.py::Session.inspect_semantics</code><b>open source ↗</b></a><span>line 1635 · <a href="#impl~ring5.data.semantic-units-4226587152~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../ring5/_session.py#L1664"><code>ring5/_session.py::Session.convert_unit</code><b>open source ↗</b></a><span>line 1664 · <a href="#impl~ring5.data.semantic-units-2073370381~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../ring5/_session.py#L1674"><code>ring5/_session.py::Session.supported_units</code><b>open source ↗</b></a><span>line 1674 · <a href="#impl~ring5.data.semantic-units-1595362875~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../ring5/data.py#L130"><code>ring5/data.py::Table.to_csv</code><b>open source ↗</b></a><span>line 130 · <a href="#impl~ring5.data.semantic-units-1969120788~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/models/schema_contract_models.py#L22"><code>src/core/models/schema_contract_models.py::ColumnContract</code><b>open source ↗</b></a><span>line 22 · <a href="#impl~ring5.data.semantic-units-2218586436~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/models/semantic_metadata_models.py#L14"><code>src/core/models/semantic_metadata_models.py::ColumnSemantics</code><b>open source ↗</b></a><span>line 14 · <a href="#impl~ring5.data.semantic-units-873198156~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/models/semantic_metadata_models.py#L44"><code>src/core/models/semantic_metadata_models.py::DatasetSemantics</code><b>open source ↗</b></a><span>line 44 · <a href="#impl~ring5.data.semantic-units-2189485986~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/common/typed_table_codec.py#L334"><code>src/core/common/typed_table_codec.py::TypedTableCodec._encode_frame</code><b>open source ↗</b></a><span>line 334 · <a href="#impl~ring5.data.semantic-units-2025337209~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/common/typed_table_codec.py#L269"><code>src/core/common/typed_table_codec.py::TypedTableCodec.decode</code><b>open source ↗</b></a><span>line 269 · <a href="#impl~ring5.data.semantic-units-2154848697~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/services/data_services/portfolio_service.py#L99"><code>src/core/services/data_services/portfolio_service.py::PortfolioService.save_portfolio</code><b>open source ↗</b></a><span>line 99 · <a href="#impl~ring5.data.semantic-units-3402635879~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/services/managers/semantic_metadata_service.py#L32"><code>src/core/services/managers/semantic_metadata_service.py::SemanticMetadataService.attach</code><b>open source ↗</b></a><span>line 32 · <a href="#impl~ring5.data.semantic-units-2740182444~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/services/managers/semantic_metadata_service.py#L62"><code>src/core/services/managers/semantic_metadata_service.py::SemanticMetadataService.convert</code><b>open source ↗</b></a><span>line 62 · <a href="#impl~ring5.data.semantic-units-366528578~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/services/managers/semantic_metadata_service.py#L131"><code>src/core/services/managers/semantic_metadata_service.py::SemanticMetadataService.enrich_figure_config</code><b>open source ↗</b></a><span>line 131 · <a href="#impl~ring5.data.semantic-units-2378189478~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/core/state/repositories/session_repository.py#L84"><code>src/core/state/repositories/session_repository.py::SessionRepository.restore_from_portfolio</code><b>open source ↗</b></a><span>line 84 · <a href="#impl~ring5.data.semantic-units-4017727021~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/components/data_managers/schema_contract.py#L35"><code>src/web/components/data_managers/schema_contract.py::SchemaContractManager.render</code><b>open source ↗</b></a><span>line 35 · <a href="#impl~ring5.data.semantic-units-149197649~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/components/data_managers/schema_contract.py#L141"><code>src/web/components/data_managers/schema_contract.py::SchemaContractManager._render_conversion</code><b>open source ↗</b></a><span>line 141 · <a href="#impl~ring5.data.semantic-units-1315402569~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/base_plot.py#L89"><code>src/web/pages/ui/plotting/base_plot.py::BasePlot.create_figure</code><b>open source ↗</b></a><span>line 89 · <a href="#impl~ring5.data.semantic-units-2412473299~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/base_plot.py#L178"><code>src/web/pages/ui/plotting/base_plot.py::BasePlot.to_dict</code><b>open source ↗</b></a><span>line 178 · <a href="#impl~ring5.data.semantic-units-1446709496~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/plot_factory.py#L138"><code>src/web/pages/ui/plotting/plot_factory.py::PlotFactory.from_dict</code><b>open source ↗</b></a><span>line 138 · <a href="#impl~ring5.data.semantic-units-2647731443~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/e2e/test_data_managers.py#L467"><code>tests/e2e/test_data_managers.py::TestDatasetSchemaContract.test_apply_semantic_metadata_from_human_first_editor</code><b>open source ↗</b></a><span>line 467 · <a href="#test~ring5.data.semantic-units-3095882984~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_portfolio_service_integration.py#L127"><code>tests/integration/test_portfolio_service_integration.py::test_portfolio_retains_data_and_plot_semantics</code><b>open source ↗</b></a><span>line 127 · <a href="#test~ring5.data.semantic-units-2613421146~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_ring5_public_api.py#L426"><code>tests/integration/test_ring5_public_api.py::TestDatasetSemanticMetadata.test_semantics_drive_conversion_figure_labels_and_csv_export</code><b>open source ↗</b></a><span>line 426 · <a href="#test~ring5.data.semantic-units-1508487049~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_ring5_public_api.py#L481"><code>tests/integration/test_ring5_public_api.py::TestDatasetSemanticMetadata.test_semantic_errors_use_the_public_validation_type</code><b>open source ↗</b></a><span>line 481 · <a href="#test~ring5.data.semantic-units-1867739341~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_dataset_snapshot_service.py#L106"><code>tests/unit/test_dataset_snapshot_service.py::test_snapshot_retains_semantic_labels_and_units</code><b>open source ↗</b></a><span>line 106 · <a href="#test~ring5.data.semantic-units-179729660~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_schema_contract_manager.py#L87"><code>tests/unit/test_schema_contract_manager.py::test_render_applies_semantic_metadata_to_active_data</code><b>open source ↗</b></a><span>line 87 · <a href="#test~ring5.data.semantic-units-78722230~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_semantic_metadata_service.py#L25"><code>tests/unit/test_semantic_metadata_service.py::test_attach_inspect_and_convert_compatible_units_without_mutation</code><b>open source ↗</b></a><span>line 25 · <a href="#test~ring5.data.semantic-units-2520548824~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_semantic_metadata_service.py#L42"><code>tests/unit/test_semantic_metadata_service.py::test_temperature_conversion_supports_offsets</code><b>open source ↗</b></a><span>line 42 · <a href="#test~ring5.data.semantic-units-3454833077~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_semantic_metadata_service.py#L62"><code>tests/unit/test_semantic_metadata_service.py::test_conversion_rejects_invalid_requests</code><b>open source ↗</b></a><span>line 62 · <a href="#test~ring5.data.semantic-units-2229810137~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_semantic_metadata_service.py#L68"><code>tests/unit/test_semantic_metadata_service.py::test_figure_labels_are_inferred_but_explicit_labels_win</code><b>open source ↗</b></a><span>line 68 · <a href="#test~ring5.data.semantic-units-2246611942~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_semantic_metadata_service.py#L84"><code>tests/unit/test_semantic_metadata_service.py::test_parallel_dimensions_receive_semantic_labels</code><b>open source ↗</b></a><span>line 84 · <a href="#test~ring5.data.semantic-units-380188854~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_semantic_metadata_service.py#L97"><code>tests/unit/test_semantic_metadata_service.py::test_schema_inference_retains_existing_semantic_metadata</code><b>open source ↗</b></a><span>line 97 · <a href="#test~ring5.data.semantic-units-1765595285~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">data</span><span class="human-tag">metadata</span><span class="human-tag">units</span></div></div>
     <a href="#req~ring5.data.semantic-units~1">View canonical OFT trace ↓</a>
@@ -3037,7 +3037,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>RING-5 shall render ordered trends with configurable lines, markers, grouping, and error bars.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>1 exact origin</strong></li><li data-readiness="ready"><span>Test</span><strong>1 exact origin</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 3 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/reference/plot-types.md#L54"><code>docs/user-guide/reference/plot-types.md#selection-guide</code><b>open source ↗</b></a><span>line 54 · <a href="#uman~ring5.plot.line.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/types/line_plot.py#L149"><code>src/web/pages/ui/plotting/types/line_plot.py::LinePlot.create_traces</code><b>open source ↗</b></a><span>line 149 · <a href="#impl~ring5.plot.line-3003000991~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_bar_line_create_figure.py#L127"><code>tests/unit/test_bar_line_create_figure.py::TestLinePlotCreateFigure</code><b>open source ↗</b></a><span>line 127 · <a href="#test~ring5.plot.line-3586726~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 3 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/reference/plot-types.md#L54"><code>docs/user-guide/reference/plot-types.md#selection-guide</code><b>open source ↗</b></a><span>line 54 · <a href="#uman~ring5.plot.line.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/types/line_plot.py#L149"><code>src/web/pages/ui/plotting/types/line_plot.py::LinePlot.create_traces</code><b>open source ↗</b></a><span>line 149 · <a href="#impl~ring5.plot.line-3003000991~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_bar_line_create_figure.py#L119"><code>tests/unit/test_bar_line_create_figure.py::TestLinePlotCreateFigure</code><b>open source ↗</b></a><span>line 119 · <a href="#test~ring5.plot.line-3042648786~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">line</span><span class="human-tag">plots</span><span class="human-tag">trend</span></div></div>
     <a href="#req~ring5.plot.line~1">View canonical OFT trace ↓</a>
@@ -3585,7 +3585,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>Histogram plots shall expose parsed bucket-column selection, optional grouping, count, probability, density, or percent normalization, and cumulative display controls.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 5 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/reference/plot-types.md#L131"><code>docs/user-guide/reference/plot-types.md#histogram-controls</code><b>open source ↗</b></a><span>line 131 · <a href="#uman~ring5.figure.histogram-controls.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/web/components/plotting/config/histogram_config.py#L53"><code>src/web/components/plotting/config/histogram_config.py::render</code><b>open source ↗</b></a><span>line 53 · <a href="#impl~ring5.figure.histogram-controls-916175893~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/types/histogram_plot.py#L64"><code>src/web/pages/ui/plotting/types/histogram_plot.py::HistogramPlot.create_traces</code><b>open source ↗</b></a><span>line 64 · <a href="#impl~ring5.figure.histogram-controls-3853346302~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_stacked_histogram_config.py#L249"><code>tests/unit/test_stacked_histogram_config.py::TestHistogramRenderConfigUI</code><b>open source ↗</b></a><span>line 249 · <a href="#test~ring5.figure.histogram-controls-1242201046~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_stacked_histogram_config.py#L275"><code>tests/unit/test_stacked_histogram_config.py::TestHistogramCreateFigure</code><b>open source ↗</b></a><span>line 275 · <a href="#test~ring5.figure.histogram-controls-2553852976~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 5 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/reference/plot-types.md#L131"><code>docs/user-guide/reference/plot-types.md#histogram-controls</code><b>open source ↗</b></a><span>line 131 · <a href="#uman~ring5.figure.histogram-controls.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/web/components/plotting/config/histogram_config.py#L53"><code>src/web/components/plotting/config/histogram_config.py::render</code><b>open source ↗</b></a><span>line 53 · <a href="#impl~ring5.figure.histogram-controls-916175893~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/types/histogram_plot.py#L64"><code>src/web/pages/ui/plotting/types/histogram_plot.py::HistogramPlot.create_traces</code><b>open source ↗</b></a><span>line 64 · <a href="#impl~ring5.figure.histogram-controls-3853346302~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_stacked_histogram_config.py#L243"><code>tests/unit/test_stacked_histogram_config.py::TestHistogramRenderConfigUI</code><b>open source ↗</b></a><span>line 243 · <a href="#test~ring5.figure.histogram-controls-3468901135~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_stacked_histogram_config.py#L269"><code>tests/unit/test_stacked_histogram_config.py::TestHistogramCreateFigure</code><b>open source ↗</b></a><span>line 269 · <a href="#test~ring5.figure.histogram-controls-3488766233~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">histogram</span><span class="human-tag">settings</span></div></div>
     <a href="#req~ring5.figure.histogram-controls~1">View canonical OFT trace ↓</a>
@@ -3645,7 +3645,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>Applicable plot mappings shall let users restrict visible X categories and groups without changing the processed plot table or workspace dataset.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>3 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>3 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 7 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/plotting.md#L148"><code>docs/user-guide/workflows/plotting.md#map-columns-and-configure-the-figure</code><b>open source ↗</b></a><span>line 148 · <a href="#uman~ring5.figure.plot-filtering.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/web/components/plotting/config/plot_config_components.py#L55"><code>src/web/components/plotting/config/plot_config_components.py::PlotConfigComponents.render_filter_multiselects</code><b>open source ↗</b></a><span>line 55 · <a href="#impl~ring5.figure.plot-filtering-1964601871~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/types/grouped_bar_plot.py#L111"><code>src/web/pages/ui/plotting/types/grouped_bar_plot.py::GroupedBarPlot.create_traces</code><b>open source ↗</b></a><span>line 111 · <a href="#impl~ring5.figure.plot-filtering-2140425808~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py#L162"><code>src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot.create_traces</code><b>open source ↗</b></a><span>line 162 · <a href="#impl~ring5.figure.plot-filtering-790502902~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_stacked_histogram_config.py#L386"><code>tests/unit/test_stacked_histogram_config.py::TestPlotConfigComponents.test_filter_mapping_change_selects_values_from_new_column</code><b>open source ↗</b></a><span>line 386 · <a href="#test~ring5.figure.plot-filtering-1947873836~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_interactive_filters.py#L27"><code>tests/unit/test_interactive_filters.py::TestGroupedBarPlotFilters</code><b>open source ↗</b></a><span>line 27 · <a href="#test~ring5.figure.plot-filtering-2784249294~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_interactive_filters.py#L75"><code>tests/unit/test_interactive_filters.py::TestGroupedStackedBarPlotFilters</code><b>open source ↗</b></a><span>line 75 · <a href="#test~ring5.figure.plot-filtering-1285152797~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 7 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/plotting.md#L148"><code>docs/user-guide/workflows/plotting.md#map-columns-and-configure-the-figure</code><b>open source ↗</b></a><span>line 148 · <a href="#uman~ring5.figure.plot-filtering.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/web/components/plotting/config/plot_config_components.py#L55"><code>src/web/components/plotting/config/plot_config_components.py::PlotConfigComponents.render_filter_multiselects</code><b>open source ↗</b></a><span>line 55 · <a href="#impl~ring5.figure.plot-filtering-1964601871~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/types/grouped_bar_plot.py#L111"><code>src/web/pages/ui/plotting/types/grouped_bar_plot.py::GroupedBarPlot.create_traces</code><b>open source ↗</b></a><span>line 111 · <a href="#impl~ring5.figure.plot-filtering-2140425808~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py#L162"><code>src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot.create_traces</code><b>open source ↗</b></a><span>line 162 · <a href="#impl~ring5.figure.plot-filtering-790502902~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_stacked_histogram_config.py#L373"><code>tests/unit/test_stacked_histogram_config.py::TestPlotConfigComponents.test_filter_mapping_change_selects_values_from_new_column</code><b>open source ↗</b></a><span>line 373 · <a href="#test~ring5.figure.plot-filtering-521069569~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_interactive_filters.py#L27"><code>tests/unit/test_interactive_filters.py::TestGroupedBarPlotFilters</code><b>open source ↗</b></a><span>line 27 · <a href="#test~ring5.figure.plot-filtering-2784249294~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_interactive_filters.py#L75"><code>tests/unit/test_interactive_filters.py::TestGroupedStackedBarPlotFilters</code><b>open source ↗</b></a><span>line 75 · <a href="#test~ring5.figure.plot-filtering-1285152797~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">filtering</span><span class="human-tag">plots</span><span class="human-tag">selection</span></div></div>
     <a href="#req~ring5.figure.plot-filtering~1">View canonical OFT trace ↓</a>
@@ -3705,7 +3705,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>Histogram plots shall optionally accumulate bins in display order while preserving the selected count, probability, density, or percent normalization semantics.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 5 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/reference/plot-types.md#L157"><code>docs/user-guide/reference/plot-types.md#cumulative-histograms</code><b>open source ↗</b></a><span>line 157 · <a href="#uman~ring5.figure.histogram-cumulative.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/web/components/plotting/config/histogram_config.py#L54"><code>src/web/components/plotting/config/histogram_config.py::render</code><b>open source ↗</b></a><span>line 54 · <a href="#impl~ring5.figure.histogram-cumulative-1138973228~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/types/histogram_plot.py#L200"><code>src/web/pages/ui/plotting/types/histogram_plot.py::HistogramPlot._normalize_values</code><b>open source ↗</b></a><span>line 200 · <a href="#impl~ring5.figure.histogram-cumulative-4281480640~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/integration/test_histogram_plot_integration.py#L248"><code>tests/integration/test_histogram_plot_integration.py::TestHistogramPlotIntegration.test_histogram_cumulative_distribution</code><b>open source ↗</b></a><span>line 248 · <a href="#test~ring5.figure.histogram-cumulative-3635084194~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_stacked_histogram_config.py#L349"><code>tests/unit/test_stacked_histogram_config.py::TestHistogramCreateFigure.test_normalization_cumulative</code><b>open source ↗</b></a><span>line 349 · <a href="#test~ring5.figure.histogram-cumulative-349371004~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 5 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/reference/plot-types.md#L157"><code>docs/user-guide/reference/plot-types.md#cumulative-histograms</code><b>open source ↗</b></a><span>line 157 · <a href="#uman~ring5.figure.histogram-cumulative.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/web/components/plotting/config/histogram_config.py#L54"><code>src/web/components/plotting/config/histogram_config.py::render</code><b>open source ↗</b></a><span>line 54 · <a href="#impl~ring5.figure.histogram-cumulative-1138973228~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/types/histogram_plot.py#L186"><code>src/web/pages/ui/plotting/types/histogram_plot.py::HistogramPlot._normalize_values</code><b>open source ↗</b></a><span>line 186 · <a href="#impl~ring5.figure.histogram-cumulative-578777983~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/integration/test_histogram_plot_integration.py#L248"><code>tests/integration/test_histogram_plot_integration.py::TestHistogramPlotIntegration.test_histogram_cumulative_distribution</code><b>open source ↗</b></a><span>line 248 · <a href="#test~ring5.figure.histogram-cumulative-3635084194~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_stacked_histogram_config.py#L343"><code>tests/unit/test_stacked_histogram_config.py::TestHistogramCreateFigure.test_normalization_cumulative</code><b>open source ↗</b></a><span>line 343 · <a href="#test~ring5.figure.histogram-cumulative-854868339~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">cumulative</span><span class="human-tag">histogram</span><span class="human-tag">statistics</span></div></div>
     <a href="#req~ring5.figure.histogram-cumulative~1">View canonical OFT trace ↓</a>
@@ -3865,7 +3865,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>Line-based traces shall apply user-selected interpolation, dash, width, marker, and connector styles consistently in Plotly and Matplotlib.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>7 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>5 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 13 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/line-styles.md#L13"><code>docs/user-guide/workflows/line-styles.md#style-line-charts</code><b>open source ↗</b></a><span>line 13 · <a href="#uman~ring5.figure.line-styles.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/core/models/visualization/trace_config.py#L117"><code>src/core/models/visualization/trace_config.py::LineTraceConfig</code><b>open source ↗</b></a><span>line 117 · <a href="#impl~ring5.figure.line-styles-3164688339~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/models/plot_models.py#L85"><code>src/web/models/plot_models.py::PlotDisplayConfig</code><b>open source ↗</b></a><span>line 85 · <a href="#impl~ring5.figure.line-styles-2606458015~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../ring5/_plot_validation.py#L100"><code>ring5/_plot_validation.py::_validate_line_style</code><b>open source ↗</b></a><span>line 100 · <a href="#impl~ring5.figure.line-styles-2264404166~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/types/line_plot.py#L72"><code>src/web/pages/ui/plotting/types/line_plot.py::LinePlot.render_specific_advanced_options</code><b>open source ↗</b></a><span>line 72 · <a href="#impl~ring5.figure.line-styles-204389393~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/types/line_plot.py#L150"><code>src/web/pages/ui/plotting/types/line_plot.py::LinePlot.create_traces</code><b>open source ↗</b></a><span>line 150 · <a href="#impl~ring5.figure.line-styles-2448909073~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/rendering/trace_to_plotly.py#L491"><code>src/web/rendering/trace_to_plotly.py::_line_trace</code><b>open source ↗</b></a><span>line 491 · <a href="#impl~ring5.figure.line-styles-3838331017~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/rendering/matplotlib_trace_renderer.py#L410"><code>src/web/rendering/matplotlib_trace_renderer.py::MatplotlibTraceRenderer._draw_line</code><b>open source ↗</b></a><span>line 410 · <a href="#impl~ring5.figure.line-styles-248406263~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_simple_plots.py#L235"><code>tests/unit/test_simple_plots.py::TestLinePlotAdvancedOptions.test_complete_line_style</code><b>open source ↗</b></a><span>line 235 · <a href="#test~ring5.figure.line-styles-1034677257~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_trace_to_plotly.py#L568"><code>tests/unit/test_trace_to_plotly.py::TestLineTrace.test_complete_line_style_and_gap_connector</code><b>open source ↗</b></a><span>line 568 · <a href="#test~ring5.figure.line-styles-1649854322~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_matplotlib_trace_renderer.py#L117"><code>tests/unit/test_matplotlib_trace_renderer.py::TestRender.test_spline_style_connects_gaps_and_marks_only_observations</code><b>open source ↗</b></a><span>line 117 · <a href="#test~ring5.figure.line-styles-1506825719~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_line_styles_public_api.py#L27"><code>tests/integration/test_line_styles_public_api.py::test_public_line_styles_match_in_both_engines</code><b>open source ↗</b></a><span>line 27 · <a href="#test~ring5.figure.line-styles-2246916638~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/e2e/test_plot_types.py#L118"><code>tests/e2e/test_plot_types.py::TestPlotCreation.test_04_create_line_plot</code><b>open source ↗</b></a><span>line 118 · <a href="#test~ring5.figure.line-styles-2745502285~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 13 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/line-styles.md#L13"><code>docs/user-guide/workflows/line-styles.md#style-line-charts</code><b>open source ↗</b></a><span>line 13 · <a href="#uman~ring5.figure.line-styles.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/core/models/visualization/trace_config.py#L117"><code>src/core/models/visualization/trace_config.py::LineTraceConfig</code><b>open source ↗</b></a><span>line 117 · <a href="#impl~ring5.figure.line-styles-3164688339~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/models/plot_models.py#L85"><code>src/web/models/plot_models.py::PlotDisplayConfig</code><b>open source ↗</b></a><span>line 85 · <a href="#impl~ring5.figure.line-styles-2606458015~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../ring5/_plot_validation.py#L100"><code>ring5/_plot_validation.py::_validate_line_style</code><b>open source ↗</b></a><span>line 100 · <a href="#impl~ring5.figure.line-styles-2264404166~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/types/line_plot.py#L72"><code>src/web/pages/ui/plotting/types/line_plot.py::LinePlot.render_specific_advanced_options</code><b>open source ↗</b></a><span>line 72 · <a href="#impl~ring5.figure.line-styles-204389393~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/types/line_plot.py#L150"><code>src/web/pages/ui/plotting/types/line_plot.py::LinePlot.create_traces</code><b>open source ↗</b></a><span>line 150 · <a href="#impl~ring5.figure.line-styles-2448909073~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/rendering/trace_to_plotly.py#L491"><code>src/web/rendering/trace_to_plotly.py::_line_trace</code><b>open source ↗</b></a><span>line 491 · <a href="#impl~ring5.figure.line-styles-3838331017~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/rendering/matplotlib_trace_renderer.py#L410"><code>src/web/rendering/matplotlib_trace_renderer.py::MatplotlibTraceRenderer._draw_line</code><b>open source ↗</b></a><span>line 410 · <a href="#impl~ring5.figure.line-styles-248406263~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_simple_plots.py#L216"><code>tests/unit/test_simple_plots.py::TestLinePlotAdvancedOptions.test_complete_line_style</code><b>open source ↗</b></a><span>line 216 · <a href="#test~ring5.figure.line-styles-2572272976~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_trace_to_plotly.py#L568"><code>tests/unit/test_trace_to_plotly.py::TestLineTrace.test_complete_line_style_and_gap_connector</code><b>open source ↗</b></a><span>line 568 · <a href="#test~ring5.figure.line-styles-1649854322~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_matplotlib_trace_renderer.py#L117"><code>tests/unit/test_matplotlib_trace_renderer.py::TestRender.test_spline_style_connects_gaps_and_marks_only_observations</code><b>open source ↗</b></a><span>line 117 · <a href="#test~ring5.figure.line-styles-1506825719~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_line_styles_public_api.py#L27"><code>tests/integration/test_line_styles_public_api.py::test_public_line_styles_match_in_both_engines</code><b>open source ↗</b></a><span>line 27 · <a href="#test~ring5.figure.line-styles-2246916638~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/e2e/test_plot_types.py#L118"><code>tests/e2e/test_plot_types.py::TestPlotCreation.test_04_create_line_plot</code><b>open source ↗</b></a><span>line 118 · <a href="#test~ring5.figure.line-styles-2745502285~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">figures</span><span class="human-tag">lines</span><span class="human-tag">styling</span></div></div>
     <a href="#req~ring5.figure.line-styles~1">View canonical OFT trace ↓</a>
@@ -4201,7 +4201,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>Users shall save a named snapshot containing the available workspace data, plots, processed plot data, pipelines, figure configuration, parse provenance, counters, and histories; a configuration-only snapshot shall remain valid when no data is loaded.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 5 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/portfolios.md#L27"><code>docs/user-guide/workflows/portfolios.md#save-and-restore-in-the-web-application</code><b>open source ↗</b></a><span>line 27 · <a href="#uman~ring5.portfolio.save.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/core/services/data_services/portfolio_service.py#L98"><code>src/core/services/data_services/portfolio_service.py::PortfolioService.save_portfolio</code><b>open source ↗</b></a><span>line 98 · <a href="#impl~ring5.portfolio.save-4178256742~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/base_plot.py#L205"><code>src/web/pages/ui/plotting/base_plot.py::BasePlot.to_dict</code><b>open source ↗</b></a><span>line 205 · <a href="#impl~ring5.portfolio.save-2280337263~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/integration/test_portfolio_service_integration.py#L39"><code>tests/integration/test_portfolio_service_integration.py::test_save_and_load_portfolio</code><b>open source ↗</b></a><span>line 39 · <a href="#test~ring5.portfolio.save-916378429~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_portfolio_page.py#L25"><code>tests/unit/test_portfolio_page.py::TestShowPortfolioPage.test_save_no_data</code><b>open source ↗</b></a><span>line 25 · <a href="#test~ring5.portfolio.save-785416095~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 5 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/portfolios.md#L27"><code>docs/user-guide/workflows/portfolios.md#save-and-restore-in-the-web-application</code><b>open source ↗</b></a><span>line 27 · <a href="#uman~ring5.portfolio.save.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/core/services/data_services/portfolio_service.py#L98"><code>src/core/services/data_services/portfolio_service.py::PortfolioService.save_portfolio</code><b>open source ↗</b></a><span>line 98 · <a href="#impl~ring5.portfolio.save-4178256742~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/base_plot.py#L177"><code>src/web/pages/ui/plotting/base_plot.py::BasePlot.to_dict</code><b>open source ↗</b></a><span>line 177 · <a href="#impl~ring5.portfolio.save-843577840~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/integration/test_portfolio_service_integration.py#L39"><code>tests/integration/test_portfolio_service_integration.py::test_save_and_load_portfolio</code><b>open source ↗</b></a><span>line 39 · <a href="#test~ring5.portfolio.save-916378429~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_portfolio_page.py#L25"><code>tests/unit/test_portfolio_page.py::TestShowPortfolioPage.test_save_no_data</code><b>open source ↗</b></a><span>line 25 · <a href="#test~ring5.portfolio.save-785416095~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">persistence</span><span class="human-tag">portfolios</span><span class="human-tag">reproducibility</span></div></div>
     <a href="#req~ring5.portfolio.save~1">View canonical OFT trace ↓</a>
@@ -4239,9 +4239,9 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
     </div>
   </div>
   <p>Developers shall be able to generate a self-validating portfolio from deterministic representative data, containing one Plotly- and Matplotlib-renderable example of every registered plot type.</p>
-  <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>1 exact origin</strong></li><li data-readiness="ready"><span>Test</span><strong>1 exact origin</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
+  <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>1 exact origin</strong></li><li data-readiness="ready"><span>Test</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 3 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/portfolios.md#L465"><code>docs/user-guide/workflows/portfolios.md#generate-the-example-portfolio</code><b>open source ↗</b></a><span>line 465 · <a href="#uman~ring5.portfolio.example-catalog.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../scripts/generate_example_portfolio.py#L478"><code>scripts/generate_example_portfolio.py::generate_example_portfolio</code><b>open source ↗</b></a><span>line 478 · <a href="#impl~ring5.portfolio.example-catalog-139762546~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_generate_example_portfolio.py#L45"><code>tests/unit/test_generate_example_portfolio.py::test_every_registered_plot_example_renders</code><b>open source ↗</b></a><span>line 45 · <a href="#test~ring5.portfolio.example-catalog-3681766947~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 4 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/portfolios.md#L465"><code>docs/user-guide/workflows/portfolios.md#generate-the-example-portfolio</code><b>open source ↗</b></a><span>line 465 · <a href="#uman~ring5.portfolio.example-catalog.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../scripts/generate_example_portfolio.py#L480"><code>scripts/generate_example_portfolio.py::generate_example_portfolio</code><b>open source ↗</b></a><span>line 480 · <a href="#impl~ring5.portfolio.example-catalog-2445393489~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_generate_example_portfolio.py#L66"><code>tests/unit/test_generate_example_portfolio.py::test_every_registered_plot_example_renders</code><b>open source ↗</b></a><span>line 66 · <a href="#test~ring5.portfolio.example-catalog-2366664727~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_generate_example_portfolio.py#L87"><code>tests/unit/test_generate_example_portfolio.py::test_generated_portfolio_round_trips</code><b>open source ↗</b></a><span>line 87 · <a href="#test~ring5.portfolio.example-catalog-3969096529~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">examples</span><span class="human-tag">portfolios</span><span class="human-tag">reproducibility</span></div></div>
     <a href="#req~ring5.portfolio.example-catalog~1">View canonical OFT trace ↓</a>
@@ -4817,7 +4817,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>PlotFactory shall support runtime registration of BasePlot subclasses under caller-provided identifiers with optional UI metadata.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>2 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 5 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/developer-guide/extension-guides/adding-a-plot-type.md#L18"><code>docs/developer-guide/extension-guides/adding-a-plot-type.md#implement-and-register</code><b>open source ↗</b></a><span>line 18 · <a href="#uman~ring5.extension.plot-registry.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/plot_factory.py#L184"><code>src/web/pages/ui/plotting/plot_factory.py::PlotFactory.get_plot_metadata</code><b>open source ↗</b></a><span>line 184 · <a href="#impl~ring5.extension.plot-registry-3175561096~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/plot_factory.py#L205"><code>src/web/pages/ui/plotting/plot_factory.py::PlotFactory.register_plot_type</code><b>open source ↗</b></a><span>line 205 · <a href="#impl~ring5.extension.plot-registry-1498269434~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_plot_factory.py#L33"><code>tests/unit/test_plot_factory.py::TestPlotFactoryRegistration</code><b>open source ↗</b></a><span>line 33 · <a href="#test~ring5.extension.plot-registry-2584551462~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_plot_factory.py#L54"><code>tests/unit/test_plot_factory.py::TestPlotFactoryMetadata</code><b>open source ↗</b></a><span>line 54 · <a href="#test~ring5.extension.plot-registry-904874295~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 5 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/developer-guide/extension-guides/adding-a-plot-type.md#L18"><code>docs/developer-guide/extension-guides/adding-a-plot-type.md#implement-and-register</code><b>open source ↗</b></a><span>line 18 · <a href="#uman~ring5.extension.plot-registry.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/plot_factory.py#L182"><code>src/web/pages/ui/plotting/plot_factory.py::PlotFactory.get_plot_metadata</code><b>open source ↗</b></a><span>line 182 · <a href="#impl~ring5.extension.plot-registry-159729992~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/plot_factory.py#L203"><code>src/web/pages/ui/plotting/plot_factory.py::PlotFactory.register_plot_type</code><b>open source ↗</b></a><span>line 203 · <a href="#impl~ring5.extension.plot-registry-3985619002~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_plot_factory.py#L33"><code>tests/unit/test_plot_factory.py::TestPlotFactoryRegistration</code><b>open source ↗</b></a><span>line 33 · <a href="#test~ring5.extension.plot-registry-2584551462~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_plot_factory.py#L54"><code>tests/unit/test_plot_factory.py::TestPlotFactoryMetadata</code><b>open source ↗</b></a><span>line 54 · <a href="#test~ring5.extension.plot-registry-904874295~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">extensibility</span><span class="human-tag">plots</span><span class="human-tag">registry</span></div></div>
     <a href="#req~ring5.extension.plot-registry~1">View canonical OFT trace ↓</a>
@@ -7767,6 +7767,19 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
+      <section class="sitem" id="impl~ring5.data.semantic-units-1446709496~0">
+        <details>
+          <summary title="impl~ring5.data.semantic-units-1446709496~0"><span class="green">&check;</span> <b>ring5.data.semantic-units-1446709496</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.data.semantic-units-1446709496~0</p>
+          <p class="origin">src/web/pages/ui/plotting/base_plot.py:178</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.data.semantic-units~1">req~ring5.data.semantic-units~1</a> <span class="origin">spec/oft/generated/requirements.md:989</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
       <section class="sitem" id="impl~ring5.data.semantic-units-149197649~0">
         <details>
           <summary title="impl~ring5.data.semantic-units-149197649~0"><span class="green">&check;</span> <b>ring5.data.semantic-units-149197649</b><small>, rev. 0, impl</small></summary>
@@ -7897,11 +7910,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.data.semantic-units-247143080~0">
+      <section class="sitem" id="impl~ring5.data.semantic-units-2647731443~0">
         <details>
-          <summary title="impl~ring5.data.semantic-units-247143080~0"><span class="green">&check;</span> <b>ring5.data.semantic-units-247143080</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.data.semantic-units-247143080~0</p>
-          <p class="origin">src/web/pages/ui/plotting/plot_factory.py:140</p>
+          <summary title="impl~ring5.data.semantic-units-2647731443~0"><span class="green">&check;</span> <b>ring5.data.semantic-units-2647731443</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.data.semantic-units-2647731443~0</p>
+          <p class="origin">src/web/pages/ui/plotting/plot_factory.py:138</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -7967,19 +7980,6 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <summary title="impl~ring5.data.semantic-units-4017727021~0"><span class="green">&check;</span> <b>ring5.data.semantic-units-4017727021</b><small>, rev. 0, impl</small></summary>
           <p class="id">impl~ring5.data.semantic-units-4017727021~0</p>
           <p class="origin">src/core/state/repositories/session_repository.py:84</p>
-          <div class="out">
-            <h6>Out: 1</h6>
-            <ul>
-              <li><a href="#req~ring5.data.semantic-units~1">req~ring5.data.semantic-units~1</a> <span class="origin">spec/oft/generated/requirements.md:989</span></li>
-            </ul>
-          </div>
-        </details>
-      </section>
-      <section class="sitem" id="impl~ring5.data.semantic-units-4172112528~0">
-        <details>
-          <summary title="impl~ring5.data.semantic-units-4172112528~0"><span class="green">&check;</span> <b>ring5.data.semantic-units-4172112528</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.data.semantic-units-4172112528~0</p>
-          <p class="origin">src/web/pages/ui/plotting/base_plot.py:206</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -8625,11 +8625,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.extension.plot-registry-1498269434~0">
+      <section class="sitem" id="impl~ring5.extension.plot-registry-159729992~0">
         <details>
-          <summary title="impl~ring5.extension.plot-registry-1498269434~0"><span class="green">&check;</span> <b>ring5.extension.plot-registry-1498269434</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.extension.plot-registry-1498269434~0</p>
-          <p class="origin">src/web/pages/ui/plotting/plot_factory.py:205</p>
+          <summary title="impl~ring5.extension.plot-registry-159729992~0"><span class="green">&check;</span> <b>ring5.extension.plot-registry-159729992</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.extension.plot-registry-159729992~0</p>
+          <p class="origin">src/web/pages/ui/plotting/plot_factory.py:182</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -8638,11 +8638,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.extension.plot-registry-3175561096~0">
+      <section class="sitem" id="impl~ring5.extension.plot-registry-3985619002~0">
         <details>
-          <summary title="impl~ring5.extension.plot-registry-3175561096~0"><span class="green">&check;</span> <b>ring5.extension.plot-registry-3175561096</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.extension.plot-registry-3175561096~0</p>
-          <p class="origin">src/web/pages/ui/plotting/plot_factory.py:184</p>
+          <summary title="impl~ring5.extension.plot-registry-3985619002~0"><span class="green">&check;</span> <b>ring5.extension.plot-registry-3985619002</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.extension.plot-registry-3985619002~0</p>
+          <p class="origin">src/web/pages/ui/plotting/plot_factory.py:203</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -9457,11 +9457,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.figure.histogram-cumulative-4281480640~0">
+      <section class="sitem" id="impl~ring5.figure.histogram-cumulative-578777983~0">
         <details>
-          <summary title="impl~ring5.figure.histogram-cumulative-4281480640~0"><span class="green">&check;</span> <b>ring5.figure.histogram-cumulative-4281480640</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.figure.histogram-cumulative-4281480640~0</p>
-          <p class="origin">src/web/pages/ui/plotting/types/histogram_plot.py:200</p>
+          <summary title="impl~ring5.figure.histogram-cumulative-578777983~0"><span class="green">&check;</span> <b>ring5.figure.histogram-cumulative-578777983</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.figure.histogram-cumulative-578777983~0</p>
+          <p class="origin">src/web/pages/ui/plotting/types/histogram_plot.py:186</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -13240,11 +13240,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.portfolio.example-catalog-139762546~0">
+      <section class="sitem" id="impl~ring5.portfolio.example-catalog-2445393489~0">
         <details>
-          <summary title="impl~ring5.portfolio.example-catalog-139762546~0"><span class="green">&check;</span> <b>ring5.portfolio.example-catalog-139762546</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.portfolio.example-catalog-139762546~0</p>
-          <p class="origin">scripts/generate_example_portfolio.py:478</p>
+          <summary title="impl~ring5.portfolio.example-catalog-2445393489~0"><span class="green">&check;</span> <b>ring5.portfolio.example-catalog-2445393489</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.portfolio.example-catalog-2445393489~0</p>
+          <p class="origin">scripts/generate_example_portfolio.py:480</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -13682,11 +13682,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.portfolio.save-2280337263~0">
+      <section class="sitem" id="impl~ring5.portfolio.save-4178256742~0">
         <details>
-          <summary title="impl~ring5.portfolio.save-2280337263~0"><span class="green">&check;</span> <b>ring5.portfolio.save-2280337263</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.portfolio.save-2280337263~0</p>
-          <p class="origin">src/web/pages/ui/plotting/base_plot.py:205</p>
+          <summary title="impl~ring5.portfolio.save-4178256742~0"><span class="green">&check;</span> <b>ring5.portfolio.save-4178256742</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.portfolio.save-4178256742~0</p>
+          <p class="origin">src/core/services/data_services/portfolio_service.py:98</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -13695,11 +13695,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="impl~ring5.portfolio.save-4178256742~0">
+      <section class="sitem" id="impl~ring5.portfolio.save-843577840~0">
         <details>
-          <summary title="impl~ring5.portfolio.save-4178256742~0"><span class="green">&check;</span> <b>ring5.portfolio.save-4178256742</b><small>, rev. 0, impl</small></summary>
-          <p class="id">impl~ring5.portfolio.save-4178256742~0</p>
-          <p class="origin">src/core/services/data_services/portfolio_service.py:98</p>
+          <summary title="impl~ring5.portfolio.save-843577840~0"><span class="green">&check;</span> <b>ring5.portfolio.save-843577840</b><small>, rev. 0, impl</small></summary>
+          <p class="id">impl~ring5.portfolio.save-843577840~0</p>
+          <p class="origin">src/web/pages/ui/plotting/base_plot.py:177</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -17466,9 +17466,9 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
             <h6>In: 5</h6>
             <ul>
               <li><a href="#impl~ring5.figure.histogram-cumulative-1138973228~0">impl~ring5.figure.histogram-cumulative-1138973228~0</a> <span class="origin">src/web/components/plotting/config/histogram_config.py:54</span></li>
-              <li><a href="#impl~ring5.figure.histogram-cumulative-4281480640~0">impl~ring5.figure.histogram-cumulative-4281480640~0</a> <span class="origin">src/web/pages/ui/plotting/types/histogram_plot.py:200</span></li>
-              <li><a href="#test~ring5.figure.histogram-cumulative-349371004~0">test~ring5.figure.histogram-cumulative-349371004~0</a> <span class="origin">tests/unit/test_stacked_histogram_config.py:349</span></li>
+              <li><a href="#impl~ring5.figure.histogram-cumulative-578777983~0">impl~ring5.figure.histogram-cumulative-578777983~0</a> <span class="origin">src/web/pages/ui/plotting/types/histogram_plot.py:186</span></li>
               <li><a href="#test~ring5.figure.histogram-cumulative-3635084194~0">test~ring5.figure.histogram-cumulative-3635084194~0</a> <span class="origin">tests/integration/test_histogram_plot_integration.py:248</span></li>
+              <li><a href="#test~ring5.figure.histogram-cumulative-854868339~0">test~ring5.figure.histogram-cumulative-854868339~0</a> <span class="origin">tests/unit/test_stacked_histogram_config.py:343</span></li>
               <li><a href="#uman~ring5.figure.histogram-cumulative.documentation~1">uman~ring5.figure.histogram-cumulative.documentation~1</a> <span class="origin">docs/user-guide/reference/plot-types.md:157</span></li>
             </ul>
           </div>
@@ -18040,10 +18040,10 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
               <li><a href="#impl~ring5.figure.line-styles-2606458015~0">impl~ring5.figure.line-styles-2606458015~0</a> <span class="origin">src/web/models/plot_models.py:85</span></li>
               <li><a href="#impl~ring5.figure.line-styles-3164688339~0">impl~ring5.figure.line-styles-3164688339~0</a> <span class="origin">src/core/models/visualization/trace_config.py:117</span></li>
               <li><a href="#impl~ring5.figure.line-styles-3838331017~0">impl~ring5.figure.line-styles-3838331017~0</a> <span class="origin">src/web/rendering/trace_to_plotly.py:491</span></li>
-              <li><a href="#test~ring5.figure.line-styles-1034677257~0">test~ring5.figure.line-styles-1034677257~0</a> <span class="origin">tests/unit/test_simple_plots.py:235</span></li>
               <li><a href="#test~ring5.figure.line-styles-1506825719~0">test~ring5.figure.line-styles-1506825719~0</a> <span class="origin">tests/unit/test_matplotlib_trace_renderer.py:117</span></li>
               <li><a href="#test~ring5.figure.line-styles-1649854322~0">test~ring5.figure.line-styles-1649854322~0</a> <span class="origin">tests/unit/test_trace_to_plotly.py:568</span></li>
               <li><a href="#test~ring5.figure.line-styles-2246916638~0">test~ring5.figure.line-styles-2246916638~0</a> <span class="origin">tests/integration/test_line_styles_public_api.py:27</span></li>
+              <li><a href="#test~ring5.figure.line-styles-2572272976~0">test~ring5.figure.line-styles-2572272976~0</a> <span class="origin">tests/unit/test_simple_plots.py:216</span></li>
               <li><a href="#test~ring5.figure.line-styles-2745502285~0">test~ring5.figure.line-styles-2745502285~0</a> <span class="origin">tests/e2e/test_plot_types.py:118</span></li>
               <li><a href="#uman~ring5.figure.line-styles.documentation~1">uman~ring5.figure.line-styles.documentation~1</a> <span class="origin">docs/user-guide/workflows/line-styles.md:13</span></li>
             </ul>
@@ -18347,10 +18347,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <h6>Needs: impl, test, uman</h6>
           <p class="origin">spec/oft/generated/requirements.md:2391</p>
           <div class="in">
-            <h6>In: 3</h6>
+            <h6>In: 4</h6>
             <ul>
-              <li><a href="#impl~ring5.portfolio.example-catalog-139762546~0">impl~ring5.portfolio.example-catalog-139762546~0</a> <span class="origin">scripts/generate_example_portfolio.py:478</span></li>
-              <li><a href="#test~ring5.portfolio.example-catalog-3681766947~0">test~ring5.portfolio.example-catalog-3681766947~0</a> <span class="origin">tests/unit/test_generate_example_portfolio.py:45</span></li>
+              <li><a href="#impl~ring5.portfolio.example-catalog-2445393489~0">impl~ring5.portfolio.example-catalog-2445393489~0</a> <span class="origin">scripts/generate_example_portfolio.py:480</span></li>
+              <li><a href="#test~ring5.portfolio.example-catalog-2366664727~0">test~ring5.portfolio.example-catalog-2366664727~0</a> <span class="origin">tests/unit/test_generate_example_portfolio.py:66</span></li>
+              <li><a href="#test~ring5.portfolio.example-catalog-3969096529~0">test~ring5.portfolio.example-catalog-3969096529~0</a> <span class="origin">tests/unit/test_generate_example_portfolio.py:87</span></li>
               <li><a href="#uman~ring5.portfolio.example-catalog.documentation~1">uman~ring5.portfolio.example-catalog.documentation~1</a> <span class="origin">docs/user-guide/workflows/portfolios.md:465</span></li>
             </ul>
           </div>
@@ -18761,8 +18762,8 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
             <ul>
               <li><a href="#impl~ring5.figure.histogram-controls-3853346302~0">impl~ring5.figure.histogram-controls-3853346302~0</a> <span class="origin">src/web/pages/ui/plotting/types/histogram_plot.py:64</span></li>
               <li><a href="#impl~ring5.figure.histogram-controls-916175893~0">impl~ring5.figure.histogram-controls-916175893~0</a> <span class="origin">src/web/components/plotting/config/histogram_config.py:53</span></li>
-              <li><a href="#test~ring5.figure.histogram-controls-1242201046~0">test~ring5.figure.histogram-controls-1242201046~0</a> <span class="origin">tests/unit/test_stacked_histogram_config.py:249</span></li>
-              <li><a href="#test~ring5.figure.histogram-controls-2553852976~0">test~ring5.figure.histogram-controls-2553852976~0</a> <span class="origin">tests/unit/test_stacked_histogram_config.py:275</span></li>
+              <li><a href="#test~ring5.figure.histogram-controls-3468901135~0">test~ring5.figure.histogram-controls-3468901135~0</a> <span class="origin">tests/unit/test_stacked_histogram_config.py:243</span></li>
+              <li><a href="#test~ring5.figure.histogram-controls-3488766233~0">test~ring5.figure.histogram-controls-3488766233~0</a> <span class="origin">tests/unit/test_stacked_histogram_config.py:269</span></li>
               <li><a href="#uman~ring5.figure.histogram-controls.documentation~1">uman~ring5.figure.histogram-controls.documentation~1</a> <span class="origin">docs/user-guide/reference/plot-types.md:131</span></li>
             </ul>
           </div>
@@ -19123,7 +19124,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
             <h6>In: 3</h6>
             <ul>
               <li><a href="#impl~ring5.plot.line-3003000991~0">impl~ring5.plot.line-3003000991~0</a> <span class="origin">src/web/pages/ui/plotting/types/line_plot.py:149</span></li>
-              <li><a href="#test~ring5.plot.line-3586726~0">test~ring5.plot.line-3586726~0</a> <span class="origin">tests/unit/test_bar_line_create_figure.py:127</span></li>
+              <li><a href="#test~ring5.plot.line-3042648786~0">test~ring5.plot.line-3042648786~0</a> <span class="origin">tests/unit/test_bar_line_create_figure.py:119</span></li>
               <li><a href="#uman~ring5.plot.line.documentation~1">uman~ring5.plot.line.documentation~1</a> <span class="origin">docs/user-guide/reference/plot-types.md:54</span></li>
             </ul>
           </div>
@@ -20079,8 +20080,8 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
               <li><a href="#impl~ring5.figure.plot-filtering-2140425808~0">impl~ring5.figure.plot-filtering-2140425808~0</a> <span class="origin">src/web/pages/ui/plotting/types/grouped_bar_plot.py:111</span></li>
               <li><a href="#impl~ring5.figure.plot-filtering-790502902~0">impl~ring5.figure.plot-filtering-790502902~0</a> <span class="origin">src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py:162</span></li>
               <li><a href="#test~ring5.figure.plot-filtering-1285152797~0">test~ring5.figure.plot-filtering-1285152797~0</a> <span class="origin">tests/unit/test_interactive_filters.py:75</span></li>
-              <li><a href="#test~ring5.figure.plot-filtering-1947873836~0">test~ring5.figure.plot-filtering-1947873836~0</a> <span class="origin">tests/unit/test_stacked_histogram_config.py:386</span></li>
               <li><a href="#test~ring5.figure.plot-filtering-2784249294~0">test~ring5.figure.plot-filtering-2784249294~0</a> <span class="origin">tests/unit/test_interactive_filters.py:27</span></li>
+              <li><a href="#test~ring5.figure.plot-filtering-521069569~0">test~ring5.figure.plot-filtering-521069569~0</a> <span class="origin">tests/unit/test_stacked_histogram_config.py:373</span></li>
               <li><a href="#uman~ring5.figure.plot-filtering.documentation~1">uman~ring5.figure.plot-filtering.documentation~1</a> <span class="origin">docs/user-guide/workflows/plotting.md:148</span></li>
             </ul>
           </div>
@@ -20313,8 +20314,8 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <div class="in">
             <h6>In: 5</h6>
             <ul>
-              <li><a href="#impl~ring5.portfolio.save-2280337263~0">impl~ring5.portfolio.save-2280337263~0</a> <span class="origin">src/web/pages/ui/plotting/base_plot.py:205</span></li>
               <li><a href="#impl~ring5.portfolio.save-4178256742~0">impl~ring5.portfolio.save-4178256742~0</a> <span class="origin">src/core/services/data_services/portfolio_service.py:98</span></li>
+              <li><a href="#impl~ring5.portfolio.save-843577840~0">impl~ring5.portfolio.save-843577840~0</a> <span class="origin">src/web/pages/ui/plotting/base_plot.py:177</span></li>
               <li><a href="#test~ring5.portfolio.save-785416095~0">test~ring5.portfolio.save-785416095~0</a> <span class="origin">tests/unit/test_portfolio_page.py:25</span></li>
               <li><a href="#test~ring5.portfolio.save-916378429~0">test~ring5.portfolio.save-916378429~0</a> <span class="origin">tests/integration/test_portfolio_service_integration.py:39</span></li>
               <li><a href="#uman~ring5.portfolio.save.documentation~1">uman~ring5.portfolio.save.documentation~1</a> <span class="origin">docs/user-guide/workflows/portfolios.md:27</span></li>
@@ -21011,8 +21012,8 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <div class="in">
             <h6>In: 5</h6>
             <ul>
-              <li><a href="#impl~ring5.extension.plot-registry-1498269434~0">impl~ring5.extension.plot-registry-1498269434~0</a> <span class="origin">src/web/pages/ui/plotting/plot_factory.py:205</span></li>
-              <li><a href="#impl~ring5.extension.plot-registry-3175561096~0">impl~ring5.extension.plot-registry-3175561096~0</a> <span class="origin">src/web/pages/ui/plotting/plot_factory.py:184</span></li>
+              <li><a href="#impl~ring5.extension.plot-registry-159729992~0">impl~ring5.extension.plot-registry-159729992~0</a> <span class="origin">src/web/pages/ui/plotting/plot_factory.py:182</span></li>
+              <li><a href="#impl~ring5.extension.plot-registry-3985619002~0">impl~ring5.extension.plot-registry-3985619002~0</a> <span class="origin">src/web/pages/ui/plotting/plot_factory.py:203</span></li>
               <li><a href="#test~ring5.extension.plot-registry-2584551462~0">test~ring5.extension.plot-registry-2584551462~0</a> <span class="origin">tests/unit/test_plot_factory.py:33</span></li>
               <li><a href="#test~ring5.extension.plot-registry-904874295~0">test~ring5.extension.plot-registry-904874295~0</a> <span class="origin">tests/unit/test_plot_factory.py:54</span></li>
               <li><a href="#uman~ring5.extension.plot-registry.documentation~1">uman~ring5.extension.plot-registry.documentation~1</a> <span class="origin">docs/developer-guide/extension-guides/adding-a-plot-type.md:18</span></li>
@@ -22109,6 +22110,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
             <h6>In: 33</h6>
             <ul>
               <li><a href="#impl~ring5.data.semantic-units-1315402569~0">impl~ring5.data.semantic-units-1315402569~0</a> <span class="origin">src/web/components/data_managers/schema_contract.py:141</span></li>
+              <li><a href="#impl~ring5.data.semantic-units-1446709496~0">impl~ring5.data.semantic-units-1446709496~0</a> <span class="origin">src/web/pages/ui/plotting/base_plot.py:178</span></li>
               <li><a href="#impl~ring5.data.semantic-units-149197649~0">impl~ring5.data.semantic-units-149197649~0</a> <span class="origin">src/web/components/data_managers/schema_contract.py:35</span></li>
               <li><a href="#impl~ring5.data.semantic-units-1595362875~0">impl~ring5.data.semantic-units-1595362875~0</a> <span class="origin">ring5/_session.py:1674</span></li>
               <li><a href="#impl~ring5.data.semantic-units-1969120788~0">impl~ring5.data.semantic-units-1969120788~0</a> <span class="origin">ring5/data.py:130</span></li>
@@ -22119,13 +22121,12 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
               <li><a href="#impl~ring5.data.semantic-units-2218586436~0">impl~ring5.data.semantic-units-2218586436~0</a> <span class="origin">src/core/models/schema_contract_models.py:22</span></li>
               <li><a href="#impl~ring5.data.semantic-units-2378189478~0">impl~ring5.data.semantic-units-2378189478~0</a> <span class="origin">src/core/services/managers/semantic_metadata_service.py:131</span></li>
               <li><a href="#impl~ring5.data.semantic-units-2412473299~0">impl~ring5.data.semantic-units-2412473299~0</a> <span class="origin">src/web/pages/ui/plotting/base_plot.py:89</span></li>
-              <li><a href="#impl~ring5.data.semantic-units-247143080~0">impl~ring5.data.semantic-units-247143080~0</a> <span class="origin">src/web/pages/ui/plotting/plot_factory.py:140</span></li>
+              <li><a href="#impl~ring5.data.semantic-units-2647731443~0">impl~ring5.data.semantic-units-2647731443~0</a> <span class="origin">src/web/pages/ui/plotting/plot_factory.py:138</span></li>
               <li><a href="#impl~ring5.data.semantic-units-2694379961~0">impl~ring5.data.semantic-units-2694379961~0</a> <span class="origin">ring5/_session.py:1604</span></li>
               <li><a href="#impl~ring5.data.semantic-units-2740182444~0">impl~ring5.data.semantic-units-2740182444~0</a> <span class="origin">src/core/services/managers/semantic_metadata_service.py:32</span></li>
               <li><a href="#impl~ring5.data.semantic-units-3402635879~0">impl~ring5.data.semantic-units-3402635879~0</a> <span class="origin">src/core/services/data_services/portfolio_service.py:99</span></li>
               <li><a href="#impl~ring5.data.semantic-units-366528578~0">impl~ring5.data.semantic-units-366528578~0</a> <span class="origin">src/core/services/managers/semantic_metadata_service.py:62</span></li>
               <li><a href="#impl~ring5.data.semantic-units-4017727021~0">impl~ring5.data.semantic-units-4017727021~0</a> <span class="origin">src/core/state/repositories/session_repository.py:84</span></li>
-              <li><a href="#impl~ring5.data.semantic-units-4172112528~0">impl~ring5.data.semantic-units-4172112528~0</a> <span class="origin">src/web/pages/ui/plotting/base_plot.py:206</span></li>
               <li><a href="#impl~ring5.data.semantic-units-4226587152~0">impl~ring5.data.semantic-units-4226587152~0</a> <span class="origin">ring5/_session.py:1635</span></li>
               <li><a href="#impl~ring5.data.semantic-units-873198156~0">impl~ring5.data.semantic-units-873198156~0</a> <span class="origin">src/core/models/semantic_metadata_models.py:14</span></li>
               <li><a href="#test~ring5.data.semantic-units-1508487049~0">test~ring5.data.semantic-units-1508487049~0</a> <span class="origin">tests/integration/test_ring5_public_api.py:426</span></li>
@@ -25342,11 +25343,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="test~ring5.figure.histogram-controls-1242201046~0">
+      <section class="sitem" id="test~ring5.figure.histogram-controls-3468901135~0">
         <details>
-          <summary title="test~ring5.figure.histogram-controls-1242201046~0"><span class="green">&check;</span> <b>ring5.figure.histogram-controls-1242201046</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.figure.histogram-controls-1242201046~0</p>
-          <p class="origin">tests/unit/test_stacked_histogram_config.py:249</p>
+          <summary title="test~ring5.figure.histogram-controls-3468901135~0"><span class="green">&check;</span> <b>ring5.figure.histogram-controls-3468901135</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.figure.histogram-controls-3468901135~0</p>
+          <p class="origin">tests/unit/test_stacked_histogram_config.py:243</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -25355,28 +25356,15 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="test~ring5.figure.histogram-controls-2553852976~0">
+      <section class="sitem" id="test~ring5.figure.histogram-controls-3488766233~0">
         <details>
-          <summary title="test~ring5.figure.histogram-controls-2553852976~0"><span class="green">&check;</span> <b>ring5.figure.histogram-controls-2553852976</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.figure.histogram-controls-2553852976~0</p>
-          <p class="origin">tests/unit/test_stacked_histogram_config.py:275</p>
+          <summary title="test~ring5.figure.histogram-controls-3488766233~0"><span class="green">&check;</span> <b>ring5.figure.histogram-controls-3488766233</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.figure.histogram-controls-3488766233~0</p>
+          <p class="origin">tests/unit/test_stacked_histogram_config.py:269</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
               <li><a href="#req~ring5.figure.histogram-controls~1">req~ring5.figure.histogram-controls~1</a> <span class="origin">spec/oft/generated/requirements.md:1939</span></li>
-            </ul>
-          </div>
-        </details>
-      </section>
-      <section class="sitem" id="test~ring5.figure.histogram-cumulative-349371004~0">
-        <details>
-          <summary title="test~ring5.figure.histogram-cumulative-349371004~0"><span class="green">&check;</span> <b>ring5.figure.histogram-cumulative-349371004</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.figure.histogram-cumulative-349371004~0</p>
-          <p class="origin">tests/unit/test_stacked_histogram_config.py:349</p>
-          <div class="out">
-            <h6>Out: 1</h6>
-            <ul>
-              <li><a href="#req~ring5.figure.histogram-cumulative~1">req~ring5.figure.histogram-cumulative~1</a> <span class="origin">spec/oft/generated/requirements.md:2023</span></li>
             </ul>
           </div>
         </details>
@@ -25386,6 +25374,19 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <summary title="test~ring5.figure.histogram-cumulative-3635084194~0"><span class="green">&check;</span> <b>ring5.figure.histogram-cumulative-3635084194</b><small>, rev. 0, test</small></summary>
           <p class="id">test~ring5.figure.histogram-cumulative-3635084194~0</p>
           <p class="origin">tests/integration/test_histogram_plot_integration.py:248</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.figure.histogram-cumulative~1">req~ring5.figure.histogram-cumulative~1</a> <span class="origin">spec/oft/generated/requirements.md:2023</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="test~ring5.figure.histogram-cumulative-854868339~0">
+        <details>
+          <summary title="test~ring5.figure.histogram-cumulative-854868339~0"><span class="green">&check;</span> <b>ring5.figure.histogram-cumulative-854868339</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.figure.histogram-cumulative-854868339~0</p>
+          <p class="origin">tests/unit/test_stacked_histogram_config.py:343</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -25524,19 +25525,6 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="test~ring5.figure.line-styles-1034677257~0">
-        <details>
-          <summary title="test~ring5.figure.line-styles-1034677257~0"><span class="green">&check;</span> <b>ring5.figure.line-styles-1034677257</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.figure.line-styles-1034677257~0</p>
-          <p class="origin">tests/unit/test_simple_plots.py:235</p>
-          <div class="out">
-            <h6>Out: 1</h6>
-            <ul>
-              <li><a href="#req~ring5.figure.line-styles~1">req~ring5.figure.line-styles~1</a> <span class="origin">spec/oft/generated/requirements.md:2135</span></li>
-            </ul>
-          </div>
-        </details>
-      </section>
       <section class="sitem" id="test~ring5.figure.line-styles-1506825719~0">
         <details>
           <summary title="test~ring5.figure.line-styles-1506825719~0"><span class="green">&check;</span> <b>ring5.figure.line-styles-1506825719</b><small>, rev. 0, test</small></summary>
@@ -25568,6 +25556,19 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <summary title="test~ring5.figure.line-styles-2246916638~0"><span class="green">&check;</span> <b>ring5.figure.line-styles-2246916638</b><small>, rev. 0, test</small></summary>
           <p class="id">test~ring5.figure.line-styles-2246916638~0</p>
           <p class="origin">tests/integration/test_line_styles_public_api.py:27</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.figure.line-styles~1">req~ring5.figure.line-styles~1</a> <span class="origin">spec/oft/generated/requirements.md:2135</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="test~ring5.figure.line-styles-2572272976~0">
+        <details>
+          <summary title="test~ring5.figure.line-styles-2572272976~0"><span class="green">&check;</span> <b>ring5.figure.line-styles-2572272976</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.figure.line-styles-2572272976~0</p>
+          <p class="origin">tests/unit/test_simple_plots.py:216</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -25771,11 +25772,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="test~ring5.figure.plot-filtering-1947873836~0">
+      <section class="sitem" id="test~ring5.figure.plot-filtering-2784249294~0">
         <details>
-          <summary title="test~ring5.figure.plot-filtering-1947873836~0"><span class="green">&check;</span> <b>ring5.figure.plot-filtering-1947873836</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.figure.plot-filtering-1947873836~0</p>
-          <p class="origin">tests/unit/test_stacked_histogram_config.py:386</p>
+          <summary title="test~ring5.figure.plot-filtering-2784249294~0"><span class="green">&check;</span> <b>ring5.figure.plot-filtering-2784249294</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.figure.plot-filtering-2784249294~0</p>
+          <p class="origin">tests/unit/test_interactive_filters.py:27</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -25784,11 +25785,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="test~ring5.figure.plot-filtering-2784249294~0">
+      <section class="sitem" id="test~ring5.figure.plot-filtering-521069569~0">
         <details>
-          <summary title="test~ring5.figure.plot-filtering-2784249294~0"><span class="green">&check;</span> <b>ring5.figure.plot-filtering-2784249294</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.figure.plot-filtering-2784249294~0</p>
-          <p class="origin">tests/unit/test_interactive_filters.py:27</p>
+          <summary title="test~ring5.figure.plot-filtering-521069569~0"><span class="green">&check;</span> <b>ring5.figure.plot-filtering-521069569</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.figure.plot-filtering-521069569~0</p>
+          <p class="origin">tests/unit/test_stacked_histogram_config.py:373</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -27630,11 +27631,11 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="test~ring5.plot.line-3586726~0">
+      <section class="sitem" id="test~ring5.plot.line-3042648786~0">
         <details>
-          <summary title="test~ring5.plot.line-3586726~0"><span class="green">&check;</span> <b>ring5.plot.line-3586726</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.plot.line-3586726~0</p>
-          <p class="origin">tests/unit/test_bar_line_create_figure.py:127</p>
+          <summary title="test~ring5.plot.line-3042648786~0"><span class="green">&check;</span> <b>ring5.plot.line-3042648786</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.plot.line-3042648786~0</p>
+          <p class="origin">tests/unit/test_bar_line_create_figure.py:119</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -28709,11 +28710,24 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
-      <section class="sitem" id="test~ring5.portfolio.example-catalog-3681766947~0">
+      <section class="sitem" id="test~ring5.portfolio.example-catalog-2366664727~0">
         <details>
-          <summary title="test~ring5.portfolio.example-catalog-3681766947~0"><span class="green">&check;</span> <b>ring5.portfolio.example-catalog-3681766947</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.portfolio.example-catalog-3681766947~0</p>
-          <p class="origin">tests/unit/test_generate_example_portfolio.py:45</p>
+          <summary title="test~ring5.portfolio.example-catalog-2366664727~0"><span class="green">&check;</span> <b>ring5.portfolio.example-catalog-2366664727</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.portfolio.example-catalog-2366664727~0</p>
+          <p class="origin">tests/unit/test_generate_example_portfolio.py:66</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.portfolio.example-catalog~1">req~ring5.portfolio.example-catalog~1</a> <span class="origin">spec/oft/generated/requirements.md:2391</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
+      <section class="sitem" id="test~ring5.portfolio.example-catalog-3969096529~0">
+        <details>
+          <summary title="test~ring5.portfolio.example-catalog-3969096529~0"><span class="green">&check;</span> <b>ring5.portfolio.example-catalog-3969096529</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.portfolio.example-catalog-3969096529~0</p>
+          <p class="origin">tests/unit/test_generate_example_portfolio.py:87</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>
@@ -34097,7 +34111,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
     </section>
   </main>
   <nav>
-    <span class="green">&check;</span> 1943 total <meter value="1943" max="1943">100%</meter> | <a href="#feat">feat</a> &middot; <a href="#impl">impl</a> &middot; <a href="#req">req</a> &middot; <a href="#test">test</a> &middot; <a href="#uman">uman</a>  </nav>
+    <span class="green">&check;</span> 1944 total <meter value="1944" max="1944">100%</meter> | <a href="#feat">feat</a> &middot; <a href="#impl">impl</a> &middot; <a href="#req">req</a> &middot; <a href="#test">test</a> &middot; <a href="#uman">uman</a>  </nav>
 
 <script>
 (() => {

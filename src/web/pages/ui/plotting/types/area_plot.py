@@ -159,11 +159,5 @@ class AreaPlot(BasePlot):
                 baseline = upper
         return TraceBuildResult(traces=traces)
 
-    @override
-    def get_legend_column(self, config: PlotConfig) -> str | None:
-        """Return the optional color grouping column."""
-        color = config.get("color")
-        return str(color) if color else None
-
 
 __all__ = ["AreaPlot"]

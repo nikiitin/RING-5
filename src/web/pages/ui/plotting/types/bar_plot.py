@@ -71,9 +71,3 @@ class BarPlot(BasePlot):
 
         traces = build_color_grouped_traces(data, config, _make_trace)
         return TraceBuildResult(traces=traces)
-
-    @override
-    def get_legend_column(self, config: PlotConfig) -> str | None:
-        """Get legend column for bar plot."""
-        result = config.get("color")
-        return str(result) if result is not None else None

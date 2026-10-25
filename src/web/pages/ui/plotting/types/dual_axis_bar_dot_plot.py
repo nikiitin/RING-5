@@ -396,11 +396,3 @@ class DualAxisBarDotPlot(BasePlot):
             )
 
         return config
-
-    # Legend column
-
-    @override
-    def get_legend_column(self, config: PlotConfig) -> str | None:
-        """Get the column used for legend grouping."""
-        result: str | None = config.get("color")
-        return str(result) if result is not None else None

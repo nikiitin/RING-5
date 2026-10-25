@@ -2192,7 +2192,8 @@
           "scripts/generate_example_portfolio.py::generate_example_portfolio"
         ],
         "tests": [
-          "tests/unit/test_generate_example_portfolio.py::test_every_registered_plot_example_renders"
+          "tests/unit/test_generate_example_portfolio.py::test_every_registered_plot_example_renders",
+          "tests/unit/test_generate_example_portfolio.py::test_generated_portfolio_round_trips"
         ],
         "documentation": [
           "docs/user-guide/workflows/portfolios.md#generate-the-example-portfolio"

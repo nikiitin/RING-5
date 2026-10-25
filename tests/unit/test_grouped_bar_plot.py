@@ -118,12 +118,6 @@ def test_create_figure_with_error_bars_and_filters(sample_data: Any) -> None:
     assert error_y.array is not None
 
 
-def test_get_legend_column() -> None:
-    plot = GroupedBarPlot(1, "Test Plot")
-    assert plot.get_legend_column({"group": "G"}) == "G"
-    assert plot.get_legend_column({}) is None
-
-
 def test_render_advanced_options_filtering(sample_data: Any) -> None:
 
     plot = GroupedBarPlot(1, "Test Plot")

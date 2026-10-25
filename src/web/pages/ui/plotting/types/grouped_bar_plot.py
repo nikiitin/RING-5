@@ -198,9 +198,3 @@ class GroupedBarPlot(BasePlot):
             shaded_regions=coord_result["shaded_regions"],
             custom_x_ticks={"vals": tick_vals, "text": tick_text},
         )
-
-    @override
-    def get_legend_column(self, config: PlotConfig) -> str | None:
-        """Get legend column for grouped bar plot."""
-        result = config.get("group")
-        return str(result) if result is not None else None

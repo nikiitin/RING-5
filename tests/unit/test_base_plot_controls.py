@@ -21,10 +21,6 @@ class ConcretePlot(BasePlot):
 
         return TraceBuildResult(traces=[])
 
-    def get_legend_column(self, config: Any) -> None:
-
-        return None
-
 
 @pytest.fixture
 def mock_streamlit() -> Generator[None, None, None]:

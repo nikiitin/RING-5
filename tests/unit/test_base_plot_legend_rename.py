@@ -17,10 +17,6 @@ class ConcretePlot(BasePlot):
 
         return TraceBuildResult(traces=[])
 
-    def get_legend_column(self, config: Any) -> str:
-
-        return "col"
-
 
 @pytest.fixture
 def concrete_plot() -> ConcretePlot:

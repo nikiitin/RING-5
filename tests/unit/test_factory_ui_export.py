@@ -55,9 +55,6 @@ class TestPlotFactory:
 
                 return TraceBuildResult(traces=[])
 
-            def get_legend_column(self, config: dict[str, Any]) -> None:
-                return None
-
         PlotFactory.register_plot_type("custom", CustomPlot)
         plot = PlotFactory.create_plot("custom", 1, "test_custom")
         assert plot is not None

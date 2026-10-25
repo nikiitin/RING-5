@@ -53,9 +53,3 @@ class ScatterPlot(BasePlot):
 
         traces = build_color_grouped_traces(data, config, _make_trace)
         return TraceBuildResult(traces=traces)
-
-    @override
-    def get_legend_column(self, config: PlotConfig) -> str | None:
-        """Get legend column for scatter plot."""
-        result = config.get("color")
-        return str(result) if result is not None else None

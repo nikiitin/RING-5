@@ -60,10 +60,6 @@ def test_parallel_coordinates_preserve_order_encoding_ranges_and_brushes() -> No
     assert trace.colorscale == "Cividis" and trace.reverse_colorscale
     assert trace.unselected_opacity == 0.12
     assert len(trace.custom_data["drilldown"]) == 3
-    assert (
-        ParallelCoordinatesPlot(1, "Profiles").get_legend_column({"parallel_color": "profile"})
-        == "profile"
-    )
     pd.testing.assert_frame_equal(data, original)
 
 
@@ -87,7 +83,6 @@ def test_parallel_coordinates_support_uniform_color_and_single_category_axis() -
     assert trace.line_color_values is None
     assert trace.line_color == "#abcdef"
     assert not trace.show_colorbar
-    assert ParallelCoordinatesPlot(2, "Uniform").get_legend_column({}) is None
 
 
 @pytest.mark.parametrize(

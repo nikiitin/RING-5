@@ -234,28 +234,6 @@ class TestHistogramPlotFigureCreation:
         assert len(list(fig.data)) > 0
 
 
-class TestHistogramPlotLegend:
-    """Test histogram plot legend handling."""
-
-    def test_get_legend_column_no_grouping(self) -> None:
-        """Test legend column when no grouping."""
-        plot = HistogramPlot(plot_id=1, name="Test Histogram")
-
-        config = {"group_by": None}
-        legend_col = plot.get_legend_column(config)
-
-        assert legend_col is None
-
-    def test_get_legend_column_with_grouping(self) -> None:
-        """Test legend column with grouping variable."""
-        plot = HistogramPlot(plot_id=1, name="Test Histogram")
-
-        config = {"group_by": "benchmark"}
-        legend_col = plot.get_legend_column(config)
-
-        assert legend_col == "benchmark"
-
-
 class TestHistogramPlotValidation:
     """Test histogram plot validation."""
 

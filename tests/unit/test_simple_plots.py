@@ -119,18 +119,6 @@ class TestBarPlotCreateFigure:
         assert isinstance(fig, go.Figure)
         assert len(list(fig.data)) > 0
 
-    def test_get_legend_column_none(self) -> None:
-        from src.web.pages.ui.plotting.types.bar_plot import BarPlot
-
-        plot = BarPlot(1, "test")
-        assert plot.get_legend_column({}) is None
-
-    def test_get_legend_column_set(self) -> None:
-        from src.web.pages.ui.plotting.types.bar_plot import BarPlot
-
-        plot = BarPlot(1, "test")
-        assert plot.get_legend_column({"color": "benchmark"}) == "benchmark"
-
 
 class TestLinePlotRenderConfigUI:
     """Tests for line-plot configuration controls."""
@@ -218,13 +206,6 @@ class TestLinePlotCreateFigure:
         }
         fig = plot.create_figure(sample_df, config)
         assert isinstance(fig, go.Figure)
-
-    def test_get_legend_column(self) -> None:
-        from src.web.pages.ui.plotting.types.line_plot import LinePlot
-
-        plot = LinePlot(1, "test")
-        assert plot.get_legend_column({}) is None
-        assert plot.get_legend_column({"color": "config"}) == "config"
 
 
 class TestLinePlotAdvancedOptions:
@@ -373,10 +354,3 @@ class TestScatterPlotCreateFigure:
         }
         fig = plot.create_figure(sample_df, config)
         assert isinstance(fig, go.Figure)
-
-    def test_get_legend_column(self) -> None:
-        from src.web.pages.ui.plotting.types.scatter_plot import ScatterPlot
-
-        plot = ScatterPlot(1, "test")
-        assert plot.get_legend_column({}) is None
-        assert plot.get_legend_column({"color": "benchmark"}) == "benchmark"

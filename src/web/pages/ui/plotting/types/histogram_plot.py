@@ -150,20 +150,6 @@ class HistogramPlot(BasePlot):
             traces=traces, barmode="overlay" if group_by else "relative", custom_x_ticks=ticks
         )
 
-    @override
-    def get_legend_column(self, config: PlotConfig) -> str | None:
-        """
-        Get legend column for histogram plot.
-
-        Args:
-            config: Plot configuration
-
-        Returns:
-            Column name for legend grouping, or None
-        """
-        result = config.get("group_by")
-        return str(result) if result is not None else None
-
     # ========== Helper Methods ==========
 
     def _detect_histogram_variables(self, data: pd.DataFrame) -> list[str]:

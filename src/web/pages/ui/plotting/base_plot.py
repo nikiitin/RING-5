@@ -169,37 +169,9 @@ class BasePlot(PlotConfigUIMixin, ABC):
         """
         self.source_data = copy_dataframe(data) if data is not None else None
 
-    @abstractmethod
-    def get_legend_column(self, config: PlotConfig) -> str | None:
-        """
-        Get the column name used for legend/color coding.
-
-        Args:
-            config: Configuration dictionary
-
-        Returns:
-            Column name or None
-        """
-
     def apply_common_layout(self, fig: go.Figure, config: PlotConfig) -> go.Figure:
         """Apply common layout settings via StyleApplicator."""
         return self._applicator.apply_styles(fig, config)
-
-    def generate_figure(self) -> go.Figure:
-        """
-        Generate and cache the final Plotly figure.
-
-        Calls create_figure (which relabels legend names engine-agnostically)
-        then apply_common_layout.
-        """
-        if self.processed_data is None:
-            raise ValueError(f"Plot '{self.name}' has no processed data.")
-
-        fig = self.create_figure(self.processed_data, self.config)
-        fig = self.apply_common_layout(fig, self.config)
-        self.last_generated_fig = fig
-        self.last_figure_cache_key = None
-        return fig
 
     def to_dict(self) -> dict[str, Any]:
         # [impl->req~ring5.portfolio.save~1]

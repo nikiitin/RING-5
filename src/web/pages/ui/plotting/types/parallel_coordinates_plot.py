@@ -191,11 +191,5 @@ class ParallelCoordinatesPlot(BasePlot):
         )
         return TraceBuildResult(traces=[trace])
 
-    @override
-    def get_legend_column(self, config: PlotConfig) -> str | None:
-        """Return the optional line-color column."""
-        color = config.get("parallel_color")
-        return str(color) if color else None
-
 
 __all__ = ["ParallelCoordinatesPlot"]

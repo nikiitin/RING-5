@@ -74,7 +74,6 @@ def test_overlay_interpolates_missing_values_and_keeps_zero_baseline() -> None:
     assert memory.fill == "tozeroy"
     assert memory.fill_base == [0.0, 0.0, 0.0]
     assert memory.opacity == 0.7
-    assert AreaPlot(2, "Area").get_legend_column({"color": "component"}) == "component"
 
 
 def test_stacked_gap_treats_missing_contribution_as_zero_thickness() -> None:
@@ -84,7 +83,6 @@ def test_stacked_gap_treats_missing_contribution_as_zero_thickness() -> None:
     )
 
     assert result.traces[-1].y == [4.0, 4.0, 9.0]
-    assert AreaPlot(3, "Area").get_legend_column({}) is None
 
 
 @pytest.mark.parametrize(
