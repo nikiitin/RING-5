@@ -206,3 +206,44 @@ def test_rejected_result_or_context_does_not_replace_an_owned_review_record(
         repository.set_preview("owned", pd.DataFrame({"v": [99.0]}), context=None)
     pd.testing.assert_frame_equal(repository.get_preview("owned"), result)
     assert repository.get_preview_context("owned") == preview_context
+
+
+@pytest.mark.parametrize("name", _NAMES)
+@pytest.mark.parametrize("revert", ["undo", "redo", "restore"])
+def test_inflight_named_result_rejects_change_and_revert_to_its_captured_revision(
+    api: ApplicationAPI, name: str, revert: str
+) -> None:
+    # [test->req~ring5.data.preview-confirm~1]
+    intermediate = pd.DataFrame({"key": ["a"], "v": [50.0 if name == "baseline" else 5.0]})
+    if revert == "redo":
+        original = api.get_dataset(name)
+        api.add_dataset(name, intermediate, select=False, replace=True)
+        api.add_dataset(name, original, select=False, replace=True)
+    captured, prior = _store(api)
+    before = next(source for source in captured.sources if source.dataset_name == name)
+    if revert == "redo":
+        api.undo_dataset(name)
+    else:
+        api.add_dataset(name, intermediate, select=False, replace=True)
+    transient = api.compare_datasets(*_NAMES, ["key"], ["v"])
+    assert transient["outcome"].tolist() == ["regression"]
+    if revert == "undo":
+        api.undo_dataset(name)
+    elif revert == "redo":
+        api.redo_dataset(name)
+    else:
+        api.restore_dataset_revision(before.revision_id)
+    fresh = api.capture_preview_inputs(_NAMES)
+    assert isinstance(fresh, DatasetPreviewInputs)
+    after = next(source for source in fresh.sources if source.dataset_name == name)
+    assert after.revision_id == before.revision_id
+    assert after.workspace_generation == before.workspace_generation
+    assert after.mutation_version > before.mutation_version
+    assert fresh != captured
+    with pytest.raises(ValueError, match="source changed during computation"):
+        api.set_preview("comparison", transient, operation_config=_OPTIONS, inputs=captured)
+    assert api.get_preview("comparison") is None
+    pd.testing.assert_frame_equal(api.state_manager.get_preview("comparison"), prior)
+    _, corrected = _store(api)
+    assert corrected["outcome"].tolist() == ["improvement"]
+    pd.testing.assert_frame_equal(api.get_preview("comparison"), corrected)

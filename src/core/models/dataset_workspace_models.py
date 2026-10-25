@@ -25,6 +25,7 @@ class DatasetInputIdentity:
     workspace_generation: str
     dataset_name: str
     revision_id: str
+    mutation_version: int
 
 
 @dataclass(frozen=True, slots=True)

@@ -78,7 +78,8 @@ required. Publication rejects changed sources. `get_preview` returns an owned fr
 its captured sources remain current; `preview_matches` additionally checks current options.
 `confirm_preview` applies only an active-source transformation. Named comparison previews are
 for display and cannot replace active data. Named identities include the workspace generation,
-so reset, restore and another session cannot reuse an earlier capture.
+so reset, restore and another session cannot reuse an earlier capture. Their monotonic mutation
+identity also rejects work spanning a source change and undo to the captured revision.
 
 
 ## Change rules

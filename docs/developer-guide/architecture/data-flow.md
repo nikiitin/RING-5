@@ -146,7 +146,8 @@ Data-manager previews retain one owned result and its required input and option 
 `api.capture_preview_inputs()` before numerical work and pass those identities with
 `operation_config` to `api.set_preview`. Active-source identities include their version and content
 signature. For named comparisons, pass the ordered dataset names to capture their workspace
-generation and revision identities. Generation changes across reset and restore, so reused names
+generation, revision and monotonic per-dataset mutation identities. A source changed and undone
+also invalidates work captured before that change. Generation changes across reset and restore, so reused names
 or revision numbers cannot authorize an earlier computation.
 
 Computation runs outside the state transaction. Publication rechecks captured identities, and

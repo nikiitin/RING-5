@@ -581,6 +581,7 @@
           "tests/unit/test_preprocessor.py::TestPreprocessorRender.test_confirm_applies_data",
           "tests/unit/test_mixer_manager.py::TestMixerRender.test_confirm_applies_data",
           "tests/unit/test_preview_input_scopes.py::test_pre_reset_named_inputs_cannot_publish_against_reused_names_and_revision_ids",
+          "tests/unit/test_preview_input_scopes.py::test_inflight_named_result_rejects_change_and_revert_to_its_captured_revision",
           "tests/ui/test_preview_input_scopes.py::test_changed_comparison_controls_hide_stale_results_until_recomputed"
         ],
         "documentation": [
