@@ -51,7 +51,9 @@ def test_portfolio_environment_errors_remain_in_public_error_hierarchy(
     (portfolios_dir / "bad_environment.json").write_text(
         json.dumps(portfolio_document(environment_metadata={"format_version": 999}))
     )
-    (portfolios_dir / "future_environment.json").write_text(json.dumps({"schema_version": 8}))
+    (portfolios_dir / "future_environment.json").write_text(
+        json.dumps({"schema_version": CURRENT_PORTFOLIO_SCHEMA_VERSION + 1})
+    )
 
     with ring5.Session() as session:
         with pytest.raises(ring5.PortfolioError, match="invalid environment metadata"):

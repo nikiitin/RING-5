@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from src.core.models.portfolio_contract import CURRENT_PORTFOLIO_SCHEMA_VERSION
+
 import json
 from pathlib import Path
 from typing import cast, get_args
@@ -798,7 +800,9 @@ class TestPortfolioReplay:
     def test_future_portfolio_refused(self, tmp_path: Path, portfolios_dir: Path) -> None:
         # [test->req~ring5.portfolio.schema~1]
         """Forward-version files are refused, never silently downgraded."""
-        (portfolios_dir / "future.json").write_text(json.dumps({"schema_version": 8}))
+        (portfolios_dir / "future.json").write_text(
+            json.dumps({"schema_version": CURRENT_PORTFOLIO_SCHEMA_VERSION + 1})
+        )
         with pytest.raises(
             ring5.PortfolioVersionError, match="Unsupported portfolio schema_version"
         ):

@@ -86,8 +86,8 @@ def test_current_portfolio_rejects_incomplete_scan_metadata(missing) -> None:
     }
     record.pop(missing)
     value = {
-        "schema_version": 7,
-        "version": "7.0",
+        "schema_version": CURRENT_PORTFOLIO_SCHEMA_VERSION,
+        "version": CURRENT_PORTFOLIO_VERSION,
         "parser_strategy": "simple",
         "simulator": "gem5",
         "environment_metadata": {},

@@ -11,7 +11,17 @@ import ring5
 pytestmark = [pytest.mark.public_api, pytest.mark.xdist_group("ring5_portfolios")]
 
 
-@pytest.mark.parametrize("version", [None, 1, 2, 3, 4, 5, 6, 8, "7", 7.0, True])
+@pytest.mark.parametrize(
+    "version",
+    [
+        None,
+        *range(CURRENT_PORTFOLIO_SCHEMA_VERSION),
+        CURRENT_PORTFOLIO_SCHEMA_VERSION + 1,
+        str(CURRENT_PORTFOLIO_SCHEMA_VERSION),
+        float(CURRENT_PORTFOLIO_SCHEMA_VERSION),
+        True,
+    ],
+)
 def test_obsolete_schema_is_rejected_before_state_changes(portfolios_dir: Path, version) -> None:
     # [test->req~ring5.portfolio.schema~1]
     with ring5.Session() as session:
