@@ -64,9 +64,9 @@ def test_matplotlib_render_does_not_invoke_plotly_builder(
         fig = session.render(plot, engine="matplotlib")
         assert isinstance(fig, MplFigure)
         assert len(fig.axes) >= 1
-        assert plot.last_generated_fig is fig
-        assert plot.last_figure_spec is cast(Any, fig)._ring5_spec
-        assert plot.last_traces is not None
+        assert plot.render_artifact.figure is fig
+        assert plot.render_artifact.figure_spec is cast(Any, fig)._ring5_spec
+        assert plot.render_artifact.trace_result is not None
         assert plot.render_artifact.engine == "matplotlib"
         assert [cast(Rectangle, bar).get_height() for bar in fig.axes[0].patches] == [
             1.0,

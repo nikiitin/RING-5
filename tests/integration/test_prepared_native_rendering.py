@@ -276,8 +276,11 @@ def test_native_artifact_keeps_user_annotations_equal_to_dual_titles(
         assert plot.render_artifact.figure is native
         figure = cast(Any, native)
         assert plot.render_artifact.engine == engine
-        assert plot.last_traces is not None
-        assert [list(trace.y) for trace in plot.last_traces.traces] == [[2.0, 5.0], [4.0, 10.0]]
+        assert plot.render_artifact.trace_result is not None
+        assert [list(trace.y) for trace in plot.render_artifact.trace_result.traces] == [
+            [2.0, 5.0],
+            [4.0, 10.0],
+        ]
         try:
             if engine == "plotly":
                 assert sum(ann.text == "Rate" for ann in figure.layout.annotations) == 3
@@ -443,7 +446,11 @@ def test_invalid_native_heatmap_range_keeps_previous_artifacts_and_no_pyplot_man
     with ring5.Session() as session:
         plot = session.create_plot("grouped_stacked_bar", data=_data(), config=_config(False))
         session.render(plot, engine="plotly")
-        prior = (plot.last_generated_fig, plot.last_traces, deepcopy(plot.config))
+        prior = (
+            plot.render_artifact.figure,
+            plot.render_artifact.trace_result,
+            deepcopy(plot.config),
+        )
         before = set(plt.get_fignums())
         monkeypatch.setattr(
             plot,
@@ -464,8 +471,8 @@ def test_invalid_native_heatmap_range_keeps_previous_artifacts_and_no_pyplot_man
         )
         with pytest.raises(ring5.RenderError):
             session.render(plot, engine="matplotlib")
-        assert plot.last_generated_fig is prior[0]
-        assert plot.last_traces is prior[1]
+        assert plot.render_artifact.figure is prior[0]
+        assert plot.render_artifact.trace_result is prior[1]
         assert plot.config == prior[2]
         assert set(plt.get_fignums()) == before
 
@@ -609,8 +616,8 @@ def test_public_heatmap_facets_use_bottom_only_explicit_tick_visibility(
             },
         )
         native = cast(Any, session.render(plot, engine=engine))
-        assert plot.last_traces is not None
-        names = [trace.name for trace in plot.last_traces.traces]
+        assert plot.render_artifact.trace_result is not None
+        names = [trace.name for trace in plot.render_artifact.trace_result.traces]
         try:
             if engine == "plotly":
                 assert (native.layout.width, native.layout.height) == (800, 600)

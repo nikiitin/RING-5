@@ -82,7 +82,7 @@ def test_public_annotation_failures_preserve_the_published_native_figure(
             config={"x": "x", "y": "y"},
         )
         session.render(plot, engine=engine)
-        published = plot.last_generated_fig
+        published = plot.render_artifact.figure
         monkeypatch.setattr(
             plot,
             "create_traces",
@@ -93,7 +93,7 @@ def test_public_annotation_failures_preserve_the_published_native_figure(
         )
         with pytest.raises(ring5.RenderError, match="Unsupported annotation type"):
             session.render(plot, engine=engine)
-        assert plot.last_generated_fig is published
+        assert plot.render_artifact.figure is published
     assert set(plt.get_fignums()) == before
 
 
