@@ -227,9 +227,9 @@ def test_manager_operations_preserve_dataframe_and_table() -> None:
     frame = pd.DataFrame({"a": [2.0, 4.0], "b": [1.0, 2.0], "a.sd": [0.3, 0.4], "b.sd": [0.4, 0.3]})
     original = frame.copy(deep=True)
     with ring5.Session() as session:
-        divided = session.apply_operation(frame, "Division", "a", "b", "ratio")
-        assert isinstance(divided, pd.DataFrame)
-        assert divided["ratio"].tolist() == [2.0, 2.0]
+        divided = session.apply_operation(ring5.Table(frame), "Division", "a", "b", "ratio")
+        assert isinstance(divided, ring5.Table)
+        assert divided.frame["ratio"].tolist() == [2.0, 2.0]
 
         mixed = session.mix_columns(ring5.Table(frame), "total", ["a", "b"])
         assert isinstance(mixed, ring5.Table)
@@ -237,9 +237,9 @@ def test_manager_operations_preserve_dataframe_and_table() -> None:
         assert mixed.rows()[0]["total.sd"] == pytest.approx(0.5)
 
         with pytest.raises(ring5.ColumnNotFoundError):
-            session.apply_operation(frame, "Sum", "missing", "b", "total")
+            session.apply_operation(ring5.Table(frame), "Sum", "missing", "b", "total")
         with pytest.raises(ring5.DataValidationError, match="Invalid operation"):
-            session.mix_columns(frame, "total", ["a", "b"], operation="Nope")
+            session.mix_columns(ring5.Table(frame), "total", ["a", "b"], operation="Nope")
 
     pd.testing.assert_frame_equal(frame, original)
 
@@ -324,7 +324,7 @@ def test_every_registered_plot_accepts_validated_config(
         }
     )
     with ring5.Session() as session:
-        plot = session.create_plot(plot_type, data=frame, config=config)
+        plot = session.create_plot(plot_type, data=ring5.Table(frame), config=config)
         assert plot.plot_type == plot_type
         assert session.render(plot, engine="plotly") is not None
         assert session.render(plot, engine="matplotlib") is not None
@@ -335,14 +335,14 @@ def test_invalid_plot_config_does_not_register_and_render_errors_are_typed() -> 
     frame = pd.DataFrame({"x": ["a"], "y": [1.0]})
     with ring5.Session() as session:
         with pytest.raises(ring5.DataValidationError, match="field 'y'"):
-            session.create_plot("bar", data=frame, config={"x": "x"})
+            session.create_plot("bar", data=ring5.Table(frame), config={"x": "x"})
         assert session.plots == []
 
         with pytest.raises(ring5.ColumnNotFoundError):
-            session.create_plot("bar", data=frame, config={"x": "x", "y": "missing"})
+            session.create_plot("bar", data=ring5.Table(frame), config={"x": "x", "y": "missing"})
         assert session.plots == []
 
-        plot = session.create_plot("bar", data=frame, config={"x": "x", "y": "y"})
+        plot = session.create_plot("bar", data=ring5.Table(frame), config={"x": "x", "y": "y"})
         plot.config = {"x": "x"}
         with pytest.raises(ring5.RenderError, match="Could not render plot") as error:
             session.render(plot, engine="plotly")

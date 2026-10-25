@@ -181,7 +181,7 @@ def _cmd_regression_gate(args: argparse.Namespace) -> int:
         payload = session.export_regression_results(comparison, args.format)
 
     _emit_regression_result(payload, args.output)
-    outcomes = set(comparison["outcome"].astype(str))
+    outcomes = {str(row["outcome"]) for row in comparison.rows()}
     if outcomes & _INCOMPLETE_REGRESSION_OUTCOMES:
         return 3
     return 1 if "regression" in outcomes else 0

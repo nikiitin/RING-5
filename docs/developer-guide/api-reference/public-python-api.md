@@ -50,14 +50,22 @@ Histogram `statistics_only=True` extracts only configured summaries and retains 
 as NaN. Saved editor drafts remain editable, while jobs and analysis recipes require runnable
 configurations.
 
-`Session.load` returns a DataFrame. `shape`,
-`reduce_seeds`, `remove_outliers`, `apply_operation`, and `mix_columns` preserve `ring5.Table` when
-given one. `Session.compare` returns a `Table` when both baseline and candidate inputs are tables;
-otherwise it returns a DataFrame.
+Declared Session data methods use `ring5.Table`. `load`, `load_import`, dataset getters, joins,
+appends and comparisons return independently owned tables. Transformation, quality, schema,
+semantics, comparison and plot-data arguments require tables. Both operands of `compare` and
+`compare_statistics` are tables; `create_report` accepts `Mapping[str, Table]` for its display tables.
+Methods that return metadata, reports, jobs, figure handles or exported bytes retain those result
+types.
+
+`Table.from_rows` constructs a table without pandas. `Table(frame)` and `table.frame` are explicit
+pandas entry and exit points that copy their data, including nested object cells and semantic
+metadata. `Session.api` remains an advanced Core interoperability boundary with its documented
+pandas-based service and state contracts. It is separate from the declared Session data methods.
 
 `Session.background_jobs` returns immutable `BackgroundJobInfo` snapshots for tracked scan, parse,
 transformation, and export work. `shape_submit` and `export_submit` add retryable work and retain
 successful results for `background_job_result`; parser results remain on their original handles.
+Successful transformation jobs publish a `Table` through `background_job_result`.
 `cancel_background_job` reports a running cancellation request as `cancelling`,
 `retry_background_job` reuses the stable job identity with a higher attempt, and
 `dismiss_finished_background_jobs` releases terminal records and retained results.
@@ -74,7 +82,7 @@ invalid columns, duplicate keys, and invalid options raise `DataValidationError`
 
 `Session.annotate_comparison` copies a threshold-comparison result and adds plot-ready labels,
 signed changes, outcome text, accessible symbols, Plotly marker names, and color-blind-safe colors.
-It preserves `ring5.Table` inputs. Callers can follow the stored threshold mode or explicitly select
+It accepts and returns `ring5.Table`. Callers can follow the stored threshold mode or explicitly select
 percentage or absolute changes; malformed comparison schemas raise `DataValidationError`.
 
 `Session.compare_statistics` accepts repeated observations and optional grouping columns. It
@@ -82,10 +90,12 @@ returns Welch confidence intervals and p-values, Hedges' g, deterministic bootst
 intervals, and sample-quality warnings. Confidence, alpha, bootstrap count, seed, and the
 small-sample threshold are explicit parameters. Invalid options raise `DataValidationError`.
 
-`Session.profile_data` returns an immutable `DataQualityReport` for a DataFrame or `ring5.Table`.
+`Session.profile_data` returns an immutable `DataQualityReport` for a `ring5.Table`.
 Dataset counts remain scalar fields; `columns` contains immutable `ColumnQuality` records and
 `to_frame()` creates a new DataFrame for display or export. Optional expected types validate finite
 values without conflating invalid values with missing cells.
+`DatasetSemantics`, `DatasetSchemaContract`, `SchemaValidationReport`, and `AccessibilityReport`
+also retain their explicit `to_frame()` conversions for display or external pandas work.
 
 `ColumnContract` declares required presence, data type, nullability, finite numeric bounds, and
 accepted scalar values. `DatasetSchemaContract` groups unique column rules and controls unexpected
@@ -99,9 +109,9 @@ Each `SchemaViolation` includes a rule, column, affected-row count, and at most 
 
 `Session.add_dataset` retains a defensive copy in a named, in-memory workspace and returns a
 `DatasetInfo`. `list_datasets`, `get_dataset`, `select_dataset`, and `remove_dataset` manage that
-workspace. `compare_datasets` leaves both sources unchanged; `join_datasets` and `append_datasets`
-store their result under a separate name. The selected dataset remains the compatibility view used
-by existing plot, transformation, and portfolio APIs.
+workspace. Dataset getters return an owned `Table`. `compare_datasets` leaves both sources
+unchanged; `join_datasets` and `append_datasets` store their result under a separate name and return
+a table. The selected dataset supplies the active plot, transformation and portfolio workspace.
 
 `Session.dataset_lineage` returns immutable `DatasetLineage` and `DatasetRevision` records with
 operation labels, source and parent ancestry, content fingerprints, and the current undo/redo
@@ -112,7 +122,7 @@ is session-owned and is cleared with the named workspace; portfolio persistence 
 `Session.diagnose_join` returns immutable `JoinDiagnostics` for an explicit key relationship,
 including duplicate rows and groups on each side, unmatched input rows, and matched distinct keys.
 `join_datasets_validated` repeats that validation immediately before joining, refuses incompatible
-cardinality without storing output, and returns `(DataFrame, JoinDiagnostics)` on success.
+cardinality without storing output, and returns `(Table, JoinDiagnostics)` on success.
 
 `Session.save_dataset_snapshot` persists the selected, active, or explicitly named dataset in a
 versioned non-executable archive. `list_dataset_snapshots` reads immutable `DatasetSnapshotInfo`
@@ -161,6 +171,14 @@ all supported by the public parse workflow.
 from `ring5.available_plot_types()`. Scripts and saved configurations use those exact identifiers. Mapping configurations are validated before registration for required fields,
 field types, and referenced columns. Every downstream engine failure is normalized to `RenderError`.
 `ring5.available_shaper_types()` provides the equivalent registry for pipelines.
+Run registered transformations through `Session.shape` or `shape_submit` with
+`Sequence[Mapping[str, object]]`; the pipeline validates each exact registered definition before
+execution. `ring5.shapers` exposes the plugin `Shaper` and `ShaperDefinition` types, registration,
+and discovery.
+
+`Session.drill_down` returns a public `DrillDownResult` with its plot identifier, exact filters and
+an owned `rows: Table` snapshot. `row_count` and `columns` summarize those rows. This projection
+preserves the shared plot and native figure handles used by rendering and dashboard operations.
 
 ## Figure configuration and export
 
@@ -188,23 +206,18 @@ Covers:
 
 -->
 
-`ring5.FigureSpec` is the typed common figure configuration. It covers data mappings, dimensions,
-axes, grouping, legends, reference lines, and dual-axis options. The `extra` mapping carries
-supported flat configuration keys that do not yet have typed fields.
+`ring5.FigureSpec` is an immutable typed common figure configuration. It covers data mappings,
+dimensions, axes, grouping, legends, reference lines, and dual-axis options. `LegendOpts`,
+`ReferenceLineOpts`, and `DualAxisOpts` are immutable values too. Constructor sequences and nested
+mappings are owned immutable snapshots; later edits to their source objects cannot change the
+specification. Unsupported objects and cycles raise ordinary configuration validation errors.
+Immutable NumPy real, boolean and text scalars from explicit pandas work retain their exact values;
+mutable arrays, opaque objects, void scalars and custom scalar subclasses are rejected.
 
-### Fluent FigureSpec builder
-
-<!--
-`uman~ring5.api.figure-builder.documentation~1`
-
-Covers:
-- req~ring5.api.figure-builder~1
-
--->
-
-`FigureSpecBuilder` groups related settings into chainable methods for data, size, palettes, axes,
-bars, category labels, legends, reference lines, and dual axes. `build()` returns a validated
-`FigureSpec`.
+The `extra` mapping carries supported flat configuration keys and takes precedence over typed
+fields. `to_config()` returns a fresh mutable mapping with the same canonical editable format used
+by the web interface and saved plots. `create_plot` and `plot` accept either a `FigureSpec` or that
+configuration mapping. Existing raw mappings retain their exact settings and renderer defaults.
 
 ### Public coordinates and decorations
 
@@ -266,9 +279,10 @@ When adding a public name, export it lazily where appropriate, document paramete
 add a `public_api` contract test, keep `make test-api` at 100%, and update the User Guide.
 
 Session operations translate expected domain failures into the documented `ring5.errors` types.
-Python configuration constructors and directly imported `ring5.shapers` classes use ordinary
-`TypeError` and `ValueError` validation. Run transformations with `Session.shape` when a typed
-`PipelineError` with step information is required.
+Python configuration constructors use ordinary `TypeError` and `ValueError` validation. Malformed
+or duplicate plugin registration raises `PipelineError`. Registered transformations run through
+`Session.shape` or `shape_submit`; execution failures use a typed `PipelineError` with step
+information where available.
 
 Portfolio restore replaces the existing workspace, clears transient previews and named-data
 history, and reports partial restoration failures. Parser strategy and simulator are retained;

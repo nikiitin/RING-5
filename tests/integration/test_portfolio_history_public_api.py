@@ -21,7 +21,7 @@ def test_portfolio_revisions_compare_and_restore(portfolios_dir: Path) -> None:
         session.api.state_manager.set_data(data)
         plot = session.create_plot(
             "bar",
-            data=data,
+            data=ring5.Table(data),
             config={"x": "category", "y": "value", "title": "Baseline"},
             name="Baseline bars",
         )

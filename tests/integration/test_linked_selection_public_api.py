@@ -14,13 +14,13 @@ pytestmark = pytest.mark.public_api
 def _plots(session: ring5.Session) -> list[object]:
     first = session.create_plot(
         "bar",
-        data=pd.DataFrame({"workload": ["A", "B", "C"], "ipc": [1.0, 2.0, 3.0]}),
+        data=ring5.Table(pd.DataFrame({"workload": ["A", "B", "C"], "ipc": [1.0, 2.0, 3.0]})),
         config={"x": "workload", "y": "ipc"},
         name="IPC",
     )
     second = session.create_plot(
         "scatter",
-        data=pd.DataFrame({"workload": ["A", "B", "C"], "power": [8.0, 6.0, 9.0]}),
+        data=ring5.Table(pd.DataFrame({"workload": ["A", "B", "C"], "power": [8.0, 6.0, 9.0]})),
         config={"x": "workload", "y": "power"},
         name="Power",
     )

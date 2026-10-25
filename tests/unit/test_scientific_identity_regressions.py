@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
 
-from ring5 import Table
+from ring5 import Session, Table
 from ring5.errors import PipelineError
 from src.core.models.semantic_metadata_models import ColumnSemantics, DatasetSemantics
 from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
@@ -13,6 +13,7 @@ from src.core.services.shapers.impl.mean import Mean
 from src.core.services.shapers.impl.normalize import Normalize
 from src.core.services.shapers.impl.sort import Sort
 from src.core.services.shapers.impl.split_apply import SplitApply
+from src.core.services.shapers.impl.selector_algorithms.column_selector import ColumnSelector
 from src.core.common.dataframe_copy import copy_dataframe
 
 
@@ -141,15 +142,20 @@ def test_split_apply_refuses_ambiguous_alignment() -> None:
         shaper(frame)
 
 
-def test_table_defends_its_owned_frame_even_when_a_transform_fails() -> None:
+def test_table_defends_its_owned_frame_even_when_a_transform_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     table = Table.from_rows([{"x": 1}])
 
-    def mutate_then_fail(frame: pd.DataFrame) -> pd.DataFrame:
+    def mutate_then_fail(_self: ColumnSelector, frame: pd.DataFrame) -> pd.DataFrame:
         frame["x"] = 999
         raise ValueError("rejected")
 
-    with pytest.raises(PipelineError, match="rejected"):
-        table.apply(mutate_then_fail)
+    monkeypatch.setattr(ColumnSelector, "__call__", mutate_then_fail)
+    with Session() as session, pytest.raises(PipelineError, match="rejected") as failure:
+        session.shape(table, [{"type": "columnSelector", "columns": ["x"]}])
+    assert failure.value.step_index == 0
+    assert failure.value.shaper_type == "columnSelector"
     assert table.rows() == [{"x": 1}]
 
 

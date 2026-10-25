@@ -14,7 +14,7 @@ def test_public_search_finds_dynamic_and_static_workspace_content(portfolios_dir
     # [test->req~ring5.workspace.global-search~1]
     data = pd.DataFrame({"benchmark": ["a", "b"], "ipc": [1.0, 1.2]})
     with ring5.Session() as session:
-        session.add_dataset("nightly experiment", data)
+        session.add_dataset("nightly experiment", ring5.Table(data))
         session.api.state_manager.set_parse_variables(
             [{"source_name": "system.cpu.ipc", "type": "scalar", "name": "IPC", "_id": "v1"}]
         )
@@ -31,7 +31,7 @@ def test_public_search_finds_dynamic_and_static_workspace_content(portfolios_dir
         )
         plot = session.create_plot(
             "bar",
-            data=data,
+            data=ring5.Table(data),
             config={"x": "benchmark", "y": "ipc"},
             name="Nightly IPC",
         )

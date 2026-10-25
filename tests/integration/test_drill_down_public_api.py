@@ -22,7 +22,7 @@ def test_public_drill_down_recovers_aggregate_source_rows_without_mutation() -> 
     with ring5.Session() as session:
         plot = session.create_plot(
             "bar",
-            data=source,
+            data=ring5.Table(source),
             config={"x": "workload", "y": "ipc"},
         )
         plot.replace_processed_data(source.groupby("workload", as_index=False)["ipc"].mean())
@@ -32,19 +32,19 @@ def test_public_drill_down_recovers_aggregate_source_rows_without_mutation() -> 
 
         assert isinstance(result, ring5.DrillDownResult)
         assert result.row_count == 2
-        assert result.rows["seed"].tolist() == [0, 1]
+        assert result.rows.frame["seed"].tolist() == [0, 1]
         assert plot.config == config_snapshot
         assert source["ipc"].tolist() == [1.0, 1.2, 0.8]
 
         by_id = session.drill_down(plot.plot_id, {"workload": "B"})
-        assert by_id.rows["seed"].tolist() == [0]
+        assert by_id.rows.frame["seed"].tolist() == [0]
 
 
 def test_public_drill_down_uses_typed_validation_errors() -> None:
     with ring5.Session() as session:
         plot = session.create_plot(
             "bar",
-            data=pd.DataFrame({"x": ["A"], "y": [1.0]}),
+            data=ring5.Table(pd.DataFrame({"x": ["A"], "y": [1.0]})),
             config={"x": "x", "y": "y"},
         )
         with pytest.raises(ring5.DataValidationError, match="unknown plot ID"):

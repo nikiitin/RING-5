@@ -44,24 +44,19 @@ histogram bin, every row in the selected histogram group can contribute a bucket
 detail table shows that group rather than inventing per-sample values that are not present in the
 flattened gem5 histogram columns.
 
-The live source snapshot is captured when a web pipeline is finalized. It is intentionally not
-duplicated inside portfolio files, which keeps portfolios compact and avoids silently embedding a
-second copy of the input dataset. After restoring an older or self-contained portfolio, drill-down
-falls back to its saved processed rows.
+The source snapshot is captured when a pipeline is finalized and retained in the current portfolio
+format. When no separate source snapshot is available, drill-down uses the plot's processed rows.
 
 ## Resolve the same rows in Python
 
 ```python
-import pandas as pd
 import ring5
 
-source = pd.DataFrame(
-    {
-        "workload": ["mcf", "mcf", "gcc"],
-        "seed": [0, 1, 0],
-        "ipc": [1.01, 1.07, 1.22],
-    }
-)
+source = ring5.Table.from_rows([
+    {"workload": "mcf", "seed": 0, "ipc": 1.01},
+    {"workload": "mcf", "seed": 1, "ipc": 1.07},
+    {"workload": "gcc", "seed": 0, "ipc": 1.22},
+])
 
 with ring5.Session() as session:
     plot = session.create_plot(
@@ -73,10 +68,11 @@ with ring5.Session() as session:
 
     result = session.drill_down(plot, {"workload": "mcf"})
     print(result.row_count)  # 2
-    print(result.rows[["seed", "ipc"]])
+    print(result.rows.rows())
 ```
 
 The application derives the filter mapping from a clicked point. Python callers provide that
-mapping explicitly. `ring5.DrillDownResult.rows` returns a fresh DataFrame copy on every access;
-changing it cannot affect the registered plot or its source snapshot. Invalid plot IDs, filter
+mapping explicitly. `ring5.DrillDownResult.rows` is an owned `ring5.Table`; its `rows()` method
+returns independent row records. Use `result.rows.frame` for an explicit pandas copy. Neither
+conversion can change the registered plot or its source snapshot. Invalid plot IDs, filter
 columns, and non-scalar filter values raise `ring5.DataValidationError`.

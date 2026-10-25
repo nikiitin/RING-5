@@ -61,7 +61,9 @@ def test_matplotlib_render_does_not_invoke_plotly_builder(monkeypatch):
 
     sess = ring5.Session()
     plot = sess.create_plot(
-        "grouped_stacked_bar", data=_grouped_stacked_df(), config=_grouped_stacked_config()
+        "grouped_stacked_bar",
+        data=ring5.Table(_grouped_stacked_df()),
+        config=_grouped_stacked_config(),
     )
     fig = sess.render(plot, engine="matplotlib")
 
@@ -87,7 +89,7 @@ def test_enrich_from_traces_matches_enrich_from_plotly():
     df = _grouped_stacked_df()
 
     sess = ring5.Session()
-    plot = sess.create_plot("grouped_stacked_bar", data=df, config=config)
+    plot = sess.create_plot("grouped_stacked_bar", data=ring5.Table(df), config=config)
     result = plot.create_traces(df, config)
 
     # Direct (Plotly-free) path.

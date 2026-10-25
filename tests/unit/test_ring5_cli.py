@@ -126,7 +126,7 @@ class TestRenderCommand:
 
         df = pd.DataFrame({"x": ["a", "b"], "y": [1.0, 2.0]})
         with ring5.Session() as s:
-            s.create_plot("bar", data=df, config={"x": "x", "y": "y"}, name="cli_test")
+            s.create_plot("bar", data=ring5.Table(df), config={"x": "x", "y": "y"}, name="cli_test")
             s.save_portfolio("cli_probe")
 
         code = main(["render", "cli_probe", "-o", str(tmp_path / "figs"), "--format", "pdf"])

@@ -1,5 +1,7 @@
 """Categorical totals use rendered raw coordinates rather than display labels."""
 
+import ring5
+
 from typing import Literal
 
 import matplotlib.pyplot as plt
@@ -27,7 +29,7 @@ def test_stack_total_values_and_coordinates_survive_reorder_and_duplicate_displa
     with Session() as session:
         plot = session.create_plot(
             "stacked_bar",
-            data=data,
+            data=ring5.Table(data),
             config={
                 "x": "category",
                 "y_columns": ["a", "b"],

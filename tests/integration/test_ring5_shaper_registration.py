@@ -57,16 +57,19 @@ def test_public_definition_registration_and_typed_rejection(
         payload = session.export_pipeline_configuration("Custom pipeline", pipeline)
         restored = session.import_pipeline_configuration(payload)
         assert restored.shapers == tuple(pipeline)
-        result = session.shape(source, restored.shapers)
-        assert result["v"].tolist() == [3.5, 4.5]
+        result = session.shape(ring5.Table(source), restored.shapers)
+        assert result.frame["v"].tolist() == [3.5, 4.5]
         assert source["v"].tolist() == [1.0, 2.0]
         with pytest.raises(PipelineError, match="unsupported fields") as failure:
             session.shape(
-                source, [{"type": "publicOffset", "column": "v", "amount": 1.0, "stale": 1}]
+                ring5.Table(source),
+                [{"type": "publicOffset", "column": "v", "amount": 1.0, "stale": 1}],
             )
         assert failure.value.step_index == 0
         with pytest.raises(PipelineError, match="non-empty column"):
-            session.shape(source, [{"type": "publicOffset", "column": "", "amount": 1.0}])
+            session.shape(
+                ring5.Table(source), [{"type": "publicOffset", "column": "", "amount": 1.0}]
+            )
     with pytest.raises(PipelineError, match="already registered"):
         register_shaper(definition)
     with pytest.raises(PipelineError, match="ShaperDefinition"):
@@ -93,17 +96,18 @@ def test_plugin_background_capture_and_submission_validation(
         monkeypatch.setattr(session.api, "submit_background_operation", submit)
         frame = pd.DataFrame({"v": [1.0]})
         config = PluginConfig(type="publicOffset", column="v", amount=2.0)
-        session.shape_submit(frame, (config,))
+        session.shape_submit(ring5.Table(frame), (config,))
         frame.loc[0, "v"] = 50.0
         config["amount"] = 99.0
-        assert callbacks.pop()()["v"].tolist() == [3.0]
+        assert callbacks.pop()().frame["v"].tolist() == [3.0]
 
         def must_not_copy(frame: Any) -> Any:
             raise AssertionError("Invalid configuration reached data ownership copy")
 
-        monkeypatch.setattr("ring5._session.copy_dataframe", must_not_copy)
+        table = ring5.Table(frame)
+        monkeypatch.setattr(ring5.Table, "frame", property(must_not_copy))
         with pytest.raises(ring5.JobError, match="unsupported fields"):
             session.shape_submit(
-                frame, [{"type": "publicOffset", "column": "v", "amount": 1.0, "stale": True}]
+                table, [{"type": "publicOffset", "column": "v", "amount": 1.0, "stale": True}]
             )
         assert not callbacks

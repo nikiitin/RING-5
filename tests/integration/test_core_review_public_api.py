@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal, Required, TypedDict
 from types import SimpleNamespace
 
 import pandas as pd
@@ -10,14 +11,33 @@ import pytest
 
 import ring5
 from ring5 import _portfolio
+from ring5.shapers import Shaper, ShaperDefinition, register_shaper
+from src.core.services.shapers.factory import ShaperFactory
 
 pytestmark = pytest.mark.public_api
+
+
+class _OwnedMutationConfig(TypedDict):
+    type: Required[Literal["ownedMutation"]]
+
+
+def _register_mutation(monkeypatch, operation) -> None:
+    class Mutation(Shaper):
+        def __call__(self, frame: pd.DataFrame) -> pd.DataFrame:
+            return operation(frame)
+
+    monkeypatch.setattr(ShaperFactory, "_definitions", dict(ShaperFactory._definitions))
+    register_shaper(
+        ShaperDefinition(
+            "ownedMutation", Mutation, "Owned mutation", _OwnedMutationConfig, lambda config: None
+        )
+    )
 
 
 def test_malformed_pipeline_and_theme_raise_typed_public_errors() -> None:
     with ring5.Session() as session:
         with pytest.raises(ring5.PipelineError) as failure:
-            session.shape(pd.DataFrame({"x": [1]}), [None])
+            session.shape(ring5.Table.from_rows([{"x": 1}]), [None])
         assert failure.value.step_index == 0
         with pytest.raises(ring5.DataValidationError):
             session.apply_accessible_theme({"marker_size": "bad"}, "line")
@@ -64,7 +84,7 @@ def test_portfolio_export_allocates_every_collision_without_overwrite(
     assert [Path(path).read_text() for path in written] == ["0", "1", "2", "3"]
 
 
-def test_table_owns_nested_cells_across_constructor_access_and_transformation() -> None:
+def test_table_owns_nested_cells_across_constructor_access_and_transformation(monkeypatch) -> None:
     original = pd.DataFrame({"object": [{"values": [1]}]})
     table = ring5.Table(original)
     original.iloc[0, 0]["values"].append(2)
@@ -80,7 +100,9 @@ def test_table_owns_nested_cells_across_constructor_access_and_transformation() 
         captured.append(frame)
         return frame
 
-    transformed = table.apply(mutate)
+    _register_mutation(monkeypatch, mutate)
+    with ring5.Session() as session:
+        transformed = session.shape(table, [{"type": "ownedMutation"}])
     captured[0].iloc[0, 0]["values"].append(6)
     assert table.rows() == [{"object": {"values": [1]}}]
     assert transformed.rows() == [{"object": {"values": [1, 5]}}]
@@ -89,13 +111,22 @@ def test_table_owns_nested_cells_across_constructor_access_and_transformation() 
         frame.iloc[0, 0]["values"].append(7)
         raise ValueError("reject")
 
-    with pytest.raises(ring5.PipelineError, match="reject"):
-        table.apply(fail)
+    monkeypatch.setattr(
+        ShaperFactory,
+        "_definitions",
+        {key: value for key, value in ShaperFactory._definitions.items() if key != "ownedMutation"},
+    )
+    _register_mutation(monkeypatch, fail)
+    with ring5.Session() as session:
+        with pytest.raises(ring5.PipelineError, match="reject"):
+            session.shape(table, [{"type": "ownedMutation"}])
     assert table.rows() == [{"object": {"values": [1]}}]
 
 
 @pytest.mark.parametrize("returned", [None, 1, pd.Series([1])])
-def test_table_rejects_invalid_callable_results_without_changing_owned_input(returned) -> None:
+def test_pipeline_rejects_invalid_plugin_results_without_changing_owned_input(
+    returned, monkeypatch
+) -> None:
     table = ring5.Table.from_rows([{"x": 1, "nested": {"values": [1]}}])
 
     def invalid_transform(frame):
@@ -103,8 +134,10 @@ def test_table_rejects_invalid_callable_results_without_changing_owned_input(ret
         frame.at[0, "nested"]["values"].append(2)
         return returned
 
-    with pytest.raises(ring5.PipelineError, match="Table requires a pandas DataFrame"):
-        table.apply(invalid_transform)
+    _register_mutation(monkeypatch, invalid_transform)
+    with ring5.Session() as session:
+        with pytest.raises(ring5.PipelineError, match="Table requires a pandas DataFrame"):
+            session.shape(table, [{"type": "ownedMutation"}])
     assert table.rows() == [{"x": 1, "nested": {"values": [1]}}]
     with pytest.raises(TypeError, match="Table requires a pandas DataFrame"):
         ring5.Table(returned)

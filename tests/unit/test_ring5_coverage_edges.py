@@ -27,7 +27,7 @@ import ring5.cli as ring5_cli
 from ring5 import _doctor, _export, _parse, _plot_validation, _portfolio
 from ring5._session import Session, _remove_directory_when_settled
 from ring5.errors import Ring5Error
-from ring5.figure_spec import DualAxisOpts, FigureSpec, FigureSpecBuilder, LegendOpts
+from ring5.figure_spec import DualAxisOpts, FigureSpec, LegendOpts
 from src.core.models.parsing_models import (
     IncrementalParseBatchResult,
     ScanFileResult,
@@ -345,7 +345,7 @@ def test_session_lifecycle_and_submission_edges(tmp_path: Path) -> None:
         session.api.shapers, "process_pipeline", side_effect=ValueError("bad pipeline")
     ):
         with pytest.raises(ring5.PipelineError, match="bad pipeline"):
-            session.shape(pd.DataFrame({"x": [1]}), [])
+            session.shape(ring5.Table.from_rows([{"x": 1}]), [])
     session.close()
 
 
@@ -355,40 +355,42 @@ def test_session_manager_edge_paths() -> None:
         reduced = session.reduce_seeds(ring5.Table(frame), ["group"], ["x"])
         assert isinstance(reduced, ring5.Table)
         with pytest.raises(ring5.DataValidationError):
-            session.reduce_seeds(frame, [], [])
+            session.reduce_seeds(ring5.Table(frame), [], [])
         with patch.object(session.api.managers, "reduce_seeds", side_effect=ValueError("reduce")):
             with pytest.raises(ring5.DataValidationError, match="reduce"):
-                session.reduce_seeds(frame, ["group"], ["x"])
+                session.reduce_seeds(ring5.Table(frame), ["group"], ["x"])
 
         assert isinstance(session.remove_outliers(ring5.Table(frame), "x"), ring5.Table)
         with patch.object(
             session.api.managers, "remove_outliers", side_effect=ValueError("outliers")
         ):
             with pytest.raises(ring5.DataValidationError, match="outliers"):
-                session.remove_outliers(frame, "x")
+                session.remove_outliers(ring5.Table(frame), "x")
 
         with pytest.raises(ring5.DataValidationError, match="cannot be empty"):
-            session.apply_operation(frame, "Sum", "x", "y", "")
+            session.apply_operation(ring5.Table(frame), "Sum", "x", "y", "")
         with pytest.raises(ring5.DataValidationError, match="Unknown operation"):
-            session.apply_operation(frame, "Nope", "x", "y", "z")
+            session.apply_operation(ring5.Table(frame), "Nope", "x", "y", "z")
         assert isinstance(
             session.apply_operation(ring5.Table(frame), "Sum", "x", "y", "z"), ring5.Table
         )
 
         with patch.object(session.api.managers, "apply_mixer", side_effect=ValueError("mixer")):
             with pytest.raises(ring5.DataValidationError, match="mixer"):
-                session.mix_columns(frame, "z", ["x", "y"])
+                session.mix_columns(ring5.Table(frame), "z", ["x", "y"])
 
 
 def test_session_plot_and_portfolio_error_edges() -> None:
     with Session() as session:
-        with pytest.raises(ring5.DataValidationError, match="Plot data"):
+        with pytest.raises(ring5.DataValidationError, match="ring5.Table"):
             session.create_plot(
                 "bar", data=[], config={"x": "x", "y": "y"}  # type: ignore[arg-type]
             )
         with pytest.raises(ring5.DataValidationError, match="must be a mapping"):
             session.create_plot(
-                "bar", data=pd.DataFrame({"x": [1], "y": [2]}), config=1  # type: ignore[arg-type]
+                "bar",
+                data=ring5.Table.from_rows([{"x": 1, "y": 2}]),
+                config=1,  # type: ignore[arg-type]
             )
 
         with patch.object(session.api.data_services, "save_portfolio", side_effect=OSError("disk")):
@@ -445,9 +447,9 @@ def test_table_io_and_shaper_error_edges(tmp_path: Path) -> None:
         with pytest.raises(ring5.ExportError, match="disk"):
             table.to_csv(str(tmp_path / "x.csv"))
     with pytest.raises(ring5.ColumnNotFoundError):
-        table.apply(lambda frame: frame["missing"])
-    with pytest.raises(ring5.PipelineError, match="transform"):
-        table.apply(lambda _frame: (_ for _ in ()).throw(ValueError("transform")))
+        table.filter_eq("missing", 1)
+    with pytest.raises(ring5.PipelineError, match="scalar_op"):
+        table.with_scalar_op("out", "x", "unsupported", 1.0)
 
 
 def test_error_payloads_and_complete_figure_spec() -> None:
@@ -486,7 +488,15 @@ def test_error_payloads_and_complete_figure_spec() -> None:
     assert config["legend_handletextpad"] == 0.3
     assert config["dual_legend_handletextpad"] == 0.3
 
-    built = FigureSpecBuilder().title("Title", 12, "serif").bars("stack", 0.1, 0.2, 1).build()
+    built = FigureSpec(
+        title="Title",
+        title_font_size=12,
+        font_family="serif",
+        barmode="stack",
+        bargap=0.1,
+        bargroupgap=0.2,
+        bar_border_width=1,
+    )
     assert built.title == "Title" and built.bar_border_width == 1
 
 

@@ -479,26 +479,37 @@ class TestUniDfShaper:
 
 
 class TestSelectorValidation:
-    """Tests for selector parameters and preconditions."""
+    """Concrete registered selectors validate parameters and data preconditions."""
+
+    def test_abstract_base_cannot_execute(self) -> None:
+        from src.core.services.shapers.impl.selector import Selector
+
+        with pytest.raises(TypeError, match="abstract"):
+            Selector({"column": "x"})
 
     def test_missing_column_raises(self) -> None:
-        from src.core.services.shapers.impl.selector import Selector
+        from src.core.services.shapers.impl.selector_algorithms.condition_selector import (
+            ConditionSelector,
+        )
 
-        with pytest.raises((ValueError, KeyError)):
-            Selector({"not_column": "x"})
+        with pytest.raises(ValueError, match="Missing required parameters"):
+            ConditionSelector({"mode": "equals", "value": 1})
 
     def test_empty_column_raises(self) -> None:
-        from src.core.services.shapers.impl.selector import Selector
+        from src.core.services.shapers.impl.selector_algorithms.condition_selector import (
+            ConditionSelector,
+        )
 
-        with pytest.raises((ValueError, KeyError)):
-            Selector({"column": ""})
+        with pytest.raises(ValueError, match="column"):
+            ConditionSelector({"column": "", "mode": "equals", "value": 1})
 
     def test_column_not_in_dataframe_raises(self) -> None:
         import pandas as pd
+        from src.core.services.shapers.impl.selector_algorithms.condition_selector import (
+            ConditionSelector,
+        )
 
-        from src.core.services.shapers.impl.selector import Selector
-
-        selector = Selector({"column": "nonexistent"})
+        selector = ConditionSelector({"column": "nonexistent", "mode": "equals", "value": 1})
         with pytest.raises(ValueError, match="not found in dataframe"):
             selector(pd.DataFrame({"a": [1]}))
 

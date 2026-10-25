@@ -9,12 +9,11 @@ import threading
 from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import Any, Literal, cast
 
 import pandas as pd
 
 from src.core.application_api import ApplicationAPI
-from src.core.common.dataframe_copy import copy_dataframe
 from src.core.common.stat_config_codec import StatConfigCodec
 from src.core.models.accessibility_models import AccessibilityReport
 from src.core.models.report_models import AnalysisReport, ReportFigure
@@ -33,7 +32,6 @@ from src.core.models.background_job_models import BackgroundJobInfo
 from src.core.models.semantic_metadata_models import ColumnSemantics, DatasetSemantics
 from src.core.models.quality_models import DataQualityReport
 from src.core.models.visualization.dashboard_spec import DashboardSpec
-from src.core.models.visualization.drill_down_result import DrillDownResult
 from src.core.models.dataset_workspace_models import (
     DatasetInfo,
     DatasetLineage,
@@ -96,8 +94,10 @@ from ring5.errors import (
     PortfolioError,
     RecipeError,
     ScanError,
+    Ring5Error,
 )
 from ring5.figure_spec import FigureSpec
+from ring5.data import DrillDownResult, Table
 from ring5._plot_validation import validate_plot_config
 
 PlotType = Literal[
@@ -120,28 +120,19 @@ PlotType = Literal[
     "waterfall",
 ]
 
-if TYPE_CHECKING:
-    from ring5.data import Table
+
+def _require_table(data: Table, error_type: type[Ring5Error] = DataValidationError) -> Table:
+    """Require the declared handle before invoking any pandas interoperability."""
+    if not isinstance(data, Table):
+        raise error_type(
+            "Data must be a ring5.Table. Use Table(frame) for explicit pandas interoperability."
+        )
+    return data
 
 
-def _unwrap_table(data: "pd.DataFrame | Table") -> tuple[pd.DataFrame, bool]:
-    """Return ``(DataFrame, was_table)`` — accept a ``ring5.Table`` or a raw frame.
-
-    Lazy import of ``Table`` keeps ``ring5.data`` (pandas-heavy) off the import path until a
-    Table is actually used, and avoids any import cycle.
-    """
-    from ring5.data import Table as _Table
-
-    if isinstance(data, _Table):
-        return data.frame, True
-    return data, False
-
-
-def _rewrap_table(frame: pd.DataFrame) -> "Table":
-    """Wrap a DataFrame back into a ``ring5.Table`` (mirror of :func:`_unwrap_table`)."""
-    from ring5.data import Table as _Table
-
-    return _Table(frame)
+def _table_frame(data: Table, error_type: type[Ring5Error] = DataValidationError) -> pd.DataFrame:
+    """Return an owned frame from the declared public data handle."""
+    return _require_table(data, error_type).frame
 
 
 def _remove_directory_when_settled(path: str, futures: list[Any]) -> None:
@@ -199,16 +190,17 @@ class Session:
 
         with ring5.Session() as s:
             csv = s.parse("/sims", variables=["simTicks"]).csv_path
-            df = s.load(csv)
-            df = s.reduce_seeds(df, ["config_description_abbrev"], ["simTicks"])
-            fig = s.plot("bar", data=df,
+            data = s.load(csv)
+            data = s.reduce_seeds(data, ["config_description_abbrev"], ["simTicks"])
+            fig = s.plot("bar", data=data,
                          config={"x": "config_description_abbrev",
                                  "y": "simTicks"},
                          engine="matplotlib")
             s.export(fig, "out/simticks.pdf")
 
-    The full :class:`ApplicationAPI` remains available as ``session.api``
-    (history, previews, CSV pool, saved configs, …).
+    Declared data methods accept and return :class:`ring5.Table`. The full
+    :class:`ApplicationAPI` remains available as ``session.api`` for explicit advanced
+    Core interoperability, including its pandas-based state and service contracts.
     """
 
     def __init__(self, *, parser: SimulationParser | None = None) -> None:
@@ -638,14 +630,14 @@ class Session:
         return job.finalize(strict=strict)
 
     # data
-    def load(self, csv_path: str) -> pd.DataFrame:
+    def load(self, csv_path: str) -> Table:
         """Load a CSV into the session.
 
         Args:
             csv_path: CSV file to load.
 
         Returns:
-            The loaded DataFrame.
+            The loaded table.
 
         Raises:
             DataLoadError: The file is missing, unreadable, malformed, or
@@ -659,7 +651,7 @@ class Session:
         data = self.api.state_manager.get_data()
         if data is None:
             raise DataLoadError(f"Loading {csv_path!r} produced no data.")
-        return data
+        return Table(data)
 
     def preview_import(
         self,
@@ -711,7 +703,7 @@ class Session:
         except (OSError, TypeError, UnicodeError, ValueError) as exc:
             raise DataLoadError(f"Could not preview import {file_path!r}: {exc}") from exc
 
-    def load_import(self, preview: ImportPreview) -> pd.DataFrame:
+    def load_import(self, preview: ImportPreview) -> Table:
         # [impl->req~ring5.ingestion.import-preview~1]
         """Load accepted rows from an unchanged import preview.
 
@@ -725,14 +717,14 @@ class Session:
             DataLoadError: The source changed, has no accepted rows, or cannot be loaded.
         """
         try:
-            return self.api.load_import_preview(preview)
+            return Table(self.api.load_import_preview(preview))
         except (OSError, TypeError, UnicodeError, ValueError) as exc:
             raise DataLoadError(f"Could not load reviewed import: {exc}") from exc
 
     def add_dataset(
         self,
         name: str,
-        data: "pd.DataFrame | Table",
+        data: "Table",
         *,
         select: bool = True,
         replace: bool = False,
@@ -741,7 +733,7 @@ class Session:
 
         Args:
             name: Human-readable session-unique name.
-            data: DataFrame or :class:`ring5.Table` retained by defensive copy.
+            data: A :class:`ring5.Table` retained by defensive copy.
             select: Make this dataset the active source-data view.
             replace: Permit replacement of the same name.
 
@@ -752,7 +744,7 @@ class Session:
             DataValidationError: The name is invalid or already exists.
         """
         # [impl->req~ring5.data.multi-dataset-workspace~1]
-        frame, _ = _unwrap_table(data)
+        frame = _table_frame(data)
         try:
             return self.api.add_dataset(
                 name,
@@ -1077,25 +1069,25 @@ class Session:
             exported=self._guided_exported,
         )
 
-    def get_dataset(self, name: str | None = None) -> pd.DataFrame:
+    def get_dataset(self, name: str | None = None) -> Table:
         """Return a defensive copy of a named or selected dataset.
 
         Args:
             name: Dataset name, or ``None`` for the selected dataset.
 
         Returns:
-            A newly allocated DataFrame.
+            A newly allocated table.
 
         Raises:
             DataValidationError: No dataset is selected or the name is unknown.
         """
         # [impl->req~ring5.data.multi-dataset-workspace~1]
         try:
-            return self.api.get_dataset(name)
+            return Table(self.api.get_dataset(name))
         except (KeyError, TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
 
-    def select_dataset(self, name: str) -> pd.DataFrame:
+    def select_dataset(self, name: str) -> Table:
         """Select a named dataset as the active source-data view.
 
         Args:
@@ -1109,7 +1101,7 @@ class Session:
         """
         # [impl->req~ring5.data.multi-dataset-workspace~1]
         try:
-            return self.api.select_dataset(name)
+            return Table(self.api.select_dataset(name))
         except (KeyError, TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
 
@@ -1146,7 +1138,7 @@ class Session:
         except (KeyError, TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
 
-    def get_dataset_revision(self, revision_id: str) -> pd.DataFrame:
+    def get_dataset_revision(self, revision_id: str) -> Table:
         """Return a defensive copy of one immutable dataset revision.
 
         Args:
@@ -1157,7 +1149,7 @@ class Session:
         """
         # [impl->req~ring5.data.lineage-undo-redo~1]
         try:
-            return self.api.get_dataset_revision(revision_id)
+            return Table(self.api.get_dataset_revision(revision_id))
         except (KeyError, TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
 
@@ -1302,7 +1294,7 @@ class Session:
         join: Literal["outer", "inner"] = "outer",
         select: bool = True,
         replace: bool = False,
-    ) -> pd.DataFrame:
+    ) -> Table:
         """Append retained datasets and retain the result under a new name.
 
         Args:
@@ -1320,12 +1312,14 @@ class Session:
         """
         # [impl->req~ring5.data.multi-dataset-workspace~1]
         try:
-            return self.api.append_datasets(
-                list(dataset_names),
-                output_name,
-                join=join,
-                select=select,
-                replace=replace,
+            return Table(
+                self.api.append_datasets(
+                    list(dataset_names),
+                    output_name,
+                    join=join,
+                    select=select,
+                    replace=replace,
+                )
             )
         except (KeyError, TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
@@ -1341,7 +1335,7 @@ class Session:
         suffixes: tuple[str, str] = ("_left", "_right"),
         select: bool = True,
         replace: bool = False,
-    ) -> pd.DataFrame:
+    ) -> Table:
         """Join retained datasets and retain the result under a new name.
 
         Args:
@@ -1362,15 +1356,17 @@ class Session:
         """
         # [impl->req~ring5.data.multi-dataset-workspace~1]
         try:
-            return self.api.join_datasets(
-                left_name,
-                right_name,
-                output_name,
-                list(on),
-                how=how,
-                suffixes=suffixes,
-                select=select,
-                replace=replace,
+            return Table(
+                self.api.join_datasets(
+                    left_name,
+                    right_name,
+                    output_name,
+                    list(on),
+                    how=how,
+                    suffixes=suffixes,
+                    select=select,
+                    replace=replace,
+                )
             )
         except (KeyError, TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
@@ -1420,7 +1416,7 @@ class Session:
         suffixes: tuple[str, str] = ("_left", "_right"),
         select: bool = True,
         replace: bool = False,
-    ) -> tuple[pd.DataFrame, JoinDiagnostics]:
+    ) -> tuple[Table, JoinDiagnostics]:
         """Join retained datasets only when the expected cardinality holds.
 
         Args:
@@ -1443,7 +1439,7 @@ class Session:
         """
         # [impl->req~ring5.data.validated-joins~1]
         try:
-            return self.api.join_datasets_validated(
+            frame, diagnostics = self.api.join_datasets_validated(
                 left_name,
                 right_name,
                 output_name,
@@ -1454,6 +1450,7 @@ class Session:
                 select=select,
                 replace=replace,
             )
+            return Table(frame), diagnostics
         except (KeyError, TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
 
@@ -1469,7 +1466,7 @@ class Session:
         ) = "higher",
         thresholds: float | Mapping[str, float] = 0.0,
         threshold_mode: Literal["percentage", "absolute"] = "percentage",
-    ) -> pd.DataFrame:
+    ) -> Table:
         """Compare retained datasets without changing either source.
 
         Args:
@@ -1489,21 +1486,23 @@ class Session:
         """
         # [impl->req~ring5.data.multi-dataset-workspace~1]
         try:
-            return self.api.compare_datasets(
-                baseline_name,
-                candidate_name,
-                list(key_columns),
-                list(metric_columns),
-                directions=directions,
-                thresholds=thresholds,
-                threshold_mode=threshold_mode,
+            return Table(
+                self.api.compare_datasets(
+                    baseline_name,
+                    candidate_name,
+                    list(key_columns),
+                    list(metric_columns),
+                    directions=directions,
+                    thresholds=thresholds,
+                    threshold_mode=threshold_mode,
+                )
             )
         except (KeyError, TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
 
     def profile_data(
         self,
-        data: "pd.DataFrame | Table",
+        data: "Table",
         *,
         expected_types: (
             Mapping[str, Literal["numeric", "integer", "boolean", "datetime", "string"]] | None
@@ -1512,7 +1511,7 @@ class Session:
         """Inspect dataset completeness, consistency, outliers, and expected types.
 
         Args:
-            data: DataFrame or :class:`ring5.Table` to inspect without mutation.
+            data: A :class:`ring5.Table` to inspect without mutation.
             expected_types: Optional expected type for selected columns. Supported
                 values are ``numeric``, ``integer``, ``boolean``, ``datetime``,
                 and ``string``.
@@ -1525,7 +1524,7 @@ class Session:
             DataValidationError: Column names or expected types are invalid.
         """
         # [impl->req~ring5.data.quality-profiler~1]
-        frame, _ = _unwrap_table(data)
+        frame = _table_frame(data)
         try:
             return self.api.managers.profile_data(frame, expected_types=expected_types)
         except (TypeError, ValueError) as exc:
@@ -1533,14 +1532,14 @@ class Session:
 
     def infer_schema_contract(
         self,
-        data: "pd.DataFrame | Table",
+        data: "Table",
         *,
         name: str = "dataset",
     ) -> DatasetSchemaContract:
         """Infer an editable schema contract from current column types and nullability.
 
         Args:
-            data: DataFrame or :class:`ring5.Table` to inspect without mutation.
+            data: A :class:`ring5.Table` to inspect without mutation.
             name: Human-readable contract name.
 
         Returns:
@@ -1550,7 +1549,7 @@ class Session:
             DataValidationError: The dataset or contract name is invalid.
         """
         # [impl->req~ring5.data.schema-contracts~1]
-        frame, _ = _unwrap_table(data)
+        frame = _table_frame(data)
         try:
             return self.api.managers.infer_schema_contract(frame, name=name)
         except (TypeError, ValueError) as exc:
@@ -1558,13 +1557,13 @@ class Session:
 
     def validate_schema(
         self,
-        data: "pd.DataFrame | Table",
+        data: "Table",
         contract: DatasetSchemaContract,
     ) -> SchemaValidationReport:
         """Validate a dataset against required columns and per-column rules.
 
         Args:
-            data: DataFrame or :class:`ring5.Table` to validate without mutation.
+            data: A :class:`ring5.Table` to validate without mutation.
             contract: Explicit dataset schema contract.
 
         Returns:
@@ -1574,7 +1573,7 @@ class Session:
             DataValidationError: The dataset or contract is invalid.
         """
         # [impl->req~ring5.data.schema-contracts~1]
-        frame, _ = _unwrap_table(data)
+        frame = _table_frame(data)
         try:
             return self.api.managers.validate_schema(frame, contract)
         except (TypeError, ValueError) as exc:
@@ -1582,9 +1581,9 @@ class Session:
 
     def apply_semantics(
         self,
-        data: "pd.DataFrame | Table",
+        data: "Table",
         semantics: DatasetSemantics | DatasetSchemaContract,
-    ) -> "pd.DataFrame | Table":
+    ) -> "Table":
         """Return a table that retains human labels and physical units.
 
         A schema contract may be supplied directly; its ``semantic_label`` and
@@ -1592,14 +1591,14 @@ class Session:
         run contract validation or mutate the input.
 
         Args:
-            data: DataFrame or :class:`ring5.Table` to annotate.
+            data: A :class:`ring5.Table` to annotate.
             semantics: Explicit metadata or the schema contract that declares it.
 
         Raises:
             DataValidationError: Metadata names or units are invalid.
         """
         # [impl->req~ring5.data.semantic-units~1]
-        frame, was_table = _unwrap_table(data)
+        frame = _table_frame(data)
         if isinstance(semantics, DatasetSchemaContract):
             semantics = DatasetSemantics(
                 tuple(
@@ -1612,16 +1611,16 @@ class Session:
             result = self.api.managers.attach_semantics(frame, semantics)
         except (KeyError, TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
-        return _rewrap_table(result) if was_table else result
+        return Table(result)
 
     def inspect_semantics(
         self,
-        data: "pd.DataFrame | Table",
+        data: "Table",
     ) -> DatasetSemantics:
         """Return the ordered semantic labels and units retained by a table.
 
         Args:
-            data: DataFrame or :class:`ring5.Table` to inspect without mutation.
+            data: A :class:`ring5.Table` to inspect without mutation.
 
         Returns:
             Immutable ordered semantic metadata.
@@ -1630,7 +1629,7 @@ class Session:
             DataValidationError: Retained external metadata is malformed.
         """
         # [impl->req~ring5.data.semantic-units~1]
-        frame, _ = _unwrap_table(data)
+        frame = _table_frame(data)
         try:
             return self.api.managers.inspect_semantics(frame)
         except (TypeError, ValueError) as exc:
@@ -1638,33 +1637,33 @@ class Session:
 
     def convert_unit(
         self,
-        data: "pd.DataFrame | Table",
+        data: "Table",
         column: str,
         target_unit: str,
-    ) -> "pd.DataFrame | Table":
+    ) -> "Table":
         """Convert one numeric column and retain its new canonical unit.
 
         Conversion is allowed only when the source unit is declared and both
         units describe the same dimension. The input remains unchanged.
 
         Args:
-            data: DataFrame or :class:`ring5.Table` carrying source-unit metadata.
+            data: A :class:`ring5.Table` carrying source-unit metadata.
             column: Numeric column to convert.
-            target_unit: Compatible canonical unit or documented alias.
+            target_unit: Compatible canonical unit.
 
         Returns:
-            Converted data of the same public type as ``data``.
+            A new table containing the converted data.
 
         Raises:
             DataValidationError: The column, source unit, target unit, or values are invalid.
         """
         # [impl->req~ring5.data.semantic-units~1]
-        frame, was_table = _unwrap_table(data)
+        frame = _table_frame(data)
         try:
             result = self.api.managers.convert_unit(frame, column, target_unit)
         except (KeyError, TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
-        return _rewrap_table(result) if was_table else result
+        return Table(result)
 
     def supported_units(self) -> tuple[str, ...]:
         """Return canonical unit symbols accepted by :meth:`convert_unit`."""
@@ -1894,37 +1893,34 @@ class Session:
         except (OSError, TypeError, ValueError) as exc:
             raise PipelineError(str(exc)) from exc
 
-    def shape(
-        self, data: "pd.DataFrame | Table", pipeline: Sequence[Mapping[str, object]]
-    ) -> "pd.DataFrame | Table":
+    def shape(self, data: "Table", pipeline: Sequence[Mapping[str, object]]) -> "Table":
         """Run a shaper pipeline; failures carry the step index and type.
 
-        Accepts a :class:`ring5.Table` or a raw ``DataFrame`` and returns the same kind, so
-        figure scripts can express ``build_data`` as a pipeline without touching pandas.
+        Figure scripts express transformations with registered configurations and owned tables.
 
         Args:
-            data: Input table or DataFrame.
+            data: Input :class:`ring5.Table`.
             pipeline: Ordered configuration mappings for built-in or registered plugin shapers.
 
         Returns:
-            Shaped data of the same public type as ``data``.
+            A new table containing the shaped data.
         """
         from src.core.services.shapers.pipeline_service import PipelineStepError
 
-        frame, was_table = _unwrap_table(data)
+        frame = _table_frame(data, PipelineError)
         try:
             shaped = self.api.shapers.process_pipeline(frame, pipeline)
+            return Table(shaped)
         except PipelineStepError as exc:
             raise PipelineError(
                 str(exc), step_index=exc.step_index, shaper_type=exc.shaper_type
             ) from exc
         except (TypeError, ValueError) as exc:
             raise PipelineError(str(exc)) from exc
-        return _rewrap_table(shaped) if was_table else shaped
 
     def shape_submit(
         self,
-        data: "pd.DataFrame | Table",
+        data: "Table",
         pipeline: Sequence[Mapping[str, object]],
         *,
         label: str = "Shape data",
@@ -1938,7 +1934,7 @@ class Session:
         :meth:`background_job_result`.
 
         Args:
-            data: Input DataFrame or :class:`ring5.Table`.
+            data: Input :class:`ring5.Table`.
             pipeline: Ordered configuration mappings for built-in or registered plugin shapers.
             label: Human-readable job-center label.
 
@@ -1948,12 +1944,10 @@ class Session:
         Raises:
             JobError: Submission metadata or the session job center is invalid.
         """
-        frame, was_table = _unwrap_table(data)
+        source = _require_table(data, JobError)
         try:
             captured_pipeline = self.api.shapers.validate_pipeline(pipeline)
-            captured_data: pd.DataFrame | Table = copy_dataframe(frame)
-            if was_table:
-                captured_data = _rewrap_table(cast(pd.DataFrame, captured_data))
+            captured_data = Table(source.frame)
             return self.api.submit_background_operation(
                 "transformation",
                 label,
@@ -1964,29 +1958,28 @@ class Session:
 
     def reduce_seeds(
         self,
-        data: "pd.DataFrame | Table",
+        data: "Table",
         categorical_cols: list[str],
         statistic_cols: list[str],
-    ) -> "pd.DataFrame | Table":
+    ) -> "Table":
         """Aggregate across random seeds (mean + ``.sd`` stdev columns).
 
-        Accepts a :class:`ring5.Table` or a raw ``DataFrame`` and returns the same kind, so
-        figure scripts can stay pandas-free.
+        Source measurements and semantic metadata remain owned by their input table.
 
         Args:
-            data: Input table or DataFrame.
+            data: Input :class:`ring5.Table`.
             categorical_cols: Columns defining each experiment group.
             statistic_cols: Numeric columns to aggregate.
 
         Returns:
-            Aggregated data of the same public type as ``data``.
+            A new table containing the aggregate.
 
         Raises:
             ColumnNotFoundError: A named column is absent.
             DataValidationError: Inputs rejected (e.g. non-numeric
                 statistic column, empty selections).
         """
-        frame, was_table = _unwrap_table(data)
+        frame = _table_frame(data)
         _require_columns(frame, categorical_cols + statistic_cols)
         errors = self.api.managers.validate_seeds_reducer_inputs(
             frame, categorical_cols, statistic_cols
@@ -1997,12 +1990,12 @@ class Session:
             reduced = self.api.managers.reduce_seeds(frame, categorical_cols, statistic_cols)
         except (ValueError, TypeError) as exc:
             raise DataValidationError(str(exc)) from exc
-        return _rewrap_table(reduced) if was_table else reduced
+        return Table(reduced)
 
     def compare(
         self,
-        baseline: "pd.DataFrame | Table",
-        candidate: "pd.DataFrame | Table",
+        baseline: "Table",
+        candidate: "Table",
         key_columns: Sequence[str],
         metric_columns: Sequence[str],
         *,
@@ -2013,13 +2006,13 @@ class Session:
         threshold_mode: Literal["percentage", "absolute"] = "percentage",
         baseline_name: str = "baseline",
         candidate_name: str = "candidate",
-    ) -> "pd.DataFrame | Table":
+    ) -> "Table":
         """Compare aligned baseline and candidate measurements.
 
         The result contains one row per key and metric with baseline and
         candidate values, absolute and percentage changes, the configured
         threshold, and an outcome. Candidate-only and baseline-only keys remain
-        visible. A :class:`ring5.Table` is returned when both inputs are tables.
+        visible in the returned :class:`ring5.Table`.
 
         Args:
             baseline: Reference measurements with one row per alignment key.
@@ -2034,16 +2027,15 @@ class Session:
             candidate_name: Label stored with candidate values.
 
         Returns:
-            Long-form comparison data. The output type matches table inputs only
-            when both inputs are :class:`ring5.Table` instances.
+            A table containing long-form comparison data.
 
         Raises:
             ColumnNotFoundError: An alignment key or metric is absent.
             DataValidationError: Keys, metrics, directions, or thresholds are invalid.
         """
         # [impl->req~ring5.analysis.regression-comparison~1]
-        baseline_frame, baseline_was_table = _unwrap_table(baseline)
-        candidate_frame, candidate_was_table = _unwrap_table(candidate)
+        baseline_frame = _table_frame(baseline)
+        candidate_frame = _table_frame(candidate)
         keys = list(key_columns)
         metrics = list(metric_columns)
         _require_columns(baseline_frame, keys + metrics)
@@ -2063,14 +2055,12 @@ class Session:
         except (TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
         self._guided_comparison_ready = True
-        if baseline_was_table and candidate_was_table:
-            return _rewrap_table(result)
-        return result
+        return Table(result)
 
     def compare_statistics(
         self,
-        baseline: "pd.DataFrame | Table",
-        candidate: "pd.DataFrame | Table",
+        baseline: "Table",
+        candidate: "Table",
         group_columns: Sequence[str],
         metric_columns: Sequence[str],
         *,
@@ -2079,13 +2069,12 @@ class Session:
         bootstrap_samples: int = 2_000,
         random_seed: int = 0,
         minimum_sample_size: int = 5,
-    ) -> "pd.DataFrame | Table":
+    ) -> "Table":
         """Calculate statistics for repeated baseline and candidate samples.
 
         Results include per-side sample counts and means, a Welch confidence
         interval and p-value, Hedges' g, a deterministic bootstrap estimate and
-        interval, and explicit sample-quality warnings. A :class:`ring5.Table`
-        is returned when both inputs are tables.
+        interval, and explicit sample-quality warnings in a new table.
 
         Args:
             baseline: Reference observations.
@@ -2100,16 +2089,15 @@ class Session:
             minimum_sample_size: Per-side count below which a warning is emitted.
 
         Returns:
-            Long-form statistical results. The output is a :class:`ring5.Table`
-            only when both inputs are tables.
+            A table containing long-form statistical results.
 
         Raises:
             ColumnNotFoundError: A grouping or metric column is absent.
             DataValidationError: Inputs or statistical options are invalid.
         """
         # [impl->req~ring5.analysis.statistical-comparison~1]
-        baseline_frame, baseline_was_table = _unwrap_table(baseline)
-        candidate_frame, candidate_was_table = _unwrap_table(candidate)
+        baseline_frame = _table_frame(baseline)
+        candidate_frame = _table_frame(candidate)
         groups = list(group_columns)
         metrics = list(metric_columns)
         _require_columns(baseline_frame, groups + metrics)
@@ -2129,17 +2117,15 @@ class Session:
         except (TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
         self._guided_comparison_ready = True
-        if baseline_was_table and candidate_was_table:
-            return _rewrap_table(result)
-        return result
+        return Table(result)
 
     def annotate_comparison(
         self,
-        comparison: "pd.DataFrame | Table",
+        comparison: "Table",
         *,
         label_columns: Sequence[str] | None = None,
         change_mode: Literal["threshold", "percentage", "absolute"] = "threshold",
-    ) -> "pd.DataFrame | Table":
+    ) -> "Table":
         """Add accessible, plot-ready outcome annotations to comparison rows.
 
         Args:
@@ -2151,13 +2137,13 @@ class Session:
 
         Returns:
             A copy with annotation label, change, symbol, marker, color, and
-            text columns. A :class:`ring5.Table` input produces a table.
+            text columns in a new table.
 
         Raises:
             DataValidationError: The comparison schema, labels, or mode are invalid.
         """
         # [impl->req~ring5.analysis.regression-annotations~1]
-        frame, was_table = _unwrap_table(comparison)
+        frame = _table_frame(comparison)
         try:
             result = self.api.managers.annotate_comparison(
                 frame,
@@ -2166,11 +2152,11 @@ class Session:
             )
         except (TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
-        return _rewrap_table(result) if was_table else result
+        return Table(result)
 
     def export_regression_results(
         self,
-        comparison: "pd.DataFrame | Table",
+        comparison: "Table",
         format: Literal["json", "junit"] = "json",
     ) -> bytes:
         """Export a threshold comparison as deterministic JSON or JUnit XML.
@@ -2191,7 +2177,7 @@ class Session:
             DataValidationError: The comparison schema or format is invalid.
         """
         # [impl->req~ring5.automation.machine-readable-regression~1]
-        frame, _ = _unwrap_table(comparison)
+        frame = _table_frame(comparison)
         try:
             return self.api.managers.export_regression_results(frame, format)
         except (TypeError, ValueError) as exc:
@@ -2199,60 +2185,59 @@ class Session:
 
     def remove_outliers(
         self,
-        data: "pd.DataFrame | Table",
+        data: "Table",
         outlier_col: str,
         group_by_cols: list[str] | None = None,
-    ) -> "pd.DataFrame | Table":
+    ) -> "Table":
         """IQR outlier removal.
 
-        Accepts a :class:`ring5.Table` or a raw ``DataFrame`` and returns the same kind,
-        consistent with ``shape``/``reduce_seeds``/``create_plot``.
+        The input table remains unchanged.
 
         Args:
-            data: Input table or DataFrame.
+            data: Input :class:`ring5.Table`.
             outlier_col: Numeric column tested for outliers.
             group_by_cols: Optional columns defining independent IQR groups.
 
         Returns:
-            Filtered data of the same public type as ``data``.
+            A new table containing the retained rows.
 
         Raises:
             ColumnNotFoundError: A named column is absent.
             DataValidationError: Inputs rejected (e.g. non-numeric column).
         """
-        frame, was_table = _unwrap_table(data)
+        frame = _table_frame(data)
         _require_columns(frame, [outlier_col] + (group_by_cols or []))
         try:
             cleaned = self.api.managers.remove_outliers(frame, outlier_col, group_by_cols or [])
         except (ValueError, TypeError) as exc:
             raise DataValidationError(str(exc)) from exc
-        return _rewrap_table(cleaned) if was_table else cleaned
+        return Table(cleaned)
 
     def apply_operation(
         self,
-        data: "pd.DataFrame | Table",
+        data: "Table",
         operation: str,
         src1: str,
         src2: str,
         dest: str,
-    ) -> "pd.DataFrame | Table":
+    ) -> "Table":
         """Create a column using a registered binary arithmetic operation.
 
         Args:
-            data: Input table or DataFrame.
+            data: Input :class:`ring5.Table`.
             operation: Exact ``Division``, ``Sum``, ``Subtraction``, or ``Multiplication`` token.
             src1: Left operand column.
             src2: Right operand column.
             dest: Destination column name.
 
         Returns:
-            Transformed data of the same public type as ``data``.
+            A new table containing the transformed data.
 
         Raises:
             ColumnNotFoundError: An operand column is absent.
             DataValidationError: The operation or destination is invalid.
         """
-        frame, was_table = _unwrap_table(data)
+        frame = _table_frame(data)
         _require_columns(frame, [src1, src2])
         if not dest:
             raise DataValidationError("Destination column name cannot be empty.")
@@ -2260,33 +2245,33 @@ class Session:
             result = self.api.managers.apply_operation(frame, operation, src1, src2, dest)
         except (KeyError, TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
-        return _rewrap_table(result) if was_table else result
+        return Table(result)
 
     def mix_columns(
         self,
-        data: "pd.DataFrame | Table",
+        data: "Table",
         dest_col: str,
         source_cols: list[str],
         operation: str = "Sum",
         separator: str = "_",
-    ) -> "pd.DataFrame | Table":
+    ) -> "Table":
         """Merge columns, including standard-deviation propagation.
 
         Args:
-            data: Input table or DataFrame.
+            data: Input :class:`ring5.Table`.
             dest_col: Destination column name.
             source_cols: Two or more columns to merge.
             operation: ``Sum``, ``Mean``, or ``Concatenate``.
             separator: Separator used by concatenation.
 
         Returns:
-            Transformed data of the same public type as ``data``.
+            A new table containing the transformed data.
 
         Raises:
             ColumnNotFoundError: A source column is absent.
             DataValidationError: The merge configuration is invalid.
         """
-        frame, was_table = _unwrap_table(data)
+        frame = _table_frame(data)
         _require_columns(frame, source_cols)
         errors = self.api.managers.validate_merge_inputs(frame, source_cols, operation, dest_col)
         if errors:
@@ -2297,14 +2282,14 @@ class Session:
             )
         except (KeyError, TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
-        return _rewrap_table(result) if was_table else result
+        return Table(result)
 
     # figures
     def create_plot(
         self,
         plot_type: str,
         *,
-        data: "pd.DataFrame | Table",
+        data: "Table",
         config: FigureSpec | Mapping[str, Any],
         name: str | None = None,
     ) -> BasePlot:
@@ -2312,9 +2297,8 @@ class Session:
         """Create and register a configured plot.
 
         Args:
-            plot_type: A snake-case identifier such as ``"bar"`` or a display
-                name such as ``"Grouped Bar"``. Hyphens and spaces are normalized.
-            data: A :class:`ring5.Table` or pandas DataFrame.
+            plot_type: Exact registered identifier, such as ``"bar"`` or ``"grouped_bar"``.
+            data: A :class:`ring5.Table`.
             config: A typed :class:`FigureSpec` or a mapping containing the
                 renderer's flat configuration.
             name: Portfolio/display name. A stable generated name is used when omitted.
@@ -2329,9 +2313,7 @@ class Session:
         from src.web.pages.ui.plotting.plot_service import PlotService
 
         resolved_type = _resolve_plot_type(plot_type)
-        frame, _ = _unwrap_table(data)
-        if not isinstance(frame, pd.DataFrame):
-            raise DataValidationError("Plot data must be a pandas DataFrame or ring5.Table.")
+        frame = _table_frame(data)
         try:
             raw_config = config.to_config() if isinstance(config, FigureSpec) else dict(config)
         except (TypeError, ValueError) as exc:
@@ -2354,7 +2336,7 @@ class Session:
         self,
         plot_type: str,
         *,
-        data: "pd.DataFrame | Table",
+        data: "Table",
         config: FigureSpec | Mapping[str, Any],
         engine: EngineMode = "plotly",
         name: str | None = None,
@@ -2363,7 +2345,7 @@ class Session:
 
         Args:
             plot_type: Exact registered plot identifier.
-            data: A :class:`ring5.Table` or pandas DataFrame.
+            data: A :class:`ring5.Table`.
             config: A :class:`FigureSpec` or flat configuration mapping.
             engine: Rendering engine, ``"plotly"`` or ``"matplotlib"``.
             name: Optional portfolio/display name.
@@ -2643,14 +2625,15 @@ class Session:
             filters: Exact source dimensions attached to the plotted point.
 
         Returns:
-            A defensive source-row snapshot. Reading :attr:`rows` returns a copy.
+            A source-row snapshot with an independently owned :class:`ring5.Table`.
 
         Raises:
             DataValidationError: The plot, source data, or filters are invalid.
         """
         plot_id = plot.plot_id if isinstance(plot, BasePlot) else plot
         try:
-            return self.api.drill_down_plot(plot_id, filters)
+            result = self.api.drill_down_plot(plot_id, filters)
+            return DrillDownResult(result.plot_id, result.filters, Table(result.rows))
         except (TypeError, ValueError) as exc:
             raise DataValidationError(str(exc)) from exc
 
@@ -2829,7 +2812,7 @@ class Session:
         title: str,
         figures: Sequence[BasePlot | int | DashboardSpec],
         *,
-        tables: Mapping[str, pd.DataFrame] | None = None,
+        tables: Mapping[str, Table] | None = None,
         narrative: Mapping[str, str] | None = None,
         figure_captions: Sequence[str] | None = None,
         table_row_limit: int = 100,
@@ -2839,12 +2822,12 @@ class Session:
 
         Data provenance and the current execution environment are captured
         automatically. Tables are copied into a bounded immutable display
-        representation; input DataFrames are never mutated.
+        representation; input tables are never mutated.
 
         Args:
             title: Human-readable report title.
             figures: Registered plots, plot IDs, or dashboard specifications.
-            tables: Optional ordered mapping of table titles to DataFrames.
+            tables: Optional ordered mapping of titles to :class:`ring5.Table` values.
             narrative: Optional ordered mapping of section headings to plain text.
             figure_captions: Optional captions aligned with ``figures``.
             table_row_limit: Displayed rows per table, from 1 through 500.
@@ -2863,6 +2846,11 @@ class Session:
         captions = tuple(("",) * len(figures) if figure_captions is None else figure_captions)
         if len(captions) != len(figures):
             raise DataValidationError("figure_captions must contain one value per figure.")
+        table_frames = (
+            {name: _table_frame(table) for name, table in tables.items()}
+            if tables is not None
+            else None
+        )
         live = {plot.plot_id: plot for plot in self.plots}
         resolved: list[ReportFigure] = []
         try:
@@ -2908,7 +2896,7 @@ class Session:
             return ReportService.create(
                 title,
                 resolved,
-                tables=tables,
+                tables=table_frames,
                 narrative=narrative,
                 provenance=provenance,
                 environment=EnvironmentMetadataService.capture(),
@@ -3741,18 +3729,12 @@ class Session:
         except (OSError, TypeError, UnicodeError, ValueError) as exc:
             raise RecipeError(f"Could not load recipe source {source.path!r}: {exc}") from exc
 
-        transformed = cast(
-            pd.DataFrame,
-            self.shape(data, list(materialized.transformations)),
-        )
-        prepared: list[tuple[RecipePlot, pd.DataFrame]] = []
+        transformed = self.shape(Table(data), materialized.transformations)
+        prepared: list[tuple[RecipePlot, Table]] = []
         for plot_spec in materialized.plots:
-            plot_data = cast(
-                pd.DataFrame,
-                self.shape(transformed, list(plot_spec.pipeline)),
-            )
+            plot_data = self.shape(transformed, plot_spec.pipeline)
             resolved_type = _resolve_plot_type(plot_spec.plot_type)
-            validate_plot_config(resolved_type, plot_data, dict(plot_spec.config))
+            validate_plot_config(resolved_type, plot_data.frame, dict(plot_spec.config))
             prepared.append((plot_spec, plot_data))
 
         state = self.api.state_manager
@@ -3761,7 +3743,7 @@ class Session:
         state.set_plots([])
         state.set_plot_counter(0)
         state.set_current_plot_id(None)
-        state.set_data(transformed, operation=f"Run analysis recipe: {materialized.name}")
+        state.set_data(transformed.frame, operation=f"Run analysis recipe: {materialized.name}")
         state.set_processed_data(None)
         state.set_csv_path(source_path)
         state.set_use_parser(source.kind == "parser")
@@ -3779,7 +3761,7 @@ class Session:
                 for index, config in enumerate(plot_spec.pipeline)
             ]
             plot.pipeline_counter = len(plot.pipeline)
-            plot.replace_source_data(transformed)
+            plot.replace_source_data(transformed.frame)
             created[plot_spec.name] = plot
 
         exported: list[str] = []
@@ -3803,7 +3785,7 @@ class Session:
             recipe_name=materialized.name,
             parameter_values=resolved_values,
             rows=len(transformed),
-            columns=tuple(str(column) for column in transformed.columns),
+            columns=tuple(transformed.columns()),
             plot_names=tuple(created),
             exported_paths=tuple(exported),
         )

@@ -32,7 +32,7 @@ def test_public_radar_renders_shared_scale_and_styles_in_both_engines() -> None:
     }
 
     with ring5.Session() as session:
-        plot = session.create_plot("radar", data=data, config=config, name="Profiles")
+        plot = session.create_plot("radar", data=ring5.Table(data), config=config, name="Profiles")
         plotly_figure = session.render(plot, engine="plotly")
         matplotlib_figure = session.render(plot, engine="matplotlib")
 

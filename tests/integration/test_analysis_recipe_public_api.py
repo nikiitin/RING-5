@@ -135,7 +135,7 @@ def test_parameterized_recipe_round_trip_executes_plots_and_exports(tmp_path: Pa
             initial = pd.read_csv(csv_path)
             old_plot = session.create_plot(
                 "bar",
-                data=initial,
+                data=ring5.Table(initial),
                 config={"x": "benchmark", "y": "value"},
                 name="Old plot",
             )

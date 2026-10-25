@@ -24,10 +24,10 @@ def test_expired_session_workspace_is_explicitly_recovered_by_owner(recovery_dir
     data = pd.DataFrame({"benchmark": ["a", "b"], "ipc": [1.0, 1.2]})
     owner_key = "browser-secret-for-recovery"
     with ring5.Session() as interrupted:
-        interrupted.add_dataset("nightly", data)
+        interrupted.add_dataset("nightly", ring5.Table(data))
         interrupted.create_plot(
             "bar",
-            data=data,
+            data=ring5.Table(data),
             config={"x": "benchmark", "y": "ipc"},
             name="Recovered IPC",
         )

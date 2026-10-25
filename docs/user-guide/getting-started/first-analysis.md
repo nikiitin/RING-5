@@ -57,15 +57,15 @@ For the engine-specific format list and optional dependencies, see
 
 ## Run the same minimal plot in Python
 
-The supported API accepts any suitable DataFrame:
+The supported API uses `ring5.Table` for analysis data:
 
 ```python
-import pandas as pd
 import ring5
 
-data = pd.DataFrame(
-    {"benchmark": ["mcf", "xalancbmk"], "simTicks": [4.2e11, 3.8e11]}
-)
+data = ring5.Table.from_rows([
+    {"benchmark": "mcf", "simTicks": 4.2e11},
+    {"benchmark": "xalancbmk", "simTicks": 3.8e11},
+])
 
 with ring5.Session() as session:
     spec = ring5.FigureSpec(

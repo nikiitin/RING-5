@@ -169,7 +169,9 @@ def test_public_portfolio_replay_renders_typed_tables_with_both_engines(
     data = pd.DataFrame({"label": ["a", "b"], "value": pd.Series([2, 4], dtype="Int64")})
     data.index = pd.Index([10, 20], name="run")
     with ring5.Session() as session:
-        session.plot("bar", data=data, config=ring5.FigureSpec(x="label", y_columns=["value"]))
+        session.plot(
+            "bar", data=ring5.Table(data), config=ring5.FigureSpec(x="label", y_columns=["value"])
+        )
         session.save_portfolio("typed-replay")
     with ring5.Session() as restored:
         assert restored.load_portfolio("typed-replay").complete

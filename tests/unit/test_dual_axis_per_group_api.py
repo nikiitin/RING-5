@@ -2,7 +2,7 @@
 matplotlib line-marker fix.
 
 Covers:
-  * ``FigureSpec`` / ``DualAxisOpts`` -> flat dual-axis config keys (+ builder).
+  * ``FigureSpec`` / ``DualAxisOpts`` -> flat dual-axis config keys .
   * ``build_right_axis_traces`` per-group mode -> one polyline per x-category
     (NaN breaks between groups).
   * ``MatplotlibTraceRenderer._draw_line`` now honours markers (dual-engine parity).
@@ -18,7 +18,7 @@ from src.core.models.visualization.trace_config import LineTraceConfig
 from src.web.pages.ui.plotting.utils.grouped_stacked_bar_helpers import (
     build_right_axis_traces,
 )
-from ring5.figure_spec import DualAxisOpts, FigureSpec, FigureSpecBuilder
+from ring5.figure_spec import DualAxisOpts, FigureSpec
 from src.web.rendering.matplotlib_trace_renderer import MatplotlibTraceRenderer
 
 matplotlib.use("Agg")
@@ -67,12 +67,12 @@ def test_no_dual_axis_emits_no_keys() -> None:
     assert "y_columns_right" not in cfg
 
 
-def test_builder_dual_axis() -> None:
-    spec = (
-        FigureSpecBuilder()
-        .data(x="b", group="p", y_columns=["a"])
-        .dual_axis(columns=["m"], per_group=True, color="#123456")
-        .build()
+def test_direct_spec_dual_axis() -> None:
+    spec = FigureSpec(
+        x="b",
+        group="p",
+        y_columns=["a"],
+        dual_axis=DualAxisOpts(columns=["m"], per_group=True, color="#123456"),
     )
     assert spec.dual_axis is not None
     assert spec.dual_axis.per_group is True

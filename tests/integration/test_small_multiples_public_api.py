@@ -24,7 +24,7 @@ def _plot(session: ring5.Session) -> object:
     )
     return session.create_plot(
         "bar",
-        data=data,
+        data=ring5.Table(data),
         config={
             "x": "benchmark",
             "y": "ipc",
@@ -119,13 +119,15 @@ def test_small_multiples_match_dual_axes_by_role_without_cycles() -> None:
     with ring5.Session() as session:
         plot = session.create_plot(
             "dual_axis_bar_dot",
-            data=pd.DataFrame(
-                {
-                    "benchmark": ["A", "B", "A", "B"],
-                    "architecture": ["x86", "x86", "arm", "arm"],
-                    "cycles": [10.0, 20.0, 30.0, 40.0],
-                    "ipc": [1.0, 1.5, 2.0, 2.5],
-                }
+            data=ring5.Table(
+                pd.DataFrame(
+                    {
+                        "benchmark": ["A", "B", "A", "B"],
+                        "architecture": ["x86", "x86", "arm", "arm"],
+                        "cycles": [10.0, 20.0, 30.0, 40.0],
+                        "ipc": [1.0, 1.5, 2.0, 2.5],
+                    }
+                )
             ),
             config={"x": "benchmark", "y_bar": "cycles", "y_dot": "ipc"},
         )

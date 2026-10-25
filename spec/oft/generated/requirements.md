@@ -2571,7 +2571,7 @@ Tags: api, automation, session, status_approved
 `req~ring5.api.table~1`
 Status: approved
 
-The public Table and read_table surface shall provide immutable loading, selection, transformation, inspection, and export for scripts that do not import pandas.
+Declared Session data methods shall require Table inputs and return owned Table results for analysis data. Table and read_table shall support immutable loading, selection, inspection and export, with explicit pandas conversion through Table(frame) and Table.frame.
 
 Covers:
 - feat~ring5.automation~1
@@ -2585,7 +2585,7 @@ Tags: api, data, scripting, status_approved
 `req~ring5.api.figure-spec~1`
 Status: approved
 
-The public API shall expose typed common figure mappings, layout, axes, grouping, legend, reference-line, and dual-axis configuration with an extra-key escape hatch.
+The public API shall expose immutable typed common figure mappings, layout, axes, grouping, legend, reference-line and dual-axis values, with owned extra keys and fresh canonical editable configuration projection.
 
 Covers:
 - feat~ring5.automation~1
@@ -2593,20 +2593,6 @@ Covers:
 Needs: impl, test, uman
 
 Tags: api, figures, status_approved, typing
-
-### Fluent FigureSpec builder
-
-`req~ring5.api.figure-builder~1`
-Status: approved
-
-Scripts shall build a FigureSpec through cohesive fluent methods for data, size, palettes, axes, grouping, legends, references, and dual-axis options.
-
-Covers:
-- feat~ring5.automation~1
-
-Needs: impl, test, uman
-
-Tags: api, builder, figures, status_approved
 
 ### Scripted coordinates and decorations
 

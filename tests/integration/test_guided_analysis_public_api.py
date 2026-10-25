@@ -31,8 +31,8 @@ def test_session_reports_real_progress_through_comparison_render_and_export(
         assert session.guided_analysis_progress().current_stage == "comparison"
 
         comparison = session.compare(
-            data.loc[data["configuration"].eq("base")],
-            data.loc[data["configuration"].eq("next")],
+            ring5.Table(data.frame.loc[data.frame["configuration"].eq("base")]),
+            ring5.Table(data.frame.loc[data.frame["configuration"].eq("next")]),
             ["benchmark"],
             ["ipc"],
         )

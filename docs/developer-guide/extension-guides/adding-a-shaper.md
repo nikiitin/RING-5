@@ -78,6 +78,17 @@ def validate_offset(config: Mapping[str, Any]) -> None:
 register_shaper(ShaperDefinition("offset", Offset, "Offset", OffsetConfig, validate_offset))
 ```
 
+Use the registered identifier through the public table pipeline:
+
+```python
+import ring5
+
+data = ring5.Table.from_rows([{"ipc": 1.0}])
+with ring5.Session() as session:
+    shifted = session.shape(data, [{"type": "offset", "column": "ipc", "amount": 0.5}])
+    assert shifted.rows() == [{"ipc": 1.5}]
+```
+
 Portfolio plot editors preserve JSON-compatible incomplete step drafts. These generic mappings
 are editor state; they are validated as runnable operations before execution or standalone pipeline
 exchange. A draft is never silently skipped.

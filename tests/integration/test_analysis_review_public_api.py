@@ -16,7 +16,7 @@ def test_plot_and_revision_reviews_survive_portfolio_bundle_transfer(portfolios_
     with ring5.Session() as session:
         plot = session.create_plot(
             "bar",
-            data=data,
+            data=ring5.Table(data),
             config={"x": "benchmark", "y": "ipc"},
             name="IPC plot",
         )
