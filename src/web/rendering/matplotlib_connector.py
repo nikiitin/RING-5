@@ -397,7 +397,7 @@ class FigureSpecToMatplotlib:
         # Heatmap tick population — labels from the render result.
         # pcolormesh cells span [i, i+1), so centres are at i + 0.5.
         # Always override any pre-set tick_values (e.g. from
-        # enrich_from_plotly) because pcolormesh requires cell-centre
+        # neutral preparation) because pcolormesh requires cell-centre
         # positions; Plotly-extracted string tickvals are not valid here.
         hm_cols: list[str] | None = render_result.heatmap_col_labels if render_result else None
         hm_rows: list[str] | None = render_result.heatmap_row_labels if render_result else None

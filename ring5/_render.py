@@ -31,8 +31,7 @@ def render_figure(plot: BasePlot, *, engine: EngineMode = "plotly") -> Figure:
         A ``plotly.graph_objects.Figure`` or ``matplotlib.figure.Figure``.
         Matplotlib figures are deregistered from pyplot's global manager
         (no accumulation in long-running scripts; ``savefig`` still works)
-        and carry the resolved ``FigureConfig`` as ``fig._ring5_spec`` so
-        PGF export can apply the LaTeX preamble.
+        and retain their exact native preparation metadata.
 
     Raises:
         RenderError: The engine, data, trace family, or configuration cannot be rendered.
@@ -44,23 +43,13 @@ def render_figure(plot: BasePlot, *, engine: EngineMode = "plotly") -> Figure:
         raise RenderError(f"Plot '{plot.name}' has no processed data to render.")
 
     try:
-        from src.web.rendering.figure_preparation import prepare_figure
-        from src.web.rendering.matplotlib_figure_builder import (
-            build_matplotlib_figure_from_prepared,
-        )
-        from src.web.rendering.plotly_figure_builder import build_plotly_figure
+        from src.web.rendering.plot_renderer import build_render_artifact
 
-        prepared = prepare_figure(
-            plot.processed_data, plot.config, plot.plot_type, plot.create_traces
-        )
-        if engine == "plotly":
-            figure = build_plotly_figure(prepared)
-            plot.publish_figure(figure, prepared)
-            return figure
-
-        mpl_figure, _ = build_matplotlib_figure_from_prepared(prepared)
-        plot.publish_figure(mpl_figure, prepared)
-        return mpl_figure
+        artifact = build_render_artifact(plot, plot.config, engine)
+        plot.publish_render_artifact(artifact)
+        if artifact.figure is None:
+            raise RuntimeError("Completed rendering did not produce a native figure.")
+        return artifact.figure
     except (AttributeError, IndexError, KeyError, RuntimeError, TypeError, ValueError) as exc:
         raise RenderError(
             f"Could not render plot '{plot.name}' ({plot.plot_type}) with {engine}: {exc}"

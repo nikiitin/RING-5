@@ -65,8 +65,13 @@ Plot artifacts use the native-free `PlotRenderState` owner. A repository replace
 removed identity and its exact binding generation. The outermost state transaction preserves
 identities retained in the final workspace, detaches matching generations, then releases its locks
 before invoking retirement callbacks. Restore candidates capture their generation on admission.
-A newer independent publication survives stale cleanup. Cleanup failures remain visible after the
+A newer independent publication or configuration-only edit survives stale cleanup. Cleanup failures remain visible after the
 workspace and its version guards commit; every retired binding receives a cleanup attempt.
+
+The bound payload is the single owner of effective configuration, native figure, preparation and
+reuse identity. Detachment retains configuration-only state. Plot configuration reads return an
+owned snapshot; callers assign a complete updated mapping to replace it and invalidate derived
+artifacts. Copy hooks and resource cleanup execute outside the slot lock.
 
 ## Extension boundary
 

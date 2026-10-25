@@ -3,7 +3,6 @@
 from typing import Any, override
 
 import pandas as pd
-import plotly.graph_objects as go
 
 from src.core.models.visualization.annotation_config import AnnotationConfig
 from src.core.models.visualization.trace_build_result import TraceBuildResult
@@ -300,17 +299,6 @@ class GroupedStackedBarPlot(StackedBarPlot):
         )
 
         return build_category_group_annotations(group_centers, config)
-
-    @override
-    def apply_common_layout(self, fig: go.Figure, config: PlotConfig) -> go.Figure:
-        """Apply the current UI bridge's resolved native title projection."""
-        from src.web.rendering.plotly_figure_builder import apply_axis_title_annotations
-
-        fig = super().apply_common_layout(fig, config)
-        if self._applicator.last_spec is None:
-            raise ValueError("Figure styling did not produce a resolved specification.")
-        apply_axis_title_annotations(self._applicator.last_spec, fig)
-        return fig
 
     def _build_right_axis_traces(
         self,

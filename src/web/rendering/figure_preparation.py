@@ -7,6 +7,7 @@ from dataclasses import dataclass, replace
 import pandas as pd
 
 from src.core.models.plot_config import PlotConfig
+from src.core.models.visualization.dashboard_spec import DashboardSpec
 from src.core.models.visualization.figure_config import FigureConfig
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
@@ -20,9 +21,23 @@ from src.web.rendering.config_builder import ConfigSpecBuilder, enrich_from_trac
 class PreparedFigure:
     """One render's effective configuration, neutral output and resolved style."""
 
-    config: PlotConfig
+    _config: PlotConfig
     trace_result: TraceBuildResult
     spec: FigureConfig
+
+    @property
+    def config(self) -> PlotConfig:
+        """Return an owned snapshot without exposing the preparation's configuration."""
+        return deepcopy(self._config)
+
+
+@dataclass(frozen=True)
+class PreparedDashboard:
+    """Real panel preparations and their shared dashboard layout."""
+
+    layout: DashboardSpec
+    panels: tuple[PreparedFigure, ...]
+    plot_names: tuple[str, ...]
 
 
 def _relabel_traces(

@@ -12,7 +12,6 @@ from collections.abc import Callable
 from typing import Any, Literal, cast, override
 
 import pandas as pd
-import plotly.graph_objects as go
 
 from src.core.common.safe_format import safe_format_number
 from src.core.services.visualization.palette_service import resolve_palette
@@ -88,38 +87,6 @@ class HeatmapPlot(BasePlot):
     def render_config_ui(self, data: pd.DataFrame, saved_config: PlotConfig) -> PlotConfig:
         """Render configuration UI for heatmap plot."""
         return heatmap_config.render(data, saved_config, self.plot_id)
-
-    @override
-    def apply_common_layout(self, fig: go.Figure, config: PlotConfig) -> go.Figure:
-        """Apply common layout, then restrict X-axis categories to filtered values.
-
-        The ordering settings provide ``xaxis_order`` with ALL unique X values
-        from the unfiltered data.  The Plotly connector converts that into
-        ``xaxis.categoryarray``, which forces Plotly to display categories that
-        the heatmap trace does not contain — producing empty ticks and
-        displacing the rendered cells.
-
-        After the base layout is applied we override ``categoryarray`` with
-        only the col_labels actually present in the heatmap traces.
-        """
-        fig = super().apply_common_layout(fig, config)
-        if self.last_traces and self.last_traces.traces:
-            first = self.last_traces.traces[0]
-            if isinstance(first, HeatmapTraceConfig) and first.col_labels:
-                fig.update_xaxes(categoryorder="array", categoryarray=first.col_labels)
-            if len(self.last_traces.traces) > 1:
-                # Plotly's global update_xaxes call puts the same title on every
-                # facet, where intermediate titles and ticks overlap the next
-                # panel. Facets share one mapping, so label only the bottom axis.
-                bottom_axis = getattr(fig.layout, f"xaxis{len(self.last_traces.traces)}")
-                bottom_tick_labels = bottom_axis.showticklabels
-                fig.update_xaxes(title_text=None, showticklabels=False)
-                bottom_axis = getattr(fig.layout, f"xaxis{len(self.last_traces.traces)}")
-                bottom_axis.title.text = str(config.get("xlabel", "") or "")
-                bottom_axis.showticklabels = (
-                    True if bottom_tick_labels is None else bottom_tick_labels
-                )
-        return fig
 
     @override
     def create_traces(self, data: pd.DataFrame, config: PlotConfig) -> TraceBuildResult:

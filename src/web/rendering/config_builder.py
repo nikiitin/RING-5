@@ -1,21 +1,11 @@
-"""
-Bidirectional builders — construct FigureConfig from various sources.
-
-  - ``PlotlyFigureSpecBuilder`` — extract spec from Plotly figure + config dict
-  - ``ConfigSpecBuilder`` — build spec from a flat config dict (UI widgets)
-"""
+"""Build resolved figure inputs from editable configuration and neutral trace metadata."""
 
 from __future__ import annotations
 
 from typing import Any, Literal
 
-import plotly.graph_objects as go
-
 from src.core.common.numbered_axis import numbered_axis_modes
-from src.core.models.visualization.annotation_config import (
-    AnnotationConfig,
-    ReferenceLineConfig,
-)
+from src.core.models.visualization.annotation_config import ReferenceLineConfig
 from src.core.models.visualization.axis_config import AxesConfig, AxisConfig
 from src.core.models.visualization.data_label_config import DataLabelConfig
 from src.core.models.visualization.figure_config import (
@@ -48,91 +38,6 @@ def should_show_x_tick_labels(config: dict[str, Any]) -> bool:
     if modes:
         return "Numbers" in modes or "Labels" in modes
     return bool(config.get("show_x_tick_labels", True))
-
-
-class PlotlyFigureSpecBuilder:
-    """Enrich a FigureConfig with metadata that only exists on a *styled* Plotly figure.
-
-    The spec itself is built by :class:`ConfigSpecBuilder` from the flat config dict; this
-    class supplies the one piece that isn't in the config — layout state computed inside
-    ``create_figure`` (tick vals/labels, annotations, barmode, legend3) — via
-    :meth:`enrich_from_plotly`. (The engine-agnostic counterpart is
-    :func:`enrich_from_traces`, used by the matplotlib path.)
-    """
-
-    @staticmethod
-    def enrich_from_plotly(spec: FigureConfig, fig: go.Figure) -> None:
-        """Merge layout metadata from a Plotly figure into an existing spec.
-
-        Transfers computed layout data (tick positions/labels, annotations,
-        legend3 items) that ``ConfigSpecBuilder.from_config()`` cannot
-        capture because the data is set programmatically in
-        ``create_figure()`` methods rather than stored in the config dict.
-
-        Modifies *spec* in place. The FigureConfig tree is frozen, but this
-        method is only ever handed a freshly-built, caller-owned spec (see
-        ``ChartDisplayComponent`` — built, enriched, then resolved), so the
-        in-place fill via ``object.__setattr__`` is private to that build step.
-        """
-        layout: Any = fig.layout if hasattr(fig, "layout") else None
-        if layout is None:
-            return
-
-        # Tick positions / labels
-        xaxis = getattr(layout, "xaxis", None)
-        if xaxis is not None:
-            tv = getattr(xaxis, "tickvals", None)
-            tt = getattr(xaxis, "ticktext", None)
-            if tv is not None:
-                raw = tv.tolist() if hasattr(tv, "tolist") else list(tv)
-                object.__setattr__(spec.axes.x, "tick_values", raw)
-            if tt is not None:
-                raw_t = tt.tolist() if hasattr(tt, "tolist") else list(tt)
-                object.__setattr__(spec.axes.x, "tick_text", [str(t) for t in raw_t])
-
-        yaxis = getattr(layout, "yaxis", None)
-        if yaxis is not None:
-            tv = getattr(yaxis, "tickvals", None)
-            tt = getattr(yaxis, "ticktext", None)
-            if tv is not None:
-                raw = tv.tolist() if hasattr(tv, "tolist") else list(tv)
-                object.__setattr__(spec.axes.y, "tick_values", raw)
-            if tt is not None:
-                raw_t = tt.tolist() if hasattr(tt, "tolist") else list(tt)
-                object.__setattr__(spec.axes.y, "tick_text", [str(t) for t in raw_t])
-
-        # Annotations
-        # Only merge if spec has none (avoid duplicating config-based ones)
-        if not spec.annotations:
-            object.__setattr__(spec, "annotations", _extract_annotations(layout))
-
-        # Barmode
-        plotly_barmode = getattr(layout, "barmode", None)
-        if plotly_barmode is not None:
-            barmode_str = str(plotly_barmode)
-            if barmode_str in ("group", "stack", "overlay", "relative"):
-                object.__setattr__(spec, "barmode", barmode_str)
-
-        # Legend3 (tertiary legend items)
-        legend3 = getattr(layout, "legend3", None)
-        if legend3 is not None:
-            from src.core.models.visualization.legend_config import LegendConfig
-
-            box_kwargs: dict[str, Any] = {"role": "tertiary"}
-            x = getattr(legend3, "x", None)
-            y = getattr(legend3, "y", None)
-            if x is not None:
-                box_kwargs["position_x"] = float(x)
-                box_kwargs["custom_position"] = True
-            if y is not None:
-                box_kwargs["position_y"] = float(y)
-            xanchor = getattr(legend3, "xanchor", None)
-            if xanchor:
-                box_kwargs["anchor_x"] = xanchor
-            yanchor = getattr(legend3, "yanchor", None)
-            if yanchor:
-                box_kwargs["anchor_y"] = yanchor
-            spec.legends.append(LegendConfig(**box_kwargs))
 
 
 class ConfigSpecBuilder:
@@ -581,64 +486,6 @@ def _build_legend_from_config(
         anchor_y=anchor_y,  # type: ignore[arg-type]
         orientation=_orient_raw,  # type: ignore[arg-type]
     )
-
-
-# Helper functions for PlotlyFigureSpecBuilder
-
-
-def _extract_annotations(layout: Any) -> list[AnnotationConfig]:
-    """Extract annotation objects from Plotly layout."""
-    annotations: list[AnnotationConfig] = []
-    layout_anns: list[Any] = list(getattr(layout, "annotations", None) or [])
-
-    for ann in layout_anns:
-        if getattr(ann, "name", None) in ("ring5-y-title", "ring5-y2-title"):
-            continue
-        font = getattr(ann, "font", None)
-        raw_x = getattr(ann, "x", 0)
-        raw_y = getattr(ann, "y", 0)
-        try:
-            x_val: float | str = float(raw_x)
-        except (ValueError, TypeError):
-            x_val = str(raw_x) if raw_x is not None else 0.0
-        try:
-            y_val: float | str = float(raw_y)
-        except (ValueError, TypeError):
-            y_val = str(raw_y) if raw_y is not None else 0.0
-        anchor_kwargs: dict[str, Any] = {}
-        xanchor = getattr(ann, "xanchor", None)
-        if xanchor:
-            anchor_kwargs["xanchor"] = xanchor
-        yanchor = getattr(ann, "yanchor", None)
-        if yanchor:
-            anchor_kwargs["yanchor"] = yanchor
-        annotations.append(
-            AnnotationConfig(
-                text=getattr(ann, "text", ""),
-                x=x_val,
-                y=y_val,
-                xref="paper" if getattr(ann, "xref", "") == "paper" else "data",
-                yref="paper" if getattr(ann, "yref", "") == "paper" else "data",
-                show_arrow=bool(getattr(ann, "showarrow", False)),
-                arrow_head=int(getattr(ann, "arrowhead", 0) or 0),
-                arrow_color=str(getattr(ann, "arrowcolor", "#444") or "#444"),
-                x_shift_pixels=float(getattr(ann, "xshift", 0) or 0),
-                y_shift_pixels=float(getattr(ann, "yshift", 0) or 0),
-                font_size=float(getattr(font, "size", 0) or 0) if font else -1,
-                font_color=str(getattr(font, "color", "#444") or "#444") if font else "#444",
-                font_family=str(getattr(font, "family", "") or "") if font else "",
-                font_bold=getattr(font, "weight", None) == "bold" if font else False,
-                text_angle=float(getattr(ann, "textangle", 0) or 0),
-                border_width=float(getattr(ann, "borderwidth", 0) or 0),
-                border_color=str(getattr(ann, "bordercolor", "") or ""),
-                border_pad=float(getattr(ann, "borderpad", 0) or 0),
-                bgcolor=str(getattr(ann, "bgcolor", "") or ""),
-                align=getattr(ann, "align", "left") or "left",
-                **anchor_kwargs,
-            )
-        )
-
-    return annotations
 
 
 def enrich_from_traces(spec: FigureConfig, result: TraceBuildResult) -> None:

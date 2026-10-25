@@ -12,8 +12,8 @@ from matplotlib.figure import Figure as MplFigure
 from plotly.subplots import make_subplots
 
 from src.core.models.visualization.dashboard_spec import DashboardSpec
-from src.web.pages.ui.plotting.base_plot import BasePlot
-from src.web.rendering.figure_preparation import prepare_figure
+from src.web.models.plot_protocols import PlotRenderSource
+from src.web.rendering.figure_preparation import PreparedDashboard, prepare_figure
 from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
 from src.web.rendering.matplotlib_figure_builder import draw_matplotlib_axes
 from src.web.rendering.plotly_figure_builder import build_plotly_figure
@@ -35,15 +35,8 @@ _AXIS_LAYOUT_KEYS = frozenset(
 )
 
 
-def render_dashboard(
-    plots: Sequence[BasePlot],
-    spec: DashboardSpec,
-    *,
-    engine: DashboardEngine = "plotly",
-) -> DashboardFigure:
-    # [impl->req~ring5.plots.multi-panel-dashboard~1]
-    # [impl->req~ring5.figure.panel-composition~1]
-    """Render registered plots into the dashboard's configured grid."""
+def prepare_dashboard(plots: Sequence[PlotRenderSource], spec: DashboardSpec) -> PreparedDashboard:
+    """Prepare each selected source exactly once without native figure allocation."""
     by_id = {plot.plot_id: plot for plot in plots}
     missing = [plot_id for plot_id in spec.plot_ids if plot_id not in by_id]
     if missing:
@@ -54,10 +47,35 @@ def render_dashboard(
     without_data = [plot.name for plot in selected if plot.processed_data is None]
     if without_data:
         raise ValueError("Dashboard plots have no processed data: " + ", ".join(without_data) + ".")
+    return PreparedDashboard(
+        spec,
+        tuple(
+            prepare_figure(
+                cast(Any, plot.processed_data), plot.config, plot.plot_type, plot.create_traces
+            )
+            for plot in selected
+        ),
+        tuple(plot.name for plot in selected),
+    )
+
+
+def render_dashboard(
+    plots: Sequence[PlotRenderSource], spec: DashboardSpec, *, engine: DashboardEngine = "plotly"
+) -> DashboardFigure:
+    # [impl->req~ring5.plots.multi-panel-dashboard~1]
+    # [impl->req~ring5.figure.panel-composition~1]
+    """Prepare and render registered plots in the configured native dashboard grid."""
+    return build_dashboard_figure(prepare_dashboard(plots, spec), engine=engine)
+
+
+def build_dashboard_figure(
+    prepared: PreparedDashboard, *, engine: DashboardEngine = "plotly"
+) -> DashboardFigure:
+    """Render one actual set of prepared panels without another source callback."""
     if engine == "plotly":
-        return _render_plotly_dashboard(selected, spec)
+        return _render_plotly_dashboard(prepared)
     if engine == "matplotlib":
-        return _render_matplotlib_dashboard(selected, spec)
+        return _render_matplotlib_dashboard(prepared)
     raise ValueError("Unknown dashboard engine. Choose 'plotly' or 'matplotlib'.")
 
 
@@ -267,17 +285,15 @@ def _add_domain_panel_text(
             )
 
 
-def _render_plotly_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec) -> go.Figure:
+def _render_plotly_dashboard(preparation: PreparedDashboard) -> go.Figure:
+    spec = preparation.layout
     child_figures: list[go.Figure] = []
     secondary_flags: list[bool] = []
-    for plot in plots:
-        prepared = prepare_figure(
-            cast(Any, plot.processed_data), plot.config, plot.plot_type, plot.create_traces
-        )
+    for prepared, plot_name in zip(preparation.panels, preparation.plot_names, strict=True):
         child = build_plotly_figure(prepared)
         if _has_nested_subplots(child):
             raise ValueError(
-                f"Plot '{plot.name}' already contains nested subplots and cannot be placed "
+                f"Plot '{plot_name}' already contains nested subplots and cannot be placed "
                 "inside a dashboard panel."
             )
         child_figures.append(child)
@@ -463,10 +479,11 @@ def _matplotlib_relative_spacing(normalized_gap: float, panel_count: int) -> flo
     return normalized_gap * panel_count / (1 - normalized_gap * (panel_count - 1))
 
 
-def _render_matplotlib_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec) -> MplFigure:
+def _render_matplotlib_dashboard(preparation: PreparedDashboard) -> MplFigure:
     # [impl->req~ring5.figure.accessible-themes~1]
     import matplotlib.pyplot as plt
 
+    spec = preparation.layout
     figure, raw_axes = plt.subplots(
         nrows=spec.rows,
         ncols=spec.columns,
@@ -480,14 +497,13 @@ def _render_matplotlib_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec)
     first_figure_spec: Any = None
     panel_render_results = []
     try:
-        for index, (plot, panel_title) in enumerate(zip(plots, spec.panel_titles)):
+        for index, (prepared, panel_title, plot_name) in enumerate(
+            zip(preparation.panels, spec.panel_titles, preparation.plot_names, strict=True)
+        ):
             ax = axes[index]
-            prepared = prepare_figure(
-                cast(Any, plot.processed_data), plot.config, plot.plot_type, plot.create_traces
-            )
             if uses_heatmap_panels(prepared.trace_result):
                 raise ValueError(
-                    f"Plot '{plot.name}' already contains nested heatmap panels and cannot "
+                    f"Plot '{plot_name}' already contains nested heatmap panels and cannot "
                     "be placed inside a dashboard panel."
                 )
             if first_figure_spec is None:
@@ -525,12 +541,14 @@ def _render_matplotlib_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec)
             if spec.shared_yaxes:
                 ax.set_ylabel("")
 
-        for ax in axes[len(plots) :]:
+        for ax in axes[len(preparation.panels) :]:
             ax.set_axis_off()
 
         if spec.shared_legend:
             handles_by_label: dict[str, Any] = {}
-            for ax, rendered in zip(axes[: len(plots)], panel_render_results, strict=True):
+            for ax, rendered in zip(
+                axes[: len(preparation.panels)], panel_render_results, strict=True
+            ):
                 for _, handle in rendered.legend_handles:
                     label = str(handle.get_label())
                     if label and not label.startswith("_"):
@@ -597,7 +615,7 @@ def _render_matplotlib_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec)
             wspace=wspace,
             hspace=hspace,
         )
-        figure._ring5_spec = first_figure_spec  # type: ignore[attr-defined]
+        figure._ring5_spec = preparation  # type: ignore[attr-defined]
         return figure
     except Exception:
         plt.close(figure)

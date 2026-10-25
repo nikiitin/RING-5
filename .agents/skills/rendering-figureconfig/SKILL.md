@@ -63,8 +63,13 @@ Recipe to add a styling option:
 - `EngineManager` (`src/web/rendering/engine_manager.py`) toggles `plotly`/`matplotlib` via the
   `ring5_engine_mode` session key. Default palette: **`wong`** (colorblind-safe); resolution via
   `services/visualization/palette_service.py`.
-- Matplotlib: lazy-imported inside methods; `chart_display.py` owns figure lifecycle (`plt.close()`
-  + session-scoped `plot.{id}.mpl_fig` cache). The connector itself must **not** close figures.
+- `PlotRenderState` owns one bound artifact or configuration-only detached payload. `BasePlot`
+  publishes native figure, configuration, preparation, engine and key atomically; retirement runs
+  outside Core locks and preserves borrowed figure content. Chart display consumes the artifact
+  directly; it does not rebuild figures or maintain a Matplotlib session cache.
+- Configuration reads are owned snapshots. Assign a complete edited mapping; do not mutate
+  `plot.config[...]` or keep a second configuration/native cache. Composite artifacts retain actual
+  per-panel preparations, with no placeholder trace result.
 - Publication exports: PDF/SVG/PNG/PGF via Matplotlib (PGF requires LaTeX) (`make install-latex`; `requires_latex`
   marker) and Plotly via Kaleido. `download_section.py` is engine-aware.
 - Legend hierarchy config prefixes: `legend_*` / `legend2_*` / `legend3_*` (never "boxed").

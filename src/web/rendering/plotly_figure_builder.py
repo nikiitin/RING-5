@@ -65,8 +65,8 @@ def build_plotly_figure(prepared: PreparedFigure) -> go.Figure:
     Returns:
         A styled native Plotly figure, including genuine editable Plotly shapes.
     """
-    # [impl->req~ring5.render.plotly~1]
     # [impl->req~ring5.figure.shapes-annotations~1]
+    # [impl->req~ring5.render.plotly~1]
     figure = traces_to_plotly(prepared.trace_result)
     FigureSpecToPlotly.apply(prepared.spec, figure)
     apply_axis_title_annotations(prepared.spec, figure)

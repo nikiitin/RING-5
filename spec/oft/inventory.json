@@ -1195,7 +1195,7 @@
       "tags": ["isolation", "plots", "state"],
       "evidence": {
         "implementation": [
-          "src/web/pages/ui/plotting/base_plot.py::BasePlot.publish_figure",
+          "src/web/pages/ui/plotting/base_plot.py::BasePlot.publish_render_artifact",
           "src/web/pages/ui/plotting/base_plot.py::BasePlot.__init__",
           "src/web/controllers/plot/render_controller.py::PlotRenderController._compute_figure_cache_key"
         ],
@@ -1226,6 +1226,7 @@
           "src/web/components/common/chart_display.py::ChartDisplayComponent.render_refresh_controls"
         ],
         "tests": [
+          "tests/ui/test_native_render_artifact_contract.py::test_actual_widgets_cache_one_native_generation_and_manual_refresh_builds_once",
           "tests/integration/test_controller_presenter.py::TestChartDisplayComponentIntegration",
           "tests/ui_logic/test_render_controller.py::TestFigureIdentity",
           "tests/ui/test_plot_widget_ownership.py::test_shape_draft_survives_manual_refresh_and_settings_navigation",
@@ -1659,7 +1660,7 @@
         "implementation": [
           "src/web/rendering/plotly_figure_builder.py::build_plotly_figure",
           "src/web/components/plotting/settings/shapes_settings.py::ShapesSettingsComponent.render",
-          "src/web/pages/ui/plotting/styles/applicator.py::StyleApplicator.apply_styles",
+          "src/web/rendering/plotly_figure_builder.py::build_plotly_figure",
           "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_annotations"
         ],
         "tests": [
@@ -1951,7 +1952,7 @@
       "evidence": {
         "implementation": [
           "src/core/models/visualization/trace_build_result.py::TraceBuildResult",
-          "src/web/pages/ui/plotting/base_plot.py::BasePlot.create_figure",
+          "src/web/rendering/figure_preparation.py::prepare_figure",
           "src/web/rendering/figure_preparation.py::prepare_figure",
           "src/web/rendering/_connector_protocol.py::validate_trace_types",
           "src/web/rendering/_connector_protocol.py::validate_annotation_types"
@@ -3665,7 +3666,7 @@
           "src/core/state/repositories/session_repository.py::SessionRepository.restore_from_portfolio",
           "src/web/components/data_managers/schema_contract.py::SchemaContractManager.render",
           "src/web/components/data_managers/schema_contract.py::SchemaContractManager._render_conversion",
-          "src/web/pages/ui/plotting/base_plot.py::BasePlot.create_figure",
+          "src/web/rendering/figure_preparation.py::prepare_figure",
           "src/web/pages/ui/plotting/base_plot.py::BasePlot.to_dict",
           "src/web/pages/ui/plotting/plot_factory.py::PlotFactory.from_dict",
           "src/web/rendering/figure_preparation.py::prepare_figure"
@@ -4150,7 +4151,7 @@
           "src/core/services/visualization/accessibility_service.py::AccessibilityService.apply_non_color_encodings",
           "src/core/services/visualization/accessibility_service.py::AccessibilityService.audit",
           "src/web/components/plotting/settings/colors_settings.py::ColorsSettingsComponent.render",
-          "src/web/pages/ui/plotting/base_plot.py::BasePlot.create_figure",
+          "src/web/rendering/figure_preparation.py::prepare_figure",
           "src/web/rendering/dashboard_builder.py::_render_matplotlib_dashboard",
           "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_hatching",
           "src/web/rendering/matplotlib_trace_renderer.py::MatplotlibTraceRenderer._draw_bar",

@@ -1,7 +1,7 @@
 """
 Plotly connector — translate resolved FigureConfig into go.Figure updates.
 
-``StyleApplicator.apply_styles()`` delegates to ``ConfigSpecBuilder`` to
+The neutral preparation owner delegates to ``ConfigSpecBuilder`` to
 build a FigureConfig and then calls this connector to apply it.
 
 Usage:

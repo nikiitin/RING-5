@@ -78,7 +78,7 @@ class FigureConfig:
     matplotlib connectors consume.  It owns every rendering parameter.
 
     Workflow:
-        1. Build from user config  (PlotlyFigureSpecBuilder / ConfigSpecBuilder)
+        1. Build from user config  (ConfigSpecBuilder)
         2. Resolve sentinels       (config_resolver.resolve_config)
         3. Pass to a connector     (FigureSpecToPlotly / FigureSpecToMatplotlib)
     """

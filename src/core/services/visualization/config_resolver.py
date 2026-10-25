@@ -110,7 +110,7 @@ def _resolve_typography(typo: object) -> None:
     # y2ticks inherits from yticks (already resolved)
     _inherit_int(typo, "font_size_y2ticks", typo.font_size_yticks)
 
-    # legend2 inherits from legend (CONSUMED — apply_dual_axis reads font_size_legend2)
+    # Secondary legend typography inherits from the primary role.
     _inherit_float(typo, "font_size_legend2", typo.font_size_legend)
 
 
