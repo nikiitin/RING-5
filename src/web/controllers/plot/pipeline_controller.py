@@ -116,7 +116,7 @@ class PipelineController:
         exchange_result = PipelineComponent.render_exchange(
             plot.plot_id,
             plot.name,
-            lambda name, description: self._api.export_configuration(
+            lambda name, description: self._api.data_services.export_configuration(
                 name,
                 description,
                 [copy.deepcopy(step["config"]) for step in plot.pipeline],
@@ -155,7 +155,7 @@ class PipelineController:
         if payload is None:
             return None
         try:
-            result = self._api.import_configuration(
+            result = self._api.data_services.import_configuration(
                 payload,
                 conflict=cast(PipelineConfigConflictPolicy, exchange["conflict"]),
             )

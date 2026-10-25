@@ -106,7 +106,7 @@ class TestPipelineControllerRender:
             schema_version=1,
             conflict_resolution="renamed",
         )
-        mock_api.import_configuration.return_value = result
+        mock_api.data_services.import_configuration.return_value = result
         controller = PipelineController(mock_api, MagicMock(), mock_executor)
 
         imported = controller._handle_exchange_import(
@@ -114,7 +114,9 @@ class TestPipelineControllerRender:
             {"import_clicked": True, "payload": b"{}", "conflict": "rename"},
         )
 
-        mock_api.import_configuration.assert_called_once_with(b"{}", conflict="rename")
+        mock_api.data_services.import_configuration.assert_called_once_with(
+            b"{}", conflict="rename"
+        )
         assert mock_plot.pipeline == [
             {
                 "id": 7,

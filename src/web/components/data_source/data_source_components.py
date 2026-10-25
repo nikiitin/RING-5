@@ -379,7 +379,7 @@ class DataSourceComponents:
         # Use cached pool from state; only load from disk when cache is empty.
         csv_pool = api.state_manager.get_csv_pool()
         if not csv_pool:
-            csv_pool = api.load_csv_pool()
+            csv_pool = api.data_services.load_csv_pool()
             api.state_manager.set_csv_pool(csv_pool)
 
         csv_pool = [entry for entry in csv_pool if Path(entry["path"]).is_file()]
@@ -409,7 +409,7 @@ class DataSourceComponents:
 
             if delete_clicked:
                 if api.data_services.delete_from_csv_pool(str(csv_path)):
-                    api.state_manager.set_csv_pool(api.load_csv_pool())
+                    api.state_manager.set_csv_pool(api.data_services.load_csv_pool())
                     if st.session_state.get(_IMPORT_PREVIEW_PATH_KEY) == str(csv_path):
                         st.session_state.pop(_IMPORT_PREVIEW_PATH_KEY, None)
                     st.toast("File deleted!", icon="🗑️")

@@ -48,7 +48,7 @@ def mock_card_components() -> Generator[Any, None, None]:
 
 def test_render_csv_pool_empty(mock_streamlit: Any, mock_api: Any) -> None:
 
-    mock_api.load_csv_pool.return_value = []
+    mock_api.data_services.load_csv_pool.return_value = []
     mock_api.state_manager.get_csv_pool.return_value = []
 
     DataSourceComponents.render_csv_pool(mock_api)
@@ -62,7 +62,7 @@ def test_render_csv_pool_with_files(
 ) -> None:
 
     csv_info = {"name": "test.csv", "path": "/path/to/test.csv"}
-    mock_api.load_csv_pool.return_value = [csv_info]
+    mock_api.data_services.load_csv_pool.return_value = [csv_info]
     mock_api.state_manager.get_csv_pool.return_value = []
 
     with (
@@ -75,7 +75,7 @@ def test_render_csv_pool_with_files(
             DataSourceComponents.render_csv_pool(mock_api)
 
         render_preview.assert_called_once_with(mock_api, "/path/to/test.csv")
-        mock_api.load_csv_file.assert_not_called()
+        mock_api.data_services.load_csv_file.assert_not_called()
 
 
 def test_render_csv_pool_delete(
@@ -83,7 +83,7 @@ def test_render_csv_pool_delete(
 ) -> None:
 
     csv_info = {"name": "del.csv", "path": "/del.csv"}
-    mock_api.load_csv_pool.return_value = [csv_info]
+    mock_api.data_services.load_csv_pool.return_value = [csv_info]
     mock_api.state_manager.get_csv_pool.return_value = []
 
     with (

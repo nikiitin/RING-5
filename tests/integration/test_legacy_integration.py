@@ -37,16 +37,16 @@ def test_complete_workflow_integration() -> None:
         test_data.to_csv(test_csv, index=False)
 
         # Test 1: Load CSV
-        loaded_data = facade.load_csv_file(str(test_csv))
+        loaded_data = facade.data_services.load_csv_file(str(test_csv))
         assert len(loaded_data) == 4
         assert list(loaded_data.columns) == ["benchmark", "config", "ipc", "latency"]
 
         # Test 2: Add to CSV pool
-        pool_path = facade.add_to_csv_pool(str(test_csv))
+        pool_path = facade.data_services.add_to_csv_pool(str(test_csv))
         assert Path(pool_path).exists()
 
         # Test 3: Load CSV pool
-        pool = facade.load_csv_pool()
+        pool = facade.data_services.load_csv_pool()
         assert len(pool) > 0
 
         # Test 4: Create dynamic pipeline
@@ -62,12 +62,12 @@ def test_complete_workflow_integration() -> None:
         )
 
         # Test 5: Apply pipeline
-        result = facade.apply_shapers(test_data, pipeline)
+        result = facade.shapers.process_pipeline(test_data, pipeline)
         assert "benchmark" in result.columns
         assert "ipc" in result.columns
 
         # Test 6: Save configuration
-        config_path = facade.save_configuration(
+        config_path = facade.data_services.save_configuration(
             name="test_pipeline",
             description="Test dynamic pipeline",
             shapers_config=pipeline,
@@ -76,15 +76,15 @@ def test_complete_workflow_integration() -> None:
         assert Path(config_path).exists()
 
         # Test 7: Load configuration
-        loaded_config = facade.load_configuration(config_path)
+        loaded_config = facade.data_services.load_configuration(config_path)
         assert loaded_config["name"] == "test_pipeline"
         assert len(loaded_config["shapers"]) == 2
 
         # Test 8: Preview transformations (step by step)
-        step1_result = facade.apply_shapers(test_data, pipeline[:1])
+        step1_result = facade.shapers.process_pipeline(test_data, pipeline[:1])
         assert len(step1_result.columns) == 2
 
-        step2_result = facade.apply_shapers(test_data, pipeline[:2])
+        step2_result = facade.shapers.process_pipeline(test_data, pipeline[:2])
         assert len(step2_result.columns) == 2
 
         # Test 9: Data manager operations
@@ -138,7 +138,7 @@ def test_multiple_same_shapers() -> None:
         ],
     )
 
-    result = facade.apply_shapers(test_data, pipeline)
+    result = facade.shapers.process_pipeline(test_data, pipeline)
 
     assert len(result.columns) == 2
     assert "a" in result.columns

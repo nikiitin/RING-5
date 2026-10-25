@@ -161,10 +161,10 @@ class TestFullParserWorkflow:
             assert csv_path is not None
 
             # Step 4: Load into CSV pool
-            facade.add_to_csv_pool(csv_path)
+            facade.data_services.add_to_csv_pool(csv_path)
 
             # Step 5: Retrieve from pool (load directly from file)
-            loaded_data = facade.load_csv_file(csv_path)
+            loaded_data = facade.data_services.load_csv_file(csv_path)
 
             assert loaded_data is not None
             assert not loaded_data.empty

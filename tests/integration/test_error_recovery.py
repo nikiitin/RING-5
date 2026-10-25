@@ -104,7 +104,7 @@ class TestShaperPipelineErrors:
         ]
 
         with pytest.raises(ValueError):
-            loaded_facade.apply_shapers(data, pipeline)
+            loaded_facade.shapers.process_pipeline(data, pipeline)
 
         # Original data should be unchanged
         assert data.shape == original_shape

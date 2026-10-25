@@ -62,25 +62,25 @@ def test_csv_pool_operations(facade: Any, tmp_path: Any) -> None:
     df.to_csv(dummy_csv, index=False)
 
     # Add to pool
-    added_path = facade.add_to_csv_pool(str(dummy_csv))
+    added_path = facade.data_services.add_to_csv_pool(str(dummy_csv))
     assert Path(added_path).exists()
     assert Path(added_path).parent == facade.csv_pool_dir
 
     # List pool
-    pool = facade.load_csv_pool()
+    pool = facade.data_services.load_csv_pool()
     assert len(pool) == 1
     assert pool[0]["path"] == str(added_path)
     # Logic: f"parsed_{timestamp}.csv" -> Name is changed.
     assert "parsed_" in pool[0]["name"]
 
     # Load CSV file content
-    loaded_df = facade.load_csv_file(added_path)
+    loaded_df = facade.data_services.load_csv_file(added_path)
     pd.testing.assert_frame_equal(df, loaded_df)
 
     # Delete from pool
     assert facade.data_services.delete_from_csv_pool(added_path) is True
     assert not Path(added_path).exists()
-    assert len(facade.load_csv_pool()) == 0
+    assert len(facade.data_services.load_csv_pool()) == 0
 
 
 def test_configuration_operations(facade: Any, tmp_path: Any) -> None:
@@ -90,7 +90,7 @@ def test_configuration_operations(facade: Any, tmp_path: Any) -> None:
     shapers_config = [{"type": "columnSelector", "columns": ["ipc"]}]
     # Use valid path string, doesn't need to exist for this test usually, but safer
     csv_path = str(tmp_path / "fake.csv")
-    config_path = facade.save_configuration(
+    config_path = facade.data_services.save_configuration(
         name="Test Config",
         description="A test description",
         shapers_config=shapers_config,
@@ -100,21 +100,21 @@ def test_configuration_operations(facade: Any, tmp_path: Any) -> None:
     assert Path(config_path).exists()
 
     # List Configs
-    configs = facade.load_saved_configs()
+    configs = facade.data_services.load_saved_configs()
     assert len(configs) == 1
     assert configs[0]["description"] == "A test description"
     assert "Test Config" in configs[0]["name"]
 
     # Load Config
-    loaded_config = facade.load_configuration(config_path)
+    loaded_config = facade.data_services.load_configuration(config_path)
     assert loaded_config["name"] == "Test Config"
     assert loaded_config["shapers"] == shapers_config
     assert loaded_config["csv_path"] == str(tmp_path / "fake.csv")
 
     # Delete Config
-    assert facade.delete_configuration(config_path) is True
+    assert facade.data_services.delete_configuration(config_path) is True
     assert not Path(config_path).exists()
-    assert len(facade.load_saved_configs()) == 0
+    assert len(facade.data_services.load_saved_configs()) == 0
 
 
 def test_csv_pool_sorting(facade: Any, tmp_path: Any) -> None:
@@ -129,7 +129,7 @@ def test_csv_pool_sorting(facade: Any, tmp_path: Any) -> None:
 
         os.utime(p, (1000 + i * 100, 1000 + i * 100))
 
-    pool = facade.load_csv_pool()
+    pool = facade.data_services.load_csv_pool()
     assert len(pool) == 3
     # Check descending order
     assert pool[0]["name"] == "file_2.csv"

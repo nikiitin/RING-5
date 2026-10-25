@@ -257,7 +257,7 @@ class TestApplyShapersPipeline:
             },
         ]
 
-        result: pd.DataFrame = loaded_facade.apply_shapers(
+        result: pd.DataFrame = loaded_facade.shapers.process_pipeline(
             data, cast(list[ShaperStepConfig], pipeline)
         )
 
@@ -290,7 +290,7 @@ class TestApplyShapersPipeline:
             },
         ]
 
-        result: pd.DataFrame = loaded_facade.apply_shapers(
+        result: pd.DataFrame = loaded_facade.shapers.process_pipeline(
             data, cast(list[ShaperStepConfig], pipeline)
         )
 
@@ -330,7 +330,7 @@ class TestApplyShapersPipeline:
             },
         ]
 
-        result: pd.DataFrame = loaded_facade.apply_shapers(
+        result: pd.DataFrame = loaded_facade.shapers.process_pipeline(
             data, cast(list[ShaperStepConfig], pipeline)
         )
 
