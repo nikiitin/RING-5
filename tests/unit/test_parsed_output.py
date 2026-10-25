@@ -209,7 +209,7 @@ def test_publication_failure_preserves_old_output_and_cleans_temporaries(
     elif failure == "replace":
         monkeypatch.setattr(parsed_output.os, "replace", fail)
     elif failure == "descriptor":
-        monkeypatch.setattr(parsed_output_service, "ParsedOutput", fail)
+        monkeypatch.setattr(parsed_output, "ParsedOutput", fail)
     else:
         callback = fail
     with pytest.raises(RuntimeError, match="injected"):
@@ -230,7 +230,7 @@ def test_budgets_reject_before_writer_allocation(
     def forbidden(*args, **kwargs):
         raise AssertionError("Budget failure reached writer allocation")
 
-    monkeypatch.setattr(parsed_output_service, "MAX_PARSED_OUTPUT_BYTES", 10)
+    monkeypatch.setattr(parsed_output, "MAX_PARSED_OUTPUT_BYTES", 10)
     monkeypatch.setattr(parsed_output.tempfile, "NamedTemporaryFile", forbidden)
     with pytest.raises(ValueError, match="byte limit"):
         ParsedOutputIO.publish(tmp_path / "output.csv", table)
@@ -346,7 +346,7 @@ def test_contending_publication_waits_for_rollback_before_committing(
             contender_waiting.set()
         return original_lock(path)
 
-    monkeypatch.setattr(parsed_output_service, "file_lock", tracked_lock)
+    monkeypatch.setattr(parsed_output, "file_lock", tracked_lock)
 
     def fail_promotion(_):
         callback_entered.set()
@@ -461,7 +461,7 @@ def test_reader_enforces_cell_and_row_budgets_symmetrically(
     )
     output = ParsedOutputIO.publish(tmp_path / "results.csv", table)
     oversized = _rewrite_output(output, b"value\r\n" + b"a" * 21 + b"\r\n")
-    monkeypatch.setattr(parsed_output_service, "MAX_PARSED_CELL_CHARACTERS", 20)
+    monkeypatch.setattr(parsed_output, "MAX_PARSED_CELL_CHARACTERS", 20)
     with pytest.raises(ValueError, match="character limit"):
         ParsedOutputIO.read(oversized)
     many_rows = _rewrite_output(output, b"value\r\na\r\nb\r\nc\r\n")
@@ -472,7 +472,7 @@ def test_reader_enforces_cell_and_row_budgets_symmetrically(
         observed.append(kwargs["nrows"])
         return original_reader(*args, **kwargs)
 
-    monkeypatch.setattr(parsed_output_service, "MAX_PARSE_FILES", 1)
+    monkeypatch.setattr(parsed_output, "MAX_PARSE_FILES", 1)
     monkeypatch.setattr(parsed_output.pd, "read_csv", bounded_reader)
     with pytest.raises(ValueError, match="bounded non-empty"):
         ParsedOutputIO.read(many_rows)
