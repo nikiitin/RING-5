@@ -13,7 +13,7 @@ from pathlib import Path
 from src.core.common.security_limits import MAX_PARSED_CELL_CHARACTERS, MAX_PARSE_FILE_BYTES
 from src.core.models.parsed_output_models import ParsedCell, ParsedFileResult
 from src.parsing.gem5.impl.source_bindings import SourcePlan
-from src.parsing.gem5.impl.strategies.file_parser_strategy import ParseWorkItem
+from src.parsing.parser_protocol import ParseWorkItem
 from src.parsing.gem5.impl.strategies.simple import SimpleStatsStrategy
 
 logger = logging.getLogger(__name__)

@@ -130,17 +130,19 @@ def test_current_cache_reloads_literal_values_and_rejects_retired_or_unknown_fie
         digest, ("number", "label"), (("source", "b" * 64),), [_result(absent=1)]
     )
     write_cache(path, encoded)
-    names, records = load_cache(path, digest)
-    assert names == ("number", "label") and tuple(records) == ("source",)
-    assert records["source"][0] == "b" * 64
-    assert records["source"][1].variables[0].missing_measurements == 1
-    assert records["source"][1].variables[1].cells[0].value == "NA"
+    reuse = load_cache(path, digest, (("source", "b" * 64),))
+    assert reuse.var_names == ("number", "label")
+    assert tuple(result.source_path for result in reuse.results) == ("source",)
+    assert reuse.results[0].variables[0].missing_measurements == 1
+    assert reuse.results[0].variables[1].cells[0].value == "NA"
     current = json.loads(encoded)
     for invalid in ({**current, "schema_version": 1}, {**current, "old_cells": []}):
         path.write_text(json.dumps(invalid), encoding="utf-8")
-        assert load_cache(path, digest) == ((), {})
+        invalid_reuse = load_cache(path, digest, (("source", "b" * 64),))
+        assert invalid_reuse.var_names == () and invalid_reuse.results == ()
     path.write_text('{"schema_version":2,"schema_version":2}', encoding="utf-8")
-    assert load_cache(path, digest) == ((), {})
+    invalid_reuse = load_cache(path, digest, (("source", "b" * 64),))
+    assert invalid_reuse.var_names == () and invalid_reuse.results == ()
 
 
 def test_cache_preparation_budget_rejects_before_filesystem_publication(

@@ -5,23 +5,10 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Protocol
 
-from src.core.models.parsed_output_models import ParsedFileResult
+from src.parsing.parser_protocol import ParseWorkItem
 
 if TYPE_CHECKING:
     from src.parsing.gem5.impl.source_bindings import SourcePlan
-
-
-class ParseWorkItem(Protocol):
-    """One source-owned callable returning only finalized immutable values."""
-
-    @property
-    def source_path(self) -> str:
-        """Return the exact planned source file for this work item."""
-        raise NotImplementedError
-
-    def __call__(self) -> ParsedFileResult:
-        """Return finalized variables and metadata, or raise a visible failure."""
-        raise NotImplementedError
 
 
 class FileParserStrategy(Protocol):

@@ -22,7 +22,7 @@ from src.core.common.security_limits import (
 from src.core.common.utils import sanitize_log_value
 from src.parsing.framework.file_discovery import find_stats_files
 from src.parsing.gem5.impl.strategies.gem5_parse_work import Gem5ParseWork
-from src.parsing.gem5.impl.strategies.file_parser_strategy import ParseWorkItem
+from src.parsing.parser_protocol import ParseWorkItem
 from src.parsing.gem5.types.type_mapper import TypeMapper
 from src.parsing.gem5.impl.source_bindings import AccumulatorSpec, SourcePlan
 

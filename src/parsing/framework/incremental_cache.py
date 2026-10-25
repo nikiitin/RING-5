@@ -8,13 +8,13 @@ import logging
 import os
 import tempfile
 from collections.abc import Sequence
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from src.core.common.file_lock import file_lock
 from src.core.common.parsed_output_codec import (
     parsed_file_from_payload,
-    parsed_file_payload,
+    iter_parsed_file_encoding,
     unique_json_object,
 )
 from src.core.models.parsed_output_models import ParsedFileResult
@@ -26,6 +26,8 @@ from src.core.common.security_limits import (
 )
 from src.core.models.parsing_models import ScannedVariable, StatConfig
 from src.core.models.parsing_models import PARSER_RESULT_VERSION
+
+from src.parsing.framework.result_admission import ResultAdmission, ResultAdmissionError
 
 logger = logging.getLogger(__name__)
 
@@ -58,13 +60,35 @@ def configuration_hash(
     return hashlib.sha256(encoded).hexdigest()
 
 
+@dataclass(frozen=True)
+class CacheReuse:
+    """Admitted current file records and the exact budget shared by changed workers."""
+
+    var_names: tuple[str, ...]
+    results: tuple[ParsedFileResult, ...]
+    removed_files: tuple[str, ...]
+    admission: ResultAdmission
+
+
 def load_cache(
     cache_path: Path,
     expected_configuration_hash: str,
-) -> tuple[tuple[str, ...], dict[str, tuple[str, ParsedFileResult]]]:
-    """Load current typed records; stale or malformed optimization caches are ignored."""
+    fingerprints: tuple[tuple[str, str], ...],
+) -> CacheReuse:
+    """Decode and admit reusable records before accumulating typed cached values.
+
+    A malformed/stale cache discards its provisional context before any workers
+    or retained values are returned. Resource admission failures remain visible.
+    """
+    if type(fingerprints) is not tuple or len(fingerprints) > MAX_PARSE_FILES:
+        raise ValueError("Cache reuse requires a bounded immutable fingerprint plan.")
+    paths = tuple(path for path, _ in fingerprints)
+    admission = ResultAdmission(paths)
+    current = dict(fingerprints)
+    for fingerprint in current.values():
+        _digest(fingerprint)
     if not cache_path.is_file():
-        return (), {}
+        return CacheReuse((), (), (), admission)
     try:
         if cache_path.stat().st_size > MAX_INCREMENTAL_CACHE_BYTES:
             raise ValueError("cache exceeds the byte limit")
@@ -86,7 +110,7 @@ def load_cache(
         ):
             raise ValueError("unsupported incremental cache schema")
         if payload["configuration_hash"] != expected_configuration_hash:
-            return (), {}
+            return CacheReuse((), (), (), admission)
         names = payload["var_names"]
         if (
             type(names) is not list
@@ -99,7 +123,8 @@ def load_cache(
         raw_files = payload["files"]
         if type(raw_files) is not list or len(raw_files) > MAX_PARSE_FILES:
             raise ValueError("cache files require a bounded array")
-        files: dict[str, tuple[str, ParsedFileResult]] = {}
+        retained: list[ParsedFileResult] = []
+        seen: set[str] = set()
         cells = 0
         for raw in raw_files:
             if type(raw) is not dict or set(raw) != {"fingerprint", "result"}:
@@ -107,17 +132,24 @@ def load_cache(
             fingerprint = raw["fingerprint"]
             _digest(fingerprint)
             result = parsed_file_from_payload(raw["result"])
-            if result.source_path in files or {
+            if result.source_path in seen or {
                 variable.name for variable in result.variables
             } != set(names):
                 raise ValueError("cache source/variable ownership does not match its plan")
+            seen.add(result.source_path)
             cells += sum(len(variable.cells) for variable in result.variables) + len(
                 result.metadata
             )
             if cells > MAX_PARSE_MATRIX_CELLS:
                 raise ValueError("cache exceeds the matrix cell limit")
-            files[result.source_path] = (fingerprint, result)
-        return tuple(names), files
+            if current.get(result.source_path) == fingerprint:
+                admission.admit(result, source_path=result.source_path)
+                retained.append(result)
+        return CacheReuse(
+            tuple(names), tuple(retained), tuple(sorted(seen - set(current))), admission
+        )
+    except ResultAdmissionError:
+        raise
     except (
         OSError,
         UnicodeError,
@@ -126,8 +158,8 @@ def load_cache(
         ValueError,
         RecursionError,
     ) as exc:
-        logger.warning("PARSER: ignoring invalid incremental cache %s: %s", cache_path, exc)
-        return (), {}
+        logger.warning("PARSER: ignoring invalid incremental cache %s: %s", cache_path, str(exc))
+        return CacheReuse((), (), (), ResultAdmission(paths))
 
 
 def _digest(value: str) -> None:
@@ -200,7 +232,12 @@ def encode_cache(
         _digest(fingerprint)
         if index:
             append(b",")
-        record({"fingerprint": fingerprint, "result": parsed_file_payload(by_source[source_path])})
+        append(b'{"fingerprint":')
+        record(fingerprint)
+        append(b',"result":')
+        for fragment in iter_parsed_file_encoding(by_source[source_path]):
+            append(fragment)
+        append(b"}")
     append(b"]}\n")
     return bytes(encoded)
 

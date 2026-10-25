@@ -3,6 +3,7 @@
 import hashlib
 import json
 import math
+from collections.abc import Iterator
 from typing import cast
 from decimal import Decimal, InvalidOperation
 
@@ -95,6 +96,15 @@ def parsed_file_payload(result: ParsedFileResult) -> dict[str, object]:
         ],
         "metadata": [cell_payload(cell) for cell in result.metadata],
     }
+
+
+def iter_parsed_file_encoding(result: ParsedFileResult) -> Iterator[bytes]:
+    """Yield the complete canonical UTF-8 file record for cache and admission sizing."""
+    encoder = json.JSONEncoder(
+        ensure_ascii=False, allow_nan=False, separators=(",", ":"), sort_keys=True
+    )
+    for fragment in encoder.iterencode(parsed_file_payload(result)):
+        yield fragment.encode("utf-8")
 
 
 def parsed_file_from_payload(value: object) -> ParsedFileResult:

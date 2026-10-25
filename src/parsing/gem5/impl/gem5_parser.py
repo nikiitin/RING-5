@@ -38,12 +38,13 @@ from src.parsing.framework.incremental_cache import (
     write_cache,
 )
 from src.parsing.framework.work_pool import WorkPool
+from src.parsing.framework.result_admission import AdmittedParseWork, ResultAdmission
 from src.parsing.gem5.impl.scanning.gem5_scan_work import Gem5ScanWork
 from src.parsing.gem5.impl.source_bindings import resolve_sources
 from src.parsing.gem5.impl.scanning.pattern_aggregator import PatternAggregator
 from src.parsing.gem5.impl.strategies.factory import StrategyFactory
 from src.parsing.gem5.models import Gem5ScannedVariable
-from src.parsing.parser_protocol import SimulationParser
+from src.parsing.parser_protocol import ParseWorkItem, SimulationParser
 
 logger = logging.getLogger(__name__)
 
@@ -60,18 +61,16 @@ class Gem5Parser(SimulationParser):
     # [impl->req~ring5.ingestion.gem5-backend~1]
 
     @staticmethod
-    def submit_parse_async(
+    def _prepare_work_items(
         stats_path: str,
         stats_pattern: str,
         variables: list[StatConfig],
-        output_dir: str,
-        strategy_type: str = "simple",
-        scanned_vars: list[ScannedVariable] | None = None,
+        strategy_type: str,
+        scanned_vars: list[ScannedVariable] | None,
         *,
-        file_paths: list[str] | None = None,
-    ) -> ParseBatchResult:
-        """Submit async parsing job and return a ParseBatchResult."""
-        t_start = time.perf_counter()
+        file_paths: list[str] | None,
+    ) -> tuple[tuple[str, ...], tuple[ParseWorkItem, ...]]:
+        """Resolve one source plan and independent work without submitting Futures."""
         safe_path: str = os.path.normpath(stats_path) if stats_path else "."
         search_path = normalize_user_path(safe_path)
         if not search_path.exists():
@@ -124,19 +123,41 @@ class Gem5Parser(SimulationParser):
                 f"No parse work generated for pattern '{stats_pattern}' under: {stats_path}"
             )
 
-        var_names = tuple(spec.output_name for spec in plan.accumulators)
-        source_paths = tuple(work.source_path for work in batch_work)
+        return tuple(spec.output_name for spec in plan.accumulators), tuple(batch_work)
+
+    @staticmethod
+    def _submit_admitted_work(
+        work: tuple[ParseWorkItem, ...], admission: ResultAdmission
+    ) -> tuple[Future[ParsedFileResult], ...]:
+        """Share exactly one source-owned result quota across this batch's Futures."""
+        if not work:
+            return ()
+        tasks = tuple(AdmittedParseWork(item, admission) for item in work)
+        return tuple(WorkPool.get_instance().submit_many(tasks))
+
+    @staticmethod
+    def submit_parse_async(
+        stats_path: str,
+        stats_pattern: str,
+        variables: list[StatConfig],
+        output_dir: str,
+        strategy_type: str = "simple",
+        scanned_vars: list[ScannedVariable] | None = None,
+        *,
+        file_paths: list[str] | None = None,
+    ) -> ParseBatchResult:
+        """Submit typed file work under one exact source plan and retained-result quota."""
         output_root = str(normalize_user_path(output_dir))
+        var_names, work = Gem5Parser._prepare_work_items(
+            stats_path, stats_pattern, variables, strategy_type, scanned_vars, file_paths=file_paths
+        )
+        source_paths = tuple(item.source_path for item in work)
         Gem5Parser._admit_target_paths(
             Path(output_root) / "results.csv", source_paths, strategy_type
         )
-
-        pool = WorkPool.get_instance()
-        futures = pool.submit_many(batch_work)
-
-        t_total = time.perf_counter() - t_start
-        logger.info(f"PERF: submit_parse_async total (pre-pool) took {t_total:.4f}s")
-        return ParseBatchResult(tuple(futures), var_names, source_paths, output_root, strategy_type)
+        admission = ResultAdmission(source_paths)
+        futures = Gem5Parser._submit_admitted_work(work, admission)
+        return ParseBatchResult(futures, var_names, source_paths, output_root, strategy_type)
 
     @staticmethod
     def submit_incremental_parse_async(
@@ -169,33 +190,23 @@ class Gem5Parser(SimulationParser):
             strategy_type,
             resolved_cache,
         )
-        cached_var_names, cached_files = load_cache(resolved_cache, config_hash)
-        current_fingerprints = dict(fingerprints)
-
-        cached_results: list[ParsedFileResult] = []
-        changed_files: list[str] = []
-        for source_path, fingerprint in fingerprints:
-            cached = cached_files.get(source_path)
-            if cached is not None and cached[0] == fingerprint:
-                cached_results.append(cached[1])
-            else:
-                changed_files.append(source_path)
-
-        removed_files = tuple(sorted(set(cached_files) - set(current_fingerprints)))
-        futures: tuple[Future[ParsedFileResult], ...] = ()
-        var_names = cached_var_names
+        reuse = load_cache(resolved_cache, config_hash, fingerprints)
+        cached_results = reuse.results
+        reused_paths = {result.source_path for result in cached_results}
+        changed_files = tuple(path for path, _ in fingerprints if path not in reused_paths)
+        var_names = reuse.var_names
+        work: tuple[ParseWorkItem, ...] = ()
         if changed_files:
-            changed_batch = Gem5Parser.submit_parse_async(
+            var_names, work = Gem5Parser._prepare_work_items(
                 stats_path,
                 stats_pattern,
                 variables,
-                output_dir,
                 strategy_type,
                 scanned_vars,
-                file_paths=changed_files,
+                file_paths=list(changed_files),
             )
-            futures = changed_batch.futures
-            var_names = changed_batch.var_names
+        futures = Gem5Parser._submit_admitted_work(work, reuse.admission)
+        removed_files = reuse.removed_files
         if not var_names:
             raise RuntimeError("PARSER: incremental parse has no resolved variable names.")
 
@@ -238,15 +249,17 @@ class Gem5Parser(SimulationParser):
             )
         files = find_stats_files(stats_path, stats_pattern, sort=True, raise_if_empty=True)
         sampled_files = tuple(files[:MAX_PARSER_PLAYGROUND_FILES])
-        parse_batch = Gem5Parser.submit_parse_async(
+        var_names, work = Gem5Parser._prepare_work_items(
             stats_path,
             stats_pattern,
             variables,
-            output_dir,
             strategy_type,
             scanned_vars,
             file_paths=list(sampled_files),
         )
+        sampled_files = tuple(item.source_path for item in work)
+        admission = ResultAdmission(sampled_files)
+        futures = Gem5Parser._submit_admitted_work(work, admission)
         diagnostics: list[str] = []
         if len(files) > len(sampled_files):
             diagnostics.append(
@@ -257,8 +270,8 @@ class Gem5Parser(SimulationParser):
                 f"A full parse would exceed the {MAX_PARSE_FILES}-file safety limit."
             )
         return ParserPlaygroundBatchResult(
-            futures=parse_batch.futures,
-            var_names=parse_batch.var_names,
+            futures=futures,
+            var_names=var_names,
             output_dir=str(Path(output_dir).expanduser().resolve()),
             strategy_type=strategy_type,
             matched_file_count=len(files),

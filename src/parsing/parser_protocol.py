@@ -15,6 +15,19 @@ from src.core.models.parsing_models import (
 )
 
 
+class ParseWorkItem(Protocol):
+    """One source-owned callable returning only finalized immutable values."""
+
+    @property
+    def source_path(self) -> str:
+        """Return the exact planned source file for this work item."""
+        raise NotImplementedError
+
+    def __call__(self) -> ParsedFileResult:
+        """Return finalized variables and metadata, or raise a visible failure."""
+        raise NotImplementedError
+
+
 @runtime_checkable
 class SimulationParser(Protocol):
     """

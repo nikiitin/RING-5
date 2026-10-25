@@ -18,6 +18,9 @@ PARSE_BATCH_TIMEOUT_SECONDS = 600.0
 MAX_INCREMENTAL_CACHE_BYTES = 64 * 1024 * 1024
 MAX_INCREMENTAL_CACHE_COLUMNS = 10_000
 MAX_PARSED_OUTPUT_BYTES = 256 * 1024 * 1024
+# Aggregate canonical typed-file records retained by one asynchronous parse batch.
+# This quota also counts repeated per-file names and metadata, unlike CSV headers.
+MAX_PARSE_RESULT_BYTES = 256 * 1024 * 1024
 MAX_PARSED_SCHEMA_BYTES = 4 * 1024 * 1024
 # Config-aware output embeds complete configuration metadata in one literal cell.
 MAX_PARSED_CELL_CHARACTERS = 4 * 1024 * 1024

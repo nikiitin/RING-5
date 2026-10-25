@@ -251,9 +251,10 @@ def test_incremental_partial_retains_typed_cached_rows_and_failed_cache_promotio
     assert Path(partial.csv_path).read_bytes() == partial_bytes
     assert cache_path.read_bytes() == before_cache
     assert before_csv != partial_bytes
-    names, records = load_cache(cache_path, initial_batch.configuration_hash)
-    assert names == ("value", "label")
-    assert records[str(cached_source)][1].variables[1].cells[0].value == ""
+    reuse = load_cache(cache_path, initial_batch.configuration_hash, initial_batch.fingerprints)
+    assert reuse.var_names == ("value", "label")
+    records = {result.source_path: result for result in reuse.results}
+    assert records[str(cached_source)].variables[1].cells[0].value == ""
     assert not list(output.glob("*.tmp")) and not list(output.glob(".parsed-old-*"))
 
 
