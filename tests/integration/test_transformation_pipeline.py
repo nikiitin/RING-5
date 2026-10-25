@@ -58,7 +58,7 @@ class TestTransformationPipeline:
         # Apply transformation
         result = normalizer(sample_benchmark_data)
 
-        # Verify transformation was applied (normalization modifies column in-place)
+        # Verify normalized IPC values.
         assert "ipc" in result.columns
 
         # Verify baseline values are 1.0
@@ -68,7 +68,7 @@ class TestTransformationPipeline:
         # Verify tx_lazy values are scaled correctly
         tx_rows = result[result["config"] == "tx_lazy"]
         expected_mcf = 1.0 / 1.2  # 0.833...
-        mcf_ipc = cast(pd.Series, tx_rows[tx_rows["benchmark"] == "mcf"]["ipc"]).iloc[0]
+        mcf_ipc = tx_rows[tx_rows["benchmark"] == "mcf"]["ipc"].iloc[0]
         assert abs(float(mcf_ipc) - expected_mcf) < 0.01
 
     def test_multi_shaper_pipeline(
