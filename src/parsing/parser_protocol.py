@@ -1,6 +1,7 @@
 from concurrent.futures import Future
-from typing import Any, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
+from src.core.models.parsed_output_models import ParsedFileResult, ParsedOutput
 from src.core.models.parsing_models import (
     IncrementalParseBatchResult,
     IncrementalParseResult,
@@ -56,20 +57,22 @@ class SimulationParser(Protocol):
 
     def finalize_parsing(
         self,
-        output_dir: str,
-        results: list[dict[str, Any]],
-        strategy_type: str = "simple",
-        var_names: list[str] | None = None,
-    ) -> str | None:
-        """
-        Post-process and aggregate internal parsing results into a canonical format (e.g. CSV).
+        batch: ParseBatchResult,
+        results: list[ParsedFileResult],
+        *,
+        complete: bool = True,
+    ) -> ParsedOutput:
+        """Resolve required batch context and publish exact typed rows.
+
+        Complete output covers every planned source. Partial output still rejects
+        duplicate or unplanned provenance and requires at least one usable row.
         """
         raise NotImplementedError
 
     def finalize_incremental_parsing(
         self,
         batch: IncrementalParseBatchResult,
-        results: list[dict[str, Any]],
+        results: list[ParsedFileResult],
         *,
         complete: bool = True,
     ) -> IncrementalParseResult:
@@ -102,7 +105,7 @@ class SimulationParser(Protocol):
     def finalize_parser_playground(
         self,
         batch: ParserPlaygroundBatchResult,
-        results: list[dict[str, Any]],
+        results: list[ParsedFileResult],
     ) -> ParserPlaygroundResult:
         # [impl->req~ring5.ingestion.parser-playground~1]
         """Turn bounded parser results into a non-mutating human preview."""

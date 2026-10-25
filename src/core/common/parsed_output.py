@@ -16,6 +16,7 @@ from typing import IO, Protocol
 import pandas as pd
 
 from src.core.common.file_lock import file_lock
+from src.core.common.safe_regex import MAX_INPUT_LENGTH
 from src.core.common.parsed_output_codec import (
     ParsedOutputDigest,
     encode_parsed_schema,
@@ -96,14 +97,46 @@ class ParsedOutputIO:
     def resolve(
         results: Sequence[ParsedFileResult],
         variable_order: Sequence[str],
+        source_paths: Sequence[str],
+        *,
+        complete: bool = True,
     ) -> ResolvedParsedRows:
         """Resolve explicit ownership and kinds before allocating a rectangular table.
 
         Numeric union gaps are NaN. Missing text cells are invalid because an
         explicit string, including an empty fallback, is required from producers.
+
+        Args:
+            results: Finalized immutable per-file values.
+            variable_order: Exact logical variable order for the output schema.
+            source_paths: Required submitted source plan, independent of worker results.
+            complete: Require every planned source. False permits non-empty partial output.
+
+        Returns:
+            Owned typed rows and schema, sorted by their exact source paths.
+
+        Raises:
+            TypeError: A result, cell kind or plan value has the wrong type.
+            ValueError: Provenance, schema ownership or an output budget is invalid.
         """
         if not results or len(results) > MAX_PARSE_FILES:
             raise ValueError("Parser output requires a bounded non-empty file result set.")
+        if type(complete) is not bool:
+            raise TypeError("Parser completion mode must be a boolean.")
+        if (
+            isinstance(source_paths, (str, bytes))
+            or not source_paths
+            or len(source_paths) > MAX_PARSE_FILES
+        ):
+            raise ValueError("Parser sources require a bounded non-empty planned sequence.")
+        if any(
+            type(path) is not str or not path or len(path) > MAX_INPUT_LENGTH
+            for path in source_paths
+        ):
+            raise TypeError("Planned parser source paths must be non-empty strings.")
+        expected_paths = set(source_paths)
+        if len(expected_paths) != len(source_paths):
+            raise ValueError("Planned parser source paths must be unique.")
         if len(variable_order) > MAX_PARSE_VARIABLES:
             raise ValueError("Parser output exceeds the logical variable limit.")
         if isinstance(variable_order, (str, bytes)):
@@ -113,6 +146,7 @@ class ParsedOutputIO:
             raise TypeError("Requested logical variable names must be non-empty strings.")
         if len(order) != len(set(order)):
             raise ValueError("Requested logical variable names must be unique.")
+        requested_names = set(order)
         declarations: dict[str, ParsedVariableSchema] = {}
         columns: dict[str, ParsedColumn] = {}
         entry_orders: dict[str, set[tuple[str, ...]]] = {name: set() for name in order}
@@ -123,7 +157,9 @@ class ParsedOutputIO:
                 raise TypeError("Parser workers must return ParsedFileResult values.")
             if result.source_path in rows:
                 raise ValueError(f"Duplicate parser source provenance: {result.source_path!r}.")
-            if {value.name for value in result.variables} != set(order):
+            if result.source_path not in expected_paths:
+                raise ValueError(f"Unplanned parser source provenance: {result.source_path!r}.")
+            if {value.name for value in result.variables} != requested_names:
                 raise ValueError("File variables do not match the requested logical declarations.")
             row: dict[str, ParsedCell] = {}
             for variable in result.variables:
@@ -141,6 +177,9 @@ class ParsedOutputIO:
             if observed_cells > MAX_PARSE_MATRIX_CELLS:
                 raise ValueError("Parser output exceeds the matrix cell limit.")
             rows[result.source_path] = row
+
+        if complete and set(rows) != expected_paths:
+            raise ValueError("Complete parser output must cover every planned source path.")
 
         names: list[str] = []
         for name in order:
@@ -190,9 +229,7 @@ class ParsedOutputIO:
     def _check_wire_budget(table: ResolvedParsedRows) -> None:
         if type(table) is not ResolvedParsedRows:
             raise TypeError("Parser publication requires resolved typed rows.")
-        if table.missing_variables != ParsedOutputIO._missing_variables(
-            table.schema, table.rows
-        ):
+        if table.missing_variables != ParsedOutputIO._missing_variables(table.schema, table.rows):
             raise ValueError("Resolved missing-variable facts do not match the typed rows.")
         encode_parsed_schema(table.schema)
         remaining = MAX_PARSED_OUTPUT_BYTES

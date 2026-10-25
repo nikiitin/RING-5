@@ -4,14 +4,20 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any
 
 from src.parsing.gem5.types.base import StatContent, StatResult, StatType
 
-from src.core.common.security_limits import MAX_PARSE_VARIABLES
+from src.core.common.parsed_output_codec import read_numeric_wire
+from src.core.common.security_limits import MAX_INCREMENTAL_CACHE_COLUMNS, MAX_PARSE_VARIABLES
+from src.core.models.parsed_output_models import (
+    ParsedCell,
+    ParsedFileResult,
+    ParsedKind,
+    ParsedShape,
+    ParsedVariableResult,
+)
 from src.core.common.utils import checkFileExistsOrException
 from src.parsing.gem5.impl.source_bindings import SourcePlan, literal_source_filter
-from src.parsing.gem5.impl.strategies.file_parser_strategy import INTERNAL_SIM_PATH_KEY
 from src.parsing.gem5.impl.strategies.perl_worker_pool import get_worker_pool
 
 VarsDictType = dict[str, StatType[StatContent, StatResult]]
@@ -69,7 +75,7 @@ class Gem5ParseWork:
             spec = self._specs[output_name]
             for index in range(max(map(len, entries.values()), default=0)):
                 sample = {
-                    entry: float(values[index])
+                    entry: read_numeric_wire(values[index])
                     for entry, values in entries.items()
                     if index < len(values)
                 }
@@ -135,7 +141,7 @@ class Gem5ParseWork:
                 self._buffer_entry(target.output_name, source_name, target.entry_name, value)
             elif spec.output_type in {"scalar", "configuration"} and target.entry_name is None:
                 self._accumulators[target.output_name].add_observation(
-                    value if spec.output_type == "configuration" else float(value)
+                    value if spec.output_type == "configuration" else read_numeric_wire(value)
                 )
             else:
                 raise RuntimeError(f"Scalar source cannot populate output {target.output_name!r}.")
@@ -185,8 +191,44 @@ class Gem5ParseWork:
             logger.error("Worker pool parse failed for %s: %s", self._file_to_parse, exc)
             raise RuntimeError(f"Worker pool parse failed: {self._file_to_parse}") from exc
 
-    def __call__(self) -> dict[str, Any]:
-        """Parse exact sources and return logical accumulators with file provenance."""
-        result: dict[str, Any] = dict(self._process_output(self._run_perl_script()))
-        result[INTERNAL_SIM_PATH_KEY] = self._file_to_parse
-        return result
+    def __call__(self) -> ParsedFileResult:
+        """Parse, balance and reduce owned accumulators before resolving this worker."""
+        accumulators = self._process_output(self._run_perl_script())
+        variables: list[ParsedVariableResult] = []
+        column_count = 0
+        for name, accumulator in accumulators.items():
+            spec = self._specs[name]
+            missing = accumulator.missing_measurement_count
+            accumulator.balance_content()
+            accumulator.reduce_duplicates()
+            reduced = accumulator.reduced_content
+            kind: ParsedKind
+            shape: ParsedShape
+            cells: tuple[ParsedCell, ...]
+            if spec.output_type in {"configuration", "scalar"}:
+                if isinstance(reduced, dict):
+                    raise RuntimeError(
+                        f"PARSER: scalar output {name!r} requires one reduced value."
+                    )
+                kind = "text" if spec.output_type == "configuration" else "number"
+                cells = (ParsedCell(name, kind, reduced),)
+                shape = "scalar"
+            elif spec.output_type in _ENTRY_TYPES:
+                entries = accumulator.entries
+                if type(reduced) is not dict or entries is None:
+                    raise RuntimeError(
+                        f"PARSER: entry output {name!r} requires reduced entry values."
+                    )
+                if column_count + len(entries) > MAX_INCREMENTAL_CACHE_COLUMNS:
+                    raise RuntimeError("PARSER: output exceeds the physical column limit.")
+                cells = tuple(
+                    ParsedCell(f"{name}..{entry}", "number", reduced[entry]) for entry in entries
+                )
+                kind, shape = "number", "entries"
+            else:
+                raise ValueError(f"PARSER: unsupported output representation {spec.output_type!r}.")
+            column_count += len(cells)
+            if column_count > MAX_INCREMENTAL_CACHE_COLUMNS:
+                raise RuntimeError("PARSER: output exceeds the physical column limit.")
+            variables.append(ParsedVariableResult(name, kind, shape, cells, missing))
+        return ParsedFileResult(self._file_to_parse, tuple(variables))

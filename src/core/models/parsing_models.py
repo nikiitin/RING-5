@@ -7,122 +7,256 @@ source instances keep concrete identities separate from their numeric display co
 from concurrent.futures import Future
 import math
 from dataclasses import dataclass, field
-from typing import Any, cast
+from typing import cast
 
 from src.core.models.data_models import ScannedVariableDict, SourceInstanceDict
 from src.core.common.safe_regex import MAX_INPUT_LENGTH
+from src.core.common.security_limits import (
+    MAX_DISCOVERED_FILES,
+    MAX_INCREMENTAL_CACHE_COLUMNS,
+    MAX_PARSE_FILES,
+    MAX_PARSE_VARIABLES,
+    MAX_PARSER_PLAYGROUND_CELLS,
+    MAX_PARSER_PLAYGROUND_FILES,
+    MAX_PARSER_PLAYGROUND_VARIABLES,
+)
+from src.core.models.parsed_output_models import ParsedFileResult, ParsedOutput, ParsedValue
 
 # Shared by durable parse requests and incremental rows; bump on semantic changes.
-PARSER_RESULT_VERSION = 9
+PARSER_RESULT_VERSION = 10
 
 # Type alias for StatConfig parameter values
 StatParamValue = str | int | float | bool | list[str] | None
 
 
+def _batch_names(value: tuple[str, ...], field: str, limit: int, *, empty: bool = False) -> None:
+    if type(value) is not tuple:
+        raise TypeError(f"{field} must be an immutable tuple.")
+    if len(value) > limit or (not empty and not value):
+        raise ValueError(f"{field} requires a bounded non-empty plan.")
+    if any(type(item) is not str or not item or len(item) > MAX_INPUT_LENGTH for item in value):
+        raise ValueError(f"{field} requires bounded non-empty strings.")
+    if len(set(value)) != len(value):
+        raise ValueError(f"{field} must be unique.")
+
+
+def _batch_context(output_dir: str, strategy_type: str) -> None:
+    for name, value in (("output_dir", output_dir), ("strategy_type", strategy_type)):
+        if type(value) is not str or not value or len(value) > MAX_INPUT_LENGTH:
+            raise ValueError(f"Parse batch {name} requires bounded non-empty text.")
+
+
+def _batch_futures(futures: tuple[Future[ParsedFileResult], ...], count: int) -> None:
+    if type(futures) is not tuple or any(not isinstance(future, Future) for future in futures):
+        raise TypeError("Parse futures must be an immutable tuple of Future values.")
+    if len(futures) != count:
+        raise ValueError("Parse futures must match the planned worker source count.")
+
+
 @dataclass(frozen=True)
 class ParseBatchResult:
-    """
-    Thread-safe result of a parse submission.
+    """Owned asynchronous full-parse work with the complete finalization plan.
 
-    Bundles the futures returned by the worker pool together with the
-    variable names that were submitted, so that ``construct_final_csv``
-    can guarantee column ordering without relying on shared class-level
-    mutable state.
+    Futures return finalized typed file results. The exact source paths, logical
+    variable order, output directory and strategy are required by finalization;
+    a backend never recovers this context from mutable instance state.
     """
 
-    futures: list[Future[dict[str, Any]]]
-    var_names: list[str]
+    futures: tuple[Future[ParsedFileResult], ...]
+    var_names: tuple[str, ...]
+    source_paths: tuple[str, ...]
+    output_dir: str
+    strategy_type: str
+
+    def __post_init__(self) -> None:
+        _batch_names(self.var_names, "Logical variables", MAX_PARSE_VARIABLES)
+        _batch_names(self.source_paths, "Source paths", MAX_PARSE_FILES)
+        _batch_context(self.output_dir, self.strategy_type)
+        _batch_futures(self.futures, len(self.source_paths))
 
 
 @dataclass(frozen=True)
 class IncrementalParseBatchResult:
-    """Submitted changed-file work plus the immutable reuse plan needed to finalize it.
-
-    ``cached_rows`` stores finalized scalar CSV cells, never parser objects or executable
-    serialization.  This keeps the on-disk cache inspectable and safe to load as JSON.
-    """
+    """Changed-file work and immutable typed reuse records for one exact input plan."""
 
     # [impl->req~ring5.ingestion.incremental-parsing~1]
 
-    futures: list[Future[dict[str, Any]]]
-    var_names: list[str]
+    futures: tuple[Future[ParsedFileResult], ...]
+    var_names: tuple[str, ...]
     output_dir: str
     strategy_type: str
     cache_path: str
     configuration_hash: str
     fingerprints: tuple[tuple[str, str], ...]
-    cached_rows: tuple[tuple[str, tuple[tuple[str, str], ...]], ...]
+    cached_results: tuple[ParsedFileResult, ...]
     changed_files: tuple[str, ...]
     removed_files: tuple[str, ...]
 
+    def __post_init__(self) -> None:
+        _batch_names(self.var_names, "Logical variables", MAX_PARSE_VARIABLES)
+        _batch_names(self.changed_files, "Changed source paths", MAX_PARSE_FILES, empty=True)
+        _batch_names(self.removed_files, "Removed source paths", MAX_PARSE_FILES, empty=True)
+        _batch_context(self.output_dir, self.strategy_type)
+        _batch_futures(self.futures, len(self.changed_files))
+        if (
+            type(self.fingerprints) is not tuple
+            or not self.fingerprints
+            or len(self.fingerprints) > MAX_PARSE_FILES
+        ):
+            raise ValueError("Incremental fingerprints require a bounded immutable input plan.")
+        for pair in self.fingerprints:
+            if type(pair) is not tuple or len(pair) != 2:
+                raise TypeError("Incremental fingerprints require source/digest pairs.")
+            _sha256(pair[1])
+        paths = tuple(path for path, _ in self.fingerprints)
+        _batch_names(paths, "Incremental source paths", MAX_PARSE_FILES)
+        if type(self.cached_results) is not tuple or any(
+            type(result) is not ParsedFileResult for result in self.cached_results
+        ):
+            raise TypeError("Incremental reuse requires immutable typed file results.")
+        cached_paths = tuple(result.source_path for result in self.cached_results)
+        _batch_names(cached_paths, "Cached source paths", MAX_PARSE_FILES, empty=True)
+        if set(cached_paths) & set(self.changed_files) or set(paths) != set(cached_paths) | set(
+            self.changed_files
+        ):
+            raise ValueError("Cached and changed sources must partition the exact input plan.")
+        if set(paths) & set(self.removed_files):
+            raise ValueError("Removed sources must not occur in the current input plan.")
+        _batch_context(self.cache_path, self.strategy_type)
+        _sha256(self.configuration_hash)
+
     @property
     def parsed_file_count(self) -> int:
-        """Number of new or changed files submitted to workers."""
+        """Return the number of new or changed files submitted to workers."""
         return len(self.changed_files)
 
     @property
     def reused_file_count(self) -> int:
-        """Number of unchanged files whose finalized row can be reused."""
-        return len(self.cached_rows)
+        """Return the number of unchanged typed file results available for reuse."""
+        return len(self.cached_results)
 
     @property
     def removed_file_count(self) -> int:
-        """Number of cached files no longer present in the input tree."""
+        """Return the number of cached files absent from the input tree."""
         return len(self.removed_files)
 
     @property
     def total_file_count(self) -> int:
-        """Number of rows expected in the updated parser output."""
+        """Return the number of source rows planned for complete output."""
         return len(self.fingerprints)
+
+
+def _sha256(value: str) -> None:
+    if (
+        type(value) is not str
+        or len(value) != 64
+        or any(char not in "0123456789abcdef" for char in value)
+    ):
+        raise ValueError("Incremental identities require lowercase SHA-256 digests.")
 
 
 @dataclass(frozen=True)
 class IncrementalParseResult:
-    """Published CSV and incremental update counts.
+    """Typed published output and accepted incremental counts.
 
-    Attributes:
-        csv_path: CSV containing accepted changed and reused rows.
-        parsed_files: Accepted changed-file results included in this output.
-        reused_files: Unchanged rows accepted from the submitted reuse plan.
-        removed_files: Previous input files removed from the current plan.
-        total_files: Planned input count; may exceed parsed plus reused for partial output.
+    Total files is the planned input count and can exceed accepted rows for a
+    partial result. Only a complete result promotes the success cache.
     """
 
-    csv_path: str
+    output: ParsedOutput
     parsed_files: int
     reused_files: int
     removed_files: int
     total_files: int
 
+    def __post_init__(self) -> None:
+        if type(self.output) is not ParsedOutput:
+            raise TypeError("Incremental results require a typed output descriptor.")
+        for value in (self.parsed_files, self.reused_files, self.removed_files, self.total_files):
+            if type(value) is not int or value < 0 or value > MAX_PARSE_FILES:
+                raise ValueError("Incremental counts must be bounded non-negative integers.")
+        if self.parsed_files + self.reused_files > self.total_files:
+            raise ValueError("Accepted incremental rows exceed the planned input count.")
+
+    @property
+    def csv_path(self) -> str:
+        """Return the CSV exchange path from this result's typed descriptor."""
+        return self.output.csv_path
+
 
 @dataclass(frozen=True)
 class ParserPlaygroundBatchResult:
-    """Bounded real-parser work and discovery context for a configuration test."""
+    """Bounded asynchronous work and immutable source context for a parser test."""
 
     # [impl->req~ring5.ingestion.parser-playground~1]
 
-    futures: list[Future[dict[str, Any]]]
-    var_names: list[str]
+    futures: tuple[Future[ParsedFileResult], ...]
+    var_names: tuple[str, ...]
     output_dir: str
     strategy_type: str
     matched_file_count: int
     sampled_files: tuple[str, ...]
     diagnostics: tuple[str, ...] = ()
 
+    def __post_init__(self) -> None:
+        _batch_names(self.var_names, "Logical variables", MAX_PARSER_PLAYGROUND_VARIABLES)
+        _batch_names(self.sampled_files, "Sampled source paths", MAX_PARSER_PLAYGROUND_FILES)
+        _batch_context(self.output_dir, self.strategy_type)
+        _batch_futures(self.futures, len(self.sampled_files))
+        if (
+            type(self.matched_file_count) is not int
+            or not len(self.sampled_files) <= self.matched_file_count <= MAX_DISCOVERED_FILES
+        ):
+            raise ValueError("Matched files must include the entire sampled source plan.")
+        if type(self.diagnostics) is not tuple or any(
+            type(value) is not str for value in self.diagnostics
+        ):
+            raise TypeError("Playground diagnostics must be immutable text.")
+
 
 @dataclass(frozen=True)
 class ParserPlaygroundResult:
-    """Human-readable result of testing parser settings against a bounded sample."""
+    """Literal-text and numeric preview cells with explicit schema column order."""
 
     # [impl->req~ring5.ingestion.parser-playground~1]
 
     matched_file_count: int
     sampled_files: tuple[str, ...]
     columns: tuple[str, ...]
-    rows: tuple[tuple[str, ...], ...]
+    rows: tuple[tuple[ParsedValue, ...], ...]
     missing_variables: tuple[str, ...]
     diagnostics: tuple[str, ...]
     ready_for_full_parse: bool
+
+    def __post_init__(self) -> None:
+        _batch_names(self.sampled_files, "Sampled source paths", MAX_PARSER_PLAYGROUND_FILES)
+        _batch_names(self.columns, "Preview columns", MAX_INCREMENTAL_CACHE_COLUMNS, empty=True)
+        _batch_names(
+            self.missing_variables,
+            "Missing preview variables",
+            MAX_PARSER_PLAYGROUND_VARIABLES,
+            empty=True,
+        )
+        if type(self.rows) is not tuple or len(self.rows) != len(self.sampled_files):
+            raise ValueError("Preview rows must own the exact immutable sampled row set.")
+        if len(self.rows) * len(self.columns) > MAX_PARSER_PLAYGROUND_CELLS:
+            raise ValueError("Preview exceeds the matrix cell limit.")
+        for row in self.rows:
+            if type(row) is not tuple or len(row) != len(self.columns):
+                raise ValueError("Preview rows must match the explicit column width.")
+            if any(type(value) not in (float, str) for value in row):
+                raise TypeError("Preview cells require exact float or literal text values.")
+        if (
+            type(self.matched_file_count) is not int
+            or not len(self.sampled_files) <= self.matched_file_count <= MAX_DISCOVERED_FILES
+        ):
+            raise ValueError("Matched preview files must include the bounded sampled plan.")
+        if type(self.diagnostics) is not tuple or any(
+            type(value) is not str for value in self.diagnostics
+        ):
+            raise TypeError("Preview diagnostics must be immutable text.")
+        if type(self.ready_for_full_parse) is not bool:
+            raise TypeError("Preview readiness must be a boolean.")
 
 
 @dataclass(frozen=True)

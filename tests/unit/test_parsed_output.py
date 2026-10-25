@@ -73,7 +73,9 @@ def test_typed_publication_and_loading_preserve_literal_text_and_numeric_missing
         (_scalar("label", literal), _scalar("value", 1.25), _scalar("absent", math.nan)),
         (ParsedCell("config_json", "text", '{"Case":"95% μ"}'),),
     )
-    table = ParsedOutputIO.resolve([result], ["label", "value", "absent"])
+    table = ParsedOutputIO.resolve(
+        [result], ["label", "value", "absent"], tuple({result.source_path for result in ([result])})
+    )
     output = ParsedOutputIO.publish(tmp_path / "results.csv", table)
     restored = ParsedOutputIO.read(output)
     assert restored.rows[0][0] == literal
@@ -102,8 +104,12 @@ def test_schema_union_is_order_independent_and_has_explicit_owners(tmp_path: Pat
             _scalar("v..a", "", column="literal"),
         ),
     )
-    left = ParsedOutputIO.resolve([first, second], ["v", "v..a"])
-    right = ParsedOutputIO.resolve([second, first], ["v", "v..a"])
+    left = ParsedOutputIO.resolve(
+        [first, second], ["v", "v..a"], tuple({result.source_path for result in ([first, second])})
+    )
+    right = ParsedOutputIO.resolve(
+        [second, first], ["v", "v..a"], tuple({result.source_path for result in ([second, first])})
+    )
     assert left.schema == right.schema
     assert left.source_paths == right.source_paths == ("a", "b")
     assert [(column.name, column.owner) for column in left.schema.columns] == [
@@ -120,7 +126,9 @@ def test_schema_union_is_order_independent_and_has_explicit_owners(tmp_path: Pat
 
 def test_unobserved_dynamic_entries_do_not_invent_a_physical_column(tmp_path: Path) -> None:
     result = ParsedFileResult("source", (ParsedVariableResult("v", "number", "entries", ()),))
-    table = ParsedOutputIO.resolve([result], ["v"])
+    table = ParsedOutputIO.resolve(
+        [result], ["v"], tuple({result.source_path for result in ([result])})
+    )
     assert table.schema.columns == () and table.rows == ((),)
     output = ParsedOutputIO.publish(tmp_path / "empty-schema.csv", table)
     restored = ParsedOutputIO.read(output)
@@ -141,7 +149,9 @@ def test_missing_text_rejects_before_publication(metadata: bool) -> None:
         )
         second = ParsedFileResult("b", (ParsedVariableResult("value", "text", "entries", ()),))
     with pytest.raises(ValueError, match="Missing explicit text"):
-        ParsedOutputIO.resolve([first, second], ["value"])
+        ParsedOutputIO.resolve(
+            [first, second], ["value"], tuple({result.source_path for result in ([first, second])})
+        )
 
 
 @pytest.mark.parametrize("mismatch", ["owner", "kind", "shape", "duplicate_source"])
@@ -162,14 +172,18 @@ def test_explicit_schema_and_source_collisions_are_rejected(mismatch: str) -> No
         second = first
         order = ["value"]
     with pytest.raises(ValueError, match="collision|Conflicting|provenance"):
-        ParsedOutputIO.resolve([first, second], order)
+        ParsedOutputIO.resolve(
+            [first, second], order, tuple({result.source_path for result in ([first, second])})
+        )
 
 
 def test_metadata_namespace_does_not_reserve_a_logical_name() -> None:
     result = ParsedFileResult(
         "source", (_scalar("metadata", "NA"),), (ParsedCell("tag", "text", "001"),)
     )
-    table = ParsedOutputIO.resolve([result], ["metadata"])
+    table = ParsedOutputIO.resolve(
+        [result], ["metadata"], tuple({result.source_path for result in ([result])})
+    )
     assert [(column.owner, column.kind) for column in table.schema.columns] == [
         ("metadata", "text"),
         (None, "text"),
@@ -177,9 +191,20 @@ def test_metadata_namespace_does_not_reserve_a_logical_name() -> None:
 
 
 def test_schema_substitution_changes_typed_digest_even_when_csv_bytes_match(tmp_path: Path) -> None:
-    number = ParsedOutputIO.resolve([_result("source", math.nan)], ["value"])
+    number = ParsedOutputIO.resolve(
+        [_result("source", math.nan)],
+        ["value"],
+        tuple({result.source_path for result in ([_result("source", math.nan)])}),
+    )
     text = ParsedOutputIO.resolve(
-        [ParsedFileResult("source", (_scalar("value", "NaN"),))], ["value"]
+        [ParsedFileResult("source", (_scalar("value", "NaN"),))],
+        ["value"],
+        tuple(
+            {
+                result.source_path
+                for result in ([ParsedFileResult("source", (_scalar("value", "NaN"),))])
+            }
+        ),
     )
     numeric_output = ParsedOutputIO.publish(tmp_path / "number.csv", number)
     text_output = ParsedOutputIO.publish(tmp_path / "text.csv", text)
@@ -198,7 +223,11 @@ def test_publication_failure_preserves_old_output_and_cleans_temporaries(
 ) -> None:
     target = tmp_path / "results.csv"
     target.write_bytes(b"old-output")
-    table = ParsedOutputIO.resolve([_result("source")], ["value"])
+    table = ParsedOutputIO.resolve(
+        [_result("source")],
+        ["value"],
+        tuple({result.source_path for result in ([_result("source")])}),
+    )
 
     def fail(*args, **kwargs):
         raise RuntimeError("injected publication failure")
@@ -224,7 +253,14 @@ def test_budgets_reject_before_writer_allocation(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     table = ParsedOutputIO.resolve(
-        [ParsedFileResult("source", (_scalar("value", "x" * 20),))], ["value"]
+        [ParsedFileResult("source", (_scalar("value", "x" * 20),))],
+        ["value"],
+        tuple(
+            {
+                result.source_path
+                for result in ([ParsedFileResult("source", (_scalar("value", "x" * 20),))])
+            }
+        ),
     )
 
     def forbidden(*args, **kwargs):
@@ -241,7 +277,11 @@ def test_budgets_reject_before_writer_allocation(
 
 
 def test_integrity_and_exact_header_are_checked_before_loading(tmp_path: Path) -> None:
-    table = ParsedOutputIO.resolve([_result("source")], ["value"])
+    table = ParsedOutputIO.resolve(
+        [_result("source")],
+        ["value"],
+        tuple({result.source_path for result in ([_result("source")])}),
+    )
     output = ParsedOutputIO.publish(tmp_path / "results.csv", table)
     Path(output.csv_path).write_bytes(b"value\r\n2.25\r\n")
     with pytest.raises(ValueError, match="digest"):
@@ -256,7 +296,11 @@ def test_integrity_and_exact_header_are_checked_before_loading(tmp_path: Path) -
 def test_same_content_path_replacement_during_read_is_rejected(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    table = ParsedOutputIO.resolve([_result("source")], ["value"])
+    table = ParsedOutputIO.resolve(
+        [_result("source")],
+        ["value"],
+        tuple({result.source_path for result in ([_result("source")])}),
+    )
     path = tmp_path / "results.csv"
     output = ParsedOutputIO.publish(path, table)
     content = path.read_bytes()
@@ -334,8 +378,16 @@ def test_contending_publication_waits_for_rollback_before_committing(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, existed: bool
 ) -> None:
     target = tmp_path / "results.csv"
-    table = ParsedOutputIO.resolve([_result("source", 1.0)], ["value"])
-    next_table = ParsedOutputIO.resolve([_result("source", 2.0)], ["value"])
+    table = ParsedOutputIO.resolve(
+        [_result("source", 1.0)],
+        ["value"],
+        tuple({result.source_path for result in ([_result("source", 1.0)])}),
+    )
+    next_table = ParsedOutputIO.resolve(
+        [_result("source", 2.0)],
+        ["value"],
+        tuple({result.source_path for result in ([_result("source", 2.0)])}),
+    )
     if existed:
         target.write_bytes(b"original")
     callback_entered, release_callback, contender_waiting = Event(), Event(), Event()
@@ -354,9 +406,7 @@ def test_contending_publication_waits_for_rollback_before_committing(
         raise RuntimeError("promotion failed")
 
     with ThreadPoolExecutor(max_workers=2) as executor:
-        first = executor.submit(
-            ParsedOutputIO.publish, target, table, after_publish=fail_promotion
-        )
+        first = executor.submit(ParsedOutputIO.publish, target, table, after_publish=fail_promotion)
         try:
             assert callback_entered.wait(5)
             second = executor.submit(ParsedOutputIO.publish, target, next_table)
@@ -375,7 +425,11 @@ def test_callback_same_target_reentry_rejects_and_preserves_previous_output(
     tmp_path: Path, alias: bool
 ) -> None:
     target = tmp_path / "results.csv"
-    table = ParsedOutputIO.resolve([_result("source", 1.0)], ["value"])
+    table = ParsedOutputIO.resolve(
+        [_result("source", 1.0)],
+        ["value"],
+        tuple({result.source_path for result in ([_result("source", 1.0)])}),
+    )
     old = ParsedOutputIO.publish(target, table)
     alternate = tmp_path / "alias.csv"
     if alias:
@@ -397,8 +451,8 @@ def test_callback_same_target_reentry_rejects_and_preserves_previous_output(
 
 
 def test_config_aware_metadata_larger_than_stdlib_csv_limit_roundtrips(tmp_path: Path) -> None:
-    from src.parsing.gem5.impl.strategies.config_aware import ConfigAwareStrategy
-    from src.parsing.gem5.impl.strategies.file_parser_strategy import INTERNAL_SIM_PATH_KEY
+    from src.core.models.parsing_models import StatConfig
+    from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
     config = "\n".join(
         f"[system.cpu{i}]\ntype=DerivO3CPU\nclock=1000\n"
@@ -408,19 +462,20 @@ def test_config_aware_metadata_larger_than_stdlib_csv_limit_roundtrips(tmp_path:
     source = tmp_path / "stats.txt"
     source.write_text("value 1\n")
     (tmp_path / "config.ini").write_text(config)
-    metadata = ConfigAwareStrategy().post_process(
-        [{INTERNAL_SIM_PATH_KEY: str(source), "value": 1.0}]
-    )[0]
-    literal = metadata["config_json"]
+    batch = Gem5Parser.submit_parse_async(
+        str(tmp_path),
+        "stats.txt",
+        [StatConfig("value", "scalar", params={"source_type": "scalar"})],
+        str(tmp_path / "out"),
+        "config_aware",
+    )
+    results = [future.result(timeout=10) for future in batch.futures]
+    literal = next(cell.value for cell in results[0].metadata if cell.column == "config_json")
     assert len(literal) == 201091
     assert len(json.loads(literal)) == 400
     before = csv.field_size_limit()
-    result = ParsedFileResult(
-        str(source), (_scalar("value", 1.0),), (ParsedCell("config_json", "text", literal),)
-    )
-    table = ParsedOutputIO.resolve([result], ["value"])
-    output = ParsedOutputIO.publish(tmp_path / "results.csv", table)
-    assert ParsedOutputIO.read(output).rows == ((1.0, literal),)
+    output = Gem5Parser.finalize_parsing(batch, results)
+    assert ParsedOutputIO.read(output).rows == ((1.0, literal, str(source)),)
     assert ParsedOutputIO.to_frame(output)["config_json"].iloc[0] == literal
     assert csv.field_size_limit() == before
     assert list(csv.reader(io.StringIO('label\n"NA"\n'))) == [["label"], ["NA"]]
@@ -446,7 +501,11 @@ def _rewrite_output(output: ParsedOutput, content: bytes) -> ParsedOutput:
 def test_noncanonical_or_malformed_csv_cannot_relabel_typed_values(
     tmp_path: Path, content: bytes
 ) -> None:
-    table = ParsedOutputIO.resolve([_result("source", 1.0)], ["value"])
+    table = ParsedOutputIO.resolve(
+        [_result("source", 1.0)],
+        ["value"],
+        tuple({result.source_path for result in ([_result("source", 1.0)])}),
+    )
     output = ParsedOutputIO.publish(tmp_path / "results.csv", table)
     output = _rewrite_output(output, content)
     with pytest.raises(ValueError):
@@ -457,7 +516,14 @@ def test_reader_enforces_cell_and_row_budgets_symmetrically(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     table = ParsedOutputIO.resolve(
-        [ParsedFileResult("source", (_scalar("value", "a"),))], ["value"]
+        [ParsedFileResult("source", (_scalar("value", "a"),))],
+        ["value"],
+        tuple(
+            {
+                result.source_path
+                for result in ([ParsedFileResult("source", (_scalar("value", "a"),))])
+            }
+        ),
     )
     output = ParsedOutputIO.publish(tmp_path / "results.csv", table)
     oversized = _rewrite_output(output, b"value\r\n" + b"a" * 21 + b"\r\n")
@@ -482,7 +548,11 @@ def test_reader_enforces_cell_and_row_budgets_symmetrically(
 def test_wrong_header_is_rejected_before_dataframe_allocation(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    table = ParsedOutputIO.resolve([_result("source")], ["value"])
+    table = ParsedOutputIO.resolve(
+        [_result("source")],
+        ["value"],
+        tuple({result.source_path for result in ([_result("source")])}),
+    )
     output = ParsedOutputIO.publish(tmp_path / "results.csv", table)
     forged = _rewrite_output(output, b"value,extra,extra\r\n1.0,2.0,3.0\r\n")
 
@@ -505,12 +575,18 @@ def test_current_cell_policy_rejects_over_four_mib_before_publication(
 
     monkeypatch.setattr(parsed_output.tempfile, "NamedTemporaryFile", forbidden)
     with pytest.raises(ValueError, match="character limit"):
-        ParsedOutputIO.resolve([result], ["value"])
+        ParsedOutputIO.resolve(
+            [result], ["value"], tuple({result.source_path for result in ([result])})
+        )
     assert list(tmp_path.iterdir()) == []
 
 
 def test_parser_warning_promoted_to_error_has_the_same_admission_error_type(tmp_path: Path) -> None:
-    table = ParsedOutputIO.resolve([_result("source", 1.0)], ["value"])
+    table = ParsedOutputIO.resolve(
+        [_result("source", 1.0)],
+        ["value"],
+        tuple({result.source_path for result in ([_result("source", 1.0)])}),
+    )
     output = ParsedOutputIO.publish(tmp_path / "results.csv", table)
     forged = _rewrite_output(output, b"value\r\n1.0,2.0\r\n")
     with warnings.catch_warnings():

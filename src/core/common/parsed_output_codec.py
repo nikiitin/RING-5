@@ -3,13 +3,132 @@
 import hashlib
 import json
 import math
+from typing import cast
 from decimal import Decimal, InvalidOperation
 
-from src.core.common.security_limits import MAX_PARSED_CELL_CHARACTERS, MAX_PARSED_SCHEMA_BYTES
+from src.core.common.security_limits import (
+    MAX_INCREMENTAL_CACHE_COLUMNS,
+    MAX_PARSED_CELL_CHARACTERS,
+    MAX_PARSED_SCHEMA_BYTES,
+    MAX_PARSE_VARIABLES,
+)
 from src.core.models.csv_contract import MISSING_VALUE
-from src.core.models.parsed_output_models import ParsedKind, ParsedSchema, ParsedValue
+from src.core.models.parsed_output_models import (
+    ParsedCell,
+    ParsedFileResult,
+    ParsedKind,
+    ParsedSchema,
+    ParsedShape,
+    ParsedValue,
+    ParsedVariableResult,
+)
 
 PARSED_SCHEMA_VERSION = 1
+
+
+def unique_json_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    """Reject duplicate JSON fields before any typed parser record is admitted."""
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"Duplicate parser JSON field: {key!r}.")
+        result[key] = value
+    return result
+
+
+def _record(value: object, fields: set[str]) -> dict[str, object]:
+    if type(value) is not dict or set(value) != fields:
+        raise ValueError(f"Parser record requires exactly these fields: {sorted(fields)}.")
+    return cast(dict[str, object], value)
+
+
+def _kind_value(value: object) -> ParsedKind:
+    if type(value) is not str or value not in ("number", "text"):
+        raise ValueError("Parsed cell kind must be 'number' or 'text'.")
+    return cast(ParsedKind, value)
+
+
+def _text(value: object) -> str:
+    if type(value) is not str:
+        raise TypeError("Encoded parser text fields must be exact strings.")
+    return value
+
+
+def _cells(value: object) -> tuple[ParsedCell, ...]:
+    if type(value) is not list or len(value) > MAX_INCREMENTAL_CACHE_COLUMNS:
+        raise ValueError("Encoded parser cells require a bounded array.")
+    result: list[ParsedCell] = []
+    for raw in value:
+        record = _record(raw, {"column", "kind", "value"})
+        kind = _kind_value(record["kind"])
+        cell_value = _text(record["value"])
+        if len(cell_value) > MAX_PARSED_CELL_CHARACTERS:
+            raise ValueError("Encoded parser cell exceeds the character limit.")
+        result.append(
+            ParsedCell(_text(record["column"]), kind, read_parsed_value(kind, cell_value))
+        )
+    return tuple(result)
+
+
+def parsed_file_payload(result: ParsedFileResult) -> dict[str, object]:
+    """Project one bounded file into current typed cache records, including absence evidence."""
+    if type(result) is not ParsedFileResult:
+        raise TypeError("Parser file encoding requires ParsedFileResult.")
+
+    def cell_payload(cell: ParsedCell) -> dict[str, object]:
+        value = render_parsed_value(cell.kind, cell.value)
+        if len(value) > MAX_PARSED_CELL_CHARACTERS:
+            raise ValueError("Encoded parser cell exceeds the character limit.")
+        return {"column": cell.column, "kind": cell.kind, "value": value}
+
+    return {
+        "source_path": result.source_path,
+        "variables": [
+            {
+                "name": variable.name,
+                "kind": variable.kind,
+                "shape": variable.shape,
+                "missing_measurements": variable.missing_measurements,
+                "cells": [cell_payload(cell) for cell in variable.cells],
+            }
+            for variable in result.variables
+        ],
+        "metadata": [cell_payload(cell) for cell in result.metadata],
+    }
+
+
+def parsed_file_from_payload(value: object) -> ParsedFileResult:
+    """Decode exactly the current typed file payload without scalar or owner inference."""
+    record = _record(value, {"source_path", "variables", "metadata"})
+    raw_variables = record["variables"]
+    if type(raw_variables) is not list or len(raw_variables) > MAX_PARSE_VARIABLES:
+        raise ValueError("Encoded parser variables require a bounded array.")
+    variables: list[ParsedVariableResult] = []
+    cell_count = 0
+    for raw in raw_variables:
+        variable = _record(raw, {"name", "kind", "shape", "missing_measurements", "cells"})
+        kind = _kind_value(variable["kind"])
+        shape = variable["shape"]
+        if type(shape) is not str or shape not in ("scalar", "entries"):
+            raise ValueError("Encoded variable requires an explicit scalar/entries shape.")
+        missing = variable["missing_measurements"]
+        if type(missing) is not int or missing < 0:
+            raise ValueError("Encoded missing measurements must be a non-negative integer.")
+        raw_cells = variable["cells"]
+        if type(raw_cells) is not list:
+            raise ValueError("Encoded parser cells require an array.")
+        cell_count += len(raw_cells)
+        if cell_count > MAX_INCREMENTAL_CACHE_COLUMNS:
+            raise ValueError("Encoded file exceeds the physical column limit.")
+        variables.append(
+            ParsedVariableResult(
+                _text(variable["name"]), kind, cast(ParsedShape, shape), _cells(raw_cells), missing
+            )
+        )
+    metadata = record["metadata"]
+    if type(metadata) is not list or cell_count + len(metadata) > MAX_INCREMENTAL_CACHE_COLUMNS:
+        raise ValueError("Encoded file exceeds the physical column limit.")
+    return ParsedFileResult(_text(record["source_path"]), tuple(variables), _cells(metadata))
 
 
 def encode_parsed_schema(schema: ParsedSchema) -> bytes:

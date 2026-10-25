@@ -26,6 +26,7 @@ from src.core.models.dataset_workspace_models import (
 from src.core.models.visualization.dashboard_spec import DashboardSpec
 from src.core.models.visualization.drill_down_result import DrillDownResult
 from src.core.models.import_models import ImportOptions, ImportPreview
+from src.core.models.parsed_output_models import ParsedFileResult, ParsedOutput
 from src.core.models.parsing_models import (
     IncrementalParseBatchResult,
     IncrementalParseResult,
@@ -1139,20 +1140,18 @@ class ApplicationAPI:
 
     def finalize_parsing(
         self,
-        output_dir: str,
-        results: list[dict[str, Any]],
-        strategy_type: str = "simple",
-        var_names: list[str] | None = None,
-    ) -> str | None:
-        """Finalize parsing results into a CSV."""
-        return self._parser.finalize_parsing(
-            output_dir, results, strategy_type, var_names=var_names
-        )
+        batch: ParseBatchResult,
+        results: list[ParsedFileResult],
+        *,
+        complete: bool = True,
+    ) -> ParsedOutput:
+        """Publish typed full or partial results using the submitted immutable context."""
+        return self._parser.finalize_parsing(batch, results, complete=complete)
 
     def finalize_incremental_parsing(
         self,
         batch: IncrementalParseBatchResult,
-        results: list[dict[str, Any]],
+        results: list[ParsedFileResult],
         *,
         complete: bool = True,
     ) -> IncrementalParseResult:
@@ -1200,7 +1199,7 @@ class ApplicationAPI:
     def finalize_parser_playground(
         self,
         batch: ParserPlaygroundBatchResult,
-        results: list[dict[str, Any]],
+        results: list[ParsedFileResult],
     ) -> ParserPlaygroundResult:
         # [impl->req~ring5.ingestion.parser-playground~1]
         """Finalize a parser configuration test into an immutable bounded preview."""

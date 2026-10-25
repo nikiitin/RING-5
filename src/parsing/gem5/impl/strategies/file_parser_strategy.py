@@ -1,52 +1,31 @@
-"""
-File Parser Strategy Interface - Protocol Definition.
-
-Defines the contract for gem5 file parsing strategies, enabling pluggable
-implementations for different gem5 output formats and parsing workflows.
-
-This interface supports an async parsing workflow:
-1. get_work_items(): discover files to parse (callable per-file work for the pool)
-2. post_process(): aggregate and transform the pool's results
-
-Strategy Pattern Implementation:
-Different strategies (SimpleStatsStrategy, ConfigAwareStrategy) can handle
-various gem5 configurations, versions, and output formats while maintaining
-a unified interface for the parsing service layer.
-"""
+"""Per-file asynchronous work contracts for gem5 parsing strategies."""
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
-from typing import TYPE_CHECKING, Any, Protocol
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Protocol
+
+from src.core.models.parsed_output_models import ParsedFileResult
 
 if TYPE_CHECKING:
     from src.parsing.gem5.impl.source_bindings import SourcePlan
 
-INTERNAL_SIM_PATH_KEY = "__ring5_internal_sim_path"
+
+class ParseWorkItem(Protocol):
+    """One source-owned callable returning only finalized immutable values."""
+
+    @property
+    def source_path(self) -> str:
+        """Return the exact planned source file for this work item."""
+        raise NotImplementedError
+
+    def __call__(self) -> ParsedFileResult:
+        """Return finalized variables and metadata, or raise a visible failure."""
+        raise NotImplementedError
 
 
 class FileParserStrategy(Protocol):
-    """
-    Protocol defining the contract for file parsing strategies.
-
-    A file parser strategy is responsible for:
-    - Discovering gem5 statistics files
-    - Extracting specified variables from those files
-    - Aggregating results across multiple simulation runs
-
-    Implementations:
-        - SimpleStatsStrategy: Basic stats.txt parsing
-        - ConfigAwareStrategy: Stats + config.ini parsing
-
-    Usage Example:
-        >>> strategy = SimpleStatsStrategy()
-        >>> work_items = strategy.get_work_items("/sim/output", "stats.txt", variables)
-        >>> results = [f.result() for f in pool.submit_many(work_items)]
-        >>> final_results = strategy.post_process(results)
-
-    Note: This uses Protocol (structural typing) rather than ABC (nominal typing)
-    for flexibility and to support duck typing patterns common in Python.
-    """
+    """Discover and compose source-owned work without a second finalization path."""
 
     def get_work_items(
         self,
@@ -55,48 +34,6 @@ class FileParserStrategy(Protocol):
         plan: SourcePlan,
         *,
         file_paths: list[str] | None = None,
-    ) -> Sequence[Callable[[], dict[str, Any]]]:
-        """
-        Discover and prepare work items for parallel execution.
-
-        Scans the directory tree and returns callable work objects representing
-        individual parsing tasks. Used by the work pool for parallel processing.
-
-        Args:
-            stats_path: Root directory to scan
-            stats_pattern: File pattern to match
-            plan: Resolved logical accumulators and exact concrete-source routes.
-            file_paths: Optional validated subset of discovered inputs. Incremental parsing uses
-                this to avoid constructing work for unchanged files.
-
-        Returns:
-            Sequence of callable work objects ready for pool submission
-
-        Example:
-            >>> work_items = strategy.get_work_items("/sim", "stats.txt", vars)
-            >>> len(work_items)  # Number of files found
-            15
-        """
-        raise NotImplementedError
-
-    def post_process(self, results: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """
-        Post-process and aggregate raw parsing results.
-
-        Performs transformations, enrichment, or aggregation on the raw
-        results from execute(). For example, ConfigAwareStrategy augments
-        results with data from config.ini files.
-
-        Args:
-            results: Raw results from execute() or parallel workers
-
-        Returns:
-            Processed and potentially enriched results
-
-        Example:
-            >>> raw_results = [{'ipc': 1.5, 'sim_path': '/sim/run1/stats.txt'}]
-            >>> enriched = strategy.post_process(raw_results)
-            >>> enriched[0].keys()
-            dict_keys(['ipc', 'sim_path', 'config_data', ...])
-        """
+    ) -> Sequence[ParseWorkItem]:
+        """Return independent typed work for every selected statistics source."""
         raise NotImplementedError
