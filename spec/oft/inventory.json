@@ -4890,7 +4890,7 @@
       "revision": 1,
       "status": "approved",
       "title": "Pipeline configuration exchange",
-      "description": "Users shall import and export versioned saved shaper configurations with validation, conflict handling, and migration support.",
+      "description": "Users shall import and export versioned saved shaper configurations with validation and conflict handling.",
       "tags": ["configuration", "shapers", "versioning"],
       "evidence": {
         "implementation": [
@@ -4905,7 +4905,7 @@
         ],
         "tests": [
           "tests/unit/test_pipeline_config_exchange.py::test_export_is_deterministic_versioned_and_validated",
-          "tests/unit/test_pipeline_config_exchange.py::test_import_migrates_legacy_record_and_preserves_content",
+          "tests/unit/test_pipeline_config_exchange.py::test_import_rejects_unversioned_records_without_writes",
           "tests/unit/test_pipeline_config_exchange.py::test_import_conflicts_can_stop_rename_or_replace",
           "tests/integration/test_ring5_public_api.py::TestPipelineConfigurationExchange.test_versioned_round_trip_and_typed_conflict",
           "tests/e2e/test_shaper_pipeline.py::TestPipelineConfigurationExchange.test_download_then_import_and_use"

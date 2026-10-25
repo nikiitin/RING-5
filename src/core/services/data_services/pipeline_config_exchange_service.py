@@ -32,7 +32,6 @@ _CURRENT_FIELDS = {
     "csv_path",
     "timestamp",
 }
-_LEGACY_FIELDS = {"name", "description", "shapers", "csv_path", "timestamp"}
 
 
 def _reject_json_constant(constant: str) -> float:
@@ -48,11 +47,10 @@ class _PipelineConfigDocument:
     description: str
     shapers: tuple[ShaperStepConfig, ...]
     csv_path: str | None
-    migrated: bool
 
 
 class PipelineConfigExchangeService:
-    """Validate, migrate, and serialize portable pipeline configurations."""
+    """Validate and serialize portable pipeline configurations."""
 
     @staticmethod
     def dumps(
@@ -60,6 +58,8 @@ class PipelineConfigExchangeService:
         description: str,
         shapers: list[ShaperStepConfig],
         csv_path: str | None = None,
+        *,
+        timestamp: str | None = None,
     ) -> bytes:
         """Return deterministic versioned JSON for one pipeline configuration.
 
@@ -68,6 +68,7 @@ class PipelineConfigExchangeService:
             description: Optional human-readable explanation.
             shapers: Ordered flat shaper configurations.
             csv_path: Optional source CSV association.
+            timestamp: Optional local catalog timestamp.
 
         Returns:
             Stable UTF-8 JSON bytes.
@@ -86,7 +87,6 @@ class PipelineConfigExchangeService:
                 "shapers": shapers,
                 "csv_path": csv_path,
             },
-            migrated=False,
         )
         payload = {
             "format": PIPELINE_CONFIG_FORMAT,
@@ -96,6 +96,10 @@ class PipelineConfigExchangeService:
             "shapers": list(document.shapers),
             "csv_path": document.csv_path,
         }
+        if timestamp is not None:
+            if not isinstance(timestamp, str):
+                raise ValueError("Pipeline configuration timestamp must be text.")
+            payload["timestamp"] = timestamp
         try:
             encoded = (
                 json.dumps(
@@ -115,13 +119,13 @@ class PipelineConfigExchangeService:
 
     @staticmethod
     def loads(payload: str | bytes | bytearray) -> _PipelineConfigDocument:
-        """Load one bounded current or legacy pipeline configuration document.
+        """Load one bounded current pipeline configuration document.
 
         Args:
             payload: UTF-8 JSON text or bytes.
 
         Returns:
-            Validated current document with migration provenance.
+            Validated current document.
 
         Raises:
             TypeError: Payload is not text or bytes.
@@ -147,42 +151,13 @@ class PipelineConfigExchangeService:
         if not isinstance(value, dict):
             raise ValueError("Pipeline configuration JSON must contain one object.")
 
-        migrated = "format" not in value and "schema_version" not in value
-        if migrated:
-            unknown = sorted(set(value) - _LEGACY_FIELDS)
-            if unknown or not {"name", "shapers"}.issubset(value):
-                raise ValueError("Legacy pipeline configuration has missing or unsupported fields.")
-            value = {
-                "format": PIPELINE_CONFIG_FORMAT,
-                "schema_version": PIPELINE_CONFIG_SCHEMA_VERSION,
-                "name": value["name"],
-                "description": value.get("description", ""),
-                "shapers": PipelineConfigExchangeService._migrate_legacy_shapers(value["shapers"]),
-                "csv_path": value.get("csv_path"),
-            }
-        else:
-            required = {"format", "schema_version", "name", "shapers"}
-            if not required.issubset(value):
-                raise ValueError("Pipeline configuration has missing or unsupported fields.")
-            if value["format"] != PIPELINE_CONFIG_FORMAT:
-                raise ValueError(f"Unsupported pipeline configuration format {value['format']!r}.")
-            version = value["schema_version"]
-            if isinstance(version, bool) or not isinstance(version, int):
-                raise ValueError("Pipeline configuration schema_version must be an integer.")
-            if version != PIPELINE_CONFIG_SCHEMA_VERSION:
-                raise ValueError(
-                    f"Unsupported pipeline configuration schema version {version!r}; "
-                    f"expected {PIPELINE_CONFIG_SCHEMA_VERSION}."
-                )
-            unknown = sorted(set(value) - _CURRENT_FIELDS)
-            if unknown:
-                raise ValueError(
-                    "Pipeline configuration has unsupported fields: " + ", ".join(unknown) + "."
-                )
-        return PipelineConfigExchangeService._validate_document(value, migrated=migrated)
+        return PipelineConfigExchangeService._validate_document(value)
 
     @staticmethod
-    def _validate_document(value: dict[str, Any], *, migrated: bool) -> _PipelineConfigDocument:
+    def _validate_document(value: dict[str, Any]) -> _PipelineConfigDocument:
+        required = {"format", "schema_version", "name", "shapers"}
+        if not required.issubset(value):
+            raise ValueError("Pipeline configuration has missing or unsupported fields.")
         if value.get("format") != PIPELINE_CONFIG_FORMAT:
             raise ValueError(f"Unsupported pipeline configuration format {value.get('format')!r}.")
         version = value.get("schema_version")
@@ -192,6 +167,12 @@ class PipelineConfigExchangeService:
             raise ValueError(
                 f"Unsupported pipeline configuration schema version {version!r}; "
                 f"expected {PIPELINE_CONFIG_SCHEMA_VERSION}."
+            )
+
+        unknown = sorted(set(value) - _CURRENT_FIELDS)
+        if unknown:
+            raise ValueError(
+                "Pipeline configuration has unsupported fields: " + ", ".join(unknown) + "."
             )
 
         PipelineConfigExchangeService._validate_json_value(value, depth=0)
@@ -211,6 +192,8 @@ class PipelineConfigExchangeService:
                 "Pipeline configuration description exceeds "
                 f"{MAX_PIPELINE_CONFIG_DESCRIPTION_LENGTH} characters."
             )
+        if "timestamp" in value and not isinstance(value["timestamp"], str):
+            raise ValueError("Pipeline configuration timestamp must be text.")
         csv_path = value.get("csv_path")
         if csv_path is not None and not isinstance(csv_path, str):
             raise ValueError("Pipeline configuration csv_path must be text or null.")
@@ -234,7 +217,6 @@ class PipelineConfigExchangeService:
             description=description,
             shapers=tuple(validated),
             csv_path=csv_path,
-            migrated=migrated,
         )
 
     @staticmethod
@@ -294,33 +276,6 @@ class PipelineConfigExchangeService:
                             counter=counter,
                         )
         return step
-
-    @staticmethod
-    def _migrate_legacy_shapers(value: object) -> object:
-        """Normalize legacy mean grouping fields, including nested pipelines."""
-        migrated = copy.deepcopy(value)
-        if not isinstance(migrated, list):
-            return migrated
-        for step in migrated:
-            if not isinstance(step, dict):
-                continue
-            if (
-                step.get("type") == "mean"
-                and "groupingColumns" not in step
-                and isinstance(step.get("groupingColumn"), str)
-            ):
-                step["groupingColumns"] = [step.pop("groupingColumn")]
-            if step.get("type") != "splitApply":
-                continue
-            groups = step.get("groups")
-            if not isinstance(groups, list):
-                continue
-            for group in groups:
-                if isinstance(group, dict) and "pipeline" in group:
-                    group["pipeline"] = PipelineConfigExchangeService._migrate_legacy_shapers(
-                        group["pipeline"]
-                    )
-        return migrated
 
     @staticmethod
     def _validate_json_value(value: object, *, depth: int) -> None:

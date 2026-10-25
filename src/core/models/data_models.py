@@ -105,7 +105,6 @@ class PipelineConfigImportResult:
         shapers: Validated ordered shaper configurations.
         csv_path: Optional source CSV association carried by the document.
         schema_version: Current portable document schema version.
-        migrated: Whether the input used the legacy unversioned shape.
         conflict_resolution: Conflict action actually taken.
     """
 
@@ -116,7 +115,6 @@ class PipelineConfigImportResult:
     shapers: tuple[ShaperStepConfig, ...]
     csv_path: str | None
     schema_version: int
-    migrated: bool
     conflict_resolution: PipelineConfigConflictResolution
 
 
