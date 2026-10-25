@@ -1,3 +1,4 @@
+from ring5 import Session
 from typing import Any, cast
 
 import pandas as pd
@@ -26,7 +27,7 @@ class TestGroupedBarPlotFilters:
 
     # [test->req~ring5.figure.plot-filtering~1]
 
-    def test_filter_x(self, sample_data: Any) -> None:
+    def test_filter_x(self, sample_data: Any, plot_session: Session) -> None:
         """Test filtering X values."""
         plot = GroupedBarPlot(1, "Test")
         config = {
@@ -38,7 +39,9 @@ class TestGroupedBarPlotFilters:
             "ylabel": "Value",
             "title": "Test",
         }
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         # Check that C is not in the figure data
         # In grouped bar plot, x values are manual coords, check ticktext
@@ -48,7 +51,7 @@ class TestGroupedBarPlotFilters:
         assert "B" in tick_text
         assert "C" not in tick_text
 
-    def test_filter_group(self, sample_data: Any) -> None:
+    def test_filter_group(self, sample_data: Any, plot_session: Session) -> None:
         """Test filtering Group values."""
         plot = GroupedBarPlot(1, "Test")
         config = {
@@ -60,7 +63,9 @@ class TestGroupedBarPlotFilters:
             "ylabel": "Value",
             "title": "Test",
         }
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         # Check only G1 is present
         # Traces are named after groups
@@ -74,7 +79,7 @@ class TestGroupedStackedBarPlotFilters:
 
     # [test->req~ring5.figure.plot-filtering~1]
 
-    def test_filter_x(self, sample_data: Any) -> None:
+    def test_filter_x(self, sample_data: Any, plot_session: Session) -> None:
         """Test filtering X values."""
         plot = GroupedStackedBarPlot(1, "Test")
         config = {
@@ -84,7 +89,9 @@ class TestGroupedStackedBarPlotFilters:
             "x_filter": ["A", "B"],  # Exclude C
             "title": "Test",
         }
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         # Checked code: annotations are used for categories.
 
@@ -94,7 +101,7 @@ class TestGroupedStackedBarPlotFilters:
         assert "<b>B</b>" in annotation_texts
         assert "<b>C</b>" not in annotation_texts
 
-    def test_filter_group(self, sample_data: Any) -> None:
+    def test_filter_group(self, sample_data: Any, plot_session: Session) -> None:
         """Test filtering Group values."""
         plot = GroupedStackedBarPlot(1, "Test")
         config = {
@@ -104,7 +111,9 @@ class TestGroupedStackedBarPlotFilters:
             "group_filter": ["G1"],  # Exclude G2
             "title": "Test",
         }
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         # In custom layout, ticktext are group names
         tick_texts = fig.layout.xaxis.ticktext
@@ -115,11 +124,13 @@ class TestGroupedStackedBarPlotFilters:
 class TestHoverTotal:
     """Test hover total functionality."""
 
-    def test_hover_total_present(self, sample_data: Any) -> None:
+    def test_hover_total_present(self, sample_data: Any, plot_session: Session) -> None:
         """Test that customdata (total) matches sum of stacked values."""
         plot = GroupedStackedBarPlot(1, "Test")
         config = {"x": "category", "y_columns": ["value"], "group": "group", "title": "Test"}
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         # Check that customdata is present in traces
         for trace in fig.data:
@@ -129,7 +140,7 @@ class TestHoverTotal:
             assert isinstance(bar_trace.hovertemplate, str)
             assert "customdata" in bar_trace.hovertemplate
 
-    def test_hover_total_calculation(self) -> None:
+    def test_hover_total_calculation(self, plot_session: Session) -> None:
         """Test calculation of total with multiple stacks."""
         data = pd.DataFrame(
             {
@@ -141,7 +152,9 @@ class TestHoverTotal:
         )
         plot = GroupedStackedBarPlot(1, "Test")
         config = {"x": "cat", "y_columns": ["val1", "val2"], "group": "grp", "title": "Test"}
-        fig = plot.create_figure(data, config)
+        plot.processed_data = data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         # Total for first row (A, G1) should be 10+5=15
         # Total for second row (A, G2) should be 20+5=25

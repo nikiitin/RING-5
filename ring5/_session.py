@@ -1059,7 +1059,7 @@ class Session:
             "regression_comparison"
         )
         rendered_ids = self._guided_rendered_plot_ids | {
-            plot.plot_id for plot in plots if getattr(plot, "last_generated_fig", None) is not None
+            plot.plot_id for plot in plots if plot.render_state.snapshot() is not None
         }
         return GuidedAnalysisService.assess(
             self.api.state_manager.get_data(),

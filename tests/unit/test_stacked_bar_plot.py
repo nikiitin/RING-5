@@ -1,9 +1,8 @@
-"""Unit tests for StackedBarPlot — stacked bar plot implementation.
+"""Stacked-bar trace construction, filtering and typed total annotations."""
 
-Covers create_figure, _prepare_data, _get_hover_template,
-_create_stacked_figure, _add_bar_trace, _build_totals_annotations,
-and _get_total_position.
-"""
+from ring5 import Session
+from typing import cast
+import plotly.graph_objects as go
 
 from typing import Any
 
@@ -128,8 +127,8 @@ class TestBuildTotalsAnnotations:
         df["__total"] = df["ipc"] + df["cpi"]
         annotations = plot._build_totals_annotations(df, "benchmark", {})
         assert len(annotations) == 4
-        assert annotations[0]["xref"] == "x"
-        assert annotations[0]["yref"] == "y"
+        assert annotations[0].xref == "data"
+        assert annotations[0].yref == "data"
 
     def test_threshold_filters(self) -> None:
         plot = StackedBarPlot(1, "test")
@@ -144,7 +143,7 @@ class TestBuildTotalsAnnotations:
         df = pd.DataFrame({"x": ["a"], "v": [3.14159]})
         df["__total"] = df["v"]
         annotations = plot._build_totals_annotations(df, "x", {"net_total_format": ".1f"})
-        assert annotations[0]["text"] == "3.1"
+        assert annotations[0].text == "3.1"
 
     def test_font_config(self) -> None:
         plot = StackedBarPlot(1, "test")
@@ -155,8 +154,8 @@ class TestBuildTotalsAnnotations:
             "total_font_color": "#FF0000",
         }
         annotations = plot._build_totals_annotations(df, "x", config)
-        assert annotations[0]["font"]["size"] == 16
-        assert annotations[0]["font"]["color"] == "#FF0000"
+        assert annotations[0].font_size == 16
+        assert annotations[0].font_color == "#FF0000"
 
     def test_rotation_and_offset(self) -> None:
         plot = StackedBarPlot(1, "test")
@@ -164,8 +163,8 @@ class TestBuildTotalsAnnotations:
         df["__total"] = df["v"]
         config: dict[str, Any] = {"total_rotation": 45, "total_offset": 5}
         annotations = plot._build_totals_annotations(df, "x", config)
-        assert annotations[0]["textangle"] == 45
-        assert annotations[0]["yshift"] == 5
+        assert annotations[0].text_angle == 45
+        assert annotations[0].y_shift_pixels == 5
 
 
 # _build_bar_trace
@@ -241,22 +240,28 @@ class TestCreateFigure:
 
     # [test->req~ring5.plot.stacked-bar~1]
 
-    def test_missing_x_shows_message(self) -> None:
+    def test_missing_x_shows_message(self, plot_session: Session) -> None:
         plot = StackedBarPlot(1, "test")
-        fig = plot.create_figure(_sample_df(), {"y_columns": ["ipc"]})
+        plot.processed_data = _sample_df()
+        plot.config = {"y_columns": ["ipc"]}
+        fig = cast(go.Figure, plot_session.render(plot))
         title = fig.layout.title  # type: ignore[union-attr]
         assert "Please select" in title.text
 
-    def test_missing_y_shows_message(self) -> None:
+    def test_missing_y_shows_message(self, plot_session: Session) -> None:
         plot = StackedBarPlot(1, "test")
-        fig = plot.create_figure(_sample_df(), {"x": "benchmark", "y_columns": []})
+        plot.processed_data = _sample_df()
+        plot.config = {"x": "benchmark", "y_columns": []}
+        fig = cast(go.Figure, plot_session.render(plot))
         title = fig.layout.title  # type: ignore[union-attr]
         assert "Please select" in title.text
 
-    def test_creates_traces(self) -> None:
+    def test_creates_traces(self, plot_session: Session) -> None:
         plot = StackedBarPlot(1, "test")
         config = _base_config()
-        fig = plot.create_figure(_sample_df(), config)
+        plot.processed_data = _sample_df()
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         assert len(list(fig.data)) == 2  # ipc + cpi
         assert fig.to_plotly_json()["layout"]["barmode"] == "stack"
 
@@ -266,8 +271,10 @@ class TestCreateFigure:
         result = plot.create_traces(_sample_df(), config)
         assert result.barmode == "stack"
 
-    def test_with_totals(self) -> None:
+    def test_with_totals(self, plot_session: Session) -> None:
         plot = StackedBarPlot(1, "test")
         config = {**_base_config(), "show_totals": True}
-        fig = plot.create_figure(_sample_df(), config)
+        plot.processed_data = _sample_df()
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         assert len(fig.to_plotly_json()["layout"].get("annotations", [])) == 4  # One per row

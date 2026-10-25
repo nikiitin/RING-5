@@ -44,13 +44,13 @@ def test_example_data_is_deterministic_and_complete() -> None:
 
 def _assert_rendered_plot(plot: BasePlot, figure: go.Figure | Figure) -> None:
     """Check actual marks and labels, rather than only a figure's existence."""
-    assert plot.last_traces is not None
-    assert plot.last_traces.traces
+    assert plot.render_artifact.trace_result is not None
+    assert plot.render_artifact.trace_result.traces
     if isinstance(figure, go.Figure):
         assert figure.data
         assert figure.layout.title.text == plot.config["title"]
         assert [trace.name for trace in figure.data] == [
-            trace.name for trace in plot.last_traces.traces
+            trace.name for trace in plot.render_artifact.trace_result.traces
         ]
     else:
         assert figure.axes
@@ -68,7 +68,7 @@ def test_every_registered_plot_example_renders(engine: Literal["plotly", "matplo
     plots = build_example_plots(data)
 
     assert {plot.plot_type for plot in plots} == set(PlotFactory.get_available_plot_types())
-    assert all(plot.last_generated_fig is not None for plot in plots)
+    assert all(plot.render_artifact.figure is not None for plot in plots)
     assert all(plot.processed_data is not None for plot in plots)
     assert any(plot.pipeline for plot in plots)
     with Session() as session:

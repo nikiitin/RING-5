@@ -180,6 +180,10 @@ and discovery.
 an owned `rows: Table` snapshot. `row_count` and `columns` summarize those rows. This projection
 preserves the shared plot and native figure handles used by rendering and dashboard operations.
 
+Figures returned by `Session.render` remain usable after plot invalidation, replacement, workspace
+reset or Session context exit. Matplotlib render managers are deregistered without clearing artists,
+so retained figures remain exportable and unrelated pyplot figures remain independent.
+
 ## Figure configuration and export
 
 ### Annotations and web shapes
@@ -192,9 +196,14 @@ Covers:
 
 -->
 
-`FigureSpec` serializes engine-independent text annotations; the Matplotlib connector applies their
-text, coordinates, and optional arrow styling. In the web application, editable line, circle, and
-rectangle shapes are Plotly layout shapes and remain Plotly-specific.
+Typed figure configuration serializes text annotations with data or axes/panel-fraction (`paper`)
+coordinates, optional arrows, font family, and multiline alignment. `x_shift_pixels` and
+`y_shift_pixels` translate the complete annotation and arrow after resolving those coordinates;
+positive values move right and up. These logical pixels use the figure's initial rendering scale,
+so a Matplotlib export at twice the DPI doubles the display displacement along with the figure.
+An empty annotation font family inherits the figure family. Stack-total offsets use this pixel
+contract in both rendering engines. In the web application, editable line, circle, and rectangle
+shapes are Plotly layout shapes and remain Plotly-specific.
 The [shape editor]({{site.baseurl}}/user-guide/reference/settings/#edit-shapes) preserves literal
 coordinates and native defaults, with an explicit number/text choice for edits.
 
@@ -220,6 +229,21 @@ The `extra` mapping carries supported flat configuration keys and takes preceden
 fields. `to_config()` returns a fresh mutable mapping with the same canonical editable format used
 by the web interface and saved plots. `create_plot` and `plot` accept either a `FigureSpec` or that
 configuration mapping. Existing raw mappings retain their exact settings and renderer defaults.
+
+Legend font sizes retain fractional point values through both native engines and typed figure
+round trips. `DualAxisOpts.legend` configures the separate right-axis legend; numbered mappings
+use the available secondary or tertiary style independently. Raw mappings use `legend2_*` for
+the separate right legend and `anchor_x`/`anchor_y` in every legend tier. Explicit `bgalpha`
+replaces opacity encoded in `bgcolor`; omitting it preserves an RGBA color's embedded opacity
+and each native renderer's default for opaque colors. Plotly preserves RGB/HSL/HWB,
+Lab/LCh/OKLab/OKLCh component precision when applying this override. Its current Python validator
+cannot encode per-legend opacity for `color(profile ...)` or resolve DDK `var(...)` colors.
+Those forms remain accepted without `bgalpha`; requesting the override raises `RenderError`
+and asks for a concrete supported color. Matplotlib's static projection accepts named,
+hexadecimal, RGB and HSL colors; convert other color spaces before using that engine.
+Legend orientations use exactly `horizontal` or `vertical` in every tier. Flat
+`legend_xanchor`/`legend_yanchor` keys and their secondary/tertiary equivalents are rejected;
+Plotly relayout events retain their native dotted wire names and decode to the canonical keys.
 
 ### Public coordinates and decorations
 

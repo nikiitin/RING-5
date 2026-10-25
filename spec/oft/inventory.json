@@ -1148,6 +1148,8 @@
           "src/web/controllers/plot/creation_controller.py::PlotCreationController.render_controls"
         ],
         "tests": [
+          "tests/ui/test_duplicate_plot_style_identity.py::test_duplicate_colors_use_the_new_strategy_instance_id_and_preserve_source_custom_state",
+          "tests/integration/test_native_artifact_lifecycle.py::test_duplicate_detaches_native_state_before_copy_and_preserves_private_domain_values",
           "tests/integration/test_plot_lifecycle.py::TestPlotLifecycle.test_duplicate_plot",
           "tests/integration/test_controller_presenter.py::TestPlotLifecycleIntegration.test_duplicate_creates_independent_copy"
         ],
@@ -1166,10 +1168,15 @@
       "tags": ["delete", "lifecycle", "plots"],
       "evidence": {
         "implementation": [
+          "src/web/pages/ui/plotting/base_plot.py::BasePlot.invalidate_figure",
+          "src/core/state/repositories/plot_repository.py::PlotRepository.removed_bindings",
           "src/web/pages/ui/plotting/plot_service.py::PlotService.delete_plot",
           "src/web/controllers/plot/creation_controller.py::PlotCreationController.render_controls"
         ],
         "tests": [
+          "tests/integration/test_native_artifact_lifecycle.py::test_plot_retirement_is_identity_scoped_and_borrowed_figures_stay_exportable",
+          "tests/unit/test_plot_retirement_transactions.py::test_retirement_callbacks_can_wait_for_foreign_source_and_slot_publication",
+          "tests/integration/test_native_artifact_lifecycle.py::test_real_native_retirement_cannot_clear_a_new_publication_or_readmitted_plot",
           "tests/integration/test_plot_lifecycle.py::TestPlotLifecycle.test_delete_plot",
           "tests/ui_logic/test_creation_controller.py::TestRenderControls.test_delete_calls_lifecycle_and_cleanup"
         ],
@@ -1188,10 +1195,12 @@
       "tags": ["isolation", "plots", "state"],
       "evidence": {
         "implementation": [
+          "src/web/pages/ui/plotting/base_plot.py::BasePlot.publish_render_artifact",
           "src/web/pages/ui/plotting/base_plot.py::BasePlot.__init__",
           "src/web/controllers/plot/render_controller.py::PlotRenderController._compute_figure_cache_key"
         ],
         "tests": [
+          "tests/integration/test_native_artifact_lifecycle.py::test_public_native_publication_binds_the_exact_preparation_and_replaces_only_owned_manager",
           "tests/integration/test_controller_presenter.py::TestPlotLifecycleIntegration.test_duplicate_creates_independent_copy",
           "tests/ui_logic/test_render_controller.py::TestFigureIdentity.test_engine_change_regenerates_figure",
           "tests/unit/test_ui_state_manager.py::TestPlotUIState.test_auto_refresh_per_plot_isolation",
@@ -1217,6 +1226,7 @@
           "src/web/components/common/chart_display.py::ChartDisplayComponent.render_refresh_controls"
         ],
         "tests": [
+          "tests/ui/test_native_render_artifact_contract.py::test_actual_widgets_cache_one_native_generation_and_manual_refresh_builds_once",
           "tests/integration/test_controller_presenter.py::TestChartDisplayComponentIntegration",
           "tests/ui_logic/test_render_controller.py::TestFigureIdentity",
           "tests/ui/test_plot_widget_ownership.py::test_shape_draft_survives_manual_refresh_and_settings_navigation",
@@ -1497,15 +1507,21 @@
         "implementation": [
           "src/web/components/plotting/settings/legend_settings.py::LegendSettingsComponent.render",
           "src/web/rendering/plotly_connector.py::FigureSpecToPlotly._apply_legends",
-          "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_legends"
+          "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_legends",
+          "src/web/rendering/_color_utils.py::color_with_alpha"
         ],
         "tests": [
+          "tests/integration/test_prepared_native_rendering.py::test_native_legend_opacity_preserves_embedded_alpha_and_explicit_override",
+          "tests/integration/test_native_rendering_review_regressions.py::test_plotly_opacity_preserves_current_static_css_function_admission",
+          "tests/integration/test_native_rendering_review_regressions.py::test_registered_legend_roles_keep_owned_styles_on_one_panel_or_twin",
+          "tests/integration/test_prepared_native_rendering.py::test_dashboard_owns_each_child_legend_role_and_preserves_numbered_annotation_style",
           "tests/ui_logic/test_settings_pills_e2e.py::TestSecondaryLegendConfig",
           "tests/ui_logic/test_settings_pills_e2e.py::TestLegendSizingControls",
           "tests/ui_logic/test_settings_pills_e2e.py::TestLegendItemOrderRename",
           "tests/ui_logic/test_settings_pills.py::TestSectionDispatch.test_legend_tiers_match_the_legends_that_are_actually_visible",
           "tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorLegendAnchor",
-          "tests/unit/core/visualization/test_connectors.py::TestConfigBuilderLegendOrientation"
+          "tests/unit/core/visualization/test_connectors.py::TestConfigBuilderLegendOrientation",
+          "tests/unit/test_figure_preparation.py::test_numbered_annotation_does_not_create_a_trace_legend_on_another_panel"
         ],
         "documentation": [
           "docs/user-guide/reference/settings.md#legends"
@@ -1642,8 +1658,8 @@
       "tags": ["annotations", "shapes", "styling"],
       "evidence": {
         "implementation": [
+          "src/web/rendering/plotly_figure_builder.py::build_plotly_figure",
           "src/web/components/plotting/settings/shapes_settings.py::ShapesSettingsComponent.render",
-          "src/web/pages/ui/plotting/styles/applicator.py::StyleApplicator.apply_styles",
           "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_annotations"
         ],
         "tests": [
@@ -1655,7 +1671,10 @@
           "tests/ui/test_shape_coordinate_contract.py::test_untouched_literal_coordinates_and_explicit_text_numeric_edits_reach_native",
           "tests/ui/test_shape_coordinate_contract.py::test_add_numeric_looking_literal_coordinates_has_one_explicit_kind",
           "tests/ui/test_shape_coordinate_contract.py::test_native_partial_path_and_default_shapes_roundtrip_without_invented_fields",
-          "tests/ui/test_shape_coordinate_contract.py::test_deleting_the_invalid_row_skips_its_decoder_and_retains_manual_refresh_contract"
+          "tests/ui/test_shape_coordinate_contract.py::test_deleting_the_invalid_row_skips_its_decoder_and_retains_manual_refresh_contract",
+          "tests/unit/test_annotation_pixel_contract.py::test_pixel_shifts_translate_complete_native_annotation_at_export_dpi",
+          "tests/unit/test_annotation_pixel_contract.py::test_typed_annotations_preserve_native_metadata_and_serialization",
+          "tests/integration/test_prepared_native_rendering.py::test_native_plotly_appends_user_shapes_once_without_replacing_neutral_geometry"
         ],
         "documentation": [
           "docs/developer-guide/api-reference/public-python-api.md#annotations-and-web-shapes"
@@ -1683,11 +1702,12 @@
         "implementation": [
           "src/web/components/plotting/settings/ordering_settings.py::OrderingSettingsComponent.render",
           "src/web/components/plotting/settings/legend_settings.py::LegendSettingsComponent._render_legend_items",
-          "src/web/pages/ui/plotting/base_plot.py::_relabel_traces",
+          "src/web/rendering/figure_preparation.py::_relabel_traces",
           "src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot._apply_renames",
           "src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot._order_unified_legend_traces"
         ],
         "tests": [
+          "tests/unit/test_rendering_correctness_regressions.py::test_computed_group_ticks_keep_minor_renames_when_major_aliases_are_configured",
           "tests/integration/test_canonical_legend_state.py::test_legend_labels_survive_configuration_copy_and_portfolio_replay",
           "tests/ui_logic/test_settings_pills_e2e.py::TestLegendItemOrderRename",
           "tests/unit/test_grouped_stacked_bar_create_figure.py::TestCreateFigure.test_with_xaxis_order",
@@ -1740,10 +1760,12 @@
           "src/core/common/numbered_axis.py::numbered_axis_modes"
         ],
         "tests": [
+          "tests/integration/test_prepared_native_rendering.py::test_public_fractional_numbered_and_right_legend_fonts_survive_typed_roundtrip",
           "tests/unit/test_numbered_xaxis.py::TestApplyNumberedXaxis",
           "tests/unit/test_numbered_xaxis.py::TestCreateFigureNumberedXaxis",
           "tests/unit/test_numbered_axis_contract.py::test_every_mode_subset_keeps_measurements_and_numbering_consistent",
-          "tests/ui/test_plot_settings_contracts.py::test_numbered_axes_widget_has_three_modes_and_empty_is_current_off"
+          "tests/ui/test_plot_settings_contracts.py::test_numbered_axes_widget_has_three_modes_and_empty_is_current_off",
+          "tests/unit/test_figure_preparation.py::test_numbered_font_role_resolves_for_real_public_native_renders"
         ],
         "documentation": [
           "docs/user-guide/guides/publication-export.md#check-typography-and-axes"
@@ -1803,6 +1825,7 @@
           "src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot._build_right_axis_traces"
         ],
         "tests": [
+          "tests/integration/test_prepared_native_rendering.py::test_native_routes_prepare_once_and_preserve_axis_roles",
           "tests/unit/test_dual_axis_bar_dot_plot.py::TestDualAxisBarDotPlotCreateFigure",
           "tests/unit/test_dual_axis_bar_dot_plot.py::TestDualAxisBarDotPlotDotCustomization",
           "tests/unit/test_grouped_dual_config.py::TestDualAxisRenderConfigUI.test_generated_labels_follow_explicit_axis_changes",
@@ -1881,6 +1904,7 @@
           "src/web/pages/ui/plotting/types/heatmap_plot.py::HeatmapPlot.create_traces"
         ],
         "tests": [
+          "tests/integration/test_prepared_native_rendering.py::test_public_heatmap_facets_use_bottom_only_explicit_tick_visibility",
           "tests/unit/test_heatmap_plot.py::test_heatmap_generated_xlabel_follows_x_mapping",
           "tests/unit/test_heatmap_plot.py::test_faceted_heatmap_labels_only_bottom_x_axis",
           "tests/unit/test_heatmap_plot.py::test_multiple_heatmap_traces_render_as_subplots",
@@ -1909,7 +1933,8 @@
         ],
         "tests": [
           "tests/ui_logic/test_interactive_plot.py::TestInteractivePlotlyChart",
-          "tests/unit/test_relayout.py::TestUpdateConfigFromRelayout"
+          "tests/unit/test_relayout.py::TestUpdateConfigFromRelayout",
+          "tests/integration/test_legend_relayout_contract.py::test_real_legend_wire_events_rerender_and_replay_with_canonical_owned_config"
         ],
         "documentation": [
           "docs/user-guide/reference/settings.md#interactive-editing"
@@ -1927,15 +1952,23 @@
       "evidence": {
         "implementation": [
           "src/core/models/visualization/trace_build_result.py::TraceBuildResult",
-          "src/web/pages/ui/plotting/base_plot.py::BasePlot.create_figure",
-          "src/web/rendering/_connector_protocol.py::validate_trace_types"
+          "src/web/rendering/figure_preparation.py::prepare_figure",
+          "src/web/rendering/_connector_protocol.py::validate_trace_types",
+          "src/web/rendering/_connector_protocol.py::validate_annotation_types"
         ],
         "tests": [
           "tests/unit/test_trace_to_plotly.py::TestTracesToPlotly",
           "tests/unit/test_trace_to_plotly.py::TestConvertTrace",
           "tests/integration/test_neutral_trace_contract.py::test_both_converters_reject_unknown_families_before_drawing",
           "tests/integration/test_neutral_trace_contract.py::test_public_render_exposes_unknown_trace_as_typed_error",
-          "tests/integration/test_neutral_trace_contract.py::test_supported_trace_subclasses_preserve_data_in_both_engines"
+          "tests/integration/test_neutral_trace_contract.py::test_supported_trace_subclasses_preserve_data_in_both_engines",
+          "tests/unit/test_figure_preparation.py::test_all_registered_examples_prepare_once_without_constructing_native_figures",
+          "tests/unit/test_figure_preparation.py::test_preparation_owns_callback_config_and_reusable_trace_metadata",
+          "tests/integration/test_annotation_admission.py::test_unknown_annotations_reject_before_native_allocation",
+          "tests/integration/test_annotation_admission.py::test_public_annotation_failures_preserve_the_published_native_figure",
+          "tests/integration/test_annotation_admission.py::test_supported_annotation_subclass_survives_public_native_render",
+          "tests/integration/test_prepared_native_rendering.py::test_native_routes_prepare_once_and_preserve_axis_roles",
+          "tests/integration/test_prepared_native_rendering.py::test_matplotlib_facets_never_discard_a_supported_mixed_trace"
         ],
         "documentation": [
           "docs/developer-guide/subsystems/visualization.md#engine-independent-traces"
@@ -1953,7 +1986,8 @@
       "evidence": {
         "implementation": [
           "src/web/rendering/trace_to_plotly.py::traces_to_plotly",
-          "src/web/rendering/plotly_connector.py::FigureSpecToPlotly.apply"
+          "src/web/rendering/plotly_connector.py::FigureSpecToPlotly.apply",
+          "src/web/rendering/plotly_figure_builder.py::build_plotly_figure"
         ],
         "tests": [
           "tests/unit/test_trace_to_plotly.py::TestTracesToPlotly",
@@ -1974,7 +2008,7 @@
       "tags": ["matplotlib", "rendering"],
       "evidence": {
         "implementation": [
-          "src/web/rendering/matplotlib_figure_builder.py::build_matplotlib_figure_from_traces",
+          "src/web/rendering/matplotlib_figure_builder.py::build_matplotlib_figure_from_prepared",
           "src/web/rendering/matplotlib_trace_renderer.py::MatplotlibTraceRenderer.render"
         ],
         "tests": [
@@ -2262,6 +2296,7 @@
           "src/core/state/repositories/session_repository.py::SessionRepository.restore_from_portfolio"
         ],
         "tests": [
+          "tests/integration/test_native_artifact_lifecycle.py::test_rejected_restore_releases_only_new_candidate_artifacts",
           "tests/unit/test_repository_state_manager.py::TestRestoreSession",
           "tests/integration/test_portfolio_service_integration.py::test_restore_report_complete_with_deserializer"
         ],
@@ -2305,13 +2340,15 @@
       "evidence": {
         "implementation": [
           "src/core/models/portfolio_contract.py::validate_portfolio_schema",
-          "src/core/common/plot_payload.py::validate_plot_fields"
+          "src/core/common/plot_payload.py::validate_plot_fields",
+          "src/core/common/plot_payload.py::validate_plot_config_keys"
         ],
         "tests": [
           "tests/integration/test_portfolio_schema.py::test_obsolete_schema_is_rejected_before_state_changes",
           "tests/unit/test_portfolio_contract.py::test_unsupported_schema_is_rejected",
           "tests/integration/test_canonical_legend_state.py::test_unsupported_plot_state_fails_before_restoration_or_upload",
-          "tests/integration/test_ring5_public_api.py::TestPortfolioReplay.test_future_portfolio_refused"
+          "tests/integration/test_ring5_public_api.py::TestPortfolioReplay.test_future_portfolio_refused",
+          "tests/integration/test_figure_config_key_contract.py::test_public_plot_rejects_retired_legend_keys_before_retaining_state"
         ],
         "documentation": [
           "docs/developer-guide/subsystems/portfolios.md#schema-contract"
@@ -2950,7 +2987,8 @@
           "tests/unit/test_stacked_histogram_config.py::TestStackedBarCreateFigure.test_show_totals_annotations",
           "tests/unit/test_stacked_histogram_config.py::TestStackedBarCreateFigure.test_totals_threshold_skips_small",
           "tests/ui/test_plot_settings_contracts.py::test_bar_totals_survive_value_label_toggles_and_render_real_values",
-          "tests/unit/test_categorical_total_annotations.py::test_stack_total_values_and_coordinates_survive_reorder_and_duplicate_display_names"
+          "tests/unit/test_categorical_total_annotations.py::test_stack_total_values_and_coordinates_survive_reorder_and_duplicate_display_names",
+          "tests/unit/test_annotation_pixel_contract.py::test_public_stack_totals_preserve_pixel_offset_and_raw_categories"
         ],
         "documentation": [
           "docs/user-guide/reference/settings.md#stack-totals"
@@ -3143,7 +3181,7 @@
           "tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorSeriesStyling",
           "tests/unit/core/visualization/test_matplotlib_connector_styling.py::TestTraceOverrides",
           "tests/unit/core/visualization/test_matplotlib_connector_styling.py::TestSeriesStyling",
-          "tests/unit/test_style_applicator.py::TestApplyStyles.test_full_pipeline",
+          "tests/unit/test_prepared_figure_styling.py::TestPreparedFigureStyling.test_full_pipeline",
           "tests/ui/test_plot_settings_contracts.py::test_live_colors_preserve_type_specific_patterns_and_markers"
         ],
         "documentation": [
@@ -3172,6 +3210,8 @@
           "src/web/components/common/chart_display.py::ChartDisplayComponent.render_plotly_chart"
         ],
         "tests": [
+          "tests/unit/test_plot_presenters.py::test_modebar_uses_actual_multi_panel_native_dimensions_with_the_published_export_scale",
+          "tests/unit/test_download_section_ui.py::test_deferred_download_uses_the_same_published_figure_source_rows_and_scale",
           "tests/ui_unit/test_advanced_settings.py::TestAdvancedSettingsComponent.test_export_scale_caption",
           "tests/unit/test_plot_presenters.py::TestChartDisplayComponent.test_plotly_modebar_uses_configured_export_scale"
         ],
@@ -3191,6 +3231,7 @@
       "evidence": {
         "implementation": [
           "ring5/_plot_validation.py::validate_plot_config",
+          "src/core/common/plot_payload.py::validate_plot_config_values",
           "ring5/_session.py::Session.create_plot",
           "ring5/_session.py::Session.render"
         ],
@@ -3200,7 +3241,9 @@
           "tests/integration/test_ring5_api_completeness.py::test_invalid_plot_config_does_not_register_and_render_errors_are_typed",
           "tests/integration/test_ring5_public_api.py::TestErrorSurface.test_invalid_engine_lists_choices",
           "tests/integration/test_ring5_public_api.py::TestApiErgonomics.test_unknown_plot_type_lists_valid_choices",
-          "tests/integration/test_neutral_trace_contract.py::test_public_constructor_and_restore_admit_a_registered_plot"
+          "tests/integration/test_neutral_trace_contract.py::test_public_constructor_and_restore_admit_a_registered_plot",
+          "tests/integration/test_native_rendering_review_regressions.py::test_noncanonical_orientation_rejects_before_public_or_restore_publication",
+          "tests/integration/test_native_rendering_review_regressions.py::test_canonical_orientation_values_reach_both_native_models"
         ],
         "documentation": [
           "docs/developer-guide/api-reference/public-python-api.md#workspace"
@@ -3624,7 +3667,7 @@
           "src/core/state/repositories/session_repository.py::SessionRepository.restore_from_portfolio",
           "src/web/components/data_managers/schema_contract.py::SchemaContractManager.render",
           "src/web/components/data_managers/schema_contract.py::SchemaContractManager._render_conversion",
-          "src/web/pages/ui/plotting/base_plot.py::BasePlot.create_figure",
+          "src/web/rendering/figure_preparation.py::prepare_figure",
           "src/web/pages/ui/plotting/base_plot.py::BasePlot.to_dict",
           "src/web/pages/ui/plotting/plot_factory.py::PlotFactory.from_dict"
         ],
@@ -3799,10 +3842,11 @@
           "ring5/_small_multiples.py::render_small_multiples"
         ],
         "tests": [
+          "tests/integration/test_native_artifact_lifecycle.py::test_facet_views_drop_borrowed_artifacts_without_touching_source_or_domain_payloads",
           "tests/unit/test_small_multiples_service.py::test_discovers_multicolumn_panels_in_stable_order_with_labels",
           "tests/integration/test_small_multiples_public_api.py::test_small_multiples_render_both_engines_in_order_without_mutation",
           "tests/ui_logic/test_small_multiples_settings.py::test_enabled_controls_report_panel_count_and_shared_scales",
-          "tests/ui_logic/test_render_controller.py::TestSmallMultiplesRendering.test_matplotlib_facets_build_plotly_preview_and_native_grid",
+          "tests/ui_logic/test_render_controller.py::TestSmallMultiplesRendering.test_matplotlib_facets_build_only_native_grid",
           "tests/e2e/test_plot_small_multiples.py::test_small_multiples_keep_configuration_across_both_engines"
         ],
         "documentation": [
@@ -4107,7 +4151,7 @@
           "src/core/services/visualization/accessibility_service.py::AccessibilityService.apply_non_color_encodings",
           "src/core/services/visualization/accessibility_service.py::AccessibilityService.audit",
           "src/web/components/plotting/settings/colors_settings.py::ColorsSettingsComponent.render",
-          "src/web/pages/ui/plotting/base_plot.py::BasePlot.create_figure",
+          "src/web/rendering/figure_preparation.py::prepare_figure",
           "src/web/rendering/dashboard_builder.py::_render_matplotlib_dashboard",
           "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_hatching",
           "src/web/rendering/matplotlib_trace_renderer.py::MatplotlibTraceRenderer._draw_bar"
@@ -4196,6 +4240,7 @@
         "tests": [
           "tests/unit/core/visualization/test_dashboard_spec.py::test_publication_fields_align_panels_and_resolve_legacy_spacing",
           "tests/integration/test_dashboard_public_api.py::test_publication_panel_composition_is_consistent_across_engines",
+          "tests/integration/test_prepared_native_rendering.py::test_dashboard_owns_each_child_legend_role_and_preserves_numbered_annotation_style",
           "tests/ui_logic/test_dashboard_composer.py::test_composer_exposes_publication_labels_captions_and_spacing",
           "tests/e2e/test_dashboard_composer.py::test_build_and_offer_whole_dashboard_export"
         ],
@@ -4470,6 +4515,7 @@
           "src/web/components/analysis_recipe_component.py::AnalysisRecipeComponent.render"
         ],
         "tests": [
+          "tests/integration/test_native_rendering_review_regressions.py::test_recipe_orientation_is_checked_only_after_parameter_materialization",
           "tests/unit/test_analysis_recipe_service.py::test_recipe_json_is_deterministic_versioned_and_materializes_typed_values",
           "tests/unit/test_analysis_recipe_service.py::test_recipe_storage_protects_names_and_lists_valid_records",
           "tests/unit/test_analysis_recipe_service.py::test_capture_retains_parser_variables_plot_configs_and_pipelines",
@@ -4581,7 +4627,6 @@
           "src/core/services/data_services/portfolio_service.py::PortfolioService.verify_portfolio",
           "src/core/services/data_services/portfolio_service.py::PortfolioService.load_portfolio",
           "src/core/services/browser_upload_service.py::BrowserUploadService.load_portfolio",
-          "src/core/services/portfolio_integrity_service.py::PortfolioIntegrityService.verify",
           "ring5/_session.py::Session.verify_portfolio",
           "ring5/_session.py::Session.load_portfolio",
           "src/web/pages/portfolio.py::_render_integrity_review"
@@ -5940,6 +5985,7 @@
       "tick_side": "figure.axes",
       "tick_text": "figure.axes",
       "tick_values": "figure.axes",
+      "title_angle": "figure.dual-axis-controls",
       "title_vshift": "figure.axes"
     },
     "axes_config_fields": {

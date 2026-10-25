@@ -124,7 +124,7 @@ def _common_config(title: str, xlabel: str, ylabel: str) -> PlotConfig:
             "color_palette": "wong",
             "show_grid": True,
             "show_legend": True,
-            "legend_orientation": "h",
+            "legend_orientation": "horizontal",
             "paper_bgcolor": "#FFFFFF",
             "plot_bgcolor": "#FFFFFF",
             "xaxis_order": BENCHMARK_ORDER,

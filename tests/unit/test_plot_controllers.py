@@ -557,7 +557,8 @@ class TestRenderControllerErrorResilience:
             mock_st.exception.assert_called()
             # _render_visualization still called (with should_gen=False due to error)
             mock_viz.assert_called_once()
-            assert mock_viz.call_args[0][1] is False  # should_gen
+            assert mock_viz.call_args[0][1] == plot.config
+            assert mock_viz.call_args[0][2] is False  # should_gen
 
     @patch("src.web.controllers.plot.render_controller.render_settings_pills", return_value=None)
     @patch("src.web.controllers.plot.render_controller.st")

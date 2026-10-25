@@ -40,7 +40,9 @@ The registry identifier is stored in portfolios and accepted by the public API. 
 canonical spelling. A rename replaces all producers, consumers and fixtures without an alias.
 
 Emit concrete neutral trace families from `create_traces`. Both renderers validate the complete
-trace sequence before drawing, including hidden traces. A bare `TraceConfig` or an unsupported
+trace and typed annotation sequences before drawing, including hidden traces and empty annotation
+text. Annotations are `AnnotationConfig` instances or their subclasses; dictionaries and objects
+with matching attributes are rejected. A bare `TraceConfig` or an unsupported
 family raises `TypeError`; public `Session.render` exposes the failure as `ring5.RenderError`.
 Histograms use the shared bucket geometry and emit `BarTraceConfig` with explicit positions and
 widths. Supported trace families may be subclassed by registered plot implementations.
@@ -57,8 +59,9 @@ when no preferred order is configured.
 
 Unit-test trace values, ordering, missing columns, and error-bar behavior. Use `Session.render` to
 render configured plots through both Plotly and Matplotlib, including plots restored from a
-portfolio. `BasePlot.create_figure` prepares Plotly traces and `apply_common_layout` applies shared
-styling; headless clients use the public session to run the complete rendering sequence. Add
+portfolio. `prepare_figure` calls the registered trace strategy once and resolves the common
+style before the chosen native builder runs. Emit hover and legend-role metadata with the traces;
+axis-title positioning belongs in typed axis configuration and native connectors. Add
 integration coverage for non-trivial configuration or public API use.
 
 ```bash

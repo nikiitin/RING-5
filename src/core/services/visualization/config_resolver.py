@@ -32,7 +32,7 @@ Usage::
 from __future__ import annotations
 
 from copy import deepcopy
-from dataclasses import fields
+from dataclasses import fields, replace
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -58,6 +58,16 @@ def resolve_config(spec: FigureConfig) -> FigureConfig:
     _resolve_typography(resolved.typography)
     _resolve_legends(resolved.legends)
     _resolve_axes(resolved.axes)
+    legends = {legend.role: legend for legend in resolved.legends}
+    annotations = []
+    for annotation in resolved.annotations:
+        if annotation.legend_role is not None and annotation.font_size == SENTINEL_INT:
+            legend = legends.get(annotation.legend_role)
+            if legend is None:
+                raise ValueError(f"Missing {annotation.legend_role} legend style for annotation.")
+            annotation = replace(annotation, font_size=legend.font_size)
+        annotations.append(annotation)
+    object.__setattr__(resolved, "annotations", annotations)
     return resolved
 
 
@@ -100,8 +110,8 @@ def _resolve_typography(typo: object) -> None:
     # y2ticks inherits from yticks (already resolved)
     _inherit_int(typo, "font_size_y2ticks", typo.font_size_yticks)
 
-    # legend2 inherits from legend (CONSUMED — apply_dual_axis reads font_size_legend2)
-    _inherit_int(typo, "font_size_legend2", typo.font_size_legend)
+    # Secondary legend typography inherits from the primary role.
+    _inherit_float(typo, "font_size_legend2", typo.font_size_legend)
 
 
 def _resolve_legends(legends: list[LegendConfig]) -> None:
@@ -123,17 +133,17 @@ def _resolve_legends(legends: list[LegendConfig]) -> None:
             continue
 
         # Font size: -1 → follow primary
-        _inherit_int(legend, "font_size", primary.font_size)
+        _inherit_float(legend, "font_size", primary.font_size)
 
         # Title font size: -1 → follow own font_size
-        _inherit_int(legend, "title_font_size", legend.font_size)
+        _inherit_float(legend, "title_font_size", legend.font_size)
 
         # Position: -1 → auto (keep as -1.0, connectors handle "auto")
         # But spacing inherits from primary
         _resolve_legend_spacing(legend.spacing, primary_spacing)
 
     # Also resolve primary's own title_font_size
-    _inherit_int(primary, "title_font_size", primary.font_size)
+    _inherit_float(primary, "title_font_size", primary.font_size)
 
 
 def _resolve_legend_spacing(
@@ -159,11 +169,14 @@ def _resolve_axes(axes: object) -> None:
     if not isinstance(axes, AxesConfig):
         return
 
+    y = axes.y
+    if y.title_angle is not None:
+        _inherit_int(y, "label_standoff", 0)
     if axes.y2 is None:
         return
-
-    y = axes.y
     y2 = axes.y2
+    if y2.title_angle is not None:
+        _inherit_int(y2, "label_standoff", max(0, y.label_standoff))
 
     # y2 inherits label_pad from y
     _inherit_float(y2, "label_pad", y.label_pad)

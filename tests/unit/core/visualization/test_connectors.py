@@ -4,7 +4,7 @@ Tests for connectors — Plotly connector, Matplotlib connector, and builders.
 Covers:
   - FigureSpecToPlotly: apply spec to a Plotly figure
   - FigureSpecToMatplotlib: apply spec to matplotlib axes
-  - PlotlyFigureSpecBuilder: extract spec from Plotly figure
+  - ConfigSpecBuilder: project editable configuration into typed styling
 """
 
 from typing import Any, cast

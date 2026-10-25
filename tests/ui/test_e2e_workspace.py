@@ -9,6 +9,8 @@ Tests workspace-level workflows that span multiple features:
 - Cross-page state consistency
 """
 
+from ring5 import Session
+
 from typing import Any, cast
 
 import pandas as pd
@@ -266,7 +268,7 @@ class TestCrossPageConsistency:
 class TestFigureEngineMultiType:
     """BasePlot produces valid figures for all registered types."""
 
-    def test_all_basic_types_produce_figures(self) -> None:
+    def test_all_basic_types_produce_figures(self, plot_session: Session) -> None:
         """Bar, line, scatter all produce valid go.Figure objects."""
         at = create_app_with_data()
         api: Any = get_api(at)
@@ -300,7 +302,9 @@ class TestFigureEngineMultiType:
                 "barmode": "group",
             }
 
-            fig: go.Figure = plot.create_figure(selected_cols, config)
-            fig = plot.apply_common_layout(fig, config)
+            plot.processed_data = selected_cols
+            plot.config = config
+            fig: go.Figure = cast(go.Figure, plot_session.render(plot))
+
             assert isinstance(fig, go.Figure), f"Failed for {plot_type}"
             assert len(list(fig.data)) > 0, f"No data traces for {plot_type}"

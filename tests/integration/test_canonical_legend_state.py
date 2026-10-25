@@ -94,7 +94,10 @@ def test_legend_labels_survive_configuration_copy_and_portfolio_replay(
             "bar", data=table, config={"x": "benchmark", "y": "value", "color": "variant"}
         )
         copy_plot_content(source, target, "configuration")
-        source.config["legend_labels"]["A"] = "Changed"
+        source_config = source.config
+        source_config["legend_labels"]["A"] = "Changed"
+        source.config = source_config
+        assert source.config["legend_labels"]["A"] == "Changed"
         assert target.config["legend_labels"] == {"A": "Alpha", "B": "Beta"}
         raw = PortfolioService(session.api.state_manager).serialize_workspace(
             table.frame, [target], {}, 2

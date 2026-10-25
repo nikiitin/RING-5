@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import copy
-from typing import Any
+from typing import Any, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,6 +11,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import pytest
 from matplotlib.container import ErrorbarContainer
+from matplotlib.patches import Rectangle
+from src.web.rendering.figure_preparation import PreparedFigure
 
 import ring5
 from src.core.models.visualization.figure_config import FigureConfig
@@ -328,7 +330,8 @@ def test_parallel_brush_configuration_is_not_mutated() -> None:
 
 
 def test_faceted_heatmaps_keep_category_ticks_and_overall_dimensions() -> None:
-    from src.web.rendering.matplotlib_figure_builder import build_matplotlib_figure_from_traces
+    from src.web.rendering.matplotlib_figure_builder import build_matplotlib_figure_from_prepared
+    from src.web.rendering.figure_preparation import prepare_figure
 
     traces = [
         HeatmapTraceConfig(
@@ -336,12 +339,18 @@ def test_faceted_heatmaps_keep_category_ticks_and_overall_dimensions() -> None:
         )
         for name in ["A", "B"]
     ]
-    figure, _ = build_matplotlib_figure_from_traces(
-        {"width": 800, "height": 600}, "heatmap", TraceBuildResult(traces=traces)
+    prepared = prepare_figure(
+        pd.DataFrame({"m1": [1, 2], "m2": [3, 4]}),
+        {"width": 800, "height": 600},
+        "heatmap",
+        lambda _data, _config: TraceBuildResult(traces=traces),
     )
+    figure, _ = build_matplotlib_figure_from_prepared(prepared)
     assert figure.get_size_inches() * figure.dpi == pytest.approx([800, 600])
-    for axis in figure.axes[:2]:
-        assert [tick.get_text() for tick in axis.get_xticklabels()] == ["a", "b"]
+    for index, axis in enumerate(figure.axes[:2]):
+        assert [tick.get_text() for tick in axis.get_xticklabels()] == (
+            [] if index == 0 else ["a", "b"]
+        )
         assert [tick.get_text() for tick in axis.get_yticklabels()] == ["m1", "m2"]
         assert axis.get_xticks().tolist() == [0.5, 1.5]
 
@@ -391,7 +400,8 @@ def test_vertical_horizontal_vertical_line_has_distinct_geometry() -> None:
 
 
 def test_secondary_axis_styling_and_unified_legend_follow_configuration() -> None:
-    from src.web.rendering.matplotlib_figure_builder import build_matplotlib_figure_from_traces
+    from src.web.rendering.matplotlib_figure_builder import build_matplotlib_figure_from_prepared
+    from src.web.rendering.figure_preparation import prepare_figure
 
     result = TraceBuildResult(
         traces=[
@@ -400,7 +410,8 @@ def test_secondary_axis_styling_and_unified_legend_follow_configuration() -> Non
         ],
         secondary_y=True,
     )
-    figure, spec = build_matplotlib_figure_from_traces(
+    prepared = prepare_figure(
+        pd.DataFrame({"Left": [1], "Right": [10]}),
         {
             "dual_axis": True,
             "ylabel_right": "Right metric",
@@ -411,8 +422,9 @@ def test_secondary_axis_styling_and_unified_legend_follow_configuration() -> Non
             "unified_legend": True,
         },
         "grouped_stacked_bar",
-        result,
+        lambda _data, _config: result,
     )
+    figure, spec = build_matplotlib_figure_from_prepared(prepared)
     primary, twin = figure.axes
     assert twin.get_ylabel() == "Right metric"
     assert twin.get_legend() is None
@@ -465,7 +477,8 @@ def test_right_axis_configuration_does_not_relabel_other_dashboard_panels() -> N
 @pytest.mark.parametrize("shared", [True, False])
 def test_heatmap_contrast_uses_resolved_manual_bounds_in_both_engines(shared: bool) -> None:
     from src.core.services.visualization.config_resolver import resolve_config
-    from src.web.rendering.matplotlib_figure_builder import build_matplotlib_figure_from_traces
+    from src.web.rendering.matplotlib_figure_builder import build_matplotlib_figure_from_prepared
+    from src.web.rendering.figure_preparation import prepare_figure
     from src.web.rendering.plotly_connector import FigureSpecToPlotly
 
     result = TraceBuildResult(
@@ -492,7 +505,10 @@ def test_heatmap_contrast_uses_resolved_manual_bounds_in_both_engines(shared: bo
         if annotation.name == "ring5-heatmap-auto"
     )
     assert all(trace.zmax == 100 for trace in plotly.data)
-    matplotlib, _ = build_matplotlib_figure_from_traces(config, "heatmap", result)
+    prepared = prepare_figure(
+        pd.DataFrame({"a": [0], "b": [5]}), config, "heatmap", lambda _data, _config: result
+    )
+    matplotlib, _ = build_matplotlib_figure_from_prepared(prepared)
     for axis in matplotlib.axes[:2]:
         assert [text.get_color() for text in axis.texts] == ["white", "white"]
         assert axis.collections[0].get_clim() == (0, 100)
@@ -608,7 +624,8 @@ def test_bar_aligned_dual_axis_keeps_categories_omitted_from_preferred_order() -
 
 def test_default_neutral_data_annotations_render_with_valid_engine_coordinates() -> None:
     from src.core.models.visualization.annotation_config import AnnotationConfig
-    from src.web.rendering.matplotlib_figure_builder import build_matplotlib_figure_from_traces
+    from src.web.rendering.matplotlib_figure_builder import build_matplotlib_figure_from_prepared
+    from src.web.rendering.figure_preparation import prepare_figure
 
     result = TraceBuildResult(
         traces=[LineTraceConfig(x=[1, 2], y=[2, 3])],
@@ -617,7 +634,89 @@ def test_default_neutral_data_annotations_render_with_valid_engine_coordinates()
     interactive = traces_to_plotly(result)
     assert interactive.layout.annotations[0].xref == "x"
     assert interactive.layout.annotations[0].yref == "y"
-    static, _ = build_matplotlib_figure_from_traces({}, "line", result)
+    prepared = prepare_figure(
+        pd.DataFrame({"x": [1, 2], "y": [2, 3]}), {}, "line", lambda _data, _config: result
+    )
+    static, _ = build_matplotlib_figure_from_prepared(prepared)
     annotation = next(text for text in static.axes[0].texts if text.get_text() == "Measured")
     assert annotation.xy == (1, 2)
     assert annotation.xycoords is static.axes[0].transData
+
+
+@pytest.mark.parametrize("engine", ["plotly", "matplotlib"])
+def test_computed_group_ticks_keep_minor_renames_when_major_aliases_are_configured(
+    engine: Any,
+) -> None:
+    # [test->req~ring5.figure.ordering-renaming~2]
+    data = ring5.Table(
+        pd.DataFrame(
+            {
+                "x": ["A", "A", "B", "B"],
+                "g": ["one", "two", "one", "two"],
+                "y": [3.0, 5.0, 7.0, 11.0],
+            }
+        )
+    )
+    with ring5.Session() as session:
+        figure = session.plot(
+            "grouped_stacked_bar",
+            data=data,
+            config={
+                "x": "x",
+                "group": "g",
+                "y_columns": ["y"],
+                "xaxis_labels": {"A": "Alpha"},
+                "group_renames": {"one": "First"},
+            },
+            engine=engine,
+        )
+        if engine == "plotly":
+            assert isinstance(figure, go.Figure)
+            assert list(figure.layout.xaxis.ticktext) == ["First", "two", "First", "two"]
+            assert isinstance(figure.data[0], go.Bar)
+            assert list(figure.data[0].y) == [3.0, 5.0, 7.0, 11.0]
+            assert "<b>Alpha</b>" in [entry.text for entry in figure.layout.annotations]
+        else:
+            from matplotlib.figure import Figure
+
+            assert isinstance(figure, Figure)
+            assert [tick.get_text() for tick in figure.axes[0].get_xticklabels()] == [
+                "First",
+                "two",
+                "First",
+                "two",
+            ]
+            assert [cast(Rectangle, patch).get_height() for patch in figure.axes[0].patches] == [
+                3.0,
+                5.0,
+                7.0,
+                11.0,
+            ]
+            assert "<b>Alpha</b>" not in [entry.get_text() for entry in figure.axes[0].texts]
+            assert "Alpha" in [entry.get_text() for entry in figure.axes[0].texts]
+
+
+@pytest.mark.parametrize("engine", ["plotly", "matplotlib"])
+def test_number_legend_hides_tick_marks_in_the_common_resolved_axis(engine: Any) -> None:
+    with ring5.Session() as session:
+        plot = session.create_plot(
+            "grouped_stacked_bar",
+            data=ring5.Table(pd.DataFrame({"x": ["A", "B"], "y": [3.0, 5.0]})),
+            config={"x": "x", "y_columns": ["y"], "numbered_xaxis_modes": ["Number legend"]},
+        )
+        figure = session.render(plot, engine=engine)
+        prepared = plot.render_artifact.preparation
+        assert isinstance(prepared, PreparedFigure)
+        assert not prepared.spec.axes.x.show_ticks
+        assert not prepared.spec.axes.x.show_tick_labels
+        if engine == "plotly":
+            assert isinstance(figure, go.Figure)
+            assert figure.layout.xaxis.ticks == ""
+            assert figure.layout.xaxis.showticklabels is False
+        else:
+            from matplotlib.figure import Figure
+
+            assert isinstance(figure, Figure)
+            assert all(
+                not tick.tick1line.get_visible() for tick in figure.axes[0].xaxis.get_major_ticks()
+            )

@@ -1,5 +1,8 @@
 """Tests for grouped-stacked-bar figure creation."""
 
+from ring5 import Session
+from ring5.errors import RenderError
+
 from typing import cast
 
 import pandas as pd
@@ -31,7 +34,9 @@ def plot() -> GroupedStackedBarPlot:
 class TestCreateFigure:
     """Test GroupedStackedBarPlot.create_figure logic branches."""
 
-    def test_no_group_delegates_to_parent(self, plot: GroupedStackedBarPlot) -> None:
+    def test_no_group_delegates_to_parent(
+        self, plot: GroupedStackedBarPlot, plot_session: Session
+    ) -> None:
         """When group column is None/empty, delegates to StackedBarPlot."""
         data = pd.DataFrame(
             {
@@ -49,7 +54,9 @@ class TestCreateFigure:
             "xlabel": "Cat",
             "ylabel": "V",
         }
-        fig = plot.create_figure(data, config)
+        plot.processed_data = data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         assert isinstance(fig, go.Figure)
         # Parent builds stacked traces
         assert len(list(fig.data)) > 0
@@ -69,7 +76,7 @@ class TestCreateFigure:
         assert result.traces == []
 
     def test_basic_grouped_stacked(
-        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
+        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame, plot_session: Session
     ) -> None:
         """Standard grouped stacked bar creation."""
         # [test->req~ring5.plot.grouped-stacked-bar~1]
@@ -82,7 +89,9 @@ class TestCreateFigure:
             "ylabel": "Value",
             "legend_title": "Stats",
         }
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         assert isinstance(fig, go.Figure)
         # 2 y_columns → 2 bar traces
         assert len(list(fig.data)) == 2
@@ -91,7 +100,7 @@ class TestCreateFigure:
         assert len(list(fig.data)) > 0
 
     def test_with_group_filter(
-        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
+        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame, plot_session: Session
     ) -> None:
         """Group filter limits displayed groups."""
         config = {
@@ -101,13 +110,17 @@ class TestCreateFigure:
             "group_filter": ["c1"],
             "title": "Filtered",
         }
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         assert isinstance(fig, go.Figure)
         # Only c1 group → tick text should only contain "c1"
         tick_text = list(fig.layout.xaxis.ticktext)
         assert "c2" not in tick_text
 
-    def test_with_xaxis_order(self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame) -> None:
+    def test_with_xaxis_order(
+        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame, plot_session: Session
+    ) -> None:
         """Custom x-axis ordering is respected."""
         # [test->req~ring5.figure.ordering-renaming~2]
         config = {
@@ -117,13 +130,17 @@ class TestCreateFigure:
             "xaxis_order": ["B", "A"],
             "title": "Ordered",
         }
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         annotations = fig.layout.annotations
         # First annotation should be B, second A
         labels = [a.text for a in annotations]
         assert labels.index("<b>B</b>") < labels.index("<b>A</b>")
 
-    def test_with_group_order(self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame) -> None:
+    def test_with_group_order(
+        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame, plot_session: Session
+    ) -> None:
         """Custom group ordering is respected."""
         # [test->req~ring5.figure.ordering-renaming~2]
         config = {
@@ -133,13 +150,17 @@ class TestCreateFigure:
             "group_order": ["c2", "c1"],
             "title": "Group Ordered",
         }
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         tick_text = list(fig.layout.xaxis.ticktext)
         # Within each benchmark, c2 should come before c1
         assert tick_text[0] == "c2"
         assert tick_text[1] == "c1"
 
-    def test_with_renames(self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame) -> None:
+    def test_with_renames(
+        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame, plot_session: Session
+    ) -> None:
         """X-axis and group renames are applied."""
         config = {
             "x": "Benchmark",
@@ -149,14 +170,18 @@ class TestCreateFigure:
             "group_renames": {"c1": "Config1"},
             "title": "Renamed",
         }
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         annotations = fig.layout.annotations
         labels = [a.text for a in annotations]
         assert "<b>Alpha</b>" in labels
         tick_text = list(fig.layout.xaxis.ticktext)
         assert "Config1" in tick_text
 
-    def test_with_show_totals(self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame) -> None:
+    def test_with_show_totals(
+        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame, plot_session: Session
+    ) -> None:
         """Stack totals annotations are added when show_totals is True."""
         config = {
             "x": "Benchmark",
@@ -165,14 +190,16 @@ class TestCreateFigure:
             "show_totals": True,
             "title": "Totals",
         }
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         annotations = fig.layout.annotations
         # Should have category labels + total annotations
         # 2 categories + 4 total annotations (2 groups × 2 categories)
         assert len(annotations) > 2
 
     def test_separators_rendered_when_enabled(
-        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
+        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame, plot_session: Session
     ) -> None:
         """Auto bar-group separators flow through the engine-agnostic path and
         become Plotly line shapes (and would be axvlines in matplotlib)."""
@@ -183,15 +210,16 @@ class TestCreateFigure:
             "show_separators": True,
             "title": "Separators",
         }
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         shapes = list(fig.layout.shapes)
         assert any(s.type == "line" for s in shapes)
 
-    def test_user_shapes_config_ignored_by_create_figure(
-        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
+    def test_malformed_shapes_fail_public_render(
+        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame, plot_session: Session
     ) -> None:
-        """create_figure no longer reads config['shapes']; user-drawn shapes are
-        applied separately by the StyleApplicator. A bad value is simply ignored."""
+        """The final native owner rejects malformed shapes visibly."""
         config = {
             "x": "Benchmark",
             "group": "Config",
@@ -199,8 +227,10 @@ class TestCreateFigure:
             "shapes": "invalid",
             "title": "Bad Shapes",
         }
-        fig = plot.create_figure(sample_data, config)
-        assert isinstance(fig, go.Figure)
+        plot.processed_data = sample_data
+        plot.config = config
+        with pytest.raises(RenderError, match="shapes"):
+            plot_session.render(plot)
 
 
 class TestHelperMethods:
@@ -258,12 +288,20 @@ class TestHelperMethods:
         config = {"major_label_size": 16, "major_label_color": "#333"}
         anns = plot._build_category_annotations(centers, config)
         assert len(anns) == 2
-        assert anns[0]["font"]["size"] == 16
+        assert anns[0].font_size == 16
 
-    def test_apply_common_layout_enforces_hover(self) -> None:
+    def test_neutral_hover_carries_actual_measured_totals(self, sample_data: pd.DataFrame) -> None:
+        from src.web.rendering.trace_to_plotly import traces_to_plotly
+
         plot = GroupedStackedBarPlot(1, "T")
-        fig = go.Figure()
-        fig.add_trace(go.Bar(x=[1, 2], y=[3, 4], name="test"))
-        result = plot.apply_common_layout(fig, {})
-        hovertemplate = cast(str, cast(go.Bar, result.data[0]).hovertemplate)
-        assert "customdata" in hovertemplate
+        result = plot.create_traces(
+            sample_data, {"x": "Benchmark", "group": "Config", "y_columns": ["Ticks", "Energy"]}
+        )
+        figure = traces_to_plotly(result)
+        for trace in figure.data:
+            bar = cast(go.Bar, trace)
+            assert "customdata" in cast(str, bar.hovertemplate)
+            assert bar.customdata is not None
+            assert bar.y is not None
+            assert list(bar.customdata) == [110, 220, 165, 275]
+            assert list(bar.y) in ([100, 200, 150, 250], [10, 20, 15, 25])

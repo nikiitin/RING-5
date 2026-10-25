@@ -15,6 +15,8 @@ explicit per-trace colour wins over the palette, and (Matplotlib) before
 
 from collections.abc import Sequence
 
+from src.core.models.visualization.annotation_config import AnnotationConfig
+from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import (
     BarTraceConfig,
     BoxTraceConfig,
@@ -43,6 +45,15 @@ _SUPPORTED_TRACE_TYPES = (
 )
 
 
+def uses_heatmap_panels(result: TraceBuildResult) -> bool:
+    """Whether every trace belongs to a separate heatmap panel."""
+    return (
+        len(result.traces) > 1
+        and not result.secondary_y
+        and all(isinstance(trace, HeatmapTraceConfig) for trace in result.traces)
+    )
+
+
 def validate_trace_types(traces: Sequence[TraceConfig]) -> None:
     """Reject unsupported families before an engine creates or draws a figure.
 
@@ -56,6 +67,21 @@ def validate_trace_types(traces: Sequence[TraceConfig]) -> None:
     for trace in traces:
         if not isinstance(trace, _SUPPORTED_TRACE_TYPES):
             raise TypeError(f"Unsupported trace type: {type(trace).__name__}.")
+
+
+def validate_annotation_types(annotations: Sequence[AnnotationConfig]) -> None:
+    """Reject unsupported annotation objects before copying or drawing them.
+
+    Args:
+        annotations: Typed annotations, including entries with empty text.
+
+    Raises:
+        TypeError: An entry is not an AnnotationConfig or its subclass.
+    """
+    # [impl->req~ring5.render.engine-independent-traces~1]
+    for annotation in annotations:
+        if not isinstance(annotation, AnnotationConfig):
+            raise TypeError(f"Unsupported annotation type: {type(annotation).__name__}.")
 
 
 STYLING_PIPELINE_ORDER: tuple[str, ...] = (

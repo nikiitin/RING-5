@@ -14,14 +14,17 @@ from __future__ import annotations
 
 import logging
 import re
+from dataclasses import replace
 from typing import TYPE_CHECKING, Any, cast
 
 from src.core.common.safe_format import normalize_numeric_format
 from src.core.models.visualization.data_label_config import DataLabelConfig
 from src.core.models.visualization.figure_config import FigureConfig
-from src.core.models.visualization.legend_config import ColorbarConfig
+from src.core.models.visualization.legend_config import ColorbarConfig, LegendConfig
 from src.core.models.visualization.trace_build_result import RuleLine, SeparatorLine, ShadedRegion
 from src.web.rendering._render_result import MatplotlibRenderResult
+from src.web.rendering._color_utils import css_color_to_matplotlib
+from src.web.rendering._connector_protocol import validate_annotation_types
 from src.web.rendering.latex_security import escape_latex_text
 
 if TYPE_CHECKING:
@@ -30,11 +33,6 @@ if TYPE_CHECKING:
     from matplotlib.typing import RcKeyType
 
 logger = logging.getLogger(__name__)
-
-_CSS_RGB_RE = re.compile(r"^rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$", re.IGNORECASE)
-_CSS_RGBA_RE = re.compile(
-    r"^rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([0-9]*\.?[0-9]+)\s*\)$", re.IGNORECASE
-)
 
 # Plotly marker-symbol names → matplotlib marker codes (for per-trace overrides).
 _PLOTLY_TO_MPL_MARKER: dict[str, str] = {
@@ -54,34 +52,6 @@ _PLOTLY_TO_MPL_MARKER: dict[str, str] = {
     "pentagon": "p",
     "hexagon": "h",
 }
-
-
-def _css_rgb_to_hex(color: str) -> str:
-    """Convert a CSS ``rgb(r,g,b)`` string to ``#rrggbb`` hex.
-
-    If *color* is already a hex string or any other format, return it
-    unchanged so that Matplotlib's own validator handles it.
-    """
-    m = _CSS_RGB_RE.match(color.strip())
-    if m:
-        r, g, b = int(m.group(1)), int(m.group(2)), int(m.group(3))
-        return f"#{r:02x}{g:02x}{b:02x}"
-    return color
-
-
-def _css_color_to_mpl(color: str) -> Any:
-    """Convert a CSS ``rgba(r,g,b,a)`` string to a matplotlib ``(r,g,b,a)`` tuple.
-
-    Plotly accepts ``rgba(...)`` but matplotlib's color parser does not, so a legend/
-    annotation background carrying alpha (e.g. a transparent number box) round-trips
-    through the Plotly-built spec as ``rgba(...)`` and must be coerced here. Falls back
-    to :func:`_css_rgb_to_hex` (rgb→hex, else unchanged).
-    """
-    m = _CSS_RGBA_RE.match(color.strip())
-    if m:
-        r, g, b = int(m.group(1)), int(m.group(2)), int(m.group(3))
-        return (r / 255.0, g / 255.0, b / 255.0, float(m.group(4)))
-    return _css_rgb_to_hex(color)
 
 
 class FigureSpecToMatplotlib:
@@ -110,8 +80,12 @@ class FigureSpecToMatplotlib:
             render_result: Trace-rendering metadata, including an optional heatmap image.
             apply_margins: Apply figure-wide margins. Dashboard panels disable
                 this because their parent grid owns the outer layout.
+
+        Raises:
+            TypeError: An annotation has no supported typed family.
         """
         # [impl->req~ring5.extension.render-connector~1]
+        validate_annotation_types(spec.annotations)
         import matplotlib as mpl
 
         # Scope the font family to this build: artists the steps below create
@@ -132,11 +106,12 @@ class FigureSpecToMatplotlib:
             FigureSpecToMatplotlib._apply_axis_ranges(spec, ax)
             FigureSpecToMatplotlib._apply_axis_colors(spec, ax)
             FigureSpecToMatplotlib._apply_grids(spec, ax)
+            FigureSpecToMatplotlib._apply_secondary_axis(spec, ax)
             # Per-trace styling must run before the legend is built so renames and
             # restyled handles are reflected (parity with the Plotly connector).
             FigureSpecToMatplotlib._apply_series_styling(spec, ax)
             FigureSpecToMatplotlib._apply_trace_overrides(spec, ax)
-            FigureSpecToMatplotlib._apply_legends(spec, ax)
+            FigureSpecToMatplotlib._apply_legends(spec, ax, render_result=render_result)
             FigureSpecToMatplotlib._apply_reference_lines(spec, ax)
             FigureSpecToMatplotlib._apply_data_labels(spec, ax)
             FigureSpecToMatplotlib._apply_annotations(spec, ax, render_result)
@@ -183,8 +158,8 @@ class FigureSpecToMatplotlib:
         from matplotlib.markers import MarkerStyle
         from matplotlib.patches import Patch
 
-        fill = _css_rgb_to_hex(color) if color else None
-        edge = _css_rgb_to_hex(edge_color) if edge_color else None
+        fill = css_color_to_matplotlib(color) if color else None
+        edge = css_color_to_matplotlib(edge_color) if edge_color else None
 
         if isinstance(handle, BarContainer):
             for patch in handle.patches:
@@ -371,6 +346,8 @@ class FigureSpecToMatplotlib:
                 fontweight=weight,
                 labelpad=y_pad,
             )
+            if spec.axes.y.title_angle is not None:
+                ax.yaxis.label.set_rotation(-spec.axes.y.title_angle)
             # Custom y-label position (vshift overrides, then label_position)
             if spec.axes.y.title_vshift != 0.0:
                 frac = spec.axes.y.title_vshift / 100.0
@@ -420,18 +397,18 @@ class FigureSpecToMatplotlib:
         # Heatmap tick population — labels from the render result.
         # pcolormesh cells span [i, i+1), so centres are at i + 0.5.
         # Always override any pre-set tick_values (e.g. from
-        # enrich_from_plotly) because pcolormesh requires cell-centre
+        # neutral preparation) because pcolormesh requires cell-centre
         # positions; Plotly-extracted string tickvals are not valid here.
         hm_cols: list[str] | None = render_result.heatmap_col_labels if render_result else None
         hm_rows: list[str] | None = render_result.heatmap_row_labels if render_result else None
-        # x_axis/y_axis belong to the per-render resolved (deep-copied) spec we
-        # own here, so we override the frozen tick fields via object.__setattr__.
         if hm_cols:
-            object.__setattr__(x_axis, "tick_values", [i + 0.5 for i in range(len(hm_cols))])
-            object.__setattr__(x_axis, "tick_text", list(hm_cols))
+            x_axis = replace(
+                x_axis, tick_values=[i + 0.5 for i in range(len(hm_cols))], tick_text=list(hm_cols)
+            )
         if hm_rows:
-            object.__setattr__(y_axis, "tick_values", [i + 0.5 for i in range(len(hm_rows))])
-            object.__setattr__(y_axis, "tick_text", list(hm_rows))
+            y_axis = replace(
+                y_axis, tick_values=[i + 0.5 for i in range(len(hm_rows))], tick_text=list(hm_rows)
+            )
 
         # X-ticks
         weight = "bold" if typo.bold_ticks else "normal"
@@ -593,13 +570,150 @@ class FigureSpecToMatplotlib:
         return f"{v} {h}"
 
     @staticmethod
+    def _apply_secondary_axis(spec: FigureConfig, ax: Axes) -> None:
+        """Style only this panel's owned right axis from the resolved specification."""
+        twin = getattr(ax, "_ring5_twin", None)
+        y2 = spec.axes.y2
+        if twin is None or y2 is None:
+            return
+        twin.set_yscale(y2.scale)
+        if y2.range is not None:
+            twin.set_ylim(*y2.range)
+        if y2.tick_values is not None:
+            twin.set_yticks([float(value) for value in y2.tick_values], y2.tick_text)
+        elif y2.dtick is not None and y2.dtick > 0 and y2.scale == "linear":
+            from matplotlib.ticker import MultipleLocator
+
+            twin.yaxis.set_major_locator(MultipleLocator(y2.dtick))
+        on_left = y2.tick_side == "left"
+        twin.tick_params(
+            axis="y",
+            left=on_left and y2.show_ticks,
+            right=not on_left and y2.show_ticks,
+            labelleft=on_left and y2.show_tick_labels,
+            labelright=not on_left and y2.show_tick_labels,
+            pad=y2.tick_pad,
+            labelrotation=y2.tick_angle,
+            labelsize=spec.typography.font_size_y2ticks,
+            colors=y2.tick_font_color or y2.axis_color,
+        )
+        if y2.show_grid:
+            twin.yaxis.grid(
+                True,
+                color=y2.grid_color,
+                linewidth=y2.grid_width,
+                linestyle=FigureSpecToMatplotlib._map_dash_style(y2.grid_dash),
+                alpha=y2.grid_alpha,
+            )
+        else:
+            twin.yaxis.grid(False)
+        twin.yaxis.label.set_color(y2.axis_color)
+        twin.yaxis.labelpad = y2.label_standoff if y2.label_standoff >= 0 else y2.label_pad
+        twin.yaxis.label.set_y(y2.label_position + y2.title_vshift / 100.0)
+        if y2.title_angle is not None:
+            twin.yaxis.label.set_rotation(-y2.title_angle)
+        twin.spines["right"].set_color(y2.axis_line_color or y2.axis_color)
+        twin.spines["right"].set_linewidth(y2.axis_line_width)
+        if spec.font_family:
+            twin.yaxis.label.set_fontfamily(spec.font_family)
+            for label in twin.get_yticklabels():
+                label.set_fontfamily(spec.font_family)
+
+    @staticmethod
+    def _legend_kwargs(legend: LegendConfig) -> dict[str, Any]:
+        """Translate one resolved legend style for either axes or figure composition."""
+        spacing = legend.spacing
+        kwargs: dict[str, Any] = {
+            "fontsize": legend.font_size,
+            "ncol": max(1, legend.ncol),
+            "columnspacing": spacing.columnspacing,
+            "handletextpad": spacing.handletextpad,
+            "labelspacing": spacing.labelspacing,
+            "handlelength": spacing.handlelength,
+            "handleheight": spacing.handleheight,
+            "borderpad": spacing.borderpad,
+            "borderaxespad": spacing.borderaxespad,
+        }
+
+        # Font family — set via prop dict so each legend can
+        # independently inherit or override the global family.
+        if legend.font_family:
+            from matplotlib.font_manager import FontProperties  # type: ignore[import-untyped]
+
+            kwargs["prop"] = FontProperties(
+                family=legend.font_family,
+                size=legend.font_size,
+            )
+
+        # Horizontal orientation: force many columns so items wrap in a row
+        if legend.orientation == "horizontal" and kwargs["ncol"] <= 1:
+            kwargs["ncol"] = 999  # matplotlib clamps to actual item count
+
+        if legend.custom_position and legend.position_x >= 0:
+            kwargs["loc"] = FigureSpecToMatplotlib._anchor_to_mpl_loc(
+                legend.anchor_x,
+                legend.anchor_y,
+            )
+            kwargs["bbox_to_anchor"] = (
+                legend.position_x,
+                legend.position_y if legend.position_y >= 0 else 1.0,
+            )
+
+        if legend.bgcolor:
+            kwargs["facecolor"] = css_color_to_matplotlib(legend.bgcolor)
+            if isinstance(kwargs["facecolor"], tuple) and len(kwargs["facecolor"]) == 4:
+                kwargs["framealpha"] = kwargs["facecolor"][3]
+        if legend.bgalpha >= 0:
+            kwargs["framealpha"] = legend.bgalpha
+        if legend.border_width > 0:
+            kwargs["edgecolor"] = css_color_to_matplotlib(legend.border_color)
+
+        if legend.title:
+            kwargs["title"] = legend.title
+            if legend.title_font_size > 0:
+                kwargs["title_fontsize"] = legend.title_font_size
+
+        # Apply font color to all legend types
+        if legend.font_color:
+            kwargs["labelcolor"] = css_color_to_matplotlib(legend.font_color)
+
+        return kwargs
+
+    @staticmethod
+    def _style_legend(legend: LegendConfig, native: Any) -> None:
+        """Apply text and border properties shared by native legend containers."""
+        if legend.bold:
+            for text in native.get_texts():
+                text.set_fontweight("bold")
+        if legend.title_font_color:
+            native.get_title().set_color(css_color_to_matplotlib(legend.title_font_color))
+        if legend.border_width > 0:
+            native.get_frame().set_linewidth(legend.border_width)
+
+    @staticmethod
+    def _clear_owned_legends(ax: Axes) -> None:
+        """Remove only role artists recorded by this renderer on these axes."""
+        owned = getattr(ax, "_ring5_legend_artists", {})
+        for artist in owned.values():
+            attached = any(candidate is artist for candidate in ax.artists)
+            if attached or ax.get_legend() is artist:
+                artist.remove()
+        cast(Any, ax)._ring5_legend_artists = {}
+
+    @staticmethod
     def _apply_legends(
         spec: FigureConfig,
         ax: Axes,
         extra_handles: tuple[list[Any], list[str]] | None = None,
+        *,
+        render_result: MatplotlibRenderResult | None = None,
     ) -> None:
         """Render legends with full spacing control."""
         # [impl->req~ring5.figure.legends~1]
+        owned_twin = getattr(ax, "_ring5_twin", None)
+        targets = [ax] if owned_twin is None else [ax, owned_twin]
+        for target in targets:
+            FigureSpecToMatplotlib._clear_owned_legends(target)
         if not spec.legends:
             return
 
@@ -607,108 +721,35 @@ class FigureSpecToMatplotlib:
             if not legend.visible:
                 continue
 
-            spacing = legend.spacing
-            kwargs: dict[str, Any] = {
-                "fontsize": legend.font_size,
-                "ncol": max(1, legend.ncol),
-                "columnspacing": spacing.columnspacing,
-                "handletextpad": spacing.handletextpad,
-                "labelspacing": spacing.labelspacing,
-                "handlelength": spacing.handlelength,
-                "handleheight": spacing.handleheight,
-                "borderpad": spacing.borderpad,
-                "borderaxespad": spacing.borderaxespad,
-            }
+            kwargs = FigureSpecToMatplotlib._legend_kwargs(legend)
 
-            # Font family — set via prop dict so each legend can
-            # independently inherit or override the global family.
-            if legend.font_family:
-                from matplotlib.font_manager import FontProperties  # type: ignore[import-untyped]
-
-                kwargs["prop"] = FontProperties(
-                    family=legend.font_family,
-                    size=legend.font_size,
-                )
-
-            # Horizontal orientation: force many columns so items wrap in a row
-            if legend.orientation == "horizontal" and kwargs["ncol"] <= 1:
-                kwargs["ncol"] = 999  # matplotlib clamps to actual item count
-
-            if legend.custom_position and legend.position_x >= 0:
-                kwargs["loc"] = FigureSpecToMatplotlib._anchor_to_mpl_loc(
-                    legend.anchor_x,
-                    legend.anchor_y,
-                )
-                kwargs["bbox_to_anchor"] = (
-                    legend.position_x,
-                    legend.position_y if legend.position_y >= 0 else 1.0,
-                )
-
-            if legend.bgcolor:
-                kwargs["facecolor"] = legend.bgcolor
-            if legend.bgalpha >= 0:
-                kwargs["framealpha"] = legend.bgalpha
-            if legend.border_width > 0:
-                kwargs["edgecolor"] = legend.border_color
-
-            if legend.title:
-                kwargs["title"] = legend.title
-                if legend.title_font_size > 0:
-                    kwargs["title_fontsize"] = legend.title_font_size
-
-            # Apply font color to all legend types
-            if legend.font_color:
-                kwargs["labelcolor"] = legend.font_color
-
-            # Primary legend on the main axes
+            if legend.role not in ("primary", "secondary"):
+                continue
+            target = ax if legend.role == "primary" else owned_twin
+            if target is None:
+                if render_result is None:
+                    continue
+                target = ax
+            if render_result is not None:
+                handles = [
+                    handle for role, handle in render_result.legend_handles if role == legend.role
+                ]
+                labels = [str(handle.get_label()) for handle in handles]
+            else:
+                handles, labels = target.get_legend_handles_labels()
             if legend.role == "primary":
-                handles, labels = ax.get_legend_handles_labels()
                 if extra_handles is not None:
                     handles.extend(extra_handles[0])
                     labels.extend(extra_handles[1])
-                if not labels:
-                    continue
-                leg = ax.legend(handles, labels, **kwargs)
-                if leg and legend.bold:
-                    for text in leg.get_texts():
-                        text.set_fontweight("bold")
-                if leg and legend.title_font_color:
-                    title_text = leg.get_title()
-                    if title_text:
-                        title_text.set_color(legend.title_font_color)
-            elif legend.role == "secondary":
-                # Secondary legend on the twin axis. When RING-5 created the dual axis
-                # (``_ring5_twin``), ``apply_dual_axis`` places + styles the twin legend
-                # AFTER the styling pipeline, so building one here would just be clobbered —
-                # skip it (one twin-legend mechanism, no wasted/conflicting work). The
-                # ``_twinned_axes`` fallback remains for a non-RING-5 twin.
-                if getattr(ax, "_ring5_twin", None) is not None:
-                    continue
-                twin_ax: Axes | None = None
-                for child_ax in ax.figure.get_axes():
-                    if child_ax is not ax and hasattr(child_ax, "_twinned_axes"):
-                        twin_ax = child_ax
-                        break
-                if twin_ax is None:
-                    continue
-                handles, labels = twin_ax.get_legend_handles_labels()
-                if not labels:
-                    continue
-                leg = twin_ax.legend(**kwargs)
-                if leg and legend.bold:
-                    for text in leg.get_texts():
-                        text.set_fontweight("bold")
-                if leg and legend.title_font_color:
-                    title_text = leg.get_title()
-                    if title_text:
-                        title_text.set_color(legend.title_font_color)
-            elif legend.role == "tertiary":
-                # Boxed legend — rendered via _apply_annotations from
-                # enriched FigureConfig annotations.  If the annotations
-                # pipeline already placed the content, we skip creating
-                # a duplicate matplotlib legend here.  If explicit
-                # legend items exist on a third axis, render them.
-                pass  # Content comes from annotations, not traces
+            if not labels:
+                continue
+            previous = target.get_legend()
+            if previous is not None and not any(artist is previous for artist in target.artists):
+                target.add_artist(previous)
+            leg = target.legend(handles, labels, **kwargs)
+            if leg is not None:
+                FigureSpecToMatplotlib._style_legend(legend, leg)
+                cast(Any, target)._ring5_legend_artists[legend.role] = leg
 
     @staticmethod
     def _escape_latex(text: str) -> str:
@@ -810,7 +851,7 @@ class FigureSpecToMatplotlib:
         qualitative palettes return CSS ``rgb(r,g,b)`` strings, normalised to hex first.
         """
         if spec.color_palette:
-            hex_colors = [_css_rgb_to_hex(c) for c in spec.color_palette]
+            hex_colors = [css_color_to_matplotlib(c) for c in spec.color_palette]
             ax.set_prop_cycle(color=hex_colors)
 
     @staticmethod
@@ -924,6 +965,7 @@ class FigureSpecToMatplotlib:
         the axis unit converter; unknown categories are skipped.
         """
         # [impl->req~ring5.figure.shapes-annotations~1]
+        validate_annotation_types(spec.annotations)
         if not spec.annotations:
             return
 
@@ -975,6 +1017,16 @@ class FigureSpecToMatplotlib:
             else:
                 transform = ax.transData
 
+            if ann.x_shift_pixels or ann.y_shift_pixels:
+                # Capture the native render scale; dpi_scale_trans then preserves
+                # logical-pixel offsets when savefig or Streamlit changes DPI.
+                render_dpi = ax.figure.dpi
+                transform = transform + transforms.ScaledTranslation(
+                    ann.x_shift_pixels / render_dpi,
+                    ann.y_shift_pixels / render_dpi,
+                    ax.figure.dpi_scale_trans,
+                )
+
             fontweight = "bold" if ann.font_bold else "normal"
             fontsize = ann.font_size if ann.font_size > 0 else 10
 
@@ -987,7 +1039,7 @@ class FigureSpecToMatplotlib:
             if ann.bgcolor or ann.border_width > 0:
                 bbox_props = {
                     "boxstyle": f"round,pad={ann.border_pad / 72.0:.3f}",
-                    "facecolor": _css_color_to_mpl(ann.bgcolor) if ann.bgcolor else "none",
+                    "facecolor": css_color_to_matplotlib(ann.bgcolor) if ann.bgcolor else "none",
                     "edgecolor": ann.border_color or "none",
                     "linewidth": ann.border_width,
                 }
@@ -1016,7 +1068,9 @@ class FigureSpecToMatplotlib:
                 xycoords=transform,
                 fontsize=fontsize,
                 fontweight=fontweight,
+                fontfamily=ann.font_family or spec.font_family or None,
                 color=ann.font_color,
+                multialignment=ann.align,
                 ha=ha,
                 va=va,
                 rotation=ann.text_angle,

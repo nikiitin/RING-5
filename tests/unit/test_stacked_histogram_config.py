@@ -1,5 +1,8 @@
 """Tests for stacked bars, histograms, and plot configuration components."""
 
+from ring5 import Session
+from ring5.errors import RenderError
+
 from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
@@ -103,15 +106,17 @@ class TestStackedBarRenderConfigUI:
 class TestStackedBarCreateFigure:
     """Tests for stacked-bar figure creation."""
 
-    def test_empty_config_returns_placeholder(self) -> None:
+    def test_empty_config_returns_placeholder(self, plot_session: Session) -> None:
         from src.web.pages.ui.plotting.types.stacked_bar_plot import StackedBarPlot
 
         plot = StackedBarPlot(plot_id=1, name="test")
-        fig = plot.create_figure(_sample_stacked_data(), {"x": None, "y_columns": []})
+        plot.processed_data = _sample_stacked_data()
+        plot.config = {"x": None, "y_columns": []}
+        fig = cast(go.Figure, plot_session.render(plot))
         layout = cast(Any, fig.layout)
         assert "Please select" in layout.title.text
 
-    def test_basic_stacked(self) -> None:
+    def test_basic_stacked(self, plot_session: Session) -> None:
         from src.web.pages.ui.plotting.types.stacked_bar_plot import StackedBarPlot
 
         plot = StackedBarPlot(plot_id=1, name="test")
@@ -123,13 +128,15 @@ class TestStackedBarCreateFigure:
             "ylabel": "Y",
             "legend_title": "Stats",
         }
-        fig = plot.create_figure(_sample_stacked_data(), config)
+        plot.processed_data = _sample_stacked_data()
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         assert len(list(fig.data)) == 2
         layout = cast("go.Layout", fig.layout)
         assert layout.barmode == "stack"
 
-    def test_with_error_bars_and_styles(self) -> None:
+    def test_with_error_bars_and_styles(self, plot_session: Session) -> None:
         from src.web.pages.ui.plotting.types.stacked_bar_plot import StackedBarPlot
 
         plot = StackedBarPlot(plot_id=1, name="test")
@@ -146,7 +153,9 @@ class TestStackedBarCreateFigure:
                 },
             },
         }
-        fig = plot.create_figure(_sample_stacked_data(), config)
+        plot.processed_data = _sample_stacked_data()
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         assert len(list(fig.data)) == 1
         trace0 = cast(go.Bar, fig.data[0])
@@ -154,7 +163,7 @@ class TestStackedBarCreateFigure:
         marker = cast(Any, trace0.marker)
         assert marker.color == "#ff0000"
 
-    def test_with_x_filter(self) -> None:
+    def test_with_x_filter(self, plot_session: Session) -> None:
         from src.web.pages.ui.plotting.types.stacked_bar_plot import StackedBarPlot
 
         plot = StackedBarPlot(plot_id=1, name="test")
@@ -163,13 +172,15 @@ class TestStackedBarCreateFigure:
             "y_columns": ["ipc"],
             "x_filter": ["A"],
         }
-        fig = plot.create_figure(_sample_stacked_data(), config)
+        plot.processed_data = _sample_stacked_data()
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         trace0_x = cast(go.Bar, fig.data[0]).x
         assert trace0_x is not None
         assert len(list(trace0_x)) == 1
 
-    def test_show_totals_annotations(self) -> None:
+    def test_show_totals_annotations(self, plot_session: Session) -> None:
         # [test->req~ring5.figure.stack-totals~1]
         from src.web.pages.ui.plotting.types.stacked_bar_plot import StackedBarPlot
 
@@ -180,7 +191,9 @@ class TestStackedBarCreateFigure:
             "show_totals": True,
             "total_threshold": 0.0,
         }
-        fig = plot.create_figure(_sample_stacked_data(), config)
+        plot.processed_data = _sample_stacked_data()
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         layout = cast("go.Layout", fig.layout)
         annotations = cast("tuple[Any, ...]", layout.annotations)
@@ -219,7 +232,7 @@ class TestStackedBarCreateFigure:
         assert y == 10.0
         assert anchor == "bottom"
 
-    def test_totals_threshold_skips_small(self) -> None:
+    def test_totals_threshold_skips_small(self, plot_session: Session) -> None:
         # [test->req~ring5.figure.stack-totals~1]
         from src.web.pages.ui.plotting.types.stacked_bar_plot import StackedBarPlot
 
@@ -230,7 +243,9 @@ class TestStackedBarCreateFigure:
             "show_totals": True,
             "total_threshold": 100.0,  # All values below threshold
         }
-        fig = plot.create_figure(_sample_stacked_data(), config)
+        plot.processed_data = _sample_stacked_data()
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         layout = cast("go.Layout", fig.layout)
         annotations = cast("tuple[Any, ...]", layout.annotations)
@@ -268,22 +283,26 @@ class TestHistogramCreateFigure:
 
     # [test->req~ring5.figure.histogram-controls~1]
 
-    def test_no_histogram_var_raises(self) -> None:
+    def test_no_histogram_var_raises(self, plot_session: Session) -> None:
         from src.web.pages.ui.plotting.types.histogram_plot import HistogramPlot
 
         plot = HistogramPlot(plot_id=1, name="test")
-        with pytest.raises(ValueError, match="No histogram variable"):
-            plot.create_figure(_sample_histogram_data(), {"histogram_variable": None})
+        with pytest.raises(RenderError, match="No histogram variable"):
+            plot.processed_data = _sample_histogram_data()
+            plot.config = {"histogram_variable": None}
+            cast(go.Figure, plot_session.render(plot))
 
-    def test_no_bucket_cols_raises(self) -> None:
+    def test_no_bucket_cols_raises(self, plot_session: Session) -> None:
         from src.web.pages.ui.plotting.types.histogram_plot import HistogramPlot
 
         plot = HistogramPlot(plot_id=1, name="test")
         df = pd.DataFrame({"a": [1]})
-        with pytest.raises(ValueError, match="No histogram bucket columns"):
-            plot.create_figure(df, {"histogram_variable": "latency"})
+        with pytest.raises(RenderError, match="No histogram bucket columns"):
+            plot.processed_data = df
+            plot.config = {"histogram_variable": "latency"}
+            cast(go.Figure, plot_session.render(plot))
 
-    def test_single_histogram(self) -> None:
+    def test_single_histogram(self, plot_session: Session) -> None:
         from src.web.pages.ui.plotting.types.histogram_plot import HistogramPlot
 
         plot = HistogramPlot(plot_id=1, name="test")
@@ -295,11 +314,13 @@ class TestHistogramCreateFigure:
             "normalization": "count",
             "cumulative": False,
         }
-        fig = plot.create_figure(_sample_histogram_data(), config)
+        plot.processed_data = _sample_histogram_data()
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         assert len(list(fig.data)) == 1
 
-    def test_grouped_histogram(self) -> None:
+    def test_grouped_histogram(self, plot_session: Session) -> None:
         from src.web.pages.ui.plotting.types.histogram_plot import HistogramPlot
 
         plot = HistogramPlot(plot_id=1, name="test")
@@ -312,7 +333,9 @@ class TestHistogramCreateFigure:
             "normalization": "count",
             "cumulative": False,
         }
-        fig = plot.create_figure(_sample_histogram_data(), config)
+        plot.processed_data = _sample_histogram_data()
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         assert len(list(fig.data)) == 2  # g1 and g2
 

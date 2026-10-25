@@ -1,5 +1,10 @@
 """Unit tests for Histogram plot type."""
 
+from ring5 import Session
+from ring5.errors import RenderError
+from typing import cast
+import plotly.graph_objects as go
+
 from typing import Any
 from unittest.mock import patch
 
@@ -112,7 +117,7 @@ class TestHistogramPlotFigureCreation:
 
     # [test->req~ring5.plot.histogram~1]
 
-    def test_create_figure_single_histogram(self) -> None:
+    def test_create_figure_single_histogram(self, plot_session: Session) -> None:
         """Test creating figure with single histogram."""
         plot = HistogramPlot(plot_id=1, name="Test Histogram")
 
@@ -136,12 +141,14 @@ class TestHistogramPlotFigureCreation:
             "group_by": None,
         }
 
-        fig = plot.create_figure(data, config)
+        plot.processed_data = data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         assert fig is not None
         assert len(list(fig.data)) > 0
 
-    def test_create_figure_grouped_histograms(self) -> None:
+    def test_create_figure_grouped_histograms(self, plot_session: Session) -> None:
         """Test creating figure with multiple grouped histograms."""
         plot = HistogramPlot(plot_id=1, name="Test Histogram")
 
@@ -167,14 +174,16 @@ class TestHistogramPlotFigureCreation:
             "legend_labels": {"B": "Optimized"},
         }
 
-        fig = plot.create_figure(data, config)
+        plot.processed_data = data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         assert fig is not None
         # Missing group values do not create a bogus empty trace.
         assert len(list(fig.data)) == 2
         assert [trace.name for trace in fig.data] == ["Optimized", "A"]
 
-    def test_create_figure_with_rebinning(self) -> None:
+    def test_create_figure_with_rebinning(self, plot_session: Session) -> None:
         """Test histogram with custom bucket size (rebinning)."""
         plot = HistogramPlot(plot_id=1, name="Test Histogram")
 
@@ -199,13 +208,15 @@ class TestHistogramPlotFigureCreation:
             "group_by": None,
         }
 
-        fig = plot.create_figure(data, config)
+        plot.processed_data = data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         assert fig is not None
         # Should have rebinned the data
         assert len(list(fig.data)) > 0
 
-    def test_create_figure_normalized(self) -> None:
+    def test_create_figure_normalized(self, plot_session: Session) -> None:
         """Test histogram with probability normalization."""
         plot = HistogramPlot(plot_id=1, name="Test Histogram")
 
@@ -228,7 +239,9 @@ class TestHistogramPlotFigureCreation:
             "group_by": None,
         }
 
-        fig = plot.create_figure(data, config)
+        plot.processed_data = data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         assert fig is not None
         assert len(list(fig.data)) > 0
@@ -237,7 +250,7 @@ class TestHistogramPlotFigureCreation:
 class TestHistogramPlotValidation:
     """Test histogram plot validation."""
 
-    def test_validates_histogram_variable_exists(self) -> None:
+    def test_validates_histogram_variable_exists(self, plot_session: Session) -> None:
         """Test validation when histogram variable doesn't exist."""
         plot = HistogramPlot(plot_id=1, name="Test Histogram")
 
@@ -255,5 +268,7 @@ class TestHistogramPlotValidation:
         }
 
         # Should handle gracefully (return empty figure or raise)
-        with pytest.raises((ValueError, KeyError)):
-            plot.create_figure(data, config)
+        with pytest.raises(RenderError, match="No histogram bucket columns"):
+            plot.processed_data = data
+            plot.config = config
+            cast(go.Figure, plot_session.render(plot))

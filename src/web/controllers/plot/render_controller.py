@@ -19,8 +19,9 @@ Architecture Note — Streamlit usage:
 
 import logging
 from copy import deepcopy
+from dataclasses import replace
 from collections.abc import Mapping
-from typing import Any, cast
+from typing import cast
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -41,7 +42,7 @@ from src.web.models.plot_protocols import (
 )
 from src.web.pages.ui.plotting.settings_pills import render_settings_pills
 from src.web.rendering.engine_manager import EngineManager
-from src.web.rendering.small_multiples_builder import render_small_multiples
+from src.web.rendering.plot_renderer import build_render_artifact
 from src.web.state.ui_state_manager import UIStateManager
 
 logger = logging.getLogger(__name__)
@@ -183,9 +184,6 @@ class PlotRenderController:
             )
             config_error = True
 
-        # Publication preset selection was removed from plot configuration.
-        current_config.pop("preset_applied", None)
-
         # 4. Refresh logic (via ChartDisplayComponent)
         config_changed: bool = current_config != saved_config
         auto_refresh: bool = self._ui.plot.get_auto_refresh(plot.plot_id)
@@ -197,17 +195,20 @@ class PlotRenderController:
         )
 
         should_gen: bool = (controls["should_generate"] or refresh_requested) and not config_error
-        # With auto-refresh disabled, keep the persisted config paired with the
-        # visible figure until the user explicitly refreshes. Widget values
-        # remain in Streamlit state and are gathered again on that refresh.
-        if not config_error and (should_gen or plot.last_generated_fig is None):
-            plot.config = current_config
-
-        # 5. Figure generation, caching, and chart display
-        self._render_visualization(plot, should_gen)
+        artifact = plot.render_artifact
+        effective = (
+            current_config
+            if not config_error and (should_gen or artifact.figure is None)
+            else saved_config
+        )
+        if artifact.figure is None and config_error:
+            return
+        self._render_visualization(plot, effective, should_gen)
 
     # Private helpers
-    def _render_visualization(self, plot: RenderablePlot, should_generate: bool) -> None:
+    def _render_visualization(
+        self, plot: RenderablePlot, config: PlotConfig, should_generate: bool
+    ) -> None:
         # [impl->req~ring5.render.engine-selection~1]
         # [impl->req~ring5.plots.drill-down~1]
         # [impl->req~ring5.plots.small-multiples~1]
@@ -222,7 +223,8 @@ class PlotRenderController:
             5. Relayout handling for Plotly interactive charts
 
         Args:
-            plot: The plot instance (``BasePlot`` at runtime).
+            plot: Registered neutral strategy and artifact owner.
+            config: Detached candidate or previously published configuration.
             should_generate: Whether to force figure regeneration.
         """
         # [impl->req~ring5.plots.refresh-cache~1]
@@ -245,97 +247,63 @@ class PlotRenderController:
                 st.rerun()
                 return
 
-        # Cache identity
         data_hash = self._compute_data_hash(plot.processed_data)
-        cache_key = self._compute_figure_cache_key(
-            plot.plot_id,
-            plot.config,
-            data_hash,
-            active_engine,
-        )
+        cache_key = self._compute_figure_cache_key(plot.plot_id, config, data_hash, active_engine)
+        artifact = plot.render_artifact
         cache_matches = (
             cache_key is not None
-            and plot.last_generated_fig is not None
-            and plot.last_figure_cache_key == cache_key
+            and artifact.figure is not None
+            and artifact.engine == active_engine
+            and artifact.cache_key == cache_key
         )
-
-        multiples_spec = None
-        if plot.config.get("small_multiples_enabled"):
-            facet_columns = plot.config.get("small_multiples_by", [])
-            if isinstance(facet_columns, list) and facet_columns:
-                try:
-                    panel_columns = int(plot.config.get("small_multiples_columns", 3))
-                    multiples_spec = self._api.create_small_multiples(
-                        plot.plot_id,
-                        facet_columns,
-                        columns=panel_columns,
-                        width=max(int(plot.config.get("width", 800)), panel_columns * 360),
-                        panel_height=int(plot.config.get("small_multiples_panel_height", 320)),
-                        shared_xaxes=bool(plot.config.get("small_multiples_shared_xaxes", True)),
-                        shared_yaxes=bool(plot.config.get("small_multiples_shared_yaxes", True)),
-                        shared_legend=bool(plot.config.get("small_multiples_shared_legend", True)),
-                    )
-                except (TypeError, ValueError) as exc:
-                    ChartDisplayComponent.render_error(exc)
-                    return
-
-        # Generate figure if needed
         if should_generate or not cache_matches:
             try:
-                # create_figure relabels legend names engine-agnostically
-                # (on TraceConfig.name), so both engines stay consistent — no
-                # Plotly-only for_each_trace pass here.
-                if multiples_spec is not None:
-                    fig = cast(
-                        go.Figure,
-                        render_small_multiples([cast(Any, plot)], multiples_spec, engine="plotly"),
-                    )
-                else:
-                    fig = plot.create_figure(plot.processed_data, plot.config)
-                    fig = plot.apply_common_layout(fig, plot.config)
-                plot.last_generated_fig = fig
-                plot.last_figure_cache_key = cache_key
-            except Exception as e:
-                ChartDisplayComponent.render_error(e)
-                return
-
-        # Display
-        display_fig = plot.last_generated_fig
+                multiples_spec = None
+                if config.get("small_multiples_enabled"):
+                    facet_columns = config.get("small_multiples_by", [])
+                    if isinstance(facet_columns, list) and facet_columns:
+                        columns = int(config.get("small_multiples_columns", 3))
+                        multiples_spec = self._api.create_small_multiples(
+                            plot.plot_id,
+                            facet_columns,
+                            title=str(config.get("title", plot.name)),
+                            columns=columns,
+                            width=max(int(config.get("width", 800)), columns * 360),
+                            panel_height=int(config.get("small_multiples_panel_height", 320)),
+                            shared_xaxes=bool(config.get("small_multiples_shared_xaxes", True)),
+                            shared_yaxes=bool(config.get("small_multiples_shared_yaxes", True)),
+                            shared_legend=bool(config.get("small_multiples_shared_legend", True)),
+                        )
+                built = build_render_artifact(plot, config, active_engine, multiples=multiples_spec)
+                artifact = replace(
+                    built,
+                    cache_key=self._compute_figure_cache_key(
+                        plot.plot_id,
+                        built.config,
+                        (
+                            self._compute_data_hash(built.source_data)
+                            if built.source_data is not None
+                            else None
+                        ),
+                        active_engine,
+                    ),
+                )
+                plot.publish_render_artifact(artifact)
+            except Exception as exc:
+                ChartDisplayComponent.render_error(exc)
+                artifact = plot.render_artifact
+        display_fig = artifact.figure
         if display_fig is None:
             return
+        artifact_generation = artifact.generation
 
         # Branch on engine mode
         try:
-            if active_engine == "matplotlib":
-                if multiples_spec is not None:
-                    mpl_fig = render_small_multiples(
-                        [cast(Any, plot)], multiples_spec, engine="matplotlib"
-                    )
-                    ChartDisplayComponent.render_prebuilt_matplotlib_chart(
-                        mpl_fig,
-                        display_fig,
-                        plot.plot_id,
-                        plot.name,
-                    )
-                    return
-                # Reuse traces computed during plot generation when available.
-                _traces_result = plot.last_traces
-                pre_traces = list(_traces_result.traces) if _traces_result is not None else None
-                sep_lines = list(_traces_result.separator_lines) if _traces_result else None
-                shades = list(_traces_result.shaded_regions) if _traces_result else None
-                rules = list(_traces_result.rule_lines) if _traces_result else None
-                ChartDisplayComponent.render_matplotlib_chart(
-                    display_fig,
-                    plot.plot_id,
-                    plot.name,
-                    plot.config,
-                    plot.plot_type,
-                    traces=pre_traces,
-                    separator_lines=sep_lines,
-                    shaded_regions=shades,
-                    rule_lines=rules,
-                )
+            if artifact.engine == "matplotlib":
+                ChartDisplayComponent.render_matplotlib_chart(artifact, plot.plot_id, plot.name)
             else:
+                if not isinstance(display_fig, go.Figure):
+                    raise TypeError("The Plotly artifact must own a Plotly figure.")
                 drill_enabled = False
                 generation_key = _drill_down_key(plot.plot_id, "generation")
                 generation = int(st.session_state.get(generation_key, 0))
@@ -345,7 +313,10 @@ class PlotRenderController:
                 if _supports_drill_down(display_fig):
                     drill_enabled = DrillDownPanel.render_toggle(plot.plot_id)
                 stored = st.session_state.get(result_key)
-                if isinstance(stored, dict) and stored.get("cache_key") != cache_key:
+                if (
+                    isinstance(stored, dict)
+                    and stored.get("artifact_generation") != artifact_generation
+                ):
                     st.session_state.pop(result_key, None)
                     st.session_state.pop(event_key, None)
                     generation += 1
@@ -359,11 +330,9 @@ class PlotRenderController:
                     stored = None
 
                 interaction_data = ChartDisplayComponent.render_plotly_chart(
-                    display_fig,
+                    artifact,
                     plot.plot_id,
                     plot.name,
-                    plot.config,
-                    plot.processed_data,
                     capture_click=drill_enabled,
                     component_generation=generation,
                 )
@@ -383,7 +352,7 @@ class PlotRenderController:
                                 DrillDownPanel.render_error(exc)
                             else:
                                 st.session_state[result_key] = {
-                                    "cache_key": cache_key,
+                                    "artifact_generation": artifact_generation,
                                     "point_label": point_label(interaction_data),
                                     "result": result,
                                 }
@@ -399,7 +368,10 @@ class PlotRenderController:
                             st.rerun()
 
                 stored = st.session_state.get(result_key)
-                if isinstance(stored, dict) and stored.get("cache_key") == cache_key:
+                if (
+                    isinstance(stored, dict)
+                    and stored.get("artifact_generation") == artifact_generation
+                ):
                     stored_result = stored.get("result")
                     if stored_result is not None and DrillDownPanel.render_result(
                         stored_result, str(stored.get("point_label", ""))

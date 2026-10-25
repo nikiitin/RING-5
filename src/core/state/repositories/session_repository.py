@@ -13,7 +13,7 @@ from src.core.state.repositories.config_repository import ConfigRepository
 from src.core.state.repositories.data_repository import DataRepository
 from src.core.state.repositories.history_repository import HistoryRepository
 from src.core.state.repositories.parser_state_repository import ParserStateRepository
-from src.core.state.repositories.plot_repository import PlotRepository
+from src.core.state.repositories.plot_repository import PlotRepository, PlotRetirement
 from src.core.state.repositories.preview_repository import PreviewRepository
 from src.core.state.repositories.visualization_repository import VisualizationRepository
 from src.core.common.typed_table_codec import TypedTableCodec
@@ -226,13 +226,11 @@ class SessionRepository:
             parse_variables_skipped=vars_skipped,
         )
 
-    def clear_all(self) -> None:
-        """
-        Clear all session state completely.
-        """
+    def clear_all(self) -> tuple[PlotRetirement, ...]:
+        """Clear domain state and return plot bindings for deferred cleanup."""
         # Clear each domain
         self.data_repo.clear_data()
-        self.plot_repo.clear_plots()
+        removed = self.plot_repo.clear_plots()
         self.plot_repo.set_plot_counter(0)
         self.plot_repo.set_current_plot_id(None)
         self.parser_repo.clear_parser_state()
@@ -244,3 +242,4 @@ class SessionRepository:
         self.preview_repo.clear_all_previews()
 
         logger.info("SESSION_REPO: Complete session cleared")
+        return removed

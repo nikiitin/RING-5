@@ -170,7 +170,7 @@ def test_relabel_traces_renames_engine_agnostic_names() -> None:
     (single source of truth) so both Plotly and Matplotlib honor it."""
     from src.core.models.visualization.trace_build_result import TraceBuildResult
     from src.core.models.visualization.trace_config import TraceConfig
-    from src.web.pages.ui.plotting.base_plot import _relabel_traces
+    from src.web.rendering.figure_preparation import _relabel_traces
 
     result = TraceBuildResult(traces=[TraceConfig(name="trace1"), TraceConfig(name="trace2")])
     relabeled = _relabel_traces(result, {"trace1": "Renamed 1"})

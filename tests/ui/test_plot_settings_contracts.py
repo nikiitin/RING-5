@@ -60,7 +60,9 @@ def _render(
     plot = app.session_state["plot"]
     with Session() as session:
         figure = session.render(plot, engine=engine)
-    assert plot.last_traces is not None and plot.last_traces.traces
+    assert (
+        plot.render_artifact.trace_result is not None and plot.render_artifact.trace_result.traces
+    )
     return plot, figure
 
 
@@ -132,16 +134,12 @@ def test_bar_totals_survive_value_label_toggles_and_render_real_values(
     ).run()
     assert not app.exception
     plot, figure = _render(app, engine)
-    assert plot.last_traces is not None
-    numeric_totals = [
-        a for a in plot.last_traces.layout_annotations if a.get("font", {}).get("size") == 17
-    ]
+    assert plot.render_artifact.trace_result is not None
+    numeric_totals = [a for a in plot.render_artifact.trace_result.annotations if a.font_size == 17]
     assert numeric_totals
-    assert all(a["font"]["color"] == "#123456" for a in numeric_totals)
-    assert all(a["yanchor"] == "middle" and a["textangle"] == 45 for a in numeric_totals)
-    assert all(
-        float(a["text"]) == pytest.approx(float(a["y"]) * 2, abs=0.5) for a in numeric_totals
-    )
+    assert all(a.font_color == "#123456" for a in numeric_totals)
+    assert all(a.yanchor == "middle" and a.text_angle == 45 for a in numeric_totals)
+    assert all(float(a.text) == pytest.approx(float(a.y) * 2, abs=0.5) for a in numeric_totals)
     if isinstance(figure, go.Figure):
         assert any(a.font.size == 17 for a in figure.layout.annotations)
     else:
@@ -161,8 +159,11 @@ def test_group_layout_controls_change_existing_geometry(example_cases: dict[str,
     assert not app.exception
     for engine in ("plotly", "matplotlib"):
         plot, figure = _render(app, engine)
-        assert plot.last_traces is not None
-        assert plot.last_traces.separator_lines and plot.last_traces.shaded_regions
+        assert plot.render_artifact.trace_result is not None
+        assert (
+            plot.render_artifact.trace_result.separator_lines
+            and plot.render_artifact.trace_result.shaded_regions
+        )
         if isinstance(figure, go.Figure):
             assert figure.layout.shapes
         else:
@@ -295,8 +296,8 @@ def test_right_axis_fonts_trace_controls_and_legend_tiers_use_active_pills(
     assert not app.exception
     for engine in ("plotly", "matplotlib"):
         plot, figure = _render(app, engine)
-        assert plot.last_traces is not None
-        right = [trace for trace in plot.last_traces.traces if trace.yaxis == "y2"]
+        assert plot.render_artifact.trace_result is not None
+        right = [trace for trace in plot.render_artifact.trace_result.traces if trace.yaxis == "y2"]
         assert right and all(
             trace.marker_symbol == "diamond" and trace.marker_size == 13 and trace.line_width == 4
             for trace in right
@@ -346,11 +347,11 @@ def test_major_label_fonts_and_placement_have_separate_owners(
     assert not app.exception
     for engine in ("plotly", "matplotlib"):
         plot, figure = _render(app, engine)
-        assert plot.last_traces is not None
+        assert plot.render_artifact.trace_result is not None
         labels = [
             annotation
-            for annotation in plot.last_traces.layout_annotations
-            if annotation.get("font", {}).get("size") == 21
+            for annotation in plot.render_artifact.trace_result.annotations
+            if annotation.font_size == 21
         ]
-        assert labels and all(annotation["font"]["color"] == "#123456" for annotation in labels)
-        assert any(annotation["y"] == pytest.approx(-0.3) for annotation in labels)
+        assert labels and all(annotation.font_color == "#123456" for annotation in labels)
+        assert any(annotation.y == pytest.approx(-0.3) for annotation in labels)

@@ -97,7 +97,7 @@ if "api" not in st.session_state:
     data = pd.DataFrame({"label": ["A"], "value": [1.0]})
     api.add_dataset("active", data)
     plot = PlotFactory.create_plot("bar", 1, "Bars")
-    plot.config.update({"x": "label", "y": "value"})
+    plot.config = {**plot.config, "x": "label", "y": "value"}
     plot.replace_source_data(data)
     plot.replace_processed_data(data)
     api.state_manager.add_plot(plot)
@@ -106,7 +106,7 @@ if "api" not in st.session_state:
 api = st.session_state["api"]
 plot = api.state_manager.get_plots()[0]
 if st.button("Change plot", key="plot_change"):
-    plot.config.update({"title": "Updated title"})
+    plot.config = {**plot.config, "title": "Updated title"}
 if st.button("Change pipeline", key="pipeline_change"):
     plot.pipeline = [{"id": 0, "type": "sort",
                       "config": {"type": "sort", "order_dict": {"label": ["A"]}}}]
@@ -121,7 +121,7 @@ def retained_get_data():
     return frame
 def render_payload(*args, **kwargs):
     if st.session_state.get("change_while_rendering", False):
-        plot.config["title"] = "Changed during rendering"
+        plot.config = {**plot.config, "title": "Changed during rendering"}
     return b"<html>ready</html>"
 with patch.object(api.state_manager, "get_data", side_effect=retained_get_data), \\
      patch("src.web.components.report_composer.render_report", side_effect=render_payload):

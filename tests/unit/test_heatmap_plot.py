@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+from ring5 import Session
+
 from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import HeatmapTraceConfig
@@ -28,25 +29,25 @@ def test_heatmap_generated_xlabel_follows_x_mapping(mock_st: MagicMock) -> None:
     assert mock_st.session_state["plot.7.widgets.xlabel"] == "config_description"
 
 
-def test_faceted_heatmap_labels_only_bottom_x_axis() -> None:
+def test_faceted_heatmap_labels_only_bottom_x_axis(plot_session: Session) -> None:
     # [test->req~ring5.figure.heatmap-controls~1]
     plot = HeatmapPlot(plot_id=7, name="Heatmap")
-    plot.last_traces = TraceBuildResult(
-        traces=[
-            HeatmapTraceConfig(name=name, col_labels=["A"], row_labels=["metric"], z=[[1.0]])
-            for name in ("one", "two", "three")
-        ]
+    plot.processed_data = pd.DataFrame(
+        {
+            "configuration": ["A", "A", "A"],
+            "facet": ["one", "two", "three"],
+            "metric": [1.0, 2.0, 3.0],
+        }
     )
-    figure = make_subplots(rows=3, cols=1)
-    for row in range(1, 4):
-        figure.add_trace(go.Heatmap(z=[[1.0]]), row=row, col=1)
-
-    with patch(
-        "src.web.pages.ui.plotting.types.heatmap_plot.BasePlot.apply_common_layout",
-        return_value=figure,
-    ):
-        result = plot.apply_common_layout(figure, cast(Any, {"xlabel": "Configuration"}))
-
+    plot.config = {
+        "x": "configuration",
+        "facet_col": "facet",
+        "metric_columns": ["metric"],
+        "xlabel": "Configuration",
+    }
+    result = plot_session.render(plot)
+    assert isinstance(result, go.Figure)
+    assert [list(cast(Any, trace).z[0]) for trace in result.data] == [[1.0], [3.0], [2.0]]
     assert result.layout.xaxis.title.text is None
     assert result.layout.xaxis2.title.text is None
     assert result.layout.xaxis3.title.text == "Configuration"
@@ -380,12 +381,12 @@ def test_heatmap_totals_with_none_values() -> None:
     assert trace.z[0][3] == 20.0
 
 
-def test_heatmap_apply_common_layout_restricts_xaxis_categories() -> None:
-    """apply_common_layout overrides categoryarray to filtered col_labels only.
+def test_heatmap_public_render_restricts_xaxis_categories(plot_session: Session) -> None:
+    """Public rendering restricts categoryarray to filtered col_labels only.
 
     When the ordering settings provide xaxis_order with ALL unique X values
     (including filtered-out ones), the Plotly connector sets categoryarray to
-    that full list.  HeatmapPlot.apply_common_layout must restrict it to the
+    that full list.  The canonical prepared metadata must restrict it to the
     col_labels actually present in the trace data so that filtered-out ticks
     don't appear and cells are not displaced.
     """
@@ -404,22 +405,17 @@ def test_heatmap_apply_common_layout_restricts_xaxis_categories() -> None:
         "x_filter": ["A", "C"],
         "xaxis_order": ["A", "B", "C", "D"],
     }
-    fig = plot.create_figure(data, config)
+    plot.processed_data = data
+    plot.config = config
+    fig = cast(go.Figure, plot_session.render(plot))
 
-    # At this point last_traces should have col_labels ["A", "C"] only
-    assert plot.last_traces is not None
-    first = plot.last_traces.traces[0]
+    # The owned preparation should have col_labels ["A", "C"] only
+    assert plot.render_artifact.trace_result is not None
+    first = plot.render_artifact.trace_result.traces[0]
     assert isinstance(first, HeatmapTraceConfig)
     assert first.col_labels == ["A", "C"]
 
-    # Simulate a Plotly figure that has categoryarray set to ALL values
-    # (this is what the base apply_common_layout would do via the connector)
-    fig.update_xaxes(categoryorder="array", categoryarray=["A", "B", "C", "D"])
-
-    # Now apply the heatmap override
-    fig = plot.apply_common_layout(fig, config)
-
-    # The override should restrict categoryarray to only the filtered values
+    # The prepared native figure excludes filtered-out categories.
     xaxis_layout = fig.layout.xaxis
     assert list(xaxis_layout.categoryarray) == ["A", "C"]
     assert xaxis_layout.categoryorder == "array"

@@ -12,6 +12,7 @@ import streamlit as st
 
 from src.web.state.ui_state_manager import WidgetKeyBuilder
 
+from src.core.models.visualization.annotation_config import AnnotationConfig
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import (
     BarTraceConfig,
@@ -233,13 +234,13 @@ class DualAxisBarDotPlot(BasePlot):
             traces.extend(dot_traces(data, name=y_dot, color=dot_color or ""))
 
         custom_x_ticks: dict[str, list[Any]] | None = None
-        layout_annotations: list[dict[str, Any]] = []
+        annotations: list[AnnotationConfig] = []
         if aligned_to_bars:
             custom_x_ticks = {
                 "vals": coordinate_result["tick_vals"],
                 "text": coordinate_result["tick_text"],
             }
-            layout_annotations = GroupedBarUtils.build_category_annotations(
+            annotations = GroupedBarUtils.build_category_annotations(
                 coordinate_result["cat_centers"],
                 font_size=int(config.get("major_label_size", 14)),
                 font_color=str(config.get("major_label_color", "#000000")),
@@ -255,7 +256,7 @@ class DualAxisBarDotPlot(BasePlot):
             traces=traces,
             barmode="group",
             custom_x_ticks=custom_x_ticks,
-            layout_annotations=layout_annotations,
+            annotations=annotations,
             separator_lines=coordinate_result.get("separator_lines", []),
             shaded_regions=coordinate_result.get("shaded_regions", []),
             secondary_y=True,

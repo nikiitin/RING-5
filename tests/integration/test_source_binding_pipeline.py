@@ -1,6 +1,7 @@
 """Real Perl source routing preserves scientific observation and alias semantics."""
 
 from src.core.models.portfolio_contract import CURRENT_PORTFOLIO_SCHEMA_VERSION
+from src.core.models.recipe_models import ANALYSIS_RECIPE_SCHEMA_VERSION
 
 from pathlib import Path
 
@@ -209,7 +210,7 @@ def test_portfolio_and_recipe_round_trip_keep_current_source_bindings(tmp_path, 
         assert restored["params"] == {"source_type": "scalar", "selected_sources": ["cpu1.ipc"]}
         recipe = session.capture_analysis_recipe("Source bindings")
         exported = session.export_analysis_recipe(recipe)
-        assert json.loads(exported)["schema_version"] == 3
+        assert json.loads(exported)["schema_version"] == ANALYSIS_RECIPE_SCHEMA_VERSION
         result = session.parse(
             str(tmp_path), variables=session.api.compile_parse_variables([restored])
         )

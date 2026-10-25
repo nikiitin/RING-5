@@ -1,7 +1,7 @@
 """
 Plotly connector — translate resolved FigureConfig into go.Figure updates.
 
-``StyleApplicator.apply_styles()`` delegates to ``ConfigSpecBuilder`` to
+The neutral preparation owner delegates to ``ConfigSpecBuilder`` to
 build a FigureConfig and then calls this connector to apply it.
 
 Usage:
@@ -21,6 +21,7 @@ import plotly.graph_objects as go
 from src.core.common.safe_format import plotly_numeric_template
 from src.core.models.visualization.figure_config import FigureConfig
 from src.core.models.visualization.legend_config import LegendConfig
+from src.web.rendering._color_utils import color_with_alpha
 from src.web.rendering._heatmap_utils import (
     heatmap_text_colors,
     compute_nice_range,
@@ -229,7 +230,7 @@ class FigureSpecToPlotly:
 
         update: dict[str, Any] = {}
 
-        if y_axis.label:
+        if y_axis.label and y_axis.title_angle is None:
             update["title"] = dict(
                 text=y_axis.label,
                 font=dict(size=typo.font_size_ylabel),
@@ -239,6 +240,8 @@ class FigureSpecToPlotly:
             # Note: vshift (title_vshift) is Matplotlib-only — Plotly's
             # yaxis.Title only supports text, font, standoff.  Vertical
             # repositioning is handled via Matplotlib's set_label_coords.
+        elif y_axis.title_angle is not None:
+            update["title"] = dict(text="")
 
         update["tickfont"] = dict(size=typo.font_size_yticks)
 
@@ -285,15 +288,19 @@ class FigureSpecToPlotly:
             "side": "right",
         }
 
-        if y2.label:
+        if y2.label and y2.title_angle is None:
             update["title"] = dict(
                 text=y2.label,
                 font=dict(size=typo.font_size_y2label),
             )
             if y2.label_standoff >= 0:
                 update["title"]["standoff"] = int(y2.label_standoff)  # type: ignore[index]
+        elif y2.title_angle is not None:
+            update["title"] = dict(text="")
 
-        update["tickfont"] = dict(size=typo.font_size_y2ticks)
+        update["tickfont"] = dict(
+            size=typo.font_size_y2ticks, color=y2.tick_font_color or y2.axis_color
+        )
 
         if y2.range is not None:
             update["range"] = y2.range
@@ -324,10 +331,10 @@ class FigureSpecToPlotly:
         fig.update_layout(legend=legend_update)
 
         # Secondary legends (legend2, legend3) if multi-legend layout
-        for i, legend in enumerate(spec.legends[1:], start=2):
+        for legend in spec.legends[1:]:
             if not legend.visible:
                 continue
-            legend_key = f"legend{i}"
+            legend_key = "legend2" if legend.role == "secondary" else "legend3"
             legend_dict = FigureSpecToPlotly._build_legend_dict(legend)
             fig.update_layout(**{legend_key: legend_dict})  # type: ignore[arg-type]
 
@@ -504,7 +511,13 @@ class FigureSpecToPlotly:
             result["yanchor"] = legend.anchor_y
 
         if legend.bgcolor:
-            result["bgcolor"] = legend.bgcolor
+            result["bgcolor"] = (
+                color_with_alpha(legend.bgcolor, legend.bgalpha)
+                if legend.bgalpha >= 0
+                else legend.bgcolor
+            )
+        elif legend.bgalpha >= 0:
+            result["bgcolor"] = color_with_alpha("#FFFFFF", legend.bgalpha)
         if legend.border_width > 0:
             result["borderwidth"] = legend.border_width
             result["bordercolor"] = legend.border_color
@@ -916,6 +929,14 @@ class FigureSpecToPlotly:
             return
 
         mapping: dict[str, str] = axis.label_aliases
+
+        # Grouped geometry already owns numeric positions and their display labels.
+        # Apply aliases to those labels without replacing positions with trace X values.
+        if axis.tick_values is not None and axis.tick_text is not None:
+            update["tickmode"] = "array"
+            update["tickvals"] = list(axis.tick_values)
+            update["ticktext"] = [mapping.get(text, text) for text in axis.tick_text]
+            return
 
         unique_vals: list[str] = []
         seen: set[str] = set()

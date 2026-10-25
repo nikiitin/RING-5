@@ -112,7 +112,7 @@ class GroupedBarPlot(BasePlot):
 
         # 4. Build result with separators/shading and tick overrides.
         # User-drawn shapes (config["shapes"]) are applied separately by the
-        # Plotly StyleApplicator; the auto separators/shades flow through the
+        # native builder; the auto separators/shades flow through the
         # engine-agnostic fields so both engines render them.
         return TraceBuildResult(
             traces=traces,

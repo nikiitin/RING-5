@@ -1,3 +1,4 @@
+from ring5 import Session
 from collections.abc import Generator
 from typing import Any, cast
 from unittest.mock import MagicMock, patch
@@ -60,7 +61,7 @@ def test_render_config_ui(mock_streamlit: Any, sample_data: Any) -> None:
     assert config["group_filter"] == ["X", "Y"]
 
 
-def test_create_figure_basic(sample_data: Any) -> None:
+def test_create_figure_basic(sample_data: Any, plot_session: Session) -> None:
 
     # [test->req~ring5.plot.grouped-bar~1]
     plot = GroupedBarPlot(1, "Test Plot")
@@ -74,7 +75,9 @@ def test_create_figure_basic(sample_data: Any) -> None:
         "show_error_bars": False,
     }
 
-    fig = plot.create_figure(sample_data, config)
+    plot.processed_data = sample_data
+    plot.config = config
+    fig = cast(go.Figure, plot_session.render(plot))
 
     assert isinstance(fig, go.Figure)
     # px.bar with barmode='group'
@@ -83,7 +86,7 @@ def test_create_figure_basic(sample_data: Any) -> None:
     assert fig.layout.barmode == "group"
 
 
-def test_create_figure_with_error_bars_and_filters(sample_data: Any) -> None:
+def test_create_figure_with_error_bars_and_filters(sample_data: Any, plot_session: Session) -> None:
 
     # [test->req~ring5.plot.grouped-bar~1]
     plot = GroupedBarPlot(1, "Test Plot")
@@ -100,7 +103,9 @@ def test_create_figure_with_error_bars_and_filters(sample_data: Any) -> None:
         "group_order": ["Y", "X"],
     }
 
-    fig = plot.create_figure(sample_data, config)
+    plot.processed_data = sample_data
+    plot.config = config
+    fig = cast(go.Figure, plot_session.render(plot))
 
     # Should only have Category Bench1
     # Group Y and X present

@@ -545,9 +545,7 @@ class ApplicationAPI:
             self.state_manager.get_data(),
             comparison_ready=comparison_ready,
             plot_count=len(plots),
-            rendered_plot_count=sum(
-                getattr(plot, "last_generated_fig", None) is not None for plot in plots
-            ),
+            rendered_plot_count=sum(plot.render_state.snapshot() is not None for plot in plots),
             exported=exported,
         )
 

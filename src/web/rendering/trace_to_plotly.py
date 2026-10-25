@@ -28,7 +28,11 @@ from src.core.models.visualization.trace_config import (
     WaterfallTraceConfig,
 )
 from src.web.rendering._heatmap_utils import heatmap_text_colors
-from src.web.rendering._connector_protocol import validate_trace_types
+from src.web.rendering._connector_protocol import (
+    uses_heatmap_panels,
+    validate_annotation_types,
+    validate_trace_types,
+)
 
 
 def _error_y_dict(error_y: list[float] | None) -> dict[str, Any] | None:
@@ -54,15 +58,12 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
         A fully populated (but unstyled) ``go.Figure``.
 
     Raises:
-        TypeError: A trace has no supported concrete family.
+        TypeError: A trace or annotation has no supported concrete family.
     """
     traces_list = list(result.traces)
     validate_trace_types(traces_list)
-    heatmap_only = (
-        len(traces_list) > 1
-        and all(isinstance(trace, HeatmapTraceConfig) for trace in traces_list)
-        and not result.secondary_y
-    )
+    validate_annotation_types(result.annotations)
+    heatmap_only = uses_heatmap_panels(result)
 
     if heatmap_only:
         subplot_titles = [trace.name for trace in traces_list]
@@ -79,6 +80,12 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
 
     for index, trace in enumerate(traces_list, start=1):
         plotly_trace = _convert_trace(trace)
+        if (
+            result.secondary_y
+            and trace.legend_role == "primary"
+            and isinstance(trace, (BarTraceConfig, LineTraceConfig, ScatterTraceConfig))
+        ):
+            plotly_trace.update(legend="legend")
         if heatmap_only:
             fig.add_trace(plotly_trace, row=index, col=1)
         elif result.secondary_y:
@@ -174,13 +181,8 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
         # Shades first (drawn under), then separators, then span rules.
         layout_updates["shapes"] = shade_shapes + separator_shapes + rule_shapes
 
-    if result.annotations or result.layout_annotations:
-        all_annotations: list[dict[str, Any]] = []
-        if result.annotations:
-            all_annotations.extend(_convert_annotations(result.annotations))
-        if result.layout_annotations:
-            all_annotations.extend(result.layout_annotations)
-        layout_updates["annotations"] = all_annotations
+    if result.annotations:
+        layout_updates["annotations"] = _convert_annotations(result.annotations)
 
     fig.update_layout(**layout_updates)
 
@@ -222,6 +224,13 @@ def _convert_trace(trace: TraceConfig) -> go.BaseTraceType:  # type: ignore[name
         result = _heatmap_trace(trace)
     else:
         raise TypeError(f"Unsupported trace type: {type(trace).__name__}.")
+    if trace.legend_role == "secondary":
+        result.update(legend="legend2")
+    if (
+        isinstance(trace, (BarTraceConfig, LineTraceConfig, ScatterTraceConfig))
+        and "hovertemplate" in trace.custom_data
+    ):
+        result.update(hovertemplate=trace.custom_data["hovertemplate"])
     drilldown = trace.custom_data.get("drilldown")
     if drilldown is not None:
         result.meta = {"ring5_drilldown": drilldown}
@@ -718,10 +727,9 @@ def _convert_annotations(
 ) -> list[dict[str, Any]]:
     """Convert ``AnnotationConfig`` list to Plotly annotation dicts."""
 
+    validate_annotation_types(annotations)
     result: list[dict[str, Any]] = []
     for ann in annotations:
-        if not isinstance(ann, AnnotationConfig):
-            continue
         d: dict[str, Any] = {
             "text": ann.text,
             "x": ann.x,
@@ -731,14 +739,21 @@ def _convert_annotations(
             "xanchor": ann.xanchor,
             "yanchor": ann.yanchor,
             "showarrow": ann.show_arrow,
+            "align": ann.align,
             "font": {},
         }
+        if ann.x_shift_pixels:
+            d["xshift"] = ann.x_shift_pixels
+        if ann.y_shift_pixels:
+            d["yshift"] = ann.y_shift_pixels
         if ann.text_angle:
             d["textangle"] = ann.text_angle
         if ann.font_size > 0:
             d["font"]["size"] = ann.font_size
         if ann.font_color:
             d["font"]["color"] = ann.font_color
+        if ann.font_family:
+            d["font"]["family"] = ann.font_family
         if ann.font_bold:
             d["font"]["weight"] = "bold"
         if ann.bgcolor:

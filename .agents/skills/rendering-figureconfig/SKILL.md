@@ -1,6 +1,6 @@
 ---
 name: rendering-figureconfig
-description: Work on RING-5's figure styling / rendering pipeline — FigureConfig (the single styling source of truth), the -1 sentinel inheritance, the 16-step STYLING_PIPELINE_ORDER, the Plotly + Matplotlib connectors, and dual-engine consistency. Use for any figure styling, theming, axes/legend/typography, or LaTeX-export task.
+description: Work on RING-5's figure styling / rendering pipeline — FigureConfig (the single styling source of truth), the -1 sentinel inheritance, the 15-step STYLING_PIPELINE_ORDER, the Plotly + Matplotlib connectors, and dual-engine consistency. Use for any figure styling, theming, axes/legend/typography, or LaTeX-export task.
 ---
 
 # Rendering & FigureConfig (dual-engine styling)
@@ -11,7 +11,7 @@ described by one immutable-ish config and applied identically to both engines.
 ## The pipeline
 ```
 plot.create_traces() ──▶ TraceBuildResult ──▶ trace_to_plotly / matplotlib_trace_renderer
-config (flat dict)   ──▶ ConfigSpecBuilder ──▶ FigureConfig ──▶ config_resolver.resolve_config()
+effective config   ──▶ ConfigSpecBuilder ──▶ FigureConfig ──▶ config_resolver.resolve_config()
                                                                        │ (sentinels removed)
                                                                        ▼
                                    FigureSpecToPlotly  /  FigureSpecToMatplotlib  (connectors)
@@ -26,12 +26,23 @@ config (flat dict)   ──▶ ConfigSpecBuilder ──▶ FigureConfig ──�
   sentinel default + a rule in `resolve_config`.
 - **Connectors** (`src/web/rendering/plotly_connector.py::FigureSpecToPlotly`,
   `matplotlib_connector.py::FigureSpecToMatplotlib`) are **stateless** (`@staticmethod`) and apply
-  styles in the **exact same 16-step order** declared in
+  the **15 named styling capabilities** declared in
   `src/web/rendering/_connector_protocol.py::STYLING_PIPELINE_ORDER`:
 
   `backgrounds → font_family → color_palette → title → axis_labels → axis_ticks → axis_ranges →
-  axis_colors → grids → legends → reference_lines → data_labels → annotations → separators →
+  axis_colors → grids → legends → reference_lines → data_labels → annotations →
   hatching → margins`
+
+  Matplotlib executes this sequence directly. Plotly projects combined axis operations and
+  heatmap-specific styling in `FigureSpecToPlotly.apply`; preserve palette, explicit override
+  and legend precedence when changing either connector.
+
+`prepare_figure` owns effective defaults, one registered trace callback, encodings, display names
+and one resolved `FigureConfig`. `PreparedFigure` feeds the native builders directly for Session,
+report and dashboard rendering. Standalone Matplotlib figures and dashboard panels share
+`draw_matplotlib_axes`. Trace `legend_role` selects trace ownership; numbered annotations refer to
+a style role independently. Legend font sizes retain fractional points. All flat legend tiers use
+`anchor_x`/`anchor_y`; native annotation `xanchor`/`yanchor` remain connector properties.
 
 ## Golden rule: change BOTH engines, in order
 Any new styling capability must be implemented in **both** connectors and slot into the correct
@@ -52,9 +63,17 @@ Recipe to add a styling option:
 - `EngineManager` (`src/web/rendering/engine_manager.py`) toggles `plotly`/`matplotlib` via the
   `ring5_engine_mode` session key. Default palette: **`wong`** (colorblind-safe); resolution via
   `services/visualization/palette_service.py`.
-- Matplotlib: lazy-imported inside methods; `chart_display.py` owns figure lifecycle (`plt.close()`
-  + session-scoped `plot.{id}.mpl_fig` cache). The connector itself must **not** close figures.
-- Publication exports: PDF/SVG/PGF/EPS via Matplotlib+LaTeX (`make install-latex`; `requires_latex`
+- `PlotRenderState` owns one bound artifact or configuration-only detached payload. `BasePlot`
+  publishes native figure, configuration, preparation, engine and key atomically. Repository-managed
+  retirement drains after the outer Core transaction lock; slot callbacks run outside slot locks
+  and preserve borrowed figure content. Publication relinquishes its owned
+  Matplotlib manager once; later retirement cannot close a manager registered by the borrower.
+  Chart display consumes the artifact
+  directly; it does not rebuild figures or maintain a Matplotlib session cache.
+- Configuration reads are owned snapshots. Assign a complete edited mapping; do not mutate
+  `plot.config[...]` or keep a second configuration/native cache. Composite artifacts retain actual
+  per-panel preparations, with no placeholder trace result.
+- Publication exports: PDF/SVG/PNG/PGF via Matplotlib (PGF requires LaTeX) (`make install-latex`; `requires_latex`
   marker) and Plotly via Kaleido. `download_section.py` is engine-aware.
 - Legend hierarchy config prefixes: `legend_*` / `legend2_*` / `legend3_*` (never "boxed").
 

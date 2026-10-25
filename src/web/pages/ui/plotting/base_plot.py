@@ -1,38 +1,25 @@
 """Base plot class with common functionality."""
 
 from abc import ABC, abstractmethod
-from dataclasses import replace
-from typing import Any
+import copy
+from typing import Any, Self
 
 import pandas as pd
 import plotly.graph_objects as go
+from matplotlib.figure import Figure as MplFigure
 
 from src.core.common.dataframe_copy import copy_dataframe
+from src.core.common.plot_render_state import PlotRenderState
+from src.core.common.numbered_axis import numbered_axis_modes
+from src.core.common.plot_payload import validate_plot_config_keys, validate_plot_config_values
 from src.core.models.data_models import PipelineStep
 from src.core.models.visualization.trace_build_result import TraceBuildResult
-from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
 from src.core.common.typed_table_codec import TypedTableCodec
-from src.core.services.visualization.accessibility_service import AccessibilityService
 from src.core.models.plot_config import PlotConfig
 from src.web.rendering.relayout import update_config_from_relayout
+from src.web.models.render_artifact import RenderArtifact
 from src.web.pages.ui.plotting.plot_config_ui import PlotConfigUIMixin
-from src.web.pages.ui.plotting.styles import StyleApplicator, StyleUIFactory
-
-
-def _relabel_traces(
-    result: TraceBuildResult, legend_labels: dict[str, str] | None
-) -> TraceBuildResult:
-    """Apply custom legend labels to the engine-agnostic trace names.
-
-    Renaming ``TraceConfig.name`` here — before any connector runs — is the
-    single source of truth for legend relabeling, so BOTH the Plotly and
-    Matplotlib engines honor it (each reads ``trace.name`` for the legend entry).
-    """
-    # [impl->req~ring5.figure.ordering-renaming~2]
-    if not legend_labels:
-        return result
-    new_traces = [replace(t, name=legend_labels.get(t.name, t.name)) for t in result.traces]
-    return replace(result, traces=new_traces)
+from src.web.pages.ui.plotting.styles import StyleUIFactory
 
 
 class BasePlot(PlotConfigUIMixin, ABC):
@@ -52,18 +39,38 @@ class BasePlot(PlotConfigUIMixin, ABC):
         self.plot_id: int = plot_id
         self.name: str = name
         self.plot_type: str = plot_type
-        self.config: PlotConfig = {}
         self.source_data: pd.DataFrame | None = None
         self.processed_data: pd.DataFrame | None = None
-        self.last_generated_fig: go.Figure | None = None
-        self.last_traces: TraceBuildResult | None = None
-        self.last_figure_cache_key: str | None = None
+        self.render_state: PlotRenderState[RenderArtifact] = PlotRenderState(RenderArtifact({}))
         self.pipeline: list[PipelineStep] = []
         self.pipeline_counter: int = 0
 
         # Initialize Style Manager
         self._style_ui = StyleUIFactory.get_strategy(self.plot_id, self.plot_type)
-        self._applicator = StyleApplicator(self.plot_type)
+
+    @property
+    def config(self) -> PlotConfig:
+        """Return an owned configuration snapshot; assign an edited mapping to publish it."""
+        return self.render_artifact.config
+
+    @config.setter
+    def config(self, config: PlotConfig) -> None:
+        """Own a complete replacement mapping and invalidate its derived generation."""
+        validate_plot_config_keys(config)
+        validate_plot_config_values(config)
+        numbered_axis_modes(config)
+        artifact = RenderArtifact(copy.deepcopy(config))
+        previous = self.render_state.set_detached_payload(artifact)
+        if previous is not None:
+            previous.dispose()
+
+    @property
+    def render_artifact(self) -> RenderArtifact:
+        """Capture the exact current native generation or detached configuration state."""
+        artifact = self.render_state.current_payload()
+        if artifact is None:
+            raise RuntimeError("A plot must retain its current configuration state.")
+        return artifact
 
     @abstractmethod
     def create_traces(self, data: pd.DataFrame, config: PlotConfig) -> TraceBuildResult:
@@ -81,45 +88,6 @@ class BasePlot(PlotConfigUIMixin, ABC):
         Returns:
             ``TraceBuildResult`` with traces and metadata.
         """
-
-    def create_figure(self, data: pd.DataFrame, config: PlotConfig) -> go.Figure:
-        # [impl->req~ring5.render.engine-independent-traces~1]
-        # [impl->req~ring5.data.semantic-units~1]
-        # [impl->req~ring5.figure.accessible-themes~1]
-        """
-        Create the Plotly figure from data and configuration.
-
-        Delegates to ``create_traces()`` and converts the result
-        to a ``go.Figure`` via the trace-to-plotly converter.
-
-        Args:
-            data: The data to plot.
-            config: Configuration dictionary.
-
-        Returns:
-            Plotly Figure object.
-        """
-        from src.web.rendering.trace_to_plotly import traces_to_plotly
-
-        effective_config = SemanticMetadataService.enrich_figure_config(data, config)
-        effective_config = AccessibilityService.apply_defaults(effective_config, self.plot_type)
-        if effective_config is not config:
-            self.config = effective_config
-            config = self.config
-        result = self.create_traces(data, config)
-        result = AccessibilityService.apply_non_color_encodings(result, config)
-        # Apply legend relabeling once, engine-agnostically, so both Plotly and
-        # Matplotlib (which renders from ``last_traces``) show the custom names.
-        result = _relabel_traces(result, config.get("legend_labels"))
-        self.last_traces = result
-        fig = traces_to_plotly(result)
-
-        # Show a placeholder message when no traces were produced
-        # (e.g. the user has not selected X / Y columns yet).
-        if not result.traces:
-            fig.update_layout(title_text="Please select at least one X and one Y column.")
-
-        return fig
 
     def update_from_relayout(self, relayout_data: dict[str, Any]) -> bool:
         """
@@ -139,15 +107,58 @@ class BasePlot(PlotConfigUIMixin, ABC):
 
         if changed:
             self.config = updated_config
-            self.invalidate_figure()
 
         return changed
 
     def invalidate_figure(self) -> None:
-        """Discard render artifacts derived from the current data and config."""
-        self.last_generated_fig = None
-        self.last_traces = None
-        self.last_figure_cache_key = None
+        """Detach the captured generation while preserving borrowed figure content."""
+        # [impl->req~ring5.plots.delete~1]
+        retired = self.render_state.detach(self.render_state.snapshot())
+        if retired is not None:
+            retired.dispose()
+
+    @staticmethod
+    def _release_figure_manager(figure: go.Figure | MplFigure | None) -> None:
+        """Deregister only this figure's manager, preserving borrowed artist content."""
+        if isinstance(figure, MplFigure):
+            import matplotlib.pyplot as plt
+
+            plt.close(figure)
+
+    def _clear_render_state(self) -> None:
+        """Forget references without releasing a figure borrowed by a shallow copy."""
+        self.render_state = PlotRenderState(self.render_artifact.detached())
+
+    def copy_without_render_state(self) -> Self:
+        """Return a shallow domain view without borrowing the source's artifacts."""
+        clone = copy.copy(self)
+        clone._clear_render_state()
+        return clone
+
+    def publish_render_artifact(self, artifact: RenderArtifact) -> None:
+        """Publish native/configuration/preparation/key state in one atomic generation.
+
+        Args:
+            artifact: Complete successfully rendered native figure and its exact inputs.
+
+        Raises:
+            ValueError: The artifact has no native figure, engine or preparation.
+        """
+        # [impl->req~ring5.plots.independent-state~1]
+        if artifact.figure is None or artifact.preparation is None or artifact.engine is None:
+            raise ValueError("Only a complete native render artifact can be published.")
+        if isinstance(artifact.figure, MplFigure):
+            artifact.figure._ring5_spec = artifact.figure_spec  # type: ignore[attr-defined]
+        # Relinquish this generation's manager now. Later borrowers may register
+        # their own manager on the same figure; retirement must never claim it.
+        self._release_figure_manager(artifact.figure)
+        previous = self.render_state.publish(
+            artifact,
+            lambda: None,
+            detached_payload=artifact.detached(),
+        )
+        if previous is not None:
+            previous.dispose()
 
     def replace_processed_data(self, data: pd.DataFrame | None) -> None:
         """Replace processed data and atomically invalidate render artifacts.
@@ -166,10 +177,7 @@ class BasePlot(PlotConfigUIMixin, ABC):
         Portfolios retain this snapshot independently from processed plot data.
         """
         self.source_data = copy_dataframe(data) if data is not None else None
-
-    def apply_common_layout(self, fig: go.Figure, config: PlotConfig) -> go.Figure:
-        """Apply common layout settings via StyleApplicator."""
-        return self._applicator.apply_styles(fig, config)
+        self.invalidate_figure()
 
     def to_dict(self) -> dict[str, Any]:
         # [impl->req~ring5.portfolio.save~1]
