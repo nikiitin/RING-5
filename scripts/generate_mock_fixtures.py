@@ -80,10 +80,10 @@ def _parse_to_dataframe() -> pd.DataFrame:
         raise SystemExit(f"no stats.txt under {STATS_ROOT}; run `make test-data` first")
     print(f">> parsing {len(stats_files)} stats.txt files from {STATS_ROOT}")
 
-    variables = [
-        StatConfig(name=src, type=("scalar" if col in METRICS else "configuration"))
-        for col, src in COLUMN_SOURCES.items()
-    ]
+    variables = []
+    for column, source in COLUMN_SOURCES.items():
+        kind = "scalar" if column in METRICS else "configuration"
+        variables.append(StatConfig(name=source, type=kind, params={"source_type": kind}))
 
     with tempfile.TemporaryDirectory() as out_dir:
         batch = api.submit_parse_async(

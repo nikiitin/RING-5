@@ -156,3 +156,33 @@ def test_variable_config_dialog_validation_fail(components_bundle: Any, mock_api
 
     mock_streamlit.error.assert_called_with("Variable name is required.")
     mock_api.state_manager.set_parse_variables.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "source_kind, entries, suffix",
+    [
+        ("scalar", [], " (Grouped 2x)"),
+        ("vector", ["a", "b"], " [2 items] (Grouped 2x)"),
+    ],
+)
+def test_scanned_pattern_labels_distinguish_source_instances_from_measurement_entries(
+    components_bundle, mock_api, source_kind, entries, suffix
+):
+    mock_streamlit, components = components_bundle
+    pattern = r"cpu\d+.value"
+    mock_api.state_manager.get_scanned_variables.return_value = [
+        {
+            "name": pattern,
+            "type": "vector",
+            "entries": entries,
+            "source_type": source_kind,
+            "instances": [
+                {"source_name": "cpu0.value", "indices": ["0"]},
+                {"source_name": "cpu1.value", "indices": ["1"]},
+            ],
+        }
+    ]
+    mock_streamlit.pills.return_value = "Search Scanned Variables"
+    with patch.object(ds_module, "filtered_selectbox", return_value=None) as selector:
+        components.variable_config_dialog(mock_api)
+    assert selector.call_args.args[1] == [f"{pattern} (vector){suffix}"]

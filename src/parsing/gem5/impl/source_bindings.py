@@ -137,6 +137,7 @@ def resolve_sources(
     configs = StatConfigCodec.validate_many(variables)
     if not configs:
         raise ValueError("A parse request requires at least one runnable variable.")
+    has_patterns = any(config.is_regex for config in configs)
     index: dict[str, _ScannedSource] = {}
     for variable in scanned_variables or ():
         if not isinstance(variable, ScannedVariable):
@@ -146,14 +147,13 @@ def resolve_sources(
                 raise ValueError(
                     f"Scanned source {instance.source_name!r} is declared more than once."
                 )
+            if has_patterns and len(index) >= MAX_REGEX_CANDIDATES:
+                raise ValueError(
+                    f"Regex expansion exceeds the {MAX_REGEX_CANDIDATES}-candidate limit."
+                )
             index[instance.source_name] = _ScannedSource(
                 variable.source_type, variable.name, instance
             )
-    if any(config.is_regex for config in configs) and len(index) > MAX_REGEX_CANDIDATES:
-        raise ValueError(
-            f"Regex expansion received {len(index)} concrete candidates; "
-            f"the limit is {MAX_REGEX_CANDIDATES}."
-        )
 
     deadline = time.monotonic() + MAX_REGEX_EXPANSION_SECONDS
     attempts = 0

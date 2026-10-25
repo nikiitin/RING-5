@@ -1028,7 +1028,7 @@ class DataSourceComponents:
 
                 def format_func(v: ScannedVariableDict) -> str:
                     label = f"{v['name']} ({v['type']})"
-                    if v["type"] == "vector" and "entries" in v:
+                    if v["type"] == "vector" and v["source_type"] != "scalar":
                         label += f" [{len(v['entries'])} items]"
                     count = len(v["instances"])
                     if count > 1:

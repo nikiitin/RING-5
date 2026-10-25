@@ -392,3 +392,28 @@ def test_manual_pattern_projection_propagates_matching_timeout_and_rejects_dupli
     monkeypatch.setattr(source_matching, "MAX_REGEX_EXPANSION_SECONDS", -1)
     with pytest.raises(SafeRegexError, match="deadline"):
         source_matching.matching_source_instances(r"cpu\d+.ipc", values)
+
+
+@pytest.mark.parametrize("is_pattern", [True, False])
+def test_regex_candidate_cap_applies_before_private_record_allocation(monkeypatch, is_pattern):
+    metadata = ScannedVariable(
+        r"cpu\d+.ipc",
+        "vector",
+        [],
+        source_type="scalar",
+        instances=tuple(SourceInstance(f"cpu{index}.ipc", (str(index),)) for index in range(10)),
+    )
+    monkeypatch.setattr(bindings, "MAX_REGEX_CANDIDATES", 2)
+    request = (
+        _request()
+        if is_pattern
+        else StatConfig("cpu0.ipc", "scalar", params={"source_type": "scalar"})
+    )
+    with patch.object(bindings, "_ScannedSource", wraps=bindings._ScannedSource) as allocate:
+        if is_pattern:
+            with pytest.raises(ValueError, match="candidate limit"):
+                bindings.resolve_sources([request], [metadata])
+            assert allocate.call_count == 2
+        else:
+            assert set(bindings.resolve_sources([request], [metadata]).routes) == {"cpu0.ipc"}
+            assert allocate.call_count == 10
