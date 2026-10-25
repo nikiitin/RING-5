@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Union
+from typing import Union, cast
 
 import plotly.graph_objects as go
 from matplotlib.figure import Figure as MplFigure
@@ -47,9 +47,7 @@ def render_figure(plot: BasePlot, *, engine: EngineMode = "plotly") -> Figure:
 
         artifact = build_render_artifact(plot, plot.config, engine)
         plot.publish_render_artifact(artifact)
-        if artifact.figure is None:
-            raise RuntimeError("Completed rendering did not produce a native figure.")
-        return artifact.figure
+        return cast(Figure, artifact.figure)
     except (AttributeError, IndexError, KeyError, RuntimeError, TypeError, ValueError) as exc:
         raise RenderError(
             f"Could not render plot '{plot.name}' ({plot.plot_type}) with {engine}: {exc}"

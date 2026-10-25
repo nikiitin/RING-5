@@ -1,19 +1,7 @@
-"""
-Plot Protocols — contracts between controllers and concrete implementations.
+"""Typed plot-controller, neutral-source and native-artifact contracts.
 
-Controllers depend on these protocols instead of importing concrete classes
-from ``pages.ui.plotting.*``. The page layer provides concrete implementations
-via dependency injection (adapters wrapping old static/class-method services).
-
-Layer: Models (Layer 5) — NO Streamlit dependency.
-
-Protocol Hierarchy::
-
-    PlotHandle            — data attributes every controller needs
-    ConfigRenderer        — config-UI rendering facet (BasePlot satisfies this)
-    PlotLifecycleService  — create / delete / duplicate / change-type
-    PlotTypeRegistry      — list available plot types
-    PipelineExecutor      — apply / configure shapers
+Controllers depend on these protocols instead of concrete plot strategies.
+The composition layer injects lifecycle, registry and pipeline operations.
 """
 
 from __future__ import annotations
