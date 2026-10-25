@@ -14,7 +14,8 @@ from src.core.services.visualization.palette_service import resolve_palette
 from src.web.components.plotting.config import violin_config
 from src.core.models.plot_config import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
-from src.web.pages.ui.plotting.types._trace_helpers import build_drill_down_payload
+from src.web.pages.ui.plotting.utils.ordering import observed_order
+from src.web.pages.ui.plotting.types._trace_helpers import build_drill_down_payload, group_mask
 
 BandwidthMethod = Literal["scott", "silverman"]
 DensitySpan = Literal["soft", "hard"]
@@ -35,20 +36,6 @@ class _Distribution:
     color: str
     values: np.ndarray[Any, np.dtype[np.float64]]
     drilldown: list[dict[str, Any]]
-
-
-def _ordered_values(series: pd.Series, configured: object = None) -> list[Any]:
-    available = list(series.drop_duplicates())
-    if not isinstance(configured, list):
-        return available
-    by_label = {str(value): value for value in available}
-    labels = [str(label) for label in configured]
-    ordered = [by_label[label] for label in labels if label in by_label]
-    return ordered + [value for value in available if str(value) not in labels]
-
-
-def _mask(series: pd.Series, value: Any) -> pd.Series:
-    return series.isna() if pd.isna(value) else series == value
 
 
 def _kernel_bandwidth(
@@ -142,20 +129,20 @@ class ViolinPlot(BasePlot):
         if not 0 < total_width <= 1:
             raise ValueError("Violin width must be greater than 0 and at most 1.")
 
-        categories = _ordered_values(data[x_col], config.get("xaxis_order"))
+        categories = observed_order(data[x_col], config.get("xaxis_order"))
         color_col = str(config["color"]) if config.get("color") else None
         groups = (
-            _ordered_values(data[color_col], config.get("legend_order")) if color_col else [None]
+            observed_order(data[color_col], config.get("legend_order")) if color_col else [None]
         )
         palette = resolve_palette(config.get("color_palette"))
         series_styles = config.get("series_styles", {})
         distributions: list[_Distribution] = []
 
         for category_index, category in enumerate(categories):
-            category_data = data[_mask(data[x_col], category)]
+            category_data = data[group_mask(data[x_col], category)]
             for group_index, group in enumerate(groups):
                 subset = (
-                    category_data[_mask(category_data[color_col], group)]
+                    category_data[group_mask(category_data[color_col], group)]
                     if color_col
                     else category_data
                 )

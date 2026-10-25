@@ -13,7 +13,8 @@ from src.core.services.visualization.palette_service import resolve_palette
 from src.web.components.plotting.config import area_config
 from src.core.models.plot_config import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
-from src.web.pages.ui.plotting.types._trace_helpers import build_drill_down_payload
+from src.web.pages.ui.plotting.types._trace_helpers import build_drill_down_payload, group_mask
+from src.web.pages.ui.plotting.utils.ordering import observed_order
 
 AreaMode = Literal["overlay", "stack", "normalize"]
 AreaInterpolation = Literal["linear", "hv", "vh"]
@@ -21,19 +22,11 @@ MissingMode = Literal["gap", "zero", "interpolate"]
 
 
 def _ordered_values(series: pd.Series, configured: object = None) -> list[Any]:
-    available = list(series.drop_duplicates())
-    if isinstance(configured, list):
-        by_label = {str(value): value for value in available}
-        labels = [str(label) for label in configured]
-        ordered = [by_label[label] for label in labels if label in by_label]
-        return ordered + [value for value in available if str(value) not in labels]
-    if pd.api.types.is_numeric_dtype(series):
+    """Sort numeric area coordinates unless a preferred order is configured."""
+    available = observed_order(series, configured)
+    if not isinstance(configured, list) and pd.api.types.is_numeric_dtype(series):
         return sorted(available)
     return available
-
-
-def _mask(series: pd.Series, value: Any) -> pd.Series:
-    return series.isna() if pd.isna(value) else series == value
 
 
 def _resolve_missing(
@@ -93,11 +86,11 @@ class AreaPlot(BasePlot):
         prepared: list[tuple[Any, str, str, np.ndarray[Any, np.dtype[np.float64]]]] = []
 
         for group_index, group in enumerate(groups):
-            subset = data[_mask(data[color_col], group)] if color_col else data
+            subset = data[group_mask(data[color_col], group)] if color_col else data
             y_numeric = pd.to_numeric(subset[y_col], errors="coerce")
             raw_values: list[float] = []
             for x_value in x_values:
-                matching = y_numeric.loc[_mask(subset[x_col], x_value)]
+                matching = y_numeric.loc[group_mask(subset[x_col], x_value)]
                 raw_values.append(float(matching.mean()) if matching.notna().any() else np.nan)
             resolved = _resolve_missing(raw_values, missing)
             if not np.isfinite(resolved).any():
