@@ -160,7 +160,7 @@ class TestParseJobFingerprint:
         )
         second = build_parse_job_request(
             stats_path=str(tmp_path / "."),
-            stats_pattern=" stats.txt ",
+            stats_pattern="stats.txt",
             variables=[{"repeat": 1, "_id": "two", "type": "scalar", "name": "simTicks"}],
             strategy_type="simple",
         )

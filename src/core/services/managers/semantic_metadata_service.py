@@ -25,7 +25,6 @@ class _Unit:
 _UNITS: Final[dict[str, _Unit]] = {
     "ns": _Unit("time", 1e-9),
     "us": _Unit("time", 1e-6),
-    "µs": _Unit("time", 1e-6),
     "ms": _Unit("time", 1e-3),
     "s": _Unit("time", 1.0),
     "min": _Unit("time", 60.0),
@@ -36,7 +35,6 @@ _UNITS: Final[dict[str, _Unit]] = {
     "GHz": _Unit("frequency", 1e9),
     "nm": _Unit("length", 1e-9),
     "um": _Unit("length", 1e-6),
-    "µm": _Unit("length", 1e-6),
     "mm": _Unit("length", 1e-3),
     "cm": _Unit("length", 1e-2),
     "m": _Unit("length", 1.0),
@@ -67,23 +65,6 @@ _UNITS: Final[dict[str, _Unit]] = {
     "%": _Unit("ratio", 0.01),
 }
 
-_ALIASES: Final[dict[str, str]] = {
-    "μs": "µs",
-    "microsecond": "µs",
-    "microseconds": "µs",
-    "millisecond": "ms",
-    "milliseconds": "ms",
-    "second": "s",
-    "seconds": "s",
-    "hour": "h",
-    "hours": "h",
-    "celsius": "°C",
-    "fahrenheit": "°F",
-    "kelvin": "K",
-    "percent": "%",
-    "percentage": "%",
-}
-
 
 class SemanticMetadataService:
     """Keep semantics portable without mutating caller-owned dataframes."""
@@ -107,7 +88,7 @@ class SemanticMetadataService:
                 ColumnSemantics(
                     column.name,
                     column.label,
-                    cls.normalize_unit(column.unit) if column.unit else "",
+                    cls.validate_unit(column.unit) if column.unit else "",
                 )
                 for column in semantics.columns
             )
@@ -141,8 +122,8 @@ class SemanticMetadataService:
         declared = semantics.for_column(column)
         if declared is None or not declared.unit:
             raise ValueError(f"Column {column!r} has no declared source unit.")
-        source_name = cls.normalize_unit(declared.unit)
-        target_name = cls.normalize_unit(target_unit)
+        source_name = cls.validate_unit(declared.unit)
+        target_name = cls.validate_unit(target_unit)
         source, target = _UNITS[source_name], _UNITS[target_name]
         if source.dimension != target.dimension:
             raise ValueError(
@@ -163,7 +144,7 @@ class SemanticMetadataService:
         if sd_column in data.columns:
             sd_metadata = semantics.for_column(sd_column)
             sd_source = (
-                _UNITS[cls.normalize_unit(sd_metadata.unit)]
+                _UNITS[cls.validate_unit(sd_metadata.unit)]
                 if sd_metadata is not None and sd_metadata.unit
                 else source
             )
@@ -258,16 +239,14 @@ class SemanticMetadataService:
         return f"Value ({metadata[0].unit})" if len(units) == 1 and metadata[0].unit else ""
 
     @staticmethod
-    def normalize_unit(unit: str) -> str:
-        """Resolve a canonical unit or a documented human-friendly alias."""
-        if not isinstance(unit, str) or not unit.strip():
+    def validate_unit(unit: str) -> str:
+        """Return an exact canonical unit token or raise ``ValueError``."""
+        if not isinstance(unit, str) or not unit:
             raise ValueError("Units must be non-empty strings.")
-        resolved = unit.strip()
-        canonical = resolved if resolved in _UNITS else _ALIASES.get(resolved.lower())
-        if canonical is None:
+        if unit not in _UNITS:
             choices = ", ".join(_UNITS)
             raise ValueError(f"Unsupported unit {unit!r}. Supported units: {choices}.")
-        return canonical
+        return unit
 
     @staticmethod
     def to_payload(semantics: DatasetSemantics) -> dict[str, dict[str, str]]:
@@ -296,7 +275,7 @@ class SemanticMetadataService:
                 raise ValueError("Semantic labels and units must be strings.")
             if available_columns is not None and name not in available_columns:
                 raise ValueError(f"Semantic column {name!r} does not exist in the dataset.")
-            columns.append(ColumnSemantics(name, label, cls.normalize_unit(unit) if unit else ""))
+            columns.append(ColumnSemantics(name, label, cls.validate_unit(unit) if unit else ""))
         return DatasetSemantics(tuple(columns))
 
     @staticmethod

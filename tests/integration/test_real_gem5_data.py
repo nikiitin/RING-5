@@ -50,7 +50,7 @@ class TestRealDataWithShapers:
     ) -> pd.DataFrame:
         """Parse real data and return DataFrame."""
 
-        subdirs = [d for d in test_data_available.iterdir() if d.is_dir()]
+        subdirs = sorted(d for d in test_data_available.iterdir() if d.is_dir())
         if not subdirs:
             pytest.skip("No subdirectories found")
 
@@ -60,36 +60,20 @@ class TestRealDataWithShapers:
             StatConfig(name="simTicks", type="scalar"),
         ]
 
-        try:
-            batch = facade.submit_parse_async(
-                stats_path=str(first_subdir),
-                stats_pattern="**/stats.txt",
-                variables=variables,
-                output_dir=str(temp_output_dir),
-            )
-
-            # Wait for parsing
-            parse_results = []
-            for future in batch.futures:
-                result = future.result(timeout=30)
-                if result:
-                    parse_results.append(result)
-
-            csv_path = facade.finalize_parsing(
-                str(temp_output_dir), parse_results, var_names=batch.var_names
-            )
-
-            if csv_path is None or not Path(csv_path).exists():
-                pytest.skip("Parsing failed or no data")
-
-            df = pd.read_csv(csv_path)
-            if len(df) == 0:
-                pytest.skip("No rows in parsed data")
-
-            return df
-
-        finally:
-            pass
+        batch = facade.submit_parse_async(
+            stats_path=str(first_subdir),
+            stats_pattern="stats.txt",
+            variables=variables,
+            output_dir=str(temp_output_dir),
+        )
+        parse_results = [future.result(timeout=30) for future in batch.futures]
+        csv_path = facade.finalize_parsing(
+            str(temp_output_dir), parse_results, var_names=batch.var_names
+        )
+        assert csv_path is not None and Path(csv_path).is_file()
+        frame = pd.read_csv(csv_path)
+        assert not frame.empty
+        return frame
 
     def test_column_selector_on_real_data(self, parsed_data: Any) -> None:
         """Test column selector on real data."""

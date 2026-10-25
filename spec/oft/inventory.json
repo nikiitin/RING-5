@@ -278,7 +278,7 @@
       "tags": ["discovery", "files", "parsing"],
       "evidence": {
         "implementation": ["src/parsing/framework/file_discovery.py::find_stats_files"],
-        "tests": ["tests/unit/test_file_discovery.py::test_sorted_limit_selects_lexical_paths", "tests/unit/test_file_discovery.py::test_empty_and_missing_paths", "tests/unit/test_file_discovery.py::test_entry_walk_is_bounded"],
+        "tests": ["tests/unit/test_file_discovery.py::test_sorted_limit_selects_lexical_paths", "tests/unit/test_file_discovery.py::test_empty_and_missing_paths", "tests/unit/test_file_discovery.py::test_entry_walk_is_bounded", "tests/unit/test_file_discovery.py::test_invalid_pattern_cannot_select_the_default_file"],
         "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
@@ -2621,7 +2621,7 @@
       "description": "Untrusted file names, paths, glob and regular-expression patterns, option lists, and text-search inputs shall be sanitized, contained, or bounded before filesystem or matching work.",
       "tags": ["limits", "security", "validation"],
       "evidence": {
-        "implementation": ["src/core/common/utils.py::sanitize_filename", "src/core/common/utils.py::sanitize_glob_pattern", "src/core/common/utils.py::validate_web_stats_path", "src/core/common/safe_regex.py::compile_bounded_regex", "src/core/common/safe_regex.py::search_bounded_regex", "src/web/components/common/bounded_options.py::bounded_unique_strings"],
+        "implementation": ["src/core/common/utils.py::sanitize_filename", "src/core/common/utils.py::validate_stats_pattern", "src/core/common/utils.py::validate_web_stats_path", "src/core/common/safe_regex.py::compile_bounded_regex", "src/core/common/safe_regex.py::search_bounded_regex", "src/web/components/common/bounded_options.py::bounded_unique_strings"],
         "tests": ["tests/unit/test_utils.py::TestSanitizeFilename", "tests/unit/test_utils.py::TestValidateWebStatsPath", "tests/unit/test_safe_regex.py::test_bounded_regex_rejects_long_pattern", "tests/unit/test_safe_regex.py::test_bounded_regex_rejects_long_input", "tests/unit/test_bounded_options.py::test_unique_options_are_capped", "tests/unit/test_bounded_options.py::test_oversized_values_are_omitted"],
         "documentation": ["docs/user-guide/reference/troubleshooting.md#input-bounds-and-path-containment"]
       }

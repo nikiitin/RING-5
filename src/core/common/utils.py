@@ -107,37 +107,36 @@ def validate_path_within(path: Path, allowed_base: Path) -> Path:
 
 _DEFAULT_STATS_PATH: str = "."
 
-# Allowlist for glob patterns: only alphanumeric, dots, underscores, asterisks, question marks
-_SAFE_GLOB_RE: re.Pattern[str] = re.compile(r"^[a-zA-Z0-9_.*?]+$")
-
-_DEFAULT_STATS_PATTERN: str = "stats.txt"
+# Filename globs never contain path components or traversal sequences.
+_SAFE_GLOB_RE: re.Pattern[str] = re.compile(r"[a-zA-Z0-9_.*?\-]+")
 
 
-def sanitize_glob_pattern(pattern: str, default: str = _DEFAULT_STATS_PATTERN) -> str:
-    """Sanitize a user-provided glob pattern for safe use with rglob/glob.
-
-    Validates the pattern against an allowlist of safe characters.
-    Rejects patterns containing path separators or traversal sequences.
-    Falls back to *default* when *pattern* is empty or invalid.
+def validate_stats_pattern(pattern: str) -> str:
+    """Validate an exact statistics filename glob.
 
     Args:
-        pattern: Raw glob pattern from user input.
-        default: Fallback pattern when *pattern* is empty or invalid.
+        pattern: Non-empty filename token containing letters, digits, dots,
+            underscores, hyphens, or the ``*`` and ``?`` wildcards.
 
     Returns:
-        A validated glob pattern string.
+        The unchanged filename glob.
+
+    Raises:
+        ValueError: The token is empty, contains traversal, or uses unsupported
+            characters. Defaults apply only when the caller omits its argument.
     """
     # [impl->req~ring5.quality.input-security~1]
-    if not pattern or not pattern.strip():
-        return default
-    clean: str = pattern.strip()
-    # Reject patterns with path separators or traversal
-    if "/" in clean or "\\" in clean or ".." in clean:
-        return default
-    # Only allow safe characters
-    if not _SAFE_GLOB_RE.match(clean):
-        return default
-    return clean
+    if (
+        not isinstance(pattern, str)
+        or not pattern
+        or ".." in pattern
+        or _SAFE_GLOB_RE.fullmatch(pattern) is None
+    ):
+        raise ValueError(
+            "Stats pattern must be a non-empty filename glob using letters, digits, "
+            "dots, underscores, hyphens, '*' or '?', without traversal or path separators."
+        )
+    return pattern
 
 
 def normalize_user_path(user_path: str, default: str = _DEFAULT_STATS_PATH) -> Path:
