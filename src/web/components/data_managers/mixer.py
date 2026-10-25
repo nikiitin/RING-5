@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 import streamlit as st
 
 from src.core.models.history_models import OperationRecord
+from src.core.models.arithmetic_models import MixerOperation
 from src.web.components.common.history_components import HistoryComponents
 from src.web.components.data_managers.data_manager import DataManager
 from src.web.state.ui_state_manager import UIStateManager, WidgetKeyBuilder
@@ -28,7 +29,7 @@ class MixerManager(DataManager):
         st.info("""
         **Mixer** aggregates multiple columns into one by applying an operation (Sum or Mean).
 
-        - **Automatic Error Propagation**: If columns have associated `.sd` or `_stdev` columns,
+        - **Automatic Error Propagation**: If columns have associated `.sd` columns,
           the new standard deviation is calculated using standard error formulas:
           - Sum: sqrt(sd1^2 + sd2^2 + ...)
           - Mean: sqrt(sd1^2 + sd2^2 + ...) / N
@@ -45,20 +46,23 @@ class MixerManager(DataManager):
         # Handle loaded operation from history
         loaded = UIStateManager().manager.consume_load_trigger("mixer")
         if loaded is not None:
-            op_raw = loaded["operation"].replace("Mixer: ", "")
+            op_raw = loaded["operation"].removeprefix("Mixer: ")
+            if op_raw not in [op.value for op in MixerOperation]:
+                st.error("Saved mixer operation is unsupported.")
+                return
             if op_raw == "Concatenate":
                 self._restore_selection("mixer", "mode", "Configuration Merge")
                 available = data.columns.tolist()
             else:
                 self._restore_selection("mixer", "mode", "Numerical Operations")
-                available = [c for c in numeric_cols if not c.endswith((".sd", "_stdev"))]
+                available = [c for c in numeric_cols if not c.endswith(".sd")]
             src_cols = loaded["source_columns"]
             valid_src = [c for c in src_cols if c in available]
             self._warn_removed_columns([c for c in src_cols if c not in available])
             self._restore_selection("mixer", "select_cols", valid_src)
             if loaded["dest_columns"]:
                 self._restore_selection("mixer", "new_name", loaded["dest_columns"][0])
-            if op_raw in ["Sum", "Mean (Average)", "Concatenate"]:
+            if op_raw in [op.value for op in MixerOperation]:
                 self._restore_selection("mixer", "op", op_raw)
 
         st.markdown("#### Configuration")
@@ -75,12 +79,12 @@ class MixerManager(DataManager):
             return
 
         if mode == "Numerical Operations":
-            available_cols = [c for c in numeric_cols if not c.endswith((".sd", "_stdev"))]
-            operations = ["Sum", "Mean (Average)"]
+            available_cols = [c for c in numeric_cols if not c.endswith(".sd")]
+            operations = [MixerOperation.SUM.value, MixerOperation.MEAN.value]
         else:
             # Configuration labels may combine numeric and text columns.
             available_cols = data.columns.tolist()
-            operations = ["Concatenate"]
+            operations = [MixerOperation.CONCATENATE.value]
 
         col_select_1, col_select_2 = st.columns(2)
 

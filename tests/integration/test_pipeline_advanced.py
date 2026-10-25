@@ -256,8 +256,8 @@ class TestShaperIntegration:
             "conditionSelector",
             {  # type: ignore
                 "column": "system.cpu.ipc",
-                "condition": ">=",
-                "value": 2.0,
+                "mode": "greater_or_equal",
+                "threshold": 2.0,
             },
         )
         result: pd.DataFrame = shaper(rich_sample_data)

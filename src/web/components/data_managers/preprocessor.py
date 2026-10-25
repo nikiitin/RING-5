@@ -50,10 +50,12 @@ class PreprocessorManager(DataManager):
         # Handle loaded operation from history
         loaded = UIStateManager().manager.consume_load_trigger("preprocessor")
         if loaded is not None:
-            op_str = loaded["operation"].replace("Preprocessor: ", "")
+            op_str = loaded["operation"].removeprefix("Preprocessor: ")
             operators = self.api.managers.list_operators()
-            if op_str in operators:
-                self._restore_selection("preprocessor", "op", op_str)
+            if op_str not in operators:
+                st.error("Saved arithmetic operation is unsupported.")
+                return
+            self._restore_selection("preprocessor", "op", op_str)
             src_cols = loaded["source_columns"]
             valid_src = [c for c in src_cols if c in numeric_cols]
             self._warn_removed_columns([c for c in src_cols if c not in numeric_cols])

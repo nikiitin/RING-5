@@ -1,22 +1,11 @@
 """Tests for preprocessor manager orchestration."""
 
-from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
 
-
-def _make_col_mock() -> MagicMock:
-    ctx = MagicMock()
-    ctx.__enter__ = MagicMock(return_value=ctx)
-    ctx.__exit__ = MagicMock(return_value=False)
-    return ctx
-
-
-def _columns_side_effect(n: Any) -> list[MagicMock]:
-    count = len(n) if isinstance(n, list) else n
-    return [_make_col_mock() for _ in range(count)]
+from tests.conftest import columns_side_effect
 
 
 @pytest.fixture
@@ -74,7 +63,7 @@ class TestPreprocessorRender:
         from src.web.components.data_managers.preprocessor import PreprocessorManager
 
         mock_api.state_manager.get_data.return_value = sample_df
-        mock_st.columns.side_effect = _columns_side_effect
+        mock_st.columns.side_effect = columns_side_effect
         mock_st.selectbox.side_effect = ["cycles", "Division", "instructions"]
         mock_st.text_input.return_value = "ipc"
         mock_st.button.return_value = False
@@ -94,7 +83,7 @@ class TestPreprocessorRender:
         from src.web.components.data_managers.preprocessor import PreprocessorManager
 
         mock_api.state_manager.get_data.return_value = sample_df
-        mock_st.columns.side_effect = _columns_side_effect
+        mock_st.columns.side_effect = columns_side_effect
         mock_st.selectbox.side_effect = ["cycles", "Sum", "instructions"]
         mock_st.text_input.return_value = "total"
         mock_st.button.return_value = False
@@ -112,7 +101,7 @@ class TestPreprocessorRender:
         from src.web.components.data_managers.preprocessor import PreprocessorManager
 
         mock_api.state_manager.get_data.return_value = sample_df
-        mock_st.columns.side_effect = _columns_side_effect
+        mock_st.columns.side_effect = columns_side_effect
         mock_st.selectbox.side_effect = ["cycles", "Subtraction", "instructions"]
         mock_st.text_input.return_value = "diff"
         mock_st.button.return_value = False
@@ -130,7 +119,7 @@ class TestPreprocessorRender:
         from src.web.components.data_managers.preprocessor import PreprocessorManager
 
         mock_api.state_manager.get_data.return_value = sample_df
-        mock_st.columns.side_effect = _columns_side_effect
+        mock_st.columns.side_effect = columns_side_effect
         mock_st.selectbox.side_effect = ["cycles", "Multiplication", "instructions"]
         mock_st.text_input.return_value = "product"
         mock_st.button.return_value = False
@@ -148,7 +137,7 @@ class TestPreprocessorRender:
         from src.web.components.data_managers.preprocessor import PreprocessorManager
 
         mock_api.state_manager.get_data.return_value = sample_df
-        mock_st.columns.side_effect = _columns_side_effect
+        mock_st.columns.side_effect = columns_side_effect
         mock_st.selectbox.side_effect = ["cycles", "CustomOp", "instructions"]
         mock_st.text_input.return_value = "new_column"
         mock_st.button.return_value = False
@@ -170,7 +159,7 @@ class TestPreprocessorRender:
         result_df = sample_df.copy()
         result_df["ipc"] = [0.5, 0.5, 0.5]
         mock_api.managers.apply_operation.return_value = result_df
-        mock_st.columns.side_effect = _columns_side_effect
+        mock_st.columns.side_effect = columns_side_effect
         mock_st.selectbox.side_effect = ["cycles", "Division", "instructions"]
         mock_st.text_input.return_value = "ipc"
         mock_st.button.side_effect = [True, False]  # Preview=True, Confirm=False
@@ -190,7 +179,7 @@ class TestPreprocessorRender:
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_api.managers.apply_operation.side_effect = ValueError("Division by zero")
-        mock_st.columns.side_effect = _columns_side_effect
+        mock_st.columns.side_effect = columns_side_effect
         mock_st.selectbox.side_effect = ["cycles", "Division", "instructions"]
         mock_st.text_input.return_value = "ipc"
         mock_st.button.side_effect = [True, False]
@@ -221,7 +210,7 @@ class TestPreprocessorRender:
             "src2": "instructions",
             "dest": "ipc",
         }
-        mock_st.columns.side_effect = _columns_side_effect
+        mock_st.columns.side_effect = columns_side_effect
         mock_st.selectbox.side_effect = ["cycles", "Division", "instructions"]
         mock_st.text_input.return_value = "ipc"
         mock_st.button.side_effect = [False, True]  # Preview=False, Confirm=True
@@ -254,7 +243,7 @@ class TestPreprocessorRender:
         mock_api.has_preview.return_value = True
         mock_api.preview_matches.return_value = False
         mock_api.get_preview.return_value = None
-        mock_st.columns.side_effect = _columns_side_effect
+        mock_st.columns.side_effect = columns_side_effect
         mock_st.selectbox.side_effect = ["cycles", "Division", "instructions"]
         mock_st.text_input.return_value = "ipc"
         mock_st.button.side_effect = [False, True]
@@ -283,7 +272,7 @@ class TestPreprocessorRender:
             "dest_columns": ["ipc"],
         }
         mock_api.state_manager.get_data.return_value = sample_df
-        mock_st.columns.side_effect = _columns_side_effect
+        mock_st.columns.side_effect = columns_side_effect
         mock_st.selectbox.side_effect = ["cycles", "Division", "instructions"]
         mock_st.text_input.return_value = "ipc"
         mock_st.button.return_value = False
@@ -311,7 +300,7 @@ class TestPreprocessorRender:
             "dest_columns": ["ratio"],
         }
         mock_api.state_manager.get_data.return_value = sample_df
-        mock_st.columns.side_effect = _columns_side_effect
+        mock_st.columns.side_effect = columns_side_effect
         mock_st.selectbox.side_effect = ["cycles", "Division", "instructions"]
         mock_st.text_input.return_value = "ratio"
         mock_st.button.return_value = False
@@ -342,7 +331,7 @@ class TestPreprocessorRender:
             "dest_columns": [],
         }
         mock_api.state_manager.get_data.return_value = sample_df
-        mock_st.columns.side_effect = _columns_side_effect
+        mock_st.columns.side_effect = columns_side_effect
         mock_st.selectbox.side_effect = ["cycles", "Division", "instructions"]
         mock_st.text_input.return_value = "result"
         mock_st.button.return_value = False
@@ -350,7 +339,9 @@ class TestPreprocessorRender:
 
         mgr = PreprocessorManager(mock_api)
         mgr.render()
-        # Unknown operator should not crash, just won't set session_state
+        mock_st.error.assert_called_once_with("Saved arithmetic operation is unsupported.")
+        mock_st.selectbox.assert_not_called()
+        mock_api.managers.apply_operation.assert_not_called()
 
     @patch("src.web.components.data_managers.preprocessor.UIStateManager")
     @patch("src.web.components.data_managers.preprocessor.HistoryComponents")
@@ -371,7 +362,7 @@ class TestPreprocessorRender:
             "dest_columns": ["result"],
         }
         mock_api.state_manager.get_data.return_value = sample_df
-        mock_st.columns.side_effect = _columns_side_effect
+        mock_st.columns.side_effect = columns_side_effect
         mock_st.selectbox.side_effect = ["cycles", "Division", "instructions"]
         mock_st.text_input.return_value = "result"
         mock_st.button.return_value = False

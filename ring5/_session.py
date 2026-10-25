@@ -182,18 +182,12 @@ def available_plot_types() -> tuple[str, ...]:
 
 
 def _resolve_plot_type(plot_type: str) -> str:
-    """Normalize a plot identifier or display name and validate it."""
+    """Validate an exact registered plot identifier."""
     from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
-    normalized = plot_type.strip().lower().replace("-", "_").replace(" ", "_")
     available = PlotFactory.get_available_plot_types()
-    if normalized in available:
-        return normalized
-
-    for identifier, metadata in PlotFactory.get_plot_metadata().items():
-        display_name = metadata["display_name"].lower().replace("-", "_").replace(" ", "_")
-        if normalized == display_name:
-            return identifier
+    if plot_type in available:
+        return plot_type
 
     choices = ", ".join(available)
     raise DataValidationError(f"Unknown plot type {plot_type!r}. Available types: {choices}.")
@@ -210,7 +204,7 @@ class Session:
             csv = s.parse("/sims", variables=["simTicks"]).csv_path
             df = s.load(csv)
             df = s.reduce_seeds(df, ["config_description_abbrev"], ["simTicks"])
-            fig = s.plot("Bar Chart", data=df,
+            fig = s.plot("bar", data=df,
                          config={"x": "config_description_abbrev",
                                  "y": "simTicks"},
                          engine="matplotlib")
@@ -2248,7 +2242,7 @@ class Session:
 
         Args:
             data: Input table or DataFrame.
-            operation: Arithmetic operation name or supported symbol.
+            operation: Exact ``Division``, ``Sum``, ``Subtraction``, or ``Multiplication`` token.
             src1: Left operand column.
             src2: Right operand column.
             dest: Destination column name.
@@ -2284,8 +2278,7 @@ class Session:
             data: Input table or DataFrame.
             dest_col: Destination column name.
             source_cols: Two or more columns to merge.
-            operation: ``Sum``, ``Mean``, ``Mean (Average)``, or
-                ``Concatenate``.
+            operation: ``Sum``, ``Mean``, or ``Concatenate``.
             separator: Separator used by concatenation.
 
         Returns:
@@ -2371,7 +2364,7 @@ class Session:
         """Create, register, and render a plot in one call.
 
         Args:
-            plot_type: Registered plot identifier or display name.
+            plot_type: Exact registered plot identifier.
             data: A :class:`ring5.Table` or pandas DataFrame.
             config: A :class:`FigureSpec` or flat configuration mapping.
             engine: Rendering engine, ``"plotly"`` or ``"matplotlib"``.

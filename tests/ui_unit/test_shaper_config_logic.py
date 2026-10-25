@@ -1,6 +1,6 @@
 from collections.abc import Generator
 from typing import Any, cast
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
@@ -13,7 +13,7 @@ from tests.conftest import columns_side_effect
 
 # Mock streamlit
 @pytest.fixture
-def mock_streamlit() -> Generator[None, None, None]:
+def mock_streamlit() -> Generator[MagicMock, None, None]:
     with (
         patch("src.web.pages.ui.shaper_config.st") as mock_st,
         patch("src.web.components.shapers.normalize_config.st", mock_st),
@@ -74,10 +74,9 @@ def test_configure_filter_numeric(mock_streamlit: Any, sample_data: Any) -> None
 def test_configure_filter_categorical(mock_streamlit: Any, sample_data: Any) -> None:
     """Test Categorical Filter configuration UI."""
     # Filter on 'dataset'
-    mock_streamlit.selectbox.side_effect = ["dataset"]
-    # Selectbox is first call (Select Column)
+    mock_streamlit.selectbox.side_effect = ["dataset", "in"]
 
-    mock_streamlit.multiselect.return_value = ["A"]
+    mock_streamlit.multiselect.side_effect = lambda *args, **kwargs: [kwargs["options"][0]]
 
     config = configure_shaper("conditionSelector", sample_data, 1, {})  # type: ignore
 

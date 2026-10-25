@@ -20,7 +20,7 @@ Categories:
 
 from __future__ import annotations
 
-from typing import Required, TypedDict, Union
+from typing import Literal, Required, TypedDict, Union
 
 # Base Config (shared across all shapers)
 
@@ -175,26 +175,37 @@ class ColumnSelectorConfig(BaseShaperConfig, total=False):
 # ConditionSelector
 
 
-class ConditionSelectorConfig(BaseShaperConfig, total=False):
-    """Configuration for the Condition Selector (Filter) shaper.
+ConditionSelectorMode = Literal[
+    "greater_than",
+    "less_than",
+    "greater_or_equal",
+    "less_or_equal",
+    "equals",
+    "not_equals",
+    "contains",
+    "range",
+    "in",
+]
 
-    Filters rows based on conditions applied to a column.
+
+class ConditionSelectorConfig(BaseShaperConfig, total=False):
+    """Configuration for one explicit row predicate.
 
     Attributes:
-        column: Column to filter on.
-        mode: Filter mode — ``"greater_than"`` / ``"less_than"`` / ``"equals"`` /
-            ``"contains"``. (``values`` and ``range``, when given, select directly and take
-            precedence over ``mode``.)
-        threshold: Numeric threshold for ``"greater_than"`` / ``"less_than"``.
-        range: ``[min, max]`` for a range filter.
-        values: Allowed values (membership filter).
+        column: Column to filter.
+        mode: Named comparison, inclusive range, membership, or literal substring.
+        threshold: Finite bound for ordered comparisons.
+        range: Two ordered finite bounds for ``range``.
+        values: Allowed values for ``in``.
+        value: Equality operand or literal text for ``contains``.
     """
 
     column: Required[str]
-    mode: Required[str]
+    mode: Required[ConditionSelectorMode]
     threshold: float
     range: list[float]
-    values: list[str]
+    values: list[str | int | float | bool | None]
+    value: str | int | float | bool
 
 
 # ItemSelector

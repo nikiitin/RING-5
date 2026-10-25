@@ -61,6 +61,7 @@ class TestMultiPlotWorkspace:
             raw,
             [
                 {
+                    "mode": "in",
                     "type": "conditionSelector",
                     "column": "config_description",
                     "values": ["baseline"],

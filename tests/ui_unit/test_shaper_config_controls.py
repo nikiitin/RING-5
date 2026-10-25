@@ -10,7 +10,7 @@ from src.web.pages.ui.shaper_config import configure_shaper
 
 
 @pytest.fixture
-def mock_streamlit() -> Generator[None, None, None]:
+def mock_streamlit() -> Generator[MagicMock, None, None]:
     with (
         patch("src.web.pages.ui.shaper_config.st") as mock_st,
         patch("src.web.components.shapers.normalize_config.st", mock_st),
@@ -78,7 +78,7 @@ def test_configure_filter_ui_numeric(mock_streamlit: Any) -> None:
 
     # Setup side effects for selectboxes (Column, Mode)
     mock_streamlit.selectbox.side_effect = ["A", "range"]
-    mock_streamlit.slider.return_value = (10.0, 20.0)
+    mock_streamlit.number_input.side_effect = [10.0, 20.0]
 
     config = configure_shaper("conditionSelector", df, 1, cast(ShaperStepConfig, {}), owner_id=1)
 
@@ -91,8 +91,11 @@ def test_configure_filter_ui_categorical(mock_streamlit: Any) -> None:
 
     df = pd.DataFrame({"B": ["x", "y", "z"]})
 
-    mock_streamlit.selectbox.return_value = "B"
-    mock_streamlit.multiselect.return_value = ["x", "z"]
+    mock_streamlit.selectbox.side_effect = ["B", "in"]
+    mock_streamlit.multiselect.side_effect = lambda *args, **kwargs: [
+        kwargs["options"][0],
+        kwargs["options"][2],
+    ]
 
     config = configure_shaper("conditionSelector", df, 1, cast(ShaperStepConfig, {}), owner_id=1)
 

@@ -835,7 +835,7 @@
       "tags": ["filter", "selection", "shapers"],
       "evidence": {
         "implementation": [
-          "src/core/services/shapers/impl/selector_algorithms/condition_selector.py::ConditionSelector._apply"
+          "src/core/services/shapers/impl/selector_algorithms/condition_selector.py::ConditionSelector.__call__"
         ],
         "tests": [
           "tests/unit/test_condition_selector.py::TestConditionSelectorModes"
@@ -5082,7 +5082,7 @@
     },
     "shaper_config_fields": {
       "ColumnSelectorConfig:columns,id,type": "shaping.column-selector",
-      "ConditionSelectorConfig:column,id,mode,range,threshold,type,values": "shaping.condition-selector",
+      "ConditionSelectorConfig:column,id,mode,range,threshold,type,value,values": "shaping.condition-selector",
       "DeriveColumnShaperConfig:dest,id,mapping,op,scalar,scalar_op,separator,sources,type,zero_denominator": "shaping.derive-column",
       "GroupCardinalitySelectorConfig:count,countColumn,groupBy,id,mode,type": "shaping.group-cardinality-selector",
       "GroupPredicateSelectorConfig:action,baselineColumn,baselineValue,drop_when,groupBy,id,predicateColumn,type": "shaping.group-predicate-selector",

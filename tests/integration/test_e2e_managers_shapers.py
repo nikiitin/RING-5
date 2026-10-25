@@ -128,7 +128,7 @@ class TestE2EShapers:
             {
                 "meanAlgorithm": "arithmean",
                 "meanVars": ["simTicks"],
-                "groupingColumn": "config_description_abbrev",
+                "groupingColumns": ["config_description_abbrev"],
                 "replacingColumn": "benchmark_name",
             }
         )
@@ -213,7 +213,7 @@ class TestE2EShapers:
             {
                 "meanAlgorithm": "arithmean",
                 "meanVars": ["simTicks"],
-                "groupingColumn": "config_description_abbrev",
+                "groupingColumns": ["config_description_abbrev"],
                 "replacingColumn": "benchmark_name",
             }
         )
@@ -337,7 +337,7 @@ class TestE2EIntegration:
             {
                 "meanAlgorithm": "arithmean",
                 "meanVars": ["simTicks"],
-                "groupingColumn": "config_description_abbrev",
+                "groupingColumns": ["config_description_abbrev"],
                 "replacingColumn": "benchmark_name",
             }
         )

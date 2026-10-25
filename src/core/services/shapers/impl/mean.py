@@ -54,14 +54,9 @@ class Mean(UniDfShaper):
         self.mean_algorithm: str = config.get("meanAlgorithm", "")
         self.replacing_column: str = config.get("replacingColumn", "")
 
-        # Support both new 'groupingColumns' and legacy 'groupingColumn'
-        if "groupingColumns" in config:
-            self.grouping_columns: list[str] = config["groupingColumns"]
-        elif "groupingColumn" in config:
-            # Legacy configurations used a singular groupingColumn field.
-            self.grouping_columns = [config["groupingColumn"]]  # type: ignore[typeddict-item]
-        else:
-            self.grouping_columns = []
+        if not isinstance(config.get("groupingColumns"), list):
+            raise ValueError("Mean: 'groupingColumns' must be a list.")
+        self.grouping_columns: list[str] = config["groupingColumns"]
 
         # Store params for fingerprinting
         self._params = params

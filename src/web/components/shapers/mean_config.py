@@ -55,11 +55,7 @@ class MeanConfig:
             )
 
         with col3:
-            # Handle legacy config
             group_cols_default = cast(list[str], existing_config.get("groupingColumns", []))
-            if not group_cols_default and existing_config.get("groupingColumn"):
-                legacy_col = cast(str, existing_config.get("groupingColumn"))
-                group_cols_default = [legacy_col] if legacy_col else []
             group_cols_default = [c for c in group_cols_default if c in categorical_cols]
 
             grouping_columns = st.multiselect(

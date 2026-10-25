@@ -15,14 +15,18 @@ class TestArithmeticService:
     def test_merge_sum(self) -> None:
         """Test merging columns with Sum operation."""
         data = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-        result = ArithmeticService.merge_columns(data, ["a", "b"], "Sum", "total")
+        result = ArithmeticService.apply_mixer(
+            df=data, source_cols=["a", "b"], operation="Sum", dest_col="total"
+        )
         assert "total" in result.columns
         assert result["total"].tolist() == [5, 7, 9]
 
     def test_merge_mean(self) -> None:
         """Test merging columns with Mean operation."""
         data = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-        result = ArithmeticService.merge_columns(data, ["a", "b"], "Mean", "avg")
+        result = ArithmeticService.apply_mixer(
+            df=data, source_cols=["a", "b"], operation="Mean", dest_col="avg"
+        )
         assert "avg" in result.columns
         assert result["avg"].tolist() == [2.5, 3.5, 4.5]
 
@@ -38,7 +42,9 @@ class TestArithmeticService:
         data = pd.DataFrame(
             {"a": [10, 20, 30], "a.sd": [1, 2, 3], "b": [5, 10, 15], "b.sd": [0.5, 1.0, 1.5]}
         )
-        result = ArithmeticService.merge_columns(data, ["a", "b"], "Sum", "total")
+        result = ArithmeticService.apply_mixer(
+            df=data, source_cols=["a", "b"], operation="Sum", dest_col="total"
+        )
         assert "total.sd" in result.columns
         expected_sd = np.sqrt(np.array([1, 2, 3]) ** 2 + np.array([0.5, 1.0, 1.5]) ** 2)
         actual_sd = np.asarray(result["total.sd"].values, dtype=np.float64)
