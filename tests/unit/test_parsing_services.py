@@ -12,6 +12,8 @@ import os
 
 import pytest
 
+from src.core.models.parsing_models import SourceInstance
+
 from src.core.common.stat_config_codec import StatConfigCodec
 
 from src.core.models.parsing_models import ScanFileResult, ScannedVariable, StatConfig
@@ -19,6 +21,7 @@ from src.core.models.parsing_models import StatParamValue
 from src.core.services.data_services.path_service import PathService
 from src.parsing.gem5.models import Gem5ScannedVariable
 from src.parsing.gem5.types.type_mapper import TypeMapper
+from src.parsing.gem5.impl.source_bindings import resolve_sources
 
 # TypeMapper
 
@@ -26,62 +29,32 @@ from src.parsing.gem5.types.type_mapper import TypeMapper
 class TestTypeMapper:
     """Tests for TypeMapper — stat type normalization and creation."""
 
-    def test_normalize_type_lowercase(self) -> None:
-        assert TypeMapper.normalize_type("SCALAR") == "scalar"
-        assert TypeMapper.normalize_type("Vector") == "vector"
-        assert TypeMapper.normalize_type("Histogram") == "histogram"
-
-    def test_normalize_type_already_lowercase(self) -> None:
-        assert TypeMapper.normalize_type("scalar") == "scalar"
-
-    def test_map_scan_result_normalizes_type(self) -> None:
-        result = {"name": "ipc", "type": "SCALAR", "entries": []}
-        mapped = TypeMapper.map_scan_result(result)
-        assert mapped["type"] == "scalar"
-
-    def test_map_scan_result_no_type_key(self) -> None:
-        result = {"name": "ipc"}
-        mapped = TypeMapper.map_scan_result(result)
-        assert mapped["type"] == ""
-
-    @pytest.mark.parametrize(
-        "type_name,expected",
-        [
-            ("vector", True),
-            ("distribution", True),
-            ("histogram", True),
-            ("scalar", False),
-            ("configuration", False),
-            ("VECTOR", True),
-        ],
-    )
-    def test_is_entry_type(self, type_name: str, expected: bool) -> None:
-        assert TypeMapper.is_entry_type(type_name) is expected
-
     def test_create_stat_scalar(self) -> None:
-        config = StatConfig(name="ipc", type="scalar")
-        stat = TypeMapper.create_stat(config)
+        config = StatConfig(name="ipc", type="scalar", params={"source_type": "scalar"})
+        stat = TypeMapper.create_stat(resolve_sources([config], []).accumulators[0])
         assert stat is not None
 
     def test_create_stat_from_dict(self) -> None:
         config = cast(dict[str, StatParamValue], {"name": "ipc", "type": "scalar"})
-        with pytest.raises(TypeError, match="StatConfig instances"):
+        with pytest.raises(TypeError, match="AccumulatorSpec"):
             TypeMapper.create_stat(config)  # type: ignore[arg-type]
 
     def test_create_stat_vector_with_entries(self) -> None:
         config = StatConfig(
             name="dcache.hits",
             type="vector",
-            params={"entries": ["0", "1", "2"]},
+            params={"source_type": "vector", "entries": ["0", "1", "2"]},
         )
-        stat = TypeMapper.create_stat(config)
+        stat = TypeMapper.create_stat(resolve_sources([config], []).accumulators[0])
         assert stat is not None
 
     def test_create_stat_distribution(self) -> None:
         config = StatConfig(
-            name="latency", type="distribution", params={"minimum": 0, "maximum": 200}
+            name="latency",
+            type="distribution",
+            params={"source_type": "distribution", "minimum": 0, "maximum": 200},
         )
-        stat = TypeMapper.create_stat(config)
+        stat = TypeMapper.create_stat(resolve_sources([config], []).accumulators[0])
         assert stat is not None
 
     def test_create_stat_histogram(self) -> None:
@@ -89,17 +62,20 @@ class TestTypeMapper:
             name="mem_ctrl.readLatency",
             type="histogram",
             params={
+                "source_type": "histogram",
                 "bins": 5,
                 "max_range": 200.0,
                 "entries": ["0-39", "40-79", "80-119", "120-159", "160-199"],
             },
         )
-        stat = TypeMapper.create_stat(config)
+        stat = TypeMapper.create_stat(resolve_sources([config], []).accumulators[0])
         assert stat is not None
 
     def test_create_stat_configuration(self) -> None:
-        config = StatConfig(name="benchmark_name", type="configuration")
-        stat = TypeMapper.create_stat(config)
+        config = StatConfig(
+            name="benchmark_name", type="configuration", params={"source_type": "configuration"}
+        )
+        stat = TypeMapper.create_stat(resolve_sources([config], []).accumulators[0])
         assert stat is not None
 
     def test_create_stat_missing_type_raises(self) -> None:
@@ -167,7 +143,13 @@ class TestScannerService:
     def test_aggregate_single_file(self) -> None:
         from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ScannerService
 
-        var = ScannedVariable(name="simTicks", type="scalar", entries=[])
+        var = ScannedVariable(
+            name="simTicks",
+            type="scalar",
+            entries=[],
+            source_type="scalar",
+            instances=(SourceInstance("simTicks", ()),),
+        )
         result = ScannerService.aggregate_scan_results([ScanFileResult("f0", [var])])
         assert len(result.variables) >= 1
         names = [v.name for v in result.variables]
@@ -179,7 +161,13 @@ class TestScannerService:
     def test_aggregate_preserves_partial_scan_metadata(self) -> None:
         from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ScannerService
 
-        var = ScannedVariable(name="simTicks", type="scalar", entries=[])
+        var = ScannedVariable(
+            name="simTicks",
+            type="scalar",
+            entries=[],
+            source_type="scalar",
+            instances=(SourceInstance("simTicks", ()),),
+        )
         result = ScannerService.aggregate_scan_results(
             [
                 ScanFileResult("good", [var]),
@@ -195,8 +183,20 @@ class TestScannerService:
     def test_aggregate_merges_vector_entries(self) -> None:
         from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ScannerService
 
-        v1 = ScannedVariable(name="cpu.hits", type="vector", entries=["0", "1"])
-        v2 = ScannedVariable(name="cpu.hits", type="vector", entries=["1", "2"])
+        v1 = ScannedVariable(
+            name="cpu.hits",
+            type="vector",
+            entries=["0", "1"],
+            source_type="vector",
+            instances=(SourceInstance("cpu.hits", ()),),
+        )
+        v2 = ScannedVariable(
+            name="cpu.hits",
+            type="vector",
+            entries=["1", "2"],
+            source_type="vector",
+            instances=(SourceInstance("cpu.hits", ()),),
+        )
         result = ScannerService.aggregate_scan_results(
             [ScanFileResult("f0", [v1]), ScanFileResult("f1", [v2])]
         )
@@ -207,10 +207,22 @@ class TestScannerService:
         from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ScannerService
 
         d1 = Gem5ScannedVariable(
-            name="latency", type="distribution", entries=[], minimum=10, maximum=100
+            name="latency",
+            type="distribution",
+            entries=[],
+            minimum=10,
+            maximum=100,
+            source_type="distribution",
+            instances=(SourceInstance("latency", ()),),
         )
         d2 = Gem5ScannedVariable(
-            name="latency", type="distribution", entries=[], minimum=5, maximum=200
+            name="latency",
+            type="distribution",
+            entries=[],
+            minimum=5,
+            maximum=200,
+            source_type="distribution",
+            instances=(SourceInstance("latency", ()),),
         )
         result = ScannerService.aggregate_scan_results(
             [ScanFileResult("f0", [d1]), ScanFileResult("f1", [d2])]
@@ -225,7 +237,13 @@ class TestScannerService:
         from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ScannerService
 
         registry: dict[str, ScannedVariable] = {}
-        var = ScannedVariable(name="ipc", type="scalar", entries=[])
+        var = ScannedVariable(
+            name="ipc",
+            type="scalar",
+            entries=[],
+            source_type="scalar",
+            instances=(SourceInstance("ipc", ()),),
+        )
         ScannerService._merge_variable(registry, var)
         assert "ipc" in registry
         assert registry["ipc"].type == "scalar"
@@ -292,8 +310,20 @@ class TestDistributionRangeMerge:
         from src.parsing.gem5.models import Gem5ScannedVariable
 
         registry: dict = {}
-        no_range = Gem5ScannedVariable(name="d", type="distribution")
-        with_zero_min = Gem5ScannedVariable(name="d", type="distribution", minimum=0.0, maximum=5.0)
+        no_range = Gem5ScannedVariable(
+            name="d",
+            type="distribution",
+            source_type="distribution",
+            instances=(SourceInstance("d", ()),),
+        )
+        with_zero_min = Gem5ScannedVariable(
+            name="d",
+            type="distribution",
+            minimum=0.0,
+            maximum=5.0,
+            source_type="distribution",
+            instances=(SourceInstance("d", ()),),
+        )
 
         # Order A: None-range first, 0.0 arrives as the incoming side
         Gem5Parser._merge_variable(registry, no_range)

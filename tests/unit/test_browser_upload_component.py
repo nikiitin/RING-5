@@ -81,7 +81,7 @@ def test_signed_portfolio_requires_secret_and_reports_key_id(mock_st: MagicMock)
         size_bytes=128,
         source_sha256="b" * 64,
         source_path="/tmp/analysis.json",
-        portfolio_schema_version=6,
+        portfolio_schema_version=7,
         portfolio_plot_count=2,
         portfolio_has_data=True,
         portfolio_integrity_status="signature-unverified",
@@ -120,7 +120,7 @@ def test_portable_bundle_shows_artifacts_and_requires_signature_secret(
     info = PortfolioBundleInfo(
         name="portable-analysis",
         format_version=1,
-        portfolio_schema_version=6,
+        portfolio_schema_version=7,
         portfolio_created_at="2026-07-21T10:00:00+00:00",
         size_bytes=512,
         source_count=1,

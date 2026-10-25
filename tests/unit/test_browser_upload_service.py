@@ -109,7 +109,7 @@ def test_portfolio_is_summarized_and_revalidated_before_restore(tmp_path: Path) 
     )
 
     assert upload.kind == "portfolio"
-    assert upload.portfolio_schema_version == 6
+    assert upload.portfolio_schema_version == 7
     assert upload.portfolio_plot_count == 0
     assert upload.portfolio_has_data is True
     assert TypedTableCodec.decode(BrowserUploadService.load_portfolio(upload)["data"])[

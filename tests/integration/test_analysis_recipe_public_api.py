@@ -212,7 +212,7 @@ def test_recipe_capture_and_errors_use_the_public_contract(tmp_path: Path) -> No
                 session.export_analysis_recipe("invalid")  # type: ignore[arg-type]
             with pytest.raises(ring5.RecipeError, match="schema version"):
                 session.import_analysis_recipe(
-                    payload.replace(b'"schema_version": 2', b'"schema_version": 3')
+                    payload.replace(b'"schema_version": 3', b'"schema_version": 4')
                 )
 
         with ring5.Session() as empty_session:
@@ -228,10 +228,22 @@ def test_parser_recipe_uses_captured_variable_metadata_and_source_errors_are_typ
     pd.DataFrame({"simTicks": [123]}).to_csv(parsed_csv, index=False)
     variables = (
         StatConfigCodec.to_payload(
-            StatConfig(name="simTicks", type="scalar", statistics_only=True, keep_indices=True)
+            StatConfig(
+                name="simTicks",
+                source_name=r"system.cpu\d+.simTicks",
+                type="scalar",
+                statistics_only=True,
+                keep_indices=True,
+                params={"source_type": "scalar"},
+            )
         ),
         StatConfigCodec.to_payload(
-            StatConfig(name="ipc", type="scalar", source_name="system.cpu.ipc")
+            StatConfig(
+                name="ipc",
+                type="scalar",
+                source_name="system.cpu.ipc",
+                params={"source_type": "scalar"},
+            )
         ),
     )
     recipe = ring5.AnalysisRecipe(
@@ -267,7 +279,11 @@ def test_parser_recipe_uses_captured_variable_metadata_and_source_errors_are_typ
                     tuple[dict[str, object], ...],
                     (
                         {
-                            **StatConfigCodec.to_payload(StatConfig(name="x", type="scalar")),
+                            **StatConfigCodec.to_payload(
+                                StatConfig(
+                                    name="x", type="scalar", params={"source_type": "scalar"}
+                                )
+                            ),
                             "repeat": "many",
                         },
                     ),

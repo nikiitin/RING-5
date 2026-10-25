@@ -1,6 +1,7 @@
 """Contract tests for the complete supported analysis workflow."""
 
 from __future__ import annotations
+from src.core.models.parsing_models import SourceInstance
 
 import json
 from concurrent.futures import Future
@@ -107,13 +108,29 @@ def test_gem5_oneline_histogram_is_scanned_and_parsed(tmp_path: Path) -> None:
 def test_scan_job_partial_and_timeout_are_typed(monkeypatch: pytest.MonkeyPatch) -> None:
     # [test->req~ring5.ingestion.async-scan~1]
     good: Future[ScanFileResult] = Future()
-    good.set_result(ScanFileResult("good/stats.txt", [ScannedVariable(name="x", type="scalar")]))
+    good.set_result(
+        ScanFileResult(
+            "good/stats.txt",
+            [
+                ScannedVariable(
+                    name="x",
+                    type="scalar",
+                    source_type="scalar",
+                    instances=(SourceInstance("x", ()),),
+                )
+            ],
+        )
+    )
     bad_result = ScanFileResult("bad/stats.txt", error="scanner failed")
     bad: Future[ScanFileResult] = Future()
     bad.set_result(bad_result)
     api = MagicMock()
     api.finalize_scan.return_value = ScanResult(
-        variables=[ScannedVariable(name="x", type="scalar")],
+        variables=[
+            ScannedVariable(
+                name="x", type="scalar", source_type="scalar", instances=(SourceInstance("x", ()),)
+            )
+        ],
         failures=[bad_result],
         scanned_files=2,
     )

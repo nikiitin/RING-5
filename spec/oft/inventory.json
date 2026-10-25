@@ -2764,7 +2764,7 @@
       "tags": ["patterns", "selection", "variables"],
       "evidence": {
         "implementation": ["src/core/models/pattern_index_service.py::PatternIndexService", "src/web/components/data_source/pattern_index_selector.py::PatternIndexSelector.render_selector", "src/parsing/gem5/impl/gem5_parser.py::Gem5Parser.construct_final_csv"],
-        "tests": ["tests/unit/test_keep_indices.py::TestKeepIndicesUserFiltered", "tests/unit/test_pattern_index_service.py::TestFilterEntries"],
+        "tests": ["tests/unit/test_keep_indices.py::test_correlated_concrete_selection_is_preserved_without_cartesian_expansion", "tests/unit/test_pattern_index_selector_logic.py::test_selection_uses_source_names_and_never_reconstructs_numeric_coordinates"],
         "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
@@ -2862,8 +2862,8 @@
       "description": "Configuration variables shall accept an explicit onEmpty value and use it when path-derived metadata is absent while preserving the first extracted value when content exists.",
       "tags": ["configuration", "fallback", "parser"],
       "evidence": {
-        "implementation": ["src/parsing/gem5/types/configuration.py::Configuration", "src/parsing/gem5/impl/strategies/gem5_parse_work.py::Gem5ParseWork._scalar_pattern_entry", "src/web/components/data_source/variable_editor.py::VariableEditor.render_configuration_config"],
-        "tests": ["tests/unit/test_configuration_type.py::TestConfigurationOnEmptyProperty", "tests/unit/test_gem5_parse_work.py::test_validate_vars_config_default"],
+        "implementation": ["src/parsing/gem5/types/configuration.py::Configuration", "src/parsing/gem5/impl/strategies/gem5_parse_work.py::Gem5ParseWork._validate_variables", "src/web/components/data_source/variable_editor.py::VariableEditor.render_configuration_config"],
+        "tests": ["tests/unit/test_configuration_type.py::TestConfigurationOnEmptyProperty", "tests/unit/test_gem5_parse_work.py::test_configuration_fallback_comes_from_declared_params"],
         "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
@@ -5325,6 +5325,7 @@
       "ScanJob": "ingestion.async-scan",
       "ScanResult": "ingestion.async-scan",
       "ScannedVariable": "ingestion.variable-scan",
+      "SourceInstance": "ingestion.pattern-index-selection",
       "ScheduledReportResult": "automation.scheduled-reporting",
       "SchemaValidationReport": "data.schema-contracts",
       "SchemaViolation": "data.schema-contracts",
@@ -5705,7 +5706,6 @@
       "save_analysis_recipe": "portfolio.analysis-recipes",
       "save_dataset_snapshot": "data.dataset-snapshots",
       "save_portfolio": "portfolio.save",
-      "update_scanned_entries": "ingestion.variable-entry-selection",
       "update_variable": "ingestion.variable-editor",
       "verify_portfolio": "portfolio.signed-manifests"
     },
@@ -5856,7 +5856,7 @@
     "scanned_variable_fields": {
       "entries": "ingestion.variable-entry-selection",
       "name": "ingestion.variable-scan",
-      "pattern_indices": "ingestion.pattern-index-selection",
+      "instances": "ingestion.pattern-index-selection",
       "source_type": "ingestion.variable-scan",
       "type": "ingestion.variable-scan"
     },

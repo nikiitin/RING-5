@@ -138,7 +138,7 @@ def test_render_parser_config_submits_the_bounded_playground(
     mock_api.state_manager.get_stats_path.return_value = "/allowed/stats"
     mock_api.state_manager.get_stats_pattern.return_value = "custom*.txt"
     mock_api.state_manager.get_temp_dir.return_value = str(tmp_path)
-    variables = [{"name": "simTicks", "type": "scalar"}]
+    variables = [{"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}]
     mock_api.state_manager.get_parse_variables.return_value = variables
     batch = ParserPlaygroundBatchResult(
         futures=[],
@@ -166,7 +166,9 @@ def test_render_parser_config_submits_the_bounded_playground(
     mock_api.submit_parser_playground_async.assert_called_once_with(
         str(tmp_path / "stats"),
         "custom*.txt",
-        ApplicationAPI.compile_parse_variables([{"name": "simTicks", "type": "scalar"}]),
+        ApplicationAPI.compile_parse_variables(
+            [{"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}]
+        ),
         str(tmp_path / "parser_playground"),
         scanned_vars=[],
         strategy_type="simple",

@@ -5,6 +5,7 @@ import pytest
 from src.core.models.parsing_models import StatConfig
 
 from src.parsing.gem5.types.type_mapper import TypeMapper
+from src.parsing.gem5.impl.source_bindings import resolve_sources
 
 
 class TestStatisticsOnlyMode:
@@ -18,10 +19,15 @@ class TestStatisticsOnlyMode:
             statistics_only=True,
             type="distribution",
             name="test_stat",
-            params={"minimum": 0, "maximum": 100, "statistics": ["mean", "stdev"]},
+            params={
+                "minimum": 0,
+                "maximum": 100,
+                "statistics": ["mean", "stdev"],
+                "source_type": "distribution",
+            },
         )
 
-        dist = TypeMapper.create_stat(config)
+        dist = TypeMapper.create_stat(resolve_sources([config], None).accumulators[0])
 
         # Verify that statistics_only flag is set
         assert hasattr(dist, "_statistics_only")
@@ -45,10 +51,15 @@ class TestStatisticsOnlyMode:
             statistics_only=False,
             type="distribution",
             name="test_stat",
-            params={"minimum": 0, "maximum": 10, "statistics": ["mean", "stdev"]},
+            params={
+                "minimum": 0,
+                "maximum": 10,
+                "statistics": ["mean", "stdev"],
+                "source_type": "distribution",
+            },
         )
 
-        dist = TypeMapper.create_stat(config)
+        dist = TypeMapper.create_stat(resolve_sources([config], None).accumulators[0])
 
         # Verify that statistics_only flag is False
         assert dist._statistics_only is False
@@ -67,10 +78,14 @@ class TestStatisticsOnlyMode:
             statistics_only=True,
             type="vector",
             name="test_stat",
-            params={"entries": ["entry0", "entry1", "entry2"], "statistics": ["mean", "sum"]},
+            params={
+                "entries": ["entry0", "entry1", "entry2"],
+                "statistics": ["mean", "sum"],
+                "source_type": "vector",
+            },
         )
 
-        vec = TypeMapper.create_stat(config)
+        vec = TypeMapper.create_stat(resolve_sources([config], None).accumulators[0])
 
         # When statistics_only, entries should be just the statistics
         assert vec.entries == ["mean", "sum"]
@@ -86,10 +101,11 @@ class TestStatisticsOnlyMode:
                 "max_range": 100.0,
                 "entries": ["0-10", "10-20"],
                 "statistics": ["mean", "samples"],
+                "source_type": "histogram",
             },
         )
 
-        hist = TypeMapper.create_stat(config)
+        hist = TypeMapper.create_stat(resolve_sources([config], None).accumulators[0])
 
         # Verify bins are disabled
         assert hist._bins == 0
@@ -104,10 +120,15 @@ class TestStatisticsOnlyMode:
         config = StatConfig(
             type="distribution",
             name="test_stat",
-            params={"minimum": 0, "maximum": 10, "statistics": ["mean"]},
+            params={
+                "minimum": 0,
+                "maximum": 10,
+                "statistics": ["mean"],
+                "source_type": "distribution",
+            },
         )
 
-        dist = TypeMapper.create_stat(config)
+        dist = TypeMapper.create_stat(resolve_sources([config], None).accumulators[0])
 
         # Should default to False (full bucket mode)
         assert dist._statistics_only is False

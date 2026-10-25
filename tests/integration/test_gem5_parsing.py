@@ -114,7 +114,10 @@ class TestGem5Parsing:
         batch = facade.submit_parse_async(
             stats_path=str(self.TEST_DATA_DIR),
             stats_pattern="stats.txt",
-            variables=[StatConfig(name=v.name, type=v.type) for v in selected_vars],
+            variables=[
+                StatConfig(name=v.name, type=v.type, params={"source_type": v.source_type})
+                for v in selected_vars
+            ],
             output_dir=str(output_dir),
             scanned_vars=all_variables,
         )
@@ -191,7 +194,13 @@ system.mem.ctrl::1024-2047                    5      50.00%     100.00%      # H
             # Configure variables
             variables = cast(
                 list[ParseVariableConfig],
-                [{"name": "system.mem.ctrl", "type": "histogram"}],
+                [
+                    {
+                        "name": "system.mem.ctrl",
+                        "type": "histogram",
+                        "params": {"source_type": "histogram"},
+                    }
+                ],
             )
 
             parse_batch = facade.submit_parse_async(

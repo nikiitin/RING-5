@@ -44,12 +44,15 @@ lists inside one nested `params` dictionary. Every editor draft has the same str
 as `StatConfig`, plus its UI-only `_id`; no flat option shape is accepted.
 `draft_from_scanned_variable` uses the selected simulator metadata to project scanner entries and
 summaries through that same codec. Backend creation, durable jobs, the public parse API, and recipes use the same codec.
-Callers preserve failures and pass scanned-variable metadata for pattern expansion.
+Every runnable value declares `params.source_type` independently of its requested output type.
+Callers preserve failures and pass current scanned-variable records for numeric source patterns.
+Each record requires concrete `SourceInstance` identities and numeric display coordinates.
+`params.selected_sources` selects concrete names; workers receive a precompiled direct routing plan.
 
-Portfolio schema 5 stores each parser variable as exactly `{state: "draft", fields: ...}` or
+Portfolio schema 7 stores each parser variable as exactly `{state: "draft", fields: ...}` or
 `{state: "runnable", config: ...}`. Drafts preserve incomplete current editor input; runnable
 snapshots contain every `StatConfig` field. UI identifiers never enter the saved format and are
-regenerated when restored. Recipes require runnable variables and use recipe schema 2. Template
+regenerated when restored. Recipes require runnable variables and use recipe schema 3. Template
 operands are validated as declared placeholders, then compiled after materialization.
 
 Entry-filtering methods require the selected `SimulatorInfo.internal_stats` explicitly. A

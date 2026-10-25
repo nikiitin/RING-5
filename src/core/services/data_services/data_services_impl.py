@@ -255,15 +255,6 @@ class DefaultDataServicesAPI:
             available_variables, var_name, internal_stats
         )
 
-    def update_scanned_entries(
-        self,
-        scanned_vars: list[ScannedVariableDict],
-        var_name: str,
-        new_entries: list[str],
-    ) -> list[ScannedVariableDict]:
-        """Update or add entries for a variable in the scanned variables list."""
-        return VariableService.update_scanned_entries(scanned_vars, var_name, new_entries)
-
     def has_variable_with_name(
         self,
         variables: list[ParseVariableConfig],

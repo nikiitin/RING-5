@@ -19,7 +19,15 @@ def test_invalid_runnable_configuration_is_typed_and_starts_no_parse_workers(
         with patch.object(session.api, "submit_parse_async") as submit:
             with pytest.raises(ring5.ParseError, match="repeat must be a positive integer"):
                 getattr(session, method)(
-                    str(tmp_path), [ring5.StatConfig(name="simTicks", type="scalar", repeat=True)]
+                    str(tmp_path),
+                    [
+                        ring5.StatConfig(
+                            name="simTicks",
+                            type="scalar",
+                            repeat=True,
+                            params={"source_type": "scalar"},
+                        )
+                    ],
                 )
             submit.assert_not_called()
 
@@ -34,10 +42,16 @@ def test_injected_backend_custom_options_survive_submission_and_saved_provenance
         ScanResult,
         ScannedVariable,
     )
+    from src.core.models.parsing_models import SourceInstance
     from src.parsing.parser_protocol import SimulationParser
 
     parser = MagicMock(spec=SimulationParser)
-    variable = ScannedVariable(name="source", type="custom_stat")
+    variable = ScannedVariable(
+        name="source",
+        type="custom_stat",
+        source_type="custom_stat",
+        instances=(SourceInstance("source", ()),),
+    )
     future: Future[ScanFileResult] = Future()
     future.set_result(ScanFileResult("stats.txt", [variable]))
     parser.submit_scan_async.return_value = [future]
@@ -47,7 +61,7 @@ def test_injected_backend_custom_options_survive_submission_and_saved_provenance
         name="output",
         type="custom_stat",
         source_name="source",
-        params={"scale": 2, "name": "backend operand"},
+        params={"scale": 2, "name": "backend operand", "source_type": "custom_stat"},
     )
     with ring5.Session(parser=parser) as session:
         session.parse_submit("/simulations", [configured])

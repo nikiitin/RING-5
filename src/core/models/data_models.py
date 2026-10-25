@@ -142,23 +142,29 @@ class ParseVariableConfig(TypedDict, total=False):
 # Scanned Variable (dict form)
 
 
+class SourceInstanceDict(TypedDict):
+    """One concrete statistic source and its numeric display coordinates."""
+
+    source_name: str
+    indices: list[str]
+
+
 class ScannedVariableDict(TypedDict, total=False):
     """Dictionary form of a ``ScannedVariable`` dataclass.
 
     Produced by ``ScannedVariable.to_dict()``; consumed by state
     management, variable service, and portfolio serialization.
 
-    ``name``, ``type``, and ``entries`` are always present.
+    ``name``, ``type``, ``entries``, ``source_type``, and ``instances`` are required.
     """
 
-    source_type: str
+    source_type: Required[str]
+    instances: Required[list[SourceInstanceDict]]
     name: Required[str]
     type: Required[str]
     entries: Required[list[str]]
     minimum: float
     maximum: float
-    pattern_indices: list[str]
-    count: int
 
 
 # Pipeline Steps (stored in plots)

@@ -88,8 +88,10 @@ class TestSubmitParseAsyncReturnType:
         mock_pool.get_instance.return_value.submit_many.return_value = [mock_future]
 
         variables = [
-            StatConfig(name="system.cpu.ipc", type="scalar"),
-            StatConfig(name="system.cpu.numCycles", type="scalar"),
+            StatConfig(name="system.cpu.ipc", type="scalar", params={"source_type": "scalar"}),
+            StatConfig(
+                name="system.cpu.numCycles", type="scalar", params={"source_type": "scalar"}
+            ),
         ]
 
         result = Gem5Parser.submit_parse_async(
@@ -122,7 +124,9 @@ class TestSubmitParseAsyncReturnType:
             Gem5Parser.submit_parse_async(
                 stats_path="/tmp/stats",
                 stats_pattern="stats.txt",
-                variables=[StatConfig(name="test", type="scalar")],
+                variables=[
+                    StatConfig(name="test", type="scalar", params={"source_type": "scalar"})
+                ],
                 output_dir="/tmp/out",
             )
 
@@ -203,7 +207,7 @@ class TestBatchIsolation:
         batch1 = Gem5Parser.submit_parse_async(
             "/tmp/stats",
             "stats.txt",
-            [StatConfig(name="var_alpha", type="scalar")],
+            [StatConfig(name="var_alpha", type="scalar", params={"source_type": "scalar"})],
             "/tmp/out1",
         )
 
@@ -212,8 +216,8 @@ class TestBatchIsolation:
             "/tmp/stats",
             "stats.txt",
             [
-                StatConfig(name="var_beta", type="scalar"),
-                StatConfig(name="var_gamma", type="scalar"),
+                StatConfig(name="var_beta", type="scalar", params={"source_type": "scalar"}),
+                StatConfig(name="var_gamma", type="scalar", params={"source_type": "scalar"}),
             ],
             "/tmp/out2",
         )

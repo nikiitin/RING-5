@@ -41,12 +41,14 @@ def test_large_multiselect_preserves_manual_hidden_bulk_and_threshold_changes() 
     assert not app.exception
 
 
-@pytest.mark.parametrize("saved", [["0_1", "1_0"], []])
+@pytest.mark.parametrize("saved", [["system.l0_cpu1.ipc", "system.l1_cpu0.ipc"], []])
 def test_pattern_restore_preserves_exact_correlated_and_empty_selections(saved: list[str]) -> None:
     app = _app(f"""
         from src.web.components.data_source.pattern_index_selector import PatternIndexSelector
         st.session_state["result"] = PatternIndexSelector.render_selector(
-            r"system.l\\d+_cpu\\d+.ipc", ["0_0", "0_1", "1_0", "1_1"], "restore", {saved!r}
+            r"system.l\\d+_cpu\\d+.ipc", [
+                {{"source_name": f"system.l{{l}}_cpu{{c}}.ipc", "indices": [str(l), str(c)]}}
+                for l, c in [(0,0),(0,1),(1,0),(1,1)]], "restore", {saved!r}
         )
     """)
     assert not app.exception
@@ -250,7 +252,8 @@ def test_variable_editor_preserves_repeat_on_ordinary_rerun(tmp_path: Path) -> N
         api = ApplicationAPI()
         try:
             st.session_state["result"] = VariableEditor.render(
-                api, [{"name": "ipc", "type": "scalar", "_id": "scalar", "repeat": 3}]
+                api, [{"name": "ipc", "type": "scalar", "_id": "scalar", "repeat": 3,
+                       "params": {"source_type": "scalar"}}]
             )
         finally:
             api.close()
@@ -593,7 +596,7 @@ def test_variable_editor_compiles_current_values_and_preserves_hidden_pattern_fl
         original = [{"name": "renamed", "source_name": "v", "type": "vector", "_id": "v",
                      "params": {"entries": ["cpu0"], "statistics": ["mean"],
                                 "source_type": "vector"},
-                     "statistics_only": False, "keep_indices": True, "repeat": 2}]
+                     "statistics_only": False, "keep_indices": False, "repeat": 2}]
         before = deepcopy(original)
         try:
             result = VariableEditor.render(api, original,
@@ -608,7 +611,7 @@ def test_variable_editor_compiles_current_values_and_preserves_hidden_pattern_fl
     assert configured.name == "renamed"
     assert configured.source_name == "v"
     assert configured.repeat == 2
-    assert configured.keep_indices is True
+    assert configured.keep_indices is False
     assert configured.params["source_type"] == "vector"
     assert configured.params["entries"] == ["cpu0"]
     assert configured.params["statistics"] == ["mean"]
@@ -724,10 +727,11 @@ def test_incomplete_variable_type_remains_editable_without_guessing_or_losing_pa
     assert not app.exception
     assert app.selectbox(key="var_type_draft").value is None
     assert app.session_state["result"][0]["type"] == ""
-    assert app.session_state["result"][0]["params"] == {"entries": ["cpu0"]}
+    assert app.session_state["result"][0]["params"] == {"entries": ["cpu0"], "source_type": ""}
     assert app.session_state["compiled"] is None
     app.text_input(key="var_name_draft").set_value("vector_stat").run()
     app.selectbox(key="var_type_draft").select("vector").run()
+    app.selectbox(key="var_source_type_draft").select("vector").run()
     assert not app.exception
     assert app.session_state["compiled"][0].name == "vector_stat"
     assert app.session_state["compiled"][0].type == "vector"
@@ -760,7 +764,8 @@ def test_editor_and_compiler_preserve_case_sensitive_scanner_entry_roles() -> No
         from src.core.application_api import ApplicationAPI
         from src.web.components.data_source.variable_editor import VariableEditor
         api = ApplicationAPI()
-        scanned = {"name": "v", "type": "vector",
+        scanned = {"name": "v", "type": "vector", "source_type": "vector",
+                   "instances": [{"source_name": "v", "indices": []}],
                    "entries": ["mean", "Mean", "stdev", "STDEV", "CustomSummary"]}
         info = replace(api.get_simulator_info("gem5"),
                        internal_stats=frozenset({"mean", "stdev", "CustomSummary"}))
@@ -780,3 +785,108 @@ def test_editor_and_compiler_preserve_case_sensitive_scanner_entry_roles() -> No
     configured = app.session_state["configured"]
     assert configured.params["entries"] == ["Mean", "STDEV"]
     assert configured.params["statistics"] == ["mean", "stdev", "CustomSummary"]
+
+
+def test_raw_source_kind_is_explicit_and_output_changes_preserve_concrete_selection() -> None:
+    app = _app(r"""
+        from src.core.application_api import ApplicationAPI
+        from src.web.components.data_source.variable_editor import VariableEditor
+        api = ApplicationAPI()
+        metadata = {"name": r"cpu\d+.ipc", "type": "vector", "entries": [],
+                    "source_type": "scalar", "instances": [
+                        {"source_name": "cpu012.ipc", "indices": ["012"]},
+                        {"source_name": "cpu1.ipc", "indices": ["1"]}]}
+        api.state_manager.set_scanned_variables([metadata])
+        original = {"name": "IPC", "source_name": r"cpu\d+.ipc", "type": "vector",
+                    "_id": "sources", "keep_indices": True,
+                    "params": {"source_type": "scalar", "selected_sources": ["cpu012.ipc"]}}
+        try:
+            result = VariableEditor.render(api, [original], [metadata])
+            st.session_state["result"] = result[0]
+            try:
+                st.session_state["compiled"] = api.compile_parse_variables(result)[0]
+            except ValueError:
+                st.session_state["compiled"] = None
+        finally:
+            api.close()
+    """)
+    assert not app.exception
+    assert app.selectbox(key="var_source_type_sources").value == "scalar"
+    assert app.session_state["compiled"].params == {
+        "source_type": "scalar",
+        "selected_sources": ["cpu012.ipc"],
+    }
+    assert not any(widget.key == "vector_entries_select_sources" for widget in app.multiselect)
+    app.selectbox(key="var_type_sources").select("scalar").run()
+    assert not app.exception
+    assert app.session_state["compiled"].params["selected_sources"] == ["cpu012.ipc"]
+    assert app.session_state["compiled"].keep_indices is True
+    app.multiselect(key="pattern_entries_sources").set_value([]).run()
+    assert not app.exception
+    assert app.session_state["result"]["params"]["selected_sources"] == []
+    assert app.session_state["compiled"] is None
+    app.checkbox(key="use_pattern_filter_sources").uncheck().run()
+    assert not app.exception
+    assert "selected_sources" not in app.session_state["compiled"].params
+    assert app.session_state["compiled"].keep_indices is True
+
+
+def test_manual_numeric_pattern_selects_current_literal_sources_and_runs_the_selected_kind(
+    tmp_path,
+):
+    app = _app(r"""
+        from src.core.application_api import ApplicationAPI
+        from src.web.components.data_source.variable_editor import VariableEditor
+        api = ApplicationAPI()
+        metadata = [
+            {"name": "l0_cpu01.v", "type": "vector", "entries": ["a"], "source_type": "vector",
+             "instances": [{"source_name": "l0_cpu01.v", "indices": []}]},
+            {"name": "l1_cpu0.v", "type": "histogram", "entries": ["0-9"],
+             "source_type": "histogram",
+             "instances": [{"source_name": "l1_cpu0.v", "indices": []}]},
+        ]
+        api.state_manager.set_scanned_variables(metadata)
+        original = {"name": "V", "source_name": r"l\d+_cpu\d+.v", "type": "vector",
+                    "_id": "manual", "params": {"source_type": "vector", "entries": ["a"]}}
+        try:
+            result = VariableEditor.render(api, [original], metadata)
+            st.session_state["compiled"] = api.compile_parse_variables(result)[0]
+            st.session_state["metadata"] = metadata
+        finally:
+            api.close()
+    """)
+    assert not app.exception
+    app.checkbox(key="use_pattern_filter_manual").check().run()
+    assert not app.exception
+    selector = app.multiselect(key="pattern_entries_manual")
+    assert len(selector.options) == 2
+    assert any("l0_cpu01.v" in option and "01" in option for option in selector.options)
+    assert any("l1_cpu0.v" in option for option in selector.options)
+    selector.set_value(["l0_cpu01.v"]).run()
+    assert not app.exception
+    configured = app.session_state["compiled"]
+    assert configured.params["source_type"] == "vector"
+    assert configured.params["selected_sources"] == ["l0_cpu01.v"]
+
+    import pandas as pd
+    from src.core.application_api import ApplicationAPI
+
+    (tmp_path / "stats.txt").write_text("l0_cpu01.v::a 4\nl1_cpu0.v::0-9 6\n", encoding="utf-8")
+    api = ApplicationAPI()
+    try:
+        batch = api.submit_parse_async(
+            str(tmp_path),
+            "stats.txt",
+            [configured],
+            str(tmp_path / "out"),
+            scanned_vars=app.session_state["metadata"],
+        )
+        path = api.finalize_parsing(
+            str(tmp_path / "out"),
+            [future.result(timeout=30) for future in batch.futures],
+            var_names=batch.var_names,
+        )
+        assert path is not None
+        assert pd.read_csv(path).to_dict("records") == [{"V..a": 4.0}]
+    finally:
+        api.close()

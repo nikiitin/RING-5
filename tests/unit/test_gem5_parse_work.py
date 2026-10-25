@@ -1,265 +1,125 @@
-import copy
-from typing import Any, cast
-from unittest.mock import MagicMock, patch
+"""Worker observation routing uses resolved sources and real registered accumulators."""
+
+from unittest.mock import patch
 
 import pytest
 
-from src.core.common.stat_config_codec import StatConfigCodec
-
-from src.parsing.gem5.impl.strategies.gem5_parse_work import (
-    Gem5ParseWork,
-    VarsDictType,
-)
+from src.core.models.parsing_models import ScannedVariable, SourceInstance, StatConfig
+from src.parsing.gem5.impl.source_bindings import resolve_sources
+from src.parsing.gem5.impl.strategies.gem5_parse_work import Gem5ParseWork
+from src.parsing.gem5.types.type_mapper import TypeMapper
 
 
-class MockType:
-    def __init__(self, type_name: Any) -> None:
-
-        self._type_name = type_name
-        self.content = None
-        self.entries: list[str] = []
-        self.on_empty = None
+def _worker(configs, metadata=None, path="unused"):
+    plan = resolve_sources(configs, metadata)
+    accumulators = {spec.output_name: TypeMapper.create_stat(spec) for spec in plan.accumulators}
+    return Gem5ParseWork(path, accumulators, plan), accumulators
 
 
-# Mocking type(var).__name__ requires the class name to match
-class Scalar:
-    def __init__(self) -> None:
-        self.content = None
-        self.repeat = 1
+def test_exact_scalar_and_vector_observations_remain_independent():
+    work, values = _worker(
+        [
+            StatConfig("ipc", "scalar", repeat=2, params={"source_type": "scalar"}),
+            StatConfig("v", "vector", repeat=2, params={"source_type": "vector", "entries": ["a"]}),
+        ]
+    )
+    assert (
+        work._process_output("scalar/ipc/2\nscalar/ipc/4\nvector/v::a/6\nvector/v::a/8") is values
+    )
+    for value in values.values():
+        value.balance_content()
+        value.reduce_duplicates()
+    assert values["ipc"].reduced_content == 3.0
+    assert values["v"].reduced_content == {"a": 7.0}
 
 
-class Vector:
-    def __init__(self) -> None:
-        self.content = None
-        self.entries: list[str] = []
-        self.repeat = 1
+def test_dump_boundaries_keep_missing_samples_visible_instead_of_realigning_entries():
+    work, values = _worker(
+        [
+            StatConfig(
+                "v", "vector", repeat=2, params={"source_type": "vector", "entries": ["a", "b"]}
+            )
+        ]
+    )
+    work._process_output("vector/v::a/2\ndump//\nvector/v::b/4\ndump//")
+    assert values["v"].content == {"a": [2.0], "b": [4.0]}
+    values["v"].balance_content()
+    values["v"].reduce_duplicates()
+    assert all(str(value) == "nan" for value in values["v"].reduced_content.values())
 
 
-class Distribution:
-    def __init__(self) -> None:
-        self.content = None
-        self.entries: list[str] = []
-        self.repeat = 1
+def test_one_scalar_source_populates_two_distinct_logical_aliases():
+    configs = [
+        StatConfig(name, "scalar", source_name="ipc", params={"source_type": "scalar"})
+        for name in ["first", "second"]
+    ]
+    work, values = _worker(configs)
+    work._process_output("scalar/ipc/1.25")
+    assert set(values) == {"first", "second"}
+    assert values["first"] is not values["second"]
+    assert values["first"].content == values["second"].content == [1.25]
 
 
-class Configuration:
-    def __init__(self) -> None:
-        self.content: Any = None
-        self.on_empty: str | None = None
-
-
-@pytest.fixture
-def parser() -> Gem5ParseWork:
-    vars_to_parse = {"scalar_var": Scalar(), "vector_var": Vector(), "dist_var": Distribution()}
-    # Mock file existence check if needed, but __init__ doesn't check it (checkFile is in __call__)
-    return Gem5ParseWork("dummy.txt", cast(VarsDictType, vars_to_parse))
-
-
-def test_init_empty_vars() -> None:
-    with pytest.raises(RuntimeError):
-        Gem5ParseWork("file", {})
-
-
-def test_process_line_scalar(parser: Any) -> None:
-
-    line = "scalar/scalar_var/123"
-    parser._processLine(line, parser._varsToParse)
-    assert parser._varsToParse["scalar_var"].content == "123"
-
-
-def test_process_line_vector(parser: Any) -> None:
-
-    # Vector comes as Vector/ID::key/value
-    line1 = "vector/vector_var::0/10"
-    line2 = "vector/vector_var::1/20"
-
-    # Initialize buffer (new unified approach)
-    parser._entryBuffer = {}
-
-    parser._processLine(line1, parser._varsToParse)
-    parser._processLine(line2, parser._varsToParse)
-
-    assert parser._entryBuffer["vector_var"]["0"] == ["10"]
-    assert parser._entryBuffer["vector_var"]["1"] == ["20"]
-
-
-def test_process_pattern_scalars_into_vector_entries() -> None:
-    """Concrete scalar aliases populate their logical pattern vector."""
-    from src.parsing.gem5.types.type_mapper import TypeMapper
-
-    logical = TypeMapper.create_stat(
-        StatConfigCodec.from_draft(
-            {"name": "system.cpu\\d+.cycles", "type": "vector", "params": {"entries": ["0", "1"]}}
+@pytest.mark.parametrize("pattern", [r"cpu\d+.ipc", r"cpu\d+\.ipc"])
+def test_scalar_pattern_vector_uses_explicit_precomputed_numeric_labels(pattern):
+    metadata = [
+        ScannedVariable(
+            r"cpu\d+.ipc",
+            "vector",
+            [],
+            source_type="scalar",
+            instances=(SourceInstance("cpu012.ipc", ("012",)), SourceInstance("cpu1.ipc", ("1",))),
         )
-    )
-    vars_map = cast(
-        VarsDictType,
-        {
-            r"system.cpu\d+.cycles": logical,
-            "system.cpu0.cycles": copy.copy(logical),
-            "system.cpu1.cycles": copy.copy(logical),
-        },
-    )
-    work = Gem5ParseWork("f", vars_map)
-
-    parsed = work._processOutput(
-        "scalar/system.cpu0.cycles/10\nscalar/system.cpu1.cycles/20", vars_map
-    )
-
-    assert parsed[r"system.cpu\d+.cycles"].content == {"0": [10.0], "1": [20.0]}
+    ]
+    config = StatConfig("IPC", "vector", source_name=pattern, params={"source_type": "scalar"})
+    work, values = _worker([config], metadata)
+    with patch(
+        "src.core.common.safe_regex.numeric_pattern_id",
+        side_effect=AssertionError("worker rematched"),
+    ):
+        work._process_output("scalar/cpu012.ipc/10\nscalar/cpu1.ipc/20")
+    assert values["IPC"].content == {"012": [10.0], "1": [20.0]}
 
 
-def test_process_escaped_pattern_scalars_into_vector_entries() -> None:
-    r"""Conventional escaped dots resolve the same aliases as scanner patterns."""
-    from src.parsing.gem5.types.type_mapper import TypeMapper
-
-    pattern = r"system\.cpu\d+\.cycles"
-    logical = TypeMapper.create_stat(
-        StatConfigCodec.from_draft(
-            {"name": pattern, "type": "vector", "params": {"entries": ["0", "1"]}}
-        )
-    )
-    vars_map = cast(
-        VarsDictType,
-        {
-            pattern: logical,
-            "system.cpu0.cycles": copy.copy(logical),
-            "system.cpu1.cycles": copy.copy(logical),
-        },
-    )
-
-    parsed = Gem5ParseWork("f", vars_map)._processOutput(
-        "scalar/system.cpu0.cycles/10\nscalar/system.cpu1.cycles/20", vars_map
-    )
-
-    assert parsed[pattern].content == {"0": [10.0], "1": [20.0]}
-
-
-def test_process_output_full_flow(parser: Any) -> None:
-    from src.parsing.gem5.types.vector import Vector as VectorStat
-
-    parser._varsToParse["vector_var"] = VectorStat(repeat=2, entries=["0"])
-    output = """scalar/scalar_var/99
-vector/vector_var::0/100
-vector/vector_var::0/101
-distribution/dist_var::min/5
-distribution/dist_var::max/15
-"""
-    # Logic in _addBufferedVars copies from dict to var.content
-
-    parsed = parser._processOutput(output, parser._varsToParse)
-
-    assert parsed["scalar_var"].content == "99"
-
-    # Check Vector
-    # _processVector appends to list: _vectorDict[varID][varKey].append(varValue)
-    # output had two values for vector_var::0 => ["100", "101"]
-    v_content = parsed["vector_var"].content
-    assert v_content["0"] == [100.0, 101.0]
-
-    # Check Dist
-    d_content = parsed["dist_var"].content
-    assert d_content["min"] == ["5"]
-    assert d_content["max"] == ["15"]
-
-
-def test_validate_vars_missing_numeric_not_fabricated(parser: Any, caplog: Any) -> None:
-    import logging
-
-    # A numeric var with no parsed content must NOT be fabricated to "0";
-    # it is left empty (NaN-padded downstream) and logged for traceability.
-    with caplog.at_level(logging.WARNING):
-        parser._validateVars(parser._varsToParse)
-    assert parser._varsToParse["scalar_var"].content is None
+def test_missing_numeric_source_logs_and_stays_empty(caplog):
+    work, values = _worker([StatConfig("ipc", "scalar", params={"source_type": "scalar"})])
+    work._process_output("")
+    assert values["ipc"].content == []
     assert "absent or incomplete" in caplog.text
-    assert "scalar_var" in caplog.text
 
 
-def test_process_output_empty_no_fabrication(parser: Any) -> None:
-
-    # Empty output: numeric vars are left empty (missing), never fabricated to "0".
-    output = ""
-    parsed = parser._processOutput(output, parser._varsToParse)
-    assert parsed is not None
-    assert parsed["scalar_var"].content is None
-
-
-def test_validate_vars_config_default() -> None:
+def test_configuration_fallback_comes_from_declared_params():
     # [test->req~ring5.ingestion.configuration-fallbacks~1]
-    vars_map: VarsDictType = cast(VarsDictType, {"config_var": Configuration()})
-    vars_map["config_var"].on_empty = "Default"
-    # Content must not be None to pass first check, but empty to trigger default logic
-    vars_map["config_var"].content = []
-
-    work = Gem5ParseWork("f", vars_map)
-    validated = work._validateVars(vars_map)
-
-    assert validated["config_var"].content == "Default"
-
-
-def test_validate_vars_config_no_default_fail() -> None:
-    vars_map: VarsDictType = cast(VarsDictType, {"config_var": Configuration()})
-    vars_map["config_var"].on_empty = None
-    vars_map["config_var"].content = []
-
-    work = Gem5ParseWork("f", vars_map)
-
-    # A missing entry is represented by the string ``"None"``.
-    work._validateVars(vars_map)
-    assert vars_map["config_var"].content == "None"
-
-
-def test_call_subprocess(parser: Any) -> None:
-
-    # Test __call__ flow mocking worker pool instead of subprocess
-    # Patch the symbol imported by ``gem5_parse_work``.
-    with patch("src.parsing.gem5.impl.strategies.gem5_parse_work.get_worker_pool") as mock_get_pool:
-        with patch("src.core.common.utils.checkFileExistsOrException"):
-            # Success Case
-            mock_pool = MagicMock()
-            mock_pool.parse_file.return_value = [
-                "scalar/scalar_var/10",
-                "vector/vector_var::0/20",
-                "distribution/dist_var::min/5",
-            ]
-            mock_get_pool.return_value = mock_pool
-
-            result = parser()
-
-            assert result["scalar_var"].content == "10"
-            assert result["vector_var"].content["0"] == ["20"]
-
-
-def test_distribution_with_stats(parser: Any) -> None:
-
-    # Test processing distribution with stats entries (mean, samples)
-    # Mock variables first
-    from src.parsing.gem5.types import StatTypeRegistry
-
-    # Use small range to satisfy validation of all buckets
-    # Initialize with configured statistics to pass validation
-    dist_var = StatTypeRegistry.create(
-        "distribution",
-        minimum=0,
-        maximum=1,
-        statistics=["samples", "mean", "underflows", "overflows"],
+    work, values = _worker(
+        [
+            StatConfig(
+                "benchmark",
+                "configuration",
+                params={"source_type": "configuration", "on_empty": "unknown"},
+            )
+        ]
     )
-    parser._varsToParse = {"dist_var": dist_var}
-    parser._entryBuffer = {}
+    work._process_output("")
+    assert values["benchmark"].content == ["unknown"]
 
-    # Simulate lines from scanner (now scanner sends 'distribution' for these)
-    output = (
-        "distribution/dist_var::0/10\n"
-        "distribution/dist_var::1/20\n"
-        "distribution/dist_var::underflows/0\n"
-        "distribution/dist_var::overflows/0\n"
-        "distribution/dist_var::samples/100\n"
-        "distribution/dist_var::mean/5.5"
-    )
 
-    parser._processOutput(output, parser._varsToParse)
+@pytest.mark.parametrize("line", ["vector/ipc::a/2", "configuration/ipc/value", "Scalar/ipc/2"])
+def test_raw_source_kind_mismatch_is_visible(line):
+    work, _ = _worker([StatConfig("ipc", "scalar", params={"source_type": "scalar"})])
+    with pytest.raises(RuntimeError, match="Raw source kind mismatch"):
+        work._process_output(line)
 
-    assert dist_var.content["0"] == [10.0]
-    assert dist_var.content["1"] == [20.0]
-    assert dist_var.content["samples"] == [100.0]
-    assert dist_var.content["mean"] == [5.5]
+
+def test_unknown_and_malformed_records_do_not_populate_outputs(caplog):
+    work, values = _worker([StatConfig("ipc", "scalar", params={"source_type": "scalar"})])
+    work._process_output("malformed\nscalar/other/3\n\n")
+    assert values["ipc"].content == []
+    assert "Malformed worker output" in caplog.text
+
+
+def test_worker_rejects_accumulator_maps_that_do_not_match_plan():
+    plan = resolve_sources([StatConfig("ipc", "scalar", params={"source_type": "scalar"})], [])
+    with pytest.raises(RuntimeError, match="requires logical accumulators"):
+        Gem5ParseWork("unused", {}, plan)
+    with pytest.raises(ValueError, match="exactly match"):
+        Gem5ParseWork("unused", {"wrong": TypeMapper.create_stat(plan.accumulators[0])}, plan)

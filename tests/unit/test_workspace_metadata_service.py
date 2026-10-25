@@ -21,8 +21,20 @@ def _state() -> MagicMock:
         {"name": "system.cpu.ipc", "type": "scalar", "_id": "v1"}
     ]
     state.get_scanned_variables.return_value = [
-        {"name": "system.cpu.ipc", "type": "scalar", "entries": []},
-        {"name": "system.cache.misses", "type": "vector", "entries": []},
+        {
+            "name": "system.cpu.ipc",
+            "type": "scalar",
+            "entries": [],
+            "source_type": "scalar",
+            "instances": [{"source_name": "system.cpu.ipc", "indices": []}],
+        },
+        {
+            "name": "system.cache.misses",
+            "type": "vector",
+            "entries": [],
+            "source_type": "vector",
+            "instances": [{"source_name": "system.cache.misses", "indices": []}],
+        },
     ]
     state.list_datasets.return_value = (DatasetInfo("nightly", 3, 2, True),)
     state.get_plots.return_value = [

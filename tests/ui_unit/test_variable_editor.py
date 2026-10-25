@@ -194,18 +194,30 @@ def test_disabling_pattern_selection_removes_the_previous_filter(mock_api: Any) 
         "name": "IPC",
         "source_name": pattern,
         "type": "scalar",
-        "params": {"parsed_ids": ["0"]},
+        "params": {"source_type": "scalar", "selected_sources": ["cpu0.ipc"]},
         "keep_indices": True,
     }
     config = deepcopy(original)
     mock_api.state_manager.get_scanned_variables.return_value = [
-        {"name": pattern, "type": "scalar", "pattern_indices": ["0", "1"]}
+        {
+            "name": pattern,
+            "type": "vector",
+            "source_type": "scalar",
+            "entries": [],
+            "instances": [
+                {"source_name": "cpu0.ipc", "indices": ["0"]},
+                {"source_name": "cpu1.ipc", "indices": ["1"]},
+            ],
+        }
     ]
-    with patch(
-        "src.web.components.data_source.variable_editor.PatternIndexSelector.render_selector",
-        return_value=(False, ["0", "1"]),
+    with (
+        patch("src.web.components.data_source.variable_editor.st.checkbox", return_value=True),
+        patch(
+            "src.web.components.data_source.variable_editor.PatternIndexSelector.render_selector",
+            return_value=(False, ["cpu0.ipc", "cpu1.ipc"]),
+        ),
     ):
         VariableEditor._render_pattern_index_for_variable(mock_api, config, original, "pattern")
-    assert config["keep_indices"] is False
-    assert "parsed_ids" not in config["params"]
-    assert original["params"]["parsed_ids"] == ["0"]
+    assert config["keep_indices"] is True
+    assert "selected_sources" not in config["params"]
+    assert original["params"]["selected_sources"] == ["cpu0.ipc"]

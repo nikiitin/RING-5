@@ -10,18 +10,18 @@ from __future__ import annotations
 
 import json
 import logging
-import math
 import os
 import shutil
 import subprocess
+from typing import cast
 from pathlib import Path
 
 from src.core.common.security_limits import MAX_SCAN_FILE_BYTES, MAX_SCAN_LINE_COUNT
 from src.core.common.safe_regex import MAX_INPUT_LENGTH
 from src.core.common.utils import sanitize_log_value
 from src.core.models.parsing_models import ScannedVariable
+from src.core.models.data_models import ScannedVariableDict
 from src.parsing.gem5.models import Gem5ScannedVariable
-from src.parsing.gem5.types.type_mapper import TypeMapper
 
 logger = logging.getLogger(__name__)
 
@@ -124,7 +124,6 @@ class Gem5StatsScanner:
                     name = item.get("name")
                     type_name = item.get("type")
                     entries = item.get("entries", [])
-                    pattern_indices = item.get("pattern_indices", [])
                     if not isinstance(name, str) or not name:
                         raise ValueError("name must be a non-empty string")
                     if len(name) > MAX_INPUT_LENGTH:
@@ -142,21 +141,16 @@ class Gem5StatsScanner:
                         for entry in entries
                     ):
                         raise ValueError("entries must be a list of bounded strings")
-                    if not isinstance(pattern_indices, list) or any(
-                        not isinstance(pattern_id, str) or len(pattern_id) > MAX_INPUT_LENGTH
-                        for pattern_id in pattern_indices
+                    if item.get("source_type") != type_name:
+                        raise ValueError("source_type must declare the actual scanned source kind")
+                    variable = Gem5ScannedVariable.from_dict(cast(ScannedVariableDict, item))
+                    if (
+                        len(variable.instances) != 1
+                        or variable.instances[0].source_name != name
+                        or variable.instances[0].indices
                     ):
-                        raise ValueError("pattern_indices must be a list of bounded strings")
-                    for range_name in ("minimum", "maximum"):
-                        range_value = item.get(range_name)
-                        if range_value is not None and (
-                            isinstance(range_value, bool)
-                            or not isinstance(range_value, (int, float))
-                            or not math.isfinite(range_value)
-                        ):
-                            raise ValueError(f"{range_name} must be a finite number")
-                    mapped = TypeMapper.map_scan_result(item)
-                    variables.append(Gem5ScannedVariable.from_dict(mapped))
+                        raise ValueError("Raw scan metadata must identify one literal source")
+                    variables.append(variable)
                 except (KeyError, TypeError, ValueError) as exc:
                     raise RuntimeError(
                         f"Perl scanner result {index} has an invalid variable schema."

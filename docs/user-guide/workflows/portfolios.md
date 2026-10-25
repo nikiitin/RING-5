@@ -16,7 +16,7 @@ Covers:
 - req~ring5.workspace.application-data-directory~1
 -->
 
-A portfolio stores the current table as CSV text together with plot definitions, shaper pipelines,
+A portfolio stores the current table as a typed payload together with plot definitions, shaper pipelines,
 parser configuration, and operation history. Use it to reopen or batch-render a RING-5 workspace.
 Keep original simulator output and analysis code separately; a portfolio is not a substitute for
 research data storage.
@@ -298,7 +298,7 @@ overwrite silently; select **Replace a saved recipe with this name** only when r
 intentional. The **Saved** tab shows the source, parameter, transformation, plot, and download
 counts and downloads a portable `ring5.analysis-recipe` JSON file. The **Import** tab validates
 that versioned file before saving it. Recipe JSON is limited to 512 KiB and does not embed dataset
-rows. Recipe schema 2 stores complete runnable `StatConfig` payloads; incomplete parser editor
+rows. Recipe schema 3 stores complete runnable `StatConfig` payloads; incomplete parser editor
 drafts remain savable in portfolios but cannot become an executable recipe. To construct a parser
 recipe in Python, serialize the public dataclass with `dataclasses.asdict`:
 
@@ -306,7 +306,10 @@ recipe in Python, serialize the public dataclass with `dataclasses.asdict`:
 from dataclasses import asdict
 import ring5
 
-stat = ring5.StatConfig(name="IPC", source_name="system.cpu.ipc", type="scalar")
+stat = ring5.StatConfig(
+    name="IPC", source_name="system.cpu.ipc", type="scalar",
+    params={"source_type": "scalar"},
+)
 source = ring5.RecipeSource(
     kind="parser",
     path="simulations",
@@ -425,7 +428,7 @@ with ring5.Session() as session:
 
 `Session.save_portfolio` refuses to overwrite by default. Pass `overwrite=True` only when replacing
 the named snapshot is intentional. `load_portfolio` returns a `RestoreReport` with data, plot, and
-parse-variable outcomes. Every newly saved schema-V6 portfolio captures its execution environment
+parse-variable outcomes. Every newly saved schema-V7 portfolio captures its execution environment
 and an integrity manifest. Workspace data and each plot’s source and processed tables retain
 their exact supported values, dtypes, axes and attributes. Empty tables remain present tables.
 Unsupported objects or cyclic metadata are rejected before a save replaces retained files.

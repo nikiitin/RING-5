@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from src.core.models.parsing_models import ScannedVariable, StatConfig
+from src.core.models.parsing_models import ScannedVariable, SourceInstance, StatConfig
 from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 from src.parsing.gem5.models import Gem5ScannedVariable
 
@@ -48,15 +48,40 @@ def test_perl_missing_frequency_stats_and_summaries_differ_from_measured_zero(
         "zero::underflows 0 0% 0%\nzero::0 0 0% 0%\nzero::1 0 0% 0%\n"
         "zero::overflows 0 0% 0%\nh::0-9 0 0% 0%\n",
         [
-            StatConfig("missing", "distribution", params={"minimum": 0, "maximum": 1}),
             StatConfig(
-                "zero", "distribution", params={"minimum": 0, "maximum": 1, "statistics": ["mean"]}
+                "missing",
+                "distribution",
+                params={"source_type": "distribution", "minimum": 0, "maximum": 1},
             ),
             StatConfig(
-                "h", "histogram", params={"bins": 2, "max_range": 10, "statistics": ["mean"]}
+                "zero",
+                "distribution",
+                params={
+                    "source_type": "distribution",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "statistics": ["mean"],
+                },
             ),
             StatConfig(
-                "absent_h", "histogram", params={"bins": 2, "max_range": 10, "statistics": ["mean"]}
+                "h",
+                "histogram",
+                params={
+                    "source_type": "histogram",
+                    "bins": 2,
+                    "max_range": 10,
+                    "statistics": ["mean"],
+                },
+            ),
+            StatConfig(
+                "absent_h",
+                "histogram",
+                params={
+                    "source_type": "histogram",
+                    "bins": 2,
+                    "max_range": 10,
+                    "statistics": ["mean"],
+                },
             ),
         ],
     )
@@ -76,8 +101,8 @@ def test_perl_temporal_vector_samples_match_scalar_average(tmp_path: Path) -> No
         tmp_path,
         "v::a 2\nipc 2\nv::a 4\nipc 4\n",
         [
-            StatConfig("v", "vector", repeat=2, params={"entries": ["a"]}),
-            StatConfig("ipc", "scalar", repeat=2),
+            StatConfig("v", "vector", repeat=2, params={"source_type": "vector", "entries": ["a"]}),
+            StatConfig("ipc", "scalar", repeat=2, params={"source_type": "scalar"}),
         ],
     )
     assert rows == [{"v..a": "3.0", "ipc": "3.0"}]
@@ -98,7 +123,12 @@ def test_perl_aliased_scalar_pattern_repeats_selected_indices_and_keep_indices(
     source = r"system.cpu\d+.ipc"
     assert any(var.name == source and var.type == "vector" for var in scanned)
     config = StatConfig(
-        "IPC", "vector", source_name=source, repeat=2, is_regex=True, params={"entries": ["0", "1"]}
+        "IPC",
+        "vector",
+        source_name=source,
+        repeat=2,
+        is_regex=True,
+        params={"source_type": "scalar"},
     )
     columns, rows = _parse(tmp_path / "all", text, [config], scanned=scanned)
     assert columns == ["IPC..0", "IPC..1"]
@@ -111,7 +141,7 @@ def test_perl_aliased_scalar_pattern_repeats_selected_indices_and_keep_indices(
             repeat=2,
             is_regex=True,
             keep_indices=keep_indices,
-            params={"entries": ["0", "1"], "parsed_ids": ["1"]},
+            params={"source_type": "scalar", "selected_sources": ["system.cpu1.ipc"]},
         )
         columns, rows = _parse(
             tmp_path / f"selected-{keep_indices}", text, [selected], scanned=scanned
@@ -124,7 +154,14 @@ def test_perl_true_vector_pattern_averages_spatial_and_temporal_samples(tmp_path
     source = r"system.cpu\d+.v"
     scanned: list[ScannedVariable] = [
         Gem5ScannedVariable(
-            source, "vector", entries=["a"], pattern_indices=["system.cpu0.v", "system.cpu1.v"]
+            source,
+            "vector",
+            entries=["a"],
+            source_type="vector",
+            instances=(
+                SourceInstance("system.cpu0.v", ("0",)),
+                SourceInstance("system.cpu1.v", ("1",)),
+            ),
         )
     ]
     text = "system.cpu0.v::a 2\nsystem.cpu1.v::a 4\nsystem.cpu0.v::a 6\nsystem.cpu1.v::a 8\n"
@@ -138,7 +175,7 @@ def test_perl_true_vector_pattern_averages_spatial_and_temporal_samples(tmp_path
                 source_name=source,
                 repeat=2,
                 is_regex=True,
-                params={"entries": ["a"]},
+                params={"source_type": "vector", "entries": ["a"]},
             )
         ],
         scanned=scanned,
@@ -149,7 +186,15 @@ def test_perl_true_vector_pattern_averages_spatial_and_temporal_samples(tmp_path
 def test_perl_missing_expected_pattern_instance_stays_nan(tmp_path: Path) -> None:
     source = r"system.cpu\d+.h"
     scanned: list[ScannedVariable] = [
-        Gem5ScannedVariable(source, "histogram", pattern_indices=["system.cpu0.h", "system.cpu1.h"])
+        Gem5ScannedVariable(
+            source,
+            "histogram",
+            source_type="histogram",
+            instances=(
+                SourceInstance("system.cpu0.h", ("0",)),
+                SourceInstance("system.cpu1.h", ("1",)),
+            ),
+        )
     ]
     _, rows = _parse(
         tmp_path,
@@ -160,7 +205,7 @@ def test_perl_missing_expected_pattern_instance_stays_nan(tmp_path: Path) -> Non
                 "histogram",
                 source_name=source,
                 is_regex=True,
-                params={"bins": 2, "max_range": 10},
+                params={"source_type": "histogram", "bins": 2, "max_range": 10},
             )
         ],
         scanned=scanned,
@@ -191,7 +236,11 @@ def test_perl_signed_histogram_scan_and_rebin(tmp_path: Path, text: str) -> None
     _, rows = _parse(
         tmp_path / "parse",
         text,
-        [StatConfig("h", "histogram", params={"bins": 2, "max_range": 10})],
+        [
+            StatConfig(
+                "h", "histogram", params={"source_type": "histogram", "bins": 2, "max_range": 10}
+            )
+        ],
     )
     assert rows == [{"h..<0": "5.0", "h..0-9": "7.0", "h..10+": "0.0"}]
 
@@ -210,7 +259,14 @@ def test_perl_singleton_oneline_buckets_and_changing_dump_geometry_conserve_coun
     _, rows = _parse(
         tmp_path,
         text,
-        [StatConfig("h", "histogram", repeat=2, params={"bins": 2, "max_range": 10})],
+        [
+            StatConfig(
+                "h",
+                "histogram",
+                repeat=2,
+                params={"source_type": "histogram", "bins": 2, "max_range": 10},
+            )
+        ],
     )
     assert rows == [{"h..0-9": "15.0", "h..10+": "0.0"}]
 
@@ -225,7 +281,7 @@ def test_perl_full_and_incremental_dynamic_histogram_schemas_match(tmp_path: Pat
         run = inputs / name
         run.mkdir(parents=True)
         (run / "stats.txt").write_text(text, encoding="utf-8")
-    configs = [StatConfig("h", "histogram")]
+    configs = [StatConfig("h", "histogram", params={"source_type": "histogram"})]
     full = Gem5Parser.submit_parse_async(str(inputs), "stats.txt", configs, str(tmp_path / "full"))
     results = [future.result(timeout=30) for future in full.futures]
     full_path = Gem5Parser.finalize_parsing(
@@ -250,7 +306,12 @@ def test_config_aware_preserves_literal_percent_case_paths_and_unicode(tmp_path:
     (tmp_path / "config.ini").write_text(
         "[system.workload]\nCmd=echo 100% %(unknown)s /tmp/á\\\\path\n", encoding="utf-8"
     )
-    _, rows = _parse(tmp_path, "ipc 2\n", [StatConfig("ipc", "scalar")], strategy="config_aware")
+    _, rows = _parse(
+        tmp_path,
+        "ipc 2\n",
+        [StatConfig("ipc", "scalar", params={"source_type": "scalar"})],
+        strategy="config_aware",
+    )
     config = json.loads(rows[0]["config_json"])
     assert config == {"system.workload": {"Cmd": "echo 100% %(unknown)s /tmp/á\\\\path"}}
 
@@ -275,7 +336,7 @@ def test_perl_scanned_numeric_vector_entries_retain_vector_source_type(tmp_path:
             source_name=r"system.cpu\d+.v",
             is_regex=True,
             keep_indices=keep_indices,
-            params={"entries": ["0", "1"]},
+            params={"source_type": "vector", "entries": ["0", "1"]},
         )
         _, rows = _parse(tmp_path / str(keep_indices), text, [config], scanned=scanned)
         if keep_indices:
@@ -314,6 +375,13 @@ def test_perl_scan_and_parse_reset_geometry_before_zero_suppressed_dump(tmp_path
     _, rows = _parse(
         tmp_path / "parse",
         text,
-        [StatConfig("h", "histogram", repeat=2, params={"bins": 2, "max_range": 10})],
+        [
+            StatConfig(
+                "h",
+                "histogram",
+                repeat=2,
+                params={"source_type": "histogram", "bins": 2, "max_range": 10},
+            )
+        ],
     )
     assert rows == [{"h..<0": "2.5", "h..0-9": "8.5", "h..10+": "0.0"}]

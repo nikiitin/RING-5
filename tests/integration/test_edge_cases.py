@@ -9,6 +9,7 @@ Tests exercise boundary conditions, malformed inputs, and unusual
 but valid combinations that are unlikely to appear in normal unit tests.
 """
 
+from src.core.models.parsing_models import SourceInstance
 from pathlib import Path
 from typing import cast
 from unittest.mock import patch
@@ -227,9 +228,27 @@ class TestPatternAggregatorEdgeCases:
     def test_simple_cpu_aggregation(self) -> None:
         r"""cpu0/cpu1/cpu2 collapse into cpu\d+ pattern."""
         variables: list[ScannedVariable] = [
-            ScannedVariable(name="system.cpu0.numCycles", type="scalar", entries=[]),
-            ScannedVariable(name="system.cpu1.numCycles", type="scalar", entries=[]),
-            ScannedVariable(name="system.cpu2.numCycles", type="scalar", entries=[]),
+            ScannedVariable(
+                name="system.cpu0.numCycles",
+                type="scalar",
+                entries=[],
+                source_type="scalar",
+                instances=(SourceInstance("system.cpu0.numCycles", ()),),
+            ),
+            ScannedVariable(
+                name="system.cpu1.numCycles",
+                type="scalar",
+                entries=[],
+                source_type="scalar",
+                instances=(SourceInstance("system.cpu1.numCycles", ()),),
+            ),
+            ScannedVariable(
+                name="system.cpu2.numCycles",
+                type="scalar",
+                entries=[],
+                source_type="scalar",
+                instances=(SourceInstance("system.cpu2.numCycles", ()),),
+            ),
         ]
 
         result: list[ScannedVariable] = PatternAggregator.aggregate_patterns(variables)
@@ -240,14 +259,30 @@ class TestPatternAggregatorEdgeCases:
         assert pattern_vars[0].name == r"system.cpu\d+.numCycles"
         # Type promoted to vector
         assert pattern_vars[0].type == "vector"
-        # Entries are the numeric IDs
-        assert sorted(pattern_vars[0].entries) == ["0", "1", "2"]
+        assert pattern_vars[0].entries == []
+        assert pattern_vars[0].instances == (
+            SourceInstance("system.cpu0.numCycles", ("0",)),
+            SourceInstance("system.cpu1.numCycles", ("1",)),
+            SourceInstance("system.cpu2.numCycles", ("2",)),
+        )
 
     def test_no_aggregation_for_single_instance(self) -> None:
         """Single-instance variables are NOT aggregated."""
         variables: list[ScannedVariable] = [
-            ScannedVariable(name="system.cpu0.numCycles", type="scalar", entries=[]),
-            ScannedVariable(name="system.memctrl.readReqs", type="scalar", entries=[]),
+            ScannedVariable(
+                name="system.cpu0.numCycles",
+                type="scalar",
+                entries=[],
+                source_type="scalar",
+                instances=(SourceInstance("system.cpu0.numCycles", ()),),
+            ),
+            ScannedVariable(
+                name="system.memctrl.readReqs",
+                type="scalar",
+                entries=[],
+                source_type="scalar",
+                instances=(SourceInstance("system.memctrl.readReqs", ()),),
+            ),
         ]
 
         result: list[ScannedVariable] = PatternAggregator.aggregate_patterns(variables)
@@ -265,16 +300,22 @@ class TestPatternAggregatorEdgeCases:
                 name="system.ruby.l0_cntrl0.hits",
                 type="vector",
                 entries=["read", "write"],
+                source_type="vector",
+                instances=(SourceInstance("system.ruby.l0_cntrl0.hits", ()),),
             ),
             ScannedVariable(
                 name="system.ruby.l0_cntrl1.hits",
                 type="vector",
                 entries=["read", "write"],
+                source_type="vector",
+                instances=(SourceInstance("system.ruby.l0_cntrl1.hits", ()),),
             ),
             ScannedVariable(
                 name="system.ruby.l1_cntrl0.hits",
                 type="vector",
                 entries=["read", "write"],
+                source_type="vector",
+                instances=(SourceInstance("system.ruby.l1_cntrl0.hits", ()),),
             ),
         ]
 
@@ -295,11 +336,15 @@ class TestPatternAggregatorEdgeCases:
                 name="system.cpu0.dcache.hits",
                 type="vector",
                 entries=["demand_accesses", "total"],
+                source_type="vector",
+                instances=(SourceInstance("system.cpu0.dcache.hits", ()),),
             ),
             ScannedVariable(
                 name="system.cpu1.dcache.hits",
                 type="vector",
                 entries=["demand_accesses", "total"],
+                source_type="vector",
+                instances=(SourceInstance("system.cpu1.dcache.hits", ()),),
             ),
         ]
 
@@ -319,6 +364,8 @@ class TestPatternAggregatorEdgeCases:
                 entries=[],
                 minimum=10.0,
                 maximum=100.0,
+                source_type="distribution",
+                instances=(SourceInstance("system.cpu0.dcache.miss_latency", ()),),
             ),
             Gem5ScannedVariable(
                 name="system.cpu1.dcache.miss_latency",
@@ -326,6 +373,8 @@ class TestPatternAggregatorEdgeCases:
                 entries=[],
                 minimum=5.0,
                 maximum=200.0,
+                source_type="distribution",
+                instances=(SourceInstance("system.cpu1.dcache.miss_latency", ()),),
             ),
         ]
 
@@ -347,8 +396,20 @@ class TestPatternAggregatorEdgeCases:
     def test_no_numeric_patterns(self) -> None:
         """Variables without numeric components are returned as-is."""
         variables: list[ScannedVariable] = [
-            ScannedVariable(name="system.memctrl.readReqs", type="scalar", entries=[]),
-            ScannedVariable(name="system.memctrl.writeReqs", type="scalar", entries=[]),
+            ScannedVariable(
+                name="system.memctrl.readReqs",
+                type="scalar",
+                entries=[],
+                source_type="scalar",
+                instances=(SourceInstance("system.memctrl.readReqs", ()),),
+            ),
+            ScannedVariable(
+                name="system.memctrl.writeReqs",
+                type="scalar",
+                entries=[],
+                source_type="scalar",
+                instances=(SourceInstance("system.memctrl.writeReqs", ()),),
+            ),
         ]
 
         result: list[ScannedVariable] = PatternAggregator.aggregate_patterns(variables)

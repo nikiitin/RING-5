@@ -8,6 +8,8 @@ import pytest
 
 from ring5._parse import ParseJob, build_stat_configs
 from ring5.errors import ParseError, ScanError
+from src.core.models.parsing_models import SourceInstance
+
 from src.core.models.parsing_models import ScanFileResult, ScannedVariable, ScanResult
 
 pytestmark = pytest.mark.public_api
@@ -19,14 +21,28 @@ def test_build_stat_configs_rejects_partial_scan() -> None:
     first.set_result(
         ScanFileResult(
             file_path="good/stats.txt",
-            variables=[ScannedVariable(name="simTicks", type="scalar")],
+            variables=[
+                ScannedVariable(
+                    name="simTicks",
+                    type="scalar",
+                    source_type="scalar",
+                    instances=(SourceInstance("simTicks", ()),),
+                )
+            ],
         )
     )
     second: Future[ScanFileResult] = Future()
     second.set_result(ScanFileResult("large/stats.txt", error="line limit exceeded"))
     api.submit_scan_async.return_value = [first, second]
     api.finalize_scan.return_value = ScanResult(
-        variables=[ScannedVariable(name="simTicks", type="scalar")],
+        variables=[
+            ScannedVariable(
+                name="simTicks",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("simTicks", ()),),
+            )
+        ],
         failures=[ScanFileResult("large/stats.txt", error="line limit exceeded")],
         scanned_files=2,
     )
@@ -64,13 +80,27 @@ def test_unknown_variable_error_reports_actual_scanned_file_count() -> None:
         future.set_result(
             ScanFileResult(
                 file_path=f"run-{index}/stats.txt",
-                variables=[ScannedVariable(name="simTicks", type="scalar")],
+                variables=[
+                    ScannedVariable(
+                        name="simTicks",
+                        type="scalar",
+                        source_type="scalar",
+                        instances=(SourceInstance("simTicks", ()),),
+                    )
+                ],
             )
         )
         futures.append(future)
     api.submit_scan_async.return_value = futures
     api.finalize_scan.return_value = ScanResult(
-        variables=[ScannedVariable(name="simTicks", type="scalar")],
+        variables=[
+            ScannedVariable(
+                name="simTicks",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("simTicks", ()),),
+            )
+        ],
         scanned_files=2,
     )
 

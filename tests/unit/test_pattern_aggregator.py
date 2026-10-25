@@ -3,6 +3,7 @@ Unit Tests for Pattern Aggregator
 Tests the pattern detection and aggregation logic for repeated gem5 variables.
 """
 
+from src.core.models.parsing_models import SourceInstance
 from typing import cast
 
 from src.core.models.parsing_models import ScannedVariable
@@ -57,9 +58,24 @@ class TestPatternAggregation:
     def test_aggregate_simple_scalar_pattern(self) -> None:
         """Test aggregating scalar variables with numeric indices."""
         variables = [
-            ScannedVariable(name="system.cpu0.numCycles", type="scalar"),
-            ScannedVariable(name="system.cpu1.numCycles", type="scalar"),
-            ScannedVariable(name="system.cpu2.numCycles", type="scalar"),
+            ScannedVariable(
+                name="system.cpu0.numCycles",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("system.cpu0.numCycles", ()),),
+            ),
+            ScannedVariable(
+                name="system.cpu1.numCycles",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("system.cpu1.numCycles", ()),),
+            ),
+            ScannedVariable(
+                name="system.cpu2.numCycles",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("system.cpu2.numCycles", ()),),
+            ),
         ]
 
         result = PatternAggregator.aggregate_patterns(variables)
@@ -67,20 +83,41 @@ class TestPatternAggregation:
         assert len(result) == 1
         assert result[0].name == r"system.cpu\d+.numCycles"
         assert result[0].type == "vector"
-        assert result[0].entries == ["0", "1", "2"]
-        assert result[0].pattern_indices == [
-            "system.cpu0.numCycles",
-            "system.cpu1.numCycles",
-            "system.cpu2.numCycles",
-        ]
+        assert result[0].entries == []
+        assert result[0].source_type == "scalar"
+        assert result[0].instances == (
+            SourceInstance("system.cpu0.numCycles", ("0",)),
+            SourceInstance("system.cpu1.numCycles", ("1",)),
+            SourceInstance("system.cpu2.numCycles", ("2",)),
+        )
 
     def test_aggregate_mixed_patterns_and_non_patterns(self) -> None:
         """Test that non-pattern variables are preserved."""
         variables = [
-            ScannedVariable(name="system.cpu0.numCycles", type="scalar"),
-            ScannedVariable(name="system.cpu1.numCycles", type="scalar"),
-            ScannedVariable(name="system.total_cycles", type="scalar"),  # No pattern
-            ScannedVariable(name="global.simulation_time", type="scalar"),  # No pattern
+            ScannedVariable(
+                name="system.cpu0.numCycles",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("system.cpu0.numCycles", ()),),
+            ),
+            ScannedVariable(
+                name="system.cpu1.numCycles",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("system.cpu1.numCycles", ()),),
+            ),
+            ScannedVariable(
+                name="system.total_cycles",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("system.total_cycles", ()),),
+            ),  # No pattern
+            ScannedVariable(
+                name="global.simulation_time",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("global.simulation_time", ()),),
+            ),  # No pattern
         ]
 
         result = PatternAggregator.aggregate_patterns(variables)
@@ -96,8 +133,18 @@ class TestPatternAggregation:
     def test_aggregate_single_instance_not_aggregated(self) -> None:
         """Test that single instances are not converted to patterns."""
         variables = [
-            ScannedVariable(name="system.cpu0.numCycles", type="scalar"),
-            ScannedVariable(name="system.memory.accesses", type="scalar"),
+            ScannedVariable(
+                name="system.cpu0.numCycles",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("system.cpu0.numCycles", ()),),
+            ),
+            ScannedVariable(
+                name="system.memory.accesses",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("system.memory.accesses", ()),),
+            ),
         ]
 
         result = PatternAggregator.aggregate_patterns(variables)
@@ -111,12 +158,42 @@ class TestPatternAggregation:
     def test_aggregate_multiple_different_patterns(self) -> None:
         """Test multiple distinct patterns in same scan."""
         variables = [
-            ScannedVariable(name="system.cpu0.ipc", type="scalar"),
-            ScannedVariable(name="system.cpu1.ipc", type="scalar"),
-            ScannedVariable(name="system.ruby.l0_cntrl0.hits", type="scalar"),
-            ScannedVariable(name="system.ruby.l0_cntrl1.hits", type="scalar"),
-            ScannedVariable(name="system.ruby.l1_cntrl0.misses", type="scalar"),
-            ScannedVariable(name="system.ruby.l1_cntrl1.misses", type="scalar"),
+            ScannedVariable(
+                name="system.cpu0.ipc",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("system.cpu0.ipc", ()),),
+            ),
+            ScannedVariable(
+                name="system.cpu1.ipc",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("system.cpu1.ipc", ()),),
+            ),
+            ScannedVariable(
+                name="system.ruby.l0_cntrl0.hits",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("system.ruby.l0_cntrl0.hits", ()),),
+            ),
+            ScannedVariable(
+                name="system.ruby.l0_cntrl1.hits",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("system.ruby.l0_cntrl1.hits", ()),),
+            ),
+            ScannedVariable(
+                name="system.ruby.l1_cntrl0.misses",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("system.ruby.l1_cntrl0.misses", ()),),
+            ),
+            ScannedVariable(
+                name="system.ruby.l1_cntrl1.misses",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("system.ruby.l1_cntrl1.misses", ()),),
+            ),
         ]
 
         result = PatternAggregator.aggregate_patterns(variables)
@@ -132,8 +209,20 @@ class TestPatternAggregation:
     def test_aggregate_vector_variables(self) -> None:
         """Test aggregating variables that are already vectors."""
         variables = [
-            ScannedVariable(name="system.cpu0.instsIssued", type="vector", entries=["0", "1", "2"]),
-            ScannedVariable(name="system.cpu1.instsIssued", type="vector", entries=["0", "1", "2"]),
+            ScannedVariable(
+                name="system.cpu0.instsIssued",
+                type="vector",
+                entries=["0", "1", "2"],
+                source_type="vector",
+                instances=(SourceInstance("system.cpu0.instsIssued", ()),),
+            ),
+            ScannedVariable(
+                name="system.cpu1.instsIssued",
+                type="vector",
+                entries=["0", "1", "2"],
+                source_type="vector",
+                instances=(SourceInstance("system.cpu1.instsIssued", ()),),
+            ),
         ]
 
         result = PatternAggregator.aggregate_patterns(variables)
@@ -155,6 +244,8 @@ class TestPatternAggregation:
                 entries=["samples", "mean"],
                 minimum=10.0,
                 maximum=100.0,
+                source_type="distribution",
+                instances=(SourceInstance("system.cpu0.latency", ()),),
             ),
             Gem5ScannedVariable(
                 name="system.cpu1.latency",
@@ -162,6 +253,8 @@ class TestPatternAggregation:
                 entries=["samples", "mean"],
                 minimum=5.0,
                 maximum=120.0,
+                source_type="distribution",
+                instances=(SourceInstance("system.cpu1.latency", ()),),
             ),
         ]
 
@@ -181,11 +274,15 @@ class TestPatternAggregation:
                 name="system.cpu0.histogram",
                 type="histogram",
                 entries=["0", "10", "20", "samples", "mean"],
+                source_type="histogram",
+                instances=(SourceInstance("system.cpu0.histogram", ()),),
             ),
             ScannedVariable(
                 name="system.cpu1.histogram",
                 type="histogram",
                 entries=["0", "10", "20", "samples", "mean"],
+                source_type="histogram",
+                instances=(SourceInstance("system.cpu1.histogram", ()),),
             ),
         ]
 
@@ -200,10 +297,30 @@ class TestPatternAggregation:
     def test_aggregate_preserves_sorting(self) -> None:
         """Test that result is sorted alphabetically by name."""
         variables = [
-            ScannedVariable(name="system.zeta.value", type="scalar"),
-            ScannedVariable(name="system.cpu1.ipc", type="scalar"),
-            ScannedVariable(name="system.cpu0.ipc", type="scalar"),
-            ScannedVariable(name="system.alpha.stat", type="scalar"),
+            ScannedVariable(
+                name="system.zeta.value",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("system.zeta.value", ()),),
+            ),
+            ScannedVariable(
+                name="system.cpu1.ipc",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("system.cpu1.ipc", ()),),
+            ),
+            ScannedVariable(
+                name="system.cpu0.ipc",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("system.cpu0.ipc", ()),),
+            ),
+            ScannedVariable(
+                name="system.alpha.stat",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("system.alpha.stat", ()),),
+            ),
         ]
 
         result = PatternAggregator.aggregate_patterns(variables)
@@ -214,7 +331,13 @@ class TestPatternAggregation:
     def test_aggregate_large_number_range(self) -> None:
         """Test aggregating 16 CPUs (cpu0-cpu15)."""
         variables = [
-            ScannedVariable(name=f"system.cpu{i}.numCycles", type="scalar") for i in range(16)
+            ScannedVariable(
+                name=f"system.cpu{i}.numCycles",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance(f"system.cpu{i}.numCycles", ()),),
+            )
+            for i in range(16)
         ]
 
         result = PatternAggregator.aggregate_patterns(variables)
@@ -222,24 +345,50 @@ class TestPatternAggregation:
         assert len(result) == 1
         assert result[0].name == r"system.cpu\d+.numCycles"
         assert result[0].type == "vector"
-        assert len(result[0].entries) == 16
-        assert "0" in result[0].entries
-        assert "15" in result[0].entries
+        assert result[0].entries == []
+        assert len(result[0].instances) == 16
+        assert {record.indices for record in result[0].instances} == {(str(i),) for i in range(16)}
 
     def test_aggregate_mixed_numeric_widths(self) -> None:
         """Test handling both single and double-digit indices (cpu0-cpu15)."""
         variables = [
-            ScannedVariable(name="system.cpu0.stat", type="scalar"),
-            ScannedVariable(name="system.cpu9.stat", type="scalar"),
-            ScannedVariable(name="system.cpu10.stat", type="scalar"),
-            ScannedVariable(name="system.cpu15.stat", type="scalar"),
+            ScannedVariable(
+                name="system.cpu0.stat",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("system.cpu0.stat", ()),),
+            ),
+            ScannedVariable(
+                name="system.cpu9.stat",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("system.cpu9.stat", ()),),
+            ),
+            ScannedVariable(
+                name="system.cpu10.stat",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("system.cpu10.stat", ()),),
+            ),
+            ScannedVariable(
+                name="system.cpu15.stat",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("system.cpu15.stat", ()),),
+            ),
         ]
 
         result = PatternAggregator.aggregate_patterns(variables)
 
         assert len(result) == 1
         assert result[0].name == r"system.cpu\d+.stat"
-        assert result[0].entries == ["0", "10", "15", "9"]  # Sorted lexically
+        assert result[0].entries == []
+        assert [record.indices for record in result[0].instances] == [
+            ("0",),
+            ("9",),
+            ("10",),
+            ("15",),
+        ]
 
     def test_aggregate_empty_list(self) -> None:
         """Test handling empty variable list."""
@@ -249,40 +398,63 @@ class TestPatternAggregation:
     def test_aggregate_complex_multi_index_pattern(self) -> None:
         """Test complex patterns like l0_cntrl0, l1_cntrl1, etc."""
         variables = [
-            ScannedVariable(name="system.ruby.l0_cntrl0.hits", type="scalar"),
-            ScannedVariable(name="system.ruby.l0_cntrl1.hits", type="scalar"),
-            ScannedVariable(name="system.ruby.l1_cntrl0.hits", type="scalar"),
-            ScannedVariable(name="system.ruby.l1_cntrl1.hits", type="scalar"),
+            ScannedVariable(
+                name="system.ruby.l0_cntrl0.hits",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("system.ruby.l0_cntrl0.hits", ()),),
+            ),
+            ScannedVariable(
+                name="system.ruby.l0_cntrl1.hits",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("system.ruby.l0_cntrl1.hits", ()),),
+            ),
+            ScannedVariable(
+                name="system.ruby.l1_cntrl0.hits",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("system.ruby.l1_cntrl0.hits", ()),),
+            ),
+            ScannedVariable(
+                name="system.ruby.l1_cntrl1.hits",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("system.ruby.l1_cntrl1.hits", ()),),
+            ),
         ]
 
         result = PatternAggregator.aggregate_patterns(variables)
 
         assert len(result) == 1
         assert result[0].name == r"system.ruby.l\d+_cntrl\d+.hits"
-        assert result[0].entries == ["0_0", "0_1", "1_0", "1_1"]
+        assert result[0].entries == []
+        assert [record.indices for record in result[0].instances] == [
+            ("0", "0"),
+            ("0", "1"),
+            ("1", "0"),
+            ("1", "1"),
+        ]
 
 
 class TestEdgeCases:
     """Test edge cases and error conditions."""
 
-    def test_variables_without_type(self) -> None:
-        """Test handling variables missing 'type' field."""
-        variables = [
-            ScannedVariable(name="system.cpu0.stat", type="scalar"),
-            ScannedVariable(name="system.cpu1.stat", type="scalar"),
-        ]
-
-        result = PatternAggregator.aggregate_patterns(variables)
-
-        # Should still aggregate, defaulting to scalar -> vector
-        assert len(result) == 1
-        assert result[0].type == "vector"
-
     def test_variables_with_special_characters(self) -> None:
         """Test variables with dots, underscores, etc."""
         variables = [
-            ScannedVariable(name="system.cpu0.dcache.overall_hits", type="scalar"),
-            ScannedVariable(name="system.cpu1.dcache.overall_hits", type="scalar"),
+            ScannedVariable(
+                name="system.cpu0.dcache.overall_hits",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("system.cpu0.dcache.overall_hits", ()),),
+            ),
+            ScannedVariable(
+                name="system.cpu1.dcache.overall_hits",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("system.cpu1.dcache.overall_hits", ()),),
+            ),
         ]
 
         result = PatternAggregator.aggregate_patterns(variables)
@@ -293,8 +465,18 @@ class TestEdgeCases:
     def test_no_aggregation_for_different_stat_names(self) -> None:
         """Test that different stats don't get aggregated even with same index."""
         variables = [
-            ScannedVariable(name="system.cpu0.ipc", type="scalar"),
-            ScannedVariable(name="system.cpu0.numCycles", type="scalar"),
+            ScannedVariable(
+                name="system.cpu0.ipc",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("system.cpu0.ipc", ()),),
+            ),
+            ScannedVariable(
+                name="system.cpu0.numCycles",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("system.cpu0.numCycles", ()),),
+            ),
         ]
 
         result = PatternAggregator.aggregate_patterns(variables)

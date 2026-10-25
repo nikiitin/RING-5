@@ -10,7 +10,8 @@ permalink: /developer-guide/subsystems/portfolios/
 # Portfolio subsystem
 
 `PortfolioService` serializes workspace state to JSON under the application data directory. The
-embedded DataFrame is stored as CSV text; plots serialize through `BasePlot.to_dict`; configuration,
+embedded DataFrame uses the shared typed table codec; plots serialize through `BasePlot.to_dict`;
+configuration,
 parser provenance, histories, and save-time environment metadata remain plain JSON-compatible data.
 
 `PortfolioIntegrityService` creates a canonical-JSON SHA-256 digest for the body and separate input,
@@ -35,8 +36,8 @@ Covers:
 
 -->
 
-The supported portfolio schema is version 6. Serialized files declare `schema_version: 6`,
-`version: "6.0"`, their parser strategy and simulator, environment metadata, and an integrity
+The supported portfolio schema is version 7. Serialized files declare `schema_version: 7`,
+`version: "7.0"`, their parser strategy and simulator, environment metadata, and an integrity
 manifest. Missing or unsupported schema versions raise a typed version error before restoration.
 No reader infers old defaults, translates keys, or rewrites a file into the current schema.
 

@@ -119,7 +119,7 @@ class AnalysisRecipe:
     transformations: tuple[ShaperStepConfig, ...] = ()
     plots: tuple[RecipePlot, ...] = ()
     exports: tuple[RecipeExport, ...] = ()
-    schema_version: int = 2
+    schema_version: int = 3
 
 
 @dataclass(frozen=True)

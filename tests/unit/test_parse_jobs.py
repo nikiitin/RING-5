@@ -160,7 +160,13 @@ class TestParseJobFingerprint:
             variables=[
                 StatConfigCodec.to_payload(
                     StatConfigCodec.from_draft(
-                        {"name": "simTicks", "type": "scalar", "_id": "one", "repeat": 1}
+                        {
+                            "name": "simTicks",
+                            "type": "scalar",
+                            "_id": "one",
+                            "repeat": 1,
+                            "params": {"source_type": "scalar"},
+                        }
                     )
                 )
             ],
@@ -172,7 +178,13 @@ class TestParseJobFingerprint:
             variables=[
                 StatConfigCodec.to_payload(
                     StatConfigCodec.from_draft(
-                        {"repeat": 1, "_id": "two", "type": "scalar", "name": "simTicks"}
+                        {
+                            "repeat": 1,
+                            "_id": "two",
+                            "type": "scalar",
+                            "name": "simTicks",
+                            "params": {"source_type": "scalar"},
+                        }
                     )
                 )
             ],
@@ -191,7 +203,10 @@ class TestParseJobFingerprint:
                 [
                     StatConfigCodec.to_payload(
                         StatConfig(
-                            name="alias", source_name="system.cpu.ipc", type="scalar", params={}
+                            name="alias",
+                            source_name="system.cpu.ipc",
+                            type="scalar",
+                            params={"source_type": "scalar"},
                         )
                     )
                 ],
@@ -218,10 +233,14 @@ class TestParseJobFingerprint:
             **common,
             variables=[
                 StatConfigCodec.to_payload(
-                    StatConfigCodec.from_draft({"name": "a", "type": "scalar"})
+                    StatConfigCodec.from_draft(
+                        {"name": "a", "type": "scalar", "params": {"source_type": "scalar"}}
+                    )
                 ),
                 StatConfigCodec.to_payload(
-                    StatConfigCodec.from_draft({"name": "b", "type": "scalar"})
+                    StatConfigCodec.from_draft(
+                        {"name": "b", "type": "scalar", "params": {"source_type": "scalar"}}
+                    )
                 ),
             ],
         )
@@ -229,10 +248,14 @@ class TestParseJobFingerprint:
             **common,
             variables=[
                 StatConfigCodec.to_payload(
-                    StatConfigCodec.from_draft({"name": "b", "type": "scalar"})
+                    StatConfigCodec.from_draft(
+                        {"name": "b", "type": "scalar", "params": {"source_type": "scalar"}}
+                    )
                 ),
                 StatConfigCodec.to_payload(
-                    StatConfigCodec.from_draft({"name": "a", "type": "scalar"})
+                    StatConfigCodec.from_draft(
+                        {"name": "a", "type": "scalar", "params": {"source_type": "scalar"}}
+                    )
                 ),
             ],
         )
@@ -294,10 +317,18 @@ class TestParseJobFingerprint:
                 stats_pattern="stats.txt",
                 variables=[
                     StatConfigCodec.to_payload(
-                        StatConfigCodec.from_draft({"name": "simTicks", "type": "scalar"})
+                        StatConfigCodec.from_draft(
+                            {
+                                "name": "simTicks",
+                                "type": "scalar",
+                                "params": {"source_type": "scalar"},
+                            }
+                        )
                     )
                 ],
-                scanned_variables=[{"name": "simTicks", "type": "scalar"}],
+                scanned_variables=[
+                    {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
+                ],
                 strategy_type=strategy,
             )
 
@@ -310,10 +341,18 @@ class TestParseJobFingerprint:
                 stats_pattern="stats.txt",
                 variables=[
                     StatConfigCodec.to_payload(
-                        StatConfigCodec.from_draft({"name": "simTicks", "type": "scalar"})
+                        StatConfigCodec.from_draft(
+                            {
+                                "name": "simTicks",
+                                "type": "scalar",
+                                "params": {"source_type": "scalar"},
+                            }
+                        )
                     )
                 ],
-                scanned_variables=[{"name": "simTicks", "type": "scalar"}],
+                scanned_variables=[
+                    {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
+                ],
                 strategy_type="simple",
                 incremental=True,
             ).fingerprint
@@ -326,11 +365,18 @@ class TestParseJobFingerprint:
                 variables=[
                     StatConfigCodec.to_payload(
                         StatConfigCodec.from_draft(
-                            {"name": "simTicks", "type": "scalar", "repeat": 2}
+                            {
+                                "name": "simTicks",
+                                "type": "scalar",
+                                "repeat": 2,
+                                "params": {"source_type": "scalar"},
+                            }
                         )
                     )
                 ],
-                scanned_variables=[{"name": "simTicks", "type": "scalar"}],
+                scanned_variables=[
+                    {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
+                ],
                 strategy_type="simple",
             ).fingerprint
             != baseline.fingerprint
@@ -341,10 +387,18 @@ class TestParseJobFingerprint:
                 stats_pattern="stats.txt",
                 variables=[
                     StatConfigCodec.to_payload(
-                        StatConfigCodec.from_draft({"name": "simTicks", "type": "scalar"})
+                        StatConfigCodec.from_draft(
+                            {
+                                "name": "simTicks",
+                                "type": "scalar",
+                                "params": {"source_type": "scalar"},
+                            }
+                        )
                     )
                 ],
-                scanned_variables=[{"name": "other", "type": "scalar"}],
+                scanned_variables=[
+                    {"name": "other", "type": "scalar", "params": {"source_type": "scalar"}}
+                ],
                 strategy_type="simple",
             ).fingerprint
             != baseline.fingerprint
@@ -355,10 +409,18 @@ class TestParseJobFingerprint:
                 stats_pattern="stats.txt",
                 variables=[
                     StatConfigCodec.to_payload(
-                        StatConfigCodec.from_draft({"name": "simTicks", "type": "scalar"})
+                        StatConfigCodec.from_draft(
+                            {
+                                "name": "simTicks",
+                                "type": "scalar",
+                                "params": {"source_type": "scalar"},
+                            }
+                        )
                     )
                 ],
-                scanned_variables=[{"name": "simTicks", "type": "scalar"}],
+                scanned_variables=[
+                    {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
+                ],
                 strategy_type="simple",
                 simulator="other",
             ).fingerprint
@@ -370,10 +432,18 @@ class TestParseJobFingerprint:
                 stats_pattern="stats.txt",
                 variables=[
                     StatConfigCodec.to_payload(
-                        StatConfigCodec.from_draft({"name": "simTicks", "type": "scalar"})
+                        StatConfigCodec.from_draft(
+                            {
+                                "name": "simTicks",
+                                "type": "scalar",
+                                "params": {"source_type": "scalar"},
+                            }
+                        )
                     )
                 ],
-                scanned_variables=[{"name": "simTicks", "type": "scalar"}],
+                scanned_variables=[
+                    {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
+                ],
                 strategy_type="simple",
                 parser_contract_version="2",
             ).fingerprint
@@ -411,7 +481,11 @@ class TestParseJobFingerprint:
                 variables=[
                     StatConfigCodec.to_payload(
                         StatConfigCodec.from_draft(
-                            {"name": "system.cpu.type", "type": "configuration"}
+                            {
+                                "name": "system.cpu.type",
+                                "type": "configuration",
+                                "params": {"source_type": "configuration"},
+                            }
                         )
                     )
                 ],
@@ -481,7 +555,13 @@ class TestParseJobStore:
             stats_pattern="stats.txt",
             variables=[
                 StatConfigCodec.to_payload(
-                    StatConfigCodec.from_draft({"name": "x" * 1_100_000, "type": "scalar"})
+                    StatConfigCodec.from_draft(
+                        {
+                            "name": "x" * 1100000,
+                            "type": "scalar",
+                            "params": {"source_type": "scalar"},
+                        }
+                    )
                 )
             ],
             strategy_type="simple",
@@ -550,7 +630,9 @@ class TestParseJobFlow:
             stats_pattern="stats.txt",
             variables=[
                 StatConfigCodec.to_payload(
-                    StatConfigCodec.from_draft({"name": "simTicks", "type": "scalar"})
+                    StatConfigCodec.from_draft(
+                        {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
+                    )
                 )
             ],
             strategy_type="simple",
@@ -567,7 +649,9 @@ class TestParseJobFlow:
             stats_pattern="stats.txt",
             variables=[
                 StatConfigCodec.to_payload(
-                    StatConfigCodec.from_draft({"type": "scalar", "name": "simTicks"})
+                    StatConfigCodec.from_draft(
+                        {"type": "scalar", "name": "simTicks", "params": {"source_type": "scalar"}}
+                    )
                 )
             ],
             strategy_type="simple",
@@ -584,7 +668,9 @@ class TestParseJobFlow:
             stats_pattern="stats.txt",
             variables=[
                 StatConfigCodec.to_payload(
-                    StatConfigCodec.from_draft({"name": "simTicks", "type": "scalar"})
+                    StatConfigCodec.from_draft(
+                        {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
+                    )
                 )
             ],
             strategy_type="simple",
@@ -710,7 +796,9 @@ class TestParseJobFlow:
             stats_pattern="stats.txt",
             variables=[
                 StatConfigCodec.to_payload(
-                    StatConfigCodec.from_draft({"name": "simTicks", "type": "scalar"})
+                    StatConfigCodec.from_draft(
+                        {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
+                    )
                 )
             ],
             strategy_type="simple",
@@ -720,7 +808,9 @@ class TestParseJobFlow:
             stats_pattern="stats.txt",
             variables=[
                 StatConfigCodec.to_payload(
-                    StatConfigCodec.from_draft({"name": "simTicks", "type": "scalar"})
+                    StatConfigCodec.from_draft(
+                        {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
+                    )
                 )
             ],
             strategy_type="simple",
@@ -732,7 +822,9 @@ class TestParseJobFlow:
                 stats_pattern="stats.txt",
                 variables=[
                     StatConfigCodec.to_payload(
-                        StatConfigCodec.from_draft({"name": "other", "type": "scalar"})
+                        StatConfigCodec.from_draft(
+                            {"name": "other", "type": "scalar", "params": {"source_type": "scalar"}}
+                        )
                     )
                 ],
                 strategy_type="simple",
@@ -791,7 +883,9 @@ class TestParseJobFlow:
             stats_pattern="stats.txt",
             variables=[
                 StatConfigCodec.to_payload(
-                    StatConfigCodec.from_draft({"name": "simTicks", "type": "scalar"})
+                    StatConfigCodec.from_draft(
+                        {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
+                    )
                 )
             ],
             strategy_type="simple",
@@ -1440,7 +1534,9 @@ def test_parser_semantic_revision_prevents_reusing_old_published_csv(
         "stats_pattern": "stats.txt",
         "variables": [
             StatConfigCodec.to_payload(
-                StatConfigCodec.from_draft({"name": "simTicks", "type": "scalar"})
+                StatConfigCodec.from_draft(
+                    {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
+                )
             )
         ],
         "strategy_type": "simple",
@@ -1494,7 +1590,9 @@ def test_same_metadata_content_change_never_reuses_published_result(
         stats_pattern="stats.txt",
         variables=[
             StatConfigCodec.to_payload(
-                StatConfigCodec.from_draft({"name": "value", "type": "scalar"})
+                StatConfigCodec.from_draft(
+                    {"name": "value", "type": "scalar", "params": {"source_type": "scalar"}}
+                )
             )
         ],
         strategy_type="config_aware" if companion else "simple",
@@ -1543,7 +1641,9 @@ def test_input_changed_while_parser_runs_cannot_publish_or_cache_result(
         stats_pattern="stats.txt",
         variables=[
             StatConfigCodec.to_payload(
-                StatConfigCodec.from_draft({"name": "simTicks", "type": "scalar"})
+                StatConfigCodec.from_draft(
+                    {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
+                )
             )
         ],
         strategy_type="simple",

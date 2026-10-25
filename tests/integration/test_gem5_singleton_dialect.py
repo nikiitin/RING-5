@@ -1,4 +1,4 @@
-"""Real Perl contracts for genuine gem5 singleton output and legacy scan migration."""
+"""Real Perl contracts for genuine gem5 singleton output and explicit source records."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 
 from src.core.models.parsing_models import ScannedVariable, StatConfig
+from src.core.models.parsing_models import SourceInstance
 from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
 pytestmark = pytest.mark.xdist_group("perl_pool")
@@ -65,9 +66,15 @@ def test_real_singleton_histogram_vector_and_distribution_contexts(
     row = _parse(
         tmp_path,
         [
-            StatConfig("h", "histogram", params={"bins": 2, "max_range": 10}),
-            StatConfig("v", "vector", params={"entries": ["0", "1"]}),
-            StatConfig("d", "distribution", params={"minimum": 0, "maximum": 1}),
+            StatConfig(
+                "h", "histogram", params={"bins": 2, "max_range": 10, "source_type": "histogram"}
+            ),
+            StatConfig("v", "vector", params={"entries": ["0", "1"], "source_type": "vector"}),
+            StatConfig(
+                "d",
+                "distribution",
+                params={"minimum": 0, "maximum": 1, "source_type": "distribution"},
+            ),
         ],
     )
     assert {key: row[key] for key in ("h..<0", "h..0-9", "h..10+")} == {
@@ -88,7 +95,14 @@ def test_explicit_histogram_type_canonicalizes_points_without_inference_markers(
     tmp_path: Path,
 ) -> None:
     _scan(tmp_path, "h::-1 2\nh::0 9\nh::1 1\n")
-    row = _parse(tmp_path, [StatConfig("h", "histogram", params={"entries": ["-1", "0", "1"]})])
+    row = _parse(
+        tmp_path,
+        [
+            StatConfig(
+                "h", "histogram", params={"entries": ["-1", "0", "1"], "source_type": "vector"}
+            )
+        ],
+    )
     assert row == {"h..-1--1": "2.0", "h..0-0": "9.0", "h..1-1": "1.0"}
 
 
@@ -101,7 +115,9 @@ def test_histogram_geometry_identifies_points_without_summaries(tmp_path: Path) 
     assert len(scanned) == 1
     assert scanned[0].type == "histogram"
     assert set(scanned[0].entries) == {"-1--1", "0-0", "1-1"}
-    assert _parse(tmp_path, [StatConfig("h", "histogram")]) == {
+    assert _parse(
+        tmp_path, [StatConfig("h", "histogram", params={"source_type": "histogram"})]
+    ) == {
         "h..-1--1": "2.0",
         "h..0-0": "9.0",
         "h..1-1": "1.0",
@@ -118,16 +134,18 @@ def test_singleton_histogram_preserves_explicit_entry_type_reinterpretation(
         "h::0 9 90% 90%\nh::1 1 10% 100%\n",
     )
     config = (
-        StatConfig("h", target, params={"entries": ["0", "1"]})
+        StatConfig("h", target, params={"entries": ["0-0", "1-1"], "source_type": "histogram"})
         if target == "vector"
-        else StatConfig("h", target, params={"minimum": 0, "maximum": 1})
+        else StatConfig(
+            "h", target, params={"minimum": 0, "maximum": 1, "source_type": "histogram"}
+        )
     )
     if target == "distribution":
         with pytest.raises(TypeError, match="Missing mandatory keys 'underflows' or 'overflows'"):
             _parse(tmp_path, [config])
     else:
         row = _parse(tmp_path, [config])
-        assert (row["h..0"], row["h..1"]) == ("9.0", "1.0")
+        assert (row["h..0-0"], row["h..1-1"]) == ("9.0", "1.0")
 
 
 @pytest.mark.parametrize("target", ["vector", "histogram"])
@@ -141,13 +159,16 @@ def test_distribution_preserves_explicit_entry_type_reinterpretation(
         "d::1 1 10% 100%\nd::overflows 0 0% 100%\n",
     )
     assert scanned[0].type == "distribution"
-    row = _parse(tmp_path, [StatConfig("d", target, params={"entries": ["0", "1"]})])
+    row = _parse(
+        tmp_path,
+        [StatConfig("d", target, params={"entries": ["0", "1"], "source_type": "distribution"})],
+    )
     labels = ("0", "1") if target == "vector" else ("0-0", "1-1")
     assert (row[f"d..{labels[0]}"], row[f"d..{labels[1]}"]) == ("9.0", "1.0")
 
 
 @pytest.mark.parametrize("include_raw_entries", [False, True])
-def test_histogram_scan_selected_singleton_labels_cast_to_vector(
+def test_histogram_vector_selection_requires_inclusive_scanned_labels(
     tmp_path: Path, include_raw_entries: bool
 ) -> None:
     scanned = _scan(
@@ -163,9 +184,14 @@ def test_histogram_scan_selected_singleton_labels_cast_to_vector(
     expected = {f"h..{entry}": values[entry] for entry in selected}
     if include_raw_entries:
         selected.extend(["-1", "0", "1"])
-        expected.update({"h..-1": "2.0", "h..0": "9.0", "h..1": "1.0"})
-    config = StatConfig("h", "vector", params={"entries": selected})
-    assert _parse(tmp_path, [config], scanned) == expected
+    config = StatConfig(
+        "h", "vector", params={"entries": selected, "source_type": histogram.source_type}
+    )
+    if include_raw_entries:
+        with pytest.raises(ValueError):
+            _parse(tmp_path, [config], scanned)
+    else:
+        assert _parse(tmp_path, [config], scanned) == expected
 
 
 @pytest.mark.parametrize("source_type", ["vector", "histogram"])
@@ -175,13 +201,14 @@ def test_singleton_cast_aliases_do_not_broaden_vector_labels(
     summaries = "h::gmean 1\n" if source_type == "histogram" else ""
     scanned = _scan(tmp_path, summaries + "h::0 9 90% 90%\nh::1 1 10% 100%\n")
     assert scanned[0].type == source_type
-    selected = ["0", "0-1", "other"]
+    first = "0-0" if source_type == "histogram" else "0"
+    selected = [first, "0-1", "other"]
     if source_type == "vector":
         selected.append("0-0")
-    config = StatConfig("h", "vector", params={"entries": selected})
+    config = StatConfig("h", "vector", params={"entries": selected, "source_type": source_type})
     row = _parse(tmp_path, [config], scanned)
-    assert row["h..0"] == "9.0"
-    assert all(row[f"h..{entry}"] == "NaN" for entry in selected if entry != "0")
+    assert row[f"h..{first}"] == "9.0"
+    assert all(row[f"h..{entry}"] == "NaN" for entry in selected if entry != first)
 
 
 def test_explicit_histogram_handles_suppressed_gmean_with_other_summaries(tmp_path: Path) -> None:
@@ -190,7 +217,12 @@ def test_explicit_histogram_handles_suppressed_gmean_with_other_summaries(tmp_pa
         "h::samples 10\nh::mean 0.1\nh::stdev 0.3\n" "h::0 9 90% 90%\nh::1 1 10% 100%\n",
     )
     assert _parse(
-        tmp_path, [StatConfig("h", "histogram", params={"bins": 2, "max_range": 10})]
+        tmp_path,
+        [
+            StatConfig(
+                "h", "histogram", params={"bins": 2, "max_range": 10, "source_type": "distribution"}
+            )
+        ],
     ) == {
         "h..0-9": "10.0",
         "h..10+": "0.0",
@@ -211,7 +243,10 @@ def test_dump_boundaries_clear_stale_histogram_geometry(tmp_path: Path, message:
     assert len(scanned) == 1
     assert scanned[0].type == "vector"
     assert set(scanned[0].entries) == {"0", "1", "bucket_size", "min_bucket", "max_bucket"}
-    assert _parse(tmp_path, [StatConfig("v", "vector", params={"entries": ["0", "1"]})]) == {
+    assert _parse(
+        tmp_path,
+        [StatConfig("v", "vector", params={"entries": ["0", "1"], "source_type": "vector"})],
+    ) == {
         "v..0": "3.0",
         "v..1": "7.0",
     }
@@ -273,14 +308,24 @@ def test_named_histogram_dumps_preserve_temporal_mass(tmp_path: Path) -> None:
     )
     _scan(tmp_path, text)
     assert _parse(
-        tmp_path, [StatConfig("h", "histogram", repeat=2, params={"bins": 2, "max_range": 10})]
+        tmp_path,
+        [
+            StatConfig(
+                "h",
+                "histogram",
+                repeat=2,
+                params={"bins": 2, "max_range": 10, "source_type": "histogram"},
+            )
+        ],
     ) == {"h..0-9": "3.0", "h..10+": "0.0"}
 
 
-@pytest.mark.parametrize("kind", ["scalar", "vector"])
-@pytest.mark.parametrize("entries", [["0", "1"], ["0"]])
-def test_ambiguous_legacy_numeric_pattern_requires_rescan(
-    tmp_path: Path, kind: str, entries: list[str]
+@pytest.mark.parametrize(
+    "kind,entries",
+    [("scalar", None), ("vector", ["0", "1"]), ("vector", ["0"])],
+)
+def test_explicit_raw_kind_separates_source_instances_from_measurement_entries(
+    tmp_path: Path, kind: str, entries: list[str] | None
 ) -> None:
     text = (
         "system.cpu0.v 2\nsystem.cpu1.v 4\n"
@@ -288,53 +333,56 @@ def test_ambiguous_legacy_numeric_pattern_requires_rescan(
         else "system.cpu0.v::0 2\nsystem.cpu0.v::1 4\nsystem.cpu1.v::0 6\nsystem.cpu1.v::1 8\n"
     )
     current = _scan(tmp_path, text)
-    legacy = []
-    for variable in current:
-        metadata = variable.to_dict()
-        metadata.pop("source_type", None)
-        legacy.append(ScannedVariable.from_dict(metadata))
-    assert legacy[0].source_type is None  # Stored portfolios still deserialize.
-    config = StatConfig(
-        "V", "vector", source_name=r"system.cpu\d+.v", is_regex=True, params={"entries": entries}
-    )
-    with pytest.raises(ValueError, match="Scan .* again"):
-        _parse(tmp_path, [config], legacy)
+    params = {"source_type": kind}
+    if entries is not None:
+        params["entries"] = entries
+    config = StatConfig("V", "vector", source_name=r"system.cpu\d+.v", is_regex=True, params=params)
     row = _parse(tmp_path, [config], current)
     expected = (
         {"V..0": "2.0", "V..1": "4.0"} if kind == "scalar" else {"V..0": "4.0", "V..1": "6.0"}
     )
-    # Scalar-instance selection is controlled by parsed_ids; genuine vector
-    # entries remain individually selectable.
     assert row == (
-        expected if kind == "scalar" else {f"V..{key}": expected[f"V..{key}"] for key in entries}
+        expected if entries is None else {f"V..{key}": expected[f"V..{key}"] for key in entries}
     )
 
 
-def test_unambiguous_legacy_vector_metadata_keeps_entry_subsets(tmp_path: Path) -> None:
+def test_current_vector_source_records_retain_measurement_entry_subsets(tmp_path: Path) -> None:
     text = "".join(
         f"system.cpu{cpu}.v::{entry} {cpu * 4 + entry + 2}\n"
         for cpu in range(2)
         for entry in range(3)
     )
     current = _scan(tmp_path, text)
-    legacy = []
-    for variable in current:
-        metadata = variable.to_dict()
-        metadata.pop("source_type", None)
-        legacy.append(ScannedVariable.from_dict(metadata))
     config = StatConfig(
-        "V", "vector", source_name=r"system.cpu\d+.v", is_regex=True, params={"entries": ["0", "1"]}
+        "V",
+        "vector",
+        source_name=r"system.cpu\d+.v",
+        is_regex=True,
+        params={"entries": ["0", "1"], "source_type": "vector"},
     )
-    assert _parse(tmp_path, [config], legacy) == {"V..0": "4.0", "V..1": "5.0"}
+    assert _parse(tmp_path, [config], current) == {"V..0": "4.0", "V..1": "5.0"}
 
 
-def test_unaggregated_legacy_vector_metadata_is_not_ambiguous(tmp_path: Path) -> None:
+def test_literal_vector_records_support_a_numeric_pattern_request(tmp_path: Path) -> None:
     _scan(
         tmp_path, "system.cpu0.v::0 2\nsystem.cpu0.v::1 4\nsystem.cpu1.v::0 6\nsystem.cpu1.v::1 8\n"
     )
-    physical = [ScannedVariable(f"system.cpu{index}.v", "vector", ["0", "1"]) for index in range(2)]
+    physical = [
+        ScannedVariable(
+            f"system.cpu{index}.v",
+            "vector",
+            ["0", "1"],
+            source_type="vector",
+            instances=(SourceInstance(f"system.cpu{index}.v", ()),),
+        )
+        for index in range(2)
+    ]
     config = StatConfig(
-        "V", "vector", source_name=r"system.cpu\d+.v", is_regex=True, params={"entries": ["0", "1"]}
+        "V",
+        "vector",
+        source_name=r"system.cpu\d+.v",
+        is_regex=True,
+        params={"entries": ["0", "1"], "source_type": "vector"},
     )
     assert _parse(tmp_path, [config], physical) == {"V..0": "4.0", "V..1": "6.0"}
 
@@ -354,7 +402,10 @@ def test_geometry_named_vector_measurements_are_not_consumed(
     assert len(scanned) == 1
     assert scanned[0].type == "vector"
     assert set(scanned[0].entries) == {entry, "other"}
-    assert _parse(tmp_path, [StatConfig("v", "vector", params={"entries": [entry, "other"]})]) == {
+    assert _parse(
+        tmp_path,
+        [StatConfig("v", "vector", params={"entries": [entry, "other"], "source_type": "vector"})],
+    ) == {
         f"v..{entry}": "12.0",
         "v..other": "34.0",
     }

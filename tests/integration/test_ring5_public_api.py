@@ -798,7 +798,7 @@ class TestPortfolioReplay:
     def test_future_portfolio_refused(self, tmp_path: Path, portfolios_dir: Path) -> None:
         # [test->req~ring5.portfolio.schema~1]
         """Forward-version files are refused, never silently downgraded."""
-        (portfolios_dir / "future.json").write_text(json.dumps({"schema_version": 7}))
+        (portfolios_dir / "future.json").write_text(json.dumps({"schema_version": 8}))
         with pytest.raises(
             ring5.PortfolioVersionError, match="Unsupported portfolio schema_version"
         ):
@@ -987,3 +987,15 @@ class TestApiErgonomics:
         with ring5.Session() as session:
             with pytest.raises(ring5.DataValidationError, match="Available types:.*bar"):
                 session.create_plot("not-a-plot", data=data, config={"x": "x", "y": "y"})
+
+
+def test_public_source_instances_keep_identity_and_coordinates_independent() -> None:
+    instance = ring5.SourceInstance("cpu012.ipc", ("012",))
+    scanned = ring5.ScannedVariable(
+        r"cpu\d+.ipc", "vector", [], source_type="scalar", instances=(instance,)
+    )
+    wire = scanned.to_dict()
+    assert wire["instances"] == [{"source_name": "cpu012.ipc", "indices": ["012"]}]
+    assert ring5.ScannedVariable.from_dict(wire) == scanned
+    wire["instances"][0]["indices"].append("9")
+    assert instance.indices == ("012",)

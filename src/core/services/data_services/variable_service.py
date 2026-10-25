@@ -427,51 +427,6 @@ class VariableService:
         return cls.filter_internal_stats(list(found_entries), internal_stats)
 
     @classmethod
-    def update_scanned_entries(
-        cls,
-        scanned_vars: list[ScannedVariableDict],
-        var_name: str,
-        new_entries: list[str],
-    ) -> list[ScannedVariableDict]:
-        """
-        Update or add entries for a variable in the scanned variables list.
-
-        If the variable exists, updates its entries field (preserving other
-        fields like pattern_indices). If not, appends a new vector variable.
-
-        Args:
-            scanned_vars: Current list of scanned variable dicts.
-            var_name: Variable name to update.
-            new_entries: New entries to set.
-
-        Returns:
-            Updated list of scanned variables (new list, original not mutated).
-
-        Examples:
-            >>> service = VariableService()
-            >>> scanned = [{"name": "cpu.ipc", "type": "vector", "entries": ["old"]}]
-            >>> updated = service.update_scanned_entries(scanned, "cpu.ipc", ["new1", "new2"])
-            >>> updated[0]["entries"]
-            ['new1', 'new2']
-            >>> updated2 = service.update_scanned_entries(scanned, "new.var", ["e1"])
-            >>> len(updated2)
-            2
-        """
-        result = [v.copy() for v in scanned_vars]
-
-        var_found = False
-        for v in result:
-            if v["name"] == var_name:
-                v["entries"] = new_entries
-                var_found = True
-                break
-
-        if not var_found:
-            result.append({"name": var_name, "type": "vector", "entries": new_entries})
-
-        return result
-
-    @classmethod
     def has_variable_with_name(
         cls,
         variables: list[ParseVariableConfig],

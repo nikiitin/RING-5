@@ -144,7 +144,12 @@ if TYPE_CHECKING:
         PortfolioIntegrityReport,
         PortfolioIntegritySection,
     )
-    from src.core.models.parsing_models import ParserPlaygroundResult, ScanResult, ScannedVariable
+    from src.core.models.parsing_models import (
+        ParserPlaygroundResult,
+        ScanResult,
+        ScannedVariable,
+        SourceInstance,
+    )
     from src.core.models.data_models import PipelineConfigImportResult
     from src.core.models.visualization.small_multiples_spec import SmallMultiplesSpec
     from src.core.models.portfolio_models import RestoreReport
@@ -233,6 +238,7 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "ScanJob": ("ring5._scan", "ScanJob"),
     "ScanResult": ("src.core.models.parsing_models", "ScanResult"),
     "ScannedVariable": ("src.core.models.parsing_models", "ScannedVariable"),
+    "SourceInstance": ("src.core.models.parsing_models", "SourceInstance"),
     "render_figure": ("ring5._render", "render_figure"),
     "render_dashboard": ("ring5._dashboard", "render_dashboard"),
     "apply_linked_selection": ("ring5._linked_selection", "apply_linked_selection"),
@@ -416,6 +422,7 @@ __all__ = [
     "ScanJob",
     "ScanResult",
     "ScannedVariable",
+    "SourceInstance",
     "ShaperStepConfig",
     "RestoreReport",
     "ColumnQuality",

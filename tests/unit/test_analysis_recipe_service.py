@@ -107,10 +107,10 @@ def test_recipe_rejects_undeclared_mistyped_and_future_content() -> None:
         AnalysisRecipeService.materialize(recipe, {"extra": 2})
 
     invalid = json.loads(AnalysisRecipeService.dumps(recipe))
-    invalid["schema_version"] = 3
+    invalid["schema_version"] = 4
     with pytest.raises(ValueError, match="schema version"):
         AnalysisRecipeService.loads(json.dumps(invalid))
-    invalid["schema_version"] = 2
+    invalid["schema_version"] = 3
     invalid["future"] = True
     with pytest.raises(ValueError, match="unsupported fields"):
         AnalysisRecipeService.loads(json.dumps(invalid))
@@ -216,10 +216,21 @@ def test_capture_retains_parser_variables_plot_configs_and_pipelines() -> None:
     state.get_stats_pattern.return_value = "stats*.txt"
     state.get_parser_strategy.return_value = "simple"
     state.get_parse_variables.return_value = [
-        {"name": "simTicks", "type": "scalar", "_id": "ticks"}
+        {
+            "name": "simTicks",
+            "type": "scalar",
+            "params": {"source_type": "scalar"},
+            "_id": "ticks",
+        }
     ]
     state.get_scanned_variables.return_value = [
-        {"name": "simTicks", "type": "scalar", "entries": []}
+        {
+            "name": "simTicks",
+            "type": "scalar",
+            "entries": [],
+            "source_type": "scalar",
+            "instances": [{"source_name": "simTicks", "indices": []}],
+        }
     ]
     plot = MagicMock()
     plot.name = "Ticks"

@@ -84,8 +84,10 @@ class TestFullParserWorkflow:
 
         # Step 2: Select variables to parse
         variables = [
-            StatConfig(name="system.cpu.ipc", type="scalar"),
-            StatConfig(name="system.cpu.numCycles", type="scalar"),
+            StatConfig(name="system.cpu.ipc", type="scalar", params={"source_type": "scalar"}),
+            StatConfig(
+                name="system.cpu.numCycles", type="scalar", params={"source_type": "scalar"}
+            ),
         ]
 
         # Step 3: Parse variables asynchronously
@@ -144,7 +146,7 @@ class TestFullParserWorkflow:
 
         # Step 3: Parse selected variables
         variables = [
-            StatConfig(name="system.cpu.ipc", type="scalar"),
+            StatConfig(name="system.cpu.ipc", type="scalar", params={"source_type": "scalar"}),
         ]
 
         with tempfile.TemporaryDirectory() as output_dir:
@@ -182,22 +184,17 @@ class TestFullParserWorkflow:
                 stats_path="/nonexistent/path", stats_pattern="stats.txt", limit=10
             )
 
-        # Test with invalid variable configuration
-        with tempfile.TemporaryDirectory() as output_dir:
-            invalid_variables = [StatConfig(name="invalid.var", type="unknown_type")]
-
-            # This should handle gracefully (may log warnings but not crash)
-            try:
-                batch = ParseService.submit_parse_async(
-                    stats_path=str(tmp_path),
-                    stats_pattern="stats.txt",
-                    variables=invalid_variables,
-                    output_dir=output_dir,
-                    scanned_vars=[],
-                )
-                results = [f.result() for f in batch.futures]
-                # Should return empty or error results
-                assert isinstance(results, list)
-            except Exception:
-                # Expected - invalid configuration should be caught
-                assert True
+        (tmp_path / "stats.txt").write_text("invalid.var 1\n", encoding="utf-8")
+        invalid_variables = [
+            StatConfig(
+                name="invalid.var", type="unknown_type", params={"source_type": "unknown_type"}
+            )
+        ]
+        with pytest.raises(ValueError, match="Unknown stat type: 'unknown_type'"):
+            ParseService.submit_parse_async(
+                stats_path=str(tmp_path),
+                stats_pattern="stats.txt",
+                variables=invalid_variables,
+                output_dir=str(tmp_path / "output"),
+                scanned_vars=[],
+            )

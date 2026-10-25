@@ -7,6 +7,7 @@ from src.core.common.stat_config_codec import StatConfigCodec
 from src.core.common.variable_identity import normalize_variable_ids
 
 from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
+from src.core.models.parsing_models import ScannedVariable, default_parse_configs
 
 logger = logging.getLogger(__name__)
 
@@ -16,18 +17,11 @@ class ParserStateRepository:
 
     # [impl->req~ring5.ingestion.parse-output-provenance~1]
 
-    # Default variables for new sessions
-    DEFAULT_PARSE_VARIABLES: list[ParseVariableConfig] = [
-        ParseVariableConfig(name="simTicks", type="scalar", params={}, _id=""),
-        ParseVariableConfig(name="benchmark_name", type="configuration", params={}, _id=""),
-        ParseVariableConfig(name="config_description", type="configuration", params={}, _id=""),
-    ]
-
     def __init__(self) -> None:
         """Initialize in-memory storage."""
         # Initialize default state
         self._parse_variables: list[ParseVariableConfig] = normalize_variable_ids(
-            self.DEFAULT_PARSE_VARIABLES
+            [StatConfigCodec.to_draft(config) for config in default_parse_configs()]
         )
         self._stats_path: str = "/path/to/stats"
         self._stats_pattern: str = "stats.txt"
@@ -125,6 +119,8 @@ class ParserStateRepository:
         Args:
             variables: List of scanned variable metadata
         """
+        for variable in variables:
+            ScannedVariable.from_dict(variable)
         self._scanned_variables = deepcopy(variables)
         logger.info("PARSER_REPO: Scanned variables updated - %d variables", len(variables))
 

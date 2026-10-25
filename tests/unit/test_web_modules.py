@@ -340,6 +340,9 @@ class TestUIComponents:
 
         # Mock API
         mock_api = MagicMock(spec=ApplicationAPI)
+        mock_api.state_manager = MagicMock()
+        mock_api.state_manager.get_simulator.return_value = "gem5"
+        mock_api.get_simulator_info.return_value.variable_types = ["histogram"]
 
         # Mock st
         with patch("src.web.components.data_source.variable_editor.st") as mock_st:
@@ -350,8 +353,19 @@ class TestUIComponents:
             # Don't trigger the add-variable buttons (this test exercises histogram config,
             # not the add path which persists via api.state_manager).
             mock_st.button.return_value = False
+            mock_st.selectbox.side_effect = lambda label, options, index=0, **kwargs: (
+                options[index] if index is not None else None
+            )
             variables = cast(
-                list[ParseVariableConfig], [{"name": "test_hist", "type": "histogram"}]
+                list[ParseVariableConfig],
+                [
+                    {
+                        "name": "test_hist",
+                        "type": "histogram",
+                        "_id": "hist",
+                        "params": {"source_type": "histogram"},
+                    }
+                ],
             )
             # Pass mock API
             VariableEditor.render(mock_api, variables)

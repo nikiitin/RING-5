@@ -7,7 +7,6 @@ import logging
 import os
 import time
 from collections.abc import Sequence
-from dataclasses import replace
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -21,34 +20,13 @@ from src.core.common.security_limits import (
     MAX_PARSE_VARIABLES,
 )
 from src.core.common.utils import sanitize_log_value
-from src.core.models.parsing_models import StatConfig
 from src.parsing.framework.file_discovery import find_stats_files
 from src.parsing.gem5.impl.strategies.gem5_parse_work import Gem5ParseWork
 from src.parsing.gem5.impl.strategies.file_parser_strategy import INTERNAL_SIM_PATH_KEY
 from src.parsing.gem5.types.type_mapper import TypeMapper
+from src.parsing.gem5.impl.source_bindings import AccumulatorSpec, SourcePlan
 
 logger = logging.getLogger(__name__)
-
-
-def _max_var_repeat() -> int:
-    """Per-variable cap on regex-expanded instances (``repeat``).
-
-    A regex variable can match thousands of concrete instances (e.g. an NxN
-    network traffic matrix → repeat in the thousands), which blows up memory when
-    parsed across many files. Variables above this cap fail before worker
-    submission rather than producing silently incomplete output. Override with
-    ``RING5_MAX_VAR_REPEAT``; ``0`` disables the cap for trusted inputs.
-    """
-    raw = os.environ.get("RING5_MAX_VAR_REPEAT")
-    if raw is not None:
-        try:
-            n = int(raw)
-            if n >= 0:
-                return n
-            logger.warning("RING5_MAX_VAR_REPEAT=%r is negative; using default", raw)
-        except ValueError:
-            logger.warning("RING5_MAX_VAR_REPEAT=%r is not an integer; using default", raw)
-    return 1024
 
 
 class SimpleStatsStrategy:
@@ -57,7 +35,6 @@ class SimpleStatsStrategy:
 
     This strategy iterates through all files matching the pattern,
     submits them to the parallel worker pool, and aggregates the results.
-    It corresponds to the legacy behavior of Gem5StatsParser.
     """
 
     # [impl->req~ring5.ingestion.simple-strategy~1]
@@ -66,7 +43,7 @@ class SimpleStatsStrategy:
         self,
         stats_path: str,
         stats_pattern: str,
-        variables: Sequence[StatConfig],
+        plan: SourcePlan,
         *,
         file_paths: list[str] | None = None,
     ) -> Sequence[Gem5ParseWork]:
@@ -88,13 +65,13 @@ class SimpleStatsStrategy:
         # Build one template map, then deep-copy per file so that each
         # thread-based worker operates on its own mutable StatType set.
         t_map_start = time.perf_counter()
-        template_map: dict[str, StatType] = self._map_variables(variables)
+        template_map: dict[str, StatType] = self._map_variables(plan.accumulators)
         if len(template_map) > MAX_PARSE_VARIABLES:
             raise RuntimeError(
                 f"PARSER: {len(template_map)} logical variables and aliases exceed the "
                 f"{MAX_PARSE_VARIABLES}-variable limit."
             )
-        matrix_cells = len(files) * len(template_map)
+        matrix_cells = len(files) * plan.workload_width
         if matrix_cells > MAX_PARSE_MATRIX_CELLS:
             raise RuntimeError(
                 f"PARSER: workload requires {matrix_cells} file-variable cells; "
@@ -104,10 +81,8 @@ class SimpleStatsStrategy:
         logger.info(f"PERF: Variable map creation took {t_map_end - t_map_start:.4f}s")
 
         t_copy_start = time.perf_counter()
-        source_patterns = {var.name: var.source_name or var.name for var in variables}
         works = [
-            Gem5ParseWork(str(file_path), copy.deepcopy(template_map), source_patterns)
-            for file_path in files
+            Gem5ParseWork(str(file_path), copy.deepcopy(template_map), plan) for file_path in files
         ]
         t_copy_end = time.perf_counter()
         logger.info(
@@ -165,82 +140,14 @@ class SimpleStatsStrategy:
             sanitize_log_value(stats_path),
         )
 
-    def _map_variables(self, variables: Sequence[StatConfig]) -> dict[str, StatType]:
-        """
-        Convert configuration models into typed Stat objects.
-
-        Handles multi-ID mapping (e.g., regex variables matching multiple controllers).
-        """
+    def _map_variables(self, specifications: Sequence[AccumulatorSpec]) -> dict[str, StatType]:
+        """Create exactly one independent accumulator per resolved logical output."""
         # [impl->req~ring5.ingestion.output-aliases~1]
         var_map: dict[str, StatType] = {}
-
-        for var in variables:
-            name = var.name
-            # Validation logic kept from original parser
-            if not name:
-                raise ValueError("PARSER: Variable config missing 'name'.")
-            if name == INTERNAL_SIM_PATH_KEY:
-                raise ValueError(f"PARSER: Variable name {name!r} is reserved for internal use.")
-
-            if name in var_map:
-                raise RuntimeError(f"PARSER: Duplicate variable definition: {name}")
-
-            # Handle multi-ID mapping (Variables matched via regex scanning)
-            parsed_ids_raw = var.params.get("parsed_ids", [])
-            if not isinstance(parsed_ids_raw, list) or any(
-                not isinstance(pattern_id, str) or not pattern_id for pattern_id in parsed_ids_raw
-            ):
-                raise ValueError(
-                    f"PARSER: parsed_ids for {name!r} must be a list of non-empty strings."
-                )
-            parsed_ids = list(
-                dict.fromkeys(pattern_id for pattern_id in parsed_ids_raw if pattern_id != name)
-            )
-
-            if parsed_ids:
-                n_ids = len(parsed_ids)
-                cap = _max_var_repeat()
-                if cap and n_ids > cap:
-                    raise RuntimeError(
-                        f"PARSER: variable {name!r} expands to {n_ids} instances, exceeding "
-                        f"the cap of {cap}. Raise RING5_MAX_VAR_REPEAT, or set it to 0 for "
-                        "trusted inputs, to include it."
-                    )
-
-            duplicate_alias = next((pid for pid in parsed_ids if pid in var_map), None)
-            if duplicate_alias is not None:
-                raise RuntimeError(
-                    f"PARSER: Duplicate variable or alias definition: {duplicate_alias}"
-                )
-            projected_variables = len(var_map) + 1 + len(parsed_ids)
-            if projected_variables > MAX_PARSE_VARIABLES:
-                raise RuntimeError(
-                    f"PARSER: {projected_variables} logical variables and aliases exceed the "
-                    f"{MAX_PARSE_VARIABLES}-variable limit."
-                )
-
-            if parsed_ids:
-                # Scalar-pattern vector entries retain individual instance values.
-                # Other patterns average every concrete instance and temporal dump.
-                scalar_pattern_vector = TypeMapper.is_scalar_pattern_vector(var, parsed_ids)
-                repeat = var.repeat if scalar_pattern_vector else n_ids * var.repeat
-                stat_obj = TypeMapper.create_stat(replace(var, repeat=repeat))
-                if n_ids > 50:
-                    logger.warning(
-                        "PARSER: Variable '%s' expands to %d concrete instances — "
-                        "this may increase memory usage significantly.",
-                        name,
-                        n_ids,
-                    )
-            else:
-                stat_obj = TypeMapper.create_stat(var)
-
-            var_map[name] = stat_obj
-
-            # Aliases share content within a template; work items deep-copy the
-            # template to isolate files.
-            for pid in parsed_ids:
-                if pid != name:
-                    var_map[pid] = copy.copy(stat_obj)
-
+        for spec in specifications:
+            if spec.output_name in var_map:
+                raise ValueError(f"Duplicate parser output name: {spec.output_name!r}.")
+            if spec.output_name == INTERNAL_SIM_PATH_KEY:
+                raise ValueError("The parser output name is reserved for provenance.")
+            var_map[spec.output_name] = TypeMapper.create_stat(spec)
         return var_map

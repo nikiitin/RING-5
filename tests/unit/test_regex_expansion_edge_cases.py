@@ -1,387 +1,67 @@
-"""
-Unit tests for regex expansion edge cases in ParseService and Gem5Parser.
+"""Numeric source matching exercises the production resolver, never a copied expansion."""
 
-Covers:
-- Literal dots in variable names (not expanded when is_regex=False)
-- Literal dots with is_regex=True (dot acts as regex wildcard)
-- No-match scenario (regex matches nothing in scanned_vars)
-- Invalid regex (malformed pattern handled gracefully)
-- Exact name match (config.name == sv.name path)
-- Expansion via pattern_indices (aggregated variables)
-- Expansion fallback to sv_name when no pattern_indices
-- Dict-based scanned variable (legacy path)
-- is_regex=True but scanned_vars is None or empty
-- Multiple pattern groups merged correctly
-"""
+import pytest
 
-import re
-from dataclasses import replace
-from typing import Any, cast
-
-from src.core.models.parsing_models import ScannedVariable, StatConfig
+from src.core.models.parsing_models import ScannedVariable, SourceInstance, StatConfig
+from src.parsing.gem5.impl.source_bindings import resolve_sources
 
 
-def _expand_regex(
-    config: StatConfig,
-    scanned_vars: list[Any] | None,
-) -> StatConfig:
-    """
-    Mirror the expansion logic from ParseService/Gem5Parser.
-
-    This is an exact copy of the production code so we can unit-test
-    it without needing filesystem access or worker pools.
-    """
-    expanded_config = config
-    if scanned_vars and config.is_regex:
-        try:
-            pattern = re.compile(config.name)
-            matched_ids: list[str] = []
-            for sv in scanned_vars:
-                sv_name = sv.name if hasattr(sv, "name") else str(sv.get("name", ""))
-                if config.name == sv_name or pattern.fullmatch(sv_name):
-                    if hasattr(sv, "pattern_indices") and sv.pattern_indices:
-                        matched_ids.extend(sv.pattern_indices)
-                    elif isinstance(sv, dict) and sv.get("pattern_indices"):
-                        matched_ids.extend(sv.get("pattern_indices", []))
-                    else:
-                        matched_ids.append(sv_name)
-
-            if matched_ids:
-                params = config.params.copy()
-                params["parsed_ids"] = matched_ids
-                expanded_config = replace(config, params=params)
-        except re.error:
-            pass  # Invalid regex — config passes through unchanged
-
-    return expanded_config
+def _literal(name):
+    return ScannedVariable(
+        name, "scalar", [], source_type="scalar", instances=(SourceInstance(name, ()),)
+    )
 
 
-# Edge case: literal dots
+def test_literal_dots_do_not_match_other_hierarchy_separators():
+    config = StatConfig("system.cpu.ipc", "scalar", params={"source_type": "scalar"})
+    plan = resolve_sources([config], [_literal("systemXcpuXipc")])
+    assert set(plan.routes) == {"system.cpu.ipc"}
 
 
-class TestLiteralDots:
-    """Dots in gem5 variable names are hierarchy separators, not regex."""
-
-    def test_dots_not_expanded_when_is_regex_false(self) -> None:
-        """system.cpu.ipc with is_regex=False must NOT trigger expansion."""
-        config = StatConfig(name="system.cpu.ipc", type="scalar", is_regex=False)
-        scanned = [
-            ScannedVariable(name="system.cpu.ipc", type="scalar"),
-            ScannedVariable(name="systemXcpuXipc", type="scalar"),  # dot-as-wildcard match
-        ]
-
-        result = _expand_regex(config, scanned)
-        assert "parsed_ids" not in result.params
-
-    def test_dots_act_as_wildcard_when_is_regex_true(self) -> None:
-        """With is_regex=True, dots should match any character (regex semantics)."""
-        config = StatConfig(name="system.cpu.ipc", type="scalar", is_regex=True)
-        scanned = [
-            ScannedVariable(name="systemXcpuXipc", type="scalar"),
-        ]
-
-        result = _expand_regex(config, scanned)
-        # '.' matches any char → "systemXcpuXipc" matches "system.cpu.ipc"
-        assert "parsed_ids" in result.params
-        assert result.params["parsed_ids"] == ["systemXcpuXipc"]
+@pytest.mark.parametrize("pattern", [r"system.cpu\d+.ipc", r"system\.cpu\d+\.ipc"])
+def test_numeric_patterns_preserve_literal_dots_and_leading_zero_coordinates(pattern):
+    config = StatConfig(pattern, "vector", params={"source_type": "scalar"})
+    plan = resolve_sources([config], [_literal("system.cpu012.ipc"), _literal("systemXcpu1Xipc")])
+    assert set(plan.routes) == {"system.cpu012.ipc"}
+    assert plan.accumulators[0].entries == ("012",)
 
 
-# Edge case: no match
-
-
-class TestNoMatch:
-    """Regex matches nothing in scanned_vars."""
-
-    def test_no_match_passes_config_through_unchanged(self) -> None:
-        """When no scanned variable matches the pattern, config is unchanged."""
-        config = StatConfig(
-            name=r"system\.nonexistent\d+\.stat",
-            type="scalar",
-            is_regex=True,
+@pytest.mark.parametrize("scanned", [None, [], [_literal("simTicks")]])
+def test_missing_pattern_instances_reject_before_worker_allocation(scanned):
+    with pytest.raises(ValueError, match="source records|no scanned instances"):
+        resolve_sources(
+            [StatConfig(r"cpu\d+.ipc", "scalar", params={"source_type": "scalar"})], scanned
         )
-        scanned = [
-            ScannedVariable(name="system.cpu0.ipc", type="scalar"),
-            ScannedVariable(name="simTicks", type="scalar"),
-        ]
-
-        result = _expand_regex(config, scanned)
-        assert "parsed_ids" not in result.params
-        # Original config passed through
-        assert result is config
-
-    def test_no_match_empty_scanned_list(self) -> None:
-        """Empty scanned_vars list results in no expansion."""
-        config = StatConfig(name=r"system\.cpu\d+\.ipc", type="scalar", is_regex=True)
-
-        result = _expand_regex(config, [])
-        assert "parsed_ids" not in result.params
-        assert result is config
 
 
-# Edge case: invalid regex
-
-
-class TestInvalidRegex:
-    """Malformed regex patterns should be handled gracefully."""
-
-    def test_invalid_regex_passes_config_unchanged(self) -> None:
-        """An invalid regex should not crash; config passes through."""
-        config = StatConfig(
-            name=r"system.cpu[.ipc",  # Unclosed bracket
-            type="scalar",
-            is_regex=True,
+@pytest.mark.parametrize("pattern", [r"cpu[", r"cpu(\d+", r"cpu.*", ""])
+def test_invalid_and_non_numeric_patterns_are_rejected(pattern):
+    with pytest.raises(ValueError):
+        resolve_sources(
+            [StatConfig(pattern, "scalar", is_regex=True, params={"source_type": "scalar"})],
+            [_literal("cpu0")],
         )
-        scanned = [ScannedVariable(name="system.cpu0.ipc", type="scalar")]
 
-        result = _expand_regex(config, scanned)
-        assert "parsed_ids" not in result.params
-        assert result is config
 
-    def test_another_invalid_pattern(self) -> None:
-        """Unbalanced parenthesis should also be handled."""
-        config = StatConfig(
-            name=r"system.cpu(\d+.ipc",  # Unclosed paren
-            type="scalar",
+def test_overlapping_outputs_have_independent_specs_and_shared_exact_source_routes():
+    values = [_literal("cpu0.ipc"), _literal("cpu1.ipc")]
+    requests = [
+        StatConfig(
+            "all",
+            "scalar",
+            source_name=r"cpu\d+.ipc",
             is_regex=True,
-        )
-        scanned = [ScannedVariable(name="system.cpu0.ipc", type="scalar")]
-
-        result = _expand_regex(config, scanned)
-        assert "parsed_ids" not in result.params
-
-    def test_empty_pattern(self) -> None:
-        """Empty name with is_regex=True should match empty-string scanned vars."""
-        config = StatConfig(name="", type="scalar", is_regex=True)
-        scanned = [ScannedVariable(name="", type="scalar")]
-
-        # Empty pattern fullmatches empty string
-        result = _expand_regex(config, scanned)
-        assert "parsed_ids" in result.params
-        assert result.params["parsed_ids"] == [""]
-
-
-# Edge case: exact name match (config.name == sv.name)
-
-
-class TestExactNameMatch:
-    r"""The ``config.name == sv_name`` path in the expansion loop."""
-
-    def test_exact_match_with_aggregated_pattern(self) -> None:
-        r"""Exact match on pattern name uses pattern_indices."""
-        config = StatConfig(name=r"system.cpu\d+.ipc", type="scalar", is_regex=True)
-        scanned = [
-            ScannedVariable(
-                name=r"system.cpu\d+.ipc",
-                type="scalar",
-                pattern_indices=["system.cpu0.ipc", "system.cpu1.ipc", "system.cpu2.ipc"],
-            ),
-        ]
-
-        result = _expand_regex(config, scanned)
-        assert result.params["parsed_ids"] == [
-            "system.cpu0.ipc",
-            "system.cpu1.ipc",
-            "system.cpu2.ipc",
-        ]
-
-    def test_exact_match_without_pattern_indices(self) -> None:
-        """Exact match with no pattern_indices appends sv_name directly."""
-        config = StatConfig(name=r"system.cpu\d+.ipc", type="scalar", is_regex=True)
-        scanned = [
-            ScannedVariable(name=r"system.cpu\d+.ipc", type="scalar"),
-        ]
-
-        result = _expand_regex(config, scanned)
-        assert result.params["parsed_ids"] == [r"system.cpu\d+.ipc"]
-
-
-# Edge case: pattern_indices vs no pattern_indices
-
-
-class TestPatternIndicesExpansion:
-    """Expansion uses pattern_indices when available, sv_name otherwise."""
-
-    def test_expansion_with_pattern_indices(self) -> None:
-        """Aggregated pattern variable with pattern_indices expands correctly."""
-        config = StatConfig(
-            name=r"system\.ruby\.l\d+_cntrl\d+\.hits",
-            type="vector",
+            params={"source_type": "scalar"},
+        ),
+        StatConfig(
+            "selected",
+            "scalar",
+            source_name=r"cpu\d+.ipc",
             is_regex=True,
-        )
-        scanned = [
-            ScannedVariable(
-                name=r"system\.ruby\.l\d+_cntrl\d+\.hits",
-                type="vector",
-                entries=["0_0", "0_1", "1_0", "1_1"],
-                pattern_indices=[
-                    "system.ruby.l0_cntrl0.hits",
-                    "system.ruby.l0_cntrl1.hits",
-                    "system.ruby.l1_cntrl0.hits",
-                    "system.ruby.l1_cntrl1.hits",
-                ],
-            ),
-        ]
-
-        result = _expand_regex(config, scanned)
-        parsed_ids = cast(list[str], result.params["parsed_ids"])
-        assert len(parsed_ids) == 4
-        assert "system.ruby.l0_cntrl0.hits" in parsed_ids
-        assert "system.ruby.l1_cntrl1.hits" in parsed_ids
-
-    def test_expansion_without_pattern_indices_uses_sv_name(self) -> None:
-        """Non-aggregated variable without pattern_indices uses its name."""
-        config = StatConfig(name=r"system\.cpu\d+\.ipc", type="scalar", is_regex=True)
-        scanned = [
-            ScannedVariable(name="system.cpu0.ipc", type="scalar"),
-            ScannedVariable(name="system.cpu1.ipc", type="scalar"),
-        ]
-
-        result = _expand_regex(config, scanned)
-        assert result.params["parsed_ids"] == ["system.cpu0.ipc", "system.cpu1.ipc"]
-
-    def test_mixed_with_and_without_pattern_indices(self) -> None:
-        """Mix of aggregated and non-aggregated matches merges correctly."""
-        config = StatConfig(name=r"system\.cpu\d+\.ipc", type="scalar", is_regex=True)
-        scanned = [
-            # Aggregated pattern variable
-            ScannedVariable(
-                name=r"system\.cpu\d+\.ipc",
-                type="scalar",
-                pattern_indices=["system.cpu0.ipc", "system.cpu1.ipc"],
-            ),
-            # Additional non-aggregated match
-            ScannedVariable(name="system.cpu2.ipc", type="scalar"),
-        ]
-
-        result = _expand_regex(config, scanned)
-        ids = cast(list[str], result.params["parsed_ids"])
-        assert "system.cpu0.ipc" in ids
-        assert "system.cpu1.ipc" in ids
-        assert "system.cpu2.ipc" in ids
-        assert len(ids) == 3
-
-
-# Edge case: dict-based scanned variable (legacy path)
-
-
-class TestDictBasedScannedVar:
-    """Legacy dict-based scanned variables should still work."""
-
-    def test_dict_with_pattern_indices(self) -> None:
-        """Dict scanned var with pattern_indices should expand."""
-        config = StatConfig(name=r"system\.cpu\d+\.ipc", type="scalar", is_regex=True)
-        scanned: list[dict[str, Any]] = [
-            {
-                "name": r"system\.cpu\d+\.ipc",
-                "type": "scalar",
-                "pattern_indices": ["system.cpu0.ipc", "system.cpu1.ipc"],
-            },
-        ]
-
-        result = _expand_regex(config, scanned)  # type: ignore[arg-type]
-        assert result.params["parsed_ids"] == ["system.cpu0.ipc", "system.cpu1.ipc"]
-
-    def test_dict_without_pattern_indices(self) -> None:
-        """Dict scanned var without pattern_indices uses name."""
-        config = StatConfig(name=r"system\.cpu\d+\.ipc", type="scalar", is_regex=True)
-        scanned: list[dict[str, Any]] = [
-            {"name": "system.cpu0.ipc", "type": "scalar"},
-        ]
-
-        result = _expand_regex(config, scanned)  # type: ignore[arg-type]
-        assert result.params["parsed_ids"] == ["system.cpu0.ipc"]
-
-
-# Edge case: is_regex=True but no scanned_vars
-
-
-class TestNoScannedVars:
-    """Expansion should be skipped when scanned_vars is None or empty."""
-
-    def test_scanned_vars_none(self) -> None:
-        """None scanned_vars → no expansion."""
-        config = StatConfig(name=r"system\.cpu\d+\.ipc", type="scalar", is_regex=True)
-
-        result = _expand_regex(config, None)
-        assert "parsed_ids" not in result.params
-        assert result is config
-
-    def test_scanned_vars_empty_list(self) -> None:
-        """Empty scanned_vars list → no expansion."""
-        config = StatConfig(name=r"system\.cpu\d+\.ipc", type="scalar", is_regex=True)
-
-        result = _expand_regex(config, [])
-        assert "parsed_ids" not in result.params
-        assert result is config
-
-
-# Edge case: multiple pattern groups merged
-
-
-class TestMultiplePatternGroups:
-    """Expansion across multiple matching scanned variables."""
-
-    def test_multiple_different_patterns_merged(self) -> None:
-        """Multiple scanned vars matching the same regex produce merged parsed_ids."""
-        config = StatConfig(name=r"system\.cpu\d+\.numCycles", type="scalar", is_regex=True)
-        scanned = [
-            ScannedVariable(
-                name=r"system\.cpu\d+\.numCycles",
-                type="scalar",
-                pattern_indices=["system.cpu0.numCycles", "system.cpu1.numCycles"],
-            ),
-        ]
-
-        result = _expand_regex(config, scanned)
-        assert result.params["parsed_ids"] == [
-            "system.cpu0.numCycles",
-            "system.cpu1.numCycles",
-        ]
-        assert result.is_regex is True  # Flag preserved through replace
-
-    def test_immutability_of_original_config(self) -> None:
-        """Expansion returns new config; original is unchanged (frozen)."""
-        config = StatConfig(
-            name=r"system\.cpu\d+\.ipc",
-            type="scalar",
-            is_regex=True,
-            params={"original_key": "value"},
-        )
-        scanned = [
-            ScannedVariable(
-                name=r"system\.cpu\d+\.ipc",
-                type="scalar",
-                pattern_indices=["system.cpu0.ipc"],
-            ),
-        ]
-
-        result = _expand_regex(config, scanned)
-
-        # Original untouched
-        assert "parsed_ids" not in config.params
-        assert config.params == {"original_key": "value"}
-
-        # Result has merged params
-        assert result.params["original_key"] == "value"
-        assert result.params["parsed_ids"] == ["system.cpu0.ipc"]
-
-    def test_preserves_existing_params(self) -> None:
-        """Expansion merges parsed_ids into existing params without replacing."""
-        config = StatConfig(
-            name=r"system\.cpu\d+\.ipc",
-            type="vector",
-            is_regex=True,
-            params={"entries": ["IntAlu", "IntMult"]},
-        )
-        scanned = [
-            ScannedVariable(
-                name=r"system\.cpu\d+\.ipc",
-                type="vector",
-                pattern_indices=["system.cpu0.ipc"],
-            ),
-        ]
-
-        result = _expand_regex(config, scanned)
-        assert result.params["entries"] == ["IntAlu", "IntMult"]
-        assert result.params["entries"] == ["IntAlu", "IntMult"]
-        assert result.params["parsed_ids"] == ["system.cpu0.ipc"]
+            params={"source_type": "scalar", "selected_sources": ["cpu1.ipc"]},
+        ),
+    ]
+    plan = resolve_sources(requests, values)
+    assert [spec.repeat for spec in plan.accumulators] == [2, 1]
+    assert [target.output_name for target in plan.routes["cpu1.ipc"].targets] == ["all", "selected"]
+    assert requests[0].params == {"source_type": "scalar"}

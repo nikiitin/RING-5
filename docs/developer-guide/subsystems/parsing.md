@@ -77,11 +77,34 @@ scalar-pattern vectors retain one entry per selected instance and average its te
 Missing variables, expected instances, dumps, or summary measurements remain `NaN`. Only omitted
 interior frequency buckets in an otherwise complete observed distribution are inferred as zero.
 
-Scans preserve each pattern's original `source_type` to distinguish scalar-instance columns from
-numeric entries of a genuine vector. Saved portfolios without this field still load and can render
-their stored data. Re-parsing requires a fresh scan when legacy aggregated vector metadata has
-entries equal to its instance IDs: those fields alone cannot identify the original type safely.
-Unaggregated concrete metadata and unambiguous vector entries remain supported.
+Every scanned variable declares its raw `source_type` and an immutable tuple of `SourceInstance`
+records. A record holds the exact concrete `source_name` and ordered numeric `indices` for display;
+literal sources use empty indices. For example, `cpu012.ipc` has coordinates `("012",)` in the
+`cpu\d+.ipc` family. Leading zeros remain intact. Scanner-generated scalar families suggest vector
+output with `entries=[]`; their output entry schema derives from instance records. Genuine vector
+measurement entries remain separate from source coordinates. Numerically similar names with
+different raw kinds remain separate literal variables. Optional observed bounds are finite numbers;
+unknown bounds are omitted from serialized metadata. Group counts derive from the instance records.
+The editor projects both literal and aggregated records through the bounded numeric matcher, so
+manual patterns can select concrete sources without reconstructing names or guessing raw kinds.
+
+Every runnable `StatConfig.params` declares `source_type`, including literal requests. It describes
+the raw source independently of `StatConfig.type`, the requested output representation. This permits
+explicit vector/frequency reinterpretation while keeping raw observation validation precise. The
+editor offers separate raw source and output controls; an unfinished raw source choice remains an
+explicit draft. Manual callers declare the kind rather than triggering a scan or inference fallback.
+
+`params.selected_sources` contains concrete source names, never numeric labels. Omitted selection
+uses all matching current records; an explicit empty selection is nonexecutable. Submission resolves
+numeric patterns once against those records, validates bounds and coordinates, and constructs one
+private `AccumulatorSpec` per logical output. Each worker owns independent accumulators and uses
+an immutable direct source-to-output routing map. It does not rematch patterns or use shared
+accumulator identities as aliases. `keep_indices=True` creates separate concrete-named outputs;
+otherwise source instances reduce according to the selected output representation. A scalar-family
+vector derives entries only from its selected instances; callers must not supply a second entry list.
+
+Current portfolios and recipes require complete scanned metadata and runnable raw source kinds.
+Missing fields, numeric-only source selections, and retired metadata shapes fail validation.
 
 Full and incremental parsing use the same deterministic union of observed columns. A histogram
 bucket discovered in a later file remains in the schema, with `NaN` for files lacking that bucket.
@@ -106,8 +129,8 @@ histograms retain measured zero buckets when gem5 omits percentage columns. Scal
 measurements preserve scientific notation and non-finite `nan`/`inf` values. If the output suppresses
 all identifying metadata, callers can explicitly select the histogram type; numeric vector entries
 remain vectors during scanning.
-Explicit histogram-to-vector selections accept either raw singleton IDs or the inclusive singleton
-labels returned by the scanner; ordinary vector labels continue to match exactly.
+Histogram-to-vector selections use inclusive singleton labels returned by the scanner, such as
+`0-0`; bare histogram point IDs fail validation. Ordinary vector labels continue to match exactly.
 
 Durable job reuse and incremental rows use the same bounded content-fingerprint helper. Statistics
 and configuration-aware companion files are hashed in full; unchanged timestamps or sizes never
@@ -125,7 +148,7 @@ Percent signs and interpolation-looking workload arguments remain unchanged.
 
 - Do not turn a regex miss, missing statistic, worker failure, or malformed file into zero.
 - Numeric index extraction follows the shared matching timeout; execution-bound failures propagate
-  through source inference and alias lookup rather than becoming missing observations.
+  during submission rather than becoming missing observations.
 - Preserve path validation and leading-dash checks before work reaches subprocesses.
 - Keep core services and Streamlit out of parsing imports.
 - Release or cancel owned futures without shutting down another session's live work.

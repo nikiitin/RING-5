@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.core.models.parsing_models import StatConfig
+from src.parsing.gem5.impl.source_bindings import resolve_sources
 from src.parsing.gem5.impl.strategies.config_aware import ConfigAwareStrategy
 from src.parsing.gem5.impl.strategies.simple import SimpleStatsStrategy
 
@@ -11,8 +12,10 @@ from src.parsing.gem5.impl.strategies.simple import SimpleStatsStrategy
 @pytest.fixture
 def mock_variables() -> list[StatConfig]:
     return [
-        StatConfig(name="sim_seconds", type="scalar"),
-        StatConfig(name="system.cpu.dcache.overall_misses", type="scalar"),
+        StatConfig(name="sim_seconds", type="scalar", params={"source_type": "scalar"}),
+        StatConfig(
+            name="system.cpu.dcache.overall_misses", type="scalar", params={"source_type": "scalar"}
+        ),
     ]
 
 
@@ -32,78 +35,35 @@ class TestSimpleStatsStrategy:
 
         strategy = SimpleStatsStrategy()
 
-        work_items = list(strategy.get_work_items("/fake/path", "stats.txt", mock_variables))
+        work_items = list(
+            strategy.get_work_items("/fake/path", "stats.txt", resolve_sources(mock_variables, []))
+        )
 
         assert len(work_items) == 2
         assert all(isinstance(w, Gem5ParseWork) for w in work_items)
 
     def test_variable_mapping_logic(self) -> None:
         strategy = SimpleStatsStrategy()
-        vars = [StatConfig(name="foo", type="scalar")]
+        vars = [StatConfig(name="foo", type="scalar", params={"source_type": "scalar"})]
 
         # This is internal logic but crucial to verify before submission
-        var_map = strategy._map_variables(vars)
+        var_map = strategy._map_variables(resolve_sources(vars, []).accumulators)
         assert "foo" in var_map
         # The result is now a StatType object (Scalar), not a dict or StatConfig
         # We need to verify it is the correct type of object
         assert var_map["foo"].__class__.__name__ == "Scalar"
         assert var_map["foo"].repeat == 1
 
-    def _ids(self, name: str, n: int) -> StatConfig:
-        return StatConfig(
-            name=name, type="scalar", params={"parsed_ids": [f"{name}{i}" for i in range(n)]}
-        )
-
-    def test_repeat_cap_rejects_huge_pattern_vars(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """A regex var expanding past the cap fails visibly before allocation."""
-        monkeypatch.delenv("RING5_MAX_VAR_REPEAT", raising=False)  # default cap = 1024
-        strategy = SimpleStatsStrategy()
-        with pytest.raises(RuntimeError, match="expands to 2704"):
-            strategy._map_variables(
-                [self._ids("normal.cpu", 64), self._ids("monster.matrix", 2704)]
-            )
-
-    def test_repeat_cap_env_override(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """RING5_MAX_VAR_REPEAT tightens the cap; 0 disables it entirely."""
-        strategy = SimpleStatsStrategy()
-
-        monkeypatch.setenv("RING5_MAX_VAR_REPEAT", "100")
-        with pytest.raises(RuntimeError, match="cap of 100"):
-            strategy._map_variables([self._ids("v", 64), self._ids("big", 2704)])
-
-        monkeypatch.setenv("RING5_MAX_VAR_REPEAT", "0")  # aggregate limit still applies
-        var_map = strategy._map_variables([self._ids("big", 1500)])
-        assert "big" in var_map and var_map["big"].repeat == 1500
-        with pytest.raises(RuntimeError, match="logical variables and aliases"):
-            strategy._map_variables([self._ids("too_big", 2704)])
-
-    def test_duplicate_aliases_are_deduplicated_before_repeat_count(self) -> None:
-        strategy = SimpleStatsStrategy()
-        config = StatConfig(
-            name="pattern",
-            type="scalar",
-            params={"parsed_ids": ["cpu0", "cpu0", "cpu1"]},
-        )
-
-        var_map = strategy._map_variables([config])
-
-        assert var_map["pattern"].repeat == 2
-        assert set(var_map) == {"pattern", "cpu0", "cpu1"}
-
-    def test_alias_collision_is_rejected(self) -> None:
-        strategy = SimpleStatsStrategy()
-
-        with pytest.raises(RuntimeError, match="Duplicate variable or alias"):
-            strategy._map_variables(
-                [
-                    StatConfig(name="cpu0", type="scalar"),
-                    StatConfig(
-                        name="pattern",
-                        type="scalar",
-                        params={"parsed_ids": ["cpu0"]},
-                    ),
-                ]
-            )
+    def test_multiple_aliases_have_no_shared_mutable_accumulator(self) -> None:
+        configs = [
+            StatConfig(name, "scalar", source_name="cpu0", params={"source_type": "scalar"})
+            for name in ("first", "second")
+        ]
+        plan = resolve_sources(configs, [])
+        values = SimpleStatsStrategy()._map_variables(plan.accumulators)
+        assert set(values) == {"first", "second"}
+        assert values["first"] is not values["second"]
+        assert plan.workload_width == 2
 
     @patch("src.parsing.gem5.impl.strategies.simple.find_stats_files")
     def test_file_count_limit_fails_before_submission(
@@ -145,17 +105,24 @@ class TestSimpleStatsStrategy:
         monkeypatch.setattr("src.parsing.gem5.impl.strategies.simple.MAX_PARSE_MATRIX_CELLS", 1)
 
         with pytest.raises(RuntimeError, match="2 file-variable cells"):
-            strategy.get_work_items(".", "stats.txt", [StatConfig(name="v", type="scalar")])
+            strategy.get_work_items(
+                ".",
+                "stats.txt",
+                resolve_sources(
+                    [StatConfig(name="v", type="scalar", params={"source_type": "scalar"})], []
+                ),
+            )
 
-    def test_variable_and_alias_limit_fails_before_submission(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        strategy = SimpleStatsStrategy()
-        monkeypatch.setattr(strategy, "_get_files", lambda *_args: ["one"])
-        monkeypatch.setattr("src.parsing.gem5.impl.strategies.simple.MAX_PARSE_VARIABLES", 1)
-
-        with pytest.raises(RuntimeError, match="2 logical variables and aliases"):
-            strategy.get_work_items(".", "stats.txt", [self._ids("v", 1)])
+    def test_source_binding_limit_rejects_before_strategy_allocation(self, monkeypatch):
+        monkeypatch.setattr("src.parsing.gem5.impl.source_bindings.MAX_PARSE_VARIABLES", 1)
+        with pytest.raises(RuntimeError, match="2 source bindings"):
+            resolve_sources(
+                [
+                    StatConfig(name, "scalar", params={"source_type": "scalar"})
+                    for name in ("first", "second")
+                ],
+                [],
+            )
 
 
 class TestConfigAwareStrategy:

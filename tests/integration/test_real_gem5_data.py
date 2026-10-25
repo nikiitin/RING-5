@@ -57,7 +57,7 @@ class TestRealDataWithShapers:
         first_subdir = subdirs[0]
 
         variables = [
-            StatConfig(name="simTicks", type="scalar"),
+            StatConfig(name="simTicks", type="scalar", params={"source_type": "scalar"}),
         ]
 
         batch = facade.submit_parse_async(

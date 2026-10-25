@@ -68,12 +68,30 @@ def _payload(
         "plot_counter": 1,
         "config": {},
         "parse_variables": (
-            [StatConfigCodec.to_snapshot({"name": "ipc", "type": "scalar"})] if parser else []
+            [
+                StatConfigCodec.to_snapshot(
+                    {"name": "ipc", "type": "scalar", "params": {"source_type": "scalar"}}
+                )
+            ]
+            if parser
+            else []
         ),
         "use_parser": parser,
         "stats_path": "/simulations" if parser else None,
         "stats_pattern": "stats*.txt",
-        "scanned_variables": ([{"name": "ipc", "type": "scalar"}] if parser else []),
+        "scanned_variables": (
+            [
+                {
+                    "name": "ipc",
+                    "type": "scalar",
+                    "entries": [],
+                    "source_type": "scalar",
+                    "instances": [{"source_name": "ipc", "indices": []}],
+                }
+            ]
+            if parser
+            else []
+        ),
         "manager_history": [],
         "portfolio_history": [],
     }

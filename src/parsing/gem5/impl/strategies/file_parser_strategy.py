@@ -14,10 +14,13 @@ various gem5 configurations, versions, and output formats while maintaining
 a unified interface for the parsing service layer.
 """
 
-from collections.abc import Callable, Sequence
-from typing import Any, Protocol
+from __future__ import annotations
 
-from src.core.models.parsing_models import StatConfig
+from collections.abc import Callable, Sequence
+from typing import TYPE_CHECKING, Any, Protocol
+
+if TYPE_CHECKING:
+    from src.parsing.gem5.impl.source_bindings import SourcePlan
 
 INTERNAL_SIM_PATH_KEY = "__ring5_internal_sim_path"
 
@@ -49,7 +52,7 @@ class FileParserStrategy(Protocol):
         self,
         stats_path: str,
         stats_pattern: str,
-        variables: list[StatConfig],
+        plan: SourcePlan,
         *,
         file_paths: list[str] | None = None,
     ) -> Sequence[Callable[[], dict[str, Any]]]:
@@ -62,7 +65,7 @@ class FileParserStrategy(Protocol):
         Args:
             stats_path: Root directory to scan
             stats_pattern: File pattern to match
-            variables: Variables to parse (used for preprocessing/validation)
+            plan: Resolved logical accumulators and exact concrete-source routes.
             file_paths: Optional validated subset of discovered inputs. Incremental parsing uses
                 this to avoid constructing work for unchanged files.
 

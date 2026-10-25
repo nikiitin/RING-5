@@ -13,19 +13,25 @@ Layout: `src/parsing/` (protocol, registry, services) and `src/parsing/gem5/` (i
 ```python
 # Scan: discover variables
 futures   = api.submit_scan_async(stats_path, pattern="stats.txt", limit=5)
-variables = api.finalize_scan([f.result() for f in futures])      # aggregate + pattern-aggregate
+scan      = api.finalize_scan([f.result() for f in futures])
+configs   = api.compile_parse_variables(
+    [api.draft_from_scanned_variable(v.to_dict()) for v in scan.variables]
+)
 
 # Parse: extract selected variables → CSV
-batch    = api.submit_parse_async(stats_path, pattern, variables, out_dir,
-                                  strategy_type="simple", scanned_vars=variables)
+batch    = api.submit_parse_async(stats_path, pattern, configs, out_dir,
+                                  strategy_type="simple", scanned_vars=scan.variables)
 csv_path = api.finalize_parsing(out_dir, [f.result() for f in batch.futures])
 ```
-- **Always pass `scanned_vars`** when parsing regex/pattern variables — it's needed to reconstruct
-  concrete names (e.g. `system.cpu\d+.numCycles` → `cpu0..N`).
+- **Always pass `scanned_vars`** when parsing regex/pattern variables — it's needed to bind
+  explicit `SourceInstance(source_name, indices)` records. Never reconstruct names from indices.
+- Every runnable config requires `params.source_type`; manual producers declare the raw kind
+  independently of the output representation. `params.selected_sources` contains concrete names.
+  Submission resolves selections once into private accumulator specifications and direct routes.
 - Strategies: `simple` (stats.txt only) and `config_aware` (also reads `config.ini`), via
   `StrategyFactory` in `gem5/impl/strategies/`.
 - Pattern aggregation (`gem5/impl/scanning/pattern_aggregator.py`) collapses per-core repeats into
-  one regex variable with `entries` (~94% reduction). `internal_stats` (see registry `GEM5_INFO`)
+  one numeric pattern with explicit `instances` (~94% reduction). `internal_stats` (see registry `GEM5_INFO`)
   are excluded from selection.
 
 ## Add a new gem5 variable (stat) type
@@ -44,7 +50,7 @@ Stat types self-register; there are two halves — **Python** (model + reduction
        #   reduced_content is only readable AFTER balance_content() AND reduce_duplicates().
        ...
    ```
-   Import it so the decorator runs (add to `types/__init__.py`). `TypeMapper.create_stat()` /
+   Import it so the decorator runs (add to `types/__init__.py`). `TypeMapper.create_stat(resolved_spec)` /
    `StatTypeRegistry.create("mytype", ...)` then dispatch by name. (There is **no**
    `TYPE_TO_SCRIPT`/`TYPE_TO_COLUMNS` dict — registration is purely the decorator.)
 
@@ -72,7 +78,7 @@ Stat types self-register; there are two halves — **Python** (model + reduction
   absent in the first file is fine. If a header is *permanently* short, suspect header being built
   from a sample file rather than the variable config.
 - **Wrong values / type mismatch:** Perl may report `Vector` where the user expected
-  `Distribution`/`Histogram`; aliasing is handled in `gem5/impl/strategies/gem5_parse_work.py`.
+  `Distribution`/`Histogram`; explicit source/output routing is handled in `gem5/impl/strategies/gem5_parse_work.py`.
 - **Never fabricate:** on regex non-match the parser logs/raises — keep it that way; don't default to 0.
 - Worker keys are validated against leading-dash flag injection before reaching the pool — preserve that.
 

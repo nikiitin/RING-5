@@ -104,7 +104,7 @@ def test_real_parse_survives_global_shutdown_and_recreates_both_pools(tmp_path: 
             batch = Gem5Parser.submit_parse_async(
                 str(tmp_path),
                 "stats.txt",
-                [StatConfig("ipc", "scalar")],
+                [StatConfig("ipc", "scalar", params={"source_type": "scalar"})],
                 str(tmp_path / str(value)),
             )
             executor = WorkPool.get_instance()._thread_executor
@@ -159,14 +159,20 @@ def test_global_shutdown_rejects_real_parse_through_perl_teardown(tmp_path: Path
             assert teardown_started.wait(3)
             with pytest.raises(RuntimeError, match="shutting down"):
                 Gem5Parser.submit_parse_async(
-                    str(tmp_path), "stats.txt", [StatConfig("ipc", "scalar")], str(tmp_path / "out")
+                    str(tmp_path),
+                    "stats.txt",
+                    [StatConfig("ipc", "scalar", params={"source_type": "scalar"})],
+                    str(tmp_path / "out"),
                 )
             release_teardown.set()
             closer.join(3)
         assert not closer.is_alive()
         assert not errors
         batch = Gem5Parser.submit_parse_async(
-            str(tmp_path), "stats.txt", [StatConfig("ipc", "scalar")], str(tmp_path / "retry")
+            str(tmp_path),
+            "stats.txt",
+            [StatConfig("ipc", "scalar", params={"source_type": "scalar"})],
+            str(tmp_path / "retry"),
         )
         assert batch.futures[0].result(timeout=3)["ipc"].content == [3.0]
     finally:

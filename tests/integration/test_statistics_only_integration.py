@@ -54,6 +54,7 @@ system.mem.latency_dist::total               500
                     "minimum": 0,
                     "maximum": 10,
                     "statistics": ["samples", "mean", "stdev", "total"],
+                    "source_type": "distribution",
                 },
             )
         ]
@@ -108,6 +109,7 @@ system.mem.latency_dist::total               500
                     "minimum": 0,
                     "maximum": 10,
                     "statistics": ["samples", "mean", "stdev", "total"],
+                    "source_type": "distribution",
                 },
             )
         ]
@@ -152,6 +154,7 @@ system.mem.latency_dist::total               500
                     "minimum": 0,
                     "maximum": 10,
                     "statistics": ["samples", "mean", "stdev", "total"],
+                    "source_type": "distribution",
                 },
             )
         ]
@@ -165,6 +168,7 @@ system.mem.latency_dist::total               500
                     "minimum": 0,
                     "maximum": 10,
                     "statistics": ["samples", "mean", "stdev", "total"],
+                    "source_type": "distribution",
                 },
             )
         ]

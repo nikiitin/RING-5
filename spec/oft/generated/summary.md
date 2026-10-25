@@ -42,7 +42,7 @@ This file is informative; normative items are in the other generated files.
 - `cli_options`: 37
 - `colorbar_config_fields`: 9
 - `data_label_config_fields`: 12
-- `data_services_api_members`: 54
+- `data_services_api_members`: 53
 - `dimension_config_fields`: 7
 - `figure_builder_members`: 18
 - `figure_config_fields`: 22
@@ -59,7 +59,7 @@ This file is informative; normative items are in the other generated files.
 - `parser_strategies`: 2
 - `plot_types`: 17
 - `plotly_formats`: 4
-- `public_exports`: 124
+- `public_exports`: 125
 - `public_shaper_exports`: 15
 - `render_engines`: 2
 - `restore_report_fields`: 5

@@ -68,7 +68,10 @@ class TestHistogramPlotIntegration:
                     {
                         "name": "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles",
                         "type": "histogram",
-                        "params": {"entries": (htm_var.entries or [])[:5]},
+                        "params": {
+                            "entries": (htm_var.entries or [])[:5],
+                            "source_type": htm_var.source_type,
+                        },
                     },
                 )
             ]
@@ -145,6 +148,7 @@ class TestHistogramPlotIntegration:
                 {
                     "name": "benchmark_name",
                     "type": "configuration",
+                    "params": {"source_type": "configuration"},
                 },
             ),
             cast(
@@ -152,7 +156,10 @@ class TestHistogramPlotIntegration:
                 {
                     "name": "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles",
                     "type": "histogram",
-                    "params": {"entries": (htm_var.entries or [])[:5]},
+                    "params": {
+                        "entries": (htm_var.entries or [])[:5],
+                        "source_type": htm_var.source_type,
+                    },
                 },
             ),
         ]
@@ -290,7 +297,10 @@ def test_parser_histogram_union_geometry_renders_observed_mass(
         (directory / "stats.txt").write_text(f"h::{bucket} {count} 100% 100%\n")
     output = tmp_path / "parsed"
     batch = Gem5Parser.submit_parse_async(
-        str(inputs), "stats.txt", [StatConfig("h", "histogram")], str(output)
+        str(inputs),
+        "stats.txt",
+        [StatConfig("h", "histogram", params={"source_type": "histogram"})],
+        str(output),
     )
     results = [future.result() for future in batch.futures]
     csv_path = Gem5Parser.finalize_parsing(str(output), results, var_names=batch.var_names)

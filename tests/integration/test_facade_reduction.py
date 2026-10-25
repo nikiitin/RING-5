@@ -67,9 +67,11 @@ class TestFacadeReduction:
         stats_path, output_dir = temp_dirs
 
         # Define variable with Regex Pattern
-        variables = [{"name": "system.cpu\\d+.ipc", "type": "scalar"}]
+        variables = [
+            {"name": "system.cpu\\d+.ipc", "type": "scalar", "params": {"source_type": "scalar"}}
+        ]
 
-        # Pre-scan to populate regex matching cache
+        # Scan the concrete source records before compiling numeric bindings
         scan_futures = facade.submit_scan_async(stats_path, "stats.txt*", limit=10)
 
         # Wait for scan completion
@@ -157,22 +159,26 @@ class TestFacadeReduction:
         assert vector.name == r"system.cpu\d+.counts"
         # Coincident entry/CPU IDs must not turn a genuine vector into scalar-instance columns.
         assert vector.type == vector.source_type == "vector"
-        assert vector.entries == vector.pattern_indices == ["0", "1"]
+        assert vector.entries == ["0", "1"]
+        assert [(record.source_name, record.indices) for record in vector.instances] == [
+            ("system.cpu0.counts", ("0",)),
+            ("system.cpu1.counts", ("1",)),
+        ]
 
         batch = facade.submit_parse_async(
             str(stats_dir),
             "stats.txt*",
             [
-                StatConfig("before", "scalar", repeat=2),
+                StatConfig("before", "scalar", repeat=2, params={"source_type": "scalar"}),
                 StatConfig(
                     "V",
                     "vector",
                     repeat=2,
                     source_name=vector.name,
                     is_regex=True,
-                    params={"entries": vector.entries},
+                    params={"entries": vector.entries, "source_type": "vector"},
                 ),
-                StatConfig("after", "scalar", repeat=2),
+                StatConfig("after", "scalar", repeat=2, params={"source_type": "scalar"}),
             ],
             str(output_dir),
             scanned_vars=scanned.variables,

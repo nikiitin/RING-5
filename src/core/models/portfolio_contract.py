@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-CURRENT_PORTFOLIO_SCHEMA_VERSION = 6
+CURRENT_PORTFOLIO_SCHEMA_VERSION = 7
 CURRENT_PORTFOLIO_VERSION = f"{CURRENT_PORTFOLIO_SCHEMA_VERSION}.0"
 
 
@@ -48,4 +48,11 @@ def validate_portfolio_schema(value: dict[str, Any]) -> dict[str, Any]:
 
     for variable in variables:
         StatConfigCodec.from_snapshot(variable)
+    scanned = value.get("scanned_variables")
+    if not isinstance(scanned, list):
+        raise ValueError("Portfolio scanned_variables must contain current source metadata.")
+    from src.core.models.parsing_models import ScannedVariable
+
+    for variable in scanned:
+        ScannedVariable.from_dict(variable)
     return value

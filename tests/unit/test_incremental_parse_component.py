@@ -81,7 +81,9 @@ def test_incremental_background_job_finalizes_an_all_reused_batch(tmp_path: Path
             stats_pattern="stats.txt",
             variables=[
                 StatConfigCodec.to_payload(
-                    StatConfigCodec.from_draft({"name": "simTicks", "type": "scalar"})
+                    StatConfigCodec.from_draft(
+                        {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
+                    )
                 )
             ],
             strategy_type="simple",
@@ -169,7 +171,9 @@ def test_incremental_background_job_keeps_reused_rows_when_changed_work_fails(
             stats_pattern="stats.txt",
             variables=[
                 StatConfigCodec.to_payload(
-                    StatConfigCodec.from_draft({"name": "simTicks", "type": "scalar"})
+                    StatConfigCodec.from_draft(
+                        {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
+                    )
                 )
             ],
             strategy_type="simple",
