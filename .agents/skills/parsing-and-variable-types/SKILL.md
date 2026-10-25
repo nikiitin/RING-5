@@ -44,13 +44,21 @@ Stat types self-register; there are two halves — **Python** (model + reduction
    from src.parsing.gem5.types.base import StatType, register_type
 
    @register_type("mytype")
-   class MyType(StatType):
-       # override _set_content() to validate incoming data;
-       # implement balance_content() + reduce_duplicates() honoring the lifecycle invariant:
-       #   reduced_content is only readable AFTER balance_content() AND reduce_duplicates().
+   class MyType(StatType[list[float], float]):
+       # Declare slots and owned storage. Implement content as a defensive snapshot,
+       # _add_observation(value), _balance() -> padding_count, and _reduce() -> result.
+       # Inherit the public lifecycle methods; they enforce collection → balance → reduce.
        ...
    ```
-   Import it so the decorator runs (add to `types/__init__.py`). `TypeMapper.create_stat(resolved_spec)` /
+   `add_observation(float | str | Mapping[str, float])` accepts one typed source/dump
+   observation. Numeric strings, booleans and list-valued frames are rejected; convert
+   wire text at the worker boundary. Collection closes after balancing. The public
+   balance/reduce methods are idempotent, and reduced content is inaccessible until both
+   succeed. Frame-based types can inherit `FrameStatType` and supply their entry schema
+   and frame validation; one frame list remains the authoritative store.
+
+   Declare `required_params` for OFT capability discovery; constructor and codec validation
+   enforce executable options. Import it so the decorator runs (add to `types/__init__.py`). `TypeMapper.create_stat(resolved_spec)` /
    `StatTypeRegistry.create("mytype", ...)` then dispatch by name. (There is **no**
    `TYPE_TO_SCRIPT`/`TYPE_TO_COLUMNS` dict — registration is purely the decorator.)
 

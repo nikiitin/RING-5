@@ -1,49 +1,21 @@
-"""Distribution stat type for fixed-bucket frequency distributions."""
+"""Distribution accumulator for fixed integer buckets and explicit boundaries."""
 
 import math
 from typing import override
 
-from src.core.models.parsing_models import StatParamValue
-from src.parsing.gem5.types.base import StatType, register_type
+from src.parsing.gem5.types.base import FrameStatType, entry_names, frequency_mean, register_type
 
-# Bound allocation for malformed or unexpectedly large bucket ranges.
 SAFETY_MAX_BUCKETS = 100_000
 
 
 @register_type("distribution")
-class Distribution(StatType):
-    """
-    Represents distribution statistics with defined min/max integer buckets.
-
-    Content is stored as a dictionary mapping bucket names (underflows, overflows,
-    min..max as strings) to frequency lists.
-
-    Each assignment records one observed instance/dump. Lists within an assignment
-    are summed; separate assignments are averaged over the expected repeat count.
-    Missing observations and summary fields remain NaN.
-
-    Validation:
-    - minimum and maximum must be specified and reasonable (< SAFETY_MAX_BUCKETS).
-    - Keys within stats must match "underflows", "overflows", or integers in [min, max].
-    - Underflows and overflows are mandatory entries in the input data.
-    """
+class Distribution(FrameStatType):
+    """Average complete frequency frames and retain missing observations as NaN."""
 
     # [impl->req~ring5.ingestion.distribution~1]
+    __slots__ = ("_minimum", "_maximum", "_statistics", "_statistics_only", "_entries")
 
     required_params = ["minimum", "maximum"]
-    _allowed_attributes = frozenset(
-        {
-            "_repeat",
-            "_content",
-            "_reduced_content",
-            "_balanced",
-            "_reduced",
-            "_minimum",
-            "_maximum",
-            "_statistics",
-            "_statistics_only",
-        }
-    )
 
     def __init__(
         self,
@@ -52,195 +24,81 @@ class Distribution(StatType):
         maximum: int = 100,
         statistics: list[str] | None = None,
         statistics_only: bool = False,
-        **kwargs: StatParamValue,
     ) -> None:
-        """
-        Initialize Distribution type.
-
-        Args:
-            repeat: Number of simulations/dumps expected.
-            minimum: The lowest expected value for standard buckets.
-            maximum: The highest expected value for standard buckets.
-            statistics: List of additional statistics to extract (mean, samples, etc.)
-            statistics_only: If True, only extract statistics, skip bucket data
-            **kwargs: Additional attributes passed to parent.
-
-        Raises:
-            ValueError: If the range exceeds SAFETY_MAX_BUCKETS.
-        """
-        super().__init__(repeat, **kwargs)
-        object.__setattr__(self, "_statistics_only", statistics_only)
-
-        # If statistics_only, use minimal bucket range
-        if statistics_only:
-            object.__setattr__(self, "_minimum", 0)
-            object.__setattr__(self, "_maximum", 0)
-            object.__setattr__(self, "_statistics", statistics or [])
-            # Initialize content with only statistics keys
-            content: dict[str, list[float]] = {}
-            for stat in statistics or []:
-                content[stat] = []
-        else:
-            object.__setattr__(self, "_minimum", int(minimum))
-            object.__setattr__(self, "_maximum", int(maximum))
-            object.__setattr__(self, "_statistics", statistics or [])
-
-            num_buckets = self._maximum - self._minimum + 1
-            if num_buckets > SAFETY_MAX_BUCKETS:
-                raise ValueError(
-                    f"DISTRIBUTION: Range {self._minimum}-{self._maximum} ({num_buckets} buckets) "
-                    f"exceeds safety limit of {SAFETY_MAX_BUCKETS}. Check your config."
-                )
-
-            # Pre-initialize buckets for deterministic output ordering
-            content = {"underflows": []}
-            for i in range(self._minimum, self._maximum + 1):
-                content[str(i)] = []
-            content["overflows"] = []
-
-        # Initialize configured additional statistics
-        for stat in self._statistics:
-            content[stat] = []
-
-        object.__setattr__(self, "_content", content)
+        super().__init__(repeat)
+        if type(minimum) is not int or type(maximum) is not int:
+            raise TypeError("Distribution bounds must be integers.")
+        if minimum > maximum:
+            raise ValueError("Distribution minimum must not exceed maximum.")
+        if type(statistics_only) is not bool:
+            raise TypeError("Distribution statistics_only must be a boolean.")
+        self._statistics_only = statistics_only
+        self._minimum = 0 if statistics_only else minimum
+        self._maximum = 0 if statistics_only else maximum
+        self._statistics = entry_names(statistics, "Distribution statistics")
+        num_buckets = self._maximum - self._minimum + 1
+        if num_buckets > SAFETY_MAX_BUCKETS:
+            raise ValueError(
+                f"DISTRIBUTION: Range {self._minimum}-{self._maximum} ({num_buckets} buckets) "
+                f"exceeds safety limit of {SAFETY_MAX_BUCKETS}. Check your config."
+            )
+        buckets = (
+            ()
+            if statistics_only
+            else (
+                "underflows",
+                *(str(i) for i in range(self._minimum, self._maximum + 1)),
+                "overflows",
+            )
+        )
+        self._entries = tuple(dict.fromkeys((*buckets, *self._statistics)))
 
     @property
     def minimum(self) -> int:
-        """Get the configured minimum bucket value."""
-        return int(object.__getattribute__(self, "_minimum"))
+        """Return the configured lower bucket bound."""
+        return self._minimum
 
     @property
     def maximum(self) -> int:
-        """Get the configured maximum bucket value."""
-        return int(object.__getattribute__(self, "_maximum"))
+        """Return the configured upper bucket bound."""
+        return self._maximum
 
     @property
     def statistics(self) -> list[str]:
-        """Get the list of extra statistics being extracted."""
-        return list(object.__getattribute__(self, "_statistics"))
+        """Return selected summary names."""
+        return list(self._statistics)
 
     @property
-    def entries(self) -> list[str]:
-        """Return all bucket names in order for layout reconstruction."""
-        content_dict = object.__getattribute__(self, "_content")
-        return list(content_dict.keys())
+    def _content_entries(self) -> tuple[str, ...]:
+        return self._entries
 
-    @property
-    def content(self) -> dict[str, list[float]]:
-        """Get the raw accumulated frequency lists."""
-        content_dict: dict[str, list[float]] = object.__getattribute__(self, "_content")
-        return content_dict
-
-    @content.setter
-    def content(self, value: dict[str, list[str | int | float] | str | int | float]) -> None:
-        """
-        Set and aggregate content from a dictionary.
-
-        Handles aggregation of multiple matches from the same file.
-        Fails loudly if critical buckets (under/overflows) are missing (unless statistics_only).
-        """
-        if not isinstance(value, dict):
-            raise TypeError(f"DISTRIBUTION: Content must be dict, got {type(value).__name__}")
-
-        keys = set(value.keys())
-        stats_keys = set(self._statistics)
-        statistics_only = object.__getattribute__(self, "_statistics_only")
-
-        # Full distributions require explicit boundary buckets.
-        if not statistics_only:
-            if "underflows" not in keys or "overflows" not in keys:
-                raise TypeError(
-                    f"DISTRIBUTION: Missing mandatory keys 'underflows' or 'overflows'. "
-                    f"Found: {keys}"
-                )
-
-            if str(self._minimum) not in keys or str(self._maximum) not in keys:
+    @override
+    def _prepare_frame(self, sample: dict[str, float]) -> dict[str, float]:
+        if not self._statistics_only:
+            if not {"underflows", "overflows"} <= sample.keys():
+                raise TypeError("DISTRIBUTION: Missing mandatory keys 'underflows' or 'overflows'.")
+            if not {str(self.minimum), str(self.maximum)} <= sample.keys():
                 raise RuntimeError(
-                    f"DISTRIBUTION: Boundary buckets {self._minimum} or {self._maximum} missing. "
+                    f"DISTRIBUTION: Boundary buckets {self.minimum} or {self.maximum} missing. "
                     "Check for format mismatch in stats file."
                 )
-
-        if statistics_only:
-            expected = stats_keys
-        else:
-            expected = {"underflows", "overflows"}
-            expected.update(str(i) for i in range(self._minimum, self._maximum + 1))
-            expected.update(stats_keys)
-
-        sample: dict[str, float] = {}
-        for key, vals in value.items():
-            str_key = str(key)
-
-            # Reject numeric buckets outside the configured range.
-            if str_key not in expected:
-                if statistics_only:
-                    continue
+            for key in sample.keys() - set(self._entries):
                 try:
-                    int(str_key)
-                    raise RuntimeError(
-                        f"DISTRIBUTION: Bucket {str_key} is out of configured range "
-                        f"[{self._minimum}, {self._maximum}]."
-                    )
+                    int(key)
                 except ValueError:
-                    # It's a non-numeric extra stat we're not tracking, skip it
                     continue
-
-            # Initialize key in content if not present (for statistics_only mode)
-            if str_key not in self._content:
-                self._content[str_key] = []
-
-            if isinstance(vals, list):
-                val_list = vals
-            else:
-                val_list = [vals]
-
-            try:
-                float_vals = [float(v) for v in val_list]
-                aggregated_val = math.fsum(float_vals)
-            except (TypeError, ValueError) as e:
-                raise TypeError(
-                    f"DISTRIBUTION: Value error at key {str_key}. Expected numbers, got: {val_list}"
-                ) from e
-
-            sample[str_key] = aggregated_val
-
-        for key in self._content:
-            # An omitted interior frequency in a complete distribution is zero.
-            # Summaries are measurements and cannot be inferred from omission.
-            default = float("nan") if key in stats_keys else 0.0
-            self._content[key].append(sample.get(key, default))
-
-    @override
-    def balance_content(self) -> None:
-        """Ensure all buckets have consistent length across repeats."""
-        object.__setattr__(self, "_balanced", True)
-
-        for bucket in self._content:
-            current_len = len(self._content[bucket])
-            if current_len < self._repeat:
-                padding = self._repeat - current_len
-                self._content[bucket].extend([float("nan")] * padding)
-                object.__setattr__(self, "_padded", self._padded + padding)
-            elif current_len > self._repeat:
                 raise RuntimeError(
-                    f"DISTRIBUTION: Bucket '{bucket}' has more values"
-                    f" than expected ({current_len})."
-                    f" Repeat count: {self._repeat}"
+                    f"DISTRIBUTION: Bucket {key} is out of configured range "
+                    f"[{self.minimum}, {self.maximum}]."
                 )
+        return {
+            key: sample.get(key, math.nan if key in self._statistics else 0.0)
+            for key in self._entries
+        }
 
     @override
-    def reduce_duplicates(self) -> None:
-        """Flatten repeats into a single distribution via population mean."""
-        object.__setattr__(self, "_reduced", True)
-        reduced = {}
-
-        for bucket, values in self._content.items():
-            if not values:
-                reduced[bucket] = float("nan")
-            else:
-                reduced[bucket] = math.fsum(values[: self._repeat]) / self._repeat
-
-        object.__setattr__(self, "_reduced_content", reduced)
+    def _reduce_values(self, values: list[float]) -> float:
+        return frequency_mean(values, self.repeat)
 
     def __str__(self) -> str:
-        return f"Distribution(range=[{self._minimum}, {self._maximum}], repeat={self._repeat})"
+        return f"Distribution(range=[{self.minimum}, {self.maximum}], repeat={self.repeat})"

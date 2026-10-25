@@ -8,6 +8,8 @@ which a researcher could not distinguish from a genuine measured 0.
 import csv
 from pathlib import Path
 
+import pytest
+
 from src.core.models.csv_contract import MISSING_VALUE
 from src.parsing.gem5.impl.gem5_parser import Gem5Parser, _render_value
 from src.parsing.gem5.types.scalar import Scalar
@@ -16,7 +18,7 @@ from src.parsing.gem5.types.scalar import Scalar
 def _make_scalar(values: list[float], repeat: int) -> Scalar:
     s = Scalar(repeat=repeat)
     for v in values:
-        s.content = v
+        s.add_observation(v)
     return s
 
 
@@ -32,8 +34,9 @@ class TestRenderValue:
     def test_nan_is_missing(self) -> None:
         assert _render_value(float("nan")) == MISSING_VALUE
 
-    def test_legacy_na_sentinel_is_missing(self) -> None:
-        assert _render_value("NA") == MISSING_VALUE
+    @pytest.mark.parametrize("text", ["NA", "nan", "", "001"])
+    def test_literal_configuration_text_is_preserved(self, text: str) -> None:
+        assert _render_value(text) == text
 
     def test_real_value_is_rendered(self) -> None:
         assert _render_value(3.5) == "3.5"

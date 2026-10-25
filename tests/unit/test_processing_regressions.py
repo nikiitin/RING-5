@@ -153,50 +153,34 @@ class TestScalarReduceDuplicatesNaN:
     """Verify Scalar.reduce_duplicates returns math.nan for empty content."""
 
     def test_empty_content_produces_nan_not_string(self) -> None:
-        """A Scalar with no content should reduce to math.nan, not 'NA' string.
-
-        The Scalar override returns math.nan when _content is empty,
-        whereas the base StatType.reduce_duplicates returns the string 'NA'.
-        We call reduce_duplicates directly (without balance_content) to
-        exercise the empty-content guard in the Scalar override.
-        """
+        """Balancing an absent scalar pads NaN rather than a fabricated value."""
         from src.parsing.gem5.types.scalar import Scalar
 
         scalar = Scalar(repeat=1)
-        # No content added — _content is empty list
-        # Call reduce_duplicates directly to hit the empty guard
+        scalar.balance_content()
         scalar.reduce_duplicates()
+        assert isinstance(scalar.reduced_content, float)
+        assert math.isnan(scalar.reduced_content)
 
-        raw_reduced = object.__getattribute__(scalar, "_reduced_content")
-        assert isinstance(
-            raw_reduced, float
-        ), f"Expected float (math.nan), got {type(raw_reduced).__name__}"
-        assert math.isnan(raw_reduced), "Expected math.nan for empty Scalar content"
-
-    def test_empty_content_differs_from_base_class(self) -> None:
-        """Confirm Scalar returns float NaN whereas base StatType returns 'NA' string."""
+    def test_abstract_base_does_not_publish_a_text_missing_value(self) -> None:
+        """The base is abstract; concrete empty numeric reduction remains NaN."""
         from src.parsing.gem5.types.base import StatType
         from src.parsing.gem5.types.scalar import Scalar
 
-        # Base class behavior: returns "NA" string
-        base = StatType(repeat=1)
-        base.reduce_duplicates()
-        base_reduced = object.__getattribute__(base, "_reduced_content")
-        assert base_reduced == "NA"
-
-        # Scalar override: returns math.nan (float)
+        with pytest.raises(TypeError, match="abstract"):
+            StatType(repeat=1)
         scalar = Scalar(repeat=1)
+        scalar.balance_content()
         scalar.reduce_duplicates()
-        scalar_reduced = object.__getattribute__(scalar, "_reduced_content")
-        assert isinstance(scalar_reduced, float)
-        assert math.isnan(scalar_reduced)
+        assert isinstance(scalar.reduced_content, float)
+        assert math.isnan(scalar.reduced_content)
 
     def test_single_value_reduces_correctly(self) -> None:
         """A Scalar with one value should reduce to that value."""
         from src.parsing.gem5.types.scalar import Scalar
 
         scalar = Scalar(repeat=1)
-        scalar.content = 42
+        scalar.add_observation(42)
         scalar.balance_content()
         scalar.reduce_duplicates()
 
@@ -207,8 +191,8 @@ class TestScalarReduceDuplicatesNaN:
         from src.parsing.gem5.types.scalar import Scalar
 
         scalar = Scalar(repeat=2)
-        scalar.content = 10
-        scalar.content = 20
+        scalar.add_observation(10)
+        scalar.add_observation(20)
         scalar.balance_content()
         scalar.reduce_duplicates()
 
@@ -218,22 +202,12 @@ class TestScalarReduceDuplicatesNaN:
 class TestDistributionMathFsum:
     """Verify Distribution uses math.fsum for numerical precision."""
 
-    def test_fsum_precision_on_content_setter(self) -> None:
-        """Content setter aggregates values with math.fsum for precision."""
+    def test_fractional_observation_preserves_precision(self) -> None:
+        """A typed complete frequency frame retains its fractional measurement."""
         from src.parsing.gem5.types.distribution import Distribution
 
         dist = Distribution(repeat=1, minimum=0, maximum=1)
-
-        # Provide values that would lose precision with naive sum
-        # math.fsum([0.1, 0.2, 0.3]) == 0.6 exactly, unlike 0.1+0.2+0.3
-        dist.content = {
-            "underflows": [0.1, 0.2, 0.3],
-            "0": [1.0],
-            "1": [2.0],
-            "overflows": [0.0],
-        }
-
-        # The underflows bucket should have been aggregated via math.fsum
+        dist.add_observation({"underflows": 0.6, "0": 1.0, "1": 2.0, "overflows": 0.0})
         assert dist.content["underflows"] == [pytest.approx(0.6)]
 
     def test_reduce_duplicates_uses_fsum(self) -> None:
@@ -243,17 +217,9 @@ class TestDistributionMathFsum:
         dist = Distribution(repeat=2, minimum=0, maximum=0)
 
         # First content set (repeat 1)
-        dist.content = {
-            "underflows": [0.1, 0.2],
-            "0": [100.0],
-            "overflows": [0.0],
-        }
+        dist.add_observation({"underflows": 0.30000000000000004, "0": 100.0, "overflows": 0.0})
         # Second content set (repeat 2)
-        dist.content = {
-            "underflows": [0.3],
-            "0": [200.0],
-            "overflows": [0.0],
-        }
+        dist.add_observation({"underflows": 0.3, "0": 200.0, "overflows": 0.0})
 
         dist.balance_content()
         dist.reduce_duplicates()
@@ -263,16 +229,12 @@ class TestDistributionMathFsum:
         assert reduced["0"] == pytest.approx(150.0)
 
     def test_reduce_duplicates_empty_bucket(self) -> None:
-        """An empty bucket should reduce to 0.0."""
+        """Measured zero boundaries remain zero through numeric reduction."""
         from src.parsing.gem5.types.distribution import Distribution
 
         dist = Distribution(repeat=1, minimum=0, maximum=0)
-        # Only set required buckets; bucket "0" will be empty initially
-        dist.content = {
-            "underflows": [0.0],
-            "0": [5.0],
-            "overflows": [0.0],
-        }
+        # All required buckets are explicitly measured in this frame.
+        dist.add_observation({"underflows": 0.0, "0": 5.0, "overflows": 0.0})
 
         dist.balance_content()
         dist.reduce_duplicates()

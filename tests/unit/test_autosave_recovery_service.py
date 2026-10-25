@@ -123,11 +123,18 @@ def test_empty_state_and_invalid_owner_keys_do_not_create_drafts(recovery_dir: P
         AutosaveRecoveryService.list_drafts("bad\nowner")
 
 
-@pytest.mark.parametrize("fallback", [None, "", "None"])
+@pytest.mark.parametrize("fallback", [None, "None"])
 def test_editor_configuration_defaults_leave_the_workspace_empty(
     recovery_dir: Path, fallback: str | None
 ) -> None:
-    assert Configuration(on_empty=fallback).on_empty == "None"
+    configured = StatConfigCodec.from_draft(
+        {
+            "name": "label",
+            "type": "configuration",
+            "params": {"source_type": "configuration", "on_empty": fallback},
+        }
+    )
+    assert Configuration(on_empty=cast(str, configured.params["on_empty"])).on_empty == "None"
     state = RepositoryStateManager()
     variables = state.get_parse_variables()
     for index, variable in enumerate(variables):
@@ -147,6 +154,7 @@ def test_editor_configuration_defaults_leave_the_workspace_empty(
     ("index", "updates"),
     [
         (1, {"params": {"on_empty": "missing benchmark"}}),
+        (1, {"params": {"source_type": "configuration", "on_empty": ""}}),
         (0, {"repeat": 2}),
         (0, {"name": "ticks", "source_name": "simTicks"}),
         (0, {"source_name": "otherTicks"}),

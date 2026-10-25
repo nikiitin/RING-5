@@ -11,13 +11,13 @@ class TestDistributionUnconfiguredStats:
         dist = StatTypeRegistry.create("distribution", minimum=0, maximum=10, statistics=[])
 
         content = {
-            "underflows": [],
-            "overflows": [],
-            **{str(i): [] for i in range(11)},
-            "samples": ["100"],
+            "underflows": 0,
+            "overflows": 0,
+            **{str(i): 0 for i in range(11)},
+            "samples": 100,
         }
 
-        dist.content = content
+        dist.add_observation(content)
 
         assert "0" in dist.content
         assert "10" in dist.content
@@ -29,16 +29,16 @@ class TestDistributionUnconfiguredStats:
         )
 
         content = {
-            "0": ["10"],
-            "1": ["20"],
-            "2": ["30"],
-            "underflows": ["0"],
-            "overflows": ["0"],
-            "samples": ["100"],
-            "mean": ["1.5"],
+            "0": 10,
+            "1": 20,
+            "2": 30,
+            "underflows": 0,
+            "overflows": 0,
+            "samples": 100,
+            "mean": 1.5,
         }
 
-        dist.content = content
+        dist.add_observation(content)
 
         # Verify configured stats are present
         assert "samples" in dist.content

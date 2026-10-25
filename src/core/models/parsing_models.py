@@ -13,7 +13,7 @@ from src.core.models.data_models import ScannedVariableDict, SourceInstanceDict
 from src.core.common.safe_regex import MAX_INPUT_LENGTH
 
 # Shared by durable parse requests and incremental rows; bump on semantic changes.
-PARSER_RESULT_VERSION = 8
+PARSER_RESULT_VERSION = 9
 
 # Type alias for StatConfig parameter values
 StatParamValue = str | int | float | bool | list[str] | None

@@ -44,11 +44,17 @@ component when metadata or a protocol method can express the difference.
 ## Add or change a gem5 stat type
 
 For a gem5 type, add a decorated `StatType` under `src/parsing/gem5/types/`, import it so registration
-runs, update both ordered Perl classification paths under `src/parsing/gem5/perl/libs/`, and expose
+runs, update the shared Perl classifier under `src/parsing/gem5/perl/libs/`, and expose
 the type string in the gem5 registry metadata. Classification order matters where formats overlap.
 
-Preserve the lifecycle that balances and reduces content before reading reduced values. Pass scanned
-variables into parsing when a regex or pattern must expand to concrete names.
+Implement typed `add_observation` storage hooks and inherit the public lifecycle from `StatType`.
+A numeric point, literal configuration string, or numeric mapping represents one observation;
+convert numeric wire text in the worker before ingestion. Declare ordinary slots and return defensive
+content snapshots. Implement `_balance()` to validate expected counts and return missing-value
+padding, then `_reduce()` to compute the typed result. Frame kinds can use `FrameStatType` with an
+exact entry schema and `_prepare_frame()` hook. Collection ends after balancing; reduction follows
+balancing; completed stages are idempotent. Reduced content is readable only after both succeed.
+Pass scanned variables when a regex or pattern must expand to concrete source records.
 
 ## Test and verify
 

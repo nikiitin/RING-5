@@ -148,6 +148,12 @@ class StatConfigCodec:
             minimum, maximum = params["minimum"], params["maximum"]
             if any(type(bound) not in (int, float) for bound in (minimum, maximum)):
                 raise TypeError("Distribution bounds must be numbers.")
+            if any(
+                isinstance(bound, float) and not bound.is_integer() for bound in (minimum, maximum)
+            ):
+                raise ValueError(
+                    "Current fixed-unit distribution parsing requires integral bounds."
+                )
             if cast(float, minimum) > cast(float, maximum):
                 raise ValueError("Distribution minimum must not exceed maximum.")
         if kind == "histogram":
@@ -163,7 +169,7 @@ class StatConfigCodec:
             fallback = params.get("on_empty")
             if fallback is not None and not isinstance(fallback, str):
                 raise TypeError("Configuration on_empty must be text or null.")
-            params["on_empty"] = fallback or "None"
+            params["on_empty"] = "None" if fallback is None else fallback
         return StatConfig(
             name=name,
             type=kind,
@@ -303,6 +309,12 @@ class StatConfigCodec:
         if kind == "distribution" and not draft.get("statistics_only", False):
             if params.get("minimum") is None or params.get("maximum") is None:
                 raise StatConfigDraftIncomplete("Set distribution bounds before parsing.")
+            for field in ("minimum", "maximum"):
+                bound = params[field]
+                if isinstance(bound, float) and not bound.is_integer():
+                    raise StatConfigDraftIncomplete(
+                        "Current fixed-unit distribution parsing requires integral bounds."
+                    )
             if cast(float, params["minimum"]) > cast(float, params["maximum"]):
                 raise StatConfigDraftIncomplete("Order distribution bounds before parsing.")
         if kind == "histogram" and bool(params.get("bins", 0)) != bool(params.get("max_range", 0)):

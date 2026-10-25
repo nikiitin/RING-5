@@ -13,8 +13,8 @@ def test_vector_creation() -> None:
 def test_vector_content_setting() -> None:
     """Test correct content aggregation."""
     v = Vector(repeat=1, entries=["A", "B"])
-    data = {"A": [10], "B": [20]}
-    v.content = data
+    data = {"A": 10, "B": 20}
+    v.add_observation(data)
 
     assert v.content["A"] == [10]
     assert v.content["B"] == [20]
@@ -24,8 +24,8 @@ def test_vector_unknown_entries_warning() -> None:
     """Test that unknown entries are ignored (with warning implicitly)."""
     v = Vector(repeat=1, entries=["A"])
     # "C" is unknown
-    data = {"A": [10], "C": [99]}
-    v.content = data
+    data = {"A": 10, "C": 99}
+    v.add_observation(data)
 
     assert v.content["A"] == [10]
     # C should not be in content
@@ -36,7 +36,7 @@ def test_vector_balancing() -> None:
     """Test balancing logic (NaN padding for missing dumps)."""
     v = Vector(repeat=2, entries=["A"])
     # One dump provided, two expected -> the missing one is NaN, not 0
-    v.content = {"A": [10]}
+    v.add_observation({"A": 10.0})
     v.balance_content()
 
     assert v.content["A"][0] == 10
@@ -46,9 +46,9 @@ def test_vector_balancing() -> None:
 def test_vector_reduction() -> None:
     """Test reduction logic (mean over dumps)."""
     v = Vector(repeat=2, entries=["A"])
-    # Two dumps assigned individually (a list in one assignment is summed)
-    v.content = {"A": 10}
-    v.content = {"A": 20}
+    # Two dumps assigned individually (each call is one complete dump)
+    v.add_observation({"A": 10})
+    v.add_observation({"A": 20})
     v.balance_content()
     v.reduce_duplicates()
 

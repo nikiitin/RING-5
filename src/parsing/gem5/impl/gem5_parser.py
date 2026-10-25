@@ -55,11 +55,10 @@ logger = logging.getLogger(__name__)
 def _render_value(val: Any) -> str:
     """Render a reduced stat value for the CSV, mapping missing → MISSING_VALUE.
 
-    A missing/unmeasured numeric value (None, NaN, or the legacy ``"NA"``
-    sentinel) is written as the canonical ``MISSING_VALUE`` so it is never
-    confused with a measured 0 (hard rule 6).
+    Absent numeric cells and NaN use the canonical missing value. Configuration
+    strings retain their literal spelling, including text such as "NA".
     """
-    if val is None or val == "NA":
+    if val is None:
         return MISSING_VALUE
     if isinstance(val, float) and math.isnan(val):
         return MISSING_VALUE

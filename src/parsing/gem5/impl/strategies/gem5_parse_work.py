@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, cast
+from typing import Any
 
-from src.parsing.gem5.types.base import StatType
+from src.parsing.gem5.types.base import StatContent, StatResult, StatType
 
 from src.core.common.security_limits import MAX_PARSE_VARIABLES
 from src.core.common.utils import checkFileExistsOrException
@@ -14,7 +14,7 @@ from src.parsing.gem5.impl.source_bindings import SourcePlan, literal_source_fil
 from src.parsing.gem5.impl.strategies.file_parser_strategy import INTERNAL_SIM_PATH_KEY
 from src.parsing.gem5.impl.strategies.perl_worker_pool import get_worker_pool
 
-VarsDictType = dict[str, StatType]
+VarsDictType = dict[str, StatType[StatContent, StatResult]]
 EntryBufferType = dict[tuple[str, str], dict[str, list[str]]]
 _ENTRY_TYPES = frozenset({"vector", "distribution", "histogram"})
 logger = logging.getLogger(__name__)
@@ -63,15 +63,28 @@ class Gem5ParseWork:
 
     def _apply_buffered_entries(self) -> None:
         """Apply each source's temporal samples independently to its logical target."""
+        scalar_vectors: dict[str, list[dict[str, float]]] = {}
         for (output_name, _source_name), entries in self._entry_buffer.items():
             accumulator = self._accumulators[output_name]
+            spec = self._specs[output_name]
             for index in range(max(map(len, entries.values()), default=0)):
                 sample = {
-                    entry: [values[index]]
+                    entry: float(values[index])
                     for entry, values in entries.items()
                     if index < len(values)
                 }
-                accumulator.content = sample
+                if spec.output_type == "vector" and spec.config.params["source_type"] == "scalar":
+                    # Independent scalar sources populate distinct entries of one
+                    # temporal vector frame rather than separate observations.
+                    frames = scalar_vectors.setdefault(output_name, [])
+                    while len(frames) <= index:
+                        frames.append({})
+                    frames[index].update(sample)
+                else:
+                    accumulator.add_observation(sample)
+        for output_name, frames in scalar_vectors.items():
+            for sample in frames:
+                self._accumulators[output_name].add_observation(sample)
         self._entry_buffer = {}
 
     @staticmethod
@@ -121,7 +134,9 @@ class Gem5ParseWork:
             ):
                 self._buffer_entry(target.output_name, source_name, target.entry_name, value)
             elif spec.output_type in {"scalar", "configuration"} and target.entry_name is None:
-                self._accumulators[target.output_name].content = value
+                self._accumulators[target.output_name].add_observation(
+                    value if spec.output_type == "configuration" else float(value)
+                )
             else:
                 raise RuntimeError(f"Scalar source cannot populate output {target.output_name!r}.")
 
@@ -132,8 +147,7 @@ class Gem5ParseWork:
         for name, accumulator in self._accumulators.items():
             spec = self._specs[name]
             if spec.output_type == "configuration":
-                if not accumulator.content:
-                    accumulator.content = cast(str, spec.config.params["on_empty"])
+                # The typed text accumulator owns its explicit empty-input policy.
                 continue
             content = accumulator.content
             if (

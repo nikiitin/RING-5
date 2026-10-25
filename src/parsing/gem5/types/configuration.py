@@ -1,83 +1,47 @@
-"""Configuration stat type for metadata values."""
+"""Configuration accumulator for explicit textual metadata."""
 
-from typing import Any, override
+from typing import override
 
-from src.core.models.parsing_models import StatParamValue
-from src.parsing.gem5.types.base import StatType, register_type
+from src.parsing.gem5.types.base import Observation, StatType, register_type
 
 
 @register_type("configuration")
-class Configuration(StatType):
-    """
-    Represents configuration/metadata values (e.g., benchmark name, seed).
-
-    Stores string values; uses on_empty default if content is empty.
-
-    Validation:
-    - Values must be convertible to strings
-    - on_empty provides fallback for empty content
-    - No balancing needed (always balanced)
-    - Reduction returns first value or on_empty
-    """
+class Configuration(StatType[list[str], str]):
+    """Retain the first observed string, or the declared empty-input policy."""
 
     # [impl->req~ring5.ingestion.configuration-fallbacks~1]
     # [impl->req~ring5.ingestion.configuration~1]
+    __slots__ = ("_values", "_on_empty")
 
     required_params = ["on_empty"]
-    _allowed_attributes = frozenset(
-        {
-            "_repeat",
-            "_content",
-            "_reduced_content",
-            "_balanced",
-            "_reduced",
-            "_on_empty",
-        }
-    )
 
-    def __init__(
-        self, repeat: int = 1, on_empty: str | None = None, **kwargs: StatParamValue
-    ) -> None:
-        if kwargs:
-            raise TypeError(f"Unsupported configuration options: {sorted(kwargs)}")
+    def __init__(self, repeat: int = 1, on_empty: str = "None") -> None:
         super().__init__(repeat)
-        object.__setattr__(self, "_on_empty", on_empty or "None")
+        if not isinstance(on_empty, str):
+            raise TypeError("Configuration on_empty must be text.")
+        self._on_empty = on_empty
+        self._values: list[str] = []
 
     @property
     def on_empty(self) -> str:
-        """Return the value used when configuration content is empty."""
-        return str(object.__getattribute__(self, "_on_empty"))
+        """Return the declared value for absent configuration metadata."""
+        return self._on_empty
+
+    @property
+    def content(self) -> list[str]:
+        """Return a defensive snapshot of observed text."""
+        return list(self._values)
 
     @override
-    def _validate_content(self, value: Any) -> None:
-        """Ensure value can be converted to string."""
-        try:
-            str(value)
-        except Exception as e:
-            raise TypeError(
-                f"CONFIGURATION: Variable non-convertible to string. "
-                f"Value: {value}, Type: {type(value).__name__}"
-            ) from e
+    def _add_observation(self, value: Observation) -> None:
+        if not isinstance(value, str):
+            raise TypeError("CONFIGURATION: Observation must be text.")
+        self._values.append(value)
 
     @override
-    def _set_content(self, value: Any) -> None:
-        """Store as string."""
-        self._content.append(str(value))
+    def _balance(self) -> int:
+        return 0
 
     @override
-    def balance_content(self) -> None:
-        """Configuration is always balanced (no padding needed)."""
-        object.__setattr__(self, "_balanced", True)
-
-    @override
-    def reduce_duplicates(self) -> None:
-        """For configuration, return first value or on_empty default."""
-        object.__setattr__(self, "_reduced", True)
-
-        if not self._content:
-            object.__setattr__(self, "_reduced_content", self._on_empty)
-        else:
-            object.__setattr__(self, "_reduced_content", self._content[0])
-
-    def __str__(self) -> str:
-        return f"Configuration({self._content}, on_empty={self._on_empty})"
+    def _reduce(self) -> str:
+        return self._values[0] if self._values else self.on_empty
