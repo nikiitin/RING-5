@@ -37,9 +37,9 @@ fields and `RestoreReport`. Shaper models form a discriminated configuration uni
 models describe engines, traces, axes, legends, annotations, labels, palettes, and full figure
 configuration without backend imports.
 
-## Compatibility
+## Contract validation
 
-- A field serialized to JSON or CSV needs a default or migration when changed.
+- A serialized contract change updates every producer and consumer and rejects unsupported shapes.
 - A `TypedDict` discriminator must match its factory identifier.
 - Protocols remain narrow; do not turn them into catalogs of an implementation.
 - Models do not call services, read application state, or import Streamlit or rendering engines.

@@ -36,8 +36,8 @@ Covers:
 6. Ensure every new state value is JSON-compatible so `BasePlot.to_dict` and portfolio restore
    round-trip it.
 
-The registry identifier is stored in portfolios and accepted by the public API. Renaming it later
-requires a migration.
+The registry identifier is stored in portfolios and accepted by the public API. Use its exact
+canonical spelling. A rename replaces all producers, consumers and fixtures without an alias.
 
 ## Test and verify
 

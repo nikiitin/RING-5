@@ -42,8 +42,7 @@ Data:         src/parsing/, src/core/models/
 - `ring5/` is the supported programmatic surface. It composes core services and rendering without
   exposing Streamlit.
 
-More detail is available in `docs/developer-guide/architecture/` and
-`docs/engineering-reference/architecture/`.
+More detail is available in `docs/developer-guide/architecture/`.
 
 ## Public API
 
@@ -104,9 +103,12 @@ Task-specific recipes live in `.agents/skills/`:
 | Test Streamlit with Playwright | `.agents/skills/e2e-streamlit-testing/SKILL.md` |
 | Audit the public API | `.agents/skills/api-check/SKILL.md` |
 
-Plots use snake-case registry identifiers such as `grouped_stacked_bar`. Shapers retain their
-serialized camel-case identifiers such as `columnSelector`; changing these requires migration
-support for saved portfolios and pipelines.
+Plots use exact snake-case registry identifiers such as `grouped_stacked_bar`; shapers use exact
+identifiers such as `columnSelector`. Each operation and document kind has one current contract.
+When replacing a contract, update every caller, serializer, fixture and example together, reject
+unsupported versions and keys explicitly, and remove the retired implementation. Do not add
+migrations, compatibility aliases or alternate execution paths. Current simulator variants,
+platform support, output-column naming and revision history remain supported features.
 
 Every plot implementation must build engine-independent traces and render correctly through both
 connectors. Every shaper must validate its configuration, avoid input mutation, and participate in
@@ -132,5 +134,5 @@ Before handing off a change:
 2. Confirm public names, error messages, parameters, return values, and exceptions are documented.
 3. Run focused tests during development, then the complete quality and test gates.
 4. Exercise both rendering engines when figure configuration or traces change.
-5. Verify old portfolio and pipeline formats still load, or add an explicit migration.
+5. Verify the current portfolio and pipeline formats round-trip and retired formats fail clearly.
 6. Keep comments for intent, constraints, and non-obvious reasoning; remove narration of the code.

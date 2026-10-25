@@ -57,7 +57,8 @@ installation provided by `make dev`.
 - Do not mutate caller-owned DataFrames or configuration mappings.
 - Preserve specific failures and wrap public API failures in errors from `ring5.errors`.
 - Expose scripting behavior through `ring5/`; user examples must not import `src.*`.
-- Add migration coverage when a serialized portfolio or pipeline format changes.
+- Support one current serialized contract; replace callers and reject retired versions or keys.
+- Remove replaced implementations and aliases rather than adding migration or compatibility code.
 - Test both rendering engines when traces, figure configuration, or export behavior changes.
 
 The [Developer Guide](docs/developer-guide/index.md) explains the architecture and workflow. Recipes

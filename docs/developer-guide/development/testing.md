@@ -65,4 +65,4 @@ a tighter local budget. Parser deployments can tune `RING5_WORK_POOL_SIZE` and
 `RING5_PERL_POOL_SIZE`; both default to two and each value must be a positive integer.
 
 For a public API addition, extend `tests/integration/test_ring5_public_api.py`. For serialized
-changes, test both current output and loading or migrating an older fixture.
+changes, test the current writer/reader round trip and rejection of unsupported versions and keys.
