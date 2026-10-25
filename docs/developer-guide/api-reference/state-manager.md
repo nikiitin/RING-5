@@ -5,9 +5,6 @@ parent: Stable Interfaces
 grand_parent: Developer Guide
 nav_order: 5
 permalink: /developer-guide/api-reference/state-manager/
-redirect_from:
-  - /developer-guide/core/state-management/
-  - /engineering-reference/reference/state-keys/
 ---
 
 # State manager

@@ -5,8 +5,6 @@ parent: Reference
 grand_parent: User Guide
 nav_order: 2
 permalink: /user-guide/reference/shapers/
-redirect_from:
-  - /user-guide/features/shapers/
 ---
 
 # Shapers

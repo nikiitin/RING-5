@@ -5,9 +5,6 @@ parent: Analysis Guides
 grand_parent: User Guide
 nav_order: 2
 permalink: /user-guide/guides/publication-export/
-redirect_from:
-  - /user-guide/tutorials/custom-styling/
-  - /user-guide/tutorials/publication-ready/
 ---
 
 # Prepare publication output

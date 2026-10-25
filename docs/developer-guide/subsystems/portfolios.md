@@ -5,8 +5,6 @@ parent: Subsystems
 grand_parent: Developer Guide
 nav_order: 5
 permalink: /developer-guide/subsystems/portfolios/
-redirect_from:
-  - /developer-guide/web/portfolio-system/
 ---
 
 # Portfolio subsystem

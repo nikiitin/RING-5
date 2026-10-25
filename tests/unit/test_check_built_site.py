@@ -5,15 +5,13 @@ from pathlib import Path
 from scripts.check_built_site import ReferenceParser, collect_failures, route_output
 
 
-def _page(path: Path, *, route: str, redirect: str | None = None) -> None:
-    redirects = f"\nredirect_from:\n  - {redirect}" if redirect else ""
+def _page(path: Path, *, route: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         "---\n"
         "layout: default\n"
         f"title: {path.stem}\n"
-        f"permalink: {route}"
-        f"{redirects}\n"
+        f"permalink: {route}\n"
         "---\n\n"
         "# Page\n"
     )
@@ -30,12 +28,11 @@ def test_route_output_uses_pretty_index_path(tmp_path: Path) -> None:
     assert route_output(tmp_path, "/guide/start/") == tmp_path / "guide/start/index.html"
 
 
-def test_audit_accepts_canonical_redirect_and_local_asset(tmp_path: Path) -> None:
+def test_audit_accepts_canonical_route_and_local_asset(tmp_path: Path) -> None:
     docs = tmp_path / "docs"
     site = tmp_path / "_site"
-    _page(docs / "index.md", route="/", redirect="/old/")
-    (site / "old").mkdir(parents=True)
-    (site / "old/index.html").write_text('<a href="/RING-5/">Home</a>')
+    _page(docs / "index.md", route="/")
+    site.mkdir()
     (site / "assets").mkdir()
     (site / "assets/logo.svg").write_text("<svg></svg>")
     (site / "index.html").write_text('<img src="/RING-5/assets/logo.svg">')

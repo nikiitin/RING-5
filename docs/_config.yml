@@ -12,9 +12,6 @@ sass:
   silence_deprecations:
     - import
 
-# Preserve old wiki URLs after the docs consolidation (see redirect_from front-matter).
-plugins:
-  - jekyll-redirect-from
 
 permalink: pretty
 

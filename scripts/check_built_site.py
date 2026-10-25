@@ -9,10 +9,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
-try:
-    from scripts.check_doc_structure import DOCS_ROOT, ROOT, load_pages
-except ModuleNotFoundError:  # Direct execution adds scripts/ rather than the repository root.
-    from check_doc_structure import DOCS_ROOT, ROOT, load_pages
+from scripts.documentation import DOCS_ROOT, ROOT, load_pages
 
 SITE_ROOT = ROOT / "_site"
 BASE_URL = "/RING-5"
@@ -89,10 +86,9 @@ def collect_failures(site_root: Path = SITE_ROOT, docs_root: Path = DOCS_ROOT) -
     pages, page_failures = load_pages(docs_root)
     failures.extend(page_failures)
     for page in pages:
-        for route in (page.route, *page.redirects):
-            output = route_output(site_root, route)
-            if not output.is_file():
-                failures.append(f"{page.path}: generated route {route!r} is missing")
+        output = route_output(site_root, page.route)
+        if not output.is_file():
+            failures.append(f"{page.path}: generated route {page.route!r} is missing")
 
     for page in html_files:
         parser = ReferenceParser()

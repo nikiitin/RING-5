@@ -5,9 +5,6 @@ parent: Stable Interfaces
 grand_parent: Developer Guide
 nav_order: 3
 permalink: /developer-guide/api-reference/services-api/
-redirect_from:
-  - /developer-guide/core/services-reference/
-  - /engineering-reference/reference/services-catalog/
 ---
 
 # Service protocols

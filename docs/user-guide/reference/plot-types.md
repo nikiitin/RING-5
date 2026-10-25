@@ -5,8 +5,6 @@ parent: Reference
 grand_parent: User Guide
 nav_order: 1
 permalink: /user-guide/reference/plot-types/
-redirect_from:
-  - /user-guide/features/plot-types/
 ---
 
 # Plot types

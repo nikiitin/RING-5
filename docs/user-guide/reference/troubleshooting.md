@@ -5,9 +5,6 @@ parent: Reference
 grand_parent: User Guide
 nav_order: 5
 permalink: /user-guide/reference/troubleshooting/
-redirect_from:
-  - /user-guide/reference/faq/
-  - /user-guide/reference/keyboard-shortcuts/
 ---
 
 # Troubleshooting and FAQ

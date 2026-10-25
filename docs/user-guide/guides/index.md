@@ -5,8 +5,6 @@ parent: User Guide
 nav_order: 4
 has_children: true
 permalink: /user-guide/guides/
-redirect_from:
-  - /user-guide/tutorials/
 ---
 
 # Analysis guides

@@ -5,8 +5,6 @@ parent: Workflows
 grand_parent: User Guide
 nav_order: 3
 permalink: /user-guide/workflows/plotting/
-redirect_from:
-  - /user-guide/pages/manage-plots/
 ---
 
 # Create and configure plots

@@ -5,8 +5,6 @@ parent: Architecture
 grand_parent: Developer Guide
 nav_order: 3
 permalink: /developer-guide/architecture/layer-boundaries/
-redirect_from:
-  - /engineering-reference/architecture/layer-boundaries/
 ---
 
 # Layer boundaries

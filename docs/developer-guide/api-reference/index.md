@@ -5,9 +5,6 @@ parent: Developer Guide
 nav_order: 6
 has_children: true
 permalink: /developer-guide/api-reference/
-redirect_from:
-  - /engineering-reference/reference/
-  - /engineering-reference/quick-reference/error-patterns/
 ---
 
 # Stable interfaces

@@ -5,9 +5,6 @@ parent: Workflows
 grand_parent: User Guide
 nav_order: 4
 permalink: /user-guide/workflows/portfolios/
-redirect_from:
-  - /user-guide/features/portfolios/
-  - /user-guide/pages/portfolio/
 ---
 
 # Manage portfolios

@@ -5,9 +5,6 @@ parent: User Guide
 nav_order: 3
 has_children: true
 permalink: /user-guide/workflows/
-redirect_from:
-  - /user-guide/features/
-  - /user-guide/pages/
 ---
 
 # Workflows

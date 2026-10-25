@@ -9,7 +9,8 @@ from collections.abc import Iterator
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
-ROOT = Path(__file__).resolve().parents[1]
+from scripts.documentation import DOCS_ROOT, ROOT, load_pages
+
 DOC_ROOTS = (
     ROOT / "README.md",
     ROOT / "CONTRIBUTING.md",
@@ -43,55 +44,6 @@ GENERATED_REPOSITORY_PATHS = {
     "tests/data",
     "tests/data/results-micro26-sens",
 }
-
-
-def redirected_documentation_paths() -> set[str]:
-    """Return retired ``docs/`` paths represented by published redirects."""
-    redirected: set[str] = set()
-    for path in (ROOT / "docs").rglob("*.md"):
-        lines = path.read_text(encoding="utf-8").splitlines()
-        if not lines or lines[0].strip() != "---":
-            continue
-        in_redirects = False
-        for line in lines[1:]:
-            if line.strip() == "---":
-                break
-            if line == "redirect_from:":
-                in_redirects = True
-                continue
-            if in_redirects and line.startswith("  - /"):
-                route = line.removeprefix("  - ").strip()
-                redirected.add(f"docs{route}".rstrip("/"))
-                continue
-            if line and not line.startswith(" "):
-                in_redirects = False
-    return redirected
-
-
-def published_documentation_routes() -> set[str]:
-    """Return canonical and redirected routes declared by published pages."""
-    routes: set[str] = set()
-    for path in (ROOT / "docs").rglob("*.md"):
-        lines = path.read_text(encoding="utf-8").splitlines()
-        if not lines or lines[0].strip() != "---":
-            continue
-        in_redirects = False
-        for line in lines[1:]:
-            if line.strip() == "---":
-                break
-            if line.startswith("permalink: "):
-                routes.add(line.removeprefix("permalink: ").strip())
-                in_redirects = False
-                continue
-            if line == "redirect_from:":
-                in_redirects = True
-                continue
-            if in_redirects and line.startswith("  - /"):
-                routes.add(line.removeprefix("  - ").strip())
-                continue
-            if line and not line.startswith(" "):
-                in_redirects = False
-    return routes
 
 
 def markdown_files() -> Iterator[Path]:
@@ -156,9 +108,8 @@ def repository_path_targets(path: Path) -> Iterator[tuple[int, str]]:
 
 def collect_failures() -> list[str]:
     """Return broken local links and repository paths."""
-    failures: list[str] = []
-    redirected_paths = redirected_documentation_paths()
-    published_routes = published_documentation_routes()
+    pages, failures = load_pages(DOCS_ROOT)
+    published_routes = {page.route for page in pages}
     for path in sorted(markdown_files()):
         for line_number, target in relative_targets(path):
             if not resolves(path, target):
@@ -171,8 +122,6 @@ def collect_failures() -> list[str]:
         for line_number, target in repository_path_targets(path):
             candidate = ROOT / target.rstrip("/")
             if target in ILLUSTRATIVE_PATHS or target.rstrip("/") in GENERATED_REPOSITORY_PATHS:
-                continue
-            if target.rstrip("/") in redirected_paths:
                 continue
             if not candidate.exists() and not candidate.with_suffix(".py").exists():
                 relative = path.relative_to(ROOT)
