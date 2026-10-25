@@ -62,6 +62,23 @@ the scan labels, while the persistent worker serializes source entries and value
 reclassifying them. Python types validate, balance, and reduce the parsed measurements. The simulator
 registry exposes supported variable-type strings to the UI.
 
+Accumulators collect typed observations through `add_observation`: a numeric point, a literal
+configuration string, or a numeric entry mapping for one source/dump. Numeric wire text converts
+at the worker boundary; entry names retain their exact spelling. Scalar families represented as
+vectors combine their independent source entries into one temporal frame before ingestion.
+
+The shared lifecycle ends collection with `balance_content()`, then computes a result with
+`reduce_duplicates()`. Reading `reduced_content` before both stages succeed raises an error;
+ingestion after balancing and reduction before balancing also raise. Repeated successful lifecycle
+calls are idempotent. Content, result and entry inspection returns defensive snapshots. Numeric
+kinds retain one point list or one frame list as their authoritative store. Configuration retains
+the first literal string, or its explicit `on_empty` value when no observation is present. Text such
+as `NA` remains literal; only absent numeric cells and numeric NaN use the missing-value marker.
+All numeric kinds share a population mean that preserves finite results when their intermediate
+sum overflows. Missing values propagate, cancellation retains small residuals, and infinite
+observations follow explicit IEEE semantics. Missing-output diagnostics and padding share an
+actual-observation presence count, so a measured NaN is distinct from an absent entry or source.
+
 Summary measurements are named entries of their source statistic, selected through its
 `statistics` field. They use ordinary entry buffering in the worker. Source names retain their
 literal spelling, including double underscores; the worker does not reinterpret name suffixes.
@@ -105,6 +122,12 @@ vector derives entries only from its selected instances; callers must not supply
 
 Current portfolios and recipes require complete scanned metadata and runnable raw source kinds.
 Missing fields, numeric-only source selections, and retired metadata shapes fail validation.
+
+Current distribution output uses fixed unit-width integer buckets. Its minimum and maximum must
+be integral numbers; integral floating-point metadata converts losslessly when constructing the
+accumulator. Fractional geometry is unsupported and raises a clear validation error rather than
+truncating bounds. Statistics-only requests need no bucket bounds. Histogram range and rebinning
+geometry remain separate from this distribution constraint.
 
 Full and incremental parsing use the same deterministic union of observed columns. A histogram
 bucket discovered in a later file remains in the schema, with `NaN` for files lacking that bucket.

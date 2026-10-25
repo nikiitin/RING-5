@@ -26,13 +26,20 @@ from src.parsing.gem5.types.distribution import SAFETY_MAX_BUCKETS, Distribution
 class TestDistributionInitialization:
     """Test Distribution object creation and initialization."""
 
+    def test_required_params_contains_min_max(self) -> None:
+        required = Distribution.required_params
+
+        assert "minimum" in required
+        assert "maximum" in required
+        assert len(required) == 2
+
     def test_init_with_default_range(self) -> None:
         dist = Distribution(minimum=0, maximum=10)
 
         assert dist._repeat == 1
         assert dist._minimum == 0
         assert dist._maximum == 10
-        assert dist._statistics == []
+        assert dist.statistics == []
         assert dist._statistics_only is False
         # Check bucket initialization
         assert "underflows" in dist.content
@@ -49,7 +56,7 @@ class TestDistributionInitialization:
     def test_init_with_statistics(self) -> None:
         dist = Distribution(minimum=0, maximum=5, statistics=["mean", "stdev"])
 
-        assert dist._statistics == ["mean", "stdev"]
+        assert dist.statistics == ["mean", "stdev"]
         assert "mean" in dist.content
         assert "stdev" in dist.content
 
@@ -73,13 +80,6 @@ class TestDistributionInitialization:
         dist = Distribution(minimum=0, maximum=1000)
 
         assert len(dist.content) == 1003  # underflows + 0-1000 + overflows
-
-    def test_required_params_contains_min_max(self) -> None:
-        required = Distribution.required_params
-
-        assert "minimum" in required
-        assert "maximum" in required
-        assert len(required) == 2
 
 
 class TestDistributionProperties:
@@ -133,119 +133,108 @@ class TestDistributionProperties:
 
 
 class TestDistributionContentValidation:
-    """Test content setter validation rules."""
+    """Test typed numeric observation validation."""
 
-    def test_content_setter_non_dict_raises(self) -> None:
+    def test_add_observation_non_dict_raises(self) -> None:
         dist = Distribution(minimum=0, maximum=5)
 
-        with pytest.raises(TypeError, match="DISTRIBUTION.*Content must be dict"):
-            dist.content = cast(Any, [1, 2, 3])
+        with pytest.raises(TypeError, match="DISTRIBUTION.*numeric entry mapping"):
+            dist.add_observation(cast(Any, [1, 2, 3]))
 
-    def test_content_setter_missing_underflows_raises(self) -> None:
+    def test_add_observation_missing_underflows_raises(self) -> None:
         dist = Distribution(minimum=0, maximum=1)
 
         with pytest.raises(TypeError, match="Missing mandatory keys.*underflows"):
-            dist.content = {"0": [10], "1": [20], "overflows": [0]}
+            dist.add_observation({"0": 10.0, "1": 20.0, "overflows": 0.0})
 
-    def test_content_setter_missing_overflows_raises(self) -> None:
+    def test_add_observation_missing_overflows_raises(self) -> None:
         dist = Distribution(minimum=0, maximum=1)
 
         with pytest.raises(TypeError, match="Missing mandatory keys.*overflows"):
-            dist.content = {"underflows": [0], "0": [10], "1": [20]}
+            dist.add_observation({"underflows": 0.0, "0": 10.0, "1": 20.0})
 
-    def test_content_setter_missing_boundary_buckets_raises(self) -> None:
+    def test_add_observation_missing_boundary_buckets_raises(self) -> None:
         dist = Distribution(minimum=0, maximum=5)
 
         with pytest.raises(RuntimeError, match="Boundary buckets.*missing"):
-            dist.content = {"underflows": [0], "1": [10], "5": [20], "overflows": [0]}
+            dist.add_observation({"underflows": 0.0, "1": 10.0, "5": 20.0, "overflows": 0.0})
 
-    def test_content_setter_out_of_range_bucket_raises(self) -> None:
+    def test_add_observation_out_of_range_bucket_raises(self) -> None:
         dist = Distribution(minimum=0, maximum=5)
 
         with pytest.raises(RuntimeError, match="out of configured range"):
-            dist.content = {
-                "underflows": [0],
-                "0": [10],
-                "5": [20],
-                "10": [999],  # Out of range!
-                "overflows": [0],
-            }
+            dist.add_observation(
+                {"underflows": 0.0, "0": 10.0, "5": 20.0, "10": 999.0, "overflows": 0.0}
+            )
 
-    def test_content_setter_non_numeric_values_raises(self) -> None:
+    def test_add_observation_non_numeric_values_raises(self) -> None:
         dist = Distribution(minimum=0, maximum=1)
 
-        with pytest.raises(TypeError, match="Value error.*Expected numbers"):
-            dist.content = {"underflows": [0], "0": ["invalid"], "1": [10], "overflows": [0]}
+        with pytest.raises(TypeError, match="one numeric measurement"):
+            dist.add_observation({"underflows": 0.0, "0": ["invalid"], "1": 10.0, "overflows": 0.0})
 
 
 class TestDistributionContentSetting:
-    """Test content setter with valid data."""
+    """Test complete numeric observation frames."""
 
-    def test_content_setter_with_valid_dict(self) -> None:
+    def test_add_observation_with_valid_dict(self) -> None:
         dist = Distribution(minimum=0, maximum=2)
 
-        dist.content = {"underflows": 5, "0": 10, "1": 20, "2": 30, "overflows": 2}
+        dist.add_observation({"underflows": 5, "0": 10, "1": 20, "2": 30, "overflows": 2})
 
         assert dist.content["underflows"] == [5]
         assert dist.content["0"] == [10]
         assert dist.content["2"] == [30]
 
-    def test_content_setter_aggregates_list_values(self) -> None:
+    def test_numeric_frame_values_are_retained(self) -> None:
         dist = Distribution(minimum=0, maximum=1)
 
-        dist.content = {
-            "underflows": [1, 2, 3],  # Sum = 6
-            "0": [10, 20],  # Sum = 30
-            "1": [5, 15, 25],  # Sum = 45
-            "overflows": [0],
-        }
+        dist.add_observation({"underflows": 6.0, "0": 30.0, "1": 45.0, "overflows": 0.0})
 
         assert dist.content["underflows"] == [6.0]
         assert dist.content["0"] == [30.0]
         assert dist.content["1"] == [45.0]
 
-    def test_content_setter_with_statistics(self) -> None:
+    def test_add_observation_with_statistics(self) -> None:
         dist = Distribution(minimum=0, maximum=1, statistics=["mean"])
 
-        dist.content = {"underflows": [0], "0": [10], "1": [20], "overflows": [0], "mean": [15.5]}
+        dist.add_observation(
+            {"underflows": 0.0, "0": 10.0, "1": 20.0, "overflows": 0.0, "mean": 15.5}
+        )
 
         assert dist.content["mean"] == [15.5]
 
-    def test_content_setter_statistics_only_mode(self) -> None:
+    def test_add_observation_statistics_only_mode(self) -> None:
         dist = Distribution(statistics=["mean", "samples"], statistics_only=True)
 
-        dist.content = {"mean": [42.5], "samples": [1000]}
+        dist.add_observation({"mean": 42.5, "samples": 1000.0})
 
         assert dist.content["mean"] == [42.5]
         assert dist.content["samples"] == [1000]
 
-    def test_content_setter_statistics_only_skips_bucket_data(self) -> None:
+    def test_add_observation_statistics_only_skips_bucket_data(self) -> None:
         dist = Distribution(statistics=["mean"], statistics_only=True)
 
-        dist.content = {"mean": [10], "0": [100], "underflows": [5]}  # Ignored  # Ignored
+        dist.add_observation({"mean": 10.0, "0": 100.0, "underflows": 5.0})
 
         assert "mean" in dist.content
         assert "0" not in dist.content
         assert "underflows" not in dist.content
 
-    def test_content_setter_skips_unknown_non_numeric_keys(self) -> None:
+    def test_add_observation_skips_unknown_non_numeric_keys(self) -> None:
         dist = Distribution(minimum=0, maximum=1)
 
-        dist.content = {
-            "underflows": [0],
-            "0": [10],
-            "1": [20],
-            "overflows": [0],
-            "unknown_stat": [999],  # Skipped silently
-        }
+        dist.add_observation(
+            {"underflows": 0.0, "0": 10.0, "1": 20.0, "overflows": 0.0, "unknown_stat": 999.0}
+        )
 
         assert "unknown_stat" not in dist.content
 
-    def test_content_setter_multiple_assignments_extend(self) -> None:
+    def test_add_observation_multiple_assignments_extend(self) -> None:
         dist = Distribution(minimum=0, maximum=1)
 
-        dist.content = {"underflows": [1], "0": [10], "1": [20], "overflows": [0]}
-        dist.content = {"underflows": [2], "0": [30], "1": [40], "overflows": [1]}
+        dist.add_observation({"underflows": 1.0, "0": 10.0, "1": 20.0, "overflows": 0.0})
+        dist.add_observation({"underflows": 2.0, "0": 30.0, "1": 40.0, "overflows": 1.0})
 
         assert dist.content["underflows"] == [1, 2]
         assert dist.content["0"] == [10, 30]
@@ -267,9 +256,9 @@ class TestDistributionBalanceContent:
 
     def test_balance_partial_buckets_pads_remainder(self) -> None:
         dist = Distribution(repeat=4, minimum=0, maximum=1)
-        # Assign values individually to avoid aggregation
-        dist.content = {"underflows": [1], "0": [10], "1": [30], "overflows": [0]}
-        dist.content = {"underflows": [0], "0": [20], "1": [0], "overflows": [0]}
+        # Supply complete source/dump frames.
+        dist.add_observation({"underflows": 1.0, "0": 10.0, "1": 30.0, "overflows": 0.0})
+        dist.add_observation({"underflows": 0.0, "0": 20.0, "1": 0.0, "overflows": 0.0})
 
         dist.balance_content()
 
@@ -282,8 +271,8 @@ class TestDistributionBalanceContent:
 
     def test_balance_exact_count_no_change(self) -> None:
         dist = Distribution(repeat=2, minimum=0, maximum=1)
-        dist.content = {"underflows": [1], "0": [10], "1": [20], "overflows": [0]}
-        dist.content = {"underflows": [2], "0": [30], "1": [40], "overflows": [1]}
+        dist.add_observation({"underflows": 1.0, "0": 10.0, "1": 20.0, "overflows": 0.0})
+        dist.add_observation({"underflows": 2.0, "0": 30.0, "1": 40.0, "overflows": 1.0})
 
         dist.balance_content()
 
@@ -293,10 +282,10 @@ class TestDistributionBalanceContent:
     def test_balance_too_many_values_raises(self) -> None:
         dist = Distribution(repeat=1, minimum=0, maximum=1)
         # Assign 2 values when repeat=1
-        dist.content = {"underflows": [1], "0": [10], "1": [20], "overflows": [0]}
-        dist.content = {"underflows": [2], "0": [30], "1": [40], "overflows": [1]}
+        dist.add_observation({"underflows": 1.0, "0": 10.0, "1": 20.0, "overflows": 0.0})
+        dist.add_observation({"underflows": 2.0, "0": 30.0, "1": 40.0, "overflows": 1.0})
 
-        with pytest.raises(RuntimeError, match="more values than expected"):
+        with pytest.raises(RuntimeError, match="More observations.*than expected"):
             dist.balance_content()
 
 
@@ -307,7 +296,7 @@ class TestDistributionReduceDuplicates:
 
     def test_reduce_single_value_per_bucket(self) -> None:
         dist = Distribution(minimum=0, maximum=1)
-        dist.content = {"underflows": [5], "0": [100], "1": [200], "overflows": [3]}
+        dist.add_observation({"underflows": 5.0, "0": 100.0, "1": 200.0, "overflows": 3.0})
         dist.balance_content()
 
         dist.reduce_duplicates()
@@ -320,7 +309,9 @@ class TestDistributionReduceDuplicates:
     def test_reduce_multiple_values_calculates_mean(self) -> None:
         dist = Distribution(repeat=3, minimum=0, maximum=1)
         for value in (1, 2, 3):
-            dist.content = {"underflows": value, "0": value * 10, "1": value * 100, "overflows": 0}
+            dist.add_observation(
+                {"underflows": value, "0": value * 10, "1": value * 100, "overflows": 0}
+            )
         dist.balance_content()
 
         dist.reduce_duplicates()
@@ -340,7 +331,9 @@ class TestDistributionReduceDuplicates:
 
     def test_reduce_with_statistics(self) -> None:
         dist = Distribution(minimum=0, maximum=1, statistics=["mean"])
-        dist.content = {"underflows": [0], "0": [10], "1": [20], "overflows": [0], "mean": [15.5]}
+        dist.add_observation(
+            {"underflows": 0.0, "0": 10.0, "1": 20.0, "overflows": 0.0, "mean": 15.5}
+        )
         dist.balance_content()
 
         dist.reduce_duplicates()
@@ -353,7 +346,7 @@ class TestDistributionReducedContentAccess:
 
     def test_access_reduced_content_before_balance_raises(self) -> None:
         dist = Distribution(minimum=0, maximum=1)
-        dist.content = {"underflows": [0], "0": [10], "1": [20], "overflows": [0]}
+        dist.add_observation({"underflows": 0.0, "0": 10.0, "1": 20.0, "overflows": 0.0})
         # Don't call balance_content()
 
         with pytest.raises(AttributeError, match="balance_content.*reduce_duplicates"):
@@ -361,7 +354,7 @@ class TestDistributionReducedContentAccess:
 
     def test_access_reduced_content_before_reduce_raises(self) -> None:
         dist = Distribution(minimum=0, maximum=1)
-        dist.content = {"underflows": [0], "0": [10], "1": [20], "overflows": [0]}
+        dist.add_observation({"underflows": 0.0, "0": 10.0, "1": 20.0, "overflows": 0.0})
         dist.balance_content()
         # Don't call reduce_duplicates()
 
@@ -370,7 +363,7 @@ class TestDistributionReducedContentAccess:
 
     def test_access_reduced_content_after_both_succeeds(self) -> None:
         dist = Distribution(minimum=0, maximum=1)
-        dist.content = {"underflows": [0], "0": [10], "1": [20], "overflows": [0]}
+        dist.add_observation({"underflows": 0.0, "0": 10.0, "1": 20.0, "overflows": 0.0})
         dist.balance_content()
         dist.reduce_duplicates()
 
@@ -429,14 +422,14 @@ class TestDistributionEdgeCases:
     def test_float_values_in_content(self) -> None:
         dist = Distribution(minimum=0, maximum=1)
 
-        dist.content = {"underflows": [0.5], "0": [10.7], "1": [20.3], "overflows": [1.1]}
+        dist.add_observation({"underflows": 0.5, "0": 10.7, "1": 20.3, "overflows": 1.1})
 
         assert dist.content["0"] == [10.7]
 
     def test_large_bucket_values(self) -> None:
         dist = Distribution(minimum=0, maximum=1)
 
-        dist.content = {"underflows": [0], "0": [1_000_000], "1": [9_999_999], "overflows": [0]}
+        dist.add_observation({"underflows": 0.0, "0": 1000000.0, "1": 9999999.0, "overflows": 0.0})
         dist.balance_content()
         dist.reduce_duplicates()
 
@@ -446,25 +439,15 @@ class TestDistributionEdgeCases:
     def test_statistics_only_no_validation_errors(self) -> None:
         dist = Distribution(statistics=["mean"], statistics_only=True)
 
-        dist.content = {"mean": [42]}
+        dist.add_observation({"mean": 42.0})
         dist.balance_content()
         dist.reduce_duplicates()
 
         assert dist.reduced_content["mean"] == 42.0
 
-    def test_reduce_with_truly_empty_bucket(self) -> None:
-        dist = Distribution(minimum=0, maximum=2)
-        dist.content = {
-            "underflows": [0],
-            "0": [10],
-            "1": [20],
-            "2": [0],  # Will be in content but...
-            "overflows": [0],
-        }
-        # Manually clear bucket "2" to test empty path
-        dist.content["2"] = []
-
-        object.__setattr__(dist, "_balanced", True)  # Hack to bypass guard
+    def test_missing_observation_cannot_become_a_measured_zero(self) -> None:
+        dist = Distribution(repeat=2, minimum=0, maximum=2)
+        dist.add_observation({"underflows": 0, "0": 10, "1": 20, "2": 0, "overflows": 0})
+        dist.balance_content()
         dist.reduce_duplicates()
-
-        assert math.isnan(object.__getattribute__(dist, "_reduced_content")["2"])
+        assert math.isnan(dist.reduced_content["2"])

@@ -1,5 +1,6 @@
 """Worker observation routing uses resolved sources and real registered accumulators."""
 
+import math
 from unittest.mock import patch
 
 import pytest
@@ -42,7 +43,10 @@ def test_dump_boundaries_keep_missing_samples_visible_instead_of_realigning_entr
         ]
     )
     work._process_output("vector/v::a/2\ndump//\nvector/v::b/4\ndump//")
-    assert values["v"].content == {"a": [2.0], "b": [4.0]}
+    content = values["v"].content
+    assert isinstance(content, dict)
+    assert content["a"][0] == 2.0 and math.isnan(content["a"][1])
+    assert math.isnan(content["b"][0]) and content["b"][1] == 4.0
     values["v"].balance_content()
     values["v"].reduce_duplicates()
     assert all(str(value) == "nan" for value in values["v"].reduced_content.values())
@@ -100,7 +104,10 @@ def test_configuration_fallback_comes_from_declared_params():
         ]
     )
     work._process_output("")
-    assert values["benchmark"].content == ["unknown"]
+    assert values["benchmark"].content == []
+    values["benchmark"].balance_content()
+    values["benchmark"].reduce_duplicates()
+    assert values["benchmark"].reduced_content == "unknown"
 
 
 @pytest.mark.parametrize("line", ["vector/ipc::a/2", "configuration/ipc/value", "Scalar/ipc/2"])
@@ -123,3 +130,27 @@ def test_worker_rejects_accumulator_maps_that_do_not_match_plan():
         Gem5ParseWork("unused", {}, plan)
     with pytest.raises(ValueError, match="exactly match"):
         Gem5ParseWork("unused", {"wrong": TypeMapper.create_stat(plan.accumulators[0])}, plan)
+
+
+@pytest.mark.parametrize(
+    ("output_type", "raw_type", "wire", "expected"),
+    [("configuration", "scalar", "001", "001"), ("scalar", "configuration", "1.25", 1.25)],
+)
+def test_scalar_configuration_reinterpretation_uses_output_observation_shape(
+    output_type, raw_type, wire, expected
+):
+    config = StatConfig(
+        "alias",
+        output_type,
+        source_name="source",
+        params={
+            "source_type": raw_type,
+            **({"on_empty": "missing"} if output_type == "configuration" else {}),
+        },
+    )
+    work, values = _worker([config])
+    work._process_output(f"{raw_type}/source/{wire}")
+    stat = values["alias"]
+    stat.balance_content()
+    stat.reduce_duplicates()
+    assert stat.reduced_content == expected

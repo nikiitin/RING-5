@@ -37,15 +37,9 @@ class TestDistributionHistogramEdgeCases:
         """Distribution processes a valid set of buckets."""
         dist = Distribution(repeat=1, minimum=0, maximum=4)
 
-        dist.content = {
-            "underflows": 0,
-            "overflows": 5,
-            "0": 10,
-            "1": 20,
-            "2": 30,
-            "3": 15,
-            "4": 25,
-        }
+        dist.add_observation(
+            {"underflows": 0, "overflows": 5, "0": 10, "1": 20, "2": 30, "3": 15, "4": 25}
+        )
         dist.balance_content()
         dist.reduce_duplicates()
 
@@ -60,21 +54,9 @@ class TestDistributionHistogramEdgeCases:
         dist = Distribution(repeat=2, minimum=0, maximum=2)
 
         # First dump
-        dist.content = {
-            "underflows": 0,
-            "overflows": 0,
-            "0": 10,
-            "1": 20,
-            "2": 30,
-        }
+        dist.add_observation({"underflows": 0, "overflows": 0, "0": 10, "1": 20, "2": 30})
         # Second dump
-        dist.content = {
-            "underflows": 0,
-            "overflows": 0,
-            "0": 20,
-            "1": 40,
-            "2": 60,
-        }
+        dist.add_observation({"underflows": 0, "overflows": 0, "0": 20, "1": 40, "2": 60})
         dist.balance_content()
         dist.reduce_duplicates()
 
@@ -93,11 +75,7 @@ class TestDistributionHistogramEdgeCases:
         """Histogram processes range-keyed buckets."""
         hist = Histogram(repeat=1)
 
-        hist.content = {
-            "0-1023": 100,
-            "1024-2047": 200,
-            "2048-4095": 50,
-        }
+        hist.add_observation({"0-1023": 100, "1024-2047": 200, "2048-4095": 50})
         hist.balance_content()
         hist.reduce_duplicates()
 
@@ -110,8 +88,8 @@ class TestDistributionHistogramEdgeCases:
         """Histogram averages across repeats."""
         hist = Histogram(repeat=2)
 
-        hist.content = {"0-1023": 100, "1024-2047": 200}
-        hist.content = {"0-1023": 300, "1024-2047": 400}
+        hist.add_observation({"0-1023": 100, "1024-2047": 200})
+        hist.add_observation({"0-1023": 300, "1024-2047": 400})
 
         hist.balance_content()
         hist.reduce_duplicates()
@@ -125,12 +103,7 @@ class TestDistributionHistogramEdgeCases:
         dist = Distribution(repeat=1, minimum=0, maximum=2)
 
         with pytest.raises((TypeError, RuntimeError)):
-            dist.content = {
-                # Missing underflows/overflows
-                "0": 10,
-                "1": 20,
-                "2": 30,
-            }
+            dist.add_observation({"0": 10, "1": 20, "2": 30})
 
 
 # Test Class 2: Config service delete/reload cycle

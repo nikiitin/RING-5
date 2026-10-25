@@ -10,7 +10,7 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from src.parsing.gem5.types.base import StatType
+    from src.parsing.gem5.types.base import StatContent, StatResult, StatType
 
 from src.core.common.security_limits import (
     MAX_PARSE_FILES,
@@ -65,7 +65,9 @@ class SimpleStatsStrategy:
         # Build one template map, then deep-copy per file so that each
         # thread-based worker operates on its own mutable StatType set.
         t_map_start = time.perf_counter()
-        template_map: dict[str, StatType] = self._map_variables(plan.accumulators)
+        template_map: dict[str, StatType[StatContent, StatResult]] = self._map_variables(
+            plan.accumulators
+        )
         if len(template_map) > MAX_PARSE_VARIABLES:
             raise RuntimeError(
                 f"PARSER: {len(template_map)} logical variables and aliases exceed the "
@@ -140,10 +142,12 @@ class SimpleStatsStrategy:
             sanitize_log_value(stats_path),
         )
 
-    def _map_variables(self, specifications: Sequence[AccumulatorSpec]) -> dict[str, StatType]:
+    def _map_variables(
+        self, specifications: Sequence[AccumulatorSpec]
+    ) -> dict[str, StatType[StatContent, StatResult]]:
         """Create exactly one independent accumulator per resolved logical output."""
         # [impl->req~ring5.ingestion.output-aliases~1]
-        var_map: dict[str, StatType] = {}
+        var_map: dict[str, StatType[StatContent, StatResult]] = {}
         for spec in specifications:
             if spec.output_name in var_map:
                 raise ValueError(f"Duplicate parser output name: {spec.output_name!r}.")

@@ -26,7 +26,7 @@ def test_absent_frequency_stat_remains_nan(stat: Distribution | Histogram) -> No
 
 def test_observed_distribution_omits_only_zero_frequency_bins() -> None:
     stat = Distribution(minimum=0, maximum=2, statistics=["mean"])
-    stat.content = {"underflows": 0, "0": 0, "2": 4, "overflows": 0}
+    stat.add_observation({"underflows": 0, "0": 0, "2": 4, "overflows": 0})
     stat.balance_content()
     stat.reduce_duplicates()
     assert stat.reduced_content["0"] == 0
@@ -47,7 +47,7 @@ def test_inclusive_histogram_rebin_conserves_mass(
     raw: dict[str, int], expected: dict[str, int]
 ) -> None:
     stat = Histogram(bins=2, max_range=10)
-    stat.content = {key: value for key, value in raw.items()}
+    stat.add_observation({key: value for key, value in raw.items()})
     stat.balance_content()
     stat.reduce_duplicates()
     assert stat.reduced_content == pytest.approx(expected)
@@ -56,7 +56,7 @@ def test_inclusive_histogram_rebin_conserves_mass(
 
 def test_fractional_target_edges_are_explicit_and_distinct() -> None:
     stat = Histogram(bins=4, max_range=1)
-    stat.content = {"0-0": 12}
+    stat.add_observation({"0-0": 12})
     stat.balance_content()
     stat.reduce_duplicates()
     assert stat.entries == [
@@ -71,7 +71,7 @@ def test_fractional_target_edges_are_explicit_and_distinct() -> None:
 
 def test_rebin_missing_expected_instance_does_not_dilute_frequency() -> None:
     stat = Histogram(repeat=2, bins=2, max_range=10, statistics=["mean"])
-    stat.content = {"0-9": 4}
+    stat.add_observation({"0-9": 4})
     stat.balance_content()
     stat.reduce_duplicates()
     assert all(math.isnan(value) for value in stat.reduced_content.values())
@@ -79,7 +79,7 @@ def test_rebin_missing_expected_instance_does_not_dilute_frequency() -> None:
 
 def _histogram(entries: dict[str, int]) -> Histogram:
     stat = Histogram()
-    stat.content = {key: value for key, value in entries.items()}
+    stat.add_observation({key: value for key, value in entries.items()})
     return stat
 
 
@@ -103,11 +103,11 @@ def test_final_csv_union_is_order_independent_and_keeps_absent_first_histogram(
 
 def test_final_csv_missing_vector_preserves_following_scalar_position(tmp_path: Path) -> None:
     vector = Vector(entries=["a", "b"])
-    vector.content = {"a": 1, "b": 2}
+    vector.add_observation({"a": 1, "b": 2})
     first = Scalar()
-    first.content = 99
+    first.add_observation(99)
     second = Scalar()
-    second.content = 55
+    second.add_observation(55)
     output = Gem5Parser.construct_final_csv(
         str(tmp_path), [{"v": vector, "s": first}, {"s": second}], ["v", "s"]
     )
@@ -121,9 +121,36 @@ def test_final_csv_invalid_shape_preserves_existing_output(tmp_path: Path) -> No
     output = tmp_path / "results.csv"
     output.write_text("previous\nresult\n", encoding="utf-8")
     scalar = Scalar()
-    scalar.content = 1
+    scalar.add_observation(1)
     with pytest.raises(RuntimeError, match="inconsistent scalar/entry"):
         Gem5Parser.construct_final_csv(
             str(tmp_path), [{"h": scalar}, {"h": _histogram({"0-9": 3})}], ["h"]
         )
     assert output.read_text(encoding="utf-8") == "previous\nresult\n"
+
+
+def test_literal_configuration_na_is_not_a_numeric_missing_sentinel(tmp_path: Path) -> None:
+    from src.core.models.parsing_models import StatConfig
+    from src.parsing.gem5.impl.source_bindings import resolve_sources
+    from src.parsing.gem5.impl.strategies.gem5_parse_work import Gem5ParseWork
+    from src.parsing.gem5.types.type_mapper import TypeMapper
+
+    plan = resolve_sources(
+        [
+            StatConfig(
+                "label",
+                "configuration",
+                params={"source_type": "configuration", "on_empty": "fallback"},
+            ),
+            StatConfig("number", "scalar", params={"source_type": "scalar"}),
+        ],
+        None,
+    )
+    stats = {spec.output_name: TypeMapper.create_stat(spec) for spec in plan.accumulators}
+    worker = Gem5ParseWork("unused", stats, plan)
+    worker._process_output("configuration/label/NA")
+    output = Gem5Parser.construct_final_csv(str(tmp_path), [stats], ["label", "number"])
+    assert output is not None
+    with Path(output).open(newline="", encoding="utf-8") as stream:
+        rows = list(csv.reader(stream))
+    assert rows == [["label", "number"], ["NA", "NaN"]]

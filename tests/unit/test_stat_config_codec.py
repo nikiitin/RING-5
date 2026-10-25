@@ -86,7 +86,7 @@ def test_histogram_statistics_only_never_discovers_raw_buckets() -> None:
         params={"statistics": ["mean", "stdev"], "source_type": "histogram"},
     )
     stat = TypeMapper.create_stat(resolve_sources([config], None).accumulators[0])
-    stat.content = {"0-3": [4], "mean": [2]}
+    stat.add_observation({"0-3": 4.0, "mean": 2.0})
     assert stat.entries == ["mean", "stdev"]
     stat.balance_content()
     stat.reduce_duplicates()
@@ -99,7 +99,7 @@ def test_configuration_uses_only_current_constructor_spelling() -> None:
     from src.parsing.gem5.types.configuration import Configuration
 
     assert Configuration(on_empty="missing").on_empty == "missing"
-    with pytest.raises(TypeError, match="Unsupported configuration options"):
+    with pytest.raises(TypeError, match="unexpected keyword argument.*onEmpty"):
         Configuration(onEmpty="retired")
 
 

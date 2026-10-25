@@ -5,20 +5,19 @@ import math
 import re
 from typing import override
 
-from src.core.models.parsing_models import StatParamValue
-from src.parsing.gem5.types.base import StatType, register_type
+from src.parsing.gem5.types.base import FrameStatType, entry_names, population_mean, register_type
 
 logger = logging.getLogger(__name__)
 
 
 @register_type("histogram")
-class Histogram(StatType):
+class Histogram(FrameStatType):
     """
     Represents histogram statistics with range-based buckets.
     Example: system.mem::0-1023 5
 
-    Content is stored as a dictionary mapping range strings to a list of numeric values
-    (one value per simulation/repeat).
+    One numeric entry frame is stored per concrete source/dump. Entry views are
+    derived from those frames, preserving missing observations and summaries.
 
     Rebinning:
     If `bins` and `max_range` are provided, raw histogram data is proportionally
@@ -27,7 +26,7 @@ class Histogram(StatType):
 
     Validation:
     - Keys should generally be range strings (e.g., "0-10") or specific markers.
-    - Each assignment records one instance/dump; lists within it are summed.
+    - Each observation records one complete source/dump frame.
     - Missing observations and summaries remain NaN.
     - Raw integer endpoints and integer output labels are inclusive; fractional
       output labels are explicitly half-open. Negative mass is retained in `<0`.
@@ -35,21 +34,9 @@ class Histogram(StatType):
 
     # [impl->req~ring5.ingestion.histogram~1]
 
-    required_params = []  # Histogram buckets are usually dynamic in gem5 stats
-    _allowed_attributes = frozenset(
-        {
-            "_repeat",
-            "_content",
-            "_reduced_content",
-            "_balanced",
-            "_reduced",
-            "_bins",
-            "_max_range",
-            "_entries",
-            "_statistics",
-            "_statistics_only",
-        }
-    )
+    __slots__ = ("_bins", "_max_range", "_entries", "_statistics", "_statistics_only")
+
+    required_params = []
 
     def __init__(
         self,
@@ -57,44 +44,49 @@ class Histogram(StatType):
         entries: list[str] | None = None,
         bins: int = 0,
         max_range: float = 0.0,
-        statistics: str | list[str] | None = None,
+        statistics: list[str] | None = None,
         statistics_only: bool = False,
-        **kwargs: StatParamValue,
     ) -> None:
-        """
-        Initialize Histogram type.
+        """Configure selected buckets, optional uniform rebinning and summaries.
 
         Args:
-            repeat: Number of simulations/dumps expected.
-            entries: Explicit list of buckets to extract (overrides rebinning).
-            bins: Number of target buckets for rebinning.
-            max_range: Maximum value for rebinning range.
-            statistics: Additional aggregate fields to retain.
-            statistics_only: Retain selected summaries without discovering raw buckets.
-            **kwargs: Additional attributes passed to parent.
+            repeat: Expected number of source/dump frames.
+            entries: Explicit bucket selection, taking precedence over rebinning.
+            bins: Number of output buckets, including the overflow bucket.
+            max_range: Nonnegative upper edge of the uniform range.
+            statistics: Exact summary names to retain.
+            statistics_only: Retain summaries without discovering raw buckets.
         """
-        super().__init__(repeat, **kwargs)
-        object.__setattr__(self, "_statistics_only", statistics_only)
-        # Content is a dict of {range_key: [value1, value2...]}
-        if isinstance(statistics, str):
-            statistics = [s.strip() for s in statistics.split(",")]
-
-        object.__setattr__(self, "_bins", int(bins))
-        object.__setattr__(self, "_max_range", float(max_range))
-        object.__setattr__(
-            self,
-            "_entries",
-            [self._canonical_bucket_key(entry) for entry in entries] if entries else None,
+        super().__init__(repeat)
+        if type(bins) is not int:
+            raise TypeError("Histogram bins must be an integer.")
+        if bins < 0:
+            raise ValueError("Histogram bins must be nonnegative.")
+        if type(max_range) not in (int, float):
+            raise TypeError("Histogram max_range must be numeric.")
+        if not math.isfinite(max_range) or max_range < 0:
+            raise ValueError("Histogram max_range must be finite and nonnegative.")
+        if type(statistics_only) is not bool:
+            raise TypeError("Histogram statistics_only must be a boolean.")
+        self._statistics_only = statistics_only
+        self._bins = bins
+        self._max_range = float(max_range)
+        self._entries = tuple(
+            self._canonical_bucket_key(entry) for entry in entry_names(entries, "Histogram entries")
         )
-        object.__setattr__(self, "_statistics", list(statistics) if statistics else [])
+        self._statistics = entry_names(statistics, "Histogram statistics")
 
-        # Pre-initialize content with statistics to ensure column presence
-        content: dict[str, list[float]] = {
-            entry: [] for entry in [*(self._entries or []), *self._statistics]
-        }
-        object.__setattr__(self, "_content", content)
-        # Shared by shallow source aliases, just like the content dictionary.
-        object.__setattr__(self, "_observations", [])
+    @property
+    def _content_entries(self) -> tuple[str, ...]:
+        return tuple(
+            dict.fromkeys(
+                (
+                    *self._entries,
+                    *self._statistics,
+                    *(key for sample in self._frames for key in sample),
+                )
+            )
+        )
 
     @staticmethod
     def _canonical_bucket_key(key: str) -> str:
@@ -113,7 +105,7 @@ class Histogram(StatType):
         """Get the expected output entry keys for this histogram."""
         if self._statistics_only:
             return list(self._statistics)
-        result = []
+        result: list[str] = []
         # Priority 1: User-selected specific buckets
         if self._entries:
             result.extend(self._entries)
@@ -130,15 +122,15 @@ class Histogram(StatType):
                 result.append("0+")
         # Priority 3: Discovered raw buckets
         else:
-            raw_content = object.__getattribute__(self, "_content")
-            result.extend(sorted(list(raw_content.keys())))
+            result.extend(sorted(self._content_entries))
 
         if (
             not self._entries
             and self._bins > 0
             and self._max_range > 0
             and any(
-                (bounds := self._parse_range_key(key)) and bounds[0] < 0 for key in self._content
+                (bounds := self._parse_range_key(key)) and bounds[0] < 0
+                for key in self._content_entries
             )
         ):
             result.insert(0, "<0")
@@ -150,99 +142,31 @@ class Histogram(StatType):
 
         return result
 
-    @property
-    def content(self) -> dict[str, list[float]]:
-        """Get the raw accumulated content mapping."""
-        content_dict: dict[str, list[float]] = object.__getattribute__(self, "_content")
-        return content_dict
-
-    @content.setter
-    def content(self, value: dict[str, list[str | int | float] | str | int | float]) -> None:
-        """
-        Set and aggregate content from a dictionary.
-
-        Multiple occurrences in one file are summed, such as a regex spanning CPU cores.
-        """
-        if not isinstance(value, dict):
-            raise TypeError(f"HISTOGRAM: Content must be dict, got {type(value).__name__}")
-
-        sample: dict[str, float] = {}
-        for key, vals in value.items():
-            if self._statistics_only and key not in self._statistics:
-                continue
-            val_list = vals if isinstance(vals, list) else [vals]
-            try:
-                sample[self._canonical_bucket_key(str(key))] = math.fsum(float(v) for v in val_list)
-            except (TypeError, ValueError) as error:
-                raise TypeError(
-                    f"HISTOGRAM: Value non-convertible to number. Key: {key}, Value: {vals}"
-                ) from error
-
-        count = len(self._observations)
-        for key in sample:
-            if key not in self._content:
-                self._content[key] = [float("nan")] * count
-        for key in self._content:
-            self._content[key].append(sample.get(key, float("nan")))
-        self._observations.append(sample)
+    @override
+    def _prepare_frame(self, sample: dict[str, float]) -> dict[str, float]:
+        return {
+            self._canonical_bucket_key(key): value
+            for key, value in sample.items()
+            if not self._statistics_only or key in self._statistics
+        }
 
     @override
-    def balance_content(self) -> None:
-        """
-        Ensure each bucket has exactly `repeat` values, preserving missingness.
-
-        Fails loudly if more values than expected are found, preventing data corruption.
-        """
-        object.__setattr__(self, "_balanced", True)
-
-        # Include missing configured statistics before balancing each bucket.
-        target_keys = set(self._content.keys())
-        if self._statistics:
-            target_keys.update(self._statistics)
-
-        for bucket in target_keys:
-            if bucket not in self._content:
-                self._content[bucket] = []
-
-            current_len = len(self._content[bucket])
-            if current_len < self._repeat:
-                padding = self._repeat - current_len
-                self._content[bucket].extend([float("nan")] * padding)
-                object.__setattr__(self, "_padded", self._padded + padding)
-            elif current_len > self._repeat:
-                raise RuntimeError(
-                    f"HISTOGRAM: Bucket '{bucket}' has more values than expected. "
-                    f"Length: {current_len}, Repeat: {self._repeat}"
-                )
-
-    @override
-    def reduce_duplicates(self) -> None:
-        """Reduce collected data via mean, applying rebinning if requested."""
-        object.__setattr__(self, "_reduced", True)
-
-        # Explicit entry selection has the same precedence as the entries property.
+    def _reduce(self) -> dict[str, float]:
+        """Average raw frames or proportionally rebin each observed frame."""
         if (
             not self._statistics_only
             and not self._entries
             and self._bins > 0
             and self._max_range > 0
         ):
-            self._reduce_with_rebinning()
-            return
+            return self._reduce_with_rebinning()
+        return super()._reduce()
 
-        reduced = {}
-        for bucket, values in self._content.items():
-            if not values:
-                reduced[bucket] = float("nan")
-            else:
-                reduced[bucket] = sum(values[: self._repeat]) / self._repeat
-
-        object.__setattr__(self, "_reduced_content", reduced)
-
-    def _reduce_with_rebinning(self) -> None:
+    def _reduce_with_rebinning(self) -> dict[str, float]:
         """Perform reduction by rebinning each simulation's data into target uniform buckets."""
         # [impl->req~ring5.ingestion.histogram-rebinning~1]
         bin_mapping = self._compute_bin_mapping(self._bins, self._max_range)
+        raw_keys = set(self._content_entries)
         target_keys = set(self.entries)
         target_keys.update(
             key
@@ -254,7 +178,7 @@ class Histogram(StatType):
         target_values: dict[str, list[float]] = {key: [] for key in target_keys}
 
         for index in range(self._repeat):
-            sample = self._observations[index] if index < len(self._observations) else {}
+            sample = self._frames[index]
             has_buckets = any(bin_mapping.get(key) is not None for key in sample)
             # Zeros are justified only within an observed histogram dump.
             rebinned = {key: 0.0 if has_buckets else float("nan") for key in target_keys}
@@ -265,15 +189,11 @@ class Histogram(StatType):
                 for target_key, proportion in mappings:
                     rebinned[target_key] += value * proportion
             for key in target_keys:
-                if bin_mapping.get(key) is None and key in self._content:
+                if bin_mapping.get(key) is None and key in raw_keys:
                     rebinned[key] = sample.get(key, float("nan"))
                 target_values[key].append(rebinned[key])
 
-        object.__setattr__(
-            self,
-            "_reduced_content",
-            {key: math.fsum(values) / self._repeat for key, values in target_values.items()},
-        )
+        return {key: population_mean(values) for key, values in target_values.items()}
 
     def _compute_bin_mapping(
         self, num_bins: int, max_val: float
@@ -295,7 +215,7 @@ class Histogram(StatType):
 
         mapping: dict[str, list[tuple[str, float]] | None] = {}
 
-        for raw_key in self._content:
+        for raw_key in self._content_entries:
             bounds = self._parse_range_key(raw_key)
             if not bounds:
                 mapping[raw_key] = None
@@ -353,4 +273,4 @@ class Histogram(StatType):
         return []
 
     def __str__(self) -> str:
-        return f"Histogram(buckets={len(self._content)}, repeat={self._repeat})"
+        return f"Histogram(buckets={len(self._content_entries)}, repeat={self._repeat})"

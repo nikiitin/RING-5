@@ -139,7 +139,7 @@ def test_source_aliases_have_separate_accumulators_without_identity_routing() ->
     accumulators = SimpleStatsStrategy()._map_variables(plan.accumulators)
     assert set(accumulators) == {"source", "renamed"}
     assert accumulators["source"] is not accumulators["renamed"]
-    accumulators["source"].content = "2"
+    accumulators["source"].add_observation(2.0)
     assert accumulators["renamed"].content == []
     with pytest.raises(TypeError, match="AccumulatorSpec"):
         TypeMapper.create_stat(configs[0])

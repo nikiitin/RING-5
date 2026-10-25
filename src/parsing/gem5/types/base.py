@@ -1,26 +1,298 @@
-"""
-Stat Types Registry and Base Class
+"""Registered statistic accumulators with explicit observation and lifecycle stages."""
 
-This module provides a self-registering type system for gem5 statistics.
-Types register themselves using the @register_type decorator.
-"""
+from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Any
+import copy
+import math
+import statistics
+from abc import ABC, abstractmethod
+from collections.abc import Callable, Mapping
+from typing import ClassVar, Generic, TypeVar, final
 
 from src.core.models.parsing_models import StatParamValue
 
+Observation = float | str | Mapping[str, float]
+StatContent = list[float] | list[str] | dict[str, list[float]]
+StatResult = float | str | dict[str, float]
+ContentT = TypeVar("ContentT", bound=StatContent, covariant=True)
+ResultT = TypeVar("ResultT", bound=StatResult, covariant=True)
+
+
+class StatType(ABC, Generic[ContentT, ResultT]):
+    """Collect observations, balance missing samples, then reduce exactly once.
+
+    Subclasses implement storage and the protected observation/lifecycle hooks. Public lifecycle
+    methods own phase transitions, so a failed operation never publishes a result.
+    """
+
+    __slots__ = ("_repeat", "_balanced", "_reduced", "_padded", "_reduced_content")
+    _type_name: ClassVar[str] = "base"
+    # OFT discovery binds requirements to these defining constructor options.
+    required_params: ClassVar[list[str]] = []
+
+    def __init__(self, repeat: int = 1, **kwargs: StatParamValue) -> None:
+        if kwargs:
+            raise TypeError(f"Unsupported {self._type_name} options: {sorted(kwargs)}")
+        if type(repeat) is not int:
+            raise TypeError("Statistic repeat must be an integer.")
+        if repeat < 1:
+            raise ValueError("Statistic repeat must be positive.")
+        self._repeat = repeat
+        self._balanced = False
+        self._reduced = False
+        self._padded = 0
+        self._reduced_content: ResultT | None = None
+
+    @property
+    def repeat(self) -> int:
+        """Return the expected number of source/dump observations."""
+        return self._repeat
+
+    @property
+    def is_balanced(self) -> bool:
+        """Whether collection has ended successfully."""
+        return self._balanced
+
+    @property
+    def is_reduced(self) -> bool:
+        """Whether reduction has completed successfully."""
+        return self._reduced
+
+    @property
+    def padded_count(self) -> int:
+        """Return the number of missing measurements filled with NaN."""
+        return self._padded
+
+    @property
+    def missing_measurement_count(self) -> int:
+        """Return absent numeric measurements, distinguishing observed NaN values."""
+        return self._padded if self._balanced else self._missing_count()
+
+    @abstractmethod
+    def _missing_count(self) -> int:
+        """Count absent measurements from owned observation presence."""
+
+    @property
+    @abstractmethod
+    def content(self) -> ContentT:
+        """Return a defensive snapshot of collected, unreduced measurements."""
+
+    @property
+    def reduced_content(self) -> ResultT:
+        """Return a defensive result after balancing and duplicate reduction.
+
+        Raises:
+            AttributeError: Either required lifecycle stage has not completed.
+        """
+        if not self._balanced or not self._reduced or self._reduced_content is None:
+            raise AttributeError(
+                f"{self._type_name.upper()}: Cannot access reduced_content before calling "
+                "balance_content() AND reduce_duplicates()"
+            )
+        return copy.deepcopy(self._reduced_content)
+
+    @property
+    def entries(self) -> list[str] | None:
+        """Return ordered output fields, or None for a point/text statistic."""
+        return None
+
+    @final
+    def add_observation(self, value: Observation) -> None:
+        """Append one numeric point, configuration string or numeric entry frame.
+
+        Args:
+            value: One complete source/dump observation of the concrete kind.
+
+        Raises:
+            RuntimeError: Collection has already ended.
+            TypeError: The observation does not match the concrete statistic kind.
+        """
+        if self._balanced:
+            raise RuntimeError(
+                f"{self._type_name.upper()}: Cannot add observations after balancing."
+            )
+        self._add_observation(value)
+
+    @abstractmethod
+    def _add_observation(self, value: Observation) -> None:
+        """Validate one observation completely before changing owned storage."""
+
+    @final
+    def balance_content(self) -> None:
+        """End collection, padding missing measurements with NaN.
+
+        Repeated calls are idempotent. Excess observations raise without advancing
+        the lifecycle, so reduced content remains inaccessible.
+
+        Raises:
+            RuntimeError: More numeric observations were collected than expected.
+        """
+        if not self._balanced:
+            self._padded = self._balance()
+            self._balanced = True
+
+    @abstractmethod
+    def _balance(self) -> int:
+        """Validate sample counts, fill missing values and return padding count."""
+
+    @final
+    def reduce_duplicates(self) -> None:
+        """Reduce balanced observations, preserving missing measurements as NaN.
+
+        Raises:
+            RuntimeError: Balancing has not completed.
+        """
+        # [impl->req~ring5.ingestion.pattern-aggregation~1]
+        if not self._balanced:
+            raise RuntimeError(
+                f"{self._type_name.upper()}: Call balance_content() before reduction."
+            )
+        if not self._reduced:
+            self._reduced_content = self._reduce()
+            self._reduced = True
+
+    @abstractmethod
+    def _reduce(self) -> ResultT:
+        """Compute a result without changing observation storage."""
+
+    def __str__(self) -> str:
+        return f"{self._type_name}({self.content})"
+
+    def __repr__(self) -> str:
+        return str(self)
+
+
+def numeric_frame(value: Observation, kind: str) -> dict[str, float]:
+    """Validate and copy a numeric observation without coercing entry names/text."""
+    if not isinstance(value, Mapping):
+        raise TypeError(f"{kind}: Observation must be a numeric entry mapping.")
+    result: dict[str, float] = {}
+    for key, measurement in value.items():
+        if not isinstance(key, str):
+            raise TypeError(f"{kind}: Entry names must be text.")
+        if type(measurement) not in (int, float):
+            raise TypeError(f"{kind}: Entry {key!r} must contain one numeric measurement.")
+        result[key] = float(measurement)
+    return result
+
+
+def entry_names(value: list[str] | None, option: str) -> tuple[str, ...]:
+    """Validate exact list options and retain an immutable owned entry schema."""
+    if value is None:
+        return ()
+    if type(value) is not list or any(not isinstance(item, str) for item in value):
+        raise TypeError(f"{option} must be a list of text entry names.")
+    if len(set(value)) != len(value):
+        raise ValueError(f"{option} must not contain duplicate entry names.")
+    return tuple(value)
+
+
+def population_mean(values: list[float]) -> float:
+    """Average balanced measurements without losing finite range or missingness.
+
+    IEEE NaN and infinite observations are resolved before finite summation.
+    Exact rational summation handles finite totals that exceed float range even
+    though their population mean remains representable.
+    """
+    # [impl->req~ring5.ingestion.parse-integrity~1]
+    if not values:
+        raise ValueError("A population mean requires balanced observations.")
+    if any(math.isnan(value) for value in values):
+        return math.nan
+    positive_infinity = math.inf in values
+    negative_infinity = -math.inf in values
+    if positive_infinity and negative_infinity:
+        return math.nan
+    if positive_infinity:
+        return math.inf
+    if negative_infinity:
+        return -math.inf
+    try:
+        return math.fsum(values) / len(values)
+    except OverflowError:
+        return statistics.mean(values)
+
+
+class FrameStatType(StatType[dict[str, list[float]], dict[str, float]], ABC):
+    """Own one numeric mapping per source/dump and derive entry-oriented views."""
+
+    __slots__ = ("_frames",)
+
+    def __init__(self, repeat: int = 1) -> None:
+        super().__init__(repeat)
+        self._frames: list[dict[str, float]] = []
+
+    @property
+    @abstractmethod
+    def _content_entries(self) -> tuple[str, ...]:
+        """Return raw fields represented by the current observation store."""
+
+    @property
+    def entries(self) -> list[str]:
+        """Return ordered output fields."""
+        return list(self._content_entries)
+
+    @property
+    def content(self) -> dict[str, list[float]]:
+        """Return raw measurements by entry, preserving per-frame missingness."""
+        return {
+            entry: [sample.get(entry, math.nan) for sample in self._frames]
+            for entry in self._content_entries
+        }
+
+    def _add_observation(self, value: Observation) -> None:
+        sample = numeric_frame(value, self._type_name.upper())
+        prepared = self._prepare_frame(sample)
+        # Unrequested fields do not constitute an observation of this output.
+        if prepared or not sample:
+            self._frames.append(prepared)
+
+    @abstractmethod
+    def _prepare_frame(self, sample: dict[str, float]) -> dict[str, float]:
+        """Apply concrete entry schema rules to an already validated frame."""
+
+    def _missing_count(self) -> int:
+        entries = self._content_entries
+        if not entries:
+            return self.repeat
+        return sum(
+            max(self.repeat - sum(entry in sample for sample in self._frames), 0)
+            for entry in entries
+        )
+
+    def _balance(self) -> int:
+        if len(self._frames) > self.repeat:
+            raise RuntimeError(
+                f"{self._type_name.upper()}: More observations ({len(self._frames)}) "
+                f"than expected ({self.repeat})."
+            )
+        padding = self.missing_measurement_count
+        self._frames.extend({} for _ in range(self.repeat - len(self._frames)))
+        return padding
+
+    def _reduce(self) -> dict[str, float]:
+        return {
+            entry: population_mean([sample.get(entry, math.nan) for sample in self._frames])
+            for entry in self._content_entries
+        }
+
 
 class StatTypeRegistry:
-    """Registry for stat type classes. Types self-register via decorator."""
+    """Dispatch registered statistic constructors without alternate type routes."""
 
-    _types: dict[str, type["StatType"]] = {}
+    _types: dict[str, type[StatType[StatContent, StatResult]]] = {}
 
     @classmethod
-    def register(cls, type_name: str) -> Callable[[type["StatType"]], type["StatType"]]:
-        """Decorator to register a stat type class."""
+    def register(
+        cls, type_name: str
+    ) -> Callable[
+        [type[StatType[StatContent, StatResult]]], type[StatType[StatContent, StatResult]]
+    ]:
+        """Register a class implementing the typed observation lifecycle."""
 
-        def decorator(klass: type["StatType"]) -> type["StatType"]:
+        def decorator(
+            klass: type[StatType[StatContent, StatResult]],
+        ) -> type[StatType[StatContent, StatResult]]:
             cls._types[type_name] = klass
             klass._type_name = type_name
             return klass
@@ -28,198 +300,20 @@ class StatTypeRegistry:
         return decorator
 
     @classmethod
-    def create(cls, type_name: str, repeat: int = 1, **kwargs: StatParamValue) -> "StatType":
-        """Create a stat type instance by name."""
+    def create(
+        cls, type_name: str, repeat: int = 1, **kwargs: StatParamValue
+    ) -> StatType[StatContent, StatResult]:
+        """Create a registered accumulator with its exact constructor options."""
         if type_name not in cls._types:
-            available = ", ".join(cls._types.keys())
-            raise ValueError(f"Unknown stat type: '{type_name}'. Available: {available}")
+            raise ValueError(
+                f"Unknown stat type: '{type_name}'. Available: {', '.join(cls._types)}"
+            )
         return cls._types[type_name](repeat=repeat, **kwargs)
 
     @classmethod
     def get_types(cls) -> list[str]:
-        """Get list of registered type names."""
-        return list(cls._types.keys())
+        """Return registered type names in registration order."""
+        return list(cls._types)
 
 
-# Convenience alias
 register_type = StatTypeRegistry.register
-
-
-class StatType:
-    """
-    Base class for all gem5 stat types.
-
-    Provides common functionality for content storage, balancing, and reduction.
-
-    IMPORTANT: This base class enforces critical safety invariants:
-    - reduced_content can ONLY be accessed after balance_content() AND reduce_duplicates()
-    - Subclasses should override _set_content() to validate incoming data
-    - All types protect against invalid attribute access
-    """
-
-    _type_name: str = "base"
-    required_params: list[str] = []
-    # Valid attributes that can be set on type instances
-    _allowed_attributes = frozenset(
-        {
-            "_repeat",
-            "_content",
-            "_reduced_content",
-            "_balanced",
-            "_reduced",
-            "_padded",
-        }
-    )
-
-    def __init__(self, repeat: int = 1, **kwargs: StatParamValue) -> None:
-        # Use object.__setattr__ to bypass our protective __setattr__
-        object.__setattr__(self, "_repeat", int(repeat))
-        object.__setattr__(self, "_content", [])
-        object.__setattr__(self, "_reduced_content", None)
-        object.__setattr__(self, "_balanced", False)
-        object.__setattr__(self, "_reduced", False)
-        object.__setattr__(self, "_padded", 0)
-
-    def __setattr__(self, name: str, value: Any) -> None:
-        """Protect against setting invalid attributes."""
-        # Allow 'content' to go through property setter on subclass
-        if name == "content":
-            # Find and call the property setter on the actual class
-            # This properly invokes subclass custom setters
-            prop = type(self).__dict__.get("content")
-            if prop is not None and hasattr(prop, "fset") and prop.fset is not None:
-                prop.fset(self, value)
-            else:
-                # Fallback for base class behavior
-                self._validate_content(value)
-                self._set_content(value)
-        elif name in self._allowed_attributes or name.startswith("_"):
-            object.__setattr__(self, name, value)
-        else:
-            raise AttributeError(
-                f"{self._type_name.upper()}: Cannot set attribute '{name}'. "
-                f"Only content assignment via .content property is allowed."
-            )
-
-    def __getattribute__(self, name: str) -> Any:
-        """Single source of truth for the lifecycle invariant: ``reduced_content``
-        is only readable after ``balance_content()`` and ``reduce_duplicates()``.
-
-        Don't remove this without first declaring the ``object.__setattr__``-assigned
-        attributes (``_content`` etc.): its ``-> Any`` also masks ~115 latent mypy
-        attribute errors across the hierarchy.
-        """
-        if name == "reduced_content":
-            balanced = object.__getattribute__(self, "_balanced")
-            reduced = object.__getattribute__(self, "_reduced")
-            if not balanced or not reduced:
-                raise AttributeError(
-                    f"{object.__getattribute__(self, '_type_name').upper()}: "
-                    f"Cannot access reduced_content before calling balance_content() "
-                    f"AND reduce_duplicates()"
-                )
-        return object.__getattribute__(self, name)
-
-    @property
-    def repeat(self) -> int:
-        """Return the expected number of statistic samples."""
-        return int(object.__getattribute__(self, "_repeat"))
-
-    @property
-    def is_balanced(self) -> bool:
-        """Whether balance_content() has been called."""
-        return bool(object.__getattribute__(self, "_balanced"))
-
-    @property
-    def is_reduced(self) -> bool:
-        """Whether reduce_duplicates() has been called."""
-        return bool(object.__getattribute__(self, "_reduced"))
-
-    @property
-    def content(self) -> Any:
-        """Return validated, unreduced statistic content."""
-        content = object.__getattribute__(self, "_content")
-        if content is None:
-            raise AttributeError(f"{self._type_name.upper()}: Content not initialized")
-        return content
-
-    @content.setter
-    def content(self, value: Any) -> None:
-        """Validate and append statistic content."""
-        self._validate_content(value)
-        self._set_content(value)
-
-    @property
-    def reduced_content(self) -> Any:
-        """Return content after balancing and duplicate reduction."""
-        # Guard lives in __getattribute__ (single source of truth); subclasses
-        # inherit this property rather than re-implementing the same check.
-        return object.__getattribute__(self, "_reduced_content")
-
-    def _validate_content(self, value: Any) -> None:
-        """Override to validate content before setting. Raise TypeError on invalid."""
-
-    def _set_content(self, value: Any) -> None:
-        """Override to customize how content is stored."""
-        content_list: list[Any] = self._content
-        content_list.append(value)
-
-    def balance_content(self) -> None:
-        """Ensure content has exactly `repeat` entries.
-
-        Missing entries are padded with NaN, never a fabricated 0 — a point
-        measurement that was absent (or present in fewer dumps than expected)
-        must remain distinguishable from a genuine 0 (hard rule 6). The number
-        of padded entries is recorded in ``_padded`` for traceability.
-        """
-        object.__setattr__(self, "_balanced", True)
-        content_list: list[Any] = self._content
-        content_len: int = len(content_list)
-        repeat: int = self._repeat
-
-        if content_len < repeat:
-            padding: int = repeat - content_len
-            object.__setattr__(self, "_padded", padding)
-            content_list.extend([float("nan")] * padding)
-        elif content_len > repeat:
-            raise RuntimeError(
-                f"{self._type_name.upper()}: More values ({content_len}) than "
-                f"expected ({repeat}). Values: {content_list}"
-            )
-
-    @property
-    def padded_count(self) -> int:
-        """Number of missing entries padded with NaN during balancing (0 if none)."""
-        return int(object.__getattribute__(self, "_padded"))
-
-    def reduce_duplicates(self) -> None:
-        """Reduce content to single value via arithmetic mean."""
-        # [impl->req~ring5.ingestion.pattern-aggregation~1]
-        object.__setattr__(self, "_reduced", True)
-
-        if not self._content:
-            object.__setattr__(self, "_reduced_content", "NA")
-            return
-
-        try:
-            total = sum(self._content)
-            object.__setattr__(self, "_reduced_content", total / self._repeat)
-        except (TypeError, ValueError):
-            # Non-numeric content - use first value
-            object.__setattr__(
-                self, "_reduced_content", self._content[0] if self._content else "NA"
-            )
-
-    @property
-    def entries(self) -> list[str] | None:
-        """
-        Return entry keys for complex types (Vector, Distribution).
-        Returns None for Scalar and Configuration types.
-        """
-        return None
-
-    def __str__(self) -> str:
-        return f"{self._type_name}({self._content})"
-
-    def __repr__(self) -> str:
-        return self.__str__()
