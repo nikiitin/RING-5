@@ -55,7 +55,7 @@ class AnnotationConfig:
     arrow_color: str = "#444"
 
     # Font
-    font_size: int = -1  # -1 = use element default from TypographySpec
+    font_size: float = -1  # -1 = use element default from TypographySpec
     font_color: str = "#444"
     font_bold: bool = False
 

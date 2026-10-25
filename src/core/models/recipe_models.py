@@ -13,6 +13,9 @@ RecipeSourceKind = Literal["csv", "parser"]
 RecipeEngine = Literal["plotly", "matplotlib"]
 
 
+ANALYSIS_RECIPE_SCHEMA_VERSION = 4
+
+
 @dataclass(frozen=True)
 class RecipeParameter:
     """One typed value resolved when an analysis recipe runs.
@@ -118,7 +121,7 @@ class AnalysisRecipe:
     transformations: tuple[Mapping[str, object], ...] = ()
     plots: tuple[RecipePlot, ...] = ()
     exports: tuple[RecipeExport, ...] = ()
-    schema_version: int = 3
+    schema_version: int = ANALYSIS_RECIPE_SCHEMA_VERSION
 
 
 @dataclass(frozen=True)

@@ -1,18 +1,8 @@
-"""One matplotlib figure builder — the single render sequence, UI-free.
+"""Native Matplotlib figure allocation and shared panel drawing.
 
-Both consumers of the matplotlib engine build their figures here:
-``ChartDisplayComponent`` (which adds the Streamlit display + session
-caching around it) and the public ``ring5`` package (headless). Keeping
-one implementation is what guarantees the app preview and a headless
-export of the same plot are the same figure.
-
-The sequence (after the engine-agnostic traces and the styled plotly
-figure exist): build ``FigureConfig`` from the plot config → enrich it
-from the styled plotly figure (tick vals/text, annotations, barmode,
-legend3) → resolve sentinels → create the figure → render traces → apply
-the styling pipeline → draw layout shapes → dual-axis twin fix-up.
-Multi-heatmap traces branch to one subplot row per heatmap with shared or
-per-trace colorbars.
+Resolved styling and neutral traces feed the same panel drawing routine in standalone
+figures and dashboards. All-heatmap results without a secondary axis use one subplot
+row per heatmap, with shared or per-trace colorbars.
 """
 
 from __future__ import annotations
@@ -25,11 +15,20 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure as MplFigure
 
 from src.core.models.visualization.figure_config import FigureConfig
-from src.core.models.visualization.trace_build_result import RuleLine, SeparatorLine, ShadedRegion
+from src.core.models.visualization.trace_build_result import (
+    RuleLine,
+    SeparatorLine,
+    ShadedRegion,
+    TraceBuildResult,
+)
 from src.core.models.visualization.trace_config import HeatmapTraceConfig, TraceConfig
 from src.core.services.visualization.config_resolver import resolve_config
 from src.web.rendering._heatmap_utils import compute_nice_range, compute_z_extent
-from src.web.rendering._connector_protocol import validate_trace_types
+from src.web.rendering._connector_protocol import (
+    uses_heatmap_panels,
+    validate_annotation_types,
+    validate_trace_types,
+)
 from src.web.rendering._render_result import MatplotlibRenderResult
 from src.web.rendering.config_builder import (
     ConfigSpecBuilder,
@@ -38,6 +37,56 @@ from src.web.rendering.config_builder import (
 )
 from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
 from src.web.rendering.matplotlib_trace_renderer import MatplotlibTraceRenderer
+from src.web.rendering.figure_preparation import PreparedFigure
+
+
+def draw_matplotlib_axes(
+    prepared: PreparedFigure, ax: Axes, *, apply_margins: bool = True
+) -> MatplotlibRenderResult:
+    """Draw one prepared panel without preparing, resolving or allocating another figure.
+
+    Args:
+        prepared: Neutral traces and resolved styling for this panel.
+        ax: Axes owned by the standalone or dashboard figure.
+        apply_margins: Apply standalone figure margins; dashboards own their grid margins.
+
+    Returns:
+        Native rendering context, including categorical positions and legend handles.
+    """
+    result, spec = prepared.trace_result, prepared.spec
+    validate_trace_types(result.traces)
+    validate_annotation_types(result.annotations)
+    validate_annotation_types(spec.annotations)
+    rendered = MatplotlibTraceRenderer.render(
+        result.traces,
+        ax,
+        barmode=spec.barmode,
+        palette_colors=spec.color_palette or None,
+        bargap=spec.dimensions.bargap,
+        bargroupgap=spec.dimensions.bargroupgap,
+        bar_border_width=float(prepared.config.get("bar_border_width", 0.0)),
+        category_order=spec.axes.x.category_order,
+    )
+    FigureSpecToMatplotlib.apply(spec, ax, rendered, apply_margins=apply_margins)
+    FigureSpecToMatplotlib.draw_layout_shapes(
+        ax, result.separator_lines, result.shaded_regions, result.rule_lines
+    )
+    return rendered
+
+
+def build_matplotlib_figure_from_prepared(
+    prepared: PreparedFigure,
+) -> tuple[MplFigure, FigureConfig]:
+    """Allocate and draw a native figure from its already resolved preparation.
+
+    Args:
+        prepared: The single neutral preparation of the registered plot.
+
+    Returns:
+        Native figure and the exact resolved specification used to render it.
+    """
+    # [impl->req~ring5.render.matplotlib~1]
+    return _assemble_matplotlib_figure(prepared)
 
 
 def build_matplotlib_figure(
@@ -76,11 +125,14 @@ def build_matplotlib_figure(
     spec = ConfigSpecBuilder.from_config(config, plot_type)
     PlotlyFigureSpecBuilder.enrich_from_plotly(spec, plotly_fig)
     spec = resolve_config(spec)
-    _drop_dual_axis_title_annotations(spec, config)
-
-    return _assemble_matplotlib_figure(
-        spec, config, traces, separator_lines, shaded_regions, rule_lines
+    result = TraceBuildResult(
+        traces=traces,
+        separator_lines=separator_lines or [],
+        shaded_regions=shaded_regions or [],
+        rule_lines=rule_lines or [],
+        secondary_y=any(trace.yaxis == "y2" for trace in traces),
     )
+    return _assemble_matplotlib_figure(PreparedFigure(config, result, spec))
 
 
 def build_matplotlib_figure_from_traces(
@@ -88,14 +140,10 @@ def build_matplotlib_figure_from_traces(
     plot_type: str,
     result: Any,
 ) -> tuple[MplFigure, FigureConfig]:
-    # [impl->req~ring5.render.matplotlib~1]
     """Build a fully styled matplotlib figure straight from a ``TraceBuildResult``.
 
-    This is the engine-isolated path: it never constructs or reads a Plotly figure. The
-    spec is enriched via :func:`enrich_from_traces` (tick vals/labels, barmode,
-    annotations — the same data ``enrich_from_plotly`` pulled back off the Plotly figure),
-    so the produced figure matches the old plotly-round-trip path byte-for-byte for every
-    plot that doesn't rely on a programmatic ``legend3``.
+    The spec is built from configuration and neutral trace metadata before native
+    figure allocation. This direct trace consumer does not construct a Plotly figure.
 
     Args:
         config: The plot's config dict.
@@ -108,75 +156,29 @@ def build_matplotlib_figure_from_traces(
     spec = ConfigSpecBuilder.from_config(config, plot_type)
     enrich_from_traces(spec, result)
     spec = resolve_config(spec)
-    _drop_dual_axis_title_annotations(spec, config)
-
-    return _assemble_matplotlib_figure(
-        spec,
-        config,
-        list(result.traces),
-        list(result.separator_lines),
-        list(result.shaded_regions),
-        list(result.rule_lines),
-    )
-
-
-def _drop_dual_axis_title_annotations(spec: FigureConfig, config: dict[str, Any]) -> None:
-    """Drop the dual-axis Y-title annotations (Plotly injects them as paper-space
-    annotations for parity; the matplotlib path sets the real axis labels — left here,
-    right via :func:`apply_dual_axis` — so the annotation copies would render the titles
-    twice as rotated text over the plot)."""
-    if config.get("dual_axis") and spec.annotations:
-        titles = {str(config.get("ylabel", "")), str(config.get("ylabel_right", ""))} - {""}
-        if titles:
-            kept = [a for a in spec.annotations if str(getattr(a, "text", "")) not in titles]
-            if len(kept) != len(spec.annotations):
-                object.__setattr__(spec, "annotations", kept)
+    return _assemble_matplotlib_figure(PreparedFigure(config, result, spec))
 
 
 def _assemble_matplotlib_figure(
-    spec: FigureConfig,
-    config: dict[str, Any],
-    traces: list[TraceConfig],
-    separator_lines: list[SeparatorLine] | None,
-    shaded_regions: list[ShadedRegion] | None,
-    rule_lines: list[RuleLine] | None,
+    prepared: PreparedFigure,
 ) -> tuple[MplFigure, FigureConfig]:
-    """Shared assembly: blank figure → traces → styling → layout shapes → dual-axis fix-up.
-
-    Both build paths (plotly-enriched and traces-direct) funnel through here once the spec
-    is built, enriched and resolved — so the two paths cannot drift.
-    """
-    validate_trace_types(traces)
+    """Choose native facet geometry, then draw the prepared traces and styling."""
+    result, spec = prepared.trace_result, prepared.spec
+    validate_trace_types(result.traces)
+    validate_annotation_types(result.annotations)
+    validate_annotation_types(spec.annotations)
 
     import matplotlib.pyplot as plt
 
     # 2a. Multi-heatmap: one subplot row per heatmap trace
-    heatmap_traces = [t for t in traces if isinstance(t, HeatmapTraceConfig)]
-    if len(heatmap_traces) > 1:
+    heatmap_traces = [t for t in result.traces if isinstance(t, HeatmapTraceConfig)]
+    if uses_heatmap_panels(result):
         return _build_multi_heatmap(heatmap_traces, spec), spec
 
     # 3. Blank figure + 4. traces + 5. styling + 5b. layout shapes
     mpl_fig, ax = FigureSpecToMatplotlib.create_figure(spec)
     try:
-        render_result = MatplotlibTraceRenderer.render(
-            traces,
-            ax,
-            barmode=spec.barmode,
-            palette_colors=spec.color_palette or None,
-            bargap=spec.dimensions.bargap,
-            bargroupgap=spec.dimensions.bargroupgap,
-            bar_border_width=float(config.get("bar_border_width", 0.0)),
-            category_order=spec.axes.x.category_order if spec.axes is not None else None,
-        )
-        FigureSpecToMatplotlib.apply(spec, ax, render_result)
-        FigureSpecToMatplotlib.draw_layout_shapes(
-            ax, separator_lines or [], shaded_regions or [], rule_lines or []
-        )
-
-        # 5c. Dual-axis parity: right-axis title + legend on the twin
-        twin = getattr(ax, "_ring5_twin", None)
-        if twin is not None:
-            apply_dual_axis(twin, config, spec)
+        draw_matplotlib_axes(prepared, ax)
     except Exception:
         plt.close(mpl_fig)
         raise
@@ -268,37 +270,37 @@ def apply_dual_axis(twin: Axes, config: dict[str, Any], spec: FigureConfig) -> N
 
     # A legend for the right-axis (twin) series — matplotlib's primary legend on the
     # base axes only sees the left-axis handles. Position/style are configurable via
-    # the dual_legend_* keys (emitted by DualAxisOpts.legend); when none are given it
+    # the legend2_* keys (emitted by DualAxisOpts.legend); when none are given it
     # falls back to the historic upper-right placement.
     handles, labels = twin.get_legend_handles_labels()
     if handles:
         legend_kwargs: dict[str, Any] = {}
-        dx, dy = config.get("dual_legend_x"), config.get("dual_legend_y")
+        dx, dy = config.get("legend2_x"), config.get("legend2_y")
         if dx is not None and dy is not None:
             legend_kwargs["loc"] = FigureSpecToMatplotlib._anchor_to_mpl_loc(
-                str(config.get("dual_legend_xanchor", "left")),
-                str(config.get("dual_legend_yanchor", "top")),
+                str(config.get("legend2_anchor_x", "left")),
+                str(config.get("legend2_anchor_y", "top")),
             )
             legend_kwargs["bbox_to_anchor"] = (float(dx), float(dy))
         else:
             legend_kwargs["loc"] = "upper right"
-        ncols = config.get("dual_legend_ncols")
+        ncols = config.get("legend2_ncols")
         if ncols is not None:
             legend_kwargs["ncol"] = max(1, int(ncols))
-        bg = config.get("dual_legend_bgcolor")
+        bg = config.get("legend2_bgcolor")
         if bg:
             legend_kwargs["facecolor"] = str(bg)
-        ba = config.get("dual_legend_bgalpha")
+        ba = config.get("legend2_bgalpha")
         if ba is not None:
             legend_kwargs["framealpha"] = float(ba)
         elif bg:
             legend_kwargs["framealpha"] = 1.0  # opaque when an explicit bg is set
         else:
             legend_kwargs["framealpha"] = 0.85
-        bc = config.get("dual_legend_border_color")
+        bc = config.get("legend2_border_color")
         if bc:
             legend_kwargs["edgecolor"] = str(bc)
-        dfs = config.get("dual_legend_font_size")
+        dfs = config.get("legend2_font_size")
         size = (
             float(dfs)
             if dfs is not None
@@ -319,10 +321,10 @@ def apply_dual_axis(twin: Axes, config: dict[str, Any], spec: FigureConfig) -> N
                 legend_kwargs["fontsize"] = size
         if prop:
             legend_kwargs["prop"] = prop
-        iw = config.get("dual_legend_itemwidth")
+        iw = config.get("legend2_itemwidth")
         if iw is not None and size:
             legend_kwargs["handlelength"] = float(iw) / float(size)
-        htp = config.get("dual_legend_handletextpad")
+        htp = config.get("legend2_handletextpad")
         if htp is not None:
             legend_kwargs["handletextpad"] = float(htp)
         leg = twin.legend(handles, labels, **legend_kwargs)
@@ -338,7 +340,6 @@ def _build_multi_heatmap(
     import matplotlib.pyplot as plt
 
     n = len(heatmap_traces)
-    mpl_fig, axes_list = FigureSpecToMatplotlib.create_multi_figure(spec, n)
 
     # Compute shared vmin/vmax from ColorbarConfig
     cbar_cfg = spec.legends[0].colorbar if spec.legends else None
@@ -355,6 +356,7 @@ def _build_multi_heatmap(
         vmin, vmax, _ = compute_nice_range(raw_min, raw_max, nticks)
 
     shared = cbar_cfg.shared if cbar_cfg else True
+    mpl_fig, axes_list = FigureSpecToMatplotlib.create_multi_figure(spec, n)
 
     try:
         render_results: list[MatplotlibRenderResult] = []
@@ -379,6 +381,9 @@ def _build_multi_heatmap(
             # Apply styling per-axes (skip colorbar — handled below)
             FigureSpecToMatplotlib.apply(spec, ax, render_result=replace(rr, heatmap_image=None))
             ax.set_title(trace.name)
+            if i < n - 1:
+                ax.set_xlabel("")
+                ax.tick_params(axis="x", labelbottom=False, labeltop=False)
 
         FigureSpecToMatplotlib.apply_multi_heatmap_colorbars(
             spec,

@@ -16,6 +16,7 @@ import pytest
 import ring5
 from src.core.common.stat_config_codec import StatConfigCodec
 from src.core.models.parsing_models import StatConfig
+from src.core.models.recipe_models import ANALYSIS_RECIPE_SCHEMA_VERSION
 from tests.helpers.html_assertions import assert_plotly_document
 from src.core.services.data_services.path_service import PathService
 
@@ -210,10 +211,10 @@ def test_recipe_capture_and_errors_use_the_public_contract(tmp_path: Path) -> No
                 session.delete_analysis_recipe(1)  # type: ignore[arg-type]
             with pytest.raises(ring5.RecipeError, match="Analysis recipe must"):
                 session.export_analysis_recipe("invalid")  # type: ignore[arg-type]
+            future = json.loads(payload)
+            future["schema_version"] = ANALYSIS_RECIPE_SCHEMA_VERSION + 1
             with pytest.raises(ring5.RecipeError, match="schema version"):
-                session.import_analysis_recipe(
-                    payload.replace(b'"schema_version": 3', b'"schema_version": 4')
-                )
+                session.import_analysis_recipe(json.dumps(future))
 
         with ring5.Session() as empty_session:
             with pytest.raises(ring5.RecipeError, match="no reusable CSV source"):

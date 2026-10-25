@@ -52,7 +52,7 @@ Each record requires concrete `SourceInstance` identities and numeric display co
 Portfolio schema 7 stores each parser variable as exactly `{state: "draft", fields: ...}` or
 `{state: "runnable", config: ...}`. Drafts preserve incomplete current editor input; runnable
 snapshots contain every `StatConfig` field. UI identifiers never enter the saved format and are
-regenerated when restored. Recipes require runnable variables and use recipe schema 3. Template
+regenerated when restored. Recipes require runnable variables and use recipe schema 4. Template
 operands are validated as declared placeholders, then compiled after materialization.
 
 `finalize_incremental_parsing` accepts the keyword-only `complete` flag, defaulting to `True`.

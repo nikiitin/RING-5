@@ -260,10 +260,18 @@ class TestHelperMethods:
         assert len(anns) == 2
         assert anns[0].font_size == 16
 
-    def test_apply_common_layout_enforces_hover(self) -> None:
+    def test_neutral_hover_carries_actual_measured_totals(self, sample_data: pd.DataFrame) -> None:
+        from src.web.rendering.trace_to_plotly import traces_to_plotly
+
         plot = GroupedStackedBarPlot(1, "T")
-        fig = go.Figure()
-        fig.add_trace(go.Bar(x=[1, 2], y=[3, 4], name="test"))
-        result = plot.apply_common_layout(fig, {})
-        hovertemplate = cast(str, cast(go.Bar, result.data[0]).hovertemplate)
-        assert "customdata" in hovertemplate
+        result = plot.create_traces(
+            sample_data, {"x": "Benchmark", "group": "Config", "y_columns": ["Ticks", "Energy"]}
+        )
+        figure = traces_to_plotly(result)
+        for trace in figure.data:
+            bar = cast(go.Bar, trace)
+            assert "customdata" in cast(str, bar.hovertemplate)
+            assert bar.customdata is not None
+            assert bar.y is not None
+            assert list(bar.customdata) == [110, 220, 165, 275]
+            assert list(bar.y) in ([100, 200, 150, 250], [10, 20, 15, 25])

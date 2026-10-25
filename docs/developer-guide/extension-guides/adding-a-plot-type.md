@@ -59,8 +59,9 @@ when no preferred order is configured.
 
 Unit-test trace values, ordering, missing columns, and error-bar behavior. Use `Session.render` to
 render configured plots through both Plotly and Matplotlib, including plots restored from a
-portfolio. `BasePlot.create_figure` prepares Plotly traces and `apply_common_layout` applies shared
-styling; headless clients use the public session to run the complete rendering sequence. Add
+portfolio. `prepare_figure` calls the registered trace strategy once and resolves the common
+style before the chosen native builder runs. Emit hover and legend-role metadata with the traces;
+axis-title positioning belongs in typed axis configuration and native connectors. Add
 integration coverage for non-trivial configuration or public API use.
 
 ```bash

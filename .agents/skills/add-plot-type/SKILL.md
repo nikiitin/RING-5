@@ -56,7 +56,7 @@ directly when adding a plot type.
    `src/core/common/plot_payload.py`, and restoration together; extra serialized fields are rejected.
 
 6. **Tests:**
-   - unit in `tests/unit/` — exercise `create_traces`/`create_figure` with `sample_data`
+   - unit in `tests/unit/` — exercise scientific `create_traces` results with `sample_data`
      (root conftest fixture) for the new type;
    - render configured and restored plots through public `Session.render` with both engines;
    - integration in `tests/integration/` for non-trivial workflows;

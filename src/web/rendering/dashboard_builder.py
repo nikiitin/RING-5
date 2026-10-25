@@ -12,17 +12,12 @@ from matplotlib.figure import Figure as MplFigure
 from plotly.subplots import make_subplots
 
 from src.core.models.visualization.dashboard_spec import DashboardSpec
-from src.core.models.visualization.trace_config import HeatmapTraceConfig
-from src.core.services.visualization.config_resolver import resolve_config
 from src.web.pages.ui.plotting.base_plot import BasePlot
-from src.web.rendering.figure_preparation import _relabel_traces
-from src.web.rendering.config_builder import ConfigSpecBuilder, enrich_from_traces
+from src.web.rendering.figure_preparation import prepare_figure
 from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
-from src.web.rendering.matplotlib_figure_builder import (
-    _drop_dual_axis_title_annotations,
-    apply_dual_axis,
-)
-from src.web.rendering.matplotlib_trace_renderer import MatplotlibTraceRenderer
+from src.web.rendering.matplotlib_figure_builder import draw_matplotlib_axes
+from src.web.rendering.plotly_figure_builder import build_plotly_figure
+from src.web.rendering._connector_protocol import uses_heatmap_panels
 
 DashboardEngine = Literal["plotly", "matplotlib"]
 DashboardFigure = go.Figure | MplFigure
@@ -211,6 +206,21 @@ def _add_plotly_panel_text(
         )
 
 
+def _copy_panel_legends(
+    dashboard: go.Figure,
+    child: go.Figure,
+    mapping: dict[str, str],
+    domain_x: Sequence[float],
+    domain_y: Sequence[float],
+) -> None:
+    """Project each child trace legend into its owning panel, preserving its style."""
+    for source, target in mapping.items():
+        style = dict(getattr(child.layout, source).to_plotly_json())
+        style["x"] = _paper_value(style.get("x", 1.0), domain_x)
+        style["y"] = _paper_value(style.get("y", 1.0), domain_y)
+        dashboard.update_layout({target: style})
+
+
 def _subplot_family(figure: go.Figure) -> str:
     """Select the panel family and reject incompatible mixed coordinates."""
     families = {
@@ -261,8 +271,10 @@ def _render_plotly_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec) -> 
     child_figures: list[go.Figure] = []
     secondary_flags: list[bool] = []
     for plot in plots:
-        child = plot.create_figure(cast(Any, plot.processed_data), plot.config)
-        child = plot.apply_common_layout(child, plot.config)
+        prepared = prepare_figure(
+            cast(Any, plot.processed_data), plot.config, plot.plot_type, plot.create_traces
+        )
+        child = build_plotly_figure(prepared)
         if _has_nested_subplots(child):
             raise ValueError(
                 f"Plot '{plot.name}' already contains nested subplots and cannot be placed "
@@ -302,11 +314,21 @@ def _render_plotly_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec) -> 
     legend_names: set[str] = set()
     inferred_x_title = ""
     inferred_y_title = ""
+    next_legend = 1
     for index, child in enumerate(child_figures):
         row, column = divmod(index, spec.columns)
         row += 1
         column += 1
-        panel_legend = "legend" if index == 0 else f"legend{index + 1}"
+        legend_mapping: dict[str, str] = {}
+        if not spec.shared_legend:
+            source_legends = {
+                str(getattr(trace, "legend", None) or "legend")
+                for trace in child.data
+                if hasattr(trace, "legend")
+            }
+            for source in sorted(source_legends, key=lambda ref: int(ref[6:] or "1")):
+                legend_mapping[source] = "legend" if next_legend == 1 else f"legend{next_legend}"
+                next_legend += 1
 
         for source_trace in child.data:
             trace = copy.deepcopy(source_trace)
@@ -319,13 +341,15 @@ def _render_plotly_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec) -> 
             else:
                 trace.update(domain=None)
             if spec.shared_legend and hasattr(trace, "showlegend"):
+                if hasattr(trace, "legend"):
+                    trace.legend = "legend"
                 name = str(getattr(trace, "name", ""))
                 originally_visible = getattr(trace, "showlegend", None) is not False
                 trace.showlegend = originally_visible and name not in legend_names
                 if originally_visible:
                     legend_names.add(name)
             elif not spec.shared_legend and hasattr(trace, "legend"):
-                trace.legend = panel_legend
+                trace.legend = legend_mapping[str(getattr(trace, "legend", None) or "legend")]
             if family == "xy":
                 dashboard.add_trace(trace, row=row, col=column, secondary_y=secondary)
             else:
@@ -348,16 +372,7 @@ def _render_plotly_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec) -> 
                 spec.resolved_panel_captions[index],
             )
             if not spec.shared_legend:
-                dashboard.update_layout(
-                    {
-                        panel_legend: {
-                            "x": domain_x[1],
-                            "y": domain_y[1],
-                            "xanchor": "right",
-                            "yanchor": "top",
-                        }
-                    }
-                )
+                _copy_panel_legends(dashboard, child, legend_mapping, domain_x, domain_y)
             continue
         target_x, target_y = target.xaxis, target.yaxis
         target_yaxes = list(dashboard.select_yaxes(row=row, col=column))
@@ -393,17 +408,7 @@ def _render_plotly_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec) -> 
         if not spec.shared_legend:
             domain_x = cast(Sequence[float], target_x.domain)
             domain_y = cast(Sequence[float], target_y.domain)
-            dashboard.update_layout(
-                {
-                    panel_legend: {
-                        "x": float(domain_x[1]) - 0.01,
-                        "y": float(domain_y[1]) - 0.01,
-                        "xanchor": "right",
-                        "yanchor": "top",
-                        "bgcolor": "rgba(255,255,255,0.8)",
-                    }
-                }
-            )
+            _copy_panel_legends(dashboard, child, legend_mapping, domain_x, domain_y)
 
     dashboard.update_layout(
         title={"text": spec.title, "x": 0.5, "xanchor": "center"},
@@ -423,15 +428,9 @@ def _render_plotly_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec) -> 
         },
     )
     if spec.shared_legend:
-        dashboard.update_layout(
-            legend={
-                "orientation": "h",
-                "x": 0.5,
-                "xanchor": "center",
-                "y": -0.08,
-                "yanchor": "top",
-            }
-        )
+        shared_legend_style = dict(child_figures[0].layout.legend.to_plotly_json())
+        shared_legend_style.update(orientation="h", x=0.5, xanchor="center", y=-0.08, yanchor="top")
+        dashboard.update_layout(legend=shared_legend_style)
 
     x_title = spec.x_title or (inferred_x_title if spec.shared_xaxes else "")
     y_title = spec.y_title or (inferred_y_title if spec.shared_yaxes else "")
@@ -466,8 +465,6 @@ def _matplotlib_relative_spacing(normalized_gap: float, panel_count: int) -> flo
 
 def _render_matplotlib_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec) -> MplFigure:
     # [impl->req~ring5.figure.accessible-themes~1]
-    from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
-    from src.core.services.visualization.accessibility_service import AccessibilityService
     import matplotlib.pyplot as plt
 
     figure, raw_axes = plt.subplots(
@@ -484,51 +481,17 @@ def _render_matplotlib_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec)
     try:
         for index, (plot, panel_title) in enumerate(zip(plots, spec.panel_titles)):
             ax = axes[index]
-            plot.config = SemanticMetadataService.enrich_figure_config(
-                cast(Any, plot.processed_data), plot.config
+            prepared = prepare_figure(
+                cast(Any, plot.processed_data), plot.config, plot.plot_type, plot.create_traces
             )
-            plot.config = AccessibilityService.apply_defaults(plot.config, plot.plot_type)
-            result = plot.create_traces(cast(Any, plot.processed_data), plot.config)
-            result = AccessibilityService.apply_non_color_encodings(result, plot.config)
-            result = _relabel_traces(result, plot.config.get("legend_labels"))
-            plot.last_traces = result
-            if sum(isinstance(trace, HeatmapTraceConfig) for trace in result.traces) > 1:
+            if uses_heatmap_panels(prepared.trace_result):
                 raise ValueError(
                     f"Plot '{plot.name}' already contains nested heatmap panels and cannot "
                     "be placed inside a dashboard panel."
                 )
-
-            figure_spec = ConfigSpecBuilder.from_config(plot.config, plot.plot_type)
-            enrich_from_traces(figure_spec, result)
-            figure_spec = resolve_config(figure_spec)
-            _drop_dual_axis_title_annotations(figure_spec, plot.config)
             if first_figure_spec is None:
-                first_figure_spec = figure_spec
-
-            render_result = MatplotlibTraceRenderer.render(
-                list(result.traces),
-                ax,
-                barmode=figure_spec.barmode,
-                palette_colors=figure_spec.color_palette or None,
-                bargap=figure_spec.dimensions.bargap,
-                bargroupgap=figure_spec.dimensions.bargroupgap,
-                bar_border_width=float(plot.config.get("bar_border_width", 0.0)),
-            )
-            FigureSpecToMatplotlib.apply(
-                figure_spec,
-                ax,
-                render_result,
-                apply_margins=False,
-            )
-            FigureSpecToMatplotlib.draw_layout_shapes(
-                ax,
-                list(result.separator_lines),
-                list(result.shaded_regions),
-                list(result.rule_lines),
-            )
-            twin = getattr(ax, "_ring5_twin", None)
-            if twin is not None:
-                apply_dual_axis(twin, plot.config, figure_spec)
+                first_figure_spec = prepared.spec
+            draw_matplotlib_axes(prepared, ax, apply_margins=False)
             ax.set_title(panel_title)
             panel_label = spec.resolved_panel_labels[index]
             if panel_label:
@@ -580,19 +543,17 @@ def _render_matplotlib_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec)
                     if legend is not None:
                         legend.remove()
             if handles_by_label:
-                legend_prop = (
-                    {"family": first_figure_spec.font_family}
-                    if first_figure_spec and first_figure_spec.font_family
-                    else None
-                )
-                figure.legend(
-                    list(handles_by_label.values()),
-                    list(handles_by_label),
+                primary_legend = first_figure_spec.legends[0]
+                options = FigureSpecToMatplotlib._legend_kwargs(primary_legend)
+                options.update(
                     loc="lower center",
                     ncol=min(4, len(handles_by_label)),
                     bbox_to_anchor=(0.5, 0.01),
-                    prop=legend_prop,
                 )
+                legend = figure.legend(
+                    list(handles_by_label.values()), list(handles_by_label), **options
+                )
+                FigureSpecToMatplotlib._style_legend(primary_legend, legend)
 
         font_kwargs = (
             {"fontfamily": first_figure_spec.font_family}
@@ -601,8 +562,12 @@ def _render_matplotlib_dashboard(plots: Sequence[BasePlot], spec: DashboardSpec)
         )
         if spec.title:
             figure.suptitle(spec.title, **font_kwargs)
-        inferred_x = str(plots[0].config.get("xlabel", "")) if spec.shared_xaxes else ""
-        inferred_y = str(plots[0].config.get("ylabel", "")) if spec.shared_yaxes else ""
+        inferred_x = (
+            first_figure_spec.axes.x.label if spec.shared_xaxes and first_figure_spec else ""
+        )
+        inferred_y = (
+            first_figure_spec.axes.y.label if spec.shared_yaxes and first_figure_spec else ""
+        )
         if spec.x_title or inferred_x:
             figure.supxlabel(spec.x_title or inferred_x, **font_kwargs)
         if spec.y_title or inferred_y:

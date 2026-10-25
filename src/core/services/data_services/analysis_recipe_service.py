@@ -27,9 +27,11 @@ from src.core.common.security_limits import (
 )
 from src.core.common.utils import sanitize_filename, validate_path_within
 from src.core.common.stat_config_codec import StatConfigCodec
+from src.core.common.plot_payload import validate_plot_config_keys
 from src.core.models.data_models import ScannedVariableDict
 from src.core.models.parsing_models import ScannedVariable
 from src.core.models.recipe_models import (
+    ANALYSIS_RECIPE_SCHEMA_VERSION,
     AnalysisRecipe,
     AnalysisRecipeInfo,
     RecipeExport,
@@ -48,7 +50,6 @@ from src.core.services.shapers.definition import ConfigValueBudget, validate_con
 from src.core.state.state_manager import StateManager
 
 ANALYSIS_RECIPE_FORMAT = "ring5.analysis-recipe"
-ANALYSIS_RECIPE_SCHEMA_VERSION = 3
 
 _PARAMETER_NAME = re.compile(r"^[A-Za-z][A-Za-z0-9_]{0,63}$")
 _PLACEHOLDER = re.compile(r"{{\s*([A-Za-z][A-Za-z0-9_]{0,63})\s*}}")
@@ -257,6 +258,7 @@ class AnalysisRecipeService:
             plot_names.add(plot.name)
             if not isinstance(plot.config, Mapping):
                 raise TypeError(f"Recipe plot {plot.name!r} config must be a mapping.")
+            validate_plot_config_keys(plot.config)
             AnalysisRecipeService._validate_pipeline(plot.pipeline, f"plot {plot.name!r}")
         AnalysisRecipeService._validate_pipeline(recipe.transformations, "global transformations")
 

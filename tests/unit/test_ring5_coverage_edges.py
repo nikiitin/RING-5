@@ -486,7 +486,7 @@ def test_error_payloads_and_complete_figure_spec() -> None:
     assert config["xaxis_order"] == ["b", "a"]
     assert config["group_order"] == ["g2", "g1"]
     assert config["legend_handletextpad"] == 0.3
-    assert config["dual_legend_handletextpad"] == 0.3
+    assert config["legend2_handletextpad"] == 0.3
 
     built = FigureSpec(
         title="Title",

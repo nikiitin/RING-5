@@ -340,8 +340,10 @@ def test_faceted_heatmaps_keep_category_ticks_and_overall_dimensions() -> None:
         {"width": 800, "height": 600}, "heatmap", TraceBuildResult(traces=traces)
     )
     assert figure.get_size_inches() * figure.dpi == pytest.approx([800, 600])
-    for axis in figure.axes[:2]:
-        assert [tick.get_text() for tick in axis.get_xticklabels()] == ["a", "b"]
+    for index, axis in enumerate(figure.axes[:2]):
+        assert [tick.get_text() for tick in axis.get_xticklabels()] == (
+            [] if index == 0 else ["a", "b"]
+        )
         assert [tick.get_text() for tick in axis.get_yticklabels()] == ["m1", "m2"]
         assert axis.get_xticks().tolist() == [0.5, 1.5]
 

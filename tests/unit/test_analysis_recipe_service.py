@@ -11,6 +11,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.core.models.recipe_models import (
+    ANALYSIS_RECIPE_SCHEMA_VERSION,
     AnalysisRecipe,
     RecipeExport,
     RecipeParameter,
@@ -107,10 +108,10 @@ def test_recipe_rejects_undeclared_mistyped_and_future_content() -> None:
         AnalysisRecipeService.materialize(recipe, {"extra": 2})
 
     invalid = json.loads(AnalysisRecipeService.dumps(recipe))
-    invalid["schema_version"] = 4
+    invalid["schema_version"] = ANALYSIS_RECIPE_SCHEMA_VERSION + 1
     with pytest.raises(ValueError, match="schema version"):
         AnalysisRecipeService.loads(json.dumps(invalid))
-    invalid["schema_version"] = 3
+    invalid["schema_version"] = ANALYSIS_RECIPE_SCHEMA_VERSION
     invalid["future"] = True
     with pytest.raises(ValueError, match="unsupported fields"):
         AnalysisRecipeService.loads(json.dumps(invalid))

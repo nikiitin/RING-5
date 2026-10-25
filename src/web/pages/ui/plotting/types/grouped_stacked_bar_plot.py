@@ -159,6 +159,7 @@ class GroupedStackedBarPlot(StackedBarPlot):
         payload_by_coordinate = dict(zip(data["__x_coord"], payloads, strict=False))
         for built_trace in traces:
             coordinates = getattr(built_trace, "x_positions", []) or built_trace.x
+            built_trace.custom_data["hovertemplate"] = hover_template
             built_trace.custom_data["drilldown"] = [
                 payload_by_coordinate.get(coordinate, {}) for coordinate in coordinates
             ]
@@ -302,53 +303,14 @@ class GroupedStackedBarPlot(StackedBarPlot):
 
     @override
     def apply_common_layout(self, fig: go.Figure, config: PlotConfig) -> go.Figure:
-        """Apply common layout and enforce hover template."""
+        """Apply the current UI bridge's resolved native title projection."""
+        from src.web.rendering.plotly_figure_builder import apply_axis_title_annotations
+
         fig = super().apply_common_layout(fig, config)
-
-        # Enforce hover template for this specific plot type (reuse the inherited single
-        # source so the two never drift); this overwrites what base_plot sets.
-        fig.update_traces(hovertemplate=self._get_hover_template())
-
-        # Dual-axis enhancements
-        if config.get("dual_axis"):
-            # 1. Y-axis title rotation
-            #    Primary (left):  reads bottom-to-top (textangle=-90, standard)
-            #    Secondary (right): reads top-to-bottom (textangle=90, opposite)
-            self._apply_dual_axis_titles(fig, config)
-
-            # 2. Grid lines per axis — primary ON by default, secondary OFF
-            fig.update_yaxes(
-                showgrid=config.get("show_y_grid", True),
-                secondary_y=False,
-            )
-            fig.update_yaxes(
-                showgrid=config.get("y2show_y_grid", False),
-                secondary_y=True,
-            )
-
-            # 3. Legend unification
-            if not config.get("unified_legend", True):
-                self._apply_separate_legends(fig, config)
-
+        if self._applicator.last_spec is None:
+            raise ValueError("Figure styling did not produce a resolved specification.")
+        apply_axis_title_annotations(self._applicator.last_spec, fig)
         return fig
-
-    # Dual-axis helpers
-
-    def _apply_dual_axis_titles(self, fig: go.Figure, config: PlotConfig) -> None:
-        """Apply Y-axis titles as symmetrical annotations for dual-axis mode."""
-        from src.web.pages.ui.plotting.utils.grouped_stacked_bar_helpers import (
-            apply_dual_axis_titles,
-        )
-
-        apply_dual_axis_titles(fig, config)
-
-    def _apply_separate_legends(self, fig: go.Figure, config: PlotConfig) -> None:
-        """Split traces into separate legends for left and right axis groups."""
-        from src.web.pages.ui.plotting.utils.grouped_stacked_bar_helpers import (
-            apply_separate_legends,
-        )
-
-        apply_separate_legends(fig, config)
 
     def _build_right_axis_traces(
         self,

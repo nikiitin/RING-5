@@ -830,7 +830,7 @@ class TestDualAxisLegendUnification:
 
 
 class TestSecondaryYTypography:
-    """Test _apply_dual_axis_titles applies yaxis2_* config keys."""
+    """Typed secondary-axis titles apply yaxis2_* configuration."""
 
     def test_yaxis2_title_font_size(
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
@@ -906,7 +906,7 @@ class TestSecondaryYTypography:
 
 
 class TestSeparateLegendControls:
-    """Test _apply_separate_legends reads legend2_* config keys."""
+    """Typed separate legends apply legend2_* configuration."""
 
     def test_legend2_position_from_config(
         self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
@@ -923,8 +923,8 @@ class TestSeparateLegendControls:
             "unified_legend": False,
             "legend2_x": 0.8,
             "legend2_y": 0.3,
-            "legend2_xanchor": "center",
-            "legend2_yanchor": "bottom",
+            "legend2_anchor_x": "center",
+            "legend2_anchor_y": "bottom",
         }
         fig = plot.create_figure(sample_data, config)
         fig = plot.apply_common_layout(fig, config)
@@ -1005,7 +1005,7 @@ class TestSeparateLegendControls:
             "right_axis_type": "bars",
             "title": "Test",
             "unified_legend": False,
-            "legend2_orientation": "h",
+            "legend2_orientation": "horizontal",
         }
         fig = plot.create_figure(sample_data, config)
         fig = plot.apply_common_layout(fig, config)

@@ -30,6 +30,7 @@ from src.core.models.visualization.legend_config import (
 )
 from src.core.models.visualization.series_style_config import SeriesStyleConfig
 from src.core.models.visualization.trace_build_result import TraceBuildResult
+from src.core.models.visualization.trace_config import HeatmapTraceConfig
 from src.core.models.visualization.typography_config import TypographyConfig
 from src.core.services.visualization.palette_service import resolve_palette
 from src.web.rendering._connector_protocol import validate_annotation_types
@@ -165,7 +166,11 @@ class ConfigSpecBuilder:
             A FigureConfig populated from config values.
             Uses ``dpi=1`` so width/height are effectively in pixels.
         """
+        from src.core.common.plot_payload import validate_plot_config_keys
+
+        validate_plot_config_keys(config)
         is_bar = "bar" in plot_type
+        symmetric_y_titles = plot_type == "grouped_stacked_bar" and bool(config.get("dual_axis"))
 
         # Dimensions (dpi=1 ⇒ px passthrough)
         margins = MarginsConfig(
@@ -249,6 +254,7 @@ class ConfigSpecBuilder:
             grid_alpha=float(config.get("y_grid_alpha", 1.0)),
             label_standoff=config.get("yaxis_title_standoff", -1),
             title_vshift=float(config.get("yaxis_title_vshift", 0.0)),
+            title_angle=-90.0 if symmetric_y_titles else None,
             show_ticks=config.get("show_ytick_marks", True),
             tick_dash=config.get("ytick_dash", "solid"),
             tick_font_color=config.get("yaxis_tickfont_color", ""),
@@ -281,6 +287,7 @@ class ConfigSpecBuilder:
                 grid_alpha=float(config.get("y2_grid_alpha", 1.0)),
                 label_standoff=config.get("yaxis2_title_standoff", -1),
                 title_vshift=float(config.get("yaxis2_title_vshift", 0.0)),
+                title_angle=90.0 if symmetric_y_titles else None,
                 tick_dash=config.get("y2tick_dash", "solid"),
                 show_ticks=config.get("show_y2tick_marks", True),
                 show_tick_labels=config.get("show_y2tick_labels", True),
@@ -305,15 +312,30 @@ class ConfigSpecBuilder:
         )
 
         # Primary Legend
-        primary_legend = _build_legend_from_config(config, "legend_", "primary")
+        legend_config = dict(config)
+        if has_y2_axis and not config.get("unified_legend", True):
+            for key, value in {
+                "legend_x": 0.0,
+                "legend_y": 1.0,
+                "legend_anchor_x": "left",
+                "legend_anchor_y": "top",
+                "legend2_x": 1.0,
+                "legend2_y": 1.0,
+                "legend2_anchor_x": "right",
+                "legend2_anchor_y": "top",
+            }.items():
+                legend_config.setdefault(key, value)
+        primary_legend = _build_legend_from_config(legend_config, "legend_", "primary")
         legends: list[LegendConfig] = [primary_legend]
 
         # Secondary legend from UI (dual-axis)
-        if any(config.get(f"legend2_{k}") is not None for k in ("font_size", "x", "ncols")):
-            legends.append(_build_legend_from_config(config, "legend2_", "secondary"))
+        if any(key.startswith("legend2_") for key in config) or (
+            has_y2_axis and not config.get("unified_legend", True)
+        ):
+            legends.append(_build_legend_from_config(legend_config, "legend2_", "secondary"))
 
         # Boxed legend from UI
-        if any(config.get(f"legend3_{k}") is not None for k in ("font_size", "x", "ncols")):
+        if any(key.startswith("legend3_") for key in config):
             legends.append(_build_legend_from_config(config, "legend3_", "tertiary"))
 
         # Backgrounds
@@ -477,7 +499,7 @@ def _build_legend_from_config(
         Fully populated LegendConfig.
     """
     tracegroupgap_px = int(config.get(f"{prefix}tracegroupgap", 10))
-    font_size = int(config.get(f"{prefix}font_size", 12))
+    font_size = float(config.get(f"{prefix}font_size", 12))
     # Convert tracegroupgap (Plotly px) → labelspacing (Matplotlib, in
     # multiples of font size).  Clamp to sensible range.
     label_spacing = max(0.0, tracegroupgap_px / max(font_size, 1))
@@ -568,6 +590,8 @@ def _extract_annotations(layout: Any) -> list[AnnotationConfig]:
     layout_anns: list[Any] = list(getattr(layout, "annotations", None) or [])
 
     for ann in layout_anns:
+        if getattr(ann, "name", None) in ("ring5-y-title", "ring5-y2-title"):
+            continue
         font = getattr(ann, "font", None)
         raw_x = getattr(ann, "x", 0)
         raw_y = getattr(ann, "y", 0)
@@ -598,7 +622,7 @@ def _extract_annotations(layout: Any) -> list[AnnotationConfig]:
                 arrow_color=str(getattr(ann, "arrowcolor", "#444") or "#444"),
                 x_shift_pixels=float(getattr(ann, "xshift", 0) or 0),
                 y_shift_pixels=float(getattr(ann, "yshift", 0) or 0),
-                font_size=int(getattr(font, "size", 0) or 0) if font else -1,
+                font_size=float(getattr(font, "size", 0) or 0) if font else -1,
                 font_color=str(getattr(font, "color", "#444") or "#444") if font else "#444",
                 font_family=str(getattr(font, "family", "") or "") if font else "",
                 font_bold=getattr(font, "weight", None) == "bold" if font else False,
@@ -623,6 +647,16 @@ def enrich_from_traces(spec: FigureConfig, result: TraceBuildResult) -> None:
     """
 
     validate_annotation_types(result.annotations)
+    if any(trace.legend_role == "secondary" for trace in result.traces) and not any(
+        legend.role == "secondary" for legend in spec.legends
+    ):
+        object.__setattr__(
+            spec, "legends", [*spec.legends, LegendConfig(role="secondary", font_size=-1)]
+        )
+    if result.traces and all(isinstance(trace, HeatmapTraceConfig) for trace in result.traces):
+        first = result.traces[0]
+        if isinstance(first, HeatmapTraceConfig):
+            object.__setattr__(spec.axes.x, "category_order", list(first.col_labels))
     ticks = result.custom_x_ticks
     if ticks:
         vals = ticks.get("vals")

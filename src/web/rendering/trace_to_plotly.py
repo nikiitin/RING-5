@@ -28,7 +28,11 @@ from src.core.models.visualization.trace_config import (
     WaterfallTraceConfig,
 )
 from src.web.rendering._heatmap_utils import heatmap_text_colors
-from src.web.rendering._connector_protocol import validate_annotation_types, validate_trace_types
+from src.web.rendering._connector_protocol import (
+    uses_heatmap_panels,
+    validate_annotation_types,
+    validate_trace_types,
+)
 
 
 def _error_y_dict(error_y: list[float] | None) -> dict[str, Any] | None:
@@ -59,11 +63,7 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
     traces_list = list(result.traces)
     validate_trace_types(traces_list)
     validate_annotation_types(result.annotations)
-    heatmap_only = (
-        len(traces_list) > 1
-        and all(isinstance(trace, HeatmapTraceConfig) for trace in traces_list)
-        and not result.secondary_y
-    )
+    heatmap_only = uses_heatmap_panels(result)
 
     if heatmap_only:
         subplot_titles = [trace.name for trace in traces_list]
@@ -80,6 +80,12 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
 
     for index, trace in enumerate(traces_list, start=1):
         plotly_trace = _convert_trace(trace)
+        if (
+            result.secondary_y
+            and trace.legend_role == "primary"
+            and isinstance(trace, (BarTraceConfig, LineTraceConfig, ScatterTraceConfig))
+        ):
+            plotly_trace.update(legend="legend")
         if heatmap_only:
             fig.add_trace(plotly_trace, row=index, col=1)
         elif result.secondary_y:
@@ -218,6 +224,13 @@ def _convert_trace(trace: TraceConfig) -> go.BaseTraceType:  # type: ignore[name
         result = _heatmap_trace(trace)
     else:
         raise TypeError(f"Unsupported trace type: {type(trace).__name__}.")
+    if trace.legend_role == "secondary":
+        result.update(legend="legend2")
+    if (
+        isinstance(trace, (BarTraceConfig, LineTraceConfig, ScatterTraceConfig))
+        and "hovertemplate" in trace.custom_data
+    ):
+        result.update(hovertemplate=trace.custom_data["hovertemplate"])
     drilldown = trace.custom_data.get("drilldown")
     if drilldown is not None:
         result.meta = {"ring5_drilldown": drilldown}

@@ -99,7 +99,7 @@ def test_public_spec_uses_current_modes_and_routes_number_legend_to_free_tier() 
         ),
     )
     config = spec.to_config()
-    assert config["dual_legend_font_size"] == 11
+    assert config["legend2_font_size"] == 11
     assert config["legend3_font_size"] == 19
     assert ring5.FigureSpec(numbered_xaxis_modes=["Labels"]).numbered_xaxis_modes == ("Labels",)
 

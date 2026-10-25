@@ -226,6 +226,13 @@ fields. `to_config()` returns a fresh mutable mapping with the same canonical ed
 by the web interface and saved plots. `create_plot` and `plot` accept either a `FigureSpec` or that
 configuration mapping. Existing raw mappings retain their exact settings and renderer defaults.
 
+Legend font sizes retain fractional point values through both native engines and typed figure
+round trips. `DualAxisOpts.legend` configures the separate right-axis legend; numbered mappings
+use the available secondary or tertiary style independently. Raw mappings use `legend2_*` for
+the separate right legend and `anchor_x`/`anchor_y` in every legend tier. Explicit `bgalpha`
+replaces opacity encoded in `bgcolor`; omitting it preserves an RGBA color's embedded opacity
+and each native renderer's default for opaque colors.
+
 ### Public coordinates and decorations
 
 <!--

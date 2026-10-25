@@ -185,6 +185,7 @@ class MatplotlibTraceRenderer:
         if spline_categories:
             ax.xaxis.update_units(spline_categories)
 
+        recorded_handles = {id(handle) for handle in ax.get_legend_handles_labels()[0]}
         for idx, trace in enumerate(traces):
             if not trace.visible:
                 continue
@@ -278,6 +279,11 @@ class MatplotlibTraceRenderer:
                     raise TypeError(f"Unsupported trace type: {type(trace).__name__}.")
             except (TypeError, ValueError, OverflowError) as exc:
                 raise ValueError(f"Cannot render trace {trace.name!r}: {exc}") from exc
+            handles, _ = target.get_legend_handles_labels()
+            for handle in handles:
+                if id(handle) not in recorded_handles:
+                    result.legend_handles.setdefault(trace.legend_role, []).append(handle)
+                    recorded_handles.add(id(handle))
 
         if vertical_box_ticks:
             positions = sorted(vertical_box_ticks)

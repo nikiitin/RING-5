@@ -67,6 +67,7 @@ class TraceConfig:
         visible: Whether the trace is visible.
         show_in_legend: Whether to include in legend.
         legendgroup: Group identifier for linked legend entries.
+        legend_role: Owning trace legend, independent of the Y-axis and annotation styles.
         custom_data: Arbitrary per-trace metadata.
     """
 
@@ -80,6 +81,7 @@ class TraceConfig:
     visible: bool = True
     show_in_legend: bool = True
     legendgroup: str = ""
+    legend_role: Literal["primary", "secondary"] = "primary"
     custom_data: dict[str, Any] = field(default_factory=dict)
 
 

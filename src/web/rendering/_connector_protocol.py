@@ -16,6 +16,7 @@ explicit per-trace colour wins over the palette, and (Matplotlib) before
 from collections.abc import Sequence
 
 from src.core.models.visualization.annotation_config import AnnotationConfig
+from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import (
     BarTraceConfig,
     BoxTraceConfig,
@@ -42,6 +43,15 @@ _SUPPORTED_TRACE_TYPES = (
     ViolinTraceConfig,
     WaterfallTraceConfig,
 )
+
+
+def uses_heatmap_panels(result: TraceBuildResult) -> bool:
+    """Whether every trace belongs to a separate heatmap panel."""
+    return (
+        len(result.traces) > 1
+        and not result.secondary_y
+        and all(isinstance(trace, HeatmapTraceConfig) for trace in result.traces)
+    )
 
 
 def validate_trace_types(traces: Sequence[TraceConfig]) -> None:

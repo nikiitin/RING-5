@@ -104,6 +104,13 @@ flowchart LR
     SPEC --> MPL[Matplotlib connector]
 ```
 
+`Session.render`, reports, and dashboards call `prepare_figure` once per plot. Its
+`PreparedFigure` owns effective semantic/accessibility defaults, neutral trace output and one
+resolved `FigureConfig`. Native builders consume that result without constructing the other
+engine's figure or resolving styling again. Matplotlib standalone figures and dashboard panels
+share `draw_matplotlib_axes`; the panel compositor owns its outer margins and legend domains.
+Trace legend roles stay independent of Y-axis roles and numbered annotation styling.
+
 Manager services and shapers copy their inputs. A confirmed manager result replaces the workspace
 table; a shaper result belongs to its plot. The render controller pairs processed data, persisted
 configuration, rendering engine, and a cache key before reusing a figure.

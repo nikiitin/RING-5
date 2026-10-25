@@ -144,6 +144,7 @@ class BasePlot(PlotConfigUIMixin, ABC):
 
     def apply_common_layout(self, fig: go.Figure, config: PlotConfig) -> go.Figure:
         """Apply common layout settings via StyleApplicator."""
+        self._applicator.plot_type = self.plot_type
         return self._applicator.apply_styles(fig, config)
 
     def to_dict(self) -> dict[str, Any]:

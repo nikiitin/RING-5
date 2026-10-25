@@ -73,6 +73,14 @@ def prepare_figure(
     result = deepcopy(result)
     result = AccessibilityService.apply_non_color_encodings(result, effective)
     result = _relabel_traces(result, effective.get("legend_labels"))
+    if result.secondary_y and not effective.get("unified_legend", True):
+        result = replace(
+            result,
+            traces=[
+                replace(trace, legend_role="secondary") if trace.yaxis == "y2" else trace
+                for trace in result.traces
+            ],
+        )
     spec = ConfigSpecBuilder.from_config(effective, plot_type)
     enrich_from_traces(spec, result)
     spec = resolve_config(spec)

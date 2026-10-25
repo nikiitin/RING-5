@@ -1,5 +1,6 @@
 """Field admission for the current serialized plot document."""
 
+from collections.abc import Mapping
 from typing import Any
 
 _PLOT_FIELDS = frozenset(
@@ -15,6 +16,28 @@ _PLOT_FIELDS = frozenset(
         "figure_spec",
     }
 )
+
+
+def validate_plot_config_keys(config: Mapping[str, Any]) -> None:
+    """Validate current editable plot key names without interpreting template values.
+
+    Raises:
+        ValueError: A key is not text or belongs to a retired legend representation.
+    """
+    # [impl->req~ring5.portfolio.schema~1]
+    if any(not isinstance(key, str) for key in config):
+        raise ValueError("Plot configuration keys must be text names.")
+    retired = sorted(
+        key
+        for key in config
+        if key.startswith("dual_legend_")
+        or key in {"legend2_xanchor", "legend2_yanchor", "legend3_xanchor", "legend3_yanchor"}
+    )
+    if retired:
+        raise ValueError(
+            f"Unsupported separate-legend keys: {', '.join(retired)}. "
+            "Use legend2_/legend3_ fields with anchor_x/anchor_y."
+        )
 
 
 def validate_plot_fields(payload: dict[str, Any]) -> None:
@@ -37,3 +60,6 @@ def validate_plot_fields(payload: dict[str, Any]) -> None:
         raise ValueError(
             f"Unsupported plot fields in the current typed representation: {sorted(unknown)}."
         )
+    config = payload.get("config", {})
+    if isinstance(config, Mapping):
+        validate_plot_config_keys(config)
