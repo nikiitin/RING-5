@@ -11,7 +11,12 @@ from typing import Any
 import pandas as pd
 
 from src.core.common.content_identity import content_signature, frame_signature
-from src.core.models.preview_models import PreviewContext
+from src.core.models.preview_models import (
+    ActivePreviewInputs,
+    DatasetPreviewInputs,
+    PreviewContext,
+    PreviewInputs,
+)
 from src.core.services.data_services.dataset_snapshot_service import DatasetSnapshotService
 from src.core.services.data_services.portfolio_service import PortfolioService
 from src.core.services.environment_metadata_service import EnvironmentMetadataService
@@ -27,12 +32,13 @@ class WorkspaceInputService:
     def _source_snapshot(self) -> tuple[int, dict[str, Any], pd.DataFrame | None]:
         with self._state.transaction():
             selected = self._state.selected_dataset_name()
-            revision = (
-                self._state.get_dataset_lineage(selected).current_revision_id if selected else None
-            )
+            identity = self._state.get_dataset_input_identity(selected) if selected else None
             metadata = {
                 "selected_dataset": selected,
-                "revision": revision,
+                "revision": identity.revision_id if identity is not None else None,
+                "workspace_generation": (
+                    identity.workspace_generation if identity is not None else None
+                ),
                 "csv_path": self._state.get_csv_path(),
             }
             return self._state.get_source_version(), metadata, self._state.get_data()
@@ -43,48 +49,92 @@ class WorkspaceInputService:
             {"version": version, "source": metadata, "data": frame_signature(data)}
         )
 
-    def preview_input_signature(self) -> str:
-        """Capture source identity before computing a transformation outside the lock."""
-        return self._source_signature(*self._source_snapshot())
+    def capture_preview_inputs(self, dataset_names: Sequence[str] = ()) -> PreviewInputs:
+        """Capture exact active-source or ordered named-revision identities.
+
+        Args:
+            dataset_names: Named sources in operation order; empty selects active data.
+
+        Returns:
+            Immutable inputs to retain before computing and storing the result.
+
+        Raises:
+            ValueError: A source name or source identity is invalid.
+            KeyError: A named dataset does not exist.
+        """
+        if (
+            not isinstance(dataset_names, Sequence)
+            or isinstance(dataset_names, (str, bytes))
+            or any(not isinstance(name, str) or not name for name in dataset_names)
+        ):
+            raise ValueError("Preview dataset names must be a sequence of non-empty names.")
+        names = tuple(dataset_names)
+        if names:
+            with self._state.transaction():
+                return self._named_inputs(names)
+        snapshot = self._source_snapshot()
+        return ActivePreviewInputs(self._source_signature(*snapshot), snapshot[0])
+
+    def _named_inputs(self, names: tuple[str, ...]) -> DatasetPreviewInputs:
+        """Read immutable revision identities while the caller owns the state lock."""
+        return DatasetPreviewInputs(
+            tuple(self._state.get_dataset_input_identity(name) for name in names)
+        )
+
+    def _inputs_match(self, inputs: PreviewInputs) -> bool:
+        """Check stored input identities while the caller owns the state lock."""
+        if isinstance(inputs, ActivePreviewInputs):
+            return inputs.source_version == self._state.get_source_version()
+        if isinstance(inputs, DatasetPreviewInputs):
+            try:
+                return inputs == self._named_inputs(
+                    tuple(source.dataset_name for source in inputs.sources)
+                )
+            except KeyError:
+                return False
+        return False
 
     def set_preview(
         self,
         name: str,
         data: pd.DataFrame,
         *,
-        operation_config: Mapping[str, Any] | None = None,
-        source_signature: str | None = None,
+        operation_config: Mapping[str, Any],
+        inputs: PreviewInputs,
     ) -> None:
-        """Store a defensive preview with the exact source and reviewed options.
+        """Store an owned result only while all captured inputs remain current.
 
         Args:
             name: Session-unique operation name.
             data: Computed result; never retained by reference.
-            operation_config: Options used to compute the result, or None for legacy storage.
-            source_signature: Token captured before computation. Guarded previews require it.
+            operation_config: Exact options used to compute the result.
+            inputs: Identities captured before computation.
 
         Raises:
-            ValueError: Source changed during work or no guarded source token was supplied.
+            ValueError: Inputs changed or required review metadata is invalid.
         """
-        if operation_config is None:
-            if source_signature is not None:
-                raise ValueError("A source token requires reviewed operation options.")
-            self._state.set_preview(name, data)
-            return
         if not isinstance(operation_config, Mapping):
             raise ValueError("Preview operation options must be a mapping.")
-        if not isinstance(source_signature, str) or not source_signature:
-            raise ValueError("Capture a preview_input_signature before computing the preview.")
-        version, metadata, source = self._source_snapshot()
-        current = self._source_signature(version, metadata, source)
-        if source_signature != current:
-            raise ValueError("Preview source changed during computation; preview it again.")
+        if not isinstance(inputs, (ActivePreviewInputs, DatasetPreviewInputs)):
+            raise ValueError("Capture preview inputs before computing the preview.")
+        if isinstance(inputs, ActivePreviewInputs):
+            snapshot = self._source_snapshot()
+            if inputs.source_signature != self._source_signature(*snapshot):
+                raise ValueError("Preview source changed during computation; preview it again.")
         config = deepcopy(dict(operation_config))
-        context = PreviewContext(current, version, config, content_signature(config))
+        context = PreviewContext(inputs, config, content_signature(config))
         with self._state.transaction():
-            if self._state.get_source_version() != version:
+            if not self._inputs_match(inputs):
                 raise ValueError("Preview source changed during computation; preview it again.")
             self._state.set_preview(name, data, context=context)
+
+    def get_preview(self, name: str) -> pd.DataFrame | None:
+        """Return an owned result only while its captured sources remain current."""
+        with self._state.transaction():
+            context = self._state.get_preview_context(name)
+            if context is None or not self._inputs_match(context.inputs):
+                return None
+            return self._state.get_preview(name)
 
     def preview_matches(self, name: str, *, operation_config: Mapping[str, Any]) -> bool:
         """Whether the stored preview still matches the current source and options."""
@@ -94,7 +144,7 @@ class WorkspaceInputService:
             return bool(
                 context is not None
                 and self._state.has_preview(name)
-                and context.source_version == self._state.get_source_version()
+                and self._inputs_match(context.inputs)
                 and context.config_signature == signature
             )
 
@@ -110,16 +160,19 @@ class WorkspaceInputService:
         """Atomically validate and apply the reviewed result, then consume its preview.
 
         Raises:
-            ValueError: Preview is absent, legacy, stale, or its options changed.
+            ValueError: Preview is absent, stale, display-only, or its options changed.
         """
         if not isinstance(operation, str) or not operation.strip():
             raise ValueError("Confirmed operations require a non-empty history label.")
         signature = content_signature(dict(operation_config))
         with self._state.transaction():
             context = self._state.get_preview_context(name)
+            if context is not None and isinstance(context.inputs, DatasetPreviewInputs):
+                raise ValueError("Named comparison previews cannot replace active data.")
             if (
                 context is None
-                or context.source_version != self._state.get_source_version()
+                or not isinstance(context.inputs, ActivePreviewInputs)
+                or not self._inputs_match(context.inputs)
                 or context.config_signature != signature
             ):
                 raise ValueError(
@@ -181,7 +234,7 @@ class WorkspaceInputService:
                 "plots": plots,
                 "selected_dataset": selected,
                 "revision": (
-                    self._state.get_dataset_lineage(selected).current_revision_id
+                    self._state.get_dataset_input_identity(selected).revision_id
                     if selected
                     else None
                 ),

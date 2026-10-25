@@ -4,12 +4,18 @@ import logging
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
+from uuid import uuid4
 
 import pandas as pd
 
 from src.core.common.dataframe_copy import copy_dataframe
 from src.core.common.content_identity import frame_signature
-from src.core.models.dataset_workspace_models import DatasetInfo, DatasetLineage, DatasetRevision
+from src.core.models.dataset_workspace_models import (
+    DatasetInfo,
+    DatasetInputIdentity,
+    DatasetLineage,
+    DatasetRevision,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +40,11 @@ class DataRepository:
         self._revisions: dict[str, _StoredDatasetRevision] = {}
         self._dataset_revision_ids: dict[str, list[str]] = {}
         self._current_revision_ids: dict[str, str] = {}
+        self._dataset_input_versions: dict[str, int] = {}
         self._redo_revision_ids: dict[str, list[str]] = {}
         self._revision_counter = 0
+        self._workspace_generation = uuid4().hex
+        self._dataset_mutation_counter = 0
 
     def get_data(self) -> pd.DataFrame | None:
         """
@@ -124,8 +133,11 @@ class DataRepository:
         self._revisions.clear()
         self._dataset_revision_ids.clear()
         self._current_revision_ids.clear()
+        self._dataset_input_versions.clear()
         self._redo_revision_ids.clear()
         self._revision_counter = 0
+        self._workspace_generation = uuid4().hex
+        self._dataset_mutation_counter = 0
         logger.info("DATA_REPO: All data cleared (primary + processed)")
 
     def add_dataset(
@@ -214,6 +226,7 @@ class DataRepository:
         for revision_id in removed_revisions:
             self._revisions.pop(revision_id, None)
         self._current_revision_ids.pop(resolved, None)
+        self._dataset_input_versions.pop(resolved, None)
         self._redo_revision_ids.pop(resolved, None)
         if self._selected_dataset != resolved:
             return
@@ -226,6 +239,16 @@ class DataRepository:
     def selected_dataset_name(self) -> str | None:
         """Return the active dataset name, if the active view is named."""
         return self._selected_dataset
+
+    def get_dataset_input_identity(self, name: str | None = None) -> DatasetInputIdentity:
+        """Return current identity without materializing revision history."""
+        resolved = self._resolve_dataset_name(name)
+        return DatasetInputIdentity(
+            self._workspace_generation,
+            resolved,
+            self._current_revision_ids[resolved],
+            self._dataset_input_versions[resolved],
+        )
 
     def get_dataset_lineage(self, name: str | None = None) -> DatasetLineage:
         """Return all retained revisions and recovery capabilities for a dataset."""
@@ -343,6 +366,7 @@ class DataRepository:
         self._current_revision_ids[name] = revision_id
         self._redo_revision_ids.setdefault(name, []).clear()
         self._datasets[name] = snapshot
+        self._advance_dataset_input_version(name)
         if self._selected_dataset == name:
             self._data = snapshot
             self._processed_data = None
@@ -353,6 +377,7 @@ class DataRepository:
         restored = copy_dataframe(stored.data)
         self._current_revision_ids[name] = revision_id
         self._datasets[name] = restored
+        self._advance_dataset_input_version(name)
         if self._selected_dataset == name:
             self._data = restored
             self._processed_data = None
@@ -365,6 +390,11 @@ class DataRepository:
             if parent is not None and parent.info.dataset_name == revision.dataset_name:
                 return parent_id
         return None
+
+    def _advance_dataset_input_version(self, name: str) -> None:
+        """Prevent an in-flight operation from surviving a change-and-undo cycle."""
+        self._dataset_mutation_counter += 1
+        self._dataset_input_versions[name] = self._dataset_mutation_counter
 
     def _resolve_dataset_name(self, name: str | None) -> str:
         resolved = self._selected_dataset if name is None else self._validate_dataset_name(name)

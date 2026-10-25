@@ -35,7 +35,7 @@ class OutlierRemoverManager(DataManager):
         """)
 
         # Get current data
-        source_signature = self.api.preview_input_signature()
+        preview_inputs = self.api.capture_preview_inputs()
         data = self.get_data()
 
         if data is None:
@@ -164,7 +164,7 @@ class OutlierRemoverManager(DataManager):
 
                 # Store in PreviewRepository via api
                 self._store_preview(
-                    "outlier_removal", filtered_df, operation_config, source_signature
+                    "outlier_removal", filtered_df, operation_config, preview_inputs
                 )
 
             except Exception as e:

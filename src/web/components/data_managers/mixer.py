@@ -35,7 +35,7 @@ class MixerManager(DataManager):
           - Mean: sqrt(sd1^2 + sd2^2 + ...) / N
         """)
 
-        source_signature = self.api.preview_input_signature()
+        preview_inputs = self.api.capture_preview_inputs()
         data = self.get_data()
         if data is None:
             st.error("No data loaded.")
@@ -163,7 +163,7 @@ class MixerManager(DataManager):
                 st.dataframe(result_df[cols_to_show].head(), width="stretch")
 
                 # Store in PreviewRepository via api
-                self._store_preview("mixer", result_df, operation_config, source_signature)
+                self._store_preview("mixer", result_df, operation_config, preview_inputs)
 
             except Exception as e:
                 st.exception(e)

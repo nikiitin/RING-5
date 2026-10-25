@@ -142,12 +142,19 @@ configuration. CSV data and metadata caches share precise file identity
 rejected rather than published under an earlier signature. Metadata row counts parse CSV records
 so quoted newlines and blank records are handled consistently.
 
-Data-manager previews retain the exact source version, stable source signature, and a defensive
-copy of the options used for computation. Capture `api.preview_input_signature()` before doing
-numerical work; pass that token and `operation_config` to `api.set_preview`. Computation runs
-outside the state transaction. `preview_matches` checks whether confirmation remains available,
-and `confirm_preview` compares source and options and publishes the result in one transaction.
-Legacy previews retain display support and require a fresh guarded preview before confirmation.
+Data-manager previews retain one owned result and its required input and option context. Capture
+`api.capture_preview_inputs()` before numerical work and pass those identities with
+`operation_config` to `api.set_preview`. Active-source identities include their version and content
+signature. For named comparisons, pass the ordered dataset names to capture their workspace
+generation, revision and monotonic per-dataset mutation identities. A source changed and undone
+also invalidates work captured before that change. Generation changes across reset and restore, so reused names
+or revision numbers cannot authorize an earlier computation.
+
+Computation runs outside the state transaction. Publication rechecks captured identities, and
+`preview_matches` checks the current sources and options. Getters withhold stale results.
+`confirm_preview` atomically validates and applies active-source transformation results; named
+comparison results remain display-only. Changing either compared dataset or its controls
+invalidates the result, while unrelated active selections leave named comparisons current.
 
 `api.report_input_signature` captures selected plot configuration, pipelines, per-plot figure
 configuration, source and processed frames, global settings, source revisions, and provenance.

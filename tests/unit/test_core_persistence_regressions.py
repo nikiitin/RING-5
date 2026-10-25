@@ -54,11 +54,13 @@ def test_parser_state_owns_nested_configuration_and_unique_identity() -> None:
     assert len({item["_id"] for item in normalized}) == 5
 
 
-def test_restore_replaces_existing_data_and_previews() -> None:
+def test_restore_replaces_existing_data_and_previews(preview_context) -> None:
     repository = SessionRepository()
     repository.data_repo.add_dataset("old", pd.DataFrame({"x": [1]}))
     repository.data_repo.set_processed_data(pd.DataFrame({"x": [99]}))
-    repository.preview_repo.set_preview("reduction", pd.DataFrame({"x": [88]}))
+    repository.preview_repo.set_preview(
+        "reduction", pd.DataFrame({"x": [88]}), context=preview_context
+    )
     report = repository.restore_from_portfolio(
         {"parser_strategy": "simple", "simulator": "gem5", "data": None, "plots": []}
     )
@@ -69,11 +71,11 @@ def test_restore_replaces_existing_data_and_previews() -> None:
     assert report.complete
 
 
-def test_invalid_table_restore_leaves_current_data_and_previews_unchanged() -> None:
+def test_invalid_table_restore_leaves_current_data_and_previews_unchanged(preview_context) -> None:
     repository = SessionRepository()
     frame = pd.DataFrame({"x": [1]})
     repository.data_repo.add_dataset("kept", frame)
-    repository.preview_repo.set_preview("reduction", frame)
+    repository.preview_repo.set_preview("reduction", frame, context=preview_context)
     with pytest.raises(ValueError, match="table|payload"):
         repository.restore_from_portfolio(
             {"parser_strategy": "simple", "simulator": "gem5", "data": {"invalid": True}}

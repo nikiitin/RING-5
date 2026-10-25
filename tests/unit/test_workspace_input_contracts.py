@@ -31,18 +31,18 @@ def api():
 
 def _store(api, config=None):
     options = config or {"column": "x", "factor": 2}
-    token = api.preview_input_signature()
+    token = api.capture_preview_inputs()
     data = api.state_manager.get_data()
     data["x"] *= 2
-    api.set_preview("scale", data, operation_config=options, source_signature=token)
+    api.set_preview("scale", data, operation_config=options, inputs=token)
     return options
 
 
 def test_preview_reads_preserve_identity_and_confirmation_consumes_it(api) -> None:
-    before = api.preview_input_signature()
+    before = api.capture_preview_inputs()
     defensive = api.state_manager.get_data()
     defensive["x"] = 900
-    assert api.preview_input_signature() == before
+    assert api.capture_preview_inputs() == before
     options = _store(api)
     assert api.preview_matches("scale", operation_config=options)
     defensive_preview = api.get_preview("scale")
@@ -83,12 +83,12 @@ def test_inflight_computation_does_not_lock_state_and_cannot_publish_stale_resul
     ready, resume = threading.Event(), threading.Event()
 
     def compute():
-        token = api.preview_input_signature()
+        token = api.capture_preview_inputs()
         result = api.state_manager.get_data()
         ready.set()
         assert resume.wait(2)
         result["x"] *= 2
-        api.set_preview("scale", result, operation_config={"factor": 2}, source_signature=token)
+        api.set_preview("scale", result, operation_config={"factor": 2}, inputs=token)
 
     with ThreadPoolExecutor(max_workers=1) as pool:
         future = pool.submit(compute)
@@ -132,9 +132,10 @@ def test_confirm_compare_and_publication_are_one_transaction(api, monkeypatch) -
     assert api.state_manager.get_data()["x"].tolist() == [50.0]
 
 
-def test_legacy_preview_has_no_confirmation_authorization(api) -> None:
-    api.set_preview("scale", pd.DataFrame({"x": [2]}))
-    assert api.get_preview_config("scale") is None
+def test_preview_requires_captured_inputs_and_reviewed_options(api) -> None:
+    with pytest.raises(TypeError, match="operation_config.*inputs"):
+        api.set_preview("scale", pd.DataFrame({"x": [2]}))
+    assert not api.has_preview("scale")
     with pytest.raises(ValueError, match="preview it again"):
         api.confirm_preview("scale", operation_config={}, operation="Scale")
 
@@ -238,12 +239,12 @@ def test_unrelated_named_data_and_redundant_source_controls_keep_preview_valid(a
     state = api.state_manager
     state.add_dataset("active", state.get_data())
     options = _store(api)
-    before = api.preview_input_signature()
+    before = api.capture_preview_inputs()
     state.add_dataset("unselected", pd.DataFrame({"x": [70]}), select=False)
     state.select_dataset("active")
     state.set_csv_path(state.get_csv_path())
     state.set_use_parser(state.is_using_parser())
-    assert api.preview_input_signature() == before
+    assert api.capture_preview_inputs() == before
     assert api.preview_matches("scale", operation_config=options)
 
 
@@ -294,9 +295,9 @@ def test_global_config_writes_obey_the_same_state_transaction(api) -> None:
 
 def test_preview_and_confirmed_source_own_nested_object_cells(api) -> None:
     options = {"kind": "nested"}
-    source = api.preview_input_signature()
+    source = api.capture_preview_inputs()
     result = pd.DataFrame({"object": [{"value": [2]}]})
-    api.set_preview("nested", result, operation_config=options, source_signature=source)
+    api.set_preview("nested", result, operation_config=options, inputs=source)
     result.iloc[0, 0]["value"].append(3)
     exposed = api.get_preview("nested")
     exposed.iloc[0, 0]["value"].append(999)
@@ -363,7 +364,9 @@ def test_restore_deserializer_can_wait_for_foreign_state_publication() -> None:
 
 
 @pytest.mark.parametrize("write", ["unselected_dataset", "configuration", "preview"])
-def test_restore_rejects_concurrent_writes_without_invalidating_source_preview(write) -> None:
+def test_restore_rejects_concurrent_writes_without_invalidating_source_preview(
+    write, preview_context
+) -> None:
     from src.core.state.repository_state_manager import RepositoryStateManager
 
     entered, resume = threading.Event(), threading.Event()
@@ -389,7 +392,7 @@ def test_restore_rejects_concurrent_writes_without_invalidating_source_preview(w
             elif write == "configuration":
                 state.update_config("edited", True)
             else:
-                state.set_preview("candidate", pd.DataFrame({"x": [99]}))
+                state.set_preview("candidate", pd.DataFrame({"x": [99]}), context=preview_context)
             assert state.get_source_version() == version
         finally:
             resume.set()

@@ -34,7 +34,7 @@ class ComparisonManager(DataManager):
             "numeric metrics to compare. Missing and non-comparable values remain visible."
         )
 
-        source_signature = self.api.preview_input_signature()
+        preview_inputs = self.api.capture_preview_inputs()
         data = self.get_data()
         if data is None or data.empty:
             st.warning("Load a non-empty dataset before creating a comparison.")
@@ -262,7 +262,7 @@ class ComparisonManager(DataManager):
                 except (TypeError, ValueError) as exc:
                     st.error(str(exc))
                 else:
-                    self._store_preview(_PREVIEW_NAME, result, operation_config, source_signature)
+                    self._store_preview(_PREVIEW_NAME, result, operation_config, preview_inputs)
                     # Recompute the sidebar guide from the stored result before
                     # presenting the preview and its next workflow action.
                     st.rerun(scope="app")

@@ -12,6 +12,7 @@ import pytest
 from src.core.application_api import ApplicationAPI
 from src.core.models.data_models import ParseVariableConfig
 from src.core.models.history_models import OperationRecord
+from src.core.models.preview_models import ActivePreviewInputs
 
 
 @pytest.fixture
@@ -453,16 +454,33 @@ class TestGetColumnInfo:
 class TestPreviewDelegation:
     # [test->req~ring5.quality.application-facade~1]
 
-    """Test preview methods delegate to state manager."""
+    """Test scoped preview operations route through their required service boundary."""
+
+    def test_capture_preview_inputs(self, api: ApplicationAPI) -> None:
+        with patch("src.core.application_api.WorkspaceInputService") as service_type:
+            result = api.capture_preview_inputs(("baseline", "candidate"))
+        service_type.assert_called_once_with(api.state_manager)
+        service_type.return_value.capture_preview_inputs.assert_called_once_with(
+            ("baseline", "candidate")
+        )
+        assert result is service_type.return_value.capture_preview_inputs.return_value
 
     def test_set_preview(self, api: ApplicationAPI) -> None:
         dummy_df = pd.DataFrame({"col": ["data"]})
-        api.set_preview("op", dummy_df)
-        cast(MagicMock, api.state_manager.set_preview).assert_called_once_with("op", dummy_df)
+        inputs = ActivePreviewInputs("source", 0)
+        with patch("src.core.application_api.WorkspaceInputService") as service_type:
+            api.set_preview("op", dummy_df, operation_config={}, inputs=inputs)
+        service_type.assert_called_once_with(api.state_manager)
+        service_type.return_value.set_preview.assert_called_once_with(
+            "op", dummy_df, operation_config={}, inputs=inputs
+        )
 
     def test_get_preview(self, api: ApplicationAPI) -> None:
-        api.get_preview("op")
-        cast(MagicMock, api.state_manager.get_preview).assert_called_once_with("op")
+        with patch("src.core.application_api.WorkspaceInputService") as service_type:
+            result = api.get_preview("op")
+        service_type.assert_called_once_with(api.state_manager)
+        service_type.return_value.get_preview.assert_called_once_with("op")
+        assert result is service_type.return_value.get_preview.return_value
 
     def test_has_preview(self, api: ApplicationAPI) -> None:
         api.has_preview("op")

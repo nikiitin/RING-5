@@ -71,6 +71,17 @@ stateless transformation execution, which returns a new DataFrame. Pipeline conf
 pool operations use `api.data_services`; numerical manager operations use `api.managers`.
 Facade methods coordinate state, owned jobs, or multiple services.
 
+`capture_preview_inputs(dataset_names=())` returns immutable active-source identities by default,
+or ordered named dataset identities when names are supplied. Capture before computation, then
+call `set_preview(..., operation_config=options, inputs=captured)`; both review arguments are
+required. Publication rejects changed sources. `get_preview` returns an owned frame only while
+its captured sources remain current; `preview_matches` additionally checks current options.
+`confirm_preview` applies only an active-source transformation. Named comparison previews are
+for display and cannot replace active data. Named identities include the workspace generation,
+so reset, restore and another session cannot reuse an earlier capture. Their monotonic mutation
+identity also rejects work spanning a source change and undo to the captured revision.
+
+
 ## Change rules
 
 - Add behavior to a focused sub-API when it belongs to one service family.

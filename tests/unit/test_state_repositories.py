@@ -598,41 +598,49 @@ class TestPreviewRepository:
     def test_initial_state(self, repo: PreviewRepository) -> None:
         assert repo.has_preview("any") is False
 
-    def test_set_and_get_preview(self, repo: PreviewRepository, preview_df: pd.DataFrame) -> None:
-        repo.set_preview("normalize", preview_df)
+    def test_set_and_get_preview(
+        self, repo: PreviewRepository, preview_df: pd.DataFrame, preview_context
+    ) -> None:
+        repo.set_preview("normalize", preview_df, context=preview_context)
         result = repo.get_preview("normalize")
         assert result is not None
         pd.testing.assert_frame_equal(result, preview_df)
 
-    def test_has_preview(self, repo: PreviewRepository, preview_df: pd.DataFrame) -> None:
-        repo.set_preview("op1", preview_df)
+    def test_has_preview(
+        self, repo: PreviewRepository, preview_df: pd.DataFrame, preview_context
+    ) -> None:
+        repo.set_preview("op1", preview_df, context=preview_context)
         assert repo.has_preview("op1") is True
         assert repo.has_preview("op2") is False
 
     def test_set_preview_empty_name_raises(
-        self, repo: PreviewRepository, preview_df: pd.DataFrame
+        self, repo: PreviewRepository, preview_df: pd.DataFrame, preview_context
     ) -> None:
         with pytest.raises(ValueError, match="empty"):
-            repo.set_preview("", preview_df)
+            repo.set_preview("", preview_df, context=preview_context)
 
-    def test_set_preview_none_data_raises(self, repo: PreviewRepository) -> None:
+    def test_set_preview_none_data_raises(self, repo: PreviewRepository, preview_context) -> None:
         with pytest.raises(ValueError, match="None"):
-            repo.set_preview("op", None)  # type: ignore[arg-type]
+            repo.set_preview("op", None, context=preview_context)  # type: ignore[arg-type]
 
     def test_get_preview_empty_name(self, repo: PreviewRepository) -> None:
         assert repo.get_preview("") is None
 
-    def test_clear_preview(self, repo: PreviewRepository, preview_df: pd.DataFrame) -> None:
-        repo.set_preview("op1", preview_df)
+    def test_clear_preview(
+        self, repo: PreviewRepository, preview_df: pd.DataFrame, preview_context
+    ) -> None:
+        repo.set_preview("op1", preview_df, context=preview_context)
         repo.clear_preview("op1")
         assert repo.has_preview("op1") is False
 
     def test_clear_preview_not_found(self, repo: PreviewRepository) -> None:
         repo.clear_preview("nonexistent")  # No error
 
-    def test_clear_all_previews(self, repo: PreviewRepository, preview_df: pd.DataFrame) -> None:
-        repo.set_preview("op1", preview_df)
-        repo.set_preview("op2", preview_df)
+    def test_clear_all_previews(
+        self, repo: PreviewRepository, preview_df: pd.DataFrame, preview_context
+    ) -> None:
+        repo.set_preview("op1", preview_df, context=preview_context)
+        repo.set_preview("op2", preview_df, context=preview_context)
         count = repo.clear_all_previews()
         assert count == 2
 
