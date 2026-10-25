@@ -347,6 +347,10 @@ Under **Colors**, applicable plots expose per-series color, display name, bar pa
 and size, and line width. Typed renderer styles also carry opacity and borders. **Rewind** returns
 a series to its current palette color.
 
+Programmatic `series_styles` use text series names and style mappings. A bar `pattern` is a
+string: empty, `/`, `\`, `x`, `-`, `|`, `+`, `.`, `o`, `O`, or `*`. Circle/star hatches
+are supported by Matplotlib; Plotly's current shape enum supports the first eight forms.
+
 ## Working method
 
 1. Fix data mapping and category order first.

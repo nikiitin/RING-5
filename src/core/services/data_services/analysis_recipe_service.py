@@ -258,7 +258,7 @@ class AnalysisRecipeService:
             plot_names.add(plot.name)
             if not isinstance(plot.config, Mapping):
                 raise TypeError(f"Recipe plot {plot.name!r} config must be a mapping.")
-            validate_plot_config_keys(plot.config)
+            validate_plot_config_keys(plot.config, plot_type=plot.plot_type)
             AnalysisRecipeService._validate_pipeline(plot.pipeline, f"plot {plot.name!r}")
         AnalysisRecipeService._validate_pipeline(recipe.transformations, "global transformations")
 
@@ -513,7 +513,7 @@ class AnalysisRecipeService:
         )
         AnalysisRecipeService.validate(materialized)
         for plot in materialized.plots:
-            validate_plot_config_values(plot.config)
+            validate_plot_config_values(plot.config, plot_type=plot.plot_type)
         return materialized
 
     @staticmethod

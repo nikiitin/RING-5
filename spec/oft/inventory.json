@@ -2349,7 +2349,8 @@
           "tests/unit/test_portfolio_contract.py::test_unsupported_schema_is_rejected",
           "tests/integration/test_canonical_legend_state.py::test_unsupported_plot_state_fails_before_restoration_or_upload",
           "tests/integration/test_ring5_public_api.py::TestPortfolioReplay.test_future_portfolio_refused",
-          "tests/integration/test_figure_config_key_contract.py::test_public_plot_rejects_retired_legend_keys_before_retaining_state"
+          "tests/integration/test_figure_config_key_contract.py::test_public_plot_rejects_retired_legend_keys_before_retaining_state",
+          "tests/integration/test_figure_value_admission.py::test_restore_capture_and_recipe_reject_heatmap_keys_before_effects"
         ],
         "documentation": [
           "docs/developer-guide/subsystems/portfolios.md#schema-contract"
@@ -3248,7 +3249,9 @@
           "tests/integration/test_ring5_public_api.py::TestApiErgonomics.test_unknown_plot_type_lists_valid_choices",
           "tests/integration/test_neutral_trace_contract.py::test_public_constructor_and_restore_admit_a_registered_plot",
           "tests/integration/test_native_rendering_review_regressions.py::test_noncanonical_orientation_rejects_before_public_or_restore_publication",
-          "tests/integration/test_native_rendering_review_regressions.py::test_canonical_orientation_values_reach_both_native_models"
+          "tests/integration/test_native_rendering_review_regressions.py::test_canonical_orientation_values_reach_both_native_models",
+          "tests/integration/test_figure_value_admission.py::test_public_heatmap_context_rejects_before_registering_plot",
+          "tests/integration/test_figure_value_admission.py::test_invalid_pattern_rejects_at_public_restore_and_capture_boundaries"
         ],
         "documentation": [
           "docs/developer-guide/api-reference/public-python-api.md#workspace"
@@ -4521,6 +4524,7 @@
         ],
         "tests": [
           "tests/integration/test_native_rendering_review_regressions.py::test_recipe_orientation_is_checked_only_after_parameter_materialization",
+          "tests/integration/test_figure_value_admission.py::test_pattern_recipe_values_validate_after_parameter_materialization",
           "tests/unit/test_analysis_recipe_service.py::test_recipe_json_is_deterministic_versioned_and_materializes_typed_values",
           "tests/unit/test_analysis_recipe_service.py::test_recipe_storage_protects_names_and_lists_valid_records",
           "tests/unit/test_analysis_recipe_service.py::test_capture_retains_parser_variables_plot_configs_and_pipelines",

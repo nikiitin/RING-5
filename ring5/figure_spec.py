@@ -262,8 +262,18 @@ class FigureSpec:
         validate_plot_config_values(self.extra)
         _own_fields(self)
 
-    def to_config(self) -> dict[str, Any]:
-        """Emit the flat config dict consumed by ``ConfigSpecBuilder.from_config``."""
+    def to_config(self, *, plot_type: str | None = None) -> dict[str, Any]:
+        """Emit an independently owned editable plot configuration.
+
+        Args:
+            plot_type: Exact plot identifier for context-specific field admission.
+
+        Returns:
+            Flat configuration accepted by the shared common figure contract.
+
+        Raises:
+            ValueError: A common value or a context-specific field is unsupported.
+        """
         t, b, lft, r = self.margins
         cfg: dict[str, Any] = {
             # data mapping
@@ -378,8 +388,8 @@ class FigureSpec:
             validate_plot_config_values,
         )
 
-        validate_plot_config_keys(cfg)
-        validate_plot_config_values(cfg)
+        validate_plot_config_keys(cfg, plot_type=plot_type)
+        validate_plot_config_values(cfg, plot_type=plot_type)
         numbered_axis_modes(cfg)
         return cfg
 
