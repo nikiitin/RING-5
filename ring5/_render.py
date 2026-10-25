@@ -55,19 +55,11 @@ def render_figure(plot: BasePlot, *, engine: EngineMode = "plotly") -> Figure:
         )
         if engine == "plotly":
             figure = build_plotly_figure(prepared)
-            plot.config = prepared.config
-            plot.last_traces = prepared.trace_result
-            plot.last_generated_fig = figure
-            plot.last_figure_cache_key = None
+            plot.publish_figure(figure, prepared)
             return figure
 
-        import matplotlib.pyplot as plt
-
-        mpl_figure, spec = build_matplotlib_figure_from_prepared(prepared)
-        plt.close(mpl_figure)
-        mpl_figure._ring5_spec = spec  # type: ignore[attr-defined]
-        plot.config = prepared.config
-        plot.last_traces = prepared.trace_result
+        mpl_figure, _ = build_matplotlib_figure_from_prepared(prepared)
+        plot.publish_figure(mpl_figure, prepared)
         return mpl_figure
     except (AttributeError, IndexError, KeyError, RuntimeError, TypeError, ValueError) as exc:
         raise RenderError(

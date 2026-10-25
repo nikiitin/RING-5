@@ -8,6 +8,7 @@ Coordinates plot factory, state persistence, and configuration updates.
 import copy
 import logging
 from typing import TYPE_CHECKING
+from src.core.common.dataframe_copy import copy_dataframe
 from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
@@ -48,10 +49,15 @@ class PlotService:
     def duplicate_plot(plot: BasePlot, state_manager: "StateManager") -> BasePlot:
         """Duplicate an existing plot."""
         # [impl->req~ring5.plots.duplicate~1]
-        new_plot = copy.deepcopy(plot)
+        detached = plot.copy_without_render_state()
+        copied_frames = {}
+        for data in (plot.source_data, plot.processed_data):
+            if data is not None and id(data) not in copied_frames:
+                copied_frames[id(data)] = copy_dataframe(data)
+        new_plot = copy.deepcopy(detached, copied_frames)
         new_plot.plot_id = state_manager.start_next_plot_id()
+        new_plot._style_ui.plot_id = new_plot.plot_id
         new_plot.name = f"{plot.name} (copy)"
-        new_plot.invalidate_figure()
 
         state_manager.add_plot(new_plot)
 

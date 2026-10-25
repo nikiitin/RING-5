@@ -180,6 +180,10 @@ and discovery.
 an owned `rows: Table` snapshot. `row_count` and `columns` summarize those rows. This projection
 preserves the shared plot and native figure handles used by rendering and dashboard operations.
 
+Figures returned by `Session.render` remain usable after plot invalidation, replacement, workspace
+reset or Session context exit. Matplotlib render managers are deregistered without clearing artists,
+so retained figures remain exportable and unrelated pyplot figures remain independent.
+
 ## Figure configuration and export
 
 ### Annotations and web shapes

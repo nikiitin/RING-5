@@ -61,8 +61,8 @@ def test_matplotlib_render_does_not_invoke_plotly_builder(monkeypatch):
 
     assert fig is not None
     assert len(fig.axes) >= 1
-    # The Plotly figure must not have been cached as a side effect.
-    assert plot.last_generated_fig is None
+    assert plot.last_generated_fig is fig
+    assert plot.last_figure_spec is fig._ring5_spec
     # The engine-agnostic traces are still recorded (the matplotlib path needs them).
     assert plot.last_traces is not None
 

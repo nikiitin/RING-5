@@ -1148,6 +1148,8 @@
           "src/web/controllers/plot/creation_controller.py::PlotCreationController.render_controls"
         ],
         "tests": [
+          "tests/ui/test_duplicate_plot_style_identity.py::test_duplicate_colors_use_the_new_strategy_instance_id_and_preserve_source_custom_state",
+          "tests/integration/test_native_artifact_lifecycle.py::test_duplicate_detaches_native_state_before_copy_and_preserves_private_domain_values",
           "tests/integration/test_plot_lifecycle.py::TestPlotLifecycle.test_duplicate_plot",
           "tests/integration/test_controller_presenter.py::TestPlotLifecycleIntegration.test_duplicate_creates_independent_copy"
         ],
@@ -1166,10 +1168,13 @@
       "tags": ["delete", "lifecycle", "plots"],
       "evidence": {
         "implementation": [
+          "src/web/pages/ui/plotting/base_plot.py::BasePlot.invalidate_figure",
+          "src/core/state/repositories/plot_repository.py::PlotRepository.invalidate_removed_plots",
           "src/web/pages/ui/plotting/plot_service.py::PlotService.delete_plot",
           "src/web/controllers/plot/creation_controller.py::PlotCreationController.render_controls"
         ],
         "tests": [
+          "tests/integration/test_native_artifact_lifecycle.py::test_plot_retirement_is_identity_scoped_and_borrowed_figures_stay_exportable",
           "tests/integration/test_plot_lifecycle.py::TestPlotLifecycle.test_delete_plot",
           "tests/ui_logic/test_creation_controller.py::TestRenderControls.test_delete_calls_lifecycle_and_cleanup"
         ],
@@ -1188,10 +1193,12 @@
       "tags": ["isolation", "plots", "state"],
       "evidence": {
         "implementation": [
+          "src/web/pages/ui/plotting/base_plot.py::BasePlot.publish_figure",
           "src/web/pages/ui/plotting/base_plot.py::BasePlot.__init__",
           "src/web/controllers/plot/render_controller.py::PlotRenderController._compute_figure_cache_key"
         ],
         "tests": [
+          "tests/integration/test_native_artifact_lifecycle.py::test_public_native_publication_binds_the_exact_preparation_and_replaces_only_owned_manager",
           "tests/integration/test_controller_presenter.py::TestPlotLifecycleIntegration.test_duplicate_creates_independent_copy",
           "tests/ui_logic/test_render_controller.py::TestFigureIdentity.test_engine_change_regenerates_figure",
           "tests/unit/test_ui_state_manager.py::TestPlotUIState.test_auto_refresh_per_plot_isolation",
@@ -2287,6 +2294,7 @@
           "src/core/state/repositories/session_repository.py::SessionRepository.restore_from_portfolio"
         ],
         "tests": [
+          "tests/integration/test_native_artifact_lifecycle.py::test_rejected_restore_releases_only_new_candidate_artifacts",
           "tests/unit/test_repository_state_manager.py::TestRestoreSession",
           "tests/integration/test_portfolio_service_integration.py::test_restore_report_complete_with_deserializer"
         ],
@@ -3831,6 +3839,7 @@
           "ring5/_small_multiples.py::render_small_multiples"
         ],
         "tests": [
+          "tests/integration/test_native_artifact_lifecycle.py::test_facet_views_drop_borrowed_artifacts_without_touching_source_or_domain_payloads",
           "tests/unit/test_small_multiples_service.py::test_discovers_multicolumn_panels_in_stable_order_with_labels",
           "tests/integration/test_small_multiples_public_api.py::test_small_multiples_render_both_engines_in_order_without_mutation",
           "tests/ui_logic/test_small_multiples_settings.py::test_enabled_controls_report_panel_count_and_shared_scales",

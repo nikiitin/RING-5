@@ -8,6 +8,7 @@ from collections.abc import Sequence
 import pandas as pd
 import plotly.graph_objects as go
 
+from src.core.common.dataframe_copy import copy_dataframe
 from src.core.models.visualization.dashboard_spec import DashboardSpec
 from src.core.models.visualization.small_multiples_spec import FacetPanel, SmallMultiplesSpec
 from src.web.pages.ui.plotting.base_plot import BasePlot
@@ -23,7 +24,7 @@ def _panel_rows(
     mask = pd.Series(True, index=data.index, dtype=bool)
     for column, value in zip(facet_columns, panel.values):
         mask &= data[column].isna() if value is None else data[column].eq(value).fillna(False)
-    return data.loc[mask].copy(deep=True)
+    return copy_dataframe(data.loc[mask])
 
 
 def _facet_views(plot: BasePlot, spec: SmallMultiplesSpec) -> list[BasePlot]:
@@ -41,15 +42,12 @@ def _facet_views(plot: BasePlot, spec: SmallMultiplesSpec) -> list[BasePlot]:
         rows = _panel_rows(plot.processed_data, spec.facet_columns, panel)
         if rows.empty:
             raise ValueError(f"Small-multiples panel '{panel.title}' no longer has matching rows.")
-        view = copy.copy(plot)
+        view = plot.copy_without_render_state()
         view.plot_id = index
         view.name = panel.title
         view.config = copy.deepcopy(plot.config)
         view.processed_data = rows
         view.source_data = None
-        view.last_generated_fig = None
-        view.last_traces = None
-        view.last_figure_cache_key = None
         views.append(view)
     return views
 

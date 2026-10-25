@@ -3,9 +3,11 @@
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pandas as pd
 import pytest
 
 from src.web.pages.ui.plotting.plot_service import PlotService
+from src.web.pages.ui.plotting.types.bar_plot import BarPlot
 
 
 @pytest.fixture
@@ -79,21 +81,23 @@ class TestDuplicatePlot:
     """Test PlotService.duplicate_plot."""
 
     def test_duplicates_with_copy_name(self, mock_state: MagicMock) -> None:
-        original = MagicMock()
-        original.name = "IPC"
-        original.plot_id = 1
+        original = BarPlot(1, "IPC")
+        original.config = {"x": "x", "y": "ipc"}
+        original.replace_processed_data(pd.DataFrame({"x": ["a"], "ipc": [3.0]}))
+        mock_state.start_next_plot_id.return_value = 99
 
-        with patch("src.web.pages.ui.plotting.plot_service.copy") as mock_copy:
-            cloned = MagicMock()
-            mock_copy.deepcopy.return_value = cloned
-            mock_state.start_next_plot_id.return_value = 99
+        cloned = PlotService.duplicate_plot(original, mock_state)
 
-            PlotService.duplicate_plot(original, mock_state)
-
-            assert cloned.name == "IPC (copy)"
-            assert cloned.plot_id == 99
-            cloned.invalidate_figure.assert_called_once()
-            mock_state.add_plot.assert_called_once_with(cloned)
+        assert cloned.name == "IPC (copy)"
+        assert cloned.plot_id == 99
+        assert cloned.config == original.config
+        assert cloned.config is not original.config
+        assert cloned.processed_data is not original.processed_data
+        assert cloned.processed_data is not None
+        assert cloned.processed_data["ipc"].tolist() == [3.0]
+        assert original.name == "IPC"
+        assert original.plot_id == 1
+        mock_state.add_plot.assert_called_once_with(cloned)
 
 
 class TestChangePlotType:

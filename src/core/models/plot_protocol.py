@@ -35,7 +35,7 @@ class PlotProtocol(Protocol):
         raise NotImplementedError
 
     def invalidate_figure(self) -> None:
-        """Discard derived figure artifacts after a configuration change."""
+        """Discard owned derived artifacts after data/configuration changes or removal."""
         raise NotImplementedError
 
     def replace_processed_data(self, data: pd.DataFrame | None) -> None:

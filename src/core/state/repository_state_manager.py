@@ -552,11 +552,25 @@ class RepositoryStateManager:
             expected_version = self._workspace_version
             factory = self._plot_deserializer
         candidate = SessionRepository(plot_deserializer=factory)
-        report = candidate.restore_from_portfolio(portfolio_data)
-        with self._transaction_lock:
-            if self._workspace_version != expected_version:
-                raise ValueError("Workspace changed while restoring; review and retry the restore.")
-            self._session_repo = candidate
-            self._source_version += 1
-            self._workspace_version += 1
-        return report
+        published = False
+        try:
+            report = candidate.restore_from_portfolio(portfolio_data)
+            with self._transaction_lock:
+                if self._workspace_version != expected_version:
+                    raise ValueError(
+                        "Workspace changed while restoring; review and retry the restore."
+                    )
+                self._session_repo.plot_repo.invalidate_removed_plots(
+                    candidate.plot_repo.get_plots()
+                )
+                self._session_repo = candidate
+                self._source_version += 1
+                self._workspace_version += 1
+                published = True
+            return report
+        finally:
+            if not published:
+                with self._transaction_lock:
+                    candidate.plot_repo.invalidate_removed_plots(
+                        self._session_repo.plot_repo.get_plots()
+                    )

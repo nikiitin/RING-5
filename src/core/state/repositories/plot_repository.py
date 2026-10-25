@@ -35,8 +35,22 @@ class PlotRepository:
         Args:
             plots: New list of plot objects
         """
-        self._plots = plots
+        replacement = list(plots)
+        self.invalidate_removed_plots(replacement)
+        self._plots = replacement
         logger.info("PLOT_REPO: Plots updated - %d total plots", len(plots))
+
+    def invalidate_removed_plots(self, retained: list[PlotProtocol]) -> None:
+        """Discard artifacts of owned objects absent by identity from a replacement.
+
+        Args:
+            retained: Objects that remain live, including reused identities during restore.
+        """
+        # [impl->req~ring5.plots.delete~1]
+        retained_ids = {id(plot) for plot in retained}
+        removed = {id(plot): plot for plot in self._plots if id(plot) not in retained_ids}
+        for plot in removed.values():
+            plot.invalidate_figure()
 
     def add_plot(self, plot: PlotProtocol) -> None:
         """
@@ -50,7 +64,7 @@ class PlotRepository:
 
     def clear_plots(self) -> None:
         """Clear all plots from the collection."""
-        self._plots = []
+        self.set_plots([])
         logger.info("PLOT_REPO: All plots cleared")
 
     def get_plot_counter(self) -> int:

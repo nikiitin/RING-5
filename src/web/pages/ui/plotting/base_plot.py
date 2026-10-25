@@ -1,18 +1,21 @@
 """Base plot class with common functionality."""
 
 from abc import ABC, abstractmethod
-from typing import Any
+import copy
+from typing import Any, Self
 
 import pandas as pd
 import plotly.graph_objects as go
+from matplotlib.figure import Figure as MplFigure
 
 from src.core.common.dataframe_copy import copy_dataframe
 from src.core.models.data_models import PipelineStep
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.common.typed_table_codec import TypedTableCodec
 from src.core.models.plot_config import PlotConfig
+from src.core.models.visualization.figure_config import FigureConfig
 from src.web.rendering.relayout import update_config_from_relayout
-from src.web.rendering.figure_preparation import prepare_figure
+from src.web.rendering.figure_preparation import PreparedFigure, prepare_figure
 from src.web.pages.ui.plotting.plot_config_ui import PlotConfigUIMixin
 from src.web.pages.ui.plotting.styles import StyleApplicator, StyleUIFactory
 
@@ -37,8 +40,9 @@ class BasePlot(PlotConfigUIMixin, ABC):
         self.config: PlotConfig = {}
         self.source_data: pd.DataFrame | None = None
         self.processed_data: pd.DataFrame | None = None
-        self.last_generated_fig: go.Figure | None = None
+        self.last_generated_fig: go.Figure | MplFigure | None = None
         self.last_traces: TraceBuildResult | None = None
+        self.last_figure_spec: FigureConfig | None = None
         self.last_figure_cache_key: str | None = None
         self.pipeline: list[PipelineStep] = []
         self.pipeline_counter: int = 0
@@ -119,10 +123,57 @@ class BasePlot(PlotConfigUIMixin, ABC):
         return changed
 
     def invalidate_figure(self) -> None:
-        """Discard render artifacts derived from the current data and config."""
+        """Release the owned manager and discard derived render references."""
+        # [impl->req~ring5.plots.delete~1]
+        self._release_figure_manager(self.last_generated_fig)
+        self._clear_render_state()
+
+    @staticmethod
+    def _release_figure_manager(figure: go.Figure | MplFigure | None) -> None:
+        """Deregister only this figure's manager, preserving borrowed artist content."""
+        if isinstance(figure, MplFigure):
+            import matplotlib.pyplot as plt
+
+            plt.close(figure)
+
+    def _clear_render_state(self) -> None:
+        """Forget references without releasing a figure borrowed by a shallow copy."""
         self.last_generated_fig = None
         self.last_traces = None
+        self.last_figure_spec = None
         self.last_figure_cache_key = None
+
+    def copy_without_render_state(self) -> Self:
+        """Return a shallow domain view without borrowing the source's artifacts."""
+        clone = copy.copy(self)
+        clone._clear_render_state()
+        return clone
+
+    def publish_figure(
+        self,
+        figure: go.Figure | MplFigure,
+        prepared: PreparedFigure,
+        *,
+        cache_key: str | None = None,
+    ) -> None:
+        """Publish one successfully built native artifact and its exact preparation.
+
+        Args:
+            figure: Completed figure from the selected native builder.
+            prepared: Effective configuration, traces and resolved style used to build it.
+            cache_key: Verified reuse identity, or ``None`` when reuse is disabled.
+        """
+        # [impl->req~ring5.plots.independent-state~1]
+        if isinstance(figure, MplFigure):
+            figure._ring5_spec = prepared.spec  # type: ignore[attr-defined]
+        self._release_figure_manager(figure)
+        if self.last_generated_fig is not figure:
+            self._release_figure_manager(self.last_generated_fig)
+        self.config = prepared.config
+        self.last_traces = prepared.trace_result
+        self.last_figure_spec = prepared.spec
+        self.last_figure_cache_key = cache_key
+        self.last_generated_fig = figure
 
     def replace_processed_data(self, data: pd.DataFrame | None) -> None:
         """Replace processed data and atomically invalidate render artifacts.
@@ -141,6 +192,7 @@ class BasePlot(PlotConfigUIMixin, ABC):
         Portfolios retain this snapshot independently from processed plot data.
         """
         self.source_data = copy_dataframe(data) if data is not None else None
+        self.invalidate_figure()
 
     def apply_common_layout(self, fig: go.Figure, config: PlotConfig) -> go.Figure:
         """Apply common layout settings via StyleApplicator."""
