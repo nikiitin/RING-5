@@ -88,7 +88,9 @@ class TestSubmitParseAsync:
         api.submit_parse_async(
             "/path",
             "stats.txt",
-            [cast(ParseVariableConfig, {"name": "simTicks", "type": "scalar"})],
+            api.compile_parse_variables(
+                [cast(ParseVariableConfig, {"name": "simTicks", "type": "scalar"})]
+            ),
             "/out",
         )
         args_tuple = cast(MagicMock, api._parser.submit_parse_async).call_args
@@ -109,12 +111,14 @@ class TestSubmitParseAsync:
         api.submit_parse_async(
             "/path",
             "stats.txt",
-            [
-                cast(
-                    ParseVariableConfig,
-                    {"name": "system.cpu.ipc", "type": "scalar", "alias": "IPC"},
-                )
-            ],
+            api.compile_parse_variables(
+                [
+                    cast(
+                        ParseVariableConfig,
+                        {"source_name": "system.cpu.ipc", "type": "scalar", "name": "IPC"},
+                    )
+                ]
+            ),
             "/out",
         )
         args_tuple = cast(MagicMock, api._parser.submit_parse_async).call_args
@@ -129,16 +133,14 @@ class TestSubmitParseAsync:
         api.submit_parse_async(
             "/path",
             "stats.txt",
-            [
-                cast(
-                    ParseVariableConfig,
-                    {
-                        "name": r"system.cpu\d+.ipc",
-                        "type": "scalar",
-                        "alias": "IPC",
-                    },
-                )
-            ],
+            api.compile_parse_variables(
+                [
+                    cast(
+                        ParseVariableConfig,
+                        {"source_name": r"system.cpu\d+.ipc", "type": "scalar", "name": "IPC"},
+                    )
+                ]
+            ),
             "/out",
         )
 
@@ -154,7 +156,18 @@ class TestSubmitParseAsync:
         api.submit_parse_async(
             "/path",
             "stats.txt",
-            [cast(ParseVariableConfig, {"name": r"system.cpu\d+.ipc", "type": "vector"})],
+            api.compile_parse_variables(
+                [
+                    cast(
+                        ParseVariableConfig,
+                        {
+                            "name": "system.cpu\\d+.ipc",
+                            "type": "vector",
+                            "params": {"entries": ["0"]},
+                        },
+                    )
+                ]
+            ),
             "/out",
         )
         args_tuple = cast(MagicMock, api._parser.submit_parse_async).call_args
@@ -167,33 +180,35 @@ class TestSubmitParseAsync:
         api.submit_parse_async(
             "/path",
             "stats.txt",
-            [
-                cast(
-                    ParseVariableConfig,
-                    {"name": "hist", "type": "histogram", "statistics_only": True},
-                )
-            ],
+            api.compile_parse_variables(
+                [
+                    cast(
+                        ParseVariableConfig,
+                        {
+                            "name": "hist",
+                            "type": "histogram",
+                            "statistics_only": True,
+                            "params": {"statistics": ["mean"]},
+                        },
+                    )
+                ]
+            ),
             "/out",
         )
         args_tuple = cast(MagicMock, api._parser.submit_parse_async).call_args
         configs = args_tuple[0][2]
         assert configs[0].statistics_only is True
 
-    def test_scanned_variable_object(self, api: ApplicationAPI) -> None:
-        """ScannedVariable-like object is converted to StatConfig."""
+    def test_scanned_variable_object_is_not_a_runnable_configuration(
+        self, api: ApplicationAPI
+    ) -> None:
+        """Discovery objects cannot bypass the explicit runnable model."""
         scanned = MagicMock()
         scanned.name = "system.cpu.ipc"
         scanned.type = "scalar"
-        scanned.entries = ["0", "1"]
-        # Remove params attr so it triggers the elif branch
-        del scanned.params
-
-        cast(Any, api._parser.submit_parse_async).return_value = MagicMock(futures=[])
-        api.submit_parse_async("/path", "stats.txt", [scanned], "/out")
-        args_tuple = cast(MagicMock, api._parser.submit_parse_async).call_args
-        configs = args_tuple[0][2]
-        assert configs[0].name == "system.cpu.ipc"
-        assert configs[0].params["entries"] == ["0", "1"]
+        with pytest.raises(TypeError, match="StatConfig instances"):
+            api.submit_parse_async("/path", "stats.txt", [scanned], "/out")
+        cast(MagicMock, api._parser.submit_parse_async).assert_not_called()
 
     def test_stat_config_passthrough(self, api: ApplicationAPI) -> None:
         """StatConfig objects pass through unchanged."""
@@ -204,7 +219,8 @@ class TestSubmitParseAsync:
         api.submit_parse_async("/path", "stats.txt", [sc], "/out")
         args_tuple = cast(MagicMock, api._parser.submit_parse_async).call_args
         configs = args_tuple[0][2]
-        assert configs[0] is sc
+        assert configs[0] == sc
+        assert configs[0] is not sc
 
     def test_scanned_vars_kwarg_forwarded(self, api: ApplicationAPI) -> None:
         """scanned_vars kwarg is forwarded to the parser."""
@@ -263,7 +279,14 @@ class TestIncrementalParsing:
         submitted = api.submit_incremental_parse_async(
             "/inputs",
             "stats.txt",
-            [cast(ParseVariableConfig, {"name": "cpu.ipc", "alias": "IPC"})],
+            api.compile_parse_variables(
+                [
+                    cast(
+                        ParseVariableConfig,
+                        {"source_name": "cpu.ipc", "name": "IPC", "type": "scalar"},
+                    )
+                ]
+            ),
             "/out",
             cache_path="/out/cache.json",
         )
@@ -308,7 +331,14 @@ class TestParserPlayground:
         submitted = api.submit_parser_playground_async(
             "/inputs",
             "stats.txt",
-            [cast(ParseVariableConfig, {"name": "cpu.ipc", "alias": "IPC"})],
+            api.compile_parse_variables(
+                [
+                    cast(
+                        ParseVariableConfig,
+                        {"source_name": "cpu.ipc", "name": "IPC", "type": "scalar"},
+                    )
+                ]
+            ),
             "/out",
         )
         finalized = api.finalize_parser_playground(submitted, [{"IPC": 1.0}])

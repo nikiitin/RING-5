@@ -122,51 +122,21 @@ class PipelineConfigImportResult:
 
 
 class ParseVariableConfig(TypedDict, total=False):
-    """Configuration for a simulator variable to parse.
+    """Editable StatConfig fields with UI identity and incomplete current values.
 
-    Created by the variable editor UI and stored in
-    ``StateManager.get_parse_variables()``.  Consumed by the parser
-    layer and by portfolio serialization.
-
-    ``name``, ``type``, and ``_id`` are always set when created through
-    the UI.
+    All statistic options use the nested params dictionary. Missing fields and
+    empty text are allowed while editing; runnable compilation validates them.
     """
 
-    # Required (always present)
-    name: Required[str]
-    type: Required[str]
-    _id: Required[str]
-
-    # Optional: alias
-    alias: str
-
-    # Optional: vector / histogram entries
-    vectorEntries: list[str] | str
-    useSpecialMembers: bool
-    statisticsOnly: bool
-
-    # Optional: distribution / histogram statistics
-    statistics: list[str]
-
-    # Optional: distribution range
-    minimum: float
-    maximum: float
-
-    # Optional: histogram rebinning
-    enableRebin: bool
-    bins: int
-    max_range: float
-
-    # Optional: configuration type
-    onEmpty: str
-
-    # Optional: Perl parser repeat count
-    repeat: str
-
-    # Optional: pattern index selection
-    patternSelection: list[str]
-    parsed_ids: list[str]
-    keepIndices: bool
+    name: str
+    type: str
+    _id: str
+    source_name: str | None
+    params: dict[str, str | int | float | bool | list[str] | None]
+    repeat: int
+    statistics_only: bool
+    keep_indices: bool
+    is_regex: bool
 
 
 # Scanned Variable (dict form)

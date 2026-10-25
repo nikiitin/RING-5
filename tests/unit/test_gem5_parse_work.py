@@ -4,6 +4,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from src.core.common.stat_config_codec import StatConfigCodec
+
 from src.parsing.gem5.impl.strategies.gem5_parse_work import (
     Gem5ParseWork,
     VarsDictType,
@@ -16,7 +18,7 @@ class MockType:
         self._type_name = type_name
         self.content = None
         self.entries: list[str] = []
-        self.onEmpty = None
+        self.on_empty = None
 
 
 # Mocking type(var).__name__ requires the class name to match
@@ -43,7 +45,7 @@ class Distribution:
 class Configuration:
     def __init__(self) -> None:
         self.content: Any = None
-        self.onEmpty: str | None = None
+        self.on_empty: str | None = None
 
 
 @pytest.fixture
@@ -86,7 +88,9 @@ def test_process_pattern_scalars_into_vector_entries() -> None:
     from src.parsing.gem5.types.type_mapper import TypeMapper
 
     logical = TypeMapper.create_stat(
-        {"name": r"system.cpu\d+.cycles", "type": "vector", "entries": ["0", "1"]}
+        StatConfigCodec.from_draft(
+            {"name": "system.cpu\\d+.cycles", "type": "vector", "params": {"entries": ["0", "1"]}}
+        )
     )
     vars_map = cast(
         VarsDictType,
@@ -110,7 +114,11 @@ def test_process_escaped_pattern_scalars_into_vector_entries() -> None:
     from src.parsing.gem5.types.type_mapper import TypeMapper
 
     pattern = r"system\.cpu\d+\.cycles"
-    logical = TypeMapper.create_stat({"name": pattern, "type": "vector", "entries": ["0", "1"]})
+    logical = TypeMapper.create_stat(
+        StatConfigCodec.from_draft(
+            {"name": pattern, "type": "vector", "params": {"entries": ["0", "1"]}}
+        )
+    )
     vars_map = cast(
         VarsDictType,
         {
@@ -179,7 +187,7 @@ def test_process_output_empty_no_fabrication(parser: Any) -> None:
 def test_validate_vars_config_default() -> None:
     # [test->req~ring5.ingestion.configuration-fallbacks~1]
     vars_map: VarsDictType = cast(VarsDictType, {"config_var": Configuration()})
-    vars_map["config_var"].onEmpty = "Default"
+    vars_map["config_var"].on_empty = "Default"
     # Content must not be None to pass first check, but empty to trigger default logic
     vars_map["config_var"].content = []
 
@@ -191,7 +199,7 @@ def test_validate_vars_config_default() -> None:
 
 def test_validate_vars_config_no_default_fail() -> None:
     vars_map: VarsDictType = cast(VarsDictType, {"config_var": Configuration()})
-    vars_map["config_var"].onEmpty = None
+    vars_map["config_var"].on_empty = None
     vars_map["config_var"].content = []
 
     work = Gem5ParseWork("f", vars_map)

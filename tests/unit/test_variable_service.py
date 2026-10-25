@@ -7,6 +7,8 @@ from typing import cast
 
 import pytest
 
+from src.parsing.registry import SimulatorRegistry
+
 from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
 from src.core.services.data_services.variable_service import VariableService
 
@@ -256,14 +258,18 @@ class TestFilterInternalStats:
     def test_filters_all_internal_stats(self) -> None:
         """Should remove all internal gem5 statistics."""
         entries = ["cpu0", "total", "mean", "gmean", "stdev", "samples", "overflows", "underflows"]
-        result = VariableService.filter_internal_stats(entries)
+        result = VariableService.filter_internal_stats(
+            entries, internal_stats=SimulatorRegistry.get_info("gem5").internal_stats
+        )
 
         assert result == ["cpu0"]
 
     def test_case_insensitive_filtering(self) -> None:
         """Should filter internal stats regardless of case."""
         entries = ["CPU0", "TOTAL", "Mean", "STDEV", "cpu1"]
-        result = VariableService.filter_internal_stats(entries)
+        result = VariableService.filter_internal_stats(
+            entries, internal_stats=SimulatorRegistry.get_info("gem5").internal_stats
+        )
 
         assert "cpu1" in result
         assert "CPU0" in result
@@ -273,20 +279,26 @@ class TestFilterInternalStats:
     def test_preserves_non_internal_entries(self) -> None:
         """Should keep all non-internal entries."""
         entries = ["cpu0", "cpu1", "bank0", "bank1"]
-        result = VariableService.filter_internal_stats(entries)
+        result = VariableService.filter_internal_stats(
+            entries, internal_stats=SimulatorRegistry.get_info("gem5").internal_stats
+        )
 
         assert sorted(result) == ["bank0", "bank1", "cpu0", "cpu1"]
 
     def test_returns_sorted_list(self) -> None:
         """Should return alphabetically sorted list."""
         entries = ["cpu2", "cpu0", "cpu1"]
-        result = VariableService.filter_internal_stats(entries)
+        result = VariableService.filter_internal_stats(
+            entries, internal_stats=SimulatorRegistry.get_info("gem5").internal_stats
+        )
 
         assert result == ["cpu0", "cpu1", "cpu2"]
 
     def test_empty_list(self) -> None:
         """Should handle empty list."""
-        result = VariableService.filter_internal_stats([])
+        result = VariableService.filter_internal_stats(
+            [], internal_stats=SimulatorRegistry.get_info("gem5").internal_stats
+        )
         assert result == []
 
 
@@ -363,7 +375,11 @@ class TestAggregateDiscoveredEntries:
                 {"name": "system.cpu.vector", "entries": ["cpu0", "cpu1", "total"]},
             ],
         )
-        result = VariableService.aggregate_discovered_entries(snapshot, "system.cpu.vector")
+        result = VariableService.aggregate_discovered_entries(
+            snapshot,
+            "system.cpu.vector",
+            internal_stats=SimulatorRegistry.get_info("gem5").internal_stats,
+        )
 
         assert sorted(result) == ["cpu0", "cpu1"]
 
@@ -377,7 +393,11 @@ class TestAggregateDiscoveredEntries:
                 {"name": "system.cpu2.vector", "entries": ["entry2", "stdev"]},
             ],
         )
-        result = VariableService.aggregate_discovered_entries(snapshot, r"system\.cpu\d+\.vector")
+        result = VariableService.aggregate_discovered_entries(
+            snapshot,
+            r"system\.cpu\d+\.vector",
+            internal_stats=SimulatorRegistry.get_info("gem5").internal_stats,
+        )
 
         assert sorted(result) == ["entry0", "entry1", "entry2"]
 
@@ -390,7 +410,11 @@ class TestAggregateDiscoveredEntries:
                 {"name": "system.var2", "entries": ["cpu1", "cpu2"]},
             ],
         )
-        result = VariableService.aggregate_discovered_entries(snapshot, r"system\.var\d+")
+        result = VariableService.aggregate_discovered_entries(
+            snapshot,
+            r"system\.var\d+",
+            internal_stats=SimulatorRegistry.get_info("gem5").internal_stats,
+        )
 
         assert sorted(result) == ["cpu0", "cpu1", "cpu2"]
 
@@ -402,7 +426,9 @@ class TestAggregateDiscoveredEntries:
                 {"name": "system.vec", "entries": ["cpu0", "total", "mean", "gmean"]},
             ],
         )
-        result = VariableService.aggregate_discovered_entries(snapshot, "system.vec")
+        result = VariableService.aggregate_discovered_entries(
+            snapshot, "system.vec", internal_stats=SimulatorRegistry.get_info("gem5").internal_stats
+        )
 
         assert result == ["cpu0"]
 
@@ -414,7 +440,9 @@ class TestAggregateDiscoveredEntries:
                 {"name": "system.cpu", "entries": ["cpu0"]},
             ],
         )
-        result = VariableService.aggregate_discovered_entries(snapshot, "system.mem")
+        result = VariableService.aggregate_discovered_entries(
+            snapshot, "system.mem", internal_stats=SimulatorRegistry.get_info("gem5").internal_stats
+        )
 
         assert result == []
 

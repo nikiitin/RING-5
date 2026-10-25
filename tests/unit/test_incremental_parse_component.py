@@ -9,6 +9,7 @@ from concurrent.futures import Future
 from pathlib import Path
 from typing import Any
 
+from src.core.common.stat_config_codec import StatConfigCodec
 from src.core.application_api import ApplicationAPI
 from src.core.models import IncrementalParseBatchResult, ParseJobStatus
 from src.core.models.parse_job_models import JsonValue
@@ -77,7 +78,11 @@ def test_incremental_background_job_finalizes_an_all_reused_batch(tmp_path: Path
         snapshot = service.submit(
             stats_path=str(stats_file.parent.parent),
             stats_pattern="stats.txt",
-            variables=[{"name": "simTicks", "type": "scalar"}],
+            variables=[
+                StatConfigCodec.to_payload(
+                    StatConfigCodec.from_draft({"name": "simTicks", "type": "scalar"})
+                )
+            ],
             strategy_type="simple",
             incremental=True,
         )
@@ -161,7 +166,11 @@ def test_incremental_background_job_keeps_reused_rows_when_changed_work_fails(
         snapshot = service.submit(
             stats_path=str(tmp_path / "inputs"),
             stats_pattern="stats.txt",
-            variables=[{"name": "simTicks", "type": "scalar"}],
+            variables=[
+                StatConfigCodec.to_payload(
+                    StatConfigCodec.from_draft({"name": "simTicks", "type": "scalar"})
+                )
+            ],
             strategy_type="simple",
             incremental=True,
         )

@@ -15,6 +15,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from src.core.common.stat_config_codec import StatConfigCodec
+from src.core.models.parsing_models import StatConfig
 from src.core.application_api import ApplicationAPI
 from src.core.models import (
     InvalidParseJobTransition,
@@ -155,13 +157,25 @@ class TestParseJobFingerprint:
         first = build_parse_job_request(
             stats_path=str(tmp_path),
             stats_pattern="stats.txt",
-            variables=[{"name": "simTicks", "type": "scalar", "_id": "one", "repeat": 1}],
+            variables=[
+                StatConfigCodec.to_payload(
+                    StatConfigCodec.from_draft(
+                        {"name": "simTicks", "type": "scalar", "_id": "one", "repeat": 1}
+                    )
+                )
+            ],
             strategy_type="simple",
         )
         second = build_parse_job_request(
             stats_path=str(tmp_path / "."),
             stats_pattern="stats.txt",
-            variables=[{"repeat": 1, "_id": "two", "type": "scalar", "name": "simTicks"}],
+            variables=[
+                StatConfigCodec.to_payload(
+                    StatConfigCodec.from_draft(
+                        {"repeat": 1, "_id": "two", "type": "scalar", "name": "simTicks"}
+                    )
+                )
+            ],
             strategy_type="simple",
         )
         assert first.fingerprint == second.fingerprint
@@ -175,12 +189,11 @@ class TestParseJobFingerprint:
                 "/stats",
                 "stats.txt",
                 [
-                    {
-                        "name": "alias",
-                        "source_name": "system.cpu.ipc",
-                        "type": "scalar",
-                        "params": {},
-                    }
+                    StatConfigCodec.to_payload(
+                        StatConfig(
+                            name="alias", source_name="system.cpu.ipc", type="scalar", params={}
+                        )
+                    )
                 ],
                 "/output",
                 "simple",
@@ -204,15 +217,23 @@ class TestParseJobFingerprint:
         first = build_parse_job_request(
             **common,
             variables=[
-                {"name": "a", "type": "scalar"},
-                {"name": "b", "type": "scalar"},
+                StatConfigCodec.to_payload(
+                    StatConfigCodec.from_draft({"name": "a", "type": "scalar"})
+                ),
+                StatConfigCodec.to_payload(
+                    StatConfigCodec.from_draft({"name": "b", "type": "scalar"})
+                ),
             ],
         )
         second = build_parse_job_request(
             **common,
             variables=[
-                {"name": "b", "type": "scalar"},
-                {"name": "a", "type": "scalar"},
+                StatConfigCodec.to_payload(
+                    StatConfigCodec.from_draft({"name": "b", "type": "scalar"})
+                ),
+                StatConfigCodec.to_payload(
+                    StatConfigCodec.from_draft({"name": "a", "type": "scalar"})
+                ),
             ],
         )
         assert first.fingerprint != second.fingerprint
@@ -271,7 +292,11 @@ class TestParseJobFingerprint:
             return build_parse_job_request(
                 stats_path=str(tmp_path),
                 stats_pattern="stats.txt",
-                variables=[{"name": "simTicks", "type": "scalar"}],
+                variables=[
+                    StatConfigCodec.to_payload(
+                        StatConfigCodec.from_draft({"name": "simTicks", "type": "scalar"})
+                    )
+                ],
                 scanned_variables=[{"name": "simTicks", "type": "scalar"}],
                 strategy_type=strategy,
             )
@@ -283,7 +308,11 @@ class TestParseJobFingerprint:
             build_parse_job_request(
                 stats_path=str(tmp_path),
                 stats_pattern="stats.txt",
-                variables=[{"name": "simTicks", "type": "scalar"}],
+                variables=[
+                    StatConfigCodec.to_payload(
+                        StatConfigCodec.from_draft({"name": "simTicks", "type": "scalar"})
+                    )
+                ],
                 scanned_variables=[{"name": "simTicks", "type": "scalar"}],
                 strategy_type="simple",
                 incremental=True,
@@ -294,7 +323,13 @@ class TestParseJobFingerprint:
             build_parse_job_request(
                 stats_path=str(tmp_path),
                 stats_pattern="stats.txt",
-                variables=[{"name": "simTicks", "type": "scalar", "repeat": 2}],
+                variables=[
+                    StatConfigCodec.to_payload(
+                        StatConfigCodec.from_draft(
+                            {"name": "simTicks", "type": "scalar", "repeat": 2}
+                        )
+                    )
+                ],
                 scanned_variables=[{"name": "simTicks", "type": "scalar"}],
                 strategy_type="simple",
             ).fingerprint
@@ -304,7 +339,11 @@ class TestParseJobFingerprint:
             build_parse_job_request(
                 stats_path=str(tmp_path),
                 stats_pattern="stats.txt",
-                variables=[{"name": "simTicks", "type": "scalar"}],
+                variables=[
+                    StatConfigCodec.to_payload(
+                        StatConfigCodec.from_draft({"name": "simTicks", "type": "scalar"})
+                    )
+                ],
                 scanned_variables=[{"name": "other", "type": "scalar"}],
                 strategy_type="simple",
             ).fingerprint
@@ -314,7 +353,11 @@ class TestParseJobFingerprint:
             build_parse_job_request(
                 stats_path=str(tmp_path),
                 stats_pattern="stats.txt",
-                variables=[{"name": "simTicks", "type": "scalar"}],
+                variables=[
+                    StatConfigCodec.to_payload(
+                        StatConfigCodec.from_draft({"name": "simTicks", "type": "scalar"})
+                    )
+                ],
                 scanned_variables=[{"name": "simTicks", "type": "scalar"}],
                 strategy_type="simple",
                 simulator="other",
@@ -325,7 +368,11 @@ class TestParseJobFingerprint:
             build_parse_job_request(
                 stats_path=str(tmp_path),
                 stats_pattern="stats.txt",
-                variables=[{"name": "simTicks", "type": "scalar"}],
+                variables=[
+                    StatConfigCodec.to_payload(
+                        StatConfigCodec.from_draft({"name": "simTicks", "type": "scalar"})
+                    )
+                ],
                 scanned_variables=[{"name": "simTicks", "type": "scalar"}],
                 strategy_type="simple",
                 parser_contract_version="2",
@@ -361,7 +408,13 @@ class TestParseJobFingerprint:
             return build_parse_job_request(
                 stats_path=str(tmp_path),
                 stats_pattern="stats.txt",
-                variables=[{"name": "system.cpu.type", "type": "configuration"}],
+                variables=[
+                    StatConfigCodec.to_payload(
+                        StatConfigCodec.from_draft(
+                            {"name": "system.cpu.type", "type": "configuration"}
+                        )
+                    )
+                ],
                 strategy_type="config_aware",
             )
 
@@ -426,7 +479,11 @@ class TestParseJobStore:
         request = build_parse_job_request(
             stats_path=str(tmp_path),
             stats_pattern="stats.txt",
-            variables=[{"name": "x" * 1_100_000, "type": "scalar"}],
+            variables=[
+                StatConfigCodec.to_payload(
+                    StatConfigCodec.from_draft({"name": "x" * 1_100_000, "type": "scalar"})
+                )
+            ],
             strategy_type="simple",
         )
         attempt_dir = tmp_path / "attempt"
@@ -491,7 +548,11 @@ class TestParseJobFlow:
         first = service.submit(
             stats_path=str(tmp_path),
             stats_pattern="stats.txt",
-            variables=[{"name": "simTicks", "type": "scalar"}],
+            variables=[
+                StatConfigCodec.to_payload(
+                    StatConfigCodec.from_draft({"name": "simTicks", "type": "scalar"})
+                )
+            ],
             strategy_type="simple",
         )
         assert first.status == ParseJobStatus.QUEUED
@@ -504,7 +565,11 @@ class TestParseJobFlow:
         reused = service.submit(
             stats_path=str(tmp_path),
             stats_pattern="stats.txt",
-            variables=[{"type": "scalar", "name": "simTicks"}],
+            variables=[
+                StatConfigCodec.to_payload(
+                    StatConfigCodec.from_draft({"type": "scalar", "name": "simTicks"})
+                )
+            ],
             strategy_type="simple",
         )
         assert reused.status == ParseJobStatus.SUCCEEDED
@@ -517,7 +582,11 @@ class TestParseJobFlow:
         other = other_session.submit(
             stats_path=str(tmp_path),
             stats_pattern="stats.txt",
-            variables=[{"name": "simTicks", "type": "scalar"}],
+            variables=[
+                StatConfigCodec.to_payload(
+                    StatConfigCodec.from_draft({"name": "simTicks", "type": "scalar"})
+                )
+            ],
             strategy_type="simple",
         )
         _wait_for_status(other_session, other.job_id, {ParseJobStatus.SUCCEEDED})
@@ -639,13 +708,21 @@ class TestParseJobFlow:
         first = service.submit(
             stats_path=str(tmp_path),
             stats_pattern="stats.txt",
-            variables=[{"name": "simTicks", "type": "scalar"}],
+            variables=[
+                StatConfigCodec.to_payload(
+                    StatConfigCodec.from_draft({"name": "simTicks", "type": "scalar"})
+                )
+            ],
             strategy_type="simple",
         )
         duplicate = service.submit(
             stats_path=str(tmp_path),
             stats_pattern="stats.txt",
-            variables=[{"name": "simTicks", "type": "scalar"}],
+            variables=[
+                StatConfigCodec.to_payload(
+                    StatConfigCodec.from_draft({"name": "simTicks", "type": "scalar"})
+                )
+            ],
             strategy_type="simple",
         )
         assert duplicate.job_id == first.job_id
@@ -653,7 +730,11 @@ class TestParseJobFlow:
             service.submit(
                 stats_path=str(tmp_path),
                 stats_pattern="stats.txt",
-                variables=[{"name": "other", "type": "scalar"}],
+                variables=[
+                    StatConfigCodec.to_payload(
+                        StatConfigCodec.from_draft({"name": "other", "type": "scalar"})
+                    )
+                ],
                 strategy_type="simple",
             )
         release.set()
@@ -708,7 +789,11 @@ class TestParseJobFlow:
         job = service.submit(
             stats_path=str(tmp_path),
             stats_pattern="stats.txt",
-            variables=[{"name": "simTicks", "type": "scalar"}],
+            variables=[
+                StatConfigCodec.to_payload(
+                    StatConfigCodec.from_draft({"name": "simTicks", "type": "scalar"})
+                )
+            ],
             strategy_type="simple",
         )
         terminal = _wait_for_status(service, job.job_id, {expected})
@@ -1353,7 +1438,11 @@ def test_parser_semantic_revision_prevents_reusing_old_published_csv(
     common: dict[str, Any] = {
         "stats_path": str(tmp_path),
         "stats_pattern": "stats.txt",
-        "variables": [{"name": "simTicks", "type": "scalar"}],
+        "variables": [
+            StatConfigCodec.to_payload(
+                StatConfigCodec.from_draft({"name": "simTicks", "type": "scalar"})
+            )
+        ],
         "strategy_type": "simple",
     }
     old = service.submit(**common, parser_contract_version=old_contract)
@@ -1403,7 +1492,11 @@ def test_same_metadata_content_change_never_reuses_published_result(
     kwargs = dict(
         stats_path=str(inputs),
         stats_pattern="stats.txt",
-        variables=[{"name": "value", "type": "scalar"}],
+        variables=[
+            StatConfigCodec.to_payload(
+                StatConfigCodec.from_draft({"name": "value", "type": "scalar"})
+            )
+        ],
         strategy_type="config_aware" if companion else "simple",
         incremental=incremental,
     )
@@ -1448,7 +1541,11 @@ def test_input_changed_while_parser_runs_cannot_publish_or_cache_result(
     job = service.submit(
         stats_path=str(inputs),
         stats_pattern="stats.txt",
-        variables=[{"name": "simTicks", "type": "scalar"}],
+        variables=[
+            StatConfigCodec.to_payload(
+                StatConfigCodec.from_draft({"name": "simTicks", "type": "scalar"})
+            )
+        ],
         strategy_type="simple",
     )
     assert started.wait(5)

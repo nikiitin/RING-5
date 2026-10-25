@@ -47,6 +47,7 @@ class Histogram(StatType):
             "_max_range",
             "_entries",
             "_statistics",
+            "_statistics_only",
         }
     )
 
@@ -57,6 +58,7 @@ class Histogram(StatType):
         bins: int = 0,
         max_range: float = 0.0,
         statistics: str | list[str] | None = None,
+        statistics_only: bool = False,
         **kwargs: StatParamValue,
     ) -> None:
         """
@@ -68,9 +70,11 @@ class Histogram(StatType):
             bins: Number of target buckets for rebinning.
             max_range: Maximum value for rebinning range.
             statistics: Additional aggregate fields to retain.
+            statistics_only: Retain selected summaries without discovering raw buckets.
             **kwargs: Additional attributes passed to parent.
         """
         super().__init__(repeat, **kwargs)
+        object.__setattr__(self, "_statistics_only", statistics_only)
         # Content is a dict of {range_key: [value1, value2...]}
         if isinstance(statistics, str):
             statistics = [s.strip() for s in statistics.split(",")]
@@ -107,6 +111,8 @@ class Histogram(StatType):
     @property
     def entries(self) -> list[str]:
         """Get the expected output entry keys for this histogram."""
+        if self._statistics_only:
+            return list(self._statistics)
         result = []
         # Priority 1: User-selected specific buckets
         if self._entries:
@@ -162,6 +168,8 @@ class Histogram(StatType):
 
         sample: dict[str, float] = {}
         for key, vals in value.items():
+            if self._statistics_only and key not in self._statistics:
+                continue
             val_list = vals if isinstance(vals, list) else [vals]
             try:
                 sample[self._canonical_bucket_key(str(key))] = math.fsum(float(v) for v in val_list)
@@ -213,7 +221,12 @@ class Histogram(StatType):
         object.__setattr__(self, "_reduced", True)
 
         # Explicit entry selection has the same precedence as the entries property.
-        if not self._entries and self._bins > 0 and self._max_range > 0:
+        if (
+            not self._statistics_only
+            and not self._entries
+            and self._bins > 0
+            and self._max_range > 0
+        ):
             self._reduce_with_rebinning()
             return
 

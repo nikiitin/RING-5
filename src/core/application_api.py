@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 
 from src.core.common.security_limits import MAX_BACKGROUND_JOB_LABEL_LENGTH
+from src.core.common.stat_config_codec import StatConfigCodec
 from src.core.models import (
     BackgroundJobInfo,
     BackgroundJobKind,
@@ -60,14 +61,12 @@ from src.core.models import (
 )
 from src.core.models.browser_upload_models import BrowserUploadRequest
 from src.core.models.remote_source_models import RemoteSource, RemoteSourcePolicy
-from src.core.models.pattern_index_service import PatternIndexService
 from src.core.models.data_models import (
     ColumnInfoResult,
     ParseVariableConfig,
     ScannedVariableDict,
 )
 from src.core.models.history_models import OperationRecord
-from src.core.models.parsing_models import StatParamValue
 from src.core.models.parse_job_models import JsonValue
 from src.core.models.plot_protocol import PlotDeserializer
 from src.core.models.visualization import FigureConfig
@@ -895,7 +894,7 @@ class ApplicationAPI:
         self,
         stats_path: str,
         stats_pattern: str,
-        variables: Sequence[ParseVariableConfig | StatConfig],
+        variables: Sequence[StatConfig],
         strategy_type: str = "simple",
         scanned_vars: Sequence[ScannedVariable | ScannedVariableDict] | None = None,
         simulator: str | None = None,
@@ -907,7 +906,7 @@ class ApplicationAPI:
         return self._get_parse_job_service().submit(
             stats_path=stats_path,
             stats_pattern=stats_pattern,
-            variables=variables,
+            variables=[StatConfigCodec.to_payload(config) for config in variables],
             strategy_type=strategy_type,
             scanned_variables=scanned_vars,
             simulator=selected_simulator,
@@ -988,27 +987,7 @@ class ApplicationAPI:
         incremental: bool,
     ) -> ParseBatchResult | IncrementalParseBatchResult:
         """Adapt persisted JSON values to the existing parser primitive."""
-        typed_variables: list[ParseVariableConfig | StatConfig] = []
-        for value in variables:
-            if isinstance(value, dict) and isinstance(value.get("params"), dict):
-                typed_variables.append(
-                    StatConfig(
-                        name=str(value.get("name", "")),
-                        type=str(value.get("type", "scalar")),
-                        repeat=int(cast(int | str, value.get("repeat", 1))),
-                        params=cast(dict[str, StatParamValue], value["params"]),
-                        statistics_only=bool(value.get("statistics_only", False)),
-                        is_regex=bool(value.get("is_regex", False)),
-                        keep_indices=bool(value.get("keep_indices", False)),
-                        source_name=(
-                            str(value["source_name"])
-                            if value.get("source_name") is not None
-                            else None
-                        ),
-                    )
-                )
-            else:
-                typed_variables.append(cast(ParseVariableConfig, value))
+        typed_variables = [StatConfigCodec.from_payload(value) for value in variables]
         typed_scanned = cast(
             list[ScannedVariable] | list[ScannedVariableDict] | None,
             scanned_vars,
@@ -1071,7 +1050,7 @@ class ApplicationAPI:
         self,
         stats_path: str,
         stats_pattern: str,
-        variables: Sequence[ParseVariableConfig | StatConfig],
+        variables: Sequence[StatConfig],
         output_dir: str,
         strategy_type: str = "simple",
         scanned_vars: list[ScannedVariable] | list[ScannedVariableDict] | None = None,
@@ -1079,7 +1058,7 @@ class ApplicationAPI:
         """
         Submit parsing job to the service.
 
-        Converts variable dictionaries to StatConfig objects.
+        Accepts validated runnable StatConfig values only.
         Repetition and regex expansion are handled by the parsing module.
         """
         # [impl->req~ring5.ingestion.output-aliases~1]
@@ -1094,52 +1073,45 @@ class ApplicationAPI:
         )
         return batch
 
+    def draft_from_scanned_variable(self, variable: ScannedVariableDict) -> ParseVariableConfig:
+        """Project scanner metadata using the selected simulator's explicit summary names.
+
+        Args:
+            variable: Current scanner metadata for one variable.
+
+        Returns:
+            Independent current editor draft with nested type options.
+
+        Raises:
+            TypeError: Scanner metadata has invalid field types.
+            ValueError: Scanner metadata cannot form a current draft.
+        """
+        info = self.get_simulator_info(self.state_manager.get_simulator())
+        return StatConfigCodec.from_scanned(variable, info.internal_stats)
+
+    @staticmethod
+    def compile_parse_variables(variables: Sequence[ParseVariableConfig]) -> list[StatConfig]:
+        """Compile complete current editor drafts before submitting parser work.
+
+        Args:
+            variables: Editable drafts with UI identity separate from parser fields.
+
+        Returns:
+            Independent runnable configurations.
+
+        Raises:
+            TypeError: A field has the wrong type.
+            ValueError: A draft is incomplete or uses unsupported fields.
+        """
+        return [StatConfigCodec.from_draft(variable) for variable in variables]
+
     @staticmethod
     def _normalize_parse_request(
-        variables: Sequence[ParseVariableConfig | StatConfig],
+        variables: Sequence[StatConfig],
         scanned_vars: list[ScannedVariable] | list[ScannedVariableDict] | None,
     ) -> tuple[list[StatConfig], list[ScannedVariable] | None]:
-        """Normalize UI/public parser configurations for either submission mode."""
-        stat_configs: list[StatConfig] = []
-        for var in variables:
-            if isinstance(var, dict):
-                # Normalize type for consistency
-                v_type = str(var.get("type", "scalar")).lower()
-
-                # Aliases are part of the serialized parser-variable contract.
-                source_name = str(var.get("name", ""))
-                alias = var.get("alias")
-                params: dict[str, StatParamValue] = cast(dict[str, StatParamValue], dict(var))
-                is_regex = PatternIndexService.is_pattern_variable(source_name)
-                output_name = str(alias) if alias else source_name
-
-                if alias and not is_regex:
-                    params["parsed_ids"] = [source_name]
-
-                config = StatConfig(
-                    name=output_name,
-                    source_name=source_name if alias else None,
-                    type=v_type,
-                    repeat=int(var.get("repeat", 1)),
-                    statistics_only=bool(
-                        var.get("statistics_only", var.get("statisticsOnly", False))
-                    ),
-                    params=params,
-                    is_regex=is_regex,
-                    keep_indices=bool(var.get("keep_indices", var.get("keepIndices", False))),
-                )
-            elif hasattr(var, "name") and hasattr(var, "type") and not hasattr(var, "params"):
-                # Accept scanned-variable objects from compatibility callers.
-                config = StatConfig(
-                    name=var.name,
-                    type=var.type,
-                    params={"entries": getattr(var, "entries", [])},
-                    is_regex=PatternIndexService.is_pattern_variable(var.name),
-                )
-            else:
-                config = var
-
-            stat_configs.append(config)
+        """Own runnable configurations and decode current scanned metadata."""
+        stat_configs = StatConfigCodec.validate_many(variables)
 
         # Convert ScannedVariableDict to ScannedVariable if needed
         resolved_scanned: list[ScannedVariable] | None = None
@@ -1154,7 +1126,7 @@ class ApplicationAPI:
         self,
         stats_path: str,
         stats_pattern: str,
-        variables: Sequence[ParseVariableConfig | StatConfig],
+        variables: Sequence[StatConfig],
         output_dir: str,
         strategy_type: str = "simple",
         scanned_vars: list[ScannedVariable] | list[ScannedVariableDict] | None = None,
@@ -1204,7 +1176,7 @@ class ApplicationAPI:
         self,
         stats_path: str,
         stats_pattern: str,
-        variables: Sequence[ParseVariableConfig | StatConfig],
+        variables: Sequence[StatConfig],
         output_dir: str,
         strategy_type: str = "simple",
         scanned_vars: list[ScannedVariable] | list[ScannedVariableDict] | None = None,

@@ -6,6 +6,7 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
+from src.core.common.stat_config_codec import StatConfigCodec
 from src.core.models import ColumnSemantics, DatasetSemantics
 from src.core.services.data_services.portfolio_service import PortfolioService
 from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
@@ -82,8 +83,8 @@ def test_save_and_load_portfolio(
     loaded_data = portfolio_service.load_portfolio("test_portfolio")
 
     # Verify Content
-    assert loaded_data["schema_version"] == 4
-    assert loaded_data["version"] == "4.0"
+    assert loaded_data["schema_version"] == 5
+    assert loaded_data["version"] == "5.0"
     environment = loaded_data["environment_metadata"]
     assert environment is not None
     assert environment["format_version"] == 1
@@ -94,7 +95,9 @@ def test_save_and_load_portfolio(
     assert loaded_data["csv_path"] == str(tmp_path / "original.csv")
     assert loaded_data["plot_counter"] == 1
     assert loaded_data["config"] == config_state
-    assert loaded_data["parse_variables"] == parse_variables
+    assert loaded_data["parse_variables"] == [
+        StatConfigCodec.to_snapshot(v) for v in parse_variables
+    ]
     assert loaded_data["use_parser"] is True
     assert loaded_data["stats_path"] == str(tmp_path / "stats")
     assert loaded_data["stats_pattern"] == "stats*.txt"

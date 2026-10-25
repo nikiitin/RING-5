@@ -4,6 +4,8 @@ Handles rendering and interaction for defining parser variables (scalars, vector
 """
 
 import uuid
+from copy import deepcopy
+from typing import cast
 from concurrent.futures import Future, TimeoutError as FuturesTimeoutError, as_completed
 
 import streamlit as st
@@ -48,7 +50,8 @@ class VariableEditor:
         Returns:
             Updated list of variable configurations
         """
-        # Ensure all variables have IDs (mutate in-place)
+        variables = deepcopy(variables)
+        # UI identity belongs to the returned draft, not the caller's object.
         for var in variables:
             if "_id" not in var:
                 var["_id"] = api.data_services.generate_variable_id()
@@ -59,8 +62,21 @@ class VariableEditor:
         deleted_indices: list[int] = []
 
         for idx, var in enumerate(variables):
-            # Get ID (should exist after ensuring IDs above)
             var_id = var.get("_id", f"fallback_{idx}")
+            if var.get("type") and var["type"] not in {
+                "scalar",
+                "vector",
+                "distribution",
+                "histogram",
+                "configuration",
+            }:
+                st.warning(
+                    f"The variable editor does not support type {var.get('type')!r}; "
+                    "its configuration is preserved."
+                )
+                if not st.button("X", key=f"delete_var_{var_id}", type="tertiary"):
+                    updated_vars.append(var)
+                continue
 
             # Common fields (Name, Alias, Type)
             var_name, var_alias, var_type, should_delete = cls._render_common_fields(
@@ -71,25 +87,37 @@ class VariableEditor:
                 deleted_indices.append(idx)
                 continue
 
-            var_config: ParseVariableConfig = {"name": var_name, "type": var_type, "_id": var_id}
+            var_config: ParseVariableConfig = {
+                "name": var_alias or var_name,
+                "type": var_type,
+                "_id": var_id,
+                "params": (
+                    deepcopy(var.get("params", {}))
+                    if not var.get("type") or var_type == var["type"]
+                    else {}
+                ),
+            }
             if var_alias:
-                var_config["alias"] = var_alias
-            try:
-                repeat_default = max(1, int(var.get("repeat", "1")))
-            except (TypeError, ValueError):
-                repeat_default = 1
-                st.warning("Invalid saved repeat count; choose the expected number of dumps.")
+                var_config["source_name"] = var_name
+            for field in (
+                "statistics_only",
+                "is_regex",
+                "keep_indices",
+            ):
+                if field in var:
+                    var_config[field] = deepcopy(var[field])  # type: ignore[literal-required]
+            repeat_default = var.get("repeat", 1)
             repeat = int(
                 st.number_input(
                     "Expected dump repetitions",
-                    min_value=1,
+                    min_value=min(1, repeat_default),
                     value=repeat_default,
                     step=1,
                     key=f"var_repeat_{var_id}",
                 )
             )
             if repeat > 1 or "repeat" in var:
-                var_config["repeat"] = str(repeat)
+                var_config["repeat"] = repeat
 
             # Type-specific configuration
             if var_type == "vector":
@@ -129,7 +157,7 @@ class VariableEditor:
         with col1:
             var_name = st.text_input(
                 f"Variable {idx+1} Name",
-                value=var.get("name", ""),
+                value=var.get("source_name") or var.get("name", ""),
                 key=f"var_name_{var_id}",
                 label_visibility="collapsed",
                 placeholder="stats.name",
@@ -138,25 +166,26 @@ class VariableEditor:
         with col2:
             var_alias = st.text_input(
                 f"Alias {idx+1}",
-                value=var.get("alias", ""),
+                value=var.get("name", "") if var.get("source_name") else "",
                 key=f"var_alias_{var_id}",
                 label_visibility="collapsed",
                 placeholder="Alias (Optional)",
             )
 
         with col3:
-            current_type = var.get("type", "scalar")
+            current_type = var.get("type", "")
             options = ["scalar", "vector", "distribution", "histogram", "configuration"]
 
-            if current_type not in options:
-                current_type = "scalar"
-
-            var_type = st.selectbox(
-                f"Type {idx+1}",
-                options=options,
-                index=options.index(current_type),
-                key=f"var_type_{var_id}",
-                label_visibility="collapsed",
+            var_type = (
+                st.selectbox(
+                    f"Type {idx+1}",
+                    options=options,
+                    index=options.index(current_type) if current_type else None,
+                    key=f"var_type_{var_id}",
+                    label_visibility="collapsed",
+                    placeholder="Choose a statistic type",
+                )
+                or ""
             )
 
         with col4:
@@ -175,11 +204,11 @@ class VariableEditor:
         """
         Render PatternIndexSelector for any pattern variable type.
 
-        When a user selects specific indices, ``keepIndices`` is set to
+        When a user selects specific indices, ``keep_indices`` is set to
         ``True`` and ``parsed_ids`` is populated with the filtered list.
         This applies to scalars, vectors, distributions, and histograms.
         """
-        var_name = var_config.get("name", "")
+        var_name = var_config.get("source_name") or var_config.get("name", "")
         scanned_vars = api.state_manager.get_scanned_variables() or []
         pattern_indices: list[str] | None = None
 
@@ -191,17 +220,17 @@ class VariableEditor:
         if not pattern_indices:
             return
 
-        current_selection = original_var.get("patternSelection", None)
+        current_selection = cast(list[str] | None, original_var.get("params", {}).get("parsed_ids"))
         use_filter, pattern_filtered = PatternIndexSelector.render_selector(
             var_name, pattern_indices, var_id, current_selection
         )
 
         if use_filter:
-            var_config["patternSelection"] = pattern_filtered
-            var_config["parsed_ids"] = pattern_filtered
-            var_config["keepIndices"] = True
+            var_config.setdefault("params", {})["parsed_ids"] = pattern_filtered
+            var_config["keep_indices"] = True
         else:
-            var_config["keepIndices"] = False
+            var_config.setdefault("params", {}).pop("parsed_ids", None)
+            var_config["keep_indices"] = False
 
     @classmethod
     def render_histogram_config(
@@ -216,7 +245,7 @@ class VariableEditor:
     ) -> None:
         """Render configuration for histogram variables."""
         # [impl->req~ring5.ingestion.histogram-rebinning~1]
-        var_name = var_config.get("name", "")
+        var_name = var_config.get("source_name") or var_config.get("name", "")
         if var_name:
             st.markdown(f"**Histogram Configuration for `{var_name}`:**")
 
@@ -240,10 +269,10 @@ class VariableEditor:
         ]
         hist_default = (
             hist_parse_options[0]
-            if original_var.get("statisticsOnly", True)
+            if original_var.get("statistics_only", False)
             else (
                 hist_parse_options[1]
-                if not original_var.get("statistics", [])
+                if not original_var.get("params", {}).get("statistics", [])
                 else hist_parse_options[2]
             )
         )
@@ -262,7 +291,13 @@ class VariableEditor:
         wants_statistics = parse_mode in ("Statistics Only", "Bucket Entries + Statistics")
         wants_entries = parse_mode in ("Bucket Entries Only", "Bucket Entries + Statistics")
 
-        var_config["statisticsOnly"] = parse_mode == "Statistics Only"
+        var_config["statistics_only"] = parse_mode == "Statistics Only"
+
+        if not wants_statistics:
+            var_config.setdefault("params", {}).pop("statistics", None)
+        if not wants_entries:
+            for key in ("entries", "bins", "max_range", "minimum", "maximum"):
+                var_config.setdefault("params", {}).pop(key, None)
 
         # Statistics selection (always visible when stats requested)
         if wants_statistics:
@@ -274,7 +309,7 @@ class VariableEditor:
             st.write("---")
             enable_rebin = st.checkbox(
                 "Normalize to Fixed Buckets (Rebinning)",
-                value=original_var.get("enableRebin", False),
+                value=bool(original_var.get("params", {}).get("bins", 0)),
                 key=f"hist_rebin_{var_id}",
                 help="Normalizes histograms with inconsistent bucket ranges across simulations",
             )
@@ -286,21 +321,23 @@ class VariableEditor:
                         "Target Buckets",
                         min_value=1,
                         max_value=1000,
-                        value=int(original_var.get("bins", 10)),
+                        value=cast(int, original_var.get("params", {}).get("bins", 10)),
                         key=f"hist_bins_{var_id}",
                     )
                 with c2:
                     max_range = st.number_input(
                         "Max Range",
                         min_value=1.0,
-                        value=float(original_var.get("max_range", 1024.0)),
+                        value=float(
+                            cast(float, original_var.get("params", {}).get("max_range", 1024.0))
+                        ),
                         key=f"hist_max_range_{var_id}",
                     )
-                var_config["bins"] = bins
-                var_config["max_range"] = max_range
-                original_var["enableRebin"] = True
-                original_var["bins"] = bins
-                original_var["max_range"] = max_range
+                var_config.setdefault("params", {})["bins"] = bins
+                var_config.setdefault("params", {})["max_range"] = max_range
+            else:
+                var_config.setdefault("params", {}).pop("bins", None)
+                var_config.setdefault("params", {}).pop("max_range", None)
 
             entry_options = ["Manual Entry Names"]
             if discovered_entries:
@@ -343,7 +380,7 @@ class VariableEditor:
         stats_pattern: str,
     ) -> None:
         """Render configuration for vector variables."""
-        var_name = var_config.get("name", "")
+        var_name = var_config.get("source_name") or var_config.get("name", "")
         # Header is optional or can be external
         if var_name:
             st.markdown(f"**Vector Configuration for `{var_name}`:**")
@@ -365,11 +402,10 @@ class VariableEditor:
         vec_parse_options = ["Statistics Only", "Entries Only", "Entries + Statistics"]
         vec_default = (
             vec_parse_options[0]
-            if original_var.get("statisticsOnly", False)
+            if original_var.get("statistics_only", False)
             else (
                 vec_parse_options[1]
-                if not original_var.get("useSpecialMembers", False)
-                and not original_var.get("statisticsOnly", False)
+                if not original_var.get("params", {}).get("statistics", [])
                 else vec_parse_options[2]
             )
         )
@@ -388,13 +424,17 @@ class VariableEditor:
         wants_statistics = parse_mode in ("Statistics Only", "Entries + Statistics")
         wants_entries = parse_mode in ("Entries Only", "Entries + Statistics")
 
-        var_config["statisticsOnly"] = parse_mode == "Statistics Only"
+        var_config["statistics_only"] = parse_mode == "Statistics Only"
+
+        if not wants_statistics:
+            var_config.setdefault("params", {}).pop("statistics", None)
+        if not wants_entries:
+            for key in ("entries", "bins", "max_range", "minimum", "maximum"):
+                var_config.setdefault("params", {}).pop(key, None)
 
         # Statistics selection (always visible when stats requested)
         if wants_statistics:
             cls._render_vector_statistics_selection(var_config, original_var, var_id)
-
-        selected_statistics = list(var_config.get("vectorEntries", [])) if wants_statistics else []
 
         # Entry selection (only when entries requested)
         if wants_entries:
@@ -425,13 +465,6 @@ class VariableEditor:
                 )
             else:
                 cls._render_vector_manual_entry(api, var_config, original_var, var_id)
-
-        if wants_statistics and wants_entries:
-            selected_entries = var_config.get("vectorEntries", [])
-            var_config["vectorEntries"] = list(
-                dict.fromkeys([*selected_entries, *selected_statistics])
-            )
-            var_config["useSpecialMembers"] = bool(selected_statistics)
 
     @classmethod
     def _handle_deep_scan(
@@ -556,7 +589,9 @@ class VariableEditor:
                 st.write("Discovering entries...")
                 # Aggregate entries using VariableServicesAPI
                 filtered_entries = api.data_services.aggregate_discovered_entries(
-                    snapshot_dicts, var_name
+                    snapshot_dicts,
+                    var_name,
+                    api.get_simulator_info(api.state_manager.get_simulator()).internal_stats,
                 )
 
                 if filtered_entries:
@@ -596,12 +631,13 @@ class VariableEditor:
         """Render multiselect for discovered vector entries."""
         # [impl->req~ring5.ingestion.variable-entry-selection~1]
         # Filter internal statistics using variable services
-        filtered_entries = api.data_services.filter_internal_stats(discovered_entries)
+        filtered_entries = api.data_services.filter_internal_stats(
+            discovered_entries,
+            api.get_simulator_info(api.state_manager.get_simulator()).internal_stats,
+        )
 
         # Continue with normal entry selection
-        current_entries = original_var.get("vectorEntries", [])
-        if isinstance(current_entries, str):
-            current_entries = api.data_services.parse_comma_separated_entries(current_entries)
+        current_entries = cast(list[str], original_var.get("params", {}).get("entries", []))
 
         # Filter defaults to ensure they exist in discovered list
         valid_defaults = [e for e in current_entries if e in filtered_entries]
@@ -613,9 +649,8 @@ class VariableEditor:
             key=f"vector_entries_select_{var_id}",
         )
 
+        var_config.setdefault("params", {})["entries"] = selected_entries
         if selected_entries:
-            var_config["vectorEntries"] = selected_entries
-            var_config["useSpecialMembers"] = False
             st.success(f"Will extract {len(selected_entries)} entries")
         else:
             st.warning("Please select at least one entry")
@@ -628,9 +663,9 @@ class VariableEditor:
         var_id: str,
     ) -> None:
         """Render text input for manual vector entries."""
-        default_entries = original_var.get("vectorEntries", "")
-        if isinstance(default_entries, list):
-            default_entries = api.data_services.format_entries_as_string(default_entries)
+        default_entries = api.data_services.format_entries_as_string(
+            cast(list[str], original_var.get("params", {}).get("entries", []))
+        )
 
         vector_entries_input = st.text_input(
             "Vector entries (comma-separated)",
@@ -640,16 +675,28 @@ class VariableEditor:
             help="Enter the exact names of vector entries as they appear in stats.txt",
         )
 
+        entries = api.data_services.parse_comma_separated_entries(vector_entries_input)
+        var_config.setdefault("params", {})["entries"] = entries
         if vector_entries_input.strip():
-            entries = api.data_services.parse_comma_separated_entries(vector_entries_input)
-            var_config["vectorEntries"] = entries
-            var_config["useSpecialMembers"] = False
             st.success(
                 f"Will extract {len(entries)} entries: "
                 f"{', '.join(entries[:3])}{'...' if len(entries) > 3 else ''}"
             )
         else:
             st.warning("Please enter at least one vector entry name")
+
+    @staticmethod
+    def _selected_summaries(
+        previous: list[str], selected: list[str], offered: frozenset[str]
+    ) -> list[str]:
+        """Preserve summary order and fields without a dedicated checkbox."""
+        unrepresented = [entry for entry in previous if entry not in offered]
+        if unrepresented:
+            st.warning(
+                "Summary fields without editor controls are preserved: " + ", ".join(unrepresented)
+            )
+        retained = [entry for entry in previous if entry in selected or entry in unrepresented]
+        return retained + [entry for entry in selected if entry not in previous]
 
     @staticmethod
     def _render_vector_statistics_selection(
@@ -659,11 +706,7 @@ class VariableEditor:
         st.markdown("**Select statistics to extract from the vector:**")
         col_stat1, col_stat2 = st.columns(2)
 
-        current_entries = original_var.get("vectorEntries", [])
-        if isinstance(current_entries, str):
-            current_entries = [
-                entry.strip() for entry in current_entries.split(",") if entry.strip()
-            ]
+        current_entries = cast(list[str], original_var.get("params", {}).get("statistics", []))
 
         with col_stat1:
             extract_total = st.checkbox(
@@ -698,9 +741,13 @@ class VariableEditor:
         if extract_stdev:
             special_members.append("stdev")
 
+        special_members = VariableEditor._selected_summaries(
+            current_entries,
+            special_members,
+            frozenset({"total", "mean", "gmean", "samples", "stdev"}),
+        )
+        var_config.setdefault("params", {})["statistics"] = special_members
         if special_members:
-            var_config["vectorEntries"] = special_members
-            var_config["useSpecialMembers"] = True
             st.success(f"Will extract statistics: {', '.join(special_members)}")
         else:
             st.warning("Please select at least one statistic to extract")
@@ -716,7 +763,7 @@ class VariableEditor:
         stats_pattern: str,
     ) -> None:
         """Render configuration for distribution variables."""
-        var_name = var_config.get("name", "")
+        var_name = var_config.get("source_name") or var_config.get("name", "")
         if var_name:
             st.markdown(f"**Distribution Configuration for `{var_name}`:**")
 
@@ -728,10 +775,10 @@ class VariableEditor:
         ]
         dist_default = (
             dist_parse_options[0]
-            if original_var.get("statisticsOnly", True)
+            if original_var.get("statistics_only", False)
             else (
                 dist_parse_options[1]
-                if not original_var.get("statistics", [])
+                if not original_var.get("params", {}).get("statistics", [])
                 else dist_parse_options[2]
             )
         )
@@ -750,7 +797,13 @@ class VariableEditor:
         wants_statistics = parse_mode in ("Statistics Only", "Bucket Entries + Statistics")
         wants_entries = parse_mode in ("Bucket Entries Only", "Bucket Entries + Statistics")
 
-        var_config["statisticsOnly"] = parse_mode == "Statistics Only"
+        var_config["statistics_only"] = parse_mode == "Statistics Only"
+
+        if not wants_statistics:
+            var_config.setdefault("params", {}).pop("statistics", None)
+        if not wants_entries:
+            for key in ("entries", "bins", "max_range", "minimum", "maximum"):
+                var_config.setdefault("params", {}).pop(key, None)
 
         # Statistics selection (always visible when stats requested)
         if wants_statistics:
@@ -762,8 +815,8 @@ class VariableEditor:
             st.markdown("**Bucket Range:**")
 
             range_result = st.session_state.get(f"dist_range_result_{var_id}", {})
-            default_min = range_result.get("minimum", original_var.get("minimum", 0))
-            default_max = range_result.get("maximum", original_var.get("maximum", 100))
+            default_min = range_result.get("minimum", original_var.get("params", {}).get("minimum"))
+            default_max = range_result.get("maximum", original_var.get("params", {}).get("maximum"))
 
             col_min, col_max = st.columns(2)
             with col_min:
@@ -775,8 +828,8 @@ class VariableEditor:
                     "Maximum value", value=default_max, key=f"dist_max_{var_id}"
                 )
 
-            var_config["minimum"] = min_val
-            var_config["maximum"] = max_val
+            var_config.setdefault("params", {})["minimum"] = min_val
+            var_config.setdefault("params", {})["maximum"] = max_val
 
             cls._handle_deep_scan(
                 api,
@@ -797,7 +850,7 @@ class VariableEditor:
         st.markdown("**Extract additional statistics:**")
         col_stat1, col_stat2 = st.columns(2)
 
-        current_stats = original_var.get("statistics", [])
+        current_stats = cast(list[str], original_var.get("params", {}).get("statistics", []))
 
         with col_stat1:
             extract_mean = st.checkbox(
@@ -842,8 +895,11 @@ class VariableEditor:
         if extract_overflows:
             selected_stats.append("overflows")
 
-        if selected_stats:
-            var_config["statistics"] = selected_stats
+        var_config.setdefault("params", {})["statistics"] = VariableEditor._selected_summaries(
+            current_stats,
+            selected_stats,
+            frozenset({"mean", "stdev", "samples", "total", "gmean", "underflows", "overflows"}),
+        )
 
     @staticmethod
     def render_configuration_config(
@@ -851,17 +907,17 @@ class VariableEditor:
     ) -> None:
         """Render configuration for configuration variables."""
         # [impl->req~ring5.ingestion.configuration-fallbacks~1]
-        var_name = var_config.get("name", "")
+        var_name = var_config.get("source_name") or var_config.get("name", "")
         if var_name:
             st.markdown(f"**Configuration for `{var_name}`:**")
 
         on_empty = st.text_input(
             "Default value (if not found)",
-            value=original_var.get("onEmpty", "None"),
+            value=original_var.get("params", {}).get("on_empty", "None"),
             key=f"config_onempty_{var_id}",
             help="Value to use if the configuration variable is not found in stats",
         )
-        var_config["onEmpty"] = on_empty
+        var_config.setdefault("params", {})["on_empty"] = on_empty
 
     @staticmethod
     def _render_add_variable_section(
@@ -890,11 +946,13 @@ class VariableEditor:
                     var_type = selected_option.split(" (")[1][:-1]
 
                     if st.button("Add Selected", key="add_selected_var"):
-                        new_var: ParseVariableConfig = {
-                            "name": name,
-                            "type": var_type,
-                            "_id": str(uuid.uuid4()),
-                        }
+                        scanned = next(
+                            v
+                            for v in available_variables
+                            if v["name"] == name and v["type"] == var_type
+                        )
+                        new_var = api.draft_from_scanned_variable(scanned)
+                        new_var["_id"] = str(uuid.uuid4())
                         # Persist to state before the rerun (st.rerun halts the script
                         # before the page's persist gate, so appending to the local copy
                         # alone would be silently dropped).
@@ -910,6 +968,7 @@ class VariableEditor:
                 manual_var: ParseVariableConfig = {
                     "name": "new_variable",
                     "type": "scalar",
+                    "params": {},
                     "_id": str(uuid.uuid4()),
                 }
                 # Persist to state before the rerun (see note above).

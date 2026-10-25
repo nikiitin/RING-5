@@ -13,16 +13,13 @@ Example from gem5 output:
     ...
 """
 
-from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, cast
 
 import pandas as pd
 import pytest
 
 from src.core.application_api import ApplicationAPI
 from src.core.models.data_models import ParseVariableConfig
-from src.core.models.parsing_models import StatConfig
 
 
 class TestHistogramWithStatistics:
@@ -95,19 +92,18 @@ class TestHistogramWithStatistics:
         output_dir = tmp_path / "hist_stats_output"
         output_dir.mkdir()
 
-        variables: list[dict[str, Any]] = [
+        variables: list[ParseVariableConfig] = [
             {
                 "name": "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles",
                 "type": "histogram",
-                "useSpecialMembers": True,
-                "statistics": ["samples", "mean", "total"],
+                "params": {"statistics": ["samples", "mean", "total"]},
             }
         ]
 
         parse_batch = facade.submit_parse_async(
             str(stats_dir),
             "stats.txt",
-            cast("Sequence[ParseVariableConfig | StatConfig]", variables),
+            facade.compile_parse_variables(variables),
             str(output_dir),
             scanned_vars=vars_found,
         )
@@ -141,19 +137,18 @@ class TestHistogramWithStatistics:
         output_dir.mkdir()
 
         pattern = r"system.ruby.l\d+_cntrl\d+.xact_mgr.htm_transaction_commit_cycles"
-        variables: list[dict[str, Any]] = [
+        variables: list[ParseVariableConfig] = [
             {
                 "name": pattern,
                 "type": "histogram",
-                "useSpecialMembers": True,
-                "statistics": ["samples", "mean", "total"],
+                "params": {"statistics": ["samples", "mean", "total"]},
             }
         ]
 
         parse_batch = facade.submit_parse_async(
             str(stats_dir),
             "stats.txt",
-            cast("Sequence[ParseVariableConfig | StatConfig]", variables),
+            facade.compile_parse_variables(variables),
             str(output_dir),
             scanned_vars=vars_found,
         )
@@ -180,7 +175,7 @@ class TestHistogramWithStatistics:
         """
         Test that both histogram buckets and statistics are correctly parsed.
 
-        When useSpecialMembers=True with specific statistics, those statistics
+        When additional statistics are selected, those statistics
         should appear as columns in the output CSV.
         """
         # Scan
@@ -192,19 +187,18 @@ class TestHistogramWithStatistics:
         output_dir = tmp_path / "hist_explicit_stats_output"
         output_dir.mkdir()
 
-        variables: list[dict[str, Any]] = [
+        variables: list[ParseVariableConfig] = [
             {
                 "name": "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles",
                 "type": "histogram",
-                "useSpecialMembers": True,
-                "statistics": ["samples", "mean"],
+                "params": {"statistics": ["samples", "mean"]},
             }
         ]
 
         parse_batch = facade.submit_parse_async(
             str(stats_dir),
             "stats.txt",
-            cast("Sequence[ParseVariableConfig | StatConfig]", variables),
+            facade.compile_parse_variables(variables),
             str(output_dir),
             scanned_vars=vars_found,
         )

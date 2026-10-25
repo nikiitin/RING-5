@@ -84,7 +84,7 @@ class TestApplicationAPIIsRegex:
         api.submit_parse_async(
             stats_path="/fake/path",
             stats_pattern="stats.txt",
-            variables=variables,
+            variables=api.compile_parse_variables(variables),
             output_dir="/tmp/out",
         )
 
@@ -104,7 +104,7 @@ class TestApplicationAPIIsRegex:
         api.submit_parse_async(
             stats_path="/fake/path",
             stats_pattern="stats.txt",
-            variables=variables,
+            variables=api.compile_parse_variables(variables),
             output_dir="/tmp/out",
         )
 
@@ -113,27 +113,12 @@ class TestApplicationAPIIsRegex:
         assert len(configs) == 1
         assert configs[0].is_regex is False
 
-    def test_scanned_variable_with_regex(self) -> None:
-        r"""A ScannedVariable with \\d+ in name should produce is_regex=True."""
+    def test_scanned_variable_requires_explicit_runnable_composition(self) -> None:
         api = self._make_api()
-        api._parser.submit_parse_async.return_value = MagicMock(futures=[])
-
-        sv = ScannedVariable(
-            name=r"system.cpu\d+.numCycles",
-            type="vector",
-            entries=["0", "1", "2", "3"],
-        )
-        api.submit_parse_async(
-            stats_path="/fake/path",
-            stats_pattern="stats.txt",
-            variables=[sv],
-            output_dir="/tmp/out",
-        )
-
-        call_args = api._parser.submit_parse_async.call_args
-        configs: list[StatConfig] = call_args[0][2]
-        assert len(configs) == 1
-        assert configs[0].is_regex is True
+        sv = ScannedVariable(name=r"system.cpu\d+.numCycles", type="vector", entries=["0"])
+        with pytest.raises(TypeError, match="StatConfig instances"):
+            api.submit_parse_async("/fake/path", "stats.txt", [sv], "/tmp/out")
+        api._parser.submit_parse_async.assert_not_called()
 
 
 # Regex expansion: is_regex controls whether expansion runs

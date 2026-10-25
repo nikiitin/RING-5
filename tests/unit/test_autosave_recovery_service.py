@@ -11,6 +11,7 @@ from unittest.mock import MagicMock
 import pandas as pd
 import pytest
 
+from src.core.common.stat_config_codec import StatConfigCodec
 from src.core.services import autosave_recovery_service as recovery_module
 from src.core.services.autosave_recovery_service import AutosaveRecoveryService
 from src.core.services.data_services.path_service import PathService
@@ -125,13 +126,13 @@ def test_empty_state_and_invalid_owner_keys_do_not_create_drafts(recovery_dir: P
 def test_editor_configuration_defaults_leave_the_workspace_empty(
     recovery_dir: Path, fallback: str | None
 ) -> None:
-    assert Configuration(onEmpty=fallback).onEmpty == "None"
+    assert Configuration(on_empty=fallback).on_empty == "None"
     state = RepositoryStateManager()
     variables = state.get_parse_variables()
     for index, variable in enumerate(variables):
         variable["_id"] = f"editor-identity-{index}"
         if variable["type"] == "configuration":
-            cast(dict[str, Any], variable)["onEmpty"] = fallback
+            variable.setdefault("params", {})["on_empty"] = fallback
     unchanged = deepcopy(variables)
     state.set_parse_variables(variables)
 
@@ -144,14 +145,12 @@ def test_editor_configuration_defaults_leave_the_workspace_empty(
 @pytest.mark.parametrize(
     ("index", "updates"),
     [
-        (1, {"onEmpty": "missing benchmark"}),
+        (1, {"params": {"on_empty": "missing benchmark"}}),
         (0, {"repeat": 2}),
-        (0, {"alias": "ticks"}),
+        (0, {"name": "ticks", "source_name": "simTicks"}),
         (0, {"source_name": "otherTicks"}),
-        (0, {"statisticsOnly": True}),
-        (0, {"type": "vector", "vectorEntries": ["0"]}),
-        (1, {"extra_option": "preserved"}),
-        (0, {"onEmpty": "None"}),
+        (0, {"statistics_only": True}),
+        (0, {"type": "vector", "params": {"entries": ["0"]}}),
     ],
 )
 def test_nondefault_variable_options_remain_meaningful(
@@ -161,7 +160,7 @@ def test_nondefault_variable_options_remain_meaningful(
     variables = state.get_parse_variables()
     for variable in variables:
         if variable["type"] == "configuration":
-            variable["onEmpty"] = "None"
+            variable.setdefault("params", {})["on_empty"] = "None"
     cast(dict[str, Any], variables[index]).update(updates)
     state.set_parse_variables(variables)
 
@@ -169,7 +168,7 @@ def test_nondefault_variable_options_remain_meaningful(
 
     assert captured is not None and captured.created
     saved = AutosaveRecoveryService.load("custom-editor", captured.draft.draft_id)
-    assert saved["parse_variables"] == variables
+    assert saved["parse_variables"] == [StatConfigCodec.to_snapshot(v) for v in variables]
 
 
 def test_owner_directory_symlinks_are_refused_before_capture(

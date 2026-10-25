@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from copy import deepcopy
 from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
@@ -89,9 +90,11 @@ def test_variable_editor_render_existing(mock_streamlit: Any, mock_api: Any) -> 
     updated = VariableEditor.render(mock_api, vars_config)
 
     assert len(updated) == 1
-    assert updated[0]["name"] == "v1"
-    assert updated[0].get("alias") == "ali"
+    assert updated[0]["name"] == "ali"
+    assert updated[0].get("source_name") == "v1"
     assert updated[0]["type"] == "scalar"
+    assert vars_config[0]["name"] == "v1"
+    assert "source_name" not in vars_config[0]
 
 
 def test_variable_editor_add_manual(mock_streamlit: Any, mock_api: Any) -> None:
@@ -157,7 +160,7 @@ def test_variable_editor_vector_stats_checkboxes(mock_streamlit: Any, mock_api: 
     # [test->req~ring5.ingestion.variable-entry-selection~1]
     vars_config = cast(
         list[ParseVariableConfig],
-        [{"name": "vec", "type": "vector", "_id": "1", "vectorEntries": []}],
+        [{"name": "vec", "type": "vector", "_id": "1", "params": {"entries": []}}],
     )
 
     mock_streamlit.text_input.return_value = "vec"
@@ -179,4 +182,30 @@ def test_variable_editor_vector_stats_checkboxes(mock_streamlit: Any, mock_api: 
 
     updated = VariableEditor.render(mock_api, vars_config)
 
-    assert updated[0].get("vectorEntries") == ["total"]
+    assert updated[0]["params"].get("statistics") == ["total"]
+    assert not updated[0]["params"].get("entries")
+
+
+def test_disabling_pattern_selection_removes_the_previous_filter(mock_api: Any) -> None:
+    from src.web.components.data_source.variable_editor import VariableEditor
+
+    pattern = r"cpu\d+.ipc"
+    original: ParseVariableConfig = {
+        "name": "IPC",
+        "source_name": pattern,
+        "type": "scalar",
+        "params": {"parsed_ids": ["0"]},
+        "keep_indices": True,
+    }
+    config = deepcopy(original)
+    mock_api.state_manager.get_scanned_variables.return_value = [
+        {"name": pattern, "type": "scalar", "pattern_indices": ["0", "1"]}
+    ]
+    with patch(
+        "src.web.components.data_source.variable_editor.PatternIndexSelector.render_selector",
+        return_value=(False, ["0", "1"]),
+    ):
+        VariableEditor._render_pattern_index_for_variable(mock_api, config, original, "pattern")
+    assert config["keep_indices"] is False
+    assert "parsed_ids" not in config["params"]
+    assert original["params"]["parsed_ids"] == ["0"]

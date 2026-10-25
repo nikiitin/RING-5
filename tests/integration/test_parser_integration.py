@@ -11,14 +11,7 @@ def test_parser_integration() -> None:
     # Mock variables
     variables = cast(
         list[ParseVariableConfig],
-        [
-            {
-                "name": "test_vector",
-                "type": "vector",
-                "vectorEntries": ["entry1", "entry2"],
-                "useSpecialMembers": False,
-            }
-        ],
+        [{"name": "test_vector", "type": "vector", "params": {"entries": ["entry1", "entry2"]}}],
     )
 
     # Create dummy stats file
@@ -35,7 +28,7 @@ def test_parser_integration() -> None:
         batch = facade.submit_parse_async(
             stats_path=stats_dir,
             stats_pattern="stats.txt",
-            variables=variables,
+            variables=facade.compile_parse_variables(variables),
             output_dir=output_dir,
         )
 

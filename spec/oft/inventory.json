@@ -5059,7 +5059,7 @@
       "gem5:vector": "ingestion.vector"
     },
     "variable_type_params": {
-      "configuration:onEmpty": "ingestion.configuration-fallbacks",
+      "configuration:on_empty": "ingestion.configuration-fallbacks",
       "distribution:maximum": "ingestion.distribution",
       "distribution:minimum": "ingestion.distribution",
       "vector:entries": "ingestion.vector"
@@ -5428,6 +5428,8 @@
       "clear_preview": "data.preview-confirm",
       "compare_plot_configurations": "plots.configuration-comparison",
       "confirm_preview": "data.preview-confirm",
+      "compile_parse_variables": "ingestion.variable-editor",
+      "draft_from_scanned_variable": "ingestion.variable-editor",
       "consume_parse_job": "ingestion.session-background-parse",
       "create_dashboard": "plots.multi-panel-dashboard",
       "create_linked_selection": "plots.linked-selections",
@@ -5719,23 +5721,14 @@
     },
     "parse_variable_fields": {
       "_id": "ingestion.variable-editor",
-      "alias": "ingestion.output-aliases",
-      "bins": "ingestion.histogram-rebinning",
-      "enableRebin": "ingestion.histogram-rebinning",
-      "keepIndices": "ingestion.pattern-index-selection",
-      "max_range": "ingestion.histogram-rebinning",
-      "maximum": "ingestion.distribution-range-scan",
-      "minimum": "ingestion.distribution-range-scan",
+      "is_regex": "ingestion.pattern-aggregation",
+      "keep_indices": "ingestion.pattern-index-selection",
       "name": "ingestion.variable-editor",
-      "onEmpty": "ingestion.configuration-fallbacks",
-      "parsed_ids": "ingestion.pattern-index-selection",
-      "patternSelection": "ingestion.pattern-index-selection",
+      "params": "ingestion.variable-editor",
       "repeat": "ingestion.pattern-aggregation",
-      "statistics": "ingestion.variable-entry-selection",
-      "statisticsOnly": "ingestion.statistics-only",
-      "type": "ingestion.variable-editor",
-      "useSpecialMembers": "ingestion.variable-entry-selection",
-      "vectorEntries": "ingestion.variable-entry-selection"
+      "source_name": "ingestion.output-aliases",
+      "statistics_only": "ingestion.statistics-only",
+      "type": "ingestion.variable-editor"
     },
     "stat_config_fields": {
       "is_regex": "ingestion.pattern-aggregation",

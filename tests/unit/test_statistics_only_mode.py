@@ -2,23 +2,24 @@
 
 import pytest
 
+from src.core.models.parsing_models import StatConfig
+
 from src.parsing.gem5.types.type_mapper import TypeMapper
 
 
 class TestStatisticsOnlyMode:
-    """Test that statisticsOnly flag correctly configures stat types."""
+    """Test that statistics_only flag correctly configures stat types."""
 
     # [test->req~ring5.ingestion.statistics-only~1]
 
     def test_distribution_statistics_only(self) -> None:
-        """Distribution with statisticsOnly=True should skip bucket validation."""
-        config = {
-            "type": "distribution",
-            "minimum": 0,
-            "maximum": 100,
-            "statistics": ["mean", "stdev"],
-            "statisticsOnly": True,
-        }
+        """Distribution with statistics_only=True should skip bucket validation."""
+        config = StatConfig(
+            statistics_only=True,
+            type="distribution",
+            name="test_stat",
+            params={"minimum": 0, "maximum": 100, "statistics": ["mean", "stdev"]},
+        )
 
         dist = TypeMapper.create_stat(config)
 
@@ -39,14 +40,13 @@ class TestStatisticsOnlyMode:
         assert "stdev" in dist.content
 
     def test_distribution_full_mode(self) -> None:
-        """Distribution with statisticsOnly=False should require buckets."""
-        config = {
-            "type": "distribution",
-            "minimum": 0,
-            "maximum": 10,
-            "statistics": ["mean", "stdev"],
-            "statisticsOnly": False,
-        }
+        """Distribution with statistics_only=False should require buckets."""
+        config = StatConfig(
+            statistics_only=False,
+            type="distribution",
+            name="test_stat",
+            params={"minimum": 0, "maximum": 10, "statistics": ["mean", "stdev"]},
+        )
 
         dist = TypeMapper.create_stat(config)
 
@@ -62,13 +62,13 @@ class TestStatisticsOnlyMode:
             dist.content = {"mean": [10.5], "stdev": [2.3]}
 
     def test_vector_statistics_only(self) -> None:
-        """Vector with statisticsOnly=True should use only statistics entries."""
-        config = {
-            "type": "vector",
-            "entries": ["entry0", "entry1", "entry2"],
-            "statistics": ["mean", "sum"],
-            "statisticsOnly": True,
-        }
+        """Vector with statistics_only=True should use only statistics entries."""
+        config = StatConfig(
+            statistics_only=True,
+            type="vector",
+            name="test_stat",
+            params={"entries": ["entry0", "entry1", "entry2"], "statistics": ["mean", "sum"]},
+        )
 
         vec = TypeMapper.create_stat(config)
 
@@ -76,15 +76,18 @@ class TestStatisticsOnlyMode:
         assert vec.entries == ["mean", "sum"]
 
     def test_histogram_statistics_only(self) -> None:
-        """Histogram with statisticsOnly=True should skip bins."""
-        config = {
-            "type": "histogram",
-            "bins": 10,
-            "max_range": 100.0,
-            "entries": ["0-10", "10-20"],
-            "statistics": ["mean", "samples"],
-            "statisticsOnly": True,
-        }
+        """Histogram with statistics_only=True should skip bins."""
+        config = StatConfig(
+            statistics_only=True,
+            type="histogram",
+            name="test_stat",
+            params={
+                "bins": 10,
+                "max_range": 100.0,
+                "entries": ["0-10", "10-20"],
+                "statistics": ["mean", "samples"],
+            },
+        )
 
         hist = TypeMapper.create_stat(config)
 
@@ -97,13 +100,12 @@ class TestStatisticsOnlyMode:
         assert hist._statistics == ["mean", "samples"]
 
     def test_distribution_default_statistics_only(self) -> None:
-        """Test that statisticsOnly defaults to False if not specified."""
-        config = {
-            "type": "distribution",
-            "minimum": 0,
-            "maximum": 10,
-            "statistics": ["mean"],
-        }
+        """Test that statistics_only defaults to False if not specified."""
+        config = StatConfig(
+            type="distribution",
+            name="test_stat",
+            params={"minimum": 0, "maximum": 10, "statistics": ["mean"]},
+        )
 
         dist = TypeMapper.create_stat(config)
 

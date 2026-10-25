@@ -78,6 +78,7 @@ def test_invalid_pattern_cannot_select_the_default_file(tmp_path: Path, pattern:
 
 def test_request_fingerprint_and_discovery_use_the_exact_validated_pattern(tmp_path: Path) -> None:
     """The durable request identifies the same explicitly selected input files."""
+    from src.core.common.stat_config_codec import StatConfigCodec
     from src.core.models import StatConfig
     from src.core.services.parse_job_service import build_parse_job_request
 
@@ -87,7 +88,7 @@ def test_request_fingerprint_and_discovery_use_the_exact_validated_pattern(tmp_p
     request = build_parse_job_request(
         stats_path=str(tmp_path),
         stats_pattern="stats-*.txt",
-        variables=[StatConfig("cycles", "scalar")],
+        variables=[StatConfigCodec.to_payload(StatConfig("cycles", "scalar"))],
         strategy_type="simple",
     )
     assert request.stats_pattern == "stats-*.txt"
@@ -97,6 +98,6 @@ def test_request_fingerprint_and_discovery_use_the_exact_validated_pattern(tmp_p
         build_parse_job_request(
             stats_path=str(tmp_path),
             stats_pattern="path/stats.txt",
-            variables=[StatConfig("cycles", "scalar")],
+            variables=[StatConfigCodec.to_payload(StatConfig("cycles", "scalar"))],
             strategy_type="simple",
         )

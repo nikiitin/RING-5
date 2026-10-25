@@ -288,7 +288,7 @@ class Gem5ParseWork(ParseWork):
         """
         Validate parsed variables and log absent/incomplete numeric stats.
 
-        Configuration variables fall back to their user-configured ``onEmpty``
+        Configuration variables fall back to their user-configured ``on_empty``
         value. Numeric variables are NOT fabricated: an absent or incomplete
         stat is left empty so ``balance_content`` pads it with NaN downstream
         (hard rule 6). Every absent/incomplete numeric stat is logged with the
@@ -304,7 +304,7 @@ class Gem5ParseWork(ParseWork):
         for varID, var in varsToParse.items():
             if self._getExpectedType(var) == "configuration":
                 if not var.content:  # Empty content
-                    var.content = var.onEmpty if var.onEmpty else "None"
+                    var.content = var.on_empty if var.on_empty else "None"
                 continue
 
             content = var.content

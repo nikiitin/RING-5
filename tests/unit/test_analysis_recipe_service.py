@@ -107,10 +107,10 @@ def test_recipe_rejects_undeclared_mistyped_and_future_content() -> None:
         AnalysisRecipeService.materialize(recipe, {"extra": 2})
 
     invalid = json.loads(AnalysisRecipeService.dumps(recipe))
-    invalid["schema_version"] = 2
+    invalid["schema_version"] = 3
     with pytest.raises(ValueError, match="schema version"):
         AnalysisRecipeService.loads(json.dumps(invalid))
-    invalid["schema_version"] = 1
+    invalid["schema_version"] = 2
     invalid["future"] = True
     with pytest.raises(ValueError, match="unsupported fields"):
         AnalysisRecipeService.loads(json.dumps(invalid))

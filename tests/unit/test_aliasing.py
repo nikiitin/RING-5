@@ -21,7 +21,7 @@ class TestAliasing:
         variables = cast(
             list[ParseVariableConfig],
             [
-                {"name": "system.cpu.ipc", "type": "scalar", "alias": "IPC"},  # ALIAS!
+                {"source_name": "system.cpu.ipc", "type": "scalar", "name": "IPC"},  # ALIAS!
                 {
                     "name": "system.cpu.cpi",
                     "type": "scalar",
@@ -42,7 +42,9 @@ class TestAliasing:
         )
 
         # Execute async parse
-        batch = facade.submit_parse_async(stats_path, stats_pattern, variables, "/tmp")
+        batch = facade.submit_parse_async(
+            stats_path, stats_pattern, facade.compile_parse_variables(variables), "/tmp"
+        )
         [f.result() for f in batch.futures]
 
         # Verify variables passed to parser

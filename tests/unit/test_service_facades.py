@@ -10,6 +10,8 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
+from src.parsing.registry import SimulatorRegistry
+
 from src.core.models.data_models import ParseVariableConfig
 from src.core.services.data_services.data_services_impl import DefaultDataServicesAPI
 from src.core.services.managers.managers_impl import DefaultManagersAPI
@@ -206,7 +208,9 @@ class TestDefaultDataServicesAPI:
     @patch("src.core.services.data_services.data_services_impl.VariableService")
     def test_filter_internal_stats(self, mock_svc: MagicMock, api: DefaultDataServicesAPI) -> None:
         mock_svc.filter_internal_stats.return_value = ["ipc"]
-        assert api.filter_internal_stats(["ipc", "::total"]) == ["ipc"]
+        assert api.filter_internal_stats(
+            ["ipc", "::total"], internal_stats=SimulatorRegistry.get_info("gem5").internal_stats
+        ) == ["ipc"]
 
     @patch("src.core.services.data_services.data_services_impl.VariableService")
     def test_find_variable_by_name(self, mock_svc: MagicMock, api: DefaultDataServicesAPI) -> None:
@@ -223,7 +227,9 @@ class TestDefaultDataServicesAPI:
         self, mock_svc: MagicMock, api: DefaultDataServicesAPI
     ) -> None:
         mock_svc.aggregate_discovered_entries.return_value = ["0", "1"]
-        result = api.aggregate_discovered_entries([], "cpu")
+        result = api.aggregate_discovered_entries(
+            [], "cpu", internal_stats=SimulatorRegistry.get_info("gem5").internal_stats
+        )
         assert result == ["0", "1"]
 
     @patch("src.core.services.data_services.data_services_impl.VariableService")

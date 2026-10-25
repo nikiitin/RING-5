@@ -37,7 +37,7 @@ class Histogram:
 class Configuration:
     def __init__(self) -> None:
         self.content = None
-        self.onEmpty = None
+        self.on_empty = None
 
 
 class TestStr:

@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Literal, Mapping
 
-from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
+from src.core.models.data_models import ScannedVariableDict
 from src.core.models.shaper_models import ShaperStepConfig
 
 RecipeParameterType = Literal["string", "integer", "number", "boolean", "path"]
@@ -54,7 +54,7 @@ class RecipeSource:
     path: str
     pattern: str = "stats.txt"
     strategy: str = "simple"
-    variables: tuple[ParseVariableConfig, ...] = ()
+    variables: tuple[dict[str, Any], ...] = ()
     scanned_variables: tuple[ScannedVariableDict, ...] = ()
     scan_limit: int = 10
     strict: bool = True
@@ -119,7 +119,7 @@ class AnalysisRecipe:
     transformations: tuple[ShaperStepConfig, ...] = ()
     plots: tuple[RecipePlot, ...] = ()
     exports: tuple[RecipeExport, ...] = ()
-    schema_version: int = 1
+    schema_version: int = 2
 
 
 @dataclass(frozen=True)

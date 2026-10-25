@@ -150,7 +150,7 @@ class WorkspaceSearchService:
             record = variables.setdefault(name.strip(), {"configured": False, "keywords": []})
             record["configured"] = True
             record["keywords"].extend(
-                (configured_variable.get("type", ""), configured_variable.get("alias", ""))
+                (configured_variable.get("type", ""), configured_variable.get("source_name", ""))
             )
         for scanned_variable in state_manager.get_scanned_variables():
             name = scanned_variable.get("name")

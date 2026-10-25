@@ -21,7 +21,7 @@ from typing import Any
 from src.core.models.data_models import ScannedVariableDict
 
 # Shared by durable parse requests and incremental rows; bump on semantic changes.
-PARSER_RESULT_VERSION = 6
+PARSER_RESULT_VERSION = 7
 
 # Type alias for StatConfig parameter values
 StatParamValue = str | int | float | bool | list[str] | None
@@ -234,9 +234,13 @@ class StatConfig:
             identical to ``name``.
         type: One of ``scalar``, ``vector``, ``distribution``, ``histogram``,
               ``configuration``.
-        repeat: Number of dump repetitions expected.
-        params: Type-specific parameters (entries, min/max, etc.).
+        repeat: Positive integer count of expected dump repetitions.
+        params: Current snake_case type options. Vector/histogram entries and
+            summary statistics use separate text lists; distribution bounds use
+            minimum/maximum; histogram rebinning uses bins/max_range;
+            configuration fallback uses on_empty.
         statistics_only: If True, parse only statistical summaries.
+        keep_indices: Keep concrete pattern instances as distinct output variables.
         is_regex: Whether ``source_name`` is a pattern that must be expanded
             against scanned variables.
     """

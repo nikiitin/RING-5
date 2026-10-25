@@ -898,7 +898,7 @@ class DataSourceComponents:
                     playground_batch = api.submit_parser_playground_async(
                         safe_stats_path,
                         str(_stats_pattern),
-                        api.state_manager.get_parse_variables(),
+                        api.compile_parse_variables(api.state_manager.get_parse_variables()),
                         str(output_path),
                         scanned_vars=api.state_manager.get_scanned_variables(),
                         strategy_type=api.state_manager.get_parser_strategy(),
@@ -923,7 +923,7 @@ class DataSourceComponents:
                     snapshot = api.submit_parse_job(
                         safe_stats_path,
                         str(_stats_pattern),
-                        api.state_manager.get_parse_variables(),
+                        api.compile_parse_variables(api.state_manager.get_parse_variables()),
                         scanned_vars=api.state_manager.get_scanned_variables(),
                         strategy_type=api.state_manager.get_parser_strategy(),
                         simulator=selected_sim,
@@ -1063,7 +1063,7 @@ class DataSourceComponents:
             manual_name = st.text_input("Variable Name", key="dialog_manual_name")
             if manual_name:
                 name = manual_name
-            type_options = ["scalar", "vector", "distribution", "configuration"]
+            type_options = ["scalar", "vector", "distribution", "histogram", "configuration"]
             var_type = st.selectbox("Type", type_options, key="dialog_manual_type")
 
         # 3. Dynamic Configuration Form
@@ -1076,15 +1076,12 @@ class DataSourceComponents:
             if method == "Search Scanned Variables":
                 name = st.text_input("Name", value=name, key="dialog_final_name")
 
-            config: ParseVariableConfig = {"name": name, "type": var_type, "_id": ""}
+            config: ParseVariableConfig = {"name": name, "type": var_type, "params": {}, "_id": ""}
             temp_id = "dialog_new_var"
-            defaults: ParseVariableConfig = cast(
-                ParseVariableConfig,
-                (
-                    selected_scanned_var
-                    if selected_scanned_var
-                    else {"name": "", "type": "", "entries": []}
-                ),
+            defaults: ParseVariableConfig = (
+                api.draft_from_scanned_variable(selected_scanned_var)
+                if selected_scanned_var
+                else {"name": "", "type": "", "params": {}}
             )
 
             if var_type == "vector":
@@ -1106,6 +1103,16 @@ class DataSourceComponents:
                     stats_path=api.state_manager.get_stats_path(),
                     stats_pattern=api.state_manager.get_stats_pattern(),
                 )
+            elif var_type == "histogram":
+                VariableEditor.render_histogram_config(
+                    api=api,
+                    var_config=config,
+                    original_var=defaults,
+                    var_id=temp_id,
+                    available_variables=scanned_vars,
+                    stats_path=api.state_manager.get_stats_path(),
+                    stats_pattern=api.state_manager.get_stats_pattern(),
+                )
             elif var_type == "configuration":
                 VariableEditor.render_configuration_config(
                     var_config=config, original_var=defaults, var_id=temp_id
@@ -1121,14 +1128,16 @@ class DataSourceComponents:
                 )
                 repeat_int = int(repeat)
                 if repeat_int > 1:
-                    config["repeat"] = str(repeat_int)
+                    config["repeat"] = repeat_int
 
             st.write("")
             if st.button("Add to Configuration", type="primary", width="stretch"):
                 if not name:
                     st.error("Variable name is required.")
-                elif var_type == "vector" and not config.get("vectorEntries"):
-                    st.error("Vector variables require at least one entry.")
+                elif var_type == "vector" and not config.get("params", {}).get(
+                    "statistics" if config.get("statistics_only", False) else "entries"
+                ):
+                    st.error("Vector variables require at least one selected entry or statistic.")
                 else:
                     # Build new variable from config + dialog fields
                     config["name"] = name

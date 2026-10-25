@@ -11,19 +11,19 @@ class Configuration(StatType):
     """
     Represents configuration/metadata values (e.g., benchmark name, seed).
 
-    Stores string values; uses onEmpty default if content is empty.
+    Stores string values; uses on_empty default if content is empty.
 
     Validation:
     - Values must be convertible to strings
-    - onEmpty provides fallback for empty content
+    - on_empty provides fallback for empty content
     - No balancing needed (always balanced)
-    - Reduction returns first value or onEmpty
+    - Reduction returns first value or on_empty
     """
 
     # [impl->req~ring5.ingestion.configuration-fallbacks~1]
     # [impl->req~ring5.ingestion.configuration~1]
 
-    required_params = ["onEmpty"]
+    required_params = ["on_empty"]
     _allowed_attributes = frozenset(
         {
             "_repeat",
@@ -36,13 +36,15 @@ class Configuration(StatType):
     )
 
     def __init__(
-        self, repeat: int = 1, onEmpty: str | None = None, **kwargs: StatParamValue
+        self, repeat: int = 1, on_empty: str | None = None, **kwargs: StatParamValue
     ) -> None:
-        super().__init__(repeat, **kwargs)
-        object.__setattr__(self, "_on_empty", onEmpty or "None")
+        if kwargs:
+            raise TypeError(f"Unsupported configuration options: {sorted(kwargs)}")
+        super().__init__(repeat)
+        object.__setattr__(self, "_on_empty", on_empty or "None")
 
     @property
-    def onEmpty(self) -> str:
+    def on_empty(self) -> str:
         """Return the value used when configuration content is empty."""
         return str(object.__getattribute__(self, "_on_empty"))
 
@@ -69,7 +71,7 @@ class Configuration(StatType):
 
     @override
     def reduce_duplicates(self) -> None:
-        """For configuration, return first value or onEmpty default."""
+        """For configuration, return first value or on_empty default."""
         object.__setattr__(self, "_reduced", True)
 
         if not self._content:
@@ -78,4 +80,4 @@ class Configuration(StatType):
             object.__setattr__(self, "_reduced_content", self._content[0])
 
     def __str__(self) -> str:
-        return f"Configuration({self._content}, onEmpty={self._on_empty})"
+        return f"Configuration({self._content}, on_empty={self._on_empty})"

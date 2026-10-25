@@ -251,15 +251,15 @@ def test_variable_editor_preserves_repeat_on_ordinary_rerun(tmp_path: Path) -> N
         api = ApplicationAPI()
         try:
             st.session_state["result"] = VariableEditor.render(
-                api, [{"name": "ipc", "type": "scalar", "_id": "scalar", "repeat": "3"}]
+                api, [{"name": "ipc", "type": "scalar", "_id": "scalar", "repeat": 3}]
             )
         finally:
             api.close()
     """)
     assert not app.exception
-    assert app.session_state["result"][0]["repeat"] == "3"
+    assert app.session_state["result"][0]["repeat"] == 3
     app.run()
-    assert app.session_state["result"][0]["repeat"] == "3"
+    assert app.session_state["result"][0]["repeat"] == 3
 
     from src.core.application_api import ApplicationAPI
     import pandas as pd
@@ -268,7 +268,10 @@ def test_variable_editor_preserves_repeat_on_ordinary_rerun(tmp_path: Path) -> N
     api = ApplicationAPI()
     try:
         batch = api.submit_parse_async(
-            str(tmp_path), "stats.txt", app.session_state["result"], str(tmp_path / "out")
+            str(tmp_path),
+            "stats.txt",
+            api.compile_parse_variables(app.session_state["result"]),
+            str(tmp_path / "out"),
         )
         results = [future.result(timeout=30) for future in batch.futures]
         output = api.finalize_parsing(str(tmp_path / "out"), results, var_names=batch.var_names)
@@ -283,8 +286,9 @@ def test_vector_combined_mode_preserves_entries_and_summary_members() -> None:
         from src.core.application_api import ApplicationAPI
         from src.web.components.data_source.variable_editor import VariableEditor
         api = ApplicationAPI()
-        original = {"name": "v", "type": "vector", "_id": "v", "vectorEntries": ["cpu0", "mean"],
-                    "statisticsOnly": False, "useSpecialMembers": True}
+        original = {"name": "v", "type": "vector", "_id": "v",
+                    "statistics_only": False,
+                    "params": {"entries": ["cpu0"], "statistics": ["mean"]}}
         result = {"name": "v", "type": "vector", "_id": "v"}
         try:
             VariableEditor.render_vector_config(api, result, original, "v",
@@ -295,8 +299,8 @@ def test_vector_combined_mode_preserves_entries_and_summary_members() -> None:
             api.close()
     """)
     assert not app.exception
-    assert app.session_state["result"]["vectorEntries"] == ["cpu0", "mean"]
-    assert app.session_state["result"]["useSpecialMembers"] is True
+    assert app.session_state["result"]["params"]["entries"] == ["cpu0"]
+    assert app.session_state["result"]["params"]["statistics"] == ["mean"]
 
 
 @pytest.mark.parametrize("plot_type", ["bar", "line"])
@@ -579,3 +583,172 @@ def test_filtered_selectbox_preserves_selection_across_search_clear_and_removed_
     app.checkbox(key="remove_option").check().run()
     assert not app.exception
     assert app.session_state["result"] is None
+
+
+def test_variable_editor_compiles_current_values_and_preserves_hidden_pattern_flags() -> None:
+    app = _app("""
+        from copy import deepcopy
+        from src.core.application_api import ApplicationAPI
+        from src.web.components.data_source.variable_editor import VariableEditor
+        api = ApplicationAPI()
+        original = [{"name": "renamed", "source_name": "v", "type": "vector", "_id": "v",
+                     "params": {"entries": ["cpu0"], "statistics": ["mean"],
+                                "source_type": "vector"},
+                     "statistics_only": False, "keep_indices": True, "repeat": 2}]
+        before = deepcopy(original)
+        try:
+            result = VariableEditor.render(api, original,
+                [{"name": "v", "type": "vector", "entries": ["cpu0", "mean"]}])
+            st.session_state["configured"] = api.compile_parse_variables(result)[0]
+            st.session_state["unmodified"] = original == before
+        finally:
+            api.close()
+    """)
+    assert not app.exception
+    configured = app.session_state["configured"]
+    assert configured.name == "renamed"
+    assert configured.source_name == "v"
+    assert configured.repeat == 2
+    assert configured.keep_indices is True
+    assert configured.params["source_type"] == "vector"
+    assert configured.params["entries"] == ["cpu0"]
+    assert configured.params["statistics"] == ["mean"]
+    assert app.session_state["unmodified"]
+
+
+def test_variable_editor_preserves_types_without_an_editor_instead_of_replacing_them() -> None:
+    app = _app("""
+        from src.core.application_api import ApplicationAPI
+        from src.web.components.data_source.variable_editor import VariableEditor
+        api = ApplicationAPI()
+        original = [{"name": "special", "type": "custom_stat", "_id": "custom",
+                     "repeat": 2, "params": {"scale": 2}}]
+        try:
+            st.session_state["result"] = VariableEditor.render(api, original)
+        finally:
+            api.close()
+    """)
+    assert not app.exception
+    assert app.warning
+    assert app.session_state["result"] == [
+        {
+            "name": "special",
+            "type": "custom_stat",
+            "_id": "custom",
+            "repeat": 2,
+            "params": {"scale": 2},
+        }
+    ]
+
+
+def _vector_draft_editor(*, discovered: bool, summaries: list[str]) -> AppTest:
+    available = [{"name": "v", "type": "vector", "entries": ["cpu0", "cpu1"]}] if discovered else []
+    original = {
+        "name": "v",
+        "type": "vector",
+        "_id": "v",
+        "params": {"entries": ["cpu0"], "statistics": summaries},
+    }
+    return _app(f"""
+        from copy import deepcopy
+        from src.core.application_api import ApplicationAPI
+        from src.web.components.data_source.variable_editor import VariableEditor
+        api = ApplicationAPI()
+        original = {original!r}
+        result = deepcopy(original)
+        try:
+            VariableEditor.render_vector_config(
+                api, result, original, "v", {available!r}, None, "stats.txt")
+            st.session_state["result"] = result
+        finally:
+            api.close()
+    """)
+
+
+def test_summary_editor_retains_order_and_unrepresented_fields_until_mode_changes() -> None:
+    app = _vector_draft_editor(discovered=False, summaries=["stdev", "custom_summary", "mean"])
+    assert not app.exception
+    assert app.session_state["result"]["params"]["statistics"] == [
+        "stdev",
+        "custom_summary",
+        "mean",
+    ]
+    assert any("custom_summary" in warning.value for warning in app.warning)
+    app.run()
+    assert app.session_state["result"]["params"]["statistics"] == [
+        "stdev",
+        "custom_summary",
+        "mean",
+    ]
+    app.checkbox(key="stat_stdev_v").uncheck().run()
+    app.checkbox(key="stat_mean_v").uncheck().run()
+    assert not app.exception
+    assert app.session_state["result"]["params"]["statistics"] == ["custom_summary"]
+    app.segmented_control(key="vec_parse_mode_v").set_value("Entries Only").run()
+    assert not app.exception
+    assert "statistics" not in app.session_state["result"]["params"]
+
+
+@pytest.mark.parametrize("discovered", [False, True])
+def test_clearing_vector_entry_widgets_removes_the_saved_selection(discovered: bool) -> None:
+    app = _vector_draft_editor(discovered=discovered, summaries=[])
+    assert not app.exception
+    assert app.session_state["result"]["params"]["entries"] == ["cpu0"]
+    if discovered:
+        app.multiselect(key="vector_entries_select_v").set_value([]).run()
+    else:
+        app.text_input(key="vector_entries_v").set_value("").run()
+    assert not app.exception
+    assert app.session_state["result"]["params"]["entries"] == []
+    assert app.warning
+
+
+@pytest.mark.parametrize("type_fields", [{}, {"type": ""}])
+def test_incomplete_variable_type_remains_editable_without_guessing_or_losing_params(
+    type_fields,
+) -> None:
+    original = {"_id": "draft", "params": {"entries": ["cpu0"]}, **type_fields}
+    app = _app(f"""
+        from src.core.application_api import ApplicationAPI
+        from src.web.components.data_source.variable_editor import VariableEditor
+        api = ApplicationAPI()
+        try:
+            result = VariableEditor.render(api, [{original!r}])
+            st.session_state["result"] = result
+            try:
+                st.session_state["compiled"] = api.compile_parse_variables(result)
+            except ValueError:
+                st.session_state["compiled"] = None
+        finally:
+            api.close()
+    """)
+    assert not app.exception
+    assert app.selectbox(key="var_type_draft").value is None
+    assert app.session_state["result"][0]["type"] == ""
+    assert app.session_state["result"][0]["params"] == {"entries": ["cpu0"]}
+    assert app.session_state["compiled"] is None
+    app.text_input(key="var_name_draft").set_value("vector_stat").run()
+    app.selectbox(key="var_type_draft").select("vector").run()
+    assert not app.exception
+    assert app.session_state["compiled"][0].name == "vector_stat"
+    assert app.session_state["compiled"][0].type == "vector"
+    assert app.session_state["compiled"][0].params["entries"] == ["cpu0"]
+
+
+def test_unsupported_backend_variable_can_be_explicitly_deleted() -> None:
+    app = _app("""
+        from src.core.application_api import ApplicationAPI
+        from src.web.components.data_source.variable_editor import VariableEditor
+        api = ApplicationAPI()
+        original = [{"name": "special", "type": "custom_stat", "_id": "custom",
+                     "params": {"scale": 2}}]
+        try:
+            st.session_state["result"] = VariableEditor.render(api, original)
+        finally:
+            api.close()
+    """)
+    assert not app.exception
+    assert app.session_state["result"][0]["params"] == {"scale": 2}
+    app.button(key="delete_var_custom").click().run()
+    assert not app.exception
+    assert app.session_state["result"] == []

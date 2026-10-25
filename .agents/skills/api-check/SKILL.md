@@ -26,10 +26,13 @@ callers use the facade correctly and the contract holds.
 ## Async parse/scan — the one correct shape (never wrap synchronously)
 ```python
 futures   = api.submit_scan_async(stats_path, pattern, limit=5)
-variables = api.finalize_scan([f.result() for f in futures])
-batch     = api.submit_parse_async(stats_path, pattern, variables, out_dir, scanned_vars=variables)
+scan      = api.finalize_scan([f.result() for f in futures])
+configs   = [StatConfig(name=v.name, type="scalar") for v in scan.variables if v.type == "scalar"]
+batch     = api.submit_parse_async(stats_path, pattern, configs, out_dir, scanned_vars=scan.variables)
 csv_path  = api.finalize_parsing(out_dir, [f.result() for f in batch.futures])
 ```
+- Runnable inputs are `StatConfig` values. UI drafts compile through `api.compile_parse_variables`;
+  durable job and recipe payloads use `StatConfigCodec` exact snake_case serialization.
 - **Always pass `scanned_vars`** when parsing regex/pattern variables (needed to reconstruct
   concrete names). Omitting it is the most common contract bug.
 - Long-running scans: release with `api.cancel_pending_scans()` — instance-scoped (cancels only
