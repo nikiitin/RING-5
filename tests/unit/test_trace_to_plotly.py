@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any, cast
 
 import plotly.graph_objects as go
+import pytest
 
 from src.core.models.visualization.annotation_config import AnnotationConfig
 from src.core.models.visualization.trace_build_result import TraceBuildResult
@@ -675,7 +676,7 @@ class TestConvertAnnotations:
         assert result[0]["showarrow"] is False
         assert "arrowcolor" not in result[0]
 
-    def test_non_annotation_skipped(self) -> None:
-        """Non-AnnotationConfig items are silently skipped."""
-        result = _convert_annotations(["not_an_annotation"])  # type: ignore[list-item]
-        assert result == []
+    def test_non_annotation_rejected(self) -> None:
+        """Unsupported entries cannot silently remove intended figure annotations."""
+        with pytest.raises(TypeError, match="Unsupported annotation type: str"):
+            _convert_annotations(["not_an_annotation"])  # type: ignore[list-item]

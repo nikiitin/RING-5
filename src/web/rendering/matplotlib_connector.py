@@ -22,6 +22,7 @@ from src.core.models.visualization.figure_config import FigureConfig
 from src.core.models.visualization.legend_config import ColorbarConfig
 from src.core.models.visualization.trace_build_result import RuleLine, SeparatorLine, ShadedRegion
 from src.web.rendering._render_result import MatplotlibRenderResult
+from src.web.rendering._connector_protocol import validate_annotation_types
 from src.web.rendering.latex_security import escape_latex_text
 
 if TYPE_CHECKING:
@@ -110,8 +111,12 @@ class FigureSpecToMatplotlib:
             render_result: Trace-rendering metadata, including an optional heatmap image.
             apply_margins: Apply figure-wide margins. Dashboard panels disable
                 this because their parent grid owns the outer layout.
+
+        Raises:
+            TypeError: An annotation has no supported typed family.
         """
         # [impl->req~ring5.extension.render-connector~1]
+        validate_annotation_types(spec.annotations)
         import matplotlib as mpl
 
         # Scope the font family to this build: artists the steps below create
@@ -924,6 +929,7 @@ class FigureSpecToMatplotlib:
         the axis unit converter; unknown categories are skipped.
         """
         # [impl->req~ring5.figure.shapes-annotations~1]
+        validate_annotation_types(spec.annotations)
         if not spec.annotations:
             return
 

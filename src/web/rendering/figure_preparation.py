@@ -12,7 +12,7 @@ from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
 from src.core.services.visualization.accessibility_service import AccessibilityService
 from src.core.services.visualization.config_resolver import resolve_config
-from src.web.rendering._connector_protocol import validate_trace_types
+from src.web.rendering._connector_protocol import validate_annotation_types, validate_trace_types
 from src.web.rendering.config_builder import ConfigSpecBuilder, enrich_from_traces
 
 
@@ -59,7 +59,7 @@ def prepare_figure(
         Effective configuration, owned traces and resolved typed styling.
 
     Raises:
-        TypeError: A callback emits an unsupported neutral trace family.
+        TypeError: A callback emits an unsupported neutral trace or annotation family.
         ValueError: Configuration or trace construction is invalid.
     """
     # [impl->req~ring5.render.engine-independent-traces~1]
@@ -67,8 +67,10 @@ def prepare_figure(
     # [impl->req~ring5.figure.accessible-themes~1]
     effective = SemanticMetadataService.enrich_figure_config(data, deepcopy(config))
     effective = AccessibilityService.apply_defaults(effective, plot_type)
-    result = deepcopy(create_traces(data, effective))
+    result = create_traces(data, effective)
     validate_trace_types(result.traces)
+    validate_annotation_types(result.annotations)
+    result = deepcopy(result)
     result = AccessibilityService.apply_non_color_encodings(result, effective)
     result = _relabel_traces(result, effective.get("legend_labels"))
     spec = ConfigSpecBuilder.from_config(effective, plot_type)

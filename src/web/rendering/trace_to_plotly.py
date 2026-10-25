@@ -28,7 +28,7 @@ from src.core.models.visualization.trace_config import (
     WaterfallTraceConfig,
 )
 from src.web.rendering._heatmap_utils import heatmap_text_colors
-from src.web.rendering._connector_protocol import validate_trace_types
+from src.web.rendering._connector_protocol import validate_annotation_types, validate_trace_types
 
 
 def _error_y_dict(error_y: list[float] | None) -> dict[str, Any] | None:
@@ -54,10 +54,11 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
         A fully populated (but unstyled) ``go.Figure``.
 
     Raises:
-        TypeError: A trace has no supported concrete family.
+        TypeError: A trace or annotation has no supported concrete family.
     """
     traces_list = list(result.traces)
     validate_trace_types(traces_list)
+    validate_annotation_types(result.annotations)
     heatmap_only = (
         len(traces_list) > 1
         and all(isinstance(trace, HeatmapTraceConfig) for trace in traces_list)
@@ -713,10 +714,9 @@ def _convert_annotations(
 ) -> list[dict[str, Any]]:
     """Convert ``AnnotationConfig`` list to Plotly annotation dicts."""
 
+    validate_annotation_types(annotations)
     result: list[dict[str, Any]] = []
     for ann in annotations:
-        if not isinstance(ann, AnnotationConfig):
-            continue
         d: dict[str, Any] = {
             "text": ann.text,
             "x": ann.x,

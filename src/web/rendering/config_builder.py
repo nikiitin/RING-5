@@ -32,6 +32,7 @@ from src.core.models.visualization.series_style_config import SeriesStyleConfig
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.typography_config import TypographyConfig
 from src.core.services.visualization.palette_service import resolve_palette
+from src.web.rendering._connector_protocol import validate_annotation_types
 
 
 def should_show_x_tick_labels(config: dict[str, Any]) -> bool:
@@ -621,6 +622,7 @@ def enrich_from_traces(spec: FigureConfig, result: TraceBuildResult) -> None:
     Annotation font roles reference configured styles without creating trace legends.
     """
 
+    validate_annotation_types(result.annotations)
     ticks = result.custom_x_ticks
     if ticks:
         vals = ticks.get("vals")

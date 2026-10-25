@@ -1933,7 +1933,8 @@
           "src/core/models/visualization/trace_build_result.py::TraceBuildResult",
           "src/web/pages/ui/plotting/base_plot.py::BasePlot.create_figure",
           "src/web/rendering/figure_preparation.py::prepare_figure",
-          "src/web/rendering/_connector_protocol.py::validate_trace_types"
+          "src/web/rendering/_connector_protocol.py::validate_trace_types",
+          "src/web/rendering/_connector_protocol.py::validate_annotation_types"
         ],
         "tests": [
           "tests/unit/test_trace_to_plotly.py::TestTracesToPlotly",
@@ -1942,7 +1943,10 @@
           "tests/integration/test_neutral_trace_contract.py::test_public_render_exposes_unknown_trace_as_typed_error",
           "tests/integration/test_neutral_trace_contract.py::test_supported_trace_subclasses_preserve_data_in_both_engines",
           "tests/unit/test_figure_preparation.py::test_all_registered_examples_prepare_once_without_constructing_native_figures",
-          "tests/unit/test_figure_preparation.py::test_preparation_owns_callback_config_and_reusable_trace_metadata"
+          "tests/unit/test_figure_preparation.py::test_preparation_owns_callback_config_and_reusable_trace_metadata",
+          "tests/integration/test_annotation_admission.py::test_unknown_annotations_reject_before_native_allocation",
+          "tests/integration/test_annotation_admission.py::test_public_annotation_failures_preserve_the_published_native_figure",
+          "tests/integration/test_annotation_admission.py::test_supported_annotation_subclass_survives_public_native_render"
         ],
         "documentation": [
           "docs/developer-guide/subsystems/visualization.md#engine-independent-traces"
