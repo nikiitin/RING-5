@@ -3,7 +3,6 @@
 Tests real Streamlit rendering with AppTest, beyond basic navigation.
 Covers:
     - Manage Plots page widget interactions
-    - Performance page rendering, and content
     - Portfolio page empty-state behavior
     - Data Managers empty-state behavior
     - Clear data / Reset all button behavior
@@ -36,8 +35,7 @@ class TestManagePlotsWorkflow:
         """Create section renders a text input and selectbox for type."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
-        at.session_state["_nav_page"] = "Manage Plots"
-        at.run()
+        navigate_to(at, "Manage Plots")
 
         assert not at.exception
         # Should have text inputs for plot name
@@ -49,37 +47,11 @@ class TestManagePlotsWorkflow:
         """A 'Create Plot' button is present on the page."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
-        at.session_state["_nav_page"] = "Manage Plots"
-        at.run()
+        navigate_to(at, "Manage Plots")
 
         assert not at.exception
         create_buttons = [b for b in at.button if "create" in b.label.lower()]
         assert len(create_buttons) > 0, "Expected 'Create' button"
-
-
-# Performance page
-class TestPerformancePage:
-    """Tests for the Performance monitoring page."""
-
-    def test_page_loads(self) -> None:
-        """Performance page loads without error."""
-        at = AppTest.from_file(_APP_PATH, default_timeout=10)
-        at.run()
-        at.session_state["_nav_page"] = "Performance"
-        at.run()
-
-        assert not at.exception
-
-    def test_page_has_metrics(self) -> None:
-        """Performance page renders metric widgets."""
-        at = AppTest.from_file(_APP_PATH, default_timeout=10)
-        at.run()
-        at.session_state["_nav_page"] = "Performance"
-        at.run()
-
-        assert not at.exception
-        # Should show at least one metric (cache hit rate, etc.)
-        assert len(at.metric) > 0 or len(at.markdown) > 0, "Expected metrics or content"
 
 
 # Portfolio page empty state
@@ -90,8 +62,7 @@ class TestPortfolioEmptyState:
         """Portfolio page renders cleanly with no saved portfolios."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
-        at.session_state["_nav_page"] = "Save/Load Portfolio"
-        at.run()
+        navigate_to(at, "Save/Load Portfolio")
 
         assert not at.exception
 
@@ -99,8 +70,7 @@ class TestPortfolioEmptyState:
         """Portfolio page has save form elements."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
-        at.session_state["_nav_page"] = "Save/Load Portfolio"
-        at.run()
+        navigate_to(at, "Save/Load Portfolio")
 
         assert not at.exception
         # Should have at least one text input for portfolio name
@@ -117,8 +87,7 @@ class TestDataManagersEmptyState:
         """When no data loaded, Data Managers shows appropriate message."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
-        at.session_state["_nav_page"] = "Data Managers"
-        at.run()
+        navigate_to(at, "Data Managers")
 
         assert not at.exception
         # Should show a warning or info about needing data
@@ -161,8 +130,7 @@ class TestSidebarActions:
             "Manage Plots",
             "Save/Load Portfolio",
         ]
-        for page in expected:
-            assert any(page in label for label in nav_labels), f"Missing nav option: {page}"
+        assert nav_labels == expected
 
 
 # App header and initial state

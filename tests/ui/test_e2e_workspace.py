@@ -261,16 +261,6 @@ class TestCrossPageConsistency:
         # Cleanup
         api.data_services.delete_portfolio("e2e_workflow_portfolio")
 
-    def test_performance_metrics_update_with_state(self) -> None:
-        """Performance page shows updated metrics as state grows."""
-        at = create_app_with_data()
-        navigate_to(at, "Performance")
-
-        assert not at.exception
-        data_metrics = [m for m in at.metric if m.label == "Data Loaded"]
-        if data_metrics:
-            assert data_metrics[0].value == "Yes"
-
 
 # FigureEngine with multiple plot types
 class TestFigureEngineMultiType:

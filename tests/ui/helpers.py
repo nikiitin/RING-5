@@ -204,8 +204,10 @@ def navigate_to(at: AppTest, page_name: str) -> AppTest:
     Returns:
         The same AppTest instance after navigation and re-run.
     """
-    at.session_state["_nav_page"] = page_name
-    at.run()
+    at.sidebar.button(key=f"nav_{page_name}").click().run()
+    assert not at.exception, f"Navigation to {page_name!r} raised an exception."
+    selected = at.session_state["_nav_page"]
+    assert selected == page_name, f"Navigation selected {selected!r}, expected {page_name!r}."
     return at
 
 

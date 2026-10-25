@@ -10,7 +10,9 @@ permalink: /developer-guide/subsystems/web/
 # Web application
 
 `app.py` creates one `ApplicationAPI` per Streamlit browser session, renders sidebar navigation, and
-loads only the active page. Page modules compose components, controllers, adapters, and state.
+loads only the active page. The four destinations are Data Source, Data Managers, Manage Plots,
+and Save/Load Portfolio. Navigation tests activate their sidebar buttons and verify the selected
+destination. Page modules compose components, controllers, adapters, and state.
 
 ## Components and controllers
 
