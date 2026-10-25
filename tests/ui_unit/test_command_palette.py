@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.core.models import (
+from src.core.models.workspace_command_models import (
     WorkspaceCommand,
     WorkspaceCommandAction,
     WorkspaceCommandSearchResponse,

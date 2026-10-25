@@ -5,7 +5,7 @@ from __future__ import annotations
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
-from src.core.models import GuidedAnalysisProgress, GuidedAnalysisStage
+from src.core.models.guided_analysis_models import GuidedAnalysisProgress, GuidedAnalysisStage
 
 
 class GuidedAnalysisComponent:

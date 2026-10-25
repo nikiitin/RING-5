@@ -11,7 +11,8 @@ from typing import Any
 
 from src.core.common.stat_config_codec import StatConfigCodec
 from src.core.application_api import ApplicationAPI
-from src.core.models import IncrementalParseBatchResult, ParseJobStatus
+from src.core.models.parsing_models import IncrementalParseBatchResult
+from src.core.models.parse_job_models import ParseJobStatus
 from src.core.models.parse_job_models import JsonValue
 from src.core.services.parse_job_service import ParseJobService
 from src.core.services.parse_job_workspace import ParseJobRuntimeWorkspace

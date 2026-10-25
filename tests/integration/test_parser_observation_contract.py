@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from src.core.models import ScannedVariable, StatConfig
+from src.core.models.parsing_models import ScannedVariable, StatConfig
 from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 from src.parsing.gem5.models import Gem5ScannedVariable
 

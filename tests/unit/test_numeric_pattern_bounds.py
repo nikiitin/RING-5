@@ -13,7 +13,7 @@ from src.core.common.safe_regex import (
     SafeRegexError,
     numeric_pattern_id,
 )
-from src.core.models import StatConfig
+from src.core.models.parsing_models import StatConfig
 from src.parsing.gem5.impl.strategies.gem5_parse_work import Gem5ParseWork, VarsDictType
 from src.parsing.gem5.types.type_mapper import TypeMapper
 from src.parsing.gem5.types.vector import Vector

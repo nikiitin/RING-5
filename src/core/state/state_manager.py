@@ -17,14 +17,9 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 import pandas as pd
 
-from src.core.models import (
-    DatasetInfo,
-    DatasetLineage,
-    DatasetRevision,
-    PlotProtocol,
-    PortfolioData,
-    RestoreReport,
-)
+from src.core.models.dataset_workspace_models import DatasetInfo, DatasetLineage, DatasetRevision
+from src.core.models.plot_protocol import PlotProtocol
+from src.core.models.portfolio_models import PortfolioData, RestoreReport
 from src.core.models.data_models import (
     CsvPoolEntry,
     ParseVariableConfig,

@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.core.models import ParseJobReceipt, ParseJobSnapshot, ParseJobStatus
+from src.core.models.parse_job_models import ParseJobReceipt, ParseJobSnapshot, ParseJobStatus
 from src.web.components.data_source import data_source_components
 from src.web.components.data_source import parse_job_status
 

@@ -7,7 +7,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.core.models import DatasetInfo, WorkspaceSearchEntry
+from src.core.models.dataset_workspace_models import DatasetInfo
+from src.core.models.workspace_search_models import WorkspaceSearchEntry
 from src.core.services import workspace_search_service as search_module
 from src.core.services.workspace_search_service import WorkspaceSearchService
 

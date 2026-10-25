@@ -19,7 +19,7 @@ from src.core.common.security_limits import (
     PARSER_PLAYGROUND_TIMEOUT_SECONDS,
 )
 from src.core.common.stat_config_codec import StatConfigCodec
-from src.core.models import ScannedVariable, StatConfig
+from src.core.models.parsing_models import ScannedVariable, StatConfig
 
 from ring5._scan import ScanJob
 from ring5.errors import MissingStatError, ParseError, ScanError
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from concurrent.futures import Future
 
     from src.core.application_api import ApplicationAPI
-    from src.core.models import (
+    from src.core.models.parsing_models import (
         IncrementalParseBatchResult,
         ParserPlaygroundBatchResult,
         ParserPlaygroundResult,

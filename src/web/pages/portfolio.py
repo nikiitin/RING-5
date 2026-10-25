@@ -11,7 +11,8 @@ import logging
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
-from src.core.models import EnvironmentComparison, PortfolioIntegrityReport
+from src.core.models.environment_models import EnvironmentComparison
+from src.core.models.portfolio_integrity_models import PortfolioIntegrityReport
 from src.core.services.environment_metadata_service import EnvironmentMetadataService
 from src.core.models.portfolio_contract import PortfolioVersionError
 from src.web.components.report_composer import ReportComposer

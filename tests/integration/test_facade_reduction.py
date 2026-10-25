@@ -10,7 +10,7 @@ import pandas as pd
 import pytest
 
 from src.core.application_api import ApplicationAPI
-from src.core.models import StatConfig
+from src.core.models.parsing_models import StatConfig
 
 pytestmark = pytest.mark.xdist_group("perl_pool")
 

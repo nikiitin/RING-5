@@ -3,7 +3,7 @@ from typing import Any, cast
 from unittest.mock import MagicMock, mock_open, patch
 
 from src.core.application_api import ApplicationAPI
-from src.core.models import ParseBatchResult
+from src.core.models.parsing_models import ParseBatchResult
 from src.core.models.data_models import ParseVariableConfig
 
 

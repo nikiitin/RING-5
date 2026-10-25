@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from src.core.models import ScannedVariable, StatConfig
+from src.core.models.parsing_models import ScannedVariable, StatConfig
 from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
 pytestmark = pytest.mark.xdist_group("perl_pool")

@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.core.models import BackgroundJobInfo, BackgroundJobLogEntry
+from src.core.models.background_job_models import BackgroundJobInfo, BackgroundJobLogEntry
 from src.core.services.background_job_service import BackgroundJobService
 
 

@@ -7,7 +7,7 @@ import logging
 import pandas as pd
 
 from src.core.common.stat_config_codec import StatConfigCodec
-from src.core.models import PortfolioData, RestoreReport
+from src.core.models.portfolio_models import PortfolioData, RestoreReport
 from src.core.models.plot_protocol import PlotDeserializer, PlotProtocol
 from src.core.state.repositories.config_repository import ConfigRepository
 from src.core.state.repositories.data_repository import DataRepository

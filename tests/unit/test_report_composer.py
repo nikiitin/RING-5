@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pandas as pd
 
-from src.core.models import EnvironmentMetadata
+from src.core.models.environment_models import EnvironmentMetadata
 from src.core.models.visualization.dashboard_spec import DashboardSpec
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 

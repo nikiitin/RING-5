@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.core.models import StatConfig
+from src.core.models.parsing_models import StatConfig
 from src.parsing.gem5.impl.strategies.config_aware import ConfigAwareStrategy
 from src.parsing.gem5.impl.strategies.simple import SimpleStatsStrategy
 

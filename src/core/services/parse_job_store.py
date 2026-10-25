@@ -10,7 +10,7 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
 
-from src.core.models import (
+from src.core.models.parse_job_models import (
     InvalidParseJobTransition,
     ParseFileSignature,
     ParseJobNotFoundError,

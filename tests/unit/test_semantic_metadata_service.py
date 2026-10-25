@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 
 from src.core.common.semantic_metadata import semantics_from_payload
-from src.core.models import ColumnSemantics, DatasetSemantics
+from src.core.models.semantic_metadata_models import ColumnSemantics, DatasetSemantics
 from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
 from src.core.services.managers.schema_contract_service import SchemaContractService
 

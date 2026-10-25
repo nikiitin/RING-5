@@ -5,7 +5,7 @@ from __future__ import annotations
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
-from src.core.models import BackgroundJobInfo
+from src.core.models.background_job_models import BackgroundJobInfo
 
 _KIND_LABELS = {
     "scan": "Scan",

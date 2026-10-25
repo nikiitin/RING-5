@@ -19,13 +19,13 @@ from src.core.common.security_limits import (
     MAX_PORTFOLIO_BUNDLE_MEMBERS,
     MAX_PORTFOLIO_BUNDLE_RESULT_BYTES,
 )
-from src.core.models import (
+from src.core.models.portfolio_bundle_models import (
     PortfolioBundleArtifact,
     PortfolioBundleContents,
     PortfolioBundleInfo,
     PortfolioBundleResult,
-    PortfolioData,
 )
+from src.core.models.portfolio_models import PortfolioData
 from src.core.models.portfolio_bundle_models import PortfolioBundleArtifactRole
 from src.core.services.data_services.dataset_snapshot_service import DatasetSnapshotService
 from src.core.services.portfolio_integrity_service import PortfolioIntegrityService

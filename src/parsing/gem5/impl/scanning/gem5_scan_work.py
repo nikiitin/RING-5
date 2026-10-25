@@ -13,7 +13,7 @@ import os
 from pathlib import Path
 
 from src.core.common.utils import sanitize_log_value
-from src.core.models import ScanFileResult
+from src.core.models.parsing_models import ScanFileResult
 from src.parsing.gem5.impl.scanning.scanner import Gem5StatsScanner
 
 logger = logging.getLogger(__name__)

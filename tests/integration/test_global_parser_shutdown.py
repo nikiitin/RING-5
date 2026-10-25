@@ -12,7 +12,7 @@ import pytest
 
 import ring5
 from ring5.errors import JobError
-from src.core.models import StatConfig
+from src.core.models.parsing_models import StatConfig
 from src.parsing.framework.work_pool import WorkPool
 from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 from src.parsing.gem5.impl.strategies.perl_worker_pool import get_worker_pool

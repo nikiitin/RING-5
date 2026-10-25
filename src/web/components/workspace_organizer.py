@@ -7,7 +7,7 @@ import hashlib
 import streamlit as st
 
 from src.core.application_api import ApplicationAPI
-from src.core.models import WorkspaceArtifact, WorkspaceArtifactKind
+from src.core.models.workspace_metadata_models import WorkspaceArtifact, WorkspaceArtifactKind
 
 _KIND_OPTIONS: dict[str, WorkspaceArtifactKind | None] = {
     "Everything": None,

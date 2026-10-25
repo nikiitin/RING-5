@@ -13,6 +13,10 @@ The supported user API is the `ring5` package. Internal protocols documented her
 to coordinate layers and extensions, but they are not a compatibility promise for third-party
 scripts.
 
+Repository code imports internal symbols from their defining modules, such as
+`src.core.models.parsing_models.StatConfig`. User scripts access supported values through `ring5`;
+its lazy public exports preserve the same types without loading unrelated service packages.
+
 - [Public Python API](public-python-api/) covers sessions, tables, figure specifications, portfolio
   replay, dependency checks, and typed errors.
 - [Application API](application-api/) describes the web facade and async work contracts.

@@ -212,7 +212,7 @@ class TestSubmitParseAsync:
 
     def test_stat_config_passthrough(self, api: ApplicationAPI) -> None:
         """StatConfig objects pass through unchanged."""
-        from src.core.models import StatConfig
+        from src.core.models.parsing_models import StatConfig
 
         sc = StatConfig(name="test", type="scalar")
         cast(Any, api._parser.submit_parse_async).return_value = MagicMock(futures=[])
@@ -258,7 +258,10 @@ class TestIncrementalParsing:
 
     def test_submit_and_finalize_delegate_to_parser(self, api: ApplicationAPI) -> None:
         # [test->req~ring5.ingestion.incremental-parsing~1]
-        from src.core.models import IncrementalParseBatchResult, IncrementalParseResult
+        from src.core.models.parsing_models import (
+            IncrementalParseBatchResult,
+            IncrementalParseResult,
+        )
 
         batch = IncrementalParseBatchResult(
             futures=[],
@@ -306,7 +309,10 @@ class TestParserPlayground:
 
     def test_submit_and_finalize_delegate_to_parser(self, api: ApplicationAPI) -> None:
         # [test->req~ring5.ingestion.parser-playground~1]
-        from src.core.models import ParserPlaygroundBatchResult, ParserPlaygroundResult
+        from src.core.models.parsing_models import (
+            ParserPlaygroundBatchResult,
+            ParserPlaygroundResult,
+        )
 
         batch = ParserPlaygroundBatchResult(
             futures=[],

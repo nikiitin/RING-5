@@ -9,7 +9,7 @@ from typing import cast
 import pytest
 
 from src.core.application_api import ApplicationAPI
-from src.core.models import ParseJobStatus
+from src.core.models.parse_job_models import ParseJobStatus
 from src.core.models.data_models import ParseVariableConfig
 from src.core.services.data_services.csv_pool_service import CsvPoolService
 

@@ -9,7 +9,7 @@ from typing import Any
 
 import pytest
 
-from src.core.models import EnvironmentMetadata
+from src.core.models.environment_models import EnvironmentMetadata
 from src.core.services.environment_metadata_service import (
     EnvironmentMetadataService,
     _capture_environment,

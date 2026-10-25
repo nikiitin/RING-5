@@ -26,7 +26,8 @@ from ring5.errors import DataValidationError, ExportError, RecipeError, Ring5Err
 from src.core.common.security_limits import MAX_ANALYSIS_RECIPE_MATRIX_BYTES
 
 if TYPE_CHECKING:
-    from src.core.models import AnalysisRecipeMatrixResult, ScheduledReportResult
+    from src.core.models.recipe_matrix_models import AnalysisRecipeMatrixResult
+    from src.core.models.scheduled_report_models import ScheduledReportResult
 
 
 _INCOMPLETE_REGRESSION_OUTCOMES = frozenset(

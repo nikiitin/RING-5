@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-from src.core.models import (
+from src.core.models.analysis_review_models import (
     AnalysisReviewResponse,
     AnalysisReviewTarget,
     AnalysisReviewTargetResponse,

@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from src.core.models import AnalysisRecipe, RecipeParameter, RecipeSource
+from src.core.models.recipe_models import AnalysisRecipe, RecipeParameter, RecipeSource
 from src.core.services.analysis_recipe_automation_service import (
     AnalysisRecipeAutomationService,
 )

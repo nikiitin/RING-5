@@ -7,7 +7,7 @@ from pandas.testing import assert_frame_equal
 
 from ring5 import Table
 from ring5.errors import PipelineError
-from src.core.models import ColumnSemantics, DatasetSemantics
+from src.core.models.semantic_metadata_models import ColumnSemantics, DatasetSemantics
 from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
 from src.core.services.shapers.impl.mean import Mean
 from src.core.services.shapers.impl.normalize import Normalize

@@ -1,7 +1,7 @@
 from concurrent.futures import Future
 from typing import Any, Protocol, runtime_checkable
 
-from src.core.models import (
+from src.core.models.parsing_models import (
     IncrementalParseBatchResult,
     IncrementalParseResult,
     ParserPlaygroundBatchResult,

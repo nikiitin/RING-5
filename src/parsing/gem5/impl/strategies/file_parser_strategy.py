@@ -17,7 +17,7 @@ a unified interface for the parsing service layer.
 from collections.abc import Callable, Sequence
 from typing import Any, Protocol
 
-from src.core.models import StatConfig
+from src.core.models.parsing_models import StatConfig
 
 INTERNAL_SIM_PATH_KEY = "__ring5_internal_sim_path"
 

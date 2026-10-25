@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 from src.core.common.stat_config_codec import StatConfigCodec
-from src.core.models import ColumnSemantics, DatasetSemantics
+from src.core.models.semantic_metadata_models import ColumnSemantics, DatasetSemantics
 from src.core.services.data_services.portfolio_service import PortfolioService
 from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
 from src.core.state.repository_state_manager import RepositoryStateManager

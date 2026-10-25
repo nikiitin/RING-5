@@ -24,18 +24,10 @@ from src.core.common.security_limits import (
     SCAN_BATCH_TIMEOUT_SECONDS,
 )
 from src.core.common.utils import allowed_web_stats_roots, validate_web_stats_path
-from src.core.models import (
-    BrowserUpload,
-    HttpSource,
-    ImportColumnCorrection,
-    ImportOptions,
-    ImportPreview,
-    ParserPlaygroundBatchResult,
-    ScanFileResult,
-    ScanResult,
-    S3Source,
-    SshSource,
-)
+from src.core.models.browser_upload_models import BrowserUpload
+from src.core.models.remote_source_models import HttpSource, S3Source, SshSource
+from src.core.models.import_models import ImportColumnCorrection, ImportOptions, ImportPreview
+from src.core.models.parsing_models import ParserPlaygroundBatchResult, ScanFileResult, ScanResult
 from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
 from src.core.models.import_models import ImportColumnType
 from src.core.models.browser_upload_models import BrowserUploadRequest

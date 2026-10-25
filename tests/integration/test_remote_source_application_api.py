@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from src.core.application_api import ApplicationAPI
-from src.core.models import HttpSource, RemoteDownload, RemoteSourcePolicy
+from src.core.models.remote_source_models import HttpSource, RemoteDownload, RemoteSourcePolicy
 from src.core.services.remote_source_service import RemoteSourceService
 
 

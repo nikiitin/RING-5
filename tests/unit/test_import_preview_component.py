@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pandas as pd
 
-from src.core.models import (
+from src.core.models.import_models import (
     ImportColumn,
     ImportColumnCorrection,
     ImportOptions,

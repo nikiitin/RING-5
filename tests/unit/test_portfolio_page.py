@@ -213,7 +213,7 @@ class TestShowPortfolioPage:
     def test_incomplete_restore_is_reported(self, mock_st: MagicMock) -> None:
         # [test->req~ring5.portfolio.partial-report~1]
         """The web page reports skipped restore content before rerunning."""
-        from src.core.models import RestoreReport
+        from src.core.models.portfolio_models import RestoreReport
         from src.web.pages.portfolio import show_portfolio_page
 
         api = MagicMock()
@@ -254,7 +254,7 @@ class TestPortfolioEnvironment:
         self, mock_st: MagicMock, mock_compare: MagicMock
     ) -> None:
         # [test->req~ring5.portfolio.environment-metadata~1]
-        from src.core.models import (
+        from src.core.models.environment_models import (
             EnvironmentComparison,
             EnvironmentDifference,
             EnvironmentMetadata,
@@ -297,7 +297,7 @@ class TestPortfolioEnvironment:
 
     @patch("src.web.pages.portfolio.st")
     def test_environment_status_reports_changed_values(self, mock_st: MagicMock) -> None:
-        from src.core.models import (
+        from src.core.models.environment_models import (
             EnvironmentComparison,
             EnvironmentDifference,
             EnvironmentMetadata,
@@ -332,7 +332,10 @@ class TestPortfolioIntegrity:
         mock_st: MagicMock,
     ) -> None:
         # [test->req~ring5.portfolio.signed-manifests~1]
-        from src.core.models import PortfolioIntegrityReport, PortfolioIntegritySection
+        from src.core.models.portfolio_integrity_models import (
+            PortfolioIntegrityReport,
+            PortfolioIntegritySection,
+        )
         from src.web.pages.portfolio import _render_integrity_review
 
         expander = _make_col_mock()
@@ -391,7 +394,7 @@ class TestPortablePortfolioBundle:
         mock_st: MagicMock,
     ) -> None:
         # [test->req~ring5.portfolio.portable-bundles~1]
-        from src.core.models import DatasetSnapshotInfo
+        from src.core.models.dataset_workspace_models import DatasetSnapshotInfo
         from src.web.pages.portfolio import _render_bundle_download
 
         expander = _make_col_mock()

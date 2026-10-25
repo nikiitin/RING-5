@@ -5,7 +5,7 @@ class TestDeepScanMinMax:
         from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ScannerService
         from src.parsing.gem5.models import Gem5ScannedVariable
 
-        from src.core.models import ScanFileResult
+        from src.core.models.parsing_models import ScanFileResult
 
         raw_results = [
             ScanFileResult(
@@ -37,7 +37,7 @@ class TestDeepScanMinMax:
         from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ScannerService
         from src.parsing.gem5.models import Gem5ScannedVariable
 
-        from src.core.models import ScanFileResult
+        from src.core.models.parsing_models import ScanFileResult
 
         raw_results = [
             ScanFileResult(

@@ -6,7 +6,7 @@ from src.parsing.gem5.impl.scanning.gem5_scan_work import Gem5ScanWork
 def test_stats_scan_work_success() -> None:
     work = Gem5ScanWork("test_file.txt")
 
-    from src.core.models import ScannedVariable
+    from src.core.models.parsing_models import ScannedVariable
 
     mock_vars = [
         ScannedVariable(name="var1", type="scalar"),

@@ -19,7 +19,7 @@ from pathlib import Path
 from src.core.common.security_limits import MAX_SCAN_FILE_BYTES, MAX_SCAN_LINE_COUNT
 from src.core.common.safe_regex import MAX_INPUT_LENGTH
 from src.core.common.utils import sanitize_log_value
-from src.core.models import ScannedVariable
+from src.core.models.parsing_models import ScannedVariable
 from src.parsing.gem5.models import Gem5ScannedVariable
 from src.parsing.gem5.types.type_mapper import TypeMapper
 

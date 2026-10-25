@@ -27,13 +27,13 @@ from ring5 import _doctor, _export, _parse, _plot_validation, _portfolio
 from ring5._session import Session, _remove_directory_when_settled
 from ring5.errors import Ring5Error
 from ring5.figure_spec import DualAxisOpts, FigureSpec, FigureSpecBuilder, LegendOpts
-from src.core.models import (
+from src.core.models.parsing_models import (
     IncrementalParseBatchResult,
-    RestoreReport,
     ScanFileResult,
     ScanResult,
     StatConfig,
 )
+from src.core.models.portfolio_models import RestoreReport
 from src.parsing.gem5.models import Gem5ScannedVariable
 
 pytestmark = pytest.mark.public_api

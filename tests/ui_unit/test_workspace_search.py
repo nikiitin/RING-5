@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.core.models import WorkspaceSearchResponse, WorkspaceSearchResult
+from src.core.models.workspace_search_models import WorkspaceSearchResponse, WorkspaceSearchResult
 
 
 def _result(

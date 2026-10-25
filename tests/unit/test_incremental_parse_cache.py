@@ -10,7 +10,7 @@ import src.parsing.framework.incremental_cache as cache_module
 from pathlib import Path
 
 from src.core.common.input_identity import fingerprint_inputs
-from src.core.models import ScannedVariable, StatConfig
+from src.core.models.parsing_models import ScannedVariable, StatConfig
 from src.parsing.framework.incremental_cache import (
     configuration_hash,
     load_cache,

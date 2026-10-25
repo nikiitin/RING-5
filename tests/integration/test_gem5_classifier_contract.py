@@ -11,7 +11,7 @@ from typing import Any
 
 import pytest
 
-from src.core.models import StatConfig
+from src.core.models.parsing_models import StatConfig
 from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 from src.parsing.gem5.impl.strategies.perl_worker_pool import shutdown_worker_pool
 

@@ -13,7 +13,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.core.models import ParseBatchResult, StatConfig
+from src.core.models.parsing_models import ParseBatchResult, StatConfig
 
 
 class TestParseBatchResult:

@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from src.core.common.security_limits import SCAN_BATCH_TIMEOUT_SECONDS
-from src.core.models import ScanFileResult, ScanResult
+from src.core.models.parsing_models import ScanFileResult, ScanResult
 
 from ring5.errors import ScanError
 

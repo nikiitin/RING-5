@@ -5,7 +5,7 @@ Tests for async scanning behavior with Futures-based API.
 import time
 from concurrent.futures import as_completed
 
-from src.core.models import ScannedVariable
+from src.core.models.parsing_models import ScannedVariable
 from src.parsing.framework.work_pool import WorkPool
 
 

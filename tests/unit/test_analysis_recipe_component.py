@@ -5,7 +5,12 @@ from __future__ import annotations
 from contextlib import nullcontext
 from unittest.mock import MagicMock, patch
 
-from src.core.models import AnalysisRecipe, AnalysisRecipeInfo, RecipePlot, RecipeSource
+from src.core.models.recipe_models import (
+    AnalysisRecipe,
+    AnalysisRecipeInfo,
+    RecipePlot,
+    RecipeSource,
+)
 
 
 @patch("src.web.components.analysis_recipe_component.st")

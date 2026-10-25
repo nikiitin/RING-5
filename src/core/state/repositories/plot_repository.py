@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 
-from src.core.models import PlotProtocol
+from src.core.models.plot_protocol import PlotProtocol
 
 logger = logging.getLogger(__name__)
 

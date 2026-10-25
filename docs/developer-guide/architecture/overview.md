@@ -41,6 +41,11 @@ flowchart TB
 `src/core/application_api.py` is the facade used by the web application. It exposes services and
 state operations without allowing components to construct repositories directly.
 
+Internal imports name the module that owns each model, protocol or service. Core package
+initializers contain package documentation; they do not eagerly load their submodules. The
+`ring5` composition root exposes documented public values through lazy imports of their owning
+modules.
+
 ## Visualization boundary
 
 Plot implementations under `src/web/pages/ui/plotting/` map processed data into typed,
