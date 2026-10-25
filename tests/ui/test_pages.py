@@ -1,11 +1,10 @@
-"""
-Comprehensive UI tests for the Data Source page.
-Tests file selection, variable configuration, and parsing workflow.
-"""
+"""AppTest coverage for the four current destinations and sidebar navigation."""
 
 from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
+
+from tests.ui.helpers import navigate_to
 
 _APP_PATH = str(Path(__file__).parents[2] / "app.py")
 
@@ -19,8 +18,7 @@ class TestDataSourcePage:
         at.run()
 
         # Navigate to Data Source
-        at.session_state["_nav_page"] = "Data Source"
-        at.run()
+        navigate_to(at, "Data Source")
 
         assert not at.exception
 
@@ -29,16 +27,14 @@ class TestDataSourcePage:
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
 
-        at.session_state["_nav_page"] = "Data Source"
-        at.run()
+        navigate_to(at, "Data Source")
         assert not at.exception
 
     def test_interaction_tabs(self) -> None:
         """Test interaction with Data Source interaction tabs/radios."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
-        at.session_state["_nav_page"] = "Data Source"
-        at.run()
+        navigate_to(at, "Data Source")
 
         if len(at.button_group) > 1:
             opt0 = at.button_group[1].value
@@ -53,24 +49,21 @@ class TestDataManagersPage:
         """Test that Data Managers page loads."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
-        at.session_state["_nav_page"] = "Data Managers"
-        at.run()
+        navigate_to(at, "Data Managers")
         assert not at.exception
 
     def test_page_renders_tabs(self) -> None:
         """Test that Data Managers page has tabs for different managers."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
-        at.session_state["_nav_page"] = "Data Managers"
-        at.run()
+        navigate_to(at, "Data Managers")
         assert not at.exception
 
     def test_no_data_message(self) -> None:
         """Test that appropriate message is shown when no data loaded."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
-        at.session_state["_nav_page"] = "Data Managers"
-        at.run()
+        navigate_to(at, "Data Managers")
         assert not at.exception
 
 
@@ -81,16 +74,14 @@ class TestManagePlotsPage:
         """Test that Manage Plots page loads."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
-        at.session_state["_nav_page"] = "Manage Plots"
-        at.run()
+        navigate_to(at, "Manage Plots")
         assert not at.exception
 
     def test_create_plot_interaction(self) -> None:
         """Test interacting with Create Plot section."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
-        at.session_state["_nav_page"] = "Manage Plots"
-        at.run()
+        navigate_to(at, "Manage Plots")
 
         for btn in at.button:
             if "Create" in btn.label or "Add" in btn.label:
@@ -106,16 +97,14 @@ class TestPortfolioPage:
         """Test that Portfolio page loads."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
-        at.session_state["_nav_page"] = "Save/Load Portfolio"
-        at.run()
+        navigate_to(at, "Save/Load Portfolio")
         assert not at.exception
 
     def test_page_renders_content(self) -> None:
         """Test that Portfolio page renders content."""
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
-        at.session_state["_nav_page"] = "Save/Load Portfolio"
-        at.run()
+        navigate_to(at, "Save/Load Portfolio")
         assert not at.exception
 
 
@@ -135,8 +124,7 @@ class TestNavigation:
         ]
 
         for page in pages:
-            at.session_state["_nav_page"] = page
-            at.run()
+            navigate_to(at, page)
             assert not at.exception, f"Navigation to '{page}' failed"
 
     def test_navigate_back_and_forth(self) -> None:
@@ -144,16 +132,13 @@ class TestNavigation:
         at = AppTest.from_file(_APP_PATH, default_timeout=10)
         at.run()
 
-        at.session_state["_nav_page"] = "Manage Plots"
-        at.run()
+        navigate_to(at, "Manage Plots")
         assert not at.exception
 
-        at.session_state["_nav_page"] = "Data Source"
-        at.run()
+        navigate_to(at, "Data Source")
         assert not at.exception
 
-        at.session_state["_nav_page"] = "Manage Plots"
-        at.run()
+        navigate_to(at, "Manage Plots")
         assert not at.exception
 
 

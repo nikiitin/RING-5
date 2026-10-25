@@ -185,47 +185,6 @@ class TestSidebarWithData:
         assert not api.state_manager.has_data()
 
 
-# Performance — data loaded
-class TestPerformanceWithData:
-    """Performance page with data loaded shows correct metrics."""
-
-    def test_page_renders_with_data(self) -> None:
-        """Performance page renders when data is loaded."""
-        at = create_app_with_data()
-        navigate_to(at, "Performance")
-
-        assert not at.exception
-
-    def test_data_loaded_metric(self) -> None:
-        """Data Loaded metric should show 'Yes'."""
-        at = create_app_with_data()
-        navigate_to(at, "Performance")
-
-        assert not at.exception
-        data_metrics = [m for m in at.metric if m.label == "Data Loaded"]
-        if data_metrics:
-            assert data_metrics[0].value == "Yes"
-
-    def test_clear_caches_button(self) -> None:
-        """Clear All Caches button should be present and clickable."""
-        at = create_app_with_data()
-        navigate_to(at, "Performance")
-
-        assert not at.exception
-        cache_buttons = [b for b in at.button if "clear" in b.label.lower()]
-        assert len(cache_buttons) > 0
-
-    def test_session_key_count_nonzero(self) -> None:
-        """Total Keys metric should be > 0 when app is running."""
-        at = create_app_with_data()
-        navigate_to(at, "Performance")
-
-        assert not at.exception
-        key_metrics = [m for m in at.metric if m.label == "Total Keys"]
-        if key_metrics:
-            assert int(key_metrics[0].value) > 0
-
-
 # Data Source — data loaded
 class TestDataSourceWithData:
     """Data Source page renders correctly with or without data."""
