@@ -54,8 +54,8 @@ def test_playground_dialog_shows_evidence_without_loading_workspace(mock_st: Mag
     dialog(api, batch)
 
     api.finalize_parser_playground.assert_called_once_with(batch, [{"simTicks": 100}])
-    api.add_to_csv_pool.assert_not_called()
-    api.load_csv_file.assert_not_called()
+    api.data_services.add_to_csv_pool.assert_not_called()
+    api.data_services.load_csv_file.assert_not_called()
     api.state_manager.set_data.assert_not_called()
     mock_st.code.assert_called_once_with("/inputs/run-00/stats.txt", language=None)
     mock_st.dataframe.assert_called_once()

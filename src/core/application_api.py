@@ -63,15 +63,9 @@ from src.core.models.remote_source_models import RemoteSource, RemoteSourcePolic
 from src.core.models.pattern_index_service import PatternIndexService
 from src.core.models.data_models import (
     ColumnInfoResult,
-    CsvPoolEntry,
     ParseVariableConfig,
-    PipelineConfigConflictPolicy,
-    PipelineConfigImportResult,
-    SavedConfigData,
-    SavedConfigEntry,
     ScannedVariableDict,
 )
-from src.core.models.shaper_models import ShaperStepConfig
 from src.core.models.history_models import OperationRecord
 from src.core.models.parsing_models import StatParamValue
 from src.core.models.parse_job_models import JsonValue
@@ -968,7 +962,7 @@ class ApplicationAPI:
     def _load_consumed_parse_result(self, receipt: ParseJobReceipt) -> None:
         """Load a published result before deleting its transient attempt."""
         self.load_data(receipt.csv_path)
-        self.state_manager.set_csv_pool(self.load_csv_pool())
+        self.state_manager.set_csv_pool(self.data_services.load_csv_pool())
 
     def _get_parse_job_service(self) -> ParseJobService:
         """Lazily create the parser orchestrator owned by this session."""
@@ -1274,95 +1268,6 @@ class ApplicationAPI:
         """
         self._pending_scan_futures = [f for f in self._pending_scan_futures if not f.done()]
         return self._parser.aggregate_scan_results(results)
-
-    # Shapers & Pipelines
-
-    def apply_shapers(
-        self, data: pd.DataFrame, pipeline_config: list[ShaperStepConfig]
-    ) -> pd.DataFrame:
-        """Apply a sequence of shapers to a DataFrame."""
-        return self._services.shapers.process_pipeline(data, pipeline_config)
-
-    # Configuration Management
-
-    def save_configuration(
-        self,
-        name: str,
-        description: str,
-        shapers_config: list[ShaperStepConfig],
-        csv_path: str | None = None,
-    ) -> str:
-        """Save current configuration to disk."""
-        return self._services.data_services.save_configuration(
-            name, description, shapers_config, csv_path
-        )
-
-    def load_configuration(self, config_path: str) -> SavedConfigData:
-        """Load configuration from file."""
-        return self._services.data_services.load_configuration(config_path)
-
-    def export_configuration(
-        self,
-        name: str,
-        description: str,
-        shapers_config: list[ShaperStepConfig],
-        csv_path: str | None = None,
-    ) -> bytes:
-        """Serialize a validated pipeline configuration as versioned JSON.
-
-        Args:
-            name: Human-readable configuration name.
-            description: Optional human-readable explanation.
-            shapers_config: Ordered flat shaper configurations.
-            csv_path: Optional source CSV association.
-
-        Returns:
-            Deterministic UTF-8 JSON bytes.
-        """
-        return self._services.data_services.export_configuration(
-            name,
-            description,
-            shapers_config,
-            csv_path,
-        )
-
-    def import_configuration(
-        self,
-        payload: str | bytes | bytearray,
-        *,
-        conflict: PipelineConfigConflictPolicy = "error",
-    ) -> PipelineConfigImportResult:
-        """Validate and save a current or legacy pipeline configuration.
-
-        Args:
-            payload: UTF-8 JSON text or bytes, limited to 256 KiB.
-            conflict: Logical-name policy: ``"error"``, ``"rename"``, or
-                ``"replace"``.
-
-        Returns:
-            Saved configuration and conflict-resolution details.
-        """
-        return self._services.data_services.import_configuration(payload, conflict=conflict)
-
-    def load_csv_pool(self) -> list[CsvPoolEntry]:
-        """List available CSV files in the pool."""
-        return self._services.data_services.load_csv_pool()
-
-    def load_saved_configs(self) -> list[SavedConfigEntry]:
-        """List all saved configurations."""
-        return self._services.data_services.load_saved_configs()
-
-    def delete_configuration(self, config_path: str) -> bool:
-        """Delete a configuration file."""
-        return self._services.data_services.delete_configuration(config_path)
-
-    def add_to_csv_pool(self, file_path: str) -> str:
-        """Add a file to the CSV pool."""
-        return self._services.data_services.add_to_csv_pool(file_path)
-
-    def load_csv_file(self, file_path: str) -> pd.DataFrame:
-        """Load a CSV file directly returning DataFrame."""
-        return self._services.data_services.load_csv_file(file_path)
 
     def get_column_info(self, df: pd.DataFrame | None) -> ColumnInfoResult:
         """Get summary information about DataFrame columns for UI."""

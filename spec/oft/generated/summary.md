@@ -13,7 +13,7 @@ This file is informative; normative items are in the other generated files.
 - In development future requirements: 0
 - Blocked future requirements: 0
 - Generated specification items: 234
-- Live capability bindings: 878
+- Live capability bindings: 868
 
 ## Requirements by feature group
 
@@ -35,7 +35,7 @@ This file is informative; normative items are in the other generated files.
 
 ## Drift-checked capability sources
 
-- `application_api_members`: 107
+- `application_api_members`: 97
 - `axes_config_fields`: 11
 - `axis_config_fields`: 31
 - `cli_commands`: 6

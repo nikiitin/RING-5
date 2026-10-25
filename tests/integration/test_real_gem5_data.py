@@ -178,19 +178,6 @@ class TestRealDataWithManagers:
 class TestCompleteWorkflow:
     """Test complete workflows from parsing to visualization."""
 
-    def test_facade_methods_available(self, facade: ApplicationAPI) -> None:
-        """Test that all facade methods are available."""
-        # Check essential methods exist
-        assert hasattr(facade, "find_stats_files")
-        assert hasattr(facade, "submit_parse_async")
-        assert hasattr(facade, "finalize_parsing")
-        assert hasattr(facade, "submit_scan_async")
-        assert hasattr(facade, "finalize_scan")
-        assert hasattr(facade, "apply_shapers")
-        assert hasattr(facade, "load_csv_file")
-        assert hasattr(facade, "save_configuration")
-        assert hasattr(facade, "load_configuration")
-
     def test_shaper_factory_available(self) -> None:
         """Test that shaper factory can create column selector with proper config."""
         from src.core.services.shapers.factory import ShaperFactory
@@ -230,7 +217,7 @@ class TestConfigurationPersistence:
         monkeypatch.setattr(ConfigService, "get_config_dir", lambda: config_pool_dir)
 
         # Save config
-        config_path = facade.save_configuration(
+        config_path = facade.data_services.save_configuration(
             name="test_config",
             description="Test configuration",
             shapers_config=cast(
@@ -244,7 +231,7 @@ class TestConfigurationPersistence:
         assert Path(config_path).parent == config_pool_dir
 
         # Load config
-        loaded = facade.load_configuration(config_path)
+        loaded = facade.data_services.load_configuration(config_path)
 
         assert loaded["name"] == "test_config"
         assert loaded.get("description") == "Test configuration"
@@ -272,7 +259,7 @@ class TestConfigurationPersistence:
             CsvPoolService._pool_dir = None  # Reset cached pool dir
 
             # Load pool
-            pool = facade.load_csv_pool()
+            pool = facade.data_services.load_csv_pool()
 
             assert len(pool) == 1
             assert pool[0]["name"] == "test.csv"

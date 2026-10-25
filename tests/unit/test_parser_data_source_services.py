@@ -891,7 +891,7 @@ class TestDataSourceComponents:
 
         api = MagicMock()
         api.state_manager.get_csv_pool.return_value = []
-        api.load_csv_pool.return_value = []
+        api.data_services.load_csv_pool.return_value = []
 
         DataSourceComponents.render_csv_pool(api)
         mock_st.warning.assert_called()
@@ -971,7 +971,7 @@ class TestDataSourceComponents:
             DataSourceComponents.render_csv_pool(api)
 
         render_preview.assert_called_once_with(api, str(csv_file))
-        api.load_csv_file.assert_not_called()
+        api.data_services.load_csv_file.assert_not_called()
 
     @patch("src.web.components.data_source.data_source_components.st")
     @patch("src.web.components.data_source.data_source_components.CardComponents")
@@ -999,7 +999,7 @@ class TestDataSourceComponents:
             DataSourceComponents.render_csv_pool(api)
 
         render_preview.assert_called_once_with(api, str(csv_file))
-        api.load_csv_file.assert_not_called()
+        api.data_services.load_csv_file.assert_not_called()
 
     @patch("src.web.components.data_source.data_source_components.st")
     @patch("src.web.components.data_source.data_source_components.CardComponents")

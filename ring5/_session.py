@@ -1867,7 +1867,9 @@ class Session:
         """
         # [impl->req~ring5.shaping.config-import-export~1]
         try:
-            return self.api.export_configuration(name, description, pipeline, csv_path)
+            return self.api.data_services.export_configuration(
+                name, description, pipeline, csv_path
+            )
         except (TypeError, ValueError) as exc:
             raise PipelineError(str(exc)) from exc
 
@@ -1893,7 +1895,7 @@ class Session:
         """
         # [impl->req~ring5.shaping.config-import-export~1]
         try:
-            return self.api.import_configuration(payload, conflict=conflict)
+            return self.api.data_services.import_configuration(payload, conflict=conflict)
         except (OSError, TypeError, ValueError) as exc:
             raise PipelineError(str(exc)) from exc
 
@@ -1916,7 +1918,7 @@ class Session:
 
         frame, was_table = _unwrap_table(data)
         try:
-            shaped = self.api.apply_shapers(frame, pipeline)
+            shaped = self.api.shapers.process_pipeline(frame, pipeline)
         except PipelineStepError as exc:
             raise PipelineError(
                 str(exc), step_index=exc.step_index, shaper_type=exc.shaper_type

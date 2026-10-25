@@ -33,7 +33,7 @@ def test_render_csv_pool_load(
 ) -> None:
     """Test loading a CSV file from the pool."""
     pool = [{"name": "test.csv", "path": "/path/test.csv", "size": 100}]
-    mock_api.load_csv_pool.return_value = pool
+    mock_api.data_services.load_csv_pool.return_value = pool
     mock_api.state_manager.get_csv_pool.return_value = []
 
     # load_clicked=True
@@ -47,7 +47,7 @@ def test_render_csv_pool_load(
         DataSourceComponents.render_csv_pool(mock_api)
 
     render_preview.assert_called_once_with(mock_api, "/path/test.csv")
-    mock_api.load_csv_file.assert_not_called()
+    mock_api.data_services.load_csv_file.assert_not_called()
 
 
 def test_execute_parser(mock_streamlit: Any, mock_api: Any) -> None:
@@ -65,8 +65,8 @@ def test_execute_parser(mock_streamlit: Any, mock_api: Any) -> None:
 
     csv_path = "/tmp/out.csv"
     mock_api.finalize_parsing.return_value = csv_path
-    mock_api.load_csv_file.return_value = MagicMock()
-    mock_api.add_to_csv_pool.return_value = csv_path
+    mock_api.data_services.load_csv_file.return_value = MagicMock()
+    mock_api.data_services.add_to_csv_pool.return_value = csv_path
 
     with (
         patch("pathlib.Path.exists", return_value=True),

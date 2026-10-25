@@ -43,9 +43,9 @@ class TestScannerFix:
             yield {"ds": mock_st_ds, "ve": mock_st_ve}
 
     def test_render_csv_pool_calls_api_directly(self, mock_api: Any, mock_streamlit: Any) -> None:
-        """Test that render_csv_pool calls api.load_csv_pool, not api.backend.load_csv_pool"""
+        """Pool cards load their source list through the data-services API."""
         # Setup
-        mock_api.load_csv_pool.return_value = []
+        mock_api.data_services.load_csv_pool.return_value = []
         mock_api.state_manager.get_csv_pool.return_value = []
         # Execute
         try:
@@ -54,7 +54,7 @@ class TestScannerFix:
             pytest.fail(f"AttributeError raised: {e}. Fix not applied correctly.")
 
         # Verify
-        mock_api.load_csv_pool.assert_called_once()
+        mock_api.data_services.load_csv_pool.assert_called_once()
 
     def test_render_parser_config_calls_api_directly(
         self, mock_api: Any, mock_streamlit: Any

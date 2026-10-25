@@ -294,15 +294,15 @@ class TestStateManagement:
         # Save to CSV pool
         csv_path = tmp_path / "data.csv"
         data.to_csv(csv_path, index=False)
-        facade.add_to_csv_pool(str(csv_path))
+        facade.data_services.add_to_csv_pool(str(csv_path))
 
         # Verify can retrieve
-        loaded = facade.load_csv_file(str(csv_path))
+        loaded = facade.data_services.load_csv_file(str(csv_path))
         assert loaded is not None
         pd.testing.assert_frame_equal(data, loaded)
 
         # Verify can load from pool
-        pool_data = facade.load_csv_pool()
+        pool_data = facade.data_services.load_csv_pool()
         assert len(pool_data) > 0
 
     def test_state_cleanup_on_error(self, portfolio_service: PortfolioService) -> None:

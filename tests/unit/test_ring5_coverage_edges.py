@@ -332,7 +332,9 @@ def test_session_lifecycle_and_submission_edges(tmp_path: Path) -> None:
             with pytest.raises(ring5.DataLoadError, match="produced no data"):
                 session.load("empty.csv")
 
-    with patch.object(session.api, "apply_shapers", side_effect=ValueError("bad pipeline")):
+    with patch.object(
+        session.api.shapers, "process_pipeline", side_effect=ValueError("bad pipeline")
+    ):
         with pytest.raises(ring5.PipelineError, match="bad pipeline"):
             session.shape(pd.DataFrame({"x": [1]}), [])
     session.close()

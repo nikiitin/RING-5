@@ -100,7 +100,7 @@ class TestTransformationPipeline:
         ]
 
         # Apply pipeline using facade
-        result = facade.apply_shapers(sample_benchmark_data, pipeline)
+        result = facade.shapers.process_pipeline(sample_benchmark_data, pipeline)
 
         # Verify transformations applied (normalization modifies column in-place)
         assert "ipc" in result.columns
@@ -129,7 +129,7 @@ class TestTransformationPipeline:
         ]
 
         facade = ApplicationAPI()
-        result = facade.apply_shapers(sample_benchmark_data, pipeline)
+        result = facade.shapers.process_pipeline(sample_benchmark_data, pipeline)
 
         # Verify mean rows were added
         assert len(result) > len(sample_benchmark_data)
@@ -148,7 +148,7 @@ class TestTransformationPipeline:
         invalid_pipeline: list[ShaperStepConfig] = cast(Any, [{"type": "invalid_shaper"}])
 
         with pytest.raises(ValueError):
-            facade.apply_shapers(sample_benchmark_data, invalid_pipeline)
+            facade.shapers.process_pipeline(sample_benchmark_data, invalid_pipeline)
 
         # Test with missing required parameters
         invalid_normalize: list[ShaperStepConfig] = [
@@ -161,7 +161,7 @@ class TestTransformationPipeline:
         ]
 
         with pytest.raises((ValueError, KeyError)):
-            facade.apply_shapers(sample_benchmark_data, invalid_normalize)
+            facade.shapers.process_pipeline(sample_benchmark_data, invalid_normalize)
 
     def test_complex_pipeline_workflow(
         self, sample_benchmark_data: pd.DataFrame, tmp_path: Path
@@ -181,8 +181,8 @@ class TestTransformationPipeline:
         sample_benchmark_data.to_csv(csv_path, index=False)
 
         # Load into CSV pool
-        facade.add_to_csv_pool(str(csv_path))
-        loaded_data = facade.load_csv_file(str(csv_path))
+        facade.data_services.add_to_csv_pool(str(csv_path))
+        loaded_data = facade.data_services.load_csv_file(str(csv_path))
 
         # Define and apply pipeline
         pipeline: list[ShaperStepConfig] = [
@@ -202,7 +202,7 @@ class TestTransformationPipeline:
         ]
 
         # Apply transformations
-        transformed = facade.apply_shapers(loaded_data, pipeline)
+        transformed = facade.shapers.process_pipeline(loaded_data, pipeline)
 
         # Verify transformations (normalization modifies columns in-place)
         assert "ipc" in transformed.columns
@@ -210,7 +210,7 @@ class TestTransformationPipeline:
         assert transformed["config"].dtype.name == "category"
 
         # Apply same pipeline again to verify idempotency for transformation
-        retransformed = facade.apply_shapers(loaded_data, pipeline)
+        retransformed = facade.shapers.process_pipeline(loaded_data, pipeline)
 
         # Verify results match (both start from same loaded_data)
         pd.testing.assert_frame_equal(

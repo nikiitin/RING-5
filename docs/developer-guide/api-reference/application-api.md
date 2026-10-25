@@ -41,8 +41,10 @@ expansion.
 ## Data and previews
 
 `load_data` stores a validated table through the state manager. Preview methods isolate tentative
-manager output until the user confirms it. Shaper execution delegates to the pipeline service and
-returns a new DataFrame.
+manager output until the user confirms it. Use `api.shapers.process_pipeline(data, config)` for
+stateless transformation execution, which returns a new DataFrame. Pipeline configuration and CSV
+pool operations use `api.data_services`; numerical manager operations use `api.managers`.
+Facade methods coordinate state, owned jobs, or multiple services.
 
 ## Change rules
 
@@ -51,7 +53,6 @@ returns a new DataFrame.
 - Accept injected callbacks or protocols for presentation-owned reconstruction.
 - Preserve async submit/finalize ownership and specific errors.
 - Test facade composition in integration tests rather than copying every service unit test.
-
 
 ## Resource lifetime
 

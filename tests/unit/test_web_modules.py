@@ -155,7 +155,7 @@ class TestApplicationAPI:
             # we need to ensure CsvPoolService uses 'csv_pool' subdir of data_dir
             # (CsvPoolService implementation detail: data_dir / "csv_pool")
 
-            pool = api.load_csv_pool()
+            pool = api.data_services.load_csv_pool()
 
             assert isinstance(pool, list)
             assert len(pool) == 0
@@ -173,7 +173,7 @@ class TestApplicationAPI:
             return_value=self.test_dir,
         ):
             api = ApplicationAPI()
-            pool_path = api.add_to_csv_pool(str(test_csv))
+            pool_path = api.data_services.add_to_csv_pool(str(test_csv))
 
         assert Path(pool_path).exists()
         assert "parsed_" in Path(pool_path).name
@@ -189,7 +189,7 @@ class TestApplicationAPI:
 
         api = ApplicationAPI()
         # load_csv_file is static service call wrapper
-        loaded_data = api.load_csv_file(str(test_csv))
+        loaded_data = api.data_services.load_csv_file(str(test_csv))
 
         assert len(loaded_data) == 3
         assert list(loaded_data.columns) == ["a", "b"]
@@ -208,7 +208,7 @@ class TestApplicationAPI:
             "src.core.services.data_services.config_service.ConfigService.get_config_dir",
             return_value=config_dir,
         ):
-            config_path = api.save_configuration(
+            config_path = api.data_services.save_configuration(
                 name="test_config",
                 description="Test description",
                 shapers_config=cast(Any, [{"type": "columnSelector", "columns": ["ipc"]}]),
@@ -249,7 +249,7 @@ class TestApplicationAPI:
             "src.core.services.data_services.config_service.ConfigService.get_config_dir",
             return_value=config_dir,
         ):
-            loaded_config = api.load_configuration(str(config_file))
+            loaded_config = api.data_services.load_configuration(str(config_file))
 
         assert loaded_config["name"] == "test"
         assert loaded_config.get("description") == "Test config"
@@ -285,7 +285,7 @@ class TestApplicationAPI:
                 list[ShaperStepConfig], [{"type": "columnSelector", "columns": ["a", "b"]}]
             )
 
-            result = api.apply_shapers(test_data, shapers_config)
+            result = api.shapers.process_pipeline(test_data, shapers_config)
 
             assert len(result.columns) == 2
             assert "a" in result.columns

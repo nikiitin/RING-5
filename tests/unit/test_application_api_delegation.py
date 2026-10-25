@@ -10,7 +10,6 @@ import pytest
 
 from src.core.application_api import ApplicationAPI
 from src.core.models.data_models import ParseVariableConfig
-from src.core.models.shaper_models import ShaperStepConfig
 from src.core.models.history_models import OperationRecord
 
 
@@ -346,80 +345,6 @@ class TestScanMethods:
         cast(Any, api._parser.aggregate_scan_results).return_value = [MagicMock()]
         result = api.finalize_scan([[MagicMock()]])
         assert len(result) == 1
-
-
-class TestShapersDelegation:
-    # [test->req~ring5.quality.application-facade~1]
-
-    """Test apply_shapers delegation."""
-
-    def test_apply_shapers(self, api: ApplicationAPI) -> None:
-        df = pd.DataFrame({"x": [1, 2]})
-        pipeline = [cast(ShaperStepConfig, {"type": "selector", "columns": ["x"]})]
-        api.apply_shapers(df, pipeline)
-        cast(MagicMock, api._services.shapers.process_pipeline).assert_called_once_with(
-            df, pipeline
-        )
-
-
-class TestConfigurationManagement:
-    """Test config CRUD delegation."""
-
-    def test_save_configuration(self, api: ApplicationAPI) -> None:
-        api.save_configuration("name", "desc", [], "/path.csv")
-        cast(MagicMock, api._services.data_services.save_configuration).assert_called_once_with(
-            "name", "desc", [], "/path.csv"
-        )
-
-    def test_load_configuration(self, api: ApplicationAPI) -> None:
-        api.load_configuration("/config.json")
-        cast(MagicMock, api._services.data_services.load_configuration).assert_called_once_with(
-            "/config.json"
-        )
-
-    def test_export_configuration(self, api: ApplicationAPI) -> None:
-        api.export_configuration("name", "desc", [], "/path.csv")
-        cast(MagicMock, api._services.data_services.export_configuration).assert_called_once_with(
-            "name", "desc", [], "/path.csv"
-        )
-
-    def test_import_configuration(self, api: ApplicationAPI) -> None:
-        api.import_configuration(b"{}", conflict="rename")
-        cast(MagicMock, api._services.data_services.import_configuration).assert_called_once_with(
-            b"{}", conflict="rename"
-        )
-
-    def test_load_csv_pool(self, api: ApplicationAPI) -> None:
-        api.load_csv_pool()
-        cast(MagicMock, api._services.data_services.load_csv_pool).assert_called_once()
-
-    def test_load_saved_configs(self, api: ApplicationAPI) -> None:
-        api.load_saved_configs()
-        cast(MagicMock, api._services.data_services.load_saved_configs).assert_called_once()
-
-    def test_delete_configuration(self, api: ApplicationAPI) -> None:
-        api.delete_configuration("/cfg.json")
-        cast(MagicMock, api._services.data_services.delete_configuration).assert_called_once_with(
-            "/cfg.json"
-        )
-
-    def test_add_to_csv_pool(self, api: ApplicationAPI) -> None:
-        api.add_to_csv_pool("/data.csv")
-        cast(MagicMock, api._services.data_services.add_to_csv_pool).assert_called_once_with(
-            "/data.csv"
-        )
-
-    def test_delete_from_pool(self, api: ApplicationAPI) -> None:
-        api.data_services.delete_from_csv_pool("/data.csv")
-        cast(MagicMock, api._services.data_services.delete_from_csv_pool).assert_called_once_with(
-            "/data.csv"
-        )
-
-    def test_load_csv_file(self, api: ApplicationAPI) -> None:
-        api.load_csv_file("/data.csv")
-        cast(MagicMock, api._services.data_services.load_csv_file).assert_called_once_with(
-            "/data.csv"
-        )
 
 
 class TestGetColumnInfo:
