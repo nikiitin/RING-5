@@ -16,7 +16,7 @@ from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import BarTraceConfig
 from src.web.rendering.figure_preparation import prepare_figure
 from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
-from src.web.rendering.matplotlib_figure_builder import build_matplotlib_figure_from_traces
+from src.web.rendering.matplotlib_figure_builder import build_matplotlib_figure_from_prepared
 from src.web.rendering.trace_to_plotly import traces_to_plotly
 
 
@@ -57,7 +57,10 @@ def test_unknown_annotations_reject_before_native_allocation(
         if engine == "plotly":
             traces_to_plotly(result)
         else:
-            build_matplotlib_figure_from_traces({}, "bar", result)
+            prepared = prepare_figure(
+                pd.DataFrame({"x": ["a"], "y": [1.0]}), {}, "bar", lambda data, config: result
+            )
+            build_matplotlib_figure_from_prepared(prepared)
 
 
 @pytest.mark.parametrize("kind", ["dict", "duck", "object"])

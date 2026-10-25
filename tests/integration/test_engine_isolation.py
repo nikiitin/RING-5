@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any, cast
 
+from matplotlib.figure import Figure as MplFigure
+from matplotlib.patches import Rectangle
 import pandas as pd
 import pytest
 
@@ -40,31 +42,42 @@ def _grouped_stacked_df() -> pd.DataFrame:
     )
 
 
-def test_matplotlib_render_does_not_invoke_plotly_builder(monkeypatch):
+def test_matplotlib_render_does_not_invoke_plotly_builder(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """A matplotlib render must not build or style a Plotly figure."""
-    import src.web.pages.ui.plotting.styles.applicator as appl
-    import src.web.rendering.trace_to_plotly as ttp
+    import src.web.rendering.plot_renderer as renderer
+    import src.web.rendering.plotly_figure_builder as plotly_builder
 
-    def _boom(*_a, **_k):
+    def _boom(*_a: Any, **_k: Any) -> None:
         raise AssertionError("Plotly builder invoked during a matplotlib render")
 
-    monkeypatch.setattr(ttp, "traces_to_plotly", _boom)
-    monkeypatch.setattr(appl.StyleApplicator, "apply_styles", _boom)
+    monkeypatch.setattr(renderer, "build_plotly_figure", _boom)
+    monkeypatch.setattr(plotly_builder, "traces_to_plotly", _boom)
 
-    sess = ring5.Session()
-    plot = sess.create_plot(
-        "grouped_stacked_bar",
-        data=ring5.Table(_grouped_stacked_df()),
-        config=_grouped_stacked_config(),
-    )
-    fig = sess.render(plot, engine="matplotlib")
-
-    assert fig is not None
-    assert len(fig.axes) >= 1
-    assert plot.last_generated_fig is fig
-    assert plot.last_figure_spec is fig._ring5_spec
-    # The engine-agnostic traces are still recorded (the matplotlib path needs them).
-    assert plot.last_traces is not None
+    with ring5.Session() as session:
+        plot = session.create_plot(
+            "grouped_stacked_bar",
+            data=ring5.Table(_grouped_stacked_df()),
+            config=_grouped_stacked_config(),
+        )
+        fig = session.render(plot, engine="matplotlib")
+        assert isinstance(fig, MplFigure)
+        assert len(fig.axes) >= 1
+        assert plot.last_generated_fig is fig
+        assert plot.last_figure_spec is cast(Any, fig)._ring5_spec
+        assert plot.last_traces is not None
+        assert plot.render_artifact.engine == "matplotlib"
+        assert [cast(Rectangle, bar).get_height() for bar in fig.axes[0].patches] == [
+            1.0,
+            2.0,
+            3.0,
+            4.0,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+        ]
 
 
 def test_prepared_group_metadata_survives_both_native_engines() -> None:

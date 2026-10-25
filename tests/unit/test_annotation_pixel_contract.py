@@ -14,7 +14,9 @@ import ring5
 from src.core.models.visualization.annotation_config import AnnotationConfig
 from src.core.models.visualization.figure_config import FigureConfig
 from src.core.models.visualization.trace_build_result import TraceBuildResult
-from src.web.rendering.config_builder import _extract_annotations
+from src.core.models.visualization.trace_config import BarTraceConfig
+from src.web.rendering.figure_preparation import prepare_figure
+from src.web.rendering.plotly_figure_builder import build_plotly_figure
 from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
 from src.web.rendering.trace_to_plotly import traces_to_plotly
 
@@ -104,10 +106,26 @@ def test_typed_annotations_preserve_native_metadata_and_serialization() -> None:
         font_bold=True,
         align="right",
     )
-    native = traces_to_plotly(TraceBuildResult(annotations=[direct]))
+    result = TraceBuildResult(
+        traces=[BarTraceConfig(name="Measured", x=[2.0], y=[3.0])], annotations=[direct]
+    )
+    prepared = prepare_figure(
+        pd.DataFrame({"x": [2.0], "y": [3.0]}), {}, "bar", lambda data, config: result
+    )
+    native = build_plotly_figure(prepared)
     original = deepcopy(native.to_plotly_json())
-    extracted = _extract_annotations(native.layout)[0]
-    assert direct == extracted
+    assert prepared.spec.annotations == [direct]
+    annotation = native.layout.annotations[0]
+    assert (annotation.text, annotation.x, annotation.y, annotation.yref) == (
+        "Measured",
+        2,
+        3,
+        "paper",
+    )
+    assert (annotation.xshift, annotation.yshift) == (-12, 7)
+    assert (annotation.arrowhead, annotation.arrowcolor, annotation.align) == (3, "red", "right")
+    assert annotation.font.family == "monospace" and annotation.font.size == 12
+    assert annotation.font.color == "blue" and annotation.font.weight == "bold"
     assert direct.x_shift_pixels == -12 and direct.y_shift_pixels == 7
     assert direct.font_family == "monospace" and direct.font_bold
     assert direct.arrow_head == 3 and direct.arrow_color == "red"

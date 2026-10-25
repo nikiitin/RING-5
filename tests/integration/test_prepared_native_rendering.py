@@ -20,7 +20,6 @@ from src.web.rendering.config_builder import ConfigSpecBuilder
 from src.core.services.visualization.config_resolver import resolve_config
 from src.web.rendering.figure_preparation import prepare_figure
 from src.web.rendering.matplotlib_figure_builder import (
-    build_matplotlib_figure,
     build_matplotlib_figure_from_prepared,
     draw_matplotlib_axes,
 )
@@ -109,8 +108,6 @@ def test_native_routes_prepare_once_and_preserve_axis_roles(
             )
 
         monkeypatch.setattr(plot, "create_traces", traces)
-        monkeypatch.setattr(plot, "create_figure", lambda *_: pytest.fail("model-native hook"))
-        monkeypatch.setattr(plot, "apply_common_layout", lambda *_: pytest.fail("style rebuild"))
         with (
             patch.object(
                 ConfigSpecBuilder, "from_config", wraps=ConfigSpecBuilder.from_config
@@ -259,8 +256,8 @@ def test_public_fractional_numbered_and_right_legend_fonts_survive_typed_roundtr
 
 
 @pytest.mark.parametrize("engine", ["plotly", "matplotlib"])
-def test_temporary_ui_bridge_keeps_user_annotations_equal_to_dual_titles(
-    engine: str, monkeypatch: pytest.MonkeyPatch
+def test_native_artifact_keeps_user_annotations_equal_to_dual_titles(
+    engine: Literal["plotly", "matplotlib"], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     with ring5.Session() as session:
         plot = session.create_plot("grouped_stacked_bar", data=_data(), config=_config(False))
@@ -275,24 +272,22 @@ def test_temporary_ui_bridge_keeps_user_annotations_equal_to_dual_titles(
                 ],
             ),
         )
-        assert plot.processed_data is not None
-        interactive = plot.apply_common_layout(
-            plot.create_figure(plot.processed_data, plot.config), plot.config
-        )
-        assert sum(ann.text == "Rate" for ann in interactive.layout.annotations) == 3
-        if engine == "matplotlib":
-            assert plot.last_traces is not None
-            figure, _ = build_matplotlib_figure(
-                interactive, plot.config, plot.plot_type, list(plot.last_traces.traces)
-            )
-            try:
+        native = session.render(plot, engine=engine)
+        assert plot.render_artifact.figure is native
+        figure = cast(Any, native)
+        assert plot.render_artifact.engine == engine
+        assert plot.last_traces is not None
+        assert [list(trace.y) for trace in plot.last_traces.traces] == [[2.0, 5.0], [4.0, 10.0]]
+        try:
+            if engine == "plotly":
+                assert sum(ann.text == "Rate" for ann in figure.layout.annotations) == 3
+            else:
                 assert sum(text.get_text() == "Rate" for text in figure.axes[0].texts) == 1
                 assert (
-                    figure.axes[0].get_ylabel()
-                    == cast(Any, figure.axes[0])._ring5_twin.get_ylabel()
-                    == "Rate"
+                    figure.axes[0].get_ylabel() == figure.axes[0]._ring5_twin.get_ylabel() == "Rate"
                 )
-            finally:
+        finally:
+            if engine == "matplotlib":
                 plt.close(figure)
 
 

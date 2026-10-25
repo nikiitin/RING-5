@@ -12,6 +12,7 @@ from typing import Any
 from src.core.models.visualization.figure_config import FigureConfig
 from src.core.services.visualization.config_resolver import resolve_config
 from src.web.rendering.config_builder import ConfigSpecBuilder
+from src.web.pages.ui.plotting.base_plot import BasePlot
 
 
 def _sample_config(**overrides: Any) -> dict[str, Any]:
@@ -233,42 +234,49 @@ class TestConfigSpecResolve:
         assert resolved.dimensions.width == 800.0
 
 
-class TestApplicatorLastSpec:
-    """Verify that apply_styles stores the last FigureConfig built."""
+class TestRenderArtifactSpec:
+    """The published generation retains the exact resolved styling it rendered."""
 
-    def test_last_spec_populated_after_apply(self) -> None:
-        import plotly.graph_objects as go
+    def _plot(self, plot_type: str) -> BasePlot:
+        import pandas as pd
+        from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
-        from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
+        plot = PlotFactory.create_plot(plot_type, plot_id=1, name="Measured")
+        plot.processed_data = pd.DataFrame({"x": ["A", "B"], "y": [1.0, 2.0]})
+        return plot
 
-        applicator = StyleApplicator("bar")
-        fig = go.Figure(data=[go.Bar(x=["A", "B"], y=[1, 2])])
-        applicator.apply_styles(fig, _sample_config())
+    def test_last_spec_populated_after_render(self) -> None:
+        from src.web.rendering.plot_renderer import build_render_artifact
 
-        assert applicator.last_spec is not None
-        assert isinstance(applicator.last_spec, FigureConfig)
-        assert applicator.last_spec.title == "Test Plot"
+        plot = self._plot("bar")
+        artifact = build_render_artifact(plot, _sample_config(x="x", y="y"), "plotly")
+        plot.publish_render_artifact(artifact)
+        assert isinstance(plot.last_figure_spec, FigureConfig)
+        assert plot.last_figure_spec is artifact.figure_spec
+        assert plot.last_figure_spec.title == "Test Plot"
+        assert plot.last_generated_fig is artifact.figure
 
-    def test_last_spec_updated_on_each_call(self) -> None:
-        import plotly.graph_objects as go
+    def test_last_spec_updated_on_each_render(self) -> None:
+        from src.web.rendering.plot_renderer import build_render_artifact
 
-        from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
-
-        applicator = StyleApplicator("line")
-        fig = go.Figure(data=[go.Scatter(x=[1, 2], y=[3, 4])])
-
-        applicator.apply_styles(fig, _sample_config(title="First"))
-        assert applicator.last_spec is not None
-        assert applicator.last_spec.title == "First"
-
-        applicator.apply_styles(fig, _sample_config(title="Second"))
-        assert applicator.last_spec.title == "Second"
+        plot = self._plot("line")
+        first = build_render_artifact(plot, _sample_config(x="x", y="y", title="First"), "plotly")
+        plot.publish_render_artifact(first)
+        assert isinstance(plot.last_figure_spec, FigureConfig)
+        assert plot.last_figure_spec.title == "First"
+        second = build_render_artifact(plot, _sample_config(x="x", y="y", title="Second"), "plotly")
+        plot.publish_render_artifact(second)
+        assert isinstance(plot.last_figure_spec, FigureConfig)
+        assert plot.last_figure_spec.title == "Second"
+        assert plot.last_figure_spec is second.figure_spec
+        assert first.figure_spec is not second.figure_spec
+        assert isinstance(first.figure_spec, FigureConfig)
+        assert first.figure_spec.title == "First"
 
     def test_last_spec_is_none_initially(self) -> None:
-        from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
-
-        applicator = StyleApplicator("bar")
-        assert applicator.last_spec is None
+        plot = self._plot("bar")
+        assert plot.last_figure_spec is None
+        assert plot.render_artifact.preparation is None
 
 
 # Additional configuration mappings
