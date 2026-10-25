@@ -5,7 +5,7 @@ from typing import cast
 import pandas as pd
 import streamlit as st
 
-from src.core.models.shaper_models import ShaperStepConfig
+from src.core.models.shaper_models import ShaperStepConfig, NormalizeShaperConfig
 
 
 class NormalizeConfig:
@@ -32,6 +32,7 @@ class NormalizeConfig:
             include=["object", "string", "category"]
         ).columns.tolist()
 
+        baseline_cols = [*categorical_cols, *[c for c in data.columns if c not in categorical_cols]]
         col1, col2 = st.columns(2)
         with col1:
             normalizer_vars = st.multiselect(
@@ -39,7 +40,12 @@ class NormalizeConfig:
                 options=numeric_cols,
                 default=[
                     c
-                    for c in cast(list[str], existing_config.get("normalizerVars", []))
+                    for c in cast(
+                        list[str],
+                        existing_config.get(
+                            "normalizerVars", existing_config.get("normalizeVars", [])
+                        ),
+                    )
                     if c in numeric_cols
                 ],
                 key=f"{key_prefix}normalizer_vars_{shaper_id}",
@@ -60,16 +66,14 @@ class NormalizeConfig:
 
             norm_col_default = cast(str, existing_config.get("normalizerColumn", ""))
             norm_col_index = (
-                categorical_cols.index(norm_col_default)
-                if norm_col_default in categorical_cols
-                else 0
+                baseline_cols.index(norm_col_default) if norm_col_default in baseline_cols else 0
             )
             normalizer_column = st.selectbox(
                 "Normalizer column (baseline identifier)",
-                options=categorical_cols,
+                options=baseline_cols,
                 index=norm_col_index,
                 key=f"{key_prefix}norm_col_{shaper_id}",
-                help="The categorical column that identifies the baseline configuration",
+                help="The column that identifies the baseline configuration",
             )
 
         with col2:
@@ -89,11 +93,11 @@ class NormalizeConfig:
 
             group_by = st.multiselect(
                 "Group by",
-                options=categorical_cols,
+                options=data.columns.tolist(),
                 default=[
                     c
                     for c in cast(list[str], existing_config.get("groupBy", []))
-                    if c in categorical_cols
+                    if c in data.columns
                 ],
                 key=f"{key_prefix}norm_group_{shaper_id}",
             )
@@ -109,10 +113,9 @@ class NormalizeConfig:
                 ),
             )
 
-        result: ShaperStepConfig = cast(
-            ShaperStepConfig,
+        result = cast(
+            NormalizeShaperConfig,
             {
-                "normalizerVars": list(normalizer_vars) if normalizer_vars else [],
                 "normalizeVars": list(normalize_vars) if normalize_vars else [],
                 "normalizerColumn": str(normalizer_column or ""),
                 "normalizerValue": normalizer_value,
@@ -120,4 +123,6 @@ class NormalizeConfig:
                 "normalizeSd": bool(normalize_sd),
             },
         )
+        if "normalizerVars" in existing_config or normalizer_vars != normalize_vars:
+            result["normalizerVars"] = list(normalizer_vars)
         return result

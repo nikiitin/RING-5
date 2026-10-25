@@ -169,7 +169,7 @@ def test_recipe_rejects_undeclared_mistyped_and_future_content() -> None:
         source=RecipeSource(kind="csv", path="data.csv"),
         transformations=(cyclic_step,),
     )
-    with pytest.raises(ValueError, match="nesting is too deep"):
+    with pytest.raises(ValueError, match="cyclic configuration"):
         AnalysisRecipeService.dumps(cyclic_recipe)
 
 

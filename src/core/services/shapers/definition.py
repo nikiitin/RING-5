@@ -118,14 +118,21 @@ class ConfigValueBudget:
 
     remaining_items: int = field(default_factory=lambda: MAX_PIPELINE_CONFIG_VALUE_ITEMS)
     remaining_bytes: int = field(default_factory=lambda: MAX_PIPELINE_CONFIG_BYTES)
+    max_depth: int = MAX_PIPELINE_CONFIG_VALUE_DEPTH
 
 
-def validate_config_values(value: object, *, budget: ConfigValueBudget | None = None) -> None:
+def validate_config_values(
+    value: object,
+    *,
+    budget: ConfigValueBudget | None = None,
+    recipe_containers: bool = False,
+) -> None:
     """Bound a JSON value graph before schema traversal or ownership copying.
 
     Operation inputs may use a mapping interface. Nested values use JSON scalars, lists
     and dictionaries. Shared values count each time they would appear
-    on the wire; cycles and unsupported objects fail before copying.
+    on the wire; cycles and unsupported objects fail before copying. Recipe DTOs
+    may opt into tuple sequences and nested mapping interfaces before serialization.
     """
     shared = budget if budget is not None else ConfigValueBudget()
     active: set[int] = set()
@@ -137,7 +144,7 @@ def validate_config_values(value: object, *, budget: ConfigValueBudget | None = 
             raise ValueError(f"{location}: configuration value budget exceeded.")
 
     def walk(item: object, location: str, depth: int, *, interface: bool = False) -> None:
-        if depth > MAX_PIPELINE_CONFIG_VALUE_DEPTH:
+        if depth > shared.max_depth:
             raise ValueError(f"{location}: configuration nesting is too deep.")
         if type(item) is str:
             if len(item) > MAX_PIPELINE_CONFIG_STRING_LENGTH:
@@ -164,8 +171,10 @@ def validate_config_values(value: object, *, budget: ConfigValueBudget | None = 
                 raise ValueError(f"{location}: numbers must be finite.")
             charge(24, location)
             return
-        is_mapping = type(item) is dict or (interface and isinstance(item, Mapping))
-        is_sequence = type(item) is list
+        is_mapping = type(item) is dict or (
+            (interface or recipe_containers) and isinstance(item, Mapping)
+        )
+        is_sequence = type(item) is list or (recipe_containers and type(item) is tuple)
         if not is_mapping and not is_sequence:
             raise TypeError(f"{location}: values must be JSON scalars, lists or objects.")
         container = cast(Any, item)

@@ -1,21 +1,9 @@
-"""
-Shaper Models — Discriminated union of per-type shaper configurations.
+"""Exact built-in shaper configuration types.
 
-Replaces the flat 39-field ``ShaperStepConfig`` mega-union with type-safe,
-per-shaper TypedDicts. Each shaper type has exactly the fields it needs.
-
-The ``ShaperStepConfig`` type alias is a Union of all per-type configs,
-enabling type narrowing via the ``type`` discriminator field.
-
-Categories:
-    - Base: ``BaseShaperConfig`` — optional step identity (``id``)
-    - Aggregation: ``MeanShaperConfig``
-    - Normalization: ``NormalizeShaperConfig``
-    - Ordering: ``SortShaperConfig``
-    - Selection: ``ColumnSelectorConfig``, ``ConditionSelectorConfig``,
-      ``ItemSelectorConfig``
-    - Transformation: ``TransformerShaperConfig``
-    - Composition: ``SplitApplyShaperConfig``, ``SplitApplyGroupConfig``
+Each built-in declares a required Literal ``type`` discriminator, current operation
+parameters and optional editor identity. ``ShaperStepConfig`` is their discriminated union.
+Dynamic plugins declare their own TypedDict schemas through ShaperDefinition; generic
+pipeline containers retain those mappings without claiming a built-in configuration type.
 """
 
 from __future__ import annotations
@@ -386,15 +374,7 @@ class GroupPredicateSelectorConfig(BaseShaperConfig, total=False):
     action: Literal["drop", "keep"]
 
 
-# Discriminated Union Type Alias
-# Discriminated union of all shaper configurations.
-#
-# Each concrete configuration's required Literal ``type`` field is its discriminator.
-# Use ``config["type"]`` to determine which specific config shape
-# to expect.
-#
-# This replaces the old flat ``ShaperStepConfig`` mega-union from
-# ``data_models.py``.
+# Known built-in operations narrow by their exact type discriminator.
 ShaperStepConfig = Union[
     MeanShaperConfig,
     NormalizeShaperConfig,

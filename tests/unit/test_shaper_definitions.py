@@ -10,7 +10,7 @@ import pandas as pd
 import pytest
 
 from src.core.common import security_limits
-from src.core.models.shaper_models import ShaperStepConfig
+from src.core.models.shaper_models import ShaperStepConfig, SplitApplyGroupConfig
 from src.core.services.data_services.pipeline_config_exchange_service import (
     PipelineConfigExchangeService,
 )
@@ -313,7 +313,7 @@ def test_unsupported_plugin_values_are_rejected_before_file_publication(
         raise AssertionError("Non-JSON configuration reached ownership copy")
 
     monkeypatch.setattr("src.core.services.shapers.factory.deepcopy", must_not_copy)
-    with pytest.raises(ValueError, match="non-JSON"):
+    with pytest.raises((TypeError, ValueError), match="JSON"):
         ConfigService.save_configuration(
             "Binary", "", [{"type": "binaryPlugin", "payload": b"unsupported JSON"}]
         )
@@ -539,3 +539,108 @@ def test_value_preflight_retains_public_step_location() -> None:
         )
     assert error.value.step_index == 1
     assert error.value.shaper_type == "conditionSelector"
+
+
+@pytest.mark.timeout(2)
+def test_export_rejects_compact_shared_dag_before_unbounded_walk_or_copy(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    shared: Any = "x"
+    for _ in range(30):
+        shared = [shared, shared]
+
+    def must_not_copy(value: Any) -> Any:
+        raise AssertionError("Oversized shared graph reached ownership copy")
+
+    monkeypatch.setattr("src.core.services.shapers.factory.deepcopy", must_not_copy)
+    with pytest.raises(ValueError, match="value budget exceeded"):
+        PipelineConfigExchangeService.dumps(
+            "Shared graph", "", [{"type": "sort", "order_dict": {"bench": shared}}]
+        )
+
+
+def test_export_admits_outer_sequence_before_reading_step_mappings() -> None:
+    from collections.abc import Mapping
+
+    reads: list[str] = []
+
+    class CountingStep(Mapping[str, object]):
+        def __iter__(self):
+            return iter(("type",))
+
+        def __len__(self) -> int:
+            return 1
+
+        def __getitem__(self, key: str) -> object:
+            reads.append(key)
+            return "sort"
+
+    with pytest.raises(ValueError, match="step limit"):
+        PipelineConfigExchangeService.dumps("Large", "", [CountingStep() for _ in range(101)])
+    assert not reads
+
+    class HugeSequence(Sequence[Mapping[str, object]]):
+        def __len__(self) -> int:
+            return 10**12
+
+        def __getitem__(self, index):
+            raise AssertionError("Oversized sequence was traversed before admission")
+
+    with pytest.raises(ValueError, match="step limit"):
+        PipelineConfigExchangeService.dumps("Huge", "", HugeSequence())
+
+
+def test_export_bounds_timestamp_before_serialization(monkeypatch: pytest.MonkeyPatch) -> None:
+    def must_not_serialize(*args: Any, **kwargs: Any) -> Any:
+        raise AssertionError("Oversized metadata reached JSON serialization")
+
+    monkeypatch.setattr(
+        "src.core.services.data_services.pipeline_config_exchange_service.json.dumps",
+        must_not_serialize,
+    )
+    with pytest.raises(ValueError, match="characters"):
+        PipelineConfigExchangeService.dumps(
+            "Timestamp",
+            "",
+            [],
+            timestamp="x" * (security_limits.MAX_PIPELINE_CONFIG_STRING_LENGTH + 1),
+        )
+
+
+class PluginSplitConfig(TypedDict):
+    type: Required[Literal["pluginSplit"]]
+    joinColumns: list[str]
+    groups: list[SplitApplyGroupConfig]
+
+
+def test_registered_split_subclass_inherits_execution_graph_budgets(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.core.services.shapers.impl.split_apply import SplitApply
+    from src.core.services.shapers.definition import validate_split_apply
+
+    class PluginSplit(SplitApply):
+        pass
+
+    monkeypatch.setattr(ShaperFactory, "_definitions", dict(ShaperFactory._definitions))
+    ShaperFactory.register(
+        ShaperDefinition(
+            "pluginSplit", PluginSplit, "Plugin split", PluginSplitConfig, validate_split_apply
+        )
+    )
+    config = _split([{"type": "sort", "order_dict": {}}] * 60)
+    config["type"] = "pluginSplit"
+    config["groups"][1]["pipeline"] = [{"type": "sort", "order_dict": {}}] * 60
+    with pytest.raises(PipelineStepError, match="step limit"):
+        PipelineService.process_pipeline(
+            pd.DataFrame({"bench": ["a"], "v": [1], "w": [2]}), [config]
+        )
+    nested = {"type": "sort", "order_dict": {}}
+    for _ in range(security_limits.MAX_PIPELINE_CONFIG_DEPTH + 2):
+        nested = _split([nested])
+        nested["type"] = "pluginSplit"
+    with pytest.raises(ValueError, match="nesting is too deep"):
+        PluginSplit(nested)
+    own_schema = _split([])
+    with pytest.raises(ValueError, match="must be one of"):
+        PluginSplit(own_schema)

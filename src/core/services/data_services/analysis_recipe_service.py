@@ -43,6 +43,7 @@ from src.core.services.data_services.pipeline_config_exchange_service import (
     PipelineConfigExchangeService,
 )
 from src.core.services.shapers.factory import ShaperFactory
+from src.core.services.shapers.definition import ConfigValueBudget, validate_config_values
 from src.core.state.state_manager import StateManager
 
 ANALYSIS_RECIPE_FORMAT = "ring5.analysis-recipe"
@@ -102,15 +103,25 @@ class AnalysisRecipeService:
             A validated immutable recipe ready to save or serialize.
         """
         # [impl->req~ring5.portfolio.analysis-recipes~1]
+        self._validate_pipeline(transformations, "global transformations")
+        if len(parameters) > MAX_ANALYSIS_RECIPE_PARAMETERS:
+            raise ValueError("Analysis recipe exceeds the parameter limit.")
+        if len(exports) > MAX_ANALYSIS_RECIPE_EXPORTS:
+            raise ValueError("Analysis recipe exceeds the export limit.")
         resolved_source = source or self._capture_source()
         plots: list[RecipePlot] = []
-        for plot in self._state_manager.get_plots():
-            pipeline = tuple(copy.deepcopy(step["config"]) for step in plot.pipeline)
+        current_plots = self._state_manager.get_plots()
+        if len(current_plots) > MAX_ANALYSIS_RECIPE_PLOTS:
+            raise ValueError("Analysis recipe exceeds the plot limit.")
+        for plot in current_plots:
+            if len(plot.pipeline) > MAX_ANALYSIS_RECIPE_TRANSFORMATIONS:
+                raise ValueError(f"Recipe plot {plot.name!r} exceeds the transformation limit.")
+            pipeline = tuple(step["config"] for step in plot.pipeline)
             plots.append(
                 RecipePlot(
                     name=plot.name,
                     plot_type=plot.plot_type,
-                    config=copy.deepcopy(plot.config),
+                    config=plot.config,
                     pipeline=pipeline,
                 )
             )
@@ -119,12 +130,12 @@ class AnalysisRecipeService:
             description=description,
             parameters=tuple(parameters),
             source=resolved_source,
-            transformations=tuple(copy.deepcopy(list(transformations))),
+            transformations=tuple(transformations),
             plots=tuple(plots),
             exports=tuple(exports),
         )
         self.validate(recipe)
-        return recipe
+        return copy.deepcopy(recipe)
 
     def _capture_source(self) -> RecipeSource:
         if self._state_manager.is_using_parser():
@@ -143,7 +154,7 @@ class AnalysisRecipeService:
                 pattern=self._state_manager.get_stats_pattern(),
                 strategy=self._state_manager.get_parser_strategy(),
                 variables=variables,
-                scanned_variables=tuple(copy.deepcopy(self._state_manager.get_scanned_variables())),
+                scanned_variables=tuple(self._state_manager.get_scanned_variables()),
             )
         csv_path = self._state_manager.get_csv_path()
         if not csv_path:
@@ -199,6 +210,31 @@ class AnalysisRecipeService:
                 f"Analysis recipe exceeds the {MAX_ANALYSIS_RECIPE_EXPORTS}-export limit."
             )
 
+        if not isinstance(recipe.source, RecipeSource):
+            raise TypeError("Analysis recipe source must be a RecipeSource instance.")
+        for parameter in recipe.parameters:
+            if not isinstance(parameter, RecipeParameter):
+                raise TypeError("Analysis recipe parameters must be RecipeParameter instances.")
+        for plot in recipe.plots:
+            if not isinstance(plot, RecipePlot):
+                raise TypeError("Analysis recipe plots must be RecipePlot instances.")
+        for export in recipe.exports:
+            if not isinstance(export, RecipeExport):
+                raise TypeError("Analysis recipe exports must be RecipeExport instances.")
+        # Admission precedes placeholder walks, codec conversion and ownership copies.
+        AnalysisRecipeService._validate_json_value(
+            {
+                "name": recipe.name,
+                "description": recipe.description,
+                "parameters": [vars(parameter) for parameter in recipe.parameters],
+                "source": vars(recipe.source),
+                "transformations": recipe.transformations,
+                "plots": [vars(plot) for plot in recipe.plots],
+                "exports": [vars(export) for export in recipe.exports],
+            },
+            depth=0,
+        )
+
         declared: dict[str, RecipeParameter] = {}
         for parameter in recipe.parameters:
             AnalysisRecipeService._validate_parameter(parameter)
@@ -253,7 +289,6 @@ class AnalysisRecipeService:
             "plots": [AnalysisRecipeService._plot_payload(plot) for plot in recipe.plots],
             "exports": [AnalysisRecipeService._export_payload(export) for export in recipe.exports],
         }
-        AnalysisRecipeService._validate_json_value(template_payload, depth=0)
         referenced = AnalysisRecipeService._placeholder_names(template_payload)
         unknown = sorted(referenced - set(declared))
         if unknown:
@@ -846,33 +881,14 @@ class AnalysisRecipeService:
 
     @staticmethod
     def _validate_json_value(value: object, *, depth: int) -> None:
-        if depth > MAX_ANALYSIS_RECIPE_DEPTH:
-            raise ValueError("Analysis recipe nesting is too deep.")
-        if isinstance(value, str):
-            if len(value) > MAX_ANALYSIS_RECIPE_STRING_LENGTH:
-                raise ValueError(
-                    "Analysis recipe text exceeds "
-                    f"{MAX_ANALYSIS_RECIPE_STRING_LENGTH} characters."
-                )
-            return
-        if value is None or isinstance(value, (bool, int)):
-            return
-        if isinstance(value, float):
-            if not math.isfinite(value):
-                raise ValueError("Analysis recipe numbers must be finite.")
-            return
-        if isinstance(value, (list, tuple)):
-            for item in value:
-                AnalysisRecipeService._validate_json_value(item, depth=depth + 1)
-            return
-        if isinstance(value, Mapping):
-            for key, item in value.items():
-                if not isinstance(key, str):
-                    raise TypeError("Analysis recipe object keys must be text.")
-                AnalysisRecipeService._validate_json_value(key, depth=depth + 1)
-                AnalysisRecipeService._validate_json_value(item, depth=depth + 1)
-            return
-        raise TypeError("Analysis recipe contains a non-JSON value.")
+        validate_config_values(
+            value,
+            budget=ConfigValueBudget(
+                remaining_bytes=MAX_ANALYSIS_RECIPE_BYTES,
+                max_depth=MAX_ANALYSIS_RECIPE_DEPTH - depth,
+            ),
+            recipe_containers=True,
+        )
 
     @staticmethod
     def _bounded_text(

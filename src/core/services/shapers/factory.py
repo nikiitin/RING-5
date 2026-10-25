@@ -181,7 +181,7 @@ class ShaperFactory:
         shared.charge(depth)
         definition = cls.get_definition(shaper_type)
         definition._validate_config(params, require_type=require_type)
-        if definition.implementation is SplitApply:
+        if issubclass(definition.implementation, SplitApply):
             config = cast(SplitApplyShaperConfig, params)
             for group in config["groups"]:
                 for step in group.get("pipeline", []):
