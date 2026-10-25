@@ -16,6 +16,7 @@ import pytest
 
 from src.core.models.parsing_models import StatConfig
 from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
+from src.parsing.gem5.impl.source_bindings import resolve_sources
 from src.parsing.gem5.impl.strategies.gem5_parse_work import Gem5ParseWork
 from src.parsing.gem5.impl.strategies.perl_worker_pool import (
     DEFAULT_PERL_WORKERS,
@@ -58,14 +59,17 @@ class TestWorkerPoolIntegration:
         from src.parsing.gem5.types.type_mapper import TypeMapper
 
         # Create a minimal variable config
-        var_config = StatConfig(name="system.cpu.numCycles", type="scalar")
+        var_config = StatConfig(
+            name="system.cpu.numCycles", type="scalar", params={"source_type": "scalar"}
+        )
+        plan = resolve_sources([var_config], None)
 
         # Create StatType instance
-        stat_type = TypeMapper.create_stat(var_config)
+        stat_type = TypeMapper.create_stat(plan.accumulators[0])
         vars_dict = {var_config.name: stat_type}
 
         # Create parse work
-        work = Gem5ParseWork(test_stats_file, vars_dict)
+        work = Gem5ParseWork(test_stats_file, vars_dict, plan)
 
         # Mock subprocess.run to ensure it's NEVER called
         with patch("subprocess.run") as mock_subprocess:
@@ -85,8 +89,10 @@ class TestWorkerPoolIntegration:
         output_dir.mkdir()
 
         variables = [
-            StatConfig(name="system.cpu.numCycles", type="scalar"),
-            StatConfig(name="system.cpu.ipc", type="scalar"),
+            StatConfig(
+                name="system.cpu.numCycles", type="scalar", params={"source_type": "scalar"}
+            ),
+            StatConfig(name="system.cpu.ipc", type="scalar", params={"source_type": "scalar"}),
         ]
 
         # Mock subprocess.run to ensure it's never called during parsing
@@ -119,7 +125,10 @@ class TestWorkerPoolIntegration:
         """Verify same worker pool is reused across multiple parse operations."""
         from src.parsing.gem5.types.type_mapper import TypeMapper
 
-        var_config = StatConfig(name="system.cpu.numCycles", type="scalar")
+        var_config = StatConfig(
+            name="system.cpu.numCycles", type="scalar", params={"source_type": "scalar"}
+        )
+        plan = resolve_sources([var_config], None)
 
         # Get worker pool ID before parsing
         pool_before = get_worker_pool()
@@ -128,9 +137,9 @@ class TestWorkerPoolIntegration:
 
         # Create and execute multiple parse works
         for _ in range(3):
-            stat_type = TypeMapper.create_stat(var_config)
+            stat_type = TypeMapper.create_stat(plan.accumulators[0])
             vars_dict = {var_config.name: stat_type}
-            work = Gem5ParseWork(test_stats_file, vars_dict)
+            work = Gem5ParseWork(test_stats_file, vars_dict, plan)
             result = work()
             assert result is not None
 
@@ -147,14 +156,17 @@ class TestWorkerPoolIntegration:
 
         from src.parsing.gem5.types.type_mapper import TypeMapper
 
-        var_config = StatConfig(name="system.cpu.numCycles", type="scalar")
+        var_config = StatConfig(
+            name="system.cpu.numCycles", type="scalar", params={"source_type": "scalar"}
+        )
+        plan = resolve_sources([var_config], None)
 
         # Parse 10 files using worker pool
         start_time = time.time()
         for _ in range(10):
-            stat_type = TypeMapper.create_stat(var_config)
+            stat_type = TypeMapper.create_stat(plan.accumulators[0])
             vars_dict = {var_config.name: stat_type}
-            work = Gem5ParseWork(test_stats_file, vars_dict)
+            work = Gem5ParseWork(test_stats_file, vars_dict, plan)
             result = work()
             assert result is not None
         elapsed = time.time() - start_time
@@ -177,7 +189,10 @@ class TestWorkerPoolIntegration:
 
         from src.parsing.gem5.types.type_mapper import TypeMapper
 
-        var_config = StatConfig(name="system.cpu.numCycles", type="scalar")
+        var_config = StatConfig(
+            name="system.cpu.numCycles", type="scalar", params={"source_type": "scalar"}
+        )
+        plan = resolve_sources([var_config], None)
         pool = get_worker_pool()
 
         # The structural guarantee: one live stderr drainer per worker.
@@ -186,9 +201,9 @@ class TestWorkerPoolIntegration:
 
         # The behavioural check: a burst of parses must not stall or fail.
         for _ in range(120):
-            stat_type = TypeMapper.create_stat(var_config)
+            stat_type = TypeMapper.create_stat(plan.accumulators[0])
             vars_dict = {var_config.name: stat_type}
-            assert Gem5ParseWork(test_stats_file, vars_dict)() is not None
+            assert Gem5ParseWork(test_stats_file, vars_dict, plan)() is not None
 
         stats = pool.get_stats()
         assert stats["total_errors"] == 0, stats
@@ -202,13 +217,16 @@ class TestWorkerPoolErrorHandling:
         """Verify proper error handling for missing files."""
         from src.parsing.gem5.types.type_mapper import TypeMapper
 
-        var_config = StatConfig(name="system.cpu.numCycles", type="scalar")
+        var_config = StatConfig(
+            name="system.cpu.numCycles", type="scalar", params={"source_type": "scalar"}
+        )
+        plan = resolve_sources([var_config], None)
 
-        stat_type = TypeMapper.create_stat(var_config)
+        stat_type = TypeMapper.create_stat(plan.accumulators[0])
         vars_dict = {var_config.name: stat_type}
 
         # Create work with non-existent file
-        work = Gem5ParseWork("/nonexistent/stats.txt", vars_dict)
+        work = Gem5ParseWork("/nonexistent/stats.txt", vars_dict, plan)
 
         # Should raise FileNotFoundError (validation happens before parsing)
         with pytest.raises(FileNotFoundError, match="does not exist"):
@@ -221,12 +239,14 @@ class TestWorkerPoolErrorHandling:
         var_config = StatConfig(
             name="invalid.variable.that.does.not.exist",
             type="scalar",
+            params={"source_type": "scalar"},
         )
+        plan = resolve_sources([var_config], None)
 
-        stat_type = TypeMapper.create_stat(var_config)
+        stat_type = TypeMapper.create_stat(plan.accumulators[0])
         vars_dict = {var_config.name: stat_type}
 
-        work = Gem5ParseWork(test_stats_file, vars_dict)
+        work = Gem5ParseWork(test_stats_file, vars_dict, plan)
 
         # Should complete without crashing (may return empty results)
         result = work()

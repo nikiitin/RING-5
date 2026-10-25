@@ -12,26 +12,14 @@ from pathlib import Path
 from typing import Any
 
 from src.core.common.input_identity import fingerprint_inputs
-from src.core.common.safe_regex import (
-    SafeRegexError,
-    compile_bounded_regex,
-    escape_perl_stat_filter,
-    fullmatch_bounded_regex,
-    normalize_stat_pattern,
-    numeric_pattern_id,
-)
 from src.core.common.utils import normalize_user_path
 from src.core.common.security_limits import (
     MAX_DISCOVERED_FILES,
     MAX_INCREMENTAL_CACHE_COLUMNS,
     MAX_PARSE_FILES,
-    MAX_PARSE_VARIABLES,
     MAX_PARSER_PLAYGROUND_CELLS,
     MAX_PARSER_PLAYGROUND_FILES,
     MAX_PARSER_PLAYGROUND_VARIABLES,
-    MAX_REGEX_CANDIDATES,
-    MAX_REGEX_EXPANSION_SECONDS,
-    MAX_REGEX_MATCH_ATTEMPTS,
 )
 from src.core.models.parsing_models import (
     IncrementalParseBatchResult,
@@ -45,7 +33,6 @@ from src.core.models.parsing_models import (
     StatConfig,
 )
 from src.core.models.csv_contract import MISSING_VALUE, validate_parser_csv
-from src.core.models.pattern_index_service import PatternIndexService
 from src.parsing.framework.file_discovery import find_stats_files
 from src.parsing.framework.incremental_cache import (
     DEFAULT_CACHE_NAME,
@@ -55,11 +42,11 @@ from src.parsing.framework.incremental_cache import (
 )
 from src.parsing.framework.work_pool import WorkPool
 from src.parsing.gem5.impl.scanning.gem5_scan_work import Gem5ScanWork
+from src.parsing.gem5.impl.source_bindings import resolve_sources
 from src.parsing.gem5.impl.scanning.pattern_aggregator import PatternAggregator
 from src.parsing.gem5.impl.strategies.factory import StrategyFactory
 from src.parsing.gem5.impl.strategies.file_parser_strategy import INTERNAL_SIM_PATH_KEY
 from src.parsing.gem5.models import Gem5ScannedVariable
-from src.parsing.gem5.types.type_mapper import TypeMapper
 from src.parsing.parser_protocol import SimulationParser
 
 logger = logging.getLogger(__name__)
@@ -189,189 +176,11 @@ class Gem5Parser(SimulationParser):
         if not search_path.exists():
             raise FileNotFoundError(f"Stats path does not exist: {stats_path}")
 
-        # 1. Regex Expansion (Centralized Logic)
         t_regex_start = time.perf_counter()
-        regex_deadline = time.monotonic() + MAX_REGEX_EXPANSION_SECONDS
-        match_attempts = 0
-        processed_configs: list[StatConfig] = []
-        for config in variables:
-            expanded_config = config
-            source_name = getattr(config, "source_name", None) or config.name
-            if config.is_regex:
-                try:
-                    canonical_source = normalize_stat_pattern(source_name)
-                    if not scanned_vars:
-                        raise SafeRegexError(
-                            "Regex parser variables require results from a scan of the same tree."
-                        )
-                    if len(scanned_vars) > MAX_REGEX_CANDIDATES:
-                        raise SafeRegexError(
-                            f"Regex expansion received {len(scanned_vars)} candidates; "
-                            f"the limit is {MAX_REGEX_CANDIDATES}."
-                        )
-                    logger.info(
-                        f"PARSER: Matching regex '{source_name}' "
-                        f"against {len(scanned_vars)} scanned variables"
-                    )
-                    pattern = compile_bounded_regex(escape_perl_stat_filter(source_name))
-                    matched_ids: list[str] = []
-                    source_types: set[str] = set()
-                    legacy_vector_sources: list[ScannedVariable] = []
-                    matched_id_set: set[str] = set()
-
-                    def add_matched_id(pattern_id: str) -> None:
-                        if pattern_id in matched_id_set:
-                            return
-                        if len(matched_ids) >= MAX_PARSE_VARIABLES:
-                            raise SafeRegexError(
-                                f"Pattern expands beyond the {MAX_PARSE_VARIABLES}-variable "
-                                "limit."
-                            )
-                        matched_id_set.add(pattern_id)
-                        matched_ids.append(pattern_id)
-
-                    for sv in scanned_vars:
-                        match_attempts += 1
-                        if match_attempts > MAX_REGEX_MATCH_ATTEMPTS:
-                            raise SafeRegexError(
-                                f"Regex expansion exceeded {MAX_REGEX_MATCH_ATTEMPTS} "
-                                "candidate matches."
-                            )
-                        if time.monotonic() > regex_deadline:
-                            raise SafeRegexError(
-                                f"Regex expansion exceeded {MAX_REGEX_EXPANSION_SECONDS:g} seconds."
-                            )
-                        sv_name = sv.name
-                        same_pattern = False
-                        if r"\d+" in sv_name:
-                            try:
-                                same_pattern = canonical_source == normalize_stat_pattern(sv_name)
-                            except SafeRegexError:
-                                # Invalid scan metadata is not a canonical aggregate pattern.
-                                pass
-                        if same_pattern or fullmatch_bounded_regex(pattern, sv_name):
-                            if sv.source_type is not None:
-                                source_types.add(sv.source_type)
-                            elif sv.type == "scalar" or (
-                                not sv.pattern_indices and r"\d+" not in sv.name
-                            ):
-                                source_types.add(sv.type)
-                            elif sv.type == "vector":
-                                legacy_vector_sources.append(sv)
-                            # If sv is already an aggregated pattern, use its constituents
-                            if sv.pattern_indices:
-                                for pattern_id in sv.pattern_indices:
-                                    if fullmatch_bounded_regex(pattern, pattern_id):
-                                        add_matched_id(pattern_id)
-                                        continue
-                                    try:
-                                        add_matched_id(
-                                            PatternIndexService.reconstruct_concrete_name(
-                                                source_name, pattern_id
-                                            )
-                                        )
-                                    except ValueError as exc:
-                                        raise SafeRegexError(
-                                            f"Scanned pattern index {pattern_id!r} is invalid "
-                                            f"for {source_name!r}."
-                                        ) from exc
-                            else:
-                                add_matched_id(sv_name)
-
-                    if matched_ids:
-                        if config.params.get("source_type") is None:
-                            for legacy_source in legacy_vector_sources:
-                                # Inspect the stored schema, not a user's selected subset:
-                                # genuine vector entries may coincidentally equal CPU IDs.
-                                legacy_config = replace(
-                                    config, params={"entries": legacy_source.entries}
-                                )
-                                TypeMapper.is_scalar_pattern_vector(legacy_config, matched_ids)
-                                source_types.add("vector")
-                        user_ids_raw = config.params.get("parsed_ids", [])
-                        if not isinstance(user_ids_raw, list) or any(
-                            not isinstance(pattern_id, str) or not pattern_id
-                            for pattern_id in user_ids_raw
-                        ):
-                            raise SafeRegexError(
-                                "Selected pattern IDs must be a list of non-empty strings."
-                            )
-                        selected_ids = list(dict.fromkeys(user_ids_raw or matched_ids))
-                        if len(selected_ids) > MAX_PARSE_VARIABLES:
-                            raise SafeRegexError(
-                                f"Pattern selection expands to {len(selected_ids)} variables; "
-                                f"the limit is {MAX_PARSE_VARIABLES}."
-                            )
-                        concrete_names: list[str] = []
-                        for selected in selected_ids:
-                            if selected in matched_id_set:
-                                concrete = selected
-                            else:
-                                try:
-                                    concrete = PatternIndexService.reconstruct_concrete_name(
-                                        source_name, selected
-                                    )
-                                except ValueError as exc:
-                                    raise SafeRegexError(
-                                        f"Selected pattern ID {selected!r} is neither a scanned "
-                                        "concrete name nor a valid numeric ID."
-                                    ) from exc
-                            if concrete not in matched_id_set:
-                                raise SafeRegexError(
-                                    f"Selected pattern ID {selected!r} was not present "
-                                    "in the scan results."
-                                )
-                            if concrete not in concrete_names:
-                                concrete_names.append(concrete)
-                        if len(source_types) > 1:
-                            raise ValueError(f"PARSER: mixed source types for {source_name!r}.")
-                        resolved_params = config.params.copy()
-                        if source_types:
-                            resolved_params["source_type"] = next(iter(source_types))
-                        resolved_config = replace(config, params=resolved_params)
-                        scalar_pattern = TypeMapper.is_scalar_pattern_vector(
-                            resolved_config, matched_ids
-                        )
-                        if config.keep_indices:
-                            for concrete in concrete_names:
-                                params = {
-                                    key: value
-                                    for key, value in resolved_params.items()
-                                    if key != "parsed_ids"
-                                    and not (scalar_pattern and key in ("entries", "entries"))
-                                }
-                                processed_configs.append(
-                                    replace(
-                                        config,
-                                        name=concrete,
-                                        source_name=concrete,
-                                        type="scalar" if scalar_pattern else config.type,
-                                        is_regex=False,
-                                        keep_indices=False,
-                                        params=params,
-                                    )
-                                )
-                            continue
-                        params = resolved_params.copy()
-                        params["parsed_ids"] = concrete_names
-                        if scalar_pattern:
-                            params["entries"] = [
-                                index
-                                for name in concrete_names
-                                if (index := numeric_pattern_id(source_name, name)) is not None
-                            ]
-                        expanded_config = replace(config, params=params)
-                    else:
-                        logger.warning(f"PARSER: No matches found for regex '{source_name}'")
-                except SafeRegexError as exc:
-                    raise ValueError(
-                        f"Unsafe regex in parser variable '{source_name}': {exc}"
-                    ) from exc
-
-            processed_configs.append(expanded_config)
-
-        t_regex_end = time.perf_counter()
-        logger.info(f"PERF: Regex expansion took {t_regex_end - t_regex_start:.4f}s")
+        plan = resolve_sources(variables, scanned_vars)
+        logger.info(
+            "PERF: Source binding resolution took %.4fs", time.perf_counter() - t_regex_start
+        )
 
         # 2. Resolve strategy via factory
         strategy = StrategyFactory.create(strategy_type)
@@ -400,7 +209,7 @@ class Gem5Parser(SimulationParser):
         batch_work = strategy.get_work_items(
             stats_path,
             stats_pattern,
-            processed_configs,
+            plan,
             file_paths=selected_paths,
         )
         t_work_end = time.perf_counter()
@@ -414,7 +223,7 @@ class Gem5Parser(SimulationParser):
                 f"No parse work generated for pattern '{stats_pattern}' under: {stats_path}"
             )
 
-        var_names: list[str] = [v.name for v in processed_configs]
+        var_names: list[str] = [spec.output_name for spec in plan.accumulators]
 
         pool = WorkPool.get_instance()
         futures = pool.submit_many(batch_work)
@@ -649,9 +458,13 @@ class Gem5Parser(SimulationParser):
             registry[name] = var
         else:
             existing = registry[name]
+            if existing.source_type != var.source_type or existing.type != var.type:
+                raise ValueError(f"Scanned source {name!r} has incompatible source kinds.")
+            if existing.instances != var.instances:
+                raise ValueError(f"Scanned source {name!r} has inconsistent source instances.")
             if var.type in ("vector", "histogram"):
                 new_entries = sorted(list(set(existing.entries) | set(var.entries)))
-                # Preserve other fields (like pattern_indices) while updating entries
+                # Retain explicit source identity while merging measurement entries.
                 registry[name] = replace(existing, entries=new_entries)
 
             elif var.type == "distribution":
@@ -681,7 +494,8 @@ class Gem5Parser(SimulationParser):
                     name=existing.name,
                     type=existing.type,
                     entries=existing.entries,
-                    pattern_indices=existing.pattern_indices,
+                    source_type=existing.source_type,
+                    instances=existing.instances,
                     minimum=new_min,
                     maximum=new_max,
                 )

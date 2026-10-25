@@ -19,8 +19,8 @@ from src.core.services.portfolio_integrity_service import (
 
 def _portfolio() -> dict[str, Any]:
     return {
-        "schema_version": 6,
-        "version": "6.0",
+        "schema_version": 7,
+        "version": "7.0",
         "timestamp": "2026-07-21T10:00:00+00:00",
         "environment_metadata": {"ring5_version": "1.0"},
         "data": TypedTableCodec.encode(pd.DataFrame({"benchmark": ["a"], "ipc": [1.2]})),

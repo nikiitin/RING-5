@@ -4,10 +4,6 @@ Tests for PatternIndexService — pure business logic for pattern variable opera
 Extracted from UI layer (pattern_index_selector.py) to Layer B.
 """
 
-from typing import Any
-
-import pytest
-
 from src.core.models.pattern_index_service import PatternIndexService
 
 
@@ -71,77 +67,6 @@ class TestExtractIndexPositions:
         assert result == ["xyz"]
 
 
-class TestParseEntryIndices:
-    """Tests for parsing entries into position-value mappings."""
-
-    def test_two_positions(self) -> None:
-        entries = ["0_0", "0_1", "1_0", "1_1"]
-        result = PatternIndexService.parse_entry_indices(entries)
-        assert result[0] == {"0", "1"}
-        assert result[1] == {"0", "1"}
-
-    def test_single_position(self) -> None:
-        entries = ["0", "1", "2", "3"]
-        result = PatternIndexService.parse_entry_indices(entries)
-        assert len(result) == 1
-        assert result[0] == {"0", "1", "2", "3"}
-
-    def test_three_positions(self) -> None:
-        entries = ["0_0_0", "0_0_1", "1_0_0"]
-        result = PatternIndexService.parse_entry_indices(entries)
-        assert result[0] == {"0", "1"}
-        assert result[1] == {"0"}
-        assert result[2] == {"0", "1"}
-
-    def test_empty_entries(self) -> None:
-        result = PatternIndexService.parse_entry_indices([])
-        assert result == {}
-
-    def test_uneven_entries(self) -> None:
-        """Entries with different part counts should still parse."""
-        entries = ["0_0", "1_0_extra"]
-        result = PatternIndexService.parse_entry_indices(entries)
-        assert 0 in result
-        assert 1 in result
-        assert 2 in result  # Extra position from second entry
-
-
-class TestFilterEntries:
-    """Tests for filtering entries based on selections."""
-
-    # [test->req~ring5.ingestion.pattern-index-selection~1]
-
-    def test_filter_single_position(self) -> None:
-        entries = ["0_0", "0_1", "1_0", "1_1"]
-        result = PatternIndexService.filter_entries(entries, {0: ["0"]})
-        assert result == ["0_0", "0_1"]
-
-    def test_filter_two_positions(self) -> None:
-        entries = ["0_0", "0_1", "1_0", "1_1"]
-        result = PatternIndexService.filter_entries(entries, {0: ["0"], 1: ["1"]})
-        assert result == ["0_1"]
-
-    def test_filter_all_selected(self) -> None:
-        entries = ["0_0", "0_1", "1_0", "1_1"]
-        result = PatternIndexService.filter_entries(entries, {0: ["0", "1"], 1: ["0", "1"]})
-        assert result == entries
-
-    def test_filter_empty_selection_excludes_all(self) -> None:
-        entries = ["0_0", "0_1"]
-        result = PatternIndexService.filter_entries(entries, {0: []})
-        assert result == []
-
-    def test_filter_no_selections(self) -> None:
-        entries = ["0_0", "0_1"]
-        result = PatternIndexService.filter_entries(entries, {})
-        assert result == entries
-
-    def test_filter_preserves_order(self) -> None:
-        entries = ["2_1", "0_0", "1_0"]
-        result = PatternIndexService.filter_entries(entries, {0: ["0", "2"]})
-        assert result == ["2_1", "0_0"]
-
-
 class TestFormatEntryDisplay:
     """Tests for formatting entries for display."""
 
@@ -166,13 +91,6 @@ class TestFormatEntryDisplay:
         assert result == ""
 
 
-def test_filter_entries_requires_each_selected_position() -> None:
-    assert PatternIndexService.filter_entries(["0", "0_1", "0_2", "1_1"], {0: ["0"], 1: ["1"]}) == [
-        "0_1"
-    ]
-
-
-@pytest.mark.parametrize("position", [-1, -2, True, "1"])
-def test_filter_entries_rejects_invalid_positions(position: Any) -> None:
-    with pytest.raises(ValueError, match="nonnegative integers"):
-        PatternIndexService.filter_entries(["0_1"], {position: ["1"]})
+def test_label_extraction_handles_long_nonpattern_names_without_regex_matching():
+    assert PatternIndexService.extract_index_positions("A" + "a" * 3000) == []
+    assert PatternIndexService.extract_index_positions("_" * 2000 + "a" * 2000) == []

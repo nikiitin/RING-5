@@ -33,14 +33,10 @@ from src.core.services.data_services.path_service import PathService
 from src.core.services.data_services.portfolio_service import PortfolioService
 from src.core.services.portfolio_integrity_service import PortfolioIntegrityService
 from src.core.services.data_services.portfolio_validation_service import validate_portfolio_document
+from src.core.models.parsing_models import default_parse_configs
 from src.core.state.state_manager import StateManager
 
 _DRAFT_ID = re.compile(r"^[0-9]{20}-[0-9a-f]{64}$")
-_DEFAULT_PARSE_VARIABLES = (
-    ("simTicks", "scalar"),
-    ("benchmark_name", "configuration"),
-    ("config_description", "configuration"),
-)
 
 
 class AutosaveRecoveryService:
@@ -179,10 +175,7 @@ class AutosaveRecoveryService:
             )
         except StatConfigDraftIncomplete:
             return True
-        defaults = tuple(
-            StatConfigCodec.to_payload(StatConfigCodec.from_draft({"name": name, "type": kind}))
-            for name, kind in _DEFAULT_PARSE_VARIABLES
-        )
+        defaults = tuple(StatConfigCodec.to_payload(config) for config in default_parse_configs())
         return signature != defaults
 
     @staticmethod

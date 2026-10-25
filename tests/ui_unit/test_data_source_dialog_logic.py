@@ -111,8 +111,20 @@ def test_variable_config_dialog_search_scanned(components_bundle: Any, mock_api:
     mock_streamlit, DataSourceComponents = components_bundle
 
     scanned = [
-        {"name": "system.cpu.ipc", "type": "scalar", "id": "ipc"},
-        {"name": "system.l2.misses", "type": "vector", "entries": ["cpu0", "cpu1"]},
+        {
+            "name": "system.cpu.ipc",
+            "type": "scalar",
+            "entries": [],
+            "source_type": "scalar",
+            "instances": [{"source_name": "system.cpu.ipc", "indices": []}],
+        },
+        {
+            "name": "system.l2.misses",
+            "type": "vector",
+            "entries": ["cpu0", "cpu1"],
+            "source_type": "vector",
+            "instances": [{"source_name": "system.l2.misses", "indices": []}],
+        },
     ]
     mock_api.state_manager.get_scanned_variables.return_value = scanned
 

@@ -1,5 +1,6 @@
 """Tests for ApplicationAPI delegation, conversion, and error handling."""
 
+from src.core.models.parsing_models import SourceInstance
 from collections.abc import Generator
 from concurrent.futures import Future
 from typing import Any, cast
@@ -89,7 +90,16 @@ class TestSubmitParseAsync:
             "/path",
             "stats.txt",
             api.compile_parse_variables(
-                [cast(ParseVariableConfig, {"name": "simTicks", "type": "scalar"})]
+                [
+                    cast(
+                        ParseVariableConfig,
+                        {
+                            "name": "simTicks",
+                            "type": "scalar",
+                            "params": {"source_type": "scalar"},
+                        },
+                    )
+                ]
             ),
             "/out",
         )
@@ -115,7 +125,12 @@ class TestSubmitParseAsync:
                 [
                     cast(
                         ParseVariableConfig,
-                        {"source_name": "system.cpu.ipc", "type": "scalar", "name": "IPC"},
+                        {
+                            "source_name": "system.cpu.ipc",
+                            "type": "scalar",
+                            "name": "IPC",
+                            "params": {"source_type": "scalar"},
+                        },
                     )
                 ]
             ),
@@ -125,7 +140,7 @@ class TestSubmitParseAsync:
         configs = args_tuple[0][2]
         assert configs[0].name == "IPC"
         assert configs[0].source_name == "system.cpu.ipc"
-        assert configs[0].params["parsed_ids"] == ["system.cpu.ipc"]
+        assert configs[0].params == {"source_type": "scalar"}
 
     def test_dict_regex_with_alias_preserves_source_pattern(self, api: ApplicationAPI) -> None:
         """Regex detection uses the source statistic rather than its alias."""
@@ -137,7 +152,12 @@ class TestSubmitParseAsync:
                 [
                     cast(
                         ParseVariableConfig,
-                        {"source_name": r"system.cpu\d+.ipc", "type": "scalar", "name": "IPC"},
+                        {
+                            "source_name": r"system.cpu\d+.ipc",
+                            "type": "scalar",
+                            "name": "IPC",
+                            "params": {"source_type": "scalar"},
+                        },
                     )
                 ]
             ),
@@ -163,7 +183,7 @@ class TestSubmitParseAsync:
                         {
                             "name": "system.cpu\\d+.ipc",
                             "type": "vector",
-                            "params": {"entries": ["0"]},
+                            "params": {"entries": ["0"], "source_type": "vector"},
                         },
                     )
                 ]
@@ -188,7 +208,7 @@ class TestSubmitParseAsync:
                             "name": "hist",
                             "type": "histogram",
                             "statistics_only": True,
-                            "params": {"statistics": ["mean"]},
+                            "params": {"statistics": ["mean"], "source_type": "histogram"},
                         },
                     )
                 ]
@@ -214,7 +234,7 @@ class TestSubmitParseAsync:
         """StatConfig objects pass through unchanged."""
         from src.core.models.parsing_models import StatConfig
 
-        sc = StatConfig(name="test", type="scalar")
+        sc = StatConfig(name="test", type="scalar", params={"source_type": "scalar"})
         cast(Any, api._parser.submit_parse_async).return_value = MagicMock(futures=[])
         api.submit_parse_async("/path", "stats.txt", [sc], "/out")
         args_tuple = cast(MagicMock, api._parser.submit_parse_async).call_args
@@ -227,7 +247,13 @@ class TestSubmitParseAsync:
         from src.core.models.parsing_models import ScannedVariable
 
         cast(Any, api._parser.submit_parse_async).return_value = MagicMock(futures=[])
-        sv = ScannedVariable(name="test_var", type="scalar", entries=[])
+        sv = ScannedVariable(
+            name="test_var",
+            type="scalar",
+            entries=[],
+            source_type="scalar",
+            instances=(SourceInstance("test_var", ()),),
+        )
         scanned = [sv]
         api.submit_parse_async("/path", "stats.txt", [], "/out", scanned_vars=scanned)
         args_tuple = cast(MagicMock, api._parser.submit_parse_async).call_args
@@ -286,7 +312,12 @@ class TestIncrementalParsing:
                 [
                     cast(
                         ParseVariableConfig,
-                        {"source_name": "cpu.ipc", "name": "IPC", "type": "scalar"},
+                        {
+                            "source_name": "cpu.ipc",
+                            "name": "IPC",
+                            "type": "scalar",
+                            "params": {"source_type": "scalar"},
+                        },
                     )
                 ]
             ),
@@ -341,7 +372,12 @@ class TestParserPlayground:
                 [
                     cast(
                         ParseVariableConfig,
-                        {"source_name": "cpu.ipc", "name": "IPC", "type": "scalar"},
+                        {
+                            "source_name": "cpu.ipc",
+                            "name": "IPC",
+                            "type": "scalar",
+                            "params": {"source_type": "scalar"},
+                        },
                     )
                 ]
             ),

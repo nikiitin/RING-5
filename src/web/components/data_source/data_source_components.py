@@ -1030,7 +1030,7 @@ class DataSourceComponents:
                     label = f"{v['name']} ({v['type']})"
                     if v["type"] == "vector" and "entries" in v:
                         label += f" [{len(v['entries'])} items]"
-                    count = v.get("count", 0)
+                    count = len(v["instances"])
                     if count > 1:
                         label += f" (Grouped {count}x)"
                     return label
@@ -1076,39 +1076,32 @@ class DataSourceComponents:
                 else {"name": "", "type": "", "params": {}}
             )
 
-            if var_type == "vector":
-                VariableEditor.render_vector_config(
-                    api=api,
-                    var_config=config,
-                    original_var=defaults,
-                    var_id=temp_id,
-                    available_variables=scanned_vars,
-                    stats_path=api.state_manager.get_stats_path(),
-                    stats_pattern=api.state_manager.get_stats_pattern(),
+            current_source = cast(str, defaults.get("params", {}).get("source_type", ""))
+            source_types = api.get_simulator_info(api.state_manager.get_simulator()).variable_types
+            choices = list(
+                dict.fromkeys([*source_types, *([current_source] if current_source else [])])
+            )
+            source_type = (
+                st.selectbox(
+                    "Raw source type",
+                    choices,
+                    index=choices.index(current_source) if current_source else None,
+                    placeholder="Choose raw source type",
+                    key="dialog_raw_source_type",
+                    help="Actual scanner source kind, independent of the output representation.",
                 )
-            elif var_type == "distribution":
-                VariableEditor.render_distribution_config(
-                    api=api,
-                    var_config=config,
-                    original_var=defaults,
-                    var_id=temp_id,
-                    stats_path=api.state_manager.get_stats_path(),
-                    stats_pattern=api.state_manager.get_stats_pattern(),
-                )
-            elif var_type == "histogram":
-                VariableEditor.render_histogram_config(
-                    api=api,
-                    var_config=config,
-                    original_var=defaults,
-                    var_id=temp_id,
-                    available_variables=scanned_vars,
-                    stats_path=api.state_manager.get_stats_path(),
-                    stats_pattern=api.state_manager.get_stats_pattern(),
-                )
-            elif var_type == "configuration":
-                VariableEditor.render_configuration_config(
-                    var_config=config, original_var=defaults, var_id=temp_id
-                )
+                or ""
+            )
+            config["params"]["source_type"] = source_type
+            VariableEditor.render_type_config(
+                api,
+                config,
+                defaults,
+                temp_id,
+                scanned_vars,
+                api.state_manager.get_stats_path(),
+                api.state_manager.get_stats_pattern(),
+            )
 
             with st.expander("Advanced Options"):
                 repeat = st.number_input(
@@ -1126,8 +1119,12 @@ class DataSourceComponents:
             if st.button("Add to Configuration", type="primary", width="stretch"):
                 if not name:
                     st.error("Variable name is required.")
-                elif var_type == "vector" and not config.get("params", {}).get(
-                    "statistics" if config.get("statistics_only", False) else "entries"
+                elif (
+                    var_type == "vector"
+                    and source_type != "scalar"
+                    and not config.get("params", {}).get(
+                        "statistics" if config.get("statistics_only", False) else "entries"
+                    )
                 ):
                     st.error("Vector variables require at least one selected entry or statistic.")
                 else:

@@ -21,10 +21,16 @@ class TestAliasing:
         variables = cast(
             list[ParseVariableConfig],
             [
-                {"source_name": "system.cpu.ipc", "type": "scalar", "name": "IPC"},  # ALIAS!
+                {
+                    "source_name": "system.cpu.ipc",
+                    "type": "scalar",
+                    "name": "IPC",
+                    "params": {"source_type": "scalar"},
+                },  # ALIAS!
                 {
                     "name": "system.cpu.cpi",
                     "type": "scalar",
+                    "params": {"source_type": "scalar"},
                     # No alias
                 },
             ],
@@ -57,12 +63,12 @@ class TestAliasing:
         # Check Aliased Variable (use attribute access on StatConfig)
         ipc_var = next((v for v in passed_vars if v.name == "IPC"), None)
         assert ipc_var is not None, "Aliased variable IPC not found in config"
-        assert ipc_var.params["parsed_ids"] == [
-            "system.cpu.ipc"
-        ], "Aliased variable does not map original name"
+        assert ipc_var.source_name == "system.cpu.ipc"
+        assert ipc_var.params == {"source_type": "scalar"}
 
         # Check Non-Aliased Variable
         cpi_var = next((v for v in passed_vars if v.name == "system.cpu.cpi"), None)
         assert cpi_var is not None, "Non-aliased variable not found"
-        assert "parsed_ids" not in cpi_var.params, "Non-aliased variable should not have parsed_ids"
+        assert cpi_var.source_name is None
+        assert cpi_var.params == {"source_type": "scalar"}
         facade.close(wait=True)

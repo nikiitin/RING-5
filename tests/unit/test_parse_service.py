@@ -4,12 +4,13 @@ import csv
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from src.core.models.parsing_models import ParseBatchResult, ScannedVariable, StatConfig
+from src.core.models.parsing_models import SourceInstance
 from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
 
 # Helpers
@@ -51,7 +52,12 @@ class TestSubmitParseAsync:
         mock_sf.create.return_value = strategy
 
         with pytest.raises(FileNotFoundError, match="No parse work generated"):
-            ParseService.submit_parse_async(str(stats_dir), "stats.txt", [], str(tmp_path / "out"))
+            ParseService.submit_parse_async(
+                str(stats_dir),
+                "stats.txt",
+                [StatConfig("simTicks", "scalar", params={"source_type": "scalar"})],
+                str(tmp_path / "out"),
+            )
 
     def test_raises_on_stats_free_directory(self, tmp_path: Path) -> None:
         """Same raise-if-empty contract as the scan path (real strategy)."""
@@ -60,7 +66,12 @@ class TestSubmitParseAsync:
         (stats_dir / "decoy.log").write_text("not a stats file\n")
 
         with pytest.raises(FileNotFoundError, match="No files matching"):
-            ParseService.submit_parse_async(str(stats_dir), "stats.txt", [], str(tmp_path / "out"))
+            ParseService.submit_parse_async(
+                str(stats_dir),
+                "stats.txt",
+                [StatConfig("simTicks", "scalar", params={"source_type": "scalar"})],
+                str(tmp_path / "out"),
+            )
 
     @patch("src.parsing.gem5.impl.gem5_parser.WorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
@@ -81,8 +92,8 @@ class TestSubmitParseAsync:
         mock_pool.get_instance.return_value = pool_inst
 
         variables = [
-            StatConfig(name="system.cpu.ipc", type="scalar"),
-            StatConfig(name="simTicks", type="scalar"),
+            StatConfig(name="system.cpu.ipc", type="scalar", params={"source_type": "scalar"}),
+            StatConfig(name="simTicks", type="scalar", params={"source_type": "scalar"}),
         ]
 
         result = ParseService.submit_parse_async(
@@ -110,12 +121,26 @@ class TestSubmitParseAsync:
         mock_pool.get_instance.return_value = pool_inst
 
         # A regex variable with scanned matches
-        variables = [StatConfig(name=r"system\.cpu\d+\.ipc", type="scalar", is_regex=True)]
+        variables = [
+            StatConfig(
+                name="system\\.cpu\\d+\\.ipc",
+                type="scalar",
+                is_regex=True,
+                params={"source_type": "scalar"},
+            )
+        ]
 
-        sv = MagicMock()
-        sv.name = r"system\.cpu\d+\.ipc"
-        sv.pattern_indices = ["system.cpu0.ipc", "system.cpu1.ipc"]
-        scanned = cast(list[ScannedVariable], [sv])
+        scanned = [
+            ScannedVariable(
+                name=r"system\.cpu\d+\.ipc",
+                type="scalar",
+                source_type="scalar",
+                instances=(
+                    SourceInstance("system.cpu0.ipc", ("0",)),
+                    SourceInstance("system.cpu1.ipc", ("1",)),
+                ),
+            )
+        ]
 
         ParseService.submit_parse_async(
             str(stats_dir),
@@ -125,10 +150,14 @@ class TestSubmitParseAsync:
             scanned_vars=scanned,
         )
 
-        # Strategy should receive configs with parsed_ids injected
-        call_args = strategy.get_work_items.call_args[0]
-        processed_configs = call_args[2]
-        assert "parsed_ids" in processed_configs[0].params
+        plan = strategy.get_work_items.call_args.args[2]
+        assert tuple(plan.routes) == ("system.cpu0.ipc", "system.cpu1.ipc")
+        assert all(
+            route.source_type == "scalar"
+            and tuple(target.output_name for target in route.targets) == (r"system\.cpu\d+\.ipc",)
+            for route in plan.routes.values()
+        )
+        assert plan.accumulators[0].config.params == {"source_type": "scalar"}
 
 
 class TestFinalizeParssing:

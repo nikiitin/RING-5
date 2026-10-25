@@ -6,6 +6,7 @@ import time
 from concurrent.futures import as_completed
 
 from src.core.models.parsing_models import ScannedVariable
+from src.core.models.parsing_models import SourceInstance
 from src.parsing.framework.work_pool import WorkPool
 
 
@@ -17,7 +18,14 @@ class MockWork:
 
     def __call__(self) -> list[ScannedVariable]:
         time.sleep(self.duration)
-        return [ScannedVariable(name=f"var_{self.val}", type="scalar")]
+        return [
+            ScannedVariable(
+                name=f"var_{self.val}",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance(f"var_{self.val}", ()),),
+            )
+        ]
 
 
 def test_async_scan_flow() -> None:

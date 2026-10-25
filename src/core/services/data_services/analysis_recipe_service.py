@@ -28,6 +28,7 @@ from src.core.common.security_limits import (
 from src.core.common.utils import sanitize_filename, validate_path_within
 from src.core.common.stat_config_codec import StatConfigCodec
 from src.core.models.data_models import ScannedVariableDict
+from src.core.models.parsing_models import ScannedVariable
 from src.core.models.recipe_models import (
     AnalysisRecipe,
     AnalysisRecipeInfo,
@@ -47,7 +48,7 @@ from src.core.services.shapers.factory import ShaperFactory
 from src.core.state.state_manager import StateManager
 
 ANALYSIS_RECIPE_FORMAT = "ring5.analysis-recipe"
-ANALYSIS_RECIPE_SCHEMA_VERSION = 2
+ANALYSIS_RECIPE_SCHEMA_VERSION = 3
 
 _PARAMETER_NAME = re.compile(r"^[A-Za-z][A-Za-z0-9_]{0,63}$")
 _PLACEHOLDER = re.compile(r"{{\s*([A-Za-z][A-Za-z0-9_]{0,63})\s*}}")
@@ -367,20 +368,8 @@ class AnalysisRecipeService:
                 )
             else:
                 StatConfigCodec.from_payload(variable)
-        for index, scanned_variable in enumerate(source.scanned_variables):
-            if not isinstance(scanned_variable, dict):
-                raise TypeError(f"Recipe scanned variable {index} must be an object.")
-            name = scanned_variable.get("name")
-            var_type = scanned_variable.get("type")
-            entries = scanned_variable.get("entries")
-            if not isinstance(name, str) or not name:
-                raise ValueError(f"Recipe scanned variable {index} requires a name.")
-            if not isinstance(var_type, str) or not var_type:
-                raise ValueError(f"Recipe scanned variable {index} requires a type.")
-            if not isinstance(entries, list) or not all(
-                isinstance(entry, str) for entry in entries
-            ):
-                raise TypeError(f"Recipe scanned variable {index} entries must be text values.")
+        for scanned_variable in source.scanned_variables:
+            ScannedVariable.from_dict(scanned_variable)
 
     @staticmethod
     def _validate_pipeline(pipeline: Sequence[ShaperStepConfig], location: str) -> None:

@@ -27,14 +27,17 @@ callers use the facade correctly and the contract holds.
 ```python
 futures   = api.submit_scan_async(stats_path, pattern, limit=5)
 scan      = api.finalize_scan([f.result() for f in futures])
-configs   = [StatConfig(name=v.name, type="scalar") for v in scan.variables if v.type == "scalar"]
+configs   = api.compile_parse_variables(
+    [api.draft_from_scanned_variable(v.to_dict()) for v in scan.variables]
+)
 batch     = api.submit_parse_async(stats_path, pattern, configs, out_dir, scanned_vars=scan.variables)
 csv_path  = api.finalize_parsing(out_dir, [f.result() for f in batch.futures])
 ```
 - Runnable inputs are `StatConfig` values. UI drafts compile through `api.compile_parse_variables`;
   durable job and recipe payloads use `StatConfigCodec` exact snake_case serialization.
-- **Always pass `scanned_vars`** when parsing regex/pattern variables (needed to reconstruct
-  concrete names). Omitting it is the most common contract bug.
+- **Always pass `scanned_vars`** when parsing numeric patterns (required explicit concrete
+  source records). Every runnable request declares `params.source_type`; `selected_sources` contains
+  concrete source names, while display indices remain in `SourceInstance` metadata. Omitting it is the most common contract bug.
 - Long-running scans: release with `api.cancel_pending_scans()` — instance-scoped (cancels only
   the futures THAT instance submitted; pool facades hold no future references). The web app's
   single cached instance makes this process-wide there; ring5 Sessions are truly per-session.

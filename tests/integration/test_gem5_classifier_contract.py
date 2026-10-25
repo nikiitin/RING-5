@@ -106,8 +106,8 @@ def test_semantic_records_preserve_source_values_labels_and_summary_roles(tmp_pa
         "scalar/limit/-inf",
         "configuration/path//tmp/gem5/run",
         "vector/v::cpu.0/2.5",
-        "vector/v::total/2.5",
-        "vector/h::gmean/1",
+        "summary/v::total/2.5",
+        "summary/h::gmean/1",
         "histogram/h::-1/2",
         "distribution/d::underflows/0",
         "distribution/d::0/4",
@@ -120,10 +120,10 @@ def test_semantic_records_preserve_source_values_labels_and_summary_roles(tmp_pa
         tmp_path,
         text,
         [
-            StatConfig("fraction", "scalar"),
-            StatConfig("missing", "scalar"),
-            StatConfig("limit", "scalar"),
-            StatConfig("path", "configuration"),
+            StatConfig("fraction", "scalar", params={"source_type": "scalar"}),
+            StatConfig("missing", "scalar", params={"source_type": "scalar"}),
+            StatConfig("limit", "scalar", params={"source_type": "scalar"}),
+            StatConfig("path", "configuration", params={"source_type": "configuration"}),
         ],
     ) == {
         "fraction": "-0.00125",
@@ -152,7 +152,10 @@ def test_oneline_requires_consistent_geometry_for_each_dump(
     assert len(scan.failures) == 1
     assert "histogram" in (scan.failures[0].error or "")
     batch = Gem5Parser.submit_parse_async(
-        str(tmp_path), "stats.txt", [StatConfig("h", "histogram")], str(tmp_path / "out")
+        str(tmp_path),
+        "stats.txt",
+        [StatConfig("h", "histogram", params={"source_type": "histogram"})],
+        str(tmp_path / "out"),
     )
     with pytest.raises(RuntimeError, match="Worker pool parse failed"):
         batch.futures[0].result(timeout=30)
@@ -174,7 +177,11 @@ def test_zero_total_histograms_preserve_measured_zero_without_percentages(
     row = _parse(
         tmp_path,
         text,
-        [StatConfig("h", "histogram", params={"bins": 2, "max_range": 20})],
+        [
+            StatConfig(
+                "h", "histogram", params={"bins": 2, "max_range": 20, "source_type": "histogram"}
+            )
+        ],
     )
     assert row == {"h..0-19": "0.0", "h..20+": "0.0"}
     scan = Gem5Parser.aggregate_scan_results(
@@ -196,7 +203,10 @@ def test_zero_suppressed_oneline_bounds_are_current_gem5_geometry(
 ) -> None:
     """ScalarPrint's nozero flag omits zero min_bucket or max_bucket fields."""
     text = geometry + "h |2 100% 100% |0 0% 100%\n"
-    assert _parse(tmp_path, text, [StatConfig("h", "histogram")]) == expected
+    assert (
+        _parse(tmp_path, text, [StatConfig("h", "histogram", params={"source_type": "histogram"})])
+        == expected
+    )
     scan = Gem5Parser.aggregate_scan_results(
         [future.result(timeout=30) for future in Gem5Parser.submit_scan_async(str(tmp_path))]
     )
@@ -207,7 +217,9 @@ def test_zero_suppressed_oneline_bounds_are_current_gem5_geometry(
 def test_zero_suppressed_single_bucket_preserves_its_measured_zero(tmp_path: Path) -> None:
     """Both zero bounds may be absent; the bucket payload still supplies its value."""
     text = "h::bucket_size 1\nh |0\n"
-    assert _parse(tmp_path, text, [StatConfig("h", "histogram")]) == {"h..0-0": "0.0"}
+    assert _parse(
+        tmp_path, text, [StatConfig("h", "histogram", params={"source_type": "histogram"})]
+    ) == {"h..0-0": "0.0"}
     assert _classify(text) == [
         {"type": "histogram", "name": "h", "entry": "0-0", "scan_entry": "0-0", "value": "0"}
     ]
@@ -225,4 +237,6 @@ def test_oneline_vector_does_not_require_histogram_geometry(tmp_path: Path) -> N
         "cycles": "scalar",
         "v": "vector",
     }
-    assert _parse(tmp_path, text, [StatConfig("cycles", "scalar")]) == {"cycles": "5.0"}
+    assert _parse(
+        tmp_path, text, [StatConfig("cycles", "scalar", params={"source_type": "scalar"})]
+    ) == {"cycles": "5.0"}

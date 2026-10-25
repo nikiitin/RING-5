@@ -1,27 +1,19 @@
-"""
-Core data models for the Parser ↔ Application ↔ UI boundary.
+"""Typed parser/application boundary models shared by scanning, jobs, and UI drafts.
 
-These frozen dataclasses represent the "common language" shared across all
-layers of RING-5. They were originally in ``src.parsing.models`` and
-were externalised so that:
-
-    • Layer A (Parsing) can produce them
-    • Layer B (Application API) can pass them through
-    • Layer C (Presentation / UI) can consume them
-
-…without any layer depending on another's internals.
-
-All models are **immutable** (``frozen=True``) to guarantee reproducibility.
+Frozen models own their input containers. Runnable requests declare raw source metadata;
+source instances keep concrete identities separate from their numeric display coordinates.
 """
 
 from concurrent.futures import Future
+import math
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
 
-from src.core.models.data_models import ScannedVariableDict
+from src.core.models.data_models import ScannedVariableDict, SourceInstanceDict
+from src.core.common.safe_regex import MAX_INPUT_LENGTH
 
 # Shared by durable parse requests and incremental rows; bump on semantic changes.
-PARSER_RESULT_VERSION = 7
+PARSER_RESULT_VERSION = 8
 
 # Type alias for StatConfig parameter values
 StatParamValue = str | int | float | bool | list[str] | None
@@ -126,52 +118,140 @@ class ParserPlaygroundResult:
 
 
 @dataclass(frozen=True)
-class ScannedVariable:
-    """
-    Base metadata for a variable discovered by a simulator parser.
+class SourceInstance:
+    """A concrete statistic source with numeric coordinates for display.
 
-    This is the simulator-agnostic base class.  Simulator-specific
-    subclasses may add extra fields such as distribution min/max ranges.
-    ``source_type`` retains the concrete type when pattern aggregation changes it.
+    Attributes:
+        source_name: Exact source statistic name, independent of an output alias.
+        indices: Ordered ASCII digit strings; an empty tuple denotes a literal source.
+    """
+
+    source_name: str
+    indices: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.source_name, str) or not self.source_name:
+            raise ValueError("A source instance requires a non-empty source_name.")
+        if len(self.source_name) > MAX_INPUT_LENGTH:
+            raise ValueError("Source instance name exceeds the matching input limit.")
+        if not isinstance(self.indices, tuple):
+            raise TypeError("Source instance indices must be an immutable tuple.")
+        if any(
+            not isinstance(index, str) or not index or not index.isascii() or not index.isdecimal()
+            for index in self.indices
+        ):
+            raise ValueError("Source instance indices must contain ASCII digit strings.")
+        if sum(map(len, self.indices)) > MAX_INPUT_LENGTH:
+            raise ValueError("Source instance indices exceed the matching input limit.")
+
+    def to_dict(self) -> SourceInstanceDict:
+        """Return the exact current JSON representation with independently owned indices."""
+        return {"source_name": self.source_name, "indices": list(self.indices)}
+
+    @classmethod
+    def from_dict(cls, value: SourceInstanceDict) -> "SourceInstance":
+        """Decode one complete current source instance without numeric reconstruction."""
+        if not isinstance(value, dict) or set(value) != {"source_name", "indices"}:
+            raise ValueError("Source instances require exactly source_name and indices fields.")
+        if not isinstance(value["indices"], list):
+            raise TypeError("Serialized source instance indices must be a list.")
+        return cls(source_name=value["source_name"], indices=tuple(value["indices"]))
+
+
+def validate_scanned_bounds(minimum: object, maximum: object) -> None:
+    """Validate optional observed bounds without coercion or inferred defaults.
+
+    Args:
+        minimum: Finite numeric lower bound, or None when unknown.
+        maximum: Finite numeric upper bound, or None when unknown.
+
+    Raises:
+        TypeError: A known bound is not an actual int or float.
+        ValueError: A bound is nonfinite or the known range is reversed.
+    """
+    for field_name, value in (("minimum", minimum), ("maximum", maximum)):
+        if value is None:
+            continue
+        if type(value) not in (int, float):
+            raise TypeError(f"Scanned variable {field_name} must be a finite number or unknown.")
+        if isinstance(value, float) and not math.isfinite(value):
+            raise ValueError(f"Scanned variable {field_name} must be finite.")
+    if (
+        minimum is not None
+        and maximum is not None
+        and cast(int | float, minimum) > cast(int | float, maximum)
+    ):
+        raise ValueError("Scanned variable minimum must not exceed maximum.")
+
+
+@dataclass(frozen=True)
+class ScannedVariable:
+    """Current metadata for a statistic discovered by a simulator parser.
+
+    Attributes:
+        name: Literal source name or scanner-generated numeric pattern.
+        type: Output representation suggested by the scanner.
+        entries: Actual measurement entries below each concrete source.
+        source_type: Explicit raw source kind before pattern aggregation.
+        instances: Concrete sources with numeric display coordinates.
     """
 
     name: str
-    type: str  # Simulator-specific type string (e.g. "scalar", "vector")
+    type: str
     entries: list[str] = field(default_factory=list)
-    pattern_indices: list[str] | None = None
-    source_type: str | None = field(default=None, kw_only=True)
+    source_type: str = field(kw_only=True)
+    instances: tuple[SourceInstance, ...] = field(kw_only=True)
+
+    def __post_init__(self) -> None:
+        for field_name in ("name", "type", "source_type"):
+            value = getattr(self, field_name)
+            if not isinstance(value, str) or not value:
+                raise ValueError(f"Scanned variable {field_name} must be non-empty text.")
+        if not isinstance(self.entries, list) or any(not isinstance(e, str) for e in self.entries):
+            raise TypeError("Scanned variable entries must be a list of text values.")
+        if not isinstance(self.instances, tuple) or not self.instances:
+            raise ValueError("Scanned variables require explicit immutable source instances.")
+        if any(not isinstance(instance, SourceInstance) for instance in self.instances):
+            raise TypeError("Scanned variable instances must be SourceInstance values.")
+        names = [instance.source_name for instance in self.instances]
+        if len(set(names)) != len(names):
+            raise ValueError("Scanned variable source instances must be unique.")
+        object.__setattr__(self, "entries", list(self.entries))
 
     def to_dict(self) -> ScannedVariableDict:
-        """Serialize to dictionary for JSON-compatible output.
-
-        Copies the mutable list members so the returned dict cannot mutate this
-        (frozen, reproducibility-guaranteeing) model's internal lists by reference.
-        """
-        result: ScannedVariableDict = ScannedVariableDict(
-            name=self.name,
-            type=self.type,
-            entries=list(self.entries),
-        )
-        if self.pattern_indices is not None:
-            result["pattern_indices"] = list(self.pattern_indices)
-        if self.source_type is not None:
-            result["source_type"] = self.source_type
-        return result
+        """Serialize current metadata without exposing caller-owned mutable lists."""
+        return {
+            "name": self.name,
+            "type": self.type,
+            "entries": list(self.entries),
+            "source_type": self.source_type,
+            "instances": [instance.to_dict() for instance in self.instances],
+        }
 
     @classmethod
     def from_dict(cls, data: ScannedVariableDict) -> "ScannedVariable":
-        """Reconstruct model from dictionary.
-
-        Copies the incoming lists so the model and the caller's dict don't share
-        mutable references.
-        """
-        pattern_indices = data.get("pattern_indices")
+        """Decode mandatory source metadata; retired or incomplete payloads fail."""
+        if not isinstance(data, dict):
+            raise TypeError("Scanned variable metadata must be an object.")
+        allowed = set(ScannedVariableDict.__annotations__)
+        if set(data) - allowed:
+            raise ValueError(f"Unsupported scanned variable fields: {sorted(set(data) - allowed)}.")
+        required = {"name", "type", "entries", "source_type", "instances"}
+        missing = required - set(data)
+        if missing:
+            raise ValueError(f"Missing required scanned variable fields: {sorted(missing)}.")
+        for field_name in ("minimum", "maximum"):
+            if field_name in data and data[field_name] is None:
+                raise TypeError("Serialized unknown scan bounds must be omitted.")
+        validate_scanned_bounds(data.get("minimum"), data.get("maximum"))
+        if not isinstance(data["instances"], list):
+            raise TypeError("Serialized source instances must be a list.")
         return cls(
             name=data["name"],
             type=data["type"],
-            entries=list(data.get("entries", [])),
-            pattern_indices=list(pattern_indices) if pattern_indices is not None else None,
-            source_type=data.get("source_type"),
+            entries=data["entries"],
+            source_type=data["source_type"],
+            instances=tuple(SourceInstance.from_dict(value) for value in data["instances"]),
         )
 
 
@@ -238,7 +318,10 @@ class StatConfig:
         params: Current snake_case type options. Vector/histogram entries and
             summary statistics use separate text lists; distribution bounds use
             minimum/maximum; histogram rebinning uses bins/max_range;
-            configuration fallback uses on_empty.
+            configuration fallback uses on_empty. Every runnable value requires
+            source_type for the raw source kind. selected_sources contains exact
+            concrete source names for a numeric pattern; numeric display labels
+            belong only to SourceInstance metadata.
         statistics_only: If True, parse only statistical summaries.
         keep_indices: Keep concrete pattern instances as distinct output variables.
         is_regex: Whether ``source_name`` is a pattern that must be expanded
@@ -253,3 +336,16 @@ class StatConfig:
     is_regex: bool = False
     keep_indices: bool = False
     source_name: str | None = None
+
+
+def default_parse_configs() -> tuple[StatConfig, ...]:
+    """Create the explicit current parser presets without sharing mutable options."""
+    return (
+        StatConfig(name="simTicks", type="scalar", params={"source_type": "scalar"}),
+        StatConfig(
+            name="benchmark_name", type="configuration", params={"source_type": "configuration"}
+        ),
+        StatConfig(
+            name="config_description", type="configuration", params={"source_type": "configuration"}
+        ),
+    )

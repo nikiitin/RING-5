@@ -88,7 +88,11 @@ def test_request_fingerprint_and_discovery_use_the_exact_validated_pattern(tmp_p
     request = build_parse_job_request(
         stats_path=str(tmp_path),
         stats_pattern="stats-*.txt",
-        variables=[StatConfigCodec.to_payload(StatConfig("cycles", "scalar"))],
+        variables=[
+            StatConfigCodec.to_payload(
+                StatConfig("cycles", "scalar", params={"source_type": "scalar"})
+            )
+        ],
         strategy_type="simple",
     )
     assert request.stats_pattern == "stats-*.txt"
@@ -98,6 +102,10 @@ def test_request_fingerprint_and_discovery_use_the_exact_validated_pattern(tmp_p
         build_parse_job_request(
             stats_path=str(tmp_path),
             stats_pattern="path/stats.txt",
-            variables=[StatConfigCodec.to_payload(StatConfig("cycles", "scalar"))],
+            variables=[
+                StatConfigCodec.to_payload(
+                    StatConfig("cycles", "scalar", params={"source_type": "scalar"})
+                )
+            ],
             strategy_type="simple",
         )

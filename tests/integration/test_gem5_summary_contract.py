@@ -32,7 +32,9 @@ def test_literal_summary_suffix_names_keep_their_source_identity(tmp_path: Path,
     name = "system.MemDepUnit__0.metric"
     literal = f"{name}__get_summary"
     entry = "::value" if kind == "vector" else ""
-    params = {"entries": ["value"]} if kind == "vector" else {}
+    params = (
+        {"entries": ["value"], "source_type": kind} if kind == "vector" else {"source_type": kind}
+    )
     row = _parse(
         tmp_path,
         f"{name}{entry} 2\n{literal}{entry} 17\n",
@@ -53,19 +55,25 @@ def test_source_summaries_use_named_entries_and_keep_missing_measurements(tmp_pa
     )
     configs = [
         StatConfig(
-            "v__get_summary", "vector", statistics_only=True, params={"statistics": ["total"]}
+            "v__get_summary",
+            "vector",
+            statistics_only=True,
+            params={"statistics": ["total"], "source_type": "vector"},
         ),
         StatConfig(
             "d__get_summary",
             "distribution",
             statistics_only=True,
-            params={"statistics": ["samples", "mean", "stdev"]},
+            params={"statistics": ["samples", "mean", "stdev"], "source_type": "distribution"},
         ),
         StatConfig(
             "h__get_summary",
             "histogram",
             statistics_only=True,
-            params={"statistics": ["gmean", "mean", "stdev", "samples"]},
+            params={
+                "statistics": ["gmean", "mean", "stdev", "samples"],
+                "source_type": "histogram",
+            },
         ),
     ]
     row = _parse(tmp_path, text, configs)
@@ -95,6 +103,6 @@ def test_summary_suffix_output_alias_only_requests_its_explicit_source(tmp_path:
     """An unrelated source matching the output label cannot add an observation."""
     output_name = "metric__get_summary"
     config = StatConfig(
-        output_name, "scalar", source_name="source", params={"parsed_ids": ["source"]}
+        output_name, "scalar", source_name="source", params={"source_type": "scalar"}
     )
     assert _parse(tmp_path, f"source 3\n{output_name} 99\n", [config]) == {output_name: "3.0"}

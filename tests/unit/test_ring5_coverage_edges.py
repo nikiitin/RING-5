@@ -1,6 +1,7 @@
 """Edge contracts that keep the public API's exact coverage gate honest."""
 
 from __future__ import annotations
+from src.core.models.parsing_models import SourceInstance
 
 import builtins
 import importlib
@@ -145,7 +146,13 @@ def test_build_stat_configs_explicit_and_distribution_metadata() -> None:
         _parse.build_stat_configs(api, "runs", ["x"])
 
     distribution = Gem5ScannedVariable(
-        name="dist", type="distribution", entries=["0"], minimum=0, maximum=4
+        name="dist",
+        type="distribution",
+        entries=["0"],
+        minimum=0,
+        maximum=4,
+        source_type="distribution",
+        instances=(SourceInstance("dist", ()),),
     )
     api.submit_scan_async.side_effect = None
     api.submit_scan_async.return_value = [_future(ScanFileResult("stats", [distribution]))]
@@ -157,15 +164,17 @@ def test_build_stat_configs_explicit_and_distribution_metadata() -> None:
         api,
         "runs",
         [
-            StatConfig(name=r"cpu\d+", type="scalar"),
-            StatConfig(name="plain", type="scalar"),
+            StatConfig(name="cpu\\d+", type="scalar", params={"source_type": "scalar"}),
+            StatConfig(name="plain", type="scalar", params={"source_type": "scalar"}),
             "dist",
         ],
     )
     assert configs[0].is_regex  # type: ignore[union-attr]
     assert not configs[1].is_regex  # type: ignore[union-attr]
     assert configs[2] == StatConfig(
-        name="dist", type="distribution", params={"minimum": 0, "maximum": 4}
+        name="dist",
+        type="distribution",
+        params={"minimum": 0, "maximum": 4, "source_type": "distribution"},
     )
 
 

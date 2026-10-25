@@ -96,7 +96,7 @@ class TestHistogramWithStatistics:
             {
                 "name": "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles",
                 "type": "histogram",
-                "params": {"statistics": ["samples", "mean", "total"]},
+                "params": {"source_type": "histogram", "statistics": ["samples", "mean", "total"]},
             }
         ]
 
@@ -141,7 +141,7 @@ class TestHistogramWithStatistics:
             {
                 "name": pattern,
                 "type": "histogram",
-                "params": {"statistics": ["samples", "mean", "total"]},
+                "params": {"source_type": "histogram", "statistics": ["samples", "mean", "total"]},
             }
         ]
 
@@ -191,7 +191,7 @@ class TestHistogramWithStatistics:
             {
                 "name": "system.ruby.l0_cntrl0.xact_mgr.htm_transaction_commit_cycles",
                 "type": "histogram",
-                "params": {"statistics": ["samples", "mean"]},
+                "params": {"source_type": "histogram", "statistics": ["samples", "mean"]},
             }
         ]
 

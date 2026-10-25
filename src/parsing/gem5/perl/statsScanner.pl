@@ -126,8 +126,13 @@ sub outputResults {
 
         print "  {\n";
         print "    \"name\": \"$name\",\n";
-        print "    \"type\": \"$type\"";
+        print "    \"type\": \"$type\",";
+        print "\n    \"source_type\": \"$type\",";
+        print "\n    \"instances\": [{\"source_name\": \"$name\", \"indices\": []}]";
 
+        if (!scalar keys %{$data->{entries}}) {
+            print ",\n    \"entries\": []";
+        }
         if (scalar keys %{$data->{entries}}) {
             print ",\n    \"entries\": [";
             my @entries = sort keys %{$data->{entries}};

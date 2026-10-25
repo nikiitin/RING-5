@@ -11,6 +11,7 @@ from pathlib import Path
 
 from src.core.common.input_identity import fingerprint_inputs
 from src.core.models.parsing_models import ScannedVariable, StatConfig
+from src.core.models.parsing_models import SourceInstance
 from src.parsing.framework.incremental_cache import (
     configuration_hash,
     load_cache,
@@ -23,7 +24,7 @@ def test_cache_is_plain_json_and_rejects_stale_or_malformed_records(tmp_path: Pa
     source = tmp_path / "stats.txt"
     source.write_text("simTicks 100\n", encoding="utf-8")
     fingerprints = fingerprint_inputs([str(source)], "simple")
-    config = StatConfig(name="simTicks", type="scalar")
+    config = StatConfig(name="simTicks", type="scalar", params={"source_type": "scalar"})
     config_hash = configuration_hash("stats.txt", "simple", [config], None)
     cache = tmp_path / "cache.json"
 
@@ -42,7 +43,14 @@ def test_cache_is_plain_json_and_rejects_stale_or_malformed_records(tmp_path: Pa
         "stats.txt",
         "simple",
         [config],
-        [ScannedVariable(name="other", type="scalar")],
+        [
+            ScannedVariable(
+                name="other",
+                type="scalar",
+                source_type="scalar",
+                instances=(SourceInstance("other", ()),),
+            )
+        ],
     )
     assert load_cache(cache, changed_config) == ([], {})
 
@@ -69,7 +77,11 @@ def test_parser_semantic_revision_invalidates_pre_fix_cached_measurements(
     source = tmp_path / "stats.txt"
     source.write_text("simTicks 100\n", encoding="utf-8")
     fingerprints = fingerprint_inputs([str(source)], "simple")
-    config = StatConfig("missing", "distribution", params={"minimum": 0, "maximum": 1})
+    config = StatConfig(
+        "missing",
+        "distribution",
+        params={"minimum": 0, "maximum": 1, "source_type": "distribution"},
+    )
     current_revision = cache_module.PARSER_RESULT_VERSION
     monkeypatch.setattr(cache_module, "PARSER_RESULT_VERSION", current_revision - 1)
     old_hash = configuration_hash("stats.txt", "simple", [config], None)

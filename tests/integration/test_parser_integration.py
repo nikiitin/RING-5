@@ -11,7 +11,13 @@ def test_parser_integration() -> None:
     # Mock variables
     variables = cast(
         list[ParseVariableConfig],
-        [{"name": "test_vector", "type": "vector", "params": {"entries": ["entry1", "entry2"]}}],
+        [
+            {
+                "name": "test_vector",
+                "type": "vector",
+                "params": {"source_type": "vector", "entries": ["entry1", "entry2"]},
+            }
+        ],
     )
 
     # Create dummy stats file

@@ -11,7 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from src.core.models.data_models import ScannedVariableDict
-from src.core.models.parsing_models import ScannedVariable
+from src.core.models.parsing_models import ScannedVariable, validate_scanned_bounds
 
 
 @dataclass(frozen=True)
@@ -29,6 +29,10 @@ class Gem5ScannedVariable(ScannedVariable):
     minimum: float | None = None
     maximum: float | None = None
 
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        validate_scanned_bounds(self.minimum, self.maximum)
+
     def to_dict(self) -> ScannedVariableDict:
         """Serialize to dictionary, including gem5-specific fields."""
         result = super().to_dict()
@@ -41,12 +45,13 @@ class Gem5ScannedVariable(ScannedVariable):
     @classmethod
     def from_dict(cls, data: ScannedVariableDict) -> Gem5ScannedVariable:
         """Reconstruct Gem5ScannedVariable from dictionary."""
+        base = ScannedVariable.from_dict(data)
         return cls(
-            name=data["name"],
-            type=data["type"],
-            entries=data.get("entries", []),
-            source_type=data.get("source_type"),
+            name=base.name,
+            type=base.type,
+            entries=base.entries,
+            source_type=base.source_type,
+            instances=base.instances,
             minimum=data.get("minimum"),
             maximum=data.get("maximum"),
-            pattern_indices=data.get("pattern_indices"),
         )

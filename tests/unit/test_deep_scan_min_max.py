@@ -1,3 +1,6 @@
+from src.core.models.parsing_models import SourceInstance
+
+
 class TestDeepScanMinMax:
     # [test->req~ring5.ingestion.distribution-range-scan~1]
     def test_merging_logic_in_async_pipeline(self) -> None:
@@ -10,13 +13,27 @@ class TestDeepScanMinMax:
         raw_results = [
             ScanFileResult(
                 "f0",
-                [Gem5ScannedVariable(name="dist_var", type="distribution", minimum=-5, maximum=10)],
+                [
+                    Gem5ScannedVariable(
+                        name="dist_var",
+                        type="distribution",
+                        minimum=-5,
+                        maximum=10,
+                        source_type="distribution",
+                        instances=(SourceInstance("dist_var", ()),),
+                    )
+                ],
             ),
             ScanFileResult(
                 "f1",
                 [
                     Gem5ScannedVariable(
-                        name="dist_var", type="distribution", minimum=-10, maximum=15
+                        name="dist_var",
+                        type="distribution",
+                        minimum=-10,
+                        maximum=15,
+                        source_type="distribution",
+                        instances=(SourceInstance("dist_var", ()),),
                     )
                 ],
             ),
@@ -44,7 +61,15 @@ class TestDeepScanMinMax:
                 "f0",
                 [
                     Gem5ScannedVariable(
-                        name="system.cpu\\d+.dist", type="distribution", minimum=0, maximum=20
+                        name="system.cpu\\d+.dist",
+                        type="distribution",
+                        minimum=0,
+                        maximum=20,
+                        source_type="distribution",
+                        instances=(
+                            SourceInstance("system.cpu0.dist", ("0",)),
+                            SourceInstance("system.cpu1.dist", ("1",)),
+                        ),
                     )
                 ],
             )

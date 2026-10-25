@@ -1,3 +1,4 @@
+from src.core.models.parsing_models import SourceInstance
 from unittest.mock import MagicMock, patch
 
 from src.parsing.gem5.impl.scanning.gem5_scan_work import Gem5ScanWork
@@ -9,8 +10,18 @@ def test_stats_scan_work_success() -> None:
     from src.core.models.parsing_models import ScannedVariable
 
     mock_vars = [
-        ScannedVariable(name="var1", type="scalar"),
-        ScannedVariable(name="var2", type="vector"),
+        ScannedVariable(
+            name="var1",
+            type="scalar",
+            source_type="scalar",
+            instances=(SourceInstance("var1", ()),),
+        ),
+        ScannedVariable(
+            name="var2",
+            type="vector",
+            source_type="vector",
+            instances=(SourceInstance("var2", ()),),
+        ),
     ]
 
     with patch(

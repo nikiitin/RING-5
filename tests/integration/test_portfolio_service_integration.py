@@ -50,11 +50,23 @@ def test_save_and_load_portfolio(
     plot.config = plot_config
 
     config_state = {"theme": "dark"}
-    parse_variables = [{"name": "ipc", "type": "scalar", "_id": "ipc-1"}]
+    parse_variables = [
+        {"name": "ipc", "type": "scalar", "_id": "ipc-1", "params": {"source_type": "scalar"}}
+    ]
     state_manager.set_use_parser(True)
     state_manager.set_stats_path(str(tmp_path / "stats"))
     state_manager.set_stats_pattern("stats*.txt")
-    state_manager.set_scanned_variables([{"name": "ipc", "type": "scalar"}])
+    state_manager.set_scanned_variables(
+        [
+            {
+                "name": "ipc",
+                "type": "scalar",
+                "entries": [],
+                "source_type": "scalar",
+                "instances": [{"source_name": "ipc", "indices": []}],
+            }
+        ]
+    )
     state_manager.add_manager_history_record(
         {
             "source_columns": ["A"],
@@ -83,8 +95,8 @@ def test_save_and_load_portfolio(
     loaded_data = portfolio_service.load_portfolio("test_portfolio")
 
     # Verify Content
-    assert loaded_data["schema_version"] == 6
-    assert loaded_data["version"] == "6.0"
+    assert loaded_data["schema_version"] == 7
+    assert loaded_data["version"] == "7.0"
     environment = loaded_data["environment_metadata"]
     assert environment is not None
     assert environment["format_version"] == 1
@@ -101,7 +113,15 @@ def test_save_and_load_portfolio(
     assert loaded_data["use_parser"] is True
     assert loaded_data["stats_path"] == str(tmp_path / "stats")
     assert loaded_data["stats_pattern"] == "stats*.txt"
-    assert loaded_data["scanned_variables"] == [{"name": "ipc", "type": "scalar"}]
+    assert loaded_data["scanned_variables"] == [
+        {
+            "name": "ipc",
+            "type": "scalar",
+            "entries": [],
+            "source_type": "scalar",
+            "instances": [{"source_name": "ipc", "indices": []}],
+        }
+    ]
     assert loaded_data["manager_history"][0]["operation"] == "derive B"
 
     loaded_df = TypedTableCodec.decode(loaded_data["data"])

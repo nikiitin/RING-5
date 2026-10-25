@@ -6,8 +6,6 @@ Pattern variables (e.g., system.ruby.l\d+_cntrl\d+.stat) contain regex
 placeholders that match multiple hardware components. This service handles:
 - Detection of pattern variables
 - Extraction of position labels from pattern names
-- Parsing of entry indices into structured position→value mappings
-- Filtering entries based on user selections
 - Formatting entries for display
 
 All functions are pure (no UI dependencies, no side effects).
@@ -35,7 +33,6 @@ class PatternIndexService:
     ["0_0", "0_1", "1_0", "1_1"], this service provides:
     - Index detection
     - Position extraction
-    - Entry filtering by selected indices
     - Display formatting
     """
 
@@ -102,101 +99,6 @@ class PatternIndexService:
         return cleaned
 
     @staticmethod
-    def parse_entry_indices(entries: list[str]) -> dict[int, set[str]]:
-        """
-        Parse entries to extract unique indices at each position.
-
-        Args:
-            entries: List like ["0_0", "0_1", "1_0", "1_1", "2_0"]
-
-        Returns:
-            Dict mapping position index to set of values:
-            {0: {"0", "1", "2"}, 1: {"0", "1"}}
-
-        Examples:
-            >>> result = PatternIndexService.parse_entry_indices(
-            ...     ["0_0", "0_1", "1_0"]
-            ... )
-            >>> result[0] == {"0", "1"}
-            True
-            >>> result[1] == {"0", "1"}
-            True
-            >>> PatternIndexService.parse_entry_indices([])
-            {}
-        """
-        if not entries:
-            return {}
-
-        # Parse first entry to determine structure
-        first_entry = entries[0]
-        parts = first_entry.split("_")
-        num_positions = len(parts)
-
-        # Collect all values at each position
-        position_values: dict[int, set[str]] = {i: set() for i in range(num_positions)}
-
-        for entry in entries:
-            parts = entry.split("_")
-            # Handle entries with different numbers of parts
-            for i, part in enumerate(parts):
-                if i not in position_values:
-                    position_values[i] = set()
-                position_values[i].add(part)
-
-        return position_values
-
-    @staticmethod
-    def filter_entries(entries: list[str], selections: dict[int, list[str]]) -> list[str]:
-        """
-        Filter entries based on selected indices at each position.
-
-        Args:
-            entries: All available entries (e.g., ["0_0", "0_1", "1_0"])
-            selections: Selected indices per position
-                        {0: ["0"], 1: ["0", "1"]}
-
-        Returns:
-            Entries containing every selected position with a matching value.
-
-        Raises:
-            ValueError: If a selected position is not a nonnegative integer.
-
-        Examples:
-            >>> PatternIndexService.filter_entries(
-            ...     ["0_0", "0_1", "1_0", "1_1"],
-            ...     {0: ["0"], 1: ["0", "1"]}
-            ... )
-            ['0_0', '0_1']
-            >>> PatternIndexService.filter_entries(
-            ...     ["0_0", "0_1", "1_0"],
-            ...     {0: []}
-            ... )
-            []
-        """
-        if any(type(position) is not int or position < 0 for position in selections):
-            raise ValueError("Selected index positions must be nonnegative integers.")
-        filtered: list[str] = []
-
-        for entry in entries:
-            parts = entry.split("_")
-
-            # Check if entry matches all position selections
-            matches = True
-            for pos_idx, selected_values in selections.items():
-                if not selected_values:  # No selection means exclude all
-                    matches = False
-                    break
-
-                if pos_idx >= len(parts) or parts[pos_idx] not in selected_values:
-                    matches = False
-                    break
-
-            if matches:
-                filtered.append(entry)
-
-        return filtered
-
-    @staticmethod
     def format_entry_display(entry: str, positions: list[str]) -> str:
         """
         Format entry for display (e.g., "0_1" -> "l{0}_cntrl{1}").
@@ -226,65 +128,3 @@ class PatternIndexService:
                 formatted_parts.append(part)
 
         return "_".join(formatted_parts)
-
-    @staticmethod
-    def reconstruct_concrete_name(pattern_name: str, numeric_id: str) -> str:
-        r"""
-        Reconstruct a concrete variable name from a regex pattern and numeric ID.
-
-        Inverse of ``PatternAggregator._extract_pattern``: replaces each
-        ``\d+`` placeholder in the pattern with the corresponding number
-        from the numeric ID (underscore-separated).
-
-        Args:
-            pattern_name: Regex pattern (e.g., ``system.cpu\d+.ipc`` or
-                          ``system.ruby.l\d+_cntrl\d+.stat``).
-            numeric_id: Underscore-separated numeric parts (e.g., ``"3"``
-                        or ``"0_1"``).
-
-        Returns:
-            Concrete variable name with numbers substituted in.
-
-        Raises:
-            ValueError: If the number of ``\d+`` placeholders does not match
-                        the number of parts in *numeric_id*.
-
-        Examples:
-            >>> PatternIndexService.reconstruct_concrete_name(
-            ...     r"system.cpu\d+.ipc", "3"
-            ... )
-            'system.cpu3.ipc'
-            >>> PatternIndexService.reconstruct_concrete_name(
-            ...     r"system.ruby.l\d+_cntrl\d+.stat", "0_1"
-            ... )
-            'system.ruby.l0_cntrl1.stat'
-        """
-        from src.core.common.safe_regex import MAX_INPUT_LENGTH, normalize_stat_pattern
-
-        pattern_name = normalize_stat_pattern(pattern_name)
-        if len(numeric_id) > MAX_INPUT_LENGTH:
-            raise ValueError(f"numeric_id exceeds the {MAX_INPUT_LENGTH}-character limit.")
-        parts = numeric_id.split("_")
-        if any(not part or not part.isascii() or not part.isdecimal() for part in parts):
-            raise ValueError("numeric_id must contain only underscore-separated ASCII digits.")
-        marker = r"\d+"
-        segments = pattern_name.split(marker)
-
-        if len(segments) - 1 != len(parts):
-            raise ValueError(
-                f"Pattern '{pattern_name}' has {len(segments) - 1} placeholder(s) "
-                f"but numeric_id '{numeric_id}' has {len(parts)} part(s)."
-            )
-
-        result: list[str] = []
-        for i, seg in enumerate(segments):
-            result.append(seg)
-            if i < len(parts):
-                result.append(parts[i])
-
-        concrete_name = "".join(result)
-        if len(concrete_name) > MAX_INPUT_LENGTH:
-            raise ValueError(
-                f"Reconstructed stat name exceeds the {MAX_INPUT_LENGTH}-character limit."
-            )
-        return concrete_name

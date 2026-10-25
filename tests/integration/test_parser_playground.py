@@ -72,7 +72,11 @@ def test_playground_surfaces_variables_without_sampled_values(tmp_path: Path) ->
     with ring5.Session() as session:
         job = session.parser_playground_submit(
             str(inputs),
-            [ring5.StatConfig(name="misspelledTicks", type="scalar")],
+            [
+                ring5.StatConfig(
+                    name="misspelledTicks", type="scalar", params={"source_type": "scalar"}
+                )
+            ],
             pattern="gem5_stats.*",
             output_dir=str(tmp_path / "preview"),
             scan_limit=0,
@@ -131,7 +135,10 @@ def test_playground_rejects_an_empty_variable_selection(tmp_path: Path) -> None:
 def test_playground_rejects_more_than_its_reviewable_variable_limit(tmp_path: Path) -> None:
     inputs = tmp_path / "inputs"
     _write_runs(inputs, count=1)
-    variables = [ring5.StatConfig(name=f"stat{index}", type="scalar") for index in range(65)]
+    variables = [
+        ring5.StatConfig(name=f"stat{index}", type="scalar", params={"source_type": "scalar"})
+        for index in range(65)
+    ]
 
     with ring5.Session() as session:
         with pytest.raises(ring5.ParseError, match="at most 64 variables"):

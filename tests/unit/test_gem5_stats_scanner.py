@@ -150,8 +150,20 @@ class TestScanFileScanFile:
 
         perl_output = json.dumps(
             [
-                {"name": "simTicks", "type": "scalar"},
-                {"name": "cpu.ipc", "type": "scalar"},
+                {
+                    "name": "simTicks",
+                    "type": "scalar",
+                    "entries": [],
+                    "source_type": "scalar",
+                    "instances": [{"source_name": "simTicks", "indices": []}],
+                },
+                {
+                    "name": "cpu.ipc",
+                    "type": "scalar",
+                    "entries": [],
+                    "source_type": "scalar",
+                    "instances": [{"source_name": "cpu.ipc", "indices": []}],
+                },
             ]
         )
         mock_run = Mock(return_value=Mock(stdout=perl_output, stderr=""))
@@ -238,7 +250,15 @@ class TestScanFileScanFile:
             ([{"name": "simTicks", "type": 3}], "invalid variable schema"),
             ([{"name": "simTicks", "type": "unknown"}], "invalid variable schema"),
             (
-                [{"name": "simTicks", "type": "scalar", "entries": "not-a-list"}],
+                [
+                    {
+                        "name": "simTicks",
+                        "type": "scalar",
+                        "entries": "not-a-list",
+                        "source_type": "scalar",
+                        "instances": [{"source_name": "simTicks", "indices": []}],
+                    }
+                ],
                 "invalid variable schema",
             ),
             (

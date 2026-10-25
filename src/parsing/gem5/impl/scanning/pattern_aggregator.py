@@ -13,7 +13,7 @@ Example:
 import logging
 import re
 
-from src.core.models.parsing_models import ScannedVariable
+from src.core.models.parsing_models import ScannedVariable, SourceInstance
 from src.parsing.gem5.models import Gem5ScannedVariable
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -42,22 +42,9 @@ class PatternAggregator:
         Returns:
             Aggregated list of variable models.
 
-        Example:
-            Input:
-                [
-                    ScannedVariable(name="system.cpu0.numCycles", type="scalar"),
-                    ScannedVariable(name="system.cpu1.numCycles", type="scalar"),
-                    ScannedVariable(name="system.cpu2.numCycles", type="scalar")
-                ]
-
-            Output:
-                [
-                    ScannedVariable(
-                        name="system.cpu\\d+.numCycles",
-                        type="vector",
-                        entries=["0", "1", "2"]
-                    )
-                ]
+        Scalar families suggest vector output with no measurement entries. Their
+        numeric labels and concrete source names live only in ``instances``;
+        actual vector/frequency entries remain in ``entries``.
         """
         # Group variables by their pattern signature
         pattern_groups: dict[str, list[tuple[str, ScannedVariable]]] = {}
@@ -88,8 +75,11 @@ class PatternAggregator:
                 # Only one instance - not a pattern, keep as is
                 _, var = instances[0]
                 non_pattern_vars.append(var)
+            elif len({variable.source_type for _, variable in instances}) > 1:
+                # Numeric name similarity does not make different raw stat families interchangeable.
+                non_pattern_vars.extend(variable for _, variable in instances)
             else:
-                # Multiple instances - create pattern variable
+                # Multiple compatible instances form one explicit source family.
                 aggregated_var = PatternAggregator._create_pattern_variable(
                     pattern_signature, instances
                 )
@@ -164,35 +154,21 @@ class PatternAggregator:
         regex_pattern = pattern_signature.replace("{}", r"\d+")
 
         # Extract numeric IDs as entries
-        entries: list[str] = sorted([numeric_id for numeric_id, _ in instances])
 
-        # Get type from first instance (should be consistent)
         first_var = instances[0][1]
-        base_type = first_var.type
-
-        # Repeated scalar names form a logical vector. Store the concrete names
-        # as pattern indices so the parser can request only anchored literal
-        # filters and route each scalar value into its numeric vector entry.
-        if base_type == "scalar":
-            result_type = "vector"
-            result_entries = entries
-            pattern_indices: list[str] | None = [var.name for _, var in instances]
-        else:
-            # For vectors/histograms/distributions, we need BOTH:
-            # - pattern_indices: numeric IDs from variable names (for pattern selection)
-            # - entries: the actual vector/histogram entry names (after ::)
-            result_type = base_type
-
-            # Pattern indices (numeric IDs from variable names like "0_0", "1_0")
-            pattern_indices = entries
-
-            # Collect all unique vector/histogram entries from all instances
-            all_entries: set[str] = set()
-            for _, var in instances:
-                if var.entries:
-                    all_entries.update(var.entries)
-
-            result_entries = sorted(list(all_entries))
+        base_type = first_var.source_type
+        if any(var.source_type != base_type for _, var in instances):
+            raise ValueError(f"Pattern {regex_pattern!r} contains mixed raw source types.")
+        source_instances: list[SourceInstance] = []
+        for numeric_id, variable in instances:
+            if len(variable.instances) != 1 or variable.instances[0].source_name != variable.name:
+                raise ValueError("Pattern aggregation requires explicit literal source instances.")
+            source_instances.append(
+                SourceInstance(variable.instances[0].source_name, tuple(numeric_id.split("_")))
+            )
+        result_type = "vector" if base_type == "scalar" else base_type
+        # Scalar observations have no child entries; their display indices belong to instances.
+        result_entries = sorted({entry for _, var in instances for entry in var.entries})
 
         # Handle distribution min/max if applicable
         kwargs: dict[str, float] = {}
@@ -221,6 +197,6 @@ class PatternAggregator:
             type=result_type,
             source_type=base_type,
             entries=result_entries,
-            pattern_indices=pattern_indices,
+            instances=tuple(source_instances),
             **kwargs,
         )

@@ -119,7 +119,10 @@ class TestScannerPatternAggregation:
             # Should have entries list
             assert cpu_var.entries is not None
             assert isinstance(cpu_var.entries, list)
-            assert len(cpu_var.entries) > 0
+            assert len(cpu_var.instances) > 0
+            assert all(instance.indices for instance in cpu_var.instances)
+            if cpu_var.source_type == "scalar":
+                assert cpu_var.entries == []
 
             # Entries should be numeric IDs like "0", "1", "2", etc.
             # (or could be entry names for vector types)

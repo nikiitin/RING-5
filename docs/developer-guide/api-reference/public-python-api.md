@@ -38,7 +38,13 @@ cancelled without touching work from another handle.
 
 Use `ring5.StatConfig` for explicit runnable parser settings. Configuration fields and `params`
 use snake_case; `repeat` is a positive integer, `entries` and `statistics` are separate text lists,
-and `source_name` preserves an output alias without replacing the simulator statistic. Invalid
+and `source_name` preserves an output alias without replacing the simulator statistic. Every runnable
+configuration declares `params.source_type`, the actual raw source kind before output reinterpretation.
+`ScannedVariable` requires that kind plus `SourceInstance` records containing exact source names and
+numeric display coordinates. Numeric patterns require these current scan records;
+`params.selected_sources` selects concrete names once at submission. An explicit empty selection
+remains an unfinished draft. Scalar-source vector entries derive from instance coordinates, so they
+do not accept caller-provided `entries`. Invalid
 configuration raises `ParseError`; dictionary and duck-object execution routes are unsupported.
 Histogram `statistics_only=True` extracts only configured summaries and retains missing summaries
 as NaN. Saved editor drafts remain editable, while jobs and analysis recipes require runnable

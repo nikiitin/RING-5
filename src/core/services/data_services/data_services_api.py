@@ -238,15 +238,6 @@ class DataServicesAPI(Protocol):
         """Find all entries for a variable by searching available/scanned variables."""
         raise NotImplementedError
 
-    def update_scanned_entries(
-        self,
-        scanned_vars: list[ScannedVariableDict],
-        var_name: str,
-        new_entries: list[str],
-    ) -> list[ScannedVariableDict]:
-        """Update or add entries for a variable in the scanned variables list."""
-        raise NotImplementedError
-
     def has_variable_with_name(
         self,
         variables: list[ParseVariableConfig],

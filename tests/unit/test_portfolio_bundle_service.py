@@ -21,8 +21,8 @@ from src.core.services.portfolio_integrity_service import PortfolioIntegrityServ
 
 def _portfolio_bytes(*, signed: bool = False) -> bytes:
     portfolio = {
-        "schema_version": 6,
-        "version": "6.0",
+        "schema_version": 7,
+        "version": "7.0",
         "parser_strategy": "simple",
         "simulator": "gem5",
         "timestamp": "2026-07-21T10:00:00+00:00",

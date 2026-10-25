@@ -14,7 +14,9 @@ from src.core.application_api import ApplicationAPI
 from src.core.common.security_limits import MAX_SCAN_FILES, SCAN_BATCH_TIMEOUT_SECONDS
 from src.core.common.utils import validate_web_stats_path
 from src.core.models.parsing_models import ScanFileResult
-from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
+from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict, SourceInstanceDict
+from src.core.models.pattern_index_service import PatternIndexService
+from src.core.common.safe_regex import normalize_stat_pattern
 from src.web.components.common.filtered_selector import (
     filtered_multiselect,
     filtered_selectbox,
@@ -58,6 +60,7 @@ class VariableEditor:
 
         st.markdown("**Current Variables:**")
 
+        source_types = api.get_simulator_info(api.state_manager.get_simulator()).variable_types
         updated_vars: list[ParseVariableConfig] = []
         deleted_indices: list[int] = []
 
@@ -79,8 +82,8 @@ class VariableEditor:
                 continue
 
             # Common fields (Name, Alias, Type)
-            var_name, var_alias, var_type, should_delete = cls._render_common_fields(
-                idx, var, var_id
+            var_name, var_alias, var_type, source_type, should_delete = cls._render_common_fields(
+                idx, var, var_id, source_types
             )
 
             if should_delete:
@@ -97,6 +100,11 @@ class VariableEditor:
                     else {}
                 ),
             }
+            var_config.setdefault("params", {})["source_type"] = source_type
+            if "selected_sources" in var.get("params", {}):
+                var_config["params"]["selected_sources"] = deepcopy(
+                    var["params"]["selected_sources"]
+                )
             if var_alias:
                 var_config["source_name"] = var_name
             for field in (
@@ -106,6 +114,12 @@ class VariableEditor:
             ):
                 if field in var:
                     var_config[field] = deepcopy(var[field])  # type: ignore[literal-required]
+            if source_type == "scalar" and source_type != var.get("params", {}).get("source_type"):
+                var_config["params"].pop("entries", None)
+                var_config["params"].pop("statistics", None)
+                var_config["statistics_only"] = False
+            if var.get("type") and var_type != var["type"]:
+                var_config["statistics_only"] = False
             repeat_default = var.get("repeat", 1)
             repeat = int(
                 st.number_input(
@@ -119,24 +133,10 @@ class VariableEditor:
             if repeat > 1 or "repeat" in var:
                 var_config["repeat"] = repeat
 
-            # Type-specific configuration
-            if var_type == "vector":
-                cls.render_vector_config(
-                    api, var_config, var, var_id, available_variables, stats_path, stats_pattern
-                )
-            elif var_type == "distribution":
-                cls.render_distribution_config(
-                    api, var_config, var, var_id, stats_path, stats_pattern
-                )
-            elif var_type == "histogram":
-                cls.render_histogram_config(
-                    api, var_config, var, var_id, available_variables, stats_path, stats_pattern
-                )
-            elif var_type == "configuration":
-                cls.render_configuration_config(var_config, var, var_id)
-
-            # Pattern index selection for ALL variable types (scalars included)
-            if PatternIndexSelector.is_pattern_variable(var_name):
+            cls.render_type_config(
+                api, var_config, var, var_id, available_variables, stats_path, stats_pattern
+            )
+            if PatternIndexService.is_pattern_variable(var_name):
                 cls._render_pattern_index_for_variable(api, var_config, var, var_id)
 
             updated_vars.append(var_config)
@@ -148,8 +148,8 @@ class VariableEditor:
 
     @staticmethod
     def _render_common_fields(
-        idx: int, var: ParseVariableConfig, var_id: str
-    ) -> tuple[str, str, str, bool]:
+        idx: int, var: ParseVariableConfig, var_id: str, source_types: list[str]
+    ) -> tuple[str, str, str, str, bool]:
         """Render common variable fields (Name, Alias, Type)."""
         # [impl->req~ring5.ingestion.output-aliases~1]
         col1, col2, col3, col4 = st.columns([3, 2, 2, 1])
@@ -188,10 +188,27 @@ class VariableEditor:
                 or ""
             )
 
+            current_source = cast(str, var.get("params", {}).get("source_type", ""))
+            choices = list(
+                dict.fromkeys([*source_types, *([current_source] if current_source else [])])
+            )
+            source_type = (
+                st.selectbox(
+                    f"Raw source type {idx+1}",
+                    choices,
+                    index=choices.index(current_source) if current_source else None,
+                    key=f"var_source_type_{var_id}",
+                    placeholder="Choose raw source type",
+                    label_visibility="collapsed",
+                    help="Actual source kind before choosing the output representation.",
+                )
+                or ""
+            )
+
         with col4:
             delete_clicked = st.button("X", key=f"delete_var_{var_id}", type="tertiary")
 
-        return var_name, var_alias, var_type, delete_clicked
+        return var_name, var_alias, var_type, source_type, delete_clicked
 
     @classmethod
     def _render_pattern_index_for_variable(
@@ -201,36 +218,59 @@ class VariableEditor:
         original_var: ParseVariableConfig,
         var_id: str,
     ) -> None:
-        """
-        Render PatternIndexSelector for any pattern variable type.
-
-        When a user selects specific indices, ``keep_indices`` is set to
-        ``True`` and ``parsed_ids`` is populated with the filtered list.
-        This applies to scalars, vectors, distributions, and histograms.
-        """
-        var_name = var_config.get("source_name") or var_config.get("name", "")
-        scanned_vars = api.state_manager.get_scanned_variables() or []
-        pattern_indices: list[str] | None = None
-
-        for v in scanned_vars:
-            if v["name"] == var_name and "pattern_indices" in v:
-                pattern_indices = v["pattern_indices"]
+        """Keep concrete instance selection independent from output naming."""
+        source_name = var_config.get("source_name") or var_config.get("name", "")
+        canonical = normalize_stat_pattern(source_name)
+        instances: list[SourceInstanceDict] | None = None
+        for variable in api.state_manager.get_scanned_variables():
+            if variable["name"] == canonical:
+                instances = variable["instances"]
                 break
-
-        if not pattern_indices:
-            return
-
-        current_selection = cast(list[str] | None, original_var.get("params", {}).get("parsed_ids"))
-        use_filter, pattern_filtered = PatternIndexSelector.render_selector(
-            var_name, pattern_indices, var_id, current_selection
+        if instances is not None:
+            current = cast(list[str] | None, original_var.get("params", {}).get("selected_sources"))
+            use_filter, selected = PatternIndexSelector.render_selector(
+                canonical, instances, var_id, current
+            )
+            if use_filter:
+                var_config.setdefault("params", {})["selected_sources"] = selected
+            else:
+                var_config.setdefault("params", {}).pop("selected_sources", None)
+        else:
+            st.info("Select a scanned pattern to edit its concrete source instances.")
+        var_config["keep_indices"] = st.checkbox(
+            "Keep each source as a separate output",
+            value=original_var.get("keep_indices", False),
+            key=f"keep_source_indices_{var_id}",
         )
 
-        if use_filter:
-            var_config.setdefault("params", {})["parsed_ids"] = pattern_filtered
-            var_config["keep_indices"] = True
-        else:
-            var_config.setdefault("params", {}).pop("parsed_ids", None)
-            var_config["keep_indices"] = False
+    @classmethod
+    def render_type_config(
+        cls,
+        api: ApplicationAPI,
+        config: ParseVariableConfig,
+        original: ParseVariableConfig,
+        var_id: str,
+        available_variables: list[ScannedVariableDict] | None = None,
+        stats_path: str | None = None,
+        stats_pattern: str = "stats.txt",
+    ) -> None:
+        """Render current backend-specific options using the one nested draft shape."""
+        kind = config.get("type", "")
+        if kind == "vector" and config.get("params", {}).get("source_type") == "scalar":
+            st.caption("Each selected scalar source becomes one vector entry using its scan label.")
+            return
+        if kind == "vector":
+            cls.render_vector_config(
+                api, config, original, var_id, available_variables, stats_path, stats_pattern
+            )
+        elif kind == "histogram":
+            cls.render_histogram_config(
+                api, config, original, var_id, available_variables, stats_path, stats_pattern
+            )
+        elif kind == "distribution":
+            cls.render_distribution_config(api, config, original, var_id, stats_path, stats_pattern)
+        elif kind == "configuration":
+            cls.render_configuration_config(config, original, var_id)
 
     @classmethod
     def render_histogram_config(
@@ -563,6 +603,7 @@ class VariableEditor:
             st.write("Aggregating scan data...")
             scan_result = api.finalize_scan(results)
             snapshot_dicts = [sv.to_dict() for sv in scan_result.variables]
+            api.state_manager.set_scanned_variables(snapshot_dicts)
 
             # Process results based on type
             if is_distribution:
@@ -596,12 +637,6 @@ class VariableEditor:
 
                 if filtered_entries:
                     st.write(f"Updating {len(filtered_entries)} entries...")
-                    scanned_vars = api.state_manager.get_scanned_variables() or []
-                    # Delegate update logic to VariableService (Layer B)
-                    updated_vars = api.data_services.update_scanned_entries(
-                        scanned_vars, var_name, filtered_entries
-                    )
-                    api.state_manager.set_scanned_variables(updated_vars)
                     status.update(
                         label=f"Discovered {len(filtered_entries)} entries",
                         state="complete",

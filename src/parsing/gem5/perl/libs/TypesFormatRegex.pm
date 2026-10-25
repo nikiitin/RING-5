@@ -69,8 +69,7 @@ sub _printRecords {
             print "dump//\n";
             next;
         }
-        # Summary fields use the worker protocol's ordinary entry representation.
-        my $type = $record->{type} eq 'summary' ? 'vector' : $record->{type};
+        my $type = $record->{type};
         my $identifier = $record->{name};
         $identifier .= "::$record->{entry}" if defined $record->{entry};
         print "$type/$identifier/$record->{value}\n";

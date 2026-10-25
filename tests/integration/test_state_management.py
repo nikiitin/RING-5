@@ -148,8 +148,20 @@ class TestStateManagement:
         repo.set_parse_variables(variables)
 
         scanned_vars: list[ScannedVariableDict] = [
-            {"name": "system.cpu.ipc", "type": "scalar", "entries": []},
-            {"name": "system.cpu.numCycles", "type": "scalar", "entries": []},
+            {
+                "name": "system.cpu.ipc",
+                "type": "scalar",
+                "entries": [],
+                "source_type": "scalar",
+                "instances": [{"source_name": "system.cpu.ipc", "indices": []}],
+            },
+            {
+                "name": "system.cpu.numCycles",
+                "type": "scalar",
+                "entries": [],
+                "source_type": "scalar",
+                "instances": [{"source_name": "system.cpu.numCycles", "indices": []}],
+            },
         ]
         repo.set_scanned_variables(scanned_vars)
 

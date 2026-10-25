@@ -1,7 +1,7 @@
 """
 Tests for VariableService new methods — extracted from UI layer to Layer B.
 
-Tests find_entries_for_variable, update_scanned_entries, has_variable_with_name,
+Tests find_entries_for_variable, has_variable_with_name,
 and build_statistics_list.
 """
 
@@ -101,67 +101,6 @@ class TestFindEntriesForVariable:
             internal_stats=SimulatorRegistry.get_info("gem5").internal_stats,
         )
         assert set(result) == {"cpu0", "cpu1"}
-
-
-# update_scanned_entries
-
-
-class TestUpdateScannedEntries:
-    """Tests for updating scanned variable entries."""
-
-    def test_update_existing_variable(self) -> None:
-        scanned = cast(
-            list[ScannedVariableDict],
-            [
-                {"name": "cpu.ipc", "type": "vector", "entries": ["old1", "old2"]},
-            ],
-        )
-        result = VariableService.update_scanned_entries(
-            scanned, "cpu.ipc", ["new1", "new2", "new3"]
-        )
-        assert len(result) == 1
-        assert result[0]["entries"] == ["new1", "new2", "new3"]
-
-    def test_preserves_other_fields(self) -> None:
-        """Fields like pattern_indices should be preserved."""
-        scanned = cast(
-            list[ScannedVariableDict],
-            [
-                {
-                    "name": "cpu.ipc",
-                    "type": "vector",
-                    "entries": ["old"],
-                    "pattern_indices": {"0": ["0", "1"]},
-                },
-            ],
-        )
-        result = VariableService.update_scanned_entries(scanned, "cpu.ipc", ["new"])
-        assert result[0].get("pattern_indices") == {"0": ["0", "1"]}
-        assert result[0]["entries"] == ["new"]
-
-    def test_add_new_variable(self) -> None:
-        scanned = cast(
-            list[ScannedVariableDict], [{"name": "existing", "type": "vector", "entries": ["e1"]}]
-        )
-        result = VariableService.update_scanned_entries(scanned, "new.var", ["a", "b"])
-        assert len(result) == 2
-        assert result[1]["name"] == "new.var"
-        assert result[1]["type"] == "vector"
-        assert result[1]["entries"] == ["a", "b"]
-
-    def test_does_not_mutate_original(self) -> None:
-        scanned = cast(
-            list[ScannedVariableDict], [{"name": "cpu.ipc", "type": "vector", "entries": ["old"]}]
-        )
-        result = VariableService.update_scanned_entries(scanned, "cpu.ipc", ["new"])
-        # Original should be unchanged
-        assert scanned[0]["entries"] == ["old"]
-        assert result[0]["entries"] == ["new"]
-
-    def test_empty_scanned_list(self) -> None:
-        result = VariableService.update_scanned_entries([], "new.var", ["e1"])
-        assert len(result) == 1
-        assert result[0]["name"] == "new.var"
 
 
 # has_variable_with_name

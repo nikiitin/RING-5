@@ -526,7 +526,16 @@ class TestParserStateRepository:
     def test_scanned_variables(self, repo: ParserStateRepository) -> None:
         assert repo.get_scanned_variables() == []
         vars_data: list[ScannedVariableDict] = cast(
-            list[ScannedVariableDict], [{"name": "ipc", "type": "scalar"}]
+            list[ScannedVariableDict],
+            [
+                {
+                    "name": "ipc",
+                    "type": "scalar",
+                    "entries": [],
+                    "source_type": "scalar",
+                    "instances": [{"source_name": "ipc", "indices": []}],
+                }
+            ],
         )
         repo.set_scanned_variables(vars_data)
         assert repo.get_scanned_variables() == vars_data
@@ -550,7 +559,20 @@ class TestParserStateRepository:
         assert repo.get_parser_strategy() == "config_aware"
 
     def test_clear_parser_state(self, repo: ParserStateRepository) -> None:
-        repo.set_scanned_variables(cast(list[ScannedVariableDict], [{"name": "x"}]))
+        repo.set_scanned_variables(
+            cast(
+                list[ScannedVariableDict],
+                [
+                    {
+                        "name": "x",
+                        "type": "scalar",
+                        "entries": [],
+                        "source_type": "scalar",
+                        "instances": [{"source_name": "x", "indices": []}],
+                    }
+                ],
+            )
+        )
         repo.set_using_parser(True)
         repo.clear_parser_state()
         assert repo.get_scanned_variables() == []
@@ -683,7 +705,15 @@ class TestSessionRepository:
             "parse_variables": [{"name": "ipc", "type": "scalar", "_id": "id1"}],
             "stats_path": "/restored/path",
             "stats_pattern": "stats_custom.txt",
-            "scanned_variables": [{"name": "x", "type": "vector"}],
+            "scanned_variables": [
+                {
+                    "name": "x",
+                    "type": "vector",
+                    "entries": ["a"],
+                    "source_type": "vector",
+                    "instances": [{"source_name": "x", "indices": []}],
+                }
+            ],
             "use_parser": True,
             "config": {"restored": True},
             "csv_path": "/restored.csv",

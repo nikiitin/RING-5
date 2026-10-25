@@ -233,7 +233,15 @@ class TestParserManagement:
         assert manager.get_scanned_variables() == []
         scanned: list[ScannedVariableDict] = cast(
             list[ScannedVariableDict],
-            [{"name": "cpu.ipc", "entries": ["0", "1"]}],
+            [
+                {
+                    "name": "cpu.ipc",
+                    "type": "vector",
+                    "entries": ["0", "1"],
+                    "source_type": "vector",
+                    "instances": [{"source_name": "cpu.ipc", "indices": []}],
+                }
+            ],
         )
         manager.set_scanned_variables(scanned)
         assert manager.get_scanned_variables() == scanned
@@ -352,12 +360,24 @@ class TestRestoreSession:
             {
                 "parser_strategy": "simple",
                 "simulator": "gem5",
-                "parse_variables": [StatConfigCodec.to_snapshot({"name": "ipc", "type": "scalar"})],
+                "parse_variables": [
+                    StatConfigCodec.to_snapshot(
+                        {"name": "ipc", "type": "scalar", "params": {"source_type": "scalar"}}
+                    )
+                ],
                 "stats_path": "/data/stats.txt",
                 "stats_pattern": "stats*.txt",
                 "csv_path": "/output.csv",
                 "use_parser": True,
-                "scanned_variables": [{"name": "cpu.cycles"}],
+                "scanned_variables": [
+                    {
+                        "name": "cpu.cycles",
+                        "type": "scalar",
+                        "entries": [],
+                        "source_type": "scalar",
+                        "instances": [{"source_name": "cpu.cycles", "indices": []}],
+                    }
+                ],
                 "plots": [],
                 "plot_counter": 3,
                 "config": {"theme": "dark"},

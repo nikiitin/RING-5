@@ -19,7 +19,15 @@ def test_public_search_finds_dynamic_and_static_workspace_content(portfolios_dir
             [{"source_name": "system.cpu.ipc", "type": "scalar", "name": "IPC", "_id": "v1"}]
         )
         session.api.state_manager.set_scanned_variables(
-            [{"name": "system.cpu.ipc", "type": "scalar", "entries": []}]
+            [
+                {
+                    "name": "system.cpu.ipc",
+                    "type": "scalar",
+                    "entries": [],
+                    "source_type": "scalar",
+                    "instances": [{"source_name": "system.cpu.ipc", "indices": []}],
+                }
+            ]
         )
         plot = session.create_plot(
             "bar",

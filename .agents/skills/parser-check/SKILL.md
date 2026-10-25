@@ -18,8 +18,10 @@ contract**.
    `submit_parse_async` / `finalize_parsing`; backends implement the complete `SimulationParser`
    protocol, including incremental and playground submission/finalization and scan aggregation.
    **No synchronous wrapper** may be added.
-3. **Pass `scanned_vars`** when parsing regex/pattern variables (reconstructs concrete names like
-   `system.cpu\d+.numCycles` → `cpu0..N`).
+3. **Explicit source metadata.** Every runnable config declares `params.source_type`; numeric
+   patterns require `scanned_vars` with concrete `SourceInstance` names and numeric coordinates.
+   `selected_sources` contains concrete names only. Resolve once before workers, never reconstruct
+   names from indices, infer missing kinds, or route through shared accumulator identities.
 4. **StatType lifecycle invariant** (`src/parsing/gem5/types/`): `balance_content()` then
    `reduce_duplicates()` **must** run before `reduced_content` is read. New/edited stat types must
    honor it. Ingestion/reduction must not truncate floats (no `int()` coercion).
