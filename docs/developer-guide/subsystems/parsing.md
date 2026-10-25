@@ -52,6 +52,11 @@ the scan labels, while the persistent worker serializes source entries and value
 reclassifying them. Python types validate, balance, and reduce the parsed measurements. The simulator
 registry exposes supported variable-type strings to the UI.
 
+Summary measurements are named entries of their source statistic, selected through its
+`statistics` field. They use ordinary entry buffering in the worker. Source names retain their
+literal spelling, including double underscores; the worker does not reinterpret name suffixes.
+Output aliases select their explicit source names and do not request unrelated matching labels.
+
 All parsers produce the generic contract in `src/core/models/csv_contract.py`: a header, rows,
 consistent columns, values, and explicit `NaN` for missing numeric data. Simulator-specific column
 names remain inside the backend.

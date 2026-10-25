@@ -40,11 +40,6 @@ class Configuration:
         self.onEmpty = None
 
 
-class Summary:
-    def __init__(self) -> None:
-        self.content = None
-
-
 class TestStr:
     """Tests for __str__ method."""
 
@@ -121,45 +116,6 @@ class TestProcessEntryTypeResolution:
         assert work._entryBuffer["myvar"]["key1"] == ["42"]
 
 
-class TestProcessSummary:
-    """Tests for _processSummary method."""
-
-    def test_standalone_summary(self) -> None:
-        """Standalone summary via __get_summary should populate content."""
-        vars_map = cast(VarsDictType, {"myvar__get_summary": Summary()})
-        work = Gem5ParseWork("f", vars_map)
-
-        work._processSummary("myvar", "42.5", vars_map)
-        assert vars_map["myvar__get_summary"].content == "42.5"
-
-    def test_entry_style_summary(self) -> None:
-        """Entry-style summary (e.g., var::total) should be buffered."""
-        vars_map = cast(VarsDictType, {"myvar": Distribution()})
-        work = Gem5ParseWork("f", vars_map)
-        work._entryBuffer = {}
-
-        work._processSummary("myvar::total", "999", vars_map)
-        assert work._entryBuffer["myvar"]["total"] == ["999"]
-
-    def test_summary_unknown_var_no_crash(self) -> None:
-        """Summary for unknown variable should not crash."""
-        vars_map = cast(VarsDictType, {"other": Scalar()})
-        work = Gem5ParseWork("f", vars_map)
-        work._entryBuffer = {}
-
-        # Should not raise
-        work._processSummary("unknown_var", "123", vars_map)
-
-    def test_summary_entry_style_non_entry_type(self) -> None:
-        """Summary with :: but target is scalar (not entry type) should try standalone."""
-        vars_map = cast(VarsDictType, {"myvar": Scalar(), "myvar__get_summary": Summary()})
-        work = Gem5ParseWork("f", vars_map)
-        work._entryBuffer = {}
-
-        work._processSummary("myvar::total", "999", vars_map)
-        # Scalar is not an entry type, so it should fall through to standalone check
-
-
 class TestProcessLineEdgeCases:
     """Tests for _processLine edge cases."""
 
@@ -171,13 +127,14 @@ class TestProcessLineEdgeCases:
         work._processLine("Configuration/config_var/my_benchmark", vars_map)
         assert vars_map["config_var"].content == "my_benchmark"
 
-    def test_unknown_type_raises(self) -> None:
+    @pytest.mark.parametrize("wire_type", ["WeirdType", "summary"])
+    def test_unknown_type_raises(self, wire_type: str) -> None:
         """Unknown type in Perl output should raise RuntimeError."""
         vars_map = cast(VarsDictType, {"var": Scalar()})
         work = Gem5ParseWork("f", vars_map)
 
         with pytest.raises(RuntimeError, match="Unknown variable type"):
-            work._processLine("WeirdType/var/123", vars_map)
+            work._processLine(f"{wire_type}/var/123", vars_map)
 
     def test_scalar_unknown_variable_skipped(self) -> None:
         """Scalar line with unknown variable ID should be skipped."""
@@ -187,14 +144,6 @@ class TestProcessLineEdgeCases:
         # Should not crash — unknown variable is skipped
         work._processLine("scalar/unknown_var/100", vars_map)
         assert vars_map["known"].content is None
-
-    def test_summary_line(self) -> None:
-        """Summary type line should be dispatched to _processSummary."""
-        vars_map = cast(VarsDictType, {"myvar__get_summary": Summary()})
-        work = Gem5ParseWork("f", vars_map)
-
-        work._processLine("Summary/myvar/42", vars_map)
-        assert vars_map["myvar__get_summary"].content == "42"
 
     def test_entry_type_unknown_variable_skipped(self) -> None:
         """Entry type with unknown baseID should be skipped silently."""

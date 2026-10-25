@@ -125,18 +125,6 @@ class Gem5ParseWork(ParseWork):
         return var_id.split("::", 1)[0]
 
     @staticmethod
-    def _request_key(var_id: str) -> str:
-        """Return the concrete stat name requested from the Perl parser.
-
-        ``__get_summary`` is RING-5's only synthetic suffix.  Gem5 itself
-        legitimately uses double underscores in names (for example
-        ``MemDepUnit__0``), so splitting at the first ``__`` silently
-        truncated pattern-expanded aliases and left their values missing.
-        """
-        suffix = "__get_summary"
-        return var_id[: -len(suffix)] if var_id.endswith(suffix) else var_id
-
-    @staticmethod
     def _numeric_pattern_id(pattern: str, concrete_name: str) -> str | None:
         r"""Return the numeric ID when *concrete_name* matches a ``\d+`` pattern.
 
@@ -241,34 +229,6 @@ class Gem5ParseWork(ParseWork):
         self._bufferEntry(varID, varValue)
         return normalizedVarType
 
-    def _processSummary(self, varID: str, varValue: str, varsToParse: VarsDictType) -> None:
-        """
-        Process Summary lines from Perl output.
-
-        Summaries can be:
-        1. Entry of a Vector/Distribution (e.g., ::total, ::mean)
-        2. Standalone summary request (varID__get_summary)
-
-        Args:
-            varID: Variable identifier (may include ::entry_key)
-            varValue: Summary value as string
-            varsToParse: Dictionary of variables being parsed
-        """
-        baseID: str = self._base_id(varID)
-        targetVar: StatType | None = varsToParse.get(baseID)
-
-        # Check if it's an entry-style summary (::key)
-        if targetVar and "::" in varID:
-            expectedType: str = self._getExpectedType(targetVar)
-            if TypeMapper.is_entry_type(expectedType):
-                self._bufferEntry(varID, varValue)
-                return
-
-        # Check if it's a standalone summary request
-        summaryID: str = baseID + "__get_summary"
-        if summaryID in varsToParse:
-            varsToParse[summaryID].content = varValue
-
     def _processLine(self, line: str, varsToParse: VarsDictType) -> None:
         """
         Process a single output line from the Perl parser.
@@ -318,9 +278,6 @@ class Gem5ParseWork(ParseWork):
                 self._bufferEntry(f"{logical_id}::{entry}", varValue)
                 return
             target_var.content = varValue
-
-        elif normalizedType == "summary":
-            self._processSummary(varID, varValue, varsToParse)
 
         else:
             raise RuntimeError(f"Unknown variable type: {rawType}")
@@ -417,7 +374,7 @@ class Gem5ParseWork(ParseWork):
         # literals plus the scanner-generated \d+ placeholder. The Perl backend
         # never receives arbitrary regex grouping or quantifiers.
         request_keys = list(
-            dict.fromkeys(self._request_key(var_id) for var_id in self._varsToParse)
+            dict.fromkeys(self._source_patterns.get(var_id, var_id) for var_id in self._varsToParse)
         )
         safe_keys: list[str] = []
         for key in request_keys:
