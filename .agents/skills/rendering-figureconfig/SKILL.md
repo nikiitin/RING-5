@@ -64,8 +64,11 @@ Recipe to add a styling option:
   `ring5_engine_mode` session key. Default palette: **`wong`** (colorblind-safe); resolution via
   `services/visualization/palette_service.py`.
 - `PlotRenderState` owns one bound artifact or configuration-only detached payload. `BasePlot`
-  publishes native figure, configuration, preparation, engine and key atomically; retirement runs
-  outside Core locks and preserves borrowed figure content. Chart display consumes the artifact
+  publishes native figure, configuration, preparation, engine and key atomically. Repository-managed
+  retirement drains after the outer Core transaction lock; slot callbacks run outside slot locks
+  and preserve borrowed figure content. Publication relinquishes its owned
+  Matplotlib manager once; later retirement cannot close a manager registered by the borrower.
+  Chart display consumes the artifact
   directly; it does not rebuild figures or maintain a Matplotlib session cache.
 - Configuration reads are owned snapshots. Assign a complete edited mapping; do not mutate
   `plot.config[...]` or keep a second configuration/native cache. Composite artifacts retain actual

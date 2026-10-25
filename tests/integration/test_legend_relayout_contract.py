@@ -127,7 +127,7 @@ def test_real_legend_wire_events_rerender_and_replay_with_canonical_owned_config
         if explicit:
             wire.update({f"{tier}.xanchor": "right", f"{tier}.yanchor": "bottom"})
         assert plot.update_from_relayout(wire)
-        assert plot.last_generated_fig is None
+        assert plot.render_artifact.figure is None
         assert cast(Any, previous).data
         assert plot.config[f"{tier}_anchor_x"] == ("right" if explicit else "left")
         assert plot.config[f"{tier}_anchor_y"] == ("bottom" if explicit else "top")

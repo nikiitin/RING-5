@@ -125,8 +125,14 @@ class ChartDisplayComponent:
             "toImageButtonOptions": {
                 "format": "svg",
                 "filename": f"{plot_name}_view",
-                "height": config.get("height", 500),
-                "width": config.get("width", 800),
+                "height": (
+                    fig.layout.height
+                    if fig.layout.height is not None
+                    else config.get("height", 500)
+                ),
+                "width": (
+                    fig.layout.width if fig.layout.width is not None else config.get("width", 800)
+                ),
                 "scale": config.get("export_scale", 1),
             },
         }

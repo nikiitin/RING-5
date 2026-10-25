@@ -140,7 +140,8 @@ class ConfigSpecBuilder:
             grid_width=float(config.get("x_grid_width", 1.0)),
             grid_dash=config.get("x_grid_dash", "solid"),
             grid_alpha=float(config.get("x_grid_alpha", 1.0)),
-            show_ticks=config.get("show_xtick_marks", True),
+            show_ticks=config.get("show_xtick_marks", True)
+            and (not _numbered_modes or _show_x_tick_labels),
             show_tick_labels=_show_x_tick_labels,
             tick_dash=config.get("xtick_dash", "solid"),
             tick_font_color=config.get("xaxis_tickfont_color", ""),

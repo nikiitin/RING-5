@@ -1,5 +1,7 @@
 """Round-trip tests for CSV pools, configurations, portfolios, and plot types."""
 
+from ring5 import Session
+
 from pathlib import Path
 from typing import Any, cast
 from unittest.mock import patch
@@ -156,6 +158,7 @@ class TestMultiPlotStateConsistency:
         self,
         state_manager: RepositoryStateManager,
         rich_sample_data: pd.DataFrame,
+        plot_session: Session,
     ) -> None:
         """Three plots of different types coexist in state."""
         bar_plot: BasePlot = PlotService.create_plot(
@@ -185,7 +188,9 @@ class TestMultiPlotStateConsistency:
         }
 
         for plot in [bar_plot, line_plot, scatter_plot]:
-            fig: go.Figure = plot.create_figure(rich_sample_data, config)
+            plot.processed_data = rich_sample_data
+            plot.config = config
+            fig: go.Figure = cast(go.Figure, plot_session.render(plot))
             assert isinstance(fig, go.Figure)
             assert len(list(fig.data)) > 0
 
@@ -253,6 +258,7 @@ class TestPlotTypeSwitchWithData:
         self,
         state_manager: RepositoryStateManager,
         rich_sample_data: pd.DataFrame,
+        plot_session: Session,
     ) -> None:
         """After type switch, new type can render a figure."""
         plot: BasePlot = PlotService.create_plot(
@@ -272,7 +278,9 @@ class TestPlotTypeSwitchWithData:
             "xlabel": "Cycles",
             "ylabel": "IPC",
         }
-        fig: go.Figure = new_plot.create_figure(rich_sample_data, config)
+        new_plot.processed_data = rich_sample_data
+        new_plot.config = config
+        fig: go.Figure = cast(go.Figure, plot_session.render(new_plot))
         assert isinstance(fig, go.Figure)
         assert len(list(fig.data)) > 0
 

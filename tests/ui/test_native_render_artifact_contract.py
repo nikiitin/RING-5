@@ -47,7 +47,7 @@ def _app(
 
 def _native_values(plot: BasePlot) -> None:
     artifact = plot.render_artifact
-    assert artifact.figure is plot.last_generated_fig
+    assert artifact.figure is plot.render_artifact.figure
     assert artifact.preparation is not None
     assert artifact.source_data is not None
     assert artifact.source_data["metric"].tolist() == [3.0, 5.0, 7.0]
@@ -120,5 +120,81 @@ def test_manual_draft_and_failed_native_request_keep_the_published_figure_and_co
         assert plot.config["title"] == "Accepted"
         assert calls == ["Measured", "Rejected", "Accepted"]
         _native_values(plot)
+    finally:
+        api.close(wait=True)
+
+
+@pytest.mark.parametrize("initial,selected", [("plotly", "matplotlib"), ("matplotlib", "plotly")])
+def test_actual_engine_pill_rebuilds_once_and_then_reuses_the_selected_native_artifact(
+    initial: str,
+    selected: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    app, api, plot, calls, _ = _app(initial, monkeypatch)
+    try:
+        before = plot.render_artifact
+        app.pills(key=WidgetKeyBuilder.plot_key(plot.plot_id, "widgets.engine_selector")).set_value(
+            selected
+        ).run()
+        assert not app.exception
+        assert plot.render_artifact.engine == selected
+        assert plot.render_artifact is not before
+        assert calls == ["Measured", "Measured"]
+        _native_values(plot)
+        selected_artifact = plot.render_artifact
+        app.run()
+        assert not app.exception
+        assert plot.render_artifact is selected_artifact
+        assert calls == ["Measured", "Measured"]
+    finally:
+        api.close(wait=True)
+
+
+@pytest.mark.parametrize("engine", ["plotly", "matplotlib"])
+def test_actual_facet_render_retains_every_real_panel_preparation_and_reuses_it(
+    engine: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.web.rendering.figure_preparation import PreparedDashboard
+
+    app, api, plot, calls, _ = _app(engine, monkeypatch)
+    try:
+        plot.config = {
+            **plot.config,
+            "small_multiples_enabled": True,
+            "small_multiples_by": ["kind"],
+            "small_multiples_columns": 2,
+        }
+        app.run()
+        assert not app.exception
+        artifact = plot.render_artifact
+        assert isinstance(artifact.preparation, PreparedDashboard)
+        assert artifact.figure_spec is artifact.preparation
+        assert artifact.trace_result is None
+        assert len(artifact.preparation.panels) == 3
+        assert [panel.trace_result.traces[0].y for panel in artifact.preparation.panels] == [
+            [3.0],
+            [5.0],
+            [7.0],
+        ]
+        assert calls == ["Measured"] * 4
+        if engine == "plotly":
+            assert isinstance(artifact.figure, go.Figure)
+            assert [list(cast(go.Bar, trace).y) for trace in artifact.figure.data] == [
+                [3.0],
+                [5.0],
+                [7.0],
+            ]
+        else:
+            assert isinstance(artifact.figure, MplFigure)
+            assert [
+                cast(Rectangle, patch).get_height()
+                for axis in artifact.figure.axes
+                for patch in axis.patches
+            ] == [3.0, 5.0, 7.0]
+        app.run()
+        assert not app.exception
+        assert plot.render_artifact is artifact
+        assert calls == ["Measured"] * 4
     finally:
         api.close(wait=True)

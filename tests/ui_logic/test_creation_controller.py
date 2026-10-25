@@ -253,7 +253,7 @@ class TestRenderControls:
         ctrl.render_controls(plot)
 
         assert plot.name == "Renamed Plot"
-        assert plot.config is config
+        assert plot.config == config
         assert plot.pipeline is pipeline
         assert plot.processed_data is processed_data
 

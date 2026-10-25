@@ -10,6 +10,8 @@ Tests:
     - Config error recovery in render pipeline
 """
 
+from ring5 import Session
+
 from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
@@ -59,8 +61,8 @@ class _RenderVisualizationTracker:
         self.last_plot: PlotHandle | None = None
         self.last_should_gen: bool | None = None
 
-    def __call__(self, plot: PlotHandle, should_generate: bool) -> None:
-        self.calls.append({"plot": plot, "should_generate": should_generate})
+    def __call__(self, plot: PlotHandle, config: dict[str, Any], should_generate: bool) -> None:
+        self.calls.append({"plot": plot, "config": config, "should_generate": should_generate})
         self.last_plot = plot
         self.last_should_gen = should_generate
 
@@ -202,9 +204,8 @@ class TestPlotRenderControllerIntegration:
         ):
             controller.render(cast(RenderablePlot, plot))
 
-        # _render_visualization called but with should_gen=False due to error
-        assert len(tracker.calls) == 1
-        assert tracker.last_should_gen is False
+        # Invalid input has no previous native generation to display.
+        assert tracker.calls == []
 
 
 # Test Class 2: ChartDisplayComponent refresh logic integration
@@ -279,7 +280,10 @@ class TestPlotLifecycleIntegration:
     """Test plot lifecycle operations with real RepositoryStateManager."""
 
     def test_create_plot_with_data_then_render(
-        self, state_manager: RepositoryStateManager, rich_sample_data: pd.DataFrame
+        self,
+        state_manager: RepositoryStateManager,
+        rich_sample_data: pd.DataFrame,
+        plot_session: Session,
     ) -> None:
         """Create plot through service → assign data → generate figure."""
         # Create
@@ -301,7 +305,9 @@ class TestPlotLifecycleIntegration:
         }
 
         # Generate figure
-        fig: go.Figure = plot.create_figure(rich_sample_data, plot.config)
+        plot.processed_data = rich_sample_data
+        plot.config = plot.config
+        fig: go.Figure = cast(go.Figure, plot_session.render(plot))
         assert isinstance(fig, go.Figure)
         assert len(list(fig.data)) > 0
 
@@ -363,7 +369,7 @@ class TestPlotLifecycleIntegration:
         assert "(copy)" in copy_plot.name
 
         # Mutating the copy must leave the original unchanged.
-        copy_plot.config["title"] = "Modified"
+        copy_plot.config = {**copy_plot.config, "title": "Modified"}
         assert "title" not in plot.config
         copy_plot.pipeline[0]["config"]["columns"].append("simTicks")
         assert plot.pipeline[0]["config"]["columns"] == [

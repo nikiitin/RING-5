@@ -1,5 +1,7 @@
 """Tests for dual-axis color groups, error bars, dots, and legends."""
 
+from ring5 import Session
+
 from typing import Any, cast
 
 import pandas as pd
@@ -36,29 +38,37 @@ def _base_config(**overrides: Any) -> dict[str, Any]:
 class TestDualAxisColorGrouping:
     """Test with color column."""
 
-    def test_basic_color(self, sample_data: pd.DataFrame) -> None:
+    def test_basic_color(self, sample_data: pd.DataFrame, plot_session: Session) -> None:
         plot = DualAxisBarDotPlot(1, "test")
         config = _base_config(color="config")
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         # 2 groups × (1 bar + 1 scatter) = 4 traces
         assert len(list(fig.data)) == 4
 
-    def test_color_with_error_bars(self, sample_data: pd.DataFrame) -> None:
+    def test_color_with_error_bars(self, sample_data: pd.DataFrame, plot_session: Session) -> None:
         plot = DualAxisBarDotPlot(1, "test")
         config = _base_config(color="config", show_error_bars=True)
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         bar_trace = cast(go.Bar, fig.data[0])
         assert bar_trace.error_y is not None
 
-    def test_color_no_lines(self, sample_data: pd.DataFrame) -> None:
+    def test_color_no_lines(self, sample_data: pd.DataFrame, plot_session: Session) -> None:
         plot = DualAxisBarDotPlot(1, "test")
         config = _base_config(color="config", show_lines=False)
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         scatter_traces = [t for t in fig.data if isinstance(t, go.Scatter)]
         for t in scatter_traces:
             assert t.mode == "markers"
 
-    def test_color_with_isolate_last(self, sample_data: pd.DataFrame) -> None:
+    def test_color_with_isolate_last(
+        self, sample_data: pd.DataFrame, plot_session: Session
+    ) -> None:
         plot = DualAxisBarDotPlot(1, "test")
         config = _base_config(
             color="config",
@@ -66,17 +76,23 @@ class TestDualAxisColorGrouping:
             isolate_last_group=True,
             xaxis_order=["A", "B", "Mean"],
         )
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         # 2 groups × (1 bar + 1 main scatter + 1 isolated scatter) = 6 traces
         assert len(list(fig.data)) == 6
 
-    def test_color_with_legend_order(self, sample_data: pd.DataFrame) -> None:
+    def test_color_with_legend_order(
+        self, sample_data: pd.DataFrame, plot_session: Session
+    ) -> None:
         plot = DualAxisBarDotPlot(1, "test")
         config = _base_config(
             color="config",
             legend_order=["eval", "base"],
         )
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         # First bar should be eval
         assert "eval" in str(cast(go.Bar, fig.data[0]).name)
 
@@ -84,47 +100,63 @@ class TestDualAxisColorGrouping:
 class TestDualAxisNoColor:
     """Test without color grouping."""
 
-    def test_basic_no_color(self, sample_data: pd.DataFrame) -> None:
+    def test_basic_no_color(self, sample_data: pd.DataFrame, plot_session: Session) -> None:
         plot = DualAxisBarDotPlot(1, "test")
         config = _base_config()
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         # 1 bar + 1 scatter = 2 traces
         assert len(list(fig.data)) == 2
 
-    def test_no_color_with_dot_color(self, sample_data: pd.DataFrame) -> None:
+    def test_no_color_with_dot_color(
+        self, sample_data: pd.DataFrame, plot_session: Session
+    ) -> None:
         plot = DualAxisBarDotPlot(1, "test")
         config = _base_config(dot_color="#FF0000")
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         scatter = [t for t in fig.data if isinstance(t, go.Scatter)][0]
         marker = cast(go.scatter.Marker, scatter.marker)
         assert marker.color == "#FF0000"
 
-    def test_no_color_no_lines(self, sample_data: pd.DataFrame) -> None:
+    def test_no_color_no_lines(self, sample_data: pd.DataFrame, plot_session: Session) -> None:
         plot = DualAxisBarDotPlot(1, "test")
         config = _base_config(show_lines=False)
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         scatter = [t for t in fig.data if isinstance(t, go.Scatter)][0]
         assert scatter.mode == "markers"
 
-    def test_no_color_with_error_bars(self, sample_data: pd.DataFrame) -> None:
+    def test_no_color_with_error_bars(
+        self, sample_data: pd.DataFrame, plot_session: Session
+    ) -> None:
         plot = DualAxisBarDotPlot(1, "test")
         config = _base_config(show_error_bars=True)
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         bar = cast(go.Bar, fig.data[0])
         assert bar.error_y is not None
 
-    def test_no_color_isolate_last(self, sample_data: pd.DataFrame) -> None:
+    def test_no_color_isolate_last(self, sample_data: pd.DataFrame, plot_session: Session) -> None:
         plot = DualAxisBarDotPlot(1, "test")
         config = _base_config(
             show_lines=True,
             isolate_last_group=True,
             xaxis_order=["A", "B", "Mean"],
         )
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         # 1 bar + 1 main scatter + 1 isolated scatter = 3 traces
         assert len(list(fig.data)) == 3
 
-    def test_no_color_isolate_last_with_error_bars(self, sample_data: pd.DataFrame) -> None:
+    def test_no_color_isolate_last_with_error_bars(
+        self, sample_data: pd.DataFrame, plot_session: Session
+    ) -> None:
         plot = DualAxisBarDotPlot(1, "test")
         config = _base_config(
             show_lines=True,
@@ -132,7 +164,9 @@ class TestDualAxisNoColor:
             show_error_bars=True,
             xaxis_order=["A", "B", "Mean"],
         )
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
         # Check isolated scatter has error_y
         scatter_traces = [t for t in fig.data if isinstance(t, go.Scatter)]
         assert len(scatter_traces) >= 2

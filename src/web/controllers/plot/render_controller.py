@@ -278,7 +278,14 @@ class PlotRenderController:
                 artifact = replace(
                     built,
                     cache_key=self._compute_figure_cache_key(
-                        plot.plot_id, built.config, data_hash, active_engine
+                        plot.plot_id,
+                        built.config,
+                        (
+                            self._compute_data_hash(built.source_data)
+                            if built.source_data is not None
+                            else None
+                        ),
+                        active_engine,
                     ),
                 )
                 plot.publish_render_artifact(artifact)

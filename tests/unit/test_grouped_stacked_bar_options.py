@@ -1,3 +1,4 @@
+from ring5 import Session
 from typing import Any, cast
 
 import pandas as pd
@@ -23,7 +24,7 @@ def sample_data() -> DataFrame:
     )
 
 
-def test_create_figure_renaming(sample_data: Any) -> None:
+def test_create_figure_renaming(sample_data: Any, plot_session: Session) -> None:
 
     plot = GroupedStackedBarPlot(1, "Test Plot")
 
@@ -37,8 +38,9 @@ def test_create_figure_renaming(sample_data: Any) -> None:
         },
     }
 
-    fig = plot.create_figure(sample_data, config)
-    plot._applicator.apply_styles(fig, config)
+    plot.processed_data = sample_data
+    plot.config = config
+    fig = cast(go.Figure, plot_session.render(plot))
 
     traces = cast(list[go.Bar], list(fig.data))
     t1 = next(t for t in traces if t.name == "Total Cycles")
@@ -48,7 +50,7 @@ def test_create_figure_renaming(sample_data: Any) -> None:
     assert cast(go.bar.Marker, t2.marker).color == "#00FF00"
 
 
-def test_create_figure_major_minor_renaming(sample_data: Any) -> None:
+def test_create_figure_major_minor_renaming(sample_data: Any, plot_session: Session) -> None:
 
     plot = GroupedStackedBarPlot(1, "Test Plot")
 
@@ -61,7 +63,9 @@ def test_create_figure_major_minor_renaming(sample_data: Any) -> None:
         "bargroupgap": 0.1,
     }
 
-    fig = plot.create_figure(sample_data, config)
+    plot.processed_data = sample_data
+    plot.config = config
+    fig = cast(go.Figure, plot_session.render(plot))
 
     # The layout annotations are used for X-axis labels in this plot type
     layout = fig.layout

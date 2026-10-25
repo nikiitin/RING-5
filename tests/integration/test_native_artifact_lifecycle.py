@@ -2,6 +2,7 @@
 
 from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
+from dataclasses import replace
 from threading import Event
 from typing import Any, Literal, cast
 
@@ -14,6 +15,7 @@ import pytest
 
 import ring5
 from src.core.common.typed_table_codec import TypedTableCodec
+from src.core.common.plot_render_state import PlotRenderBinding
 from src.core.models.portfolio_models import PortfolioData
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import BarTraceConfig
@@ -23,7 +25,9 @@ from src.web.pages.ui.plotting.base_plot import BasePlot
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 from src.web.pages.ui.plotting.plot_service import PlotService
 from src.web.pages.ui.plotting.types.bar_plot import BarPlot
-from src.web.rendering.figure_preparation import prepare_figure
+from src.web.rendering.figure_preparation import PreparedFigure, prepare_figure
+from src.web.models.plot_protocols import PlotRenderSource
+from src.web.models.render_artifact import RenderArtifact
 from src.web.rendering.small_multiples_builder import _facet_views
 
 matplotlib.use("Agg")
@@ -46,11 +50,11 @@ def _assert_borrowed_content(figure: MplFigure) -> None:
     assert b"<svg" in buffer.getvalue()
 
 
-def _assert_no_artifacts(plot: BasePlot) -> None:
-    assert plot.last_generated_fig is None
-    assert plot.last_traces is None
-    assert plot.last_figure_spec is None
-    assert plot.last_figure_cache_key is None
+def _assert_no_artifacts(plot: PlotRenderSource) -> None:
+    assert plot.render_artifact.figure is None
+    assert plot.render_artifact.trace_result is None
+    assert plot.render_artifact.figure_spec is None
+    assert plot.render_artifact.cache_key is None
 
 
 @pytest.mark.public_api
@@ -66,15 +70,16 @@ def test_public_native_publication_binds_the_exact_preparation_and_replaces_only
         axis.plot([1.0], [9.0])
         try:
             assert unrelated.number == previous.number
-            plot.last_figure_cache_key = "previous"
+            plot.publish_render_artifact(replace(plot.render_artifact, cache_key="previous"))
             figure = session.render(plot, engine=engine)
-            assert plot.last_generated_fig is figure
-            assert plot.last_traces is not None
-            assert plot.last_figure_spec is not None
-            assert plot.last_figure_cache_key is None
-            assert plot.config["title"] == plot.last_figure_spec.title == "Measured"
+            assert plot.render_artifact.figure is figure
+            assert plot.render_artifact.trace_result is not None
+            assert plot.render_artifact.figure_spec is not None
+            assert plot.render_artifact.cache_key is None
+            assert isinstance(plot.render_artifact.preparation, PreparedFigure)
+            assert plot.config["title"] == plot.render_artifact.preparation.spec.title == "Measured"
             if engine == "matplotlib":
-                assert cast(Any, figure)._ring5_spec is plot.last_figure_spec
+                assert cast(Any, figure)._ring5_spec is plot.render_artifact.figure_spec
             assert plt.fignum_exists(unrelated.number)
             assert plt.figure(unrelated.number) is unrelated
             _assert_borrowed_content(previous)
@@ -90,8 +95,12 @@ def test_failed_native_build_retains_every_previously_published_binding(
     with ring5.Session() as session:
         plot = _plot(session)
         previous = cast(MplFigure, session.render(plot, engine="matplotlib"))
-        plot.last_figure_cache_key = "prior"
-        old_config, old_result, old_spec = plot.config, plot.last_traces, plot.last_figure_spec
+        plot.publish_render_artifact(replace(plot.render_artifact, cache_key="prior"))
+        old_config, old_result, old_spec = (
+            plot.config,
+            plot.render_artifact.trace_result,
+            plot.render_artifact.figure_spec,
+        )
         unrelated, _ = plt.subplots()
         managers = set(plt.get_fignums())
 
@@ -108,11 +117,11 @@ def test_failed_native_build_retains_every_previously_published_binding(
         try:
             with pytest.raises(ring5.RenderError):
                 session.render(plot, engine=engine)
-            assert plot.config is old_config and plot.config["title"] == "Measured"
-            assert plot.last_generated_fig is previous
-            assert plot.last_traces is old_result
-            assert plot.last_figure_spec is old_spec
-            assert plot.last_figure_cache_key == "prior"
+            assert plot.config == old_config and plot.config["title"] == "Measured"
+            assert plot.render_artifact.figure is previous
+            assert plot.render_artifact.trace_result is old_result
+            assert plot.render_artifact.figure_spec is old_spec
+            assert plot.render_artifact.cache_key == "prior"
             assert set(plt.get_fignums()) == managers
             _assert_borrowed_content(previous)
         finally:
@@ -145,7 +154,7 @@ def test_plot_retirement_is_identity_scoped_and_borrowed_figures_stay_exportable
         plot, other = _plot(session), _plot(session, "Other")
         figure = cast(MplFigure, session.render(plot, engine="matplotlib"))
         other_figure = cast(MplFigure, session.render(other, engine="matplotlib"))
-        plot.last_figure_cache_key = "retained"
+        plot.publish_render_artifact(replace(plot.render_artifact, cache_key="retained"))
         unrelated, axis = plt.subplots()
         axis.plot([1.0], [9.0])
         manager = session.api.state_manager
@@ -189,14 +198,14 @@ def test_plot_retirement_is_identity_scoped_and_borrowed_figures_stay_exportable
             else:
                 session.close()
             if action in ("reorder", "close"):
-                assert plot.last_generated_fig is figure
-                assert plot.last_figure_cache_key == "retained"
+                assert plot.render_artifact.figure is figure
+                assert plot.render_artifact.cache_key == "retained"
             else:
                 _assert_no_artifacts(plot)
             if action in ("clear", "reset", "restore"):
                 _assert_no_artifacts(other)
             else:
-                assert other.last_generated_fig is other_figure
+                assert other.render_artifact.figure is other_figure
             assert plt.fignum_exists(unrelated.number)
             assert plt.figure(unrelated.number) is unrelated
             assert cast(Any, unrelated.axes[0].lines[0].get_ydata()).tolist() == [9.0]
@@ -229,7 +238,7 @@ def test_duplicate_detaches_native_state_before_copy_and_preserves_private_domai
             "lifecycle_plugin", data=ring5.Table(frame), config={"x": "x", "y": "y"}
         )
         source = cast(MplFigure, session.render(plot, engine="matplotlib"))
-        before = (plot.last_traces, plot.last_figure_spec)
+        before = (plot.render_artifact.trace_result, plot.render_artifact.figure_spec)
 
         def reject_copy(_self: Any, _memo: Any) -> Any:
             raise AssertionError("Native artifacts must not be traversed by duplication")
@@ -240,9 +249,9 @@ def test_duplicate_detaches_native_state_before_copy_and_preserves_private_domai
         assert duplicate.plot_id != plot.plot_id
         assert duplicate.name == f"{plot.name} (copy)"
         _assert_no_artifacts(duplicate)
-        assert plot.last_generated_fig is source
-        assert plot.last_traces is before[0]
-        assert plot.last_figure_spec is before[1]
+        assert plot.render_artifact.figure is source
+        assert plot.render_artifact.trace_result is before[0]
+        assert plot.render_artifact.figure_spec is before[1]
         assert duplicate.processed_data is not None and plot.processed_data is not None
         cast(dict[str, list[int]], duplicate.processed_data.at[0, "payload"])["nested"].append(9)
         duplicate.slot_state["notes"].append(2)
@@ -259,18 +268,21 @@ def test_facet_views_drop_borrowed_artifacts_without_touching_source_or_domain_p
     with ring5.Session() as session:
         plot = session.create_plot("bar", data=ring5.Table(frame), config={"x": "x", "y": "y"})
         source = cast(MplFigure, session.render(plot, engine="matplotlib"))
-        source_result, source_spec = plot.last_traces, plot.last_figure_spec
+        source_result, source_spec = (
+            plot.render_artifact.trace_result,
+            plot.render_artifact.figure_spec,
+        )
         spec = session.create_small_multiples(plot, by="facet")
-        views = _facet_views(plot, spec)
+        views = _facet_views(plot, spec, plot.config)
         assert len(views) == 2
         for view, expected in zip(views, ([3.0], [4.0]), strict=True):
             _assert_no_artifacts(view)
             assert view.processed_data is not None
             assert view.processed_data["y"].tolist() == expected
             view.processed_data.iloc[0]["payload"]["nested"].append(9)
-        assert plot.last_generated_fig is source
-        assert plot.last_traces is source_result
-        assert plot.last_figure_spec is source_spec
+        assert plot.render_artifact.figure is source
+        assert plot.render_artifact.trace_result is source_result
+        assert plot.render_artifact.figure_spec is source_spec
         assert plot.processed_data is not None
         assert plot.processed_data.at[0, "payload"] == {"nested": [1]}
         assert plot.processed_data.at[1, "payload"] == {"nested": [2]}
@@ -322,7 +334,7 @@ def test_rejected_restore_releases_only_new_candidate_artifacts(reuse_live: bool
                 pending.result(timeout=10)
         assert manager.get_plots() == [live]
         assert manager.get_config() == {"newer": True}
-        assert live.last_generated_fig is live_figure
+        assert live.render_artifact.figure is live_figure
         if not reuse_live:
             _assert_no_artifacts(captured[0])
         _assert_borrowed_content(figures[0])
@@ -356,12 +368,14 @@ def test_native_publication_retains_verified_key_and_clears_all_metadata_togethe
         if engine == "plotly"
         else build_matplotlib_figure_from_prepared(prepared)[0]
     )
-    plot.publish_figure(figure, prepared, cache_key="verified-content")
-    assert plot.config is prepared.config
-    assert plot.last_generated_fig is figure
-    assert plot.last_traces is prepared.trace_result
-    assert plot.last_figure_spec is prepared.spec
-    assert plot.last_figure_cache_key == "verified-content"
+    plot.publish_render_artifact(
+        RenderArtifact(None, figure, prepared, cast(Any, engine), "verified-content")
+    )
+    assert plot.config == prepared.config
+    assert plot.render_artifact.figure is figure
+    assert plot.render_artifact.trace_result is prepared.trace_result
+    assert plot.render_artifact.figure_spec is prepared.spec
+    assert plot.render_artifact.cache_key == "verified-content"
     plot.invalidate_figure()
     _assert_no_artifacts(plot)
     if isinstance(figure, MplFigure):
@@ -377,21 +391,20 @@ def test_real_native_retirement_cannot_clear_a_new_publication_or_readmitted_plo
     engine: Literal["plotly", "matplotlib"], phase: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     # [test->req~ring5.plots.delete~1]
-    entered, release, armed = Event(), Event(), Event()
+    entered, release = Event(), Event()
     with ring5.Session() as session:
         plot = _plot(session)
-        original_release = plot._release_figure_manager
-        prior: list[Any] = []
+        prior = [session.render(plot, engine=engine)]
+        token = plot.render_state.snapshot()
+        original_dispose = PlotRenderBinding.dispose
 
-        def retire(figure: Any) -> None:
-            if armed.is_set() and phase == "during_cleanup" and figure is prior[0]:
+        def retire(binding: PlotRenderBinding[Any]) -> None:
+            if phase == "during_cleanup" and binding is token:
                 entered.set()
                 assert release.wait(5)
-            original_release(figure)
+            original_dispose(binding)
 
-        monkeypatch.setattr(plot, "_release_figure_manager", retire)
-        prior.append(session.render(plot, engine=engine))
-        armed.set()
+        monkeypatch.setattr(PlotRenderBinding, "dispose", retire)
         manager = session.api.state_manager
         unrelated, axis = plt.subplots()
         axis.plot([0.0], [9.0])
@@ -405,15 +418,18 @@ def test_real_native_retirement_cannot_clear_a_new_publication_or_readmitted_plo
                     pending = pool.submit(manager.set_plots, [])
                     try:
                         assert entered.wait(5)
-                        assert plot.last_generated_fig is None
+                        assert plot.render_artifact.figure is None
                         manager.add_plot(plot)
                         fresh = session.render(plot, engine=engine)
                     finally:
                         release.set()
                     pending.result(timeout=5)
-            assert plot.last_generated_fig is fresh
-            assert plot.last_traces is not None and plot.last_figure_spec is not None
-            assert plot.last_figure_cache_key is None
+            assert plot.render_artifact.figure is fresh
+            assert (
+                plot.render_artifact.trace_result is not None
+                and plot.render_artifact.figure_spec is not None
+            )
+            assert plot.render_artifact.cache_key is None
             assert manager.get_plots() == ([plot] if phase == "during_cleanup" else [])
             assert plt.figure(unrelated.number) is unrelated
             if engine == "matplotlib":

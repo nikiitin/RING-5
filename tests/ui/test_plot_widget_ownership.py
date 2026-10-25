@@ -209,7 +209,11 @@ def test_shape_draft_survives_manual_refresh_and_settings_navigation(action: str
     assert not app.exception
     assert len(plot.config["shapes"]) == expected_count
     assert plot.config["shapes"][0]["x0"] == expected_x0
-    native = plot.last_generated_fig
+    native = plot.render_artifact.figure
+    import plotly.graph_objects as go
+
+    assert isinstance(native, go.Figure)
+    assert isinstance(native.data[0], go.Bar)
     assert list(native.data[0].y) == [3.0]
     assert len(native.layout.shapes) == expected_count
     assert native.layout.shapes[0].x0 == expected_x0

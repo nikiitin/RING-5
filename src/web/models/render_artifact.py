@@ -28,6 +28,21 @@ class RenderArtifact:
     generation: str = field(default_factory=lambda: uuid4().hex)
 
     def __post_init__(self) -> None:
+        if self.figure is None:
+            if any(
+                value is not None
+                for value in (self.preparation, self.engine, self.cache_key, self.source_data)
+            ):
+                raise ValueError("Detached artifacts retain configuration only.")
+        else:
+            expected_engine = "plotly" if isinstance(self.figure, go.Figure) else "matplotlib"
+            if (
+                not isinstance(self.figure, (go.Figure, MplFigure))
+                or self.engine != expected_engine
+            ):
+                raise ValueError("A render artifact's engine must match its native figure.")
+            if not isinstance(self.preparation, (PreparedFigure, PreparedDashboard)):
+                raise ValueError("A native artifact requires its actual neutral preparation.")
         if isinstance(self.preparation, PreparedFigure):
             if self._config is not None:
                 raise ValueError("Single-figure configuration belongs to its preparation.")

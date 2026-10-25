@@ -8,12 +8,13 @@ import pandas as pd
 import pytest
 
 import ring5
+from src.web.pages.ui.plotting.base_plot import BasePlot
 from tests.helpers.html_assertions import assert_plotly_document
 
 pytestmark = pytest.mark.public_api
 
 
-def _plot(session: ring5.Session) -> object:
+def _plot(session: ring5.Session) -> BasePlot:
     data = pd.DataFrame(
         {
             "benchmark": ["A", "B", "A", "B", "A", "B"],
@@ -41,6 +42,7 @@ def test_small_multiples_render_both_engines_in_order_without_mutation() -> None
     # [test->req~ring5.plots.small-multiples~1]
     with ring5.Session() as session:
         plot = _plot(session)
+        assert plot.processed_data is not None
         original_data = plot.processed_data.copy(deep=True)
         original_config = copy.deepcopy(plot.config)
         spec = session.create_small_multiples(
@@ -95,7 +97,7 @@ def test_small_multiples_render_both_engines_in_order_without_mutation() -> None
 
         pd.testing.assert_frame_equal(plot.processed_data, original_data)
         assert plot.config == original_config
-        assert plot.last_traces is None
+        assert plot.render_artifact.trace_result is None
 
 
 def test_small_multiples_convenience_and_typed_errors() -> None:

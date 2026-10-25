@@ -7,6 +7,7 @@ from typing import Any, Literal, cast
 
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure as MplFigure
+from matplotlib.patches import Rectangle
 import pandas as pd
 import plotly.graph_objects as go
 import pytest
@@ -58,7 +59,7 @@ def test_concurrent_public_rendering_never_pairs_one_generation_config_with_anot
                 release.set()
             figure = pending.result(timeout=5)
         assert plot.config["title"] == "A"
-        assert plot.last_generated_fig is figure
+        assert plot.render_artifact.figure is figure
         artifact = plot.render_artifact
         assert artifact.config["title"] == "A"
         assert artifact.figure is figure
@@ -103,9 +104,11 @@ def test_configuration_reads_are_private_snapshots_and_assignment_invalidates_on
         assert plot.config["title"] == "Original"
         assert plot.config["custom"] == {"values": [1]}
         plot.config = snapshot
-        assert plot.last_generated_fig is None
-        assert plot.last_traces is None and plot.last_figure_spec is None
-        assert plot.last_figure_cache_key is None
+        assert plot.render_artifact.figure is None
+        assert (
+            plot.render_artifact.trace_result is None and plot.render_artifact.figure_spec is None
+        )
+        assert plot.render_artifact.cache_key is None
         assert plot.config == snapshot
         snapshot["custom"]["values"].append(9)
         assert plot.config["custom"] == {"values": [1, 2]}
@@ -119,3 +122,121 @@ def test_configuration_reads_are_private_snapshots_and_assignment_invalidates_on
             assert cast(MplFigure, rendered).axes[0].get_title() == "Changed"
             plt.close(cast(MplFigure, native))
             plt.close(cast(MplFigure, rendered))
+
+
+@pytest.mark.public_api
+@pytest.mark.parametrize("engine", ["plotly", "matplotlib"])
+def test_artifact_admission_rejects_native_engine_and_partial_state_mismatches(
+    engine: Literal["plotly", "matplotlib"],
+) -> None:
+    from dataclasses import replace
+
+    with ring5.Session() as session:
+        plot = session.create_plot(
+            "bar",
+            data=ring5.Table(pd.DataFrame({"x": ["a"], "y": [3.0]})),
+            config={"x": "x", "y": "y"},
+        )
+        figure = session.render(plot, engine=engine)
+        original = plot.render_artifact
+        for changes in (
+            {"engine": "matplotlib" if engine == "plotly" else "plotly"},
+            {"engine": None},
+            {"preparation": None},
+            {"figure": None},
+        ):
+            with pytest.raises(ValueError):
+                replace(original, **changes)
+            assert plot.render_artifact is original
+            assert original.figure is figure
+        with pytest.raises(ValueError, match="complete native"):
+            plot.publish_render_artifact(RenderArtifact({"title": "Detached"}))
+        assert plot.render_artifact is original
+        for detached_changes in (
+            {"cache_key": "fake"},
+            {"engine": engine},
+            {"source_data": pd.DataFrame()},
+        ):
+            with pytest.raises(ValueError, match="configuration only"):
+                RenderArtifact({}, **detached_changes)
+
+
+@pytest.mark.public_api
+@pytest.mark.parametrize("action", ["invalidate", "replace", "delete", "reset"])
+def test_retirement_does_not_claim_a_manager_borrowers_register_after_publication(
+    action: str,
+) -> None:
+    from io import BytesIO
+    from matplotlib import _pylab_helpers
+    from matplotlib.backend_bases import FigureManagerBase
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+
+    with ring5.Session() as session:
+        plot = session.create_plot(
+            "bar",
+            data=ring5.Table(pd.DataFrame({"x": ["a", "b"], "y": [3.0, 4.0]})),
+            config={"x": "x", "y": "y"},
+        )
+        figure = session.render(plot, engine="matplotlib")
+        assert isinstance(figure, MplFigure)
+        assert not any(
+            manager.canvas.figure is figure for manager in _pylab_helpers.Gcf.get_all_fig_managers()
+        )
+        canvas = FigureCanvasAgg(figure)
+        number = max(plt.get_fignums(), default=0) + 1000
+        borrowed_manager = FigureManagerBase(canvas, number)
+        _pylab_helpers.Gcf._set_new_active_manager(borrowed_manager)
+        try:
+            if action == "invalidate":
+                plot.invalidate_figure()
+            elif action == "replace":
+                session.render(plot, engine="plotly")
+            elif action == "delete":
+                session.api.state_manager.set_plots([])
+            else:
+                session.api.reset_session()
+            assert _pylab_helpers.Gcf.get_fig_manager(number) is borrowed_manager
+            assert [cast(Rectangle, patch).get_height() for patch in figure.axes[0].patches] == [
+                3.0,
+                4.0,
+            ]
+            buffer = BytesIO()
+            figure.savefig(buffer, format="svg")
+            assert b"<svg" in buffer.getvalue()
+        finally:
+            _pylab_helpers.Gcf.destroy(number)
+
+
+@pytest.mark.public_api
+@pytest.mark.parametrize("engine", ["plotly", "matplotlib"])
+def test_relayout_config_assignment_cannot_clear_a_fresh_concurrent_publication(
+    engine: Literal["plotly", "matplotlib"],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    entered, release = Event(), Event()
+    with ring5.Session() as session:
+        plot = session.create_plot(
+            "bar",
+            data=ring5.Table(pd.DataFrame({"x": ["a"], "y": [3.0]})),
+            config={"x": "x", "y": "y"},
+        )
+        session.render(plot, engine=engine)
+        set_config = plot.render_state.set_detached_payload
+
+        def gated_config(payload: RenderArtifact) -> PlotRenderBinding[RenderArtifact] | None:
+            previous = set_config(payload)
+            entered.set()
+            assert release.wait(5)
+            return previous
+
+        monkeypatch.setattr(plot.render_state, "set_detached_payload", gated_config)
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            pending = executor.submit(plot.update_from_relayout, {"legend.x": 0.25})
+            try:
+                assert entered.wait(5)
+                fresh = session.render(plot, engine=engine)
+            finally:
+                release.set()
+            assert pending.result(timeout=5)
+        assert plot.render_artifact.figure is fresh
+        assert plot.config["legend_x"] == 0.25

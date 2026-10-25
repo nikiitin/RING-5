@@ -34,9 +34,10 @@ directly when adding a plot type.
    ```
    Import `render_common_with_color` from
    `src/web/components/plotting/config/base_plot_config.py` for shared X/Y/color controls.
-   `create_figure()` is provided by `BasePlot` (delegates to `create_traces` + `trace_to_plotly`);
-   `apply_common_layout()` applies shared Plotly styling. Headless callers use public
-   `Session.render(plot, engine=...)` for the complete sequence.
+   The canonical preparer owns effective configuration, one callback, neutral metadata and
+   resolved styling. Native builders consume that preparation. Headless callers render a configured
+   plot with public `Session.render(plot, engine=...)`; no native figure or layout hooks belong
+   on the strategy. `plot.render_artifact` exposes the exact published generation.
 
 2. **Export** the class from `src/web/pages/ui/plotting/types/__init__.py`.
 

@@ -1,5 +1,8 @@
 """Tests for GroupedStackedBarPlot numbered X-axis labels feature."""
 
+from ring5 import Session
+import plotly.graph_objects as go
+
 from typing import Any, cast
 
 import pandas as pd
@@ -270,11 +273,13 @@ class TestCreateFigureNumberedXaxis:
     # [test->req~ring5.figure.numbered-xaxis~1]
 
     def test_figure_ticks_are_hidden(
-        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
+        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame, plot_session: Session
     ) -> None:
         """X-axis ticks should be completely hidden when feature is enabled."""
         config = _base_config(numbered_xaxis_modes=["Number legend"])
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         layout = cast(Any, fig.layout)
         # Tick labels should be hidden
@@ -283,11 +288,13 @@ class TestCreateFigureNumberedXaxis:
         assert layout.xaxis.ticks == ""
 
     def test_figure_has_legend_annotation(
-        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
+        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame, plot_session: Session
     ) -> None:
         """Figure should contain the numbered legend annotation."""
         config = _base_config(numbered_xaxis_modes=["Number legend"])
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         layout = cast(Any, fig.layout)
         # Find the legend annotation (xref=paper, yref=paper)
@@ -302,11 +309,13 @@ class TestCreateFigureNumberedXaxis:
         assert "4. c4" in ann.text
 
     def test_figure_without_numbered_has_original_ticks(
-        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
+        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame, plot_session: Session
     ) -> None:
         """Without the feature, ticks are original group names."""
         config = _base_config(numbered_xaxis_modes=[])
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         layout = cast(Any, fig.layout)
         x_ticktext = list(layout.xaxis.ticktext)
@@ -318,14 +327,16 @@ class TestCreateFigureNumberedXaxis:
         assert len(legend_anns) == 0
 
     def test_numbered_with_renames(
-        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
+        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame, plot_session: Session
     ) -> None:
         """Numbered legends show renamed labels, not originals."""
         config = _base_config(
             group_renames={"c1": "ConfigAlpha", "c2": "ConfigBeta"},
             numbered_xaxis_modes=["Number legend"],
         )
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         layout = cast(Any, fig.layout)
         legend_anns = [a for a in layout.annotations if a.xref == "paper" and a.yref == "paper"]
@@ -334,7 +345,7 @@ class TestCreateFigureNumberedXaxis:
         assert "ConfigBeta" in legend_anns[0].text
 
     def test_numbered_with_custom_position(
-        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
+        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame, plot_session: Session
     ) -> None:
         """Custom legend_x, legend_y and legend_size are applied."""
         config = _base_config(
@@ -343,7 +354,9 @@ class TestCreateFigureNumberedXaxis:
             legend2_font_size=14,
             numbered_xaxis_modes=["Number legend"],
         )
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         layout = cast(Any, fig.layout)
         legend_anns = [a for a in layout.annotations if a.xref == "paper" and a.yref == "paper"]
@@ -353,11 +366,13 @@ class TestCreateFigureNumberedXaxis:
         assert legend_anns[0].font.size == 14
 
     def test_category_annotations_still_present(
-        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame
+        self, plot: GroupedStackedBarPlot, sample_data: pd.DataFrame, plot_session: Session
     ) -> None:
         """Major group annotations (benchmarks) are preserved alongside numbered legend."""
         config = _base_config(numbered_xaxis_modes=["Number legend"])
-        fig = plot.create_figure(sample_data, config)
+        plot.processed_data = sample_data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         layout = cast(Any, fig.layout)
         # Grouping labels have xref="x" and yref="paper"

@@ -2,7 +2,6 @@
 
 from abc import ABC, abstractmethod
 import copy
-from functools import partial
 from typing import Any, Self
 
 import pandas as pd
@@ -17,10 +16,8 @@ from src.core.models.data_models import PipelineStep
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.common.typed_table_codec import TypedTableCodec
 from src.core.models.plot_config import PlotConfig
-from src.core.models.visualization.figure_config import FigureConfig
 from src.web.rendering.relayout import update_config_from_relayout
 from src.web.models.render_artifact import RenderArtifact
-from src.web.rendering.figure_preparation import PreparedDashboard
 from src.web.pages.ui.plotting.plot_config_ui import PlotConfigUIMixin
 from src.web.pages.ui.plotting.styles import StyleUIFactory
 
@@ -75,26 +72,6 @@ class BasePlot(PlotConfigUIMixin, ABC):
             raise RuntimeError("A plot must retain its current configuration state.")
         return artifact
 
-    @property
-    def last_generated_fig(self) -> go.Figure | MplFigure | None:
-        """Return the native artifact from the current owned generation."""
-        return self.render_artifact.figure
-
-    @property
-    def last_traces(self) -> TraceBuildResult | None:
-        """Return actual single-figure traces; composite panels retain separate results."""
-        return self.render_artifact.trace_result
-
-    @property
-    def last_figure_spec(self) -> FigureConfig | PreparedDashboard | None:
-        """Return the exact resolved style or complete composite panel preparation."""
-        return self.render_artifact.figure_spec
-
-    @property
-    def last_figure_cache_key(self) -> str | None:
-        """Return the reuse identity bound to the current artifact."""
-        return self.render_artifact.cache_key
-
     @abstractmethod
     def create_traces(self, data: pd.DataFrame, config: PlotConfig) -> TraceBuildResult:
         """
@@ -130,12 +107,11 @@ class BasePlot(PlotConfigUIMixin, ABC):
 
         if changed:
             self.config = updated_config
-            self.invalidate_figure()
 
         return changed
 
     def invalidate_figure(self) -> None:
-        """Release the owned manager and discard derived render references."""
+        """Detach the captured generation while preserving borrowed figure content."""
         # [impl->req~ring5.plots.delete~1]
         retired = self.render_state.detach(self.render_state.snapshot())
         if retired is not None:
@@ -173,10 +149,12 @@ class BasePlot(PlotConfigUIMixin, ABC):
             raise ValueError("Only a complete native render artifact can be published.")
         if isinstance(artifact.figure, MplFigure):
             artifact.figure._ring5_spec = artifact.figure_spec  # type: ignore[attr-defined]
+        # Relinquish this generation's manager now. Later borrowers may register
+        # their own manager on the same figure; retirement must never claim it.
         self._release_figure_manager(artifact.figure)
         previous = self.render_state.publish(
             artifact,
-            partial(self._release_figure_manager, artifact.figure),
+            lambda: None,
             detached_payload=artifact.detached(),
         )
         if previous is not None:

@@ -87,12 +87,14 @@ def test_profile_and_unresolved_colors_remain_admitted_without_unsupported_opaci
         )
         previous = session.render(plot, engine="plotly")
         assert cast(Any, previous).layout.legend.bgcolor == color
-        plot.config["legend_bgalpha"] = 0.4
+        plot.config = {**plot.config, "legend_bgalpha": 0.4}
         with pytest.raises(
             ring5.RenderError, match="concrete RGB, HSL or hexadecimal color, or omit bgalpha"
         ):
             session.render(plot, engine="plotly")
-        assert plot.last_generated_fig is previous
+        # Explicit configuration assignment detaches its previous native generation.
+        assert plot.render_artifact.figure is None
+        assert cast(Any, previous).layout.legend.bgcolor == color
 
 
 @pytest.mark.public_api

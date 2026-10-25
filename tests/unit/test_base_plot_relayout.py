@@ -78,7 +78,7 @@ class TestUpdateFromRelayoutRanges:
 
     def test_close_float_equality(self, plot: ConcretePlot) -> None:
         """Values that are very close (within rel_tol) should not trigger change."""
-        plot.config["range_x"] = [1.0, 5.0]
+        plot.config = {**plot.config, "range_x": [1.0, 5.0]}
         # Values that differ by less than rel_tol=1e-9
         result = plot.update_from_relayout(
             {
@@ -90,7 +90,7 @@ class TestUpdateFromRelayoutRanges:
 
     def test_single_value_close_float_equality(self, plot: ConcretePlot) -> None:
         """A single config value that's close should not trigger change."""
-        plot.config["legend_x"] = 0.5
+        plot.config = {**plot.config, "legend_x": 0.5}
         result = plot.update_from_relayout({"legend.x": 0.5 + 1e-12})
         assert result is False
 
@@ -99,13 +99,13 @@ class TestUpdateFromRelayoutAutorange:
     """Tests for autorange handling."""
 
     def test_xaxis_autorange_clears_range(self, plot: ConcretePlot) -> None:
-        plot.config["range_x"] = [1.0, 5.0]
+        plot.config = {**plot.config, "range_x": [1.0, 5.0]}
         result = plot.update_from_relayout({"xaxis.autorange": True})
         assert result is True
         assert plot.config["range_x"] is None
 
     def test_yaxis_autorange_clears_range(self, plot: ConcretePlot) -> None:
-        plot.config["range_y"] = [0, 100]
+        plot.config = {**plot.config, "range_y": [0, 100]}
         result = plot.update_from_relayout({"yaxis.autorange": True})
         assert result is True
         assert plot.config["range_y"] is None
@@ -117,7 +117,7 @@ class TestUpdateFromRelayoutAutorange:
 
     def test_autorange_false_no_change(self, plot: ConcretePlot) -> None:
         """Autorange=False should not clear range."""
-        plot.config["range_x"] = [1.0, 5.0]
+        plot.config = {**plot.config, "range_x": [1.0, 5.0]}
         result = plot.update_from_relayout({"xaxis.autorange": False})
         assert result is False
         assert plot.config["range_x"] == [1.0, 5.0]
@@ -158,29 +158,29 @@ class TestUpdateFromRelayoutLegend:
         # May or may not change based on the handler for "legend.title.text"
         assert isinstance(result, bool)
 
-    def test_change_invalidates_cache(self, plot: ConcretePlot) -> None:
+    def test_change_invalidates_cache(self, plot: ConcretePlot, plot_session: Session) -> None:
         """Config changes discard every derived render artifact."""
-        plot.last_generated_fig = go.Figure()
-        plot.last_traces = TraceBuildResult()
-        plot.last_figure_cache_key = "old"
+        plot.processed_data = pd.DataFrame({"x": [1, 2], "y": [3, 4]})
+        plot_session.render(plot)
         plot.update_from_relayout({"legend.x": 0.5})
-        assert plot.last_generated_fig is None
-        assert plot.last_traces is None
-        assert plot.last_figure_cache_key is None
+        assert plot.render_artifact.figure is None
+        assert plot.render_artifact.trace_result is None
+        assert plot.render_artifact.cache_key is None
 
-    def test_replacing_processed_data_invalidates_render_state(self, plot: ConcretePlot) -> None:
+    def test_replacing_processed_data_invalidates_render_state(
+        self, plot: ConcretePlot, plot_session: Session
+    ) -> None:
         """New pipeline output cannot retain a figure built from old data."""
         replacement = pd.DataFrame({"x": [7], "y": [8]})
-        plot.last_generated_fig = go.Figure()
-        plot.last_traces = TraceBuildResult()
-        plot.last_figure_cache_key = "old"
+        plot.processed_data = pd.DataFrame({"x": [1, 2], "y": [3, 4]})
+        plot_session.render(plot)
 
         plot.replace_processed_data(replacement)
 
         assert plot.processed_data is replacement
-        assert plot.last_generated_fig is None
-        assert plot.last_traces is None
-        assert plot.last_figure_cache_key is None
+        assert plot.render_artifact.figure is None
+        assert plot.render_artifact.trace_result is None
+        assert plot.render_artifact.cache_key is None
 
 
 class TestSessionRender:
@@ -188,17 +188,16 @@ class TestSessionRender:
 
     def test_render_caches_plotly_figure(self, plot: ConcretePlot) -> None:
         plot.processed_data = pd.DataFrame({"x": [1, 2], "y": [3, 4]})
-        plot.last_figure_cache_key = "old"
         with Session() as session:
             fig = session.render(plot)
         assert isinstance(fig, go.Figure)
-        assert plot.last_generated_fig is fig
-        assert plot.last_figure_cache_key is None
+        assert plot.render_artifact.figure is fig
+        assert plot.render_artifact.cache_key is None
 
     def test_render_with_legend_labels(self, plot: ConcretePlot) -> None:
         """When legend_labels in config, the trace legend names are relabeled."""
         plot.processed_data = pd.DataFrame({"x": [1], "y": [2]})
-        plot.config["legend_labels"] = {"trace1": "Renamed"}
+        plot.config = {**plot.config, "legend_labels": {"trace1": "Renamed"}}
         with Session() as session:
             fig = session.render(plot)
         assert isinstance(fig, go.Figure)
@@ -219,7 +218,9 @@ class TestToDictFromDict:
         assert data["processed_data"] is not None
         from src.core.common.typed_table_codec import TypedTableCodec
 
-        assert TypedTableCodec.decode(data["processed_data"])["a"].tolist() == [1, 2]
+        decoded = TypedTableCodec.decode(data["processed_data"])
+        assert decoded is not None
+        assert decoded["a"].tolist() == [1, 2]
 
     def test_from_dict_without_processed_data(self, plot: ConcretePlot) -> None:
         data = {

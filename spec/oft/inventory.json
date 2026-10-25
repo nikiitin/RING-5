@@ -1660,7 +1660,6 @@
         "implementation": [
           "src/web/rendering/plotly_figure_builder.py::build_plotly_figure",
           "src/web/components/plotting/settings/shapes_settings.py::ShapesSettingsComponent.render",
-          "src/web/rendering/plotly_figure_builder.py::build_plotly_figure",
           "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_annotations"
         ],
         "tests": [
@@ -1708,6 +1707,7 @@
           "src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot._order_unified_legend_traces"
         ],
         "tests": [
+          "tests/unit/test_rendering_correctness_regressions.py::test_computed_group_ticks_keep_minor_renames_when_major_aliases_are_configured",
           "tests/integration/test_canonical_legend_state.py::test_legend_labels_survive_configuration_copy_and_portfolio_replay",
           "tests/ui_logic/test_settings_pills_e2e.py::TestLegendItemOrderRename",
           "tests/unit/test_grouped_stacked_bar_create_figure.py::TestCreateFigure.test_with_xaxis_order",
@@ -1952,7 +1952,6 @@
       "evidence": {
         "implementation": [
           "src/core/models/visualization/trace_build_result.py::TraceBuildResult",
-          "src/web/rendering/figure_preparation.py::prepare_figure",
           "src/web/rendering/figure_preparation.py::prepare_figure",
           "src/web/rendering/_connector_protocol.py::validate_trace_types",
           "src/web/rendering/_connector_protocol.py::validate_annotation_types"
@@ -3182,7 +3181,7 @@
           "tests/unit/core/visualization/test_connectors.py::TestPlotlyConnectorSeriesStyling",
           "tests/unit/core/visualization/test_matplotlib_connector_styling.py::TestTraceOverrides",
           "tests/unit/core/visualization/test_matplotlib_connector_styling.py::TestSeriesStyling",
-          "tests/unit/test_style_applicator.py::TestApplyStyles.test_full_pipeline",
+          "tests/unit/test_prepared_figure_styling.py::TestPreparedFigureStyling.test_full_pipeline",
           "tests/ui/test_plot_settings_contracts.py::test_live_colors_preserve_type_specific_patterns_and_markers"
         ],
         "documentation": [
@@ -3211,6 +3210,8 @@
           "src/web/components/common/chart_display.py::ChartDisplayComponent.render_plotly_chart"
         ],
         "tests": [
+          "tests/unit/test_plot_presenters.py::test_modebar_uses_actual_multi_panel_native_dimensions_with_the_published_export_scale",
+          "tests/unit/test_download_section_ui.py::test_deferred_download_uses_the_same_published_figure_source_rows_and_scale",
           "tests/ui_unit/test_advanced_settings.py::TestAdvancedSettingsComponent.test_export_scale_caption",
           "tests/unit/test_plot_presenters.py::TestChartDisplayComponent.test_plotly_modebar_uses_configured_export_scale"
         ],
@@ -3668,8 +3669,7 @@
           "src/web/components/data_managers/schema_contract.py::SchemaContractManager._render_conversion",
           "src/web/rendering/figure_preparation.py::prepare_figure",
           "src/web/pages/ui/plotting/base_plot.py::BasePlot.to_dict",
-          "src/web/pages/ui/plotting/plot_factory.py::PlotFactory.from_dict",
-          "src/web/rendering/figure_preparation.py::prepare_figure"
+          "src/web/pages/ui/plotting/plot_factory.py::PlotFactory.from_dict"
         ],
         "tests": [
           "tests/e2e/test_data_managers.py::TestDatasetSchemaContract.test_apply_semantic_metadata_from_human_first_editor",
@@ -3846,7 +3846,7 @@
           "tests/unit/test_small_multiples_service.py::test_discovers_multicolumn_panels_in_stable_order_with_labels",
           "tests/integration/test_small_multiples_public_api.py::test_small_multiples_render_both_engines_in_order_without_mutation",
           "tests/ui_logic/test_small_multiples_settings.py::test_enabled_controls_report_panel_count_and_shared_scales",
-          "tests/ui_logic/test_render_controller.py::TestSmallMultiplesRendering.test_matplotlib_facets_build_plotly_preview_and_native_grid",
+          "tests/ui_logic/test_render_controller.py::TestSmallMultiplesRendering.test_matplotlib_facets_build_only_native_grid",
           "tests/e2e/test_plot_small_multiples.py::test_small_multiples_keep_configuration_across_both_engines"
         ],
         "documentation": [
@@ -4154,8 +4154,7 @@
           "src/web/rendering/figure_preparation.py::prepare_figure",
           "src/web/rendering/dashboard_builder.py::_render_matplotlib_dashboard",
           "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_hatching",
-          "src/web/rendering/matplotlib_trace_renderer.py::MatplotlibTraceRenderer._draw_bar",
-          "src/web/rendering/figure_preparation.py::prepare_figure"
+          "src/web/rendering/matplotlib_trace_renderer.py::MatplotlibTraceRenderer._draw_bar"
         ],
         "tests": [
           "tests/e2e/test_settings.py::TestAccessibleTheme.test_enable_theme_selects_safe_palette_and_passes_visible_audit",
@@ -4628,7 +4627,6 @@
           "src/core/services/data_services/portfolio_service.py::PortfolioService.verify_portfolio",
           "src/core/services/data_services/portfolio_service.py::PortfolioService.load_portfolio",
           "src/core/services/browser_upload_service.py::BrowserUploadService.load_portfolio",
-          "src/core/services/portfolio_integrity_service.py::PortfolioIntegrityService.verify",
           "ring5/_session.py::Session.verify_portfolio",
           "ring5/_session.py::Session.load_portfolio",
           "src/web/pages/portfolio.py::_render_integrity_review"

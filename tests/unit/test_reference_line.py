@@ -2,11 +2,15 @@
 Unit tests for the horizontal reference line (normalizer baseline) feature.
 
 Tests cover:
-- Plotly hline rendering via the StyleApplicator
+- Plotly hline rendering through public rendering
 - Config propagation (enabled/disabled states)
 """
 
 from typing import Any, cast
+
+import pandas as pd
+from ring5 import Session
+from src.web.pages.ui.plotting.types.bar_plot import BarPlot
 
 import plotly.graph_objects as go
 import pytest
@@ -27,13 +31,14 @@ def base_config() -> dict[str, Any]:
 
 
 @pytest.fixture
-def simple_figure() -> go.Figure:
-    """Simple bar figure for testing."""
-    fig = go.Figure(data=[go.Bar(x=["a", "b", "c"], y=[1, 2, 3])])
-    return fig
+def simple_plot() -> BarPlot:
+    """Provide measured bars for reference-line rendering."""
+    plot = BarPlot(1, "Reference")
+    plot.processed_data = pd.DataFrame({"category": ["a", "b", "c"], "value": [1, 2, 3]})
+    return plot
 
 
-# Plotly Reference Line Tests (via StyleApplicator)
+# Plotly Reference Line Tests (public render)
 
 
 class TestPlotlyReferenceLine:
@@ -42,13 +47,12 @@ class TestPlotlyReferenceLine:
     # [test->req~ring5.figure.reference-lines~1]
 
     def test_hline_added_when_enabled(
-        self, simple_figure: go.Figure, base_config: dict[str, Any]
+        self, simple_plot: BarPlot, plot_session: Session, base_config: dict[str, Any]
     ) -> None:
         """Reference line shape should be added to figure when enabled."""
-        from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
 
-        applicator = StyleApplicator("grouped_bar")
-        result = applicator.apply_styles(simple_figure, base_config)
+        simple_plot.config = {"x": "category", "y": "value", **base_config}
+        result = cast(go.Figure, plot_session.render(simple_plot))
 
         # add_hline creates a shape with type="line",
         # xref="paper" (Plotly <6) or "x domain" (Plotly >=6)
@@ -65,13 +69,13 @@ class TestPlotlyReferenceLine:
         assert hlines[0].line.color == "#FF0000"
         assert hlines[0].line.dash == "dash"
 
-    def test_no_hline_when_disabled(self, simple_figure: go.Figure) -> None:
+    def test_no_hline_when_disabled(self, simple_plot: BarPlot, plot_session: Session) -> None:
         """No reference line should be added when feature is disabled."""
-        from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
 
         config: dict[str, Any] = {"reference_line_enabled": False}
-        applicator = StyleApplicator("grouped_bar")
-        result = applicator.apply_styles(simple_figure, config)
+
+        simple_plot.config = {"x": "category", "y": "value", **config}
+        result = cast(go.Figure, plot_session.render(simple_plot))
 
         layout = cast("go.Layout", result.layout)
         shapes = layout.shapes or ()
@@ -84,13 +88,13 @@ class TestPlotlyReferenceLine:
         ]
         assert len(hlines) == 0
 
-    def test_no_hline_when_key_missing(self, simple_figure: go.Figure) -> None:
+    def test_no_hline_when_key_missing(self, simple_plot: BarPlot, plot_session: Session) -> None:
         """No reference line when config key is absent."""
-        from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
 
         config: dict[str, Any] = {}
-        applicator = StyleApplicator("grouped_bar")
-        result = applicator.apply_styles(simple_figure, config)
+
+        simple_plot.config = {"x": "category", "y": "value", **config}
+        result = cast(go.Figure, plot_session.render(simple_plot))
 
         layout = cast("go.Layout", result.layout)
         shapes = layout.shapes or ()
@@ -101,9 +105,8 @@ class TestPlotlyReferenceLine:
         ]
         assert len(hlines) == 0
 
-    def test_custom_y_position(self, simple_figure: go.Figure) -> None:
+    def test_custom_y_position(self, simple_plot: BarPlot, plot_session: Session) -> None:
         """Reference line at custom Y position."""
-        from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
 
         config: dict[str, Any] = {
             "reference_line_enabled": True,
@@ -112,8 +115,9 @@ class TestPlotlyReferenceLine:
             "reference_line_width": 2.0,
             "reference_line_style": "dot",
         }
-        applicator = StyleApplicator("grouped_bar")
-        result = applicator.apply_styles(simple_figure, config)
+
+        simple_plot.config = {"x": "category", "y": "value", **config}
+        result = cast(go.Figure, plot_session.render(simple_plot))
 
         layout = cast("go.Layout", result.layout)
         shapes = layout.shapes
@@ -128,9 +132,8 @@ class TestPlotlyReferenceLine:
         assert hlines[0].line.color == "#00FF00"
         assert hlines[0].line.dash == "dot"
 
-    def test_all_line_styles(self, simple_figure: go.Figure) -> None:
+    def test_all_line_styles(self, simple_plot: BarPlot, plot_session: Session) -> None:
         """All Plotly dash styles should be accepted."""
-        from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
 
         for style in ["dash", "dot", "dashdot", "solid"]:
             config: dict[str, Any] = {
@@ -138,9 +141,9 @@ class TestPlotlyReferenceLine:
                 "reference_line_y": 1.0,
                 "reference_line_style": style,
             }
-            applicator = StyleApplicator("grouped_bar")
-            fig = go.Figure(data=[go.Bar(x=["a"], y=[1])])
-            result = applicator.apply_styles(fig, config)
+
+            simple_plot.config = {"x": "category", "y": "value", **config}
+            result = cast(go.Figure, plot_session.render(simple_plot))
 
             layout = cast("go.Layout", result.layout)
             shapes = layout.shapes

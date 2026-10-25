@@ -930,6 +930,14 @@ class FigureSpecToPlotly:
 
         mapping: dict[str, str] = axis.label_aliases
 
+        # Grouped geometry already owns numeric positions and their display labels.
+        # Apply aliases to those labels without replacing positions with trace X values.
+        if axis.tick_values is not None and axis.tick_text is not None:
+            update["tickmode"] = "array"
+            update["tickvals"] = list(axis.tick_values)
+            update["ticktext"] = [mapping.get(text, text) for text in axis.tick_text]
+            return
+
         unique_vals: list[str] = []
         seen: set[str] = set()
         for trace in _fig_traces(fig):
