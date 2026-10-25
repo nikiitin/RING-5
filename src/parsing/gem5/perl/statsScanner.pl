@@ -83,11 +83,19 @@ sub addEntry {
     }
 }
 
-sub processPendingEntries {
-    my ($entries) = @_;
-    foreach my $item (@$entries) {
-        manageType($item->{name}, 'vector', \%discovered_vars);
-        addEntry($item->{name}, $item->{entry}, \%discovered_vars);
+sub processRecords {
+    my ($records) = @_;
+    foreach my $record (@$records) {
+        my $type = $record->{type};
+        next if $type eq 'dump';
+        my $name = $record->{name};
+        my $entry = $record->{scan_entry};
+        if ($type eq 'summary') {
+            processSummary($name, $entry, \%discovered_vars);
+        } else {
+            manageType($name, $type, \%discovered_vars);
+            addEntry($name, $entry, \%discovered_vars);
+        }
     }
 }
 
@@ -95,43 +103,13 @@ while (my $line = <$fh>) {
     if (++$line_count > $max_lines) {
         die "Scanner line limit exceeded ($max_lines lines): $filename\n";
     }
-    # print STDERR "DEBUG: $line\n";
     chomp $line;
-    # $line =~ s/\s+$//;
     next if $line =~ /^$/;
-    # Classification consumes dump boundaries before ignoring divider lines.
-
-    my $info = TypesFormatRegex::classifyLine($line);
-    next unless $info;
-
-    if ($info->{type} eq 'pending_entries') {
-        processPendingEntries($info->{entries});
-        next;
-    }
-    next if $info->{type} eq 'oneline_metadata';
-
-    my $name = $info->{name};
-    my $type = $info->{type};
-    my $entry = $info->{entry};
-
-    if ($info->{entries}) {
-        manageType($name, $type, \%discovered_vars);
-        foreach my $item (@{$info->{entries}}) {
-            addEntry($name, $item->{entry}, \%discovered_vars);
-        }
-        next;
-    }
-
-    if ($type eq 'summary') {
-        processSummary($name, $entry, \%discovered_vars);
-        next;
-    }
-
-    manageType($name, $type, \%discovered_vars);
-    addEntry($name, $entry, \%discovered_vars);
+    my $records = TypesFormatRegex::classifyLine($line);
+    processRecords($records) if defined $records;
 }
 
-processPendingEntries(TypesFormatRegex::finishLineContext());
+processRecords(TypesFormatRegex::finishLineContext());
 close($fh);
 
 # Output Results

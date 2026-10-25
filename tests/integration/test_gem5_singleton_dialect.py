@@ -243,8 +243,8 @@ def test_dump_boundaries_clear_reserved_type_context_in_both_perl_paths(
     assert "vector/h::0/3" in printed
     classifier = (
         "use JSON::PP; use TypesFormatRegex; resetLineContext(); "
-        "while (my $line = <STDIN>) { chomp $line; my $item = classifyLine($line); "
-        'print encode_json($item), "\\n" if defined $item; }'
+        "while (my $line = <STDIN>) { chomp $line; my $items = classifyLine($line); "
+        'print encode_json($_), "\\n" for @{ $items // [] }; }'
     )
     classified = subprocess.run(
         ["perl", "-I", str(perl_root / "libs"), "-e", classifier],
@@ -254,9 +254,12 @@ def test_dump_boundaries_clear_reserved_type_context_in_both_perl_paths(
         text=True,
         timeout=30,
     ).stdout
-    entries = [json.loads(line) for line in classified.splitlines()]
+    entries = [
+        record for line in classified.splitlines() if (record := json.loads(line))["type"] != "dump"
+    ]
     assert entries[1]["type"] == "histogram"
-    assert entries[1]["entry"] == "0-0"
+    assert entries[1]["entry"] == "0"
+    assert entries[1]["scan_entry"] == "0-0"
     assert entries[-1]["type"] == "vector"
     assert entries[-1]["entry"] == "0"
 
