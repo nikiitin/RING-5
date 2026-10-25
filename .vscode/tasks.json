@@ -29,7 +29,7 @@
     {
       "label": "Start Streamlit App",
       "type": "shell",
-      "command": "./python_venv/bin/streamlit run app.py",
+      "command": "make run",
       "group": "build",
       "presentation": {
         "reveal": "always",

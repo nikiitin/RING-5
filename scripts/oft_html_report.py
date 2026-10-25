@@ -15,14 +15,9 @@ from collections.abc import Mapping
 from collections.abc import Sequence
 from typing import Any, cast
 
-if __package__:
-    from scripts.oft_evidence import EvidenceMarker
-    from scripts.oft_readiness import assess_requirement_readiness
-    from scripts.oft_status import requirement_status_views
-else:
-    from oft_evidence import EvidenceMarker
-    from oft_readiness import assess_requirement_readiness
-    from oft_status import requirement_status_views
+from scripts.oft_evidence import EvidenceMarker
+from scripts.oft_readiness import assess_requirement_readiness
+from scripts.oft_status import requirement_status_views
 
 
 class OftHtmlReportError(ValueError):

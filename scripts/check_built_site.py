@@ -9,10 +9,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
-try:
-    from scripts.check_doc_structure import DOCS_ROOT, ROOT, load_pages
-except ModuleNotFoundError:  # Direct execution adds scripts/ rather than the repository root.
-    from check_doc_structure import DOCS_ROOT, ROOT, load_pages
+from scripts.check_doc_structure import DOCS_ROOT, ROOT, load_pages
 
 SITE_ROOT = ROOT / "_site"
 BASE_URL = "/RING-5"

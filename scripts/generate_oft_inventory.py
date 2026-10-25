@@ -26,24 +26,14 @@ from dataclasses import fields
 from pathlib import Path
 from typing import Any, cast, get_args
 
-if __package__:
-    from scripts.oft_evidence import collect_evidence_markers, validate_source_evidence
-    from scripts.oft_html_report import (
-        OftHtmlReportError,
-        evidence_fingerprint,
-        extract_oft_coverage,
-        inventory_fingerprint,
-    )
-    from scripts.oft_status import requirement_status_tag, requirement_status_views
-else:
-    from oft_evidence import collect_evidence_markers, validate_source_evidence
-    from oft_html_report import (
-        OftHtmlReportError,
-        evidence_fingerprint,
-        extract_oft_coverage,
-        inventory_fingerprint,
-    )
-    from oft_status import requirement_status_tag, requirement_status_views
+from scripts.oft_evidence import collect_evidence_markers, validate_source_evidence
+from scripts.oft_html_report import (
+    OftHtmlReportError,
+    evidence_fingerprint,
+    extract_oft_coverage,
+    inventory_fingerprint,
+)
+from scripts.oft_status import requirement_status_tag, requirement_status_views
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_INVENTORY = ROOT / "spec" / "oft" / "inventory.json"

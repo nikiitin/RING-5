@@ -23,6 +23,15 @@ and security audits with the repository environment.
 | `make type-check` | Mypy over `src` and `ring5` |
 | `make security-audit` | Bandit and a strict audit of resolved project dependencies |
 
+Make targets define the Python checks: Black formats code, Flake8 lints it, Mypy checks types,
+and Bandit audits security. Their configuration lives in `pyproject.toml`; editor tools use
+`python_venv`. Pylance provides completion without a second type-checking policy. Trunk runs
+complementary checks for workflows, shell scripts, configuration, and secrets.
+
+Run maintenance scripts from the repository root as modules, such as
+`python_venv/bin/python -m scripts.check_doc_structure`. This gives each script the same import
+context as tests and Make targets.
+
 Run a focused tool while editing, then the aggregate target before review. Do not silence a check
 without documenting why the exception preserves the underlying contract.
 

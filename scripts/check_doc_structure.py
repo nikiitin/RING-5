@@ -8,10 +8,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-try:
-    from scripts import check_doc_links
-except ModuleNotFoundError:  # Direct execution adds scripts/, not the repository root, to sys.path.
-    import check_doc_links  # type: ignore[import-not-found, no-redef]
+from scripts import check_doc_links
 
 ROOT = Path(__file__).resolve().parents[1]
 DOCS_ROOT = ROOT / "docs"
