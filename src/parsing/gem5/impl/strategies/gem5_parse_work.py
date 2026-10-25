@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from src.parsing.gem5.types.base import StatType
@@ -20,7 +20,6 @@ from src.core.common.safe_regex import (
     numeric_pattern_id,
 )
 from src.core.common.security_limits import MAX_PARSE_VARIABLES
-from src.parsing.gem5.impl.pool.parse_work import ParsedVarsDict, ParseWork
 from src.parsing.gem5.impl.strategies.file_parser_strategy import INTERNAL_SIM_PATH_KEY
 from src.parsing.gem5.impl.strategies.perl_worker_pool import get_worker_pool
 from src.parsing.gem5.types.type_mapper import TypeMapper
@@ -36,7 +35,7 @@ VarsDictType = dict[str, "StatType"]
 logger = logging.getLogger(__name__)
 
 
-class Gem5ParseWork(ParseWork):
+class Gem5ParseWork:
     """
     Worker for parsing a single gem5 stats file using the Perl worker pool.
 
@@ -67,7 +66,6 @@ class Gem5ParseWork(ParseWork):
         self._varsToParse: VarsDictType = varsToParse
         self._source_patterns = dict(source_patterns or {})
         self._entryBuffer: EntryBufferType = {}  # Unified buffer for entry-based types
-        super().__init__()
 
     def __str__(self) -> str:
         return f"Gem5ParseWork({self._fileToParse})"
@@ -419,7 +417,7 @@ class Gem5ParseWork(ParseWork):
             logger.error("Worker pool error: %s", e, exc_info=True)
             raise RuntimeError(f"Worker pool parse failed: {self._fileToParse}") from e
 
-    def __call__(self) -> ParsedVarsDict:
+    def __call__(self) -> dict[str, Any]:
         """
         Execute the parse work and return populated variables.
 
@@ -431,6 +429,6 @@ class Gem5ParseWork(ParseWork):
             subprocess.CalledProcessError: If Perl script fails
         """
         output: str = self._runPerlScript()
-        result: ParsedVarsDict = dict(self._processOutput(output, self._varsToParse))
+        result: dict[str, Any] = dict(self._processOutput(output, self._varsToParse))
         result[INTERNAL_SIM_PATH_KEY] = self._fileToParse
         return result

@@ -24,7 +24,7 @@ class TestSimpleStatsStrategy:
     def test_get_work_items_one_per_file(
         self, mock_find: MagicMock, _mock_size: MagicMock, mock_variables: list[StatConfig]
     ) -> None:
-        # The strategy discovers files and builds one ParseWork unit per file;
+        # The strategy discovers files and builds one callable command per file;
         # the worker pool that runs them is owned by Gem5Parser, not the strategy.
         from src.parsing.gem5.impl.strategies.gem5_parse_work import Gem5ParseWork
 

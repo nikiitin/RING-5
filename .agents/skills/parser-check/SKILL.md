@@ -28,8 +28,11 @@ contract**.
    labels, summary roles, deferred geometry, and dump events. Keep histogram classification before
    distribution/vector classification. Test the same raw fixtures through both consumers.
 6. **Worker-pool lifecycle.** `WorkPool` and `PerlWorkerPool` own `shutdown()` and `atexit`
-   cleanup. `ScanWorkPool`/`ParseWorkPool` return caller-owned futures without retaining batches.
-   Preserve those ownership boundaries and prevent orphaned Perl processes on hot-reload.
+   cleanup. Typed `WorkPool.submit`/`submit_many` accept callable commands and return caller-owned
+   futures without retaining batches. Global shutdown joins executor retirement outside the
+   submission lock; reject new work during drain and recreate only after retirement completes.
+   Session cancellation affects only owned futures, not the shared executor. Preserve those
+   ownership boundaries and prevent orphaned Perl processes on hot-reload.
    High-concurrency hangs were an undrained-stderr-pipe deadlock, now fixed by a drainer thread —
    don't reintroduce a blocking read (see [[perl-pool-highconc-stall]]).
 7. **Internal/meta stats excluded** from selection (`GEM5_INFO.internal_stats` in

@@ -53,7 +53,7 @@ from src.parsing.framework.incremental_cache import (
     load_cache,
     write_cache,
 )
-from src.parsing.gem5.impl.pool.pool import ParseWorkPool, ScanWorkPool
+from src.parsing.framework.work_pool import WorkPool
 from src.parsing.gem5.impl.scanning.gem5_scan_work import Gem5ScanWork
 from src.parsing.gem5.impl.scanning.pattern_aggregator import PatternAggregator
 from src.parsing.gem5.impl.strategies.factory import StrategyFactory
@@ -416,8 +416,8 @@ class Gem5Parser(SimulationParser):
 
         var_names: list[str] = [v.name for v in processed_configs]
 
-        pool = ParseWorkPool.get_instance()
-        futures = pool.submit_batch_async(batch_work)
+        pool = WorkPool.get_instance()
+        futures = pool.submit_many(batch_work)
 
         t_total = time.perf_counter() - t_start
         logger.info(f"PERF: submit_parse_async total (pre-pool) took {t_total:.4f}s")
@@ -592,9 +592,9 @@ class Gem5Parser(SimulationParser):
             sort=True,
             raise_if_empty=True,
         )
-        pool: ScanWorkPool = ScanWorkPool.get_instance()
+        pool = WorkPool.get_instance()
         batch_work: list[Gem5ScanWork] = [Gem5ScanWork(f) for f in files]
-        return pool.submit_batch_async(batch_work)
+        return pool.submit_many(batch_work)
 
     @staticmethod
     def aggregate_scan_results(results: list[ScanFileResult]) -> ScanResult:

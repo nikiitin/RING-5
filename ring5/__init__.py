@@ -300,18 +300,22 @@ def __dir__() -> list[str]:
 
 def shutdown() -> None:
     # [impl->req~ring5.api.process-lifecycle~1]
-    """Tear down the process-wide worker pools (Perl workers + thread pool).
+    """Drain accepted file tasks, then release their Perl worker processes.
 
-    Safe to call at any time: the pools restart transparently on the next
-    parse/scan. Both also register ``atexit`` hooks, so calling this is
-    only needed for long-running processes that want to release resources
-    early.
+    The pools restart on the next parse/scan. Both register interpreter-exit
+    cleanup, so explicit shutdown releases resources early in long-running scripts.
+
+    Raises:
+        JobError: The caller cannot safely drain or close the worker pools.
     """
     from src.parsing.framework.work_pool import WorkPool
     from src.parsing.gem5.impl.strategies.perl_worker_pool import shutdown_worker_pool
 
-    shutdown_worker_pool()
-    WorkPool.get_instance().shutdown()
+    try:
+        with WorkPool.get_instance().shutdown_scope():
+            shutdown_worker_pool()
+    except RuntimeError as exc:
+        raise JobError(f"Unable to shut down worker pools: {exc}") from exc
 
 
 __all__ = [

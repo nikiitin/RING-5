@@ -182,100 +182,13 @@ class TestConfigAwareStrategy:
             strategy._parse_config(config_path)
 
 
-# Parse work contract
-
-
-class TestParseWork:
-    """Tests for the abstract parse-work contract."""
-
-    def test_call_raises_not_implemented(self) -> None:
-        from src.parsing.gem5.impl.pool.parse_work import ParseWork
-
-        class ConcreteParseWork(ParseWork):
-            """Minimal concrete subclass that does NOT override __call__."""
-
-        work = ConcreteParseWork()
-        with pytest.raises(NotImplementedError, match="Subclass must implement"):
-            work()
-
-    def test_str_returns_class_name(self) -> None:
-        from src.parsing.gem5.impl.pool.parse_work import ParseWork
-
-        class MyWork(ParseWork):
-            def __call__(self) -> dict[str, Any]:
-                return {}
-
-        work = MyWork()
-        assert str(work) == "MyWork"
-
-
-# Work-pool submission
-
-
-class TestWorkPool:
-    # [test->req~ring5.api.process-lifecycle~1]
-    """Tests for lazy executor creation and submission."""
-
-    def test_thread_executor_lazy_init(self) -> None:
-        from src.parsing.framework.work_pool import WorkPool
-
-        # Reset singleton to force fresh initialization
-        WorkPool._instance = None
-
-        pool = WorkPool()
-        assert pool._thread_executor is None  # Not yet created
-
-        executor = pool._get_thread_executor()
-        assert executor is not None
-        assert pool._thread_executor is not None
-
-        # Second call returns the same instance
-        executor2 = pool._get_thread_executor()
-        assert executor is executor2
-
-        # Cleanup
-        WorkPool._instance = None
-
-    def test_submit_runs_on_thread_pool(self) -> None:
-        from src.parsing.framework.work_pool import WorkPool
-
-        WorkPool._instance = None
-        pool = WorkPool()
-
-        def dummy_task() -> str:
-            return "done"
-
-        future = pool.submit(dummy_task)
-        result = future.result(timeout=5)
-        assert result == "done"
-
-        pool.shutdown(wait=True)
-        WorkPool._instance = None
-
-    def test_submit_restarts_executor_after_shutdown(self) -> None:
-        from src.parsing.framework.work_pool import WorkPool
-
-        WorkPool._instance = None
-        pool = WorkPool()
-        assert pool.submit(lambda: "first").result(timeout=5) == "first"
-        original_executor = pool._thread_executor
-
-        pool.shutdown(wait=True)
-
-        assert pool._thread_executor is None
-        assert pool.submit(lambda: "second").result(timeout=5) == "second"
-        assert pool._thread_executor is not original_executor
-        pool.shutdown(wait=True)
-        WorkPool._instance = None
-
-
 # Parse-service expansion and finalization
 
 
 class TestParseServiceRegexExpansion:
     """Tests for regex expansion during asynchronous submission."""
 
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.WorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_regex_expansion_with_scanned_vars(
         self, mock_factory: MagicMock, mock_pool_cls: MagicMock, tmp_path: Path
@@ -315,7 +228,7 @@ class TestParseServiceRegexExpansion:
         )
         assert isinstance(result, ParseBatchResult)
 
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.WorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_regex_expansion_with_pattern_indices(
         self, mock_factory: MagicMock, mock_pool_cls: MagicMock, tmp_path: Path
@@ -358,7 +271,7 @@ class TestParseServiceRegexExpansion:
         assert isinstance(result, ParseBatchResult)
 
     @patch("src.parsing.gem5.impl.gem5_parser.PatternIndexService")
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.WorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_keep_indices_expansion(
         self,
@@ -382,7 +295,7 @@ class TestParseServiceRegexExpansion:
         mock_factory.create.return_value = mock_strategy
 
         mock_pool = MagicMock()
-        mock_pool.submit_batch_async.return_value = []
+        mock_pool.submit_many.return_value = []
         mock_pool_cls.get_instance.return_value = mock_pool
 
         mock_pattern_svc.reconstruct_concrete_name.side_effect = lambda pattern, nid: (
@@ -414,7 +327,7 @@ class TestParseServiceRegexExpansion:
         assert isinstance(result, ParseBatchResult)
 
     @patch("src.parsing.gem5.impl.gem5_parser.PatternIndexService")
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.WorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_keep_indices_with_numeric_ids(
         self,
@@ -439,7 +352,7 @@ class TestParseServiceRegexExpansion:
         mock_factory.create.return_value = mock_strategy
 
         mock_pool = MagicMock()
-        mock_pool.submit_batch_async.return_value = []
+        mock_pool.submit_many.return_value = []
         mock_pool_cls.get_instance.return_value = mock_pool
 
         mock_pattern_svc.reconstruct_concrete_name.side_effect = lambda pattern, nid: (
@@ -471,7 +384,7 @@ class TestParseServiceRegexExpansion:
         )
         assert isinstance(result, ParseBatchResult)
 
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.WorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_regex_no_match_warns(
         self, mock_factory: MagicMock, mock_pool_cls: MagicMock, tmp_path: Path
@@ -510,7 +423,7 @@ class TestParseServiceRegexExpansion:
         )
         assert isinstance(result, ParseBatchResult)
 
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.WorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_invalid_regex_is_rejected(
         self, mock_factory: MagicMock, mock_pool_cls: MagicMock, tmp_path: Path
@@ -1085,7 +998,7 @@ class TestDataSourceComponents:
 class TestGem5ParserSubmitParseAsync:
     """Tests for gem5 regex expansion during submission."""
 
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.WorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_regex_expansion_with_scanned_vars(
         self, mock_factory: MagicMock, mock_pool_cls: MagicMock, tmp_path: Path
@@ -1124,7 +1037,7 @@ class TestGem5ParserSubmitParseAsync:
         )
         assert isinstance(result, ParseBatchResult)
 
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.WorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_regex_with_pattern_indices(
         self, mock_factory: MagicMock, mock_pool_cls: MagicMock, tmp_path: Path
@@ -1167,7 +1080,7 @@ class TestGem5ParserSubmitParseAsync:
         assert isinstance(result, ParseBatchResult)
 
     @patch("src.parsing.gem5.impl.gem5_parser.PatternIndexService")
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.WorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_keep_indices_expansion(
         self,
@@ -1191,7 +1104,7 @@ class TestGem5ParserSubmitParseAsync:
         mock_factory.create.return_value = mock_strategy
 
         mock_pool = MagicMock()
-        mock_pool.submit_batch_async.return_value = []
+        mock_pool.submit_many.return_value = []
         mock_pool_cls.get_instance.return_value = mock_pool
 
         mock_pattern_svc.reconstruct_concrete_name.side_effect = lambda pat, nid: (
@@ -1223,7 +1136,7 @@ class TestGem5ParserSubmitParseAsync:
         assert isinstance(result, ParseBatchResult)
 
     @patch("src.parsing.gem5.impl.gem5_parser.PatternIndexService")
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.WorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_keep_indices_numeric_ids(
         self,
@@ -1247,7 +1160,7 @@ class TestGem5ParserSubmitParseAsync:
         mock_factory.create.return_value = mock_strategy
 
         mock_pool = MagicMock()
-        mock_pool.submit_batch_async.return_value = []
+        mock_pool.submit_many.return_value = []
         mock_pool_cls.get_instance.return_value = mock_pool
 
         mock_pattern_svc.reconstruct_concrete_name.side_effect = lambda pat, nid: (
@@ -1279,7 +1192,7 @@ class TestGem5ParserSubmitParseAsync:
         )
         assert isinstance(result, ParseBatchResult)
 
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.WorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_regex_no_match(
         self, mock_factory: MagicMock, mock_pool_cls: MagicMock, tmp_path: Path
@@ -1311,7 +1224,7 @@ class TestGem5ParserSubmitParseAsync:
         )
         assert isinstance(result, ParseBatchResult)
 
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.WorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_invalid_regex(
         self, mock_factory: MagicMock, mock_pool_cls: MagicMock, tmp_path: Path
@@ -1639,47 +1552,6 @@ class TestDataSourceComponentsExtra:
         mock_editor.render.return_value = []
 
         DataSourceComponents.render_parser_config(api)
-
-
-# Scan-work and job contracts
-
-
-class TestScanWork:
-    """Tests for the abstract scan-work contract."""
-
-    def test_call_raises_not_implemented(self) -> None:
-        from src.parsing.gem5.impl.pool.scan_work import ScanWork
-
-        class ConcreteScanWork(ScanWork):
-            pass
-
-        work = ConcreteScanWork()
-        with pytest.raises(NotImplementedError):
-            work()
-
-    def test_str_returns_class_name(self) -> None:
-        from src.parsing.gem5.impl.pool.scan_work import ScanWork
-
-        class MyScanWork(ScanWork):
-            def __call__(self) -> Any:
-                return []
-
-        work = MyScanWork()
-        assert str(work) == "MyScanWork"
-
-
-class TestJobBase:
-    """Tests for the abstract job contract."""
-
-    def test_job_str(self) -> None:
-        from src.parsing.framework.job import Job
-
-        class MyJob(Job):
-            def __call__(self) -> Any:
-                return None
-
-        j = MyJob()
-        assert str(j) == "MyJob"
 
 
 # Seed reduction

@@ -1,10 +1,5 @@
-from collections.abc import Generator
-from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
-import pytest
-
-from src.parsing.gem5.impl.pool.pool import ScanWorkPool
 from src.parsing.gem5.impl.scanning.gem5_scan_work import Gem5ScanWork
 
 
@@ -65,51 +60,3 @@ def test_stats_scan_work_reports_os_error() -> None:
 
         assert not result.ok
         assert result.error == "Permission denied"
-
-
-# --- ScanWorkPool Tests ---
-# Note: Testing singletons and pools can be tricky. We'll mock the internal WorkPool.
-
-
-@pytest.fixture
-def clean_pool_singleton() -> Generator[None, None, None]:
-    ScanWorkPool._singleton = None
-    yield
-    ScanWorkPool._singleton = None
-
-
-def test_scan_work_pool_singleton(clean_pool_singleton: Any) -> None:
-
-    pool1 = ScanWorkPool.get_instance()
-    pool2 = ScanWorkPool.get_instance()
-    assert pool1 is pool2
-
-
-def test_scan_work_pool_async_flow(clean_pool_singleton: Any) -> None:
-    """Test the core async flow of the pool."""
-    from concurrent.futures import Future
-
-    with patch("src.parsing.framework.work_pool.WorkPool.get_instance"):
-        scan_pool = ScanWorkPool.get_instance()
-
-        work1 = MagicMock(spec=Gem5ScanWork)
-        work2 = MagicMock(spec=Gem5ScanWork)
-
-        # Mock add_work to return futures
-        f1 = Future()
-        f1.set_result("res1")
-        f2 = Future()
-        f2.set_result("res2")
-
-        # Mock the internal _work_pool to return our futures
-        cast(MagicMock, scan_pool._work_pool.submit).side_effect = [f1, f2]
-
-        futures = scan_pool.submit_batch_async([work1, work2])
-
-        # Should return futures
-        assert len(futures) == 2
-
-        # Collect results
-        results = [f.result() for f in futures]
-        assert "res1" in results
-        assert "res2" in results

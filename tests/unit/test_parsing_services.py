@@ -135,9 +135,9 @@ class TestScannerService:
         paths = [str(tmp_path / f"run-{index:03d}" / "stats.txt") for index in range(257)]
         with (
             patch("src.parsing.gem5.impl.gem5_parser.find_stats_files", return_value=paths) as find,
-            patch("src.parsing.gem5.impl.gem5_parser.ScanWorkPool") as pool,
+            patch("src.parsing.gem5.impl.gem5_parser.WorkPool") as pool,
         ):
-            pool.get_instance.return_value.submit_batch_async.return_value = [MagicMock()] * 257
+            pool.get_instance.return_value.submit_many.return_value = [MagicMock()] * 257
             futures = ScannerService.submit_scan_async(str(tmp_path), "stats.txt", limit=0)
 
         assert len(futures) == 257

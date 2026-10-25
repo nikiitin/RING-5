@@ -14,20 +14,18 @@ from pathlib import Path
 
 from src.core.common.utils import sanitize_log_value
 from src.core.models import ScanFileResult
-from src.parsing.gem5.impl.pool.scan_work import ScanWork
 from src.parsing.gem5.impl.scanning.scanner import Gem5StatsScanner
 
 logger = logging.getLogger(__name__)
 
 
-class Gem5ScanWork(ScanWork):
+class Gem5ScanWork:
     """
     Worker for scanning a single stats file for available variables.
     Executed in parallel.
     """
 
     def __init__(self, file_path: str) -> None:
-        super().__init__()
         self.file_path = str(file_path)
 
     def __call__(self) -> ScanFileResult:

@@ -5,7 +5,7 @@ Defines the contract for gem5 file parsing strategies, enabling pluggable
 implementations for different gem5 output formats and parsing workflows.
 
 This interface supports an async parsing workflow:
-1. get_work_items(): discover files to parse (ParseWork units for the pool)
+1. get_work_items(): discover files to parse (callable per-file work for the pool)
 2. post_process(): aggregate and transform the pool's results
 
 Strategy Pattern Implementation:
@@ -14,11 +14,10 @@ various gem5 configurations, versions, and output formats while maintaining
 a unified interface for the parsing service layer.
 """
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import Any, Protocol
 
 from src.core.models import StatConfig
-from src.parsing.gem5.impl.pool.parse_work import ParseWork
 
 INTERNAL_SIM_PATH_KEY = "__ring5_internal_sim_path"
 
@@ -39,7 +38,7 @@ class FileParserStrategy(Protocol):
     Usage Example:
         >>> strategy = SimpleStatsStrategy()
         >>> work_items = strategy.get_work_items("/sim/output", "stats.txt", variables)
-        >>> results = [f.result() for f in pool.submit_batch_async(list(work_items)).futures]
+        >>> results = [f.result() for f in pool.submit_many(work_items)]
         >>> final_results = strategy.post_process(results)
 
     Note: This uses Protocol (structural typing) rather than ABC (nominal typing)
@@ -53,11 +52,11 @@ class FileParserStrategy(Protocol):
         variables: list[StatConfig],
         *,
         file_paths: list[str] | None = None,
-    ) -> Sequence[ParseWork]:
+    ) -> Sequence[Callable[[], dict[str, Any]]]:
         """
         Discover and prepare work items for parallel execution.
 
-        Scans the directory tree and returns ParseWork objects representing
+        Scans the directory tree and returns callable work objects representing
         individual parsing tasks. Used by the work pool for parallel processing.
 
         Args:
@@ -68,7 +67,7 @@ class FileParserStrategy(Protocol):
                 this to avoid constructing work for unchanged files.
 
         Returns:
-            Sequence of ParseWork objects ready for pool submission
+            Sequence of callable work objects ready for pool submission
 
         Example:
             >>> work_items = strategy.get_work_items("/sim", "stats.txt", vars)

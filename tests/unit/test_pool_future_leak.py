@@ -1,146 +1,81 @@
-"""
-Test: Pool facades hold no future references (statelessness).
-
-The pools are process-wide singletons shared by every session. Retaining the
-last-submitted batch in the singleton (the old design) had two consequences:
-``cancel_all()`` cancelled whichever caller submitted last — demonstrated
-cross-caller cancellation — and the retained futures pinned a full batch of
-parsed results in memory. The facades are now stateless: the returned futures
-are the caller's only handles, and cancellation is per-handle, session-scoped
-(``ApplicationAPI.cancel_pending_scans`` cancels only its own futures).
-"""
+"""Caller-owned futures remain independent and collectible after settlement."""
 
 from __future__ import annotations
 
-from collections.abc import Iterator
-from concurrent.futures import Future
-from typing import Any
-from unittest.mock import MagicMock, patch
+import gc
+import threading
+import weakref
+from collections.abc import Generator
+from unittest.mock import MagicMock
 
 import pytest
 
-from src.parsing.gem5.impl.pool.pool import ParseWorkPool, ScanWorkPool
+from src.core.application_api import ApplicationAPI
+from src.core.models import ScanFileResult
+from src.parsing.framework.work_pool import WorkPool, _shutdown_workpool
 
 
-@pytest.fixture(autouse=True)
-def _reset_singletons() -> Iterator[None]:
-    """Ensure pool singletons are fresh for each test."""
-    ScanWorkPool.reset()
-    ParseWorkPool.reset()
-    yield  # type: ignore[misc]
-    ScanWorkPool.reset()
-    ParseWorkPool.reset()
+@pytest.fixture
+def pool(monkeypatch: pytest.MonkeyPatch) -> Generator[WorkPool, None, None]:
+    _shutdown_workpool()
+    monkeypatch.setenv("RING5_WORK_POOL_SIZE", "1")
+    instance = WorkPool.get_instance()
+    yield instance
+    _shutdown_workpool()
 
 
-def _new_future() -> Future[Any]:
-    return Future()
-
-
-class TestScanWorkPoolStateless:
+class TestWorkPoolOwnership:
     # [test->req~ring5.quality.async-ownership~1]
 
-    """ScanWorkPool must keep no reference to submitted futures."""
+    def test_returns_one_future_per_callable_in_submission_order(self, pool: WorkPool) -> None:
+        futures = pool.submit_many([lambda value=value: value for value in range(5)])
+        assert [future.result(timeout=3) for future in futures] == list(range(5))
 
-    @patch("src.parsing.gem5.impl.pool.pool.WorkPool")
-    def test_returns_one_future_per_work(self, mock_pool_cls: MagicMock) -> None:
-        mock_pool_instance = MagicMock()
-        mock_pool_cls.get_instance.return_value = mock_pool_instance
-        mock_pool_instance.submit.side_effect = lambda w: _new_future()
+    def test_settled_futures_and_their_results_are_collectible(self, pool: WorkPool) -> None:
+        class Payload:
+            pass
 
-        pool = ScanWorkPool.get_instance()
-        futures = pool.submit_batch_async([MagicMock() for _ in range(5)])
-        assert len(futures) == 5
-
-    @patch("src.parsing.gem5.impl.pool.pool.WorkPool")
-    def test_facade_retains_no_futures(self, mock_pool_cls: MagicMock) -> None:
-        """No instance attribute may hold the batch — retained futures pin
-        results in memory and enable cross-caller cancellation."""
-        mock_pool_cls.get_instance.return_value = MagicMock()
-        pool = ScanWorkPool.get_instance()
-        pool.submit_batch_async([MagicMock() for _ in range(4)])
-
-        retained = [
-            (name, value) for name, value in vars(pool).items() if isinstance(value, list) and value
-        ]
-        assert retained == [], f"facade retains future lists: {retained}"
-
-    @patch("src.parsing.gem5.impl.pool.pool.WorkPool")
-    def test_callers_own_independent_batches(self, mock_pool_cls: MagicMock) -> None:
-        """Caller A cancelling its handles must not touch caller B's batch."""
-        mock_pool_instance = MagicMock()
-        mock_pool_cls.get_instance.return_value = mock_pool_instance
-        mock_pool_instance.submit.side_effect = lambda w: _new_future()
-
-        pool = ScanWorkPool.get_instance()
-        futures_a = pool.submit_batch_async([MagicMock() for _ in range(3)])
-        futures_b = pool.submit_batch_async([MagicMock() for _ in range(3)])
-
-        for f in futures_a:
-            f.cancel()
-
-        assert all(f.cancelled() for f in futures_a)
-        assert not any(f.cancelled() for f in futures_b)
-
-
-class TestParseWorkPoolStateless:
-    # [test->req~ring5.quality.async-ownership~1]
-
-    """ParseWorkPool must keep no reference to submitted futures."""
-
-    @patch("src.parsing.gem5.impl.pool.pool.WorkPool")
-    def test_returns_one_future_per_work(self, mock_pool_cls: MagicMock) -> None:
-        mock_pool_instance = MagicMock()
-        mock_pool_cls.get_instance.return_value = mock_pool_instance
-        mock_pool_instance.submit.side_effect = lambda w: _new_future()
-
-        pool = ParseWorkPool.get_instance()
-        futures = pool.submit_batch_async([MagicMock() for _ in range(8)])
-        assert len(futures) == 8
-
-    @patch("src.parsing.gem5.impl.pool.pool.WorkPool")
-    def test_facade_retains_no_futures(self, mock_pool_cls: MagicMock) -> None:
-        mock_pool_cls.get_instance.return_value = MagicMock()
-        pool = ParseWorkPool.get_instance()
-        pool.submit_batch_async([MagicMock() for _ in range(4)])
-
-        retained = [
-            (name, value) for name, value in vars(pool).items() if isinstance(value, list) and value
-        ]
-        assert retained == [], f"facade retains future lists: {retained}"
-
-    @patch("src.parsing.gem5.impl.pool.pool.WorkPool")
-    def test_none_works_are_skipped(self, mock_pool_cls: MagicMock) -> None:
-        mock_pool_instance = MagicMock()
-        mock_pool_cls.get_instance.return_value = mock_pool_instance
-        mock_pool_instance.submit.side_effect = lambda w: _new_future()
-
-        pool = ParseWorkPool.get_instance()
-        works = [MagicMock(), None, MagicMock()]
-        futures = pool.submit_batch_async(works)  # type: ignore[arg-type]
-        assert len(futures) == 2
+        future = pool.submit(Payload)
+        result = future.result(timeout=3)
+        pool.submit(lambda: None).result(timeout=3)
+        future_ref = weakref.ref(future)
+        result_ref = weakref.ref(result)
+        del future, result
+        gc.collect()
+        assert future_ref() is None
+        assert result_ref() is None
 
 
 class TestSessionScopedCancellation:
     # [test->req~ring5.quality.async-ownership~1]
 
-    """ApplicationAPI.cancel_pending_scans cancels only its own futures."""
+    def test_close_cancels_only_queued_work_owned_by_its_session(self, pool: WorkPool) -> None:
+        started = threading.Event()
+        release = threading.Event()
 
-    def test_cancel_only_own_session_futures(self) -> None:
-        from src.core.application_api import ApplicationAPI
+        def blocking_work() -> None:
+            started.set()
+            assert release.wait(5)
 
-        api_a = ApplicationAPI()
-        api_b = ApplicationAPI()
-
-        futures_a = [_new_future() for _ in range(3)]
-        futures_b = [_new_future() for _ in range(3)]
-        api_a._pending_scan_futures = list(futures_a)
-        api_b._pending_scan_futures = list(futures_b)
-
-        api_b.cancel_pending_scans()
-
-        assert all(f.cancelled() for f in futures_b)
-        assert not any(f.cancelled() for f in futures_a), (
-            "cancel_pending_scans cancelled ANOTHER session's futures — "
-            "the cross-caller cancellation bug is back"
+        blocker = pool.submit(blocking_work)
+        parser = MagicMock()
+        parser.submit_scan_async.side_effect = lambda path, *_: pool.submit_many(
+            [lambda: ScanFileResult(file_path=path)]
         )
-        assert api_b._pending_scan_futures == []
+        first = ApplicationAPI(parser=parser)
+        second = ApplicationAPI(parser=parser)
+        try:
+            assert started.wait(3)
+            first_futures = first.submit_scan_async("first", "stats.txt")
+            second_futures = second.submit_scan_async("second", "stats.txt")
+            first.close()
+            assert first_futures[0].cancelled()
+            assert not second_futures[0].cancelled()
+            release.set()
+            blocker.result(timeout=3)
+            assert second_futures[0].result(timeout=3).file_path == "second"
+            assert pool.submit(lambda: "still available").result(timeout=3) == "still available"
+        finally:
+            release.set()
+            first.close()
+            second.close()

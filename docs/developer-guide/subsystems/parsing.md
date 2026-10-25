@@ -28,6 +28,16 @@ futures owned by the caller or a parse job. Finalization aggregates successful r
 file failures, and assembles the CSV. Cancellation must affect only work owned by the current API
 instance or job.
 
+`WorkPool` submits typed callable commands through `submit` or `submit_many`; it retains no batch
+futures or results. Concrete scan and parse commands share one bounded executor. Explicit global
+shutdown drains accepted work and rejects new submissions with a recoverable error until its
+executor threads have settled. A later submission recreates the executor. Repeated waiting
+shutdowns can join the same retirement; a worker cannot wait for its own shutdown. Session cleanup
+cancels only owned futures and never shuts down this shared pool.
+The public `ring5.shutdown()` waits for accepted file tasks and keeps admission closed while
+closing their Perl processes. Concurrent global closes serialize; a failed close keeps admission
+closed until a global retry succeeds. The next parse or scan then recreates both pools.
+
 The gem5 implementation under `src/parsing/gem5/` uses Python orchestration and persistent Perl
 workers. Strategies under `src/parsing/gem5/impl/strategies/` control ingestion. Pattern aggregation
 can collapse repeated concrete names into a selectable pattern; parsing needs scanned-variable data
