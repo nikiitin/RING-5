@@ -130,6 +130,7 @@ class TestDataTransformRenderChain:
 
         pipeline: list[dict[str, Any]] = [
             {
+                "mode": "in",
                 "type": "conditionSelector",
                 "column": "config_description",
                 "values": ["baseline"],
@@ -214,7 +215,7 @@ class TestPipelineModificationCycle:
         # Second pipeline: column select + filter
         shaper2 = ShaperFactory.create_shaper(
             "conditionSelector",
-            {"column": "config_description", "values": ["baseline"]},  # type: ignore
+            {"mode": "in", "column": "config_description", "values": ["baseline"]},  # type: ignore
         )
         after_filter: pd.DataFrame = shaper2(after_select)
 

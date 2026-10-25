@@ -485,7 +485,7 @@ class TestShaperExecution:
         # Step 2: Filter to baseline only
         step2 = ShaperFactory.create_shaper(
             "conditionSelector",
-            {"column": "config_description", "values": ["baseline"]},  # type: ignore
+            {"mode": "in", "column": "config_description", "values": ["baseline"]},  # type: ignore
         )
         final: pd.DataFrame = step2(intermediate)
 

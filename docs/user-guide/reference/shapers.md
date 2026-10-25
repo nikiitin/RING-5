@@ -99,9 +99,14 @@ Covers:
 
 -->
 
-Retains rows by equality, literal substring containment, numeric greater-than or less-than
-comparison, an inclusive numeric range, or membership in an explicit values list. Legacy comparison
-operators remain accepted for serialized configurations.
+Retains rows through one explicit `mode` and its operand. Ordered comparisons use `threshold`:
+`greater_than`, `less_than`, `greater_or_equal`, and `less_or_equal`. Equality modes (`equals` and
+`not_equals`) use a literal `value`; `contains` uses a text `value` with no regular-expression or
+quote interpretation. `range` uses two inclusive, ordered finite bounds in `range`; `in` uses an
+explicit `values` list.
+
+A configuration must contain exactly the operand for its mode. Missing modes, contradictory
+operands, unsupported fields, and invalid bounds fail validation before the pipeline runs.
 
 ### Item selector
 

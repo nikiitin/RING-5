@@ -120,6 +120,7 @@ class TestPipelineEndToEnd:
         """Pipeline: filter configs → normalize against baseline."""
         pipeline_config = [
             {
+                "mode": "in",
                 "type": "conditionSelector",
                 "column": "config_description",
                 "values": ["baseline", "optimized"],
@@ -151,6 +152,7 @@ class TestPipelineEndToEnd:
         """Pipeline: filter → normalize → compute geometric mean."""
         pipeline_config = [
             {
+                "mode": "in",
                 "type": "conditionSelector",
                 "column": "config_description",
                 "values": ["baseline", "optimized"],

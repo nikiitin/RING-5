@@ -153,7 +153,9 @@ class ConditionSelectorConfig:
                 default=default_values,
                 key=f"{key_prefix}filter_values_{shaper_id}",
             )
-            return cast(ShaperStepConfig, {"column": filter_column, "values": selected_values})
+            return cast(
+                ShaperStepConfig, {"column": filter_column, "mode": "in", "values": selected_values}
+            )
 
 
 class ItemSelectorConfig:

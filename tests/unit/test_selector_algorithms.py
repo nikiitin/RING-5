@@ -36,7 +36,7 @@ class TestConditionSelector:
         self, sample_dataframe: pd.DataFrame
     ) -> None:
         """Values-based selection using 'values' parameter returns a DataFrame."""
-        selector = ConditionSelector({"column": "category", "values": ["A", "C"]})
+        selector = ConditionSelector({"mode": "in", "column": "category", "values": ["A", "C"]})
         result = selector(sample_dataframe)
 
         assert isinstance(result, pd.DataFrame)
@@ -47,7 +47,7 @@ class TestConditionSelector:
         self, sample_dataframe: pd.DataFrame
     ) -> None:
         """Numeric range selection returns a DataFrame with rows within [min, max]."""
-        selector = ConditionSelector({"column": "score", "range": [20, 80]})
+        selector = ConditionSelector({"mode": "range", "column": "score", "range": [20, 80]})
         result = selector(sample_dataframe)
 
         assert isinstance(result, pd.DataFrame)

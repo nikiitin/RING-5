@@ -121,7 +121,7 @@ class TestValidateShaperConfig:
         assert "columns" in missing
 
     def test_condition_selector_valid(self) -> None:
-        config = cast(ShaperStepConfig, {"column": "status"})
+        config = cast(ShaperStepConfig, {"column": "status", "mode": "equals", "value": "ready"})
         is_valid, missing = validate_shaper_config("conditionSelector", config)
         assert is_valid is True
 

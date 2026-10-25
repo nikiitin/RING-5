@@ -15,8 +15,7 @@ from src.core.models.shaper_models import ShaperStepConfig
 
 # Required parameter names per shaper type.
 # A field is "required" if the shaper cannot execute without it.
-# Note: ConditionSelector and Transformer only universally require ``column``;
-# additional requirements depend on the selected ``mode``.
+# Conditional predicate operands are checked by the shaper constructor.
 _REQUIRED_PARAMS: dict[str, list[str]] = {
     "mean": ["groupingColumns", "meanVars"],
     "normalize": ["normalizeVars", "normalizerColumn", "normalizerValue", "groupBy"],
@@ -25,7 +24,7 @@ _REQUIRED_PARAMS: dict[str, list[str]] = {
     "sort": ["order_dict"],
     "splitApply": ["joinColumns", "groups"],
     "columnSelector": ["columns"],
-    "conditionSelector": ["column"],
+    "conditionSelector": ["column", "mode"],
     "transformer": ["column"],
     "itemSelector": ["column", "strings"],
     "deriveColumn": ["dest", "op", "sources"],
