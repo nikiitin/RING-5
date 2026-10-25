@@ -11,24 +11,20 @@ from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import (
     BarTraceConfig,
     BoxTraceConfig,
-    HistogramTraceConfig,
     LineTraceConfig,
     ParallelCoordinatesTraceConfig,
     ParallelDimensionConfig,
     RadarTraceConfig,
     SankeyTraceConfig,
     ScatterTraceConfig,
-    TraceConfig,
     ViolinTraceConfig,
     WaterfallTraceConfig,
 )
 from src.web.rendering.trace_to_plotly import (
     _bar_trace,
     _box_trace,
-    _bar_trace_from_base,
     _convert_annotations,
     _convert_trace,
-    _histogram_trace,
     _line_trace,
     _parallel_coordinates_trace,
     _radar_trace,
@@ -431,16 +427,6 @@ class TestParallelCoordinatesTrace:
         result = _convert_trace(trace)
         assert isinstance(result, go.Scatter)
 
-    def test_histogram_trace_dispatch(self) -> None:
-        trace = HistogramTraceConfig(name="hist", x=[1, 2, 3])
-        result = _convert_trace(trace)
-        assert isinstance(result, go.Histogram)
-
-    def test_base_trace_fallback_to_bar(self) -> None:
-        trace = TraceConfig(name="base", x=["a"], y=[1])
-        result = _convert_trace(trace)
-        assert isinstance(result, go.Bar)
-
 
 # _bar_trace
 
@@ -639,52 +625,6 @@ class TestScatterTrace:
         trace = ScatterTraceConfig(x=["a", "b"], y=[1, 2], size_values=[10.0, 20.0])
         scatter = _scatter_trace(trace)
         assert list(cast(Any, scatter.marker).size) == [10.0, 20.0]
-
-
-# _histogram_trace
-
-
-class TestHistogramTrace:
-    """Tests for ``_histogram_trace`` converter."""
-
-    def test_basic_histogram(self) -> None:
-        trace = HistogramTraceConfig(name="h1", x=[1, 2, 3, 4])
-        hist = _histogram_trace(trace)
-        assert isinstance(hist, go.Histogram)
-        assert hist.nbinsx == 20
-
-    def test_histogram_color(self) -> None:
-        trace = HistogramTraceConfig(x=[1, 2], color="#aabbcc")
-        hist = _histogram_trace(trace)
-        assert cast(Any, hist.marker).color == "#aabbcc"
-
-    def test_histogram_normalization(self) -> None:
-        trace = HistogramTraceConfig(x=[1, 2], normalization="percent")
-        hist = _histogram_trace(trace)
-        assert hist.histnorm == "percent"
-
-    def test_histogram_cumulative(self) -> None:
-        trace = HistogramTraceConfig(x=[1, 2], cumulative=True)
-        hist = _histogram_trace(trace)
-        assert cast(Any, hist.cumulative).enabled is True
-
-
-# _bar_trace_from_base
-
-
-class TestBarTraceFromBase:
-    """Tests for the fallback ``_bar_trace_from_base``."""
-
-    def test_basic_fallback(self) -> None:
-        trace = TraceConfig(name="base", x=["a"], y=[1])
-        bar = _bar_trace_from_base(trace)
-        assert isinstance(bar, go.Bar)
-        assert bar.name == "base"
-
-    def test_fallback_with_color(self) -> None:
-        trace = TraceConfig(name="c", x=["a"], y=[1], color="#123456")
-        bar = _bar_trace_from_base(trace)
-        assert cast(Any, bar.marker).color == "#123456"
 
 
 # _convert_annotations

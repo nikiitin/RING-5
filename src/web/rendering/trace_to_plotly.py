@@ -1,10 +1,8 @@
 """
-Trace-to-Plotly converter — builds ``go.Figure`` from ``TraceBuildResult``.
+Build native Plotly figures from engine-neutral ``TraceBuildResult`` values.
 
-This module replaces the *reverse* extraction path that used to go
-``go.Figure`` → ``PlotlyTraceExtractor`` → ``List[TraceConfig]``.
-Now plot types produce ``TraceBuildResult`` directly (forward direction)
-and this converter builds the Plotly figure from it.
+Plot types emit concrete neutral trace families. This converter constructs their
+Plotly traces, annotations and layout geometry before figure styling is applied.
 """
 
 from __future__ import annotations
@@ -20,7 +18,6 @@ from src.core.models.visualization.trace_config import (
     BarTraceConfig,
     BoxTraceConfig,
     HeatmapTraceConfig,
-    HistogramTraceConfig,
     LineTraceConfig,
     ParallelCoordinatesTraceConfig,
     RadarTraceConfig,
@@ -31,6 +28,7 @@ from src.core.models.visualization.trace_config import (
     WaterfallTraceConfig,
 )
 from src.web.rendering._heatmap_utils import heatmap_text_colors
+from src.web.rendering._connector_protocol import validate_trace_types
 
 
 def _error_y_dict(error_y: list[float] | None) -> dict[str, Any] | None:
@@ -54,8 +52,12 @@ def traces_to_plotly(result: TraceBuildResult) -> go.Figure:
 
     Returns:
         A fully populated (but unstyled) ``go.Figure``.
+
+    Raises:
+        TypeError: A trace has no supported concrete family.
     """
     traces_list = list(result.traces)
+    validate_trace_types(traces_list)
     heatmap_only = (
         len(traces_list) > 1
         and all(isinstance(trace, HeatmapTraceConfig) for trace in traces_list)
@@ -216,13 +218,10 @@ def _convert_trace(trace: TraceConfig) -> go.BaseTraceType:  # type: ignore[name
         result = _line_trace(trace)
     elif isinstance(trace, ScatterTraceConfig):
         result = _scatter_trace(trace)
-    elif isinstance(trace, HistogramTraceConfig):
-        result = _histogram_trace(trace)
     elif isinstance(trace, HeatmapTraceConfig):
         result = _heatmap_trace(trace)
     else:
-        # Fallback for base TraceConfig — render as bar
-        result = _bar_trace_from_base(trace)
+        raise TypeError(f"Unsupported trace type: {type(trace).__name__}.")
     drilldown = trace.custom_data.get("drilldown")
     if drilldown is not None:
         result.meta = {"ring5_drilldown": drilldown}
@@ -568,45 +567,6 @@ def _scatter_trace(trace: ScatterTraceConfig) -> go.Scatter:
         kwargs["error_y"] = error_y
 
     return go.Scatter(**{k: v for k, v in kwargs.items() if v is not None})
-
-
-def _histogram_trace(trace: HistogramTraceConfig) -> go.Histogram:
-    """Convert a ``HistogramTraceConfig`` to ``go.Histogram``."""
-    kwargs: dict[str, Any] = {
-        "x": trace.x,
-        "name": trace.name,
-        "opacity": trace.opacity,
-        "showlegend": trace.show_in_legend,
-        "visible": trace.visible,
-        "legendgroup": trace.legendgroup or trace.name,
-        "nbinsx": trace.nbins,
-    }
-
-    if trace.color:
-        kwargs["marker"] = {"color": trace.color}
-
-    if trace.normalization:
-        kwargs["histnorm"] = trace.normalization
-
-    if trace.cumulative:
-        kwargs["cumulative"] = {"enabled": True}
-
-    return go.Histogram(**{k: v for k, v in kwargs.items() if v is not None})
-
-
-def _bar_trace_from_base(trace: TraceConfig) -> go.Bar:
-    """Fallback: convert a base ``TraceConfig`` to ``go.Bar``."""
-    kwargs: dict[str, Any] = {
-        "x": trace.x,
-        "y": trace.y,
-        "name": trace.name,
-        "opacity": trace.opacity,
-        "showlegend": trace.show_in_legend,
-        "visible": trace.visible,
-    }
-    if trace.color:
-        kwargs["marker"] = {"color": trace.color}
-    return go.Bar(**{k: v for k, v in kwargs.items() if v is not None})
 
 
 def _heatmap_trace(trace: HeatmapTraceConfig) -> go.Heatmap:

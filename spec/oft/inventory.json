@@ -1909,11 +1909,15 @@
       "evidence": {
         "implementation": [
           "src/core/models/visualization/trace_build_result.py::TraceBuildResult",
-          "src/web/pages/ui/plotting/base_plot.py::BasePlot.create_figure"
+          "src/web/pages/ui/plotting/base_plot.py::BasePlot.create_figure",
+          "src/web/rendering/_connector_protocol.py::validate_trace_types"
         ],
         "tests": [
           "tests/unit/test_trace_to_plotly.py::TestTracesToPlotly",
-          "tests/unit/test_trace_to_plotly.py::TestConvertTrace"
+          "tests/unit/test_trace_to_plotly.py::TestConvertTrace",
+          "tests/integration/test_neutral_trace_contract.py::test_both_converters_reject_unknown_families_before_drawing",
+          "tests/integration/test_neutral_trace_contract.py::test_public_render_exposes_unknown_trace_as_typed_error",
+          "tests/integration/test_neutral_trace_contract.py::test_supported_trace_subclasses_preserve_data_in_both_engines"
         ],
         "documentation": [
           "docs/developer-guide/subsystems/visualization.md#engine-independent-traces"

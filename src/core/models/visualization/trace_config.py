@@ -42,7 +42,6 @@ TraceType = Literal[
     "bar",
     "line",
     "scatter",
-    "histogram",
     "heatmap",
     "box",
     "violin",
@@ -59,7 +58,7 @@ class TraceConfig:
 
     Attributes:
         name: Legend label for this trace.
-        trace_type: Discriminator for sub-type dispatch.
+        trace_type: Engine-neutral family identifier; renderers dispatch on the concrete class.
         x: X-axis data values (categories or numeric).
         y: Y-axis data values (always numeric).
         yaxis: Which Y-axis this trace belongs to ("y" or "y2").
@@ -148,23 +147,6 @@ class ScatterTraceConfig(TraceConfig):
 
     # Error bars
     error_y: list[float] | None = None
-
-
-@dataclass
-class HistogramTraceConfig(TraceConfig):
-    """Histogram-specific trace parameters.
-
-    Note: in RING-5, histograms are typically pre-binned and rendered
-    as ``BarTraceConfig`` with bin centres as ``x``.  This subclass
-    exists for the rare case where raw data is passed directly and
-    the binning should be done by the rendering engine.
-    """
-
-    trace_type: TraceType = "histogram"
-
-    nbins: int = 20
-    normalization: Literal["", "percent", "probability", "density"] = ""
-    cumulative: bool = False
 
 
 @dataclass

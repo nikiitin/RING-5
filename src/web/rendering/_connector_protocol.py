@@ -1,4 +1,4 @@
-"""Styling pipeline contract for figure-spec connectors.
+"""Shared trace and styling contracts for native rendering connectors.
 
 ``STYLING_PIPELINE_ORDER`` is the set of named styling steps every connector
 (``FigureSpecToPlotly``, ``FigureSpecToMatplotlib``) must implement so the two
@@ -12,6 +12,51 @@ Two styling operations run as a sub-phase that is not a named step here:
 explicit per-trace colour wins over the palette, and (Matplotlib) before
 ``legends`` so renames reach the legend.
 """
+
+from collections.abc import Sequence
+
+from src.core.models.visualization.trace_config import (
+    BarTraceConfig,
+    BoxTraceConfig,
+    HeatmapTraceConfig,
+    LineTraceConfig,
+    ParallelCoordinatesTraceConfig,
+    RadarTraceConfig,
+    SankeyTraceConfig,
+    ScatterTraceConfig,
+    TraceConfig,
+    ViolinTraceConfig,
+    WaterfallTraceConfig,
+)
+
+_SUPPORTED_TRACE_TYPES = (
+    BarTraceConfig,
+    BoxTraceConfig,
+    HeatmapTraceConfig,
+    LineTraceConfig,
+    ParallelCoordinatesTraceConfig,
+    RadarTraceConfig,
+    SankeyTraceConfig,
+    ScatterTraceConfig,
+    ViolinTraceConfig,
+    WaterfallTraceConfig,
+)
+
+
+def validate_trace_types(traces: Sequence[TraceConfig]) -> None:
+    """Reject unsupported families before an engine creates or draws a figure.
+
+    Args:
+        traces: Neutral traces, including any intentionally hidden traces.
+
+    Raises:
+        TypeError: A trace has no supported concrete family.
+    """
+    # [impl->req~ring5.render.engine-independent-traces~1]
+    for trace in traces:
+        if not isinstance(trace, _SUPPORTED_TRACE_TYPES):
+            raise TypeError(f"Unsupported trace type: {type(trace).__name__}.")
+
 
 STYLING_PIPELINE_ORDER: tuple[str, ...] = (
     "backgrounds",
