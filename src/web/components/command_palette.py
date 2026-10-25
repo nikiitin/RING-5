@@ -6,6 +6,8 @@ import json
 
 import streamlit as st
 
+from src.web.state.ui_state_manager import UIStateManager
+
 from src.core.application_api import ApplicationAPI
 from src.core.models.workspace_command_models import WorkspaceCommand
 
@@ -114,7 +116,7 @@ class CommandPaletteComponent:
         if command.action == "navigate":
             if command.destination not in _NAVIGATION_PAGES:
                 raise ValueError(f"Unsupported workspace destination {command.destination!r}.")
-            st.session_state["_nav_page"] = command.destination
+            UIStateManager().nav.set_current_page(command.destination)
             return
         if command.action == "focus_workspace_search":
             st.session_state["_workspace_search_requested"] = True

@@ -39,7 +39,7 @@ def test_plugin_configuration_survives_an_editor_without_a_renderer(monkeypatch)
     monkeypatch.setattr("src.web.components.shapers.split_apply_config.st", MagicMock())
     config = {"type": "externalPlugin", "custom": {"value": 3}}
     result = configure_shaper(
-        "externalPlugin", pd.DataFrame({"v": [1]}), 1, config, display_names={}
+        "externalPlugin", pd.DataFrame({"v": [1]}), 1, config, display_names={}, owner_id=0
     )
     assert result == config
     assert result is not config

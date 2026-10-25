@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import streamlit as st
 
+from src.web.state.ui_state_manager import UIStateManager, WidgetKeyBuilder
+
 from src.core.models.figure_theme_models import FigureThemeContext
 from src.core.services.visualization.figure_theme_service import FigureThemeService
 from src.core.models.plot_config import PlotConfig
@@ -33,7 +35,7 @@ class ThemePresetsSettingsComponent:
             options,
             index=options.index(selected_default),
             format_func=lambda identifier: by_id[identifier].name,
-            key=f"figure_theme_select_{self.plot_id}",
+            key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.theme.figure_theme_select"),
             help="Apply a complete appearance profile without changing data columns or filters.",
         )
         selected = selected or "paper"
@@ -47,10 +49,10 @@ class ThemePresetsSettingsComponent:
         applied: PlotConfig = {}
         if st.button(
             "Apply theme",
-            key=f"apply_figure_theme_{self.plot_id}",
+            key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.theme.apply_figure_theme"),
             type="primary",
         ):
-            self._clear_appearance_widget_state()
+            UIStateManager().plot.reset_widgets(self.plot_id, "appearance")
             applied = FigureThemeService.apply(saved_config, theme, self.plot_type)
             applied["_ring5_request_refresh"] = True
             st.success(f"Applied {theme.name}. Data mappings and filters were kept.")
@@ -64,7 +66,7 @@ class ThemePresetsSettingsComponent:
         uploaded = st.file_uploader(
             "Theme JSON",
             type=["json"],
-            key=f"import_figure_theme_{self.plot_id}",
+            key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.theme.import_figure_theme"),
             help="Imports one RING-5 figure-theme document up to 256 KiB.",
         )
         imported = None
@@ -77,9 +79,11 @@ class ThemePresetsSettingsComponent:
                 st.error(str(exc))
         if imported is not None and st.button(
             "Apply imported theme",
-            key=f"apply_imported_figure_theme_{self.plot_id}",
+            key=WidgetKeyBuilder.plot_key(
+                self.plot_id, "widgets.theme.apply_imported_figure_theme"
+            ),
         ):
-            self._clear_appearance_widget_state()
+            UIStateManager().plot.reset_widgets(self.plot_id, "appearance")
             applied = FigureThemeService.apply(saved_config, imported, self.plot_type)
             applied["_ring5_request_refresh"] = True
             st.success(f"Applied imported theme {imported.name}.")
@@ -89,7 +93,7 @@ class ThemePresetsSettingsComponent:
             "Theme name",
             value=str(saved_config.get("figure_theme_name", "My figure theme")),
             max_chars=80,
-            key=f"export_figure_theme_name_{self.plot_id}",
+            key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.theme.export_figure_theme_name"),
         )
         source_config = {**saved_config, **applied}
         context_value = source_config.get("figure_theme_context", theme.context)
@@ -109,30 +113,9 @@ class ThemePresetsSettingsComponent:
                 data=FigureThemeService.dumps(exported_theme),
                 file_name=f"{exported_theme.identifier}.ring5-theme.json",
                 mime="application/json",
-                key=f"export_figure_theme_{self.plot_id}",
+                key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.theme.export_figure_theme"),
             )
         except (TypeError, ValueError) as exc:
             st.error(str(exc))
 
         return applied
-
-    def _clear_appearance_widget_state(self) -> None:
-        """Discard stale widget values so the applied profile becomes each panel's default."""
-        suffix = f"_{self.plot_id}"
-        framed = f"_{self.plot_id}_"
-        exact_prefixes = (
-            "accessible_theme_",
-            "col_preset_",
-            "hi_",
-            "palette_select_",
-            "wi_",
-            "wi_disabled_",
-            "_ring5_accessibility_mode_seen_",
-        )
-        for key in list(st.session_state):
-            if not isinstance(key, str):
-                continue
-            is_theme_widget = key.startswith("theme_") and (key.endswith(suffix) or framed in key)
-            is_exact_widget = key.startswith(exact_prefixes) and key.endswith(suffix)
-            if is_theme_widget or is_exact_widget:
-                del st.session_state[key]

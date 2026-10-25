@@ -9,6 +9,8 @@ Usage::
 import pandas as pd
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.web.components.plotting.settings.small_multiples_settings import (
     SmallMultiplesSettingsComponent,
 )
@@ -67,7 +69,7 @@ class LayoutSettingsComponent:
             "Document Size Preset",
             list(preset_options.keys()),
             index=preset_idx,
-            key=f"col_preset_{self.plot_id}",
+            key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.col_preset"),
         )
         # Satisfy type checker — selectbox always returns a value here
         if preset is None:
@@ -92,7 +94,7 @@ class LayoutSettingsComponent:
                     min_value=0.1,
                     value=max(0.1, saved_width),
                     step=0.5,
-                    key=f"wi_{self.plot_id}",
+                    key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.wi"),
                 )
             else:
                 width_inches = preset_options[preset]
@@ -100,7 +102,7 @@ class LayoutSettingsComponent:
                     "Width (inches)",
                     value=width_inches,
                     disabled=True,
-                    key=f"wi_disabled_{self.plot_id}",
+                    key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.wi_disabled"),
                 )
 
         with c2:
@@ -109,7 +111,7 @@ class LayoutSettingsComponent:
                 min_value=0.1,
                 value=max(0.1, saved_height),
                 step=0.5,
-                key=f"hi_{self.plot_id}",
+                key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.hi"),
             )
 
         # Plotly expects pixels — scale 1 inch → 100 px for preview.

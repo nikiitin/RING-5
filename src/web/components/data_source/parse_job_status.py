@@ -6,6 +6,8 @@ import logging
 
 import streamlit as st
 
+from src.web.state.ui_state_manager import UIStateManager
+
 from src.core.application_api import ApplicationAPI
 from src.core.models.parse_job_models import (
     ParseJobNotConsumableError,
@@ -168,7 +170,7 @@ def _render_sidebar_parse_job_snapshot(
         key=f"review_parse_job_{job_id}",
         width="stretch",
     ):
-        st.session_state["_nav_page"] = "Data Source"
+        UIStateManager().nav.set_current_page("Data Source")
         st.rerun(scope="app")
 
 

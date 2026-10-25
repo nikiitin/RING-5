@@ -49,7 +49,7 @@ directly when adding a plot type.
    add a component under `src/web/components/plotting/config/` and wire it through
    `plot_config_ui.py` / the `PlotConfigUIMixin`. Reuse helpers in `config/base_plot_config.py`
    (`detect_column_types`, `render_xy_selectors`, …). Keep widget keys per-plot-unique:
-   `f"{prefix}_{field}_{plot_id}"`.
+   `WidgetKeyBuilder.plot_key(plot_id, "widgets.<field>")`.
 
 5. **Serialization** uses `BasePlot.to_dict` + `PlotFactory.from_dict`. Plot tables use the shared
    typed table codec. Adding persistent state updates the writer, the field contract in

@@ -3,6 +3,8 @@
 import pandas as pd
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.web.components.plotting.config.base_plot_config import (
     detect_column_types,
     render_common_config,
@@ -76,7 +78,7 @@ def render(
         "Histogram Variable",
         options=histogram_vars,
         index=default_idx,
-        key=f"histogram_var_{plot_id}",
+        key=WidgetKeyBuilder.plot_key(plot_id, "widgets.histogram_var"),
         help="Select the variable with histogram bucket data",
     )
 
@@ -92,7 +94,7 @@ def render(
         "Group By (optional)",
         options=group_options,
         index=group_default_idx,
-        key=f"histogram_group_{plot_id}",
+        key=WidgetKeyBuilder.plot_key(plot_id, "widgets.histogram_group"),
         format_func=lambda x: "None" if x is None else x,
         help="Create multiple histograms grouped by this categorical variable",
     )
@@ -102,7 +104,7 @@ def render(
         "Bucket Size",
         min_value=1,
         value=int(saved_config.get("bucket_size", 10)),
-        key=f"histogram_bucket_{plot_id}",
+        key=WidgetKeyBuilder.plot_key(plot_id, "widgets.histogram_bucket"),
         help="Size of histogram buckets (for rebinning)",
     )
 
@@ -115,7 +117,7 @@ def render(
         "Normalization",
         options=norm_options,
         index=norm_default_idx,
-        key=f"histogram_norm_{plot_id}",
+        key=WidgetKeyBuilder.plot_key(plot_id, "widgets.histogram_norm"),
         help="How to normalize histogram heights",
     )
 
@@ -123,7 +125,7 @@ def render(
     cumulative: bool = st.checkbox(
         "Cumulative",
         value=saved_config.get("cumulative", False),
-        key=f"histogram_cumulative_{plot_id}",
+        key=WidgetKeyBuilder.plot_key(plot_id, "widgets.histogram_cumulative"),
         help="Show cumulative distribution",
     )
 

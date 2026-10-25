@@ -18,14 +18,14 @@ def test_heatmap_generated_xlabel_follows_x_mapping(mock_st: MagicMock) -> None:
     # [test->req~ring5.figure.heatmap-controls~1]
     from src.web.components.plotting.config.heatmap_config import _sync_auto_xlabel
 
-    mock_st.session_state = {"xlabel_7": "benchmark_name"}
+    mock_st.session_state = {"plot.7.widgets.xlabel": "benchmark_name"}
     _sync_auto_xlabel(
         cast(Any, {"x": "benchmark_name", "xlabel": "benchmark_name"}),
         7,
         "config_description",
     )
 
-    assert mock_st.session_state["xlabel_7"] == "config_description"
+    assert mock_st.session_state["plot.7.widgets.xlabel"] == "config_description"
 
 
 def test_faceted_heatmap_labels_only_bottom_x_axis() -> None:

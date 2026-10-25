@@ -43,10 +43,10 @@ class TestDualAxisRenderConfigUI:
         from src.web.components.plotting.config.dual_axis_config import _sync_auto_labels
 
         mock_st.session_state = {
-            "title_8": "seed vs system.cpu.ipc",
-            "xlabel_8": "benchmark_name",
-            "ylabel_8": "seed",
-            "ylabel_dot_8": "system.cpu.ipc",
+            "plot.8.widgets.title": "seed vs system.cpu.ipc",
+            "plot.8.widgets.xlabel": "benchmark_name",
+            "plot.8.widgets.ylabel": "seed",
+            "plot.8.widgets.ylabel_dot": "system.cpu.ipc",
         }
         saved = {
             "x": "benchmark_name",
@@ -67,10 +67,10 @@ class TestDualAxisRenderConfigUI:
         )
 
         assert mock_st.session_state == {
-            "title_8": "system.cpu.ipc vs system.cpu.numCycles",
-            "xlabel_8": "benchmark_name",
-            "ylabel_8": "system.cpu.ipc",
-            "ylabel_dot_8": "system.cpu.numCycles",
+            "plot.8.widgets.title": "system.cpu.ipc vs system.cpu.numCycles",
+            "plot.8.widgets.xlabel": "benchmark_name",
+            "plot.8.widgets.ylabel": "system.cpu.ipc",
+            "plot.8.widgets.ylabel_dot": "system.cpu.numCycles",
         }
 
     @patch(f"{_DUAL_CFG}.st")
@@ -78,20 +78,20 @@ class TestDualAxisRenderConfigUI:
         from src.web.components.plotting.config.dual_axis_config import _sync_auto_labels
 
         mock_st.session_state = {
-            "title_8": "Publication comparison",
-            "xlabel_8": "Workload",
-            "ylabel_8": "Performance",
-            "ylabel_dot_8": "Runtime",
+            "plot.8.widgets.title": "Publication comparison",
+            "plot.8.widgets.xlabel": "Workload",
+            "plot.8.widgets.ylabel": "Performance",
+            "plot.8.widgets.ylabel_dot": "Runtime",
         }
         saved = {"x": "old", "y_bar": "left", "y_dot": "right"}
 
         _sync_auto_labels(cast(Any, saved), 8, "new", "new-left", "new-right")
 
         assert mock_st.session_state == {
-            "title_8": "Publication comparison",
-            "xlabel_8": "Workload",
-            "ylabel_8": "Performance",
-            "ylabel_dot_8": "Runtime",
+            "plot.8.widgets.title": "Publication comparison",
+            "plot.8.widgets.xlabel": "Workload",
+            "plot.8.widgets.ylabel": "Performance",
+            "plot.8.widgets.ylabel_dot": "Runtime",
         }
 
     @patch(f"{_DUAL_CFG}.PlotConfigComponents")

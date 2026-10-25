@@ -304,6 +304,18 @@ Covers:
 Plotly relayout events persist supported zoom and pan ranges, legend positions and anchors, and an
 edited primary legend title into plot configuration.
 
+### Edit shapes
+
+Under **Advanced**, add a line, circle, or rectangle and edit its existing coordinates. Select
+**Text** for an exact category label or date string, including labels such as `001`; clear it for a
+finite number. Opening the editor preserves each coordinate's type and value. Native shapes with
+omitted coordinates, explicit defaults, or SVG paths retain those fields; unavailable coordinate
+controls show **Default** without adding a value.
+
+With **Auto-refresh** disabled, additions, deletions, resizing, and number/text changes remain
+pending across settings navigation. **Refresh Plot** applies them together. Invalid numeric edits
+leave the published plot unchanged, and the affected shape can still be deleted.
+
 ### Alternate category shading
 
 <!--

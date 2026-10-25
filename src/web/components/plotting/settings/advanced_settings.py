@@ -23,6 +23,8 @@ from typing import Protocol
 import pandas as pd
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.core.models.plot_config import ShapeConfig
 from src.core.models.plot_config import PlotConfig
 
@@ -116,7 +118,7 @@ class AdvancedSettingsComponent:
             config["show_error_bars"] = st.checkbox(
                 "Show Error Bars (if .sd columns exist)",
                 value=saved_config.get("show_error_bars", False),
-                key=f"error_bars_{self.plot_id}",
+                key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.error_bars"),
             )
         with col_exp2:
             download_formats: list[str] = ["html", "png", "pdf", "svg"]
@@ -127,13 +129,13 @@ class AdvancedSettingsComponent:
                 "Default Download Format",
                 options=download_formats,
                 index=default_fmt_idx,
-                key=f"download_fmt_{self.plot_id}",
+                key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.download_fmt"),
             )
             config["export_scale"] = st.selectbox(
                 "Download Scale (Resolution)",
                 options=[1, 2, 3],
                 index=[1, 2, 3].index(saved_config.get("export_scale", 1)),
-                key=f"exp_scale_{self.plot_id}",
+                key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.exp_scale"),
                 help="1x = Screen. 3x = High Res (Publication).",
             )
             w: int = saved_config.get("width", 800)
@@ -146,7 +148,7 @@ class AdvancedSettingsComponent:
         config["enable_editable"] = st.checkbox(
             "Enable Interactive Editing",
             value=saved_config.get("enable_editable", False),
-            key=f"editable_{self.plot_id}",
+            key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.editable"),
             help=(
                 "Allows you to drag the legend/title and click"
                 " to edit text directly on the plot."

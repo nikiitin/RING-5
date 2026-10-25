@@ -7,6 +7,8 @@ config assembly used by all per-plot-type config components.
 import pandas as pd
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 # Re-exported from the shared home so the plotting-config family keeps importing it from
 # here, but there is a single implementation (see L-DUP-COLTYPE).
 from src.web.components.common.data_components import detect_column_types
@@ -42,7 +44,7 @@ def _sync_auto_labels(
         "ylabel": (previous_y, y_column),
     }
     for field, (previous_default, current_default) in derived_values.items():
-        widget_key = f"{field}_{plot_id}"
+        widget_key = WidgetKeyBuilder.plot_key(plot_id, f"widgets.{field}")
         current_value = st.session_state.get(widget_key, saved_config.get(field))
         if current_value == previous_default:
             st.session_state[widget_key] = current_default
@@ -79,7 +81,7 @@ def render_xy_selectors(
         x_label,
         options=x_options,
         index=x_default_idx,
-        key=f"x_{plot_id}",
+        key=WidgetKeyBuilder.plot_key(plot_id, "widgets.x"),
     )
 
     y_default_idx: int = 0
@@ -90,7 +92,7 @@ def render_xy_selectors(
         y_label,
         options=numeric_cols,
         index=y_default_idx,
-        key=f"y_{plot_id}",
+        key=WidgetKeyBuilder.plot_key(plot_id, "widgets.y"),
     )
 
     return x_column, y_column
@@ -123,7 +125,7 @@ def render_color_selector(
         label,
         options=color_options,
         index=color_default_idx,
-        key=f"color_{plot_id}",
+        key=WidgetKeyBuilder.plot_key(plot_id, "widgets.color"),
     )
     return color_column
 

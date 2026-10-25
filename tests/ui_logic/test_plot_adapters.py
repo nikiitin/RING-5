@@ -153,8 +153,8 @@ class TestPipelineExecutorAdapter:
             )
             assert result.get("type") == "normalize"
 
-    def test_configure_shaper_no_owner_id(self, sample_data: pd.DataFrame) -> None:
-        """configure_shaper defaults owner_id to None."""
+    def test_configure_shaper_preserves_zero_owner_id(self, sample_data: pd.DataFrame) -> None:
+        """Plot zero owns its widgets like every other plot identifier."""
         from src.web.pages.plot_adapters import PipelineExecutorAdapter
 
         adapter = PipelineExecutorAdapter(DefaultShapersAPI())
@@ -163,13 +163,13 @@ class TestPipelineExecutorAdapter:
             "src.web.pages.plot_adapters.configure_shaper",
             return_value=cast(ShaperStepConfig, {"type": "sort"}),
         ) as mock_cfg:
-            adapter.configure_shaper("sort", sample_data, 2, None)
+            adapter.configure_shaper("sort", sample_data, 2, None, owner_id=0)
             mock_cfg.assert_called_once_with(
                 "sort",
                 sample_data,
                 2,
                 None,
-                owner_id=None,
+                owner_id=0,
                 display_names=DefaultShapersAPI().get_shaper_display_names(),
             )
 

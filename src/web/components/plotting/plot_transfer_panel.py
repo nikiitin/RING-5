@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-import copy
 from collections.abc import Sequence
 from typing import Any, Protocol
 
 import streamlit as st
+
+from src.web.state.ui_state_manager import UIStateManager, WidgetKeyBuilder
 
 from src.core.application_api import ApplicationAPI
 from src.core.models.visualization.plot_configuration_comparison import (
@@ -50,35 +51,11 @@ class PlotTransferPanel:
         self._api = api
 
     @staticmethod
-    def _reset_target_widgets(plot_id: int) -> None:
-        """Drop stale widget values so copied configuration becomes the next default."""
-        suffix = f"_{plot_id}"
-        prefix = f"plot.{plot_id}."
-        for key in list(st.session_state):
-            if isinstance(key, str) and (
-                key.endswith(suffix)
-                or key.startswith(prefix)
-                or any(
-                    key.startswith(f"theme_{field}_{plot_id}_")
-                    for field in ("color", "use_col", "orig_col", "rst")
-                )
-                or key.startswith(f"p{plot_id}_")
-            ):
-                st.session_state.pop(key, None)
-
-    @staticmethod
     def apply_pending_widget_reset(plot_id: int) -> None:
         """Apply a reset requested by the previous transfer-button rerun."""
-        reset_key = f"plot_transfer_reset_{plot_id}"
-        copied_config = st.session_state.pop(reset_key, None)
-        if not isinstance(copied_config, dict):
-            return
-        PlotTransferPanel._reset_target_widgets(plot_id)
-        for config_key in ("title", "xlabel", "ylabel", "legend_title", "x", "y", "color"):
-            if config_key in copied_config:
-                st.session_state[f"{config_key}_{plot_id}"] = copy.deepcopy(
-                    copied_config[config_key]
-                )
+        reset_key = WidgetKeyBuilder.plot_key(plot_id, "transfer_reset")
+        if st.session_state.pop(reset_key, False) is True:
+            UIStateManager().plot.reset_widgets(plot_id)
 
     @staticmethod
     def _render_comparison(comparison: PlotConfigurationComparison) -> None:
@@ -118,7 +95,7 @@ class PlotTransferPanel:
         # [impl->req~ring5.plots.copy-settings-pipeline~1]
         """Offer compatible transfer modes when another plot is available."""
         with st.expander(":material/content_copy: Copy from another plot", expanded=False):
-            notice_key = f"plot_transfer_notice_{target.plot_id}"
+            notice_key = WidgetKeyBuilder.plot_key(target.plot_id, "transfer_notice")
             notice = st.session_state.pop(notice_key, None)
             if notice:
                 st.success(str(notice))
@@ -132,7 +109,7 @@ class PlotTransferPanel:
                 "Copy from",
                 options=list(by_id),
                 format_func=lambda value: f"{by_id[value].name} ({by_id[value].plot_type})",
-                key=f"plot_transfer_source_{target.plot_id}",
+                key=WidgetKeyBuilder.plot_key(target.plot_id, "widgets.transfer_source"),
             )
             comparison = self._api.compare_plot_configurations(int(source_id), target.plot_id)
             self._render_comparison(comparison)
@@ -140,7 +117,7 @@ class PlotTransferPanel:
                 "What to copy",
                 options=list(_MODE_LABELS.values()),
                 horizontal=True,
-                key=f"plot_transfer_mode_{target.plot_id}",
+                key=WidgetKeyBuilder.plot_key(target.plot_id, "widgets.transfer_mode"),
             )
             mode = next(key for key, label in _MODE_LABELS.items() if label == mode_label)
             sections: list[str] = []
@@ -149,7 +126,7 @@ class PlotTransferPanel:
                     "Figure sections",
                     options=list(_SECTION_LABELS.values()),
                     default=["Titles and labels", "Typography", "Colors and series styles"],
-                    key=f"plot_transfer_sections_{target.plot_id}",
+                    key=WidgetKeyBuilder.plot_key(target.plot_id, "widgets.transfer_sections"),
                 )
                 sections = [
                     key for key, label in _SECTION_LABELS.items() if label in selected_labels
@@ -165,7 +142,7 @@ class PlotTransferPanel:
             if st.button(
                 "Copy into current plot",
                 type="primary",
-                key=f"plot_transfer_apply_{target.plot_id}",
+                key=WidgetKeyBuilder.plot_key(target.plot_id, "widgets.transfer_apply"),
                 disabled=mode == "configuration" and not comparison.can_replace,
             ):
                 try:
@@ -183,9 +160,7 @@ class PlotTransferPanel:
                 else:
                     notice = f"Copied {len(result.copied_keys)} configuration values."
                 st.session_state[notice_key] = notice
-                st.session_state[f"plot_transfer_reset_{target.plot_id}"] = copy.deepcopy(
-                    target.config
-                )
+                st.session_state[WidgetKeyBuilder.plot_key(target.plot_id, "transfer_reset")] = True
                 st.rerun()
 
 

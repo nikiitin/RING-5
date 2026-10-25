@@ -189,7 +189,7 @@ class PipelineExecutor(Protocol):
         data: pd.DataFrame,
         shaper_id: int,
         config: Mapping[str, object] | None,
-        owner_id: int | None = None,
+        owner_id: int,
     ) -> Mapping[str, object]:
         """Render a shaper editor and return its configuration."""
         raise NotImplementedError

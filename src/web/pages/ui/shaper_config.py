@@ -7,6 +7,8 @@ from typing import cast
 import pandas as pd
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.core.models.shaper_models import ShaperStepConfig
 from src.web.components.shapers.derive_column_config import DeriveColumnConfig
 from src.web.components.shapers.mean_config import MeanConfig
@@ -50,7 +52,7 @@ def configure_shaper(
     data: pd.DataFrame,
     shaper_id: int,
     existing_config: Mapping[str, object] | None,
-    owner_id: int | None = None,
+    owner_id: int,
     *,
     display_names: dict[str, str],
 ) -> Mapping[str, object]:
@@ -61,13 +63,13 @@ def configure_shaper(
         data: Current dataframe used to populate controls.
         shaper_id: Unique ID for this shaper instance.
         existing_config: Existing configuration, if any.
-        owner_id: Optional plot or owner ID used to namespace widget keys.
+        owner_id: Plot identifier that owns the pipeline widgets.
         display_names: Current facade-provided editor labels and identifiers.
 
     Returns:
         Configuration dictionary with its ``type`` key set.
     """
-    key_prefix = f"p{owner_id}_" if owner_id is not None else ""
+    key_prefix = WidgetKeyBuilder.plot_key(owner_id, "widgets.pipeline") + "."
     if shaper_type in CONFIG_DISPATCH:
         safe_config = cast(ShaperStepConfig, existing_config or {})
         try:

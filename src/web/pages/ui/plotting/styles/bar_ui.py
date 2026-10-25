@@ -23,7 +23,7 @@ class BarStyleUI(BaseStyleUI):
             "Pattern",
             options=patterns,
             index=patterns.index(cur_pat) if cur_pat in patterns else 0,
-            key=f"{key_prefix}pat_{self.plot_id}_{key_suffix}",
+            key=f"{key_prefix}pat_{key_suffix}",
             format_func=lambda x: "Solid" if x == "" else x,
         )
         current_style["pattern"] = new_pattern

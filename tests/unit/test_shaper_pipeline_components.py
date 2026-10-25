@@ -28,7 +28,12 @@ class TestShaperConfig:
 
         df = pd.DataFrame({"a": [1]})
         result = configure_shaper(
-            "unknownType", df, 1, None, display_names=ShaperFactory.get_display_name_map()
+            "unknownType",
+            df,
+            1,
+            None,
+            display_names=ShaperFactory.get_display_name_map(),
+            owner_id=0,
         )
 
         assert result.get("type") == "unknownType"
@@ -42,7 +47,12 @@ class TestShaperConfig:
 
         with patch.dict(CONFIG_DISPATCH, {"columnSelector": mock_render}):
             result = configure_shaper(
-                "columnSelector", df, 1, None, display_names=ShaperFactory.get_display_name_map()
+                "columnSelector",
+                df,
+                1,
+                None,
+                display_names=ShaperFactory.get_display_name_map(),
+                owner_id=0,
             )
 
         mock_st.exception.assert_called()

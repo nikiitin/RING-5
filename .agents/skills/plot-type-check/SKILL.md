@@ -29,7 +29,7 @@ A plot type is correct only if it is **engine-agnostic** and fully wired. To *bu
    the trace converters are `trace_to_plotly.py` / `matplotlib_trace_renderer.py`.
 7. **Config UI** — if it needs options beyond the shared X/Y/color selectors, a component under
    `src/web/components/plotting/config/` is wired via `plot_config_ui.py`/`PlotConfigUIMixin`, with
-   per-plot-unique widget keys `f"{prefix}_{field}_{plot_id}"`.
+   per-plot widget keys from `WidgetKeyBuilder.plot_key(plot_id, "widgets.<field>")`.
 8. **Serialization round-trips** — `BasePlot.to_dict` + `PlotFactory.from_dict` rebuild state.
    Plot tables use the shared typed table codec; persistent fields are admitted by
    `src/core/common/plot_payload.py` and explicitly restored.

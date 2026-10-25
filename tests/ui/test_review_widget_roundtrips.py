@@ -72,7 +72,7 @@ def test_right_axis_controls_preserve_primary_and_clear_fixed_step() -> None:
     assert "y_grid_color" not in result
     assert "yaxis_tickangle" not in result
     assert result["yaxis2_tick_side"] == "right"
-    app.number_input(key="y2ydtick_1").set_value(0).run()
+    app.number_input(key="plot.1.widgets.appearance.y2ydtick").set_value(0).run()
     assert app.session_state["result"]["yaxis2_dtick"] is None
     assert "yaxis_dtick" not in app.session_state["result"]
 
@@ -109,9 +109,9 @@ def test_right_axis_font_inheritance_and_primary_small_fonts_round_trip() -> Non
         ).value
         == 7
     )
-    app.checkbox(key="plot.1.inherit_y2_title_sz_1").uncheck().run()
+    app.checkbox(key="plot.1.widgets.appearance.inherit_yaxis2_title_font_size").uncheck().run()
     assert app.session_state["result"]["yaxis2_title_font_size"] == 7
-    app.checkbox(key="plot.1.inherit_y2_title_sz_1").check().run()
+    app.checkbox(key="plot.1.widgets.appearance.inherit_yaxis2_title_font_size").check().run()
     assert app.session_state["result"]["yaxis2_title_font_size"] == -1
 
 
@@ -361,12 +361,11 @@ def test_plot_transfer_clears_color_override_and_shaper_state() -> None:
         from src.web.components.common.bounded_options import stable_widget_suffix
         suffix = stable_widget_suffix(0, "A")
         if "seeded" not in st.session_state:
-            st.session_state[f"theme_color_1_{suffix}_wong"] = "#000000"
-            st.session_state[f"theme_use_col_1_{suffix}"] = False
-            st.session_state["p1_filter_col_0"] = "old"
-            st.session_state["p2_filter_col_0"] = "other"
-            st.session_state["plot_transfer_reset_1"] = {
-                "series_styles": {"A": {"color": "#ff0000", "use_color": True}}}
+            st.session_state[f"plot.1.widgets.appearance.theme_color_{suffix}_wong"] = "#000000"
+            st.session_state[f"plot.1.widgets.appearance.theme_use_col_{suffix}"] = False
+            st.session_state["plot.1.widgets.pipeline.filter_col_0"] = "old"
+            st.session_state["plot.2.widgets.pipeline.filter_col_0"] = "other"
+            st.session_state["plot.1.transfer_reset"] = True
             st.session_state["seeded"] = True
         PlotTransferPanel.apply_pending_widget_reset(1)
         st.session_state["result"] = ColorsSettingsComponent(1, "bar")._render_series_colors(
@@ -376,8 +375,8 @@ def test_plot_transfer_clears_color_override_and_shaper_state() -> None:
     assert not app.exception
     assert app.session_state["result"]["A"]["color"] == "#ff0000"
     assert app.session_state["result"]["A"]["use_color"] is True
-    assert "p1_filter_col_0" not in app.session_state
-    assert app.session_state["p2_filter_col_0"] == "other"
+    assert "plot.1.widgets.pipeline.filter_col_0" not in app.session_state
+    assert app.session_state["plot.2.widgets.pipeline.filter_col_0"] == "other"
 
 
 def test_grouped_stack_missing_saved_group_offers_no_grouping() -> None:
@@ -438,7 +437,7 @@ def test_layout_enforces_backend_minimum_without_rejecting_saved_valid_pixels(pi
             {{"width": {pixels}, "height": {pixels}}})
     """)
     assert not app.exception
-    assert app.number_input(key="wi_1").min == 0.1
+    assert app.number_input(key="plot.1.widgets.appearance.wi").min == 0.1
     assert app.session_state["result"]["width"] == 10
     assert app.session_state["result"]["height"] == 10
     assert bool(app.warning) is (pixels < 10)
@@ -500,7 +499,7 @@ def test_enabling_legend_title_inheritance_updates_its_display_immediately() -> 
     """)
     assert not app.exception
     assert next(widget for widget in app.number_input if widget.label == "Title Size").value == 22
-    app.checkbox(key="plot.1.inherit_theme_leg_title_sz_1").check().run()
+    app.checkbox(key="plot.1.widgets.appearance.inherit_legend_title_font_size").check().run()
     assert not app.exception
     assert app.session_state["result"]["legend_title_font_size"] == -1
     assert next(widget for widget in app.number_input if widget.label == "Title Size").value == 12

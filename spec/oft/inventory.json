@@ -157,7 +157,10 @@
       "tags": ["reset", "state", "web"],
       "evidence": {
         "implementation": ["app.py::run_app", "src/core/state/repository_state_manager.py::RepositoryStateManager.clear_data"],
-        "tests": ["tests/ui/test_e2e_data_loaded.py::TestSidebarWithData.test_clear_data_button_clears_state"],
+        "tests": [
+          "tests/ui/test_e2e_data_loaded.py::TestSidebarWithData.test_clear_data_button_clears_state",
+          "tests/ui/test_plot_widget_ownership.py::test_actual_workspace_reset_clears_plot_widgets_and_preserves_global_owners"
+        ],
         "documentation": ["docs/user-guide/getting-started/concepts.md#core-concepts"]
       }
     },
@@ -1191,7 +1194,8 @@
         "tests": [
           "tests/integration/test_controller_presenter.py::TestPlotLifecycleIntegration.test_duplicate_creates_independent_copy",
           "tests/ui_logic/test_render_controller.py::TestFigureIdentity.test_engine_change_regenerates_figure",
-          "tests/unit/test_ui_state_manager.py::TestPlotUIState.test_auto_refresh_per_plot_isolation"
+          "tests/unit/test_ui_state_manager.py::TestPlotUIState.test_auto_refresh_per_plot_isolation",
+          "tests/ui/test_plot_widget_ownership.py::test_delete_then_reuse_plot_id_discards_rename_control"
         ],
         "documentation": [
           "docs/user-guide/getting-started/concepts.md#plot-and-shaper-pipeline"
@@ -1214,7 +1218,9 @@
         ],
         "tests": [
           "tests/integration/test_controller_presenter.py::TestChartDisplayComponentIntegration",
-          "tests/ui_logic/test_render_controller.py::TestFigureIdentity"
+          "tests/ui_logic/test_render_controller.py::TestFigureIdentity",
+          "tests/ui/test_plot_widget_ownership.py::test_shape_draft_survives_manual_refresh_and_settings_navigation",
+          "tests/ui/test_shape_coordinate_contract.py::test_manual_refresh_preserves_intentional_kind_changes_across_sections"
         ],
         "documentation": [
           "docs/user-guide/workflows/plotting.md#map-columns-and-configure-the-figure"
@@ -1643,7 +1649,13 @@
         "tests": [
           "tests/ui_unit/test_shapes_settings.py::test_render_does_not_mutate_saved_config",
           "tests/ui_unit/test_shapes_settings.py::test_add_shape_returns_new_list_without_mutating",
-          "tests/unit/core/visualization/test_matplotlib_connector.py::TestMatplotlibAnnotations"
+          "tests/unit/core/visualization/test_matplotlib_connector.py::TestMatplotlibAnnotations",
+          "tests/ui/test_plot_widget_ownership.py::test_shape_rows_edit_and_delete_without_an_unreachable_edit_mode",
+          "tests/ui/test_plot_widget_ownership.py::test_shape_draft_survives_manual_refresh_and_settings_navigation",
+          "tests/ui/test_shape_coordinate_contract.py::test_untouched_literal_coordinates_and_explicit_text_numeric_edits_reach_native",
+          "tests/ui/test_shape_coordinate_contract.py::test_add_numeric_looking_literal_coordinates_has_one_explicit_kind",
+          "tests/ui/test_shape_coordinate_contract.py::test_native_partial_path_and_default_shapes_roundtrip_without_invented_fields",
+          "tests/ui/test_shape_coordinate_contract.py::test_deleting_the_invalid_row_skips_its_decoder_and_retains_manual_refresh_contract"
         ],
         "documentation": [
           "docs/developer-guide/api-reference/public-python-api.md#annotations-and-web-shapes"
@@ -3063,7 +3075,8 @@
         "tests": [
           "tests/unit/test_plot_service.py::TestChangePlotType.test_different_type_replaces",
           "tests/ui/test_e2e_manage_plots.py::TestPlotTypeChange.test_change_plot_type",
-          "tests/ui/test_e2e_manage_plots.py::TestPlotTypeChange.test_type_change_preserves_pipeline"
+          "tests/ui/test_e2e_manage_plots.py::TestPlotTypeChange.test_type_change_preserves_pipeline",
+          "tests/ui/test_plot_widget_ownership.py::test_type_change_resets_old_controls_and_preserves_measured_data"
         ],
         "documentation": [
           "docs/user-guide/workflows/plotting.md#create-a-plot"
@@ -3817,7 +3830,8 @@
           "tests/unit/test_plot_transfer_service.py::test_selected_settings_copy_only_requested_presentation_values",
           "tests/integration/test_plot_transfer_public_api.py::test_public_copy_supports_sections_configuration_and_pipeline",
           "tests/ui_logic/test_plot_transfer_panel.py::test_selected_sections_copy_into_current_plot",
-          "tests/e2e/test_plot_transfer.py::test_copy_selected_settings_reloads_destination_widgets"
+          "tests/e2e/test_plot_transfer.py::test_copy_selected_settings_reloads_destination_widgets",
+          "tests/ui/test_plot_widget_ownership.py::test_copy_target_preserves_another_plots_shaper_with_matching_numeric_id"
         ],
         "documentation": [
           "docs/user-guide/workflows/copy-plot-settings.md#copy-plot-settings-and-pipelines"
@@ -4155,7 +4169,8 @@
           "tests/unit/test_figure_theme_service.py::test_theme_import_rejects_unbounded_invalid_or_unsafe_documents",
           "tests/unit/test_theme_presets_settings.py::test_apply_dark_theme_refreshes_and_clears_only_stale_appearance_widgets",
           "tests/unit/test_theme_presets_settings.py::test_imported_theme_can_be_reviewed_and_applied",
-          "tests/unit/test_theme_presets_settings.py::test_invalid_import_is_explained_without_changing_the_plot"
+          "tests/unit/test_theme_presets_settings.py::test_invalid_import_is_explained_without_changing_the_plot",
+          "tests/ui/test_plot_widget_ownership.py::test_theme_apply_preserves_another_plots_pending_series_color"
         ],
         "documentation": [
           "docs/user-guide/reference/settings.md#reuse-a-figure-theme"
@@ -4295,7 +4310,8 @@
           "tests/unit/test_browser_upload_service.py::test_csv_json_and_excel_uploads_become_reviewable_tables",
           "tests/integration/test_browser_upload_application_api.py::test_upload_is_non_mutating_until_confirmed_load_or_restore",
           "tests/unit/test_browser_upload_component.py::test_dataset_upload_routes_to_import_review",
-          "tests/e2e/test_data_source.py::TestDataSourceCsvLoad.test_csv_load_loads_data"
+          "tests/e2e/test_data_source.py::TestDataSourceCsvLoad.test_csv_load_loads_data",
+          "tests/ui/test_plot_widget_ownership.py::test_browser_portfolio_restore_discards_widgets_for_reused_plot_ids"
         ],
         "documentation": [
           "docs/user-guide/workflows/loading-data.md#upload-data-or-a-portfolio-from-your-browser"
@@ -4538,7 +4554,8 @@
           "tests/integration/test_browser_upload_application_api.py::test_portable_bundle_upload_is_non_mutating_until_confirmed",
           "tests/integration/test_portfolio_bundle_public_api.py::test_export_inspect_read_and_restore_portable_bundle",
           "tests/integration/test_portfolio_bundle_public_api.py::test_portable_bundle_errors_use_public_portfolio_error",
-          "tests/e2e/test_portfolio.py::TestPortfolioSaveLoad.test_02_save_portfolio"
+          "tests/e2e/test_portfolio.py::TestPortfolioSaveLoad.test_02_save_portfolio",
+          "tests/ui/test_plot_widget_ownership.py::test_browser_portfolio_restore_discards_widgets_for_reused_plot_ids"
         ],
         "documentation": [
           "docs/user-guide/workflows/portfolios.md#share-a-portable-analysis-bundle"

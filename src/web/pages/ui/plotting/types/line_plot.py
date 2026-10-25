@@ -5,6 +5,8 @@ from typing import Any, override
 import pandas as pd
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import (
     LINE_DASHES,
@@ -80,7 +82,7 @@ class LinePlot(BasePlot):
             "Connector style",
             connector_labels,
             index=connector_labels.index(saved_connector),
-            key=f"lshape_{self.plot_id}",
+            key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.lshape"),
             help="Choose straight, smooth, or step-wise interpolation between observations.",
         )
         config["line_shape"] = _CONNECTOR_LABELS[str(connector_label)]
@@ -91,7 +93,7 @@ class LinePlot(BasePlot):
             "Line pattern",
             dash_labels,
             index=dash_labels.index(saved_dash),
-            key=f"ldash_{self.plot_id}",
+            key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.ldash"),
         )
         config["line_dash"] = _DASH_LABELS[str(dash_label)]
         config["line_width"] = float(
@@ -101,7 +103,7 @@ class LinePlot(BasePlot):
                 max_value=20.0,
                 value=_bounded_saved_number(saved_config.get("line_width"), 0.5, 20.0, 2.0),
                 step=0.5,
-                key=f"lwidth_{self.plot_id}",
+                key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.lwidth"),
             )
         )
 
@@ -109,7 +111,7 @@ class LinePlot(BasePlot):
             st.checkbox(
                 "Show point markers",
                 value=bool(saved_config.get("show_markers", True)),
-                key=f"lmarkers_{self.plot_id}",
+                key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.lmarkers"),
             )
         )
         marker_symbols = list(LINE_MARKER_SYMBOLS)
@@ -121,7 +123,7 @@ class LinePlot(BasePlot):
             marker_symbols,
             index=marker_symbols.index(saved_symbol),
             disabled=not config["show_markers"],
-            key=f"lmarker_symbol_{self.plot_id}",
+            key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.lmarker_symbol"),
         )
         config["marker_size"] = int(
             st.number_input(
@@ -130,14 +132,14 @@ class LinePlot(BasePlot):
                 max_value=50,
                 value=int(_bounded_saved_number(saved_config.get("marker_size"), 1, 50, 6)),
                 disabled=not config["show_markers"],
-                key=f"lmarker_size_{self.plot_id}",
+                key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.lmarker_size"),
             )
         )
         config["connect_gaps"] = bool(
             st.checkbox(
                 "Connect across missing values",
                 value=bool(saved_config.get("connect_gaps", False)),
-                key=f"lconnect_gaps_{self.plot_id}",
+                key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.lconnect_gaps"),
                 help="Off leaves an honest visual break wherever the Y value is missing.",
             )
         )

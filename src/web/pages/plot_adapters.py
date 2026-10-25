@@ -103,7 +103,7 @@ class PipelineExecutorAdapter:
         data: pd.DataFrame,
         shaper_id: int,
         config: Mapping[str, object] | None,
-        owner_id: int | None = None,
+        owner_id: int,
     ) -> Mapping[str, object]:
         """Render shaper-specific config widgets and return config dict."""
         return configure_shaper(

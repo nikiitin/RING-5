@@ -2,6 +2,8 @@
 
 import streamlit as st
 
+from src.web.state.ui_state_manager import WidgetKeyBuilder
+
 from src.core.models.plot_config import PlotConfig
 
 
@@ -25,7 +27,7 @@ def render_right_axis_dot_settings(
         config["right_show_lines"] = st.checkbox(
             "Show lines (right axis)",
             value=saved_config.get("right_show_lines", True),
-            key=f"right_show_lines_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.appearance.right_show_lines"),
         )
     with dc2:
         symbols: list[str] = [
@@ -45,7 +47,7 @@ def render_right_axis_dot_settings(
                 if saved_config.get("right_dot_symbol") in symbols
                 else 0
             ),
-            key=f"right_dot_sym_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.appearance.right_dot_sym"),
         )
     with dc3:
         config["right_dot_size"] = st.number_input(
@@ -53,7 +55,7 @@ def render_right_axis_dot_settings(
             min_value=2,
             max_value=30,
             value=saved_config.get("right_dot_size", 10),
-            key=f"right_dot_size_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.appearance.right_dot_size"),
         )
 
     dc4, _ = st.columns(2)
@@ -63,6 +65,6 @@ def render_right_axis_dot_settings(
             min_value=1,
             max_value=10,
             value=saved_config.get("right_line_width", 2),
-            key=f"right_line_w_{plot_id}",
+            key=WidgetKeyBuilder.plot_key(plot_id, "widgets.appearance.right_line_w"),
             disabled=not config.get("right_show_lines", True),
         )

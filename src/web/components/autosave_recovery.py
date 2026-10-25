@@ -9,6 +9,8 @@ import time
 
 import streamlit as st
 
+from src.web.state.ui_state_manager import UIStateManager
+
 from src.core.application_api import ApplicationAPI
 from src.core.models.recovery_models import RecoveryDraftInfo
 
@@ -137,6 +139,7 @@ class AutosaveRecoveryComponent:
         except (FileNotFoundError, KeyError, OSError, TypeError, ValueError) as exc:
             st.error(f"Recovery draft could not be restored: {exc}")
             return
+        UIStateManager().cleanup_all()
         if report.complete:
             st.toast("Workspace recovered from the selected draft", icon="✅")
         else:
