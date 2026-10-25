@@ -22,6 +22,12 @@ def _immutable_values(value: Any, active: set[int], memo: dict[int, Any]) -> Any
     if type(value) in (LegendOpts, ReferenceLineOpts, DualAxisOpts):
         return value
     if not isinstance(value, (Mapping, list, tuple)):
+        import numpy as np
+
+        if isinstance(value, np.generic):
+            dtype = np.dtype(type(value))
+            if dtype.type is type(value) and dtype.kind in "biufU":
+                return value
         raise TypeError(f"Unsupported mutable figure value: {type(value).__name__}.")
     identity = id(value)
     if identity in active:

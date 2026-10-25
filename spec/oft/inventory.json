@@ -2407,7 +2407,9 @@
         "tests": [
           "tests/unit/test_figure_spec.py::TestFigureSpecToConfig",
           "tests/unit/test_figure_spec.py::TestFigureSpecValidation",
-          "tests/unit/test_figure_spec_values.py::TestFigureSpecValues"
+          "tests/unit/test_figure_spec_values.py::TestFigureSpecValues",
+          "tests/integration/test_immutable_numpy_figure_values.py::test_computed_pandas_range_renders_through_both_engines",
+          "tests/integration/test_immutable_numpy_figure_values.py::test_numpy_real_bool_and_text_leaves_remain_exact_in_owned_projections"
         ],
         "documentation": [
           "docs/developer-guide/api-reference/public-python-api.md#typed-figurespec"

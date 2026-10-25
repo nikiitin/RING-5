@@ -211,6 +211,8 @@ dimensions, axes, grouping, legends, reference lines, and dual-axis options. `Le
 `ReferenceLineOpts`, and `DualAxisOpts` are immutable values too. Constructor sequences and nested
 mappings are owned immutable snapshots; later edits to their source objects cannot change the
 specification. Unsupported objects and cycles raise ordinary configuration validation errors.
+Immutable NumPy real, boolean and text scalars from explicit pandas work retain their exact values;
+mutable arrays, opaque objects, void scalars and custom scalar subclasses are rejected.
 
 The `extra` mapping carries supported flat configuration keys and takes precedence over typed
 fields. `to_config()` returns a fresh mutable mapping with the same canonical editable format used
