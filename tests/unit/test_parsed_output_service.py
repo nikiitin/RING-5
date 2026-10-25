@@ -6,6 +6,7 @@ import math
 import csv
 import io
 import json
+import warnings
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import FrozenInstanceError, replace
 from decimal import InvalidOperation, localcontext
@@ -506,3 +507,14 @@ def test_current_cell_policy_rejects_over_four_mib_before_publication(
     with pytest.raises(ValueError, match="character limit"):
         ParsedOutputService.resolve([result], ["value"])
     assert list(tmp_path.iterdir()) == []
+
+
+def test_parser_warning_promoted_to_error_has_the_same_admission_error_type(tmp_path: Path) -> None:
+    table = ParsedOutputService.resolve([_result("source", 1.0)], ["value"])
+    output = ParsedOutputService.publish(tmp_path / "results.csv", table)
+    forged = _rewrite_output(output, b"value\r\n1.0,2.0\r\n")
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", parsed_output_service.pd.errors.ParserWarning)
+        with pytest.raises(ValueError, match="Malformed typed parser CSV") as caught:
+            ParsedOutputService.read(forged)
+    assert isinstance(caught.value.__cause__, parsed_output_service.pd.errors.ParserWarning)

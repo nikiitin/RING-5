@@ -359,7 +359,12 @@ class ParsedOutputService:
                     encoding_errors="strict",
                     nrows=row_limit + 1,
                 )
-            except (pd.errors.ParserError, pd.errors.EmptyDataError, UnicodeError) as exc:
+            except (
+                pd.errors.ParserError,
+                pd.errors.ParserWarning,
+                pd.errors.EmptyDataError,
+                UnicodeError,
+            ) as exc:
                 raise ValueError(f"Malformed typed parser CSV: {exc}") from exc
             if frame.empty or len(frame) > row_limit:
                 raise ValueError("Parsed CSV requires a bounded non-empty source row set.")
