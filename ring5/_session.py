@@ -204,7 +204,7 @@ class Session:
             csv = s.parse("/sims", variables=["simTicks"]).csv_path
             df = s.load(csv)
             df = s.reduce_seeds(df, ["config_description_abbrev"], ["simTicks"])
-            fig = s.plot("Bar Chart", data=df,
+            fig = s.plot("bar", data=df,
                          config={"x": "config_description_abbrev",
                                  "y": "simTicks"},
                          engine="matplotlib")
@@ -2242,7 +2242,7 @@ class Session:
 
         Args:
             data: Input table or DataFrame.
-            operation: Arithmetic operation name or supported symbol.
+            operation: Exact ``Division``, ``Sum``, ``Subtraction``, or ``Multiplication`` token.
             src1: Left operand column.
             src2: Right operand column.
             dest: Destination column name.
@@ -2278,8 +2278,7 @@ class Session:
             data: Input table or DataFrame.
             dest_col: Destination column name.
             source_cols: Two or more columns to merge.
-            operation: ``Sum``, ``Mean``, ``Mean (Average)``, or
-                ``Concatenate``.
+            operation: ``Sum``, ``Mean``, or ``Concatenate``.
             separator: Separator used by concatenation.
 
         Returns:

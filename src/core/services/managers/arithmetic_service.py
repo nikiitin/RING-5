@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 
 from src.core.common.dataframe_utils import concat_columns
+from src.core.models.arithmetic_models import ArithmeticOperation, MixerOperation
 
 
 class ArithmeticService:
@@ -19,7 +20,7 @@ class ArithmeticService:
     @staticmethod
     def list_operators() -> list[str]:
         """Return the list of supported binary arithmetic operators."""
-        return ["Division", "Sum", "Subtraction", "Multiplication"]
+        return [operation.value for operation in ArithmeticOperation]
 
     @staticmethod
     def apply_operation(
@@ -33,17 +34,20 @@ class ArithmeticService:
         s1 = result[src1]
         s2 = result[src2]
 
-        op = operation.lower()
-        if op in ["division", "divide", "/"]:
+        try:
+            op = ArithmeticOperation(operation)
+        except ValueError as exc:
+            raise ValueError(f"Unknown operation: {operation}") from exc
+        if op == ArithmeticOperation.DIVISION:
             result[dest] = s1 / s2.replace(0, np.nan)
-        elif op in ["sum", "add", "+"]:
+        elif op == ArithmeticOperation.SUM:
             result[dest] = s1 + s2
-        elif op in ["subtraction", "subtract", "minus", "-"]:
+        elif op == ArithmeticOperation.SUBTRACTION:
             result[dest] = s1 - s2
-        elif op in ["multiplication", "multiply", "*"]:
+        elif op == ArithmeticOperation.MULTIPLICATION:
             result[dest] = s1 * s2
         else:
-            raise ValueError(f"Unknown operation: {operation}")
+            raise ValueError(f"Unsupported arithmetic operation: {op}")
 
         return result
 
@@ -57,15 +61,15 @@ class ArithmeticService:
     ) -> pd.DataFrame:
         """Merge multiple columns into a destination column with SD propagation.
 
-        Supports Sum, Mean, Mean (Average), and Concatenate operations.
+        Supports Sum, Mean, and Concatenate operations.
         For numeric operations, automatically propagates standard deviation
-        columns (.sd or _stdev suffixes).
+        columns with the canonical .sd suffix.
 
         Args:
             df: Source DataFrame.
             dest_col: Name of the new merged column.
             source_cols: List of columns to merge.
-            operation: One of 'Sum', 'Mean', 'Mean (Average)', 'Concatenate'.
+            operation: One of 'Sum', 'Mean', or 'Concatenate'.
             separator: Separator string for concatenation.
 
         Returns:
@@ -77,29 +81,31 @@ class ArithmeticService:
         # [impl->req~ring5.data.configuration-mixer~1]
         # [impl->req~ring5.data.error-propagation~1]
         # [impl->req~ring5.data.numeric-mixer~1]
+        try:
+            op = MixerOperation(operation)
+        except ValueError as exc:
+            raise ValueError(f"Unknown mixer operation: {operation}") from exc
         if not source_cols:
-            return df
+            raise ValueError("At least one source column must be selected.")
 
         result = df.copy()
 
-        if operation == "Sum":
+        if op == MixerOperation.SUM:
             result[dest_col] = result[source_cols].sum(axis=1)
-        elif operation in ("Mean", "Mean (Average)"):
+        elif op == MixerOperation.MEAN:
             result[dest_col] = result[source_cols].mean(axis=1)
-        elif operation == "Concatenate":
+        elif op == MixerOperation.CONCATENATE:
             result[dest_col] = concat_columns(result, source_cols, separator)
         else:
-            raise ValueError(f"Unknown mixer operation: {operation}")
+            raise ValueError(f"Unsupported mixer operation: {op}")
 
-        if operation in ("Sum", "Mean", "Mean (Average)"):
+        if op in (MixerOperation.SUM, MixerOperation.MEAN):
             variance_series = None
             has_sd = False
 
             for col in source_cols:
-                potential_sds = [f"{col}.sd", f"{col}_stdev"]
-                sd_col = next((s for s in potential_sds if s in result.columns), None)
-
-                if sd_col:
+                sd_col = f"{col}.sd"
+                if sd_col in result.columns:
                     has_sd = True
                     variance = result[sd_col] ** 2
                     if variance_series is None:
@@ -109,7 +115,7 @@ class ArithmeticService:
 
             if has_sd and variance_series is not None:
                 new_sd_col = f"{dest_col}.sd"
-                if operation == "Sum":
+                if op == MixerOperation.SUM:
                     result[new_sd_col] = np.sqrt(variance_series)
                 else:  # Mean
                     n = len(source_cols)
@@ -118,33 +124,13 @@ class ArithmeticService:
         return result
 
     @staticmethod
-    def merge_columns(
-        df: pd.DataFrame,
-        columns: list[str],
-        operation: str,
-        new_column_name: str,
-        separator: str = "_",
-    ) -> pd.DataFrame:
-        """Merge multiple columns into a single column.
-
-        Convenience wrapper around :meth:`apply_mixer`.
-        """
-        return ArithmeticService.apply_mixer(
-            df=df,
-            dest_col=new_column_name,
-            source_cols=columns,
-            operation=operation,
-            separator=separator,
-        )
-
-    @staticmethod
     def validate_merge_inputs(
         df: pd.DataFrame,
         columns: list[str],
         operation: str,
         new_column_name: str,
     ) -> list[str]:
-        """Validate inputs for merge_columns / apply_mixer operations.
+        """Validate inputs for the column mixer.
 
         Args:
             df: The DataFrame to validate against.
@@ -166,7 +152,7 @@ class ArithmeticService:
         if missing:
             errors.append(f"Columns not found in DataFrame: {', '.join(missing)}")
 
-        valid_ops = {"Sum", "Mean", "Mean (Average)", "Concatenate"}
+        valid_ops = [op.value for op in MixerOperation]
         if operation not in valid_ops:
             errors.append(f"Invalid operation: '{operation}'. Valid: {', '.join(valid_ops)}")
 

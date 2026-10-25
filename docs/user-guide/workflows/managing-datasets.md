@@ -461,7 +461,7 @@ Covers:
 
 -->
 
-For numeric sums and means, Mixer looks for a `.sd` or `_stdev` companion for each source column.
+For numeric sums and means, Mixer looks for a `.sd` companion for each source column.
 When at least one is present, it combines variances and writes `<result>.sd`; means divide the
 combined standard deviation by the number of source columns.
 

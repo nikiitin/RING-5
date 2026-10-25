@@ -1,22 +1,11 @@
 """Tests for mixer manager orchestration."""
 
-from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
 
-
-def _make_col_mock() -> MagicMock:
-    ctx = MagicMock()
-    ctx.__enter__ = MagicMock(return_value=ctx)
-    ctx.__exit__ = MagicMock(return_value=False)
-    return ctx
-
-
-def _columns_side_effect(n: Any) -> list[MagicMock]:
-    count = len(n) if isinstance(n, list) else n
-    return [_make_col_mock() for _ in range(count)]
+from tests.conftest import columns_side_effect
 
 
 @pytest.fixture
@@ -60,7 +49,7 @@ class TestMixerRender:
         from src.web.components.data_managers.mixer import MixerManager
 
         mock_api.state_manager.get_data.return_value = sample_df
-        mock_st.columns.side_effect = _columns_side_effect
+        mock_st.columns.side_effect = columns_side_effect
         mock_st.segmented_control.return_value = "Numerical Operations"
         mock_st.multiselect.return_value = ["cycles", "instructions"]
         mock_st.selectbox.return_value = "Sum"
@@ -80,7 +69,7 @@ class TestMixerRender:
         from src.web.components.data_managers.mixer import MixerManager
 
         mock_api.state_manager.get_data.return_value = sample_df
-        mock_st.columns.side_effect = _columns_side_effect
+        mock_st.columns.side_effect = columns_side_effect
         mock_st.segmented_control.return_value = "Configuration Merge"
         mock_st.multiselect.return_value = ["benchmark"]
         mock_st.selectbox.return_value = "Concatenate"
@@ -106,7 +95,7 @@ class TestMixerRender:
         mock_api.state_manager.get_data.return_value = sample_df
         mock_api.managers.validate_merge_inputs.return_value = []
         mock_api.managers.apply_mixer.return_value = result_df
-        mock_st.columns.side_effect = _columns_side_effect
+        mock_st.columns.side_effect = columns_side_effect
         mock_st.segmented_control.return_value = "Numerical Operations"
         mock_st.multiselect.return_value = ["cycles", "instructions"]
         mock_st.selectbox.return_value = "Sum"
@@ -133,7 +122,7 @@ class TestMixerRender:
         mock_api.state_manager.get_data.return_value = sample_df
         mock_api.managers.validate_merge_inputs.return_value = []
         mock_api.managers.apply_mixer.return_value = result_df
-        mock_st.columns.side_effect = _columns_side_effect
+        mock_st.columns.side_effect = columns_side_effect
         mock_st.segmented_control.return_value = "Numerical Operations"
         mock_st.multiselect.return_value = ["cycles", "instructions"]
         mock_st.selectbox.return_value = "Sum"
@@ -154,7 +143,7 @@ class TestMixerRender:
 
         mock_api.state_manager.get_data.return_value = sample_df
         mock_api.managers.validate_merge_inputs.return_value = ["Select at least 2 columns"]
-        mock_st.columns.side_effect = _columns_side_effect
+        mock_st.columns.side_effect = columns_side_effect
         mock_st.segmented_control.return_value = "Numerical Operations"
         mock_st.multiselect.return_value = ["cycles"]
         mock_st.selectbox.return_value = "Sum"
@@ -176,7 +165,7 @@ class TestMixerRender:
         mock_api.state_manager.get_data.return_value = sample_df
         mock_api.managers.validate_merge_inputs.return_value = []
         mock_api.managers.apply_mixer.side_effect = ValueError("Cannot merge")
-        mock_st.columns.side_effect = _columns_side_effect
+        mock_st.columns.side_effect = columns_side_effect
         mock_st.segmented_control.return_value = "Numerical Operations"
         mock_st.multiselect.return_value = ["cycles", "instructions"]
         mock_st.selectbox.return_value = "Sum"
@@ -209,7 +198,7 @@ class TestMixerRender:
             "operation": "Sum",
             "separator": "_",
         }
-        mock_st.columns.side_effect = _columns_side_effect
+        mock_st.columns.side_effect = columns_side_effect
         mock_st.segmented_control.return_value = "Numerical Operations"
         mock_st.multiselect.return_value = ["cycles", "instructions"]
         mock_st.selectbox.return_value = "Sum"
@@ -253,7 +242,7 @@ class TestMixerRender:
             "dest_columns": ["concat_col"],
         }
         mock_api.state_manager.get_data.return_value = sample_df
-        mock_st.columns.side_effect = _columns_side_effect
+        mock_st.columns.side_effect = columns_side_effect
         mock_st.segmented_control.return_value = "Configuration Merge"
         mock_st.multiselect.return_value = ["benchmark"]
         mock_st.selectbox.return_value = "Concatenate"
@@ -283,7 +272,7 @@ class TestMixerRender:
             "dest_columns": ["total"],
         }
         mock_api.state_manager.get_data.return_value = sample_df
-        mock_st.columns.side_effect = _columns_side_effect
+        mock_st.columns.side_effect = columns_side_effect
         mock_st.segmented_control.return_value = "Numerical Operations"
         mock_st.multiselect.return_value = ["cycles", "instructions"]
         mock_st.selectbox.return_value = "Sum"
@@ -313,7 +302,7 @@ class TestMixerRender:
             "dest_columns": ["total"],
         }
         mock_api.state_manager.get_data.return_value = sample_df
-        mock_st.columns.side_effect = _columns_side_effect
+        mock_st.columns.side_effect = columns_side_effect
         mock_st.segmented_control.return_value = "Numerical Operations"
         mock_st.multiselect.return_value = []
         mock_st.selectbox.return_value = "Sum"
@@ -335,7 +324,7 @@ class TestMixerRender:
         from src.web.components.data_managers.mixer import MixerManager
 
         mock_api.state_manager.get_data.return_value = sample_df
-        mock_st.columns.side_effect = _columns_side_effect
+        mock_st.columns.side_effect = columns_side_effect
         mock_st.segmented_control.return_value = "Numerical Operations"
         mock_st.multiselect.return_value = []  # No cols selected → fallback name
         mock_st.selectbox.return_value = "Sum"
@@ -347,3 +336,72 @@ class TestMixerRender:
         mgr.render()
         # default_name_parts = ["merged"] when empty
         mock_st.text_input.assert_called()
+
+
+@patch("src.web.components.data_managers.mixer.UIStateManager")
+@patch("src.web.components.data_managers.mixer.st")
+def test_unsupported_history_operation_cannot_restore_a_different_operation(
+    mock_st: MagicMock, mock_state: MagicMock, mock_api: MagicMock, sample_df: pd.DataFrame
+) -> None:
+    from src.web.components.data_managers.mixer import MixerManager
+
+    mock_api.state_manager.get_data.return_value = sample_df
+    mock_state.return_value.manager.consume_load_trigger.return_value = {
+        "operation": "Mixer: Mean (Average)",
+        "source_columns": [],
+        "dest_columns": [],
+    }
+    MixerManager(mock_api).render()
+    mock_st.error.assert_called_once_with("Saved mixer operation is unsupported.")
+    mock_st.multiselect.assert_not_called()
+    mock_api.managers.apply_mixer.assert_not_called()
+    mock_api.set_preview.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("operation", "mode", "expected"),
+    [
+        ("Sum", "Numerical Operations", [3, 7]),
+        ("Mean", "Numerical Operations", [1.5, 3.5]),
+        ("Concatenate", "Configuration Merge", ["1_2", "3_4"]),
+    ],
+)
+@patch("src.web.components.data_managers.mixer.UIStateManager")
+@patch("src.web.components.data_managers.mixer.HistoryComponents")
+@patch("src.web.components.data_managers.mixer.st")
+def test_actual_widget_options_publish_reviewable_preview(
+    mock_st: MagicMock,
+    mock_history: MagicMock,
+    mock_state: MagicMock,
+    operation: str,
+    mode: str,
+    expected: list,
+) -> None:
+    from src.core.application_api import ApplicationAPI
+    from src.web.components.data_managers.mixer import MixerManager
+
+    api = ApplicationAPI()
+    try:
+        api.state_manager.set_data(pd.DataFrame({"a": [1, 3], "b": [2, 4]}))
+        mock_state.return_value.manager.consume_load_trigger.return_value = None
+        mock_st.columns.side_effect = columns_side_effect
+        mock_st.segmented_control.return_value = mode
+        mock_st.multiselect.return_value = ["a", "b"]
+        mock_st.selectbox.side_effect = lambda label, options, **kwargs: next(
+            choice for choice in options if choice == operation
+        )
+        mock_st.text_input.side_effect = lambda label, **kwargs: (
+            "_" if label == "Separator" else "result"
+        )
+        mock_st.button.side_effect = [True, False]
+        MixerManager(api).render()
+        mock_st.exception.assert_not_called()
+        preview = api.get_preview("mixer")
+        assert preview is not None
+        assert preview["result"].tolist() == expected
+        config = api.get_preview_config("mixer")
+        assert type(config["operation"]) is str
+        assert api.preview_matches("mixer", operation_config=config)
+        assert "result" not in api.state_manager.get_data().columns
+    finally:
+        api.close()

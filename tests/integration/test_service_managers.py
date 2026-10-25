@@ -134,7 +134,7 @@ class TestServicePreprocessor:
         """Test divide operation creates correct new column."""
         result = ArithmeticService.apply_operation(
             df=sample_data_for_preprocess,
-            operation="divide",
+            operation="Division",
             src1="instructions",
             src2="cycles",
             dest="ipc",
@@ -153,7 +153,7 @@ class TestServicePreprocessor:
         """Test sum operation creates correct new column."""
         result = ArithmeticService.apply_operation(
             df=sample_data_for_preprocess,
-            operation="sum",
+            operation="Sum",
             src1="cycles",
             src2="instructions",
             dest="total",
@@ -172,7 +172,7 @@ class TestServicePreprocessor:
         """Test that original columns are preserved."""
         result = ArithmeticService.apply_operation(
             df=sample_data_for_preprocess,
-            operation="divide",
+            operation="Division",
             src1="instructions",
             src2="cycles",
             dest="ipc",
@@ -213,7 +213,7 @@ class TestServiceManagersIntegration:
         # First add IPC column
         after_preprocess = ArithmeticService.apply_operation(
             df=sample_data_with_seeds,
-            operation="divide",
+            operation="Division",
             src1="instructions",
             src2="cycles",
             dest="ipc",

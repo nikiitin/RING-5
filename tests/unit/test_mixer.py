@@ -41,7 +41,7 @@ def dataframe_with_sd() -> DataFrame:
             "B": [20.0, 40.0],
             "B.sd": [2.0, 4.0],
             "C": [5.0, 10.0],
-            "C_stdev": [0.5, 1.0],  # Alternative SD naming
+            "C.sd": [0.5, 1.0],
         }
     )
 
@@ -91,7 +91,7 @@ class TestApplyMixerSumOperation:
         # SD propagation: sqrt(2^2 + 4^2) = sqrt(20) ≈ 4.472
         assert np.isclose(result["AB_sum.sd"].iloc[1], 4.4721359)
 
-    def test_sum_mixed_sd_naming(self, dataframe_with_sd: Any) -> None:
+    def test_sum_multiple_sd_companions(self, dataframe_with_sd: Any) -> None:
 
         df = dataframe_with_sd
 
@@ -100,7 +100,7 @@ class TestApplyMixerSumOperation:
         )
 
         assert "AC_sum.sd" in result.columns
-        # A.sd=1.0, C_stdev=0.5 → sqrt(1^2 + 0.5^2) = sqrt(1.25) ≈ 1.118
+        # A.sd=1.0, C.sd=0.5 → sqrt(1^2 + 0.5^2) = sqrt(1.25) ≈ 1.118
         assert np.isclose(result["AC_sum.sd"].iloc[0], 1.1180339)
 
     def test_sum_without_sd_columns(self, sample_dataframe: Any) -> None:
@@ -130,15 +130,11 @@ class TestApplyMixerMeanOperation:
         assert "mean_AB" in result.columns
         assert result["mean_AB"].tolist() == [7.5, 15.0, 22.5]
 
-    def test_mean_average_alias(self, sample_dataframe: Any) -> None:
-
-        df = sample_dataframe
-
-        result = MixerService.apply_mixer(
-            df, dest_col="avg", source_cols=["A", "B"], operation="Mean (Average)"
-        )
-
-        assert result["avg"].tolist() == [7.5, 15.0, 22.5]
+    def test_mean_average_alias_is_rejected(self, sample_dataframe: Any) -> None:
+        with pytest.raises(ValueError, match="Unknown mixer operation"):
+            MixerService.apply_mixer(
+                sample_dataframe, dest_col="avg", source_cols=["A", "B"], operation="Mean (Average)"
+            )
 
     def test_mean_with_sd_propagation(self, dataframe_with_sd: Any) -> None:
 
@@ -202,13 +198,9 @@ class TestApplyMixerConcatenateOperation:
 class TestApplyMixerEdgeCases:
     """Test edge cases and error conditions."""
 
-    def test_empty_source_cols_returns_unchanged(self, sample_dataframe: Any) -> None:
-
-        df = sample_dataframe
-
-        result = MixerService.apply_mixer(df, dest_col="empty", source_cols=[], operation="Sum")
-
-        pd.testing.assert_frame_equal(result, df)  # Unchanged
+    def test_empty_source_cols_are_rejected(self, sample_dataframe: Any) -> None:
+        with pytest.raises(ValueError, match="source column"):
+            MixerService.apply_mixer(sample_dataframe, "total", [], "Sum")
 
     def test_invalid_operation_raises_error(self, sample_dataframe: Any) -> None:
 
@@ -241,25 +233,6 @@ class TestApplyMixerEdgeCases:
         assert "sum.sd" in result.columns  # Still creates SD from available
         # Should only use A's variance: sqrt(1^2) = 1.0
         assert result["sum.sd"].iloc[0] == 1.0
-
-
-class TestMergeColumnsAlias:
-    """Test merge_columns as alias for apply_mixer."""
-
-    def test_merge_columns_delegates_to_apply_mixer(self, sample_dataframe: Any) -> None:
-
-        df = sample_dataframe
-
-        result = MixerService.merge_columns(
-            df=df,
-            columns=["A", "B"],
-            operation="Sum",
-            new_column_name="merged",
-            separator="-",
-        )
-
-        assert "merged" in result.columns
-        assert result["merged"].tolist() == [15.0, 30.0, 45.0]
 
 
 class TestValidateMergeInputs:
