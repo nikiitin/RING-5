@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Generator
 from typing import Any, cast
+from matplotlib.colors import to_rgba
 
 import matplotlib
 import matplotlib.axes
@@ -49,6 +50,49 @@ def ax() -> Generator[matplotlib.axes.Axes]:
 
 class TestRender:
     """Tests for ``MatplotlibTraceRenderer.render``."""
+
+    def test_bar_uses_each_override_color(self, ax: matplotlib.axes.Axes) -> None:
+        traces = [
+            BarTraceConfig(
+                name="S1", x=["A", "B"], y=[1, 2], x_positions=[-0.2, 0.8], bar_width=0.4
+            ),
+            BarTraceConfig(
+                name="S2", x=["A", "B"], y=[3, 4], x_positions=[0.2, 1.2], bar_width=0.4
+            ),
+        ]
+        MatplotlibTraceRenderer.render(traces, ax, palette_colors=["#ff0000", "#00ff00"])
+        assert len(ax.containers) == 2
+        for container, color, heights in zip(
+            ax.containers, ["#ff0000", "#00ff00"], [[1, 2], [3, 4]], strict=True
+        ):
+            assert [patch.get_height() for patch in container] == heights
+            assert all(patch.get_facecolor() == to_rgba(color) for patch in container)
+
+    def test_line_uses_override_color(self, ax: matplotlib.axes.Axes) -> None:
+        trace = LineTraceConfig(name="L1", x=[1, 2], y=[3, 4])
+        MatplotlibTraceRenderer.render([trace], ax, palette_colors=["#0000ff"])
+        assert len(ax.lines) == 1
+        assert to_rgba(ax.lines[0].get_color()) == to_rgba("#0000ff")
+        np.testing.assert_array_equal(ax.lines[0].get_xdata(), [1, 2])
+        np.testing.assert_array_equal(ax.lines[0].get_ydata(), [3, 4])
+
+    def test_scatter_uses_override_color(self, ax: matplotlib.axes.Axes) -> None:
+        trace = ScatterTraceConfig(name="S1", x=[1, 2], y=[3, 4])
+        MatplotlibTraceRenderer.render([trace], ax, palette_colors=["#abcdef"])
+        assert len(ax.collections) == 1
+        np.testing.assert_array_equal(ax.collections[0].get_facecolor(), [to_rgba("#abcdef")])
+        np.testing.assert_array_equal(ax.collections[0].get_offsets(), [[1, 3], [2, 4]])
+
+    def test_explicit_trace_color_survives_without_palette_override(
+        self, ax: matplotlib.axes.Axes
+    ) -> None:
+        trace = BarTraceConfig(
+            name="S1", x=["A"], y=[1], color="#ff0000", x_positions=[0.0], bar_width=0.8
+        )
+        MatplotlibTraceRenderer.render([trace], ax)
+        patch = ax.containers[0][0]
+        assert patch.get_facecolor() == to_rgba("#ff0000")
+        assert patch.get_height() == 1
 
     def test_empty_traces(self, ax: matplotlib.axes.Axes) -> None:
         count = MatplotlibTraceRenderer.render([], ax)

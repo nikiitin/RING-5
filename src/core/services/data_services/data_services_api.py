@@ -194,15 +194,6 @@ class DataServicesAPI(Protocol):
         """Filter out internal simulator statistics from entry list."""
         raise NotImplementedError
 
-    def find_variable_by_name(
-        self,
-        variables: list[ParseVariableConfig],
-        name: str,
-        exact: bool = True,
-    ) -> ParseVariableConfig | None:
-        """Find a variable by name (exact or regex match)."""
-        raise NotImplementedError
-
     def aggregate_discovered_entries(
         self,
         snapshot: list[ScannedVariableDict],
@@ -228,28 +219,12 @@ class DataServicesAPI(Protocol):
         """Format list of entries as comma-separated string."""
         raise NotImplementedError
 
-    def find_entries_for_variable(
-        self,
-        available_variables: list[ScannedVariableDict],
-        var_name: str,
-        internal_stats: frozenset[str],
-    ) -> list[str]:
-        """Find all entries for a variable by searching available/scanned variables."""
-        raise NotImplementedError
-
     def has_variable_with_name(
         self,
         variables: list[ParseVariableConfig],
         name: str,
     ) -> bool:
         """Check if a variable with the given name already exists."""
-        raise NotImplementedError
-
-    def build_statistics_list(
-        self,
-        selected: dict[str, bool],
-    ) -> list[str]:
-        """Build a list of selected statistics from a boolean mapping."""
         raise NotImplementedError
 
     # -- Portfolio Management --

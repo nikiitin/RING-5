@@ -2,10 +2,19 @@
 
 from __future__ import annotations
 
+from collections.abc import Generator
 from typing import Any
+
+import matplotlib.pyplot as plt
+from matplotlib.axes import Axes as MplAxes
+import plotly.graph_objects as go
+import pytest
 from unittest.mock import MagicMock
 
 from src.core.models.visualization.figure_config import FigureConfig
+from src.core.services.visualization.config_resolver import resolve_config
+from src.web.rendering.config_builder import ConfigSpecBuilder
+from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
 from src.web.rendering.config_builder import PlotlyFigureSpecBuilder
 
 
@@ -186,3 +195,70 @@ class TestEnrichEdgeCases:
         fig.layout = None
         spec = _make_spec()
         PlotlyFigureSpecBuilder.enrich_from_plotly(spec, fig)  # Should not raise
+
+
+class TestEnrichAndApply:
+    """Full pipeline: config -> FigureConfig -> enrich -> resolve -> apply."""
+
+    @pytest.fixture(autouse=True)
+    def _setup(self) -> Generator[None]:
+        fig, ax = plt.subplots()
+        assert isinstance(ax, MplAxes)
+        self.fig = fig
+        self.ax: MplAxes = ax
+        yield
+        plt.close(self.fig)
+
+    def test_enriched_tick_labels_applied(self) -> None:
+        """Tick labels from Plotly figure appear on matplotlib axes."""
+        config: dict[str, Any] = {"width": 800, "height": 500}
+        spec = ConfigSpecBuilder.from_config(config, "bar")
+
+        plotly_fig = go.Figure()
+        plotly_fig.add_bar(x=[0, 1, 2], y=[10, 20, 30])
+        plotly_fig.update_xaxes(tickvals=[0, 1, 2], ticktext=["A", "B", "C"])
+
+        PlotlyFigureSpecBuilder.enrich_from_plotly(spec, plotly_fig)
+        spec = resolve_config(spec)
+
+        assert spec.axes is not None
+        assert spec.axes.x.tick_values == [0, 1, 2]
+        assert spec.axes.x.tick_text == ["A", "B", "C"]
+
+        FigureSpecToMatplotlib.apply(spec, self.ax)
+
+        get_labels_fn = self.ax.get_xticklabels
+        labels = [t.get_text() for t in get_labels_fn()]
+        assert "A" in labels
+
+    def test_enriched_annotations_applied(self) -> None:
+        """Annotations from Plotly figure appear on matplotlib axes."""
+        config: dict[str, Any] = {"width": 800, "height": 500}
+        spec = ConfigSpecBuilder.from_config(config, "bar")
+
+        plotly_fig = go.Figure()
+        plotly_fig.add_bar(x=["A"], y=[10])
+        plotly_fig.update_layout(
+            annotations=[
+                dict(
+                    text="Group Label",
+                    x=0.5,
+                    y=-0.1,
+                    xref="paper",
+                    yref="paper",
+                    showarrow=False,
+                    font=dict(size=12, color="#333"),
+                )
+            ]
+        )
+
+        PlotlyFigureSpecBuilder.enrich_from_plotly(spec, plotly_fig)
+        spec = resolve_config(spec)
+
+        assert len(spec.annotations) == 1
+
+        FigureSpecToMatplotlib.apply(spec, self.ax)
+        texts = self.ax.texts
+        assert len(texts) >= 1
+        text_content = " ".join(t.get_text() for t in texts)
+        assert "Group" in text_content

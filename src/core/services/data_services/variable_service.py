@@ -206,47 +206,6 @@ class VariableService:
         return sorted(filtered)
 
     @classmethod
-    def find_variable_by_name(
-        cls, variables: list[ParseVariableConfig], name: str, exact: bool = True
-    ) -> ParseVariableConfig | None:
-        """
-        Find a variable by name in the list.
-
-        Args:
-            variables: List of variable configurations
-            name: Variable name to search for
-            exact: If True, use exact match; if False, use regex pattern matching
-
-        Returns:
-            First matching variable dict, or None if not found
-
-        Examples:
-            >>> service = VariableService()
-            >>> vars = [{"name": "system.cpu.ipc", "type": "scalar"}]
-            >>> var = service.find_variable_by_name(vars, "system.cpu.ipc")
-            >>> var["type"]
-            'scalar'
-            >>> service.find_variable_by_name(vars, "nonexistent") is None
-            True
-        """
-        for var in variables:
-            var_name = var.get("name", "")
-            if exact:
-                if var_name == name:
-                    return var
-            else:
-                # Regex pattern matching via safe compilation
-                compiled = _compile_safe_pattern(name)
-                if compiled is not None:
-                    if _safe_fullmatch(compiled, var_name):
-                        return var
-                else:
-                    # Pattern failed safety check, fall back to exact match
-                    if var_name == name:
-                        return var
-        return None
-
-    @classmethod
     def aggregate_discovered_entries(
         cls, snapshot: list[ScannedVariableDict], var_name: str, internal_stats: frozenset[str]
     ) -> list[str]:
@@ -378,55 +337,6 @@ class VariableService:
         return ", ".join(entries)
 
     @classmethod
-    def find_entries_for_variable(
-        cls,
-        available_variables: list[ScannedVariableDict],
-        var_name: str,
-        internal_stats: frozenset[str],
-    ) -> list[str]:
-        r"""
-        Find all entries for a variable by searching available/scanned variables.
-
-        Searches both exact name matches and regex pattern matches (e.g.,
-        var_name contains \\d+ patterns). Aggregates entries from all matches
-        and filters out internal statistics.
-
-        Args:
-            available_variables: List of scanned variable dicts with 'name'
-                                 and 'entries' keys.
-            var_name: Variable name or regex pattern to search for.
-            internal_stats: Explicit summary names from the selected simulator.
-
-        Returns:
-            Sorted list of unique, non-internal entries found across matches.
-
-        Examples:
-            >>> service = VariableService()
-            >>> avail = [
-            ...     {"name": "system.cpu.ipc", "entries": ["cpu0", "cpu1", "total"]},
-            ...     {"name": "system.mem.lat", "entries": ["bank0"]},
-            ... ]
-            >>> service.find_entries_for_variable(avail, "system.cpu.ipc", frozenset({"total"}))
-            ['cpu0', 'cpu1']
-        """
-        found_entries: set[str] = set()
-
-        for var in available_variables:
-            v_name = var.get("name", "")
-            v_entries = var.get("entries", [])
-
-            matched = v_name == var_name
-            if not matched:
-                compiled = _compile_safe_pattern(var_name)
-                if compiled is not None:
-                    matched = _safe_fullmatch(compiled, v_name)
-
-            if matched and v_entries:
-                found_entries.update(v_entries)
-
-        return cls.filter_internal_stats(list(found_entries), internal_stats)
-
-    @classmethod
     def has_variable_with_name(
         cls,
         variables: list[ParseVariableConfig],
@@ -451,30 +361,3 @@ class VariableService:
             False
         """
         return any(v.get("name") == name for v in variables)
-
-    @classmethod
-    def build_statistics_list(
-        cls,
-        selected: dict[str, bool],
-    ) -> list[str]:
-        """
-        Build a list of selected statistics from a boolean mapping.
-
-        Utility for building the list of statistics to extract from vectors
-        or distributions based on user checkbox selections.
-
-        Args:
-            selected: Mapping of statistic name to whether it's selected.
-                      E.g., {"total": True, "mean": False, "stdev": True}
-
-        Returns:
-            List of selected statistic names, in insertion order.
-
-        Examples:
-            >>> service = VariableService()
-            >>> service.build_statistics_list({"total": True, "mean": False, "stdev": True})
-            ['total', 'stdev']
-            >>> service.build_statistics_list({})
-            []
-        """
-        return [name for name, is_selected in selected.items() if is_selected]

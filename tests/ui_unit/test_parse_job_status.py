@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from src.core.application_api import ApplicationAPI
 from src.core.models.parse_job_models import ParseJobReceipt, ParseJobSnapshot, ParseJobStatus
 from src.web.components.data_source import data_source_components
 from src.web.components.data_source import parse_job_status
@@ -163,9 +164,12 @@ def test_terminal_transition_stops_the_polling_fragment(mock_st: Any) -> None:
 
 
 def test_parse_button_submits_background_job_without_waiting() -> None:
-    api = MagicMock()
+    api = MagicMock(spec=ApplicationAPI)
+    api.state_manager = MagicMock()
+    api.compile_parse_variables.side_effect = ApplicationAPI.compile_parse_variables
     api.state_manager.get_simulator.return_value = "gem5"
-    api.state_manager.get_parse_variables.return_value = [{"name": "simTicks", "type": "scalar"}]
+    variables = [{"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}]
+    api.state_manager.get_parse_variables.return_value = variables
     api.state_manager.get_scanned_variables.return_value = []
     api.state_manager.get_parser_strategy.return_value = "simple"
     api.get_active_parse_job.return_value = None
@@ -175,7 +179,9 @@ def test_parse_button_submits_background_job_without_waiting() -> None:
     with (
         patch.object(data_source_components, "st") as streamlit,
         patch.object(data_source_components, "render_parse_job_panel"),
-        patch.object(data_source_components, "remember_parse_job") as remember,
+        patch.object(
+            data_source_components, "remember_parse_job", wraps=parse_job_status.remember_parse_job
+        ) as remember,
         patch.object(data_source_components, "get_visible_parse_job", return_value=None),
         patch.object(
             data_source_components,
@@ -186,16 +192,28 @@ def test_parse_button_submits_background_job_without_waiting() -> None:
         streamlit.session_state = {
             "stats_path_input": "/stats",
             "stats_pattern_input": "stats.txt",
+            "parser_incremental_enabled": True,
         }
         streamlit.columns.return_value = (MagicMock(), MagicMock())
         streamlit.pills.return_value = "gem5"
         streamlit.button.side_effect = lambda label, **_kwargs: label.startswith("Parse gem5")
 
-        data_source_components.DataSourceComponents.render_parser_config(api)
+        with patch.object(parse_job_status, "st", streamlit):
+            data_source_components.DataSourceComponents.render_parser_config(api)
 
-    api.submit_parse_job.assert_called_once()
+    api.submit_parse_job.assert_called_once_with(
+        "/stats",
+        "stats.txt",
+        ApplicationAPI.compile_parse_variables(variables),
+        scanned_vars=[],
+        strategy_type="simple",
+        simulator="gem5",
+        incremental=True,
+    )
     api.submit_parse_async.assert_not_called()
+    api.finalize_parsing.assert_not_called()
     remember.assert_called_once_with(queued)
+    assert streamlit.session_state[parse_job_status._JOB_ID_KEY] == "job-1"
     streamlit.rerun.assert_called_once_with()
 
 

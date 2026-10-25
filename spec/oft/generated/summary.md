@@ -13,7 +13,7 @@ This file is informative; normative items are in the other generated files.
 - In development future requirements: 0
 - Blocked future requirements: 0
 - Generated specification items: 233
-- Live capability bindings: 832
+- Live capability bindings: 829
 
 ## Requirements by feature group
 
@@ -42,7 +42,7 @@ This file is informative; normative items are in the other generated files.
 - `cli_options`: 37
 - `colorbar_config_fields`: 9
 - `data_label_config_fields`: 12
-- `data_services_api_members`: 53
+- `data_services_api_members`: 50
 - `dimension_config_fields`: 7
 - `figure_config_fields`: 22
 - `figure_decoration_members`: 12

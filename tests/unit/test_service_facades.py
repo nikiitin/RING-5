@@ -213,16 +213,6 @@ class TestDefaultDataServicesAPI:
         ) == ["ipc"]
 
     @patch("src.core.services.data_services.data_services_impl.VariableService")
-    def test_find_variable_by_name(self, mock_svc: MagicMock, api: DefaultDataServicesAPI) -> None:
-        var_config = cast(ParseVariableConfig, {"name": "ipc"})
-        mock_svc.find_variable_by_name.return_value = var_config
-        result = api.find_variable_by_name(cast(list[ParseVariableConfig], [var_config]), "ipc")
-        mock_svc.find_variable_by_name.assert_called_once_with(
-            cast(list[ParseVariableConfig], [var_config]), "ipc", True
-        )
-        assert result == {"name": "ipc"}
-
-    @patch("src.core.services.data_services.data_services_impl.VariableService")
     def test_aggregate_discovered_entries(
         self, mock_svc: MagicMock, api: DefaultDataServicesAPI
     ) -> None:

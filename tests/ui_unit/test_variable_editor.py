@@ -1,10 +1,13 @@
 from collections.abc import Generator
 from copy import deepcopy
+from pathlib import Path
 from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
 
+from src.core.application_api import ApplicationAPI
+from src.core.common.security_limits import MAX_SCAN_FILES
 from src.core.models.data_models import ParseVariableConfig
 from tests.conftest import columns_side_effect
 
@@ -65,14 +68,12 @@ def mock_streamlit() -> Generator[MagicMock, None, None]:
 
 @pytest.fixture
 def mock_api() -> Any:
-    api = MagicMock()
+    api = MagicMock(spec=ApplicationAPI)
     api.state_manager = MagicMock()
-    api.backend = MagicMock()
-    api.portfolio = MagicMock()
-    # Mock some basic returns if needed
+    api.get_simulator_info.side_effect = ApplicationAPI.get_simulator_info
+    api.state_manager.get_simulator.return_value = "gem5"
     api.state_manager.get_scanned_variables.return_value = []
     api.state_manager.get_parse_variables.return_value = []
-    api.backend.submit_scan_async = MagicMock()
     return api
 
 
@@ -120,7 +121,10 @@ def test_variable_editor_add_manual(mock_streamlit: Any, mock_api: Any) -> None:
     mock_streamlit.rerun.assert_called()
 
 
-def test_variable_editor_deep_scan(mock_streamlit: Any, mock_api: Any) -> None:
+def test_variable_editor_deep_scan_submits_through_facade(
+    mock_streamlit: Any, mock_api: Any
+) -> None:
+    # [test->req~ring5.ingestion.scan-presets-progress~1]
 
     vars_config = cast(list[ParseVariableConfig], [{"name": "vec", "type": "vector", "_id": "1"}])
 
@@ -148,11 +152,24 @@ def test_variable_editor_deep_scan(mock_streamlit: Any, mock_api: Any) -> None:
 
     from src.web.components.data_source.variable_editor import VariableEditor
 
-    with patch.object(VariableEditor, "_show_scan_dialog") as mock_dialog:
-        VariableEditor.render(mock_api, vars_config, available_variables=[], stats_path=".")
+    with (
+        patch.object(VariableEditor, "_show_scan_dialog") as mock_dialog,
+        patch(
+            "src.web.components.data_source.variable_editor.validate_web_stats_path",
+            return_value=Path("/stats"),
+        ),
+    ):
+        VariableEditor.render(
+            mock_api,
+            vars_config,
+            available_variables=[],
+            stats_path="/stats",
+            stats_pattern="stats*.txt",
+        )
 
-        # Verify it was called
         mock_dialog.assert_called_once()
+    mock_api.submit_scan_async.assert_called_once_with("/stats", "stats*.txt", limit=MAX_SCAN_FILES)
+    assert mock_dialog.call_args.args[3] == [mock_future]
 
 
 def test_variable_editor_vector_stats_checkboxes(mock_streamlit: Any, mock_api: Any) -> None:

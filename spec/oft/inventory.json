@@ -2763,7 +2763,7 @@
       "tags": ["progress", "scan", "web"],
       "evidence": {
         "implementation": ["src/web/components/data_source/data_source_components.py::DataSourceComponents.render_parser_config", "src/web/components/data_source/variable_editor.py::VariableEditor._show_scan_dialog"],
-        "tests": ["tests/visual/test_ds_parser_config.py::TestParserConfig.test_variables_section", "tests/visual/test_e2e_parse_workflow.py::TestScanWorkflow.test_scan_single_stats", "tests/integration/test_scanner_fix.py::TestScannerFix.test_variable_editor_deep_scan_calls_api_directly"],
+        "tests": ["tests/visual/test_ds_parser_config.py::TestParserConfig.test_variables_section", "tests/visual/test_e2e_parse_workflow.py::TestScanWorkflow.test_scan_single_stats", "tests/ui_unit/test_variable_editor.py::test_variable_editor_deep_scan_submits_through_facade"],
         "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
@@ -5679,7 +5679,6 @@
       "add_variable": "ingestion.variable-editor",
       "aggregate_discovered_entries": "ingestion.variable-entry-selection",
       "aggregate_distribution_range": "ingestion.distribution-range-scan",
-      "build_statistics_list": "ingestion.variable-entry-selection",
       "capture_analysis_recipe": "portfolio.analysis-recipes",
       "clear_caches": "quality.bounded-caching",
       "compare_portfolio_revisions": "portfolio.history-diff",
@@ -5697,8 +5696,6 @@
       "delete_variable": "ingestion.variable-editor",
       "ensure_variable_ids": "ingestion.variable-editor",
       "filter_internal_stats": "ingestion.variable-entry-selection",
-      "find_entries_for_variable": "ingestion.variable-entry-selection",
-      "find_variable_by_name": "ingestion.variable-editor",
       "format_entries_as_string": "ingestion.variable-entry-selection",
       "generate_variable_id": "ingestion.variable-editor",
       "get_cache_stats": "quality.bounded-caching",

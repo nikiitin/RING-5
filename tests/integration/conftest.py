@@ -40,7 +40,24 @@ def facade() -> Iterator[ApplicationAPI]:
     try:
         yield api
     finally:
-        api.close()
+        api.close(wait=True)
+
+
+@pytest.fixture
+def isolated_application_data(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Path]:
+    """Keep opted-in persistent service work beneath this test's temporary directory."""
+    directory = tmp_path / "application-data"
+    directory.mkdir()
+    PathService.reset_caches()
+    CsvPoolService.clear_caches()
+    ConfigService.reset_caches()
+    monkeypatch.setattr(PathService, "get_data_dir", staticmethod(lambda: directory))
+    try:
+        yield directory
+    finally:
+        PathService.reset_caches()
+        CsvPoolService.clear_caches()
+        ConfigService.reset_caches()
 
 
 @pytest.fixture
