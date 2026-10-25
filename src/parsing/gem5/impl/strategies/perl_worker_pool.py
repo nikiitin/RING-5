@@ -24,6 +24,8 @@ from pathlib import Path
 from typing import Any
 
 from src.core.common.security_limits import MAX_PARSE_LINE_COUNT
+from src.core.common.parse_failure import bounded_parse_text, parse_error_text
+from src.core.models.parse_failure_models import ParseDataRuntimeError, ParseDataValueError
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +141,7 @@ class PerlWorker:
                 timeout = 30.0
                 ready_line = self._read_line_with_timeout(timeout=timeout)
                 if ready_line != "READY":
-                    raise RuntimeError(
+                    raise ParseDataRuntimeError(
                         f"Worker did not send READY signal within {timeout}s "
                         f"(got: '{ready_line}')"
                     )
@@ -149,9 +151,9 @@ class PerlWorker:
                     f"[Worker-{self.worker_id}] Worker started successfully (PID: {process.pid})"
                 )
 
-            except Exception as e:
+            except (ParseDataRuntimeError, OSError) as e:
                 logger.error(
-                    f"[Worker-{self.worker_id}] FAILED to start worker: {e}", exc_info=True
+                    "[Worker-%s] FAILED to start worker: %s", self.worker_id, parse_error_text(e)
                 )
                 self.is_healthy = False
                 raise
@@ -202,10 +204,14 @@ class PerlWorker:
                     return
                 for line in stderr:
                     if "ERROR" in line:
-                        logger.warning("[Worker-%s][perl] %s", self.worker_id, line.strip())
+                        logger.warning(
+                            "[Worker-%s][perl] %s", self.worker_id, bounded_parse_text(line.strip())
+                        )
             except (OSError, ValueError) as exc:
                 # Closing the worker pipes during shutdown ends the drainer.
-                logger.debug("[Worker-%s] stderr drainer stopped: %s", self.worker_id, exc)
+                logger.debug(
+                    "[Worker-%s] stderr drainer stopped: %s", self.worker_id, parse_error_text(exc)
+                )
 
         self._stderr_thread = threading.Thread(
             target=_drain, daemon=True, name=f"perl-stderr-{self.worker_id}"
@@ -232,7 +238,7 @@ class PerlWorker:
         """
         line_queue = self._line_queue
         if line_queue is None:
-            raise RuntimeError(f"Worker-{self.worker_id} has no active stdout queue")
+            raise ParseDataRuntimeError(f"Worker-{self.worker_id} has no active stdout queue")
 
         try:
             line = line_queue.get(timeout=timeout)
@@ -241,7 +247,7 @@ class PerlWorker:
             raise TimeoutError(f"Read timeout after {timeout}s")
 
         if line is None:
-            raise RuntimeError(f"Worker-{self.worker_id} stdout closed (EOF)")
+            raise ParseDataRuntimeError(f"Worker-{self.worker_id} stdout closed (EOF)")
 
         return line
 
@@ -265,11 +271,11 @@ class PerlWorker:
         """
         protocol_fields = [file_path, *variables]
         if any("||" in field or "\n" in field or "\r" in field for field in protocol_fields):
-            raise ValueError("Perl worker request contains a reserved protocol delimiter.")
+            raise ParseDataValueError("Perl worker request contains a reserved protocol delimiter.")
 
         with self._lock:
             if not self.is_healthy:
-                raise RuntimeError(f"Worker-{self.worker_id} is not healthy")
+                raise ParseDataRuntimeError(f"Worker-{self.worker_id} is not healthy")
 
             try:
                 logger.debug(f"[Worker-{self.worker_id}] Parsing file: {file_path}")
@@ -280,7 +286,7 @@ class PerlWorker:
 
                 # Send command
                 if not self.process or not self.process.stdin:
-                    raise RuntimeError("Worker stdin not available")
+                    raise ParseDataRuntimeError("Worker stdin not available")
 
                 self.process.stdin.write(command)
                 self.process.stdin.flush()
@@ -303,7 +309,9 @@ class PerlWorker:
                     if line == "END_PARSE":
                         break
                     elif line.startswith("ERROR"):
-                        logger.error(f"[Worker-{self.worker_id}] Perl error: {line}")
+                        logger.error(
+                            f"[Worker-{self.worker_id}] Perl error: {bounded_parse_text(line)}"
+                        )
                         self.errors_encountered += 1
                         protocol_error = line
                         # Continue reading to END_PARSE
@@ -321,7 +329,7 @@ class PerlWorker:
                     logger.error(
                         "[Worker-%s] Parse request failed: %s",
                         self.worker_id,
-                        protocol_error,
+                        bounded_parse_text(protocol_error),
                     )
                     return [], False
 
@@ -332,8 +340,8 @@ class PerlWorker:
 
                 return output_lines, True
 
-            except Exception as e:
-                logger.error(f"[Worker-{self.worker_id}] Parse failed: {e}", exc_info=True)
+            except (ParseDataRuntimeError, OSError) as e:
+                logger.error("[Worker-%s] Parse failed: %s", self.worker_id, parse_error_text(e))
                 self.errors_encountered += 1
                 self.is_healthy = False
                 return [], False
@@ -477,7 +485,7 @@ class PerlWorkerPool:
         perl_exe_path = shutil.which("perl")
         if not perl_exe_path:
             logger.error("Perl executable not found in PATH")
-            raise RuntimeError("Perl executable not found in PATH")
+            raise ParseDataRuntimeError("Perl executable not found in PATH")
         self.perl_exe: str = perl_exe_path
 
         # Locate Perl server script (in src/parsing/perl/)
@@ -503,11 +511,11 @@ class PerlWorkerPool:
                 self.workers.append(worker)
                 self.worker_queue.put(worker)
                 logger.info(f"Worker {i} initialized")
-            except Exception as e:
-                logger.error(f"Failed to initialize worker {i}: {e}")
+            except (ParseDataRuntimeError, OSError) as e:
+                logger.error("Failed to initialize worker %s: %s", i, parse_error_text(e))
 
         if not self.workers:
-            raise RuntimeError("No Perl workers could be started")
+            raise ParseDataRuntimeError("No Perl workers could be started")
 
         if len(self.workers) < self.pool_size:
             logger.warning(
@@ -592,7 +600,7 @@ class PerlWorkerPool:
                 healthy_count = sum(1 for w in self.workers if w.is_healthy)
             if healthy_count == 0 and failures > 0:
                 logger.error("Circuit breaker: no healthy workers remaining")
-                raise RuntimeError("All workers unhealthy — circuit breaker tripped")
+                raise ParseDataRuntimeError("All workers unhealthy — circuit breaker tripped")
 
             try:
                 # Get available worker with per-attempt timeout
@@ -620,10 +628,12 @@ class PerlWorkerPool:
                         )
                         # Don't return worker to queue yet, health monitor will handle it
 
-                except Exception as e:
+                except (ParseDataRuntimeError, ParseDataValueError, OSError) as e:
                     failures += 1
                     last_exc = e
-                    logger.error(f"Parse error with worker-{worker.worker_id}: {e}")
+                    logger.error(
+                        "Parse error with worker-%s: %s", worker.worker_id, parse_error_text(e)
+                    )
                 finally:
                     # Ensure busy flag is cleared even on exception
                     worker.is_busy = False
@@ -640,7 +650,7 @@ class PerlWorkerPool:
 
         # All workers failed
         logger.error("All workers failed to parse the file")
-        raise RuntimeError("All workers failed") from last_exc
+        raise ParseDataRuntimeError("All workers failed") from last_exc
 
     def get_stats(self) -> dict[str, Any]:
         """Get pool statistics."""

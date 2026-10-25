@@ -5,6 +5,7 @@ from __future__ import annotations
 import threading
 
 from src.core.common.parsed_output_codec import iter_parsed_file_encoding
+from src.core.common.parse_failure import bounded_parse_text, detach_parse_failure
 from src.core.common.safe_regex import MAX_INPUT_LENGTH
 from src.core.common.security_limits import (
     MAX_PARSE_FILES,
@@ -12,6 +13,11 @@ from src.core.common.security_limits import (
     MAX_PARSE_RESULT_BYTES,
 )
 from src.core.models.parsed_output_models import ParsedFileResult
+from src.core.models.parse_failure_models import (
+    ParseDataRuntimeError,
+    ParseDataTypeError,
+    ParseDataValueError,
+)
 from src.parsing.parser_protocol import ParseWorkItem
 
 
@@ -106,15 +112,24 @@ class AdmittedParseWork:
         work, self._work = self._work, None
         if work is None:
             raise RuntimeError("A parse work item can execute only once.")
+        expected_failure: BaseException | None = None
         try:
             result = work()
+        except (ParseDataRuntimeError, ParseDataTypeError, ParseDataValueError, OSError) as exc:
+            expected_failure = detach_parse_failure(exc, self._source_path)
+            if expected_failure is None:
+                raise
         finally:
             del work
+        if expected_failure is not None:
+            # Leaving the handler also removes implicit exception context. The
+            # fresh traceback owns this consumed wrapper, never producer frames.
+            raise expected_failure
         failure: str | None = None
         try:
             self._admission.admit(result, source_path=self._source_path)
         except ResultAdmissionError as exc:
-            failure = str(exc)
+            failure = bounded_parse_text(str(exc))
         if failure is not None:
             # Raising after the handler avoids retaining the original traceback,
             # which owns the rejected value and its temporary encoding graph.

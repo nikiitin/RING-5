@@ -14,6 +14,7 @@ from src.core.common.security_limits import (
     MAX_PARSE_VARIABLES,
 )
 from src.core.models.csv_contract import MISSING_VALUE
+from src.core.models.parse_failure_models import ParseDataValueError
 from src.core.models.parsed_output_models import (
     ParsedCell,
     ParsedFileResult,
@@ -199,16 +200,19 @@ class ParsedOutputDigest:
 def read_numeric_wire(value: str) -> float:
     """Decode a numeric wire token without silently changing its finite range."""
     if type(value) is not str or len(value) > MAX_PARSED_CELL_CHARACTERS:
-        raise ValueError("Numeric parser tokens must be bounded strings.")
-    number = float(value)
+        raise ParseDataValueError("Numeric parser tokens must be bounded strings.")
+    try:
+        number = float(value)
+    except ValueError as exc:
+        raise ParseDataValueError("Invalid numeric parser token.") from exc
     overflow = math.isinf(number)
     if overflow or number == 0.0:
         try:
             exact = Decimal(value if overflow else value.lower().partition("e")[0])
         except InvalidOperation as exc:
-            raise ValueError("Invalid numeric parser token.") from exc
+            raise ParseDataValueError("Invalid numeric parser token.") from exc
         if (overflow and not exact.is_infinite()) or (number == 0.0 and not exact.is_zero()):
-            raise ValueError("Finite parser token is outside the nonzero Float64 range.")
+            raise ParseDataValueError("Finite parser token is outside the nonzero Float64 range.")
     return number
 
 

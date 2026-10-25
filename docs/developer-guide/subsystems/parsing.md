@@ -177,6 +177,15 @@ Percent signs and interpolation-looking workload arguments remain unchanged.
 
 ## Failure and security rules
 
+Gem5 tasks detach expected data and I/O failures before their Futures retain them. Explicit
+`ParseDataValueError`, `ParseDataTypeError`, and `ParseDataRuntimeError` sites preserve the corresponding
+builtin error category. Reviewed builtin filesystem/process errors preserve their concrete type,
+errno and filenames. Retained errors have no producer traceback, cause or context object; immutable
+`failure_facts` contains the planned source ID, the last eight origin locations (2,048 characters),
+and a cause summary (1,024 characters). Messages are limited to 1,024 characters, including an
+explicit truncation marker. Error logs retain bounded text rather than exceptions or observation
+containers. Unmarked programming errors propagate with their identity and traceback intact.
+
 - Do not turn a regex miss, missing statistic, worker failure, or malformed file into zero.
 - Numeric index extraction follows the shared matching timeout; execution-bound failures propagate
   during submission rather than becoming missing observations.

@@ -2,6 +2,7 @@
 
 from typing import override
 
+from src.core.models.parse_failure_models import ParseDataRuntimeError, ParseDataTypeError
 from src.parsing.gem5.types.base import FrameStatType, entry_names, register_type
 
 SAFETY_MAX_BUCKETS = 100_000
@@ -75,9 +76,11 @@ class Distribution(FrameStatType):
     def _prepare_frame(self, sample: dict[str, float]) -> dict[str, float]:
         if not self._statistics_only:
             if not {"underflows", "overflows"} <= sample.keys():
-                raise TypeError("DISTRIBUTION: Missing mandatory keys 'underflows' or 'overflows'.")
+                raise ParseDataTypeError(
+                    "DISTRIBUTION: Missing mandatory keys 'underflows' or 'overflows'."
+                )
             if not {str(self.minimum), str(self.maximum)} <= sample.keys():
-                raise RuntimeError(
+                raise ParseDataRuntimeError(
                     f"DISTRIBUTION: Boundary buckets {self.minimum} or {self.maximum} missing. "
                     "Check for format mismatch in stats file."
                 )
@@ -86,7 +89,7 @@ class Distribution(FrameStatType):
                     int(key)
                 except ValueError:
                     continue
-                raise RuntimeError(
+                raise ParseDataRuntimeError(
                     f"DISTRIBUTION: Bucket {key} is out of configured range "
                     f"[{self.minimum}, {self.maximum}]."
                 )

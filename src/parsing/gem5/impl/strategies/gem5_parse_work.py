@@ -8,6 +8,8 @@ import re
 from src.parsing.gem5.types.base import StatContent, StatResult, StatType
 
 from src.core.common.parsed_output_codec import read_numeric_wire
+from src.core.common.parse_failure import bounded_parse_text, parse_error_text, parse_names_text
+from src.core.models.parse_failure_models import ParseDataRuntimeError, ParseDataValueError
 from src.core.common.security_limits import MAX_INCREMENTAL_CACHE_COLUMNS, MAX_PARSE_VARIABLES
 from src.core.models.parsed_output_models import (
     ParsedCell,
@@ -115,7 +117,9 @@ class Gem5ParseWork:
             if route.source_type not in _ENTRY_TYPES or (
                 raw_type != "summary" and raw_type != route.source_type
             ):
-                raise RuntimeError(f"Raw source kind mismatch for {source_name!r}: {raw_type!r}.")
+                raise ParseDataRuntimeError(
+                    f"Raw source kind mismatch for {source_name!r}: {raw_type!r}."
+                )
             for target in route.targets:
                 spec = self._specs[target.output_name]
                 if spec.output_type not in _ENTRY_TYPES or target.entry_name is not None:
@@ -130,7 +134,9 @@ class Gem5ParseWork:
             return
 
         if raw_type not in {"scalar", "configuration"} or raw_type != route.source_type:
-            raise RuntimeError(f"Raw source kind mismatch for {source_name!r}: {raw_type!r}.")
+            raise ParseDataRuntimeError(
+                f"Raw source kind mismatch for {source_name!r}: {raw_type!r}."
+            )
         for target in route.targets:
             spec = self._specs[target.output_name]
             if (
@@ -162,7 +168,7 @@ class Gem5ParseWork:
                 "PARSER: %d requested output(s) absent or incomplete in %s — recorded as NaN: %s",
                 len(missing),
                 self._file_to_parse,
-                ", ".join(sorted(missing)),
+                parse_names_text(sorted(missing)),
             )
         return self._accumulators
 
@@ -186,10 +192,13 @@ class Gem5ParseWork:
             lines = get_worker_pool().parse_file(self._file_to_parse, filters, timeout=120.0)
             return "\n".join(lines)
         except TimeoutError as exc:
-            raise RuntimeError(f"Parser timeout: {self._file_to_parse}") from exc
-        except (OSError, RuntimeError, ValueError) as exc:
-            logger.error("Worker pool parse failed for %s: %s", self._file_to_parse, exc)
-            raise RuntimeError(f"Worker pool parse failed: {self._file_to_parse}") from exc
+            raise ParseDataRuntimeError(f"Parser timeout: {self._file_to_parse}") from exc
+        except (OSError, ParseDataRuntimeError, ParseDataValueError) as exc:
+            message = bounded_parse_text(
+                f"Worker pool parse failed for {self._file_to_parse}: {parse_error_text(exc)}"
+            )
+            logger.error("%s", message)
+            raise ParseDataRuntimeError(message) from exc
 
     def __call__(self) -> ParsedFileResult:
         """Parse, balance and reduce owned accumulators before resolving this worker."""
@@ -220,7 +229,7 @@ class Gem5ParseWork:
                         f"PARSER: entry output {name!r} requires reduced entry values."
                     )
                 if column_count + len(entries) > MAX_INCREMENTAL_CACHE_COLUMNS:
-                    raise RuntimeError("PARSER: output exceeds the physical column limit.")
+                    raise ParseDataRuntimeError("PARSER: output exceeds the physical column limit.")
                 cells = tuple(
                     ParsedCell(f"{name}..{entry}", "number", reduced[entry]) for entry in entries
                 )
@@ -229,6 +238,6 @@ class Gem5ParseWork:
                 raise ValueError(f"PARSER: unsupported output representation {spec.output_type!r}.")
             column_count += len(cells)
             if column_count > MAX_INCREMENTAL_CACHE_COLUMNS:
-                raise RuntimeError("PARSER: output exceeds the physical column limit.")
+                raise ParseDataRuntimeError("PARSER: output exceeds the physical column limit.")
             variables.append(ParsedVariableResult(name, kind, shape, cells, missing))
         return ParsedFileResult(self._file_to_parse, tuple(variables))

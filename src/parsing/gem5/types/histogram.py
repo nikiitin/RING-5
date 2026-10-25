@@ -5,6 +5,8 @@ import math
 import re
 from typing import override
 
+from src.core.common.parse_failure import bounded_parse_text
+from src.core.models.parse_failure_models import ParseDataValueError
 from src.parsing.gem5.types.base import FrameStatType, entry_names, population_mean, register_type
 
 logger = logging.getLogger(__name__)
@@ -223,7 +225,7 @@ class Histogram(FrameStatType):
 
             raw_start, inclusive_end = bounds
             if inclusive_end < raw_start:
-                raise ValueError(f"HISTOGRAM: Reversed bucket range: {raw_key}")
+                raise ParseDataValueError(f"HISTOGRAM: Reversed bucket range: {raw_key}")
             raw_end = inclusive_end + 1
             raw_span = raw_end - raw_start
 
@@ -269,7 +271,7 @@ class Histogram(FrameStatType):
         if match:
             return [float(match.group(1)), float(match.group(2))]
         if any(c.isdigit() for c in key):
-            logger.debug("HISTOGRAM: Could not parse range from key '%s'", key)
+            logger.debug("HISTOGRAM: Could not parse range from key '%s'", bounded_parse_text(key))
         return []
 
     def __str__(self) -> str:

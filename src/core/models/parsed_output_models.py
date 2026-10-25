@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
+from src.core.models.parse_failure_models import ParseDataValueError
 from src.core.common.safe_regex import MAX_INPUT_LENGTH
 from src.core.common.security_limits import (
     MAX_INCREMENTAL_CACHE_COLUMNS,
@@ -20,7 +21,7 @@ ParsedValue = float | str
 
 def _name(value: str, field: str) -> None:
     if type(value) is not str or not value or len(value) > MAX_INPUT_LENGTH:
-        raise ValueError(f"{field} must be a bounded non-empty string.")
+        raise ParseDataValueError(f"{field} must be a bounded non-empty string.")
 
 
 def _kind(value: ParsedKind) -> None:
@@ -84,7 +85,7 @@ class ParsedVariableResult:
         if type(self.cells) is not tuple:
             raise TypeError("Parsed variable cells must be an immutable tuple.")
         if len(self.cells) > MAX_INCREMENTAL_CACHE_COLUMNS:
-            raise ValueError("Parsed variable exceeds the output column limit.")
+            raise ParseDataValueError("Parsed variable exceeds the output column limit.")
         if self.shape == "scalar" and len(self.cells) != 1:
             raise ValueError("A scalar variable requires exactly one output cell.")
         columns: set[str] = set()
@@ -92,7 +93,7 @@ class ParsedVariableResult:
             if type(cell) is not ParsedCell or cell.kind != self.kind:
                 raise TypeError("Variable cells must match their declared kind.")
             if cell.column in columns:
-                raise ValueError(f"Duplicate parsed column: {cell.column!r}.")
+                raise ParseDataValueError(f"Duplicate parsed column: {cell.column!r}.")
             columns.add(cell.column)
         if type(self.missing_measurements) is not int or self.missing_measurements < 0:
             raise ValueError("Missing measurement count must be a non-negative integer.")
@@ -118,7 +119,7 @@ class ParsedFileResult:
         if len(self.variables) > MAX_PARSE_VARIABLES:
             raise ValueError("Parsed file exceeds the logical variable limit.")
         if len(self.metadata) > MAX_INCREMENTAL_CACHE_COLUMNS:
-            raise ValueError("Parsed file exceeds the output column limit.")
+            raise ParseDataValueError("Parsed file exceeds the output column limit.")
         names: set[str] = set()
         columns: set[str] = set()
         for variable in self.variables:
@@ -128,19 +129,19 @@ class ParsedFileResult:
                 raise ValueError(f"Duplicate logical variable: {variable.name!r}.")
             names.add(variable.name)
             if len(columns) + len(variable.cells) > MAX_INCREMENTAL_CACHE_COLUMNS:
-                raise ValueError("Parsed file exceeds the output column limit.")
+                raise ParseDataValueError("Parsed file exceeds the output column limit.")
             for cell in variable.cells:
                 if cell.column in columns:
-                    raise ValueError(f"Duplicate parsed column: {cell.column!r}.")
+                    raise ParseDataValueError(f"Duplicate parsed column: {cell.column!r}.")
                 columns.add(cell.column)
         for cell in self.metadata:
             if type(cell) is not ParsedCell:
                 raise TypeError("Parsed metadata requires typed cells.")
             if cell.column in columns:
-                raise ValueError(f"Metadata column collision: {cell.column!r}.")
+                raise ParseDataValueError(f"Metadata column collision: {cell.column!r}.")
             columns.add(cell.column)
             if len(columns) > MAX_INCREMENTAL_CACHE_COLUMNS:
-                raise ValueError("Parsed file exceeds the output column limit.")
+                raise ParseDataValueError("Parsed file exceeds the output column limit.")
 
 
 @dataclass(frozen=True)

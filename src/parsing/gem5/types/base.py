@@ -10,6 +10,7 @@ from collections.abc import Callable, Mapping
 from typing import ClassVar, Generic, TypeVar, final
 
 from src.core.models.parsing_models import StatParamValue
+from src.core.models.parse_failure_models import ParseDataRuntimeError
 
 Observation = float | str | Mapping[str, float]
 StatContent = list[float] | list[str] | dict[str, list[float]]
@@ -262,7 +263,7 @@ class FrameStatType(StatType[dict[str, list[float]], dict[str, float]], ABC):
 
     def _balance(self) -> int:
         if len(self._frames) > self.repeat:
-            raise RuntimeError(
+            raise ParseDataRuntimeError(
                 f"{self._type_name.upper()}: More observations ({len(self._frames)}) "
                 f"than expected ({self.repeat})."
             )
