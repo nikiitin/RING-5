@@ -975,6 +975,16 @@ class FigureSpecToMatplotlib:
             else:
                 transform = ax.transData
 
+            if ann.x_shift_pixels or ann.y_shift_pixels:
+                # Capture the native render scale; dpi_scale_trans then preserves
+                # logical-pixel offsets when savefig or Streamlit changes DPI.
+                render_dpi = ax.figure.dpi
+                transform = transform + transforms.ScaledTranslation(
+                    ann.x_shift_pixels / render_dpi,
+                    ann.y_shift_pixels / render_dpi,
+                    ax.figure.dpi_scale_trans,
+                )
+
             fontweight = "bold" if ann.font_bold else "normal"
             fontsize = ann.font_size if ann.font_size > 0 else 10
 
@@ -1016,7 +1026,9 @@ class FigureSpecToMatplotlib:
                 xycoords=transform,
                 fontsize=fontsize,
                 fontweight=fontweight,
+                fontfamily=ann.font_family or spec.font_family or None,
                 color=ann.font_color,
+                multialignment=ann.align,
                 ha=ha,
                 va=va,
                 rotation=ann.text_angle,

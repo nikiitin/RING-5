@@ -1655,7 +1655,9 @@
           "tests/ui/test_shape_coordinate_contract.py::test_untouched_literal_coordinates_and_explicit_text_numeric_edits_reach_native",
           "tests/ui/test_shape_coordinate_contract.py::test_add_numeric_looking_literal_coordinates_has_one_explicit_kind",
           "tests/ui/test_shape_coordinate_contract.py::test_native_partial_path_and_default_shapes_roundtrip_without_invented_fields",
-          "tests/ui/test_shape_coordinate_contract.py::test_deleting_the_invalid_row_skips_its_decoder_and_retains_manual_refresh_contract"
+          "tests/ui/test_shape_coordinate_contract.py::test_deleting_the_invalid_row_skips_its_decoder_and_retains_manual_refresh_contract",
+          "tests/unit/test_annotation_pixel_contract.py::test_pixel_shifts_translate_complete_native_annotation_at_export_dpi",
+          "tests/unit/test_annotation_pixel_contract.py::test_live_annotation_bridges_preserve_typed_metadata_and_serialization"
         ],
         "documentation": [
           "docs/developer-guide/api-reference/public-python-api.md#annotations-and-web-shapes"
@@ -2950,7 +2952,8 @@
           "tests/unit/test_stacked_histogram_config.py::TestStackedBarCreateFigure.test_show_totals_annotations",
           "tests/unit/test_stacked_histogram_config.py::TestStackedBarCreateFigure.test_totals_threshold_skips_small",
           "tests/ui/test_plot_settings_contracts.py::test_bar_totals_survive_value_label_toggles_and_render_real_values",
-          "tests/unit/test_categorical_total_annotations.py::test_stack_total_values_and_coordinates_survive_reorder_and_duplicate_display_names"
+          "tests/unit/test_categorical_total_annotations.py::test_stack_total_values_and_coordinates_survive_reorder_and_duplicate_display_names",
+          "tests/unit/test_annotation_pixel_contract.py::test_public_stack_totals_preserve_pixel_offset_and_raw_categories"
         ],
         "documentation": [
           "docs/user-guide/reference/settings.md#stack-totals"

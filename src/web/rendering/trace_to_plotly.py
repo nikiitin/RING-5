@@ -731,14 +731,21 @@ def _convert_annotations(
             "xanchor": ann.xanchor,
             "yanchor": ann.yanchor,
             "showarrow": ann.show_arrow,
+            "align": ann.align,
             "font": {},
         }
+        if ann.x_shift_pixels:
+            d["xshift"] = ann.x_shift_pixels
+        if ann.y_shift_pixels:
+            d["yshift"] = ann.y_shift_pixels
         if ann.text_angle:
             d["textangle"] = ann.text_angle
         if ann.font_size > 0:
             d["font"]["size"] = ann.font_size
         if ann.font_color:
             d["font"]["color"] = ann.font_color
+        if ann.font_family:
+            d["font"]["family"] = ann.font_family
         if ann.font_bold:
             d["font"]["weight"] = "bold"
         if ann.bgcolor:

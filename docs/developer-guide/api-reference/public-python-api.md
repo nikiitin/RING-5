@@ -192,9 +192,14 @@ Covers:
 
 -->
 
-`FigureSpec` serializes engine-independent text annotations; the Matplotlib connector applies their
-text, coordinates, and optional arrow styling. In the web application, editable line, circle, and
-rectangle shapes are Plotly layout shapes and remain Plotly-specific.
+Typed figure configuration serializes text annotations with data or axes/panel-fraction (`paper`)
+coordinates, optional arrows, font family, and multiline alignment. `x_shift_pixels` and
+`y_shift_pixels` translate the complete annotation and arrow after resolving those coordinates;
+positive values move right and up. These logical pixels use the figure's initial rendering scale,
+so a Matplotlib export at twice the DPI doubles the display displacement along with the figure.
+An empty annotation font family inherits the figure family. Stack-total offsets use this pixel
+contract in both rendering engines. In the web application, editable line, circle, and rectangle
+shapes are Plotly layout shapes and remain Plotly-specific.
 The [shape editor]({{site.baseurl}}/user-guide/reference/settings/#edit-shapes) preserves literal
 coordinates and native defaults, with an explicit number/text choice for edits.
 

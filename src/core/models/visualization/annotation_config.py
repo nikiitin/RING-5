@@ -27,7 +27,10 @@ class AnnotationConfig:
 
     Coordinates:
       - ``xref`` / ``yref`` control the coordinate system:
-        ``"data"`` = data coordinates, ``"paper"`` = figure fraction (0–1).
+        ``"data"`` = data coordinates, ``"paper"`` = axes/panel fraction (0–1).
+      - Pixel shifts translate the complete annotation, including its arrow.
+        Positive X moves right; positive Y moves up. Matplotlib scales these
+        logical pixels with the figure's initial render DPI during export.
     """
 
     # Content
@@ -59,6 +62,9 @@ class AnnotationConfig:
     border_pad: float = 2.0
     bgcolor: str = ""
     align: Literal["left", "center", "right"] = "left"
+    font_family: str = ""  # empty = inherit figure family
+    x_shift_pixels: float = 0.0
+    y_shift_pixels: float = 0.0
 
 
 @dataclass(frozen=True)

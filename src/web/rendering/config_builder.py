@@ -593,8 +593,14 @@ def _extract_annotations(layout: Any) -> list[AnnotationConfig]:
                 xref="paper" if getattr(ann, "xref", "") == "paper" else "data",
                 yref="paper" if getattr(ann, "yref", "") == "paper" else "data",
                 show_arrow=bool(getattr(ann, "showarrow", False)),
+                arrow_head=int(getattr(ann, "arrowhead", 0) or 0),
+                arrow_color=str(getattr(ann, "arrowcolor", "#444") or "#444"),
+                x_shift_pixels=float(getattr(ann, "xshift", 0) or 0),
+                y_shift_pixels=float(getattr(ann, "yshift", 0) or 0),
                 font_size=int(getattr(font, "size", 0) or 0) if font else -1,
                 font_color=str(getattr(font, "color", "#444") or "#444") if font else "#444",
+                font_family=str(getattr(font, "family", "") or "") if font else "",
+                font_bold=getattr(font, "weight", None) == "bold" if font else False,
                 text_angle=float(getattr(ann, "textangle", 0) or 0),
                 border_width=float(getattr(ann, "borderwidth", 0) or 0),
                 border_color=str(getattr(ann, "bordercolor", "") or ""),
@@ -609,13 +615,7 @@ def _extract_annotations(layout: Any) -> list[AnnotationConfig]:
 
 
 def _annotation_from_dict(ann: dict[str, Any]) -> AnnotationConfig:
-    """Build an ``AnnotationConfig`` from a raw layout-annotation dict.
-
-    The engine-agnostic counterpart of :func:`_extract_annotations` (which reads the very
-    same fields back off a Plotly annotation object). Kept field-for-field identical — and
-    matching Plotly's "unset property is ``None``" semantics — so the direct matplotlib
-    path produces the same spec as the old plotly-round-trip path, byte-for-byte.
-    """
+    """Project computed layout annotation metadata into the typed figure contract."""
     raw_x = ann.get("x", 0)
     raw_y = ann.get("y", 0)
     try:
@@ -652,8 +652,14 @@ def _annotation_from_dict(ann: dict[str, Any]) -> AnnotationConfig:
         xref="paper" if ann.get("xref", "") == "paper" else "data",
         yref="paper" if ann.get("yref", "") == "paper" else "data",
         show_arrow=bool(ann.get("showarrow", False)),
+        arrow_head=int(ann.get("arrowhead", 0) or 0),
+        arrow_color=str(ann.get("arrowcolor", "#444") or "#444"),
+        x_shift_pixels=float(ann.get("xshift", 0) or 0),
+        y_shift_pixels=float(ann.get("yshift", 0) or 0),
         font_size=font_size,
         font_color=font_color,
+        font_family=str(font.get("family") or "") if font is not None else "",
+        font_bold=font.get("weight") == "bold" if font is not None else False,
         text_angle=float(ann.get("textangle", 0) or 0),
         border_width=float(ann.get("borderwidth", 0) or 0),
         border_color=str(ann.get("bordercolor", "") or ""),
