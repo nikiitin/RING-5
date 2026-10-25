@@ -32,8 +32,8 @@ from src.core.models.parsed_output_models import (
     ParsedVariableResult,
     ParsedVariableSchema,
 )
-from src.core.services import parsed_output_service
-from src.core.services.parsed_output_service import ParsedOutputService
+from src.core.common import parsed_output
+from src.core.common.parsed_output import ParsedOutputIO
 
 
 def _scalar(name: str, value: float | str, *, column: str | None = None) -> ParsedVariableResult:
@@ -73,15 +73,15 @@ def test_typed_publication_and_loading_preserve_literal_text_and_numeric_missing
         (_scalar("label", literal), _scalar("value", 1.25), _scalar("absent", math.nan)),
         (ParsedCell("config_json", "text", '{"Case":"95% μ"}'),),
     )
-    table = ParsedOutputService.resolve([result], ["label", "value", "absent"])
-    output = ParsedOutputService.publish(tmp_path / "results.csv", table)
-    restored = ParsedOutputService.read(output)
+    table = ParsedOutputIO.resolve([result], ["label", "value", "absent"])
+    output = ParsedOutputIO.publish(tmp_path / "results.csv", table)
+    restored = ParsedOutputIO.read(output)
     assert restored.rows[0][0] == literal
     assert type(restored.rows[0][0]) is str
     assert restored.rows[0][1] == 1.25
     assert math.isnan(restored.rows[0][2])
     assert restored.missing_variables == ("absent",)
-    frame = ParsedOutputService.to_frame(output)
+    frame = ParsedOutputIO.to_frame(output)
     assert frame["label"].iloc[0] == literal
     assert frame["value"].iloc[0] == 1.25
     assert frame["config_json"].iloc[0] == '{"Case":"95% μ"}'
@@ -102,8 +102,8 @@ def test_schema_union_is_order_independent_and_has_explicit_owners(tmp_path: Pat
             _scalar("v..a", "", column="literal"),
         ),
     )
-    left = ParsedOutputService.resolve([first, second], ["v", "v..a"])
-    right = ParsedOutputService.resolve([second, first], ["v", "v..a"])
+    left = ParsedOutputIO.resolve([first, second], ["v", "v..a"])
+    right = ParsedOutputIO.resolve([second, first], ["v", "v..a"])
     assert left.schema == right.schema
     assert left.source_paths == right.source_paths == ("a", "b")
     assert [(column.name, column.owner) for column in left.schema.columns] == [
@@ -112,21 +112,21 @@ def test_schema_union_is_order_independent_and_has_explicit_owners(tmp_path: Pat
         ("literal", "v..a"),
     ]
     assert math.isnan(left.rows[0][1]) and math.isnan(left.rows[1][0])
-    one = ParsedOutputService.publish(tmp_path / "one.csv", left)
-    two = ParsedOutputService.publish(tmp_path / "two.csv", right)
+    one = ParsedOutputIO.publish(tmp_path / "one.csv", left)
+    two = ParsedOutputIO.publish(tmp_path / "two.csv", right)
     assert one.sha256 == two.sha256
     assert Path(one.csv_path).read_bytes() == Path(two.csv_path).read_bytes()
 
 
 def test_unobserved_dynamic_entries_do_not_invent_a_physical_column(tmp_path: Path) -> None:
     result = ParsedFileResult("source", (ParsedVariableResult("v", "number", "entries", ()),))
-    table = ParsedOutputService.resolve([result], ["v"])
+    table = ParsedOutputIO.resolve([result], ["v"])
     assert table.schema.columns == () and table.rows == ((),)
-    output = ParsedOutputService.publish(tmp_path / "empty-schema.csv", table)
-    restored = ParsedOutputService.read(output)
+    output = ParsedOutputIO.publish(tmp_path / "empty-schema.csv", table)
+    restored = ParsedOutputIO.read(output)
     assert restored.rows == ((),)
     assert restored.missing_variables == ("v",)
-    assert ParsedOutputService.to_frame(output).shape == (1, 0)
+    assert ParsedOutputIO.to_frame(output).shape == (1, 0)
 
 
 @pytest.mark.parametrize("metadata", [True, False])
@@ -141,7 +141,7 @@ def test_missing_text_rejects_before_publication(metadata: bool) -> None:
         )
         second = ParsedFileResult("b", (ParsedVariableResult("value", "text", "entries", ()),))
     with pytest.raises(ValueError, match="Missing explicit text"):
-        ParsedOutputService.resolve([first, second], ["value"])
+        ParsedOutputIO.resolve([first, second], ["value"])
 
 
 @pytest.mark.parametrize("mismatch", ["owner", "kind", "shape", "duplicate_source"])
@@ -162,14 +162,14 @@ def test_explicit_schema_and_source_collisions_are_rejected(mismatch: str) -> No
         second = first
         order = ["value"]
     with pytest.raises(ValueError, match="collision|Conflicting|provenance"):
-        ParsedOutputService.resolve([first, second], order)
+        ParsedOutputIO.resolve([first, second], order)
 
 
 def test_metadata_namespace_does_not_reserve_a_logical_name() -> None:
     result = ParsedFileResult(
         "source", (_scalar("metadata", "NA"),), (ParsedCell("tag", "text", "001"),)
     )
-    table = ParsedOutputService.resolve([result], ["metadata"])
+    table = ParsedOutputIO.resolve([result], ["metadata"])
     assert [(column.owner, column.kind) for column in table.schema.columns] == [
         ("metadata", "text"),
         (None, "text"),
@@ -177,16 +177,16 @@ def test_metadata_namespace_does_not_reserve_a_logical_name() -> None:
 
 
 def test_schema_substitution_changes_typed_digest_even_when_csv_bytes_match(tmp_path: Path) -> None:
-    number = ParsedOutputService.resolve([_result("source", math.nan)], ["value"])
-    text = ParsedOutputService.resolve(
+    number = ParsedOutputIO.resolve([_result("source", math.nan)], ["value"])
+    text = ParsedOutputIO.resolve(
         [ParsedFileResult("source", (_scalar("value", "NaN"),))], ["value"]
     )
-    numeric_output = ParsedOutputService.publish(tmp_path / "number.csv", number)
-    text_output = ParsedOutputService.publish(tmp_path / "text.csv", text)
+    numeric_output = ParsedOutputIO.publish(tmp_path / "number.csv", number)
+    text_output = ParsedOutputIO.publish(tmp_path / "text.csv", text)
     assert Path(numeric_output.csv_path).read_bytes() == Path(text_output.csv_path).read_bytes()
     assert numeric_output.sha256 != text_output.sha256
     with pytest.raises(ValueError, match="digest"):
-        ParsedOutputService.read(replace(numeric_output, schema=text.schema))
+        ParsedOutputIO.read(replace(numeric_output, schema=text.schema))
     digest = ParsedOutputDigest(number.schema)
     digest.update(Path(numeric_output.csv_path).read_bytes())
     assert digest.hexdigest() == numeric_output.sha256
@@ -198,22 +198,22 @@ def test_publication_failure_preserves_old_output_and_cleans_temporaries(
 ) -> None:
     target = tmp_path / "results.csv"
     target.write_bytes(b"old-output")
-    table = ParsedOutputService.resolve([_result("source")], ["value"])
+    table = ParsedOutputIO.resolve([_result("source")], ["value"])
 
     def fail(*args, **kwargs):
         raise RuntimeError("injected publication failure")
 
     callback = None
     if failure == "fsync":
-        monkeypatch.setattr(parsed_output_service.os, "fsync", fail)
+        monkeypatch.setattr(parsed_output.os, "fsync", fail)
     elif failure == "replace":
-        monkeypatch.setattr(parsed_output_service.os, "replace", fail)
+        monkeypatch.setattr(parsed_output.os, "replace", fail)
     elif failure == "descriptor":
         monkeypatch.setattr(parsed_output_service, "ParsedOutput", fail)
     else:
         callback = fail
     with pytest.raises(RuntimeError, match="injected"):
-        ParsedOutputService.publish(target, table, after_publish=callback)
+        ParsedOutputIO.publish(target, table, after_publish=callback)
     assert target.read_bytes() == b"old-output"
     assert sorted(path.name for path in tmp_path.iterdir() if path.suffix != ".lock") == [
         "results.csv"
@@ -223,7 +223,7 @@ def test_publication_failure_preserves_old_output_and_cleans_temporaries(
 def test_budgets_reject_before_writer_allocation(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    table = ParsedOutputService.resolve(
+    table = ParsedOutputIO.resolve(
         [ParsedFileResult("source", (_scalar("value", "x" * 20),))], ["value"]
     )
 
@@ -231,9 +231,9 @@ def test_budgets_reject_before_writer_allocation(
         raise AssertionError("Budget failure reached writer allocation")
 
     monkeypatch.setattr(parsed_output_service, "MAX_PARSED_OUTPUT_BYTES", 10)
-    monkeypatch.setattr(parsed_output_service.tempfile, "NamedTemporaryFile", forbidden)
+    monkeypatch.setattr(parsed_output.tempfile, "NamedTemporaryFile", forbidden)
     with pytest.raises(ValueError, match="byte limit"):
-        ParsedOutputService.publish(tmp_path / "output.csv", table)
+        ParsedOutputIO.publish(tmp_path / "output.csv", table)
     monkeypatch.setattr(parsed_output_codec, "MAX_PARSED_SCHEMA_BYTES", 10)
     with pytest.raises(ValueError, match="descriptor byte limit"):
         encode_parsed_schema(table.schema)
@@ -241,24 +241,24 @@ def test_budgets_reject_before_writer_allocation(
 
 
 def test_integrity_and_exact_header_are_checked_before_loading(tmp_path: Path) -> None:
-    table = ParsedOutputService.resolve([_result("source")], ["value"])
-    output = ParsedOutputService.publish(tmp_path / "results.csv", table)
+    table = ParsedOutputIO.resolve([_result("source")], ["value"])
+    output = ParsedOutputIO.publish(tmp_path / "results.csv", table)
     Path(output.csv_path).write_bytes(b"value\r\n2.25\r\n")
     with pytest.raises(ValueError, match="digest"):
-        ParsedOutputService.to_frame(output)
+        ParsedOutputIO.to_frame(output)
     digest = ParsedOutputDigest(output.schema)
     digest.update(b"other\r\n1.25\r\n")
     Path(output.csv_path).write_bytes(b"other\r\n1.25\r\n")
     with pytest.raises(ValueError, match="header"):
-        ParsedOutputService.read(replace(output, sha256=digest.hexdigest()))
+        ParsedOutputIO.read(replace(output, sha256=digest.hexdigest()))
 
 
 def test_same_content_path_replacement_during_read_is_rejected(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    table = ParsedOutputService.resolve([_result("source")], ["value"])
+    table = ParsedOutputIO.resolve([_result("source")], ["value"])
     path = tmp_path / "results.csv"
-    output = ParsedOutputService.publish(path, table)
+    output = ParsedOutputIO.publish(path, table)
     content = path.read_bytes()
     original = Path.stat
 
@@ -271,7 +271,7 @@ def test_same_content_path_replacement_during_read_is_rejected(
 
     monkeypatch.setattr(Path, "stat", swap)
     with pytest.raises(ValueError, match="changed while"):
-        ParsedOutputService.read(output)
+        ParsedOutputIO.read(output)
 
 
 @pytest.mark.parametrize("value", [True, 1, None, "1.0"])
@@ -334,12 +334,12 @@ def test_contending_publication_waits_for_rollback_before_committing(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, existed: bool
 ) -> None:
     target = tmp_path / "results.csv"
-    table = ParsedOutputService.resolve([_result("source", 1.0)], ["value"])
-    next_table = ParsedOutputService.resolve([_result("source", 2.0)], ["value"])
+    table = ParsedOutputIO.resolve([_result("source", 1.0)], ["value"])
+    next_table = ParsedOutputIO.resolve([_result("source", 2.0)], ["value"])
     if existed:
         target.write_bytes(b"original")
     callback_entered, release_callback, contender_waiting = Event(), Event(), Event()
-    original_lock = parsed_output_service.file_lock
+    original_lock = parsed_output.file_lock
 
     def tracked_lock(path):
         if callback_entered.is_set():
@@ -355,11 +355,11 @@ def test_contending_publication_waits_for_rollback_before_committing(
 
     with ThreadPoolExecutor(max_workers=2) as executor:
         first = executor.submit(
-            ParsedOutputService.publish, target, table, after_publish=fail_promotion
+            ParsedOutputIO.publish, target, table, after_publish=fail_promotion
         )
         try:
             assert callback_entered.wait(5)
-            second = executor.submit(ParsedOutputService.publish, target, next_table)
+            second = executor.submit(ParsedOutputIO.publish, target, next_table)
             assert contender_waiting.wait(5)
             assert not second.done()
         finally:
@@ -367,7 +367,7 @@ def test_contending_publication_waits_for_rollback_before_committing(
         with pytest.raises(RuntimeError, match="promotion failed"):
             first.result(timeout=5)
         output = second.result(timeout=5)
-    assert ParsedOutputService.read(output).rows == ((2.0,),)
+    assert ParsedOutputIO.read(output).rows == ((2.0,),)
 
 
 @pytest.mark.parametrize("alias", [False, True])
@@ -375,8 +375,8 @@ def test_callback_same_target_reentry_rejects_and_preserves_previous_output(
     tmp_path: Path, alias: bool
 ) -> None:
     target = tmp_path / "results.csv"
-    table = ParsedOutputService.resolve([_result("source", 1.0)], ["value"])
-    old = ParsedOutputService.publish(target, table)
+    table = ParsedOutputIO.resolve([_result("source", 1.0)], ["value"])
+    old = ParsedOutputIO.publish(target, table)
     alternate = tmp_path / "alias.csv"
     if alias:
         alternate.symlink_to(target)
@@ -384,14 +384,14 @@ def test_callback_same_target_reentry_rejects_and_preserves_previous_output(
         alternate = target.parent / "." / target.name
 
     def reenter(_):
-        ParsedOutputService.publish(alternate, table)
+        ParsedOutputIO.publish(alternate, table)
 
     with pytest.raises(RuntimeError, match="Cannot reenter publication"):
-        ParsedOutputService.publish(target, table, after_publish=reenter)
-    assert ParsedOutputService.read(old).rows == ((1.0,),)
+        ParsedOutputIO.publish(target, table, after_publish=reenter)
+    assert ParsedOutputIO.read(old).rows == ((1.0,),)
     if alias:
         assert alternate.is_symlink()
-        output = ParsedOutputService.publish(alternate, table)
+        output = ParsedOutputIO.publish(alternate, table)
         assert output.csv_path == str(target.resolve())
         assert alternate.is_symlink()
 
@@ -418,10 +418,10 @@ def test_config_aware_metadata_larger_than_stdlib_csv_limit_roundtrips(tmp_path:
     result = ParsedFileResult(
         str(source), (_scalar("value", 1.0),), (ParsedCell("config_json", "text", literal),)
     )
-    table = ParsedOutputService.resolve([result], ["value"])
-    output = ParsedOutputService.publish(tmp_path / "results.csv", table)
-    assert ParsedOutputService.read(output).rows == ((1.0, literal),)
-    assert ParsedOutputService.to_frame(output)["config_json"].iloc[0] == literal
+    table = ParsedOutputIO.resolve([result], ["value"])
+    output = ParsedOutputIO.publish(tmp_path / "results.csv", table)
+    assert ParsedOutputIO.read(output).rows == ((1.0, literal),)
+    assert ParsedOutputIO.to_frame(output)["config_json"].iloc[0] == literal
     assert csv.field_size_limit() == before
     assert list(csv.reader(io.StringIO('label\n"NA"\n'))) == [["label"], ["NA"]]
 
@@ -446,26 +446,26 @@ def _rewrite_output(output: ParsedOutput, content: bytes) -> ParsedOutput:
 def test_noncanonical_or_malformed_csv_cannot_relabel_typed_values(
     tmp_path: Path, content: bytes
 ) -> None:
-    table = ParsedOutputService.resolve([_result("source", 1.0)], ["value"])
-    output = ParsedOutputService.publish(tmp_path / "results.csv", table)
+    table = ParsedOutputIO.resolve([_result("source", 1.0)], ["value"])
+    output = ParsedOutputIO.publish(tmp_path / "results.csv", table)
     output = _rewrite_output(output, content)
     with pytest.raises(ValueError):
-        ParsedOutputService.read(output)
+        ParsedOutputIO.read(output)
 
 
 def test_reader_enforces_cell_and_row_budgets_symmetrically(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    table = ParsedOutputService.resolve(
+    table = ParsedOutputIO.resolve(
         [ParsedFileResult("source", (_scalar("value", "a"),))], ["value"]
     )
-    output = ParsedOutputService.publish(tmp_path / "results.csv", table)
+    output = ParsedOutputIO.publish(tmp_path / "results.csv", table)
     oversized = _rewrite_output(output, b"value\r\n" + b"a" * 21 + b"\r\n")
     monkeypatch.setattr(parsed_output_service, "MAX_PARSED_CELL_CHARACTERS", 20)
     with pytest.raises(ValueError, match="character limit"):
-        ParsedOutputService.read(oversized)
+        ParsedOutputIO.read(oversized)
     many_rows = _rewrite_output(output, b"value\r\na\r\nb\r\nc\r\n")
-    original_reader = parsed_output_service.pd.read_csv
+    original_reader = parsed_output.pd.read_csv
     observed = []
 
     def bounded_reader(*args, **kwargs):
@@ -473,25 +473,25 @@ def test_reader_enforces_cell_and_row_budgets_symmetrically(
         return original_reader(*args, **kwargs)
 
     monkeypatch.setattr(parsed_output_service, "MAX_PARSE_FILES", 1)
-    monkeypatch.setattr(parsed_output_service.pd, "read_csv", bounded_reader)
+    monkeypatch.setattr(parsed_output.pd, "read_csv", bounded_reader)
     with pytest.raises(ValueError, match="bounded non-empty"):
-        ParsedOutputService.read(many_rows)
+        ParsedOutputIO.read(many_rows)
     assert observed == [2]
 
 
 def test_wrong_header_is_rejected_before_dataframe_allocation(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    table = ParsedOutputService.resolve([_result("source")], ["value"])
-    output = ParsedOutputService.publish(tmp_path / "results.csv", table)
+    table = ParsedOutputIO.resolve([_result("source")], ["value"])
+    output = ParsedOutputIO.publish(tmp_path / "results.csv", table)
     forged = _rewrite_output(output, b"value,extra,extra\r\n1.0,2.0,3.0\r\n")
 
     def forbidden(*args, **kwargs):
         raise AssertionError("Wrong-width header reached pandas allocation")
 
-    monkeypatch.setattr(parsed_output_service.pd, "read_csv", forbidden)
+    monkeypatch.setattr(parsed_output.pd, "read_csv", forbidden)
     with pytest.raises(ValueError, match="header"):
-        ParsedOutputService.read(forged)
+        ParsedOutputIO.read(forged)
 
 
 def test_current_cell_policy_rejects_over_four_mib_before_publication(
@@ -503,18 +503,18 @@ def test_current_cell_policy_rejects_over_four_mib_before_publication(
     def forbidden(*args, **kwargs):
         raise AssertionError("Oversized source cell reached temporary file allocation")
 
-    monkeypatch.setattr(parsed_output_service.tempfile, "NamedTemporaryFile", forbidden)
+    monkeypatch.setattr(parsed_output.tempfile, "NamedTemporaryFile", forbidden)
     with pytest.raises(ValueError, match="character limit"):
-        ParsedOutputService.resolve([result], ["value"])
+        ParsedOutputIO.resolve([result], ["value"])
     assert list(tmp_path.iterdir()) == []
 
 
 def test_parser_warning_promoted_to_error_has_the_same_admission_error_type(tmp_path: Path) -> None:
-    table = ParsedOutputService.resolve([_result("source", 1.0)], ["value"])
-    output = ParsedOutputService.publish(tmp_path / "results.csv", table)
+    table = ParsedOutputIO.resolve([_result("source", 1.0)], ["value"])
+    output = ParsedOutputIO.publish(tmp_path / "results.csv", table)
     forged = _rewrite_output(output, b"value\r\n1.0,2.0\r\n")
     with warnings.catch_warnings():
-        warnings.simplefilter("error", parsed_output_service.pd.errors.ParserWarning)
+        warnings.simplefilter("error", parsed_output.pd.errors.ParserWarning)
         with pytest.raises(ValueError, match="Malformed typed parser CSV") as caught:
-            ParsedOutputService.read(forged)
-    assert isinstance(caught.value.__cause__, parsed_output_service.pd.errors.ParserWarning)
+            ParsedOutputIO.read(forged)
+    assert isinstance(caught.value.__cause__, parsed_output.pd.errors.ParserWarning)

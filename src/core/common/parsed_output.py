@@ -83,7 +83,7 @@ def _write_csv(
         )
 
 
-class ParsedOutputService:
+class ParsedOutputIO:
     """Preserve typed parser cells within bounded canonical CSV output.
 
     Each literal cell allows 4,194,304 Unicode characters,
@@ -132,10 +132,10 @@ class ParsedOutputService:
                     raise ValueError(f"Conflicting declaration for variable {variable.name!r}.")
                 entry_orders[variable.name].add(tuple(cell.column for cell in variable.cells))
                 for cell in variable.cells:
-                    ParsedOutputService._admit_column(columns, cell, variable.name)
+                    ParsedOutputIO._admit_column(columns, cell, variable.name)
                     row[cell.column] = cell
             for cell in result.metadata:
-                ParsedOutputService._admit_column(columns, cell, None)
+                ParsedOutputIO._admit_column(columns, cell, None)
                 row[cell.column] = cell
             observed_cells += len(row)
             if observed_cells > MAX_PARSE_MATRIX_CELLS:
@@ -170,9 +170,9 @@ class ParsedOutputService:
             values.append(tuple(row_values))
         frozen_rows = tuple(values)
         resolved = ResolvedParsedRows(
-            schema, frozen_rows, paths, ParsedOutputService._missing_variables(schema, frozen_rows)
+            schema, frozen_rows, paths, ParsedOutputIO._missing_variables(schema, frozen_rows)
         )
-        ParsedOutputService._check_wire_budget(resolved)
+        ParsedOutputIO._check_wire_budget(resolved)
         return resolved
 
     @staticmethod
@@ -190,7 +190,7 @@ class ParsedOutputService:
     def _check_wire_budget(table: ResolvedParsedRows) -> None:
         if type(table) is not ResolvedParsedRows:
             raise TypeError("Parser publication requires resolved typed rows.")
-        if table.missing_variables != ParsedOutputService._missing_variables(
+        if table.missing_variables != ParsedOutputIO._missing_variables(
             table.schema, table.rows
         ):
             raise ValueError("Resolved missing-variable facts do not match the typed rows.")
@@ -237,7 +237,7 @@ class ParsedOutputService:
         It executes after the new file is visible and must promote its own record
         atomically. A callback failure restores the previous output file.
         """
-        ParsedOutputService._check_wire_budget(table)
+        ParsedOutputIO._check_wire_budget(table)
         output_path = output_path.expanduser().resolve()
         identity = os.path.normcase(str(output_path))
         active: set[str] = getattr(_publication_state, "active", set())
@@ -249,7 +249,7 @@ class ParsedOutputService:
         _publication_state.active = {*active, identity}
         try:
             with file_lock(lock_path):
-                return ParsedOutputService._publish_locked(output_path, table, after_publish)
+                return ParsedOutputIO._publish_locked(output_path, table, after_publish)
         finally:
             _publication_state.active = active
 
@@ -379,9 +379,9 @@ class ParsedOutputService:
             output.schema,
             frozen_rows,
             (),
-            ParsedOutputService._missing_variables(output.schema, frozen_rows),
+            ParsedOutputIO._missing_variables(output.schema, frozen_rows),
         )
-        ParsedOutputService._check_wire_budget(table)
+        ParsedOutputIO._check_wire_budget(table)
         canonical = _DigestWriter(None, output.schema)
         _write_csv(table.schema, table.rows, canonical)
         if canonical.digest.hexdigest() != output.sha256:
@@ -391,7 +391,7 @@ class ParsedOutputService:
     @staticmethod
     def to_frame(output: ParsedOutput) -> pd.DataFrame:
         """Read a verified output into explicitly numeric or literal-text columns."""
-        table = ParsedOutputService.read(output)
+        table = ParsedOutputIO.read(output)
         frame = pd.DataFrame(table.rows, columns=[column.name for column in table.schema.columns])
         for column in table.schema.columns:
             frame[column.name] = frame[column.name].astype(
