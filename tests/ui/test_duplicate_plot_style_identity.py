@@ -10,6 +10,7 @@ from streamlit.testing.v1 import AppTest
 import ring5
 from src.web.pages.ui.plotting.plot_service import PlotService
 from src.web.pages.ui.plotting.styles.bar_ui import BarStyleUI
+from src.web.state.ui_state_manager import WidgetKeyBuilder
 
 
 class _CustomBarStyle(BarStyleUI):
@@ -71,7 +72,10 @@ def test_duplicate_colors_use_the_new_strategy_instance_id_and_preserve_source_c
         ]
         assert {widget.label for widget in controls} == {"Pattern", "Custom marker"}
         assert all(
-            widget.key.startswith(f"plot.{duplicate.plot_id}.series.") for widget in controls
+            widget.key.startswith(
+                WidgetKeyBuilder.plot_key(duplicate.plot_id, "widgets.appearance.series") + "."
+            )
+            for widget in controls
         )
         assert all(not widget.key.startswith(f"plot.{source.plot_id}.") for widget in controls)
         cloned_style = duplicate._style_ui
