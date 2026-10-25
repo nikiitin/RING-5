@@ -13,7 +13,7 @@ from src.core.common.parsed_output_codec import iter_parsed_file_encoding
 from src.core.models.parsed_output_models import ParsedCell, ParsedFileResult, ParsedVariableResult
 from src.core.models.parsing_models import StatConfig
 from src.parsing.framework import result_admission
-from src.parsing.framework.result_admission import ResultAdmissionError
+from src.core.models.parse_failure_models import ResultAdmissionError
 from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 from src.parsing.gem5.impl.strategies import simple
 

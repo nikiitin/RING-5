@@ -16,6 +16,7 @@ from src.parsing.framework import result_admission
 from src.parsing.framework.work_pool import WorkPool
 from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 from src.parsing.gem5.impl.strategies.gem5_parse_work import Gem5ParseWork
+from src.parsing.gem5.impl.strategies import gem5_parse_work, perl_worker_pool
 
 pytestmark = pytest.mark.xdist_group("perl_pool")
 
@@ -24,6 +25,117 @@ def _drain_workers() -> None:
     barrier = Barrier(2)
     futures = [WorkPool.get_instance().submit(lambda: barrier.wait(timeout=5)) for _ in range(2)]
     assert not wait(futures, timeout=5).not_done
+
+
+def test_actual_invalid_utf8_worker_output_has_bounded_cause_and_releases_failed_work(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    script = tmp_path / "invalid-output.pl"
+    script.write_text(
+        'use strict; use warnings; $|=1; print "READY\\n";\n'
+        "while (my $line = <STDIN>) {\n"
+        "  last if $line =~ /^SHUTDOWN/;\n"
+        '  print "scalar/v/" . ("x" x 200000) . "\\xff\\nEND_PARSE\\n" if $line =~ /^PARSE/;\n'
+        "}\n"
+    )
+    real_worker = perl_worker_pool.PerlWorker
+
+    def own_worker(*, worker_id, script_path, perl_exe):
+        return real_worker(worker_id, str(script), perl_exe)
+
+    monkeypatch.setattr(perl_worker_pool, "PerlWorker", own_worker)
+    pool = perl_worker_pool.PerlWorkerPool(pool_size=2)
+    monkeypatch.setattr(gem5_parse_work, "get_worker_pool", lambda: pool)
+    refs = []
+    original_init = Gem5ParseWork.__init__
+
+    def track(self, *args, **kwargs):
+        original_init(self, *args, **kwargs)
+        refs.append(weakref.ref(self))
+
+    monkeypatch.setattr(Gem5ParseWork, "__init__", track)
+    source = tmp_path / "inputs" / "stats.txt"
+    source.parent.mkdir()
+    source.write_text("v 1\n")
+    output = tmp_path / "out"
+    output.mkdir()
+    previous = output / "results.csv"
+    previous.write_bytes(b"previous complete output")
+    try:
+        batch = Gem5Parser.submit_parse_async(
+            str(source.parent),
+            "stats.txt",
+            [StatConfig("v", "scalar", params={"source_type": "scalar"})],
+            str(output),
+        )
+        error = batch.futures[0].exception(timeout=15)
+        assert type(error) is ParseDataRuntimeError and len(str(error)) <= 1024
+        assert error.__cause__ is error.__context__ is None
+        facts = error.failure_facts
+        assert facts.source_path == str(source)
+        assert "UnicodeDecodeError" in facts.cause and "invalid start byte" in facts.cause
+        assert "gem5_parse_work._run_perl_script:" in facts.origin
+        assert "not valid UTF-8" in facts.cause
+        assert len(facts.cause) <= 1024 and len(facts.origin) <= 2048
+        _drain_workers()
+        gc.collect()
+        assert len(refs) == 1 and refs[0]() is None
+        assert previous.read_bytes() == b"previous complete output"
+        assert all(record.exc_info is None for record in caplog.records)
+        assert all(
+            type(value) in (str, int) and (type(value) is not str or len(value) <= 1024)
+            for record in caplog.records
+            for value in record.args
+        )
+    finally:
+        pool.shutdown()
+
+
+def test_invalid_utf8_startup_reaps_blocked_child_and_releases_work_while_future_is_held(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    script = tmp_path / "invalid-startup.pl"
+    script.write_text(
+        'use strict; use warnings; $|=1; print "\\xff" . ("x" x 200000) . "\\n";\n'
+        "while (<STDIN>) { last if /^SHUTDOWN/; }\n"
+    )
+    real_retire = perl_worker_pool.PerlWorker._retire_generation
+    processes, worker_refs = [], []
+
+    def retire(self, generation):
+        processes.append((generation.process, generation.reader_thread, generation.stderr_thread))
+        worker_refs.append(weakref.ref(self))
+        return real_retire(self, generation)
+
+    monkeypatch.setattr(perl_worker_pool.PerlWorker, "_retire_generation", retire)
+
+    class Work:
+        source_path = "source"
+
+        def __call__(self):
+            perl_worker_pool.PerlWorker(0, str(script), "perl")
+            pytest.fail("Invalid startup bytes were admitted")
+
+    work = Work()
+    work_ref = weakref.ref(work)
+    wrapper = result_admission.AdmittedParseWork(
+        work, result_admission.ResultAdmission(("source",))
+    )
+    del work
+    future = WorkPool.get_instance().submit(wrapper)
+    error = future.exception(timeout=15)
+    assert type(error) is ParseDataRuntimeError
+    assert "startup output is not valid UTF-8" in str(error)
+    assert "UnicodeDecodeError" in error.failure_facts.cause
+    assert "_start_worker:" in error.failure_facts.origin
+    assert error.__cause__ is error.__context__ is None
+    _drain_workers()
+    gc.collect()
+    assert work_ref() is None and len(worker_refs) == 1 and worker_refs[0]() is None
+    process, reader, stderr = processes[0]
+    assert process.poll() is not None
+    assert all(pipe.closed for pipe in (process.stdin, process.stdout, process.stderr))
+    assert not reader.is_alive() and not stderr.is_alive()
 
 
 @pytest.mark.parametrize(

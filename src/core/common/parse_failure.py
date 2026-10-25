@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import configparser
+import queue
 from collections import deque
 from collections.abc import Iterable
 from itertools import islice
+from typing import Literal
 
 from src.core.common.safe_regex import MAX_INPUT_LENGTH
 from src.core.models.parse_failure_models import (
@@ -12,13 +15,19 @@ from src.core.models.parse_failure_models import (
     ParseDataTypeError,
     ParseDataValueError,
     ParseFailureFacts,
+    ResultAdmissionError,
 )
 
 MAX_PARSE_FAILURE_MESSAGE = 1024
 MAX_PARSE_FAILURE_ORIGIN = 2048
 MAX_PARSE_FAILURE_CAUSE = 1024
 _TRUNCATED = " ... [truncated]"
-_DATA_ERRORS = (ParseDataRuntimeError, ParseDataTypeError, ParseDataValueError)
+_DATA_ERRORS = (
+    ParseDataRuntimeError,
+    ParseDataTypeError,
+    ParseDataValueError,
+    ResultAdmissionError,
+)
 _IO_ERRORS = (
     OSError,
     FileNotFoundError,
@@ -31,6 +40,49 @@ _IO_ERRORS = (
     InterruptedError,
     TimeoutError,
 )
+_CONFIGURATION_ERRORS = (
+    configparser.Error,
+    configparser.ParsingError,
+    configparser.MissingSectionHeaderError,
+    configparser.DuplicateOptionError,
+    configparser.DuplicateSectionError,
+    UnicodeDecodeError,
+)
+
+
+def classify_parse_failure(
+    error: BaseException,
+) -> Literal["data", "io", "configuration", "transport", "encoding"] | None:
+    """Identify exact known producer errors before any wrapping or retry policy.
+
+    Configuration errors are wrapped by their input owner; only data and builtin
+    IO errors are directly detachable. Unsupported subclasses remain unexpected.
+    """
+    error_type = type(error)
+    if error_type in _DATA_ERRORS:
+        return "data"
+    if error_type in _IO_ERRORS:
+        assert isinstance(error, OSError)
+        # Owned parser paths are bounded text. Decline mutated/non-native IO
+        # metadata before any inner owner can wrap it or invoke a constructor.
+        for filename in (error.filename, error.filename2):
+            if filename is not None and (
+                type(filename) is not str or len(filename) > MAX_INPUT_LENGTH
+            ):
+                return None
+        if error.strerror is not None and type(error.strerror) is not str:
+            return None
+        for code in (error.errno, getattr(error, "winerror", None)):
+            if code is not None and (type(code) is not int or code.bit_length() > 32):
+                return None
+        return "io"
+    if error_type in _CONFIGURATION_ERRORS:
+        return "configuration"
+    if error_type is queue.Empty:
+        return "transport"
+    if error_type is UnicodeEncodeError:
+        return "encoding"
+    return None
 
 
 def bounded_parse_text(value: str, limit: int = MAX_PARSE_FAILURE_MESSAGE) -> str:
@@ -45,6 +97,11 @@ def parse_error_text(error: BaseException) -> str:
     also hold their diagnostic text in their arguments; their raw source buffers,
     error lists and Unicode decoder objects are deliberately excluded.
     """
+    if type(error) in (UnicodeEncodeError, UnicodeDecodeError):
+        assert isinstance(error, (UnicodeEncodeError, UnicodeDecodeError))
+        return bounded_parse_text(
+            f"{error.encoding} positions {error.start}:{error.end}: {error.reason}"
+        )
     fragments: list[str] = []
     for argument in islice(error.args, 8):
         if type(argument) is str:
@@ -74,11 +131,12 @@ def detach_parse_failure(error: BaseException, source_path: str) -> BaseExceptio
     The caller raises the returned error after leaving its original handler.
     """
     error_type = type(error)
-    if error_type not in (*_DATA_ERRORS, *_IO_ERRORS):
+    classification = classify_parse_failure(error)
+    if classification not in ("data", "io"):
         return None
     message = parse_error_text(error)
     fresh: BaseException
-    if error_type in _DATA_ERRORS:
+    if classification == "data":
         fresh = error_type(message)
     else:
         assert isinstance(error, OSError)
@@ -86,12 +144,6 @@ def detach_parse_failure(error: BaseException, source_path: str) -> BaseExceptio
         # accepts winerror in the fourth position; other platforms ignore None.
         filename = error.filename
         filename2 = error.filename2
-        if filename is not None and type(filename) is not str:
-            return None
-        if filename2 is not None and type(filename2) is not str:
-            return None
-        filename = bounded_parse_text(filename, MAX_INPUT_LENGTH) if filename else filename
-        filename2 = bounded_parse_text(filename2, MAX_INPUT_LENGTH) if filename2 else filename2
         strerror = bounded_parse_text(error.strerror) if type(error.strerror) is str else message
         if type(error.errno) is int:
             winerror = getattr(error, "winerror", None)

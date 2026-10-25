@@ -8,7 +8,12 @@ import re
 from src.parsing.gem5.types.base import StatContent, StatResult, StatType
 
 from src.core.common.parsed_output_codec import read_numeric_wire
-from src.core.common.parse_failure import bounded_parse_text, parse_error_text, parse_names_text
+from src.core.common.parse_failure import (
+    bounded_parse_text,
+    classify_parse_failure,
+    parse_error_text,
+    parse_names_text,
+)
 from src.core.models.parse_failure_models import ParseDataRuntimeError, ParseDataValueError
 from src.core.common.security_limits import MAX_INCREMENTAL_CACHE_COLUMNS, MAX_PARSE_VARIABLES
 from src.core.models.parsed_output_models import (
@@ -192,8 +197,12 @@ class Gem5ParseWork:
             lines = get_worker_pool().parse_file(self._file_to_parse, filters, timeout=120.0)
             return "\n".join(lines)
         except TimeoutError as exc:
+            if classify_parse_failure(exc) is None:
+                raise
             raise ParseDataRuntimeError(f"Parser timeout: {self._file_to_parse}") from exc
         except (OSError, ParseDataRuntimeError, ParseDataValueError) as exc:
+            if classify_parse_failure(exc) is None:
+                raise
             message = bounded_parse_text(
                 f"Worker pool parse failed for {self._file_to_parse}: {parse_error_text(exc)}"
             )

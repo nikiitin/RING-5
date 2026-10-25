@@ -5,7 +5,11 @@ from __future__ import annotations
 import threading
 
 from src.core.common.parsed_output_codec import iter_parsed_file_encoding
-from src.core.common.parse_failure import bounded_parse_text, detach_parse_failure
+from src.core.common.parse_failure import (
+    classify_parse_failure,
+    detach_parse_failure,
+    parse_error_text,
+)
 from src.core.common.safe_regex import MAX_INPUT_LENGTH
 from src.core.common.security_limits import (
     MAX_PARSE_FILES,
@@ -17,12 +21,9 @@ from src.core.models.parse_failure_models import (
     ParseDataRuntimeError,
     ParseDataTypeError,
     ParseDataValueError,
+    ResultAdmissionError,
 )
 from src.parsing.parser_protocol import ParseWorkItem
-
-
-class ResultAdmissionError(ValueError):
-    """A finalized file exceeds its source-owned batch's retained-result limits."""
 
 
 class ResultAdmission:
@@ -87,8 +88,12 @@ class ResultAdmission:
                         )
             except ResultAdmissionError:
                 raise
-            except (TypeError, ValueError) as exc:
-                raise ResultAdmissionError(f"PARSER: invalid typed result record: {exc}") from exc
+            except (ParseDataValueError, ParseDataTypeError, UnicodeEncodeError) as exc:
+                if classify_parse_failure(exc) not in ("data", "encoding"):
+                    raise
+                raise ResultAdmissionError(
+                    f"PARSER: invalid typed result record: {parse_error_text(exc)}"
+                ) from exc
             self._cells += cells
             self._bytes += size
             self._admitted.add(source_path)
@@ -113,9 +118,17 @@ class AdmittedParseWork:
         if work is None:
             raise RuntimeError("A parse work item can execute only once.")
         expected_failure: BaseException | None = None
+        result: ParsedFileResult | None = None
         try:
             result = work()
-        except (ParseDataRuntimeError, ParseDataTypeError, ParseDataValueError, OSError) as exc:
+            self._admission.admit(result, source_path=self._source_path)
+        except (
+            ParseDataRuntimeError,
+            ParseDataTypeError,
+            ParseDataValueError,
+            ResultAdmissionError,
+            OSError,
+        ) as exc:
             expected_failure = detach_parse_failure(exc, self._source_path)
             if expected_failure is None:
                 raise
@@ -124,15 +137,7 @@ class AdmittedParseWork:
         if expected_failure is not None:
             # Leaving the handler also removes implicit exception context. The
             # fresh traceback owns this consumed wrapper, never producer frames.
-            raise expected_failure
-        failure: str | None = None
-        try:
-            self._admission.admit(result, source_path=self._source_path)
-        except ResultAdmissionError as exc:
-            failure = bounded_parse_text(str(exc))
-        if failure is not None:
-            # Raising after the handler avoids retaining the original traceback,
-            # which owns the rejected value and its temporary encoding graph.
             del result
-            raise ResultAdmissionError(failure)
+            raise expected_failure
+        assert result is not None
         return result

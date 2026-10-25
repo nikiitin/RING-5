@@ -27,7 +27,8 @@ from src.core.common.security_limits import (
 from src.core.models.parsing_models import ScannedVariable, StatConfig
 from src.core.models.parsing_models import PARSER_RESULT_VERSION
 
-from src.parsing.framework.result_admission import ResultAdmission, ResultAdmissionError
+from src.core.models.parse_failure_models import ResultAdmissionError
+from src.parsing.framework.result_admission import ResultAdmission
 
 logger = logging.getLogger(__name__)
 

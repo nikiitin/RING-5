@@ -15,6 +15,7 @@ from src.core.common.parse_failure import (
     MAX_PARSE_FAILURE_CAUSE,
     MAX_PARSE_FAILURE_MESSAGE,
     MAX_PARSE_FAILURE_ORIGIN,
+    classify_parse_failure,
     detach_parse_failure,
     parse_error_text,
 )
@@ -23,13 +24,15 @@ from src.core.models.parse_failure_models import (
     ParseDataTypeError,
     ParseDataValueError,
     ParseFailureFacts,
+    ResultAdmissionError,
 )
 from src.parsing.framework.result_admission import AdmittedParseWork, ResultAdmission
 from src.parsing.gem5.impl.strategies.perl_worker_pool import PerlWorker, PerlWorkerPool
 
 
 @pytest.mark.parametrize(
-    "error_type", [ParseDataRuntimeError, ParseDataTypeError, ParseDataValueError]
+    "error_type",
+    [ParseDataRuntimeError, ParseDataTypeError, ParseDataValueError, ResultAdmissionError],
 )
 def test_expected_failure_keeps_concrete_type_and_bounded_immutable_facts(error_type) -> None:
     original = error_type("specific data rejection " + "x" * 10_000)
@@ -95,6 +98,22 @@ def test_diagnostic_rendering_never_invokes_arbitrary_argument_hooks() -> None:
             pytest.fail("an arbitrary diagnostic repr hook ran")
 
     assert parse_error_text(ParseDataValueError(Forbidden())) == "<Forbidden>"
+
+
+def test_non_native_io_metadata_is_declined_before_constructor_hooks() -> None:
+    class Forbidden:
+        def __index__(self):
+            pytest.fail("an arbitrary IO constructor hook ran")
+
+    for field, value in (
+        ("winerror", Forbidden()),
+        ("errno", 1 << 100_000),
+        ("filename", object()),
+    ):
+        error = OSError(errno.EIO, "invalid IO metadata")
+        setattr(error, field, value)
+        assert classify_parse_failure(error) is None
+        assert detach_parse_failure(error, "/source") is None
 
 
 def test_unmarked_programming_exception_retains_identity_and_original_traceback() -> None:

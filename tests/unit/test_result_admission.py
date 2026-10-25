@@ -13,12 +13,12 @@ import pytest
 
 from src.core.common.parsed_output_codec import iter_parsed_file_encoding
 from src.core.models.parsed_output_models import ParsedCell, ParsedFileResult, ParsedVariableResult
+from src.core.models.parse_failure_models import ResultAdmissionError
 from src.parsing.framework import incremental_cache, result_admission
 from src.parsing.framework.incremental_cache import encode_cache, load_cache
 from src.parsing.framework.result_admission import (
     AdmittedParseWork,
     ResultAdmission,
-    ResultAdmissionError,
 )
 from src.parsing.framework.work_pool import WorkPool
 

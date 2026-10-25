@@ -10,7 +10,11 @@ from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from pathlib import Path
 
-from src.core.common.parse_failure import bounded_parse_text, parse_error_text
+from src.core.common.parse_failure import (
+    bounded_parse_text,
+    classify_parse_failure,
+    parse_error_text,
+)
 from src.core.models.parse_failure_models import ParseDataRuntimeError, ParseDataValueError
 from src.core.common.security_limits import MAX_PARSED_CELL_CHARACTERS, MAX_PARSE_FILE_BYTES
 from src.core.models.parsed_output_models import ParsedCell, ParsedFileResult
@@ -114,6 +118,8 @@ class ConfigAwareParseWork:
             append("}")
             return encoded.getvalue()
         except (configparser.Error, OSError, UnicodeError) as exc:
+            if classify_parse_failure(exc) not in ("configuration", "io"):
+                raise
             diagnostic = (
                 bounded_parse_text(exc.message)
                 if isinstance(exc, configparser.Error)

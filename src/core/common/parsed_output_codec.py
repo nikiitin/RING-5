@@ -80,7 +80,7 @@ def parsed_file_payload(result: ParsedFileResult) -> dict[str, object]:
     def cell_payload(cell: ParsedCell) -> dict[str, object]:
         value = render_parsed_value(cell.kind, cell.value)
         if len(value) > MAX_PARSED_CELL_CHARACTERS:
-            raise ValueError("Encoded parser cell exceeds the character limit.")
+            raise ParseDataValueError("Encoded parser cell exceeds the character limit.")
         return {"column": cell.column, "kind": cell.kind, "value": value}
 
     return {

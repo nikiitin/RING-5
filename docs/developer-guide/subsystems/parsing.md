@@ -38,6 +38,13 @@ The public `ring5.shutdown()` waits for accepted file tasks and keeps admission 
 closing their Perl processes. Concurrent global closes serialize; a failed close keeps admission
 closed until a global retry succeeds. The next parse or scan then recreates both pools.
 
+Perl processes use strict UTF-8 streams. Startup owns each process generation and its pipe-reader
+handles until READY succeeds; failed startup reaps the child and joins its readers before returning
+the error. Pool construction also closes workers and monitor threads already started by that attempt.
+Worker stop/restart operations serialize and retire only their captured generation. Stream errors
+retain their identity through the reader queue; exact known decoding failures become bounded data
+errors at their input owner, while unsupported exception subtypes propagate unchanged.
+
 The gem5 implementation under `src/parsing/gem5/` uses Python orchestration and persistent Perl
 workers. Strategies under `src/parsing/gem5/impl/strategies/` control ingestion. Pattern aggregation
 can collapse repeated concrete names into a selectable pattern; parsing needs scanned-variable data
@@ -179,7 +186,8 @@ Percent signs and interpolation-looking workload arguments remain unchanged.
 
 Gem5 tasks detach expected data and I/O failures before their Futures retain them. Explicit
 `ParseDataValueError`, `ParseDataTypeError`, and `ParseDataRuntimeError` sites preserve the corresponding
-builtin error category. Reviewed builtin filesystem/process errors preserve their concrete type,
+builtin error category. `ResultAdmissionError` uses the same boundary for retained-result limits.
+Reviewed builtin filesystem/process errors preserve their concrete type,
 errno and filenames. Retained errors have no producer traceback, cause or context object; immutable
 `failure_facts` contains the planned source ID, the last eight origin locations (2,048 characters),
 and a cause summary (1,024 characters). Messages are limited to 1,024 characters, including an
