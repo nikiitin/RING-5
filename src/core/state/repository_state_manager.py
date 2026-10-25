@@ -101,6 +101,15 @@ def _source_write(
     return guarded
 
 
+@contextmanager
+def _retire_plot_binding(binding: PlotRenderBinding[Any]) -> Iterator[None]:
+    """Retire one binding with the preceding body/cleanup exception still active."""
+    try:
+        yield
+    finally:
+        binding.dispose()
+
+
 class RepositoryStateManager:
     """Delegate application state operations to a session repository."""
 
@@ -126,35 +135,35 @@ class RepositoryStateManager:
 
         Cleanup failures propagate after committed state; remaining callbacks still run.
         """
-        retired: list[PlotRenderBinding[Any]] = []
-        try:
-            with self._transaction_lock:
-                depth = getattr(self._transaction_context, "depth", 0)
-                if depth == 0:
-                    self._transaction_context.retirements = []
-                self._transaction_context.depth = depth + 1
-                try:
-                    yield
-                finally:
-                    self._transaction_context.depth = depth
+        with ExitStack() as cleanup:
+            retired: list[PlotRenderBinding[Any]] = []
+            try:
+                with self._transaction_lock:
+                    depth = getattr(self._transaction_context, "depth", 0)
                     if depth == 0:
-                        pending = self._transaction_context.retirements
                         self._transaction_context.retirements = []
-                        live = {id(plot) for plot in self.get_plots()}
-                        seen: set[int] = set()
-                        for retirement in pending:
-                            if id(retirement.plot) in live or id(retirement.binding) in seen:
-                                continue
-                            seen.add(id(retirement.binding))
-                            binding = retirement.detach()
-                            if binding is not None:
-                                retired.append(binding)
-        finally:
-            # ExitStack attempts every closure, propagating failures after committed state.
-            # Neither workspace nor render-slot locks are held during foreign cleanup.
-            with ExitStack() as cleanup:
+                    self._transaction_context.depth = depth + 1
+                    try:
+                        yield
+                    finally:
+                        self._transaction_context.depth = depth
+                        if depth == 0:
+                            pending = self._transaction_context.retirements
+                            self._transaction_context.retirements = []
+                            live = {id(plot) for plot in self.get_plots()}
+                            seen: set[int] = set()
+                            for retirement in pending:
+                                if id(retirement.plot) in live or id(retirement.binding) in seen:
+                                    continue
+                                seen.add(id(retirement.binding))
+                                binding = retirement.detach()
+                                if binding is not None:
+                                    retired.append(binding)
+            finally:
+                # Register only after both ownership locks exit. The outer stack
+                # receives body failures and preserves them in the cleanup chain.
                 for binding in reversed(retired):
-                    cleanup.callback(binding.dispose)
+                    cleanup.enter_context(_retire_plot_binding(binding))
 
     def _queue_retirements(self, retirements: tuple[PlotRetirement, ...]) -> None:
         """Record exact bindings for the surrounding publication transaction."""

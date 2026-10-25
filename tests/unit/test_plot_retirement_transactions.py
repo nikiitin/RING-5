@@ -3,6 +3,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import nullcontext
 from dataclasses import dataclass, field
+from functools import partial
 from threading import Event
 from typing import Any
 
@@ -12,6 +13,7 @@ import pytest
 from src.core.common.plot_render_state import PlotRenderState
 from src.core.models.data_models import PipelineStep
 from src.core.models.portfolio_models import PortfolioData
+from src.core.models.plot_protocol import PlotProtocol
 from src.core.state.repository_state_manager import RepositoryStateManager
 
 
@@ -253,3 +255,95 @@ def test_exact_binding_cleanup_is_once_and_can_reenter_its_plot_slot() -> None:
     assert retired == ["old"]
     current = state.snapshot()
     assert current is not None and current.payload == "next"
+
+
+@pytest.mark.parametrize("body_fails", [False, True])
+@pytest.mark.parametrize("cleanup_failures", [1, 2])
+def test_cleanup_failures_preserve_exact_body_and_prior_cleanup_exceptions(
+    body_fails: bool, cleanup_failures: int
+) -> None:
+    state = RepositoryStateManager()
+    plots: list[PlotProtocol] = [_Plot(index) for index in range(3)]
+    body_error = ValueError("original body failure")
+    failures = [RuntimeError(f"cleanup-{index}") for index in range(cleanup_failures)]
+    attempted: list[int] = []
+    with ThreadPoolExecutor(max_workers=1) as pool:
+
+        def cleanup(index: int) -> None:
+            pool.submit(state.set_config, {"cleanup": index}).result(timeout=2)
+            attempted.append(index)
+            if index < cleanup_failures:
+                raise failures[index]
+
+        for index, plot in enumerate(plots):
+            plot.render_state.publish(str(index), partial(cleanup, index))
+        state.set_plots(plots)
+        version = state._workspace_version
+        with pytest.raises(RuntimeError) as caught:
+            with state.transaction():
+                with state.transaction():
+                    state.set_plots([])
+                    if body_fails:
+                        raise body_error
+    chain: list[BaseException] = []
+    error: BaseException | None = caught.value
+    while error is not None:
+        assert all(error is not prior for prior in chain), "Exception context contains a cycle."
+        chain.append(error)
+        error = error.__context__
+    expected: list[BaseException] = [*reversed(failures)]
+    if body_fails:
+        expected.append(body_error)
+    assert len(chain) == len(expected)
+    assert all(actual is original for actual, original in zip(chain, expected, strict=True))
+    assert attempted == [0, 1, 2]
+    assert state.get_plots() == []
+    assert state._workspace_version == version + 4
+    assert all(plot.render_state.snapshot() is None for plot in plots)
+
+
+@pytest.mark.parametrize("explicit_cause", [False, True])
+def test_cleanup_contexts_and_explicit_causes_keep_their_exact_objects(
+    explicit_cause: bool,
+) -> None:
+    state = RepositoryStateManager()
+    plots: list[PlotProtocol] = [_Plot(index) for index in range(3)]
+    body_error = ValueError("body failure")
+    failures = [RuntimeError(f"cleanup-{index}") for index in range(2)]
+    details = [KeyError(f"cleanup detail-{index}") for index in range(2)]
+    causes = [OSError(f"explicit cause-{index}") for index in range(2)]
+    attempted: list[int] = []
+    with ThreadPoolExecutor(max_workers=1) as pool:
+
+        def cleanup(index: int) -> None:
+            pool.submit(state.set_config, {"cleanup": index}).result(timeout=2)
+            attempted.append(index)
+            if index < 2:
+                try:
+                    raise details[index]
+                except KeyError:
+                    if explicit_cause:
+                        raise failures[index] from causes[index]
+                    raise failures[index]
+
+        for index, plot in enumerate(plots):
+            plot.render_state.publish(str(index), partial(cleanup, index))
+        state.set_plots(plots)
+        version = state._workspace_version
+        with pytest.raises(RuntimeError) as caught:
+            with state.transaction():
+                state.set_plots([])
+                raise body_error
+    expected = [failures[1], details[1], failures[0], details[0], body_error]
+    error: BaseException | None = caught.value
+    for original in expected:
+        assert error is original
+        error = error.__context__
+    assert error is None
+    for index, failure in enumerate(failures):
+        assert failure.__cause__ is (causes[index] if explicit_cause else None)
+        assert failure.__suppress_context__ is explicit_cause
+    assert attempted == [0, 1, 2]
+    assert state.get_plots() == []
+    assert state._workspace_version == version + 4
+    assert all(plot.render_state.snapshot() is None for plot in plots)
