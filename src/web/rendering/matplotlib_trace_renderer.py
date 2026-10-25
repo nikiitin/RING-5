@@ -3,7 +3,7 @@ Matplotlib trace renderer — draws ``TraceConfig`` instances on matplotlib axes
 
 This module is the **engine-agnostic** trace renderer for the matplotlib
 connector.  It reads from ``TraceConfig`` sub-classes (``BarTraceConfig``,
-``BoxTraceConfig``, ``LineTraceConfig``, ``ScatterTraceConfig``, ``HistogramTraceConfig``,
+``BoxTraceConfig``, ``LineTraceConfig``, ``ScatterTraceConfig``,
 ``HeatmapTraceConfig``, ``ViolinTraceConfig``) and draws the equivalent matplotlib artists.
 
 **No Plotly dependency** — this module does not import or reference
@@ -34,7 +34,6 @@ from src.core.models.visualization.trace_config import (
     BarTraceConfig,
     BoxTraceConfig,
     HeatmapTraceConfig,
-    HistogramTraceConfig,
     LineTraceConfig,
     ParallelCoordinatesTraceConfig,
     RadarTraceConfig,
@@ -50,6 +49,7 @@ from src.web.rendering._heatmap_utils import (
     compute_z_extent,
 )
 from src.web.rendering._render_result import MatplotlibRenderResult
+from src.web.rendering._connector_protocol import validate_trace_types
 
 
 def _spline_coordinates(
@@ -125,7 +125,13 @@ class MatplotlibTraceRenderer:
 
         Returns:
             A ``MatplotlibRenderResult`` with trace count and heatmap metadata.
+
+        Raises:
+            TypeError: A trace has no supported concrete family.
+            ValueError: A supported trace contains data that cannot be rendered.
         """
+        validate_trace_types(traces)
+
         # Collect bar traces for stacking computation
         bar_specs: list[BarTraceConfig] = [
             t for t in traces if isinstance(t, BarTraceConfig) and t.visible
@@ -254,13 +260,6 @@ class MatplotlibTraceRenderer:
                     result.trace_count += 1
                 elif isinstance(trace, ScatterTraceConfig):
                     MatplotlibTraceRenderer._draw_scatter(
-                        trace,
-                        target,
-                        override_color=override_color,
-                    )
-                    result.trace_count += 1
-                elif isinstance(trace, HistogramTraceConfig):
-                    MatplotlibTraceRenderer._draw_histogram(
                         trace,
                         target,
                         override_color=override_color,
@@ -905,22 +904,6 @@ class MatplotlibTraceRenderer:
         if spec.error_y is not None:
             error_color = color or cast(Any, points).get_facecolors()[0]
             ax.errorbar(spec.x, y_clean, yerr=spec.error_y, fmt="none", color=error_color)
-
-    # histogram
-    @staticmethod
-    def _draw_histogram(
-        spec: HistogramTraceConfig,
-        ax: Axes,
-        override_color: str | None = None,
-    ) -> None:
-        """Draw a single histogram trace from its ``HistogramTraceConfig``."""
-        props: dict[str, Any] = {}
-        color = override_color or spec.color
-        if color:
-            props["color"] = color
-
-        x_clean = [float(v) if v is not None else np.nan for v in spec.x]
-        ax.hist(x_clean, bins=spec.nbins, label=spec.name, **props)
 
     # heatmap
     @staticmethod

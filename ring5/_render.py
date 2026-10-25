@@ -45,7 +45,7 @@ def render_figure(plot: BasePlot, *, engine: EngineMode = "plotly") -> Figure:
         PGF export can apply the LaTeX preamble.
 
     Raises:
-        RenderError: The engine is invalid or the plot has no processed data.
+        RenderError: The engine, data, trace family, or configuration cannot be rendered.
     """
     # [impl->req~ring5.figure.accessible-themes~1]
     if engine not in VALID_ENGINES:

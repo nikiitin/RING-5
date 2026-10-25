@@ -29,6 +29,7 @@ from src.core.models.visualization.trace_build_result import RuleLine, Separator
 from src.core.models.visualization.trace_config import HeatmapTraceConfig, TraceConfig
 from src.core.services.visualization.config_resolver import resolve_config
 from src.web.rendering._heatmap_utils import compute_nice_range, compute_z_extent
+from src.web.rendering._connector_protocol import validate_trace_types
 from src.web.rendering._render_result import MatplotlibRenderResult
 from src.web.rendering.config_builder import (
     ConfigSpecBuilder,
@@ -145,6 +146,8 @@ def _assemble_matplotlib_figure(
     Both build paths (plotly-enriched and traces-direct) funnel through here once the spec
     is built, enriched and resolved — so the two paths cannot drift.
     """
+    validate_trace_types(traces)
+
     import matplotlib.pyplot as plt
 
     # 2a. Multi-heatmap: one subplot row per heatmap trace

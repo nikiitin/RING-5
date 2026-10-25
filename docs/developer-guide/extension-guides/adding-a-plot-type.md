@@ -39,6 +39,14 @@ Covers:
 The registry identifier is stored in portfolios and accepted by the public API. Use its exact
 canonical spelling. A rename replaces all producers, consumers and fixtures without an alias.
 
+Emit concrete neutral trace families from `create_traces`. Both renderers validate the complete
+trace sequence before drawing, including hidden traces. A bare `TraceConfig` or an unsupported
+family raises `TypeError`; public `Session.render` exposes the failure as `ring5.RenderError`.
+Histograms use the shared bucket geometry and emit `BarTraceConfig` with explicit positions and
+widths. Supported trace families may be subclassed by registered plot implementations.
+Registered extensions validate their own mapping fields in the trace callback. The public
+constructor validates common options before registering the plot.
+
 ## Test and verify
 
 Unit-test trace values, ordering, missing columns, and error-bar behavior. Use `Session.render` to

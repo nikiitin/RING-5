@@ -126,7 +126,9 @@ def _validate_line_style(config: Mapping[str, Any]) -> None:
 
 def validate_plot_config(plot_type: str, data: pd.DataFrame, config: Mapping[str, Any]) -> None:
     # [impl->req~ring5.api.plot-validation~1]
-    """Validate required fields, their types, and every referenced column.
+    """Validate common options and the declared mappings of built-in plot types.
+
+    Registered extensions own their plot-specific mappings in their trace callback.
 
     Args:
         plot_type: Registered snake-case plot identifier.
@@ -145,7 +147,7 @@ def validate_plot_config(plot_type: str, data: pd.DataFrame, config: Mapping[str
         raise DataValidationError(
             "Non-empty numbered_xaxis_modes are supported only by grouped_stacked_bar."
         )
-    for field in _REQUIRED_SINGLE[plot_type]:
+    for field in _REQUIRED_SINGLE.get(plot_type, ()):
         if plot_type == "histogram" and field == "histogram_variable":
             value = config.get(field)
             if not isinstance(value, str) or not value:

@@ -15,7 +15,6 @@ from src.core.models.visualization.trace_config import (
     BarTraceConfig,
     BoxTraceConfig,
     HeatmapTraceConfig,
-    HistogramTraceConfig,
     LineTraceConfig,
     ParallelCoordinatesTraceConfig,
     ParallelDimensionConfig,
@@ -352,11 +351,6 @@ class TestRender:
         count = MatplotlibTraceRenderer.render([trace], ax)
         assert count.trace_count == 1
 
-    def test_single_histogram(self, ax: matplotlib.axes.Axes) -> None:
-        trace = HistogramTraceConfig(name="h1", x=[1, 2, 3, 4, 5])
-        count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count.trace_count == 1
-
     def test_mixed_traces(self, ax: matplotlib.axes.Axes) -> None:
         traces = [
             BarTraceConfig(name="bar", x=["a", "b"], y=[1, 2]),
@@ -412,11 +406,6 @@ class TestRender:
         count = MatplotlibTraceRenderer.render([trace], ax)
         assert count.trace_count == 1
 
-    def test_histogram_with_color(self, ax: matplotlib.axes.Axes) -> None:
-        trace = HistogramTraceConfig(name="colored", x=[1, 2, 3], color="#0000ff", nbins=5)
-        count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count.trace_count == 1
-
     def test_none_y_values_handled(self, ax: matplotlib.axes.Axes) -> None:
         """None values in y should be converted to NaN gracefully."""
         trace = BarTraceConfig(name="nans", x=["a", "b"], y=[1, None])  # type: ignore[list-item]
@@ -426,7 +415,7 @@ class TestRender:
     def test_unknown_trace_type_fails_visibly(self, ax: matplotlib.axes.Axes) -> None:
         """A missing series cannot be exported as a successful figure."""
         trace = TraceConfig(name="unknown", x=["a"], y=[1])
-        with pytest.raises(ValueError, match="Cannot render trace 'unknown'"):
+        with pytest.raises(TypeError, match="Unsupported trace type: TraceConfig"):
             MatplotlibTraceRenderer.render([trace], ax)
 
 
