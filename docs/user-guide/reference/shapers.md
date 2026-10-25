@@ -28,7 +28,7 @@ split-apply when a transformation must run independently by group.
 
 ## Python configuration
 
-`Session.shape` accepts the same discriminated configurations stored in a pipeline:
+`Session.shape` accepts a `ring5.Table` and the same configurations stored in a pipeline:
 
 ```python
 normalized = session.shape(
@@ -57,9 +57,11 @@ models documented in the
 [Developer Guide]({{site.baseurl}}/developer-guide/api-reference/models-and-protocols/) rather than
 guessing keys for complex steps.
 
-Call `ring5.available_shaper_types()` for the current serialized identifiers. Direct, supported
-class imports live in `ring5.shapers`; this includes `ColumnSelector`, `ConditionSelector`,
-`ItemSelector`, and the group selector variants in addition to the calculation and pivot shapers.
+Call `ring5.available_shaper_types()` for the current serialized identifiers. Run built-in and
+registered plugin steps through `Session.shape` or `shape_submit`. The `ring5.shapers` extension
+surface exposes `Shaper`, `ShaperDefinition`, `register_shaper`, and `available_shaper_types`; see
+the [shaper extension guide]({{site.baseurl}}/developer-guide/extension-guides/adding-a-shaper/)
+for a typed plugin definition.
 
 ## Shaper behavior
 

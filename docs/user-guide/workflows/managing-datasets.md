@@ -44,7 +44,7 @@ Joined and appended results become independent named datasets. Transformations m
 existing data managers update only the active named dataset. Named datasets are held in the current
 session; a portfolio continues to snapshot its active dataset.
 
-The public API supports the same workflow:
+The public API supports the same workflow with `ring5.Table` inputs:
 
 ```python
 session.add_dataset("main", baseline)
@@ -70,8 +70,8 @@ all_runs = session.append_datasets(
 )
 ```
 
-`list_datasets()` returns immutable `DatasetInfo` summaries. `get_dataset()` returns a defensive
-copy, so editing it cannot change the retained source accidentally. Use `select_dataset()` to make
+`list_datasets()` returns immutable `DatasetInfo` summaries. `get_dataset()` returns an owned
+`ring5.Table`, so its explicit frame conversion cannot change the retained source. Use `select_dataset()` to make
 a named table active and `remove_dataset()` to remove it explicitly.
 
 ## Trace and recover dataset changes

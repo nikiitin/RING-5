@@ -32,7 +32,9 @@ def test_background_transformations_and_export_are_non_blocking(tmp_path: Path) 
     pipeline = [{"type": "columnSelector", "columns": ["category"]}]
 
     with ring5.Session() as session:
-        shape_job = session.shape_submit(frame, cast(list[ring5.ShaperStepConfig], pipeline))
+        shape_job = session.shape_submit(
+            ring5.Table(frame), cast(list[ring5.ShaperStepConfig], pipeline)
+        )
         frame.loc[0, "category"] = "mutated after submission"
         pipeline[0]["columns"] = ["value"]
 
@@ -42,8 +44,8 @@ def test_background_transformations_and_export_are_non_blocking(tmp_path: Path) 
         assert shaped.status == "completed"
         assert shaped.progress == 1.0
         assert shaped.result_available
-        assert isinstance(result, pd.DataFrame)
-        assert result.to_dict(orient="list") == {"category": ["A", "B"]}
+        assert isinstance(result, ring5.Table)
+        assert result.frame.to_dict(orient="list") == {"category": ["A", "B"]}
 
         table_job = session.shape_submit(
             ring5.Table(pd.DataFrame({"x": [1.0]})),
@@ -55,7 +57,7 @@ def test_background_transformations_and_export_are_non_blocking(tmp_path: Path) 
 
         figure = session.plot(
             "bar",
-            data=pd.DataFrame({"category": ["A"], "value": [1.0]}),
+            data=ring5.Table(pd.DataFrame({"category": ["A"], "value": [1.0]})),
             config={"x": "category", "y": "value"},
         )
         output = tmp_path / "background.html"
@@ -80,7 +82,7 @@ def test_failed_background_job_has_bounded_error_and_retries() -> None:
 
     with ring5.Session() as session:
         submitted = session.shape_submit(
-            pd.DataFrame({"x": [1.0]}),
+            ring5.Table(pd.DataFrame({"x": [1.0]})),
             invalid_pipeline,
             label="Invalid transformation",
         )
@@ -146,7 +148,7 @@ def test_cancellation_is_honest_and_public_errors_are_typed(
             lambda *_args, **_kwargs: (_ for _ in ()).throw(ValueError("closed center")),
         )
         with pytest.raises(ring5.JobError, match="closed center"):
-            session.shape_submit(pd.DataFrame({"x": [1.0]}), [])
+            session.shape_submit(ring5.Table(pd.DataFrame({"x": [1.0]})), [])
         with pytest.raises(ring5.JobError, match="closed center"):
             session.export_submit(cast(Any, object()), "figure.html", label="Export")
         monkeypatch.setattr(session.api, "submit_background_operation", original_submit)

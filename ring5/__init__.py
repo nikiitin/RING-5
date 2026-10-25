@@ -6,11 +6,11 @@ Everything the web app does, as plain Python::
 
     with ring5.Session() as s:
         result = s.parse("/path/to/sims", variables=["simTicks"])
-        df = s.load(result.csv_path)
-        df = s.reduce_seeds(df, ["config_description_abbrev"], ["simTicks"])
+        data = s.load(result.csv_path)
+        data = s.reduce_seeds(data, ["config_description_abbrev"], ["simTicks"])
         plot = s.create_plot(
             "bar",
-            data=df,
+            data=data,
             config={"x": "config_description_abbrev", "y": "simTicks"},
         )
         fig = s.render(plot, engine="matplotlib")
@@ -59,12 +59,10 @@ from ring5.errors import (
     ScanError,
 )
 
-# Typed figure config — pure dataclasses (no pandas/matplotlib), so eager:
-# build a FigureSpec and pass ``.to_config()`` as the plot config.
+# Immutable figure values have no pandas or rendering dependency, so load eagerly.
 from ring5.figure_spec import (
     DualAxisOpts,
     FigureSpec,
-    FigureSpecBuilder,
     LegendOpts,
     ReferenceLineOpts,
 )
@@ -109,7 +107,6 @@ if TYPE_CHECKING:
         JoinDiagnostics,
     )
     from src.core.models.visualization.dashboard_spec import DashboardSpec
-    from src.core.models.visualization.drill_down_result import DrillDownResult
     from src.core.models.environment_models import (
         EnvironmentComparison,
         EnvironmentDifference,
@@ -190,7 +187,7 @@ if TYPE_CHECKING:
     from ring5._session import PlotType, Session, available_plot_types
     from ring5.shapers import available_shaper_types
     from ring5.coordinates import grouped_bar_coordinates
-    from ring5.data import Table, read_table
+    from ring5.data import DrillDownResult, Table, read_table
     from ring5.decorations import FigureDecorations
 
 try:
@@ -257,7 +254,7 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "DatasetRevision": ("src.core.models.dataset_workspace_models", "DatasetRevision"),
     "DatasetSnapshotInfo": ("src.core.models.dataset_workspace_models", "DatasetSnapshotInfo"),
     "DashboardSpec": ("src.core.models.visualization.dashboard_spec", "DashboardSpec"),
-    "DrillDownResult": ("src.core.models.visualization.drill_down_result", "DrillDownResult"),
+    "DrillDownResult": ("ring5.data", "DrillDownResult"),
     "DatasetSchemaContract": ("src.core.models.schema_contract_models", "DatasetSchemaContract"),
     "DatasetSemantics": ("src.core.models.semantic_metadata_models", "DatasetSemantics"),
     "JoinCardinality": ("src.core.models.dataset_workspace_models", "JoinCardinality"),
@@ -488,7 +485,6 @@ __all__ = [
     "render_portfolio",
     # typed figure config
     "FigureSpec",
-    "FigureSpecBuilder",
     "DualAxisOpts",
     "LegendOpts",
     "ReferenceLineOpts",

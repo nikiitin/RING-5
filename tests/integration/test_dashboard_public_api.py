@@ -14,7 +14,7 @@ pytestmark = pytest.mark.public_api
 def _plots(session: ring5.Session) -> list[object]:
     bars = session.create_plot(
         "bar",
-        data=pd.DataFrame({"category": ["A", "B"], "value": [1.0, 2.0]}),
+        data=ring5.Table(pd.DataFrame({"category": ["A", "B"], "value": [1.0, 2.0]})),
         config={
             "x": "category",
             "y": "value",
@@ -26,7 +26,7 @@ def _plots(session: ring5.Session) -> list[object]:
     )
     line = session.create_plot(
         "line",
-        data=pd.DataFrame({"category": ["A", "B"], "value": [2.5, 1.5]}),
+        data=ring5.Table(pd.DataFrame({"category": ["A", "B"], "value": [2.5, 1.5]})),
         config={
             "x": "category",
             "y": "value",
@@ -38,7 +38,7 @@ def _plots(session: ring5.Session) -> list[object]:
     )
     scatter = session.create_plot(
         "scatter",
-        data=pd.DataFrame({"category": ["A", "B"], "value": [0.5, 3.0]}),
+        data=ring5.Table(pd.DataFrame({"category": ["A", "B"], "value": [0.5, 3.0]})),
         config={"x": "category", "y": "value"},
         name="Points",
     )

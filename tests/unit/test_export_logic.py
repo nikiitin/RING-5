@@ -25,7 +25,7 @@ def bar_plot(session: Any) -> Any:
     df = pd.DataFrame({"x": ["A", "B"], "y": [10.0, 20.0]})
     return session.create_plot(
         "bar",
-        data=df,
+        data=ring5.Table(df),
         config={"x": "x", "y": "y", "title": "Test Title", "xlabel": "X", "ylabel": "Y"},
         name="Test Plot",
     )
@@ -118,7 +118,7 @@ def test_multi_heatmap_colorbar_font_matches_spec(session: Any) -> None:
     )
     plot = session.create_plot(
         "heatmap",
-        data=df,
+        data=ring5.Table(df),
         config={
             "x": "config_abbrev",
             "facet_col": "benchmark_name",

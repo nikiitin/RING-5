@@ -43,7 +43,6 @@ complete:
 ```python
 import time
 
-import pandas as pd
 import ring5
 
 
@@ -58,7 +57,10 @@ def wait_for(session, submitted):
 
 
 with ring5.Session() as session:
-    data = pd.DataFrame({"benchmark": ["a", "b"], "ipc": [1.1, 1.4]})
+    data = ring5.Table.from_rows([
+        {"benchmark": "a", "ipc": 1.1},
+        {"benchmark": "b", "ipc": 1.4},
+    ])
     shaped_job = session.shape_submit(
         data,
         [{"type": "columnSelector", "columns": ["benchmark", "ipc"]}],

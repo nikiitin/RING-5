@@ -17,10 +17,10 @@ def test_public_metadata_covers_every_kind_and_survives_portfolio_reuse(portfoli
         session.api.state_manager.set_parse_variables(
             [{"name": "system.cpu.ipc", "type": "scalar", "_id": "v1"}]
         )
-        session.add_dataset("nightly", data)
+        session.add_dataset("nightly", ring5.Table(data))
         plot = session.create_plot(
             "bar",
-            data=data,
+            data=ring5.Table(data),
             config={"x": "benchmark", "y": "ipc"},
             name="IPC plot",
         )
@@ -59,7 +59,7 @@ def test_public_metadata_covers_every_kind_and_survives_portfolio_reuse(portfoli
 
     with ring5.Session() as restored:
         report = restored.load_portfolio("organized")
-        restored.add_dataset("nightly", data)
+        restored.add_dataset("nightly", ring5.Table(data))
         reused = restored.list_workspace_artifacts(tags=("nightly",))
         portfolio = restored.list_workspace_artifacts(kind="portfolio", favorites_only=True)
 

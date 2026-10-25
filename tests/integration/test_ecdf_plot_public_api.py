@@ -30,7 +30,9 @@ def test_public_ecdf_renders_grouped_survival_counts_in_both_engines() -> None:
     }
 
     with ring5.Session() as session:
-        plot = session.create_plot("ecdf", data=data, config=config, name="Latency survival")
+        plot = session.create_plot(
+            "ecdf", data=ring5.Table(data), config=config, name="Latency survival"
+        )
         plotly_figure = session.render(plot, engine="plotly")
         matplotlib_figure = session.render(plot, engine="matplotlib")
 

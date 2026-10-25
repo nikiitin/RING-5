@@ -4,9 +4,8 @@ Scripts need exceptions they can catch by meaning, not by scraping mixed
 ``FileNotFoundError``/``ValueError``/``KeyError`` messages out of the core
 layers. Session operations translate expected domain failures to
 :class:`Ring5Error`, preserving the original exception as ``__cause__``.
-Python constructors and directly imported low-level shapers retain ordinary
-``TypeError`` and ``ValueError`` validation; use ``Session.shape`` for typed
-pipeline failures.
+Python value constructors retain ordinary ``TypeError`` and ``ValueError``
+validation; ``Session.shape`` reports typed pipeline failures.
 """
 
 from __future__ import annotations
@@ -90,7 +89,7 @@ class PipelineError(Ring5Error):
 
 class ColumnNotFoundError(Ring5Error):
     # [impl->req~ring5.api.typed-errors~1]
-    """A named column is absent from the DataFrame.
+    """A named column is absent from the input table.
 
     Attributes:
         column: The missing column name.

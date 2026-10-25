@@ -48,14 +48,15 @@ class TestFullWorkflow:
 
             # load + shape
             df = s.load(result.csv_path)
-            assert "simTicks" in df.columns
+            assert "simTicks" in df.columns()
             assert len(df) > 0
             shaped = s.shape(df, [{"type": "columnSelector", "columns": ["simTicks"]}])
-            assert list(shaped.columns) == ["simTicks"]
+            assert shaped.columns() == ["simTicks"]
 
             # plot on a small slice
-            plot_df = df.head(5).copy()
-            plot_df["run"] = [f"r{i}" for i in range(len(plot_df))]
+            plot_df = ring5.Table.from_rows(
+                [{**row, "run": f"r{i}"} for i, row in enumerate(df.rows()[:5])]
+            )
             plot = s.create_plot(
                 "bar",
                 data=plot_df,
@@ -149,10 +150,10 @@ class TestFullWorkflow:
 class TestRegressionComparison:
     """Compare experiment measurements through the supported public API."""
 
-    def test_dataframe_comparison(self) -> None:
+    def test_explicit_frame_interoperability_comparison(self) -> None:
         # [test->req~ring5.analysis.regression-comparison~1]
-        baseline = pd.DataFrame({"benchmark": ["a", "b"], "ipc": [1.0, 2.0]})
-        candidate = pd.DataFrame({"benchmark": ["a", "b"], "ipc": [1.1, 1.7]})
+        baseline = ring5.Table(pd.DataFrame({"benchmark": ["a", "b"], "ipc": [1.0, 2.0]}))
+        candidate = ring5.Table(pd.DataFrame({"benchmark": ["a", "b"], "ipc": [1.1, 1.7]}))
 
         with ring5.Session() as session:
             result = session.compare(
@@ -165,9 +166,9 @@ class TestRegressionComparison:
                 candidate_name="change",
             )
 
-        assert isinstance(result, pd.DataFrame)
-        assert result["outcome"].tolist() == ["improvement", "regression"]
-        assert result["baseline_name"].tolist() == ["main", "main"]
+        assert isinstance(result, ring5.Table)
+        assert [row["outcome"] for row in result.rows()] == ["improvement", "regression"]
+        assert [row["baseline_name"] for row in result.rows()] == ["main", "main"]
 
     def test_table_comparison_returns_table(self) -> None:
         baseline = ring5.Table.from_rows([{"benchmark": "a", "ipc": 1.0}])
@@ -186,8 +187,8 @@ class TestRegressionComparison:
         assert result.rows()[0]["outcome"] == "improvement"
 
     def test_invalid_comparison_raises_typed_error(self) -> None:
-        baseline = pd.DataFrame({"benchmark": ["a", "a"], "ipc": [1.0, 2.0]})
-        candidate = pd.DataFrame({"benchmark": ["a"], "ipc": [1.1]})
+        baseline = ring5.Table(pd.DataFrame({"benchmark": ["a", "a"], "ipc": [1.0, 2.0]}))
+        candidate = ring5.Table(pd.DataFrame({"benchmark": ["a"], "ipc": [1.1]}))
 
         with ring5.Session() as session:
             with pytest.raises(ring5.DataValidationError, match="not unique"):
@@ -258,8 +259,8 @@ class TestRegressionComparison:
         assert row["mean_difference"] == pytest.approx(0.5)
 
     def test_invalid_statistics_raise_typed_error(self) -> None:
-        baseline = pd.DataFrame({"ipc": [1.0, 2.0]})
-        candidate = pd.DataFrame({"ipc": [2.0, 3.0]})
+        baseline = ring5.Table(pd.DataFrame({"ipc": [1.0, 2.0]}))
+        candidate = ring5.Table(pd.DataFrame({"ipc": [2.0, 3.0]}))
 
         with ring5.Session() as session:
             valid = session.compare_statistics(
@@ -269,7 +270,7 @@ class TestRegressionComparison:
                 ["ipc"],
                 bootstrap_samples=100,
             )
-            assert isinstance(valid, pd.DataFrame)
+            assert isinstance(valid, ring5.Table)
             with pytest.raises(ring5.DataValidationError, match="confidence_level"):
                 session.compare_statistics(
                     baseline,
@@ -281,8 +282,8 @@ class TestRegressionComparison:
 
     def test_comparison_annotations_are_plot_ready(self) -> None:
         # [test->req~ring5.analysis.regression-annotations~1]
-        baseline = pd.DataFrame({"benchmark": ["a"], "ipc": [1.0]})
-        candidate = pd.DataFrame({"benchmark": ["a"], "ipc": [1.2]})
+        baseline = ring5.Table(pd.DataFrame({"benchmark": ["a"], "ipc": [1.0]}))
+        candidate = ring5.Table(pd.DataFrame({"benchmark": ["a"], "ipc": [1.2]}))
 
         with ring5.Session() as session:
             comparison = session.compare(
@@ -292,15 +293,15 @@ class TestRegressionComparison:
                 ["ipc"],
                 thresholds=5.0,
             )
-            assert isinstance(comparison, pd.DataFrame)
+            assert isinstance(comparison, ring5.Table)
             annotated = session.annotate_comparison(
                 comparison,
                 label_columns=["benchmark"],
             )
 
-        assert isinstance(annotated, pd.DataFrame)
-        assert annotated.loc[0, "annotation_label"] == "a · ipc"
-        assert annotated.loc[0, "annotation_text"] == "▲ Improvement: +20.00%"
+        assert isinstance(annotated, ring5.Table)
+        assert annotated.rows()[0]["annotation_label"] == "a · ipc"
+        assert annotated.rows()[0]["annotation_text"] == "▲ Improvement: +20.00%"
 
     def test_comparison_annotations_preserve_table_and_typed_errors(self) -> None:
         comparison = ring5.Table.from_rows(
@@ -327,7 +328,7 @@ class TestRegressionComparison:
             assert isinstance(annotated, ring5.Table)
             assert annotated.rows()[0]["annotation_symbol"] == "▼"
             with pytest.raises(ring5.DataValidationError, match="missing columns"):
-                session.annotate_comparison(pd.DataFrame({"outcome": ["regression"]}))
+                session.annotate_comparison(ring5.Table(pd.DataFrame({"outcome": ["regression"]})))
 
 
 class TestDataQuality:
@@ -355,7 +356,7 @@ class TestDataQuality:
         with ring5.Session() as session:
             with pytest.raises(ring5.DataValidationError, match="Invalid expected type"):
                 session.profile_data(
-                    pd.DataFrame({"value": [1]}),
+                    ring5.Table(pd.DataFrame({"value": [1]})),
                     expected_types={"value": "currency"},  # type: ignore[dict-item]
                 )
 
@@ -407,16 +408,16 @@ class TestDatasetSchemaContracts:
     def test_schema_contract_errors_are_typed(self) -> None:
         contract = ring5.DatasetSchemaContract("schema", (ring5.ColumnContract("value"),))
         with ring5.Session() as session:
-            with pytest.raises(ring5.DataValidationError, match="pandas DataFrame"):
+            with pytest.raises(ring5.DataValidationError, match="ring5.Table"):
                 session.infer_schema_contract(42)  # type: ignore[arg-type]
             with pytest.raises(ring5.DataValidationError, match="DatasetSchemaContract"):
                 session.validate_schema(
-                    pd.DataFrame({"value": [1]}),
+                    ring5.Table(pd.DataFrame({"value": [1]})),
                     object(),  # type: ignore[arg-type]
                 )
             with pytest.raises(ring5.DataValidationError, match="unique column names"):
                 session.validate_schema(
-                    pd.DataFrame([[1, 2]], columns=["value", "value"]),
+                    ring5.Table(pd.DataFrame([[1, 2]], columns=["value", "value"])),
                     contract,
                 )
 
@@ -481,7 +482,7 @@ class TestDatasetSemanticMetadata:
 
     def test_semantic_errors_use_the_public_validation_type(self) -> None:
         # [test->req~ring5.data.semantic-units~1]
-        data = pd.DataFrame({"latency": [1.0]})
+        data = ring5.Table(pd.DataFrame({"latency": [1.0]}))
         semantics = ring5.DatasetSemantics((ring5.ColumnSemantics("latency", "Latency", "ms"),))
         with ring5.Session() as session:
             annotated = session.apply_semantics(data, semantics)
@@ -493,7 +494,7 @@ class TestDatasetSemanticMetadata:
                     data,
                     ring5.DatasetSemantics((ring5.ColumnSemantics("missing", "Missing"),)),
                 )
-            with pytest.raises(ring5.DataValidationError, match="pandas DataFrame"):
+            with pytest.raises(ring5.DataValidationError, match="ring5.Table"):
                 session.inspect_semantics(42)  # type: ignore[arg-type]
 
 
@@ -508,7 +509,9 @@ class TestNamedDatasetWorkspace:
                 {"benchmark": "b", "ipc": 2.0},
             ]
         )
-        candidate = pd.DataFrame({"benchmark": ["a", "b"], "ipc": [1.2, 1.8], "note": ["x", "y"]})
+        candidate = ring5.Table(
+            pd.DataFrame({"benchmark": ["a", "b"], "ipc": [1.2, 1.8], "note": ["x", "y"]})
+        )
 
         with ring5.Session() as session:
             first = session.add_dataset("baseline", baseline)
@@ -521,9 +524,9 @@ class TestNamedDatasetWorkspace:
                 "candidate",
             ]
 
-            defensive = session.get_dataset("candidate")
+            defensive = session.get_dataset("candidate").frame
             defensive.loc[0, "ipc"] = 999.0
-            assert session.get_dataset("candidate").loc[0, "ipc"] == 1.2
+            assert session.get_dataset("candidate").rows()[0]["ipc"] == 1.2
 
             comparison = session.compare_datasets(
                 "baseline",
@@ -532,7 +535,7 @@ class TestNamedDatasetWorkspace:
                 ["ipc"],
                 thresholds=5.0,
             )
-            assert comparison["outcome"].tolist() == ["improvement", "regression"]
+            assert [row["outcome"] for row in comparison.rows()] == ["improvement", "regression"]
 
             appended = session.append_datasets(
                 ["baseline", "candidate"],
@@ -540,7 +543,7 @@ class TestNamedDatasetWorkspace:
                 select=False,
             )
             assert len(appended) == 4
-            assert session.get_dataset()["ipc"].tolist() == [1.0, 2.0]
+            assert [row["ipc"] for row in session.get_dataset().rows()] == [1.0, 2.0]
 
             joined = session.join_datasets(
                 "baseline",
@@ -548,18 +551,18 @@ class TestNamedDatasetWorkspace:
                 "paired",
                 ["benchmark"],
             )
-            assert {"ipc_left", "ipc_right", "note"} <= set(joined.columns)
-            assert session.select_dataset("candidate")["ipc"].tolist() == [1.2, 1.8]
+            assert {"ipc_left", "ipc_right", "note"} <= set(joined.columns())
+            assert [row["ipc"] for row in session.select_dataset("candidate").rows()] == [1.2, 1.8]
             session.remove_dataset("baseline")
             assert "candidate" in {item.name for item in session.list_datasets()}
 
     def test_workspace_errors_are_typed(self) -> None:
         with ring5.Session() as session:
-            session.add_dataset("one", pd.DataFrame({"key": [1], "value": [2.0]}))
-            session.add_dataset("two", pd.DataFrame({"key": [1], "value": [3.0]}))
+            session.add_dataset("one", ring5.Table(pd.DataFrame({"key": [1], "value": [2.0]})))
+            session.add_dataset("two", ring5.Table(pd.DataFrame({"key": [1], "value": [3.0]})))
             with pytest.raises(ring5.DataValidationError, match="already exists"):
-                session.add_dataset("one", pd.DataFrame({"key": [1]}))
-            with pytest.raises(ring5.DataValidationError, match="pandas DataFrame"):
+                session.add_dataset("one", ring5.Table(pd.DataFrame({"key": [1]})))
+            with pytest.raises(ring5.DataValidationError, match="ring5.Table"):
                 session.add_dataset("invalid", 42)  # type: ignore[arg-type]
             with pytest.raises(ring5.DataValidationError, match="does not exist"):
                 session.get_dataset("missing")
@@ -580,8 +583,8 @@ class TestValidatedDatasetJoins:
 
     def test_diagnose_and_execute_validated_join(self) -> None:
         # [test->req~ring5.data.validated-joins~1]
-        left = pd.DataFrame({"key": [1, 2, 4], "name": ["a", "b", "d"]})
-        right = pd.DataFrame({"key": [1, 1, 3], "value": [10, 11, 30]})
+        left = ring5.Table(pd.DataFrame({"key": [1, 2, 4], "name": ["a", "b", "d"]}))
+        right = ring5.Table(pd.DataFrame({"key": [1, 1, 3], "value": [10, 11, 30]}))
 
         with ring5.Session() as session:
             session.add_dataset("left", left)
@@ -607,14 +610,14 @@ class TestValidatedDatasetJoins:
             assert diagnostics.right_unmatched_rows == 1
             assert diagnostics.matched_key_count == 1
             assert confirmed == diagnostics
-            assert joined["value"].tolist() == [10, 11]
-            pd.testing.assert_frame_equal(joined, session.get_dataset("joined"))
+            assert [row["value"] for row in joined.rows()] == [10, 11]
+            pd.testing.assert_frame_equal(joined.frame, session.get_dataset("joined").frame)
             assert "one-to-many" in session.dataset_lineage("joined").revisions[0].operation
 
     def test_cardinality_conflicts_are_typed_and_do_not_store_output(self) -> None:
         with ring5.Session() as session:
-            session.add_dataset("left", pd.DataFrame({"key": [1, 2]}))
-            session.add_dataset("right", pd.DataFrame({"key": [1, 1]}), select=False)
+            session.add_dataset("left", ring5.Table(pd.DataFrame({"key": [1, 2]})))
+            session.add_dataset("right", ring5.Table(pd.DataFrame({"key": [1, 1]})), select=False)
             with pytest.raises(ring5.DataValidationError, match="Expected a one-to-one join"):
                 session.join_datasets_validated(
                     "left",
@@ -638,8 +641,10 @@ class TestDatasetLineageAndRecovery:
 
     def test_lineage_undo_redo_and_restore(self) -> None:
         # [test->req~ring5.data.lineage-undo-redo~1]
-        baseline = pd.DataFrame({"benchmark": ["a"], "ipc": [1.0]})
-        candidate = pd.DataFrame({"benchmark": ["b"], "ipc": [2.0], "note": ["candidate"]})
+        baseline = ring5.Table(pd.DataFrame({"benchmark": ["a"], "ipc": [1.0]}))
+        candidate = ring5.Table(
+            pd.DataFrame({"benchmark": ["b"], "ipc": [2.0], "note": ["candidate"]})
+        )
 
         with ring5.Session() as session:
             session.add_dataset("baseline", baseline)
@@ -663,20 +668,20 @@ class TestDatasetLineageAndRecovery:
             assert lineage.revisions[-1].source_datasets == ("baseline", "candidate")
             assert lineage.revisions[-1].parent_revision_ids[0] == first_revision.revision_id
             assert lineage.can_undo is True
-            assert "note" not in session.get_dataset("combined").columns
+            assert "note" not in session.get_dataset("combined").columns()
 
-            inspected = session.get_dataset_revision(first_revision.revision_id)
+            inspected = session.get_dataset_revision(first_revision.revision_id).frame
             inspected.loc[0, "ipc"] = 999.0
-            assert session.get_dataset_revision(first_revision.revision_id).loc[0, "ipc"] == 1.0
+            assert session.get_dataset_revision(first_revision.revision_id).rows()[0]["ipc"] == 1.0
 
             undone = session.undo_dataset()
             assert undone.revision_id == first_revision.revision_id
-            assert "note" in session.get_dataset("combined").columns
+            assert "note" in session.get_dataset("combined").columns()
             assert session.dataset_lineage().can_redo is True
 
             redone = session.redo_dataset("combined")
             assert redone.revision_id == lineage.revisions[-1].revision_id
-            assert "note" not in session.get_dataset("combined").columns
+            assert "note" not in session.get_dataset("combined").columns()
 
             restored = session.restore_dataset_revision(first_revision.revision_id)
             assert restored.revision_id == first_revision.revision_id
@@ -686,7 +691,7 @@ class TestDatasetLineageAndRecovery:
         with ring5.Session() as session:
             with pytest.raises(ring5.DataValidationError, match="No dataset is selected"):
                 session.dataset_lineage()
-            session.add_dataset("only", pd.DataFrame({"value": [1]}))
+            session.add_dataset("only", ring5.Table(pd.DataFrame({"value": [1]})))
             with pytest.raises(ring5.DataValidationError, match="no earlier revision"):
                 session.undo_dataset()
             with pytest.raises(ring5.DataValidationError, match="no revision to redo"):
@@ -704,12 +709,14 @@ class TestReusableDatasetSnapshots:
         # [test->req~ring5.data.dataset-snapshots~1]
         snapshots_dir = tmp_path / "dataset_snapshots"
         snapshots_dir.mkdir()
-        data = pd.DataFrame(
-            {
-                "benchmark": pd.Series(["a", "b"], dtype="string"),
-                "ipc": [1.0, 2.0],
-                "updated": pd.to_datetime(["2026-01-01", "2026-01-02"], utc=True),
-            }
+        data = ring5.Table(
+            pd.DataFrame(
+                {
+                    "benchmark": pd.Series(["a", "b"], dtype="string"),
+                    "ipc": [1.0, 2.0],
+                    "updated": pd.to_datetime(["2026-01-01", "2026-01-02"], utc=True),
+                }
+            )
         )
         from unittest.mock import patch
 
@@ -721,7 +728,7 @@ class TestReusableDatasetSnapshots:
             return_value=snapshots_dir,
         ):
             with ring5.Session() as first:
-                first.api.state_manager.set_data(data)
+                first.api.state_manager.set_data(data.frame)
                 saved = first.save_dataset_snapshot("parsed-once")
                 assert isinstance(saved, ring5.DatasetSnapshotInfo)
                 assert saved.source_dataset == "active_data"
@@ -736,7 +743,7 @@ class TestReusableDatasetSnapshots:
                     "restored-results",
                 )
                 assert isinstance(restored, ring5.DatasetInfo)
-                pd.testing.assert_frame_equal(second.get_dataset(), data)
+                pd.testing.assert_frame_equal(second.get_dataset().frame, data.frame)
                 revision = second.dataset_lineage().revisions[0]
                 assert revision.fingerprint == saved.fingerprint
                 assert revision.operation == "Load reusable snapshot: parsed-once"
@@ -761,7 +768,7 @@ class TestReusableDatasetSnapshots:
             return_value=snapshots_dir,
         ):
             with ring5.Session() as session:
-                session.add_dataset("named-source", pd.DataFrame({"value": [7]}))
+                session.add_dataset("named-source", ring5.Table(pd.DataFrame({"value": [7]})))
                 session.save_dataset_snapshot("named", "named-source")
                 session.remove_dataset("named-source")
                 restored = session.load_dataset_snapshot("named")
@@ -774,9 +781,9 @@ class TestPortfolioReplay:
 
     def test_save_then_render_portfolio(self, tmp_path: Path, portfolios_dir: Path) -> None:
         # [test->req~ring5.portfolio.safe-overwrite~1]
-        df = pd.DataFrame({"bench": ["a", "b", "c"], "ipc": [1.0, 2.0, 3.0]})
+        df = ring5.Table(pd.DataFrame({"bench": ["a", "b", "c"], "ipc": [1.0, 2.0, 3.0]}))
         with ring5.Session() as s:
-            s.api.state_manager.set_data(df)
+            s.api.state_manager.set_data(df.frame)
             s.create_plot(
                 "bar",
                 data=df,
@@ -818,7 +825,7 @@ class TestDeterminism:
     """The CI-regression contract for the zero-dependency formats."""
 
     def test_fig_json_and_exports_stable(self) -> None:
-        df = pd.DataFrame({"x": ["a", "b"], "y": [1.0, 2.0]})
+        df = ring5.Table(pd.DataFrame({"x": ["a", "b"], "y": [1.0, 2.0]}))
 
         def build() -> tuple[bytes, bytes, str]:
             with ring5.Session() as s:
@@ -887,14 +894,14 @@ class TestErrorSurface:
     """The typed error hierarchy behaves as documented."""
 
     def test_pipeline_error_carries_step(self) -> None:
-        df = pd.DataFrame({"x": [1.0]})
+        df = ring5.Table(pd.DataFrame({"x": [1.0]}))
         with ring5.Session() as s:
             with pytest.raises(ring5.PipelineError) as exc_info:
                 s.shape(df, [{"columns": ["x"]}])  # type: ignore[list-item]
         assert exc_info.value.step_index == 0
 
     def test_missing_column_typed(self) -> None:
-        df = pd.DataFrame({"x": [1.0]})
+        df = ring5.Table(pd.DataFrame({"x": [1.0]}))
         with ring5.Session() as s:
             with pytest.raises(ring5.ColumnNotFoundError) as exc_info:
                 s.remove_outliers(df, "nope")
@@ -930,7 +937,7 @@ class TestErrorSurface:
     def test_invalid_engine_lists_choices(self) -> None:
         # [test->req~ring5.api.plot-validation~1]
         """Invalid render configuration uses the public error hierarchy."""
-        data = pd.DataFrame({"x": ["a"], "y": [1.0]})
+        data = ring5.Table(pd.DataFrame({"x": ["a"], "y": [1.0]}))
         with ring5.Session() as session:
             plot = session.create_plot("bar", data=data, config={"x": "x", "y": "y"})
             with pytest.raises(ring5.RenderError, match="matplotlib.*plotly"):
@@ -938,7 +945,7 @@ class TestErrorSurface:
 
     def test_plot_without_data_raises_render_error(self) -> None:
         """A restored or manually cleared plot fails with an actionable error."""
-        data = pd.DataFrame({"x": ["a"], "y": [1.0]})
+        data = ring5.Table(pd.DataFrame({"x": ["a"], "y": [1.0]}))
         with ring5.Session() as session:
             plot = session.create_plot("bar", data=data, config={"x": "x", "y": "y"})
             plot.replace_processed_data(None)
@@ -957,7 +964,7 @@ class TestApiErgonomics:
     """Common plotting workflows remain concise and discoverable."""
 
     def test_plot_accepts_typed_spec_and_registry_identifier(self) -> None:
-        data = pd.DataFrame({"benchmark": ["a", "b"], "ipc": [1.0, 1.5]})
+        data = ring5.Table(pd.DataFrame({"benchmark": ["a", "b"], "ipc": [1.0, 1.5]}))
         spec = ring5.FigureSpec(x="benchmark", y_columns=["ipc"], title="IPC")
 
         with ring5.Session() as session:
@@ -974,7 +981,9 @@ class TestApiErgonomics:
         with ring5.Session() as session:
             with pytest.raises(ring5.DataValidationError, match="Unknown plot type"):
                 session.create_plot(
-                    identifier, data=pd.DataFrame({"x": [1], "y": [2]}), config={"x": "x", "y": "y"}
+                    identifier,
+                    data=ring5.Table(pd.DataFrame({"x": [1], "y": [2]})),
+                    config={"x": "x", "y": "y"},
                 )
             assert session.plots == []
 
@@ -986,7 +995,7 @@ class TestApiErgonomics:
 
     def test_unknown_plot_type_lists_valid_choices(self) -> None:
         # [test->req~ring5.api.plot-validation~1]
-        data = pd.DataFrame({"x": ["a"], "y": [1.0]})
+        data = ring5.Table(pd.DataFrame({"x": ["a"], "y": [1.0]}))
 
         with ring5.Session() as session:
             with pytest.raises(ring5.DataValidationError, match="Available types:.*bar"):

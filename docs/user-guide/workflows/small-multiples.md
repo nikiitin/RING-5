@@ -49,16 +49,14 @@ small multiples.
 ## Build the same comparison in Python
 
 ```python
-import pandas as pd
 import ring5
 
-data = pd.DataFrame(
-    {
-        "benchmark": ["mcf", "gcc", "mcf", "gcc"],
-        "architecture": ["x86", "x86", "arm", "arm"],
-        "ipc": [1.01, 1.22, 1.18, 1.31],
-    }
-)
+data = ring5.Table.from_rows([
+    {"benchmark": "mcf", "architecture": "x86", "ipc": 1.01},
+    {"benchmark": "gcc", "architecture": "x86", "ipc": 1.22},
+    {"benchmark": "mcf", "architecture": "arm", "ipc": 1.18},
+    {"benchmark": "gcc", "architecture": "arm", "ipc": 1.31},
+])
 
 with ring5.Session() as session:
     plot = session.create_plot(

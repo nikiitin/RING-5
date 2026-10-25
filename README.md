@@ -26,12 +26,12 @@ for system dependencies and a smaller runtime-only installation.
 ## Use the Python API
 
 ```python
-import pandas as pd
 import ring5
 
-data = pd.DataFrame(
-    {"benchmark": ["mcf", "xalancbmk"], "ipc": [1.08, 1.31]}
-)
+data = ring5.Table.from_rows([
+    {"benchmark": "mcf", "ipc": 1.08},
+    {"benchmark": "xalancbmk", "ipc": 1.31},
+])
 
 with ring5.Session() as session:
     spec = ring5.FigureSpec(

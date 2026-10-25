@@ -269,9 +269,14 @@ Covers:
 -->
 
 `ring5.Table` and `ring5.read_table` provide a pandas-independent handle for figure scripts.
-`Session.shape`, `reduce_seeds`, `remove_outliers`, `apply_operation`, and `mix_columns` return a
-`Table` when given one; plot methods also accept it. Use a DataFrame when the analysis needs pandas
-operations outside the supported surface.
+`Session.load` and dataset getters return `Table`. Transformation, comparison, plot-data and report
+table arguments require `Table`; operations that produce analysis data return a new `Table`.
+Run registered pipeline steps through `Session.shape` or `shape_submit`.
+
+Use `Table.from_rows(...)` for records or `ring5.read_table(...)` for a CSV. For pandas operations
+outside the supported table helpers, obtain a defensive copy with `table.frame`, then explicitly
+wrap the result with `ring5.Table(frame)` before passing it to a Session data method. Immutable
+quality, schema, semantics and accessibility reports also offer an explicit `to_frame()` conversion.
 
 ```text
 ring5 doctor

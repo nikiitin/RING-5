@@ -229,7 +229,9 @@ def test_noncartesian_dashboard_panels_render_both_engines(
 ) -> None:
     with ring5.Session() as session:
         plots = [
-            session.create_plot(plot_type, data=data, config=config, name=f"Panel {index}")
+            session.create_plot(
+                plot_type, data=ring5.Table(data), config=config, name=f"Panel {index}"
+            )
             for index in range(2)
         ]
         dashboard = session.create_dashboard(
@@ -252,7 +254,7 @@ def test_value_labels_use_supported_scatter_properties(plot_type: str) -> None:
     with ring5.Session() as session:
         figure = session.plot(
             plot_type,
-            data=pd.DataFrame({"x": ["a", "b", "c"], "y": [1, 2, 3]}),
+            data=ring5.Table(pd.DataFrame({"x": ["a", "b", "c"], "y": [1, 2, 3]})),
             config={"x": "x", "y": "y", "show_values": True},
         )
         trace = figure.data[0]
@@ -349,7 +351,7 @@ def test_matplotlib_category_aliases_keep_data_coordinates(plot_type: str) -> No
     with ring5.Session() as session:
         figure = session.plot(
             plot_type,
-            data=pd.DataFrame({"x": ["a", "b"], "y": [1, 2]}),
+            data=ring5.Table(pd.DataFrame({"x": ["a", "b"], "y": [1, 2]})),
             config={
                 "x": "x",
                 "y": "y",

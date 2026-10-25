@@ -14,7 +14,7 @@ def _plots(session: ring5.Session) -> tuple[object, object]:
     data = pd.DataFrame({"benchmark": ["A", "B"], "ipc": [1.0, 2.0]})
     source = session.create_plot(
         "bar",
-        data=data,
+        data=ring5.Table(data),
         config={
             "x": "benchmark",
             "y": "ipc",
@@ -26,7 +26,7 @@ def _plots(session: ring5.Session) -> tuple[object, object]:
     )
     target = session.create_plot(
         "bar",
-        data=data.copy(),
+        data=ring5.Table(data.copy()),
         config={"x": "benchmark", "y": "ipc", "title": "Target"},
         name="Target",
     )
@@ -64,7 +64,7 @@ def test_public_copy_reports_typed_compatibility_errors() -> None:
         source, target = _plots(session)
         line = session.create_plot(
             "line",
-            data=pd.DataFrame({"benchmark": ["A"], "ipc": [1.0]}),
+            data=ring5.Table(pd.DataFrame({"benchmark": ["A"], "ipc": [1.0]})),
             config={"x": "benchmark", "y": "ipc"},
         )
         with pytest.raises(ring5.DataValidationError, match="same plot type"):

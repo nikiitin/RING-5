@@ -83,7 +83,9 @@ def test_public_render_exposes_unknown_trace_as_typed_error(
         traces.extend([HeatmapTraceConfig(z=[[1.0]]), HeatmapTraceConfig(z=[[2.0]])])
     with ring5.Session() as session:
         plot = session.create_plot(
-            "bar", data=pd.DataFrame({"x": ["a"], "y": [1.0]}), config={"x": "x", "y": "y"}
+            "bar",
+            data=ring5.Table.from_rows([{"x": "a", "y": 1.0}]),
+            config={"x": "x", "y": "y"},
         )
         monkeypatch.setattr(
             plot,
@@ -123,10 +125,14 @@ def test_public_constructor_and_restore_admit_a_registered_plot(
     with ring5.Session() as session:
         with pytest.raises(ring5.DataValidationError, match="numbered_xaxis_modes"):
             session.create_plot(
-                "review_specialized_bar", data=data, config={"numbered_xaxis_modes": True}
+                "review_specialized_bar",
+                data=ring5.Table(data),
+                config={"numbered_xaxis_modes": True},
             )
         assert not session.plots
-        plot = session.create_plot("review_specialized_bar", data=data, config={"metric": "ipc"})
+        plot = session.create_plot(
+            "review_specialized_bar", data=ring5.Table(data), config={"metric": "ipc"}
+        )
         assert isinstance(plot, RegisteredBar)
         for current in (plot, PlotFactory.from_dict(plot.to_dict())):
             figure = session.render(current, engine=engine)

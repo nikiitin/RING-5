@@ -2378,7 +2378,7 @@
       "revision": 1,
       "status": "approved",
       "title": "Pandas-independent Table scripts",
-      "description": "The public Table and read_table surface shall provide immutable loading, selection, transformation, inspection, and export for scripts that do not import pandas.",
+      "description": "Declared Session data methods shall require Table inputs and return owned Table results for analysis data. Table and read_table shall support immutable loading, selection, inspection and export, with explicit pandas conversion through Table(frame) and Table.frame.",
       "tags": ["api", "data", "scripting"],
       "evidence": {
         "implementation": [
@@ -2386,7 +2386,8 @@
           "ring5/data.py::read_table"
         ],
         "tests": [
-          "tests/unit/test_ring5_convenience_api.py::TestTable"
+          "tests/unit/test_ring5_convenience_api.py::TestTable",
+          "tests/integration/test_public_value_contracts.py::test_session_declared_data_methods_do_not_advertise_raw_frames"
         ],
         "documentation": [
           "docs/user-guide/workflows/scripting.md#use-portable-table-scripts"
@@ -2399,34 +2400,17 @@
       "revision": 1,
       "status": "approved",
       "title": "Typed FigureSpec",
-      "description": "The public API shall expose typed common figure mappings, layout, axes, grouping, legend, reference-line, and dual-axis configuration with an extra-key escape hatch.",
+      "description": "The public API shall expose immutable typed common figure mappings, layout, axes, grouping, legend, reference-line and dual-axis values, with owned extra keys and fresh canonical editable configuration projection.",
       "tags": ["api", "figures", "typing"],
       "evidence": {
         "implementation": ["ring5/figure_spec.py::FigureSpec"],
         "tests": [
           "tests/unit/test_figure_spec.py::TestFigureSpecToConfig",
-          "tests/unit/test_figure_spec.py::TestFigureSpecValidation"
+          "tests/unit/test_figure_spec.py::TestFigureSpecValidation",
+          "tests/unit/test_figure_spec_values.py::TestFigureSpecValues"
         ],
         "documentation": [
           "docs/developer-guide/api-reference/public-python-api.md#typed-figurespec"
-        ]
-      }
-    },
-    {
-      "id": "api.figure-builder",
-      "group": "automation",
-      "revision": 1,
-      "status": "approved",
-      "title": "Fluent FigureSpec builder",
-      "description": "Scripts shall build a FigureSpec through cohesive fluent methods for data, size, palettes, axes, grouping, legends, references, and dual-axis options.",
-      "tags": ["api", "builder", "figures"],
-      "evidence": {
-        "implementation": ["ring5/figure_spec.py::FigureSpecBuilder"],
-        "tests": [
-          "tests/unit/test_figure_builder.py::TestFigureSpecBuilder"
-        ],
-        "documentation": [
-          "docs/developer-guide/api-reference/public-python-api.md#fluent-figurespec-builder"
         ]
       }
     },
@@ -2663,7 +2647,7 @@
       "description": "Core managers, shapers, and public table operations shall return new data objects and preserve caller-owned inputs.",
       "tags": ["data", "immutability", "quality"],
       "evidence": {
-        "implementation": ["src/core/services/managers/arithmetic_service.py::ArithmeticService.apply_operation", "src/core/services/shapers/pipeline_service.py::PipelineService.process_pipeline", "ring5/data.py::Table.apply"],
+        "implementation": ["src/core/services/managers/arithmetic_service.py::ArithmeticService.apply_operation", "src/core/services/shapers/pipeline_service.py::PipelineService.process_pipeline", "ring5/data.py::Table.with_scalar_op"],
         "tests": ["tests/integration/test_ring5_api_completeness.py::test_manager_operations_preserve_dataframe_and_table", "tests/unit/test_shaper_config_validate.py::TestApplyShapers.test_does_not_mutate_original_data", "tests/unit/test_ring5_convenience_api.py::TestTable"],
         "documentation": ["docs/developer-guide/architecture/design-patterns.md#immutable-data-operations"]
       }
@@ -3390,7 +3374,7 @@
         ],
         "tests": [
           "tests/unit/test_comparison_service.py::test_compare_calculates_changes_and_directional_outcomes",
-          "tests/integration/test_ring5_public_api.py::TestRegressionComparison.test_dataframe_comparison",
+          "tests/integration/test_ring5_public_api.py::TestRegressionComparison.test_explicit_frame_interoperability_comparison",
           "tests/e2e/test_data_managers.py::TestRegressionComparison.test_02_comparison_preview"
         ],
         "documentation": ["docs/user-guide/guides/compare-configurations.md#calculate-regressions"]
@@ -3751,6 +3735,7 @@
       "evidence": {
         "implementation": [
           "src/core/models/visualization/drill_down_result.py::DrillDownResult",
+          "ring5/data.py::DrillDownResult",
           "src/core/services/visualization/drill_down_service.py::drill_down_rows",
           "src/core/application_api.py::ApplicationAPI.drill_down_plot",
           "src/web/pages/ui/plotting/base_plot.py::BasePlot.replace_source_data",
@@ -3766,6 +3751,7 @@
           "tests/unit/test_drill_down_service.py::test_drill_down_matches_grouped_source_rows_and_returns_defensive_copies",
           "tests/unit/test_drill_down_metadata.py::test_every_plot_family_embeds_source_filters_without_mutating_data",
           "tests/integration/test_drill_down_public_api.py::test_public_drill_down_recovers_aggregate_source_rows_without_mutation",
+          "tests/integration/test_public_value_contracts.py::test_drill_down_and_report_tables_use_owned_public_values",
           "tests/ui_logic/test_render_controller.py::TestDrillDownInteraction.test_click_resolves_rows_and_preserves_config",
           "tests/e2e/test_plot_drill_down.py::test_point_drill_down_shows_source_rows_and_returns_with_config"
         ],
@@ -5284,7 +5270,6 @@
       "ExportError": "api.typed-errors",
       "FigureDecorations": "api.figure-decorations",
       "FigureSpec": "api.figure-spec",
-      "FigureSpecBuilder": "api.figure-builder",
       "FigureTheme": "figure.theme-presets",
       "ImportColumn": "ingestion.import-preview",
       "ImportColumnCorrection": "ingestion.import-preview",
@@ -5729,7 +5714,6 @@
       "process_pipeline": "shaping.independent-pipelines"
     },
     "table_members": {
-      "apply": "api.table",
       "columns": "api.table",
       "concat": "api.table",
       "filter_eq": "api.table",
@@ -5743,26 +5727,6 @@
       "to_csv": "api.table",
       "value_map": "api.table",
       "with_scalar_op": "api.table"
-    },
-    "figure_builder_members": {
-      "axes": "api.figure-builder",
-      "bars": "api.figure-builder",
-      "build": "api.figure-builder",
-      "category_groups": "api.figure-builder",
-      "category_labels": "api.figure-builder",
-      "data": "api.figure-builder",
-      "dual_axis": "api.figure-builder",
-      "extra": "api.figure-builder",
-      "grid": "api.figure-builder",
-      "legend": "api.figure-builder",
-      "number_legend": "api.figure-builder",
-      "numbered_xaxis": "api.figure-builder",
-      "palette": "api.figure-builder",
-      "reference_line": "api.figure-builder",
-      "separators": "api.figure-builder",
-      "size": "api.figure-builder",
-      "tick_marks": "api.figure-builder",
-      "title": "api.figure-builder"
     },
     "figure_decoration_members": {
       "axis_below": "api.figure-decorations",
@@ -6066,23 +6030,9 @@
       "font_size_yticks": "figure.typography"
     },
     "public_shaper_exports": {
-      "ColumnSelector": "shaping.column-selector",
-      "ConditionSelector": "shaping.condition-selector",
-      "DeriveColumn": "shaping.derive-column",
-      "GroupCardinalitySelector": "shaping.group-cardinality-selector",
-      "GroupPredicateSelector": "shaping.group-predicate-selector",
-      "ItemSelector": "shaping.item-selector",
-      "Mean": "shaping.mean",
-      "Normalize": "shaping.normalize",
-      "PivotLonger": "shaping.pivot-longer",
-      "PivotWider": "shaping.pivot-wider",
-      "Selector": "extension.shaper-registry",
       "Shaper": "extension.shaper-registry",
       "ShaperDefinition": "extension.shaper-registry",
       "register_shaper": "extension.shaper-registry",
-      "Sort": "shaping.sort",
-      "SplitApply": "shaping.split-apply",
-      "Transformer": "shaping.transformer",
       "available_shaper_types": "api.registry-discovery"
     }
   }

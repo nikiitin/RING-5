@@ -27,13 +27,14 @@ The converged pass inspected:
 - all 333 direct Streamlit control calls across 57 web modules;
 - plot, shaper, simulator and statistic registries;
 - parser strategies, variable types, internal statistic names and default file patterns;
-- public `Session`, `Table`, figure-builder, decoration and asynchronous-job members;
+- public `Session`, `Table`, immutable figure fields, decoration and asynchronous-job members;
 - `ApplicationAPI` and its manager, data-service and shaper sub-APIs;
 - CLI commands and command-qualified options;
 - parse, scan, restore, shaper and figure configuration schemas.
 
-The generator binds 556 live values from 45 discovery sources to explicit requirements. A new or
-renamed value makes `make oft-check` fail until the inventory records a decision.
+The generator binds the live values listed in the [generated summary](generated/summary.md) to
+explicit requirements. A new or renamed value makes `make oft-check` fail until the inventory
+records a decision.
 
 ## Convergence runs
 

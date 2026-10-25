@@ -37,7 +37,7 @@ def test_public_line_styles_match_in_both_engines() -> None:
         "connect_gaps": True,
     }
     with ring5.Session() as session:
-        plot = session.create_plot("line", data=_data(), config=config)
+        plot = session.create_plot("line", data=ring5.Table(_data()), config=config)
 
         plotly_figure = session.render(plot, engine="plotly")
         assert isinstance(plotly_figure, go.Figure)
@@ -69,7 +69,7 @@ def test_line_gaps_remain_visible_by_default() -> None:
     with ring5.Session() as session:
         plot = session.create_plot(
             "line",
-            data=_data(),
+            data=ring5.Table(_data()),
             config={"x": "sample", "y": "value", "show_markers": False},
         )
 
@@ -104,7 +104,7 @@ def test_public_line_style_validation_is_typed(field: str, value: object) -> Non
         with pytest.raises(ring5.DataValidationError, match=field):
             session.create_plot(
                 "line",
-                data=_data(),
+                data=ring5.Table(_data()),
                 config={"x": "sample", "y": "value", field: value},
             )
         assert session.plots == []
@@ -123,7 +123,7 @@ def test_public_scatter_marker_diameters_match_after_common_styling(per_trace: b
     }
     expected_diameter = 14 if per_trace else 10
     with ring5.Session() as session:
-        plot = session.create_plot("scatter", data=_data(), config=config)
+        plot = session.create_plot("scatter", data=ring5.Table(_data()), config=config)
         plotly_figure = session.render(plot, engine="plotly")
         assert isinstance(plotly_figure, go.Figure)
         trace = plotly_figure.data[0]
@@ -176,7 +176,7 @@ def test_public_scatter_overrides_preserve_geometry_and_borders(
         },
     }
     with ring5.Session() as session:
-        plot = session.create_plot("scatter", data=_data(), config=config)
+        plot = session.create_plot("scatter", data=ring5.Table(_data()), config=config)
         plotly_figure = session.render(plot, engine="plotly")
         assert isinstance(plotly_figure, go.Figure)
         trace = plotly_figure.data[0]

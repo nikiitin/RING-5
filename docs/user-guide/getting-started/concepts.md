@@ -48,7 +48,8 @@ the columns and data types it uses.
 The **Data Managers** page changes the workspace dataset for downstream plots. Use it for operations
 such as seed reduction, outlier removal, or derived values that should apply broadly.
 
-These operations return new DataFrames in the Python API. They do not mutate caller-owned input.
+These operations return new `ring5.Table` values in the Python API. They do not mutate caller-owned
+input.
 
 ## Plot and shaper pipeline
 

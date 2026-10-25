@@ -33,7 +33,9 @@ def test_public_sankey_renders_validated_labeled_flows_in_both_engines() -> None
     }
 
     with ring5.Session() as session:
-        plot = session.create_plot("sankey", data=data, config=config, name="Material flow")
+        plot = session.create_plot(
+            "sankey", data=ring5.Table(data), config=config, name="Material flow"
+        )
         plotly_figure = session.render(plot, engine="plotly")
         matplotlib_figure = session.render(plot, engine="matplotlib")
 

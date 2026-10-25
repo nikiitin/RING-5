@@ -48,7 +48,7 @@ def test_mode_inputs_are_exact_unique_allowed_lists(modes: object) -> None:
         with pytest.raises(ring5.DataValidationError, match="numbered_xaxis_modes"):
             session.create_plot(
                 "bar",
-                data=pd.DataFrame({"x": ["a"], "y": [1]}),
+                data=ring5.Table(pd.DataFrame({"x": ["a"], "y": [1]})),
                 config={"x": "x", "y": "y", "numbered_xaxis_modes": modes},
             )
         assert not session.plots
@@ -73,7 +73,9 @@ def test_retired_keys_are_rejected_before_public_plot_registration(key: str) -> 
         numbered_axis_modes(config)
     with ring5.Session() as session:
         with pytest.raises(ring5.DataValidationError, match=key):
-            session.create_plot("bar", data=pd.DataFrame({"x": ["a"], "y": [1]}), config=config)
+            session.create_plot(
+                "bar", data=ring5.Table(pd.DataFrame({"x": ["a"], "y": [1]})), config=config
+            )
         assert not session.plots
     plot = PlotFactory.create_plot("bar", 1, "Restored")
     payload = plot.to_dict()
@@ -86,7 +88,7 @@ def test_public_spec_uses_current_modes_and_routes_number_legend_to_free_tier() 
     with pytest.raises(ValueError, match="unique"):
         ring5.FigureSpec(numbered_xaxis_modes=["Labels", "Labels"])
     with pytest.raises(ValueError, match="numbered_xaxis_modes"):
-        ring5.FigureSpecBuilder().numbered_xaxis("unknown")
+        ring5.FigureSpec(numbered_xaxis_modes=["unknown"])
     spec = ring5.FigureSpec(
         x="x",
         y_columns=["a"],
@@ -99,9 +101,7 @@ def test_public_spec_uses_current_modes_and_routes_number_legend_to_free_tier() 
     config = spec.to_config()
     assert config["dual_legend_font_size"] == 11
     assert config["legend3_font_size"] == 19
-    assert ring5.FigureSpecBuilder().numbered_xaxis("Labels").build().numbered_xaxis_modes == [
-        "Labels"
-    ]
+    assert ring5.FigureSpec(numbered_xaxis_modes=["Labels"]).numbered_xaxis_modes == ("Labels",)
 
 
 @pytest.mark.parametrize(
@@ -117,7 +117,7 @@ def test_unsupported_builtin_numbering_is_rejected_before_registration(
         with pytest.raises(ring5.DataValidationError, match="only by grouped_stacked_bar"):
             session.create_plot(
                 kind,
-                data=pd.DataFrame({"x": ["a"], "y": [1]}),
+                data=ring5.Table(pd.DataFrame({"x": ["a"], "y": [1]})),
                 config=config if typed else config.to_config(),
             )
         assert not session.plots
@@ -128,7 +128,7 @@ def test_ordinary_plot_accepts_unspecified_or_empty_numbering(extra: dict[str, o
     with ring5.Session() as session:
         plot = session.create_plot(
             "bar",
-            data=pd.DataFrame({"x": ["a"], "y": [1]}),
+            data=ring5.Table(pd.DataFrame({"x": ["a"], "y": [1]})),
             config={"x": "x", "y": "y", **extra},
         )
         assert plot.config == {"x": "x", "y": "y", **extra}
@@ -165,7 +165,7 @@ def test_every_mode_subset_keeps_measurements_and_numbering_consistent(
     with ring5.Session() as session:
         plot = session.create_plot(
             "grouped_stacked_bar",
-            data=data,
+            data=ring5.Table(data),
             config={
                 "x": "x",
                 "group": "group",

@@ -6,14 +6,14 @@
 This file is informative; normative items are in the other generated files.
 
 - Feature groups: 13
-- Detailed requirements: 221
-- Approved current requirements: 221
+- Detailed requirements: 220
+- Approved current requirements: 220
 - Proposed future requirements: 0
 - Draft future requirements: 0
 - In development future requirements: 0
 - Blocked future requirements: 0
-- Generated specification items: 234
-- Live capability bindings: 866
+- Generated specification items: 233
+- Live capability bindings: 832
 
 ## Requirements by feature group
 
@@ -29,7 +29,7 @@ This file is informative; normative items are in the other generated files.
 | Figure Configuration | 31 | 0 | 0 | 0 | 0 | 31 |
 | Rendering and Export | 15 | 0 | 0 | 0 | 0 | 15 |
 | Reproducibility and Portfolios | 13 | 0 | 0 | 0 | 0 | 13 |
-| Automation API and CLI | 17 | 0 | 0 | 0 | 0 | 17 |
+| Automation API and CLI | 16 | 0 | 0 | 0 | 0 | 16 |
 | Extensibility, Safety, and Quality | 14 | 0 | 0 | 0 | 0 | 14 |
 | Feature Traceability | 11 | 0 | 0 | 0 | 0 | 11 |
 
@@ -44,7 +44,6 @@ This file is informative; normative items are in the other generated files.
 - `data_label_config_fields`: 12
 - `data_services_api_members`: 53
 - `dimension_config_fields`: 7
-- `figure_builder_members`: 18
 - `figure_config_fields`: 22
 - `figure_decoration_members`: 12
 - `figure_spec_fields`: 58
@@ -59,8 +58,8 @@ This file is informative; normative items are in the other generated files.
 - `parser_strategies`: 2
 - `plot_types`: 17
 - `plotly_formats`: 4
-- `public_exports`: 125
-- `public_shaper_exports`: 18
+- `public_exports`: 124
+- `public_shaper_exports`: 4
 - `render_engines`: 2
 - `restore_report_fields`: 5
 - `scan_job_members`: 2
@@ -76,7 +75,7 @@ This file is informative; normative items are in the other generated files.
 - `simulator_internal_stats`: 13
 - `simulators`: 1
 - `stat_config_fields`: 8
-- `table_members`: 14
+- `table_members`: 13
 - `typography_config_fields`: 14
 - `variable_type_params`: 4
 - `variable_types`: 5

@@ -8,7 +8,7 @@ surface that emits the flat config keys.
 import pytest
 
 from src.web.pages.ui.plotting.utils.grouped_bar_utils import GroupedBarUtils
-from ring5.figure_spec import FigureSpec, FigureSpecBuilder
+from ring5.figure_spec import FigureSpec
 
 pytestmark = pytest.mark.public_api
 
@@ -178,8 +178,8 @@ class TestMajorLabelRotationOverrides:
         assert cfg["major_label_rotation_overrides"] == {"mean": 90}
         assert "major_label_rotation_overrides" not in FigureSpec().to_config()
 
-    def test_builder(self):
-        spec = FigureSpecBuilder().category_labels(rotation_overrides={"mean": 90}).build()
+    def test_direct_spec(self):
+        spec = FigureSpec(major_label_rotation_overrides={"mean": 90})
         assert spec.major_label_rotation_overrides == {"mean": 90}
 
 
@@ -204,13 +204,13 @@ class TestFigureSpecSurface:
         cfg = FigureSpec(category_groups={"a": "G1"}, category_group_rule_y=-0.4).to_config()
         assert cfg["category_group_rule_y"] == -0.4
 
-    def test_builder_method(self):
-        spec = (
-            FigureSpecBuilder()
-            .category_groups(
-                {"a": "G1"}, separator_width=2.0, label_offset=-0.3, rule=False, rule_width=1.2
-            )
-            .build()
+    def test_direct_spec_fields(self):
+        spec = FigureSpec(
+            category_groups={"a": "G1"},
+            category_group_separator_width=2.0,
+            category_group_label_offset=-0.3,
+            category_group_rule=False,
+            category_group_rule_width=1.2,
         )
         assert spec.category_groups == {"a": "G1"}
         assert spec.category_group_separator_width == 2.0

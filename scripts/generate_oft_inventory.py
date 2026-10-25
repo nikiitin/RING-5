@@ -170,7 +170,7 @@ def discover_live_capabilities(root: Path = ROOT) -> dict[str, tuple[str, ...]]:
     from ring5.cli import build_parser
     from ring5.data import Table
     from ring5.decorations import FigureDecorations
-    from ring5.figure_spec import FigureSpec, FigureSpecBuilder
+    from ring5.figure_spec import FigureSpec
     from src.core.application_api import ApplicationAPI
     from src.core.models.data_models import ParseVariableConfig
     from src.core.models.parsing_models import ScanResult, ScannedVariable, StatConfig
@@ -266,7 +266,6 @@ def discover_live_capabilities(root: Path = ROOT) -> dict[str, tuple[str, ...]]:
         "data_services_api_members": _public_class_members(DataServicesAPI),
         "shapers_api_members": _public_class_members(ShapersAPI),
         "table_members": _public_class_members(Table),
-        "figure_builder_members": _public_class_members(FigureSpecBuilder),
         "figure_decoration_members": _public_class_members(FigureDecorations),
         "parse_job_members": _public_class_members(ParseJob),
         "scan_job_members": _public_class_members(ScanJob),
