@@ -11,7 +11,9 @@ Fixtures:
 
 from __future__ import annotations
 
+import csv
 import json
+from io import StringIO
 from zipfile import ZipFile
 
 import pytest
@@ -183,9 +185,15 @@ class TestPortfolioSaveLoad:
         pf.compare_default_saved_versions(PORTFOLIO_NAME)
 
         expect(pf.version_change_summary).to_be_visible(timeout=E2E_TIMEOUT)
-        expect(
-            pf.managed_portfolio(PORTFOLIO_NAME).get_by_text("E2E Shaped revised", exact=True)
-        ).to_have_text("E2E Shaped revised", timeout=E2E_TIMEOUT)
+        exported = pf.download_saved_version_changes(PORTFOLIO_NAME)
+        rows = list(csv.DictReader(StringIO(exported.decode("utf-8-sig"))))
+        assert any(
+            row["Area"] == "Plots"
+            and row["Field"].endswith(".name")
+            and row["Earlier"] == "E2E Shaped"
+            and row["Later"] == "E2E Shaped revised"
+            for row in rows
+        )
 
     @pytest.mark.order(6)
     def test_06_portfolio_in_manage_list(self, tier3_page: Page) -> None:

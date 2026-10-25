@@ -256,6 +256,21 @@ class PortfolioPage(BasePage):
         self.compare_saved_versions_button(name).click()
         self.wait_for_streamlit()
 
+    def download_saved_version_changes(self, name: str) -> bytes:
+        """Download the visible comparison table through its CSV toolbar action."""
+        panel = self.managed_portfolio(name)
+        comparison = panel.locator("[data-testid='stDataFrame']").last
+        expect(comparison).to_be_visible(timeout=self.RENDER_TIMEOUT)
+        comparison.hover()
+        # Headless tests observe browser downloads, not native OS file pickers.
+        self.page.evaluate(
+            "Object.defineProperty(window, 'showSaveFilePicker', "
+            "{configurable: true, value: undefined})"
+        )
+        with self.page.expect_download(timeout=self.RENDER_TIMEOUT) as downloaded:
+            panel.get_by_role("button", name="Download as CSV", exact=True).last.click()
+        return downloaded.value.path().read_bytes()
+
     def select_portfolio(self, name: str) -> None:
         """Select *name* through the labeled portfolio control."""
         combobox = self.page.get_by_role("combobox", name="Select Portfolio", exact=True)
