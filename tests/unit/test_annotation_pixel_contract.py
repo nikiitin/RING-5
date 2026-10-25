@@ -137,7 +137,7 @@ def test_public_stack_totals_preserve_pixel_offset_and_raw_categories(offset: in
     with ring5.Session() as session:
         plot = session.create_plot(
             "stacked_bar",
-            data=frame,
+            data=ring5.Table(frame),
             config={
                 "x": "category",
                 "y_columns": ["left", "right"],

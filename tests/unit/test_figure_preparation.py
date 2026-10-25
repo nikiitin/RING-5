@@ -95,7 +95,7 @@ def test_numbered_font_role_resolves_for_real_public_native_renders(
         "y_columns_right": ["right"],
     }
     with ring5.Session() as session:
-        plot = session.create_plot("grouped_stacked_bar", data=data, config=config)
+        plot = session.create_plot("grouped_stacked_bar", data=ring5.Table(data), config=config)
         native = cast(Any, session.render(plot, engine=engine))
         if engine == "plotly":
             number = next(a for a in native.layout.annotations if a.text.startswith("1."))

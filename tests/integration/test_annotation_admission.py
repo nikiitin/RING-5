@@ -74,7 +74,9 @@ def test_public_annotation_failures_preserve_the_published_native_figure(
     before = set(plt.get_fignums())
     with ring5.Session() as session:
         plot = session.create_plot(
-            "bar", data=pd.DataFrame({"x": ["a"], "y": [1.0]}), config={"x": "x", "y": "y"}
+            "bar",
+            data=ring5.Table(pd.DataFrame({"x": ["a"], "y": [1.0]})),
+            config={"x": "x", "y": "y"},
         )
         session.render(plot, engine=engine)
         published = plot.last_generated_fig
@@ -116,7 +118,9 @@ def test_supported_annotation_subclass_survives_public_native_render(
     # [test->req~ring5.render.engine-independent-traces~1]
     with ring5.Session() as session:
         plot = session.create_plot(
-            "bar", data=pd.DataFrame({"x": ["a"], "y": [1.0]}), config={"x": "x", "y": "y"}
+            "bar",
+            data=ring5.Table(pd.DataFrame({"x": ["a"], "y": [1.0]})),
+            config={"x": "x", "y": "y"},
         )
         monkeypatch.setattr(
             plot,
