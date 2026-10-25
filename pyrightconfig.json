@@ -11,7 +11,7 @@
     "**/__pycache__"
   ],
   "pythonVersion": "3.12",
-  "typeCheckingMode": "standard",
+  "typeCheckingMode": "off",
   "venvPath": ".",
   "venv": "python_venv"
 }

@@ -16,7 +16,7 @@ both ``key=value`` lines in each file's ``[SimulationInfo]`` section) plus ``sim
 and ``system.cpu0.branchMispredicts``, then reduces across seeds (arithmetic mean) to
 one row per (config, benchmark) — the seed-reduced shape the shaper tests assume.
 
-Run:  ./python_venv/bin/python scripts/generate_mock_fixtures.py   (or: make mock-data)
+Run:  ./python_venv/bin/python -m scripts.generate_mock_fixtures   (or: make mock-data)
 """
 
 from __future__ import annotations

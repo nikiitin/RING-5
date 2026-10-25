@@ -118,6 +118,7 @@ while (my $command = <STDIN>) {
 
             }
 
+            printLineContext();
             close($fh);
         };
 

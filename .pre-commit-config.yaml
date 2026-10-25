@@ -45,35 +45,35 @@ repos:
 
       - id: architecture
         name: Architecture boundaries
-        entry: python_venv/bin/python scripts/check_architecture.py
+        entry: python_venv/bin/python -m scripts.check_architecture
         language: system
         pass_filenames: false
         files: ^(src|ring5)/.*\.py$
 
       - id: public-docstrings
         name: Public API documentation
-        entry: python_venv/bin/python scripts/check_public_docstrings.py
+        entry: python_venv/bin/python -m scripts.check_public_docstrings
         language: system
         pass_filenames: false
         files: ^(src|ring5|scripts)/.*\.py$
 
       - id: documentation-links
         name: Documentation links
-        entry: python_venv/bin/python scripts/check_doc_links.py
+        entry: python_venv/bin/python -m scripts.check_doc_links
         language: system
         pass_filenames: false
         files: ^(README|CONTRIBUTING|AGENTS)\.md$|^docs/.*\.md$|^\.agents/.*\.md$
 
       - id: comments
         name: Code comment audit
-        entry: python_venv/bin/python scripts/check_comments.py
+        entry: python_venv/bin/python -m scripts.check_comments
         language: system
         pass_filenames: false
         files: ^(app\.py|(src|ring5|scripts|tests)/.*\.py)$
 
       - id: dependencies
         name: Declared production dependencies
-        entry: python_venv/bin/python scripts/analyze_dependencies.py
+        entry: python_venv/bin/python -m scripts.analyze_dependencies
         language: system
         pass_filenames: false
         files: ^(pyproject\.toml|app\.py|(src|ring5)/.*\.py)$

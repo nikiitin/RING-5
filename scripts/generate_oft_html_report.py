@@ -9,14 +9,9 @@ import json
 from pathlib import Path
 from typing import Any, cast
 
-if __package__:
-    from scripts.generate_oft_inventory import load_inventory, validate_inventory
-    from scripts.oft_evidence import collect_evidence_markers
-    from scripts.oft_html_report import OftHtmlReportError, enhance_oft_html
-else:
-    from generate_oft_inventory import load_inventory, validate_inventory
-    from oft_evidence import collect_evidence_markers
-    from oft_html_report import OftHtmlReportError, enhance_oft_html
+from scripts.generate_oft_inventory import load_inventory, validate_inventory
+from scripts.oft_evidence import collect_evidence_markers
+from scripts.oft_html_report import OftHtmlReportError, enhance_oft_html
 
 
 def build_parser() -> argparse.ArgumentParser:

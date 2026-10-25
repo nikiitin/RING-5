@@ -64,25 +64,23 @@ class TestShaperApplication:
         mock_apply.assert_called()
 
     @patch("src.web.pages.ui.shaper_config.st")
-    def test_apply_skip_no_type(self, mock_st: MagicMock) -> None:
+    def test_apply_rejects_no_type(self, mock_st: MagicMock) -> None:
         from src.web.pages.ui.shaper_config import apply_shapers
 
         df = pd.DataFrame({"a": [1]})
         # Cast to Any then to list[ShaperStepConfig] to satisfy Pyright
-        result = apply_shapers(df, cast(Any, [{}]))  # no type key
-        pd.testing.assert_frame_equal(result, df)
+        with pytest.raises(ValueError, match="registered shaper type"):
+            apply_shapers(df, cast(Any, [{}]))
 
     @patch("src.web.pages.ui.shaper_config.st")
-    def test_apply_incomplete_config_warns(self, mock_st: MagicMock) -> None:
+    def test_apply_incomplete_config_rejects(self, mock_st: MagicMock) -> None:
         from src.web.pages.ui.shaper_config import apply_shapers
 
         df = pd.DataFrame({"a": [1]})
         # normalize requires normalizeVars, normalizerColumn, etc.
         # Cast to Any then to list[ShaperStepConfig] to satisfy Pyright
-        result = apply_shapers(df, cast(Any, [{"type": "normalize"}]))
-
-        mock_st.warning.assert_called()
-        pd.testing.assert_frame_equal(result, df)
+        with pytest.raises(ValueError, match="Missing required parameter"):
+            apply_shapers(df, cast(Any, [{"type": "normalize"}]))
 
 
 class TestPipelineComponent:
@@ -180,12 +178,6 @@ class TestDataManagerBase:
 
         api = _make_mock_api()
         api.state_manager.get_data.return_value = pd.DataFrame({"x": [1]})
-
-        from src.web.pages.ui.shaper_config import apply_shapers
-
-        # Missing group_by
-        # Use a dummy dataframe and config
-        result = apply_shapers(pd.DataFrame({"a": [1]}), cast(Any, [{"type": "mean"}]))
 
         # Create a concrete subclass
         class Concrete(DataManager):

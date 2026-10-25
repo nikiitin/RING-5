@@ -469,6 +469,6 @@ Covers:
 Run `make example-portfolio` from the repository root to create a validated portfolio
 containing representative data and one configured example of every registered plot type.
 The command writes `RING5_Example_Cases.json` to the normal portfolio directory. You can instead
-run `python_venv/bin/python scripts/generate_example_portfolio.py --output-dir DIR` to keep both
+run `python_venv/bin/python -m scripts.generate_example_portfolio --output-dir DIR` to keep both
 the portfolio and its revision data in an isolated destination. Load the result from **Save/Load
 Portfolio** and use it as a compact gallery of supported plot configurations.

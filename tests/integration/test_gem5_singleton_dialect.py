@@ -210,7 +210,7 @@ def test_dump_boundaries_clear_stale_histogram_geometry(tmp_path: Path, message:
     scanned = _scan(tmp_path, text)
     assert len(scanned) == 1
     assert scanned[0].type == "vector"
-    assert scanned[0].entries == ["0", "1"]
+    assert set(scanned[0].entries) == {"0", "1", "bucket_size", "min_bucket", "max_bucket"}
     assert _parse(tmp_path, [StatConfig("v", "vector", params={"entries": ["0", "1"]})]) == {
         "v..0": "3.0",
         "v..1": "7.0",
@@ -333,3 +333,24 @@ def test_unaggregated_legacy_vector_metadata_is_not_ambiguous(tmp_path: Path) ->
         "V", "vector", source_name=r"system.cpu\d+.v", is_regex=True, params={"entries": ["0", "1"]}
     )
     assert _parse(tmp_path, [config], physical) == {"V..0": "4.0", "V..1": "6.0"}
+
+
+@pytest.mark.parametrize("entry", ["min_bucket", "bucket_size", "max_bucket"])
+@pytest.mark.parametrize(
+    "boundary", ["", "---------- Begin Simulation Statistics : next ----------\n"]
+)
+def test_geometry_named_vector_measurements_are_not_consumed(
+    tmp_path: Path, entry: str, boundary: str
+) -> None:
+    text = (
+        "---------- Begin Simulation Statistics ----------\n"
+        f"v::{entry} 12\nv::other 34\n" + boundary
+    )
+    scanned = _scan(tmp_path, text)
+    assert len(scanned) == 1
+    assert scanned[0].type == "vector"
+    assert set(scanned[0].entries) == {entry, "other"}
+    assert _parse(tmp_path, [StatConfig("v", "vector", params={"entries": [entry, "other"]})]) == {
+        f"v..{entry}": "12.0",
+        "v..other": "34.0",
+    }

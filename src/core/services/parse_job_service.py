@@ -21,6 +21,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
+from src.core.common.input_identity import fingerprint_inputs
 from src.core.common.utils import normalize_user_path, sanitize_glob_pattern
 from src.core.models import (
     IncrementalParseBatchResult,
@@ -105,28 +106,7 @@ def build_parse_job_request(
         )
     signatures.sort(key=lambda item: item.path)
 
-    companion_inputs: list[dict[str, JsonValue]] = []
-    if strategy_type == "config_aware":
-        companion_paths = {Path(signature.path).parent / "config.ini" for signature in signatures}
-        for companion in sorted(companion_paths):
-            try:
-                resolved_companion = companion.resolve(strict=True)
-                companion_stat = resolved_companion.stat()
-            except FileNotFoundError:
-                companion_inputs.append(
-                    {
-                        "path": str(companion.resolve(strict=False)),
-                        "missing": True,
-                    }
-                )
-            else:
-                companion_inputs.append(
-                    {
-                        "path": str(resolved_companion),
-                        "size": companion_stat.st_size,
-                        "mtime_ns": companion_stat.st_mtime_ns,
-                    }
-                )
+    content_fingerprints = fingerprint_inputs(matching_paths, strategy_type)
 
     fingerprint_payload = {
         "simulator": simulator,
@@ -136,15 +116,7 @@ def build_parse_job_request(
         "strategy_type": strategy_type,
         "variables": json.loads(variables_json),
         "scanned_variables": json.loads(scanned_json),
-        "matching_files": [
-            {
-                "path": signature.path,
-                "size": signature.size,
-                "mtime_ns": signature.mtime_ns,
-            }
-            for signature in signatures
-        ],
-        "strategy_companion_inputs": companion_inputs,
+        "matching_files": content_fingerprints,
         "incremental": incremental,
     }
     encoded = json.dumps(
@@ -584,6 +556,19 @@ class ParseJobService:
                     self._store.append_error(job_id, "No usable parsing results were produced")
                 self._mark_failed(job_id, "Parsing produced no usable results")
                 return
+
+            current_request = build_parse_job_request(
+                stats_path=request.stats_path,
+                stats_pattern=request.stats_pattern,
+                variables=request.variables(),
+                strategy_type=request.strategy_type,
+                scanned_variables=request.scanned_variables(),
+                simulator=request.simulator,
+                parser_contract_version=request.parser_contract_version,
+                incremental=request.incremental,
+            )
+            if current_request.fingerprint != request.fingerprint:
+                raise ValueError("Parser inputs changed during execution; submit a new request.")
 
             self._store.update_progress(
                 job_id,
