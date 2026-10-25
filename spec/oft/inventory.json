@@ -3136,7 +3136,7 @@
       "tags": ["extension", "settings", "visualization"],
       "evidence": {
         "implementation": ["src/web/pages/ui/plotting/settings_pills.py::SettingsSection", "src/web/pages/ui/plotting/settings_pills.py::render_settings_pills", "src/web/components/plotting/settings/widget_factory.py::select_option"],
-        "tests": ["tests/unit/test_settings_pills.py::TestSettingsSection", "tests/unit/test_settings_pills.py::TestRenderSettingsPills", "tests/unit/test_widget_sections.py::TestExtendedSections", "tests/unit/test_widget_sections.py::TestSpecPathWiring"],
+        "tests": ["tests/unit/test_settings_pills.py::TestSettingsSection", "tests/unit/test_settings_pills.py::TestRenderSettingsPills", "tests/ui_logic/test_settings_pills.py::TestSectionDispatch"],
         "documentation": ["docs/developer-guide/extension-guides/adding-a-settings-panel.md#implement-a-visual-setting"]
       }
     },

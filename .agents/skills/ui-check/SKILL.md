@@ -10,7 +10,7 @@ conventions and runs the right test layers. For *writing* UI tests, use the
 `e2e-streamlit-testing` skill; this skill is the conformance gate.
 
 ## Conventions to verify
-- **Page → Controller → Component (PCC). There is NO presenter layer** (it was removed). Pages
+- **Page → Controller → Component (PCC).** Pages
   (`src/web/pages/`) wire controllers (`src/web/controllers/plot/`: creation/pipeline/render) to
   self-contained components (`src/web/components/`). A new "presenter" module is a regression.
 - **UI state is namespaced & typed** via `src/web/state/ui_state_manager.py::UIStateManager` —
@@ -40,16 +40,16 @@ make test-visual                                                    # Playwright
 
 ## Quick smells
 ```bash
-grep -rni "presenter" src/web/ --include=*.py            # should be empty (layer removed)
+grep -rni "presenter" src/web/ --include=*.py            # no additional presentation layer
 grep -rn "st.session_state\[" src/web/ --include=*.py     # prefer UIStateManager/WidgetKeyBuilder
 ```
 
 ## Keep this skill sharp
-Canon, not history — edit in place when the UI conventions move:
+Edit this guide in place when the UI conventions change:
 - Namespaces, the engine key, and settings-ownership above mirror `ui_state_manager.py`,
   `engine_manager.py`, and the settings pills. If those change, update this list.
 - New UI footgun found in review? Add it here (and to `e2e-streamlit-testing` if it's test-mechanics);
-  durable facts → a memory.
+  document durable contracts in the developer guide.
 
 ## Verify after
 `make arch-check && ./python_venv/bin/pytest tests/ui tests/ui_logic tests/ui_unit -q`

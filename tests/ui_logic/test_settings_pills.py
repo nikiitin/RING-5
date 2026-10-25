@@ -62,6 +62,7 @@ class TestRenderSettingsPills:
 
 
 class TestSectionDispatch:
+    # [test->req~ring5.extension.settings-panel~1]
     """Verify render_settings_section dispatches to correct handler."""
 
     def _make_plot(self) -> MagicMock:

@@ -70,12 +70,3 @@ class EngineSettingsComponent:
                 default="xelatex",
                 help="TeX compiler to use for LaTeX rendering.",
             )
-
-
-def render_engine_controls(
-    plot_id: int,
-    saved_config: PlotConfig,
-    config: PlotConfig,
-) -> None:
-    """Deprecated: use EngineSettingsComponent."""
-    EngineSettingsComponent(plot_id, "").render(saved_config, config)
