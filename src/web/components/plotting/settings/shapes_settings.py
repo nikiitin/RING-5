@@ -1,6 +1,6 @@
 """Shapes settings component — UI for adding/editing plot shapes.
 
-Extracted from ``BasePlot._render_shapes_ui``.
+Renders shape annotations for the selected plot.
 """
 
 from copy import deepcopy
@@ -144,8 +144,3 @@ class ShapesSettingsComponent:
                 shapes = [s for j, s in enumerate(shapes) if j != delete_index]
 
         return shapes
-
-
-def render_shapes_ui(plot_id: int, saved_config: PlotConfig) -> list[ShapeConfig]:
-    """Deprecated: use ShapesSettingsComponent."""
-    return ShapesSettingsComponent(plot_id, "").render(saved_config)

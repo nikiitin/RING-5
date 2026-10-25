@@ -40,23 +40,18 @@ def mock_st() -> Generator[MagicMock]:
 
 
 class TestRenderOrderingUi:
-    """Tests for ``render_ordering_ui``."""
+    """Tests for ``OrderingSettingsComponent``."""
 
     def test_no_x_column_skips_xaxis_section(
         self, mock_st: MagicMock, sample_data: pd.DataFrame
     ) -> None:
         """When saved_config has no 'x' key, x-axis ordering is skipped."""
         from src.web.components.plotting.settings.ordering_settings import (
-            render_ordering_ui,
+            OrderingSettingsComponent,
         )
 
         config: dict[str, Any] = {}
-        render_ordering_ui(
-            plot_id=1,
-            saved_config={},
-            data=sample_data,
-            config=config,
-        )
+        OrderingSettingsComponent(1, "").render(saved_config={}, data=sample_data, config=config)
         assert "xaxis_order" not in config
 
     def test_x_column_populates_xaxis_order(
@@ -64,15 +59,12 @@ class TestRenderOrderingUi:
     ) -> None:
         """When saved_config has 'x' matching a column, ordering appears."""
         from src.web.components.plotting.settings.ordering_settings import (
-            render_ordering_ui,
+            OrderingSettingsComponent,
         )
 
         config: dict[str, Any] = {}
-        render_ordering_ui(
-            plot_id=1,
-            saved_config={"x": "benchmark"},
-            data=sample_data,
-            config=config,
+        OrderingSettingsComponent(1, "").render(
+            saved_config={"x": "benchmark"}, data=sample_data, config=config
         )
         # Should set xaxis_order
         assert "xaxis_order" in config
@@ -82,15 +74,12 @@ class TestRenderOrderingUi:
     ) -> None:
         """When saved_config has 'group' matching a column, group ordering appears."""
         from src.web.components.plotting.settings.ordering_settings import (
-            render_ordering_ui,
+            OrderingSettingsComponent,
         )
 
         config: dict[str, Any] = {}
-        render_ordering_ui(
-            plot_id=1,
-            saved_config={"group": "config"},
-            data=sample_data,
-            config=config,
+        OrderingSettingsComponent(1, "").render(
+            saved_config={"group": "config"}, data=sample_data, config=config
         )
         assert "group_order" in config
 
@@ -112,16 +101,13 @@ class TestRenderOrderingUi:
     ) -> None:
         """Group labels use the key consumed by grouped plot rendering."""
         from src.web.components.plotting.settings.ordering_settings import (
-            render_ordering_ui,
+            OrderingSettingsComponent,
         )
 
         config: dict[str, Any] = {}
         mock_st.text_input.side_effect = lambda label, **_: ("Baseline" if label == "base" else "")
-        render_ordering_ui(
-            plot_id=1,
-            saved_config={"group": "config"},
-            data=sample_data,
-            config=config,
+        OrderingSettingsComponent(1, "").render(
+            saved_config={"group": "config"}, data=sample_data, config=config
         )
         assert config["group_renames"] == {"base": "Baseline"}
         assert "legend_labels" not in config
@@ -131,15 +117,12 @@ class TestRenderOrderingUi:
     ) -> None:
         """Legend-entry ordering belongs to the Legend settings tab."""
         from src.web.components.plotting.settings.ordering_settings import (
-            render_ordering_ui,
+            OrderingSettingsComponent,
         )
 
         config: dict[str, Any] = {}
-        render_ordering_ui(
-            plot_id=1,
-            saved_config={"color": "color_col"},
-            data=sample_data,
-            config=config,
+        OrderingSettingsComponent(1, "").render(
+            saved_config={"color": "color_col"}, data=sample_data, config=config
         )
         assert "legend_order" not in config
 
@@ -148,15 +131,12 @@ class TestRenderOrderingUi:
     ) -> None:
         """x column not in DataFrame should skip x-axis ordering."""
         from src.web.components.plotting.settings.ordering_settings import (
-            render_ordering_ui,
+            OrderingSettingsComponent,
         )
 
         config: dict[str, Any] = {}
-        render_ordering_ui(
-            plot_id=1,
-            saved_config={"x": "nonexistent_col"},
-            data=sample_data,
-            config=config,
+        OrderingSettingsComponent(1, "").render(
+            saved_config={"x": "nonexistent_col"}, data=sample_data, config=config
         )
         assert "xaxis_order" not in config
 
@@ -165,17 +145,12 @@ class TestRenderOrderingUi:
     ) -> None:
         """Axis and group ordering remain in the Ordering section."""
         from src.web.components.plotting.settings.ordering_settings import (
-            render_ordering_ui,
+            OrderingSettingsComponent,
         )
 
         config: dict[str, Any] = {}
-        render_ordering_ui(
-            plot_id=1,
-            saved_config={
-                "x": "benchmark",
-                "group": "config",
-                "color": "color_col",
-            },
+        OrderingSettingsComponent(1, "").render(
+            saved_config={"x": "benchmark", "group": "config", "color": "color_col"},
             data=sample_data,
             config=config,
         )
@@ -186,13 +161,8 @@ class TestRenderOrderingUi:
     def test_markdown_header_rendered(self, mock_st: MagicMock, sample_data: pd.DataFrame) -> None:
         """Should render the 'Ordering Control' header."""
         from src.web.components.plotting.settings.ordering_settings import (
-            render_ordering_ui,
+            OrderingSettingsComponent,
         )
 
-        render_ordering_ui(
-            plot_id=1,
-            saved_config={},
-            data=sample_data,
-            config={},
-        )
+        OrderingSettingsComponent(1, "").render(saved_config={}, data=sample_data, config={})
         mock_st.markdown.assert_called_with("#### Ordering Control")

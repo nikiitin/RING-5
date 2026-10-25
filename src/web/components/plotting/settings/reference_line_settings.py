@@ -1,6 +1,6 @@
 """Reference line settings component — horizontal reference line controls.
 
-Extracted from ``BasePlot._render_reference_line_ui``.
+Renders reference-line controls for the selected plot.
 """
 
 import pandas as pd
@@ -114,13 +114,3 @@ class ReferenceLineSettingsComponent:
                 config["reference_line_color"] = ref_color
                 config["reference_line_width"] = ref_width
                 config["reference_line_style"] = ref_style
-
-
-def render_reference_line_ui(
-    plot_id: int,
-    saved_config: PlotConfig,
-    data: pd.DataFrame | None,
-    config: PlotConfig,
-) -> None:
-    """Deprecated: use ReferenceLineSettingsComponent."""
-    ReferenceLineSettingsComponent(plot_id, "").render(saved_config, data, config)

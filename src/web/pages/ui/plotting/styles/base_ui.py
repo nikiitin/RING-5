@@ -25,22 +25,14 @@ from src.web.components.plotting.settings import (
 from src.web.models.plot_models import PlotConfig
 from src.web.state.ui_state_manager import WidgetKeyBuilder
 from src.web.pages.ui.plotting.styles.colors import to_hex
-from src.web.rendering.widgets import WidgetRenderer
 
 
 class BaseStyleUI:
-    """
-    Base Strategy Logic for generic UI rendering.
-
-    Uses ``WidgetRenderer`` for declarative sections where possible,
-    falling back to hand-coded widgets for sections requiring column
-    layouts or conditional rendering.
-    """
+    """Shared style controls used by the registered plot strategies."""
 
     def __init__(self, plot_id: int, plot_type: str):
         self.plot_id = plot_id
         self.plot_type = plot_type
-        self._renderer = WidgetRenderer(key_prefix=f"p{plot_id}_")
 
     def render_layout_options(self, saved_config: PlotConfig) -> PlotConfig:
         """Render layout sizing options.

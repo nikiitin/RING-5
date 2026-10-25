@@ -8,7 +8,7 @@ _WF = "src.web.components.plotting.settings.widget_factory.st"
 
 
 class TestEngineSpecificControls:
-    """Verify render_engine_controls shows correct widgets per engine."""
+    """Verify EngineSettingsComponent shows correct widgets per engine."""
 
     @patch(f"{_MODULE}.EngineManager")
     @patch(f"{_MODULE}.st")
@@ -16,7 +16,7 @@ class TestEngineSpecificControls:
         """When engine is Plotly, a hovermode selectbox is rendered."""
         # [test->req~ring5.figure.plotly-hovermode~1]
         from src.web.components.plotting.settings.engine_settings import (
-            render_engine_controls,
+            EngineSettingsComponent,
         )
 
         mock_em.is_plotly.return_value = True
@@ -25,7 +25,7 @@ class TestEngineSpecificControls:
 
         config: dict[str, Any] = {}
         with patch(_WF, mock_st):
-            render_engine_controls(1, {}, config)
+            EngineSettingsComponent(1, "").render({}, config)
 
         mock_st.selectbox.assert_called_once()
         _, kwargs = mock_st.selectbox.call_args
@@ -40,7 +40,7 @@ class TestEngineSpecificControls:
         """Matplotlib fixes the preamble while still exposing the TeX system."""
         # [test->req~ring5.figure.matplotlib-tex-system~1]
         from src.web.components.plotting.settings.engine_settings import (
-            render_engine_controls,
+            EngineSettingsComponent,
         )
 
         mock_em.is_plotly.return_value = False
@@ -50,7 +50,7 @@ class TestEngineSpecificControls:
 
         config: dict[str, Any] = {}
         with patch(_WF, mock_st):
-            render_engine_controls(1, {}, config)
+            EngineSettingsComponent(1, "").render({}, config)
 
         mock_st.text_area.assert_not_called()
         mock_st.caption.assert_called_once()
@@ -65,7 +65,7 @@ class TestEngineSpecificControls:
     def test_plotly_no_latex_widgets(self, mock_st: MagicMock, mock_em: MagicMock) -> None:
         """Plotly mode does not render LaTeX-specific widgets."""
         from src.web.components.plotting.settings.engine_settings import (
-            render_engine_controls,
+            EngineSettingsComponent,
         )
 
         mock_em.is_plotly.return_value = True
@@ -74,7 +74,7 @@ class TestEngineSpecificControls:
 
         config: dict[str, Any] = {}
         with patch(_WF, mock_st):
-            render_engine_controls(1, {}, config)
+            EngineSettingsComponent(1, "").render({}, config)
 
         mock_st.text_area.assert_not_called()
         assert "latex_extra_preamble" not in config
@@ -86,7 +86,7 @@ class TestEngineSpecificControls:
         """Matplotlib mode does not render hovermode selectbox."""
         # [test->req~ring5.figure.matplotlib-tex-system~1]
         from src.web.components.plotting.settings.engine_settings import (
-            render_engine_controls,
+            EngineSettingsComponent,
         )
 
         mock_em.is_plotly.return_value = False
@@ -96,7 +96,7 @@ class TestEngineSpecificControls:
 
         config: dict[str, Any] = {}
         with patch(_WF, mock_st):
-            render_engine_controls(1, {}, config)
+            EngineSettingsComponent(1, "").render({}, config)
 
         assert "hovermode" not in config
 
@@ -106,7 +106,7 @@ class TestEngineSpecificControls:
         """Previously saved hovermode value is used as default index."""
         # [test->req~ring5.figure.plotly-hovermode~1]
         from src.web.components.plotting.settings.engine_settings import (
-            render_engine_controls,
+            EngineSettingsComponent,
         )
 
         mock_em.is_plotly.return_value = True
@@ -115,7 +115,7 @@ class TestEngineSpecificControls:
 
         config: dict[str, Any] = {}
         with patch(_WF, mock_st):
-            render_engine_controls(1, {"hovermode": "closest"}, config)
+            EngineSettingsComponent(1, "").render({"hovermode": "closest"}, config)
 
         args, kwargs = mock_st.selectbox.call_args
         assert kwargs["index"] == 1  # "closest" is at index 1

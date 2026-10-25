@@ -2,8 +2,8 @@
 Data label configuration — annotations on bars, points, and markers.
 
 Controls how numeric value labels appear on plot traces (e.g., bar values,
-point annotations). Settings map to widget section ``DATA_LABELS`` in
-``widget_def.py``.
+point annotations). The Data Labels settings component supplies the corresponding
+figure configuration.
 """
 
 from __future__ import annotations
