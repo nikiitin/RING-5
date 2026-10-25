@@ -5,7 +5,7 @@ Plotly connector — translate resolved FigureConfig into go.Figure updates.
 build a FigureConfig and then calls this connector to apply it.
 
 Usage:
-    from src.web.rendering import FigureSpecToPlotly
+    from src.web.rendering.plotly_connector import FigureSpecToPlotly
 
     resolved = resolve_config(spec)
     fig = FigureSpecToPlotly.apply(resolved, fig)
