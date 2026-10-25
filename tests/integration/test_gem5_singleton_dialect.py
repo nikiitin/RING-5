@@ -232,7 +232,8 @@ def test_dump_boundaries_clear_reserved_type_context_in_both_perl_paths(
     stats.write_text(text, encoding="utf-8")
     perl_root = Path(__file__).resolve().parents[2] / "src/parsing/gem5/perl"
     printed = subprocess.run(
-        ["perl", str(perl_root / "fileParser.pl"), str(stats), "h"],
+        ["perl", str(perl_root / "fileParserServer.pl")],
+        input=f"PARSE {stats}||h\nSHUTDOWN\n",
         check=True,
         capture_output=True,
         text=True,

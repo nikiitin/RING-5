@@ -162,21 +162,6 @@ class TestScanFileScanFile:
         assert len(result) == 2
         assert all(isinstance(v, ScannedVariable) for v in result)
 
-    def test_scan_file_with_config_vars(
-        self, scanner: Any, tmp_path: Any, monkeypatch: Any
-    ) -> None:
-
-        test_file = tmp_path / "stats.txt"
-        test_file.write_text("dummy")
-
-        mock_run = Mock(return_value=Mock(stdout="[]", stderr=""))
-        monkeypatch.setattr("subprocess.run", mock_run)
-
-        scanner.scan_file(test_file, config_vars=["benchmark", "seed"])
-
-        args = mock_run.call_args[0][0]
-        assert "benchmark,seed" in args
-
     def test_scan_file_with_empty_output(
         self, scanner: Any, tmp_path: Any, monkeypatch: Any
     ) -> None:

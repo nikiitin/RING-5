@@ -69,15 +69,12 @@ class Gem5StatsScanner:
             cls._instance = Gem5StatsScanner()
         return cls._instance
 
-    def scan_file(
-        self, file_path: Path, config_vars: list[str] | None = None
-    ) -> list[ScannedVariable]:
+    def scan_file(self, file_path: Path) -> list[ScannedVariable]:
         """
         Scan a single stats file to discover variable schemas.
 
         Args:
             file_path: Absolute path to the gem5 stats.txt file.
-            config_vars: Optional list of regex hints for variable detection.
 
         Returns:
             List of dictionaries, each defining a discovered variable and its type.
@@ -98,8 +95,6 @@ class Gem5StatsScanner:
             )
 
         cmd = [str(self._perl_exe), str(self._script_path), str(file_path)]
-        if config_vars:
-            cmd.append(",".join(str(v) for v in config_vars))
 
         result: subprocess.CompletedProcess[str] | None = None
         try:
