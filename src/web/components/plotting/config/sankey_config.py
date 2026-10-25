@@ -10,6 +10,7 @@ import streamlit as st
 from src.web.components.plotting.config.base_plot_config import detect_column_types
 from src.web.components.plotting.config.plot_config_components import PlotConfigComponents
 from src.core.models.plot_config import PlotConfig
+from src.web.components.plotting.settings.widget_factory import saved_option_label
 
 _ARRANGEMENTS = {
     "Snap nodes into columns": "snap",
@@ -31,10 +32,6 @@ _LABEL_MODES = {
 
 def _index(options: Sequence[object], saved: object, fallback: int = 0) -> int:
     return options.index(saved) if saved in options else fallback
-
-
-def _saved_label(mapping: dict[str, str], saved: object, fallback: str) -> str:
-    return next((label for label, value in mapping.items() if value == saved), fallback)
 
 
 def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotConfig:
@@ -88,7 +85,9 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             "Node labels",
             options=list(_LABEL_MODES),
             index=list(_LABEL_MODES).index(
-                _saved_label(_LABEL_MODES, saved_config.get("sankey_label_mode"), "Node names")
+                saved_option_label(
+                    _LABEL_MODES, saved_config.get("sankey_label_mode"), "Node names"
+                )
             ),
             key=f"sankey_label_mode_{plot_id}",
         )
@@ -109,7 +108,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             "Node arrangement",
             options=list(_ARRANGEMENTS),
             index=list(_ARRANGEMENTS).index(
-                _saved_label(
+                saved_option_label(
                     _ARRANGEMENTS,
                     saved_config.get("sankey_arrangement"),
                     "Snap nodes into columns",
@@ -139,7 +138,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             "Link colors",
             options=list(_COLOR_MODES),
             index=list(_COLOR_MODES).index(
-                _saved_label(
+                saved_option_label(
                     _COLOR_MODES,
                     saved_config.get("sankey_color_mode"),
                     "Match each link's source",

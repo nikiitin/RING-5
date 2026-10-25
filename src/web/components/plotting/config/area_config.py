@@ -12,14 +12,11 @@ from src.web.components.plotting.config.base_plot_config import (
 )
 from src.web.components.plotting.config.plot_config_components import PlotConfigComponents
 from src.core.models.plot_config import PlotConfig
+from src.web.components.plotting.settings.widget_factory import saved_option_label
 
 _MODES = {"Overlay": "overlay", "Stack values": "stack", "100% stacked": "normalize"}
 _INTERPOLATIONS = {"Linear": "linear", "Step after": "hv", "Step before": "vh"}
 _MISSING = {"Leave gaps": "gap", "Fill with zero": "zero", "Interpolate": "interpolate"}
-
-
-def _saved_label(mapping: dict[str, str], saved: object, fallback: str) -> str:
-    return next((label for label, value in mapping.items() if value == saved), fallback)
 
 
 def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotConfig:
@@ -53,7 +50,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             "Arrangement",
             options=list(_MODES),
             index=list(_MODES).index(
-                _saved_label(_MODES, saved_config.get("area_mode"), "Overlay")
+                saved_option_label(_MODES, saved_config.get("area_mode"), "Overlay")
             ),
             key=f"area_mode_{plot_id}",
         )
@@ -70,7 +67,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             "Curve between points",
             options=list(_INTERPOLATIONS),
             index=list(_INTERPOLATIONS).index(
-                _saved_label(
+                saved_option_label(
                     _INTERPOLATIONS,
                     saved_config.get("area_interpolation"),
                     "Linear",
@@ -82,7 +79,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             "Missing values",
             options=list(_MISSING),
             index=list(_MISSING).index(
-                _saved_label(_MISSING, saved_config.get("area_missing"), "Leave gaps")
+                saved_option_label(_MISSING, saved_config.get("area_missing"), "Leave gaps")
             ),
             key=f"area_missing_{plot_id}",
         )

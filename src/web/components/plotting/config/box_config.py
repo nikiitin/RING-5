@@ -14,6 +14,7 @@ from src.web.components.plotting.config.plot_config_components import (
     PlotConfigComponents,
 )
 from src.core.models.plot_config import PlotConfig
+from src.web.components.plotting.settings.widget_factory import saved_option_label
 
 _ORIENTATION_LABELS = {"Vertical": "vertical", "Horizontal": "horizontal"}
 _QUARTILE_LABELS = {
@@ -33,10 +34,6 @@ _POINT_LABELS = {
 }
 
 
-def _saved_label(mapping: dict[str, str], saved: object, fallback: str) -> str:
-    return next((label for label, value in mapping.items() if value == saved), fallback)
-
-
 def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotConfig:
     # [impl->req~ring5.plot.box~1]
     """Render column mapping and distribution controls for a box plot."""
@@ -45,7 +42,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
         "Orientation",
         options=list(_ORIENTATION_LABELS),
         index=list(_ORIENTATION_LABELS).index(
-            _saved_label(_ORIENTATION_LABELS, saved_config.get("orientation"), "Vertical")
+            saved_option_label(_ORIENTATION_LABELS, saved_config.get("orientation"), "Vertical")
         ),
         horizontal=True,
         key=f"box_orientation_{plot_id}",
@@ -86,7 +83,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             "Quartile calculation",
             options=list(_QUARTILE_LABELS),
             index=list(_QUARTILE_LABELS).index(
-                _saved_label(
+                saved_option_label(
                     _QUARTILE_LABELS,
                     saved_config.get("quartile_method"),
                     "Linear interpolation",
@@ -98,7 +95,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             "Whisker range",
             options=list(_WHISKER_LABELS),
             index=list(_WHISKER_LABELS).index(
-                _saved_label(_WHISKER_LABELS, saved_config.get("whisker_mode"), "Tukey (IQR)")
+                saved_option_label(_WHISKER_LABELS, saved_config.get("whisker_mode"), "Tukey (IQR)")
             ),
             key=f"box_whisker_{plot_id}",
         )
@@ -127,7 +124,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             "Show observations",
             options=list(_POINT_LABELS),
             index=list(_POINT_LABELS).index(
-                _saved_label(_POINT_LABELS, saved_config.get("point_mode"), "Outliers only")
+                saved_option_label(_POINT_LABELS, saved_config.get("point_mode"), "Outliers only")
             ),
             key=f"box_points_{plot_id}",
         )

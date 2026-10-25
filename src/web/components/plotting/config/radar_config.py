@@ -12,16 +12,13 @@ from src.web.components.plotting.config.base_plot_config import (
 )
 from src.web.components.plotting.config.plot_config_components import PlotConfigComponents
 from src.core.models.plot_config import PlotConfig
+from src.web.components.plotting.settings.widget_factory import saved_option_label
 
 _SCALES = {
     "Start at zero when possible": "zero",
     "Fit observed values": "data",
     "Custom range": "custom",
 }
-
-
-def _saved_label(mapping: dict[str, str], saved: object, fallback: str) -> str:
-    return next((label for label, value in mapping.items() if value == saved), fallback)
 
 
 def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotConfig:
@@ -57,7 +54,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             "Shared radial range",
             options=list(_SCALES),
             index=list(_SCALES).index(
-                _saved_label(
+                saved_option_label(
                     _SCALES,
                     saved_config.get("radar_scale_mode"),
                     "Start at zero when possible",
