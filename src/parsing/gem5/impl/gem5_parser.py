@@ -11,6 +11,7 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
+from src.core.common.input_identity import fingerprint_inputs
 from src.core.common.safe_regex import (
     SafeRegexError,
     compile_bounded_regex,
@@ -49,7 +50,6 @@ from src.parsing.framework.file_discovery import find_stats_files
 from src.parsing.framework.incremental_cache import (
     DEFAULT_CACHE_NAME,
     configuration_hash,
-    fingerprint_inputs,
     load_cache,
     write_cache,
 )

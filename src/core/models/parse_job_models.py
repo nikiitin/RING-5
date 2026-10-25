@@ -41,7 +41,7 @@ class ParseJobStatus(StrEnum):
 
 @dataclass(frozen=True)
 class ParseFileSignature:
-    """Stable metadata for one input file included in a request fingerprint."""
+    """Submission metadata for an input file; cache identity uses its content digest."""
 
     path: str
     size: int

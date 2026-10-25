@@ -3,7 +3,7 @@ Tests for shaper_config.py: validate_shaper_config and apply_shapers.
 
 Covers:
 - validate_shaper_config: all shaper types, missing fields, empty fields
-- apply_shapers: successful pipeline, incomplete config skip, errors
+- apply_shapers: successful pipeline, invalid configuration rejection, errors
 """
 
 from typing import cast
@@ -157,21 +157,20 @@ class TestApplyShapers:
             apply_shapers(None, [])
 
     @patch("src.web.pages.ui.shaper_config.st")
-    def test_skips_shaper_with_no_type(self, mock_st: MagicMock) -> None:
+    def test_rejects_shaper_with_no_type(self, mock_st: MagicMock) -> None:
         df = pd.DataFrame({"a": [1, 2]})
-        result = apply_shapers(df, [cast(ShaperStepConfig, {"some": "config"})])
-        assert len(result) == 2  # data unchanged
+        with pytest.raises(ValueError, match="registered shaper type"):
+            apply_shapers(df, [cast(ShaperStepConfig, {"some": "config"})])
 
     @patch("src.web.pages.ui.shaper_config.st")
-    def test_skips_incomplete_config(self, mock_st: MagicMock) -> None:
-        """Incomplete config should show warning and skip."""
+    def test_rejects_incomplete_config(self, mock_st: MagicMock) -> None:
+        """Incomplete configuration cannot execute an identity pipeline."""
         df = pd.DataFrame({"a": [1, 2]})
         config = [
             cast(ShaperStepConfig, {"type": "normalize", "normalizeVars": ["a"]})
         ]  # missing fields
-        result = apply_shapers(df, config)
-        assert len(result) == 2  # data unchanged
-        mock_st.warning.assert_called_once()
+        with pytest.raises(ValueError, match="Missing required parameter"):
+            apply_shapers(df, config)
 
     @patch("src.web.pages.ui.shaper_config.st")
     @patch("src.core.services.shapers.pipeline_service.ShaperFactory")
@@ -192,8 +191,7 @@ class TestApplyShapers:
     @patch("src.web.pages.ui.shaper_config.st")
     @patch("src.core.services.shapers.pipeline_service.ShaperFactory")
     def test_shaper_error_halts_pipeline(self, mock_factory: MagicMock, mock_st: MagicMock) -> None:
-        # The single engine wraps any shaper failure as ValueError; the web layer
-        # surfaces it via st.error and re-raises to halt the pipeline.
+        # Execution errors reach the controller without publishing partial data.
         mock_factory.create_shaper.side_effect = ValueError("bad config")
 
         df = pd.DataFrame({"a": [1]})
@@ -201,7 +199,6 @@ class TestApplyShapers:
 
         with pytest.raises(ValueError, match="Failed to apply shaper"):
             apply_shapers(df, config)
-        mock_st.error.assert_called_once()
 
     @patch("src.web.pages.ui.shaper_config.st")
     @patch("src.core.services.shapers.pipeline_service.ShaperFactory")
@@ -216,7 +213,6 @@ class TestApplyShapers:
 
         with pytest.raises(ValueError, match="Failed to apply shaper"):
             apply_shapers(df, config)
-        mock_st.error.assert_called_once()
 
     def test_does_not_mutate_original_data(self) -> None:
         """A shaper pipeline must not mutate the caller's DataFrame."""

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import shutil
+import os
 import sqlite3
 import threading
 import time
@@ -276,6 +277,7 @@ class TestParseJobFingerprint:
             )
 
         baseline = request()
+        (tmp_path / "run-0" / "config.ini").write_text("[system]\ncpus=1\n")
         assert request("config_aware").fingerprint != baseline.fingerprint
         assert (
             build_parse_job_request(
@@ -349,7 +351,7 @@ class TestParseJobFingerprint:
         current = added.stat()
         added.touch()
         assert added.stat().st_mtime_ns != current.st_mtime_ns
-        assert request().fingerprint != with_changed_size.fingerprint
+        assert request().fingerprint == with_changed_size.fingerprint
 
     def test_config_aware_fingerprint_tracks_companion_configuration(self, tmp_path: Path) -> None:
         """A changed or newly created config.ini must invalidate session result reuse."""
@@ -363,11 +365,11 @@ class TestParseJobFingerprint:
                 strategy_type="config_aware",
             )
 
-        missing = request()
+        with pytest.raises(FileNotFoundError, match="config.ini"):
+            request()
         config_path = tmp_path / "run-0" / "config.ini"
         config_path.write_text("[system.cpu]\ntype=TimingSimpleCPU\n", encoding="utf-8")
         created = request()
-        assert created.fingerprint != missing.fingerprint
 
         previous_stat = config_path.stat()
         config_path.write_text("[system.cpu]\ntype=MinorCPU\n", encoding="utf-8")
@@ -1366,3 +1368,96 @@ def test_parser_semantic_revision_prevents_reusing_old_published_csv(
     _wait_for_status(service, current.job_id, {ParseJobStatus.SUCCEEDED})
     service.consume(current.job_id)
     assert submit.call_count == 2
+
+
+@pytest.mark.parametrize("consumed", [False, True])
+@pytest.mark.parametrize("companion", [False, True])
+@pytest.mark.parametrize("incremental", [False, True])
+def test_same_metadata_content_change_never_reuses_published_result(
+    tmp_path: Path,
+    service_factory: _ServiceFactory,
+    consumed: bool,
+    companion: bool,
+    incremental: bool,
+) -> None:
+    inputs = tmp_path / "inputs"
+    _stats_tree(inputs)
+    stats = inputs / "run-0" / "stats.txt"
+    config = stats.parent / "config.ini"
+    config.write_text("[system]\ncpus=1\n")
+    selected = config if companion else stats
+    submissions = []
+
+    def submit(*args: Any) -> ParseBatchResult:
+        submissions.append(args)
+        return ParseBatchResult(
+            [_completed_future({"value": selected.read_text().strip()[-1]})], ["value"]
+        )
+
+    def finalize(output_dir, batch, results, complete, strategy):
+        output = Path(output_dir) / "result.csv"
+        output.write_text("value\n" + results[0]["value"] + "\n")
+        return str(output)
+
+    service = service_factory.create(submit, finalize=finalize)
+    kwargs = dict(
+        stats_path=str(inputs),
+        stats_pattern="stats.txt",
+        variables=[{"name": "value", "type": "scalar"}],
+        strategy_type="config_aware" if companion else "simple",
+        incremental=incremental,
+    )
+    first = service.submit(**kwargs)
+    finished = _wait_for_status(service, first.job_id, {ParseJobStatus.SUCCEEDED})
+    assert Path(finished.published_csv_path).read_text() == "value\n1\n"
+    if consumed:
+        service.consume(first.job_id)
+    before = selected.stat()
+    selected.write_text(selected.read_text().replace("1", "2"))
+    os.utime(selected, ns=(before.st_atime_ns, before.st_mtime_ns))
+    assert selected.stat().st_size == before.st_size
+    assert selected.stat().st_mtime_ns == before.st_mtime_ns
+    second = service.submit(**kwargs)
+    assert second.fingerprint != first.fingerprint
+    assert not second.cache_hit
+    finished = _wait_for_status(service, second.job_id, {ParseJobStatus.SUCCEEDED})
+    assert Path(finished.published_csv_path).read_text() == "value\n2\n"
+    assert len(submissions) == 2
+    service.consume(second.job_id)
+    reused = service.submit(**kwargs)
+    assert reused.cache_hit
+    assert Path(reused.published_csv_path).read_text() == "value\n2\n"
+    assert len(submissions) == 2
+
+
+def test_input_changed_while_parser_runs_cannot_publish_or_cache_result(
+    tmp_path: Path,
+    service_factory: _ServiceFactory,
+) -> None:
+    inputs = tmp_path / "inputs"
+    _stats_tree(inputs)
+    future: Future[dict[str, Any]] = Future()
+    started = threading.Event()
+
+    def submit(*args: Any) -> ParseBatchResult:
+        started.set()
+        return ParseBatchResult([future], ["simTicks"])
+
+    publish = MagicMock()
+    service = service_factory.create(submit, publish=publish)
+    job = service.submit(
+        stats_path=str(inputs),
+        stats_pattern="stats.txt",
+        variables=[{"name": "simTicks", "type": "scalar"}],
+        strategy_type="simple",
+    )
+    assert started.wait(5)
+    stats = inputs / "run-0" / "stats.txt"
+    before = stats.stat()
+    stats.write_text("simTicks 2\n")
+    os.utime(stats, ns=(before.st_atime_ns, before.st_mtime_ns))
+    future.set_result({"simTicks": "2"})
+    failed = _wait_for_status(service, job.job_id, {ParseJobStatus.FAILED})
+    assert any("inputs changed during execution" in error for error in failed.errors)
+    publish.assert_not_called()
+    assert service._store.get_published(job.fingerprint) is None

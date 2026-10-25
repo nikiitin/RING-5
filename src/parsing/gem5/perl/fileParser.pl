@@ -37,4 +37,5 @@ while (defined($buffer = <$fh>)) {
     parseAndPrintLineWithFormat($buffer);
 }
 # Remember to close the filehandler
+printLineContext();
 close($fh);

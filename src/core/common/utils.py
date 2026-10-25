@@ -67,7 +67,7 @@ def sanitize_filename(name: str) -> str:
 
 
 def validate_path_within(path: Path, allowed_base: Path) -> Path:
-    """Validate that a resolved path is within an allowed base directory.
+    """Validate resolved containment while retaining the requested leaf identity.
 
     Resolves both ``path`` and ``allowed_base`` to absolute paths,
     normalises them with ``os.path.normpath``, and then uses
@@ -81,7 +81,7 @@ def validate_path_within(path: Path, allowed_base: Path) -> Path:
         allowed_base: The base directory the path must reside within.
 
     Returns:
-        The normalised, absolute path if valid.
+        The normalised absolute request path, without dereferencing its leaf.
 
     Raises:
         ValueError: If the path escapes the allowed base directory.
@@ -101,7 +101,8 @@ def validate_path_within(path: Path, allowed_base: Path) -> Path:
         raise ValueError(f"Path traversal detected: {resolved} is outside {base}") from exc
     if common != base:
         raise ValueError(f"Path traversal detected: {resolved} is outside {base}")
-    return Path(resolved)
+    # Callers must inspect/unlink the requested leaf, never an alias target.
+    return Path(os.path.abspath(path_str))
 
 
 _DEFAULT_STATS_PATH: str = "."

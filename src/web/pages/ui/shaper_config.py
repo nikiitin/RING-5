@@ -9,7 +9,6 @@ import streamlit as st
 from src.core.models.shaper_models import ShaperStepConfig
 from src.core.services.shapers.factory import ShaperFactory
 from src.core.services.shapers.pipeline_service import PipelineService
-from src.core.services.shapers.validation import validate_shaper_config
 from src.web.components.shapers.derive_column_config import DeriveColumnConfig
 from src.web.components.shapers.mean_config import MeanConfig
 from src.web.components.shapers.normalize_config import NormalizeConfig
@@ -98,55 +97,20 @@ def configure_shaper(
 def apply_shapers(
     data: pd.DataFrame | None, shapers_config: list[ShaperStepConfig]
 ) -> pd.DataFrame:
-    """
-    Apply a sequence of shapers to the data.
+    """Execute the complete pipeline through the core engine.
 
-    The UI concern — skipping incomplete steps with a user-facing warning — is
-    handled here; execution itself is delegated to the single canonical engine
-    ``PipelineService.process_pipeline`` so there is exactly one execution loop.
+    Incomplete editor state may be displayed, but never omitted during execution.
 
     Args:
-        data: Input DataFrame (or None)
-        shapers_config: List of shaper configurations
+        data: Input data, which the engine leaves unchanged.
+        shapers_config: Ordered current shaper configurations.
 
     Returns:
-        Transformed DataFrame
+        The fully transformed data.
 
     Raises:
-        ValueError: If data is None or shaper execution fails
+        ValueError: Data is absent or any pipeline step is invalid.
     """
     if data is None:
         raise ValueError("Shaper Orchestrator: Cannot apply shapers to None data.")
-
-    # UI concern: validate and drop incomplete steps with a user-facing warning.
-    valid_steps: list[ShaperStepConfig] = []
-    for idx, shaper_cfg in enumerate(shapers_config):
-        shaper_type = shaper_cfg.get("type")
-        if not shaper_type:
-            logger.warning(f"Pipeline step {idx + 1}: Skipping shaper with no type specified")
-            continue
-
-        is_valid, missing_fields = validate_shaper_config(shaper_type, shaper_cfg)
-        if not is_valid:
-            fields_to_report = missing_fields or ["<unspecified>"]
-            missing_str = ", ".join(f"'{f}'" for f in fields_to_report)
-            st.warning(
-                f"⚠️ Pipeline step {idx + 1} ({shaper_type}): "
-                f"Configuration incomplete. Missing or empty fields: {missing_str}. "
-                f"Please fill in all required fields."
-            )
-            logger.debug(
-                f"PIPELINE: Skipping incomplete shaper {shaper_type} "
-                f"at step {idx + 1}, missing: {missing_fields}"
-            )
-            continue
-
-        valid_steps.append(shaper_cfg)
-
-    # Execution: the single canonical pipeline engine.
-    try:
-        return PipelineService.process_pipeline(data, valid_steps)
-    except ValueError as e:
-        st.error(f"❌ Pipeline execution failed: {e}")
-        logger.error(f"PIPELINE: {e}", exc_info=True)
-        raise
+    return PipelineService.process_pipeline(data, shapers_config)

@@ -14,7 +14,7 @@ from src.core.models import IncrementalParseBatchResult, ParseJobStatus
 from src.core.models.parse_job_models import JsonValue
 from src.core.services.parse_job_service import ParseJobService
 from src.core.services.parse_job_workspace import ParseJobRuntimeWorkspace
-from src.parsing.framework.incremental_cache import fingerprint_inputs
+from src.core.common.input_identity import fingerprint_inputs
 from src.parsing.gem5.impl.strategies.file_parser_strategy import INTERNAL_SIM_PATH_KEY
 
 

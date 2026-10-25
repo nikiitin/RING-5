@@ -4242,7 +4242,7 @@
       "evidence": {
         "implementation": [
           "src/core/models/parsing_models.py::IncrementalParseBatchResult",
-          "src/parsing/framework/incremental_cache.py::fingerprint_inputs",
+          "src/core/common/input_identity.py::fingerprint_inputs",
           "src/parsing/framework/incremental_cache.py::write_cache",
           "src/parsing/gem5/impl/gem5_parser.py::Gem5Parser.submit_incremental_parse_async",
           "src/parsing/gem5/impl/gem5_parser.py::Gem5Parser.finalize_incremental_parsing",

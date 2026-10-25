@@ -79,11 +79,18 @@ The figure layer also supports legacy CSV histograms with shared-edge continuous
 gem5 also prints singleton buckets as bare integers, including negative integers. The scanner uses
 histogram geometry or the reserved `gmean` summary to recognize these and emits explicit inclusive
 labels such as `0-0`. Distribution summaries and boundaries distinguish distributions from numeric
-vectors. Both Perl paths reset this context at named and unnamed simulation dump boundaries. If
-the output suppresses all identifying metadata, callers can explicitly select the histogram type;
+vectors. Geometry-looking vector names retain their measured values unless histogram context
+identifies them as metadata. Both Perl paths flush pending entries and reset context at named and
+unnamed simulation dump boundaries. If the output suppresses all identifying metadata, callers can
+explicitly select the histogram type;
 numeric vector entries remain vectors during scanning.
 Explicit histogram-to-vector selections accept either raw singleton IDs or the inclusive singleton
 labels returned by the scanner; ordinary vector labels continue to match exactly.
+
+Durable job reuse and incremental rows use the same bounded content-fingerprint helper. Statistics
+and configuration-aware companion files are hashed in full; unchanged timestamps or sizes never
+authorize reusing changed data. Missing companion inputs fail before submission. Inputs are checked
+again before finalization; a changed input fails the job instead of publishing under a stale identity.
 
 `PARSER_RESULT_VERSION` in `src/core/models/parsing_models.py` is the shared semantic revision for
 incremental rows and durable parse requests. Changing parser meaning or output labels requires

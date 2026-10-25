@@ -246,3 +246,8 @@ include every identifying dimension to prevent an ambiguous many-to-many merge.
 Arithmetic Mean computes aggregate standard error as `sqrt(sum(sd²)) / N` over contributing
 measurements. Any unknown contributing uncertainty keeps the aggregate uncertainty missing.
 Geometric and harmonic aggregate uncertainties remain missing.
+
+A pipeline executes every configured step or fails without publishing a replacement result.
+Incomplete editor steps remain editable but cannot be silently skipped during finalization.
+Opening a range-filter editor preserves its saved bounds, including when the input is constant or
+outside the selected interval.
