@@ -120,7 +120,7 @@ def test_line_error_bars_follow_gap_mask_instead_of_spline_coordinates() -> None
 @pytest.mark.parametrize(
     ("columns", "counts", "expected_centers", "expected_counts", "widths"),
     [
-        (["10-20", "0-10"], [7, 3], [5, 15], [3, 7], [10, 10]),
+        (["10-19", "0-9"], [7, 3], [5, 15], [3, 7], [10, 10]),
         (["0-4", "5-9", "10-14", "15-19"], [3, 5, 7, 4], [5, 15], [8, 11], [10, 10]),
         (["-10--6", "-5--1", "0-4"], [2, 4, 6], [-5, 2.5], [6, 6], [10, 5]),
         (["[0,2.5)", "[2.5,5)"], [2, 3], [2.5], [5], [5]),
@@ -505,7 +505,7 @@ def test_heatmap_contrast_uses_resolved_manual_bounds_in_both_engines(shared: bo
         (["0-1", "1-2"], [0.5, 1.5, 2.5], [0.5, 1.5, 1], [1, 1, 1]),
     ],
 )
-def test_histogram_geometry_is_inferred_per_observed_row(
+def test_histogram_geometry_uses_only_each_rows_observed_buckets(
     columns: list[str],
     centers: list[float],
     counts: list[float],
@@ -519,11 +519,11 @@ def test_histogram_geometry_is_inferred_per_observed_row(
     assert sum(trace.y) == pytest.approx(3)
 
 
-def test_histogram_csv_can_mix_legacy_and_inclusive_observation_geometry() -> None:
+def test_histogram_csv_can_mix_explicit_continuous_and_inclusive_observation_geometry() -> None:
     data = pd.DataFrame(
         {
-            "h..0-10": [10, np.nan],
-            "h..10-20": [20, np.nan],
+            "h..[0,10)": [10, np.nan],
+            "h..[10,20)": [20, np.nan],
             "h..0-9": [np.nan, 30],
             "h..10-19": [np.nan, 40],
         }

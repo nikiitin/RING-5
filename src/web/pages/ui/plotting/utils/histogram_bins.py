@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from typing import cast
 
 _NUMBER = r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?"
-_RANGE = re.compile(rf"^({_NUMBER})-({_NUMBER})$")
+_RANGE = re.compile(r"^([+-]?\d+)-([+-]?\d+)$")
 _INTERVAL = re.compile(rf"^\[({_NUMBER}),\s*({_NUMBER})\)$")
 
 
@@ -30,26 +30,34 @@ class HistogramBin:
 
 
 def parse_histogram_bins(labels: list[str]) -> tuple[list[HistogramBin], list[int]]:
-    """Parse gem5 inclusive ranges and legacy shared-edge continuous ranges.
+    """Parse one observation's explicit, nonoverlapping bucket geometry.
 
     Explicit ``[a,b)`` intervals are half-open. Integer ``a-b`` intervals
-    are inclusive, except adjacent legacy ranges sharing an endpoint.
+    include both endpoints and occupy ``[a,b+1)`` for rendering.
     ``a+`` and ``<b`` retain overflow and underflow observations.
 
     Raises:
-        ValueError: If a label is malformed, nonfinite, or empty.
+        ValueError: If buckets are malformed, unrepresentable, empty, or overlap.
     """
     # [impl->req~ring5.plot.histogram~1]
-    parsed: list[tuple[int, HistogramBin, bool]] = []
+    if not labels:
+        raise ValueError("A histogram observation requires at least one bucket.")
+    parsed: list[tuple[int, HistogramBin]] = []
     for index, label in enumerate(labels):
         explicit = _INTERVAL.fullmatch(label)
         ranged = _RANGE.fullmatch(label)
-        inclusive = False
-        if explicit or ranged:
-            match = explicit or ranged
-            assert match is not None
-            lower, upper = map(float, match.groups())
-            inclusive = explicit is None and lower.is_integer() and upper.is_integer()
+        if explicit:
+            lower, upper = map(float, explicit.groups())
+        elif ranged:
+            first, last = map(int, ranged.groups())
+            if first > last:
+                raise ValueError(f"Reversed histogram bucket: {label!r}.")
+            try:
+                lower, upper = float(first), float(last + 1)
+            except OverflowError as exc:
+                raise ValueError(f"Unrepresentable histogram bucket: {label!r}.") from exc
+            if lower != first or upper != last + 1:
+                raise ValueError(f"Unrepresentable histogram bucket: {label!r}.")
         elif label.endswith("+"):
             lower, upper = float(label[:-1]), None
         elif label.startswith("<"):
@@ -60,24 +68,18 @@ def parse_histogram_bins(labels: list[str]) -> tuple[list[HistogramBin], list[in
             raise ValueError(f"Nonfinite histogram bucket: {label!r}.")
         if lower is not None and upper is not None and lower > upper:
             raise ValueError(f"Reversed histogram bucket: {label!r}.")
-        parsed.append((index, HistogramBin(lower, upper, label), inclusive))
+        bucket = HistogramBin(lower, upper, label)
+        if bucket.width is not None and (not math.isfinite(bucket.width) or bucket.width <= 0):
+            raise ValueError(f"Empty or unrepresentable histogram bucket: {label!r}.")
+        parsed.append((index, bucket))
     parsed.sort(key=lambda item: -math.inf if item[1].lower is None else item[1].lower)
-    # CSVs produced by older releases use continuous shared endpoints.
-    shared_edges = any(
-        left.upper is not None and left.upper == right.lower
-        for (_, left, left_inclusive), (_, right, right_inclusive) in zip(parsed, parsed[1:])
-        if left_inclusive and right_inclusive
-    )
-    result: list[HistogramBin] = []
-    for _, bucket, inclusive in parsed:
-        upper = bucket.upper
-        if inclusive and not shared_edges and upper is not None:
-            upper += 1
-        normalized = HistogramBin(bucket.lower, upper, bucket.label)
-        if normalized.width is not None and normalized.width <= 0:
-            raise ValueError(f"Empty histogram bucket: {bucket.label!r}.")
-        result.append(normalized)
-    return result, [index for index, _, _ in parsed]
+    for (_, left), (_, right) in zip(parsed, parsed[1:]):
+        if left.upper is None or right.lower is None or left.upper > right.lower:
+            raise ValueError(
+                f"Overlapping histogram buckets in one observation: {left.label!r}, "
+                f"{right.label!r}. Use explicit [a,b) labels for continuous intervals."
+            )
+    return [bucket for _, bucket in parsed], [index for index, _ in parsed]
 
 
 def aggregate_histogram_observations(
@@ -87,7 +89,8 @@ def aggregate_histogram_observations(
     """Normalize each observed row's geometry before combining interval mass.
 
     NaN fields represent intervals absent from that observation's bucket schema.
-    Legacy shared endpoints are inferred only among buckets observed together.
+    Each measured row must contain nonoverlapping buckets. Different rows can
+    have different schemas, whose overlapping intervals retain their own mass.
 
     Raises:
         ValueError: If an observation is missing or contains invalid counts.

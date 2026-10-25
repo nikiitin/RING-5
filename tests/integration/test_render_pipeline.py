@@ -115,9 +115,9 @@ class TestFigureEngineIntegration:
         histogram_data = pd.DataFrame(
             {
                 "benchmark_name": ["mcf", "omnetpp", "xalancbmk"],
-                "system.cpu.ipc..0-1": [10, 20, 15],
-                "system.cpu.ipc..1-2": [30, 25, 35],
-                "system.cpu.ipc..2-3": [20, 15, 10],
+                "system.cpu.ipc..[0,1)": [10, 20, 15],
+                "system.cpu.ipc..[1,2)": [30, 25, 35],
+                "system.cpu.ipc..[2,3)": [20, 15, 10],
             }
         )
         config: dict[str, Any] = {

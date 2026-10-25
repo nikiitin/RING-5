@@ -29,9 +29,9 @@ def _sample_histogram_data() -> pd.DataFrame:
     return pd.DataFrame(
         {
             "bench": ["A", "A", "B", "B"],
-            "latency..0-10": [100, 200, 150, 250],
-            "latency..10-20": [50, 60, 70, 80],
-            "latency..0-10.sd": [5.0, 6.0, 7.0, 8.0],
+            "latency..0-9": [100, 200, 150, 250],
+            "latency..10-19": [50, 60, 70, 80],
+            "latency..0-9.sd": [5.0, 6.0, 7.0, 8.0],
             "group": ["g1", "g2", "g1", "g2"],
         }
     )

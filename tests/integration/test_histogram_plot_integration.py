@@ -6,6 +6,9 @@ from typing import cast
 
 import pandas as pd
 import pytest
+import matplotlib.pyplot as plt
+
+import ring5
 
 from src.core.application_api import ApplicationAPI
 from src.core.models.data_models import ParseVariableConfig
@@ -206,10 +209,10 @@ class TestHistogramPlotIntegration:
         # Create synthetic histogram data
         data = pd.DataFrame(
             {
-                "hist_var..0-10": [10],
-                "hist_var..10-20": [20],
-                "hist_var..20-30": [30],
-                "hist_var..30-40": [40],
+                "hist_var..0-9": [10],
+                "hist_var..10-19": [20],
+                "hist_var..20-29": [30],
+                "hist_var..30-39": [40],
             }
         )
 
@@ -255,9 +258,9 @@ class TestHistogramPlotIntegration:
         # [test->req~ring5.figure.histogram-cumulative~1]
         data = pd.DataFrame(
             {
-                "hist_var..0-10": [10],
-                "hist_var..10-20": [20],
-                "hist_var..20-30": [30],
+                "hist_var..0-9": [10],
+                "hist_var..10-19": [20],
+                "hist_var..20-29": [30],
             }
         )
 
@@ -317,3 +320,31 @@ def test_parser_histogram_union_geometry_renders_observed_mass(
     )
     assert sum(trace.y) == pytest.approx(3)
     assert len(trace.x_positions) == len(trace.y) == len(trace.bar_width)
+
+
+@pytest.mark.parametrize("engine", ["plotly", "matplotlib"])
+def test_public_histogram_renders_explicit_geometry_and_rejects_overlapping_observations(
+    engine: str,
+) -> None:
+    """Both engines use the same label grammar without mutating the input table."""
+    data = ring5.Table(pd.DataFrame({"h..0-9": [3], "h..[10,20)": [7]}))
+    config = {"histogram_variable": "h", "normalization": "probability"}
+    with ring5.Session() as session:
+        figure = session.plot("histogram", data=data, config=config, engine=engine)
+        try:
+            if engine == "plotly":
+                assert list(figure.data[0].y) == [0.3, 0.7]
+                assert list(figure.data[0].x) == [5, 15]
+                assert list(figure.data[0].width) == [10, 10]
+            else:
+                patches = figure.axes[0].patches
+                assert [patch.get_height() for patch in patches] == [0.3, 0.7]
+                assert [patch.get_x() + patch.get_width() / 2 for patch in patches] == [5, 15]
+                assert [patch.get_width() for patch in patches] == [10, 10]
+        finally:
+            if engine == "matplotlib":
+                plt.close(figure)
+        invalid = ring5.Table(pd.DataFrame({"h..0-10": [3], "h..10-20": [7]}))
+        with pytest.raises(ring5.RenderError, match="Overlapping histogram buckets"):
+            session.plot("histogram", data=invalid, config=config, engine=engine)
+    assert data.frame.to_dict("list") == {"h..0-9": [3], "h..[10,20)": [7]}

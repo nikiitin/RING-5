@@ -14,7 +14,7 @@ def _detect_histogram_variables(data: pd.DataFrame) -> list[str]:
     """Detect histogram variables from DataFrame columns.
 
     Looks for columns with ``..`` patterns indicating bucket ranges
-    (e.g. ``var..0-10``, ``var..10-20``).
+    (e.g. ``var..0-9``, ``var..10-19``).
 
     Args:
         data: DataFrame to analyse.
@@ -60,7 +60,7 @@ def render(
     if not histogram_vars:
         st.warning(
             "No histogram variables detected. "
-            "Histogram variables should have columns like 'var..0-10', 'var..10-20', etc."
+            "Histogram variables should have columns like 'var..0-9', 'var..10-19', etc."
         )
         return {**config, "histogram_variable": None}
 
