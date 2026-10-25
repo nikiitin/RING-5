@@ -399,3 +399,18 @@ def test_figure_extra_numbering_projects_before_wire_validation_and_remains_owne
 def test_figure_extra_preserves_raw_numbering_admission_before_freezing(extra) -> None:
     with pytest.raises(ValueError, match="numbered.axis|numbered_xaxis_modes"):
         ring5.FigureSpec(extra=extra)
+
+
+def test_schema_and_external_semantic_errors_retain_the_typed_table_boundary() -> None:
+    source = pd.DataFrame({"v": [1.0]})
+    malformed = source.copy(deep=True)
+    malformed.attrs["ring5.semantic_columns"] = {"v": {"label": "Value", "unit": 17}}
+    with ring5.Session() as session:
+        with pytest.raises(ring5.DataValidationError, match="non-empty strings") as schema_failure:
+            session.infer_schema_contract(ring5.Table(source), name="")
+        assert isinstance(schema_failure.value.__cause__, ValueError)
+        with pytest.raises(ring5.DataValidationError, match="labels and units") as semantic_failure:
+            session.inspect_semantics(ring5.Table(malformed))
+        assert isinstance(semantic_failure.value.__cause__, ValueError)
+    assert source.attrs == {}
+    assert malformed.attrs == {"ring5.semantic_columns": {"v": {"label": "Value", "unit": 17}}}
