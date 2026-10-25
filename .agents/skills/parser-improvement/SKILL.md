@@ -55,8 +55,8 @@ Profiled on the real 586-file bench (16-core host). Start from these facts, not 
 
 ## Guardrails (every change must hold)
 - No fabrication, async-only, StatType lifecycle (`balance_content`→`reduce_duplicates` before
-  `reduced_content`), Perl regex updated in **both** `parseAndPrintLineWithFormat` and `classifyLine`
-  (histogram before distribution). Run the `parser-check` gate before declaring done.
+  `reduced_content`), shared `TypesFormatRegex::classifyLine` records preserve source entries, scan
+  labels, and dump context (histogram before distribution). Run the `parser-check` gate before declaring done.
 - A speedup that changes any parsed value is a **bug**, not a win — diff CSV output against a baseline
   on real data.
 

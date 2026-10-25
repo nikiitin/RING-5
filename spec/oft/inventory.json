@@ -292,7 +292,8 @@
       "tags": ["parsing", "scan", "variables"],
       "evidence": {
         "implementation": ["src/parsing/gem5/impl/gem5_parser.py::Gem5Parser.aggregate_scan_results", "src/parsing/gem5/impl/scanning/scanner.py::Gem5StatsScanner.scan_file"],
-        "tests": ["tests/integration/test_scanner_functional.py::TestScannerFunctional.test_scan_real_stats"],
+        "tests": ["tests/integration/test_scanner_functional.py::TestScannerFunctional.test_scan_real_stats",
+          "tests/integration/test_gem5_classifier_contract.py::test_semantic_records_preserve_source_values_labels_and_summary_roles"],
         "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
@@ -390,7 +391,8 @@
       "tags": ["gem5", "histogram", "variables"],
       "evidence": {
         "implementation": ["src/parsing/gem5/types/histogram.py::Histogram"],
-        "tests": ["tests/unit/test_histogram_type.py::TestHistogramRangeParser", "tests/unit/test_histogram_type.py::TestHistogramReduceDuplicates"],
+        "tests": ["tests/unit/test_histogram_type.py::TestHistogramRangeParser", "tests/unit/test_histogram_type.py::TestHistogramReduceDuplicates",
+          "tests/integration/test_gem5_classifier_contract.py::test_zero_total_histograms_preserve_measured_zero_without_percentages"],
         "documentation": ["docs/user-guide/reference/plot-types.md#selection-guide"]
       }
     },
@@ -491,7 +493,8 @@
       "tags": ["errors", "integrity", "parsing"],
       "evidence": {
         "implementation": ["ring5/_parse.py::ParseJob.finalize", "src/parsing/gem5/impl/gem5_parser.py::Gem5Parser.finalize_parsing", "ring5/errors.py::ParseError"],
-        "tests": ["tests/unit/test_missing_data_integrity.py::TestMissingScalarBecomesNaN"],
+        "tests": ["tests/unit/test_missing_data_integrity.py::TestMissingScalarBecomesNaN",
+          "tests/integration/test_gem5_classifier_contract.py::test_semantic_records_preserve_source_values_labels_and_summary_roles"],
         "documentation": ["docs/user-guide/reference/troubleshooting.md#parsing-finds-no-files-or-variables"]
       }
     },

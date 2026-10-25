@@ -43,8 +43,13 @@ Covers:
 
 -->
 
-gem5 stat types register through decorators under `src/parsing/gem5/types/`. Perl scanning modules
-classify input lines, while Python types validate, balance, and reduce parsed content. The simulator
+gem5 stat types register through decorators under `src/parsing/gem5/types/`.
+`TypesFormatRegex::classifyLine` is the single Perl classifier used by scanning and persistent
+parsing. It returns an ordered list of semantic records carrying a type, source name, source entry,
+scan label, and measured value. Dump records flush pending entries and reset context. An empty list
+represents deferred geometry; an unrecognized line returns no record. Scanner aggregation consumes
+the scan labels, while the persistent worker serializes source entries and values without
+reclassifying them. Python types validate, balance, and reduce the parsed measurements. The simulator
 registry exposes supported variable-type strings to the UI.
 
 All parsers produce the generic contract in `src/core/models/csv_contract.py`: a header, rows,
@@ -76,10 +81,16 @@ gem5 also prints singleton buckets as bare integers, including negative integers
 histogram geometry or the reserved `gmean` summary to recognize these and emits explicit inclusive
 labels such as `0-0`. Distribution summaries and boundaries distinguish distributions from numeric
 vectors. Geometry-looking vector names retain their measured values unless histogram context
-identifies them as metadata. Both Perl paths flush pending entries and reset context at named and
-unnamed simulation dump boundaries. If the output suppresses all identifying metadata, callers can
-explicitly select the histogram type;
-numeric vector entries remain vectors during scanning.
+identifies them as metadata. The shared classifier flushes pending entries and resets context at
+named and unnamed simulation dump boundaries. Oneline histograms require a positive
+`bucket_size` and a payload matching their bounds. Current gem5's `nozero` flag suppresses zero
+`min_bucket` and `max_bucket` fields, so omitted bounds within a dump represent zero, as defined by
+[gem5's text writer](https://github.com/gem5/gem5/blob/stable/src/base/stats/text.cc#L273-L277).
+Missing bucket size, reversed bounds, and inconsistent bucket counts fail visibly. Zero-total
+histograms retain measured zero buckets when gem5 omits percentage columns. Scalar and summary
+measurements preserve scientific notation and non-finite `nan`/`inf` values. If the output suppresses
+all identifying metadata, callers can explicitly select the histogram type; numeric vector entries
+remain vectors during scanning.
 Explicit histogram-to-vector selections accept either raw singleton IDs or the inclusive singleton
 labels returned by the scanner; ordinary vector labels continue to match exactly.
 

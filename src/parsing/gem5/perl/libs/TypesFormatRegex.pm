@@ -1,26 +1,20 @@
 package TypesFormatRegex;
-# Kind of "language" to parse gem5 stats files.
-#
+
 use strict;
 use warnings;
 use Exporter 'import';
 our $VERSION = '1.00';
-our @EXPORT  = qw(parseAndPrintLineWithFormat setFilterRegexes classifyLine resetLineContext finishLineContext printLineContext);
+our @EXPORT = qw(parseAndPrintLineWithFormat setFilterRegexes classifyLine resetLineContext finishLineContext printLineContext);
 
-# Imports from new modular packages
 use Scanning::RegexUtils qw(:all);
 use Scanning::Type::Configuration qw($confRegex);
 use Scanning::Type::Scalar qw($scalarRegex);
-use Scanning::Type::Distribution qw($distRegex $distEntry);
-use Scanning::Type::Histogram qw($histogramRegex $histogramEntryRangeRegex);
-use Scanning::Type::Vector qw($vectorRegex $vectorEntryRegex);
+use Scanning::Type::Distribution qw($distRegex);
+use Scanning::Type::Histogram qw($histogramRegex);
+use Scanning::Type::Vector qw($vectorRegex);
 use Scanning::Type::Summary qw($summaryRegex);
 
-# Note: Individual regexes are now imported.
-# Methods below use them.
-
 my $filtersRegexes;
-my @storedFilters;
 my %onelineHistogramMetadata;
 my %entryTypeContext;
 my @pendingGeometry;
@@ -35,18 +29,31 @@ sub resetLineContext {
 
 sub _beginStatsDump {
     my ($line) = @_;
-    return 0 unless $line =~ /^-+\s*Begin Simulation Statistics(?:\s*:\s*.*?)?\s*-+\s*$/;
-    return 1;
+    return $line =~ /^-+\s*Begin Simulation Statistics(?:\s*:\s*.*?)?\s*-+\s*$/;
+}
+
+sub _removeComment {
+    my ($line) = @_;
+    $line =~ s/\s*(?:#.*|\(Unspecified\))\s*$//;
+    $line =~ s/\s+$//;
+    return $line;
+}
+
+# Records retain source entry identity; scan_entry is its displayed bucket label.
+sub _record {
+    my ($type, $line) = @_;
+    my ($identifier, $value) = split /\s+/, $line, 3;
+    my ($name, $entry) = split /::/, $identifier, 2;
+    return { type => $type, name => $name, entry => $entry,
+             scan_entry => $entry, value => $value };
 }
 
 sub _rememberOnelineHistogramMetadata {
     my ($line) = @_;
-    if ($line =~ /^($varNameRegex)::(bucket_size|min_bucket|max_bucket)\s+(-?\d+)$commentRegex$/) {
-        $onelineHistogramMetadata{$1}{$2} = int($3);
-        push @pendingGeometry, { type => 'vector', name => $1, entry => $2, value => $3 };
-        return 1;
-    }
-    return 0;
+    return 0 unless $line =~ /^($varNameRegex)::(bucket_size|min_bucket|max_bucket)\s+(-?\d+)$/;
+    $onelineHistogramMetadata{$1}{$2} = int($3);
+    push @pendingGeometry, _record('vector', $line);
+    return 1;
 }
 
 # Geometry-looking vector entries remain data unless a histogram identifies them.
@@ -56,10 +63,23 @@ sub finishLineContext {
     return \@entries;
 }
 
-sub printLineContext {
-    foreach my $entry (@{finishLineContext()}) {
-        print "vector/$entry->{name}::$entry->{entry}/$entry->{value}\n";
+sub _printRecords {
+    my ($records) = @_;
+    foreach my $record (@$records) {
+        if ($record->{type} eq 'dump') {
+            print "dump//\n";
+            next;
+        }
+        # Summary fields use the worker protocol's ordinary entry representation.
+        my $type = $record->{type} eq 'summary' ? 'vector' : $record->{type};
+        my $identifier = $record->{name};
+        $identifier .= "::$record->{entry}" if defined $record->{entry};
+        print "$type/$identifier/$record->{value}\n";
     }
+}
+
+sub printLineContext {
+    _printRecords(finishLineContext());
 }
 
 sub _rememberEntryTypeContext {
@@ -78,7 +98,7 @@ sub _rememberEntryTypeContext {
 
 sub _classifyNumericEntry {
     my ($line) = @_;
-    return undef unless $line =~ /^($varNameRegex)::(-?\d+)\s+(?:$complexValueRegex|$scalarValueRegex)$commentRegex$/;
+    return undef unless $line =~ /^($varNameRegex)::(-?\d+)\s+(?:$complexValueRegex|$scalarValueRegex)$/;
     my ($name, $entry) = ($1, $2);
     my $type = $entryTypeContext{$name};
     my $geometry = $onelineHistogramMetadata{$name};
@@ -86,165 +106,99 @@ sub _classifyNumericEntry {
         && exists $geometry->{bucket_size} && exists $geometry->{max_bucket}) {
         $type = 'histogram';
     }
-    # Numeric vector entries have no distribution summaries or boundaries.
     $type //= 'vector';
-    $identifiedHistograms{$name} = 1 if $type eq 'histogram';
-    return { type => $type, name => $name, entry => $entry,
-             value => getValueFromLine(removeCommentFromLine($line)) };
+    my $record = _record($type, $line);
+    if ($type eq 'histogram') {
+        $identifiedHistograms{$name} = 1;
+        $record->{scan_entry} = "$entry-$entry";
+    }
+    return $record;
 }
 
 sub _classifyOnelineHistogram {
     my ($line) = @_;
-    my $clean = removeCommentFromLine($line);
-    return undef unless $clean =~ /^($varNameRegex)\s+\|(.*)$/;
-
-    my $name = $1;
-    my $payload = $2;
+    return undef unless $line =~ /^($varNameRegex)\s+\|(.*)$/;
+    my ($name, $payload) = ($1, $2);
     my $metadata = $onelineHistogramMetadata{$name};
+    # Pipe-delimited vectors have no geometry and are not oneline histograms.
     return undef unless defined $metadata;
     die "Incomplete one-line histogram metadata for $name\n"
-        unless exists $metadata->{bucket_size} && exists $metadata->{max_bucket};
+        unless exists $metadata->{bucket_size};
 
-    $identifiedHistograms{$name} = 1;
     my $bucket_size = $metadata->{bucket_size};
-    my $max_bucket = $metadata->{max_bucket};
-    # Older fixtures omit min_bucket and describe histograms starting at zero.
+    # DistPrint sends geometry through ScalarPrint: nozero suppresses zero bounds.
     my $min_bucket = $metadata->{min_bucket} // 0;
+    my $max_bucket = $metadata->{max_bucket} // 0;
     die "Invalid one-line histogram metadata for $name\n"
         unless $bucket_size > 0 && $max_bucket >= $min_bucket;
 
     my @groups = split /\s*\|\s*/, $payload;
     my @values;
     foreach my $group (@groups) {
+        # gem5 omits percentages when the histogram's total is zero.
         die "Malformed one-line histogram bucket for $name: $group\n"
-            unless $group =~ /^\s*(-?\d+)\s+$floatRegex%\s+$floatRegex%\s*$/;
+            unless $group =~ /^\s*(-?\d+)(?:\s+$floatRegex%\s+$floatRegex%)?\s*$/;
         push @values, $1;
     }
-
     my $expected = int(($max_bucket - $min_bucket) / $bucket_size) + 1;
     die "One-line histogram bucket count mismatch for $name: expected $expected, found "
         . scalar(@values) . "\n"
         unless scalar(@values) == $expected;
 
-    my @entries;
+    my @records;
     for (my $index = 0; $index < @values; $index++) {
         my $start = $min_bucket + $index * $bucket_size;
         my $end = $start + $bucket_size - 1;
         $end = $max_bucket if $end > $max_bucket;
-        push @entries, { entry => "$start-$end", value => $values[$index] };
+        my $entry = "$start-$end";
+        push @records, { type => 'histogram', name => $name, entry => $entry,
+                         scan_entry => $entry, value => $values[$index] };
     }
-    return { type => 'histogram', name => $name, entries => \@entries };
+    $identifiedHistograms{$name} = 1;
+    return \@records;
 }
 
-sub getRealVariableNameFromLine {
+# One semantic classifier feeds both scanner aggregation and worker serialization.
+# An empty list means a deferred metadata entry; undef means an unrecognized line.
+sub classifyLine {
     my ($line) = @_;
-
-    # Optimization: Extract name part more efficiently
-    # Use index() which is faster than regex for simple character search
-    my $namePart = $line;
-    my $sep_pos;
-
-    # Find first separator: ::, space, or =
-    if (($sep_pos = index($line, '::')) != -1) {
-        $namePart = substr($line, 0, $sep_pos);
+    if (_beginStatsDump($line)) {
+        my $records = finishLineContext();
+        resetLineContext();
+        push @$records, { type => 'dump' };
+        return $records;
     }
-    elsif (($sep_pos = index($line, ' ')) != -1) {
-        $namePart = substr($line, 0, $sep_pos);
-    }
-    elsif (($sep_pos = index($line, '=')) != -1) {
-        $namePart = substr($line, 0, $sep_pos);
-    }
+    $line = _removeComment($line);
+    return [] if _rememberOnelineHistogramMetadata($line);
+    _rememberEntryTypeContext($line);
+    my $point = _classifyNumericEntry($line);
+    return [$point] if defined $point;
+    my $oneline = _classifyOnelineHistogram($line);
+    return $oneline if defined $oneline;
 
-    # Optimization: Try exact match first (fastest path)
-    foreach my $filter (@storedFilters) {
-        return $namePart if $namePart eq $filter;
+    if ($line =~ $confRegex) {
+        my ($name, $value) = split /=/, $line, 2;
+        return [{ type => 'configuration', name => $name, entry => undef,
+                  scan_entry => undef, value => $value }];
     }
-
-    # Then try anchored regex match
-    foreach my $filter (@storedFilters) {
-        return $namePart if $namePart =~ /^(?:$filter)$/;
+    if ($line =~ $scalarRegex) {
+        return [_record('scalar', $line)];
     }
-
-    # parseAndPrintLineWithFormat already performed the same anchored filter
-    # check, so a non-match here is malformed rather than a reason to search
-    # arbitrary text later in the line.
-    return '';
-}
-
-sub getEntryNameFromLine {
-    # Get the entry name from the line
-    my ($line) = @_;
-    # If is histogram it is a range
-    if ($line =~ $histogramEntryRangeRegex) {
-        $line =~ /($histogramEntryRangeRegex)/;
-        return $1;
+    if ($line =~ $histogramRegex) {
+        my $record = _record('histogram', $line);
+        $identifiedHistograms{$record->{name}} = 1;
+        return [$record];
     }
-    # If is distribution it is an integer or an
-    # overflow/underflow
-    if ($line =~ $distEntry) {
-        $line =~ /($distEntry)/;
-        return $1;
+    if ($line =~ $distRegex) {
+        return [_record('distribution', $line)];
     }
-    if ($line =~ $vectorEntryRegex &&
-        $line !~ $summariesEntryRegex) {
-        # Do not get summaries.
-        # Vector format
-        $line =~ /($vectorEntryRegex)/;
-        return $1;
+    if ($line =~ $summaryRegex) {
+        return [_record('summary', $line)];
     }
-    if ($line =~ $summariesEntryRegex) {
-        $line =~ /($summariesEntryRegex)/;
-        return $1;
+    if ($line =~ $vectorRegex) {
+        return [_record('vector', $line)];
     }
-    # Do return empty string if no entry was found
-    return "";
-}
-
-sub getValueFromLine {
-    my ($line) = @_;
-
-    # Optimization: Use index() to detect separator type (faster than regex)
-    my $sep_pos = index($line, '=');
-    my @lineSplits;
-
-    if ($sep_pos != -1) {
-        # Configuration line (has =)
-        @lineSplits = split /=/, $line, 2;  # Limit splits to 2 parts
-    } else {
-        # Complex type (space-separated)
-        @lineSplits = split /\s+/, $line, 3;  # Limit splits to 3 parts (name, value, rest)
-    }
-
-    # Return value (second element)
-    return defined($lineSplits[1]) ? $lineSplits[1] : '';
-}
-
-sub removeCommentFromLine {
-    my ($line) = @_;
-    # Optimization: Use index() to check for comment existence first
-    my $comment_pos = index($line, '#');
-    if ($comment_pos != -1) {
-        $line = substr($line, 0, $comment_pos);
-    }
-    # Remove (Unspecified) if present
-    $line =~ s/\(Unspecified\)\s*$//;
-    # Trim trailing whitespace
-    $line =~ s/\s+$//;
-    return $line;
-}
-
-sub formatLine {
-    my ($line) = @_;
-    $line = removeCommentFromLine($line);
-    # Get the real variable name
-    my $varName = getRealVariableNameFromLine($line);
-    # Comments are not used, remove
-    my $entryName = getEntryNameFromLine($line);
-    # Get the value that will be printed
-    my $value = getValueFromLine($line);
-    # Give the needed format for the line
-    # Split the value with a slash
-    return "$varName" . "$entryName" .  "/$value";
+    return undef;
 }
 
 sub setFilterRegexes {
@@ -253,143 +207,19 @@ sub setFilterRegexes {
     foreach my $filter (@regexes) {
         die "Filter expression is too long" if length($filter) > 1024;
     }
-    @storedFilters = @regexes;
-    # Add all filters to same regex
-    $filtersRegexes = join("|", map { "(?:$_)" } @regexes);
-    # Compile regexes
-    $filtersRegexes = qr/^(?:$filtersRegexes)(?=::|\s|=)/;
+    my $alternatives = join('|', map { "(?:$_)" } @regexes);
+    $filtersRegexes = qr/^(?:$alternatives)(?=::|\s|=)/;
 }
 
 sub parseAndPrintLineWithFormat {
     my ($line) = @_;
-
-    # Dump boundaries preserve temporal observations when bucket geometry changes.
-    if (_beginStatsDump($line)) {
-        printLineContext();
-        resetLineContext();
-        print "dump//\n";
-        return;
-    }
-
-    # Early return optimization: check filter first
-    return unless $line =~ $filtersRegexes;
-
-    # Gem5's Stats::oneline histogram format writes its bucket geometry on
-    # preceding metadata lines, followed by one pipe-delimited row.  Consume
-    # the metadata rather than exposing it as fake vector buckets.
-    return if _rememberOnelineHistogramMetadata($line);
-    _rememberEntryTypeContext($line);
-    my $point = _classifyNumericEntry($line);
-    if (defined $point) {
-        print "$point->{type}/$point->{name}::$point->{entry}/$point->{value}\n";
-        return;
-    }
-    my $oneline = _classifyOnelineHistogram($line);
-    if (defined $oneline) {
-        foreach my $item (@{$oneline->{entries}}) {
-            print "histogram/$oneline->{name}::$item->{entry}/$item->{value}\n";
-        }
-        return;
-    }
-
-    # Optimization: Check types in order of frequency (most common first)
-    # and use elsif to avoid multiple regex matches
-
-    # Scalar is most common - check first
-    if ($line =~ $scalarRegex) {
-        print "scalar/" . formatLine($line) . "\n";
-    }
-    # Vector is second most common
-    elsif ($line =~ $vectorRegex) {
-        print "vector/" . formatLine($line) . "\n";
-    }
-    # Histogram
-    elsif ($line =~ $histogramRegex) {
-        print "histogram/" . formatLine($line) . "\n";
-    }
-    # Distribution
-    elsif ($line =~ $distRegex) {
-        print "distribution/" . formatLine($line) . "\n";
-    }
-    # Summary
-    elsif ($line =~ $summaryRegex) {
-        print "summary/" . formatLine($line) . "\n";
-    }
-    # Configuration (least common)
-    elsif ($line =~ $confRegex) {
-        print "configuration/" . formatLine($line) . "\n";
-    }
-    # A line that matched the user's filter but no type regex is a requested
-    # stat we could not classify: report it (the Python stderr-drainer surfaces
-    # "ERROR" lines as warnings) so missingness is traceable, never silent.
-    else {
+    return unless _beginStatsDump($line) || $line =~ $filtersRegexes;
+    my $records = classifyLine($line);
+    if (defined $records) {
+        _printRecords($records);
+    } else {
         print STDERR "ERROR: unclassifiable line matched filter: $line\n";
     }
 }
 
-sub classifyLine {
-    my ($line) = @_;
-    if (_beginStatsDump($line)) {
-        my $pending = finishLineContext();
-        resetLineContext();
-        return @$pending ? { type => 'pending_entries', entries => $pending } : undef;
-    }
-
-    if (_rememberOnelineHistogramMetadata($line)) {
-        return { type => 'oneline_metadata', name => undef, entry => undef };
-    }
-    _rememberEntryTypeContext($line);
-    my $point = _classifyNumericEntry($line);
-    if (defined $point) {
-        # Scan labels describe geometry; parser keys retain source entry identity
-        # so explicit vector/distribution reinterpretations remain possible.
-        $point->{entry} = "$point->{entry}-$point->{entry}"
-            if $point->{type} eq 'histogram';
-        return $point;
-    }
-    my $oneline = _classifyOnelineHistogram($line);
-    return $oneline if defined $oneline;
-
-    # Check types in order with explicit captures
-
-    # Configuration: name=value
-    if ($line =~ /^($varNameRegex)=$confValueRegex$/) {
-        return { type => 'configuration', name => $1, entry => undef };
-    }
-    # Scalar: name value # comment
-    elsif ($line =~ /^($varNameRegex)\s+$scalarValueRegex$commentRegex?$/) {
-        return { type => 'scalar', name => $1, entry => undef };
-    }
-    # Histogram: name::range ...
-    elsif ($line =~ /^($varNameRegex)($histogramEntryRangeRegex)\s+$complexValueRegex$commentRegex?$/) {
-        my $name = $1;
-        my $entry = $2;
-        $entry =~ s/^:://;
-        return { type => 'histogram', name => $name, entry => $entry };
-    }
-    # Distribution: name::val ...
-    elsif ($line =~ /^($varNameRegex)($distEntry)\s+$complexValueRegex$commentRegex?$/) {
-        my $name = $1;
-        my $entry = $2;
-        $entry =~ s/^:://;
-        return { type => 'distribution', name => $name, entry => $entry };
-    }
-    # Summary: name::total ...
-    elsif ($line =~ /^($varNameRegex)($summariesEntryRegex)\s+$scalarValueRegex$commentRegex?$/) {
-        my $name = $1;
-        my $entry = $2;
-        $entry =~ s/^:://;
-        return { type => 'summary', name => $name, entry => $entry };
-    }
-    # Vector: name::entry ...
-    elsif ($line =~ /^($varNameRegex)($vectorEntryRegex)\s+(?:$complexValueRegex|$scalarValueRegex)$commentRegex?$/) {
-        my $name = $1;
-        my $entry = $2;
-        $entry =~ s/^:://;
-        return { type => 'vector', name => $name, entry => $entry };
-    }
-
-    return undef;
-}
-
-1; # A module must end with a true value or "use" will report an error
+1;

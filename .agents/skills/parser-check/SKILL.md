@@ -1,6 +1,6 @@
 ---
 name: parser-check
-description: Gate the gem5 parsing/scanning subsystem for correctness — no data fabrication, async-only API, the StatType lifecycle invariant, Perl regex duplication, and worker-pool lifecycle. Use to verify parser/scanner/Perl/stat-type changes before merging (complements the parsing-and-variable-types build skill).
+description: Gate the gem5 parsing/scanning subsystem for correctness — no data fabrication, async-only API, the StatType lifecycle invariant, shared Perl classification, and worker-pool lifecycle. Use to verify parser/scanner/Perl/stat-type changes before merging (complements the parsing-and-variable-types build skill).
 ---
 
 # Parser check (the parsing correctness gate)
@@ -15,20 +15,21 @@ contract**.
    never default to `0`/a guessed value. This is the highest-stakes invariant (see
    [[ring5-arch-audit-2026-06]]). Review every new parse branch for a silent fallback.
 2. **Async-only (hard rule #7).** The public surface is `submit_scan_async` / `finalize_scan` /
-   `submit_parse_async` / `finalize_parsing`; the backend implements the 4 `SimulationParser`
-   protocol methods (`submit_parse_async`, `finalize_parsing`, `submit_scan_async`,
-   `aggregate_scan_results`). **No synchronous wrapper** may be added.
+   `submit_parse_async` / `finalize_parsing`; backends implement the complete `SimulationParser`
+   protocol, including incremental and playground submission/finalization and scan aggregation.
+   **No synchronous wrapper** may be added.
 3. **Pass `scanned_vars`** when parsing regex/pattern variables (reconstructs concrete names like
    `system.cpu\d+.numCycles` → `cpu0..N`).
 4. **StatType lifecycle invariant** (`src/parsing/gem5/types/`): `balance_content()` then
    `reduce_duplicates()` **must** run before `reduced_content` is read. New/edited stat types must
    honor it. Ingestion/reduction must not truncate floats (no `int()` coercion).
-5. **Perl regex is duplicated — update both.** A type's regex appears in **both**
-   `parseAndPrintLineWithFormat` **and** `classifyLine` in
-   `src/parsing/gem5/perl/libs/TypesFormatRegex.pm`. Ordering matters: **histogram before
-   distribution**. A change to one without the other is a silent classification bug.
-6. **Worker-pool lifecycle.** `WorkPool`/`ScanWorkPool`/`ParseWorkPool` and `PerlWorkerPool` each have
-   `shutdown()` + an `atexit` handler — preserve them (no orphaned Perl processes on hot-reload).
+5. **One Perl classifier.** `TypesFormatRegex::classifyLine` produces semantic records for both
+   scanning and persistent parsing. Preserve raw source entries separately from inclusive scan
+   labels, summary roles, deferred geometry, and dump events. Keep histogram classification before
+   distribution/vector classification. Test the same raw fixtures through both consumers.
+6. **Worker-pool lifecycle.** `WorkPool` and `PerlWorkerPool` own `shutdown()` and `atexit`
+   cleanup. `ScanWorkPool`/`ParseWorkPool` return caller-owned futures without retaining batches.
+   Preserve those ownership boundaries and prevent orphaned Perl processes on hot-reload.
    High-concurrency hangs were an undrained-stderr-pipe deadlock, now fixed by a drainer thread —
    don't reintroduce a blocking read (see [[perl-pool-highconc-stall]]).
 7. **Internal/meta stats excluded** from selection (`GEM5_INFO.internal_stats` in

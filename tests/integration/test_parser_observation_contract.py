@@ -291,8 +291,8 @@ def test_perl_scanned_numeric_vector_entries_retain_vector_source_type(tmp_path:
             assert rows == [{"V..0": "4.0", "V..1": "6.0"}]
 
 
-def test_perl_scan_and_parse_reset_metadata_before_legacy_dump(tmp_path: Path) -> None:
-    """Absent min metadata in a later dump cannot inherit an earlier negative range."""
+def test_perl_scan_and_parse_reset_geometry_before_zero_suppressed_dump(tmp_path: Path) -> None:
+    """An omitted zero bound cannot inherit a previous dump's negative minimum."""
     text = (
         "---------- Begin Simulation Statistics ----------\n"
         "h::bucket_size 10\nh::min_bucket -10\nh::max_bucket 9\n"

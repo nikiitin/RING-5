@@ -16,8 +16,8 @@ our $varNameRegex = qr/[\d\.\w\_]+/;
 # Configuration values can include paths, numbers, and basic punctuation.
 our $confValueRegex = qr/[\d\.\w\-\/\(\)\,]+/;
 
-# Scalars are either integers or the scientific-compliant float.
-our $scalarValueRegex = qr/-?\d+|$floatRegex/;
+# gem5 also emits non-finite scalar and summary measurements.
+our $scalarValueRegex = qr/(?:$floatRegex|[+-]?(?:nan|inf))/i;
 
 # Comments are whitespace-prefixed and can be # hashes or (Unspecified) tags.
 # Robust against trailing spaces and anchored to end-of-line to prevent backtracking.
