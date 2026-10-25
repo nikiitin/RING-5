@@ -18,8 +18,9 @@ invariant). To add a new stat type or wire Perl, use `parsing-and-variable-types
   (≈94% variable reduction). Keep scan output aggregated; expand to concrete names only at parse
   time using `scanned_vars`.
 - **One shared `WorkPool`** (`src/parsing/framework/work_pool.py`) — a singleton `ThreadPoolExecutor`
-  over `concurrent.futures` (`shutdown()` + `atexit`); backends submit `Job`s through the
-  `gem5/impl/pool/` facades (`ScanWorkPool`/`ParseWorkPool`).
+  over `concurrent.futures` (`shutdown()` + `atexit`); backends submit typed callable commands with
+  `submit`/`submit_many`. Futures remain caller-owned. Global shutdown drains accepted work before
+  allowing another executor generation; session cancellation never shuts down this shared pool.
 
 ## Where the time actually goes (measured — see [[ring5-parser-perf-profile]])
 Profiled on the real 586-file bench (16-core host). Start from these facts, not intuition:

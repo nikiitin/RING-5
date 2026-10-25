@@ -67,7 +67,7 @@ class TestNoClassLevelState:
 class TestSubmitParseAsyncReturnType:
     """Verify submit_parse_async returns ParseBatchResult."""
 
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.WorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     @patch("src.parsing.gem5.impl.gem5_parser.normalize_user_path")
     def test_gem5_parser_returns_batch_result(
@@ -85,7 +85,7 @@ class TestSubmitParseAsyncReturnType:
 
         mock_future: Future[Any] = Future()
         mock_future.set_result({"data": 1})
-        mock_pool.get_instance.return_value.submit_batch_async.return_value = [mock_future]
+        mock_pool.get_instance.return_value.submit_many.return_value = [mock_future]
 
         variables = [
             StatConfig(name="system.cpu.ipc", type="scalar"),
@@ -103,7 +103,7 @@ class TestSubmitParseAsyncReturnType:
         assert result.var_names == ["system.cpu.ipc", "system.cpu.numCycles"]
         assert len(result.futures) == 1
 
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.WorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     @patch("src.parsing.gem5.impl.gem5_parser.normalize_user_path")
     def test_empty_work_raises(
@@ -184,7 +184,7 @@ class TestConstructFinalCsvVarNames:
 class TestBatchIsolation:
     """Verify that concurrent batches do not share state."""
 
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.WorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     @patch("src.parsing.gem5.impl.gem5_parser.normalize_user_path")
     def test_concurrent_batches_have_independent_var_names(
@@ -197,7 +197,7 @@ class TestBatchIsolation:
         mock_strategy = MagicMock()
         mock_strategy.get_work_items.return_value = [MagicMock()]
         mock_factory.create.return_value = mock_strategy
-        mock_pool.get_instance.return_value.submit_batch_async.return_value = []
+        mock_pool.get_instance.return_value.submit_many.return_value = []
 
         # Batch 1
         batch1 = Gem5Parser.submit_parse_async(

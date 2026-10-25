@@ -36,7 +36,7 @@ class FakeStat:
 class TestSubmitParseAsync:
     """Test submit_parse_async branches."""
 
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.WorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_path_not_found_raises(
         self, mock_factory: MagicMock, mock_pool: MagicMock, tmp_path: Any
@@ -49,7 +49,7 @@ class TestSubmitParseAsync:
                 str(tmp_path),
             )
 
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.WorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_empty_work_items_raises(
         self, mock_factory: MagicMock, mock_pool: MagicMock, tmp_path: Any
@@ -69,7 +69,7 @@ class TestSubmitParseAsync:
                 str(tmp_path),
             )
 
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.WorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_regex_expansion_no_match(
         self, mock_factory: MagicMock, mock_pool: MagicMock, tmp_path: Any
@@ -85,7 +85,7 @@ class TestSubmitParseAsync:
         mock_factory.create.return_value = strategy
 
         pool_instance = MagicMock()
-        pool_instance.submit_batch_async.return_value = [MagicMock()]
+        pool_instance.submit_many.return_value = [MagicMock()]
         mock_pool.get_instance.return_value = pool_instance
 
         # Should not crash — just log warning
@@ -97,7 +97,7 @@ class TestSubmitParseAsync:
             scanned_vars=scanned,
         )
 
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.WorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_invalid_aggregate_scan_name_is_treated_as_a_non_match(
         self, mock_factory: MagicMock, mock_pool: MagicMock, tmp_path: Any
@@ -109,7 +109,7 @@ class TestSubmitParseAsync:
         strategy = MagicMock()
         strategy.get_work_items.return_value = [MagicMock()]
         mock_factory.create.return_value = strategy
-        mock_pool.get_instance.return_value.submit_batch_async.return_value = []
+        mock_pool.get_instance.return_value.submit_many.return_value = []
 
         Gem5Parser.submit_parse_async(
             str(stats_dir),
@@ -122,7 +122,7 @@ class TestSubmitParseAsync:
         submitted_config = strategy.get_work_items.call_args.args[2][0]
         assert submitted_config is config
 
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.WorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_regex_expansion_with_pattern_indices(
         self, mock_factory: MagicMock, mock_pool: MagicMock, tmp_path: Any
@@ -144,7 +144,7 @@ class TestSubmitParseAsync:
         mock_factory.create.return_value = strategy
 
         pool_instance = MagicMock()
-        pool_instance.submit_batch_async.return_value = [MagicMock()]
+        pool_instance.submit_many.return_value = [MagicMock()]
         mock_pool.get_instance.return_value = pool_instance
 
         Gem5Parser.submit_parse_async(
@@ -158,7 +158,7 @@ class TestSubmitParseAsync:
         expanded = strategy.get_work_items.call_args[0][2][0]
         assert expanded.params["parsed_ids"] == ["system.cpu0.ipc", "system.cpu1.ipc"]
 
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.WorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_regex_alias_expands_source_and_keeps_output_name(
         self, mock_factory: MagicMock, mock_pool: MagicMock, tmp_path: Any
@@ -183,7 +183,7 @@ class TestSubmitParseAsync:
         strategy.get_work_items.return_value = [MagicMock()]
         mock_factory.create.return_value = strategy
         pool_instance = MagicMock()
-        pool_instance.submit_batch_async.return_value = [MagicMock()]
+        pool_instance.submit_many.return_value = [MagicMock()]
         mock_pool.get_instance.return_value = pool_instance
 
         batch = Gem5Parser.submit_parse_async(
@@ -200,7 +200,7 @@ class TestSubmitParseAsync:
         assert expanded.params["parsed_ids"] == ["system.cpu0.ipc", "system.cpu1.ipc"]
         assert batch.var_names == ["IPC"]
 
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.WorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_invalid_regex_is_rejected(
         self, mock_factory: MagicMock, mock_pool: MagicMock, tmp_path: Any
@@ -216,7 +216,7 @@ class TestSubmitParseAsync:
         mock_factory.create.return_value = strategy
 
         pool_instance = MagicMock()
-        pool_instance.submit_batch_async.return_value = [MagicMock()]
+        pool_instance.submit_many.return_value = [MagicMock()]
         mock_pool.get_instance.return_value = pool_instance
 
         with pytest.raises(ValueError, match="Unsafe regex"):
@@ -249,7 +249,7 @@ class TestSubmitParseAsync:
                 scanned_vars=scanned,
             )
 
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.WorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_keep_indices_rejects_selection_not_present_in_scan(
         self, mock_factory: MagicMock, mock_pool: MagicMock, tmp_path: Any
@@ -280,7 +280,7 @@ class TestSubmitParseAsync:
                 scanned_vars=scanned,
             )
 
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.WorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_keep_indices_accepts_mixed_concrete_and_numeric_selections(
         self, mock_factory: MagicMock, mock_pool: MagicMock, tmp_path: Any
@@ -290,7 +290,7 @@ class TestSubmitParseAsync:
         strategy = MagicMock()
         strategy.get_work_items.return_value = [MagicMock()]
         mock_factory.create.return_value = strategy
-        mock_pool.get_instance.return_value.submit_batch_async.return_value = []
+        mock_pool.get_instance.return_value.submit_many.return_value = []
         config = StatConfig(
             name=r"system.cpu\d+.ipc",
             type="scalar",

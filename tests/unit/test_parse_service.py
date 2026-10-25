@@ -37,7 +37,7 @@ class TestSubmitParseAsync:
         with pytest.raises(FileNotFoundError, match="does not exist"):
             ParseService.submit_parse_async(bad_path, "stats.txt", [], str(tmp_path / "out"))
 
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.WorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_raises_when_no_work(
         self, mock_sf: MagicMock, mock_pool: MagicMock, tmp_path: Path
@@ -62,7 +62,7 @@ class TestSubmitParseAsync:
         with pytest.raises(FileNotFoundError, match="No files matching"):
             ParseService.submit_parse_async(str(stats_dir), "stats.txt", [], str(tmp_path / "out"))
 
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.WorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_submits_work_and_returns_batch(
         self, mock_sf: MagicMock, mock_pool: MagicMock, tmp_path: Path
@@ -77,7 +77,7 @@ class TestSubmitParseAsync:
 
         pool_inst = MagicMock()
         futures = [MagicMock(), MagicMock()]
-        pool_inst.submit_batch_async.return_value = futures
+        pool_inst.submit_many.return_value = futures
         mock_pool.get_instance.return_value = pool_inst
 
         variables = [
@@ -93,7 +93,7 @@ class TestSubmitParseAsync:
         assert result.var_names == ["system.cpu.ipc", "simTicks"]
         assert len(result.futures) == 2
 
-    @patch("src.parsing.gem5.impl.gem5_parser.ParseWorkPool")
+    @patch("src.parsing.gem5.impl.gem5_parser.WorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_regex_expansion_with_scanned_vars(
         self, mock_sf: MagicMock, mock_pool: MagicMock, tmp_path: Path
@@ -106,7 +106,7 @@ class TestSubmitParseAsync:
         mock_sf.create.return_value = strategy
 
         pool_inst = MagicMock()
-        pool_inst.submit_batch_async.return_value = [MagicMock()]
+        pool_inst.submit_many.return_value = [MagicMock()]
         mock_pool.get_instance.return_value = pool_inst
 
         # A regex variable with scanned matches

@@ -6,11 +6,10 @@ import time
 from concurrent.futures import as_completed
 
 from src.core.models import ScannedVariable
-from src.parsing.gem5.impl.pool.pool import ScanWorkPool
-from src.parsing.gem5.impl.pool.scan_work import ScanWork
+from src.parsing.framework.work_pool import WorkPool
 
 
-class MockWork(ScanWork):
+class MockWork:
     def __init__(self, val: int, duration: float = 0.1) -> None:
 
         self.val = val
@@ -23,10 +22,10 @@ class MockWork(ScanWork):
 
 def test_async_scan_flow() -> None:
     """Test full async flow with futures."""
-    pool = ScanWorkPool.get_instance()
+    pool = WorkPool.get_instance()
 
     works = [MockWork(i, 0.05) for i in range(5)]
-    futures = pool.submit_batch_async(works)
+    futures = pool.submit_many(works)
 
     # Should return list of futures
     assert isinstance(futures, list)
@@ -47,11 +46,11 @@ def test_async_scan_flow() -> None:
 
 def test_async_scan_cancellation() -> None:
     """Test cancellation of async scan via the caller-owned future handles."""
-    pool = ScanWorkPool.get_instance()
+    pool = WorkPool.get_instance()
 
     # Long duration works
     works = [MockWork(i, 0.5) for i in range(5)]
-    futures = pool.submit_batch_async(works)
+    futures = pool.submit_many(works)
 
     # Cancel the handles we own — the pool keeps no references, so
     # cancellation cannot touch another caller's in-flight batch.
@@ -80,15 +79,15 @@ def test_async_scan_cancellation() -> None:
 
 def test_multiple_batch_submissions() -> None:
     """Test that multiple batch submissions work independently."""
-    pool = ScanWorkPool.get_instance()
+    pool = WorkPool.get_instance()
 
     # First batch
     works1 = [MockWork(i, 0.05) for i in range(3)]
-    futures1 = pool.submit_batch_async(works1)
+    futures1 = pool.submit_many(works1)
 
     # Second batch (should work fine with new stateless design)
     works2 = [MockWork(i + 10, 0.05) for i in range(3)]
-    futures2 = pool.submit_batch_async(works2)
+    futures2 = pool.submit_many(works2)
 
     # Collect all results
     all_futures = futures1 + futures2
