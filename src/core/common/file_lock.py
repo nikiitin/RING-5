@@ -5,6 +5,7 @@ from __future__ import annotations
 import errno
 import os
 import threading
+import weakref
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
@@ -13,7 +14,7 @@ from typing import BinaryIO, Protocol, cast
 
 _WINDOWS = os.name == "nt"
 _registry_lock = threading.Lock()
-_locks: dict[str, threading.RLock] = {}
+_locks: weakref.WeakValueDictionary[str, threading.RLock] = weakref.WeakValueDictionary()
 _local = threading.local()
 
 
@@ -93,8 +94,9 @@ class AdvisoryFileLock:
 @contextmanager
 def file_lock(path: Path) -> Iterator[None]:
     """Hold a reentrant thread and process lock for one local transaction."""
-    identity = str(path.resolve())
+    identity = os.path.normcase(str(path.resolve()))
     with _registry_lock:
+        # Active owners and waiters retain their lock; idle paths need no registry entry.
         lock = _locks.setdefault(identity, threading.RLock())
     with lock:
         held: set[str] = getattr(_local, "held", set())

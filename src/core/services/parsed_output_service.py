@@ -3,16 +3,19 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import io
 import math
 import os
 import tempfile
+import threading
 from collections.abc import Callable, Sequence
 from pathlib import Path
-from typing import IO
+from typing import IO, Protocol
 
 import pandas as pd
 
+from src.core.common.file_lock import file_lock
 from src.core.common.parsed_output_codec import (
     ParsedOutputDigest,
     encode_parsed_schema,
@@ -38,9 +41,17 @@ from src.core.models.parsed_output_models import (
     ResolvedParsedRows,
 )
 
+_publication_state = threading.local()
+
+
+class _CsvSink(Protocol):
+    def write(self, value: str) -> int:
+        """Accept one text fragment from the canonical CSV writer."""
+        raise NotImplementedError
+
 
 class _DigestWriter:
-    def __init__(self, stream: IO[bytes], schema: ParsedSchema) -> None:
+    def __init__(self, stream: IO[bytes] | None, schema: ParsedSchema) -> None:
         self.stream = stream
         self.digest = ParsedOutputDigest(schema)
         self.byte_count = 0
@@ -51,14 +62,35 @@ class _DigestWriter:
         self.byte_count += len(encoded)
         if self.byte_count > MAX_PARSED_OUTPUT_BYTES:
             raise ValueError("Parsed CSV exceeds the output byte limit.")
-        if self.stream.write(encoded) != len(encoded):
+        if self.stream is not None and self.stream.write(encoded) != len(encoded):
             raise OSError("Incomplete parser CSV write.")
         self.digest.update(encoded)
         return len(value)
 
 
+def _write_csv(
+    schema: ParsedSchema, rows: Sequence[tuple[ParsedValue, ...]], target: _CsvSink
+) -> None:
+    """Write the one canonical schema header and literal/numeric row encoding."""
+    writer = csv.writer(target)
+    writer.writerow([column.name for column in schema.columns])
+    for row in rows:
+        writer.writerow(
+            [
+                render_parsed_value(column.kind, value)
+                for column, value in zip(schema.columns, row, strict=True)
+            ]
+        )
+
+
 class ParsedOutputService:
-    """Keep parser cell meaning separate from genuine external CSV inference."""
+    """Preserve typed parser cells within bounded canonical CSV output.
+
+    Each literal cell allows 4,194,304 Unicode characters,
+    including configuration JSON. The entire UTF-8 CSV is limited to 256 MiB;
+    source-row, column and matrix limits apply independently. Reading uses the
+    same bounds without changing the process-global stdlib CSV field limit.
+    """
 
     @staticmethod
     def resolve(
@@ -196,12 +228,37 @@ class ParsedOutputService:
     ) -> ParsedOutput:
         """Publish one CSV atomically, preserving old output if metadata promotion fails.
 
+        The path is expanded and resolved once, so aliases share one target and
+        thread/process transaction lock. Reentering that target in the callback
+        raises RuntimeError before publication. Lock files are operational only;
+        reading an output requires its descriptor and CSV file.
+
         The optional callback belongs to the existing cache/job transaction owner.
         It executes after the new file is visible and must promote its own record
         atomically. A callback failure restores the previous output file.
         """
         ParsedOutputService._check_wire_budget(table)
+        output_path = output_path.expanduser().resolve()
+        identity = os.path.normcase(str(output_path))
+        active: set[str] = getattr(_publication_state, "active", set())
+        if identity in active:
+            raise RuntimeError("Cannot reenter publication for the same parsed CSV target.")
         output_path.parent.mkdir(parents=True, exist_ok=True)
+        lock_name = hashlib.sha256(identity.encode("utf-8")).hexdigest()
+        lock_path = output_path.parent / f".parsed-publish-{lock_name}.lock"
+        _publication_state.active = {*active, identity}
+        try:
+            with file_lock(lock_path):
+                return ParsedOutputService._publish_locked(output_path, table, after_publish)
+        finally:
+            _publication_state.active = active
+
+    @staticmethod
+    def _publish_locked(
+        output_path: Path,
+        table: ResolvedParsedRows,
+        after_publish: Callable[[ParsedOutput], None] | None,
+    ) -> ParsedOutput:
         staged: str | None = None
         backup: str | None = None
         replaced = False
@@ -212,15 +269,7 @@ class ParsedOutputService:
             ) as stream:
                 staged = stream.name
                 target = _DigestWriter(stream.file, table.schema)
-                writer = csv.writer(target)
-                writer.writerow([column.name for column in table.schema.columns])
-                for row in table.rows:
-                    writer.writerow(
-                        [
-                            render_parsed_value(column.kind, value)
-                            for column, value in zip(table.schema.columns, row, strict=True)
-                        ]
-                    )
+                _write_csv(table.schema, table.rows, target)
                 stream.flush()
                 os.fsync(stream.fileno())
                 digest = target.digest.hexdigest()
@@ -275,36 +324,64 @@ class ParsedOutputService:
         digest.update(encoded)
         if digest.hexdigest() != output.sha256:
             raise ValueError("Parsed CSV digest does not match its descriptor.")
-        try:
-            reader = csv.reader(io.StringIO(encoded.decode("utf-8"), newline=""), strict=True)
-            header = next(reader, None)
-            if header != [column.name for column in output.schema.columns]:
-                raise ValueError("Parsed CSV header does not match its typed schema.")
-            rows: list[tuple[ParsedValue, ...]] = []
-            for row in reader:
-                if len(row) != len(output.schema.columns):
-                    raise ValueError("Parsed CSV row width does not match its typed schema.")
-                if len(rows) >= MAX_PARSE_FILES:
-                    raise ValueError("Parsed CSV exceeds the row limit.")
-                if (len(rows) + 1) * len(output.schema.columns) > MAX_PARSE_MATRIX_CELLS:
-                    raise ValueError("Parsed CSV exceeds the matrix cell limit.")
-                rows.append(
-                    tuple(
-                        read_parsed_value(column.kind, cell)
-                        for column, cell in zip(output.schema.columns, row, strict=True)
-                    )
+        header = io.StringIO(newline="")
+        _write_csv(output.schema, (), header)
+        header_bytes = header.getvalue().encode("utf-8")
+        if not encoded.startswith(header_bytes):
+            raise ValueError("Parsed CSV header does not match its typed schema.")
+        if not output.schema.columns:
+            # A declared zero-column table has only canonical empty CSV records.
+            records, remainder = divmod(len(encoded), 2)
+            if records <= 1 or records > MAX_PARSE_FILES + 1:
+                raise ValueError("Parsed CSV requires a bounded non-empty source row set.")
+            if remainder or encoded != b"\r\n" * records:
+                raise ValueError("Malformed zero-column typed parser CSV.")
+            frozen_rows: tuple[tuple[ParsedValue, ...], ...] = ((),) * (records - 1)
+        else:
+            row_limit = min(MAX_PARSE_FILES, MAX_PARSE_MATRIX_CELLS // len(output.schema.columns))
+            try:
+                # The C reader has no process-global csv.field_size_limit. Exact
+                # string settings preserve literal null tokens and control bytes.
+                # The canonical header bounds width before pandas allocates data;
+                # nrows bounds row allocation even for a forged descriptor.
+                frame = pd.read_csv(
+                    io.BytesIO(encoded),
+                    engine="c",
+                    dtype=str,
+                    keep_default_na=False,
+                    na_filter=False,
+                    skip_blank_lines=False,
+                    header=0,
+                    names=[column.name for column in output.schema.columns],
+                    index_col=False,
+                    on_bad_lines="error",
+                    encoding="utf-8",
+                    encoding_errors="strict",
+                    nrows=row_limit + 1,
                 )
-        except csv.Error as exc:
-            raise ValueError(f"Malformed typed parser CSV: {exc}") from exc
-        if not rows:
-            raise ValueError("Parsed CSV contains no source rows.")
-        frozen_rows = tuple(rows)
-        return ResolvedParsedRows(
+            except (pd.errors.ParserError, pd.errors.EmptyDataError, UnicodeError) as exc:
+                raise ValueError(f"Malformed typed parser CSV: {exc}") from exc
+            if frame.empty or len(frame) > row_limit:
+                raise ValueError("Parsed CSV requires a bounded non-empty source row set.")
+            frozen_rows = tuple(
+                tuple(
+                    read_parsed_value(column.kind, cell)
+                    for column, cell in zip(output.schema.columns, row, strict=True)
+                )
+                for row in frame.itertuples(index=False, name=None)
+            )
+        table = ResolvedParsedRows(
             output.schema,
             frozen_rows,
             (),
             ParsedOutputService._missing_variables(output.schema, frozen_rows),
         )
+        ParsedOutputService._check_wire_budget(table)
+        canonical = _DigestWriter(None, output.schema)
+        _write_csv(table.schema, table.rows, canonical)
+        if canonical.digest.hexdigest() != output.sha256:
+            raise ValueError("Parsed CSV does not match the canonical typed row encoding.")
+        return table
 
     @staticmethod
     def to_frame(output: ParsedOutput) -> pd.DataFrame:

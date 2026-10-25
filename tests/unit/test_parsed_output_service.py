@@ -3,9 +3,14 @@
 from __future__ import annotations
 
 import math
+import csv
+import io
+import json
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import FrozenInstanceError, replace
 from decimal import InvalidOperation, localcontext
 from pathlib import Path
+from threading import Event
 
 import pytest
 
@@ -40,7 +45,24 @@ def _result(source: str, value: float = 1.25) -> ParsedFileResult:
 
 
 @pytest.mark.parametrize(
-    "literal", ["NA", "nan", "NaN", "", "001", "1e3", "μarch", "  whitespace  ", "95%", "a\nb"]
+    "literal",
+    [
+        "NA",
+        "nan",
+        "NaN",
+        "",
+        "001",
+        "1e3",
+        "μarch",
+        "  whitespace  ",
+        "95%",
+        "a\nb",
+        "a\0b",
+        "a\rb",
+        "a\r\nb",
+        "a\u2028b",
+        'a,"quoted",b',
+    ],
 )
 def test_typed_publication_and_loading_preserve_literal_text_and_numeric_missingness(
     tmp_path: Path, literal: str
@@ -192,7 +214,9 @@ def test_publication_failure_preserves_old_output_and_cleans_temporaries(
     with pytest.raises(RuntimeError, match="injected"):
         ParsedOutputService.publish(target, table, after_publish=callback)
     assert target.read_bytes() == b"old-output"
-    assert sorted(path.name for path in tmp_path.iterdir()) == ["results.csv"]
+    assert sorted(path.name for path in tmp_path.iterdir() if path.suffix != ".lock") == [
+        "results.csv"
+    ]
 
 
 def test_budgets_reject_before_writer_allocation(
@@ -302,3 +326,183 @@ def test_wire_range_checks_do_not_depend_on_decimal_context_or_exponent_size() -
             read_numeric_wire("1e1000000000000000000000")
         with pytest.raises(ValueError, match="Float64 range"):
             read_numeric_wire("1e-1000000000000000000000")
+
+
+@pytest.mark.parametrize("existed", [True, False])
+def test_contending_publication_waits_for_rollback_before_committing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, existed: bool
+) -> None:
+    target = tmp_path / "results.csv"
+    table = ParsedOutputService.resolve([_result("source", 1.0)], ["value"])
+    next_table = ParsedOutputService.resolve([_result("source", 2.0)], ["value"])
+    if existed:
+        target.write_bytes(b"original")
+    callback_entered, release_callback, contender_waiting = Event(), Event(), Event()
+    original_lock = parsed_output_service.file_lock
+
+    def tracked_lock(path):
+        if callback_entered.is_set():
+            contender_waiting.set()
+        return original_lock(path)
+
+    monkeypatch.setattr(parsed_output_service, "file_lock", tracked_lock)
+
+    def fail_promotion(_):
+        callback_entered.set()
+        assert release_callback.wait(5)
+        raise RuntimeError("promotion failed")
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        first = executor.submit(
+            ParsedOutputService.publish, target, table, after_publish=fail_promotion
+        )
+        try:
+            assert callback_entered.wait(5)
+            second = executor.submit(ParsedOutputService.publish, target, next_table)
+            assert contender_waiting.wait(5)
+            assert not second.done()
+        finally:
+            release_callback.set()
+        with pytest.raises(RuntimeError, match="promotion failed"):
+            first.result(timeout=5)
+        output = second.result(timeout=5)
+    assert ParsedOutputService.read(output).rows == ((2.0,),)
+
+
+@pytest.mark.parametrize("alias", [False, True])
+def test_callback_same_target_reentry_rejects_and_preserves_previous_output(
+    tmp_path: Path, alias: bool
+) -> None:
+    target = tmp_path / "results.csv"
+    table = ParsedOutputService.resolve([_result("source", 1.0)], ["value"])
+    old = ParsedOutputService.publish(target, table)
+    alternate = tmp_path / "alias.csv"
+    if alias:
+        alternate.symlink_to(target)
+    else:
+        alternate = target.parent / "." / target.name
+
+    def reenter(_):
+        ParsedOutputService.publish(alternate, table)
+
+    with pytest.raises(RuntimeError, match="Cannot reenter publication"):
+        ParsedOutputService.publish(target, table, after_publish=reenter)
+    assert ParsedOutputService.read(old).rows == ((1.0,),)
+    if alias:
+        assert alternate.is_symlink()
+        output = ParsedOutputService.publish(alternate, table)
+        assert output.csv_path == str(target.resolve())
+        assert alternate.is_symlink()
+
+
+def test_config_aware_metadata_larger_than_stdlib_csv_limit_roundtrips(tmp_path: Path) -> None:
+    from src.parsing.gem5.impl.strategies.config_aware import ConfigAwareStrategy
+    from src.parsing.gem5.impl.strategies.file_parser_strategy import INTERNAL_SIM_PATH_KEY
+
+    config = "\n".join(
+        f"[system.cpu{i}]\ntype=DerivO3CPU\nclock=1000\n"
+        + "\n".join(f"param{j}=1234567890" for j in range(20))
+        for i in range(400)
+    )
+    source = tmp_path / "stats.txt"
+    source.write_text("value 1\n")
+    (tmp_path / "config.ini").write_text(config)
+    metadata = ConfigAwareStrategy().post_process(
+        [{INTERNAL_SIM_PATH_KEY: str(source), "value": 1.0}]
+    )[0]
+    literal = metadata["config_json"]
+    assert len(literal) == 201091
+    assert len(json.loads(literal)) == 400
+    before = csv.field_size_limit()
+    result = ParsedFileResult(
+        str(source), (_scalar("value", 1.0),), (ParsedCell("config_json", "text", literal),)
+    )
+    table = ParsedOutputService.resolve([result], ["value"])
+    output = ParsedOutputService.publish(tmp_path / "results.csv", table)
+    assert ParsedOutputService.read(output).rows == ((1.0, literal),)
+    assert ParsedOutputService.to_frame(output)["config_json"].iloc[0] == literal
+    assert csv.field_size_limit() == before
+    assert list(csv.reader(io.StringIO('label\n"NA"\n'))) == [["label"], ["NA"]]
+
+
+def _rewrite_output(output: ParsedOutput, content: bytes) -> ParsedOutput:
+    Path(output.csv_path).write_bytes(content)
+    digest = ParsedOutputDigest(output.schema)
+    digest.update(content)
+    return replace(output, sha256=digest.hexdigest())
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        b"value\r\n1.0,2.0\r\n",
+        b"value\r\n\r\n",
+        b"value\r\n1\r\n",
+        b'value\r\n"1.0\r\n',
+        b"value\n1.0\n",
+    ],
+)
+def test_noncanonical_or_malformed_csv_cannot_relabel_typed_values(
+    tmp_path: Path, content: bytes
+) -> None:
+    table = ParsedOutputService.resolve([_result("source", 1.0)], ["value"])
+    output = ParsedOutputService.publish(tmp_path / "results.csv", table)
+    output = _rewrite_output(output, content)
+    with pytest.raises(ValueError):
+        ParsedOutputService.read(output)
+
+
+def test_reader_enforces_cell_and_row_budgets_symmetrically(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    table = ParsedOutputService.resolve(
+        [ParsedFileResult("source", (_scalar("value", "a"),))], ["value"]
+    )
+    output = ParsedOutputService.publish(tmp_path / "results.csv", table)
+    oversized = _rewrite_output(output, b"value\r\n" + b"a" * 21 + b"\r\n")
+    monkeypatch.setattr(parsed_output_service, "MAX_PARSED_CELL_CHARACTERS", 20)
+    with pytest.raises(ValueError, match="character limit"):
+        ParsedOutputService.read(oversized)
+    many_rows = _rewrite_output(output, b"value\r\na\r\nb\r\nc\r\n")
+    original_reader = parsed_output_service.pd.read_csv
+    observed = []
+
+    def bounded_reader(*args, **kwargs):
+        observed.append(kwargs["nrows"])
+        return original_reader(*args, **kwargs)
+
+    monkeypatch.setattr(parsed_output_service, "MAX_PARSE_FILES", 1)
+    monkeypatch.setattr(parsed_output_service.pd, "read_csv", bounded_reader)
+    with pytest.raises(ValueError, match="bounded non-empty"):
+        ParsedOutputService.read(many_rows)
+    assert observed == [2]
+
+
+def test_wrong_header_is_rejected_before_dataframe_allocation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    table = ParsedOutputService.resolve([_result("source")], ["value"])
+    output = ParsedOutputService.publish(tmp_path / "results.csv", table)
+    forged = _rewrite_output(output, b"value,extra,extra\r\n1.0,2.0,3.0\r\n")
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Wrong-width header reached pandas allocation")
+
+    monkeypatch.setattr(parsed_output_service.pd, "read_csv", forbidden)
+    with pytest.raises(ValueError, match="header"):
+        ParsedOutputService.read(forged)
+
+
+def test_current_cell_policy_rejects_over_four_mib_before_publication(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    literal = "x" * (4 * 1024 * 1024 + 1)
+    result = ParsedFileResult("source", (_scalar("value", literal),))
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Oversized source cell reached temporary file allocation")
+
+    monkeypatch.setattr(parsed_output_service.tempfile, "NamedTemporaryFile", forbidden)
+    with pytest.raises(ValueError, match="character limit"):
+        ParsedOutputService.resolve([result], ["value"])
+    assert list(tmp_path.iterdir()) == []
