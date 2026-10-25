@@ -9,6 +9,7 @@ from typing import Any
 import pandas as pd
 
 from ring5.errors import ColumnNotFoundError, DataValidationError
+from src.core.common.numbered_axis import numbered_axis_modes
 from src.core.models.visualization.trace_config import (
     LINE_DASHES,
     LINE_MARKER_SYMBOLS,
@@ -136,6 +137,14 @@ def validate_plot_config(plot_type: str, data: pd.DataFrame, config: Mapping[str
         ColumnNotFoundError: A referenced column is absent.
         DataValidationError: A required field or value type is invalid.
     """
+    try:
+        modes = numbered_axis_modes(config)
+    except ValueError as exc:
+        raise DataValidationError(str(exc)) from exc
+    if modes and plot_type in _REQUIRED_SINGLE and plot_type != "grouped_stacked_bar":
+        raise DataValidationError(
+            "Non-empty numbered_xaxis_modes are supported only by grouped_stacked_bar."
+        )
     for field in _REQUIRED_SINGLE[plot_type]:
         if plot_type == "histogram" and field == "histogram_variable":
             value = config.get(field)

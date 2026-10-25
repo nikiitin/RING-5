@@ -69,9 +69,8 @@ class ConfigRenderer(Protocol):
     """
     Contract for plot-type-specific config UI rendering.
 
-    Satisfied by ``BasePlot`` (which has ``render_config_ui``,
-    ``render_display_options``, ``render_theme_options``,
-    ``render_settings_section``).
+    Satisfied by ``BasePlot`` through ``render_config_ui`` and
+    ``render_settings_section``.
 
     Used by render_controller to delegate type-specific widget rendering
     without importing the concrete ``BasePlot`` class.
@@ -81,14 +80,6 @@ class ConfigRenderer(Protocol):
 
     def render_config_ui(self, data: pd.DataFrame, config: dict[str, Any]) -> dict[str, Any]:
         """Render plot-specific data mapping controls and return their configuration."""
-        raise NotImplementedError
-
-    def render_display_options(self, config: dict[str, Any]) -> dict[str, Any]:
-        """Render plot-specific display controls and return their configuration."""
-        raise NotImplementedError
-
-    def render_theme_options(self, config: dict[str, Any]) -> dict[str, Any]:
-        """Render plot-specific theme controls and return their configuration."""
         raise NotImplementedError
 
     def render_settings_section(

@@ -1885,6 +1885,8 @@ Status: approved
 
 Grouped figures shall optionally replace or supplement long category labels with numbers and a separately configurable number legend.
 
+History records: 1
+
 Covers:
 - feat~ring5.figure-configuration~1
 
@@ -1912,6 +1914,8 @@ Tags: category_groups, labels, status_approved, styling
 Status: approved
 
 Applicable plots shall expose right-axis mappings, range, title, dot or bar mode, marker and line styling, per-group lines, and unified or separate legends.
+
+History records: 1
 
 Covers:
 - feat~ring5.figure-configuration~1
@@ -1997,6 +2001,8 @@ Status: approved
 
 Stacked and grouped-stacked plots shall optionally label stack totals with configurable numeric format, threshold, typography, position, anchor, offset, and rotation.
 
+History records: 1
+
 Covers:
 - feat~ring5.figure-configuration~1
 
@@ -2067,6 +2073,8 @@ Status: approved
 
 Grouped and grouped-stacked bar charts shall optionally shade alternating major categories with a selected color while retaining category separators and isolation spacing.
 
+History records: 1
+
 Covers:
 - feat~ring5.figure-configuration~1
 
@@ -2080,6 +2088,8 @@ Tags: grouped_bar, settings, shading, status_approved
 Status: approved
 
 Applicable web plots shall configure per-series override color, display name, bar pattern, marker symbol and size, and line width, while typed renderer styles shall also carry opacity and border settings.
+
+History records: 1
 
 Covers:
 - feat~ring5.figure-configuration~1

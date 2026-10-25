@@ -91,14 +91,13 @@ def test_layout_preserves_saved_pixel_dimensions_margins_and_policy() -> None:
 
 def test_right_axis_font_inheritance_and_primary_small_fonts_round_trip() -> None:
     app = _app("""
-        from src.web.components.plotting.config.dual_axis_settings import (
-            render_dual_axis_display_settings,
+        from src.web.components.plotting.settings.typography_settings import (
+            TypographySettingsComponent,
         )
         saved = {"yaxis_title_font_size": 7, "yaxis_tickfont_size": 7,
                  "yaxis2_title_font_size": -1, "yaxis2_tickfont_size": -1}
-        result = {}
-        render_dual_axis_display_settings(saved, result, 1)
-        st.session_state["result"] = result
+        component = TypographySettingsComponent(1, "dual_axis_bar_dot")
+        st.session_state["result"] = component.render(saved)
     """)
     assert not app.exception
     assert app.session_state["result"]["yaxis2_title_font_size"] == -1

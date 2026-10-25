@@ -7,6 +7,7 @@ import pytest
 
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.web.pages.ui.plotting.base_plot import BasePlot
+from src.web.components.common.reorderable_list import render_reorderable_list
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 from tests.conftest import columns_side_effect
 
@@ -33,6 +34,8 @@ def concrete_plot() -> ConcretePlot:
 def mock_streamlit() -> Generator[None, None, None]:
     with (
         patch("src.web.pages.ui.plotting.plot_config_ui.st") as mock_st,
+        patch("src.web.components.plotting.settings.advanced_settings.st", mock_st),
+        patch("src.web.components.plotting.settings.engine_settings.st", mock_st),
         patch("src.web.components.common.reorderable_list.st", mock_st),
         patch("src.web.components.plotting.settings.shapes_settings.st", mock_st),
     ):
@@ -183,7 +186,7 @@ def test_render_reorderable_list(concrete_plot: Any, mock_streamlit: Any) -> Non
 
     # Initial render
     mock_streamlit.session_state = {}
-    concrete_plot.render_reorderable_list("Label", items, "test_key")
+    render_reorderable_list("Label", items, "test_key", plot_id=concrete_plot.plot_id)
 
     # Verify state initialization
     key = f"test_key_order_{concrete_plot.plot_id}"
@@ -202,7 +205,7 @@ def test_render_reorderable_list(concrete_plot: Any, mock_streamlit: Any) -> Non
 
     mock_streamlit.button.side_effect = button_side_effect
 
-    concrete_plot.render_reorderable_list("Label", items, "test_key")
+    render_reorderable_list("Label", items, "test_key", plot_id=concrete_plot.plot_id)
 
     # State should be updated
     assert mock_streamlit.session_state[key] == ["B", "A", "C"]
@@ -217,10 +220,11 @@ def test_rename_widget_keys_are_collision_resistant(
     mock_streamlit.text_input.return_value = ""
     mock_streamlit.button.return_value = False
 
-    concrete_plot.render_reorderable_list(
+    render_reorderable_list(
         "Legend items",
         ["a b", "a_b"],
         "legend",
+        plot_id=concrete_plot.plot_id,
         enable_rename=True,
     )
 
@@ -228,7 +232,7 @@ def test_rename_widget_keys_are_collision_resistant(
     assert len(keys) == len(set(keys)) == 2
 
 
-def test_render_advanced_options_shapes(concrete_plot: Any, mock_streamlit: Any) -> None:
+def test_advanced_section_shapes(concrete_plot: Any, mock_streamlit: Any) -> None:
     """Test advanced options with shape management."""
     config = {"shapes": []}
 
@@ -243,7 +247,7 @@ def test_render_advanced_options_shapes(concrete_plot: Any, mock_streamlit: Any)
 
     mock_streamlit.button.side_effect = button_side_effect
 
-    result = concrete_plot.render_advanced_options(config)
+    result = concrete_plot.render_settings_section("advanced", config)
 
     # Shape editing returns a new config and leaves the input unchanged.
     assert config["shapes"] == []
@@ -251,11 +255,11 @@ def test_render_advanced_options_shapes(concrete_plot: Any, mock_streamlit: Any)
     assert result["shapes"][0]["type"] == "line"
 
 
-def test_render_advanced_options_display(concrete_plot: Any, mock_streamlit: Any) -> None:
+def test_advanced_section_display(concrete_plot: Any, mock_streamlit: Any) -> None:
     """Test advanced options output dict."""
     config = {"download_format": "png"}
 
-    res = concrete_plot.render_advanced_options(config)
+    res = concrete_plot.render_settings_section("advanced", config)
 
     assert res["download_format"] == "png"  # Mock selectbox passes through or default
     # If mock selectbox returns MagicMock, this fails.
@@ -264,4 +268,4 @@ def test_render_advanced_options_display(concrete_plot: Any, mock_streamlit: Any
 
     # Validate existence of expected configuration keys.
     assert "show_error_bars" in res
-    assert "xaxis_tickangle" in res
+    assert "xaxis_tickangle" not in res

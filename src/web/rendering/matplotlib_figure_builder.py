@@ -163,6 +163,7 @@ def _assemble_matplotlib_figure(
             bargap=spec.dimensions.bargap,
             bargroupgap=spec.dimensions.bargroupgap,
             bar_border_width=float(config.get("bar_border_width", 0.0)),
+            category_order=spec.axes.x.category_order if spec.axes is not None else None,
         )
         FigureSpecToMatplotlib.apply(spec, ax, render_result)
         FigureSpecToMatplotlib.draw_layout_shapes(

@@ -261,7 +261,7 @@ class TestAxesSubPills:
     def test_x_axis_renders_x_axis_settings(self, mock_st: MagicMock) -> None:
         """X-axis sub-pill renders X-axis settings + ordering."""
         comp = self._make_component()
-        mock_st.pills.return_value = "x"
+        mock_st.pills.side_effect = lambda label, **kw: "x" if label == "Axis" else []
         mock_st.checkbox.return_value = True
         mock_st.slider.return_value = -45
         mock_st.columns.side_effect = columns_side_effect

@@ -1,7 +1,4 @@
-"""Data labels settings component — bar value labels and thresholds.
-
-Extracted from ``BaseStyleUI.render_data_labels_ui()`` as a standalone
-component following the component-only architecture (P1, P9).
+"""Data labels settings component — value labels and plot-specific totals.
 
 Usage::
 
@@ -76,6 +73,8 @@ class DataLabelsSettingsComponent:
             default=True if is_heatmap else False,
         )
 
+        total_config = self._render_totals(saved_config, key_prefix)
+
         # Progressive disclosure: only show formatting controls
         # when "Show Values" is enabled.
         if not show_values:
@@ -91,6 +90,7 @@ class DataLabelsSettingsComponent:
                 "text_display_logic": saved_config.get("text_display_logic", "all"),
                 "text_threshold": float(saved_config.get("text_threshold", 0.0)),
                 "text_constraint": saved_config.get("text_constraint", "none"),
+                **total_config,
             }
 
         text_color_mode = select_option(
@@ -204,47 +204,6 @@ class DataLabelsSettingsComponent:
                 help="If inside, text will be resized or hidden to fit within the bars.",
             )
 
-        # Heatmap Totals (heatmap only)
-        show_totals: bool = False
-        totals_position: str = "right"
-        totals_aggregation: str = "mean"
-
-        if is_heatmap:
-            st.markdown("---")
-            st.markdown("**Totals**")
-            tot_c1, tot_c2, tot_c3 = st.columns(3)
-            with tot_c1:
-                show_totals = toggle(
-                    "Show Totals",
-                    saved_config,
-                    "show_totals",
-                    self.plot_id,
-                    widget_key=f"{key_prefix}hm_show_totals_{self.plot_id}",
-                    help="Append a summary row or column to the heatmap.",
-                )
-            if show_totals:
-                with tot_c2:
-                    totals_position = select_option(
-                        "Position",
-                        ["right", "top"],
-                        saved_config,
-                        "totals_position",
-                        self.plot_id,
-                        widget_key=f"{key_prefix}hm_totals_pos_{self.plot_id}",
-                        default="right",
-                        help="Right: extra column. Top: extra row.",
-                    )
-                with tot_c3:
-                    totals_aggregation = select_option(
-                        "Totals Aggregation",
-                        ["mean", "sum", "max", "min"],
-                        saved_config,
-                        "totals_aggregation",
-                        self.plot_id,
-                        widget_key=f"{key_prefix}hm_totals_agg_{self.plot_id}",
-                        default="mean",
-                    )
-
         return {
             "show_values": show_values,
             "text_color_mode": text_color_mode,
@@ -257,7 +216,118 @@ class DataLabelsSettingsComponent:
             "text_display_logic": text_display_logic,
             "text_threshold": text_threshold,
             "text_constraint": text_constraint,
-            "show_totals": show_totals,
-            "totals_position": totals_position,
-            "totals_aggregation": totals_aggregation,
+            **total_config,
         }
+
+    def _render_totals(self, saved_config: PlotConfig, key_prefix: str) -> PlotConfig:
+        """Render the total controls owned by this plot family."""
+        if self.plot_type not in {"stacked_bar", "grouped_stacked_bar", "heatmap"}:
+            return {}
+        st.markdown("#### Totals")
+        config: PlotConfig = {}
+        is_heatmap = self.plot_type == "heatmap"
+        config["show_totals"] = toggle(
+            "Show Totals" if is_heatmap else "Show Stack Totals",
+            saved_config,
+            "show_totals",
+            self.plot_id,
+            widget_key=f"{key_prefix}show_totals_{self.plot_id}",
+        )
+        if not config["show_totals"]:
+            return config
+        if is_heatmap:
+            # [impl->req~ring5.figure.heatmap-summary-controls~1]
+            left, right = st.columns(2)
+            with left:
+                config["totals_position"] = select_option(
+                    "Position",
+                    ["right", "top"],
+                    saved_config,
+                    "totals_position",
+                    self.plot_id,
+                    widget_key=f"{key_prefix}hm_totals_pos_{self.plot_id}",
+                    default="right",
+                )
+            with right:
+                config["totals_aggregation"] = select_option(
+                    "Totals Aggregation",
+                    ["mean", "sum", "max", "min"],
+                    saved_config,
+                    "totals_aggregation",
+                    self.plot_id,
+                    widget_key=f"{key_prefix}hm_totals_agg_{self.plot_id}",
+                    default="mean",
+                )
+            return config
+
+        # [impl->req~ring5.figure.stack-totals~1]
+        config["net_total_format"] = st.text_input(
+            "Total Number Format",
+            value=saved_config.get("net_total_format", ".2f"),
+            key=f"{key_prefix}total_format_{self.plot_id}",
+        )
+        left, right = st.columns(2)
+        with left:
+            config["total_font_size"] = numeric_input(
+                "Total Font Size",
+                saved_config,
+                "total_font_size",
+                self.plot_id,
+                default=12,
+                min_value=1,
+            )
+            config["total_font_color"] = color_picker(
+                "Total Font Color",
+                saved_config,
+                "total_font_color",
+                self.plot_id,
+                default="#000000",
+            )
+        with right:
+            config["total_position"] = select_option(
+                "Total Position",
+                ["Outside", "Inside"],
+                saved_config,
+                "total_position",
+                self.plot_id,
+                default="Outside",
+            )
+            if config["total_position"] == "Inside":
+                config["total_anchor"] = select_option(
+                    "Total Anchor",
+                    ["Start", "Middle", "End"],
+                    saved_config,
+                    "total_anchor",
+                    self.plot_id,
+                    default="End",
+                )
+        left, right = st.columns(2)
+        with left:
+            config["total_offset"] = numeric_input(
+                "Total Vertical Offset (px)",
+                saved_config,
+                "total_offset",
+                self.plot_id,
+                default=0.0,
+                step=1.0,
+            )
+        with right:
+            config["total_rotation"] = numeric_input(
+                "Total Rotation",
+                saved_config,
+                "total_rotation",
+                self.plot_id,
+                default=0,
+                min_value=-360,
+                max_value=360,
+                step=45,
+            )
+        config["total_threshold"] = numeric_input(
+            "Minimum Total Threshold",
+            saved_config,
+            "total_threshold",
+            self.plot_id,
+            default=0.0,
+            step=0.1,
+        )
+        return config

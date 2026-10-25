@@ -1,7 +1,4 @@
-"""Axes settings component — X-axis, Y-left, Y-right, Group Labels.
-
-Extracted from ``BasePlot._section_axes()`` and related methods as a
-standalone component following the component-only architecture (P1, P9).
+"""Axes settings component — X, Y-left, Y-right and group-label placement.
 
 The component renders a nested pills navigation for X / Y-Left / Y-Right
 axes, plus a conditional Group Labels pill for grouped stacked bar plots.
@@ -29,6 +26,7 @@ from typing import Protocol
 import pandas as pd
 import streamlit as st
 
+from src.core.common.numbered_axis import NUMBERED_AXIS_MODES, numbered_axis_modes
 from src.web.components.plotting.settings.widget_factory import (
     color_picker,
     numeric_input,
@@ -174,6 +172,15 @@ class AxesSettingsComponent:
             self._render_y_axis_settings(saved_config, config, prefix="")
         elif axis_tab == "y_right":
             self._render_y_axis_settings(saved_config, config, prefix="y2")
+            if (
+                self.plot_type == "grouped_stacked_bar"
+                and saved_config.get("right_axis_type") == "dots"
+            ):
+                from src.web.components.plotting.config.dual_axis_settings import (
+                    render_right_axis_dot_settings,
+                )
+
+                render_right_axis_dot_settings(saved_config, config, self.plot_id)
         elif axis_tab == "group":
             self._render_group_labels_settings(saved_config, config)
 
@@ -343,32 +350,17 @@ class AxesSettingsComponent:
                 default="#444444",
             )
 
-        # Numbered X-Axis
-        config["numbered_xaxis"] = toggle(
-            "Use Numbered X-Axis",
-            saved_config,
-            "numbered_xaxis",
-            self.plot_id,
-        )
-
-        numbered_options = ["Numbers", "Number legend"]
-        old_numbered = saved_config.get("numbered_xaxis", False)
-        default_modes = saved_config.get(
-            "numbered_xaxis_modes",
-            numbered_options if old_numbered else [],
-        )
-        modes = st.pills(
-            "Numbered X-Axis",
-            options=numbered_options,
-            default=default_modes,
-            selection_mode="multi",
-            key=f"numbered_modes_{self.plot_id}",
-        )
-        if isinstance(modes, list):
-            config["numbered_xaxis_modes"] = modes
-            config["numbered_xaxis"] = len(modes) > 0
-            config["show_numbered_ticks"] = "Numbers" in modes
-            config["show_numbered_legend"] = "Number legend" in modes
+        if self.plot_type == "grouped_stacked_bar":
+            modes = st.pills(
+                "Numbered X-Axis",
+                options=list(NUMBERED_AXIS_MODES),
+                default=numbered_axis_modes(saved_config) or [],
+                selection_mode="multi",
+                key=f"numbered_modes_{self.plot_id}",
+            )
+            config["numbered_xaxis_modes"] = numbered_axis_modes(
+                {"numbered_xaxis_modes": [] if modes is None else modes}
+            )
 
     # Y-axis settings
 

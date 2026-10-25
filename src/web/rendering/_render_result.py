@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 
@@ -14,3 +14,5 @@ class MatplotlibRenderResult:
     heatmap_col_labels: list[str] | None = None
     heatmap_row_labels: list[str] | None = None
     heatmap_image: Any = None
+    # Raw category coordinates survive tick ordering and display-label aliases.
+    x_category_positions: dict[str, float] = field(default_factory=dict)

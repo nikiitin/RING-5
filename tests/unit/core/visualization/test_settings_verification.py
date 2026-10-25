@@ -244,41 +244,6 @@ class TestStandoffDefault:
 class TestTertiaryLegendConditional:
     """C5: Tertiary legend pill should require dual-axis to be active."""
 
-    def test_tertiary_requires_dual_axis_in_section_legends(self) -> None:
-        """Verify the gating logic: tertiary needs both
-        _supports_tertiary_legend() AND has_dual_axis AND
-        (show_group_labels OR numbered_xaxis).
-        """
-        # We test the logic from base_plot._section_legends indirectly
-        # by checking the condition structure.
-        #
-        # Without dual_axis, even with show_group_labels=True and
-        # _supports_tertiary_legend()=True, has_tertiary should be False.
-
-        # Simulate the condition from base_plot.py
-        def compute_has_tertiary(
-            supports_tertiary: bool,
-            has_dual_axis: bool,
-            show_group_labels: bool,
-            numbered_xaxis: bool,
-        ) -> bool:
-            return supports_tertiary and has_dual_axis and bool(show_group_labels or numbered_xaxis)
-
-        # Case 1: grouped stacked bar + group labels but NO dual axis
-        assert compute_has_tertiary(True, False, True, False) is False
-
-        # Case 2: grouped stacked bar + dual axis + group labels
-        assert compute_has_tertiary(True, True, True, False) is True
-
-        # Case 3: grouped stacked bar + dual axis + numbered xaxis
-        assert compute_has_tertiary(True, True, False, True) is True
-
-        # Case 4: grouped stacked bar + dual axis but no labels/xaxis
-        assert compute_has_tertiary(True, True, False, False) is False
-
-        # Case 5: non-grouped plot (supports_tertiary=False)
-        assert compute_has_tertiary(False, True, True, True) is False
-
     def test_plotly_connector_vshift_zero_height_guard(self) -> None:
         """C2: vshift should not crash when dimensions height is zero."""
         axis = AxisConfig(label_standoff=50)

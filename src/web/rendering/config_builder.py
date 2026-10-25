@@ -11,6 +11,7 @@ from typing import Any, Literal
 
 import plotly.graph_objects as go
 
+from src.core.common.numbered_axis import numbered_axis_modes
 from src.core.models.visualization.annotation_config import (
     AnnotationConfig,
     ReferenceLineConfig,
@@ -38,15 +39,12 @@ def should_show_x_tick_labels(config: dict[str, Any]) -> bool:
     (``ConfigSpecBuilder.from_config``) and plotly (``grouped_stacked_bar``) paths so they
     can't drift.
 
-    With the ``numbered_xaxis_modes`` multiselect, labels show iff "Numbers" or "Labels" is
-    selected (a sole "Number legend" hides them). The legacy ``numbered_xaxis`` boolean
-    hides labels unless ``show_numbered_ticks`` is set.
+    Numbered modes show labels when Numbers or Labels is selected. An absent
+    or empty list leaves the normal label-visibility setting in control.
     """
-    modes = config.get("numbered_xaxis_modes")
+    modes = numbered_axis_modes(config)
     if modes:
         return "Numbers" in modes or "Labels" in modes
-    if config.get("numbered_xaxis") and not config.get("show_numbered_ticks", False):
-        return False
     return bool(config.get("show_x_tick_labels", True))
 
 
@@ -190,8 +188,10 @@ class ConfigSpecBuilder:
             font_size_title=config.get("title_font_size", 18),
             font_size_xlabel=config.get("xaxis_title_font_size", 14),
             font_size_ylabel=config.get("yaxis_title_font_size", 14),
+            font_size_y2label=config.get("yaxis2_title_font_size", -1),
             font_size_ticks=config.get("xaxis_tickfont_size", 12),
             font_size_yticks=config.get("yaxis_tickfont_size", 12),
+            font_size_y2ticks=config.get("yaxis2_tickfont_size", -1),
             font_size_legend=config.get("legend_font_size", 12),
         )
 

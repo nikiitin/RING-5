@@ -3,7 +3,6 @@
 from typing import cast, override
 
 import pandas as pd
-import streamlit as st
 
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import BarTraceConfig
@@ -28,81 +27,6 @@ class GroupedBarPlot(BasePlot):
     def render_config_ui(self, data: pd.DataFrame, saved_config: PlotConfig) -> PlotConfig:
         """Render configuration UI for grouped bar plot."""
         return grouped_bar_config.render(data, saved_config, self.plot_id)
-
-    @override
-    def render_advanced_options(
-        self, saved_config: PlotConfig, data: pd.DataFrame | None = None
-    ) -> PlotConfig:
-        """Override to apply filters before rendering advanced options."""
-        if data is not None:
-            # Apply X filter
-            if saved_config.get("x_filter") is not None:
-                data = data[data[saved_config["x"]].isin(saved_config["x_filter"])]
-                assert isinstance(data, pd.DataFrame)  # nosec B101  # pandas stubs lose narrowing
-
-            # Apply Group filter
-            if saved_config.get("group_filter") is not None and saved_config.get("group"):
-                data = data[data[saved_config["group"]].isin(saved_config["group_filter"])]
-                assert isinstance(data, pd.DataFrame)  # nosec B101  # pandas stubs lose narrowing
-
-        return super().render_advanced_options(saved_config, data)
-
-    @override
-    def render_theme_options(
-        self, saved_config: PlotConfig, items: list[str] | None = None
-    ) -> PlotConfig:
-        """Add specific styling options for Grouped Bar."""
-        config = super().render_theme_options(saved_config, items)
-
-        # Visual Distinction Section
-        st.markdown("**Visual Distinction**")
-        d1, d2 = st.columns(2)
-        with d1:
-            config["show_separators"] = st.checkbox(
-                "Show Vertical Separators",
-                value=saved_config.get("show_separators", False),
-                key=f"show_sep_{self.plot_id}",
-            )
-            config["separator_color"] = st.color_picker(
-                "Separator Color",
-                value=saved_config.get("separator_color", "#E0E0E0"),
-                key=f"sep_col_{self.plot_id}",
-            )
-        with d2:
-            # Shading alternate groups might be less relevant for simple grouped bar
-            # if the groups are just categories, but providing it for consistency.
-            config["shade_alternate"] = st.checkbox(
-                "Shade Alternate Categories",
-                value=saved_config.get("shade_alternate", False),
-                key=f"shade_alt_{self.plot_id}",
-            )
-            config["shade_color"] = st.color_picker(
-                "Shade Color",
-                value=saved_config.get("shade_color", "#F5F5F5"),
-                key=f"shade_col_{self.plot_id}",
-            )
-
-        # Isolation Section
-        st.markdown("**Summary Group Isolation (Last Group)**")
-        d3, d4 = st.columns(2)
-        with d3:
-            config["isolate_last_group"] = st.checkbox(
-                "Isolate Last Group",
-                value=saved_config.get("isolate_last_group", False),
-                key=f"iso_last_{self.plot_id}",
-                help="Adds extra space and a distinct separator before the last X-axis category.",
-            )
-        with d4:
-            if config["isolate_last_group"]:
-                config["isolation_gap"] = st.number_input(
-                    "Isolation Gap Size",
-                    value=float(saved_config.get("isolation_gap", 0.5)),
-                    min_value=0.0,
-                    step=0.1,
-                    key=f"iso_gap_{self.plot_id}",
-                )
-
-        return config
 
     @override
     def create_traces(self, data: pd.DataFrame, config: PlotConfig) -> TraceBuildResult:

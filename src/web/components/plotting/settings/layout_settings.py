@@ -1,7 +1,4 @@
-"""Layout settings component — dimensions and margin configuration.
-
-Extracted from ``BaseStyleUI.render_layout_options()`` as a standalone
-component following the component-only architecture (P1, P9).
+"""Layout settings component — dimensions, margins and grouped-bar geometry.
 
 Usage::
 
@@ -15,6 +12,7 @@ import streamlit as st
 from src.web.components.plotting.settings.small_multiples_settings import (
     SmallMultiplesSettingsComponent,
 )
+from src.web.components.plotting.settings.widget_factory import color_picker, numeric_input, toggle
 from src.web.models.plot_models import PlotConfig
 
 
@@ -131,6 +129,61 @@ class LayoutSettingsComponent:
             "margin_pad": saved_config.get("margin_pad", 0),
             "automargin": saved_config.get("automargin", True),
         }
+        if self.plot_type in {"grouped_bar", "grouped_stacked_bar"}:
+            config.update(self._render_grouped_bars(saved_config))
         if data is not None:
             config.update(SmallMultiplesSettingsComponent(self.plot_id).render(saved_config, data))
+        return config
+
+    def _render_grouped_bars(self, saved_config: PlotConfig) -> PlotConfig:
+        """Expose the existing grouped-bar boundaries, shading and isolation."""
+        # [impl->req~ring5.figure.alternate-category-shading~1]
+        st.markdown("#### Grouped Bar Layout")
+        config: PlotConfig = {}
+        left, right = st.columns(2)
+        with left:
+            config["show_separators"] = toggle(
+                "Show Vertical Separators",
+                saved_config,
+                "show_separators",
+                self.plot_id,
+            )
+            config["separator_color"] = color_picker(
+                "Separator Color",
+                saved_config,
+                "separator_color",
+                self.plot_id,
+                default="#E0E0E0",
+            )
+        with right:
+            config["shade_alternate"] = toggle(
+                "Shade Alternate Groups",
+                saved_config,
+                "shade_alternate",
+                self.plot_id,
+            )
+            config["shade_color"] = color_picker(
+                "Group Shade Color",
+                saved_config,
+                "shade_color",
+                self.plot_id,
+                default="#F5F5F5",
+            )
+        config["isolate_last_group"] = toggle(
+            "Isolate Last Group",
+            saved_config,
+            "isolate_last_group",
+            self.plot_id,
+            help="Add space and a boundary before the last category.",
+        )
+        if config["isolate_last_group"]:
+            config["isolation_gap"] = numeric_input(
+                "Isolation Gap Size",
+                saved_config,
+                "isolation_gap",
+                self.plot_id,
+                default=0.5,
+                min_value=0.0,
+                step=0.1,
+            )
         return config

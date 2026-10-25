@@ -1,7 +1,4 @@
-"""Advanced settings component — export, interactivity, annotations.
-
-Extracted from ``BasePlot._section_advanced()`` and related methods as a
-standalone component following the component-only architecture (P1, P9).
+"""Advanced settings component — export, interactivity and annotations.
 
 Plot-specific rendering (reference lines, shapes, engine controls) is
 injected via optional callables so the component stays decoupled from

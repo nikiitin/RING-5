@@ -94,6 +94,11 @@ This file is informative; normative items are in the other generated files.
 | `workspace.documentation-hub` | 1 | Semantic | Replaced the duplicate application page with direct links to the canonical published documentation. |
 | `data.error-propagation` | 1 | Semantic | Define canonical SD propagation for missing contributors, weighted repeated sources, mean scaling, and undefined estimates. |
 | `figure.ordering-renaming` | 1 | Semantic | Assigned legend-entry ordering to each visible Legend tab while keeping axis and facet ordering under Axes. |
+| `figure.numbered-xaxis` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |
+| `figure.dual-axis-controls` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |
+| `figure.stack-totals` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |
+| `figure.alternate-category-shading` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |
+| `figure.series-styling` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |
 | `trace.requirement-history` | 1 | Semantic | Specified complete semantic snapshots and reviewer-facing history views. |
 | `trace.requirement-history` | 2 | Evidence only | Recorded implementation, verification, and documentation evidence without changing revision 2. |
 
