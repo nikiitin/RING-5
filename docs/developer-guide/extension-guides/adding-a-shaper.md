@@ -49,5 +49,5 @@ python_venv/bin/mypy src
 make test-unit
 ```
 
-Changing a serialized shaper identifier or configuration shape requires portfolio and pipeline
-migration coverage.
+Changing a serialized shaper identifier or configuration shape requires updating all producers and
+consumers, current-format round-trip tests, and explicit rejection of the retired contract.

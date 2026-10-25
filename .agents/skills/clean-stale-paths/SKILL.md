@@ -5,10 +5,10 @@ description: Sweep code and docs for dead, duplicated, or stale paths/symbols an
 
 # Clean dead / duplicated / stale paths (code + docs)
 
-RING-5 has **one canonical way** to do everything ([[substitute-not-adapt-ring5]]). Anything that
+RING-5 has **one canonical contract** per operation and document kind (see [AGENTS.md](../../../AGENTS.md)). Anything that
 points at a path/symbol that no longer exists — or documents a removed feature as if it's current —
 is cruft. This skill finds and removes it, in both code and docs, and enforces the canon-only doc
-rule ([[ring5-docs-canon-only]]).
+rule defined in AGENTS.md.
 
 ## Method (the sweep that actually works)
 1. **Extract every cited path and test it for existence.** This single heuristic surfaces most rot:
@@ -53,8 +53,8 @@ grep -rnE "RingConfig|ConfigValidationService|PlotInteractionService" docs/
 # 3. no dangling anchors to removed sections
 grep -rniE "deprecated.shim|backward.compat" docs/ | grep -v history.md
 ```
-Then update `MEMORY.md` / the relevant memory ([[ring5-doc-debt-followup]]) so the next sweep starts
-from the new baseline.
+Record durable contracts in the repository developer guide. Update external memory only when the
+user explicitly requests it.
 
 ## Keep this skill sharp
 Canon, not history — edit in place when the method improves:

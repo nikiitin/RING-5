@@ -34,7 +34,7 @@ flowchart TB
 | --- | --- | --- |
 | `src/parsing/` | Simulator discovery, variable scanning, parser strategies, CSV assembly | Streamlit state or plot rendering |
 | `src/core/models/` | Cross-boundary dataclasses, typed mappings, protocols, visualization configuration | Service orchestration or UI widgets |
-| `src/core/services/` | Data operations, shaper execution, persistent application data, portfolio migration | Streamlit rendering |
+| `src/core/services/` | Data operations, shaper execution, persistent application data, portfolio validation | Streamlit rendering |
 | `src/core/state/` | Repository-backed workspace state | UI-only widget state |
 | `src/web/components/` | Streamlit widgets and visual output | Domain decisions |
 | `src/web/controllers/` | UI orchestration across components and protocols | Persistent domain state implementations |
@@ -59,9 +59,9 @@ previews, plots, visualization state, and history. Web-only transient state rema
 
 ## Extension boundary
 
-Registries select simulator backends, parsing strategies, plots, and shapers. Serialized plot and
-shaper identifiers are compatibility contracts for portfolios and pipelines. Add migration support
-before renaming one.
+Registries select simulator backends, parsing strategies, plots, and shapers through exact canonical
+identifiers. Replace all producers, consumers, fixtures and examples when a contract changes.
+Reject retired identifiers rather than maintaining aliases or migrations.
 
 Continue with [Data Flow]({{site.baseurl}}/developer-guide/architecture/data-flow/) and
 [Layer Boundaries]({{site.baseurl}}/developer-guide/architecture/layer-boundaries/).

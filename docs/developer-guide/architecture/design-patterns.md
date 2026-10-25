@@ -11,7 +11,7 @@ redirect_from:
 
 # Design patterns
 
-Use the patterns already carrying compatibility or ownership boundaries. Do not add pattern layers
+Use the patterns already carrying behavior or ownership boundaries. Do not add pattern layers
 only to rename a direct call.
 
 ## Facade and protocols
@@ -29,8 +29,8 @@ keys to Streamlit session state from domain code.
 ## Registry and factory
 
 Simulator, parser-strategy, plot, and shaper registries map stable identifiers to implementations.
-Factories validate identifiers and construct the selected behavior. Registry identifiers stored in
-portfolios or pipelines require migrations when renamed.
+Factories validate identifiers and construct the selected behavior. Use one exact identifier per
+implementation; replace all producers and consumers when changing the serialized contract.
 
 ## Strategy and pipeline
 

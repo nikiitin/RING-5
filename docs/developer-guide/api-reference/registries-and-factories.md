@@ -19,11 +19,12 @@ not documentation, is the current inventory.
 | Simulator registry | Simulator name and metadata | `ApplicationAPI.available_simulators()` |
 | Strategy factory | Backend-specific strategy name | Simulator metadata |
 | Plot factory | Snake-case plot identifier | `ring5.available_plot_types()` |
-| Shaper factory | Serialized camel-case or legacy identifier | Web **Add transformation** selector |
+| Shaper factory | Exact registered identifier | Web **Add transformation** selector |
 | Stat type registry | Backend variable-type string | Simulator metadata |
 
 Factories reject unknown identifiers and report available choices at the relevant boundary. Display
 names are presentation metadata and must map back to one identifier.
 
 Before renaming or removing an identifier, find portfolio, pipeline, CLI, and public API consumers.
-Add migration or alias handling and a fixture that proves older serialized content still loads.
+Replace those callers together. Test the current contract and clear rejection of retired names;
+do not add migration or alias handling.
