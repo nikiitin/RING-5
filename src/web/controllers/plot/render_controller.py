@@ -31,7 +31,7 @@ from src.core.common.content_identity import content_signature, frame_signature
 from src.core.models.visualization.engine import EngineMode
 from src.web.components.common.chart_display import ChartDisplayComponent
 from src.web.components.plotting.drill_down_panel import DrillDownPanel, point_label
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 from src.web.models.plot_protocols import (
     PlotLifecycleService,
     PlotTypeRegistry,

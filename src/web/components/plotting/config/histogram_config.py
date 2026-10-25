@@ -7,7 +7,7 @@ from src.web.components.plotting.config.base_plot_config import (
     detect_column_types,
     render_common_config,
 )
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 
 
 def _detect_histogram_variables(data: pd.DataFrame) -> list[str]:

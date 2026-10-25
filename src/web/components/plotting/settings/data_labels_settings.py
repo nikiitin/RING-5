@@ -15,7 +15,7 @@ from src.web.components.plotting.settings.widget_factory import (
     slider,
     toggle,
 )
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 
 
 class DataLabelsSettingsComponent:

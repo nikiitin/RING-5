@@ -13,7 +13,7 @@ from src.web.components.plotting.settings.small_multiples_settings import (
     SmallMultiplesSettingsComponent,
 )
 from src.web.components.plotting.settings.widget_factory import color_picker, numeric_input, toggle
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 
 
 class LayoutSettingsComponent:

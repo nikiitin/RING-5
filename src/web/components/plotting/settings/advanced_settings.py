@@ -24,7 +24,7 @@ import pandas as pd
 import streamlit as st
 
 from src.core.models.plot_config import ShapeConfig
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 
 
 class ReferenceLineRenderer(Protocol):

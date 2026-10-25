@@ -1,13 +1,8 @@
 """
 Axis configurations — primary X, primary Y, and optional secondary Y.
 
-This replaces scattered axis configuration across:
-  - ``PlotDisplayConfig`` keys (Plotly vocabulary: tickangle, dtick, range)
-  - ``PositioningConfig`` fields (matplotlib vocabulary: pad, rotation, offset)
-  - ``LayoutExtractor`` output keys (x_range, y_range, x_tickvals, etc.)
-
-The AxisConfig is engine-agnostic: it describes *what* the axis should look
-like, and the connectors translate to engine-specific API calls.
+Editable ``PlotConfig`` mappings are resolved into these engine-independent values.
+Connectors translate labels, ticks, ranges, grids and positioning to native engine calls.
 """
 
 from __future__ import annotations

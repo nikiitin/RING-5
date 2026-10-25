@@ -30,7 +30,7 @@ from src.core.services.data_services.path_service import PathService  # noqa: E4
 from src.core.services.data_services.portfolio_service import PortfolioService  # noqa: E402
 from src.core.services.shapers.pipeline_service import PipelineService  # noqa: E402
 from src.core.state.repository_state_manager import RepositoryStateManager  # noqa: E402
-from src.web.models.plot_models import PlotConfig  # noqa: E402
+from src.core.models.plot_config import PlotConfig  # noqa: E402
 from src.web.pages.ui.plotting.base_plot import BasePlot  # noqa: E402
 from src.web.pages.ui.plotting.plot_factory import PlotFactory  # noqa: E402
 from src.web.rendering.config_builder import ConfigSpecBuilder  # noqa: E402

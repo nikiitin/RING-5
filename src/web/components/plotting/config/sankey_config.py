@@ -9,7 +9,7 @@ import streamlit as st
 
 from src.web.components.plotting.config.base_plot_config import detect_column_types
 from src.web.components.plotting.config.plot_config_components import PlotConfigComponents
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 
 _ARRANGEMENTS = {
     "Snap nodes into columns": "snap",

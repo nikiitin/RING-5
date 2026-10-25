@@ -11,7 +11,7 @@ from typing import Any
 
 import streamlit as st
 
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 from src.web.state.ui_state_manager import WidgetKeyBuilder
 
 

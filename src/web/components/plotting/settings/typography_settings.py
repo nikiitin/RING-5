@@ -16,7 +16,7 @@ from src.web.components.plotting.settings.widget_factory import (
     inherited_font_input,
     numeric_input,
 )
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 
 
 class TypographySettingsComponent:

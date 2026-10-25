@@ -11,7 +11,7 @@ from src.core.common.safe_format import safe_format_number
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import WaterfallTraceConfig
 from src.web.components.plotting.config import waterfall_config
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
 
 WaterfallKind = Literal["relative", "absolute", "subtotal", "total"]

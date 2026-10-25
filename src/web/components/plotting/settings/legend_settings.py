@@ -29,7 +29,7 @@ from src.web.components.plotting.settings.widget_factory import (
     select_option,
     toggle,
 )
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 
 # Canonical mapping of legend tier to config-key prefix.
 _LEGEND_PREFIXES: dict[str, str] = {

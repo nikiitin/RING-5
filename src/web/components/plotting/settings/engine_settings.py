@@ -6,7 +6,7 @@ Extracted from ``BasePlot._render_engine_specific_controls``.
 import streamlit as st
 
 from src.web.components.plotting.settings.widget_factory import select_option
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 from src.web.rendering.engine_manager import EngineManager
 
 

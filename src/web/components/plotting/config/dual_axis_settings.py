@@ -2,7 +2,7 @@
 
 import streamlit as st
 
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 
 
 def render_right_axis_dot_settings(

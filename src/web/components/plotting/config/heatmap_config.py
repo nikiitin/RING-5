@@ -18,7 +18,7 @@ from src.web.components.plotting.config.base_plot_config import (
 from src.web.components.plotting.config.plot_config_components import (
     PlotConfigComponents,
 )
-from src.web.models.plot_models import PlotConfig
+from src.core.models.plot_config import PlotConfig
 
 
 def _sync_auto_xlabel(saved_config: PlotConfig, plot_id: int, x_column: str) -> None:

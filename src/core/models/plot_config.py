@@ -1,14 +1,16 @@
 """
 Plot Configuration Type Definitions for RING-5.
 
-Defines TypedDicts for plot configuration data structures used across
-the application. These belong in the core/models layer because they are
-pure data definitions with no UI dependencies.
+Defines editable plot mappings and annotation-shape data shared across layers.
+Resolved figure styling uses the visualization FigureConfig models.
 
+- PlotConfig: Editable plot-specific mappings, including registered extension fields.
 - ShapeConfig: Annotation shape configuration (lines, circles, rectangles)
 """
 
-from typing import Required, TypedDict
+from typing import Any, Required, TypedDict
+
+PlotConfig = dict[str, Any]
 
 
 class ShapeConfig(TypedDict, total=False):

@@ -4206,7 +4206,6 @@
       "evidence": {
         "implementation": [
           "src/core/models/visualization/trace_config.py::LineTraceConfig",
-          "src/web/models/plot_models.py::PlotDisplayConfig",
           "ring5/_plot_validation.py::_validate_line_style",
           "src/web/pages/ui/plotting/types/line_plot.py::LinePlot.render_specific_advanced_options",
           "src/web/pages/ui/plotting/types/line_plot.py::LinePlot.create_traces",
