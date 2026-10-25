@@ -282,7 +282,10 @@ class TestFinalizeParsing:
 class TestIncrementalParsing:
     """Incremental requests share normalization and delegate their complete plan."""
 
-    def test_submit_and_finalize_delegate_to_parser(self, api: ApplicationAPI) -> None:
+    @pytest.mark.parametrize("complete", [True, False])
+    def test_submit_and_finalize_delegate_to_parser(
+        self, api: ApplicationAPI, complete: bool
+    ) -> None:
         # [test->req~ring5.ingestion.incremental-parsing~1]
         from src.core.models.parsing_models import (
             IncrementalParseBatchResult,
@@ -324,7 +327,7 @@ class TestIncrementalParsing:
             "/out",
             cache_path="/out/cache.json",
         )
-        finalized = api.finalize_incremental_parsing(submitted, [])
+        finalized = api.finalize_incremental_parsing(submitted, [], complete=complete)
 
         assert submitted is batch
         assert finalized is result
@@ -332,7 +335,9 @@ class TestIncrementalParsing:
         configs = cast(MagicMock, api._parser.submit_incremental_parse_async).call_args.args[2]
         assert configs[0].name == "IPC"
         assert configs[0].source_name == "cpu.ipc"
-        cast(MagicMock, api._parser.finalize_incremental_parsing).assert_called_once_with(batch, [])
+        cast(MagicMock, api._parser.finalize_incremental_parsing).assert_called_once_with(
+            batch, [], complete=complete
+        )
 
 
 class TestParserPlayground:

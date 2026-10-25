@@ -70,8 +70,20 @@ class SimulationParser(Protocol):
         self,
         batch: IncrementalParseBatchResult,
         results: list[dict[str, Any]],
+        *,
+        complete: bool = True,
     ) -> IncrementalParseResult:
-        """Merge changed results with reviewed cache rows and atomically update the cache."""
+        """Publish accepted changed and reused rows, promoting the cache only when complete.
+
+        Args:
+            batch: Submitted input and cache-reuse plan.
+            results: Successful changed-file results with source provenance.
+            complete: Require every planned row and update the success cache.
+                False permits partial output without replacing the cache.
+
+        Returns:
+            Published CSV and accepted counts against the planned total file count.
+        """
         raise NotImplementedError
 
     def submit_parser_playground_async(
