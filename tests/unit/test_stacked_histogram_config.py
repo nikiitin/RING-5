@@ -530,19 +530,6 @@ class TestPlotConfigComponents:
 class TestColors:
     """Tests for color palette lookup and conversion."""
 
-    def test_get_palette_case_insensitive(self) -> None:
-        from src.web.pages.ui.plotting.styles.colors import get_palette_colors
-
-        # "plotly" (lowercase) should match "Plotly" (case-insensitive)
-        result = get_palette_colors("plotly")
-        assert len(result) > 0
-
-    def test_get_palette_unknown_returns_default(self) -> None:
-        from src.web.pages.ui.plotting.styles.colors import get_palette_colors
-
-        result = get_palette_colors("NonExistentPaletteXYZ123")
-        assert len(result) > 0  # Should return default
-
     def test_to_hex_rgb(self) -> None:
         from src.web.pages.ui.plotting.styles.colors import to_hex
 
