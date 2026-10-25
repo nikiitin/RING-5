@@ -51,3 +51,11 @@ returns a new DataFrame.
 - Accept injected callbacks or protocols for presentation-owned reconstruction.
 - Preserve async submit/finalize ownership and specific errors.
 - Test facade composition in integration tests rather than copying every service unit test.
+
+
+## Resource lifetime
+
+`ApplicationAPI.close()` cancels owned work and releases session resources. Parser file workers
+settle before their workspace is removed. Use `close(wait=True)` when a caller also needs to wait
+for background transformations and exports; repeated waiting closes settle an already requested
+shutdown. Closed job services reject new background and managed parse jobs.

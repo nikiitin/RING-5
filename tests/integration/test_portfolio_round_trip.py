@@ -46,7 +46,7 @@ class TestCsvPoolCycle:
             assert set(loaded_df.columns) == set(rich_sample_data.columns)
 
             # Delete from pool
-            deleted: bool = facade.delete_from_csv_pool(pool_path)
+            deleted: bool = facade.data_services.delete_from_csv_pool(pool_path)
             assert deleted is True
             assert not Path(pool_path).exists()
 

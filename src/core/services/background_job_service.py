@@ -221,21 +221,20 @@ class BackgroundJobService:
     def close(self, *, wait: bool = False) -> None:
         """Request cancellation and release this center's worker pool."""
         with self._lock:
-            if self._closed:
-                return
-            self._closed = True
-            for state in self._jobs.values():
-                if state.status not in _TERMINAL:
-                    state.cancel_requested = True
-                    for future in state.futures:
-                        future.cancel()
-                    state.status = (
-                        "cancelled"
-                        if all(future.done() for future in state.futures)
-                        else "cancelling"
-                    )
-                    if state.status == "cancelled":
-                        state.finished_at = self._now()
+            if not self._closed:
+                self._closed = True
+                for state in self._jobs.values():
+                    if state.status not in _TERMINAL:
+                        state.cancel_requested = True
+                        for future in state.futures:
+                            future.cancel()
+                        state.status = (
+                            "cancelled"
+                            if all(future.done() for future in state.futures)
+                            else "cancelling"
+                        )
+                        if state.status == "cancelled":
+                            state.finished_at = self._now()
         self._executor.shutdown(wait=wait, cancel_futures=True)
 
     def _create(

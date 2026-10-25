@@ -1,5 +1,5 @@
 """
-Default implementation of the ServicesAPI protocol.
+Composition of the three focused service implementations.
 
 Composes the three domain-aligned sub-APIs into a unified facade,
 providing a single entry point for all service operations.
@@ -15,7 +15,7 @@ from src.core.state.state_manager import StateManager
 
 
 class DefaultServicesAPI:
-    """Default implementation of ServicesAPI.
+    """Compose manager, data-service, and shaper implementations.
 
     Composes all sub-API implementations and provides the unified
     entry point for service operations.

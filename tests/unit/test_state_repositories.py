@@ -285,13 +285,7 @@ class TestConfigRepository:
     def test_update_config_overwrites_existing(self, repo: ConfigRepository) -> None:
         repo.set_config({"a": 1})
         repo.update_config("a", 99)
-        assert repo.get_config_value("a") == 99
-
-    def test_get_config_value_default(self, repo: ConfigRepository) -> None:
-        assert repo.get_config_value("missing", "fallback") == "fallback"
-
-    def test_get_config_value_none_default(self, repo: ConfigRepository) -> None:
-        assert repo.get_config_value("missing") is None
+        assert repo.get_config()["a"] == 99
 
     def test_clear_config(self, repo: ConfigRepository) -> None:
         repo.set_config({"a": 1, "b": 2})
@@ -358,18 +352,6 @@ class TestPlotRepository:
         )
         repo.set_plots(new_plots)
         assert len(repo.get_plots()) == 2
-
-    def test_remove_plot_found(self, repo: PlotRepository) -> None:
-        repo.add_plot(self._make_plot(1))
-        repo.add_plot(self._make_plot(2))
-        assert repo.remove_plot(1) is True
-        assert len(repo.get_plots()) == 1
-        assert repo.get_plots()[0].plot_id == 2
-
-    def test_remove_plot_not_found(self, repo: PlotRepository) -> None:
-        repo.add_plot(self._make_plot(1))
-        assert repo.remove_plot(99) is False
-        assert len(repo.get_plots()) == 1
 
     def test_clear_plots(self, repo: PlotRepository) -> None:
         repo.add_plot(self._make_plot(1))
@@ -526,19 +508,6 @@ class TestParserStateRepository:
         # Should auto-assign _id
         assert "_id" in result[0]
 
-    def test_add_parse_variable(self, repo: ParserStateRepository) -> None:
-        initial_count = len(repo.get_parse_variables())
-        repo.add_parse_variable(cast(ParseVariableConfig, {"name": "new_var", "type": "vector"}))
-        assert len(repo.get_parse_variables()) == initial_count + 1
-
-    def test_remove_parse_variable_found(self, repo: ParserStateRepository) -> None:
-        var_id = repo.get_parse_variables()[0]["_id"]
-        assert repo.remove_parse_variable(var_id) is True
-        assert len(repo.get_parse_variables()) == 2
-
-    def test_remove_parse_variable_not_found(self, repo: ParserStateRepository) -> None:
-        assert repo.remove_parse_variable("nonexistent-id") is False
-
     def test_stats_path_default(self, repo: ParserStateRepository) -> None:
         assert repo.get_stats_path() == "/path/to/stats"
 
@@ -604,7 +573,6 @@ class TestPreviewRepository:
         return pd.DataFrame({"result": [1, 2, 3]})
 
     def test_initial_state(self, repo: PreviewRepository) -> None:
-        assert repo.list_active_previews() == []
         assert repo.has_preview("any") is False
 
     def test_set_and_get_preview(self, repo: PreviewRepository, preview_df: pd.DataFrame) -> None:
@@ -644,17 +612,10 @@ class TestPreviewRepository:
         repo.set_preview("op2", preview_df)
         count = repo.clear_all_previews()
         assert count == 2
-        assert repo.list_active_previews() == []
 
     def test_clear_all_previews_empty(self, repo: PreviewRepository) -> None:
         count = repo.clear_all_previews()
         assert count == 0
-
-    def test_list_active_previews(self, repo: PreviewRepository, preview_df: pd.DataFrame) -> None:
-        repo.set_preview("op_a", preview_df)
-        repo.set_preview("op_b", preview_df)
-        active = repo.list_active_previews()
-        assert set(active) == {"op_a", "op_b"}
 
 
 # SessionRepository

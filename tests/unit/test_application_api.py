@@ -1,6 +1,6 @@
 """
 Unit tests for the ApplicationAPI (Layer B Orchestrator).
-Verifies that the API correctly orchestrates the internal StateManager and ServicesAPI.
+Verifies that the API correctly orchestrates the internal state boundary and focused service APIs.
 """
 
 from collections.abc import Generator
@@ -57,14 +57,14 @@ class TestApplicationAPI:
         application_api.state_manager.set_processed_data.assert_called_once_with(None)
         application_api.state_manager.set_csv_path.assert_called_once_with(path)
 
-    def test_load_from_pool(self, application_api: Any) -> None:
+    def test_load_data_from_csv_pool(self, application_api: Any) -> None:
         """Test loading data from the CSV pool."""
         path = "/pool/data.csv"
         df = pd.DataFrame({"pool": [1]})
         mock_data = cast(Any, application_api)._mock_services.data_services
         mock_data.load_csv_file.return_value = df
 
-        application_api.load_from_pool(path)
+        application_api.load_data(path)
 
         mock_data.load_csv_file.assert_called_once_with(path)
         application_api.state_manager.set_data.assert_called_once_with(

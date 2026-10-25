@@ -63,15 +63,3 @@ def validate_shaper_config(
         return False, missing_fields
 
     return True, None
-
-
-def get_required_params(shaper_type: str) -> list[str]:
-    """Return list of required parameter names for a shaper type.
-
-    Args:
-        shaper_type: Shaper type identifier.
-
-    Returns:
-        List of required field names, empty if type is unknown.
-    """
-    return list(_REQUIRED_PARAMS.get(shaper_type, []))

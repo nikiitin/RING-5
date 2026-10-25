@@ -5,7 +5,7 @@ Validates CRUD operations, isolation, and clear semantics for the
 per-plot FigureConfig storage repository.
 """
 
-from typing import Dict, Optional
+from typing import Optional
 
 import pytest
 
@@ -35,18 +35,12 @@ class TestVisualizationRepository:
         assert result is not None
         assert result.title == "Sample Plot"
 
-    def test_has_config(self, repo: VisualizationRepository, sample_config: FigureConfig) -> None:
-        assert repo.has_config(1) is False
-        repo.set_config(1, sample_config)
-        assert repo.has_config(1) is True
-
     def test_remove_config(
         self, repo: VisualizationRepository, sample_config: FigureConfig
     ) -> None:
         repo.set_config(1, sample_config)
         repo.remove_config(1)
         assert repo.get_config(1) is None
-        assert repo.has_config(1) is False
 
     def test_remove_nonexistent_is_noop(self, repo: VisualizationRepository) -> None:
         repo.remove_config(999)  # should not raise
@@ -60,26 +54,12 @@ class TestVisualizationRepository:
         assert result.title == "Updated"
 
     # Bulk / clear
-    def test_get_all_returns_shallow_copy(self, repo: VisualizationRepository) -> None:
-        c1: FigureConfig = FigureConfig(title="A")
-        c2: FigureConfig = FigureConfig(title="B")
-        repo.set_config(1, c1)
-        repo.set_config(2, c2)
-
-        all_configs: Dict[int, FigureConfig] = repo.get_all()
-        assert len(all_configs) == 2
-        assert all_configs[1].title == "A"
-        assert all_configs[2].title == "B"
-
-        # Mutating the returned dict should not affect the repository
-        all_configs[3] = FigureConfig(title="C")
-        assert repo.has_config(3) is False
 
     def test_clear(self, repo: VisualizationRepository, sample_config: FigureConfig) -> None:
         repo.set_config(1, sample_config)
         repo.set_config(2, sample_config)
         repo.clear()
-        assert repo.get_all() == {}
+        assert repo.get_config(2) is None
         assert repo.get_config(1) is None
 
     # Isolation between plot IDs

@@ -1048,10 +1048,10 @@ class TestDataSourceComponents:
         api = MagicMock()
         api.state_manager.get_csv_pool.return_value = [{"path": str(csv_file), "name": "test.csv"}]
         mock_card.file_info_card.return_value = (False, False, True)  # delete_clicked
-        api.delete_from_csv_pool.return_value = True
+        api.data_services.delete_from_csv_pool.return_value = True
 
         DataSourceComponents.render_csv_pool(api)
-        api.delete_from_csv_pool.assert_called_once()
+        api.data_services.delete_from_csv_pool.assert_called_once()
 
     @patch("src.web.components.data_source.data_source_components.st")
     @patch("src.web.components.data_source.data_source_components.CardComponents")
@@ -1073,7 +1073,7 @@ class TestDataSourceComponents:
         api = MagicMock()
         api.state_manager.get_csv_pool.return_value = [{"path": str(csv_file), "name": "test.csv"}]
         mock_card.file_info_card.return_value = (False, False, True)
-        api.delete_from_csv_pool.return_value = False
+        api.data_services.delete_from_csv_pool.return_value = False
 
         DataSourceComponents.render_csv_pool(api)
         mock_st.error.assert_called()

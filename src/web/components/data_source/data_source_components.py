@@ -407,7 +407,7 @@ class DataSourceComponents:
                 st.session_state[_IMPORT_PREVIEW_PATH_KEY] = requested_preview
 
             if delete_clicked:
-                if api.delete_from_csv_pool(str(csv_path)):
+                if api.data_services.delete_from_csv_pool(str(csv_path)):
                     api.state_manager.set_csv_pool(api.load_csv_pool())
                     if st.session_state.get(_IMPORT_PREVIEW_PATH_KEY) == str(csv_path):
                         st.session_state.pop(_IMPORT_PREVIEW_PATH_KEY, None)
