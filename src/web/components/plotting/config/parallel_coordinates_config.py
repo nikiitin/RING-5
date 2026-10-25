@@ -8,6 +8,7 @@ import streamlit as st
 from src.web.components.plotting.config.base_plot_config import detect_column_types
 from src.web.components.plotting.config.plot_config_components import PlotConfigComponents
 from src.core.models.plot_config import PlotConfig
+from src.web.components.plotting.settings.widget_factory import saved_option_label
 
 _COLOR_SCALES = ["Viridis", "Cividis", "Plasma", "Inferno", "Magma", "Turbo", "RdBu"]
 _RANGE_MODES = {"Fit each dimension": "data", "Include zero on numeric axes": "zero"}
@@ -19,10 +20,6 @@ def _saved_dimensions(saved: object, columns: list[str]) -> list[str]:
         if len(selected) >= 2:
             return selected
     return columns[: min(4, len(columns))]
-
-
-def _saved_label(mapping: dict[str, str], saved: object, fallback: str) -> str:
-    return next((label for label, value in mapping.items() if value == saved), fallback)
 
 
 def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotConfig:
@@ -59,7 +56,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
     st.markdown("#### Dimensions and ranges")
     range_column, brush_column = st.columns(2)
     with range_column:
-        saved_mode = _saved_label(
+        saved_mode = saved_option_label(
             _RANGE_MODES, saved_config.get("parallel_range_mode"), "Fit each dimension"
         )
         range_choice = st.radio(

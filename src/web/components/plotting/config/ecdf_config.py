@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-
 import pandas as pd
 import streamlit as st
 
@@ -13,16 +11,13 @@ from src.web.components.plotting.config.base_plot_config import (
 )
 from src.web.components.plotting.config.plot_config_components import PlotConfigComponents
 from src.core.models.plot_config import PlotConfig
+from src.web.components.plotting.settings.widget_factory import saved_option_label
 
 _DISPLAY_MODES = {
     "Cumulative distribution": False,
     "Complementary (survival)": True,
 }
 _Y_MODES = {"Proportion (0 to 1)": "proportion", "Observation count": "count"}
-
-
-def _saved_label(mapping: Mapping[str, object], saved: object, fallback: str) -> str:
-    return next((label for label, value in mapping.items() if value == saved), fallback)
 
 
 def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotConfig:
@@ -65,7 +60,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
                 "Direction",
                 options=display_options,
                 index=display_options.index(
-                    _saved_label(
+                    saved_option_label(
                         _DISPLAY_MODES,
                         bool(saved_config.get("ecdf_complementary", False)),
                         "Cumulative distribution",
@@ -81,7 +76,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
                 "Y-axis meaning",
                 options=y_mode_options,
                 index=y_mode_options.index(
-                    _saved_label(
+                    saved_option_label(
                         _Y_MODES,
                         saved_config.get("ecdf_y_mode", "proportion"),
                         "Proportion (0 to 1)",

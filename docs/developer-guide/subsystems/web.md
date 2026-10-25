@@ -36,6 +36,10 @@ Plot configuration has two entry points: `render_config_ui` selects data mapping
 `render_specific_advanced_options`. Components return a fresh configuration fragment; they must not
 mutate the saved configuration or its nested series styles.
 
+Plot-specific option controls share `saved_option_label` from `settings/widget_factory.py` to
+resolve a display label from a stored value. Each control supplies its own labels and default;
+the shared lookup preserves the serialized value and chooses the first matching label.
+
 Each control has one owner. Layout owns grouped-bar separators, shading, and isolation spacing;
 Typography owns fonts; Axes owns placement, ordering, and right-axis trace controls; Legends owns
 trace and numbered-legend tiers; Data Labels owns value labels and independent totals; Colors owns

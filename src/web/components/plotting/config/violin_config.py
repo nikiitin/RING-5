@@ -12,6 +12,7 @@ from src.web.components.plotting.config.base_plot_config import (
 )
 from src.web.components.plotting.config.plot_config_components import PlotConfigComponents
 from src.core.models.plot_config import PlotConfig
+from src.web.components.plotting.settings.widget_factory import saved_option_label
 
 _ORIENTATIONS = {"Vertical": "vertical", "Horizontal": "horizontal"}
 _BANDWIDTHS = {"Scott's rule": "scott", "Silverman's rule": "silverman"}
@@ -26,10 +27,6 @@ _SUMMARIES = {
 }
 
 
-def _saved_label(mapping: dict[str, str], saved: object, fallback: str) -> str:
-    return next((label for label, value in mapping.items() if value == saved), fallback)
-
-
 def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotConfig:
     # [impl->req~ring5.plot.violin~1]
     """Render mapping, density, observation, and summary controls."""
@@ -38,7 +35,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
         "Orientation",
         options=list(_ORIENTATIONS),
         index=list(_ORIENTATIONS).index(
-            _saved_label(_ORIENTATIONS, saved_config.get("orientation"), "Vertical")
+            saved_option_label(_ORIENTATIONS, saved_config.get("orientation"), "Vertical")
         ),
         horizontal=True,
         key=f"violin_orientation_{plot_id}",
@@ -81,7 +78,9 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             "Bandwidth rule",
             options=list(_BANDWIDTHS),
             index=list(_BANDWIDTHS).index(
-                _saved_label(_BANDWIDTHS, saved_config.get("bandwidth_method"), "Scott's rule")
+                saved_option_label(
+                    _BANDWIDTHS, saved_config.get("bandwidth_method"), "Scott's rule"
+                )
             ),
             key=f"violin_bandwidth_method_{plot_id}",
         )
@@ -98,7 +97,9 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             "Density extent",
             options=list(_SPANS),
             index=list(_SPANS).index(
-                _saved_label(_SPANS, saved_config.get("density_span"), "Include smoothed tails")
+                saved_option_label(
+                    _SPANS, saved_config.get("density_span"), "Include smoothed tails"
+                )
             ),
             key=f"violin_span_{plot_id}",
         )
@@ -107,7 +108,9 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             "Width comparison",
             options=list(_SCALES),
             index=list(_SCALES).index(
-                _saved_label(_SCALES, saved_config.get("density_scale"), "Equal maximum width")
+                saved_option_label(
+                    _SCALES, saved_config.get("density_scale"), "Equal maximum width"
+                )
             ),
             key=f"violin_scale_{plot_id}",
         )
@@ -115,7 +118,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             "Density side",
             options=list(_SIDES),
             index=list(_SIDES).index(
-                _saved_label(_SIDES, saved_config.get("violin_side"), "Both sides")
+                saved_option_label(_SIDES, saved_config.get("violin_side"), "Both sides")
             ),
             key=f"violin_side_{plot_id}",
         )
@@ -135,7 +138,7 @@ def render(data: pd.DataFrame, saved_config: PlotConfig, plot_id: int) -> PlotCo
             "Inner summary",
             options=list(_SUMMARIES),
             index=list(_SUMMARIES).index(
-                _saved_label(_SUMMARIES, saved_config.get("summary_mode"), "Box and median")
+                saved_option_label(_SUMMARIES, saved_config.get("summary_mode"), "Box and median")
             ),
             key=f"violin_summary_{plot_id}",
         )

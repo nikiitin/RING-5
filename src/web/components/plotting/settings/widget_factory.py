@@ -7,12 +7,18 @@ for selectboxes, and consistent widget key generation.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 
 import streamlit as st
 
 from src.core.models.plot_config import PlotConfig
 from src.web.state.ui_state_manager import WidgetKeyBuilder
+
+
+def saved_option_label(mapping: Mapping[str, object], saved: object, fallback: str) -> str:
+    """Return the label for a saved value, or the control's default label."""
+    return next((label for label, value in mapping.items() if value == saved), fallback)
 
 
 def select_option(
