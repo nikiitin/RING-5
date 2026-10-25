@@ -4,6 +4,7 @@ from typing import Any
 
 from src.core.models.portfolio_contract import validate_portfolio_schema
 from src.core.common.typed_table_codec import TypedTableCodec
+from src.core.common.plot_payload import validate_plot_fields
 
 
 def validate_portfolio_document(value: dict[str, Any]) -> dict[str, Any]:
@@ -21,7 +22,8 @@ def validate_portfolio_document(value: dict[str, Any]) -> dict[str, Any]:
     for plot in value["plots"]:
         if type(plot) is not dict:
             raise ValueError("Portfolio plot must be an object.")
-        if "processed_semantics" in plot or not {"source_data", "processed_data"} <= plot.keys():
+        validate_plot_fields(plot)
+        if not {"source_data", "processed_data"} <= plot.keys():
             raise ValueError("Portfolio plots require current typed source and processed data.")
         TypedTableCodec.decode(plot["source_data"])
         TypedTableCodec.decode(plot["processed_data"])

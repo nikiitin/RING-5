@@ -1,6 +1,7 @@
 """Tests for bounded browser-upload validation and normalization."""
 
 from __future__ import annotations
+from src.core.models.portfolio_contract import CURRENT_PORTFOLIO_SCHEMA_VERSION
 from src.core.common.typed_table_codec import TypedTableCodec
 import pandas as pd
 
@@ -109,7 +110,7 @@ def test_portfolio_is_summarized_and_revalidated_before_restore(tmp_path: Path) 
     )
 
     assert upload.kind == "portfolio"
-    assert upload.portfolio_schema_version == 7
+    assert upload.portfolio_schema_version == CURRENT_PORTFOLIO_SCHEMA_VERSION
     assert upload.portfolio_plot_count == 0
     assert upload.portfolio_has_data is True
     assert TypedTableCodec.decode(BrowserUploadService.load_portfolio(upload)["data"])[

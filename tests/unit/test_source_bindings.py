@@ -1,5 +1,10 @@
 """Current source identity, execution planning and resource-bound contracts."""
 
+from src.core.models.portfolio_contract import (
+    CURRENT_PORTFOLIO_SCHEMA_VERSION,
+    CURRENT_PORTFOLIO_VERSION,
+)
+
 from dataclasses import asdict
 from unittest.mock import patch
 
@@ -324,8 +329,8 @@ def test_portfolio_and_recipe_admission_reject_invalid_optional_scan_bounds(valu
     ).to_dict()
     record["minimum"] = value
     portfolio = {
-        "schema_version": 7,
-        "version": "7.0",
+        "schema_version": CURRENT_PORTFOLIO_SCHEMA_VERSION,
+        "version": CURRENT_PORTFOLIO_VERSION,
         "parser_strategy": "simple",
         "simulator": "gem5",
         "environment_metadata": {},

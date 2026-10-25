@@ -231,8 +231,6 @@ class TestToDictFromDict:
             "processed_data": None,
             "pipeline": [],
             "pipeline_counter": 0,
-            "legend_mappings_by_column": {},
-            "legend_mappings": {},
         }
         with patch("src.web.pages.ui.plotting.plot_factory.PlotFactory.create_plot") as mock:
             mock.return_value = ConcretePlot(1, "Test", "test")
@@ -249,15 +247,11 @@ class TestToDictFromDict:
             "processed_data": None,
             "pipeline": [{"type": "sort"}],
             "pipeline_counter": 5,
-            "legend_mappings_by_column": {"col": {"a": "A"}},
-            "legend_mappings": {"x": "X"},
         }
         with patch("src.web.pages.ui.plotting.plot_factory.PlotFactory.create_plot") as mock:
             mock.return_value = ConcretePlot(1, "Test", "test")
             loaded = PlotFactory.from_dict(data)
             assert loaded.pipeline_counter == 5
-            assert loaded.legend_mappings_by_column == {"col": {"a": "A"}}
-            assert loaded.legend_mappings == {"x": "X"}
 
 
 class TestRelabelTraces:

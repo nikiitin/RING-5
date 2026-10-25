@@ -31,7 +31,8 @@ A plot type is correct only if it is **engine-agnostic** and fully wired. To *bu
    `src/web/components/plotting/config/` is wired via `plot_config_ui.py`/`PlotConfigUIMixin`, with
    per-plot-unique widget keys `f"{prefix}_{field}_{plot_id}"`.
 8. **Serialization round-trips** — `BasePlot.to_dict` + `PlotFactory.from_dict` rebuild state.
-   Plot tables use the shared typed table codec; additional state is JSON-serializable.
+   Plot tables use the shared typed table codec; persistent fields are admitted by
+   `src/core/common/plot_payload.py` and explicitly restored.
 9. **Conventions** — default palette `wong`; error-bar column is `{y}.sd`.
 10. **Coverage** — there is a unit test exercising `create_traces`/`create_figure` with `sample_data`.
     Every registered built-in, including `dual_axis_bar_dot`, participates in dual-engine catalog

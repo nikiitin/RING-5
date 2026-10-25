@@ -1,6 +1,7 @@
 """Public API coverage for save-time execution-environment provenance."""
 
 from __future__ import annotations
+from src.core.models.portfolio_contract import CURRENT_PORTFOLIO_SCHEMA_VERSION
 
 import json
 from pathlib import Path
@@ -22,7 +23,7 @@ def test_saved_environment_is_public_and_matches_same_runtime(portfolios_dir: Pa
         comparison = session.compare_portfolio_environment("environment_probe")
 
     document = json.loads((portfolios_dir / "environment_probe.json").read_text())
-    assert document["schema_version"] == 7
+    assert document["schema_version"] == CURRENT_PORTFOLIO_SCHEMA_VERSION
     assert document["environment_metadata"] == current.to_dict()
     assert isinstance(current, ring5.EnvironmentMetadata)
     assert isinstance(comparison, ring5.EnvironmentComparison)
@@ -50,7 +51,9 @@ def test_portfolio_environment_errors_remain_in_public_error_hierarchy(
     (portfolios_dir / "bad_environment.json").write_text(
         json.dumps(portfolio_document(environment_metadata={"format_version": 999}))
     )
-    (portfolios_dir / "future_environment.json").write_text(json.dumps({"schema_version": 8}))
+    (portfolios_dir / "future_environment.json").write_text(
+        json.dumps({"schema_version": CURRENT_PORTFOLIO_SCHEMA_VERSION + 1})
+    )
 
     with ring5.Session() as session:
         with pytest.raises(ring5.PortfolioError, match="invalid environment metadata"):

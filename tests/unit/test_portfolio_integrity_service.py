@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+from src.core.models.portfolio_contract import (
+    CURRENT_PORTFOLIO_SCHEMA_VERSION,
+    CURRENT_PORTFOLIO_VERSION,
+)
+
 import copy
 import math
 from typing import Any
@@ -19,8 +24,8 @@ from src.core.services.portfolio_integrity_service import (
 
 def _portfolio() -> dict[str, Any]:
     return {
-        "schema_version": 7,
-        "version": "7.0",
+        "schema_version": CURRENT_PORTFOLIO_SCHEMA_VERSION,
+        "version": CURRENT_PORTFOLIO_VERSION,
         "timestamp": "2026-07-21T10:00:00+00:00",
         "environment_metadata": {"ring5_version": "1.0"},
         "data": TypedTableCodec.encode(pd.DataFrame({"benchmark": ["a"], "ipc": [1.2]})),

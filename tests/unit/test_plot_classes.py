@@ -214,7 +214,7 @@ class TestPlotSerialization:
         plot.pipeline = [
             {"id": 0, "type": "columnSelector", "config": {"columns": ["category", "value"]}}  # type: ignore  # noqa: E501
         ]
-        plot.legend_mappings = {"A": "Label A", "B": "Label B"}
+        plot.config["legend_labels"] = {"A": "Label A", "B": "Label B"}
 
         # Serialize
         data_dict = plot.to_dict()
@@ -227,7 +227,7 @@ class TestPlotSerialization:
         assert restored_plot.plot_type == plot.plot_type
         assert restored_plot.config == plot.config
         assert restored_plot.pipeline == plot.pipeline
-        assert restored_plot.legend_mappings == plot.legend_mappings
+        assert restored_plot.config["legend_labels"] == plot.config["legend_labels"]
         assert restored_plot.processed_data is not None
         assert plot.processed_data is not None
         assert restored_plot.processed_data.equals(plot.processed_data)

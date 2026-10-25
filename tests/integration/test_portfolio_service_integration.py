@@ -1,3 +1,7 @@
+from src.core.models.portfolio_contract import (
+    CURRENT_PORTFOLIO_SCHEMA_VERSION,
+    CURRENT_PORTFOLIO_VERSION,
+)
 from src.core.common.typed_table_codec import TypedTableCodec
 from collections.abc import Generator
 from typing import Any
@@ -95,8 +99,8 @@ def test_save_and_load_portfolio(
     loaded_data = portfolio_service.load_portfolio("test_portfolio")
 
     # Verify Content
-    assert loaded_data["schema_version"] == 7
-    assert loaded_data["version"] == "7.0"
+    assert loaded_data["schema_version"] == CURRENT_PORTFOLIO_SCHEMA_VERSION
+    assert loaded_data["version"] == CURRENT_PORTFOLIO_VERSION
     environment = loaded_data["environment_metadata"]
     assert environment is not None
     assert environment["format_version"] == 1

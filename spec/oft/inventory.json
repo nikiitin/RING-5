@@ -1670,7 +1670,7 @@
           "src/web/pages/ui/plotting/types/grouped_stacked_bar_plot.py::GroupedStackedBarPlot._order_unified_legend_traces"
         ],
         "tests": [
-          "tests/unit/test_persistent_labels.py::test_multiple_column_persistence",
+          "tests/integration/test_canonical_legend_state.py::test_legend_labels_survive_configuration_copy_and_portfolio_replay",
           "tests/ui_logic/test_settings_pills_e2e.py::TestLegendItemOrderRename",
           "tests/unit/test_grouped_stacked_bar_create_figure.py::TestCreateFigure.test_with_xaxis_order",
           "tests/unit/test_grouped_stacked_bar_create_figure.py::TestCreateFigure.test_with_group_order",
@@ -2282,11 +2282,13 @@
       "tags": ["validation", "portfolios", "schema"],
       "evidence": {
         "implementation": [
-          "src/core/models/portfolio_contract.py::validate_portfolio_schema"
+          "src/core/models/portfolio_contract.py::validate_portfolio_schema",
+          "src/core/common/plot_payload.py::validate_plot_fields"
         ],
         "tests": [
           "tests/integration/test_portfolio_schema.py::test_obsolete_schema_is_rejected_before_state_changes",
           "tests/unit/test_portfolio_contract.py::test_unsupported_schema_is_rejected",
+          "tests/integration/test_canonical_legend_state.py::test_unsupported_plot_state_fails_before_restoration_or_upload",
           "tests/integration/test_ring5_public_api.py::TestPortfolioReplay.test_future_portfolio_refused"
         ],
         "documentation": [

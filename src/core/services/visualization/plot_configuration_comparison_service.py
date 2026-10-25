@@ -45,8 +45,6 @@ _SECTION_LABELS = {
 
 
 def _section_for(root: str) -> str:
-    if root in ("legend_mappings", "legend_mappings_by_column"):
-        return _SECTION_LABELS["legends"]
     if root in _DATA_MAPPING_KEYS:
         return "Data mappings"
     for section, keys in SETTING_SECTIONS.items():
@@ -79,18 +77,6 @@ def _plot_values(plot: PlotProtocol) -> dict[str, tuple[str, Any]]:
     values: dict[str, tuple[str, Any]] = {}
     for key in sorted(plot.config):
         _flatten(plot.config[key], path=key, root=key, output=values)
-    _flatten(
-        plot.legend_mappings,
-        path="legend_mappings",
-        root="legend_mappings",
-        output=values,
-    )
-    _flatten(
-        plot.legend_mappings_by_column,
-        path="legend_mappings_by_column",
-        root="legend_mappings_by_column",
-        output=values,
-    )
     return values
 
 

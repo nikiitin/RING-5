@@ -52,7 +52,8 @@ directly when adding a plot type.
    `f"{prefix}_{field}_{plot_id}"`.
 
 5. **Serialization** uses `BasePlot.to_dict` + `PlotFactory.from_dict`. Plot tables use the shared
-   typed table codec; keep additional state JSON-serializable so portfolios round-trip.
+   typed table codec. Adding persistent state updates the writer, the field contract in
+   `src/core/common/plot_payload.py`, and restoration together; extra serialized fields are rejected.
 
 6. **Tests:**
    - unit in `tests/unit/` — exercise `create_traces`/`create_figure` with `sample_data`

@@ -17,6 +17,7 @@ from src.core.state.repositories.plot_repository import PlotRepository
 from src.core.state.repositories.preview_repository import PreviewRepository
 from src.core.state.repositories.visualization_repository import VisualizationRepository
 from src.core.common.typed_table_codec import TypedTableCodec
+from src.core.common.plot_payload import validate_plot_fields
 
 logger = logging.getLogger(__name__)
 
@@ -110,8 +111,7 @@ class SessionRepository:
         for plot_payload in plot_payloads:
             if not isinstance(plot_payload, dict):
                 raise ValueError("Portfolio plots must be objects.")
-            if "processed_semantics" in plot_payload:
-                raise ValueError("Unsupported retired plot table fields.")
+            validate_plot_fields(plot_payload)
             TypedTableCodec.decode(plot_payload.get("source_data"))
             TypedTableCodec.decode(plot_payload.get("processed_data"))
         self.clear_all()
