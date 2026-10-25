@@ -830,3 +830,64 @@ def test_raw_source_kind_is_explicit_and_output_changes_preserve_concrete_select
     assert not app.exception
     assert "selected_sources" not in app.session_state["compiled"].params
     assert app.session_state["compiled"].keep_indices is True
+
+
+def test_manual_numeric_pattern_selects_current_literal_sources_and_runs_the_selected_kind(
+    tmp_path,
+):
+    app = _app(r"""
+        from src.core.application_api import ApplicationAPI
+        from src.web.components.data_source.variable_editor import VariableEditor
+        api = ApplicationAPI()
+        metadata = [
+            {"name": "l0_cpu01.v", "type": "vector", "entries": ["a"], "source_type": "vector",
+             "instances": [{"source_name": "l0_cpu01.v", "indices": []}]},
+            {"name": "l1_cpu0.v", "type": "histogram", "entries": ["0-9"],
+             "source_type": "histogram",
+             "instances": [{"source_name": "l1_cpu0.v", "indices": []}]},
+        ]
+        api.state_manager.set_scanned_variables(metadata)
+        original = {"name": "V", "source_name": r"l\d+_cpu\d+.v", "type": "vector",
+                    "_id": "manual", "params": {"source_type": "vector", "entries": ["a"]}}
+        try:
+            result = VariableEditor.render(api, [original], metadata)
+            st.session_state["compiled"] = api.compile_parse_variables(result)[0]
+            st.session_state["metadata"] = metadata
+        finally:
+            api.close()
+    """)
+    assert not app.exception
+    app.checkbox(key="use_pattern_filter_manual").check().run()
+    assert not app.exception
+    selector = app.multiselect(key="pattern_entries_manual")
+    assert len(selector.options) == 2
+    assert any("l0_cpu01.v" in option and "01" in option for option in selector.options)
+    assert any("l1_cpu0.v" in option for option in selector.options)
+    selector.set_value(["l0_cpu01.v"]).run()
+    assert not app.exception
+    configured = app.session_state["compiled"]
+    assert configured.params["source_type"] == "vector"
+    assert configured.params["selected_sources"] == ["l0_cpu01.v"]
+
+    import pandas as pd
+    from src.core.application_api import ApplicationAPI
+
+    (tmp_path / "stats.txt").write_text("l0_cpu01.v::a 4\nl1_cpu0.v::0-9 6\n", encoding="utf-8")
+    api = ApplicationAPI()
+    try:
+        batch = api.submit_parse_async(
+            str(tmp_path),
+            "stats.txt",
+            [configured],
+            str(tmp_path / "out"),
+            scanned_vars=app.session_state["metadata"],
+        )
+        path = api.finalize_parsing(
+            str(tmp_path / "out"),
+            [future.result(timeout=30) for future in batch.futures],
+            var_names=batch.var_names,
+        )
+        assert path is not None
+        assert pd.read_csv(path).to_dict("records") == [{"V..a": 4.0}]
+    finally:
+        api.close()

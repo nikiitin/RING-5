@@ -14,9 +14,10 @@ from src.core.application_api import ApplicationAPI
 from src.core.common.security_limits import MAX_SCAN_FILES, SCAN_BATCH_TIMEOUT_SECONDS
 from src.core.common.utils import validate_web_stats_path
 from src.core.models.parsing_models import ScanFileResult
-from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict, SourceInstanceDict
+from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
 from src.core.models.pattern_index_service import PatternIndexService
 from src.core.common.safe_regex import normalize_stat_pattern
+from src.core.common.source_matching import matching_source_instances
 from src.web.components.common.filtered_selector import (
     filtered_multiselect,
     filtered_selectbox,
@@ -220,13 +221,14 @@ class VariableEditor:
     ) -> None:
         """Keep concrete instance selection independent from output naming."""
         source_name = var_config.get("source_name") or var_config.get("name", "")
-        canonical = normalize_stat_pattern(source_name)
-        instances: list[SourceInstanceDict] | None = None
-        for variable in api.state_manager.get_scanned_variables():
-            if variable["name"] == canonical:
-                instances = variable["instances"]
-                break
-        if instances is not None:
+        try:
+            canonical = normalize_stat_pattern(source_name)
+            instances = matching_source_instances(
+                canonical, api.state_manager.get_scanned_variables()
+            )
+        except (TypeError, ValueError) as exc:
+            st.error(f"Cannot select current source instances: {exc}")
+        else:
             current = cast(list[str] | None, original_var.get("params", {}).get("selected_sources"))
             use_filter, selected = PatternIndexSelector.render_selector(
                 canonical, instances, var_id, current
@@ -235,8 +237,6 @@ class VariableEditor:
                 var_config.setdefault("params", {})["selected_sources"] = selected
             else:
                 var_config.setdefault("params", {}).pop("selected_sources", None)
-        else:
-            st.info("Select a scanned pattern to edit its concrete source instances.")
         var_config["keep_indices"] = st.checkbox(
             "Keep each source as a separate output",
             value=original_var.get("keep_indices", False),

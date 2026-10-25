@@ -85,6 +85,8 @@ output with `entries=[]`; their output entry schema derives from instance record
 measurement entries remain separate from source coordinates. Numerically similar names with
 different raw kinds remain separate literal variables. Optional observed bounds are finite numbers;
 unknown bounds are omitted from serialized metadata. Group counts derive from the instance records.
+The editor projects both literal and aggregated records through the bounded numeric matcher, so
+manual patterns can select concrete sources without reconstructing names or guessing raw kinds.
 
 Every runnable `StatConfig.params` declares `source_type`, including literal requests. It describes
 the raw source independently of `StatConfig.type`, the requested output representation. This permits

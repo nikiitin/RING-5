@@ -346,3 +346,49 @@ def test_portfolio_and_recipe_admission_reject_invalid_optional_scan_bounds(valu
     )
     with pytest.raises((TypeError, ValueError)):
         AnalysisRecipeService.dumps(recipe)
+
+
+def test_manual_pattern_projection_uses_concrete_records_without_guessing_kind_or_mutating_inputs():
+    from copy import deepcopy
+    from src.core.common.source_matching import matching_source_instances
+
+    values = [
+        ScannedVariable(
+            name, kind, [], source_type=kind, instances=(SourceInstance(name, ()),)
+        ).to_dict()
+        for name, kind in [
+            ("l00_cpu1.v", "vector"),
+            ("l1_cpu00.v", "histogram"),
+            ("other", "scalar"),
+        ]
+    ]
+    before = deepcopy(values)
+    assert matching_source_instances(r"l\d+_cpu\d+.v", values) == [
+        {"source_name": "l00_cpu1.v", "indices": ["00", "1"]},
+        {"source_name": "l1_cpu00.v", "indices": ["1", "00"]},
+    ]
+    assert values == before
+
+
+@pytest.mark.parametrize("bound", ["MAX_REGEX_CANDIDATES", "MAX_REGEX_MATCH_ATTEMPTS"])
+def test_manual_pattern_projection_enforces_source_budgets(monkeypatch, bound):
+    from src.core.common import source_matching
+
+    monkeypatch.setattr(source_matching, bound, 1)
+    values = [_scalar_pattern().to_dict()]
+    with pytest.raises(ValueError, match="candidate"):
+        source_matching.matching_source_instances(r"cpu\d+.ipc", values)
+
+
+def test_manual_pattern_projection_propagates_matching_timeout_and_rejects_duplicate_metadata(
+    monkeypatch,
+):
+    from src.core.common import source_matching
+    from src.core.common.safe_regex import SafeRegexError
+
+    values = [_scalar_pattern().to_dict()]
+    with pytest.raises(ValueError, match="more than once"):
+        source_matching.matching_source_instances(r"cpu\d+.ipc", values + values)
+    monkeypatch.setattr(source_matching, "MAX_REGEX_EXPANSION_SECONDS", -1)
+    with pytest.raises(SafeRegexError, match="deadline"):
+        source_matching.matching_source_instances(r"cpu\d+.ipc", values)
