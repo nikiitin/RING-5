@@ -444,6 +444,7 @@ class Gem5Parser(SimulationParser):
         # [impl->req~ring5.ingestion.pattern-index-selection~1]
         if type(batch) is not ParseBatchResult:
             raise TypeError("Full parsing requires its exact ParseBatchResult context.")
+        StrategyFactory.create(batch.strategy_type)
         target = Gem5Parser._admit_target_paths(
             Path(batch.output_dir) / "results.csv", batch.source_paths, batch.strategy_type
         )
@@ -463,6 +464,7 @@ class Gem5Parser(SimulationParser):
         """Publish planned typed rows; promote prepared cache bytes only for complete work."""
         if type(batch) is not IncrementalParseBatchResult:
             raise TypeError("Incremental parsing requires its exact submitted context.")
+        StrategyFactory.create(batch.strategy_type)
         if type(complete) is not bool:
             raise TypeError("Incremental completion mode must be a boolean.")
         if len(results) > len(batch.changed_files):
@@ -507,6 +509,7 @@ class Gem5Parser(SimulationParser):
         """Resolve literal text and numeric preview values without creating a CSV."""
         if type(batch) is not ParserPlaygroundBatchResult:
             raise TypeError("Parser playground requires its exact submitted context.")
+        StrategyFactory.create(batch.strategy_type)
         table = ParsedOutputIO.resolve(results, batch.var_names, batch.sampled_files)
         if len(table.schema.columns) * len(table.rows) > MAX_PARSER_PLAYGROUND_CELLS:
             raise ValueError("PARSER: configuration preview exceeds the matrix cell limit.")
@@ -520,7 +523,7 @@ class Gem5Parser(SimulationParser):
             diagnostics.append("The sampled configuration is ready for a full parse.")
         return ParserPlaygroundResult(
             batch.matched_file_count,
-            batch.sampled_files,
+            table.source_paths,
             tuple(column.name for column in table.schema.columns),
             table.rows,
             table.missing_variables,

@@ -468,3 +468,35 @@ def test_shared_configuration_symlinks_preserve_full_and_incremental_metadata(
         {"system": {"Case": "shared 95% μ"}}
     ] * 2
     assert shared.read_text(encoding="utf-8") == "[system]\nCase=shared 95% μ\n"
+
+
+@pytest.mark.parametrize("mode", ["full", "incremental", "playground"])
+def test_gem5_finalizers_reject_unknown_strategy_before_filesystem_or_resolution(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mode: str
+) -> None:
+    source = _source(tmp_path / "inputs", "run")
+    if mode == "full":
+        batch = Gem5Parser.submit_parse_async(
+            str(source.parent), "stats.txt", _variables("NA"), str(tmp_path / "out")
+        )
+        finalize = Gem5Parser.finalize_parsing
+    elif mode == "incremental":
+        batch = Gem5Parser.submit_incremental_parse_async(
+            str(source.parent), "stats.txt", _variables("NA"), str(tmp_path / "out")
+        )
+        finalize = Gem5Parser.finalize_incremental_parsing
+    else:
+        batch = Gem5Parser.submit_parser_playground_async(
+            str(source.parent), "stats.txt", _variables("NA"), str(tmp_path / "out")
+        )
+        finalize = Gem5Parser.finalize_parser_playground
+    results = _collect(batch)
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Unknown strategy reached filesystem or schema work")
+
+    monkeypatch.setattr(Gem5Parser, "_admit_target_paths", forbidden)
+    monkeypatch.setattr(ParsedOutputIO, "resolve", forbidden)
+    with pytest.raises(ValueError, match="Unknown strategy type"):
+        finalize(replace(batch, strategy_type="external_backend_strategy"), results)
+    assert not (tmp_path / "out").exists()

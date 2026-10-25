@@ -12,7 +12,11 @@ import pytest
 
 from src.core.common.parsed_output_codec import parsed_file_from_payload, parsed_file_payload
 from src.core.models.parsed_output_models import ParsedCell, ParsedFileResult, ParsedVariableResult
-from src.core.models.parsing_models import ParseBatchResult, ParserPlaygroundResult
+from src.core.models.parsing_models import (
+    ParseBatchResult,
+    ParserPlaygroundBatchResult,
+    ParserPlaygroundResult,
+)
 from src.core.common.parsed_output import ParsedOutputIO
 from src.parsing.framework import incremental_cache
 from src.parsing.framework.incremental_cache import encode_cache, load_cache, write_cache
@@ -83,6 +87,10 @@ def test_full_batch_requires_owned_complete_context() -> None:
     future: Future[ParsedFileResult] = Future()
     batch = ParseBatchResult((future,), ("number", "label"), ("source",), "out", "simple")
     assert batch.futures == (future,) and batch.source_paths == ("source",)
+    assert (
+        replace(batch, strategy_type="external_backend_strategy").strategy_type
+        == "external_backend_strategy"
+    )
     with pytest.raises(TypeError, match="immutable tuple"):
         replace(batch, source_paths=["source"])
     with pytest.raises(ValueError, match="unique"):
@@ -209,3 +217,31 @@ def test_incremental_config_metadata_encoding_preserves_inherited_case_and_liter
     assert ConfigAwareParseWork._read_config(path) == json.dumps(
         expected, sort_keys=True, separators=(",", ":")
     )
+
+
+@pytest.mark.parametrize("reverse_completion", [False, True])
+def test_playground_resolved_paths_identify_rows_for_shuffled_batch_and_completion(
+    reverse_completion: bool,
+) -> None:
+    from src.parsing.gem5.impl.gem5_parser import Gem5Parser
+
+    values = []
+    futures = []
+    for path, number in (("b", 2.0), ("a", 1.0)):
+        original = _result(path)
+        variable = replace(original.variables[0], cells=(ParsedCell("number", "number", number),))
+        value = replace(original, variables=(variable, original.variables[1]))
+        future = Future()
+        future.set_result(value)
+        values.append(value)
+        futures.append(future)
+    batch = ParserPlaygroundBatchResult(
+        tuple(futures), ("number", "label"), "unused", "simple", 2, ("b", "a")
+    )
+    result = Gem5Parser.finalize_parser_playground(
+        batch, values[::-1] if reverse_completion else values
+    )
+    assert result.sampled_files == ("a", "b")
+    assert result.columns == ("number", "label", "sim_path")
+    assert result.rows == ((1.0, "NA", "a"), (2.0, "NA", "b"))
+    assert result.missing_variables == () and result.ready_for_full_parse
