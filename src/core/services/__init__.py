@@ -2,10 +2,9 @@
 RING-5 Services Module -- Business logic and data operations.
 
 Public API:
-    - ServicesAPI:         Protocol defining the unified services facade
     - DefaultServicesAPI:  Default implementation composing all services
 
-Sub-APIs (accessed through ServicesAPI):
+Sub-APIs composed by DefaultServicesAPI:
     - managers:       ManagersAPI (arithmetic, outlier, reduction)
     - data_services:  DataServicesAPI (CSV pool, config, variables, portfolios)
     - shapers:        ShapersAPI (pipeline CRUD + shaper execution)
@@ -33,13 +32,11 @@ from .managers import (
     OutlierService,
     ReductionService,
 )
-from .services_api import ServicesAPI
 from .services_impl import DefaultServicesAPI
 from .shapers import DefaultShapersAPI, PipelineService, ShaperFactory, ShapersAPI
 
 __all__ = [
     # Primary API
-    "ServicesAPI",
     "DefaultServicesAPI",
     # Sub-API protocols
     "ManagersAPI",

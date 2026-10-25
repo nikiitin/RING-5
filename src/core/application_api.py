@@ -167,7 +167,7 @@ class ApplicationAPI:
         """Bind stateless input validation to the facade's current state boundary."""
         return WorkspaceInputService(self.state_manager)
 
-    # ServicesAPI sub-API access (for UI components)
+    # Focused service access through the application facade
 
     @property
     def managers(self) -> ManagersAPI:
@@ -216,10 +216,6 @@ class ApplicationAPI:
         """Remove finished job records and their retained results."""
         return self._background_jobs.dismiss_finished()
 
-    def close_background_jobs(self, *, wait: bool = False) -> None:
-        """Cancel active jobs and release the session-owned job executor."""
-        self._background_jobs.close(wait=wait)
-
     def load_data(self, csv_path: str) -> None:
         """
         Orchestrate loading data from a file path:
@@ -240,11 +236,6 @@ class ApplicationAPI:
         except Exception as e:
             logger.error(f"Failed to load data from {csv_path}: {e}")
             raise
-
-    def load_from_pool(self, csv_path: str) -> None:
-        """Load a dataset from the CSV pool."""
-        # Using pure string path from pool
-        self.load_data(csv_path)
 
     def preview_import(self, file_path: str, options: ImportOptions | None = None) -> ImportPreview:
         # [impl->req~ring5.ingestion.import-preview~1]
@@ -958,15 +949,21 @@ class ApplicationAPI:
         """Acknowledge and remove a terminal parse attempt."""
         self._get_parse_job_service().dismiss(job_id)
 
-    def close(self) -> None:
-        """Release this browser session's jobs and transient resources."""
-        if self._closed:
-            return
-        self._closed = True
-        self.cancel_pending_scans()
-        if self._parse_jobs is not None:
-            self._parse_jobs.close()
-        self._background_jobs.close(wait=False)
+    def close(self, *, wait: bool = False) -> None:
+        """Release owned jobs and transient resources.
+
+        Parser cleanup always waits for running file workers before deleting their
+        workspace. Repeated calls can wait for background jobs already cancelling.
+
+        Args:
+            wait: Wait for running background transformations and exports to finish.
+        """
+        if not self._closed:
+            self._closed = True
+            self.cancel_pending_scans()
+            if self._parse_jobs is not None:
+                self._parse_jobs.close()
+        self._background_jobs.close(wait=wait)
 
     def _load_consumed_parse_result(self, receipt: ParseJobReceipt) -> None:
         """Load a published result before deleting its transient attempt."""
@@ -1278,15 +1275,6 @@ class ApplicationAPI:
         self._pending_scan_futures = [f for f in self._pending_scan_futures if not f.done()]
         return self._parser.aggregate_scan_results(results)
 
-    def get_parse_status(self) -> str:
-        """Return the active session parse status, or ``"idle"``."""
-        active = self.get_active_parse_job()
-        return active.status.value if active is not None else "idle"
-
-    def get_scanner_status(self) -> str:
-        """Get current scanner status."""
-        return "idle"
-
     # Shapers & Pipelines
 
     def apply_shapers(
@@ -1371,14 +1359,6 @@ class ApplicationAPI:
     def add_to_csv_pool(self, file_path: str) -> str:
         """Add a file to the CSV pool."""
         return self._services.data_services.add_to_csv_pool(file_path)
-
-    def delete_from_pool(self, file_path: str) -> bool:
-        """Delete a file from the CSV pool."""
-        return self._services.data_services.delete_from_csv_pool(file_path)
-
-    def delete_from_csv_pool(self, file_path: str) -> bool:
-        """Alias for delete_from_pool."""
-        return self.delete_from_pool(file_path)
 
     def load_csv_file(self, file_path: str) -> pd.DataFrame:
         """Load a CSV file directly returning DataFrame."""

@@ -31,14 +31,6 @@ class ParseJobRuntimeWorkspace:
                 cls._instance = cls(jobs_root)
             return cls._instance
 
-    @classmethod
-    def reset_for_tests(cls) -> None:
-        """Close and forget the singleton runtime workspace."""
-        with cls._instance_lock:
-            if cls._instance is not None:
-                cls._instance.close()
-            cls._instance = None
-
     def __init__(self, jobs_root: Path) -> None:
         """Create a locked runtime directory after removing stale runtimes."""
         self.jobs_root = jobs_root.resolve()

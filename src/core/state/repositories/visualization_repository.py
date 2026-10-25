@@ -42,14 +42,6 @@ class VisualizationRepository:
         if removed is not None:
             logger.debug("VIZ_REPO: Removed config for plot %d", plot_id)
 
-    def has_config(self, plot_id: int) -> bool:
-        """Check whether a config exists for *plot_id*."""
-        return plot_id in self._configs
-
-    def get_all(self) -> dict[int, FigureConfig]:
-        """Return a shallow copy of the entire config map."""
-        return dict(self._configs)
-
     def clear(self) -> None:
         """Remove all stored configurations."""
         count = len(self._configs)

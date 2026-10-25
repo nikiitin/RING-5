@@ -49,19 +49,6 @@ class ConfigRepository:
         self._config[key] = value
         logger.debug(f"CONFIG_REPO: Config key '{key}' updated")
 
-    def get_config_value(self, key: str, default: object = None) -> object:
-        """
-        Get a specific configuration value.
-
-        Args:
-            key: Configuration key to retrieve
-            default: Default value if key doesn't exist
-
-        Returns:
-            Configuration value or default
-        """
-        return self._config.get(key, default)
-
     def clear_config(self) -> None:
         """Clear all configuration data."""
         self._config = {}

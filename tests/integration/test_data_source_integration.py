@@ -78,7 +78,7 @@ def test_csv_pool_operations(facade: Any, tmp_path: Any) -> None:
     pd.testing.assert_frame_equal(df, loaded_df)
 
     # Delete from pool
-    assert facade.delete_from_csv_pool(added_path) is True
+    assert facade.data_services.delete_from_csv_pool(added_path) is True
     assert not Path(added_path).exists()
     assert len(facade.load_csv_pool()) == 0
 

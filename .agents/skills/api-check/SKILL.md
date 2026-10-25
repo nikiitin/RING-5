@@ -36,6 +36,10 @@ csv_path  = api.finalize_parsing(out_dir, [f.result() for f in batch.futures])
   the futures THAT instance submitted; pool facades hold no future references). The web app's
   single cached instance makes this process-wide there; ring5 Sessions are truly per-session.
 
+Use `api.close(wait=True)` when a caller needs deterministic background-job shutdown. Browser
+cleanup can use the default nonblocking background close; parser work always settles before its
+workspace is removed.
+
 ## Gate checklist
 1. Does new UI code reach into `src/core/...` directly instead of via `api.*`? → route through the facade.
 2. New cross-cutting capability added to a service but **not surfaced** on the facade/sub-API the UI
@@ -54,7 +58,7 @@ grep -rn "repository_state_manager" src/web/ --include=*.py        # must be emp
 Canon, not history — edit in place when the contract moves:
 - The sub-API properties and async signatures above mirror `src/core/application_api.py` and
   `src/core/services/services_impl.py`. If you add/rename a facade method, update this list.
-- New contract bug caught in review? Add it to the gate checklist; durable facts → a memory.
+- New contract bug caught in review? Add it to the gate checklist; document durable contracts in the developer guide.
 - Related: `parser-check`, `architecture-check`.
 
 ## Verify after

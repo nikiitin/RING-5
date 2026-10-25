@@ -105,21 +105,6 @@ class TestPreviewRepositoryMultiple:
         assert not preview_repo.has_preview("remove")
         assert preview_repo.has_preview("keep2")
 
-    def test_list_active_previews(self, test_dataframe: Any, preview_repo: Any) -> None:
-        """Test listing all active previews."""
-        assert preview_repo.list_active_previews() == []
-
-        preview_repo.set_preview("outlier_removal", test_dataframe)
-        preview_repo.set_preview("mixer", test_dataframe)
-        preview_repo.set_preview("seeds_reduction", test_dataframe)
-
-        active = preview_repo.list_active_previews()
-
-        assert len(active) == 3
-        assert "outlier_removal" in active
-        assert "mixer" in active
-        assert "seeds_reduction" in active
-
     def test_clear_all_previews(self, test_dataframe: Any, preview_repo: Any) -> None:
         """Test clearing all previews at once."""
         preview_repo.set_preview("op1", test_dataframe)
@@ -129,7 +114,6 @@ class TestPreviewRepositoryMultiple:
         count = preview_repo.clear_all_previews()
 
         assert count == 3
-        assert preview_repo.list_active_previews() == []
         assert not preview_repo.has_preview("op1")
         assert not preview_repo.has_preview("op2")
         assert not preview_repo.has_preview("op3")
@@ -276,18 +260,3 @@ class TestPreviewRepositorySessionIsolation:
 
         # It should be in repo
         assert preview_repo.has_preview("operation")
-
-    def test_list_previews_only_returns_previews(
-        self, test_dataframe: Any, preview_repo: Any
-    ) -> None:
-        """Test list_active_previews only returns preview keys."""
-        # Add previews
-        preview_repo.set_preview("preview1", test_dataframe)
-        preview_repo.set_preview("preview2", test_dataframe)
-
-        active = preview_repo.list_active_previews()
-
-        # Should only have preview operations
-        assert len(active) == 2
-        assert "preview1" in active
-        assert "preview2" in active

@@ -3,7 +3,7 @@
 from collections.abc import Generator
 from concurrent.futures import Future
 from typing import Any, cast
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pandas as pd
 import pytest
@@ -27,7 +27,7 @@ def api() -> Generator[ApplicationAPI, None, None]:
         inst._services = mock_svc_cls.return_value
         inst._parser = MagicMock()
         yield inst
-        inst.close_background_jobs(wait=True)
+        inst.close(wait=True)
 
 
 class TestPropertyAccess:
@@ -347,10 +347,6 @@ class TestScanMethods:
         result = api.finalize_scan([[MagicMock()]])
         assert len(result) == 1
 
-    def test_status_methods(self, api: ApplicationAPI) -> None:
-        assert api.get_parse_status() == "idle"
-        assert api.get_scanner_status() == "idle"
-
 
 class TestShapersDelegation:
     # [test->req~ring5.quality.application-facade~1]
@@ -414,14 +410,7 @@ class TestConfigurationManagement:
         )
 
     def test_delete_from_pool(self, api: ApplicationAPI) -> None:
-        api.delete_from_pool("/data.csv")
-        cast(MagicMock, api._services.data_services.delete_from_csv_pool).assert_called_once_with(
-            "/data.csv"
-        )
-
-    def test_delete_from_csv_pool_alias(self, api: ApplicationAPI) -> None:
-        """delete_from_csv_pool is an alias for delete_from_pool."""
-        api.delete_from_csv_pool("/data.csv")
+        api.data_services.delete_from_csv_pool("/data.csv")
         cast(MagicMock, api._services.data_services.delete_from_csv_pool).assert_called_once_with(
             "/data.csv"
         )
@@ -518,3 +507,14 @@ class TestHistoryDelegation:
         cast(MagicMock, api.state_manager.remove_portfolio_history_record).assert_called_once_with(
             record
         )
+
+
+def test_close_can_upgrade_background_wait_policy() -> None:
+    api = ApplicationAPI()
+    try:
+        with patch.object(api._background_jobs, "close") as close_jobs:
+            api.close()
+            api.close(wait=True)
+            assert close_jobs.call_args_list == [call(wait=False), call(wait=True)]
+    finally:
+        api.close(wait=True)

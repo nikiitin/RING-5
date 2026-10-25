@@ -466,9 +466,9 @@ class TestProtocolCompliance:
 
     def test_sort_config_registered_in_dispatch(self) -> None:
         """Sort shaper is registered in shaper_config module constants."""
-        from src.core.services.shapers.validation import get_required_params
+        from src.core.services.shapers.validation import validate_shaper_config
         from src.web.pages.ui.shaper_config import SHAPER_TYPE_MAP
 
-        assert get_required_params("sort") == ["order_dict"]
+        assert validate_shaper_config("sort", {"type": "sort", "order_dict": {}}) == (True, None)
         assert "Sort" in SHAPER_TYPE_MAP
         assert SHAPER_TYPE_MAP["Sort"] == "sort"

@@ -91,11 +91,11 @@ def test_render_csv_pool_delete(
         patch("pathlib.Path.is_file", return_value=True),
     ):
         mock_card_components.file_info_card.return_value = (False, False, True)
-        mock_api.delete_from_csv_pool.return_value = True
+        mock_api.data_services.delete_from_csv_pool.return_value = True
 
         DataSourceComponents.render_csv_pool(mock_api)
 
-        mock_api.delete_from_csv_pool.assert_called_with("/del.csv")
+        mock_api.data_services.delete_from_csv_pool.assert_called_with("/del.csv")
         mock_streamlit.rerun.assert_called()
 
 

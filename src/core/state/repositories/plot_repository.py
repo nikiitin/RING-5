@@ -48,26 +48,6 @@ class PlotRepository:
         self._plots.append(plot)
         logger.info("PLOT_REPO: Plot added - ID %s, Type %s", plot.plot_id, plot.plot_type)
 
-    def remove_plot(self, plot_id: int) -> bool:
-        """
-        Remove a plot by its ID.
-
-        Args:
-            plot_id: ID of plot to remove
-
-        Returns:
-            True if plot was found and removed, False otherwise
-        """
-        initial_count = len(self._plots)
-        self._plots = [p for p in self._plots if p.plot_id != plot_id]
-
-        if len(self._plots) < initial_count:
-            logger.info("PLOT_REPO: Plot removed - ID %s", plot_id)
-            return True
-
-        logger.warning(f"PLOT_REPO: Plot not found for removal - ID {plot_id}")
-        return False
-
     def clear_plots(self) -> None:
         """Clear all plots from the collection."""
         self._plots = []

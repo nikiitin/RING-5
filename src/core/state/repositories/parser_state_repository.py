@@ -64,32 +64,6 @@ class ParserStateRepository:
         self._parse_variables = copied
         logger.info("PARSER_REPO: Parse variables updated - %d variables", len(copied))
 
-    def add_parse_variable(self, variable: ParseVariableConfig) -> None:
-        """
-        Add a new variable to the parse list.
-
-        Args:
-            variable: Variable configuration to add
-        """
-        self.set_parse_variables([*self._parse_variables, variable])
-
-    def remove_parse_variable(self, variable_id: str) -> bool:
-        """
-        Remove a variable by its ID.
-
-        Args:
-            variable_id: UUID of variable to remove
-
-        Returns:
-            True if variable was removed, False if not found
-        """
-        initial_count = len(self._parse_variables)
-        self._parse_variables = [v for v in self._parse_variables if v.get("_id") != variable_id]
-
-        if len(self._parse_variables) < initial_count:
-            return True
-        return False
-
     def get_stats_path(self) -> str:
         """
         Get the stats file path pattern.

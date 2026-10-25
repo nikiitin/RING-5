@@ -63,4 +63,4 @@ class TestAliasing:
         cpi_var = next((v for v in passed_vars if v.name == "system.cpu.cpi"), None)
         assert cpi_var is not None, "Non-aliased variable not found"
         assert "parsed_ids" not in cpi_var.params, "Non-aliased variable should not have parsed_ids"
-        facade.close_background_jobs(wait=True)
+        facade.close(wait=True)

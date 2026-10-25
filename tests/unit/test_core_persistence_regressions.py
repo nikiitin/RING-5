@@ -46,7 +46,9 @@ def test_parser_state_owns_nested_configuration_and_unique_identity() -> None:
     assert variables[0]["metadata"] == {"x": []}
     variables[0]["metadata"]["x"].append("external")
     assert first.get_parse_variables()[0]["metadata"] == {"x": []}
-    assert first.remove_parse_variable("same")
+    first.set_parse_variables(
+        [item for item in first.get_parse_variables() if item["_id"] != "same"]
+    )
     assert len(first.get_parse_variables()) == 4
     normalized = VariableService.ensure_variable_ids(entries)
     assert len({item["_id"] for item in normalized}) == 5
@@ -62,7 +64,7 @@ def test_restore_replaces_existing_data_and_previews(data_csv: str) -> None:
     assert repository.data_repo.get_data() is None
     assert repository.data_repo.get_processed_data() is None
     assert repository.data_repo.list_datasets() == ()
-    assert repository.preview_repo.list_active_previews() == []
+    assert not repository.preview_repo.has_preview("reduction")
     assert bool(report.data_error) == bool(data_csv)
 
 
