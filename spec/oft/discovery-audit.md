@@ -83,7 +83,6 @@ gaps:
 | --- | --- |
 | Performance and Workspace pages | Removed navigation destinations. Visual tests explicitly verify their absence; stale AppTest names are not application features. |
 | Direct browser CSV upload | The legacy file uploader was removed. Existing CSVs enter through the recent pool or supported Python API; helper fixtures that stage files do not restore a web uploader. |
-| CSV, JSON and Excel `DataComponents.download_buttons` | Dormant helper called only by its unit test. The active table offers filtered CSV download, which is inventoried. |
 | Line-shape selector | The control stores a value but trace construction and both connectors do not consume it. It is not claimed as a working current feature. |
 | Portfolio pipeline-template section | Stale test naming; the active portfolio page has no template section. Saved shaper configurations are inventoried separately. |
 | Arbitrary Matplotlib TeX preamble | Intentionally disabled at the web boundary and covered by safe-output requirements. TeX engine selection remains supported. |
