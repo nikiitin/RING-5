@@ -55,13 +55,20 @@ class ResultAdmission:
         self._bytes = 0
         self._lock = threading.Lock()
 
+    def require_source_path(self, value: object) -> str:
+        """Require an exact bounded source ID from this admission's immutable plan."""
+        if type(value) is not str or len(value) > MAX_INPUT_LENGTH or value not in self._planned:
+            raise ResultAdmissionError("PARSER: work source must be an exact planned source ID.")
+        return value
+
     def admit(self, result: ParsedFileResult, *, source_path: str) -> None:
         """Admit one exact source association atomically before retaining its result."""
+        source_path = self.require_source_path(source_path)
         if type(result) is not ParsedFileResult:
             raise ResultAdmissionError(
                 f"PARSER: worker {source_path!r} must return typed ParsedFileResult values."
             )
-        if result.source_path != source_path or source_path not in self._planned:
+        if result.source_path != source_path:
             raise ResultAdmissionError(
                 f"PARSER: worker result does not match its planned source {source_path!r}."
             )
@@ -103,7 +110,7 @@ class AdmittedParseWork:
     """Consume one typed work item and publish only an admitted immutable value."""
 
     def __init__(self, work: ParseWorkItem, admission: ResultAdmission) -> None:
-        self._source_path = work.source_path
+        self._source_path = admission.require_source_path(work.source_path)
         self._work: ParseWorkItem | None = work
         self._admission = admission
 

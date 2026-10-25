@@ -46,8 +46,53 @@ _CONFIGURATION_ERRORS = (
     configparser.MissingSectionHeaderError,
     configparser.DuplicateOptionError,
     configparser.DuplicateSectionError,
-    UnicodeDecodeError,
 )
+
+
+def _type_label(value: object) -> str:
+    name = type.__dict__["__name__"].__get__(type(value))
+    return bounded_parse_text(name, 80) if type(name) is str else "object"
+
+
+def _unicode_metadata(error: BaseException) -> tuple[object, object, object, object] | None:
+    for owner in type.__dict__["__mro__"].__get__(type(error)):
+        if owner is UnicodeEncodeError or owner is UnicodeDecodeError:
+            return (
+                owner.__dict__["encoding"].__get__(error),
+                owner.__dict__["reason"].__get__(error),
+                owner.__dict__["start"].__get__(error),
+                owner.__dict__["end"].__get__(error),
+            )
+    return None
+
+
+def _native_unicode_metadata(metadata: tuple[object, object, object, object]) -> bool:
+    encoding, reason, start, end = metadata
+    return (
+        type(encoding) is str
+        and type(reason) is str
+        and type(start) is int
+        and type(end) is int
+        and start.bit_length() <= 63
+        and end.bit_length() <= 63
+        and 0 <= start <= end
+    )
+
+
+def _argument_text(value: object) -> str:
+    if type(value) is str:
+        return bounded_parse_text(value)
+    if type(value) is int and value.bit_length() > 63:
+        return "<int>"
+    if type(value) is int or type(value) is float or type(value) is bool or value is None:
+        return str(value)
+    return f"<{_type_label(value)}>"
+
+
+def _next_cause(error: BaseException) -> BaseException | None:
+    cause: BaseException | None = BaseException.__dict__["__cause__"].__get__(error)
+    context: BaseException | None = BaseException.__dict__["__context__"].__get__(error)
+    return cause if cause is not None else context
 
 
 def classify_parse_failure(
@@ -59,9 +104,9 @@ def classify_parse_failure(
     IO errors are directly detachable. Unsupported subclasses remain unexpected.
     """
     error_type = type(error)
-    if error_type in _DATA_ERRORS:
+    if any(error_type is known for known in _DATA_ERRORS):
         return "data"
-    if error_type in _IO_ERRORS:
+    if any(error_type is known for known in _IO_ERRORS):
         assert isinstance(error, OSError)
         # Owned parser paths are bounded text. Decline mutated/non-native IO
         # metadata before any inner owner can wrap it or invoke a constructor.
@@ -76,12 +121,15 @@ def classify_parse_failure(
             if code is not None and (type(code) is not int or code.bit_length() > 32):
                 return None
         return "io"
-    if error_type in _CONFIGURATION_ERRORS:
+    if any(error_type is known for known in _CONFIGURATION_ERRORS):
         return "configuration"
     if error_type is queue.Empty:
         return "transport"
-    if error_type is UnicodeEncodeError:
-        return "encoding"
+    if error_type is UnicodeEncodeError or error_type is UnicodeDecodeError:
+        metadata = _unicode_metadata(error)
+        if metadata is None or not _native_unicode_metadata(metadata):
+            return None
+        return "encoding" if error_type is UnicodeEncodeError else "configuration"
     return None
 
 
@@ -97,22 +145,14 @@ def parse_error_text(error: BaseException) -> str:
     also hold their diagnostic text in their arguments; their raw source buffers,
     error lists and Unicode decoder objects are deliberately excluded.
     """
-    if type(error) in (UnicodeEncodeError, UnicodeDecodeError):
-        assert isinstance(error, (UnicodeEncodeError, UnicodeDecodeError))
-        return bounded_parse_text(
-            f"{error.encoding} positions {error.start}:{error.end}: {error.reason}"
-        )
-    fragments: list[str] = []
-    for argument in islice(error.args, 8):
-        if type(argument) is str:
-            fragments.append(bounded_parse_text(argument))
-        elif type(argument) is int and argument.bit_length() > 64:
-            fragments.append("<int>")
-        elif type(argument) in (int, float, bool) or argument is None:
-            fragments.append(str(argument))
-        else:
-            fragments.append(f"<{type(argument).__name__}>")
-    return bounded_parse_text("; ".join(fragments))
+    metadata = _unicode_metadata(error)
+    if metadata is not None:
+        encoding, reason, start, end = (_argument_text(value) for value in metadata)
+        return bounded_parse_text(f"{encoding} positions {start}:{end}: {reason}")
+    arguments = BaseException.__dict__["args"].__get__(error)
+    if type(arguments) is not tuple:
+        return "<non-native exception arguments>"
+    return bounded_parse_text("; ".join(_argument_text(value) for value in islice(arguments, 8)))
 
 
 def parse_names_text(values: Iterable[str]) -> str:
@@ -152,7 +192,7 @@ def detach_parse_failure(error: BaseException, source_path: str) -> BaseExceptio
             fresh = error_type(message)
 
     locations: deque[str] = deque(maxlen=8)
-    node = error.__traceback__
+    node = BaseException.__dict__["__traceback__"].__get__(error)
     while node is not None:
         frame = node.tb_frame
         module = frame.f_globals.get("__name__")
@@ -163,11 +203,11 @@ def detach_parse_failure(error: BaseException, source_path: str) -> BaseExceptio
         node = node.tb_next
     causes: list[str] = []
     seen = {id(error)}
-    cause = error.__cause__ or error.__context__
+    cause = _next_cause(error)
     while cause is not None and id(cause) not in seen and len(causes) < 8:
         seen.add(id(cause))
-        causes.append(f"{type(cause).__name__}: {parse_error_text(cause)}")
-        cause = cause.__cause__ or cause.__context__
+        causes.append(f"{_type_label(cause)}: {parse_error_text(cause)}")
+        cause = _next_cause(cause)
     fresh.__dict__["failure_facts"] = ParseFailureFacts(
         source_path,
         bounded_parse_text(" <- ".join(locations), MAX_PARSE_FAILURE_ORIGIN),

@@ -44,6 +44,9 @@ the error. Pool construction also closes workers and monitor threads already sta
 Worker stop/restart operations serialize and retire only their captured generation. Stream errors
 retain their identity through the reader queue; exact known decoding failures become bounded data
 errors at their input owner, while unsupported exception subtypes propagate unchanged.
+Commands validate their fixed source ID against the batch plan before retaining or submitting
+work. Diagnostics read bounded native exception metadata and cause links; Unicode input buffers
+and arbitrary exception hooks are excluded.
 
 The gem5 implementation under `src/parsing/gem5/` uses Python orchestration and persistent Perl
 workers. Strategies under `src/parsing/gem5/impl/strategies/` control ingestion. Pattern aggregation
