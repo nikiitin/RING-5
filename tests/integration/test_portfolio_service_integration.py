@@ -1,4 +1,4 @@
-import io
+from src.core.common.typed_table_codec import TypedTableCodec
 from collections.abc import Generator
 from typing import Any
 from unittest.mock import patch
@@ -83,8 +83,8 @@ def test_save_and_load_portfolio(
     loaded_data = portfolio_service.load_portfolio("test_portfolio")
 
     # Verify Content
-    assert loaded_data["schema_version"] == 5
-    assert loaded_data["version"] == "5.0"
+    assert loaded_data["schema_version"] == 6
+    assert loaded_data["version"] == "6.0"
     environment = loaded_data["environment_metadata"]
     assert environment is not None
     assert environment["format_version"] == 1
@@ -104,9 +104,7 @@ def test_save_and_load_portfolio(
     assert loaded_data["scanned_variables"] == [{"name": "ipc", "type": "scalar"}]
     assert loaded_data["manager_history"][0]["operation"] == "derive B"
 
-    # Verify Data CSV reconstruction
-    loaded_df_csv = loaded_data["data_csv"]
-    loaded_df = pd.read_csv(io.StringIO(loaded_df_csv))
+    loaded_df = TypedTableCodec.decode(loaded_data["data"])
     pd.testing.assert_frame_equal(df, loaded_df)
 
     # Verify Plots
@@ -116,7 +114,7 @@ def test_save_and_load_portfolio(
     assert loaded_plot["id"] == 1
     assert loaded_plot["plot_type"] == "bar"
     assert loaded_plot["config"] == plot_config
-    assert pd.read_csv(io.StringIO(loaded_plot["processed_data"])).equals(df)
+    assert TypedTableCodec.decode(loaded_plot["processed_data"]).equals(df)
     assert loaded_plot["pipeline"] == []
     assert loaded_plot["pipeline_counter"] == 0
 
@@ -145,10 +143,7 @@ def test_portfolio_retains_data_and_plot_semantics(
     report = restored.restore_session(loaded)
 
     assert report.complete
-    assert loaded["data_semantics"]["latency"] == {
-        "label": "Mean latency",
-        "unit": "ms",
-    }
+    pd.testing.assert_frame_equal(TypedTableCodec.decode(loaded["data"]), data)
     assert SemanticMetadataService.inspect(restored.get_data()).for_column(
         "latency"
     ) == ColumnSemantics("latency", "Mean latency", "ms")
@@ -261,16 +256,14 @@ def test_restore_survives_malformed_parse_variables(
     portfolio_service: Any, portfolios_dir: Any
 ) -> None:
     # [test->req~ring5.portfolio.partial-report~1]
-    """Portfolio JSON is untrusted: a plain-string parse_variables list
-    (the old documented save signature produced exactly this) must not
-    crash restore — entries are skipped and counted in the report."""
+    """Malformed variable entries are reported without changing retained measurements."""
     manager = RepositoryStateManager()
     report = manager.restore_session(
         {
             "parser_strategy": "simple",
             "simulator": "gem5",
             "parse_variables": ["system.cpu.ipc", "system.cpu.numCycles"],
-            "data_csv": "a,b\n1,2\n",
+            "data": TypedTableCodec.encode(pd.DataFrame({"a": [1], "b": [2]})),
             "plots": [],
             "config": {},
         }  # type: ignore[typeddict-item]

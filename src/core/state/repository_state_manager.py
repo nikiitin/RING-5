@@ -526,7 +526,7 @@ class RepositoryStateManager:
         # [impl->req~ring5.portfolio.restore~1]
         """Prepare a replacement workspace, then publish it atomically.
 
-        CSV decoding and injected deserializers run outside the state lock.
+        Typed table decoding and injected deserializers run outside the state lock.
         Preparation exceptions retain the current repositories. Reported per-item
         failures remain best-effort, and successful publication replaces other
         workspace settings. A concurrent state-manager write aborts replacement.

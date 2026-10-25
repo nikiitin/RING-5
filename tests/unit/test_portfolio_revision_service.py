@@ -1,6 +1,8 @@
 """Immutable portfolio revision storage and comparison tests."""
 
 from __future__ import annotations
+from src.core.common.typed_table_codec import TypedTableCodec
+import pandas as pd
 
 import json
 from pathlib import Path
@@ -39,14 +41,19 @@ def _payload(
 ) -> bytes:
     fields: dict[str, Any] = {
         "timestamp": timestamp,
-        "data_csv": f"category,value\nA,{data_value}\n",
+        "data": TypedTableCodec.encode(pd.DataFrame({"category": ["A"], "value": [data_value]})),
         "csv_path": None if parser else "/data/results.csv",
         "plots": [
             {
                 "id": 1,
                 "name": title,
                 "plot_type": "bar",
-                "processed_data": f"category,value\nA,{data_value}\n",
+                "source_data": TypedTableCodec.encode(
+                    pd.DataFrame({"category": ["A"], "value": [data_value]})
+                ),
+                "processed_data": TypedTableCodec.encode(
+                    pd.DataFrame({"category": ["A"], "value": [data_value]})
+                ),
                 "config": {
                     "x": "category",
                     "y": "value",
@@ -182,7 +189,7 @@ def test_compare_groups_reviewable_changes_and_omits_embedded_rows(
     assert sections == {"data_sources", "pipelines", "plots", "figure_settings"}
     assert "[0].name" in paths
     assert "[0].steps[0].type" in paths
-    assert not any("data_csv" in path or "999" in path for path in paths)
+    assert not any("data." in path or "999" in path for path in paths)
     assert sum(count for _section, count in difference.section_counts) == len(difference.entries)
     assert not difference.truncated
 

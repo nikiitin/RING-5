@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from io import StringIO
 from typing import TYPE_CHECKING, Any, TypedDict
 
-import pandas as pd
+from src.core.common.typed_table_codec import TypedTableCodec
 
 if TYPE_CHECKING:
     from .base_plot import BasePlot
@@ -158,18 +157,10 @@ class PlotFactory:
         plot.legend_mappings_by_column = data.get("legend_mappings_by_column", {})
         plot.legend_mappings = data.get("legend_mappings", {})
 
-        processed_data = data.get("processed_data")
-        if processed_data:
-            from src.core.services.managers.semantic_metadata_service import (
-                SemanticMetadataService,
-            )
-
-            frame = pd.read_csv(StringIO(processed_data))
-            semantics = SemanticMetadataService.from_payload(
-                data.get("processed_semantics", {}),
-                available_columns=tuple(str(column) for column in frame.columns),
-            )
-            plot.replace_processed_data(SemanticMetadataService.attach(frame, semantics))
+        if "processed_semantics" in data:
+            raise ValueError("Unsupported retired plot table fields.")
+        plot.replace_source_data(TypedTableCodec.decode(data["source_data"]))
+        plot.replace_processed_data(TypedTableCodec.decode(data["processed_data"]))
         return plot
 
     @classmethod

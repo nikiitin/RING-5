@@ -131,6 +131,9 @@ typed identity for transformation caches, rendering, named-dataset revisions, pr
 and reusable snapshots. `content_signature` composes operation parameters and figure configuration
 without stringifying unsupported values. Optimization caches bypass unsupported or cyclic inputs;
 revision and snapshot publication reject them before changing retained state or files.
+`TypedTableCodec` is the single exact frame serializer for portfolios, plot source and processed
+frames, and reusable snapshots. It validates current typed payloads and rejects inexact decoding;
+CSV is an external interchange format, not an internal persistence representation.
 
 Figure reuse includes every persisted configuration field, including axis ranges and legend
 positions, plus its rendering engine. Transient widgets and browser events live outside that

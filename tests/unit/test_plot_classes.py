@@ -129,7 +129,7 @@ class TestBarPlot:
         assert data_dict["name"] == "Test"
         assert data_dict["plot_type"] == "bar"
         assert data_dict["config"] == {"x": "category", "y": "value"}
-        assert isinstance(data_dict["processed_data"], str)  # CSV string
+        assert data_dict["processed_data"]["format"] == "ring5.typed-table"
         assert data_dict["pipeline"] == [{"id": 0, "type": "columnSelector", "config": {}}]
 
 

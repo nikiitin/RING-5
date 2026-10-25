@@ -29,14 +29,14 @@ the stored payload checksum and the fingerprint reconstructed from values, colum
 types, axis metadata, and retained semantic attributes before adding anything to the workspace. An incomplete, modified, or
 inexactly decodable snapshot is rejected instead of silently returning changed data.
 
-Snapshots use format version 2, a compressed, non-executable RING-5 format under
+Snapshots use format version 3, a compressed, non-executable RING-5 format under
 `RING5_DATA_DIR/dataset_snapshots`. Without an override, source checkouts use
 `.ring5/dataset_snapshots`; installed packages use the platform user-data directory. They are local caches,
 not signed exchange bundles; use a portable-bundle workflow when sharing artifacts with untrusted
 systems. Saving does not overwrite an existing name unless replacement is chosen explicitly.
-Range axes retain their exact bounds, step, and name. Normalized semantic labels and units are
-supported attributes; other dataframe attributes or values that cannot round-trip exactly are
-rejected before a snapshot is written. Readers accept only the current format version.
+Typed table payloads retain exact range bounds, categorical ordering, temporal frequency,
+multi-level axes, nullable dtypes, labels and units. Supported typed dataframe attributes also
+round-trip. Unsupported objects or cyclic metadata are rejected before a snapshot is written. Readers accept only the current format version.
 
 The public API provides the same lifecycle:
 

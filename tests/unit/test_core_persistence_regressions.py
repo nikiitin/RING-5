@@ -54,20 +54,33 @@ def test_parser_state_owns_nested_configuration_and_unique_identity() -> None:
     assert len({item["_id"] for item in normalized}) == 5
 
 
-@pytest.mark.parametrize("data_csv", ["", '"invalid'])
-def test_restore_replaces_existing_data_and_previews(data_csv: str) -> None:
+def test_restore_replaces_existing_data_and_previews() -> None:
     repository = SessionRepository()
     repository.data_repo.add_dataset("old", pd.DataFrame({"x": [1]}))
     repository.data_repo.set_processed_data(pd.DataFrame({"x": [99]}))
     repository.preview_repo.set_preview("reduction", pd.DataFrame({"x": [88]}))
     report = repository.restore_from_portfolio(
-        {"parser_strategy": "simple", "simulator": "gem5", "data_csv": data_csv, "plots": []}
+        {"parser_strategy": "simple", "simulator": "gem5", "data": None, "plots": []}
     )
     assert repository.data_repo.get_data() is None
     assert repository.data_repo.get_processed_data() is None
     assert repository.data_repo.list_datasets() == ()
     assert not repository.preview_repo.has_preview("reduction")
-    assert bool(report.data_error) == bool(data_csv)
+    assert report.complete
+
+
+def test_invalid_table_restore_leaves_current_data_and_previews_unchanged() -> None:
+    repository = SessionRepository()
+    frame = pd.DataFrame({"x": [1]})
+    repository.data_repo.add_dataset("kept", frame)
+    repository.preview_repo.set_preview("reduction", frame)
+    with pytest.raises(ValueError, match="table|payload"):
+        repository.restore_from_portfolio(
+            {"parser_strategy": "simple", "simulator": "gem5", "data": {"invalid": True}}
+        )
+    pd.testing.assert_frame_equal(repository.data_repo.get_data(), frame)
+    assert repository.preview_repo.has_preview("reduction")
+    assert len(repository.data_repo.list_datasets()) == 1
 
 
 def test_parser_strategy_round_trips_and_missing_provenance_is_rejected() -> None:

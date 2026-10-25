@@ -23,14 +23,14 @@ from src.core.services.data_services.portfolio_revision_service import (
     PortfolioRevisionService,
 )
 from src.core.services.environment_metadata_service import EnvironmentMetadataService
+from src.core.services.data_services.portfolio_validation_service import validate_portfolio_document
 from src.core.models.portfolio_contract import (
     CURRENT_PORTFOLIO_SCHEMA_VERSION,
     CURRENT_PORTFOLIO_VERSION,
-    validate_portfolio_schema,
 )
 from src.core.services.portfolio_integrity_service import PortfolioIntegrityService
 from src.core.state.state_manager import StateManager
-from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
+from src.core.common.typed_table_codec import TypedTableCodec
 
 
 class PortfolioService:
@@ -182,19 +182,12 @@ class PortfolioService:
                     )
             serialized_plots.append(plot_dict)
 
-        data_csv = data.to_csv(index=False) if data is not None and not data.empty else ""
-        data_semantics = (
-            SemanticMetadataService.to_payload(SemanticMetadataService.inspect(data))
-            if data is not None
-            else {}
-        )
         portfolio_data: dict[str, Any] = {
             "schema_version": CURRENT_PORTFOLIO_SCHEMA_VERSION,
             "version": CURRENT_PORTFOLIO_VERSION,
             "timestamp": pd.Timestamp.now().isoformat(),
             "environment_metadata": EnvironmentMetadataService.capture().to_dict(),
-            "data_csv": data_csv,
-            "data_semantics": data_semantics,
+            "data": TypedTableCodec.encode(data),
             "csv_path": str(csv_path) if csv_path else None,
             "plots": serialized_plots,
             "plot_counter": plot_counter,
@@ -216,7 +209,8 @@ class PortfolioService:
             signing_key=signing_key,
             key_id=signing_key_id,
         )
-        return json.dumps(portfolio_data, indent=2).encode("utf-8")
+        validate_portfolio_document(portfolio_data)
+        return json.dumps(portfolio_data, indent=2, allow_nan=False).encode("utf-8")
 
     def load_portfolio(
         self,
@@ -240,7 +234,7 @@ class PortfolioService:
             raise ValueError("Portfolio JSON must contain one top-level object.")
         raw: dict[str, Any] = value
 
-        validate_portfolio_schema(raw)
+        validate_portfolio_document(raw)
         report = PortfolioIntegrityService.verify(raw, signing_key=signing_key)
         PortfolioIntegrityService.require_restorable(
             report,
@@ -271,7 +265,7 @@ class PortfolioService:
             raw = json.load(handle)
         if not isinstance(raw, dict):
             raise ValueError("Portfolio JSON must contain one top-level object.")
-        validate_portfolio_schema(raw)
+        validate_portfolio_document(raw)
         return PortfolioIntegrityService.verify(raw, signing_key=signing_key)
 
     def export_portfolio_bytes(self, name: str) -> bytes:
@@ -293,7 +287,7 @@ class PortfolioService:
             raise ValueError(f"Portfolio '{name}' is not valid UTF-8 JSON.") from exc
         if not isinstance(value, dict):
             raise ValueError("Portfolio JSON must contain one top-level object.")
-        validate_portfolio_schema(value)
+        validate_portfolio_document(value)
         report = PortfolioIntegrityService.verify(value)
         PortfolioIntegrityService.require_restorable(report)
         return payload

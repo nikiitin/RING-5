@@ -152,8 +152,8 @@ def test_portfolio_saves_and_restores_an_unfinished_editor_without_running_it() 
             None, [], {}, 0, parse_variables=original.get_parse_variables()
         )
     )
-    assert payload["schema_version"] == 5
-    assert payload["version"] == "5.0"
+    assert payload["schema_version"] == 6
+    assert payload["version"] == "6.0"
     validate_portfolio_schema(payload)
     restored = RepositoryStateManager()
     restored.restore_session(payload)

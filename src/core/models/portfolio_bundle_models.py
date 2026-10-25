@@ -92,7 +92,7 @@ class PortfolioBundleContents:
 
     Attributes:
         info: Inspectable bundle summary and integrity evidence.
-        portfolio: Migrated portfolio ready for explicit restoration.
+        portfolio: Validated current portfolio ready for explicit restoration.
         source_manifest: Recorded source provenance; it contains no source file bytes.
         requirements: Pinned Python dependencies captured from the saved environment.
         dataset_snapshot: Exact reusable snapshot bytes, if included.

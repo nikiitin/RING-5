@@ -88,7 +88,7 @@ def test_serialization(concrete_plot: Any) -> None:
         assert len(loaded_plot.processed_data) == 3
 
 
-def test_source_snapshot_is_defensive_and_not_serialized(concrete_plot: Any) -> None:
+def test_source_snapshot_is_defensive_and_serialized(concrete_plot: Any) -> None:
     source = pd.DataFrame({"seed": [0, 1]})
 
     concrete_plot.replace_source_data(source)
@@ -96,7 +96,11 @@ def test_source_snapshot_is_defensive_and_not_serialized(concrete_plot: Any) -> 
 
     assert concrete_plot.source_data is not None
     assert concrete_plot.source_data["seed"].tolist() == [0, 1]
-    assert "source_data" not in concrete_plot.to_dict()
+    from src.core.common.typed_table_codec import TypedTableCodec
+
+    pd.testing.assert_frame_equal(
+        TypedTableCodec.decode(concrete_plot.to_dict()["source_data"]), concrete_plot.source_data
+    )
 
 
 @patch("src.web.components.plotting.config.base_plot_config.st")

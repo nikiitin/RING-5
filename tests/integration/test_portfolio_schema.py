@@ -10,7 +10,7 @@ import ring5
 pytestmark = [pytest.mark.public_api, pytest.mark.xdist_group("ring5_portfolios")]
 
 
-@pytest.mark.parametrize("version", [None, 1, 2, 3, 4, 6, "5", 5.0, True])
+@pytest.mark.parametrize("version", [None, 1, 2, 3, 4, 5, 7, "6", 6.0, True])
 def test_obsolete_schema_is_rejected_before_state_changes(portfolios_dir: Path, version) -> None:
     # [test->req~ring5.portfolio.schema~1]
     with ring5.Session() as session:
@@ -36,7 +36,7 @@ def test_current_writer_round_trip_retains_provenance(portfolios_dir: Path) -> N
     with ring5.Session() as session:
         session.save_portfolio("current")
         document = json.loads((portfolios_dir / "current.json").read_text())
-        assert document["schema_version"] == 5
+        assert document["schema_version"] == 6
         assert document["parser_strategy"] == "simple"
         assert document["simulator"] == "gem5"
         assert document["environment_metadata"]

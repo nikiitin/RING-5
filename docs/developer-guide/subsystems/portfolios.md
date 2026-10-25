@@ -35,8 +35,8 @@ Covers:
 
 -->
 
-The supported portfolio schema is version 4. Serialized files declare `schema_version: 4`,
-`version: "4.0"`, their parser strategy and simulator, environment metadata, and an integrity
+The supported portfolio schema is version 6. Serialized files declare `schema_version: 6`,
+`version: "6.0"`, their parser strategy and simulator, environment metadata, and an integrity
 manifest. Missing or unsupported schema versions raise a typed version error before restoration.
 No reader infers old defaults, translates keys, or rewrites a file into the current schema.
 
@@ -52,10 +52,10 @@ manifests must not reach `StateManager.restore_session`.
 
 The whole-document digest excludes only `integrity_manifest`. Named sections are diagnostic subsets:
 
-- inputs: embedded CSV and semantics plus CSV/parser provenance;
+- inputs: embedded typed workspace data plus CSV/parser provenance;
 - configuration: application configuration, histories, plot definitions, and pipelines, excluding
   plot result data;
-- outputs: plot IDs, processed CSV data, and processed semantics.
+- outputs: plot IDs and typed source and processed frames.
 
 The whole digest also covers schema/version, timestamp, environment metadata, and any unknown
 top-level field, so an unchanged named-section table does not imply an unchanged document.
@@ -80,3 +80,27 @@ undeclared, oversized, or checksum-mismatched members before returning content. 
 is decoded and fingerprint-verified in memory. The portfolio schema and integrity checks run before
 `restore_session`. Neither ZIP layer is extracted to a filesystem, and browser inspection remains
 non-mutating until explicit restoration.
+
+
+## Typed frame persistence
+
+`TypedTableCodec` owns the current `ring5.typed-table` payload. A portfolio's `data` field and
+each plot's `source_data` and `processed_data` fields contain that payload or `null`. Empty frames
+remain present tables. The codec retains typed values, nullable dtypes, category order, exact axes
+and supported attributes. It rejects unknown schema keys, unsupported types and coercing
+reconstructions before publication. Plot sources remain distinct from their transformed results.
+
+Dataset snapshots use the same codec inside their own archive container. CSV remains available
+for input and export. Integrity manifests checksum the complete typed JSON documents; logical
+frame fingerprints identify scientific content and remain a separate contract. The source manifest
+records a SHA-256 digest of the canonical serialized typed payload under `embedded_table_sha256`.
+
+
+Typed table admission checks decoded allocation budgets before constructing pandas axes or arrays.
+Each table supports at most 1,000,000 axis entries, 10,000 columns and 5,000,000 cells, within
+10,000,000 aggregate items, 64 MiB of estimated encoded graph or decoded storage, and 32 nesting
+levels. Encoding charges nodes incrementally before emitting them and iterates frame values
+without bulk list conversion.
+The budget includes category and MultiIndex levels, compact range axes, padded dtypes and nested
+attribute arrays. Container byte limits remain independent; a compact file cannot declare an
+unbounded decoded table.

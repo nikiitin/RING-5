@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import io
 import logging
 
 import pandas as pd
@@ -17,7 +16,7 @@ from src.core.state.repositories.parser_state_repository import ParserStateRepos
 from src.core.state.repositories.plot_repository import PlotRepository
 from src.core.state.repositories.preview_repository import PreviewRepository
 from src.core.state.repositories.visualization_repository import VisualizationRepository
-from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
+from src.core.common.typed_table_codec import TypedTableCodec
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +101,19 @@ class SessionRepository:
             raise ValueError("Portfolio parser strategy must be non-empty text.")
         if not isinstance(simulator, str) or not simulator.strip():
             raise ValueError("Portfolio simulator must be non-empty text.")
+        if {"data_csv", "data_semantics"} & portfolio_data.keys():
+            raise ValueError("Unsupported retired portfolio table fields.")
+        decoded_data = TypedTableCodec.decode(portfolio_data.get("data"))
+        plot_payloads = portfolio_data.get("plots", [])
+        if not isinstance(plot_payloads, list):
+            raise ValueError("Portfolio plots must be an array.")
+        for plot_payload in plot_payloads:
+            if not isinstance(plot_payload, dict):
+                raise ValueError("Portfolio plots must be objects.")
+            if "processed_semantics" in plot_payload:
+                raise ValueError("Unsupported retired plot table fields.")
+            TypedTableCodec.decode(plot_payload.get("source_data"))
+            TypedTableCodec.decode(plot_payload.get("processed_data"))
         self.clear_all()
 
         # Restore parser state. Portfolio JSON is untrusted input — a
@@ -137,15 +149,12 @@ class SessionRepository:
         # Restore data
         data_restored = False
         data_error: str | None = None
-        data_csv = portfolio_data.get("data_csv", "")
-        if data_csv:
+        table_payload = portfolio_data.get("data")
+        if table_payload is not None:
             try:
-                df = self.enforce_config_dtypes(pd.read_csv(io.StringIO(data_csv)))
-                semantics = SemanticMetadataService.from_payload(
-                    portfolio_data.get("data_semantics", {}),
-                    available_columns=tuple(str(column) for column in df.columns),
-                )
-                df = SemanticMetadataService.attach(df, semantics)
+                df = decoded_data
+                if df is None:
+                    raise ValueError("Present table payload decoded as absence.")
                 self.data_repo.set_data(df)
                 data_restored = True
                 logger.info("SESSION_REPO: Restored data - %d rows", len(df))
@@ -154,7 +163,7 @@ class SessionRepository:
                 # silently continuing with a half-restored session.
                 data_error = str(e)
                 logger.error(
-                    "SESSION_REPO: Failed to restore data CSV — plots may render " "empty: %s",
+                    "SESSION_REPO: Failed to restore typed table — plots may render " "empty: %s",
                     e,
                     exc_info=True,
                 )

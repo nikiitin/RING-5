@@ -219,7 +219,9 @@ class TestToDictFromDict:
         plot.processed_data = pd.DataFrame({"a": [1, 2]})
         data = plot.to_dict()
         assert data["processed_data"] is not None
-        assert "a" in data["processed_data"]
+        from src.core.common.typed_table_codec import TypedTableCodec
+
+        assert TypedTableCodec.decode(data["processed_data"])["a"].tolist() == [1, 2]
 
     def test_from_dict_without_processed_data(self, plot: ConcretePlot) -> None:
         data = {
@@ -227,6 +229,7 @@ class TestToDictFromDict:
             "name": "Test",
             "plot_type": "test",
             "config": {"x": "col1"},
+            "source_data": None,
             "processed_data": None,
             "pipeline": [],
             "pipeline_counter": 0,
@@ -244,6 +247,7 @@ class TestToDictFromDict:
             "name": "Test",
             "plot_type": "test",
             "config": {},
+            "source_data": None,
             "processed_data": None,
             "pipeline": [{"type": "sort"}],
             "pipeline_counter": 5,

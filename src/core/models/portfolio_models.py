@@ -9,6 +9,7 @@ and restoration across all layers, plus the RestoreReport returned by
 from dataclasses import dataclass, field
 from typing import Any, TypedDict
 
+from src.core.models.typed_table_models import TypedTablePayload
 from src.core.models.data_models import ScannedVariableDict
 from src.core.models.history_models import OperationRecord
 from src.core.models.shaper_models import ShaperStepConfig
@@ -25,7 +26,7 @@ class RestoreReport:
 
     Attributes:
         data_restored: Whether the session DataFrame was restored.
-        data_error: Error message when the data CSV failed to load.
+        data_error: Error message when the typed table failed to load.
         plots_restored: Number of plots successfully rebuilt.
         plots_skipped: One human-readable reason per skipped plot.
         parse_variables_skipped: Count of malformed parse-variable entries
@@ -62,8 +63,7 @@ class PortfolioData(TypedDict, total=False):
         csv_path: Path to processed CSV data
         use_parser: Whether parser mode is enabled
         scanned_variables: List of variables discovered by scanner
-        data_csv: CSV string representation of data
-        data_semantics: Semantic labels and units retained with data
+        data: Exact typed workspace table, or absence
         environment_metadata: Save-time runtime and dependency versions
         integrity_manifest: Checksums and optional HMAC signature for saved content
         plots: List of plot configurations
@@ -84,8 +84,7 @@ class PortfolioData(TypedDict, total=False):
     csv_path: str
     use_parser: bool
     scanned_variables: list[ScannedVariableDict]
-    data_csv: str
-    data_semantics: dict[str, dict[str, str]]
+    data: TypedTablePayload | None
     environment_metadata: dict[str, Any]
     integrity_manifest: dict[str, Any]
     plots: list[dict[str, Any]]
