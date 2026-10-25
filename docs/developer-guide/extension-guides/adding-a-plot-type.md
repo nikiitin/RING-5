@@ -47,6 +47,12 @@ widths. Supported trace families may be subclassed by registered plot implementa
 Registered extensions validate their own mapping fields in the trace callback. The public
 constructor validates common options before registering the plot.
 
+Use `observed_order` from `utils/ordering.py` for category axes that preserve source encounter
+order and place configured labels first. Use `order_with_overrides` when unlisted categories
+need lexical order. The shared `group_mask` in `types/_trace_helpers.py` selects categories,
+including missing values, without modifying the source frame. Area plots sort numeric coordinates
+when no preferred order is configured.
+
 ## Test and verify
 
 Unit-test trace values, ordering, missing columns, and error-bar behavior. Use `Session.render` to

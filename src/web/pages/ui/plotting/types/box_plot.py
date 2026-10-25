@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal, cast, override
+from typing import Literal, cast, override
 
 import numpy as np
 import pandas as pd
@@ -13,24 +13,11 @@ from src.core.services.visualization.palette_service import resolve_palette
 from src.web.components.plotting.config import box_config
 from src.core.models.plot_config import PlotConfig
 from src.web.pages.ui.plotting.base_plot import BasePlot
-from src.web.pages.ui.plotting.types._trace_helpers import build_drill_down_payload
+from src.web.pages.ui.plotting.utils.ordering import observed_order
+from src.web.pages.ui.plotting.types._trace_helpers import build_drill_down_payload, group_mask
 
 QuartileMethod = Literal["linear", "inclusive", "exclusive"]
 WhiskerMode = Literal["tukey", "minmax", "percentile"]
-
-
-def _ordered_values(series: pd.Series, configured: object = None) -> list[Any]:
-    available = list(series.drop_duplicates())
-    if not isinstance(configured, list):
-        return available
-    by_label = {str(value): value for value in available}
-    configured_labels = [str(label) for label in configured]
-    ordered = [by_label[label] for label in configured_labels if label in by_label]
-    return ordered + [value for value in available if str(value) not in configured_labels]
-
-
-def _mask(series: pd.Series, value: Any) -> pd.Series:
-    return series.isna() if pd.isna(value) else series == value
 
 
 def _quartiles(values: np.ndarray, method: QuartileMethod) -> tuple[float, float, float]:
@@ -133,10 +120,10 @@ class BoxPlot(BasePlot):
         if not 0 <= whisker_cap_width <= 1:
             raise ValueError("Box whisker cap width must be between 0 and 1.")
 
-        categories = _ordered_values(data[x_col], config.get("xaxis_order"))
+        categories = observed_order(data[x_col], config.get("xaxis_order"))
         color_col = str(config["color"]) if config.get("color") else None
         groups = (
-            _ordered_values(data[color_col], config.get("legend_order")) if color_col else [None]
+            observed_order(data[color_col], config.get("legend_order")) if color_col else [None]
         )
         per_group_width = total_width / max(1, len(groups))
         palette = resolve_palette(config.get("color_palette"))
@@ -144,10 +131,10 @@ class BoxPlot(BasePlot):
         traces: list[BoxTraceConfig] = []
 
         for category_index, category in enumerate(categories):
-            category_data = data[_mask(data[x_col], category)]
+            category_data = data[group_mask(data[x_col], category)]
             for group_index, group in enumerate(groups):
                 subset = (
-                    category_data[_mask(category_data[color_col], group)]
+                    category_data[group_mask(category_data[color_col], group)]
                     if color_col
                     else category_data
                 )
