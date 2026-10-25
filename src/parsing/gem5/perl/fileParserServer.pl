@@ -98,7 +98,6 @@ while (my $command = <STDIN>) {
 
         # Open and parse file
         my $line_count = 0;
-        my $match_count = 0;
 
         eval {
             open(my $fh, '<:raw', $filename) or die "Cannot open file: $!";
@@ -113,7 +112,6 @@ while (my $command = <STDIN>) {
                 next if $line =~ /^\s*$/;
 
                 # Parse and print - parseAndPrintLineWithFormat outputs directly
-                my $before_count = $match_count;
                 parseAndPrintLineWithFormat($line);
 
             }
@@ -136,12 +134,6 @@ while (my $command = <STDIN>) {
         # Health check
         print "PONG\n";
         log_info("Health check: PONG");
-    }
-    elsif ($command eq "STATS") {
-        # Return statistics
-        print "REQUESTS $request_count\n";
-        print "END_STATS\n";
-        log_info("Stats requested: $request_count requests served");
     }
     elsif ($command eq "SHUTDOWN") {
         log_info("Shutdown command received, exiting gracefully");

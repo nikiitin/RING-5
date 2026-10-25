@@ -5,13 +5,8 @@ use FindBin;
 use lib "$FindBin::Bin/libs";
 use TypesFormatRegex;
 
-# Arguments:
-# 1. stats_file
-# 2. (Optional) config variables list (comma separated) for detection hints
-
-my $filename = shift or die "Usage: statsScanner.pl <stats_file> [config_vars]\n";
-my $config_vars_str = shift || "";
-my %config_vars = map { $_ => 1 } split(',', $config_vars_str);
+my $filename = shift or die "Usage: statsScanner.pl <stats_file>\n";
+die "Usage: statsScanner.pl <stats_file>\n" if @ARGV;
 
 open(my $fh, '<', $filename) or die "Could not open file '$filename' $!";
 
@@ -22,10 +17,6 @@ my $line_count = 0;
 my $max_lines = $ENV{RING5_MAX_SCAN_LINES} // 1_000_000;
 die "Invalid scanner line limit\n" unless $max_lines =~ /^\d+$/ && $max_lines > 0;
 
-# Helper globals from TypesFormatRegex
-# We access regexes indirectly by calling classifyLine provided by TypesFormatRegex.
-# We set a catch-all filter to scan all lines.
-TypesFormatRegex::setFilterRegexes(".*");
 TypesFormatRegex::resetLineContext();
 
 
@@ -134,11 +125,6 @@ while (my $line = <$fh>) {
     if ($type eq 'summary') {
         processSummary($name, $entry, \%discovered_vars);
         next;
-    }
-
-    # Config hint check
-    if ($type eq 'scalar' && exists $config_vars{$name}) {
-        $type = 'configuration';
     }
 
     manageType($name, $type, \%discovered_vars);
