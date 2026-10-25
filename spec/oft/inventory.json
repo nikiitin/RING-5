@@ -3164,7 +3164,7 @@
       "tags": ["caching", "performance", "quality"],
       "evidence": {
         "implementation": ["src/core/performance.py::SimpleCache", "src/core/performance.py::compute_data_fingerprint", "src/core/services/data_services/csv_pool_service.py::CsvPoolService.load_csv_file", "src/core/services/data_services/csv_pool_service.py::CsvPoolService.clear_caches", "src/core/services/data_services/csv_pool_service.py::CsvPoolService.get_cache_stats", "src/core/services/shapers/impl/mean.py::Mean._calculate_mean_with_cache", "src/core/services/shapers/impl/normalize.py::Normalize._normalize_with_cache"],
-        "tests": ["tests/unit/test_simple_cache.py::TestComputeDataFingerprint", "tests/unit/test_simple_cache.py::TestBasicOperations", "tests/unit/test_simple_cache.py::TestConcurrency", "tests/unit/test_csv_pool_service.py::TestCSVLoading", "tests/unit/test_csv_pool_service.py::TestCacheManagement"],
+        "tests": ["tests/unit/test_simple_cache.py::TestComputeDataFingerprint", "tests/unit/test_simple_cache.py::TestBasicOperations", "tests/unit/test_simple_cache.py::TestConcurrency", "tests/unit/test_csv_pool_service.py::TestCSVLoading", "tests/unit/test_csv_pool_service.py::TestCacheManagement", "tests/unit/test_content_identity.py::test_retained_scientific_differences_reach_every_identity_consumer"],
         "documentation": ["docs/developer-guide/development/code-quality.md#cache-requirements"]
       }
     },
@@ -3548,7 +3548,7 @@
       "evidence": {
         "implementation": [
           "src/core/models/dataset_workspace_models.py::DatasetSnapshotInfo",
-          "src/core/services/data_services/dataset_fingerprint.py::fingerprint_dataset",
+          "src/core/common/content_identity.py::frame_signature",
           "src/core/services/data_services/path_service.py::PathService.get_dataset_snapshots_dir",
           "src/core/services/data_services/dataset_snapshot_service.py::DatasetSnapshotService.list_snapshots",
           "src/core/services/data_services/dataset_snapshot_service.py::DatasetSnapshotService.save_snapshot",
@@ -3563,6 +3563,7 @@
         ],
         "tests": [
           "tests/unit/test_dataset_snapshot_service.py::test_save_list_load_overwrite_and_delete_exact_snapshot",
+          "tests/unit/test_dataset_snapshot_service.py::test_snapshot_preserves_range_axes_and_canonical_lineage_identity",
           "tests/unit/test_dataset_snapshot_service.py::test_load_rejects_checksum_and_fingerprint_tampering",
           "tests/unit/test_parsing_services.py::TestPathService.test_get_dataset_snapshots_dir_creates_directory",
           "tests/integration/test_ring5_public_api.py::TestReusableDatasetSnapshots.test_save_list_reload_overwrite_and_delete",

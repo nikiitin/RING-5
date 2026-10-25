@@ -20,16 +20,19 @@ import numpy as np
 import pandas as pd
 
 from src.core.common.utils import sanitize_filename, validate_path_within
+from src.core.common.content_identity import frame_signature
 from src.core.common.security_limits import MAX_PORTFOLIO_BUNDLE_BYTES
 from src.core.models import DatasetSnapshotInfo
-from src.core.services.data_services.dataset_fingerprint import fingerprint_dataset
 from src.core.services.data_services.path_service import PathService
-from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
+from src.core.services.managers.semantic_metadata_service import (
+    SEMANTICS_ATTR,
+    SemanticMetadataService,
+)
 
 logger = logging.getLogger(__name__)
 
 _FORMAT = "ring5.dataset-snapshot"
-_FORMAT_VERSION = 1
+_FORMAT_VERSION = 2
 _EXTENSION = ".ring5-snapshot"
 _MANIFEST_MEMBER = "manifest.json"
 _DATA_MEMBER = "data.json"
@@ -66,6 +69,7 @@ class DatasetSnapshotService:
         if not isinstance(data, pd.DataFrame):
             raise TypeError("Dataset snapshots require a pandas DataFrame.")
 
+        expected_fingerprint = frame_signature(data)
         frame_payload = cls._encode_frame(data)
         payload_bytes = json.dumps(
             frame_payload,
@@ -73,9 +77,8 @@ class DatasetSnapshotService:
             allow_nan=False,
             separators=(",", ":"),
         ).encode("utf-8")
-        expected_fingerprint = fingerprint_dataset(data)
         reconstructed = cls._decode_frame(frame_payload)
-        if fingerprint_dataset(reconstructed) != expected_fingerprint:
+        if frame_signature(reconstructed) != expected_fingerprint:
             raise ValueError(
                 "This dataset contains labels, values, or dtypes that cannot be saved exactly "
                 "in the reusable snapshot format."
@@ -217,7 +220,7 @@ class DatasetSnapshotService:
             raise ValueError("Dataset snapshot contains invalid table data.") from exc
         if len(data) != manifest["row_count"] or len(data.columns) != manifest["column_count"]:
             raise ValueError("Dataset snapshot does not match its recorded dimensions.")
-        if fingerprint_dataset(data) != manifest["fingerprint"]:
+        if frame_signature(data) != manifest["fingerprint"]:
             raise ValueError("Dataset snapshot failed fingerprint verification.")
         return cls._info_from_manifest(manifest, len(payload)), data
 
@@ -299,8 +302,16 @@ class DatasetSnapshotService:
     @classmethod
     def _encode_frame(cls, data: pd.DataFrame) -> dict[str, Any]:
         # [impl->req~ring5.data.semantic-units~1]
+        if any(key != SEMANTICS_ATTR for key in data.attrs):
+            raise ValueError(
+                "Dataset snapshot attributes support only validated semantic metadata."
+            )
         columns = [cls._encode_scalar(column) for column in data.columns]
-        column_kind = "multi" if isinstance(data.columns, pd.MultiIndex) else "single"
+        column_kind = (
+            "range"
+            if isinstance(data.columns, pd.RangeIndex)
+            else "multi" if isinstance(data.columns, pd.MultiIndex) else "single"
+        )
         column_names = [cls._encode_scalar(name) for name in data.columns.names]
         dtypes = [
             cls._encode_dtype(data.iloc[:, index].dtype) for index in range(len(data.columns))
@@ -321,22 +332,28 @@ class DatasetSnapshotService:
             }
         else:
             index = {
-                "kind": "single",
+                "kind": "range" if isinstance(data.index, pd.RangeIndex) else "single",
                 "names": [cls._encode_scalar(data.index.name)],
                 "dtypes": [cls._encode_dtype(data.index.dtype)],
                 "values": [cls._encode_scalar(value) for value in data.index.tolist()],
             }
-        return {
+            if isinstance(data.index, pd.RangeIndex):
+                index["range"] = [data.index.start, data.index.stop, data.index.step]
+        payload = {
             "columns": columns,
             "column_kind": column_kind,
             "column_names": column_names,
             "dtypes": dtypes,
             "index": index,
             "rows": rows,
-            "semantic_columns": SemanticMetadataService.to_payload(
-                SemanticMetadataService.inspect(data)
-            ),
         }
+        if isinstance(data.columns, pd.RangeIndex):
+            payload["column_range"] = [data.columns.start, data.columns.stop, data.columns.step]
+        if SEMANTICS_ATTR in data.attrs:
+            payload["semantic_columns"] = SemanticMetadataService.to_payload(
+                SemanticMetadataService.inspect(data)
+            )
+        return payload
 
     @classmethod
     def _decode_frame(cls, payload: dict[str, Any]) -> pd.DataFrame:
@@ -364,7 +381,11 @@ class DatasetSnapshotService:
             series.append(pd.Series(values, dtype=cls._decode_dtype(dtype_spec)))
         frame = pd.concat(series, axis=1) if series else pd.DataFrame(index=range(len(raw_rows)))
         decoded_column_names = [cls._decode_scalar(name) for name in raw_column_names]
-        if column_kind == "single" and len(decoded_column_names) == 1:
+        if column_kind == "range" and len(decoded_column_names) == 1:
+            frame.columns = cls._decode_range_index(
+                payload.get("column_range"), decoded_column_names[0], labels
+            )
+        elif column_kind == "single" and len(decoded_column_names) == 1:
             frame.columns = pd.Index(
                 labels,
                 name=decoded_column_names[0],
@@ -384,7 +405,26 @@ class DatasetSnapshotService:
             payload.get("semantic_columns", {}),
             available_columns=tuple(str(column) for column in frame.columns),
         )
-        return SemanticMetadataService.attach(frame, semantics) if semantics.columns else frame
+        return (
+            SemanticMetadataService.attach(frame, semantics)
+            if "semantic_columns" in payload
+            else frame
+        )
+
+    @staticmethod
+    def _decode_range_index(bounds: Any, name: Any, values: list[Any]) -> pd.RangeIndex:
+        """Restore exact range parameters while verifying the recorded axis values."""
+        if (
+            not isinstance(bounds, list)
+            or len(bounds) != 3
+            or any(type(value) is not int for value in bounds)
+            or bounds[2] == 0
+        ):
+            raise ValueError("Snapshot range index bounds are invalid.")
+        index = pd.RangeIndex(start=bounds[0], stop=bounds[1], step=bounds[2], name=name)
+        if len(index) != len(values) or index.tolist() != values:
+            raise ValueError("Snapshot range index values do not match its bounds.")
+        return index
 
     @classmethod
     def _decode_index(cls, spec: Any) -> pd.Index[Any]:
@@ -399,6 +439,12 @@ class DatasetSnapshotService:
             or not isinstance(dtypes, list)
         ):
             raise ValueError("Snapshot index metadata is invalid.")
+        if spec.get("kind") == "range" and len(names) == 1 and len(dtypes) == 1:
+            return cls._decode_range_index(
+                spec.get("range"),
+                cls._decode_scalar(names[0]),
+                [cls._decode_scalar(value) for value in values],
+            )
         if spec.get("kind") == "single" and len(names) == 1 and len(dtypes) == 1:
             decoded = [cls._decode_scalar(value) for value in values]
             array = pd.Series(decoded, dtype=cls._decode_dtype(dtypes[0])).array

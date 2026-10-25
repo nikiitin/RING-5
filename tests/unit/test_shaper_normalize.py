@@ -342,7 +342,7 @@ class TestComputeDataFingerprint:
         cols = self._relevant_cols(params)
         fp = compute_data_fingerprint(df, params, cols)
         assert isinstance(fp, str)
-        assert len(fp) == 16  # md5 hex[:16]
+        assert fp.startswith("sha256:")
 
     def test_same_data_same_fingerprint(self) -> None:
         df = pd.DataFrame({"config": ["a", "b"], "bench": ["b1", "b1"], "m": [1.0, 2.0]})

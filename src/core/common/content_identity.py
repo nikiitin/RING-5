@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import Any
+from typing import Any, overload
 from datetime import date, datetime, time
 from decimal import Decimal
 from pathlib import PurePath
@@ -19,6 +19,10 @@ def encode_identity(value: Any) -> Any:
         return [type(value).__name__, value]
     if type(value) is float:
         return ["float", value.hex()]
+    if type(value) is bytes:
+        return ["bytes", value.hex()]
+    if type(value) is complex:
+        return ["complex", value.real.hex(), value.imag.hex()]
     if value is pd.NA:
         return ["pandas.NA"]
     if value is pd.NaT:
@@ -86,6 +90,7 @@ def encode_identity(value: Any) -> Any:
             encode_identity(list(value.names)),
             encode_identity(value.tolist()),
             levels,
+            getattr(value, "freqstr", None),
         ]
     if isinstance(value, np.ndarray):
         return ["ndarray", str(value.dtype), value.shape, encode_identity(value.tolist())]
@@ -105,10 +110,30 @@ def content_signature(value: Any) -> str:
     return "sha256:" + hashlib.sha256(payload).hexdigest()
 
 
+@overload
+def frame_signature(data: pd.DataFrame) -> str:
+    """Return the typed identity of a present dataframe."""
+    raise NotImplementedError
+
+
+@overload
+def frame_signature(data: None) -> None:
+    """Retain the absence of a dataframe without creating a digest."""
+    raise NotImplementedError
+
+
 def frame_signature(data: pd.DataFrame | None) -> str | None:
-    """Identify complete dataframe values, axes, dtypes and retained metadata."""
+    """Identify complete dataframe values, axes, dtypes and retained metadata.
+
+    Raises:
+        TypeError: Input is neither a dataframe nor ``None``.
+        ValueError: Values or metadata have no supported stable identity.
+    """
+    # [impl->req~ring5.data.dataset-snapshots~1]
     if data is None:
         return None
+    if not isinstance(data, pd.DataFrame):
+        raise TypeError("Scientific frame identities require a pandas DataFrame or None.")
     metadata = {
         "columns": data.columns,
         "index": data.index,

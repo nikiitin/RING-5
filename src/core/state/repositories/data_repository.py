@@ -8,8 +8,8 @@ from datetime import datetime, timezone
 import pandas as pd
 
 from src.core.common.dataframe_copy import copy_dataframe
+from src.core.common.content_identity import frame_signature
 from src.core.models.dataset_workspace_models import DatasetInfo, DatasetLineage, DatasetRevision
-from src.core.services.data_services.dataset_fingerprint import fingerprint_dataset
 
 logger = logging.getLogger(__name__)
 
@@ -322,6 +322,7 @@ class DataRepository:
                 parents.append(source_revision)
 
         snapshot = copy_dataframe(data)
+        fingerprint = frame_signature(snapshot)
         self._revision_counter += 1
         revision_id = f"rev-{self._revision_counter:06d}"
         revision_ids = self._dataset_revision_ids.setdefault(name, [])
@@ -333,7 +334,7 @@ class DataRepository:
             created_at=datetime.now(timezone.utc).isoformat(),
             row_count=len(snapshot),
             column_count=len(snapshot.columns),
-            fingerprint=fingerprint_dataset(snapshot),
+            fingerprint=fingerprint,
             source_datasets=resolved_sources,
             parent_revision_ids=tuple(parents),
         )

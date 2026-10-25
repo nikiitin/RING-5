@@ -197,7 +197,7 @@ class TestComputeDataFingerprint:
         cols = self._relevant_cols(params)
         fp = compute_data_fingerprint(df, params, cols)
         assert isinstance(fp, str)
-        assert len(fp) == 16
+        assert fp.startswith("sha256:")
 
 
 class TestNormalizeMultipleVars:

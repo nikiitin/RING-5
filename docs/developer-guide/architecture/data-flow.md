@@ -127,7 +127,15 @@ Windows uses `msvcrt`, while Unix uses `flock`. These advisory locks coordinate 
 processes on local filesystems.
 
 Mean and Normalize cache full retained-frame identity, including uncertainties, column labels,
-dtypes, index and semantic attributes. CSV data and metadata caches share precise file identity
+dtypes, index and semantic attributes. `core.common.content_identity.frame_signature` owns this
+typed identity for transformation caches, rendering, named-dataset revisions, previews, reports,
+and reusable snapshots. `content_signature` composes operation parameters and figure configuration
+without stringifying unsupported values. Optimization caches bypass unsupported or cyclic inputs;
+revision and snapshot publication reject them before changing retained state or files.
+
+Figure reuse includes every persisted configuration field, including axis ranges and legend
+positions, plus its rendering engine. Transient widgets and browser events live outside that
+configuration. CSV data and metadata caches share precise file identity
 (device, inode, size and nanosecond modification/change times); a file changed during a read is
 rejected rather than published under an earlier signature. Metadata row counts parse CSV records
 so quoted newlines and blank records are handled consistently.
