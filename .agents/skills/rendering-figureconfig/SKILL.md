@@ -47,8 +47,8 @@ a style role independently. Legend font sizes retain fractional points. All flat
 Native builders return `PlotlyRenderResult` or `MatplotlibFigureResult`. The artifact owns this
 one result; figure and engine are derived. Connectors require that explicit result and return
 `None`. Matplotlib's private panel helpers require `MatplotlibRenderResult` and derive their axes
-from it. A bare axes context is appropriate for paper annotations or layout; meaningful data tests
-use real neutral emissions or explicit known-source/native associations.
+from it. A `MatplotlibRenderResult` without source bindings is appropriate for paper annotations or
+layout; meaningful data tests use real neutral emissions or explicit known-source/native associations.
 
 `legend_labels` owns display text. Keep neutral names, style keys, order, group and role identity
 unchanged; apply styles before projecting text into native legends or facet titles. Per-series

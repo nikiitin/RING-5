@@ -40,10 +40,12 @@ class _Request:
 
     @property
     def orientation(self) -> str:
+        """Return the resolved native colorbar orientation."""
         return self.spec.legends[0].orientation if self.spec.legends else "vertical"
 
     @property
     def visible(self) -> bool:
+        """Return the requested colorbar visibility."""
         return self.spec.legends[0].visible if self.spec.legends else True
 
 

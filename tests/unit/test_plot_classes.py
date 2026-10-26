@@ -2,7 +2,7 @@
 
 from ring5 import Session
 
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -276,11 +276,14 @@ class TestPlotCommonLayout:
 class TestPlotLegendLabels:
     """Test legend label customization."""
 
+    @pytest.mark.parametrize("engine", ["plotly", "matplotlib"])
     def test_legend_labels_applied_to_both_engines(
-        self, sample_data: Any, plot_session: Session
+        self, sample_data: Any, plot_session: Session, engine: Literal["plotly", "matplotlib"]
     ) -> None:
-        """Custom legend labels (in config) rename trace names once, so the Plotly
-        figure and its prepared neutral traces both show them."""
+        """Retain raw names and values while projecting actual native legend text."""
+        from matplotlib.patches import Rectangle
+        from src.core.models.visualization.trace_config import BarTraceConfig
+
         plot = BarPlot(1, "Test")
         config = {
             "x": "category",
@@ -292,15 +295,30 @@ class TestPlotLegendLabels:
             "show_error_bars": False,
             "legend_labels": {"G1": "Group One", "G2": "Group Two"},
         }
-
         plot.processed_data = sample_data
         plot.config = config
-        fig = cast(go.Figure, plot_session.render(plot))
-
-        # Plotly figure trace names are renamed.
-        fig_names = [cast(go.Bar, trace).name for trace in fig.data]
-        assert "Group One" in fig_names or "Group Two" in fig_names
-        # The engine-agnostic traces (consumed by the matplotlib connector) too.
-        assert plot.render_artifact.trace_result is not None
-        trace_names = [t.name for t in plot.render_artifact.trace_result.traces]
-        assert "Group One" in trace_names or "Group Two" in trace_names
+        fig = plot_session.render(plot, engine=engine)
+        result = plot.render_artifact.trace_result
+        assert result is not None
+        assert [trace.name for trace in result.traces] == ["G1", "G2"]
+        for trace, expected in zip(result.traces, [[10, 20, 15], [12, 18, 16]], strict=True):
+            assert isinstance(trace, BarTraceConfig)
+            assert trace.y == expected
+        if isinstance(fig, go.Figure):
+            names = []
+            for native in fig.data:
+                assert isinstance(native, go.Bar)
+                names.append(native.name)
+            assert names == ["Group One", "Group Two"]
+            assert fig.layout.title.text == "Test"
+        else:
+            legend = fig.axes[0].get_legend()
+            assert legend is not None
+            assert [text.get_text() for text in legend.texts] == ["Group One", "Group Two"]
+            heights = []
+            for patch in fig.axes[0].patches:
+                assert isinstance(patch, Rectangle)
+                heights.append(patch.get_height())
+            assert heights == [10, 20, 15, 12, 18, 16]
+            assert fig.axes[0].get_title() == "Test"
+        assert plot.config == config
