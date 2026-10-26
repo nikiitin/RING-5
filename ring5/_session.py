@@ -681,6 +681,8 @@ class Session:
             DataLoadError: Reading, integrity/type validation or publication fails.
         """
         # [impl->req~ring5.ingestion.csv-load~1]
+        if not isinstance(source, (str, _parse.ParseResult)):
+            raise DataLoadError("Data source must be a CSV path string or ring5.ParseResult.")
         try:
             if isinstance(source, _parse.ParseResult):
                 self.api.load_data(source.output, source_context=source.source_context)
