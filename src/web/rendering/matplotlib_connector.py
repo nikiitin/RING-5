@@ -91,6 +91,7 @@ class FigureSpecToMatplotlib:
             ValueError: Any bound root, source, native member or generated role is invalid.
             TypeError: An annotation has no supported typed family.
         """
+        # [impl->req~ring5.extension.render-connector~1]
         rendered.validate()
         validate_annotation_types(spec.annotations)
         colorbars = prepare_colorbars(
@@ -139,7 +140,6 @@ class FigureSpecToMatplotlib:
         Raises:
             TypeError: An annotation has no supported typed family.
         """
-        # [impl->req~ring5.extension.render-connector~1]
         render_result.validate()
         validate_annotation_types(spec.annotations)
         ax = render_result.primary_axes
@@ -754,6 +754,7 @@ class FigureSpecToMatplotlib:
     def _apply_legends(spec: FigureConfig, rendered: MatplotlibRenderResult) -> None:
         """Project display labels from owned sources after native styling."""
         # [impl->req~ring5.figure.legends~1]
+        # [impl->req~ring5.figure.ordering-renaming~2]
         ax, twin = rendered.primary_axes, rendered.secondary_axes
         for target in (ax,) if twin is None else (ax, twin):
             FigureSpecToMatplotlib._clear_owned_legends(target)
@@ -791,6 +792,7 @@ class FigureSpecToMatplotlib:
         specs: tuple[FigureConfig, ...],
     ) -> None:
         """Replace only this root's shared legend using final source-owned swatches."""
+        # [impl->req~ring5.figure.ordering-renaming~2]
         rendered.validate()
         if len(specs) != len(rendered.panels):
             raise ValueError("Shared legend projection requires every actual panel specification.")

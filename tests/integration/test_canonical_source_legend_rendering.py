@@ -109,6 +109,7 @@ def _frame() -> pd.DataFrame:
 def test_public_aliases_preserve_original_style_order_values_and_direct_reapply(
     engine: Engine,
 ) -> None:
+    # [test->req~ring5.figure.ordering-renaming~2]
     frame, config = _frame(), _config()
     before_frame, before_config = frame.copy(deep=True), deepcopy(config)
     with Session() as session:
@@ -155,6 +156,7 @@ def test_public_aliases_preserve_original_style_order_values_and_direct_reapply(
 def test_real_dashboard_keeps_colliding_labels_and_reprojects_shared_entries(
     engine: Engine, shared: bool
 ) -> None:
+    # [test->req~ring5.figure.ordering-renaming~2]
     with Session() as session:
         plots = [
             session.create_plot("bar", data=Table(_frame()), config=_config()) for _ in range(2)

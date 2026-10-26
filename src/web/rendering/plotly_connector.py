@@ -927,6 +927,7 @@ class FigureSpecToPlotly:
     @staticmethod
     def _project_labels(spec: FigureConfig, rendered: PlotlyRenderResult) -> None:
         """Project text after styling without changing source or linked-group identity."""
+        # [impl->req~ring5.figure.ordering-renaming~2]
         role_visibility = {legend.role: legend.visible for legend in spec.legends}
         for panel in rendered.panel_bindings:
             for binding in panel:

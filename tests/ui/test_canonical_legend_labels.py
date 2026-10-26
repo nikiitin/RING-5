@@ -104,6 +104,7 @@ def test_real_series_and_category_rename_share_canonical_labels(
 def test_real_reorder_preserves_raw_identity_and_value_keyed_rename_widgets(
     session: Session,
 ) -> None:
+    # [test->req~ring5.figure.ordering-renaming~2]
     app = _app(
         session,
         "stacked_bar",

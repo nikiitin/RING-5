@@ -115,10 +115,16 @@ engine's figure or resolving styling again. Matplotlib standalone figures and da
 share `draw_matplotlib_axes`; the panel compositor owns its outer margins and legend domains.
 Trace legend roles stay independent of Y-axis roles and numbered annotation styling.
 
+Native builders return one engine result containing its actual source associations. Original names
+remain stable for styles, order and groups; `legend_labels` supplies late display text. Copies and
+dashboard assembly transfer associations explicitly to destination traces/artists. Connectors
+preflight the whole owned root before reapply, while exports consume the completed native figure.
+
 Public single-plot rendering publishes effective configuration, neutral output, resolved style,
-native artifact and reuse key together through `BasePlot.publish_figure` after a successful build.
-Matplotlib managers are deregistered without clearing artist content; callers retain usable figures.
-`invalidate_figure` releases only the owned manager and clears all retained render references.
+native artifact and reuse key together through `BasePlot.publish_render_artifact` after a successful
+build. Publication relinquishes its Matplotlib manager without clearing artist content; callers
+retain usable figures. `invalidate_figure` detaches the owned generation and clears its render
+references without claiming a manager later registered by a borrower.
 PlotRepository compares object identity when disposing removed or replaced plots, including restore
 publication and rejected-candidate cleanup. Duplication detaches artifacts before copying domain
 state; transient facet views never acquire ownership of the source plot's artifacts.

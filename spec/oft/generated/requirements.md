@@ -2089,7 +2089,7 @@ Tags: grouped_bar, settings, shading, status_approved
 `req~ring5.figure.series-styling~1`
 Status: approved
 
-Applicable web plots shall configure per-series override color, display name, bar pattern, marker symbol and size, and line width, while typed renderer styles shall also carry opacity and border settings.
+Applicable web plots shall configure per-series override color, bar pattern, marker symbol and size, and line width by original series name, while typed renderer styles shall also carry opacity and border settings. Legend display text uses the canonical legend-label mapping.
 
 History records: 1
 

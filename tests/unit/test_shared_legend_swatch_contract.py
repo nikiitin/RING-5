@@ -58,6 +58,7 @@ def _shown(native: PlotlyRenderResult) -> list[bool]:
 def test_shared_scatter_mode_is_part_of_native_glyph_identity(
     modes: tuple[str, str], expected: int
 ) -> None:
+    # [test->req~ring5.figure.series-styling~1]
     native = _plotly_shared(
         [
             go.Scatter(
@@ -178,6 +179,7 @@ def _panel(
 def test_native_collection_legend_stroke_preserves_scalar_distinctions_and_unknown_vectors(
     style: str, expected: int
 ) -> None:
+    # [test->req~ring5.figure.series-styling~1]
     figure, axes = plt.subplots(1, 2)
     widths: tuple[float | list[float], float | list[float]] = (
         ([1.0, 5.0], [1.0, 5.0])

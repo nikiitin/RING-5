@@ -240,7 +240,13 @@ configuration mapping. Existing raw mappings retain their exact settings and ren
 `reverse_colorscale` and `show_values`. Plugin-owned configurations and typed heatmap trace
 colorscales keep their separate contracts.
 
-Per-series overrides use `series_styles`, a mapping from text series names to style mappings.
+Per-series overrides use `series_styles`, a mapping from original text series names to style mappings.
+Display names use `legend_labels`, such as `{"ipc": "Instructions per cycle"}`. Set both mappings
+through `FigureSpec.extra` or the editable configuration mapping. Styles and ordering keep using
+`"ipc"` after the rename; repeated or empty display labels preserve each source series. Rendering
+returns the selected engine's native figure. Source-to-native associations remain internal and
+are not required to export that fully styled figure.
+
 Its `pattern` field is a string: empty, `/`, `\`, `x`, `-`, `|`, `+`, `.`, `o`, `O`, or `*`.
 Both native engines render this vocabulary. Plotly uses native SVG pattern paths for the
 circle/star forms. An omitted `pattern` preserves the trace or theme hatch; an explicit empty
