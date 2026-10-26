@@ -573,79 +573,82 @@ class VariableEditor:
         total = len(futures)
 
         try:
-            for future in as_completed(futures, timeout=SCAN_BATCH_TIMEOUT_SECONDS):
-                try:
-                    res = future.result()
-                    results.append(res)
-                    if not res.ok:
-                        errors.append(f"{res.file_path}: {res.error}")
-                except Exception as e:
-                    errors.append(str(e))
+            try:
+                for future in as_completed(futures, timeout=SCAN_BATCH_TIMEOUT_SECONDS):
+                    try:
+                        results.append(future.result())
+                    except Exception as e:
+                        errors.append(str(e))
 
-                completed += 1
-                if total > 0:
-                    pct = min(completed / total, 1.0)
-                    progress_bar.progress(pct, text=f"Scanned {completed}/{total} files")
-        except FuturesTimeoutError:
-            for future in futures:
-                future.cancel()
-            st.error("Scan batch exceeded the five-minute limit.")
-            return
-        except KeyboardInterrupt:
-            st.warning("Scan interrupted.")
-            return
+                    completed += 1
+                    if total > 0:
+                        pct = min(completed / total, 1.0)
+                        progress_bar.progress(pct, text=f"Scanned {completed}/{total} files")
+            except FuturesTimeoutError:
+                for future in futures:
+                    future.cancel()
+                st.error("Scan batch exceeded the five-minute limit.")
+                return
+            except KeyboardInterrupt:
+                st.warning("Scan interrupted.")
+                return
 
-        if errors:
-            st.warning(f"Encountered {len(errors)} scan error(s).")
+            for error in errors:
+                st.warning(f"Scan worker failed: {error}")
+            if not results:
+                st.warning("No results found.")
+                return
 
-        if not results:
-            st.warning("No results found.")
-            return
-
-        # Aggregate results with status container
-        with st.status("Processing scan results...", expanded=True) as status:
-            st.write("Aggregating scan data...")
-            scan_result = api.finalize_scan(results)
-            snapshot_dicts = [sv.to_dict() for sv in scan_result.variables]
-            api.state_manager.set_scanned_variables(snapshot_dicts)
-
-            # Process results based on type
-            if is_distribution:
+            with st.status("Processing scan results...", expanded=True) as status:
+                st.write("Aggregating scan data...")
+                scan_result = api.finalize_scan(results)
+                for failure in scan_result.failures:
+                    st.warning(f"Scan failed for {failure.file_path}: {failure.error}")
+                incomplete = bool(errors or scan_result.failures)
+                snapshot_dicts = [sv.to_dict() for sv in scan_result.variables]
+                api.state_manager.set_scanned_variables(snapshot_dicts)
                 labels = api.data_services.aggregate_discovered_entries(
                     snapshot_dicts,
                     var_name,
                     api.get_simulator_info(api.state_manager.get_simulator()).internal_stats,
                 )
-                st.write("Observed entry labels:", labels)
-                st.info(
-                    "Printed labels and observed summaries do not declare a native grid. "
-                    "Set the source contract and geometry explicitly."
-                )
-                status.update(label="Source evidence scanned", state="complete", expanded=False)
-            else:
-                st.write("Discovering entries...")
-                # Aggregate entries using VariableServicesAPI
-                filtered_entries = api.data_services.aggregate_discovered_entries(
-                    snapshot_dicts,
-                    var_name,
-                    api.get_simulator_info(api.state_manager.get_simulator()).internal_stats,
-                )
 
-                if filtered_entries:
-                    st.write(f"Updating {len(filtered_entries)} entries...")
+                if is_distribution:
+                    st.write("Observed entry labels:", labels)
+                    st.info(
+                        "Printed labels and observed summaries do not declare a native grid. "
+                        "Set the source contract and geometry explicitly."
+                    )
                     status.update(
-                        label=f"Discovered {len(filtered_entries)} entries",
-                        state="complete",
+                        label=(
+                            "Scan finished with errors" if incomplete else "Source evidence scanned"
+                        ),
+                        state="error" if incomplete else "complete",
                         expanded=False,
                     )
-                    st.success(f"Discovered {len(filtered_entries)} unique entries!")
+                elif labels:
+                    st.write(f"Updating {len(labels)} entries...")
+                    status.update(
+                        label=(
+                            "Scan finished with errors"
+                            if incomplete
+                            else f"Discovered {len(labels)} entries"
+                        ),
+                        state="error" if incomplete else "complete",
+                        expanded=False,
+                    )
+                    if not incomplete:
+                        st.success(f"Discovered {len(labels)} unique entries!")
                 else:
-                    status.update(label="No entries found", state="error")
+                    status.update(
+                        label="Scan finished with errors" if incomplete else "No entries found",
+                        state="error",
+                        expanded=False,
+                    )
                     st.warning(f"No valid entries found matching '{var_name}'.")
-
-        # Release completed futures to free memory (~70MB for 252 files).
-        # Settled-only: never abort another browser session's live scan.
-        api.release_settled_scans()
+        finally:
+            # Retire settled scans without aborting another session's live work.
+            api.release_settled_scans()
 
         if st.button("Close", key=f"finish_{var_id}"):
             st.rerun()

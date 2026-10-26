@@ -254,6 +254,7 @@ def build_stat_configs(
         passed to ``submit_parse_async`` so regex/pattern names resolve.
 
     Raises:
+        ValueError: A source is ambiguous or an explicit configuration is invalid.
         ScanError: The stats path has no matching files, the scan failed
             for any selected file, or a requested name was not found by the scan.
     """
