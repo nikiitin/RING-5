@@ -268,6 +268,7 @@ class Gem5ParseWork:
                     if (
                         source_kind == "distribution"
                         and spec.output_type == "histogram"
+                        and not spec.config.statistics_only
                         and (
                             re.fullmatch(r"-?\d+(?:--?\d+)?", entry) is None
                             and any(character.isdigit() for character in entry)

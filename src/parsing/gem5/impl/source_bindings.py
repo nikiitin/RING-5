@@ -404,6 +404,7 @@ def _admit_outputs(
         opaque = (
             spec.output_type == "vector"
             and spec.config.params["source_type"] == "distribution"
+            and not spec.config.statistics_only
             and bool(spec.entries)
         )
         if geometry is None and not opaque:
