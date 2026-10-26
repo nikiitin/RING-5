@@ -60,6 +60,7 @@ def test_capture_deduplicates_lists_loads_and_isolates_owner_namespaces(recovery
     restored = TypedTableCodec.decode(
         AutosaveRecoveryService.load("browser-secret-a", first.draft.draft_id)["data"]
     )
+    assert restored is not None
     pd.testing.assert_frame_equal(restored, pd.DataFrame({"value": [1]}))
     owner_directory = recovery_dir / hashlib.sha256(b"browser-secret-a").hexdigest()
     assert owner_directory.stat().st_mode & 0o777 == 0o700
