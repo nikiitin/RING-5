@@ -167,36 +167,6 @@ def cached(
     return decorator
 
 
-def timed(func: Callable[..., T]) -> Callable[..., T]:
-    """
-    Decorator to measure function execution time.
-
-    Logs execution time at INFO level for performance monitoring.
-
-    Example:
-        @timed
-        def slow_operation():
-            # ... slow code
-    """
-
-    # [impl->req~ring5.quality.performance-regression-gates~1]
-
-    @functools.wraps(func)
-    def wrapper(*args: Any, **kwargs: Any) -> T:
-        start = time.perf_counter()
-        result = func(*args, **kwargs)
-        elapsed = (time.perf_counter() - start) * 1000  # ms
-
-        if elapsed > 100:  # Log slow operations (>100ms)
-            logger.warning(f"SLOW: {func.__name__} took {elapsed:.2f}ms")
-        else:
-            logger.debug(f"PERF: {func.__name__} took {elapsed:.2f}ms")
-
-        return result
-
-    return wrapper
-
-
 def compute_data_fingerprint(
     data: pd.DataFrame,
     params: dict[str, Any],

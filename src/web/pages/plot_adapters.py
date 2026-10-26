@@ -1,5 +1,5 @@
 """
-Plot Adapters — bridge old concrete classes to protocol contracts.
+Adapt plotting services to controller protocols.
 
 These adapters wrap the static/class-method services (``PlotService``,
 ``PlotFactory``), facade shaper operations, and the ``configure_shaper`` editor
@@ -22,7 +22,7 @@ Usage::
     pipeline  = PipelineExecutorAdapter(api.shapers)
 
     creation = PlotCreationController(api, ui_state, lifecycle, registry)
-    pipeline_ctrl = PipelineController(api, ui_state, pipeline)
+    pipeline_ctrl = PipelineController(api, pipeline)
     render = PlotRenderController(api, ui_state, lifecycle, registry)
 """
 

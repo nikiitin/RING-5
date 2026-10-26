@@ -100,6 +100,7 @@ This file is informative; normative items are in the other generated files.
 | `figure.stack-totals` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |
 | `figure.alternate-category-shading` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |
 | `figure.series-styling` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |
+| `quality.performance-regression-gates` | 1 | Evidence only | Retain live benchmark evidence after removing the unused timing decorator. |
 | `trace.requirement-history` | 1 | Semantic | Specified complete semantic snapshots and reviewer-facing history views. |
 | `trace.requirement-history` | 2 | Evidence only | Recorded implementation, verification, and documentation evidence without changing revision 2. |
 

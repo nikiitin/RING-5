@@ -132,8 +132,6 @@ class SplitApplyConfig:
                     data=data,
                     display_names=display_names,
                     numeric_cols=numeric_cols,
-                    categorical_cols=categorical_cols,
-                    join_columns=join_columns,
                     existing_group=existing_groups[g_idx],
                     key_prefix=key_prefix,
                     shaper_id=shaper_id,
@@ -154,8 +152,6 @@ class SplitApplyConfig:
     def _render_group(
         data: pd.DataFrame,
         numeric_cols: list[str],
-        categorical_cols: list[str],
-        join_columns: list[str],
         existing_group: SplitApplyGroupConfig,
         key_prefix: str,
         shaper_id: int,
@@ -167,12 +163,11 @@ class SplitApplyConfig:
         Args:
             data: Full DataFrame (for sub-shaper config introspection).
             numeric_cols: All numeric column names.
-            categorical_cols: All categorical column names.
-            join_columns: Currently selected join columns.
             existing_group: Saved config for this group.
             key_prefix: Widget key prefix.
             shaper_id: Shaper instance ID.
             group_index: 0-based group index.
+            display_names: Current facade-provided editor labels and identifiers.
 
         Returns:
             Group config dict with ``columns`` and ``pipeline`` keys.
@@ -193,9 +188,6 @@ class SplitApplyConfig:
         existing_pipeline: Sequence[Mapping[str, object]] = existing_group.get("pipeline", [])
         pipeline: list[Mapping[str, object]] = SplitApplyConfig._render_sub_pipeline(
             data=data,
-            columns=columns,
-            join_columns=join_columns,
-            categorical_cols=categorical_cols,
             existing_pipeline=existing_pipeline,
             key_base=gk,
             display_names=display_names,
@@ -206,27 +198,20 @@ class SplitApplyConfig:
     @staticmethod
     def _render_sub_pipeline(
         data: pd.DataFrame,
-        columns: list[str],
-        join_columns: list[str],
-        categorical_cols: list[str],
         existing_pipeline: Sequence[Mapping[str, object]],
         key_base: str,
         display_names: dict[str, str],
     ) -> list[Mapping[str, object]]:
         """Render the sub-pipeline editor for one group.
 
-        Shows a selectbox to choose a shaper type and automatically
-        generates pre-filled config for the most common operations
-        (Mean and Normalize) so the user doesn't have to repeat
-        column selections manually.
+        Each step uses the main pipeline's editor with the full DataFrame
+        and its saved configuration. Column selections remain explicit.
 
         Args:
             data: Full DataFrame.
-            columns: Numeric columns belonging to this group.
-            join_columns: Categorical join columns.
-            categorical_cols: All categorical columns.
             existing_pipeline: Previously saved sub-pipeline.
             key_base: Widget key base string.
+            display_names: Current facade-provided editor labels and identifiers.
 
         Returns:
             List of shaper config dicts for this group.
@@ -250,9 +235,6 @@ class SplitApplyConfig:
             step_cfg: Mapping[str, object] | None = SplitApplyConfig._render_sub_step(
                 data=data,
                 display_names=display_names,
-                columns=columns,
-                join_columns=join_columns,
-                categorical_cols=categorical_cols,
                 existing_step=existing_step,
                 key_base=f"{key_base}_s{s_idx}",
                 step_index=s_idx,
@@ -281,9 +263,6 @@ class SplitApplyConfig:
     @staticmethod
     def _render_sub_step(
         data: pd.DataFrame,
-        columns: list[str],
-        join_columns: list[str],
-        categorical_cols: list[str],
         existing_step: Mapping[str, object],
         key_base: str,
         step_index: int,
@@ -298,12 +277,10 @@ class SplitApplyConfig:
 
         Args:
             data: Full DataFrame.
-            columns: This group's numeric columns.
-            join_columns: Categorical join columns.
-            categorical_cols: All categorical columns.
             existing_step: Previously saved step config.
             key_base: Widget key base string.
             step_index: 0-based step index.
+            display_names: Current facade-provided editor labels and identifiers.
 
         Returns:
             Shaper config dict, or None if no type selected.

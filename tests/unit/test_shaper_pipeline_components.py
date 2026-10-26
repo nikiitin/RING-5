@@ -92,7 +92,7 @@ class TestPipelineComponent:
         mock_st.button.return_value = False
 
         result = PipelineComponent.render_shaper_controls(
-            plot_id=1, idx=0, shaper_type="sort", is_first=False, is_last=False
+            plot_id=1, idx=0, is_first=False, is_last=False
         )
 
         assert "move_up" in result

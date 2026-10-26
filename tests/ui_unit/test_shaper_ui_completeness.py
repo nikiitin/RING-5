@@ -6,6 +6,7 @@ transform that silently does nothing.
 """
 
 import pandas as pd
+import pytest
 
 from src.core.services.shapers.factory import ShaperFactory
 
@@ -30,7 +31,9 @@ def test_item_selector_config_executes() -> None:
     assert sorted(out["bench"].tolist()) == ["a", "c"]
 
 
-def test_plugin_configuration_survives_an_editor_without_a_renderer(monkeypatch) -> None:
+def test_plugin_configuration_survives_an_editor_without_a_renderer(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     from unittest.mock import MagicMock
     from src.web.pages.ui.shaper_config import configure_shaper
     from src.web.components.shapers.split_apply_config import SplitApplyConfig, _init_dispatch
@@ -46,9 +49,6 @@ def test_plugin_configuration_survives_an_editor_without_a_renderer(monkeypatch)
     _init_dispatch()
     nested = SplitApplyConfig._render_sub_step(
         pd.DataFrame({"v": [1]}),
-        ["v"],
-        ["bench"],
-        ["bench"],
         config,
         "plugin",
         0,
