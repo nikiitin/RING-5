@@ -4,9 +4,11 @@ from ring5 import Session
 import plotly.graph_objects as go
 
 import tempfile
-from collections.abc import Generator
+from collections.abc import Generator, Sequence
 from pathlib import Path
-from typing import cast
+from typing import Literal, cast
+from matplotlib.figure import Figure as MplFigure
+from matplotlib.patches import Rectangle
 
 import pandas as pd
 import pytest
@@ -17,6 +19,7 @@ import ring5
 from src.core.application_api import ApplicationAPI
 from src.core.common.parsed_output import ParsedOutputIO
 from src.core.models.data_models import ParseVariableConfig
+from src.core.models.source_evidence import source_kind_candidates
 from src.core.models.visualization.trace_config import BarTraceConfig
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
@@ -68,7 +71,8 @@ class TestHistogramPlotIntegration:
             (
                 v
                 for v in vars_found
-                if "htm_transaction_commit_cycles" in v.name and v.type == "histogram"
+                if "htm_transaction_commit_cycles" in v.name
+                and "histogram" in source_kind_candidates(v.source_evidence)
             ),
             None,
         )
@@ -85,7 +89,7 @@ class TestHistogramPlotIntegration:
                         "type": "histogram",
                         "params": {
                             "entries": (htm_var.entries or [])[:5],
-                            "source_type": htm_var.source_type,
+                            "source_type": "histogram",
                         },
                     },
                 )
@@ -151,7 +155,8 @@ class TestHistogramPlotIntegration:
             (
                 v
                 for v in vars_found
-                if "htm_transaction_commit_cycles" in v.name and v.type == "histogram"
+                if "htm_transaction_commit_cycles" in v.name
+                and "histogram" in source_kind_candidates(v.source_evidence)
             ),
             None,
         )
@@ -174,7 +179,7 @@ class TestHistogramPlotIntegration:
                     "type": "histogram",
                     "params": {
                         "entries": (htm_var.entries or [])[:5],
-                        "source_type": htm_var.source_type,
+                        "source_type": "histogram",
                     },
                 },
             ),
@@ -275,7 +280,7 @@ class TestHistogramPlotIntegration:
 
     def test_histogram_cumulative_distribution(self, plot_session: Session) -> None:
         """Test cumulative histogram."""
-        # [test->req~ring5.figure.histogram-cumulative~1]
+        # [test->req~ring5.figure.histogram-cumulative~2]
         data = pd.DataFrame(
             {
                 "hist_var..0-9": [10],
@@ -349,7 +354,7 @@ def test_parser_histogram_union_geometry_renders_observed_mass(
 
 @pytest.mark.parametrize("engine", ["plotly", "matplotlib"])
 def test_public_histogram_renders_explicit_geometry_and_rejects_overlapping_observations(
-    engine: str,
+    engine: Literal["plotly", "matplotlib"],
 ) -> None:
     """Both engines use the same label grammar without mutating the input table."""
     data = ring5.Table(pd.DataFrame({"h..0-9": [3], "h..[10,20)": [7]}))
@@ -358,16 +363,20 @@ def test_public_histogram_renders_explicit_geometry_and_rejects_overlapping_obse
         figure = session.plot("histogram", data=data, config=config, engine=engine)
         try:
             if engine == "plotly":
+                assert isinstance(figure, go.Figure)
+                assert isinstance(figure.data[0], go.Bar)
                 assert list(figure.data[0].y) == [0.3, 0.7]
                 assert list(figure.data[0].x) == [5, 15]
-                assert list(figure.data[0].width) == [10, 10]
+                assert list(cast(Sequence[float], figure.data[0].width)) == [10, 10]
             else:
-                patches = figure.axes[0].patches
+                assert isinstance(figure, MplFigure)
+                patches = [cast(Rectangle, patch) for patch in figure.axes[0].patches]
                 assert [patch.get_height() for patch in patches] == [0.3, 0.7]
                 assert [patch.get_x() + patch.get_width() / 2 for patch in patches] == [5, 15]
                 assert [patch.get_width() for patch in patches] == [10, 10]
         finally:
             if engine == "matplotlib":
+                assert isinstance(figure, MplFigure)
                 plt.close(figure)
         invalid = ring5.Table(pd.DataFrame({"h..0-10": [3], "h..10-20": [7]}))
         with pytest.raises(ring5.RenderError, match="Overlapping histogram buckets"):

@@ -1,6 +1,7 @@
 """Tests for PipelineService — the canonical shaper-pipeline execution engine."""
 
 from typing import cast
+from unittest.mock import Mock, patch
 
 import pandas as pd
 import pytest
@@ -112,3 +113,61 @@ class TestPipelineStepError:
         from src.core.services.shapers.pipeline_service import PipelineStepError
 
         assert issubclass(PipelineStepError, ValueError)
+
+
+@pytest.mark.parametrize("returned", [None, 1, pd.Series([1])])
+def test_invalid_step_output_fails_before_metadata_and_later_steps(returned: object) -> None:
+    from src.core.services.shapers.pipeline_service import PipelineStepError
+
+    source = pd.DataFrame({"x": [1]})
+    before = source.copy(deep=True)
+    pipeline: list[ShaperStepConfig] = [
+        {"type": "columnSelector", "columns": ["x"]},
+        {"type": "columnSelector", "columns": ["x"]},
+    ]
+    operation = Mock(return_value=returned)
+    with (
+        patch(
+            "src.core.services.shapers.pipeline_service.ShaperFactory.create_shaper",
+            side_effect=[operation, AssertionError("later step reached")],
+        ) as create,
+        patch("src.core.services.shapers.pipeline_service._distribution_policy") as policy,
+        pytest.raises(PipelineStepError) as failure,
+    ):
+        PipelineService.process_pipeline(source, pipeline)
+    assert failure.value.step_index == 0
+    assert failure.value.shaper_type == "columnSelector"
+    assert type(failure.value.__cause__) is TypeError
+    assert str(failure.value.__cause__) == (
+        f"Shaper output must be a pandas DataFrame; got {type(returned).__name__}."
+    )
+    assert create.call_count == 1
+    operation.assert_called_once()
+    policy.assert_not_called()
+    pd.testing.assert_frame_equal(source, before)
+
+
+@pytest.mark.parametrize("values", [[], [2.5]])
+def test_frame_step_output_reaches_the_current_metadata_policy(values: list[float]) -> None:
+    from src.core.services.shapers.pipeline_service import _distribution_policy
+
+    source = pd.DataFrame({"x": [1]})
+    returned = pd.DataFrame({"x": pd.Series(values, dtype="float64")})
+    operation = Mock(return_value=returned)
+    with (
+        patch(
+            "src.core.services.shapers.pipeline_service.ShaperFactory.create_shaper",
+            return_value=operation,
+        ),
+        patch(
+            "src.core.services.shapers.pipeline_service._distribution_policy",
+            wraps=_distribution_policy,
+        ) as policy,
+    ):
+        result = PipelineService.process_pipeline(
+            source, [{"type": "columnSelector", "columns": ["x"]}]
+        )
+    policy.assert_called_once()
+    assert policy.call_args.args[2] is returned
+    pd.testing.assert_frame_equal(result, returned)
+    assert source["x"].tolist() == [1]

@@ -130,25 +130,35 @@ changes that behavior.
 The gem5 backend produces one row per input file. `repeat` declares the expected number of dumps
 per concrete statistic. Spatial patterns average all concrete instances and dumps; scanner-generated
 scalar-pattern vectors retain one entry per selected instance and average its temporal dumps.
-Missing variables, expected instances, dumps, or summary measurements remain `NaN`. Only omitted
-interior frequency buckets in an otherwise complete observed distribution are inferred as zero.
+Missing variables, expected instances, dumps, or summary measurements remain `NaN`. Omitted
+frequency cells become zero only under an explicit nozero declaration for a present compatible frame.
 
-Every scanned variable declares its raw `source_type` and an immutable tuple of `SourceInstance`
-records. A record holds the exact concrete `source_name` and ordered numeric `indices` for display;
-literal sources use empty indices. For example, `cpu012.ipc` has coordinates `("012",)` in the
-`cpu\d+.ipc` family. Leading zeros remain intact. Scanner-generated scalar families suggest vector
-output with `entries=[]`; their output entry schema derives from instance records. Genuine vector
-measurement entries remain separate from source coordinates. Numerically similar names with
-different raw kinds remain separate literal variables. Optional observed bounds are finite numbers;
-unknown bounds are omitted from serialized metadata. Group counts derive from the instance records.
-The editor projects both literal and aggregated records through the bounded numeric matcher, so
-manual patterns can select concrete sources without reconstructing names or guessing raw kinds.
+Every scanned variable owns `source_evidence`: either a resolved compatible contract with its
+`wire_contract` or `backend_metadata` basis, or an explicit set of ambiguous compatible contracts.
+The gem5 scanner and persistent parser consume the same structured decoder events. Printed labels
+remain literal observations; they do not establish hidden native geometry or a physical C++ class.
+Ambiguous sources have `type=None`, so selecting one requires an explicit output type and compatible
+`params.source_type`. The scanner never chooses between overlapping native wire forms by priority.
 
-Every runnable `StatConfig.params` declares `source_type`, including literal requests. It describes
-the raw source independently of `StatConfig.type`, the requested output representation. This permits
-explicit vector/frequency reinterpretation while keeping raw observation validation precise. The
-editor offers separate raw source and output controls; an unfinished raw source choice remains an
-explicit draft. Manual callers declare the kind rather than triggering a scan or inference fallback.
+Each record owns an immutable tuple of `SourceInstance` identities. A record holds the exact concrete
+`source_name` and ordered numeric `indices` for display; literal sources use empty indices. For
+example, `cpu012.ipc` has coordinates `("012",)` in the `cpu\d+.ipc` family. Leading zeros remain
+intact. Resolved scalar families suggest vector output with `entries=[]`; their output entries derive
+from those source instances. Measurement entries remain separate from source coordinates. Conflicting
+source contracts remain visible failures while unrelated valid sources survive a partial scan. Strict
+public scans reject incomplete discovery before publishing editor state.
+
+Every runnable `StatConfig.params` declares `source_type`, including literal requests. This is a
+caller-supplied compatible decoder contract, independent of `StatConfig.type`, the requested output
+representation. Submission checks it against scanned evidence; workers check it again against actual
+completed source evidence before ingestion. This permits explicit vector/frequency reinterpretation
+without claiming that text uniquely reveals the physical producer. The editor offers separate source
+contract and output controls; an unfinished choice remains an explicit draft. Deep scans retain
+printed labels and compatible evidence, and never derive minimum/maximum grid bounds. Oneline
+Histogram execution requires complete observed integral geometry; absent zero-valued header fields
+are not silently supplied. Numeric records retain the first measurement while accepting up to two
+derived percentage fields and the native trailing unit annotation. Those decorations do not declare
+scientific column semantics; literal configuration text is preserved independently.
 
 `params.selected_sources` contains concrete source names, never numeric labels. Omitted selection
 uses all matching current records; an explicit empty selection is nonexecutable. Submission resolves
@@ -159,14 +169,44 @@ accumulator identities as aliases. `keep_indices=True` creates separate concrete
 otherwise source instances reduce according to the selected output representation. A scalar-family
 vector derives entries only from its selected instances; callers must not supply a second entry list.
 
-Current portfolios and recipes require complete scanned metadata and runnable raw source kinds.
-Missing fields, numeric-only source selections, and retired metadata shapes fail validation.
+Loaded parser origins and analysis recipes retain complete scanned metadata and runnable source
+contracts. Portfolio editor variables remain explicitly tagged drafts or runnable definitions.
+Missing execution fields, numeric-only source selections and unsupported metadata shapes fail validation.
 
-Current distribution output uses fixed unit-width integer buckets. Its minimum and maximum must
-be integral numbers; integral floating-point metadata converts losslessly when constructing the
-accumulator. Fractional geometry is unsupported and raises a clear validation error rather than
-truncating bounds. Statistics-only requests need no bucket bounds. Histogram range and rebinning
-geometry remain separate from this distribution constraint.
+Native Distribution frequency output requires explicit finite `minimum`, `maximum`, positive
+`bucket_size`, and `zero_policy` (`"missing"` or `"nozero"`). The native cell count is
+`ceil((maximum - minimum + 1) / bucket_size)`, including allocated cells above the tracked maximum.
+Bounds and width retain native-double precision; printed labels and rounded geometry headers do
+not replace the declaration. Statistics-only extraction needs no grid and allocates no buckets.
+
+The omission policy is explicit: `"missing"` keeps omitted frequency cells and tails as
+NaN. `"nozero"` asserts an external producer omission guarantee and supplies zero only for omitted
+frequency cells or tails in an actually present compatible observation. Missing summaries, observed
+NaN, missing whole sources/dumps and missing expected repetitions stay missing. Text cannot verify a
+falsely asserted omission guarantee. Actual native `samples` headers bind repeated sparse frames;
+header-free complete observations retain their actual fractional means.
+
+Each full native output carries an immutable request-basis layout with geometry, omission policy,
+and explicit physical-column/source-label/role/native-index bindings. An unchanged Vector view from
+an explicitly declared Distribution source carries opaque source-label bindings, without a grid or
+omission claim. Declaring `source_type="vector"` retains ordinary Vector semantics even for identical
+label text. Explicit generic Histogram conversion remains available only for its supported integer
+point/range labels. Fractional native cells require Distribution output; no truncation or guessed
+continuous width is supplied. HistogramPlot renders full native layouts as ordinal storage-cell mass,
+using exact bound columns and role-based summary exclusion. Opaque declarations reject visibly.
+Ordinary Vector/CSV data retains the caller's explicit generic interval interpretation. Summary-only
+output has layout=None in every output family.
+
+Native traces preserve both tails and every allocated slot with literal ticks and equal categorical
+glyph widths. They emit the optional neutral default_x_axis_label='Native bucket'; shared trace
+preparation applies it to its owned effective configuration when the original request has no
+nonempty x label. Explicit labels take precedence over trace defaults, which take precedence over
+inferred physical-column labels. FigureConfig, artifact configuration and both connectors share
+that resolved label; no connector infers geometry.
+Missing/NaN/nonfinite/negative native frequencies reject before publication. Raw zero counts are
+valid; normalized mass/CDF requires finite positive selected total. Native continuous rebinning and
+noncumulative density reject. Generic interval rebinning remains uniform overlap redistribution,
+with local finite-arithmetic checks at aggregation, target admission, redistribution and normalization.
 
 Full and incremental parsing use the same deterministic union of observed columns. A histogram
 bucket discovered in a later file remains in the schema, with `NaN` for files lacking that bucket.
@@ -178,22 +218,18 @@ A single target bin is labeled `0+` because it retains all nonnegative values, i
 The figure layer requires nonoverlapping buckets within each observation and explicit
 half-open labels for continuous intervals. It resolves each label independently of its neighbors.
 
-gem5 also prints singleton buckets as bare integers, including negative integers. The scanner uses
-histogram geometry or the reserved `gmean` summary to recognize these and emits explicit inclusive
-labels such as `0-0`. Distribution summaries and boundaries distinguish distributions from numeric
-vectors. Geometry-looking vector names retain their measured values unless histogram context
-identifies them as metadata. The shared classifier flushes pending entries and resets context at
-named and unnamed simulation dump boundaries. Oneline histograms require a positive
-`bucket_size` and a payload matching their bounds. Current gem5's `nozero` flag suppresses zero
-`min_bucket` and `max_bucket` fields, so omitted bounds within a dump represent zero, as defined by
-[gem5's text writer](https://github.com/gem5/gem5/blob/stable/src/base/stats/text.cc#L273-L277).
-Missing bucket size, reversed bounds, and inconsistent bucket counts fail visibly. Zero-total
-histograms retain measured zero buckets when gem5 omits percentage columns. Scalar and summary
-measurements preserve scientific notation and non-finite `nan`/`inf` values. If the output suppresses
-all identifying metadata, callers can explicitly select the histogram type; numeric vector entries
-remain vectors during scanning.
-Histogram-to-vector selections use inclusive singleton labels returned by the scanner, such as
-`0-0`; bare histogram point IDs fail validation. Ordinary vector labels continue to match exactly.
+gem5 also prints singleton buckets as bare integers, including negative integers. Discovery retains
+literal source labels and compatible contract evidence; it does not certify a hidden physical
+producer from familiar labels or summaries. Histogram consumers canonicalize declared integer
+singletons to inclusive labels such as `0-0`; ordinary Vector labels continue to match exactly.
+The shared classifier flushes pending entries and resets context at named and unnamed dump
+boundaries. Scalar and summary measurements preserve scientific notation and non-finite `nan`/`inf`.
+
+Oneline execution checks every selected target against its own declared grid and exact allocated
+cell count. Full native Distribution checks fixed-format headers at their observed decimal precision.
+Width is mandatory; an omitted bound is accepted only when that exact declared bound is zero and
+`zero_policy="nozero"`. Generic Histogram requires complete observed integral geometry. Neither
+representation pads a shortened oneline sequence or shifts later values into omitted positions.
 
 Durable job reuse and incremental rows use the same bounded content-fingerprint helper. Statistics
 and configuration-aware companion files are hashed in full; unchanged timestamps or sizes never
@@ -242,7 +278,21 @@ Every full batch owns the planned source paths, logical variable order, output d
 strategy. Finalization receives that batch and only finalized typed file results. Complete output
 requires exact coverage. Partial output rejects duplicate or unplanned sources and requires usable
 rows; it never promotes an incremental or background result to a complete success cache. Incremental
-cache format2 stores the same typed records and validates them before retaining reused rows.
+cache format 3 stores the same typed records and validates them before retaining reused rows.
+
+Parser schema format 2 requires a nullable `layout` on every logical variable. Typed file results,
+cache records and table attrs use one current layout codec. Tables retain a whole layout only while
+all explicit numeric bindings remain valid and the operation preserves their coordinates. Ordinary
+copies, row filters/sorts and complete column projections retain declarations; destructive reshaping,
+unknown plugins and incompatible concat drop inherited declarations. Explicit caller attrs remain
+caller declarations, not authentication of the producer. Parser origin/replay ownership is separate.
+
+One selected-file owner serves full, subset, preview and incremental execution. Before constructing
+labels/templates or decoding cached rows, planning admits all selected files against known physical
+columns, including aliases, native cells/tails/summaries and config-aware metadata. Bounds are 10,000
+physical columns, one million matrix cells, 4 MiB canonical schema and 256 MiB complete per-batch
+result records. Cache input is bounded to 64 MiB before JSON decoding. Every returned file charges
+its complete repeated layout bytes even when workers share the same immutable Python layout.
 
 Gem5 batches share a retained-result admission budget of one million cells and 256 MiB of complete
 canonical record encoding, separate from the CSV output budget. Accepted Futures retain their quota

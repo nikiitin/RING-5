@@ -88,6 +88,14 @@ the baseline rows before normalizing only if the normalizer still receives every
 Select **Finalize Pipeline for Plotting** after the preview matches the intended table. See
 [Shapers]({{site.baseurl}}/user-guide/reference/shapers/) for configuration rules.
 
+Native Distribution histograms retain the parser's declared grid and omission policy through
+supported row/coordinate-preserving transformations. Whole-layout column projection preserves a
+complete frequency view; removing one bound cell removes that declaration. Reconstruction and
+unknown transformations do not borrow the old geometry. Inspect the resulting table and select a
+view that matches it. The histogram selector lists explicit logical native variables even when
+physical column names have no common prefix. See [Histogram controls]({{site.baseurl}}/user-guide/reference/plot-types/#histogram-controls)
+for native storage-cell and generic interval semantics.
+
 ## Share a pipeline configuration
 
 <!--

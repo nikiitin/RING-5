@@ -1,3 +1,4 @@
+from src.core.models.source_evidence import ResolvedSourceKind
 from src.core.models.parsing_models import SourceInstance
 import re
 
@@ -16,7 +17,7 @@ class TestVectorScanning:
                         name="system.cpu0.op_class",
                         type="vector",
                         entries=["IntAlu", "IntMult"],
-                        source_type="vector",
+                        source_evidence=ResolvedSourceKind("vector", "backend_metadata"),
                         instances=(SourceInstance("system.cpu0.op_class", ()),),
                     )
                 ],
@@ -28,7 +29,7 @@ class TestVectorScanning:
                         name="system.cpu1.op_class",
                         type="vector",
                         entries=["IntDiv"],
-                        source_type="vector",
+                        source_evidence=ResolvedSourceKind("vector", "backend_metadata"),
                         instances=(SourceInstance("system.cpu1.op_class", ()),),
                     )
                 ],

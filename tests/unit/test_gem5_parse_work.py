@@ -1,5 +1,9 @@
 """Worker observation routing uses resolved sources and real registered accumulators."""
 
+from src.core.models.source_evidence import ResolvedSourceKind
+
+
+import json
 import math
 from unittest.mock import patch
 
@@ -11,8 +15,29 @@ from src.parsing.gem5.impl.strategies.gem5_parse_work import Gem5ParseWork
 from src.parsing.gem5.types.type_mapper import TypeMapper
 
 
+def _wire(*records):
+    return "\n".join(json.dumps(record) for record in records)
+
+
+def _point(name, value, shape="scalar"):
+    return {"event": "measurement", "name": name, "shape": shape, "entry": None, "value": value}
+
+
+def _entry(name, entry, value):
+    return {"event": "measurement", "name": name, "shape": "entry", "entry": entry, "value": value}
+
+
+def _source(name, kind, entries=()):
+    return {
+        "event": "source",
+        "name": name,
+        "entries": list(entries),
+        "source_evidence": {"state": "resolved", "kind": kind, "basis": "wire_contract"},
+    }
+
+
 def _worker(configs, metadata=None, path="unused"):
-    plan = resolve_sources(configs, metadata)
+    plan = resolve_sources(configs, metadata, file_count=1, metadata_columns=())
     accumulators = {spec.output_name: TypeMapper.create_stat(spec) for spec in plan.accumulators}
     return Gem5ParseWork(path, accumulators, plan), accumulators
 
@@ -25,7 +50,17 @@ def test_exact_scalar_and_vector_observations_remain_independent():
         ]
     )
     assert (
-        work._process_output("scalar/ipc/2\nscalar/ipc/4\nvector/v::a/6\nvector/v::a/8") is values
+        work._process_output(
+            _wire(
+                _point("ipc", "2"),
+                _point("ipc", "4"),
+                _source("ipc", "scalar"),
+                _entry("v", "a", "6"),
+                _entry("v", "a", "8"),
+                _source("v", "vector", ["a"]),
+            )
+        )
+        is values
     )
     for value in values.values():
         value.balance_content()
@@ -42,7 +77,16 @@ def test_dump_boundaries_keep_missing_samples_visible_instead_of_realigning_entr
             )
         ]
     )
-    work._process_output("vector/v::a/2\ndump//\nvector/v::b/4\ndump//")
+    work._process_output(
+        _wire(
+            _entry("v", "a", "2"),
+            _source("v", "vector", ["a"]),
+            {"event": "dump"},
+            _entry("v", "b", "4"),
+            _source("v", "vector", ["b"]),
+            {"event": "dump"},
+        )
+    )
     content = values["v"].content
     assert isinstance(content, dict)
     assert content["a"][0] == 2.0 and math.isnan(content["a"][1])
@@ -58,7 +102,7 @@ def test_one_scalar_source_populates_two_distinct_logical_aliases():
         for name in ["first", "second"]
     ]
     work, values = _worker(configs)
-    work._process_output("scalar/ipc/1.25")
+    work._process_output(_wire(_point("ipc", "1.25"), _source("ipc", "scalar")))
     assert set(values) == {"first", "second"}
     assert values["first"] is not values["second"]
     assert values["first"].content == values["second"].content == [1.25]
@@ -71,7 +115,7 @@ def test_scalar_pattern_vector_uses_explicit_precomputed_numeric_labels(pattern)
             r"cpu\d+.ipc",
             "vector",
             [],
-            source_type="scalar",
+            source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
             instances=(SourceInstance("cpu012.ipc", ("012",)), SourceInstance("cpu1.ipc", ("1",))),
         )
     ]
@@ -81,7 +125,14 @@ def test_scalar_pattern_vector_uses_explicit_precomputed_numeric_labels(pattern)
         "src.core.common.safe_regex.numeric_pattern_id",
         side_effect=AssertionError("worker rematched"),
     ):
-        work._process_output("scalar/cpu012.ipc/10\nscalar/cpu1.ipc/20")
+        work._process_output(
+            _wire(
+                _point("cpu012.ipc", "10"),
+                _source("cpu012.ipc", "scalar"),
+                _point("cpu1.ipc", "20"),
+                _source("cpu1.ipc", "scalar"),
+            )
+        )
     assert values["IPC"].content == {"012": [10.0], "1": [20.0]}
 
 
@@ -110,22 +161,28 @@ def test_configuration_fallback_comes_from_declared_params():
     assert values["benchmark"].reduced_content == "unknown"
 
 
-@pytest.mark.parametrize("line", ["vector/ipc::a/2", "configuration/ipc/value", "Scalar/ipc/2"])
-def test_raw_source_kind_mismatch_is_visible(line):
+@pytest.mark.parametrize("kind", ["vector", "configuration"])
+def test_raw_source_kind_mismatch_is_visible(kind):
     work, _ = _worker([StatConfig("ipc", "scalar", params={"source_type": "scalar"})])
-    with pytest.raises(RuntimeError, match="Raw source kind mismatch"):
-        work._process_output(line)
+    with pytest.raises(RuntimeError, match="contradicts actual observations"):
+        work._process_output(_wire(_source("ipc", kind)))
 
 
 def test_unknown_and_malformed_records_do_not_populate_outputs(caplog):
     work, values = _worker([StatConfig("ipc", "scalar", params={"source_type": "scalar"})])
-    work._process_output("malformed\nscalar/other/3\n\n")
-    assert values["ipc"].content == []
-    assert "Malformed worker output" in caplog.text
+    for wire in ["malformed", _wire(_point("other", "3")), "Scalar/ipc/2"]:
+        with pytest.raises(ValueError):
+            work._process_output(wire)
+        assert values["ipc"].content == []
 
 
 def test_worker_rejects_accumulator_maps_that_do_not_match_plan():
-    plan = resolve_sources([StatConfig("ipc", "scalar", params={"source_type": "scalar"})], [])
+    plan = resolve_sources(
+        [StatConfig("ipc", "scalar", params={"source_type": "scalar"})],
+        [],
+        file_count=1,
+        metadata_columns=(),
+    )
     with pytest.raises(RuntimeError, match="requires logical accumulators"):
         Gem5ParseWork("unused", {}, plan)
     with pytest.raises(ValueError, match="exactly match"):
@@ -149,7 +206,7 @@ def test_scalar_configuration_reinterpretation_uses_output_observation_shape(
         },
     )
     work, values = _worker([config])
-    work._process_output(f"{raw_type}/source/{wire}")
+    work._process_output(_wire(_point("source", wire, raw_type), _source("source", raw_type)))
     stat = values["alias"]
     stat.balance_content()
     stat.reduce_duplicates()

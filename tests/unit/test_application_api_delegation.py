@@ -1,5 +1,7 @@
 """Tests for ApplicationAPI delegation, conversion, and error handling."""
 
+from src.core.models.source_evidence import ResolvedSourceKind
+
 from src.core.models.parsing_models import SourceInstance
 from collections.abc import Generator
 from concurrent.futures import Future
@@ -260,7 +262,7 @@ class TestSubmitParseAsync:
             name="test_var",
             type="scalar",
             entries=[],
-            source_type="scalar",
+            source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
             instances=(SourceInstance("test_var", ()),),
         )
         scanned = [sv]
@@ -446,7 +448,10 @@ class TestScanMethods:
 
     def test_finalize_scan(self, api: ApplicationAPI) -> None:
         variable = ScannedVariable(
-            "value", "scalar", source_type="scalar", instances=(SourceInstance("value", ()),)
+            "value",
+            "scalar",
+            source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
+            instances=(SourceInstance("value", ()),),
         )
         value = ScanFileResult("source", [variable])
         aggregate = ScanResult([variable], scanned_files=1)

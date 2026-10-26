@@ -2,17 +2,19 @@
 
 from copy import deepcopy
 import math
+from typing import Any, cast
 
 import pytest
 
 from src.core.common.stat_config_codec import StatConfigCodec
-from src.core.models.parsing_models import StatConfig
+from src.core.models.parsing_models import StatConfig, StatParamValue
+from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
 from src.parsing.gem5.types.type_mapper import TypeMapper
 from src.parsing.gem5.impl.source_bindings import resolve_sources
 
 
 def test_draft_wire_and_typed_value_share_one_owned_configuration() -> None:
-    draft = {
+    draft: ParseVariableConfig = {
         "name": "renamed",
         "source_name": "cpu.ipc",
         "type": "vector",
@@ -42,14 +44,16 @@ def test_draft_wire_and_typed_value_share_one_owned_configuration() -> None:
     payload["params"]["entries"].append("changed")
     assert configured.params["entries"] == ["0"]
     assert draft == before
-    assert TypeMapper.create_stat(resolve_sources([configured], None).accumulators[0]).entries == [
+    assert TypeMapper.create_stat(
+        resolve_sources([configured], None, file_count=1, metadata_columns=()).accumulators[0]
+    ).entries == [
         "0",
         "mean",
     ]
 
 
 @pytest.mark.parametrize("repeat", [True, 0, -1, 1.5, "2", None])
-def test_repeat_cannot_be_coerced_or_defaulted(repeat) -> None:
+def test_repeat_cannot_be_coerced_or_defaulted(repeat: Any) -> None:
     with pytest.raises((TypeError, ValueError), match="repeat"):
         StatConfigCodec.validate(
             StatConfig(name="x", type="scalar", repeat=repeat, params={"source_type": "scalar"})
@@ -62,7 +66,9 @@ def test_repeat_cannot_be_coerced_or_defaulted(repeat) -> None:
 )
 def test_retired_draft_field_is_rejected(field: str) -> None:
     with pytest.raises(ValueError, match="Unsupported parser draft fields"):
-        StatConfigCodec.from_draft({"name": "x", "type": "scalar", field: "old"})
+        StatConfigCodec.from_draft(
+            cast(ParseVariableConfig, {"name": "x", "type": "scalar", field: "old"})
+        )
 
 
 def test_runnable_entry_point_rejects_dictionary_and_duck_shapes() -> None:
@@ -71,11 +77,11 @@ def test_runnable_entry_point_rejects_dictionary_and_duck_shapes() -> None:
         type = "scalar"
         repeat = 1
         statistics_only = False
-        params = {}
+        params: dict[str, StatParamValue] = {}
 
     for value in [{"name": "x", "type": "scalar"}, PretendConfig()]:
         with pytest.raises(TypeError, match="StatConfig"):
-            StatConfigCodec.validate(value)
+            StatConfigCodec.validate(cast(StatConfig, value))
 
 
 def test_histogram_statistics_only_never_discovers_raw_buckets() -> None:
@@ -85,14 +91,18 @@ def test_histogram_statistics_only_never_discovers_raw_buckets() -> None:
         statistics_only=True,
         params={"statistics": ["mean", "stdev"], "source_type": "histogram"},
     )
-    stat = TypeMapper.create_stat(resolve_sources([config], None).accumulators[0])
+    stat = TypeMapper.create_stat(
+        resolve_sources([config], None, file_count=1, metadata_columns=()).accumulators[0]
+    )
     stat.add_observation({"0-3": 4.0, "mean": 2.0})
     assert stat.entries == ["mean", "stdev"]
     stat.balance_content()
     stat.reduce_duplicates()
-    assert set(stat.reduced_content) == {"mean", "stdev"}
-    assert stat.reduced_content["mean"] == 2
-    assert math.isnan(stat.reduced_content["stdev"])
+    content = stat.reduced_content
+    assert isinstance(content, dict)
+    assert set(content) == {"mean", "stdev"}
+    assert content["mean"] == 2
+    assert math.isnan(content["stdev"])
 
 
 def test_configuration_uses_only_current_constructor_spelling() -> None:
@@ -100,7 +110,7 @@ def test_configuration_uses_only_current_constructor_spelling() -> None:
 
     assert Configuration(on_empty="missing").on_empty == "missing"
     with pytest.raises(TypeError, match="unexpected keyword argument.*onEmpty"):
-        Configuration(onEmpty="retired")
+        cast(Any, Configuration)(onEmpty="retired")
 
 
 @pytest.mark.parametrize(
@@ -113,10 +123,14 @@ def test_configuration_uses_only_current_constructor_spelling() -> None:
         {"name": "x", "type": "distribution"},
     ],
 )
-def test_incomplete_editor_state_is_an_explicit_nonexecutable_snapshot(draft) -> None:
+def test_incomplete_editor_state_is_an_explicit_nonexecutable_snapshot(
+    draft: dict[str, Any],
+) -> None:
     from src.core.common.stat_config_codec import StatConfigDraftIncomplete
 
-    snapshot = StatConfigCodec.to_snapshot({**draft, "_id": "browser-only"})
+    snapshot = StatConfigCodec.to_snapshot(
+        cast(ParseVariableConfig, {**draft, "_id": "browser-only"})
+    )
     assert snapshot == {"state": "draft", "fields": draft}
     restored = StatConfigCodec.from_snapshot(snapshot)
     assert restored == {**draft, "_id": ""}
@@ -143,9 +157,11 @@ def test_complete_snapshot_uses_the_exact_runnable_codec_and_new_ui_identity() -
         {"name": "x", "type": "scalar", "alias": "retired"},
     ],
 )
-def test_unsupported_editor_shape_is_not_saved_as_a_draft_fallback(draft) -> None:
+def test_unsupported_editor_shape_is_not_saved_as_a_draft_fallback(
+    draft: dict[str, object],
+) -> None:
     with pytest.raises((TypeError, ValueError)):
-        StatConfigCodec.to_snapshot(draft)
+        StatConfigCodec.to_snapshot(cast(ParseVariableConfig, draft))
 
 
 def test_portfolio_saves_and_restores_an_unfinished_editor_without_running_it() -> None:
@@ -196,7 +212,12 @@ def test_recipe_templates_use_the_same_runnable_decoder_after_materialization() 
     configured = StatConfigCodec.from_payload(resolved.source.variables[0])
     assert configured.repeat == 3
     assert payload["repeat"] == "{{repetitions}}"
-    assert TypeMapper.create_stat(resolve_sources([configured], None).accumulators[0]).repeat == 3
+    assert (
+        TypeMapper.create_stat(
+            resolve_sources([configured], None, file_count=1, metadata_columns=()).accumulators[0]
+        ).repeat
+        == 3
+    )
 
 
 def test_summary_roles_follow_the_selected_simulator_metadata() -> None:
@@ -205,12 +226,12 @@ def test_summary_roles_follow_the_selected_simulator_metadata() -> None:
     entries = ["mean", "custom_summary", "cpu0"]
     custom_stats = frozenset({"custom_summary"})
     assert VariableService.filter_internal_stats(entries, custom_stats) == ["cpu0", "mean"]
-    snapshot = [
+    snapshot: list[ScannedVariableDict] = [
         {
             "name": "v",
             "type": "vector",
             "entries": entries,
-            "source_type": "vector",
+            "source_evidence": {"state": "resolved", "kind": "vector", "basis": "backend_metadata"},
             "instances": [{"source_name": "v", "indices": []}],
         }
     ]
@@ -219,7 +240,7 @@ def test_summary_roles_follow_the_selected_simulator_metadata() -> None:
         "mean",
     ]
     with pytest.raises(TypeError, match="internal_stats"):
-        VariableService.filter_internal_stats(entries)
+        cast(Any, VariableService.filter_internal_stats)(entries)
 
 
 def test_custom_backend_options_have_one_nested_owned_draft_representation() -> None:
@@ -243,7 +264,9 @@ def test_custom_backend_options_have_one_nested_owned_draft_representation() -> 
 )
 def test_flat_current_option_spellings_are_not_an_alternate_draft_route(field: str) -> None:
     with pytest.raises(ValueError, match="Unsupported parser draft fields"):
-        StatConfigCodec.from_draft({"name": "x", "type": "scalar", field: []})
+        StatConfigCodec.from_draft(
+            cast(ParseVariableConfig, {"name": "x", "type": "scalar", field: []})
+        )
 
 
 def test_scanner_projection_keeps_metadata_roles_and_does_not_require_runnable_bounds() -> None:
@@ -252,7 +275,7 @@ def test_scanner_projection_keeps_metadata_roles_and_does_not_require_runnable_b
             "name": "v",
             "type": "vector",
             "entries": ["cpu0", "mean"],
-            "source_type": "vector",
+            "source_evidence": {"state": "resolved", "kind": "vector", "basis": "backend_metadata"},
             "instances": [{"source_name": "v", "indices": []}],
         },
         frozenset({"mean"}),
@@ -268,7 +291,11 @@ def test_scanner_projection_keeps_metadata_roles_and_does_not_require_runnable_b
             "name": "d",
             "type": "distribution",
             "entries": [],
-            "source_type": "distribution",
+            "source_evidence": {
+                "state": "resolved",
+                "kind": "distribution",
+                "basis": "backend_metadata",
+            },
             "instances": [{"source_name": "d", "indices": []}],
         },
         frozenset(),
@@ -282,7 +309,7 @@ def test_statistics_only_without_selected_summaries_is_a_nonexecutable_editor_dr
 ) -> None:
     from src.core.common.stat_config_codec import StatConfigDraftIncomplete
 
-    draft = {
+    draft: ParseVariableConfig = {
         "name": "v",
         "type": kind,
         "statistics_only": True,
@@ -302,14 +329,24 @@ def test_statistics_only_without_selected_summaries_is_a_nonexecutable_editor_dr
     [
         ("scalar", {}, False),
         ("vector", {"entries": ["0"], "statistics": ["mean"]}, False),
-        ("distribution", {"minimum": 0, "maximum": 8, "statistics": ["mean"]}, False),
+        (
+            "distribution",
+            {
+                "minimum": 0,
+                "maximum": 8,
+                "statistics": ["mean"],
+                "bucket_size": 1,
+                "zero_policy": "missing",
+            },
+            False,
+        ),
         ("histogram", {"bins": 4, "max_range": 16, "statistics": ["mean"]}, False),
         ("histogram", {"statistics": ["mean"]}, True),
         ("configuration", {"on_empty": "unknown"}, False),
     ],
 )
 def test_each_builtin_type_roundtrips_one_nested_current_contract(
-    kind, params, statistics_only
+    kind: str, params: dict[str, StatParamValue], statistics_only: bool
 ) -> None:
     configured = StatConfig(
         name="renamed",

@@ -229,7 +229,7 @@ def test_capture_retains_parser_variables_plot_configs_and_pipelines() -> None:
             "name": "simTicks",
             "type": "scalar",
             "entries": [],
-            "source_type": "scalar",
+            "source_evidence": {"state": "resolved", "kind": "scalar", "basis": "backend_metadata"},
             "instances": [{"source_name": "simTicks", "indices": []}],
         }
     ]

@@ -21,6 +21,8 @@ def _work(path: Path) -> Gem5ParseWork:
             )
         ],
         [],
+        file_count=1,
+        metadata_columns=(),
     )
     return Gem5ParseWork(str(path), {"result": TypeMapper.create_stat(plan.accumulators[0])}, plan)
 
@@ -72,7 +74,14 @@ def test_pool_receives_literal_concrete_source_filters_and_result_provenance(
     path = tmp_path / "stats.txt"
     path.write_text("system.cpu0.ipc 3\n", encoding="utf-8")
     with patch("src.parsing.gem5.impl.strategies.gem5_parse_work.get_worker_pool") as pool:
-        pool.return_value.parse_file.return_value = ["scalar/system.cpu0.ipc/3"]
+        pool.return_value.parse_file.return_value = [
+            (
+                '{"event":"measurement","name":"system.cpu0.ipc","shape":"sca'
+                'lar","entry":null,"value":"3"}\n{"event":"source","name":"sys'
+                'tem.cpu0.ipc","source_evidence":{"state":"resolved","kind":"'
+                'scalar","basis":"wire_contract"},"entries":[]}'
+            )
+        ]
         work = _work(path)
         result = work()
         pool.return_value.parse_file.assert_called_once_with(

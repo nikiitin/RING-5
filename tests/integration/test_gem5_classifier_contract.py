@@ -12,6 +12,8 @@ from typing import Any
 import pytest
 
 from src.core.models.parsing_models import StatConfig
+from src.core.models.source_evidence import source_kind_candidates
+from src.parsing.gem5.impl.source_events import SOURCE_WIRE_READY
 from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 from src.parsing.gem5.impl.strategies.perl_worker_pool import shutdown_worker_pool
 
@@ -28,11 +30,11 @@ def cleanup_worker_pool() -> Generator[None, None, None]:
 
 def _classify(text: str) -> list[dict[str, Any]]:
     program = (
-        "use JSON::PP; use TypesFormatRegex; resetLineContext(); "
+        "use TypesFormatRegex; resetLineContext(); "
         "while (my $line = <STDIN>) { chomp $line; "
         "my $records = classifyLine($line); "
-        'print encode_json($_), "\\n" for @{ $records // [] }; } '
-        'print encode_json($_), "\\n" for @{finishLineContext()};'
+        'print encodeRecord($_), "\\n" for @{ $records // [] }; } '
+        'print encodeRecord($_), "\\n" for @{finishLineContext()};'
     )
     result = subprocess.run(
         ["perl", "-I", str(PERL_ROOT / "libs"), "-e", program],
@@ -57,7 +59,7 @@ def _parse(root: Path, text: str, configs: list[StatConfig]) -> dict[str, str]:
 
 
 def test_semantic_records_preserve_source_values_labels_and_summary_roles(tmp_path: Path) -> None:
-    # [test->req~ring5.ingestion.variable-scan~1]
+    # [test->req~ring5.ingestion.variable-scan~2]
     # [test->req~ring5.ingestion.parse-integrity~1]
     text = (
         "---------- Begin Simulation Statistics : phase one ----------\n"
@@ -68,24 +70,33 @@ def test_semantic_records_preserve_source_values_labels_and_summary_roles(tmp_pa
         "r::-10--1 0\n"
     )
     records = _classify(text)
-    assert records[0] == {"type": "dump"}
+    assert records[0] == {"event": "dump"}
+    measurements = [record for record in records if record["event"] == "measurement"]
     assert [
-        (record["type"], record["name"], record["entry"], record["scan_entry"], record["value"])
-        for record in records[1:]
+        (record["shape"], record["name"], record["entry"], record["value"])
+        for record in measurements
     ] == [
-        ("scalar", "fraction", None, None, "-1.25e-3"),
-        ("scalar", "missing", None, None, "nan"),
-        ("scalar", "limit", None, None, "-inf"),
-        ("configuration", "path", None, None, "/tmp/gem5/run"),
-        ("vector", "v", "cpu.0", "cpu.0", "2.5"),
-        ("summary", "v", "total", "total", "2.5"),
-        ("summary", "h", "gmean", "gmean", "1"),
-        ("histogram", "h", "-1", "-1--1", "2"),
-        ("distribution", "d", "underflows", "underflows", "0"),
-        ("distribution", "d", "0", "0", "4"),
-        ("distribution", "d", "overflows", "overflows", "0"),
-        ("histogram", "r", "-10--1", "-10--1", "0"),
+        ("scalar", "fraction", None, "-1.25e-3"),
+        ("scalar", "missing", None, "nan"),
+        ("scalar", "limit", None, "-inf"),
+        ("configuration", "path", None, "/tmp/gem5/run"),
+        ("entry", "v", "cpu.0", "2.5"),
+        ("entry", "v", "total", "2.5"),
+        ("entry", "h", "gmean", "1"),
+        ("entry", "h", "-1", "2"),
+        ("entry", "d", "underflows", "0"),
+        ("entry", "d", "0", "4"),
+        ("entry", "d", "overflows", "0"),
+        ("entry", "r", "-10--1", "0"),
     ]
+    evidence = {
+        record["name"]: record["source_evidence"]
+        for record in records
+        if record["event"] == "source"
+    }
+    assert evidence["h"] == {"state": "ambiguous", "candidates": ["histogram", "vector"]}
+    assert evidence["d"] == {"state": "ambiguous", "candidates": ["distribution", "vector"]}
+    assert evidence["v"] == {"state": "resolved", "kind": "vector", "basis": "wire_contract"}
     stats = tmp_path / "stats.txt"
     stats.write_text(text, encoding="utf-8")
     result = subprocess.run(
@@ -96,24 +107,10 @@ def test_semantic_records_preserve_source_values_labels_and_summary_roles(tmp_pa
         check=True,
         timeout=30,
     )
-    assert result.stdout.splitlines() == [
-        "READY",
-        "dump//",
-        "scalar/fraction/-1.25e-3",
-        "scalar/missing/nan",
-        "scalar/limit/-inf",
-        "configuration/path//tmp/gem5/run",
-        "vector/v::cpu.0/2.5",
-        "summary/v::total/2.5",
-        "summary/h::gmean/1",
-        "histogram/h::-1/2",
-        "distribution/d::underflows/0",
-        "distribution/d::0/4",
-        "distribution/d::overflows/0",
-        "histogram/r::-10--1/0",
-        "END_PARSE",
-        "GOODBYE",
-    ]
+    lines = result.stdout.splitlines()
+    assert lines[0] == SOURCE_WIRE_READY
+    assert lines[-2:] == ["END_PARSE", "GOODBYE"]
+    assert [json.loads(line) for line in lines[1:-2]] == records
     assert _parse(
         tmp_path,
         text,
@@ -147,15 +144,18 @@ def test_oneline_requires_consistent_geometry_for_each_dump(
     scan = Gem5Parser.aggregate_scan_results(
         [future.result(timeout=30) for future in Gem5Parser.submit_scan_async(str(tmp_path))]
     )
-    assert len(scan.failures) == 1
-    assert "histogram" in (scan.failures[0].error or "")
+    assert not scan.failures
+    assert scan.variables[0].type is None
+    assert "vector" in source_kind_candidates(scan.variables[0].source_evidence)
     batch = Gem5Parser.submit_parse_async(
         str(tmp_path),
         "stats.txt",
         [StatConfig("h", "histogram", params={"source_type": "histogram"})],
         str(tmp_path / "out"),
     )
-    with pytest.raises(RuntimeError, match="Worker pool parse failed"):
+    with pytest.raises(
+        (ValueError, RuntimeError), match="geometry|contradicts actual observations"
+    ):
         batch.futures[0].result(timeout=30)
     assert not (tmp_path / "out/results.csv").exists()
 
@@ -186,7 +186,8 @@ def test_zero_total_histograms_preserve_measured_zero_without_percentages(
         [future.result(timeout=30) for future in Gem5Parser.submit_scan_async(str(tmp_path))]
     )
     assert not scan.failures
-    assert scan.variables[0].type == "histogram"
+    assert scan.variables[0].type is None
+    assert "histogram" in source_kind_candidates(scan.variables[0].source_evidence)
 
 
 @pytest.mark.parametrize(
@@ -196,30 +197,58 @@ def test_zero_total_histograms_preserve_measured_zero_without_percentages(
         ("h::bucket_size 1\nh::min_bucket -1\n", {"h..-1--1": "2.0", "h..0-0": "0.0"}),
     ],
 )
-def test_zero_suppressed_oneline_bounds_are_current_gem5_geometry(
+def test_omitted_oneline_bounds_reject_and_explicit_zero_bounds_preserve_counts(
     tmp_path: Path, geometry: str, expected: dict[str, str]
 ) -> None:
     """ScalarPrint's nozero flag omits zero min_bucket or max_bucket fields."""
     text = geometry + "h |2 100% 100% |0 0% 100%\n"
-    assert (
+    with pytest.raises(
+        (ValueError, RuntimeError), match="geometry|contradicts actual observations"
+    ):
         _parse(tmp_path, text, [StatConfig("h", "histogram", params={"source_type": "histogram"})])
+    assert not (tmp_path / "out/results.csv").exists()
+    complete = (
+        geometry
+        + ("h::min_bucket 0\n" if "min_bucket" not in geometry else "h::max_bucket 0\n")
+        + "h |2 100% 100% |0 0% 100%\n"
+    )
+    assert (
+        _parse(
+            tmp_path, complete, [StatConfig("h", "histogram", params={"source_type": "histogram"})]
+        )
         == expected
     )
     scan = Gem5Parser.aggregate_scan_results(
         [future.result(timeout=30) for future in Gem5Parser.submit_scan_async(str(tmp_path))]
     )
     assert not scan.failures
-    assert set(scan.variables[0].entries) == {name.split("..", 1)[1] for name in expected}
+    assert scan.variables[0].type is None
+    assert set(scan.variables[0].entries) == {"bucket_size", "min_bucket", "max_bucket"}
 
 
-def test_zero_suppressed_single_bucket_preserves_its_measured_zero(tmp_path: Path) -> None:
+def test_omitted_single_bucket_bounds_reject_and_explicit_bounds_preserve_zero(
+    tmp_path: Path,
+) -> None:
     """Both zero bounds may be absent; the bucket payload still supplies its value."""
     text = "h::bucket_size 1\nh |0\n"
+    with pytest.raises(
+        (ValueError, RuntimeError), match="geometry|contradicts actual observations"
+    ):
+        _parse(tmp_path, text, [StatConfig("h", "histogram", params={"source_type": "histogram"})])
+    assert not (tmp_path / "out/results.csv").exists()
+    complete = "h::min_bucket 0\nh::max_bucket 0\n" + text
     assert _parse(
-        tmp_path, text, [StatConfig("h", "histogram", params={"source_type": "histogram"})]
+        tmp_path, complete, [StatConfig("h", "histogram", params={"source_type": "histogram"})]
     ) == {"h..0-0": "0.0"}
-    assert _classify(text) == [
-        {"type": "histogram", "name": "h", "entry": "0-0", "scan_entry": "0-0", "value": "0"}
+    records = _classify(text)
+    assert [record for record in records if record.get("shape") == "oneline"] == [
+        {
+            "event": "measurement",
+            "name": "h",
+            "shape": "oneline",
+            "values": ["0"],
+            "reported_geometry": {"bucket_size": "1"},
+        }
     ]
 
 
@@ -233,7 +262,7 @@ def test_oneline_vector_does_not_require_histogram_geometry(tmp_path: Path) -> N
     assert not scan.failures
     assert {variable.name: variable.type for variable in scan.variables} == {
         "cycles": "scalar",
-        "v": "vector",
+        "v": None,
     }
     assert _parse(
         tmp_path, text, [StatConfig("cycles", "scalar", params={"source_type": "scalar"})]

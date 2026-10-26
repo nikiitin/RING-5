@@ -20,8 +20,8 @@ from src.core.models.parsed_output_models import (
 def _schema(name="name"):
     return ParsedSchema(
         (
-            ParsedVariableSchema(name, "text", "scalar"),
-            ParsedVariableSchema("value", "number", "scalar"),
+            ParsedVariableSchema(name, "text", "scalar", layout=None),
+            ParsedVariableSchema("value", "number", "scalar", layout=None),
         ),
         (ParsedColumn(name, "text", name), ParsedColumn("value", "number", "value")),
     )
@@ -70,9 +70,15 @@ class TestTypedCsvAdmission:
         result = ParsedFileResult(
             "source",
             (
-                ParsedVariableResult(name, "text", "scalar", (ParsedCell(name, "text", "001"),)),
                 ParsedVariableResult(
-                    "value", "number", "scalar", (ParsedCell("value", "number", float("nan")),)
+                    name, "text", "scalar", (ParsedCell(name, "text", "001"),), layout=None
+                ),
+                ParsedVariableResult(
+                    "value",
+                    "number",
+                    "scalar",
+                    (ParsedCell("value", "number", float("nan")),),
+                    layout=None,
                 ),
             ),
         )
@@ -95,6 +101,7 @@ class TestTypedCsvAdmission:
                         ParsedCell("system.cpu.stat..0", "number", 1.0),
                         ParsedCell("system.cpu.stat..1", "number", 2.0),
                     ),
+                    layout=None,
                 ),
             ),
         )

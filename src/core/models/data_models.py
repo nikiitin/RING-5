@@ -147,22 +147,14 @@ class SourceInstanceDict(TypedDict):
     indices: list[str]
 
 
-class ScannedVariableDict(TypedDict, total=False):
-    """Dictionary form of a ``ScannedVariable`` dataclass.
+class ScannedVariableDict(TypedDict):
+    """Current owned scanner payload; ambiguous sources have no output suggestion."""
 
-    Produced by ``ScannedVariable.to_dict()``; consumed by state
-    management, variable service, and portfolio serialization.
-
-    ``name``, ``type``, ``entries``, ``source_type``, and ``instances`` are required.
-    """
-
-    source_type: Required[str]
-    instances: Required[list[SourceInstanceDict]]
-    name: Required[str]
-    type: Required[str]
-    entries: Required[list[str]]
-    minimum: float
-    maximum: float
+    name: str
+    type: str | None
+    entries: list[str]
+    source_evidence: dict[str, object]
+    instances: list[SourceInstanceDict]
 
 
 # Pipeline Steps (stored in plots)

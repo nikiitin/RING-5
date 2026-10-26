@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 from src.core.models.parsing_models import SourceInstance
+from src.core.models.source_evidence import ResolvedSourceKind
 
 import json
 from concurrent.futures import Future
@@ -65,7 +66,9 @@ def test_scan_parse_and_config_aware_workflow(tmp_path: Path) -> None:
     frame = pd.read_csv(parsed.csv_path)
     assert frame.loc[0, "simTicks"] == 123
     assert frame.loc[0, "sim_path"] == str(run / "stats.txt")
-    assert json.loads(frame.loc[0, "config_json"])["system"]["num_cpus"] == "4"
+    config_json = frame.loc[0, "config_json"]
+    assert isinstance(config_json, str)
+    assert json.loads(config_json)["system"]["num_cpus"] == "4"
 
 
 def test_config_aware_missing_config_is_typed(tmp_path: Path) -> None:
@@ -80,11 +83,15 @@ def test_config_aware_missing_config_is_typed(tmp_path: Path) -> None:
             )
 
 
-def test_gem5_oneline_histogram_is_scanned_and_parsed(tmp_path: Path) -> None:
+@pytest.mark.parametrize("complete_geometry", [False, True])
+def test_gem5_oneline_histogram_requires_observed_geometry_and_explicit_source(
+    tmp_path: Path, complete_geometry: bool
+) -> None:
     run = _write_stats_run(
         tmp_path / "inputs",
         "\n".join(
-            [
+            (["system.delay::min_bucket 0 # geometry"] if complete_geometry else [])
+            + [
                 "system.delay::bucket_size 10 # geometry",
                 "system.delay::max_bucket 19 # geometry",
                 "system.delay::samples 5 # summary",
@@ -98,11 +105,29 @@ def test_gem5_oneline_histogram_is_scanned_and_parsed(tmp_path: Path) -> None:
     with ring5.Session() as session:
         scanned = session.scan(str(run), limit=0)
         variable = next(value for value in scanned.variables if value.name == "system.delay")
-        assert variable.type == "histogram"
-        assert {"0-9", "10-19"} <= set(variable.entries)
-        parsed = session.parse(
-            str(run), [variable.name], output_dir=str(tmp_path / "output"), scan_limit=0
+        assert variable.type is None
+        assert variable.source_evidence == ring5.AmbiguousSourceKind(
+            ("distribution", "histogram", "vector")
+            if complete_geometry
+            else ("distribution", "vector")
         )
+        assert set(variable.entries) == {
+            "bucket_size",
+            "max_bucket",
+            "samples",
+            "total",
+            *(["min_bucket"] if complete_geometry else []),
+        }
+        output = tmp_path / "output"
+        configured = ring5.StatConfig(
+            variable.name, "histogram", params={"source_type": "histogram"}
+        )
+        if not complete_geometry:
+            with pytest.raises(ring5.ParseError, match="contradicts the observed source evidence"):
+                session.parse(str(run), [configured], output_dir=str(output), scan_limit=0)
+            assert not list(output.rglob("*"))
+            return
+        parsed = session.parse(str(run), [configured], output_dir=str(output), scan_limit=0)
 
     frame = pd.read_csv(parsed.csv_path)
     assert frame.loc[0, "system.delay..0-9"] == 3
@@ -119,7 +144,7 @@ def test_scan_job_partial_and_timeout_are_typed(monkeypatch: pytest.MonkeyPatch)
                 ScannedVariable(
                     name="x",
                     type="scalar",
-                    source_type="scalar",
+                    source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                     instances=(SourceInstance("x", ()),),
                 )
             ],
@@ -132,7 +157,10 @@ def test_scan_job_partial_and_timeout_are_typed(monkeypatch: pytest.MonkeyPatch)
     api.finalize_scan.return_value = ScanResult(
         variables=[
             ScannedVariable(
-                name="x", type="scalar", source_type="scalar", instances=(SourceInstance("x", ()),)
+                name="x",
+                type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
+                instances=(SourceInstance("x", ()),),
             )
         ],
         failures=[bad_result],

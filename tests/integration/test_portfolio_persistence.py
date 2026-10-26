@@ -47,14 +47,14 @@ def test_stats_config_persistence(clean_portfolio_env: Any, tmp_path: Any) -> No
             "name": "ipc",
             "type": "scalar",
             "entries": [],
-            "source_type": "scalar",
+            "source_evidence": {"state": "resolved", "kind": "scalar", "basis": "backend_metadata"},
             "instances": [{"source_name": "ipc", "indices": []}],
         },
         {
             "name": "l2_miss_rate",
             "type": "vector",
             "entries": ["total", "mean"],
-            "source_type": "vector",
+            "source_evidence": {"state": "resolved", "kind": "vector", "basis": "backend_metadata"},
             "instances": [{"source_name": "l2_miss_rate", "indices": []}],
         },
     ]

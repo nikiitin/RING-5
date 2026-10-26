@@ -533,7 +533,11 @@ class TestParserStateRepository:
                     "name": "ipc",
                     "type": "scalar",
                     "entries": [],
-                    "source_type": "scalar",
+                    "source_evidence": {
+                        "state": "resolved",
+                        "kind": "scalar",
+                        "basis": "backend_metadata",
+                    },
                     "instances": [{"source_name": "ipc", "indices": []}],
                 }
             ],
@@ -568,7 +572,11 @@ class TestParserStateRepository:
                         "name": "x",
                         "type": "scalar",
                         "entries": [],
-                        "source_type": "scalar",
+                        "source_evidence": {
+                            "state": "resolved",
+                            "kind": "scalar",
+                            "basis": "backend_metadata",
+                        },
                         "instances": [{"source_name": "x", "indices": []}],
                     }
                 ],
@@ -722,7 +730,11 @@ class TestSessionRepository:
                     "name": "x",
                     "type": "vector",
                     "entries": ["a"],
-                    "source_type": "vector",
+                    "source_evidence": {
+                        "state": "resolved",
+                        "kind": "vector",
+                        "basis": "backend_metadata",
+                    },
                     "instances": [{"source_name": "x", "indices": []}],
                 }
             ],

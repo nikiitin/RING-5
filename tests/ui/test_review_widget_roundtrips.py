@@ -776,7 +776,9 @@ def test_editor_and_compiler_preserve_case_sensitive_scanner_entry_roles() -> No
         from src.core.application_api import ApplicationAPI
         from src.web.components.data_source.variable_editor import VariableEditor
         api = ApplicationAPI()
-        scanned = {"name": "v", "type": "vector", "source_type": "vector",
+        scanned = {"name": "v", "type": "vector",
+                   "source_evidence": {"state": "resolved", "kind": "vector",
+                                       "basis": "backend_metadata"},
                    "instances": [{"source_name": "v", "indices": []}],
                    "entries": ["mean", "Mean", "stdev", "STDEV", "CustomSummary"]}
         info = replace(api.get_simulator_info("gem5"),
@@ -805,7 +807,8 @@ def test_raw_source_kind_is_explicit_and_output_changes_preserve_concrete_select
         from src.web.components.data_source.variable_editor import VariableEditor
         api = ApplicationAPI()
         metadata = {"name": r"cpu\d+.ipc", "type": "vector", "entries": [],
-                    "source_type": "scalar", "instances": [
+                    "source_evidence": {"state": "resolved", "kind": "scalar",
+                                        "basis": "backend_metadata"}, "instances": [
                         {"source_name": "cpu012.ipc", "indices": ["012"]},
                         {"source_name": "cpu1.ipc", "indices": ["1"]}]}
         api.state_manager.set_scanned_variables([metadata])
@@ -853,10 +856,13 @@ def test_manual_numeric_pattern_selects_current_literal_sources_and_runs_the_sel
         from src.web.components.data_source.variable_editor import VariableEditor
         api = ApplicationAPI()
         metadata = [
-            {"name": "l0_cpu01.v", "type": "vector", "entries": ["a"], "source_type": "vector",
+            {"name": "l0_cpu01.v", "type": "vector", "entries": ["a"],
+             "source_evidence": {"state": "resolved", "kind": "vector",
+                                 "basis": "backend_metadata"},
              "instances": [{"source_name": "l0_cpu01.v", "indices": []}]},
             {"name": "l1_cpu0.v", "type": "histogram", "entries": ["0-9"],
-             "source_type": "histogram",
+             "source_evidence": {"state": "resolved", "kind": "histogram",
+                                 "basis": "backend_metadata"},
              "instances": [{"source_name": "l1_cpu0.v", "indices": []}]},
         ]
         api.state_manager.set_scanned_variables(metadata)

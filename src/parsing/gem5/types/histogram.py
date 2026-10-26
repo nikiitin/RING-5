@@ -118,50 +118,64 @@ class Histogram(FrameStatType):
             return f"{int(start)}-{int(end) - 1}"
         return f"[{start:.12g},{end:.12g})"
 
+    @classmethod
+    def declared_entries(
+        cls,
+        entries: tuple[str, ...],
+        statistics: tuple[str, ...],
+        bins: int,
+        max_range: float,
+        statistics_only: bool,
+    ) -> tuple[str, ...]:
+        """Return known physical labels without allocating a mutable accumulator.
+
+        Summary-only and explicit-entry selection bypass unused rebin geometry.
+        Dynamic raw cells and an observed negative tail are admitted when known.
+        """
+        if statistics_only:
+            return statistics
+        if entries:
+            result = [cls._canonical_bucket_key(entry) for entry in entries]
+        elif bins > 0 and max_range > 0:
+            if bins > MAX_INCREMENTAL_CACHE_COLUMNS:
+                raise ParseDataValueError("HISTOGRAM: output exceeds the physical column limit.")
+            if bins > 1:
+                width = max_range / (bins - 1)
+                result = [
+                    cls._bin_label(index * width, (index + 1) * width) for index in range(bins - 1)
+                ]
+                result.append(f"{max_range:.12g}+")
+            else:
+                result = ["0+"]
+        else:
+            result = []
+        return tuple(dict.fromkeys([*result, *statistics]))
+
     @property
     def entries(self) -> list[str]:
-        """Get the expected output entry keys for this histogram.
+        """Return exact selected/rebinned labels and actually discovered raw cells.
 
         Raises:
             ValueError: Active rebin output exceeds the physical-column budget.
         """
-        if self._statistics_only:
-            return list(self._statistics)
-        result: list[str] = []
-        # Priority 1: User-selected specific buckets
-        if self._entries:
-            result.extend(self._entries)
-        # Priority 2: Rebinned buckets
-        elif self._bins > 0 and self._max_range > 0:
-            if self._bins > 1:
-                num_std = self._bins - 1
-                bin_width = self._max_range / num_std
-                result.extend(
-                    [self._bin_label(b * bin_width, (b + 1) * bin_width) for b in range(num_std)]
-                )
-                result.append(f"{self._max_range:.12g}+")
-            else:
-                result.append("0+")
-        # Priority 3: Discovered raw buckets
+        if not self._statistics_only and not self._entries and not self._is_rebinning:
+            result = sorted(self._content_entries)
+            result.extend(stat for stat in self._statistics if stat not in result)
         else:
-            result.extend(sorted(self._content_entries))
-
-        if (
-            not self._entries
-            and self._bins > 0
-            and self._max_range > 0
-            and any(
-                (bounds := self._parse_range_key(key)) and bounds[0] < 0
-                for key in self._content_entries
+            result = list(
+                self.declared_entries(
+                    self._entries,
+                    self._statistics,
+                    self._bins,
+                    self._max_range,
+                    self._statistics_only,
+                )
             )
+        if self._is_rebinning and any(
+            (bounds := self._parse_range_key(key)) and bounds[0] < 0
+            for key in self._content_entries
         ):
             result.insert(0, "<0")
-
-        # Always include extra statistics if they were discovered or configured
-        for stat in self._statistics:
-            if stat not in result:
-                result.append(stat)
-
         if self._is_rebinning and len(result) > MAX_INCREMENTAL_CACHE_COLUMNS:
             raise ParseDataValueError("HISTOGRAM: output exceeds the physical column limit.")
         return result

@@ -46,7 +46,9 @@ class TestSubmitParseAsyncReturnType:
     ) -> None:
         names = ("system.cpu.ipc", "system.cpu.numCycles")
         source = str(tmp_path / "stats.txt")
+        Path(source).write_text(f"{names[0]} 2.5\n{names[1]} 100.0\n", encoding="utf-8")
         record = numeric_file(source, {names[0]: 2.5, names[1]: 100.0})
+        factory.create.return_value.metadata_columns = ()
         factory.create.return_value.get_work_items.return_value = [
             MagicMock(source_path=source, return_value=record)
         ]
@@ -68,8 +70,12 @@ class TestSubmitParseAsyncReturnType:
     @patch("src.parsing.gem5.impl.gem5_parser.WorkPool")
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
     def test_empty_work_raises(self, factory: MagicMock, pool: MagicMock, tmp_path: Path) -> None:
+        (tmp_path / "stats.txt").write_text("test 1.0\n", encoding="utf-8")
+        factory.create.return_value.metadata_columns = ()
         factory.create.return_value.get_work_items.return_value = []
-        with pytest.raises(FileNotFoundError, match="No parse work generated"):
+        with pytest.raises(
+            FileNotFoundError, match="strategy generated no work for selected sources"
+        ):
             Gem5Parser.submit_parse_async(
                 str(tmp_path),
                 "stats.txt",
@@ -116,6 +122,8 @@ class TestBatchIsolation:
         self, factory: MagicMock, pool: MagicMock, tmp_path: Path
     ) -> None:
         source = str(tmp_path / "stats.txt")
+        Path(source).write_text("var_alpha 1.25\nvar_beta 2.5\nvar_gamma 0.0\n", encoding="utf-8")
+        factory.create.return_value.metadata_columns = ()
         first = numeric_file(source, {"var_alpha": 1.25})
         second = numeric_file(source, {"var_beta": 2.5, "var_gamma": 0.0})
         factory.create.return_value.get_work_items.side_effect = [

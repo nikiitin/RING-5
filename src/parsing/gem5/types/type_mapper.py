@@ -1,6 +1,6 @@
 """Construct registered accumulators from explicit current statistic configurations."""
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from src.core.common.stat_config_codec import StatConfigCodec
 from src.core.models.parsing_models import StatParamValue
@@ -42,9 +42,10 @@ class TypeMapper:
             case "distribution":
                 kwargs["statistics_only"] = config.statistics_only
                 if not config.statistics_only:
-                    # The runnable codec rejects fractional bounds; conversion is lossless.
-                    kwargs["minimum"] = int(cast(float, params["minimum"]))
-                    kwargs["maximum"] = int(cast(float, params["maximum"]))
+                    kwargs["minimum"] = params["minimum"]
+                    kwargs["maximum"] = params["maximum"]
+                    kwargs["bucket_size"] = params["bucket_size"]
+                    kwargs["zero_policy"] = params["zero_policy"]
                 kwargs["statistics"] = params.get("statistics", [])
             case "histogram":
                 kwargs["statistics_only"] = config.statistics_only

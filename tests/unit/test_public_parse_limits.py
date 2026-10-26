@@ -1,5 +1,7 @@
 """Public parse-boundary tests for incomplete and over-time work."""
 
+from src.core.models.source_evidence import ResolvedSourceKind
+
 from concurrent.futures import Future
 from unittest.mock import MagicMock
 
@@ -26,7 +28,7 @@ def test_build_stat_configs_rejects_partial_scan() -> None:
                 ScannedVariable(
                     name="simTicks",
                     type="scalar",
-                    source_type="scalar",
+                    source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                     instances=(SourceInstance("simTicks", ()),),
                 )
             ],
@@ -40,7 +42,7 @@ def test_build_stat_configs_rejects_partial_scan() -> None:
             ScannedVariable(
                 name="simTicks",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("simTicks", ()),),
             )
         ],
@@ -81,7 +83,7 @@ def test_unknown_variable_error_reports_actual_scanned_file_count() -> None:
                     ScannedVariable(
                         name="simTicks",
                         type="scalar",
-                        source_type="scalar",
+                        source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                         instances=(SourceInstance("simTicks", ()),),
                     )
                 ],
@@ -94,7 +96,7 @@ def test_unknown_variable_error_reports_actual_scanned_file_count() -> None:
             ScannedVariable(
                 name="simTicks",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("simTicks", ()),),
             )
         ],

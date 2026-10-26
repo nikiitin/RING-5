@@ -25,7 +25,8 @@ def _typed_output(path: Path, body: bytes):
 
     path.write_bytes(body)
     schema = ParsedSchema(
-        (ParsedVariableSchema("name", "text", "scalar"),), (ParsedColumn("name", "text", "name"),)
+        (ParsedVariableSchema("name", "text", "scalar", layout=None),),
+        (ParsedColumn("name", "text", "name"),),
     )
     digest = ParsedOutputDigest(schema)
     digest.update(body)

@@ -8,6 +8,7 @@ import pytest
 from src.core.application_api import ApplicationAPI
 from src.core.common.parsed_output import ParsedOutputIO
 from src.core.models.parsing_models import StatConfig
+from src.core.models.source_evidence import source_kind_candidates
 from src.core.models.data_models import ParseVariableConfig
 from src.core.services.data_services.config_service import ConfigService
 from src.core.services.data_services.csv_pool_service import CsvPoolService
@@ -115,7 +116,7 @@ class TestGem5Parsing:
             stats_path=str(self.TEST_DATA_DIR),
             stats_pattern="stats.txt",
             variables=[
-                StatConfig(name=v.name, type=v.type, params={"source_type": v.source_type})
+                StatConfig(name=v.name, type="scalar", params={"source_type": "scalar"})
                 for v in selected_vars
             ],
             output_dir=str(output_dir),
@@ -177,7 +178,8 @@ system.mem.ctrl::1024-2047                    5      50.00%     100.00%      # H
             hist_var = next((v for v in vars_found if v.name == "system.mem.ctrl"), None)
 
             assert hist_var is not None
-            assert hist_var.type == "histogram"
+            assert hist_var.type is None
+            assert "histogram" in source_kind_candidates(hist_var.source_evidence)
             assert "0-1023" in (hist_var.entries or [])
             assert "1024-2047" in (hist_var.entries or [])
 

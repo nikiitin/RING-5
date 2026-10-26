@@ -23,7 +23,9 @@ NUMERIC_CASES: list[tuple[Callable[[int], StatType[Any, Any]], Any, int]] = [
     (Scalar, 0.0, 1),
     (lambda repeat: Vector(repeat=repeat, entries=["a", "b"]), {"a": 0.0}, 2),
     (
-        lambda repeat: Distribution(repeat=repeat, minimum=0, maximum=1),
+        lambda repeat: Distribution(
+            repeat=repeat, minimum=0, maximum=1, bucket_size=1, zero_policy="missing"
+        ),
         {"underflows": 0.0, "0": 1.25, "1": 0.0, "overflows": 0.0},
         4,
     ),
@@ -187,7 +189,14 @@ def test_repr_does_not_request_observation_snapshots(monkeypatch: pytest.MonkeyP
 
     for kind in (Scalar, Vector, Configuration, Distribution, Histogram):
         monkeypatch.setattr(kind, "content", property(no_snapshot))
-        stat = kind(repeat=HUGE_REPEAT, entries=[]) if kind is Vector else kind(repeat=HUGE_REPEAT)
+        if kind is Distribution:
+            stat = kind(
+                repeat=HUGE_REPEAT, minimum=0, maximum=1, bucket_size=1, zero_policy="missing"
+            )
+        else:
+            stat = (
+                kind(repeat=HUGE_REPEAT, entries=[]) if kind is Vector else kind(repeat=HUGE_REPEAT)
+            )
         assert len(str(stat)) < 150
         assert repr(stat) == str(stat)
         assert str(HUGE_REPEAT) in str(stat)

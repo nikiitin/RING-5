@@ -15,7 +15,7 @@ from src.core.models.parsing_models import StatConfig
 from src.parsing.framework import result_admission
 from src.core.models.parse_failure_models import ResultAdmissionError
 from src.parsing.gem5.impl.gem5_parser import Gem5Parser
-from src.parsing.gem5.impl.strategies import simple
+from src.parsing.gem5.impl import source_bindings
 
 pytestmark = pytest.mark.xdist_group("perl_pool")
 
@@ -51,7 +51,7 @@ def test_real_dynamic_histogram_results_are_bounded_before_futures_retain_them(
     output.mkdir()
     target = output / "results.csv"
     target.write_bytes(b"previous committed output")
-    monkeypatch.setattr(simple, "MAX_PARSE_MATRIX_CELLS", 3)
+    monkeypatch.setattr(source_bindings, "MAX_PARSE_MATRIX_CELLS", 3)
     monkeypatch.setattr(result_admission, "MAX_PARSE_MATRIX_CELLS", 3)
     monkeypatch.setattr(parsed_output, "MAX_PARSE_MATRIX_CELLS", 3)
     variables = [StatConfig("h", "histogram", params={"source_type": "histogram"})]
@@ -96,7 +96,7 @@ def test_incremental_cached_and_changed_results_share_the_same_quota(
     before_cache = Path(initial.cache_path).read_bytes()
     before_csv = Path(published.csv_path).read_bytes()
     sources[2].write_text("h::0-9 3 50% 50%\nh::10-19 4 50% 100%\n", encoding="utf-8")
-    monkeypatch.setattr(simple, "MAX_PARSE_MATRIX_CELLS", 3)
+    monkeypatch.setattr(source_bindings, "MAX_PARSE_MATRIX_CELLS", 3)
     monkeypatch.setattr(result_admission, "MAX_PARSE_MATRIX_CELLS", 3)
     monkeypatch.setattr(parsed_output, "MAX_PARSE_MATRIX_CELLS", 3)
     batch = Gem5Parser.submit_incremental_parse_async(
@@ -122,7 +122,9 @@ def test_config_aware_text_is_charged_to_aggregate_record_bytes(
     for source in sources:
         (source.parent / "config.ini").write_text(f"[system]\nPayload={text}\n", encoding="utf-8")
     metadata = json.dumps({"system": {"Payload": text}}, sort_keys=True, separators=(",", ":"))
-    value = ParsedVariableResult("v", "number", "scalar", (ParsedCell("v", "number", 1.25),))
+    value = ParsedVariableResult(
+        "v", "number", "scalar", (ParsedCell("v", "number", 1.25),), layout=None
+    )
     expected = ParsedFileResult(
         str(sources[0]),
         (value,),

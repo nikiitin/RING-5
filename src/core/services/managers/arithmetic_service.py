@@ -13,6 +13,10 @@ import numpy as np
 import pandas as pd
 
 from src.core.common.dataframe_utils import concat_columns
+from src.core.common.distribution_metadata import (
+    inspect_distribution_layouts,
+    preserve_distribution_layouts,
+)
 from src.core.common.numerical_operations import aggregate_rows, apply_binary, divide_columns
 from src.core.models.arithmetic_models import ArithmeticOperation, MixerOperation
 
@@ -46,6 +50,7 @@ class ArithmeticService:
         """Apply arithmetic operation between two columns."""
         # [impl->req~ring5.data.arithmetic~1]
         # [impl->req~ring5.quality.immutable-data~1]
+        inspect_distribution_layouts(df)
         result = df.copy()
 
         s1 = result[src1]
@@ -66,7 +71,7 @@ class ArithmeticService:
         else:
             raise ValueError(f"Unsupported arithmetic operation: {op}")
 
-        return result
+        return preserve_distribution_layouts(df, result, invalidated_columns=(dest,))
 
     @staticmethod
     def apply_mixer(
@@ -108,7 +113,9 @@ class ArithmeticService:
         if not source_cols:
             raise ValueError("At least one source column must be selected.")
 
+        inspect_distribution_layouts(df)
         result = df.copy()
+        invalidated = [dest_col]
         source_values = df[source_cols]
 
         if op == MixerOperation.SUM:
@@ -124,8 +131,9 @@ class ArithmeticService:
             deviation = ArithmeticService._mixer_deviation(df, source_cols, result[dest_col], op)
             if deviation is not None:
                 result[f"{dest_col}.sd"] = deviation
+                invalidated.append(f"{dest_col}.sd")
 
-        return result
+        return preserve_distribution_layouts(df, result, invalidated_columns=invalidated)
 
     @staticmethod
     def _mixer_deviation(

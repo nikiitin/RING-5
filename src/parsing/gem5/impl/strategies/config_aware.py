@@ -17,7 +17,7 @@ from src.core.common.parse_failure import (
 )
 from src.core.models.parse_failure_models import ParseDataRuntimeError, ParseDataValueError
 from src.core.common.security_limits import MAX_PARSED_CELL_CHARACTERS, MAX_PARSE_FILE_BYTES
-from src.core.models.parsed_output_models import ParsedCell, ParsedFileResult
+from src.core.models.parsed_output_models import ParsedCell, ParsedFileResult, ParsedColumn
 from src.parsing.gem5.impl.source_bindings import SourcePlan
 from src.parsing.parser_protocol import ParseWorkItem
 from src.parsing.gem5.impl.strategies.simple import SimpleStatsStrategy
@@ -133,20 +133,17 @@ class ConfigAwareParseWork:
 class ConfigAwareStrategy(SimpleStatsStrategy):
     """Wrap independent statistics work with required config.ini metadata."""
 
+    metadata_columns: tuple[ParsedColumn, ...] = (
+        ParsedColumn("sim_path", "text", None),
+        ParsedColumn("config_json", "text", None),
+    )
+
     # [impl->req~ring5.ingestion.config-aware-strategy~1]
 
     def get_work_items(
         self,
-        stats_path: str,
-        stats_pattern: str,
+        files: tuple[str, ...],
         plan: SourcePlan,
-        *,
-        file_paths: list[str] | None = None,
     ) -> Sequence[ParseWorkItem]:
-        """Return one metadata-enriched typed task per selected statistics source."""
-        return tuple(
-            ConfigAwareParseWork(work)
-            for work in super().get_work_items(
-                stats_path, stats_pattern, plan, file_paths=file_paths
-            )
-        )
+        """Return one metadata-enriched typed task per admitted statistics source."""
+        return tuple(ConfigAwareParseWork(work) for work in super().get_work_items(files, plan))

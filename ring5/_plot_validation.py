@@ -9,6 +9,7 @@ from typing import Any
 import pandas as pd
 
 from ring5.errors import ColumnNotFoundError, DataValidationError
+from src.core.common.distribution_metadata import inspect_distribution_layouts
 from src.core.common.numbered_axis import numbered_axis_modes
 from src.core.common.plot_payload import validate_plot_config_keys, validate_plot_config_values
 from src.core.models.visualization.trace_config import (
@@ -158,6 +159,8 @@ def validate_plot_config(plot_type: str, data: pd.DataFrame, config: Mapping[str
                     "Plot config field 'histogram_variable' is required and must be a "
                     "non-empty string."
                 )
+            if value in inspect_distribution_layouts(data):
+                continue
             bucket_prefix = f"{value}.."
             if not any(
                 isinstance(column, str)

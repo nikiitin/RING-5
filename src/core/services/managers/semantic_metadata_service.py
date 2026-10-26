@@ -8,6 +8,10 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from src.core.common.distribution_metadata import (
+    inspect_distribution_layouts,
+    preserve_distribution_layouts,
+)
 from src.core.common.semantic_metadata import (
     SEMANTICS_ATTR,
     UNIT_DEFINITIONS,
@@ -30,6 +34,7 @@ class SemanticMetadataService:
     ) -> pd.DataFrame:
         """Return a copy carrying validated metadata in dataframe attributes."""
         # [impl->req~ring5.data.semantic-units~1]
+        inspect_distribution_layouts(data)
         validate_semantic_data(data)
         if not isinstance(semantics, DatasetSemantics):
             raise TypeError("semantics must be a DatasetSemantics value.")
@@ -49,7 +54,7 @@ class SemanticMetadataService:
         result = data.copy(deep=True)
         result.attrs = dict(data.attrs)
         result.attrs[SEMANTICS_ATTR] = semantics_to_payload(normalized)
-        return result
+        return preserve_distribution_layouts(data, result)
 
     @staticmethod
     def inspect(data: pd.DataFrame) -> DatasetSemantics:
@@ -60,6 +65,7 @@ class SemanticMetadataService:
     def convert(cls, data: pd.DataFrame, column: str, target_unit: str) -> pd.DataFrame:
         """Convert a metric and its ``.sd`` companion without affine error offsets."""
         # [impl->req~ring5.data.semantic-units~1]
+        inspect_distribution_layouts(data)
         validate_semantic_data(data)
         if not isinstance(column, str) or column not in data.columns:
             raise KeyError(f"Semantic column {column!r} does not exist.")
@@ -85,6 +91,7 @@ class SemanticMetadataService:
             raise ValueError(f"Converting column {column!r} produced non-finite values.")
         result = data.copy(deep=True)
         result[column] = converted
+        invalidated = [column]
         sd_column = f"{column}.sd"
         if sd_column in data.columns:
             sd_metadata = semantics.for_column(sd_column)
@@ -102,6 +109,7 @@ class SemanticMetadataService:
             if not np.isfinite(scaled_sd.dropna().to_numpy(dtype=float)).all():
                 raise ValueError(f"Converting column {sd_column!r} produced non-finite values.")
             result[sd_column] = scaled_sd
+            invalidated.append(sd_column)
         updated = DatasetSemantics(
             tuple(
                 (
@@ -114,7 +122,7 @@ class SemanticMetadataService:
         )
         result.attrs = dict(data.attrs)
         result.attrs[SEMANTICS_ATTR] = semantics_to_payload(updated)
-        return result
+        return preserve_distribution_layouts(data, result, invalidated_columns=invalidated)
 
     @staticmethod
     def supported_units() -> tuple[str, ...]:

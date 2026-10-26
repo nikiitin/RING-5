@@ -249,7 +249,7 @@ class TestStackedBarCreateFigure:
 class TestHistogramRenderConfigUI:
     """Tests for histogram configuration controls."""
 
-    # [test->req~ring5.figure.histogram-controls~1]
+    # [test->req~ring5.figure.histogram-controls~2]
 
     @patch(f"{_HIST_CFG}.render_common_config")
     @patch(f"{_HIST_CFG}.st")
@@ -275,7 +275,7 @@ class TestHistogramRenderConfigUI:
 class TestHistogramCreateFigure:
     """Tests for histogram figure creation."""
 
-    # [test->req~ring5.figure.histogram-controls~1]
+    # [test->req~ring5.figure.histogram-controls~2]
 
     def test_no_histogram_var_raises(self, plot_session: Session) -> None:
         from src.web.pages.ui.plotting.types.histogram_plot import HistogramPlot
@@ -357,7 +357,7 @@ class TestHistogramCreateFigure:
         assert vals == pytest.approx(expected)
 
     def test_normalization_cumulative(self) -> None:
-        # [test->req~ring5.figure.histogram-cumulative~1]
+        # [test->req~ring5.figure.histogram-cumulative~2]
         from src.web.pages.ui.plotting.types.histogram_plot import HistogramPlot
 
         plot = HistogramPlot(plot_id=1, name="test")
@@ -371,14 +371,14 @@ class TestHistogramCreateFigure:
         from src.web.pages.ui.plotting.types.histogram_plot import HistogramPlot
 
         plot = HistogramPlot(plot_id=1, name="test")
-        vals = plot._normalize_values([0.0, 0.0], {"normalization": "probability"})
-        assert vals == [0.0, 0.0]
+        with pytest.raises(ValueError, match="positive selected mass"):
+            plot._normalize_values([0.0, 0.0], {"normalization": "probability"})
+        assert plot._normalize_values([0.0, 0.0], {"normalization": "count"}) == [0.0, 0.0]
 
     def test_detect_histogram_variables(self) -> None:
-        from src.web.pages.ui.plotting.types.histogram_plot import HistogramPlot
+        from src.web.components.plotting.config.histogram_config import _detect_histogram_variables
 
-        plot = HistogramPlot(plot_id=1, name="test")
-        detected = plot._detect_histogram_variables(_sample_histogram_data())
+        detected = _detect_histogram_variables(_sample_histogram_data())
         assert "latency" in detected
 
 

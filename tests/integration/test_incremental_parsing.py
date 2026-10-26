@@ -121,7 +121,9 @@ def test_incremental_cache_cannot_replace_output_or_simulator_input(tmp_path: Pa
     assert source.read_text(encoding="utf-8") == "simTicks 100 # ticks\n"
 
 
-def test_explicit_partial_finalization_retains_cached_rows_after_a_real_worker_failure(tmp_path):
+def test_explicit_partial_finalization_retains_cached_rows_after_a_real_worker_failure(
+    tmp_path: Path,
+) -> None:
     inputs = tmp_path / "inputs"
     _write_run(inputs, "cached", 100)
     accepted = _write_run(inputs, "accepted", 200)
@@ -150,7 +152,7 @@ def test_explicit_partial_finalization_retains_cached_rows_after_a_real_worker_f
             except RuntimeError as exc:
                 failures.append(str(exc))
         assert len(successful) == len(failures) == 1
-        assert "Raw source kind mismatch" in failures[0]
+        assert "Declared source contract contradicts actual observations" in failures[0]
 
         result = session.api.finalize_incremental_parsing(batch, successful, complete=False)
 

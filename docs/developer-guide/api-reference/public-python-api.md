@@ -45,9 +45,11 @@ are documented in the [parser extension guide]({{ site.baseurl }}/developer-guid
 Use `ring5.StatConfig` for explicit runnable parser settings. Configuration fields and `params`
 use snake_case; `repeat` is a positive integer, `entries` and `statistics` are separate text lists,
 and `source_name` preserves an output alias without replacing the simulator statistic. Every runnable
-configuration declares `params.source_type`, the actual raw source kind before output reinterpretation.
-`ScannedVariable` requires that kind plus `SourceInstance` records containing exact source names and
-numeric display coordinates. Numeric patterns require these current scan records;
+configuration declares `params.source_type`, a compatible source contract before output reinterpretation.
+`ScannedVariable` requires `source_evidence` and `SourceInstance` records containing exact source names
+and numeric display coordinates. Evidence is resolved or explicitly ambiguous; ambiguous sources have
+no output suggestion (`type=None`) and require an explicit runnable `StatConfig`. Observed entry labels
+do not supply native geometry. Numeric patterns require these current scan records;
 `params.selected_sources` selects concrete names once at submission. An explicit empty selection
 remains an unfinished draft. Scalar-source vector entries derive from instance coordinates, so they
 do not accept caller-provided `entries`. Invalid
@@ -55,6 +57,28 @@ configuration raises `ParseError`; dictionary and duck-object execution routes a
 Histogram `statistics_only=True` extracts only configured summaries and retains missing summaries
 as NaN. Saved editor drafts remain editable, while jobs and analysis recipes require runnable
 configurations.
+
+Native frequency requests declare `params={"source_type": "distribution", "minimum": 0.25,
+"maximum": 1.25, "bucket_size": 0.5, "zero_policy": "missing"}`. `"nozero"` is an explicit
+producer omission guarantee for present compatible observations. Full native geometry is independent
+of rounded printed labels; summary-only extraction needs no grid.
+
+Custom parser declarations use `DistributionGeometry`, `DistributionColumn`,
+`NativeDistributionLayout` and `OpaqueDistributionLayout`. `ParsedVariableSchema` and
+`ParsedVariableResult` require the keyword `layout`, including `layout=None` for ordinary output.
+A layout binds exact numeric physical columns; full native layouts include every allocated slot,
+both tails and optional summaries. Opaque layouts retain literal selected labels without geometry.
+See [Add a Parser]({{site.baseurl}}/developer-guide/extension-guides/adding-a-parser/) for invariants.
+
+`Session.plot("histogram", ..., config={"histogram_variable": "logical_name"})` selects a native
+layout by logical name, independent of physical prefixes. It emits ordinal storage-cell mass with
+literal ticks and a default Native bucket axis label. Explicit labels override that default.
+Summary-only layouts are None. Opaque Distribution label views reject; ordinary Vector/CSV labels
+retain explicit generic interval interpretation. Native missing/NaN/nonfinite/negative frequencies,
+continuous rebinning and noncumulative density raise RenderError. Count supports observed zeros;
+normalized mass/CDF requires finite positive selected total. Both engines and typed persistence use
+the same bindings and values. Failed renders preserve the previous artifact and caller data.
+
 
 Declared Session data methods use `ring5.Table`. `load`, `load_import`, dataset getters, joins,
 appends and comparisons return independently owned tables. Transformation, quality, schema,
@@ -369,7 +393,7 @@ Automatic recipe capture describes the active loaded data, independently of pars
 A source is reusable only while its exact request is retained: named-data retention, selection and
 revision restoration preserve it; generic frame or manager edits clear it. Partial parser results
 and undeclared injected backends require an explicit caller `RecipeSource` for recipe creation.
-Recipe schema 6 retains the declared simulator, current parser contract, actual discovery/strict policy and
+Recipe schema 7 retains the declared simulator, current parser contract, actual discovery/strict policy and
 resolved scanner metadata. Replay uses those records directly without scanning again.
 
 `RecipeSource.csv_policy` is `InferredCsvPolicy(configuration_columns)` for ordinary CSV inference
@@ -381,10 +405,10 @@ values, with exact typed scalar controls.
 
 A successfully executed recipe retains its source and exact dataset-wide transformations. Capturing
 without an explicit source includes those steps once, followed by any explicitly supplied additional
-steps. Capturing with an explicit source uses only caller-supplied transformations. Portfolio schema 11 saves
+steps. Capturing with an explicit source uses only caller-supplied transformations. Portfolio schema 12 saves
 this frame-associated origin separately from editable parser controls. A snapshot or arbitrary Table
 has no inferred reusable origin.
 
-Current documents use portfolio schema 11 (`version: "11.0"`) or recipe schema 6. Serialized
+Current documents use portfolio schema 12 (`version: "12.0"`) or recipe schema 7. Serialized
 plot display names use `legend_labels`; per-series style mappings retain original series keys.
 Unsupported schema versions and nested style name fields are rejected before restoration or replay.

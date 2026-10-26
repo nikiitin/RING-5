@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Generator
 import math
 from pathlib import Path
 from unittest.mock import patch
@@ -11,12 +12,15 @@ import pandas as pd
 import pytest
 
 import ring5
+from src.core.models.source_context_models import ParserSourceContext, CsvSourceContext
 
 pytestmark = [pytest.mark.public_api, pytest.mark.xdist_group("perl_pool")]
 
 
 @pytest.fixture(autouse=True)
-def _private_storage(tmp_path, monkeypatch):
+def _private_storage(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> Generator[None, None, None]:
     from src.core.services.data_services.path_service import PathService
 
     PathService.reset_caches()
@@ -25,19 +29,19 @@ def _private_storage(tmp_path, monkeypatch):
     PathService.reset_caches()
 
 
-def _active(session):
+def _active(session: ring5.Session) -> ring5.Table:
     frame = session.api.state_manager.get_data()
     assert frame is not None
     return ring5.Table(frame)
 
 
-def _stats(path: Path, token="1.25") -> Path:
+def _stats(path: Path, token: str = "1.25") -> Path:
     path.mkdir(parents=True, exist_ok=True)
     (path / "stats.txt").write_text(f"simTicks {token}\n", encoding="utf-8")
     return path
 
 
-def _variables(literal):
+def _variables(literal: str) -> list[ring5.StatConfig]:
     return [
         ring5.StatConfig(
             "value", "scalar", source_name="simTicks", params={"source_type": "scalar"}
@@ -51,7 +55,9 @@ def _variables(literal):
 @pytest.mark.parametrize(
     "literal", ["NA", "nan", "NaN", "", "001", "μarch", "  whitespace  ", "95%", "1e400", "-1e-400"]
 )
-def test_real_parser_typed_load_portfolio_and_recipe_preserve_literal_cells(tmp_path, literal):
+def test_real_parser_typed_load_portfolio_and_recipe_preserve_literal_cells(
+    tmp_path: Path, literal: str
+) -> None:
     source = _stats(tmp_path / "inputs")
     with ring5.Session() as session:
         result = session.parse(str(source), _variables(literal), scan_limit=0)
@@ -85,7 +91,9 @@ def test_real_parser_typed_load_portfolio_and_recipe_preserve_literal_cells(tmp_
 
 
 @pytest.mark.parametrize("token", ["nan", "inf", "-inf", "0", "5e-324"])
-def test_numeric_cells_remain_numeric_and_strict_missing_uses_owned_variable_kinds(tmp_path, token):
+def test_numeric_cells_remain_numeric_and_strict_missing_uses_owned_variable_kinds(
+    tmp_path: Path, token: str
+) -> None:
     source = _stats(tmp_path / "inputs", token)
     with ring5.Session() as session:
         result = session.parse(str(source), _variables("NaN"), strict=False)
@@ -103,7 +111,7 @@ def test_numeric_cells_remain_numeric_and_strict_missing_uses_owned_variable_kin
             assert result.missing_stats == ()
 
 
-def test_submit_without_load_and_failed_load_preserve_active_source_recipe(tmp_path):
+def test_submit_without_load_and_failed_load_preserve_active_source_recipe(tmp_path: Path) -> None:
     first = _stats(tmp_path / "first", "1.25")
     second = _stats(tmp_path / "second", "9.5")
     with ring5.Session() as session:
@@ -149,15 +157,19 @@ def test_submit_without_load_and_failed_load_preserve_active_source_recipe(tmp_p
         assert state.get_stats_pattern() == captured.source.pattern
         assert state.get_parser_strategy() == captured.source.strategy
         assert state.get_simulator() == captured.source.simulator
-        assert json.loads(state.get_loaded_origin().source.variables_json) == list(
-            captured.source.variables
+        retained_origin = state.get_loaded_origin()
+        assert retained_origin is not None and isinstance(
+            retained_origin.source, ParserSourceContext
         )
+        assert json.loads(retained_origin.source.variables_json) == list(captured.source.variables)
         assert state.get_scanned_variables() == list(captured.source.scanned_variables)
         state.set_stats_path("a-later-unloaded-editor-request")
         assert session.capture_analysis_recipe("after-editor-change").source == captured.source
 
 
-def test_recipe_retains_executed_pipeline_once_and_explicit_source_uses_only_caller_steps(tmp_path):
+def test_recipe_retains_executed_pipeline_once_and_explicit_source_uses_only_caller_steps(
+    tmp_path: Path,
+) -> None:
     path = tmp_path / "source.csv"
     path.write_text("label,a,b\noriginal,1,2\n", encoding="utf-8")
     # A repeated non-idempotent step exposes accidental pipeline duplication.
@@ -187,7 +199,9 @@ def test_recipe_retains_executed_pipeline_once_and_explicit_source_uses_only_cal
         assert explicit.transformations == ()
 
 
-def test_reviewed_import_parameterized_recipe_replays_actual_options_and_rejected_rows(tmp_path):
+def test_reviewed_import_parameterized_recipe_replays_actual_options_and_rejected_rows(
+    tmp_path: Path,
+) -> None:
     path = tmp_path / "reviewed.csv"
     path.write_text(
         "ignored\nlabel;value\nNA;1\nnan;2\n;3\n001;4\nμ;5\n  whitespace  ;6\n95%;7\nreject;bad\n",
@@ -258,7 +272,9 @@ def test_reviewed_import_parameterized_recipe_replays_actual_options_and_rejecte
         )
 
 
-def test_plain_csv_recipe_retains_ingestion_configuration_columns_after_editor_changes(tmp_path):
+def test_plain_csv_recipe_retains_ingestion_configuration_columns_after_editor_changes(
+    tmp_path: Path,
+) -> None:
     path = tmp_path / "source.csv"
     path.write_text("label,numeric\n001,1.25\n", encoding="utf-8")
     with ring5.Session() as session:
@@ -283,7 +299,9 @@ def test_plain_csv_recipe_retains_ingestion_configuration_columns_after_editor_c
             session.capture_analysis_recipe("arbitrary-table")
 
 
-def test_table_and_confirmed_preview_publish_exact_types_and_clear_uncaptured_origin(tmp_path):
+def test_table_and_confirmed_preview_publish_exact_types_and_clear_uncaptured_origin(
+    tmp_path: Path,
+) -> None:
     source = _stats(tmp_path / "inputs")
     with ring5.Session() as session:
         session.load(session.parse(str(source), _variables("NA")))
@@ -320,9 +338,9 @@ def test_table_and_confirmed_preview_publish_exact_types_and_clear_uncaptured_or
 
 
 def test_large_csv_configuration_policy_loads_tiny_frame_and_capture_budget_is_independent(
-    tmp_path,
-    monkeypatch,
-):
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     from src.core.services.data_services import analysis_recipe_service
 
     path = tmp_path / "tiny.csv"
@@ -340,8 +358,11 @@ def test_large_csv_configuration_policy_loads_tiny_frame_and_capture_budget_is_i
         assert len(loaded) == 1
         assert loaded.columns() == ["value"]
         origin = session.api.state_manager.get_loaded_origin()
+        assert origin is not None and isinstance(origin.source, CsvSourceContext)
+        assert isinstance(origin.source.policy, ring5.InferredCsvPolicy)
         assert origin.source.policy.configuration_columns == names
         captured = session.capture_analysis_recipe("many-columns")
+        assert isinstance(captured.source.csv_policy, ring5.InferredCsvPolicy)
         assert captured.source.csv_policy.configuration_columns == names
         policy_size = len(json.dumps({"configuration_columns": names}).encode("utf-8"))
         monkeypatch.setattr(analysis_recipe_service, "MAX_ANALYSIS_RECIPE_BYTES", policy_size // 2)
@@ -351,7 +372,9 @@ def test_large_csv_configuration_policy_loads_tiny_frame_and_capture_budget_is_i
         assert session.api.state_manager.get_loaded_origin() is origin
 
 
-def test_actual_scanned_bounds_survive_source_recipe_and_editor_roundtrip(tmp_path):
+def test_observed_evidence_and_declared_geometry_survive_source_recipe_and_editor_roundtrip(
+    tmp_path: Path,
+) -> None:
     from src.core.common.source_context_codec import SourceContextCodec
 
     inputs = tmp_path / "distribution"
@@ -363,9 +386,29 @@ def test_actual_scanned_bounds_survive_source_recipe_and_editor_roundtrip(tmp_pa
     with ring5.Session() as session:
         scan = session.scan(str(inputs), limit=0)
         observed = next(v.to_dict() for v in scan.variables if v.name == "d")
-        assert observed["minimum"] == -2.0
-        assert observed["maximum"] == 4.0
-        parsed = session.parse(str(inputs), ["d"], scan_limit=0)
+        assert observed["type"] is None
+        assert observed["source_evidence"] == {
+            "state": "ambiguous",
+            "candidates": ["distribution", "vector"],
+        }
+        assert "minimum" not in observed and "maximum" not in observed
+        parsed = session.parse(
+            str(inputs),
+            [
+                ring5.StatConfig(
+                    "d",
+                    "distribution",
+                    params={
+                        "source_type": "distribution",
+                        "minimum": -2.0,
+                        "maximum": 4.0,
+                        "bucket_size": 1,
+                        "zero_policy": "missing",
+                    },
+                )
+            ],
+            scan_limit=0,
+        )
         session.load(parsed)
         assert SourceContextCodec.scanned_payloads(parsed.source_context) == [observed]
         assert (
@@ -390,7 +433,9 @@ def test_actual_scanned_bounds_survive_source_recipe_and_editor_roundtrip(tmp_pa
         )
 
 
-def test_unobserved_dynamic_entry_variable_loads_one_row_without_invented_bucket(tmp_path):
+def test_unobserved_dynamic_entry_variable_loads_one_row_without_invented_bucket(
+    tmp_path: Path,
+) -> None:
     source = _stats(tmp_path / "inputs")
     variable = ring5.StatConfig("unobserved", "histogram", params={"source_type": "histogram"})
     with ring5.Session() as session:

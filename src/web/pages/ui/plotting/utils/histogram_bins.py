@@ -39,7 +39,7 @@ def parse_histogram_bins(labels: list[str]) -> tuple[list[HistogramBin], list[in
     Raises:
         ValueError: If buckets are malformed, unrepresentable, empty, or overlap.
     """
-    # [impl->req~ring5.plot.histogram~1]
+    # [impl->req~ring5.plot.histogram~2]
     if not labels:
         raise ValueError("A histogram observation requires at least one bucket.")
     parsed: list[tuple[int, HistogramBin]] = []
@@ -80,6 +80,50 @@ def parse_histogram_bins(labels: list[str]) -> tuple[list[HistogramBin], list[in
                 f"{right.label!r}. Use explicit [a,b) labels for continuous intervals."
             )
     return [bucket for _, bucket in parsed], [index for index, _ in parsed]
+
+
+def sum_histogram_counts(values: Iterable[float]) -> float:
+    """Sum admitted counts, rejecting native floating-point overflow.
+
+    Raises:
+        ValueError: The combined count cannot be represented as a finite float.
+    """
+    try:
+        total = math.fsum(values)
+    except OverflowError as exc:
+        if type(exc) is not OverflowError:
+            raise
+        raise ValueError("Combined Histogram counts exceed the finite numeric range.") from exc
+    if not math.isfinite(total):
+        raise ValueError("Combined Histogram counts must remain finite.")
+    return total
+
+
+def cumulative_histogram_counts(values: Sequence[float]) -> list[float]:
+    """Round each nonnegative binary64 prefix once with linear bounded work.
+
+    Every binary64 denominator divides 2**1074. Its scaled numerator needs at
+    most 2098 bits; 100000 displayed cells add at most 17 carry bits.
+
+    Raises:
+        ValueError: An accumulated count cannot be represented as a finite float.
+    """
+    scale = 1 << 1074
+    total = 0
+    result = []
+    for value in values:
+        numerator, denominator = value.as_integer_ratio()
+        total += numerator * (scale // denominator)
+        try:
+            count = total / scale
+        except OverflowError as exc:
+            if type(exc) is not OverflowError:
+                raise
+            raise ValueError("Cumulative Histogram counts must remain finite.") from exc
+        if not math.isfinite(count):
+            raise ValueError("Cumulative Histogram counts must remain finite.")
+        result.append(count)
+    return result
 
 
 def aggregate_histogram_observations(
@@ -123,7 +167,41 @@ def aggregate_histogram_observations(
             math.inf if item[0].upper is None else item[0].upper,
         ),
     )
-    return [bucket for bucket, _ in ordered], [math.fsum(values) for _, values in ordered]
+    return [bucket for bucket, _ in ordered], [
+        sum_histogram_counts(values) for _, values in ordered
+    ]
+
+
+def histogram_mass_ratio(
+    value: float, multiplier: float, divisor: float, second_divisor: float = 1.0
+) -> float:
+    """Round admitted finite mass times a scale over one or two positive divisors.
+
+    All callers supply binary64 counts, overlap/width or normalization operands.
+    Four binary64 integer ratios bound the integer work to a few thousand bits.
+    One final division preserves subnormals without a staged arithmetic fallback.
+
+    Raises:
+        ValueError: Positive final mass is outside the finite nonzero float range.
+    """
+    # [impl->req~ring5.plot.histogram~2]
+    if value == 0 or multiplier == 0:
+        return 0.0
+    value_numerator, value_denominator = value.as_integer_ratio()
+    scale_numerator, scale_denominator = multiplier.as_integer_ratio()
+    divisor_numerator, divisor_denominator = divisor.as_integer_ratio()
+    second_numerator, second_denominator = second_divisor.as_integer_ratio()
+    numerator = value_numerator * scale_numerator * divisor_denominator * second_denominator
+    denominator = value_denominator * scale_denominator * divisor_numerator * second_numerator
+    try:
+        contribution = numerator / denominator
+    except OverflowError as exc:
+        if type(exc) is not OverflowError:
+            raise
+        raise ValueError("Histogram mass exceeds the finite numeric range.") from exc
+    if not math.isfinite(contribution) or contribution <= 0:
+        raise ValueError("Positive Histogram mass is outside the finite nonzero range.")
+    return contribution
 
 
 def rebin_histogram(
@@ -156,26 +234,38 @@ def rebin_histogram(
             raise ValueError("Histogram bucket size must be finite and positive.")
         lower = min(bucket.lower for bucket in finite if bucket.lower is not None)
         upper = max(bucket.upper for bucket in finite if bucket.upper is not None)
-        count = math.ceil((upper - lower) / bucket_size)
+        span = upper - lower
+        quotient = span / bucket_size
+        if not math.isfinite(span) or not math.isfinite(quotient):
+            raise ValueError("Histogram rebin geometry exceeds the finite numeric range.")
+        count = max(1, math.ceil(quotient))
         if count > 100_000:
             raise ValueError("Histogram bucket size produces more than 100000 bins.")
-        targets = [
-            HistogramBin(
-                lower + index * bucket_size, min(upper, lower + (index + 1) * bucket_size), ""
-            )
-            for index in range(count)
-        ]
+        targets = []
+        for index in range(count):
+            start = lower + index * bucket_size
+            stop = min(upper, lower + (index + 1) * bucket_size)
+            if not math.isfinite(start) or not math.isfinite(stop) or stop <= start:
+                raise ValueError("Histogram rebin cells must have finite positive widths.")
+            targets.append(HistogramBin(start, stop, ""))
     rebinned: list[float] = []
     for target in targets:
         assert target.lower is not None and target.upper is not None
-        mass = 0.0
-        for source, value in zip(bins, values, strict=True):
-            if source.width is None:
-                continue
-            assert source.lower is not None and source.upper is not None
-            overlap = max(0.0, min(source.upper, target.upper) - max(source.lower, target.lower))
-            mass += value * overlap / source.width
-        rebinned.append(mass)
+        target_lower: float = target.lower
+        target_upper: float = target.upper
+
+        def contributions() -> Iterable[float]:
+            for source, value in zip(bins, values, strict=True):
+                width = source.width
+                if width is None:
+                    continue
+                assert source.lower is not None and source.upper is not None
+                overlap = max(
+                    0.0, min(source.upper, target_upper) - max(source.lower, target_lower)
+                )
+                yield histogram_mass_ratio(value, overlap, width)
+
+        rebinned.append(sum_histogram_counts(contributions()))
     underflow = [
         (bucket, value) for bucket, value in zip(bins, values, strict=True) if bucket.lower is None
     ]

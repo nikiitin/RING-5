@@ -23,7 +23,10 @@ _CASES: list[tuple[Callable[[], Accumulator], Observation]] = [
     (lambda: Scalar(), 1.25),
     (lambda: Configuration(), "literal 001 % Ω"),
     (lambda: Vector(entries=["001"]), {"001": 1.25}),
-    (lambda: Distribution(minimum=0, maximum=0), {"underflows": 0, "0": 1.25, "overflows": 0}),
+    (
+        lambda: Distribution(minimum=0, maximum=0, bucket_size=1, zero_policy="missing"),
+        {"underflows": 0, "0": 1.25, "overflows": 0},
+    ),
     (lambda: Histogram(), {"-1-0": 1.25}),
 ]
 
@@ -174,7 +177,7 @@ def test_numeric_points_preserve_zero_fractional_and_nonfinite_values(value: Any
 
 
 def test_nonfinite_frequency_frames_remain_ieee_values_without_fabrication() -> None:
-    stat = Distribution(minimum=0, maximum=0, repeat=2)
+    stat = Distribution(minimum=0, maximum=0, repeat=2, bucket_size=1, zero_policy="missing")
     for value in (math.inf, -math.inf):
         stat.add_observation({"underflows": 0, "0": value, "overflows": 0})
     stat.balance_content()
@@ -195,9 +198,9 @@ def test_vector_missing_entry_does_not_shift_another_frames_measurement() -> Non
 
 
 def test_distribution_failed_frame_validation_is_atomic() -> None:
-    stat = Distribution(minimum=0, maximum=1)
-    with pytest.raises(RuntimeError, match="Boundary buckets"):
-        stat.add_observation({"underflows": 0, "0": 3, "overflows": 0})
+    stat = Distribution(minimum=0, maximum=1, bucket_size=1, zero_policy="missing")
+    with pytest.raises(RuntimeError, match="contradicts the declared native grid"):
+        stat.add_observation({"underflows": 0, "0": 3, "2": 1, "overflows": 0})
     content = stat.content
     assert isinstance(content, dict)
     assert not any(content.values())
@@ -265,36 +268,46 @@ def test_integral_distribution_metadata_reaches_exact_constructor_without_trunca
     config = StatConfig(
         "d",
         "distribution",
-        params={"source_type": "distribution", "minimum": minimum, "maximum": maximum},
+        params={
+            "source_type": "distribution",
+            "minimum": minimum,
+            "maximum": maximum,
+            "bucket_size": 1,
+            "zero_policy": "missing",
+        },
     )
     validated = StatConfigCodec.validate(config)
-    stat = TypeMapper.create_stat(resolve_sources([validated], None).accumulators[0])
+    stat = TypeMapper.create_stat(
+        resolve_sources([validated], None, file_count=1, metadata_columns=()).accumulators[0]
+    )
     assert isinstance(stat, Distribution)
-    assert stat.minimum == minimum and type(stat.minimum) is int
-    assert stat.maximum == maximum and type(stat.maximum) is int
+    plan = resolve_sources([validated], None, file_count=1, metadata_columns=())
+    assert plan.accumulators[0].layout.geometry.minimum == minimum
+    assert plan.accumulators[0].layout.geometry.maximum == maximum
     assert config.params["minimum"] == minimum
     assert config.params["maximum"] == maximum
 
 
 @pytest.mark.parametrize("minimum,maximum", [(0.5, 1.0), (-1.5, 1), (0, 0.5)])
-def test_fractional_distribution_geometry_is_visible_and_stays_an_editor_draft(
+def test_fractional_distribution_geometry_is_runnable_without_truncation(
     minimum: float, maximum: float
 ) -> None:
-    from src.core.common.stat_config_codec import StatConfigCodec, StatConfigDraftIncomplete
+    from src.core.common.stat_config_codec import StatConfigCodec
     from src.core.models.parsing_models import StatConfig
 
     params: dict[str, StatParamValue] = {
         "source_type": "distribution",
         "minimum": minimum,
         "maximum": maximum,
+        "bucket_size": 1,
+        "zero_policy": "missing",
     }
     config = StatConfig("d", "distribution", params=params)
-    with pytest.raises(ValueError, match="fixed-unit.*integral bounds"):
-        StatConfigCodec.validate(config)
+    assert StatConfigCodec.validate(config).params == params
     draft: ParseVariableConfig = {"name": "d", "type": "distribution", "params": params}
-    with pytest.raises(StatConfigDraftIncomplete, match="fixed-unit.*integral bounds"):
-        StatConfigCodec.from_draft(draft)
-    assert StatConfigCodec.to_snapshot(draft) == {"state": "draft", "fields": draft}
+    configured = StatConfigCodec.from_draft(draft)
+    assert configured.params == params
+    assert StatConfigCodec.to_snapshot(draft)["state"] == "runnable"
 
 
 def test_statistics_only_distribution_needs_no_unused_geometry() -> None:
@@ -308,7 +321,9 @@ def test_statistics_only_distribution_needs_no_unused_geometry() -> None:
         statistics_only=True,
         params={"source_type": "distribution", "statistics": ["mean"]},
     )
-    stat = TypeMapper.create_stat(resolve_sources([config], None).accumulators[0])
+    stat = TypeMapper.create_stat(
+        resolve_sources([config], None, file_count=1, metadata_columns=()).accumulators[0]
+    )
     stat.add_observation({"mean": 1.5})
     stat.balance_content()
     stat.reduce_duplicates()
@@ -326,7 +341,7 @@ def test_explicit_empty_configuration_fallback_survives_codec_and_worker() -> No
         "label", "configuration", params={"source_type": "configuration", "on_empty": ""}
     )
     assert StatConfigCodec.from_payload(StatConfigCodec.to_payload(config)).params["on_empty"] == ""
-    plan = resolve_sources([config], None)
+    plan = resolve_sources([config], None, file_count=1, metadata_columns=())
     stat = TypeMapper.create_stat(plan.accumulators[0])
     worker = Gem5ParseWork("unused", {"label": stat}, plan)
     worker._process_output("")
