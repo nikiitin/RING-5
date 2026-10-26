@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Generator
+from unittest.mock import patch
 
 import pytest
 import ring5
@@ -153,12 +154,47 @@ def test_numeric_point_vector_requires_an_explicit_compatible_source_contract(
         assert session.load(converted).rows() == [{"v..0-0": 2.0, "v..1-1": 3.0}]
 
 
+@pytest.mark.public_api
 def test_string_only_ambiguous_request_does_not_invent_a_grid_or_kind(tmp_path: Path) -> None:
-    (tmp_path / "stats.txt").write_text("d::underflows 0\nd::0 1\nd::overflows 0\n")
+    inputs = tmp_path / "inputs"
+    inputs.mkdir()
+    source = inputs / "stats.txt"
+    source.write_text("d::underflows 0\nd::0 1\nd::overflows 0\n")
+    before = source.read_bytes()
+    output = tmp_path / "output"
     with ring5.Session() as session:
-        with pytest.raises((ring5.ParseError, ring5.ScanError), match="type|contract|source"):
-            session.parse(str(tmp_path), variables=["d"])
+        scanned = session.scan(str(inputs))
+        assert scanned.complete and len(scanned.variables) == 1
+        variable = scanned.variables[0]
+        assert variable.name == "d" and variable.type is None
+        assert source_kind_candidates(variable.source_evidence) == {"distribution", "vector"}
+        with patch.object(
+            session.api,
+            "submit_parse_async",
+            side_effect=AssertionError("parse submission reached"),
+        ) as submit:
+            with pytest.raises(ring5.ParseError, match="no unique runnable contract") as failure:
+                session.parse(str(inputs), variables=["d"], output_dir=str(output))
+            submit.assert_not_called()
+        assert type(failure.value.__cause__) is ValueError
+        assert str(failure.value.__cause__) == (
+            "Scanned source 'd' has no unique runnable contract. "
+            "Supply an explicit StatConfig choosing the output type and params.source_type, "
+            "plus any geometry that output requires; labels do not declare a grid."
+        )
+        assert not output.exists()
         assert session.api.state_manager.get_data() is None
+        configured = ring5.StatConfig(
+            "d",
+            "vector",
+            params={"source_type": "vector", "entries": ["underflows", "0", "overflows"]},
+        )
+        result = session.parse(str(inputs), variables=[configured], output_dir=str(output))
+        assert Path(result.csv_path).is_file()
+        assert session.load(result).rows() == [
+            {"d..underflows": 0.0, "d..0": 1.0, "d..overflows": 0.0}
+        ]
+        assert source.read_bytes() == before
 
 
 def test_fractional_percentage_vector_and_literal_text_survive_real_worker(tmp_path: Path) -> None:

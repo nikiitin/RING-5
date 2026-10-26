@@ -136,6 +136,10 @@ class PipelineService:
                     source if coordinate_input else with_distribution_layouts(source, {})
                 )
                 result = operation_input.pipe(shaper)
+                if not isinstance(result, pd.DataFrame):
+                    raise TypeError(
+                        f"Shaper output must be a pandas DataFrame; got {type(result).__name__}."
+                    )
                 current_data = _distribution_policy(shaper, source, result)
                 t_shaper_end = time.perf_counter()
                 logger.info(
