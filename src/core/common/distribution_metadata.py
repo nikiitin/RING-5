@@ -38,11 +38,13 @@ class _MetadataBudget:
         self.columns = 0
 
     def admit(self, fragment: bytes) -> None:
+        """Charge encoded bytes and reject an exceeded schema budget."""
         self.size += len(fragment)
         if self.size > MAX_PARSED_SCHEMA_BYTES:
             raise ValueError("Distribution metadata exceeds its schema byte budget.")
 
     def entry(self, name: str, count: int, *, first: bool) -> None:
+        """Charge an output name and its declared physical-column count."""
         if type(name) is not str or not name or len(name) > MAX_INPUT_LENGTH:
             raise ValueError("Distribution metadata requires bounded non-empty output names.")
         self.columns += count
