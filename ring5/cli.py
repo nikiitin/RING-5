@@ -3,6 +3,7 @@
 Subcommands::
 
     ring5 doctor                          # dependency preflight
+    ring5 install-chrome                  # reviewed Stable browser; prints its path
     ring5 parse DIR -v simTicks -o out.csv
     ring5 render PORTFOLIO -o figs/       # regenerate every figure
     ring5 recipe-matrix RECIPE -m MATRIX -o out/
@@ -44,6 +45,20 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
     # Only a missing required dependency (Perl) makes the command fail; browser/compiler tools
     # gate optional export formats and shouldn't fail a `ring5 doctor && ...` gate.
     return 0 if report.essential_found else 1
+
+
+def _cmd_install_chrome(args: argparse.Namespace) -> int:
+    # [impl->req~ring5.cli.install-chrome~1]
+    from ring5._chrome_install import install_chrome
+
+    executable = install_chrome(cache_directory=args.cache_dir)
+    print(executable)
+    print(
+        "Set BROWSER_PATH to the path printed above before starting RING-5. "
+        "The installer does not change browser selection or launch Chrome.",
+        file=sys.stderr,
+    )
+    return 0
 
 
 def _cmd_parse(args: argparse.Namespace) -> int:
@@ -347,6 +362,16 @@ def build_parser() -> argparse.ArgumentParser:
         "--tex-system", choices=TEX_SYSTEMS, default="xelatex", help="PGF compiler to check"
     )
     doctor_p.set_defaults(func=_cmd_doctor)
+
+    chrome_p = sub.add_parser(
+        "install-chrome", help="install the reviewed Chrome for Testing Stable"
+    )
+    chrome_p.add_argument(
+        "--cache-dir",
+        default=None,
+        help="installation cache (default: platform user cache for ring5/chrome)",
+    )
+    chrome_p.set_defaults(func=_cmd_install_chrome)
 
     parse_p = sub.add_parser("parse", help="parse a stats tree to a CSV")
     parse_p.add_argument("stats_path", help="directory containing gem5 runs")

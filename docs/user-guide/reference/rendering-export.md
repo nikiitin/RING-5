@@ -124,6 +124,9 @@ Covers:
 
 PNG, SVG, and PDF export use Kaleido and a Chrome-family browser. Transient browser failures use a
 bounded retry; a missing browser is reported immediately as a dependency failure.
+Run `ring5 install-chrome` and set `BROWSER_PATH` to its printed executable path before starting
+the application or an export process. The CLI uses the same packaged manifest in checkouts and
+installed wheels; see [installation]({{site.baseurl}}/user-guide/getting-started/installation/#install-chrome-for-plotly-static-exports).
 
 ### Matplotlib standard formats
 

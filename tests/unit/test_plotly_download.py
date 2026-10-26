@@ -7,6 +7,7 @@ with correct headers/magic bytes for PNG, SVG, and PDF formats.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any, cast
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -276,7 +277,7 @@ class TestChromeNotFound:
         )
         with patch(
             "src.web.rendering.figure_export.kaleido.calc_fig_sync",
-            side_effect=ChromeNotFoundError("Chrome not found — run kaleido_get_chrome"),
+            side_effect=ChromeNotFoundError("Chrome not found — run ring5 install-chrome"),
         ) as mock_calc:
             with pytest.raises(ChromeNotFoundError):
                 plotly_download_bytes(simple_bar_figure, "png")
@@ -341,7 +342,7 @@ class TestDeterministicSvg:
     def test_colorbar_heatmap_svg_deterministic(self) -> None:
         """Colorbar gradients embed a SECOND random id (g<uid>-<8hex>) that
         the normalizer must remap — a single-uid replace is not enough."""
-        fig = go.Figure(data=go.Heatmap(z=[[1, 2], [3, 4]], showscale=True))
+        fig = go.Figure(data=go.Heatmap(z=cast(Any, [[1, 2], [3, 4]]), showscale=True))
         a = plotly_download_bytes(fig, "svg", deterministic=True)
         b = plotly_download_bytes(fig, "svg", deterministic=True)
         assert a == b
@@ -352,7 +353,7 @@ class TestDeterministicSvg:
         import base64
         import re as _re
 
-        fig = go.Figure(data=go.Heatmap(z=[[i * j for j in range(8)] for i in range(8)]))
+        fig = go.Figure(data=go.Heatmap(z=cast(Any, [[i * j for j in range(8)] for i in range(8)])))
         raw = plotly_download_bytes(fig, "svg", deterministic=False)
         norm = plotly_download_bytes(fig, "svg", deterministic=True)
 

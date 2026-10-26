@@ -111,7 +111,7 @@ def doctor(*, tex_system: TexSystem = "xelatex") -> DoctorReport:
             needed_for="plotly png/svg/pdf export",
             install_hint=(
                 "Fix or unset an invalid BROWSER_PATH; "
-                "run `kaleido_get_chrome` if no browser is installed."
+                "run `ring5 install-chrome` and set BROWSER_PATH to its printed path."
             ),
         ),
         tex_compiler=DependencyStatus(

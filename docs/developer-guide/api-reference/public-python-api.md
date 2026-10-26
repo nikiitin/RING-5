@@ -325,6 +325,12 @@ alternate browser is selected after that choice fails. An executable command nam
 separately records bounded version facts for the same selected executable and all supported TeX
 compilers, without storing their paths.
 
+The CLI `ring5 install-chrome [--cache-dir PATH]` installs the reviewed Chrome for Testing Stable
+release without launching it. Standard output contains only its absolute executable path; set
+`BROWSER_PATH` to that path before starting the process that exports figures. Operational failures
+use `Ring5Error` and CLI exit code 2. Installation and browser selection remain separate operations;
+see the [installation instructions]({{site.baseurl}}/user-guide/getting-started/installation/#install-chrome-for-plotly-static-exports).
+
 ## Errors
 
 <!--
