@@ -13,7 +13,7 @@ import sys
 from typing import Any, cast
 
 import pytest
-import yaml  # type: ignore[import-untyped]  # The locked CI environment omits PyYAML stubs.
+import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 

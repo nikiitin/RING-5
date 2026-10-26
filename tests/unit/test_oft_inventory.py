@@ -12,6 +12,7 @@ from scripts.generate_oft_inventory import (
     InventoryError,
     ROOT,
     check_html_report,
+    _validate_requirement_history,
     discover_live_capabilities,
     load_inventory,
     render_inventory,
@@ -293,6 +294,45 @@ def test_requirement_history_validates_semantic_snapshots_and_evidence_changes()
     feature["history"][1]["title"] = "Not allowed"
     with pytest.raises(InventoryError, match="evidence changes cannot redefine"):
         validate_inventory(inventory, live_capabilities=discover_live_capabilities())
+
+
+def test_requirement_history_rejects_large_gap_without_expanding_the_revision_range(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An invalid revision cannot allocate an expectation sized by its integer value."""
+
+    def unexpected_range(*args: object) -> range:
+        raise AssertionError("The declared revision must not size an allocation.")
+
+    monkeypatch.setattr("scripts.generate_oft_inventory.range", unexpected_range, raising=False)
+    errors: list[str] = []
+    _validate_requirement_history({"revision": 1_000_000, "history": []}, "feature", errors)
+    assert len(errors) == 1
+    assert "feature.history semantic revisions" in errors[0]
+    assert len(errors[0]) < 200
+
+
+@pytest.mark.parametrize(
+    "revisions,valid",
+    [((1, 2), True), ((), False), ((1,), False), ((1, 1), False), ((2, 1), False)],
+)
+def test_requirement_history_requires_complete_ordered_semantic_revisions(
+    revisions: tuple[int, ...], valid: bool
+) -> None:
+    """Count checks preserve completeness, ordering, and duplicate rejection."""
+    history = [
+        {
+            "revision": revision,
+            "change_type": "semantic",
+            "reason": "Contract change",
+            "title": "Prior contract",
+            "description": "The exact prior requirement.",
+        }
+        for revision in revisions
+    ]
+    errors: list[str] = []
+    _validate_requirement_history({"revision": 3, "history": history}, "feature", errors)
+    assert (not errors) is valid
 
 
 def test_requirement_history_is_rendered_in_markdown_views() -> None:

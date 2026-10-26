@@ -191,7 +191,6 @@ def test_invalid_nonempty_pipeline_never_publishes_a_shortened_result(
         from src.web.controllers.plot.pipeline_controller import PipelineController
         from src.web.pages.plot_adapters import PipelineExecutorAdapter
         from src.web.pages.ui.plotting.plot_factory import PlotFactory
-        from src.web.state.ui_state_manager import UIStateManager
         api = ApplicationAPI()
         try:
             plot = PlotFactory.create_plot("bar", 1, "Figure")
@@ -200,7 +199,7 @@ def test_invalid_nonempty_pipeline_never_publishes_a_shortened_result(
             plot.pipeline = [{{"id": i, "type": config["type"], "config": config}}
                              for i, config in enumerate({configs!r})]
             PipelineController(
-                api, UIStateManager(), PipelineExecutorAdapter(api.shapers)
+                api, PipelineExecutorAdapter(api.shapers)
             )._handle_finalize(
                 plot, pd.DataFrame({{"metric": [10.0]}})
             )
@@ -552,7 +551,6 @@ def test_pipeline_finalize_rejects_every_incomplete_step_without_replacing_data(
         from src.web.controllers.plot.pipeline_controller import PipelineController
         from src.web.pages.plot_adapters import PipelineExecutorAdapter
         from src.web.pages.ui.plotting.plot_factory import PlotFactory
-        from src.web.state.ui_state_manager import UIStateManager
         api = ApplicationAPI()
         plot = PlotFactory.create_plot("bar", 1, "Figure")
         plot.replace_processed_data(pd.DataFrame({"kept": [7]}))
@@ -562,7 +560,7 @@ def test_pipeline_finalize_rejects_every_incomplete_step_without_replacing_data(
             {"id": 1, "type": "conditionSelector", "config": {}},
         ]
         PipelineController(
-                api, UIStateManager(), PipelineExecutorAdapter(api.shapers)
+                api, PipelineExecutorAdapter(api.shapers)
             )._handle_finalize(
             plot, pd.DataFrame({"label": ["b", "a"], "value": [2, 1]}))
         st.session_state["result"] = plot.processed_data.to_dict(orient="list")

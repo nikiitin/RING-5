@@ -202,7 +202,6 @@ class TestPipelineComponent:
         result: dict[str, bool] = PipelineComponent.render_shaper_controls(
             plot_id=1,
             idx=0,
-            shaper_type="sort",
             is_first=True,
             is_last=False,
         )

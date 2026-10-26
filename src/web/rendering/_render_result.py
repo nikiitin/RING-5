@@ -274,7 +274,6 @@ class MatplotlibRenderResult:
     primary_axes: Axes
     secondary_axes: Axes | None = None
     bindings: tuple[MatplotlibTraceBinding, ...] = ()
-    trace_count: int = 0
     heatmap_col_labels: list[str] | None = None
     heatmap_row_labels: list[str] | None = None
     heatmap_image: Any = None

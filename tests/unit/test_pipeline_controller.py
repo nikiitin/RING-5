@@ -49,10 +49,9 @@ class TestPipelineControllerRender:
 
         api = MagicMock()
         api.state_manager.get_data.return_value = None
-        ui = MagicMock()
         executor = MagicMock()
 
-        ctrl = PipelineController(api, ui, executor)
+        ctrl = PipelineController(api, executor)
         plot = MagicMock()
         plot.pipeline = []
 
@@ -78,7 +77,7 @@ class TestPipelineControllerRender:
         }
         mock_presenter.render_finalize_button.return_value = False
 
-        ctrl = PipelineController(mock_api, MagicMock(), mock_executor)
+        ctrl = PipelineController(mock_api, mock_executor)
         ctrl.render(mock_plot)
 
         assert len(mock_plot.pipeline) == 1
@@ -107,7 +106,7 @@ class TestPipelineControllerRender:
             conflict_resolution="renamed",
         )
         mock_api.data_services.import_configuration.return_value = result
-        controller = PipelineController(mock_api, MagicMock(), mock_executor)
+        controller = PipelineController(mock_api, mock_executor)
 
         imported = controller._handle_exchange_import(
             mock_plot,
@@ -157,7 +156,7 @@ class TestPipelineControllerRender:
             "preview_error": None,
         }
 
-        ctrl = PipelineController(mock_api, MagicMock(), mock_executor)
+        ctrl = PipelineController(mock_api, mock_executor)
         ctrl.render(mock_plot)
 
         mock_plot.replace_processed_data.assert_called_once()
@@ -199,7 +198,7 @@ class TestPipelineControllerRender:
             },
         ]
 
-        ctrl = PipelineController(mock_api, MagicMock(), mock_executor)
+        ctrl = PipelineController(mock_api, mock_executor)
         ctrl.render(mock_plot)
 
         mock_st.exception.assert_called()
@@ -231,7 +230,7 @@ class TestPipelineControllerRender:
             "preview_error": None,
         }
 
-        ctrl = PipelineController(mock_api, MagicMock(), mock_executor)
+        ctrl = PipelineController(mock_api, mock_executor)
         ctrl.render(mock_plot)
 
         assert len(mock_plot.pipeline) == 0
@@ -267,7 +266,7 @@ class TestPipelineControllerRender:
         # Make apply_shapers raise
         mock_executor.apply_shapers.side_effect = ValueError("bad config")
 
-        ctrl = PipelineController(mock_api, MagicMock(), mock_executor)
+        ctrl = PipelineController(mock_api, mock_executor)
         ctrl.render(mock_plot)
 
         mock_step.render_finalize_error.assert_called_once()
@@ -314,7 +313,7 @@ class TestPipelineControllerRender:
             },
         ]
 
-        ctrl = PipelineController(mock_api, MagicMock(), mock_executor)
+        ctrl = PipelineController(mock_api, mock_executor)
         ctrl.render(mock_plot)
 
         # After swap: rename should be first
@@ -348,7 +347,7 @@ class TestPipelineControllerRender:
             "preview_error": "Something went wrong in preview",
         }
 
-        ctrl = PipelineController(mock_api, MagicMock(), mock_executor)
+        ctrl = PipelineController(mock_api, mock_executor)
         ctrl.render(mock_plot)
 
         # Should have completed without crashing

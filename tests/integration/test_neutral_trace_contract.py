@@ -105,7 +105,7 @@ def test_supported_trace_subclasses_preserve_data_in_both_engines() -> None:
     figure, axis = plt.subplots()
     try:
         result = MatplotlibTraceRenderer.render([trace], axis)
-        assert result.trace_count == 1
+        assert len(result.bindings) == 1
         assert [cast(Any, patch).get_height() for patch in axis.patches] == [2.0, 5.0]
     finally:
         plt.close(figure)

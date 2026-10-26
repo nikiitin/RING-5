@@ -2607,6 +2607,36 @@
       }
     },
     {
+      "id": "cli.install-chrome",
+      "group": "automation",
+      "revision": 1,
+      "status": "approved",
+      "title": "Reviewed Chrome installation",
+      "description": "The ring5 install-chrome command shall use the packaged reviewed Stable Chrome for Testing manifest to install or verify the native artifact with bounded transfer, provider size, checksum and generation facts, project SHA-256 verification, a bounded archive graph and internal-link policy, and native exclusive cache publication. It shall preserve existing unrelated cache entries on failure, print the absolute executable path for explicit BROWSER_PATH selection, and report expected operational failures as exit code 2 without launching a browser or changing browser selection.",
+      "tags": [
+        "cli",
+        "dependencies",
+        "export"
+      ],
+      "evidence": {
+        "implementation": [
+          "ring5/cli.py::_cmd_install_chrome",
+          "ring5/_chrome_install.py::install_chrome"
+        ],
+        "tests": [
+          "tests/unit/test_chrome_install.py::test_all_platforms_install_inert_observed_layout_and_verify_reuse",
+          "tests/unit/test_chrome_install.py::test_download_rejects_changed_truncated_or_unbounded_input",
+          "tests/unit/test_chrome_install.py::test_invalid_archive_graph_rejected_before_any_member_is_extracted",
+          "tests/unit/test_chrome_install_review.py::test_empty_foreign_directory_created_at_native_boundary_survives_install",
+          "tests/unit/test_chrome_install.py::test_cli_emits_only_absolute_executable_and_preserves_browser_selection",
+          "tests/unit/test_chrome_cache_expansion.py::test_actual_unknown_user_console_is_typed_before_cache_creation"
+        ],
+        "documentation": [
+          "docs/user-guide/getting-started/installation.md#install-chrome-for-plotly-static-exports"
+        ]
+      }
+    },
+    {
       "id": "cli.parse",
       "group": "automation",
       "revision": 1,
@@ -3397,10 +3427,17 @@
       "description": "The repository shall provide repeatable performance checks for representative large-data transformations, caches, rendering, and worker-pool stability, with explicit thresholds where wall-clock regression limits are asserted.",
       "tags": ["benchmarks", "performance", "quality"],
       "evidence": {
-        "implementation": ["tests/helpers/benchmark.py::BenchmarkSuite", "src/core/performance.py::timed"],
+        "implementation": ["tests/helpers/benchmark.py::BenchmarkSuite"],
         "tests": ["tests/performance/test_performance_regression.py::TestPlotPerformance", "tests/performance/test_performance_regression.py::TestShaperPerformance", "tests/performance/test_performance_regression.py::TestCsvPoolPerformance", "tests/performance/test_performance_regression.py::TestDataLoadingPerformance", "tests/performance/test_worker_pool_performance.py::test_worker_pool_performance_vs_subprocess", "tests/performance/test_worker_pool_performance.py::test_worker_pool_memory_efficiency"],
         "documentation": ["docs/developer-guide/development/testing.md#performance-regression-checks"]
-      }
+      },
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "evidence",
+          "reason": "Retain live benchmark evidence after removing the unused timing decorator."
+        }
+      ]
     },
     {
       "id": "trace.inventory-generator",
@@ -5622,6 +5659,7 @@
       "verify_portfolio": "portfolio.signed-manifests"
     },
     "cli_commands": {
+      "install-chrome": "cli.install-chrome",
       "doctor": "api.doctor",
       "parse": "cli.parse",
       "recipe-matrix": "automation.batch-matrices",
@@ -5630,6 +5668,7 @@
       "render": "cli.render"
     },
     "cli_options": {
+      "install-chrome:cache_dir": "cli.install-chrome",
       "doctor:tex_system": "api.doctor",
       "parse:lenient": "ingestion.parse-integrity",
       "parse:output": "ingestion.parse-output-provenance",

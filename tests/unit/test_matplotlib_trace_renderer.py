@@ -144,13 +144,16 @@ class TestRender:
         assert patch.get_height() == 1
 
     def test_empty_traces(self, ax: matplotlib.axes.Axes) -> None:
-        count = MatplotlibTraceRenderer.render([], ax)
-        assert count.trace_count == 0
+        rendered = MatplotlibTraceRenderer.render([], ax)
+        assert len(rendered.bindings) == 0
+        assert rendered.primary_axes is ax
+        assert not ax.has_data()
 
     def test_single_bar(self, ax: matplotlib.axes.Axes) -> None:
         trace = BarTraceConfig(name="s1", x=["a", "b"], y=[1, 2])
-        count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count.trace_count == 1
+        rendered = MatplotlibTraceRenderer.render([trace], ax)
+        assert len(rendered.bindings) == 1
+        assert [cast(Any, patch).get_height() for patch in ax.patches] == [1, 2]
 
     def test_vertical_and_horizontal_boxes_use_precomputed_statistics(
         self, ax: matplotlib.axes.Axes
@@ -170,7 +173,7 @@ class TestRender:
             show_mean=True,
         )
         result = MatplotlibTraceRenderer.render([vertical], ax)
-        assert result.trace_count == 1
+        assert len(result.bindings) == 1
         assert [tick.get_text() for tick in ax.get_xticklabels()] == ["A"]
         assert ax.collections
 
@@ -192,15 +195,15 @@ class TestRender:
                 notch_upper=2.8,
             )
             horizontal_result = MatplotlibTraceRenderer.render([horizontal], horizontal_ax)
-            assert horizontal_result.trace_count == 1
+            assert len(horizontal_result.bindings) == 1
             assert [tick.get_text() for tick in horizontal_ax.get_yticklabels()] == ["B"]
         finally:
             plt.close(fig)
 
     def test_single_line(self, ax: matplotlib.axes.Axes) -> None:
         trace = LineTraceConfig(name="l1", x=[0, 1], y=[1, 2], line_shape="hv")
-        count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count.trace_count == 1
+        rendered = MatplotlibTraceRenderer.render([trace], ax)
+        assert len(rendered.bindings) == 1
         assert ax.lines[0].get_drawstyle() == "steps-post"
 
     def test_spline_style_connects_gaps_and_marks_only_observations(
@@ -222,7 +225,7 @@ class TestRender:
         result = MatplotlibTraceRenderer.render([trace], ax)
 
         line = ax.lines[0]
-        assert result.trace_count == 1
+        assert len(result.bindings) == 1
         x_values = np.asarray(line.get_xdata())
         assert len(x_values) > 4
         assert all(np.isfinite(line.get_ydata()))
@@ -267,7 +270,7 @@ class TestRender:
 
         result = MatplotlibTraceRenderer.render([trace], ax)
 
-        assert result.trace_count == 1
+        assert len(result.bindings) == 1
         assert ax.lines[0].get_drawstyle() == "steps-post"
 
     def test_area_line_fills_against_precomputed_baseline(self, ax: matplotlib.axes.Axes) -> None:
@@ -284,7 +287,7 @@ class TestRender:
 
         result = MatplotlibTraceRenderer.render([trace], ax)
 
-        assert result.trace_count == 1
+        assert len(result.bindings) == 1
         assert len(ax.collections) == 1
         assert ax.lines[0].get_drawstyle() == "steps-post"
 
@@ -311,7 +314,7 @@ class TestRender:
 
         result = MatplotlibTraceRenderer.render(traces, ax)
 
-        assert result.trace_count == 2
+        assert len(result.bindings) == 2
         assert len(ax.texts) == 3
         assert len(ax.patches) == 1
         assert not ax.axison
@@ -334,7 +337,7 @@ class TestRender:
 
         result = MatplotlibTraceRenderer.render([trace], ax)
 
-        assert result.trace_count == 1
+        assert len(result.bindings) == 1
         assert [tick.get_text() for tick in ax.get_xticklabels()] == trace.categories
         assert len(ax.patches) == 3
         assert len(ax.lines) == 2
@@ -360,7 +363,7 @@ class TestRender:
 
         result = MatplotlibTraceRenderer.render([trace], ax)
 
-        assert result.trace_count == 1
+        assert len(result.bindings) == 1
         assert len(ax.patches) == 5
         assert [text.get_text() for text in ax.texts] == ["first", "second", "A", "B", "C"]
         assert not ax.axison
@@ -398,7 +401,7 @@ class TestRender:
 
         result = MatplotlibTraceRenderer.render([trace], ax)
 
-        assert result.trace_count == 1
+        assert len(result.bindings) == 1
         assert len(ax.lines) == 4
         assert {text.get_text() for text in ax.texts} >= {"Kind", "Score", "A", "B"}
         alphas = []
@@ -428,7 +431,7 @@ class TestRender:
             point_mode="all",
         )
         result = MatplotlibTraceRenderer.render([vertical], ax)
-        assert result.trace_count == 1
+        assert len(result.bindings) == 1
         assert [tick.get_text() for tick in ax.get_xticklabels()] == ["A"]
         assert ax.collections
 
@@ -445,28 +448,33 @@ class TestRender:
                 show_box=False,
             )
             horizontal_result = MatplotlibTraceRenderer.render([horizontal], horizontal_ax)
-            assert horizontal_result.trace_count == 1
+            assert len(horizontal_result.bindings) == 1
             assert [tick.get_text() for tick in horizontal_ax.get_yticklabels()] == ["B"]
         finally:
             plt.close(fig)
 
     def test_single_scatter(self, ax: matplotlib.axes.Axes) -> None:
         trace = ScatterTraceConfig(name="sc", x=[0, 1], y=[1, 2])
-        count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count.trace_count == 1
+        rendered = MatplotlibTraceRenderer.render([trace], ax)
+        assert len(rendered.bindings) == 1
+        np.testing.assert_array_equal(ax.collections[0].get_offsets(), [[0, 1], [1, 2]])
 
     def test_mixed_traces(self, ax: matplotlib.axes.Axes) -> None:
         traces = [
             BarTraceConfig(name="bar", x=["a", "b"], y=[1, 2]),
             LineTraceConfig(name="line", x=[0, 1], y=[3, 4]),
         ]
-        count = MatplotlibTraceRenderer.render(traces, ax)
-        assert count.trace_count == 2
+        rendered = MatplotlibTraceRenderer.render(traces, ax)
+        assert len(rendered.bindings) == 2
+        assert [cast(Any, patch).get_height() for patch in ax.patches] == [1, 2]
+        np.testing.assert_array_equal(ax.lines[0].get_ydata(), [3, 4])
 
     def test_palette_colors_applied(self, ax: matplotlib.axes.Axes) -> None:
         trace = BarTraceConfig(name="b", x=["a"], y=[1])
-        count = MatplotlibTraceRenderer.render([trace], ax, palette_colors=["#ff0000"])
-        assert count.trace_count == 1
+        rendered = MatplotlibTraceRenderer.render([trace], ax, palette_colors=["#ff0000"])
+        assert len(rendered.bindings) == 1
+        assert ax.patches[0].get_facecolor() == to_rgba("#ff0000")
+        assert cast(Any, ax.patches[0]).get_height() == 1
 
     def test_secondary_y_creates_twin(self, ax: matplotlib.axes.Axes) -> None:
         t1 = BarTraceConfig(name="left", x=["a"], y=[1], yaxis="y")
@@ -480,13 +488,17 @@ class TestRender:
             BarTraceConfig(name="b1", x=["a", "b"], y=[1, 2]),
             BarTraceConfig(name="b2", x=["a", "b"], y=[3, 4]),
         ]
-        count = MatplotlibTraceRenderer.render(traces, ax, barmode="stack")
-        assert count.trace_count == 2
+        rendered = MatplotlibTraceRenderer.render(traces, ax, barmode="stack")
+        assert len(rendered.bindings) == 2
+        assert [cast(Any, patch).get_height() for patch in ax.patches] == [1, 2, 3, 4]
+        assert [cast(Any, patch).get_y() for patch in ax.patches] == [0, 0, 1, 2]
 
     def test_bar_with_border_width(self, ax: matplotlib.axes.Axes) -> None:
         trace = BarTraceConfig(name="b", x=["a"], y=[1])
-        count = MatplotlibTraceRenderer.render([trace], ax, bar_border_width=1.5)
-        assert count.trace_count == 1
+        rendered = MatplotlibTraceRenderer.render([trace], ax, bar_border_width=1.5)
+        assert len(rendered.bindings) == 1
+        assert ax.patches[0].get_linewidth() == 1.5
+        assert cast(Any, ax.patches[0]).get_height() == 1
 
     def test_bar_with_x_positions(self, ax: matplotlib.axes.Axes) -> None:
         """Pre-computed x_positions bypass categorical positioning."""
@@ -497,24 +509,35 @@ class TestRender:
             x_positions=[0.5, 1.5],
             bar_width=0.3,
         )
-        count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count.trace_count == 1
+        rendered = MatplotlibTraceRenderer.render([trace], ax)
+        assert len(rendered.bindings) == 1
+        np.testing.assert_allclose(
+            [cast(Any, patch).get_x() + cast(Any, patch).get_width() / 2 for patch in ax.patches],
+            [0.5, 1.5],
+        )
+        assert [cast(Any, patch).get_height() for patch in ax.patches] == [1, 2]
 
     def test_line_with_dash(self, ax: matplotlib.axes.Axes) -> None:
         trace = LineTraceConfig(name="dashed", x=[0, 1], y=[1, 2], line_dash="dash")
-        count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count.trace_count == 1
+        rendered = MatplotlibTraceRenderer.render([trace], ax)
+        assert len(rendered.bindings) == 1
+        assert ax.lines[0].get_linestyle() == "--"
+        np.testing.assert_array_equal(ax.lines[0].get_ydata(), [1, 2])
 
     def test_scatter_with_color(self, ax: matplotlib.axes.Axes) -> None:
         trace = ScatterTraceConfig(name="colored", x=[0, 1], y=[1, 2], color="#00ff00")
-        count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count.trace_count == 1
+        rendered = MatplotlibTraceRenderer.render([trace], ax)
+        assert len(rendered.bindings) == 1
+        np.testing.assert_array_equal(ax.collections[0].get_facecolor(), [to_rgba("#00ff00")])
+        np.testing.assert_array_equal(ax.collections[0].get_offsets(), [[0, 1], [1, 2]])
 
     def test_none_y_values_handled(self, ax: matplotlib.axes.Axes) -> None:
         """None values in y should be converted to NaN gracefully."""
         trace = BarTraceConfig(name="nans", x=["a", "b"], y=[1, None])  # type: ignore[list-item]
-        count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count.trace_count == 1
+        rendered = MatplotlibTraceRenderer.render([trace], ax)
+        assert len(rendered.bindings) == 1
+        assert cast(Any, ax.patches[0]).get_height() == 1
+        assert np.isnan(cast(Any, ax.patches[1]).get_height())
 
     def test_unknown_trace_type_fails_visibly(self, ax: matplotlib.axes.Axes) -> None:
         """A missing series cannot be exported as a successful figure."""
@@ -625,8 +648,9 @@ class TestHeatmapRendering:
             row_labels=["r1", "r2"],
             z=[[1.0, 2.0], [3.0, 4.0]],
         )
-        count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count.trace_count == 1
+        rendered = MatplotlibTraceRenderer.render([trace], ax)
+        assert len(rendered.bindings) == 1
+        np.testing.assert_array_equal(rendered.heatmap_image.get_array(), [[1, 2], [3, 4]])
 
     def test_heatmap_with_text_annotations(self, ax: matplotlib.axes.Axes) -> None:
         trace = HeatmapTraceConfig(
@@ -637,8 +661,8 @@ class TestHeatmapRendering:
             show_values=True,
             text=[["10", "20"], ["30", "40"]],
         )
-        count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count.trace_count == 1
+        rendered = MatplotlibTraceRenderer.render([trace], ax)
+        assert len(rendered.bindings) == 1
         # Check that text annotations were added
         texts = ax.texts
         assert len(texts) == 4
@@ -651,8 +675,8 @@ class TestHeatmapRendering:
             z=[[1.0, 2.0]],
             show_values=False,
         )
-        count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count.trace_count == 1
+        rendered = MatplotlibTraceRenderer.render([trace], ax)
+        assert len(rendered.bindings) == 1
         assert len(ax.texts) == 0
 
     def test_heatmap_with_none_values(self, ax: matplotlib.axes.Axes) -> None:
@@ -665,8 +689,10 @@ class TestHeatmapRendering:
             show_values=True,
             text=[["1", ""]],
         )
-        count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count.trace_count == 1
+        rendered = MatplotlibTraceRenderer.render([trace], ax)
+        assert len(rendered.bindings) == 1
+        assert rendered.heatmap_image.get_array().mask.tolist() == [[False, True]]
+        assert [text.get_text() for text in ax.texts] == ["1"]
 
     def test_heatmap_empty_z(self, ax: matplotlib.axes.Axes) -> None:
         """Empty z matrix should render without error."""
@@ -676,8 +702,11 @@ class TestHeatmapRendering:
             row_labels=[],
             z=[],
         )
-        count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count.trace_count == 1
+        rendered = MatplotlibTraceRenderer.render([trace], ax)
+        assert len(rendered.bindings) == 1
+        assert rendered.bindings[0].owned_data == ()
+        assert rendered.heatmap_image is None
+        assert not ax.has_data()
 
     def test_heatmap_custom_colorscale(self, ax: matplotlib.axes.Axes) -> None:
         trace = HeatmapTraceConfig(
@@ -687,8 +716,10 @@ class TestHeatmapRendering:
             z=[[5.0]],
             colorscale="Blues",
         )
-        count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count.trace_count == 1
+        rendered = MatplotlibTraceRenderer.render([trace], ax)
+        assert len(rendered.bindings) == 1
+        assert rendered.heatmap_image.get_cmap().name == "Blues"
+        np.testing.assert_array_equal(rendered.heatmap_image.get_array(), [[5]])
 
     def test_heatmap_reversed_colorscale(self, ax: matplotlib.axes.Axes) -> None:
         trace = HeatmapTraceConfig(
@@ -698,8 +729,10 @@ class TestHeatmapRendering:
             z=[[5.0]],
             colorscale="Viridis_r",
         )
-        count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count.trace_count == 1
+        rendered = MatplotlibTraceRenderer.render([trace], ax)
+        assert len(rendered.bindings) == 1
+        assert rendered.heatmap_image.get_cmap().name == "viridis_r"
+        np.testing.assert_array_equal(rendered.heatmap_image.get_array(), [[5]])
 
     def test_heatmap_list_colorscale(self, ax: matplotlib.axes.Axes) -> None:
         """List-format colorscale (palette-derived) renders correctly."""
@@ -710,9 +743,9 @@ class TestHeatmapRendering:
             z=[[1.0, 2.0], [3.0, 4.0]],
             colorscale=[[0.0, "#000000"], [0.5, "#ff0000"], [1.0, "#ffffff"]],
         )
-        count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count.trace_count == 1
-        assert count.heatmap_image is not None
+        rendered = MatplotlibTraceRenderer.render([trace], ax)
+        assert len(rendered.bindings) == 1
+        assert rendered.heatmap_image is not None
 
     def test_heatmap_separator_right(self, ax: matplotlib.axes.Axes) -> None:
         """Totals position='right' draws a vertical separator line."""
@@ -724,8 +757,8 @@ class TestHeatmapRendering:
             totals_position="right",
             totals_count=1,
         )
-        count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count.trace_count == 1
+        rendered = MatplotlibTraceRenderer.render([trace], ax)
+        assert len(rendered.bindings) == 1
         # Check that a vertical line was drawn (axvline adds a Line2D)
         lines = ax.get_lines()
         assert len(lines) >= 1
@@ -740,8 +773,8 @@ class TestHeatmapRendering:
             totals_position="top",
             totals_count=1,
         )
-        count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count.trace_count == 1
+        rendered = MatplotlibTraceRenderer.render([trace], ax)
+        assert len(rendered.bindings) == 1
         lines = ax.get_lines()
         assert len(lines) >= 1
 
@@ -753,8 +786,8 @@ class TestHeatmapRendering:
             row_labels=["m1"],
             z=[[1.0, 2.0]],
         )
-        count = MatplotlibTraceRenderer.render([trace], ax)
-        assert count.trace_count == 1
+        rendered = MatplotlibTraceRenderer.render([trace], ax)
+        assert len(rendered.bindings) == 1
         # No separator lines expected
         assert len(ax.get_lines()) == 0
 
@@ -779,7 +812,7 @@ class TestHeatmapVminVmax:
             heatmap_vmin=-2.0,
             heatmap_vmax=10.0,
         )
-        assert result.trace_count == 1
+        assert len(result.bindings) == 1
         assert result.heatmap_image is not None
         clim = result.heatmap_image.get_clim()
         assert clim[0] == -2.0
@@ -794,7 +827,7 @@ class TestHeatmapVminVmax:
             z=[[3.0, 7.0]],
         )
         result = MatplotlibTraceRenderer.render([trace], ax)
-        assert result.trace_count == 1
+        assert len(result.bindings) == 1
         assert result.heatmap_image is not None
         clim = result.heatmap_image.get_clim()
         assert clim[0] == 3.0

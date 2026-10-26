@@ -107,9 +107,9 @@ class TestMatplotlibTraceRenderer:
         fig, ax = plt.subplots()
         assert isinstance(ax, Axes)
 
-        count = MatplotlibTraceRenderer.render(traces, ax, barmode=barmode)
+        rendered = MatplotlibTraceRenderer.render(traces, ax, barmode=barmode)
 
-        assert count.trace_count == 2
+        assert len(rendered.bindings) == 2
         assert len(ax.containers) >= 2
         plt.close(fig)
 
@@ -122,9 +122,9 @@ class TestMatplotlibTraceRenderer:
         fig, ax = plt.subplots()
         assert isinstance(ax, Axes)
 
-        count = MatplotlibTraceRenderer.render(traces, ax)
+        rendered = MatplotlibTraceRenderer.render(traces, ax)
 
-        assert count.trace_count == 2
+        assert len(rendered.bindings) == 2
         assert len(ax.lines) >= 2
         plt.close(fig)
 
@@ -136,9 +136,9 @@ class TestMatplotlibTraceRenderer:
         fig, ax = plt.subplots()
         assert isinstance(ax, Axes)
 
-        count = MatplotlibTraceRenderer.render(traces, ax)
+        rendered = MatplotlibTraceRenderer.render(traces, ax)
 
-        assert count.trace_count == 1
+        assert len(rendered.bindings) == 1
         assert len(ax.collections) >= 1
         plt.close(fig)
 
@@ -164,20 +164,22 @@ class TestMatplotlibTraceRenderer:
         fig, ax = plt.subplots()
         assert isinstance(ax, Axes)
 
-        count = MatplotlibTraceRenderer.render(traces, ax, barmode=barmode)
+        rendered = MatplotlibTraceRenderer.render(traces, ax, barmode=barmode)
 
-        assert count.trace_count == 2
+        assert len(rendered.bindings) == 2
         assert len(ax.containers) == 2
         plt.close(fig)
 
     def test_render_empty_figure(self) -> None:
-        """Empty trace list should return 0."""
+        """An empty trace list has no source bindings or native data."""
         fig, ax = plt.subplots()
         assert isinstance(ax, Axes)
 
-        count = MatplotlibTraceRenderer.render([], ax)
+        rendered = MatplotlibTraceRenderer.render([], ax)
 
-        assert count.trace_count == 0
+        assert len(rendered.bindings) == 0
+        assert rendered.primary_axes is ax
+        assert not ax.has_data()
         plt.close(fig)
 
     def test_secondary_yaxis(self) -> None:
@@ -195,9 +197,9 @@ class TestMatplotlibTraceRenderer:
 
         fig, ax = plt.subplots()
         assert isinstance(ax, Axes)
-        count = MatplotlibTraceRenderer.render(traces, ax)
+        rendered = MatplotlibTraceRenderer.render(traces, ax)
 
-        assert count.trace_count == 2
+        assert len(rendered.bindings) == 2
         assert hasattr(ax, "_ring5_twin")
         plt.close(fig)
 
@@ -209,9 +211,9 @@ class TestMatplotlibTraceRenderer:
         fig, ax = plt.subplots()
         assert isinstance(ax, Axes)
 
-        count = MatplotlibTraceRenderer.render(traces, ax)
+        rendered = MatplotlibTraceRenderer.render(traces, ax)
 
-        assert count.trace_count == 1
+        assert len(rendered.bindings) == 1
         line = ax.lines[0]
         assert line.get_linestyle() == "--"
         plt.close(fig)
