@@ -297,11 +297,20 @@
     {
       "id": "ingestion.variable-scan",
       "group": "ingestion",
-      "revision": 1,
+      "revision": 2,
       "status": "approved",
-      "title": "Statistics variable scan",
-      "description": "RING-5 shall scan selected simulator files and aggregate discovered variable names, types, metadata, ranges, and visible per-file failures.",
+      "title": "Statistics source evidence scan",
+      "description": "RING-5 shall scan selected simulator files and aggregate observed names, literal entry labels, compatible source-contract evidence, explicit source instances, optional output suggestions, and visible per-file failures without inferring unprinted native geometry.",
       "tags": ["parsing", "scan", "variables"],
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "semantic",
+          "title": "Statistics variable scan",
+          "description": "RING-5 shall scan selected simulator files and aggregate discovered variable names, types, metadata, ranges, and visible per-file failures.",
+          "reason": "Replace priority-based physical-kind guesses and inferred extrema with shared decoder evidence and explicit request geometry."
+        }
+      ],
       "evidence": {
         "implementation": ["src/parsing/gem5/impl/gem5_parser.py::Gem5Parser.aggregate_scan_results", "src/parsing/gem5/impl/scanning/scanner.py::Gem5StatsScanner.scan_file"],
         "tests": ["tests/integration/test_scanner_functional.py::TestScannerFunctional.test_scan_real_stats",
@@ -2890,14 +2899,23 @@
     {
       "id": "ingestion.distribution-range-scan",
       "group": "ingestion",
-      "revision": 1,
+      "revision": 2,
       "status": "approved",
-      "title": "Deep distribution range discovery",
-      "description": "A deep scan shall aggregate the global minimum and maximum distribution bucket range across its bounded sample and make those values available to the variable configuration.",
+      "title": "Bounded deep source discovery",
+      "description": "A deep scan shall retain printed frequency labels and intersect compatible source-contract evidence across its bounded sample. Native grid bounds shall remain explicit request declarations rather than inferred extrema of observed labels.",
       "tags": ["distribution", "range", "scan"],
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "semantic",
+          "title": "Deep distribution range discovery",
+          "description": "A deep scan shall aggregate the global minimum and maximum distribution bucket range across its bounded sample and make those values available to the variable configuration.",
+          "reason": "Observed labels do not establish hidden native grid bounds or uniquely identify a physical producer class."
+        }
+      ],
       "evidence": {
-        "implementation": ["src/web/components/data_source/variable_editor.py::VariableEditor._show_scan_dialog", "src/core/services/data_services/variable_service.py::VariableService.aggregate_distribution_range"],
-        "tests": ["tests/unit/test_deep_scan_min_max.py::TestDeepScanMinMax"],
+        "implementation": ["src/web/components/data_source/variable_editor.py::VariableEditor._show_scan_dialog"],
+        "tests": ["tests/unit/test_observed_source_aggregation.py::TestObservedSourceAggregation"],
         "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
@@ -5302,10 +5320,10 @@
     "simulator_internal_stats": {
       "gem5:gmean": "ingestion.variable-entry-selection",
       "gem5:max_bucket": "ingestion.variable-entry-selection",
-      "gem5:max_val": "ingestion.variable-entry-selection",
+      "gem5:max_value": "ingestion.variable-entry-selection",
       "gem5:mean": "ingestion.variable-entry-selection",
       "gem5:min_bucket": "ingestion.variable-entry-selection",
-      "gem5:min_val": "ingestion.variable-entry-selection",
+      "gem5:min_value": "ingestion.variable-entry-selection",
       "gem5:num_buckets": "ingestion.variable-entry-selection",
       "gem5:overflows": "ingestion.variable-entry-selection",
       "gem5:sample_period": "ingestion.variable-entry-selection",
@@ -5465,6 +5483,8 @@
       "ScanJob": "ingestion.async-scan",
       "ScanResult": "ingestion.async-scan",
       "ScannedVariable": "ingestion.variable-scan",
+      "ResolvedSourceKind": "ingestion.variable-scan",
+      "AmbiguousSourceKind": "ingestion.variable-scan",
       "SourceInstance": "ingestion.pattern-index-selection",
       "ScheduledReportResult": "automation.scheduled-reporting",
       "SchemaValidationReport": "data.schema-contracts",
@@ -5800,7 +5820,6 @@
       "publish_to_csv_pool": "ingestion.session-background-parse",
       "add_variable": "ingestion.variable-editor",
       "aggregate_discovered_entries": "ingestion.variable-entry-selection",
-      "aggregate_distribution_range": "ingestion.distribution-range-scan",
       "capture_analysis_recipe": "portfolio.analysis-recipes",
       "clear_caches": "quality.bounded-caching",
       "compare_portfolio_revisions": "portfolio.history-diff",
@@ -5978,7 +5997,7 @@
       "entries": "ingestion.variable-entry-selection",
       "name": "ingestion.variable-scan",
       "instances": "ingestion.pattern-index-selection",
-      "source_type": "ingestion.variable-scan",
+      "source_evidence": "ingestion.variable-scan",
       "type": "ingestion.variable-scan"
     },
     "scan_result_fields": {

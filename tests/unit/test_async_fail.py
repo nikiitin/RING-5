@@ -2,6 +2,9 @@
 Tests for async scanning behavior with Futures-based API.
 """
 
+from src.core.models.source_evidence import ResolvedSourceKind
+
+
 import time
 from concurrent.futures import as_completed
 
@@ -22,7 +25,7 @@ class MockWork:
             ScannedVariable(
                 name=f"var_{self.val}",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance(f"var_{self.val}", ()),),
             )
         ]

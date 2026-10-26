@@ -25,6 +25,7 @@ from src.core.common.security_limits import (
 )
 from src.core.common.stat_config_codec import StatConfigCodec
 from src.core.models.parsing_models import ScannedVariable, SourceInstance, StatConfig
+from src.core.models.source_evidence import SourceKindEvidence, SourceKindBinding
 
 logger = logging.getLogger(__name__)
 
@@ -39,9 +40,8 @@ class SourceTarget:
 
 @dataclass(frozen=True)
 class SourceRoute:
-    """The explicit raw source kind and its independent logical destinations."""
+    """Independent destinations sharing one checked request source declaration."""
 
-    source_type: str
     targets: tuple[SourceTarget, ...]
 
 
@@ -84,7 +84,7 @@ class SourcePlan:
 
 @dataclass(frozen=True)
 class _ScannedSource:
-    source_type: str
+    evidence: SourceKindEvidence
     pattern_name: str
     instance: SourceInstance
 
@@ -153,7 +153,7 @@ def resolve_sources(
                     f"Regex expansion exceeds the {MAX_REGEX_CANDIDATES}-candidate limit."
                 )
             index[instance.source_name] = _ScannedSource(
-                variable.source_type, variable.name, instance
+                variable.source_evidence, variable.name, instance
             )
 
     deadline = time.monotonic() + MAX_REGEX_EXPANSION_SECONDS
@@ -234,8 +234,8 @@ def resolve_sources(
             )
         for concrete, _indices in selected:
             verify_source(concrete)
-            if concrete in index and index[concrete].source_type != source_type:
-                raise ValueError(f"Raw source kind for {concrete!r} does not match source_type.")
+            if concrete in index:
+                SourceKindBinding(source_type, index[concrete].evidence)
             if concrete in source_types and source_types[concrete] != source_type:
                 raise ValueError(f"Conflicting raw source kinds for {concrete!r}.")
             source_types[concrete] = source_type
@@ -287,8 +287,5 @@ def resolve_sources(
                 f"the limit is {MAX_PARSE_VARIABLES}."
             )
 
-    routes = {
-        name: SourceRoute(source_types[name], tuple(destinations))
-        for name, destinations in targets.items()
-    }
+    routes = {name: SourceRoute(tuple(destinations)) for name, destinations in targets.items()}
     return SourcePlan(tuple(outputs), MappingProxyType(routes))

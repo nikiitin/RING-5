@@ -8,11 +8,14 @@ from dataclasses import replace
 from pathlib import Path
 
 from src.core.common.input_identity import fingerprint_inputs
+from src.core.common.source_context_codec import encode_source_json
+from src.core.models.source_evidence import ResolvedSourceKind, intersect_source_kind_evidence
 from src.core.models.parsed_output_models import ParsedFileResult, ParsedOutput
 from src.core.common.parsed_output import ParsedOutputIO
 from src.core.common.utils import normalize_user_path
 from src.core.common.security_limits import (
     MAX_DISCOVERED_FILES,
+    MAX_PARSE_RESULT_BYTES,
     MAX_PARSE_FILES,
     MAX_PARSER_PLAYGROUND_CELLS,
     MAX_PARSER_PLAYGROUND_FILES,
@@ -43,7 +46,6 @@ from src.parsing.gem5.impl.scanning.gem5_scan_work import Gem5ScanWork
 from src.parsing.gem5.impl.source_bindings import resolve_sources
 from src.parsing.gem5.impl.scanning.pattern_aggregator import PatternAggregator
 from src.parsing.gem5.impl.strategies.factory import StrategyFactory
-from src.parsing.gem5.models import Gem5ScannedVariable
 from src.parsing.parser_protocol import ParseWorkItem, SimulationParser
 
 logger = logging.getLogger(__name__)
@@ -322,9 +324,8 @@ class Gem5Parser(SimulationParser):
         """
         Aggregate per-file scan results into a unified outcome.
 
-        Successful files are merged and deduplicated into one variable list;
-        failed files are collected separately so the caller can surface them
-        instead of silently treating a failed scan as "no variables".
+        Valid sources are retained even from partially rejected files. Conflicting
+        sources are excluded while per-file failures remain visible to the caller.
 
         Args:
             results: Per-file ``ScanFileResult`` objects from the workers.
@@ -332,85 +333,75 @@ class Gem5Parser(SimulationParser):
         Returns:
             ``ScanResult`` with the merged variables and the list of failures.
         """
-        # [impl->req~ring5.ingestion.variable-scan~1]
-        failures: list[ScanFileResult] = [r for r in results if not r.ok]
+        # [impl->req~ring5.ingestion.variable-scan~2]
+        failures = {result.file_path: result for result in results if not result.ok}
+        registry: dict[str, ScannedVariable] = {}
+        owners: dict[str, set[str]] = {}
+        rejected: set[str] = set()
+        sizes: dict[str, int] = {}
+        catalog_bytes = 2
 
-        merged_registry: dict[str, ScannedVariable] = {}
-        for file_result in results:
-            for var in file_result.variables:
-                Gem5Parser._merge_variable(merged_registry, var)
+        def reject(paths: set[str], name: str) -> None:
+            for path in paths:
+                previous = failures.get(path)
+                message = f"Source {name!r} has contradictory scan observations."
+                if previous is not None and previous.error:
+                    message = f"{previous.error}; {message}"[:1000]
+                failures[path] = ScanFileResult(path, error=message)
 
-        merged_vars = sorted(list(merged_registry.values()), key=lambda x: x.name)
-
-        # Apply pattern aggregation to consolidate repeated numeric patterns
-        aggregated_vars = PatternAggregator.aggregate_patterns(merged_vars)
-
-        return ScanResult(
-            variables=aggregated_vars,
-            failures=failures,
-            scanned_files=len(results),
+        for result in results:
+            for variable in result.variables:
+                name = variable.name
+                if name in rejected:
+                    reject({result.file_path}, name)
+                    continue
+                owners.setdefault(name, set()).add(result.file_path)
+                try:
+                    Gem5Parser._merge_variable(registry, variable)
+                except ValueError as exc:
+                    if type(exc) is not ValueError:
+                        raise
+                    rejected.add(name)
+                    registry.pop(name, None)
+                    reject(owners[name], name)
+                    removed = sizes.pop(name, 0)
+                    catalog_bytes -= removed + (1 if removed and sizes else 0)
+                else:
+                    previous_size = sizes.get(name, 0)
+                    size = len(
+                        encode_source_json(
+                            registry[name].to_dict(), byte_limit=MAX_PARSE_RESULT_BYTES
+                        ).encode("utf-8")
+                    )
+                    candidate_bytes = catalog_bytes - previous_size + size
+                    if not previous_size and sizes:
+                        candidate_bytes += 1
+                    if candidate_bytes > MAX_PARSE_RESULT_BYTES:
+                        raise ValueError("Merged scanner catalog exceeds its byte budget.")
+                    catalog_bytes = candidate_bytes
+                    sizes[name] = size
+        aggregated = PatternAggregator.aggregate_patterns(
+            sorted(registry.values(), key=lambda v: v.name)
         )
+        return ScanResult(aggregated, list(failures.values()), len(results))
 
     @staticmethod
     def _merge_variable(registry: dict[str, ScannedVariable], var: ScannedVariable) -> None:
-        """
-        Merge a single variable into the registry.
-
-        Handles deduplication and merging of:
-        - Vector/histogram entries (union of all entries)
-        - Distribution min/max ranges (expanded to include all values)
-
-        Args:
-            registry: Mutable registry dict to update
-            var: ScannedVariable to merge in
-        """
-
-        name: str = var.name
-        if name not in registry:
-            registry[name] = var
-        else:
-            existing = registry[name]
-            if existing.source_type != var.source_type or existing.type != var.type:
-                raise ValueError(f"Scanned source {name!r} has incompatible source kinds.")
-            if existing.instances != var.instances:
-                raise ValueError(f"Scanned source {name!r} has inconsistent source instances.")
-            if var.type in ("vector", "histogram"):
-                new_entries = sorted(list(set(existing.entries) | set(var.entries)))
-                # Retain explicit source identity while merging measurement entries.
-                registry[name] = replace(existing, entries=new_entries)
-
-            elif var.type == "distribution":
-                # Handle distribution range merging (gem5-specific min/max)
-                gem5_existing = existing if isinstance(existing, Gem5ScannedVariable) else None
-                gem5_var = var if isinstance(var, Gem5ScannedVariable) else None
-
-                cur_min = gem5_existing.minimum if gem5_existing else None
-                cur_max = gem5_existing.maximum if gem5_existing else None
-                var_min = gem5_var.minimum if gem5_var else None
-                var_max = gem5_var.maximum if gem5_var else None
-
-                # Explicit None guards — `var_min or cur_min` would discard a
-                # legitimate scanned minimum of 0.0 (falsy), losing the range.
-                new_min: float | None
-                new_max: float | None
-                if cur_min is not None and var_min is not None:
-                    new_min = min(cur_min, var_min)
-                else:
-                    new_min = var_min if var_min is not None else cur_min
-                if cur_max is not None and var_max is not None:
-                    new_max = max(cur_max, var_max)
-                else:
-                    new_max = var_max if var_max is not None else cur_max
-
-                registry[name] = Gem5ScannedVariable(
-                    name=existing.name,
-                    type=existing.type,
-                    entries=existing.entries,
-                    source_type=existing.source_type,
-                    instances=existing.instances,
-                    minimum=new_min,
-                    maximum=new_max,
-                )
+        """Intersect source contracts while retaining actual printed entry labels."""
+        existing = registry.get(var.name)
+        if existing is None:
+            registry[var.name] = var
+            return
+        if existing.instances != var.instances:
+            raise ValueError("Scanned source instances disagree.")
+        evidence = intersect_source_kind_evidence(existing.source_evidence, var.source_evidence)
+        suggestion = evidence.kind if type(evidence) is ResolvedSourceKind else None
+        registry[var.name] = replace(
+            existing,
+            type=suggestion,
+            source_evidence=evidence,
+            entries=sorted(set(existing.entries) | set(var.entries)),
+        )
 
     # ----------------------------------------------------------------- finalize
 

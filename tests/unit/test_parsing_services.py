@@ -4,6 +4,9 @@ These are mid-layer modules that sit between raw parsing and the
 ApplicationAPI facade.
 """
 
+from src.core.models.source_evidence import ResolvedSourceKind
+
+
 from collections.abc import Generator
 from pathlib import Path
 from typing import cast
@@ -19,7 +22,6 @@ from src.core.common.stat_config_codec import StatConfigCodec
 from src.core.models.parsing_models import ScanFileResult, ScannedVariable, StatConfig
 from src.core.models.parsing_models import StatParamValue
 from src.core.services.data_services.path_service import PathService
-from src.parsing.gem5.models import Gem5ScannedVariable
 from src.parsing.gem5.types.type_mapper import TypeMapper
 from src.parsing.gem5.impl.source_bindings import resolve_sources
 
@@ -147,7 +149,7 @@ class TestScannerService:
             name="simTicks",
             type="scalar",
             entries=[],
-            source_type="scalar",
+            source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
             instances=(SourceInstance("simTicks", ()),),
         )
         result = ScannerService.aggregate_scan_results([ScanFileResult("f0", [var])])
@@ -165,7 +167,7 @@ class TestScannerService:
             name="simTicks",
             type="scalar",
             entries=[],
-            source_type="scalar",
+            source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
             instances=(SourceInstance("simTicks", ()),),
         )
         result = ScannerService.aggregate_scan_results(
@@ -187,14 +189,14 @@ class TestScannerService:
             name="cpu.hits",
             type="vector",
             entries=["0", "1"],
-            source_type="vector",
+            source_evidence=ResolvedSourceKind("vector", "backend_metadata"),
             instances=(SourceInstance("cpu.hits", ()),),
         )
         v2 = ScannedVariable(
             name="cpu.hits",
             type="vector",
             entries=["1", "2"],
-            source_type="vector",
+            source_evidence=ResolvedSourceKind("vector", "backend_metadata"),
             instances=(SourceInstance("cpu.hits", ()),),
         )
         result = ScannerService.aggregate_scan_results(
@@ -203,37 +205,32 @@ class TestScannerService:
         hit_var = next(v for v in result.variables if v.name == "cpu.hits")
         assert set(hit_var.entries) == {"0", "1", "2"}
 
-    def test_aggregate_merges_distribution_range(self) -> None:
+    def test_aggregate_merges_distribution_observed_entries(self) -> None:
         from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ScannerService
 
-        d1 = Gem5ScannedVariable(
+        d1 = ScannedVariable(
             name="latency",
             type="distribution",
-            entries=[],
-            minimum=10,
-            maximum=100,
-            source_type="distribution",
+            entries=["10", "100"],
+            source_evidence=ResolvedSourceKind("distribution", "backend_metadata"),
             instances=(SourceInstance("latency", ()),),
         )
-        d2 = Gem5ScannedVariable(
+        d2 = ScannedVariable(
             name="latency",
             type="distribution",
-            entries=[],
-            minimum=5,
-            maximum=200,
-            source_type="distribution",
+            entries=["5", "200"],
+            source_evidence=ResolvedSourceKind("distribution", "backend_metadata"),
             instances=(SourceInstance("latency", ()),),
         )
         result = ScannerService.aggregate_scan_results(
             [ScanFileResult("f0", [d1]), ScanFileResult("f1", [d2])]
         )
         lat_var = next(v for v in result.variables if v.name == "latency")
-        assert lat_var.minimum == 5  # type: ignore
-        assert lat_var.maximum == 200  # type: ignore
+        assert set(lat_var.entries) == {"5", "10", "100", "200"}
+        assert "minimum" not in lat_var.to_dict() and "maximum" not in lat_var.to_dict()
 
     def test_merge_variable_model_input(self) -> None:
         """_merge_variable accepts ScannedVariable models."""
-        from src.core.models.parsing_models import ScannedVariable
         from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ScannerService
 
         registry: dict[str, ScannedVariable] = {}
@@ -241,7 +238,7 @@ class TestScannerService:
             name="ipc",
             type="scalar",
             entries=[],
-            source_type="scalar",
+            source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
             instances=(SourceInstance("ipc", ()),),
         )
         ScannerService._merge_variable(registry, var)
@@ -302,38 +299,36 @@ class TestPathService:
             PathService.get_data_dir()  # Second call should not raise
 
 
-class TestDistributionRangeMerge:
-    """_merge_variable must not discard a legitimate 0.0 minimum (falsy-or bug)."""
+class TestObservedEntryMerge:
+    """An observed zero label remains data through either merge order."""
 
-    def test_zero_minimum_survives_merge_with_none(self) -> None:
+    def test_zero_label_survives_merge_with_empty_entries(self) -> None:
         from src.parsing.gem5.impl.gem5_parser import Gem5Parser
-        from src.parsing.gem5.models import Gem5ScannedVariable
 
         registry: dict = {}
-        no_range = Gem5ScannedVariable(
+        no_range = ScannedVariable(
             name="d",
             type="distribution",
-            source_type="distribution",
+            source_evidence=ResolvedSourceKind("distribution", "backend_metadata"),
             instances=(SourceInstance("d", ()),),
         )
-        with_zero_min = Gem5ScannedVariable(
+        with_zero_min = ScannedVariable(
             name="d",
             type="distribution",
-            minimum=0.0,
-            maximum=5.0,
-            source_type="distribution",
+            entries=["0", "5"],
+            source_evidence=ResolvedSourceKind("distribution", "backend_metadata"),
             instances=(SourceInstance("d", ()),),
         )
 
         # Order A: None-range first, 0.0 arrives as the incoming side
         Gem5Parser._merge_variable(registry, no_range)
         Gem5Parser._merge_variable(registry, with_zero_min)
-        assert registry["d"].minimum == 0.0
-        assert registry["d"].maximum == 5.0
+        assert registry["d"].entries == ["0", "5"]
+        assert "minimum" not in registry["d"].to_dict()
 
         # Order B: reversed
         registry.clear()
         Gem5Parser._merge_variable(registry, with_zero_min)
         Gem5Parser._merge_variable(registry, no_range)
-        assert registry["d"].minimum == 0.0
-        assert registry["d"].maximum == 5.0
+        assert registry["d"].entries == ["0", "5"]
+        assert "minimum" not in registry["d"].to_dict()

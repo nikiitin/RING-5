@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 from src.core.models.parsing_models import SourceInstance
+from src.core.models.source_evidence import ResolvedSourceKind
 
 import importlib
 import runpy
@@ -35,7 +36,7 @@ from src.core.models.parsing_models import (
     StatConfig,
 )
 from src.core.models.portfolio_models import RestoreReport
-from src.parsing.gem5.models import Gem5ScannedVariable
+from src.core.models.parsing_models import ScannedVariable
 
 from src.core.common.parsed_output import ParsedOutputIO
 from tests.helpers.parsed_values import numeric_file, numeric_output, parser_context
@@ -114,7 +115,9 @@ def test_export_error_normalization(tmp_path: Path) -> None:
             _export.export_file(mpl, str(tmp_path / "out.pdf"))
 
 
-def _parse_job(api: MagicMock, futures: list[Future[Any]], names=("x",)) -> _parse.ParseJob:
+def _parse_job(
+    api: MagicMock, futures: list[Future[Any]], names: tuple[str, ...] = ("x",)
+) -> _parse.ParseJob:
     batch = ParseBatchResult(
         tuple(futures),
         tuple(names),
@@ -157,13 +160,11 @@ def test_build_stat_configs_explicit_and_distribution_metadata() -> None:
     with pytest.raises(ring5.ScanError, match="cannot scan"):
         _parse.build_stat_configs(api, "runs", ["x"])
 
-    distribution = Gem5ScannedVariable(
+    distribution = ScannedVariable(
         name="dist",
         type="distribution",
         entries=["0"],
-        minimum=0,
-        maximum=4,
-        source_type="distribution",
+        source_evidence=ResolvedSourceKind("distribution", "backend_metadata"),
         instances=(SourceInstance("dist", ()),),
     )
     api.submit_scan_async.side_effect = None
@@ -172,13 +173,19 @@ def test_build_stat_configs_explicit_and_distribution_metadata() -> None:
     api.draft_from_scanned_variable.side_effect = lambda variable: StatConfigCodec.from_scanned(
         variable, frozenset()
     )
+    with pytest.raises(ValueError, match="Set distribution bounds"):
+        _parse.build_stat_configs(api, "runs", ["dist"])
     configs, _ = _parse.build_stat_configs(
         api,
         "runs",
         [
             StatConfig(name="cpu\\d+", type="scalar", params={"source_type": "scalar"}),
             StatConfig(name="plain", type="scalar", params={"source_type": "scalar"}),
-            "dist",
+            StatConfig(
+                name="dist",
+                type="distribution",
+                params={"minimum": 0, "maximum": 4, "source_type": "distribution"},
+            ),
         ],
     )
     assert configs[0].is_regex  # type: ignore[union-attr]

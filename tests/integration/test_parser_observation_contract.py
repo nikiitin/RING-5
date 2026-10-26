@@ -2,6 +2,13 @@
 
 from __future__ import annotations
 
+from src.core.models.source_evidence import (
+    ResolvedSourceKind,
+    AmbiguousSourceKind,
+    source_kind_candidates,
+)
+
+
 import csv
 import json
 import math
@@ -11,7 +18,6 @@ import pytest
 
 from src.core.models.parsing_models import ScannedVariable, SourceInstance, StatConfig
 from src.parsing.gem5.impl.gem5_parser import Gem5Parser
-from src.parsing.gem5.models import Gem5ScannedVariable
 
 pytestmark = pytest.mark.xdist_group("perl_pool")
 
@@ -177,11 +183,11 @@ def test_perl_aliased_scalar_pattern_repeats_selected_indices_and_keep_indices(
 def test_perl_true_vector_pattern_averages_spatial_and_temporal_samples(tmp_path: Path) -> None:
     source = r"system.cpu\d+.v"
     scanned: list[ScannedVariable] = [
-        Gem5ScannedVariable(
+        ScannedVariable(
             source,
             "vector",
             entries=["a"],
-            source_type="vector",
+            source_evidence=ResolvedSourceKind("vector", "backend_metadata"),
             instances=(
                 SourceInstance("system.cpu0.v", ("0",)),
                 SourceInstance("system.cpu1.v", ("1",)),
@@ -210,10 +216,10 @@ def test_perl_true_vector_pattern_averages_spatial_and_temporal_samples(tmp_path
 def test_perl_missing_expected_pattern_instance_stays_nan(tmp_path: Path) -> None:
     source = r"system.cpu\d+.h"
     scanned: list[ScannedVariable] = [
-        Gem5ScannedVariable(
+        ScannedVariable(
             source,
             "histogram",
-            source_type="histogram",
+            source_evidence=ResolvedSourceKind("histogram", "backend_metadata"),
             instances=(
                 SourceInstance("system.cpu0.h", ("0",)),
                 SourceInstance("system.cpu1.h", ("1",)),
@@ -255,8 +261,11 @@ def test_perl_signed_histogram_scan_and_rebin(tmp_path: Path, text: str) -> None
     )
     assert not scan.failures
     histogram = next(var for var in scan.variables if var.name == "h")
-    assert histogram.type == "histogram"
-    assert histogram.entries == ["-10--1", "0-9"]
+    assert histogram.type is None
+    assert "histogram" in source_kind_candidates(histogram.source_evidence)
+    assert histogram.entries == (
+        ["bucket_size", "max_bucket", "min_bucket"] if "h |" in text else ["-10--1", "0-9"]
+    )
     _, rows = _parse(
         tmp_path / "parse",
         text,
@@ -338,7 +347,7 @@ def test_config_aware_preserves_literal_percent_case_paths_and_unicode(tmp_path:
     assert config == {"system.workload": {"Cmd": "echo 100% %(unknown)s /tmp/á\\\\path"}}
 
 
-def test_perl_scanned_numeric_vector_entries_retain_vector_source_type(tmp_path: Path) -> None:
+def test_perl_scanned_numeric_entries_retain_ambiguous_source_evidence(tmp_path: Path) -> None:
     text = "system.cpu0.v::0 2\nsystem.cpu0.v::1 4\nsystem.cpu1.v::0 6\nsystem.cpu1.v::1 8\n"
     (tmp_path / "stats.txt").write_text(text, encoding="utf-8")
     scanned = Gem5Parser.aggregate_scan_results(
@@ -347,9 +356,13 @@ def test_perl_scanned_numeric_vector_entries_retain_vector_source_type(tmp_path:
             for future in Gem5Parser.submit_scan_async(str(tmp_path), "stats.txt")
         ]
     ).variables
-    assert isinstance(scanned[0], Gem5ScannedVariable)
-    assert scanned[0].source_type == "vector"
-    assert Gem5ScannedVariable.from_dict(scanned[0].to_dict()).source_type == "vector"
+    assert isinstance(scanned[0], ScannedVariable)
+    assert scanned[0].type is None
+    assert scanned[0].source_evidence == AmbiguousSourceKind(("distribution", "vector"))
+    assert (
+        ScannedVariable.from_dict(scanned[0].to_dict()).source_evidence
+        == scanned[0].source_evidence
+    )
     scanned = [ScannedVariable.from_dict(var.to_dict()) for var in scanned]
     for keep_indices in (False, True):
         config = StatConfig(
@@ -393,7 +406,28 @@ def test_perl_scan_and_parse_reset_geometry_before_zero_suppressed_dump(tmp_path
         ]
     )
     assert not scan.failures
-    assert next(var for var in scan.variables if var.name == "h").entries == ["-10--1", "0-9"]
+    source = next(var for var in scan.variables if var.name == "h")
+    assert source.entries == ["bucket_size", "max_bucket", "min_bucket"]
+    assert source.type is None
+    with pytest.raises(
+        (ValueError, RuntimeError), match="geometry|contradicts actual observations"
+    ):
+        _parse(
+            tmp_path / "underspecified",
+            text,
+            [
+                StatConfig(
+                    "h",
+                    "histogram",
+                    repeat=2,
+                    params={"source_type": "histogram", "bins": 2, "max_range": 10},
+                )
+            ],
+        )
+    assert not (tmp_path / "underspecified" / "output" / "results.csv").exists()
+    text = text.replace(
+        "h::bucket_size 10\nh::max_bucket 9", "h::bucket_size 10\nh::min_bucket 0\nh::max_bucket 9"
+    )
     _, rows = _parse(
         tmp_path / "parse",
         text,

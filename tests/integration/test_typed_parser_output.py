@@ -86,7 +86,7 @@ def test_real_worker_full_incremental_and_playground_share_exact_literal_semanti
     assert result.rows == ((1.25, literal),)
     assert result.missing_variables == () and result.ready_for_full_parse
     assert not (tmp_path / "preview").exists()
-    assert PARSER_RESULT_VERSION == 10 and CACHE_SCHEMA_VERSION == 2
+    assert PARSER_RESULT_VERSION == 11 and CACHE_SCHEMA_VERSION == 2
 
 
 @pytest.mark.parametrize("token", ["0", "-0.0", "1.25", "5e-324", "inf", "-inf", "NaN"])

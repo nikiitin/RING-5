@@ -17,6 +17,7 @@ import ring5
 from src.core.application_api import ApplicationAPI
 from src.core.common.parsed_output import ParsedOutputIO
 from src.core.models.data_models import ParseVariableConfig
+from src.core.models.source_evidence import source_kind_candidates
 from src.core.models.visualization.trace_config import BarTraceConfig
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
@@ -68,7 +69,8 @@ class TestHistogramPlotIntegration:
             (
                 v
                 for v in vars_found
-                if "htm_transaction_commit_cycles" in v.name and v.type == "histogram"
+                if "htm_transaction_commit_cycles" in v.name
+                and "histogram" in source_kind_candidates(v.source_evidence)
             ),
             None,
         )
@@ -85,7 +87,7 @@ class TestHistogramPlotIntegration:
                         "type": "histogram",
                         "params": {
                             "entries": (htm_var.entries or [])[:5],
-                            "source_type": htm_var.source_type,
+                            "source_type": "histogram",
                         },
                     },
                 )
@@ -151,7 +153,8 @@ class TestHistogramPlotIntegration:
             (
                 v
                 for v in vars_found
-                if "htm_transaction_commit_cycles" in v.name and v.type == "histogram"
+                if "htm_transaction_commit_cycles" in v.name
+                and "histogram" in source_kind_candidates(v.source_evidence)
             ),
             None,
         )
@@ -174,7 +177,7 @@ class TestHistogramPlotIntegration:
                     "type": "histogram",
                     "params": {
                         "entries": (htm_var.entries or [])[:5],
-                        "source_type": htm_var.source_type,
+                        "source_type": "histogram",
                     },
                 },
             ),

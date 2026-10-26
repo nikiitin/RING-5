@@ -233,11 +233,9 @@ def build_stat_configs(
     """Resolve variable names against a scan of the tree.
 
     Plain string names are looked up in the scan result and converted to
-    runnable StatConfig values through the current codec — carrying the scanned
-    metadata the parser needs (vector/histogram ``entries``, distribution
-    ``minimum``/``maximum``) and the pattern-variable flag. A bare
-    name+type config would crash vectors and silently parse distributions
-    with a fabricated default range.
+    runnable StatConfig values through the current codec. Ambiguous sources
+    require an explicit StatConfig declaring the source/output contract and
+    any required geometry; observed entry labels do not configure a grid.
 
     ``StatConfig`` objects pass through (the power-user path); when the
     scan identifies their name as a pattern variable, ``is_regex`` is
@@ -284,6 +282,12 @@ def build_stat_configs(
         if found is None:
             unknown.append(var)
             continue
+        if found.type is None:
+            raise ValueError(
+                f"Scanned source {found.name!r} has no unique runnable contract. "
+                "Supply an explicit StatConfig choosing the output type and params.source_type, "
+                "plus any geometry that output requires; labels do not declare a grid."
+            )
         configs.append(StatConfigCodec.from_draft(api.draft_from_scanned_variable(found.to_dict())))
 
     if unknown:

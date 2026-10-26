@@ -14,9 +14,9 @@ from src.core.models.source_evidence import (
     ResolvedSourceKind,
     SourceKindBinding,
     SourceKindEvidence,
-    decode_source_kind_binding,
+    source_kind_candidates,
+    intersect_source_kind_evidence,
     decode_source_kind_evidence,
-    encode_source_kind_binding,
     encode_source_kind_evidence,
 )
 
@@ -65,7 +65,7 @@ def test_request_kind_must_match_the_observed_compatible_contract(
 def test_models_preserve_registered_backend_kind_spelling_without_registry_import() -> None:
     evidence = ResolvedSourceKind("plugin.CounterCPU00", "backend_metadata")
     binding = SourceKindBinding("plugin.CounterCPU00", evidence)
-    assert decode_source_kind_binding(encode_source_kind_binding(binding)) == binding
+    assert source_kind_candidates(binding.evidence) == {"plugin.CounterCPU00"}
     with pytest.raises(ValueError, match="contradicts"):
         SourceKindBinding("plugin.countercpu00", evidence)
 
@@ -145,33 +145,19 @@ def test_codec_output_and_inputs_cannot_mutate_evidence_or_request_binding() -> 
     cast(list[str], wire["candidates"]).append("histogram")
     assert evidence == AmbiguousSourceKind(("distribution", "vector"))
     binding = SourceKindBinding("distribution", evidence)
-    encoded = encode_source_kind_binding(binding)
-    nested = cast(dict[str, object], encoded["evidence"])
-    cast(list[str], nested["candidates"]).append("scalar")
+    encoded = encode_source_kind_evidence(binding.evidence)
+    cast(list[str], encoded["candidates"]).append("scalar")
     assert binding.evidence == AmbiguousSourceKind(("distribution", "vector"))
-    exact = encode_source_kind_binding(binding)
-    assert decode_source_kind_binding(json.loads(json.dumps(exact))) == binding
+    assert (
+        decode_source_kind_evidence(
+            json.loads(json.dumps(encode_source_kind_evidence(binding.evidence)))
+        )
+        == binding.evidence
+    )
     with pytest.raises(FrozenInstanceError):
         setattr(binding, "declared_kind", "vector")
     with pytest.raises(FrozenInstanceError):
         setattr(evidence, "candidates", ("scalar", "vector"))
-
-
-@pytest.mark.parametrize(
-    "payload",
-    [
-        {},
-        {"declared_kind": "vector", "evidence": {}, "basis": "inferred"},
-        {"declared_kind": "vector", "evidence": {}, "basis": "request", "source_type": "vector"},
-        {
-            "declared_kind": "vector",
-            "evidence": {"state": "ambiguous", "candidates": ["distribution", "vector"]},
-        },
-    ],
-)
-def test_binding_codec_rejects_other_admission_shapes(payload: dict[str, object]) -> None:
-    with pytest.raises(ValueError):
-        decode_source_kind_binding(payload)
 
 
 def test_bindings_and_encoders_require_the_actual_current_models() -> None:
@@ -179,5 +165,23 @@ def test_bindings_and_encoders_require_the_actual_current_models() -> None:
         SourceKindBinding("vector", cast(SourceKindEvidence, {"kind": "vector"}))
     with pytest.raises(TypeError, match="typed variant"):
         encode_source_kind_evidence(cast(SourceKindEvidence, {"kind": "vector"}))
-    with pytest.raises(TypeError, match="typed model"):
-        encode_source_kind_binding(cast(SourceKindBinding, {"declared_kind": "vector"}))
+
+
+def test_observed_contract_intersection_never_uses_a_priority_default() -> None:
+    left = AmbiguousSourceKind(("distribution", "vector"))
+    right = AmbiguousSourceKind(("histogram", "vector"))
+    assert intersect_source_kind_evidence(left, right) == ResolvedSourceKind(
+        "vector", "wire_contract"
+    )
+    assert left.candidates == ("distribution", "vector")
+    assert right.candidates == ("histogram", "vector")
+
+
+def test_intersection_retains_only_justified_producer_provenance() -> None:
+    tagged = ResolvedSourceKind("scalar", "backend_metadata")
+    assert intersect_source_kind_evidence(tagged, tagged) == tagged
+    assert intersect_source_kind_evidence(
+        tagged, ResolvedSourceKind("scalar", "wire_contract")
+    ) == ResolvedSourceKind("scalar", "wire_contract")
+    with pytest.raises(ValueError, match="contradict"):
+        intersect_source_kind_evidence(tagged, ResolvedSourceKind("configuration", "wire_contract"))

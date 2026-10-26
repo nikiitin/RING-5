@@ -7,14 +7,18 @@ Example:
     system.cpu1.numCycles
     system.cpu2.numCycles
 
-    → system.cpu\d+.numCycles (vector variable with entries: ["0", "1", "2"])
+    → system.cpu\d+.numCycles (vector suggestion with explicit source instances)
 """
 
 import logging
 import re
 
 from src.core.models.parsing_models import ScannedVariable, SourceInstance
-from src.parsing.gem5.models import Gem5ScannedVariable
+from functools import reduce
+from src.core.models.source_evidence import (
+    ResolvedSourceKind,
+    intersect_source_kind_evidence,
+)
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -75,15 +79,17 @@ class PatternAggregator:
                 # Only one instance - not a pattern, keep as is
                 _, var = instances[0]
                 non_pattern_vars.append(var)
-            elif len({variable.source_type for _, variable in instances}) > 1:
-                # Numeric name similarity does not make different raw stat families interchangeable.
-                non_pattern_vars.extend(variable for _, variable in instances)
             else:
-                # Multiple compatible instances form one explicit source family.
-                aggregated_var = PatternAggregator._create_pattern_variable(
-                    pattern_signature, instances
-                )
-                aggregated_vars.append(aggregated_var)
+                try:
+                    aggregated_var = PatternAggregator._create_pattern_variable(
+                        pattern_signature, instances
+                    )
+                except ValueError as exc:
+                    if type(exc) is not ValueError:
+                        raise
+                    non_pattern_vars.extend(variable for _, variable in instances)
+                else:
+                    aggregated_vars.append(aggregated_var)
 
         # Combine and sort
         result = non_pattern_vars + aggregated_vars
@@ -146,19 +152,17 @@ class PatternAggregator:
             instances: List of (numeric_id, var_dict) tuples
 
         Returns:
-            Aggregated variable with regex pattern name and vector entries
+            Pattern with intersected evidence, source instances and printed labels
         """
         # Convert the signature to the canonical, user-facing pattern name. Literal dots stay
         # readable here; safe_regex escapes them only when compiling or sending the filter to
         # Perl, so they never acquire wildcard semantics.
         regex_pattern = pattern_signature.replace("{}", r"\d+")
 
-        # Extract numeric IDs as entries
-
-        first_var = instances[0][1]
-        base_type = first_var.source_type
-        if any(var.source_type != base_type for _, var in instances):
-            raise ValueError(f"Pattern {regex_pattern!r} contains mixed raw source types.")
+        evidence = reduce(
+            intersect_source_kind_evidence,
+            (variable.source_evidence for _, variable in instances),
+        )
         source_instances: list[SourceInstance] = []
         for numeric_id, variable in instances:
             if len(variable.instances) != 1 or variable.instances[0].source_name != variable.name:
@@ -166,37 +170,17 @@ class PatternAggregator:
             source_instances.append(
                 SourceInstance(variable.instances[0].source_name, tuple(numeric_id.split("_")))
             )
-        result_type = "vector" if base_type == "scalar" else base_type
-        # Scalar observations have no child entries; their display indices belong to instances.
+        result_type = (
+            ("vector" if evidence.kind == "scalar" else evidence.kind)
+            if type(evidence) is ResolvedSourceKind
+            else None
+        )
         result_entries = sorted({entry for _, var in instances for entry in var.entries})
-
-        # Handle distribution min/max if applicable
-        kwargs: dict[str, float] = {}
-        if base_type == "distribution":
-            min_val: float | None = None
-            max_val: float | None = None
-
-            for _, var in instances:
-                gem5_var = var if isinstance(var, Gem5ScannedVariable) else None
-                if gem5_var is not None and gem5_var.minimum is not None:
-                    var_min = gem5_var.minimum
-                    min_val = var_min if min_val is None else min(min_val, var_min)
-                if gem5_var is not None and gem5_var.maximum is not None:
-                    var_max = gem5_var.maximum
-                    max_val = var_max if max_val is None else max(max_val, var_max)
-
-            if min_val is not None:
-                kwargs["minimum"] = min_val
-            if max_val is not None:
-                kwargs["maximum"] = max_val
-
-        logger.info(f"Aggregated {len(instances)} instances into pattern: {regex_pattern}")
-
-        return Gem5ScannedVariable(
+        logger.info("Aggregated %d instances into pattern: %s", len(instances), regex_pattern)
+        return ScannedVariable(
             name=regex_pattern,
             type=result_type,
-            source_type=base_type,
+            source_evidence=evidence,
             entries=result_entries,
             instances=tuple(source_instances),
-            **kwargs,
         )

@@ -310,12 +310,14 @@ Needs: impl, test, uman
 
 Tags: discovery, files, parsing, status_approved
 
-### Statistics variable scan
+### Statistics source evidence scan
 
-`req~ring5.ingestion.variable-scan~1`
+`req~ring5.ingestion.variable-scan~2`
 Status: approved
 
-RING-5 shall scan selected simulator files and aggregate discovered variable names, types, metadata, ranges, and visible per-file failures.
+RING-5 shall scan selected simulator files and aggregate observed names, literal entry labels, compatible source-contract evidence, explicit source instances, optional output suggestions, and visible per-file failures without inferring unprinted native geometry.
+
+History records: 1
 
 Covers:
 - feat~ring5.ingestion~1
@@ -618,12 +620,14 @@ Needs: impl, test, uman
 
 Tags: entries, statistics, status_approved, variables
 
-### Deep distribution range discovery
+### Bounded deep source discovery
 
-`req~ring5.ingestion.distribution-range-scan~1`
+`req~ring5.ingestion.distribution-range-scan~2`
 Status: approved
 
-A deep scan shall aggregate the global minimum and maximum distribution bucket range across its bounded sample and make those values available to the variable configuration.
+A deep scan shall retain printed frequency labels and intersect compatible source-contract evidence across its bounded sample. Native grid bounds shall remain explicit request declarations rather than inferred extrema of observed labels.
+
+History records: 1
 
 Covers:
 - feat~ring5.ingestion~1

@@ -37,7 +37,7 @@ from src.core.models.parse_job_models import (
     ParseJobSnapshot,
     ParseJobStatus,
 )
-from src.core.models.parsing_models import PARSER_RESULT_VERSION
+from src.core.models.parsing_models import PARSER_RESULT_VERSION, require_current_parser_contract
 from src.core.services.parse_job_store import (
     MAX_REQUEST_JSON_BYTES,
     InvalidStoredOutput,
@@ -74,6 +74,7 @@ def build_parse_job_request(
     incremental: bool = False,
 ) -> ParseJobRequest:
     """Own the exact resolved request and fingerprint its actual source contents."""
+    require_current_parser_contract(parser_contract_version)
     normalized_path = normalize_user_path(stats_path)
     if not normalized_path.exists():
         raise FileNotFoundError(f"Stats path does not exist: {stats_path}")

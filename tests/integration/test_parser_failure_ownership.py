@@ -32,7 +32,7 @@ def test_actual_invalid_utf8_worker_output_has_bounded_cause_and_releases_failed
 ) -> None:
     script = tmp_path / "invalid-output.pl"
     script.write_text(
-        'use strict; use warnings; $|=1; print "READY\\n";\n'
+        'use strict; use warnings; $|=1; print "READY source-events-1\\n";\n'
         "while (my $line = <STDIN>) {\n"
         "  last if $line =~ /^SHUTDOWN/;\n"
         '  print "scalar/v/" . ("x" x 200000) . "\\xff\\nEND_PARSE\\n" if $line =~ /^PARSE/;\n'

@@ -13,7 +13,7 @@ This file is informative; normative items are in the other generated files.
 - In development future requirements: 0
 - Blocked future requirements: 0
 - Generated specification items: 233
-- Live capability bindings: 851
+- Live capability bindings: 852
 
 ## Requirements by feature group
 
@@ -42,7 +42,7 @@ This file is informative; normative items are in the other generated files.
 - `cli_options`: 38
 - `colorbar_config_fields`: 9
 - `data_label_config_fields`: 12
-- `data_services_api_members`: 50
+- `data_services_api_members`: 49
 - `dimension_config_fields`: 7
 - `figure_config_fields`: 22
 - `figure_decoration_members`: 12
@@ -58,7 +58,7 @@ This file is informative; normative items are in the other generated files.
 - `parser_strategies`: 2
 - `plot_types`: 17
 - `plotly_formats`: 4
-- `public_exports`: 143
+- `public_exports`: 145
 - `public_shaper_exports`: 4
 - `render_engines`: 2
 - `restore_report_fields`: 5
@@ -92,11 +92,13 @@ This file is informative; normative items are in the other generated files.
 | `workspace.navigation` | 1 | Semantic | Replaced Documentation routing with a direct link to the published site. |
 | `workspace.documentation-hub` | 1 | Semantic | Replaced the duplicate application page with direct links to the canonical published documentation. |
 | `ingestion.csv-contract` | 1 | Semantic | Define explicit typed parser schema, physical ownership, exact row encoding and schema-bound content integrity; genuine CSV ingestion retains its separate inference contract. |
+| `ingestion.variable-scan` | 1 | Semantic | Replace priority-based physical-kind guesses and inferred extrema with shared decoder evidence and explicit request geometry. |
 | `data.error-propagation` | 1 | Semantic | Define canonical SD propagation for missing contributors, weighted repeated sources, mean scaling, and undefined estimates. |
 | `figure.ordering-renaming` | 1 | Semantic | Assigned legend-entry ordering to each visible Legend tab while keeping axis and facet ordering under Axes. |
 | `figure.numbered-xaxis` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |
 | `figure.dual-axis-controls` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |
 | `api.doctor` | 1 | Semantic | Describe the shared authoritative browser selection and selected compiler preflight contract. |
+| `ingestion.distribution-range-scan` | 1 | Semantic | Observed labels do not establish hidden native grid bounds or uniquely identify a physical producer class. |
 | `figure.stack-totals` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |
 | `figure.alternate-category-shading` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |
 | `figure.series-styling` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |

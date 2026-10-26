@@ -152,6 +152,7 @@ if TYPE_CHECKING:
         ScannedVariable,
         SourceInstance,
     )
+    from src.core.models.source_evidence import ResolvedSourceKind, AmbiguousSourceKind
     from src.core.models.parsed_output_models import (
         ParsedCell,
         ParsedColumn,
@@ -282,6 +283,8 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "ScanJob": ("ring5._scan", "ScanJob"),
     "ScanResult": ("src.core.models.parsing_models", "ScanResult"),
     "ScannedVariable": ("src.core.models.parsing_models", "ScannedVariable"),
+    "ResolvedSourceKind": ("src.core.models.source_evidence", "ResolvedSourceKind"),
+    "AmbiguousSourceKind": ("src.core.models.source_evidence", "AmbiguousSourceKind"),
     "SourceInstance": ("src.core.models.parsing_models", "SourceInstance"),
     "render_figure": ("ring5._render", "render_figure"),
     "render_dashboard": ("ring5._dashboard", "render_dashboard"),
@@ -485,6 +488,8 @@ __all__ = [
     "ScanJob",
     "ScanResult",
     "ScannedVariable",
+    "ResolvedSourceKind",
+    "AmbiguousSourceKind",
     "SourceInstance",
     "ShaperStepConfig",
     "RestoreReport",

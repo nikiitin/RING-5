@@ -12,6 +12,8 @@ from typing import Any, cast
 from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
 from src.core.models.parsing_models import ScannedVariable, StatConfig, StatParamValue
 from src.core.models.pattern_index_service import PatternIndexService
+from src.core.models.source_evidence import ResolvedSourceKind
+from src.core.common.source_entry_labels import canonical_source_entry
 
 _COMMON_PARAMS = frozenset({"selected_sources", "source_type"})
 _TYPE_PARAMS = {
@@ -121,7 +123,10 @@ class StatConfigCodec:
         if (
             kind == "vector"
             and source_type == "histogram"
-            and any(re.fullmatch(r"-?\d+", entry) for entry in params.get("entries", []))
+            and any(
+                canonical_source_entry("histogram", entry) != entry
+                for entry in params.get("entries", [])
+            )
         ):
             raise ValueError("Histogram vector entries require inclusive range labels such as 0-0.")
         selected_sources = params.get("selected_sources")
@@ -412,25 +417,21 @@ class StatConfigCodec:
         cls, value: ScannedVariableDict, internal_stats: frozenset[str]
     ) -> ParseVariableConfig:
         """Project current scanner metadata into an independently owned editable draft."""
-        ScannedVariable.from_dict(value)
-        kind = value["type"]
-        params: dict[str, StatParamValue] = {"source_type": value["source_type"]}
-        if kind in {"vector", "histogram"} and not (
-            kind == "vector" and value["source_type"] == "scalar"
-        ):
-            entries = value.get("entries", [])
-            params["entries"] = [entry for entry in entries if entry not in internal_stats]
-            params["statistics"] = [entry for entry in entries if entry in internal_stats]
-        if kind == "distribution":
-            for bound in ("minimum", "maximum"):
-                if bound in value:
-                    params[bound] = value[bound]  # type: ignore[literal-required]
+        scanned = ScannedVariable.from_dict(value)
+        evidence = scanned.source_evidence
+        kind = scanned.type or ""
+        params: dict[str, StatParamValue] = {}
+        if type(evidence) is ResolvedSourceKind:
+            params["source_type"] = evidence.kind
+        if kind == "vector" and params.get("source_type") != "scalar":
+            params["entries"] = [entry for entry in scanned.entries if entry not in internal_stats]
+            params["statistics"] = [entry for entry in scanned.entries if entry in internal_stats]
         return cls.validate_draft(
             {
-                "name": value["name"],
+                "name": scanned.name,
                 "type": kind,
                 "params": params,
-                "statistics_only": kind in {"vector", "histogram"}
+                "statistics_only": kind == "vector"
                 and not params.get("entries")
                 and bool(params.get("statistics")),
             }

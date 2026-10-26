@@ -45,9 +45,11 @@ are documented in the [parser extension guide]({{ site.baseurl }}/developer-guid
 Use `ring5.StatConfig` for explicit runnable parser settings. Configuration fields and `params`
 use snake_case; `repeat` is a positive integer, `entries` and `statistics` are separate text lists,
 and `source_name` preserves an output alias without replacing the simulator statistic. Every runnable
-configuration declares `params.source_type`, the actual raw source kind before output reinterpretation.
-`ScannedVariable` requires that kind plus `SourceInstance` records containing exact source names and
-numeric display coordinates. Numeric patterns require these current scan records;
+configuration declares `params.source_type`, a compatible source contract before output reinterpretation.
+`ScannedVariable` requires `source_evidence` and `SourceInstance` records containing exact source names
+and numeric display coordinates. Evidence is resolved or explicitly ambiguous; ambiguous sources have
+no output suggestion (`type=None`) and require an explicit runnable `StatConfig`. Observed entry labels
+do not supply native geometry. Numeric patterns require these current scan records;
 `params.selected_sources` selects concrete names once at submission. An explicit empty selection
 remains an unfinished draft. Scalar-source vector entries derive from instance coordinates, so they
 do not accept caller-provided `entries`. Invalid

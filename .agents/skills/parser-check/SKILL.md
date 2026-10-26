@@ -44,10 +44,12 @@ contract**.
    measured zero, NaN and both signs of infinity without skipping missing observations.
    Missing-output diagnostics use actual observation presence, not derived NaN views; measured
    NaN values must remain distinguishable from absent entry/source measurements.
-5. **One Perl classifier.** `TypesFormatRegex::classifyLine` produces semantic records for both
-   scanning and persistent parsing. Preserve raw source entries separately from inclusive scan
-   labels, summary roles, deferred geometry, and dump events. Keep histogram classification before
-   distribution/vector classification. Test the same raw fixtures through both consumers.
+5. **One shared source decoder.** `TypesFormatRegex::classifyLine` produces structured events for
+   scanning and persistent parsing. Preserve literal source entries, numeric/text values, dump
+   boundaries and per-observation reported geometry. Completed sources carry compatible contract
+   evidence; overlapping native forms remain explicitly ambiguous. Request declarations resolve
+   execution ambiguity without claiming a physical producer kind. Test both consumers with the same
+   raw fixtures and reject malformed sources visibly without hiding unrelated valid discovery.
 6. **Worker-pool lifecycle.** `WorkPool` and `PerlWorkerPool` own `shutdown()` and `atexit`
    cleanup. Typed `WorkPool.submit`/`submit_many` accept callable commands and return caller-owned
    futures without retaining batches. Global shutdown joins executor retirement outside the
@@ -57,7 +59,7 @@ contract**.
    High-concurrency hangs were an undrained-stderr-pipe deadlock, now fixed by a drainer thread —
    don't reintroduce a blocking read (see [[perl-pool-highconc-stall]]).
 7. **Internal/meta stats excluded** from selection (`GEM5_INFO.internal_stats` in
-   `src/parsing/registry.py`): `total, mean, gmean, stdev, samples, sample_period, min_val, max_val,
+   `src/parsing/registry.py`): `total, mean, gmean, stdev, samples, sample_period, min_value, max_value,
    min_bucket, max_bucket, num_buckets, underflows, overflows`.
 
 ```bash
@@ -71,10 +73,10 @@ grep -rn "def .*parse\b\|def .*scan\b" src/parsing --include=*.py | grep -v asyn
 With `tests/data/results-micro26-sens/` present (`make test-data`), exercise the parser end-to-end via
 a headless `ApplicationAPI()` (no Streamlit) — scan→`finalize_scan`, then `submit_parse_async`→
 `finalize_parsing` — not just statically:
-- **Classification** — scan one real `stats.txt` and assert a histogram var (`*.loadToUse::N-M`)
-  classifies as `histogram` and a distribution var (`*.numIssuedDist::N`) as `distribution`. This is
-  the live test of invariant 5 across **both** Perl paths. Then parse the histogram and confirm the
-  output columns are **range** entries (`::N-M`), never single-int distribution entries.
+- **Evidence** — scan one real `stats.txt` and inspect histogram-like and distribution-like source
+  candidates with their literal printed labels. Use explicit compatible requests when both Vector
+  and frequency contracts fit. Parse the requested Histogram and verify its inclusive output ranges
+  and exact measured frequencies; no source-kind priority or inferred hidden grid is acceptable.
 - **Aggregation, not fabrication** — pattern/regex variables (`system.cpu\d+…`) are reduced across
   their concrete instances by **mean**. A parsed value cross-checked against a *single* instance looks
   wrong; verify it against the **mean of all matching instances** (a 16-core mean carries a `…/16`

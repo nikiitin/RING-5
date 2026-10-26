@@ -1,5 +1,8 @@
 """Submission owns exact sources and typed finalization preserves values and missingness."""
 
+from src.core.models.source_evidence import ResolvedSourceKind
+
+
 import csv
 import math
 from concurrent.futures import Future
@@ -42,7 +45,7 @@ def test_submission_passes_one_resolved_plan_and_exact_output_names(
             r"cpu\d+.ipc",
             "vector",
             [],
-            source_type="scalar",
+            source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
             instances=(SourceInstance("cpu0.ipc", ("0",)), SourceInstance("cpu1.ipc", ("1",))),
         )
     ]

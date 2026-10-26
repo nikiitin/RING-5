@@ -46,7 +46,8 @@ as `StatConfig`, plus its UI-only `_id`; no flat option shape is accepted.
 summaries through that same codec. Backend creation, durable jobs, the public parse API, and recipes use the same codec.
 Every runnable value declares `params.source_type` independently of its requested output type.
 Callers preserve failures and pass current scanned-variable records for numeric source patterns.
-Each record requires concrete `SourceInstance` identities and numeric display coordinates.
+Each record requires resolved or ambiguous `source_evidence`, concrete `SourceInstance` identities,
+and numeric display coordinates. An ambiguous record has no inferred output type or native bounds.
 `params.selected_sources` selects concrete names; workers receive a precompiled direct routing plan.
 
 Portfolio schema 9 stores each parser variable as exactly `{state: "draft", fields: ...}` or

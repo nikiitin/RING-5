@@ -1,9 +1,12 @@
 """Explicit source requests remain immutable independently of editor and frame state."""
 
 from __future__ import annotations
+from src.core.models.source_evidence import AmbiguousSourceKind, ResolvedSourceKind
 
 import json
 from dataclasses import FrozenInstanceError, replace
+from collections.abc import Callable
+from typing import Any, NoReturn, cast
 
 import pandas as pd
 import pytest
@@ -12,15 +15,18 @@ from src.core.common.import_options_codec import ImportOptionsCodec
 from src.core.common.source_context_codec import SourceContextCodec
 from src.core.models.import_models import ImportColumnCorrection, ImportOptions
 from src.core.models.parsing_models import StatConfig
+from src.core.models.data_models import ScannedVariableDict
+from src.core.models.portfolio_contract import CURRENT_PORTFOLIO_SCHEMA_VERSION
 from src.core.models.source_context_models import (
     CsvSourceContext,
     InferredCsvPolicy,
     ReviewedCsvPolicy,
+    ParserSourceContext,
 )
 from src.core.state.repositories.data_repository import DataRepository
 
 
-def _parser():
+def _parser() -> ParserSourceContext:
     return SourceContextCodec.parser(
         stats_path="original",
         stats_pattern="stats.txt",
@@ -50,7 +56,7 @@ def test_parser_request_owns_exact_variables_and_discovery_policy() -> None:
     assert replace(source, scan_limit=None).scan_limit is None
     assert replace(source, simulator=None).simulator is None
     with pytest.raises(FrozenInstanceError):
-        source.stats_path = "changed"
+        cast(Any, source).stats_path = "changed"
 
 
 def test_reviewed_policy_exact_codec_and_defensive_wire_projection() -> None:
@@ -67,9 +73,17 @@ def test_reviewed_policy_exact_codec_and_defensive_wire_projection() -> None:
     encoded = SourceContextCodec.encode(source)
     assert SourceContextCodec.decode(encoded) == source
     payload = SourceContextCodec.to_payload(source)
-    payload["policy"]["options"]["null_values"].append("NA")
+    policy = payload["policy"]
+    assert isinstance(policy, dict)
+    wire_options = policy["options"]
+    assert isinstance(wire_options, dict)
+    wire_nulls = wire_options["null_values"]
+    assert isinstance(wire_nulls, list)
+    wire_nulls.append("NA")
     assert options.null_values == ("MISSING",)
-    assert SourceContextCodec.to_payload(source)["policy"]["rejected_rows"] == "exclude"
+    independent_policy = SourceContextCodec.to_payload(source)["policy"]
+    assert isinstance(independent_policy, dict)
+    assert independent_policy["rejected_rows"] == "exclude"
     assert ImportOptionsCodec.from_payload(ImportOptionsCodec.to_payload(options)) == options
 
 
@@ -85,7 +99,7 @@ def test_reviewed_policy_exact_codec_and_defensive_wire_projection() -> None:
         ("column_types", ({"column": "v", "import_as": "text"},)),
     ],
 )
-def test_import_policy_rejects_mutable_or_wrong_typed_fields(field, value) -> None:
+def test_import_policy_rejects_mutable_or_wrong_typed_fields(field: str, value: Any) -> None:
     with pytest.raises((TypeError, ValueError)):
         ImportOptions(**{field: value})
 
@@ -100,7 +114,9 @@ def test_import_policy_rejects_mutable_or_wrong_typed_fields(field, value) -> No
         lambda p: p["options"].update(header_row=True),
     ],
 )
-def test_reviewed_policy_rejects_unknown_or_missing_wire_fields(mutate) -> None:
+def test_reviewed_policy_rejects_unknown_or_missing_wire_fields(
+    mutate: Callable[[dict[str, Any]], object],
+) -> None:
     payload = SourceContextCodec.csv_policy_payload(ReviewedCsvPolicy(ImportOptions()))
     mutate(payload)
     with pytest.raises((TypeError, ValueError)):
@@ -113,13 +129,15 @@ def test_inferred_policy_retains_exact_configuration_column_order() -> None:
     with pytest.raises(ValueError):
         InferredCsvPolicy(("z", "z"))
     with pytest.raises(TypeError):
-        InferredCsvPolicy(["z"])
+        InferredCsvPolicy(cast(tuple[str, ...], ["z"]))
 
 
 def test_origin_roundtrip_owns_steps_and_keeps_partial_distinct() -> None:
-    steps = [{"type": "columnSelector", "columns": ["label"]}]
+    steps: list[dict[str, object]] = [{"type": "columnSelector", "columns": ["label"]}]
     origin = SourceContextCodec.origin(_parser(), steps, complete=False)
-    steps[0]["columns"].append("other")
+    columns = steps[0]["columns"]
+    assert isinstance(columns, list)
+    columns.append("other")
     assert SourceContextCodec.transformations(origin) == [
         {"type": "columnSelector", "columns": ["label"]}
     ]
@@ -140,7 +158,9 @@ def test_named_selection_undo_redo_and_arbitrary_revision_restore_exact_origin()
     assert repository.get_loaded_origin() is None
     repository.undo_dataset()
     assert repository.get_loaded_origin() == source_a
-    assert repository.get_data()["v"].tolist() == [1.0]
+    current = repository.get_data()
+    assert current is not None
+    assert current["v"].tolist() == [1.0]
     repository.redo_dataset()
     assert repository.get_loaded_origin() is None
     repository.add_dataset("b", pd.DataFrame({"v": [3.0]}), origin=source_b)
@@ -163,7 +183,9 @@ def test_invalid_origin_rejection_preserves_frame_revision_and_origin() -> None:
     malformed = replace(origin, transformations_json='[{"not":"runnable"},null]')
     with pytest.raises(TypeError, match="objects"):
         repository.set_data(pd.DataFrame({"v": [2.0]}), origin=malformed)
-    assert repository.get_data()["v"].tolist() == [1.0]
+    current = repository.get_data()
+    assert current is not None
+    assert current["v"].tolist() == [1.0]
     assert repository.get_loaded_origin() == origin
     assert repository.get_dataset_lineage() == before
 
@@ -175,7 +197,7 @@ def test_recipe_capture_uses_loaded_origin_and_applied_steps_exactly_once() -> N
 
     state = RepositoryStateManager()
     source = CsvSourceContext("actual.csv", InferredCsvPolicy(("label",)))
-    step = {"type": "columnSelector", "columns": ["label", "value"]}
+    step: dict[str, object] = {"type": "columnSelector", "columns": ["label", "value"]}
     origin = SourceContextCodec.origin(source, [step])
     state.set_data(pd.DataFrame({"label": ["NA"], "value": [1.0]}), origin=origin)
     state.set_csv_path("unloaded.csv")
@@ -235,7 +257,7 @@ def test_parser_recipe_capture_preserves_all_actual_request_arguments() -> None:
     assert recipe.source.pattern == request.stats_pattern
     assert recipe.source.strategy == request.strategy_type
     assert recipe.source.simulator == "gem5"
-    assert recipe.source.parser_contract_version == "10"
+    assert recipe.source.parser_contract_version == request.parser_contract_version
     assert recipe.source.scan_limit is None
     assert recipe.source.strict is False
     assert service.loads(service.dumps(recipe)) == recipe
@@ -255,20 +277,20 @@ def test_portfolio_origin_is_explicit_integrity_covered_and_restored_before_edit
     state.set_stats_path("unloaded-editor-request")
     service = PortfolioService(state)
     payload = json.loads(service.serialize_workspace(data, [], {}, 0, origin=origin))
-    from src.core.models.portfolio_contract import CURRENT_PORTFOLIO_SCHEMA_VERSION
-
     assert payload["schema_version"] == CURRENT_PORTFOLIO_SCHEMA_VERSION
     assert payload["loaded_origin"]["source"]["path"] == "actual.csv"
     assert PortfolioIntegrityService.verify(payload).checksum_valid
     state.set_data(pd.DataFrame({"other": [3.0]}))
     state.restore_session(payload)
-    pd.testing.assert_frame_equal(state.get_data(), data)
+    restored = state.get_data()
+    assert restored is not None
+    pd.testing.assert_frame_equal(restored, data)
     assert state.get_loaded_origin() == origin
     payload["loaded_origin"]["source"]["path"] = "tampered.csv"
     assert not PortfolioIntegrityService.verify(payload).checksum_valid
 
 
-def test_source_encoding_counts_exact_escaped_utf8_bytes(monkeypatch) -> None:
+def test_source_encoding_counts_exact_escaped_utf8_bytes(monkeypatch: pytest.MonkeyPatch) -> None:
     from src.core.common import source_context_codec
 
     source = CsvSourceContext('μ\\"\n.csv', InferredCsvPolicy(("label",)))
@@ -279,13 +301,16 @@ def test_source_encoding_counts_exact_escaped_utf8_bytes(monkeypatch) -> None:
     monkeypatch.setattr(source_context_codec, "MAX_PARSE_RESULT_BYTES", size - 1)
     with pytest.raises(ValueError, match="byte budget"):
         SourceContextCodec.encode(source)
+    assert isinstance(source.policy, InferredCsvPolicy)
     assert source.policy.configuration_columns == ("label",)
 
 
-def test_parser_metadata_budget_rejects_before_encoder_allocation(monkeypatch) -> None:
+def test_parser_metadata_budget_rejects_before_encoder_allocation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     from src.core.common import source_context_codec
 
-    def forbidden(*args, **kwargs):
+    def forbidden(*args: object, **kwargs: object) -> NoReturn:
         pytest.fail("Over-budget metadata reached JSON encoding")
 
     monkeypatch.setattr(source_context_codec.json.JSONEncoder, "iterencode", forbidden)
@@ -312,18 +337,15 @@ def test_parser_metadata_budget_rejects_before_encoder_allocation(monkeypatch) -
         )
 
 
-def test_scanner_payload_owner_preserves_optional_observed_bounds_exactly() -> None:
-    from src.core.models.parsing_models import SourceInstance
-    from src.parsing.gem5.models import Gem5ScannedVariable
+def test_scanner_payload_owner_keeps_evidence_separate_from_requested_geometry() -> None:
+    from src.core.models.parsing_models import ScannedVariable, SourceInstance
 
-    scanned = Gem5ScannedVariable(
+    scanned = ScannedVariable(
         "d",
-        "distribution",
+        None,
         entries=["-2", "4"],
-        source_type="distribution",
+        source_evidence=AmbiguousSourceKind(("distribution", "histogram", "vector")),
         instances=(SourceInstance("d", ()),),
-        minimum=-2.0,
-        maximum=4.0,
     )
     source = SourceContextCodec.parser(
         stats_path="inputs",
@@ -348,32 +370,52 @@ def test_scanner_payload_owner_preserves_optional_observed_bounds_exactly() -> N
     assert SourceContextCodec.scanned_payloads(source) == [scanned.to_dict()]
     assert SourceContextCodec.decode(SourceContextCodec.encode(source)) == source
     payload = SourceContextCodec.scanned_payloads(source)[0]
-    assert type(payload["minimum"]) is float
-    assert type(payload["maximum"]) is float
-    payload["minimum"] = -100.0
-    assert SourceContextCodec.scanned_payloads(source)[0]["minimum"] == -2.0
+    assert set(payload) == {"name", "type", "entries", "source_evidence", "instances"}
+    assert payload["type"] is None
+    candidates = payload["source_evidence"]["candidates"]
+    assert isinstance(candidates, list)
+    candidates[0] = "changed"
+    assert SourceContextCodec.scanned_payloads(source)[0]["source_evidence"] == {
+        "state": "ambiguous",
+        "candidates": ["distribution", "histogram", "vector"],
+    }
+    assert SourceContextCodec.variables(source)[0].params == {
+        "source_type": "distribution",
+        "minimum": -2,
+        "maximum": 4,
+    }
     generic = SourceContextCodec.scanned_variables(source)[0]
-    assert generic.source_type == "distribution"
+    assert generic.type is None
+    assert generic.source_evidence == scanned.source_evidence
     assert generic.instances == scanned.instances
 
 
 @pytest.mark.parametrize(
     "field,value",
     [
+        ("minimum", -2.0),
         ("minimum", True),
         ("minimum", "0"),
         ("minimum", None),
         ("maximum", float("inf")),
+        ("maximum", 4.0),
+        ("source_type", "distribution"),
         ("extra", 1),
     ],
 )
-def test_scanner_payload_owner_rejects_unknown_and_invalid_retained_fields(field, value) -> None:
+def test_scanner_payload_owner_rejects_unknown_and_invalid_retained_fields(
+    field: str, value: object
+) -> None:
     from src.core.models.parsing_models import SourceInstance, ScannedVariable
 
     payload = ScannedVariable(
-        "d", "distribution", source_type="distribution", instances=(SourceInstance("d", ()),)
+        "d",
+        "distribution",
+        source_evidence=ResolvedSourceKind("distribution", "backend_metadata"),
+        instances=(SourceInstance("d", ()),),
     ).to_dict()
-    payload[field] = value
+    unchecked: dict[str, object] = dict(payload)
+    unchecked[field] = value
     with pytest.raises((TypeError, ValueError)):
         SourceContextCodec.parser(
             stats_path="inputs",
@@ -387,7 +429,7 @@ def test_scanner_payload_owner_rejects_unknown_and_invalid_retained_fields(field
                     params={"source_type": "distribution", "statistics": ["mean"]},
                 )
             ],
-            scanned_variables=[payload],
+            scanned_variables=[cast(ScannedVariableDict, unchecked)],
             simulator="gem5",
             scan_limit=None,
             strict=False,

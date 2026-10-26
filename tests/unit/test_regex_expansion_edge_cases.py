@@ -1,5 +1,8 @@
 """Numeric source matching exercises the production resolver, never a copied expansion."""
 
+from src.core.models.source_evidence import ResolvedSourceKind
+
+
 import pytest
 
 from src.core.models.parsing_models import ScannedVariable, SourceInstance, StatConfig
@@ -8,7 +11,11 @@ from src.parsing.gem5.impl.source_bindings import resolve_sources
 
 def _literal(name):
     return ScannedVariable(
-        name, "scalar", [], source_type="scalar", instances=(SourceInstance(name, ()),)
+        name,
+        "scalar",
+        [],
+        source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
+        instances=(SourceInstance(name, ()),),
     )
 
 

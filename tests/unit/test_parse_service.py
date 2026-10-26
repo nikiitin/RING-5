@@ -1,5 +1,8 @@
 """Gem5 submission and typed finalization retain the exact scientific values."""
 
+from src.core.models.source_evidence import ResolvedSourceKind
+
+
 import csv
 import math
 from concurrent.futures import Future
@@ -143,7 +146,7 @@ class TestSubmitParseAsync:
             ScannedVariable(
                 name=r"system\.cpu\d+\.ipc",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(
                     SourceInstance("system.cpu0.ipc", ("0",)),
                     SourceInstance("system.cpu1.ipc", ("1",)),
@@ -162,8 +165,7 @@ class TestSubmitParseAsync:
         plan = strategy.get_work_items.call_args.args[2]
         assert tuple(plan.routes) == ("system.cpu0.ipc", "system.cpu1.ipc")
         assert all(
-            route.source_type == "scalar"
-            and tuple(target.output_name for target in route.targets) == (r"system\.cpu\d+\.ipc",)
+            tuple(target.output_name for target in route.targets) == (r"system\.cpu\d+\.ipc",)
             for route in plan.routes.values()
         )
         assert plan.accumulators[0].config.params == {"source_type": "scalar"}

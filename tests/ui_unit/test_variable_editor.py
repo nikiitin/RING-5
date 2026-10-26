@@ -219,7 +219,7 @@ def test_disabling_pattern_selection_removes_the_previous_filter(mock_api: Any) 
         {
             "name": pattern,
             "type": "vector",
-            "source_type": "scalar",
+            "source_evidence": {"state": "resolved", "kind": "scalar", "basis": "backend_metadata"},
             "entries": [],
             "instances": [
                 {"source_name": "cpu0.ipc", "indices": ["0"]},

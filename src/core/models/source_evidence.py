@@ -140,47 +140,29 @@ def decode_source_kind_evidence(value: object) -> SourceKindEvidence:
     raise ValueError("Source kind evidence requires a current resolved or ambiguous state.")
 
 
-def encode_source_kind_binding(binding: SourceKindBinding) -> dict[str, object]:
-    """Encode a request decision separately from its observed evidence.
-
-    Args:
-        binding: The current immutable checked request binding.
-
-    Returns:
-        An independently owned JSON object.
-
-    Raises:
-        TypeError: Binding is not the current typed model.
-    """
-    if type(binding) is not SourceKindBinding:
-        raise TypeError("Source binding requires its current typed model.")
-    return {
-        "declared_kind": binding.declared_kind,
-        "evidence": encode_source_kind_evidence(binding.evidence),
-        "basis": binding.basis,
-    }
+def source_kind_candidates(evidence: SourceKindEvidence) -> frozenset[str]:
+    """Return the compatible contracts without choosing an execution default."""
+    if type(evidence) is ResolvedSourceKind:
+        return frozenset((evidence.kind,))
+    if type(evidence) is AmbiguousSourceKind:
+        return frozenset(evidence.candidates)
+    raise TypeError("Source evidence requires a current typed variant.")
 
 
-def decode_source_kind_binding(value: object) -> SourceKindBinding:
-    """Decode one explicit request binding and validate evidence compatibility.
-
-    Args:
-        value: The exact current JSON request-binding object.
-
-    Returns:
-        An immutable binding that retains the original observed evidence.
-
-    Raises:
-        TypeError: Input or evidence containers have unsupported types.
-        ValueError: Fields, request basis, kind or compatibility are invalid.
-    """
-    if type(value) is not dict:
-        raise TypeError("Source kind binding must be an object.")
-    if set(value) != {"declared_kind", "evidence", "basis"}:
-        raise ValueError("Source kind binding requires exactly declared_kind, evidence and basis.")
-    if type(value["basis"]) is not str or value["basis"] != "request":
-        raise ValueError("Source kind binding requires the explicit request basis.")
-    return SourceKindBinding(
-        declared_kind=cast(str, value["declared_kind"]),
-        evidence=decode_source_kind_evidence(value["evidence"]),
-    )
+def intersect_source_kind_evidence(
+    left: SourceKindEvidence, right: SourceKindEvidence
+) -> SourceKindEvidence:
+    """Intersect independent observations or reject their explicit contradiction."""
+    candidates = source_kind_candidates(left) & source_kind_candidates(right)
+    if not candidates:
+        raise ValueError("Observed source contracts contradict one another.")
+    if len(candidates) == 1:
+        basis: SourceKindBasis = (
+            "backend_metadata"
+            if type(left) is ResolvedSourceKind
+            and type(right) is ResolvedSourceKind
+            and left.basis == right.basis == "backend_metadata"
+            else "wire_contract"
+        )
+        return ResolvedSourceKind(next(iter(candidates)), basis)
+    return AmbiguousSourceKind(tuple(sorted(candidates)))

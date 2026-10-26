@@ -1,5 +1,8 @@
 """Concrete source selection and output naming use the production source compiler."""
 
+from src.core.models.source_evidence import ResolvedSourceKind
+
+
 from dataclasses import FrozenInstanceError, replace
 
 import pytest
@@ -14,7 +17,7 @@ def _metadata():
             r"l\d+_cpu\d+.ipc",
             "vector",
             [],
-            source_type="scalar",
+            source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
             instances=(
                 SourceInstance("l0_cpu1.ipc", ("0", "1")),
                 SourceInstance("l1_cpu0.ipc", ("1", "0")),

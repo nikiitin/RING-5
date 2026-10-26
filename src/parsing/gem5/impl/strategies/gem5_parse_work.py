@@ -8,6 +8,15 @@ import re
 from src.parsing.gem5.types.base import StatContent, StatResult, StatType
 
 from src.core.common.parsed_output_codec import read_numeric_wire
+from src.core.common.source_entry_labels import canonical_source_entry
+from src.core.models.source_evidence import SourceKindBinding
+from src.parsing.gem5.impl.source_events import (
+    Measurement,
+    SourceEvidence,
+    SourceFailure,
+    DumpBoundary,
+    decode_source_event,
+)
 from src.core.common.parse_failure import (
     bounded_parse_text,
     classify_parse_failure,
@@ -28,7 +37,7 @@ from src.parsing.gem5.impl.source_bindings import SourcePlan, literal_source_fil
 from src.parsing.gem5.impl.strategies.perl_worker_pool import get_worker_pool
 
 VarsDictType = dict[str, StatType[StatContent, StatResult]]
-EntryBufferType = dict[tuple[str, str], dict[str, list[str]]]
+EntryBufferType = dict[tuple[str, str], list[dict[str, str]]]
 _ENTRY_TYPES = frozenset({"vector", "distribution", "histogram"})
 logger = logging.getLogger(__name__)
 
@@ -59,6 +68,8 @@ class Gem5ParseWork:
         self._routes = plan.routes
         self._specs = {spec.output_name: spec for spec in plan.accumulators}
         self._entry_buffer: EntryBufferType = {}
+        self._source_buffer: dict[str, list[Measurement]] = {}
+        self._entry_ordinals: dict[tuple[str, str, str], int] = {}
 
     def __str__(self) -> str:
         return f"Gem5ParseWork({self._file_to_parse})"
@@ -69,26 +80,33 @@ class Gem5ParseWork:
         return self._file_to_parse
 
     def _buffer_entry(
-        self, output_name: str, source_name: str, entry_name: str, value: str
+        self,
+        output_name: str,
+        source_name: str,
+        entry_name: str,
+        value: str,
+        *,
+        sample_index: int | None = None,
     ) -> None:
-        entries = self._entry_buffer.setdefault((output_name, source_name), {})
-        entries.setdefault(entry_name, []).append(value)
+        key = (output_name, source_name, entry_name)
+        index = self._entry_ordinals.get(key, 0) if sample_index is None else sample_index
+        frames = self._entry_buffer.setdefault((output_name, source_name), [])
+        while len(frames) <= index:
+            frames.append({})
+        if entry_name in frames[index]:
+            raise ParseDataValueError("A source observation repeats the same native cell position.")
+        frames[index][entry_name] = value
+        self._entry_ordinals[key] = max(index + 1, self._entry_ordinals.get(key, 0))
 
     def _apply_buffered_entries(self) -> None:
-        """Apply each source's temporal samples independently to its logical target."""
+        """Commit actual source frames without allocating requested-repeat padding."""
         scalar_vectors: dict[str, list[dict[str, float]]] = {}
-        for (output_name, _source_name), entries in self._entry_buffer.items():
+        for (output_name, _source_name), raw_frames in self._entry_buffer.items():
             accumulator = self._accumulators[output_name]
             spec = self._specs[output_name]
-            for index in range(max(map(len, entries.values()), default=0)):
-                sample = {
-                    entry: read_numeric_wire(values[index])
-                    for entry, values in entries.items()
-                    if index < len(values)
-                }
+            for index, raw_sample in enumerate(raw_frames):
+                sample = {entry: read_numeric_wire(value) for entry, value in raw_sample.items()}
                 if spec.output_type == "vector" and spec.config.params["source_type"] == "scalar":
-                    # Independent scalar sources populate distinct entries of one
-                    # temporal vector frame rather than separate observations.
                     frames = scalar_vectors.setdefault(output_name, [])
                     while len(frames) <= index:
                         frames.append({})
@@ -99,63 +117,157 @@ class Gem5ParseWork:
             for sample in frames:
                 self._accumulators[output_name].add_observation(sample)
         self._entry_buffer = {}
+        self._entry_ordinals = {}
 
-    @staticmethod
-    def _parse_line(line: str) -> tuple[str, str, str] | None:
-        parts = line.split("/", 2)
-        if len(parts) != 3:
-            logger.warning("PARSER: Malformed worker output line: %s", line[:200])
-            return None
-        return parts[0], parts[1], parts[2]
-
-    def _process_line(self, line: str) -> None:
-        parsed = self._parse_line(line)
-        if parsed is None:
-            return
-        raw_type, identifier, value = parsed
-        source_name, separator, raw_entry = identifier.partition("::")
-        route = self._routes.get(source_name)
-        if route is None:
-            return
-
-        if separator:
-            if route.source_type not in _ENTRY_TYPES or (
-                raw_type != "summary" and raw_type != route.source_type
+    def _oneline_entries(
+        self, measurement: Measurement, source: SourceEvidence, source_kind: str
+    ) -> list[tuple[str, str]]:
+        """Decode current integral layouts only after the source contract is bound."""
+        route = self._routes[source.name]
+        specs = [self._specs[target.output_name] for target in route.targets]
+        if all(spec.config.statistics_only for spec in specs):
+            return []
+        reported = dict(measurement.reported_geometry)
+        if source_kind == "histogram":
+            if set(reported) != {"bucket_size", "min_bucket", "max_bucket"} or any(
+                re.fullmatch(r"-?\d+", value) is None for value in reported.values()
             ):
-                raise ParseDataRuntimeError(
-                    f"Raw source kind mismatch for {source_name!r}: {raw_type!r}."
+                raise ParseDataValueError("Oneline Histogram requires complete integral geometry.")
+            integral: dict[str, int] = {}
+            for key, value in reported.items():
+                read_numeric_wire(value)
+                try:
+                    integral[key] = int(value)
+                except ValueError as exc:
+                    if type(exc) is not ValueError:
+                        raise
+                    raise ParseDataValueError(
+                        "Integral source geometry exceeds supported integer conversion."
+                    ) from exc
+            width, low, high = (
+                integral[key] for key in ("bucket_size", "min_bucket", "max_bucket")
+            )
+            if width <= 0 or high < low:
+                raise ParseDataValueError("Invalid oneline Histogram geometry.")
+            count = (high - low) // width + 1
+            if count != len(measurement.values):
+                raise ParseDataValueError(
+                    "Oneline source cell count contradicts its current geometry."
                 )
+            labels = [
+                f"{low + index * width}-{min(low + (index + 1) * width - 1, high)}"
+                for index in range(count)
+            ]
+        elif source_kind == "distribution":
+            bounds = {
+                (spec.config.params.get("minimum"), spec.config.params.get("maximum"))
+                for spec in specs
+                if not spec.config.statistics_only
+            }
+            if len(bounds) != 1 or "bucket_size" not in reported:
+                raise ParseDataValueError("Oneline Distribution needs one declared current grid.")
+            low_value, high_value = next(iter(bounds))
+            if not isinstance(low_value, (int, float)) or not isinstance(high_value, (int, float)):
+                raise ParseDataValueError("Distribution requires its declared integral bounds.")
+            low, high, width = int(low_value), int(high_value), 1
+            expected = {"bucket_size": 1.0, "min_bucket": float(low), "max_bucket": float(high)}
+            if any(read_numeric_wire(value) != expected[key] for key, value in reported.items()):
+                raise ParseDataValueError("Printed geometry contradicts the declared current grid.")
+            count = high - low + 1
+            if count != len(measurement.values):
+                raise ParseDataValueError(
+                    "Oneline source cell count contradicts its current geometry."
+                )
+            labels = [str(low + index) for index in range(count)]
+        else:
+            raise ParseDataValueError(
+                "Oneline Vector has no entry names; an entry-order contract is required."
+            )
+        if count != len(measurement.values):
+            raise ParseDataValueError("Oneline source cell count contradicts its current geometry.")
+        return list(zip(labels, measurement.values, strict=True))
+
+    def _consume_source(self, source: SourceEvidence) -> None:
+        """Check actual shared evidence before an observation reaches an accumulator."""
+        route = self._routes.get(source.name)
+        if route is None:
+            raise ParseDataValueError("Decoder returned an unplanned source.")
+        source_kind = self._specs[route.targets[0].output_name].config.params["source_type"]
+        if type(source_kind) is not str:
+            raise RuntimeError("The immutable source plan lost its request declaration.")
+        try:
+            SourceKindBinding(source_kind, source.evidence)
+        except ValueError as exc:
+            if type(exc) is not ValueError:
+                raise
+            raise ParseDataRuntimeError(
+                f"Declared source contract contradicts actual observations for {source.name!r}."
+            ) from exc
+        oneline_index = 0
+        for measurement in self._source_buffer.pop(source.name, []):
+            sample_index = None
+            if measurement.shape == "oneline":
+                entries = self._oneline_entries(measurement, source, source_kind)
+                sample_index = oneline_index
+                oneline_index += 1
+            elif measurement.shape == "entry":
+                assert measurement.entry is not None and measurement.value is not None
+                entry = measurement.entry
+                if source_kind in {"histogram", "distribution"} and entry in {
+                    "bucket_size",
+                    "min_bucket",
+                    "max_bucket",
+                }:
+                    continue
+                entry = canonical_source_entry(source_kind, entry)
+                entries = [(entry, measurement.value)]
+            else:
+                assert measurement.value is not None
+                for target in route.targets:
+                    spec = self._specs[target.output_name]
+                    if (
+                        spec.output_type == "vector"
+                        and source_kind == "scalar"
+                        and target.entry_name is not None
+                    ):
+                        self._buffer_entry(
+                            target.output_name, source.name, target.entry_name, measurement.value
+                        )
+                    elif (
+                        spec.output_type in {"scalar", "configuration"}
+                        and target.entry_name is None
+                    ):
+                        self._accumulators[target.output_name].add_observation(
+                            measurement.value
+                            if spec.output_type == "configuration"
+                            else read_numeric_wire(measurement.value)
+                        )
+                    else:
+                        raise RuntimeError("Point source has an incompatible planned destination.")
+                continue
             for target in route.targets:
                 spec = self._specs[target.output_name]
                 if spec.output_type not in _ENTRY_TYPES or target.entry_name is not None:
-                    raise RuntimeError(
-                        f"Entry source cannot populate output {target.output_name!r}."
+                    raise RuntimeError("Entry source has an incompatible planned destination.")
+                for entry, value in entries:
+                    self._buffer_entry(
+                        target.output_name, source.name, entry, value, sample_index=sample_index
                     )
-                entry = raw_entry
-                if route.source_type == "histogram" and spec.output_type == "vector":
-                    if re.fullmatch(r"-?\d+", entry):
-                        entry = f"{entry}-{entry}"
-                self._buffer_entry(target.output_name, source_name, entry, value)
-            return
 
-        if raw_type not in {"scalar", "configuration"} or raw_type != route.source_type:
-            raise ParseDataRuntimeError(
-                f"Raw source kind mismatch for {source_name!r}: {raw_type!r}."
-            )
-        for target in route.targets:
-            spec = self._specs[target.output_name]
-            if (
-                spec.output_type == "vector"
-                and raw_type == "scalar"
-                and target.entry_name is not None
-            ):
-                self._buffer_entry(target.output_name, source_name, target.entry_name, value)
-            elif spec.output_type in {"scalar", "configuration"} and target.entry_name is None:
-                self._accumulators[target.output_name].add_observation(
-                    value if spec.output_type == "configuration" else read_numeric_wire(value)
-                )
-            else:
-                raise RuntimeError(f"Scalar source cannot populate output {target.output_name!r}.")
+    def _process_line(self, line: str) -> None:
+        event = decode_source_event(line)
+        if isinstance(event, Measurement):
+            if event.name not in self._routes:
+                raise ParseDataValueError("Decoder returned an unplanned measurement.")
+            self._source_buffer.setdefault(event.name, []).append(event)
+        elif isinstance(event, SourceEvidence):
+            self._consume_source(event)
+        elif isinstance(event, SourceFailure):
+            raise ParseDataRuntimeError(f"Source {event.name!r}: {event.message}")
+        elif isinstance(event, DumpBoundary):
+            if self._source_buffer:
+                raise ParseDataValueError("Decoder omitted completed source evidence.")
+            self._apply_buffered_entries()
 
     def _validate_variables(self) -> VarsDictType:
         """Keep missing numeric observations visible and honor explicit configuration fallbacks."""
@@ -179,13 +291,13 @@ class Gem5ParseWork:
 
     def _process_output(self, output: str) -> VarsDictType:
         self._entry_buffer = {}
+        self._entry_ordinals = {}
+        self._source_buffer = {}
         for line in output.splitlines():
-            if not line.strip():
-                continue
-            if line == "dump//":
-                self._apply_buffered_entries()
-            else:
+            if line.strip():
                 self._process_line(line)
+        if self._source_buffer:
+            raise ParseDataValueError("Decoder omitted final source evidence.")
         self._apply_buffered_entries()
         return self._validate_variables()
 

@@ -29,10 +29,10 @@ Covers:
 Covers:
 - req~ring5.ingestion.configuration-fallbacks~1
 
-`uman~ring5.ingestion.distribution-range-scan.documentation~1`
+`uman~ring5.ingestion.distribution-range-scan.documentation~2`
 
 Covers:
-- req~ring5.ingestion.distribution-range-scan~1
+- req~ring5.ingestion.distribution-range-scan~2
 
 `uman~ring5.ingestion.file-discovery.documentation~1`
 
@@ -89,10 +89,10 @@ Covers:
 Covers:
 - req~ring5.ingestion.variable-entry-selection~1
 
-`uman~ring5.ingestion.variable-scan.documentation~1`
+`uman~ring5.ingestion.variable-scan.documentation~2`
 
 Covers:
-- req~ring5.ingestion.variable-scan~1
+- req~ring5.ingestion.variable-scan~2
 
 `uman~ring5.ingestion.vector.documentation~1`
 
@@ -423,9 +423,12 @@ leaving it disabled applies the variable type's normal pattern aggregation.
 
 Vector, distribution, and histogram editors offer **Statistics Only**, **Entries Only**, and
 **Entries + Statistics** modes where applicable. Entries can be selected from scan results or
-entered manually. A per-variable deep scan discovers entries across the larger bounded sample and
-aggregates the minimum and maximum bucket range for distributions. Histogram configurations can
-also rebin inconsistent source ranges into a fixed bucket count and maximum range.
+entered manually. A per-variable deep scan discovers printed labels and compatible source contracts
+across the larger bounded sample. Several native formats share the same text: an ambiguous source
+has no suggested output type. Choose its output type and compatible raw source contract explicitly.
+Observed extrema do not define a native distribution grid; enter its bounds in the request. Oneline
+Histogram input needs complete observed integral geometry, including zero-valued bounds. Histogram
+configurations can rebin inconsistent source ranges into a fixed bucket count and maximum range.
 
 For a non-blocking workflow, call `Session.parse_submit(...)`, then `finalize()` or `cancel()` on the
 returned job. Each job owns its futures.

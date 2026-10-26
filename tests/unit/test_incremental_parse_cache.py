@@ -1,6 +1,7 @@
 """Security and invalidation tests for the inspectable incremental parse cache."""
 
 from __future__ import annotations
+from src.core.models.source_evidence import ResolvedSourceKind
 
 import json
 
@@ -50,7 +51,7 @@ def test_cache_is_plain_json_and_rejects_stale_or_malformed_records(tmp_path: Pa
             ScannedVariable(
                 name="other",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("other", ()),),
             )
         ],

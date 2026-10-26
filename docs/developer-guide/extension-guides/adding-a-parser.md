@@ -43,6 +43,15 @@ Metadata supplies the UI display name, default file pattern, strategies, variabl
 internal statistics excluded from selection. Do not add simulator conditionals to a generic web
 component when metadata or a protocol method can express the difference.
 
+Scanned variables carry required immutable evidence independently of their output suggestion.
+An actual tagged backend can use `ring5.ResolvedSourceKind("my_kind", "backend_metadata")`;
+a decoder that only establishes a supported text contract uses `"wire_contract"`. If several
+contracts fit, use `ring5.AmbiguousSourceKind(("first_kind", "second_kind"))` with distinct sorted
+candidates and `ScannedVariable.type=None`. Supply exact `ring5.SourceInstance` identities in every
+record. Do not claim tagged evidence based on familiar labels or summary names, and do not infer
+hidden native grid bounds from observed extrema. Runnable requests keep their single explicit
+`params.source_type` declaration, checked against those compatible contracts by the backend.
+
 ## Public typed output SDK
 
 External backends import their transport values and helpers from `ring5`:
@@ -90,7 +99,8 @@ uses the shared per-submitted-batch result budget.
 
 For a gem5 type, add a decorated `StatType` under `src/parsing/gem5/types/`, import it so registration
 runs, update the shared Perl classifier under `src/parsing/gem5/perl/libs/`, and expose
-the type string in the gem5 registry metadata. Classification order matters where formats overlap.
+the type string in the gem5 registry metadata. Overlapping native text forms retain every compatible
+source contract; request declarations choose execution without a physical-kind guess.
 
 Implement typed `add_observation` storage hooks and inherit the public lifecycle from `StatType`.
 A numeric point, literal configuration string, or numeric mapping represents one observation;

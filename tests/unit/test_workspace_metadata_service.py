@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -25,14 +26,14 @@ def _state() -> MagicMock:
             "name": "system.cpu.ipc",
             "type": "scalar",
             "entries": [],
-            "source_type": "scalar",
+            "source_evidence": {"state": "resolved", "kind": "scalar", "basis": "backend_metadata"},
             "instances": [{"source_name": "system.cpu.ipc", "indices": []}],
         },
         {
             "name": "system.cache.misses",
             "type": "vector",
             "entries": [],
-            "source_type": "vector",
+            "source_evidence": {"state": "resolved", "kind": "vector", "basis": "backend_metadata"},
             "instances": [{"source_name": "system.cache.misses", "indices": []}],
         },
     ]
@@ -48,7 +49,7 @@ def _state() -> MagicMock:
     return state
 
 
-def test_every_artifact_kind_can_be_tagged_favorited_and_filtered(portfolios_dir) -> None:
+def test_every_artifact_kind_can_be_tagged_favorited_and_filtered(portfolios_dir: Path) -> None:
     # [test->req~ring5.workspace.favorites-tags~1]
     state = _state()
     targets = (
@@ -91,7 +92,7 @@ def test_every_artifact_kind_can_be_tagged_favorited_and_filtered(portfolios_dir
 
 
 def test_workspace_records_survive_config_restore_and_portfolio_records_are_local(
-    portfolios_dir,
+    portfolios_dir: Path,
 ) -> None:
     first = _state()
     WorkspaceMetadataService.set_metadata(
@@ -131,7 +132,7 @@ def test_workspace_records_survive_config_restore_and_portfolio_records_are_loca
     ],
 )
 def test_invalid_targets_and_metadata_are_rejected(
-    portfolios_dir,
+    portfolios_dir: Path,
     kind: object,
     identifier: str,
     tags: object,
@@ -168,7 +169,7 @@ def test_workspace_tag_validation_rejects_unsupported_forms(tag: str) -> None:
         WorkspaceMetadataService._normalize_tag(tag)
 
 
-def test_empty_metadata_removes_records_and_filters_are_bounded(portfolios_dir) -> None:
+def test_empty_metadata_removes_records_and_filters_are_bounded(portfolios_dir: Path) -> None:
     state = _state()
     WorkspaceMetadataService.set_metadata(
         state,
@@ -196,7 +197,9 @@ def test_empty_metadata_removes_records_and_filters_are_bounded(portfolios_dir) 
         )
 
 
-def test_discovery_reports_per_kind_truncation(monkeypatch, portfolios_dir) -> None:
+def test_discovery_reports_per_kind_truncation(
+    monkeypatch: pytest.MonkeyPatch, portfolios_dir: Path
+) -> None:
     monkeypatch.setattr(metadata_module, "MAX_WORKSPACE_SEARCH_ENTRIES_PER_KIND", 1)
     response = WorkspaceMetadataService.list_artifacts(_state(), ["paper"], limit=100)
 
@@ -206,7 +209,7 @@ def test_discovery_reports_per_kind_truncation(monkeypatch, portfolios_dir) -> N
 
 
 def test_metadata_pruning_uses_complete_catalog_beyond_display_cap(
-    portfolios_dir, monkeypatch
+    portfolios_dir: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     state = _state()
     WorkspaceMetadataService.set_metadata(state, ["last"], "portfolio", "last", tags=("keep",))

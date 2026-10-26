@@ -92,7 +92,6 @@ include = ["src*", "ring5*"]
   "perl/*.pl",
   "perl/libs/*.pm",
   "perl/libs/Scanning/*.pm",
-  "perl/libs/Scanning/Type/*.pm",
 ]
 "src.web.components.plotting" = ["custom_plotly/*.html"]
 

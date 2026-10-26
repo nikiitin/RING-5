@@ -14,6 +14,7 @@ from src.core.application_api import ApplicationAPI
 from src.core.common.security_limits import MAX_SCAN_FILES, SCAN_BATCH_TIMEOUT_SECONDS
 from src.core.common.utils import validate_web_stats_path
 from src.core.models.parsing_models import ScanFileResult
+from src.core.common.source_entry_labels import canonical_source_entry
 from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
 from src.core.models.pattern_index_service import PatternIndexService
 from src.core.common.safe_regex import normalize_stat_pattern
@@ -201,7 +202,10 @@ class VariableEditor:
                     key=f"var_source_type_{var_id}",
                     placeholder="Choose raw source type",
                     label_visibility="collapsed",
-                    help="Actual source kind before choosing the output representation.",
+                    help=(
+                        "Declared compatible source contract before choosing the "
+                        "output representation."
+                    ),
                 )
                 or ""
             )
@@ -526,8 +530,8 @@ class VariableEditor:
 
         if is_distribution:
             should_show_scan = True
-            btn_label = f"Deep Scan Range for '{var_name}'"
-            help_text = f"Scan up to {MAX_SCAN_FILES} stats files to find the min/max bucket range."
+            btn_label = f"Deep Scan Evidence for '{var_name}'"
+            help_text = f"Scan up to {MAX_SCAN_FILES} files for source evidence and printed labels."
         else:
             should_show_scan = entry_mode == "Select from Discovered Entries" or (
                 not discover_entries_available and entry_mode == "Manual Entry Names"
@@ -557,7 +561,7 @@ class VariableEditor:
         is_distribution: bool,
     ) -> None:
         """Blocking dialog for async scanning using futures."""
-        # [impl->req~ring5.ingestion.distribution-range-scan~1]
+        # [impl->req~ring5.ingestion.distribution-range-scan~2]
         # [impl->req~ring5.ingestion.scan-presets-progress~1]
         st.write(f"Variable: `{var_name}`")
         st.write(f"Scanning {len(futures)} files...")
@@ -607,25 +611,17 @@ class VariableEditor:
 
             # Process results based on type
             if is_distribution:
-                st.write("Computing distribution range...")
-                global_min, global_max = api.data_services.aggregate_distribution_range(
-                    snapshot_dicts, var_name
+                labels = api.data_services.aggregate_discovered_entries(
+                    snapshot_dicts,
+                    var_name,
+                    api.get_simulator_info(api.state_manager.get_simulator()).internal_stats,
                 )
-
-                if global_min is not None or global_max is not None:
-                    st.session_state[f"dist_range_result_{var_id}"] = {
-                        "minimum": global_min,
-                        "maximum": global_max,
-                    }
-                    status.update(
-                        label=f"Range found: [{global_min}, {global_max}]",
-                        state="complete",
-                        expanded=False,
-                    )
-                    st.success(f"Final Range: [{global_min}, {global_max}]")
-                else:
-                    status.update(label="No distribution data found", state="error")
-                    st.warning(f"No distribution data found matching '{var_name}'.")
+                st.write("Observed entry labels:", labels)
+                st.info(
+                    "Printed labels and observed summaries do not declare a native grid. "
+                    "Set the source contract and geometry explicitly."
+                )
+                status.update(label="Source evidence scanned", state="complete", expanded=False)
             else:
                 st.write("Discovering entries...")
                 # Aggregate entries using VariableServicesAPI
@@ -665,9 +661,10 @@ class VariableEditor:
     ) -> None:
         """Render multiselect for discovered vector entries."""
         # [impl->req~ring5.ingestion.variable-entry-selection~1]
-        # Filter internal statistics using variable services
+        source_kind = cast(str, var_config.get("params", {}).get("source_type", ""))
+        choices = [canonical_source_entry(source_kind, entry) for entry in discovered_entries]
         filtered_entries = api.data_services.filter_internal_stats(
-            discovered_entries,
+            choices,
             api.get_simulator_info(api.state_manager.get_simulator()).internal_stats,
         )
 
@@ -849,9 +846,8 @@ class VariableEditor:
             st.write("---")
             st.markdown("**Bucket Range:**")
 
-            range_result = st.session_state.get(f"dist_range_result_{var_id}", {})
-            default_min = range_result.get("minimum", original_var.get("params", {}).get("minimum"))
-            default_max = range_result.get("maximum", original_var.get("params", {}).get("maximum"))
+            default_min = cast(float | int | None, original_var.get("params", {}).get("minimum"))
+            default_max = cast(float | int | None, original_var.get("params", {}).get("maximum"))
 
             col_min, col_max = st.columns(2)
             with col_min:

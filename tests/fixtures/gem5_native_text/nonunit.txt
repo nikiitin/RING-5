@@ -1,0 +1,13 @@
+---------- Begin Simulation Statistics ----------
+system.cpu00.dist::samples 3
+system.cpu00.dist::mean 4.250000
+system.cpu00.dist::stdev 1.984313
+system.cpu00.dist::underflows 0 0.00% 0.00%
+system.cpu00.dist::0.25-1.75 1 33.33% 33.33%
+system.cpu00.dist::2.75-4.25 1 33.33% 66.67%
+system.cpu00.dist::5.25-5.75 1 33.33% 100.00%
+system.cpu00.dist::overflows 0 0.00% 100.00%
+system.cpu00.dist::min_value 2
+system.cpu00.dist::max_value 5.750000
+system.cpu00.dist::total 3
+---------- End Simulation Statistics   ----------

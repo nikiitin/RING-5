@@ -70,13 +70,12 @@ Stat types self-register; there are two halves — **Python** (model + reduction
    `StatTypeRegistry.create("mytype", ...)` then dispatch by name. (There is **no**
    `TYPE_TO_SCRIPT`/`TYPE_TO_COLUMNS` dict — registration is purely the decorator.)
 
-2. **Perl classification** — add/extend a regex module under
-   `src/parsing/gem5/perl/libs/Scanning/Type/<Name>.pm`, then wire it into the single
-   `TypesFormatRegex::classifyLine` classifier. It returns an ordered record list; each measurement
-   retains its source entry, scan label, and value. The scanner aggregates those records and the
-   persistent worker serializes them. Preserve dump events and deferred geometry; validate oneline
-   geometry while preserving gem5's zero-suppressed bounds. Test both consumers with the same raw
-   fixtures.
+2. **Shared Perl decoder** — extend `TypesFormatRegex::classifyLine` and its completed-source
+   evidence in `src/parsing/gem5/perl/libs/TypesFormatRegex.pm`. Both scanner and persistent parser
+   consume the same structured measurement/source/dump events. Retain literal entry labels and
+   per-observation reported geometry; overlapping wire forms yield explicit ambiguity, never a
+   priority-based physical-kind guess. Bind the request's source contract before ingestion. Test
+   both consumers with the same raw fixtures, including omitted geometry and partial source errors.
 
 3. **Register the type string** in `SimulatorRegistry` `GEM5_INFO.variable_types`
    (`src/parsing/registry.py`) so the UI offers it.

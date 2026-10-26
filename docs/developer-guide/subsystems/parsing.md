@@ -133,22 +133,32 @@ scalar-pattern vectors retain one entry per selected instance and average its te
 Missing variables, expected instances, dumps, or summary measurements remain `NaN`. Only omitted
 interior frequency buckets in an otherwise complete observed distribution are inferred as zero.
 
-Every scanned variable declares its raw `source_type` and an immutable tuple of `SourceInstance`
-records. A record holds the exact concrete `source_name` and ordered numeric `indices` for display;
-literal sources use empty indices. For example, `cpu012.ipc` has coordinates `("012",)` in the
-`cpu\d+.ipc` family. Leading zeros remain intact. Scanner-generated scalar families suggest vector
-output with `entries=[]`; their output entry schema derives from instance records. Genuine vector
-measurement entries remain separate from source coordinates. Numerically similar names with
-different raw kinds remain separate literal variables. Optional observed bounds are finite numbers;
-unknown bounds are omitted from serialized metadata. Group counts derive from the instance records.
-The editor projects both literal and aggregated records through the bounded numeric matcher, so
-manual patterns can select concrete sources without reconstructing names or guessing raw kinds.
+Every scanned variable owns `source_evidence`: either a resolved compatible contract with its
+`wire_contract` or `backend_metadata` basis, or an explicit set of ambiguous compatible contracts.
+The gem5 scanner and persistent parser consume the same structured decoder events. Printed labels
+remain literal observations; they do not establish hidden native geometry or a physical C++ class.
+Ambiguous sources have `type=None`, so selecting one requires an explicit output type and compatible
+`params.source_type`. The scanner never chooses between overlapping native wire forms by priority.
 
-Every runnable `StatConfig.params` declares `source_type`, including literal requests. It describes
-the raw source independently of `StatConfig.type`, the requested output representation. This permits
-explicit vector/frequency reinterpretation while keeping raw observation validation precise. The
-editor offers separate raw source and output controls; an unfinished raw source choice remains an
-explicit draft. Manual callers declare the kind rather than triggering a scan or inference fallback.
+Each record owns an immutable tuple of `SourceInstance` identities. A record holds the exact concrete
+`source_name` and ordered numeric `indices` for display; literal sources use empty indices. For
+example, `cpu012.ipc` has coordinates `("012",)` in the `cpu\d+.ipc` family. Leading zeros remain
+intact. Resolved scalar families suggest vector output with `entries=[]`; their output entries derive
+from those source instances. Measurement entries remain separate from source coordinates. Conflicting
+source contracts remain visible failures while unrelated valid sources survive a partial scan. Strict
+public scans reject incomplete discovery before publishing editor state.
+
+Every runnable `StatConfig.params` declares `source_type`, including literal requests. This is a
+caller-supplied compatible decoder contract, independent of `StatConfig.type`, the requested output
+representation. Submission checks it against scanned evidence; workers check it again against actual
+completed source evidence before ingestion. This permits explicit vector/frequency reinterpretation
+without claiming that text uniquely reveals the physical producer. The editor offers separate source
+contract and output controls; an unfinished choice remains an explicit draft. Deep scans retain
+printed labels and compatible evidence, and never derive minimum/maximum grid bounds. Oneline
+Histogram execution requires complete observed integral geometry; absent zero-valued header fields
+are not silently supplied. Numeric records retain the first measurement while accepting up to two
+derived percentage fields and the native trailing unit annotation. Those decorations do not declare
+scientific column semantics; literal configuration text is preserved independently.
 
 `params.selected_sources` contains concrete source names, never numeric labels. Omitted selection
 uses all matching current records; an explicit empty selection is nonexecutable. Submission resolves

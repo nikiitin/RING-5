@@ -194,7 +194,7 @@ class ExampleParser:
                 ring5.ScannedVariable(
                     "value",
                     "scalar",
-                    source_type="scalar",
+                    source_evidence=ring5.ResolvedSourceKind("scalar", "backend_metadata"),
                     instances=(ring5.SourceInstance("value", ()),),
                 )
             ],
