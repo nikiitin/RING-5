@@ -22,6 +22,8 @@ from src.core.models.source_context_models import (
     InferredCsvPolicy,
     ParserSourceContext,
     ReviewedCsvPolicy,
+    validate_discovery_limit,
+    validate_parser_source_text,
 )
 from src.core.models.accessibility_models import AccessibilityReport
 from src.core.models.report_models import AnalysisReport, ReportFigure
@@ -512,6 +514,12 @@ class Session:
         # [impl->req~ring5.ingestion.incremental-parsing~1]
         # [impl->req~ring5.ingestion.async-parse~1]
         # [impl->req~ring5.ingestion.parse-output-provenance~1]
+        try:
+            validate_discovery_limit(scan_limit)
+            for value in (stats_path, pattern, strategy):
+                validate_parser_source_text(value)
+        except ValueError as exc:
+            raise ParseError(f"Invalid parser source request: {exc}") from exc
         try:
             configs, scanned = _parse.build_stat_configs(
                 self.api, stats_path, variables, pattern=pattern, scan_limit=scan_limit

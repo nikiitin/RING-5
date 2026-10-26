@@ -8,11 +8,13 @@ from threading import Event
 from dataclasses import replace
 from pathlib import Path
 from unittest.mock import MagicMock
+from typing import Literal, cast
 
 import pandas as pd
 import pytest
 
 import ring5
+from src.core.common.safe_regex import MAX_INPUT_LENGTH
 from src.core.common.stat_config_codec import StatConfigCodec
 from src.core.models.data_models import ScannedVariableDict
 from src.core.state.state_manager import StateManager
@@ -357,3 +359,135 @@ def test_internally_owned_scratch_uses_one_identity_under_symlinked_tmpdir(
         session.close()
     assert not directory.exists()
     assert (inputs / "stats.txt").is_file()
+
+
+@pytest.mark.parametrize("invalid_limit", [True, False, -1, 10001, 1.5, "1", None])
+def test_invalid_resolved_source_policy_rejects_before_parse_submission_or_publication(
+    workspace: tuple[ring5.Session, ExampleParser, MagicMock, ring5.AnalysisRecipe],
+    invalid_limit: object,
+) -> None:
+    """Invalid limits cannot scan, submit parsing, or alter the loaded workspace."""
+    session, backend, submit, recipe = workspace
+    state = session.api.state_manager
+    before = state.get_data()
+    assert before is not None
+    origin, editor, plots = state.get_loaded_origin(), _editor(state), session.plots
+    owned = tuple(session._owned_tmpdirs)
+    with pytest.raises(ring5.ParseError, match="Invalid parser source request") as error:
+        session.parse_submit(
+            recipe.source.path,
+            [ring5.StatConfig("value", "scalar", params={"source_type": "scalar"})],
+            scan_limit=cast(int, invalid_limit),
+        )
+    assert isinstance(error.value.__cause__, ValueError)
+    assert "discovery limit" in str(error.value.__cause__)
+    submit.assert_not_called()
+    assert backend.scans == 0
+    actual = state.get_data()
+    assert actual is not None
+    pd.testing.assert_frame_equal(actual, before)
+    assert state.get_loaded_origin() is origin
+    assert _editor(state) == editor
+    assert session.plots == plots
+    assert tuple(session._owned_tmpdirs) == owned
+
+
+@pytest.mark.parametrize("unsupported_contract", ["0", "future-contract"])
+def test_unsupported_saved_parser_contract_rejects_before_submission_or_publication(
+    workspace: tuple[ring5.Session, ExampleParser, MagicMock, ring5.AnalysisRecipe],
+    unsupported_contract: str,
+) -> None:
+    """Replay refuses an unsupported parser contract before touching caller state."""
+    session, backend, submit, recipe = workspace
+    state = session.api.state_manager
+    before = state.get_data()
+    assert before is not None
+    origin, editor, plots = state.get_loaded_origin(), _editor(state), session.plots
+    owned = tuple(session._owned_tmpdirs)
+    source = replace(recipe.source, parser_contract_version=unsupported_contract)
+    with pytest.raises(ring5.RecipeError, match="parser contract is unsupported") as error:
+        session.run_analysis_recipe(replace(recipe, source=source))
+    assert isinstance(error.value.__cause__, ValueError)
+    assert "parser contract is unsupported" in str(error.value.__cause__)
+    submit.assert_not_called()
+    assert backend.scans == 0
+    actual = state.get_data()
+    assert actual is not None
+    pd.testing.assert_frame_equal(actual, before)
+    assert state.get_loaded_origin() is origin
+    assert _editor(state) == editor
+    assert session.plots == plots
+    assert tuple(session._owned_tmpdirs) == owned
+
+
+@pytest.mark.parametrize("limit", [0, 1, 10000])
+def test_valid_discovery_limit_reaches_the_actual_scan_and_owned_request(
+    workspace: tuple[ring5.Session, ExampleParser, MagicMock, ring5.AnalysisRecipe],
+    monkeypatch: pytest.MonkeyPatch,
+    limit: int,
+) -> None:
+    session, backend, submit, recipe = workspace
+    scan = MagicMock(wraps=backend.submit_scan_async)
+    monkeypatch.setattr(backend, "submit_scan_async", scan)
+    job = session.parse_submit(
+        recipe.source.path,
+        [ring5.StatConfig("value", "scalar", params={"source_type": "scalar"})],
+        pattern="*.txt",
+        scan_limit=limit,
+    )
+    scan.assert_called_once_with(recipe.source.path, "*.txt", limit)
+    assert backend.scans == 1
+    submit.assert_called_once()
+    parsed = job.finalize()
+    assert parsed.source_context.scan_limit == limit
+    assert session.load(parsed).rows() == [{"value": 1.25}]
+
+
+@pytest.mark.parametrize("limit", [None, 0, 1, 10000])
+def test_source_context_preserves_no_discovery_and_valid_limits(limit: int | None) -> None:
+    from tests.helpers.parsed_values import parser_context
+
+    assert replace(parser_context(), scan_limit=limit).scan_limit == limit
+
+
+@pytest.mark.parametrize("invalid_limit", [True, False, -1, 10001, 1.5, "1"])
+def test_source_context_rejects_the_same_invalid_discovery_domain(invalid_limit: object) -> None:
+    from tests.helpers.parsed_values import parser_context
+
+    with pytest.raises(ValueError, match="discovery limit"):
+        replace(parser_context(), scan_limit=cast(int, invalid_limit))
+
+
+@pytest.mark.parametrize("field", ["stats_path", "pattern", "strategy"])
+@pytest.mark.parametrize(
+    "invalid_value", ["", None, 7, True, pytest.param("x" * (MAX_INPUT_LENGTH + 1), id="overlong")]
+)
+def test_invalid_source_text_rejects_before_scan_or_workspace_mutation(
+    workspace: tuple[ring5.Session, ExampleParser, MagicMock, ring5.AnalysisRecipe],
+    field: Literal["stats_path", "pattern", "strategy"],
+    invalid_value: object,
+) -> None:
+    session, backend, submit, recipe = workspace
+    state = session.api.state_manager
+    before = state.get_data()
+    assert before is not None
+    origin, editor, plots = state.get_loaded_origin(), _editor(state), session.plots
+    owned = tuple(session._owned_tmpdirs)
+    with pytest.raises(ring5.ParseError, match="Invalid parser source request") as error:
+        session.parse_submit(
+            cast(str, invalid_value) if field == "stats_path" else recipe.source.path,
+            [ring5.StatConfig("value", "scalar", params={"source_type": "scalar"})],
+            pattern=cast(str, invalid_value) if field == "pattern" else "*.txt",
+            strategy=cast(str, invalid_value) if field == "strategy" else "simple",
+        )
+    assert isinstance(error.value.__cause__, ValueError)
+    assert "bounded non-empty text" in str(error.value.__cause__)
+    assert backend.scans == 0
+    submit.assert_not_called()
+    actual = state.get_data()
+    assert actual is not None
+    pd.testing.assert_frame_equal(actual, before)
+    assert state.get_loaded_origin() is origin
+    assert _editor(state) == editor
+    assert session.plots == plots
+    assert tuple(session._owned_tmpdirs) == owned

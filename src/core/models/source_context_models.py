@@ -7,6 +7,18 @@ from src.core.common.security_limits import MAX_PARSE_RESULT_BYTES, MAX_PIPELINE
 from src.core.models.import_models import ImportOptions
 
 
+def validate_discovery_limit(value: object) -> None:
+    """Reject discovery limits outside the exact integer domain before scanning."""
+    if type(value) is not int or not 0 <= value <= 10_000:
+        raise ValueError("Parser discovery limit must be an integer from 0 through 10000.")
+
+
+def validate_parser_source_text(value: object) -> None:
+    """Validate one primitive parser request fact without invoking coercion hooks."""
+    if type(value) is not str or not value or len(value) > MAX_INPUT_LENGTH:
+        raise ValueError("Parser source context requires bounded non-empty text.")
+
+
 @dataclass(frozen=True, slots=True)
 class ParserSourceContext:
     """Actual resolved parser request, independent of mutable editor settings.
@@ -44,18 +56,13 @@ class ParserSourceContext:
             self.strategy_type,
             self.parser_contract_version,
         ):
-            if type(value) is not str or not value or len(value) > MAX_INPUT_LENGTH:
-                raise ValueError("Parser source context requires bounded non-empty text.")
+            validate_parser_source_text(value)
         if self.simulator is not None and (
             type(self.simulator) is not str or not self.simulator or len(self.simulator) > 80
         ):
             raise ValueError("Declared parser simulator must be bounded non-empty text.")
-        if self.scan_limit is not None and (
-            type(self.scan_limit) is not int or not 0 <= self.scan_limit <= 10_000
-        ):
-            raise ValueError(
-                "Parser discovery limit must be None or an integer from 0 through 10000."
-            )
+        if self.scan_limit is not None:
+            validate_discovery_limit(self.scan_limit)
         if type(self.strict) is not bool:
             raise TypeError("Parser strict policy must be a boolean.")
         for value in (self.variables_json, self.scanned_variables_json):
