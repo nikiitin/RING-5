@@ -2567,18 +2567,31 @@
     {
       "id": "api.doctor",
       "group": "automation",
-      "revision": 1,
+      "revision": 2,
       "status": "approved",
       "title": "Dependency doctor",
-      "description": "The public API and CLI shall report essential Perl and optional browser and XeLaTeX dependency availability without making optional exporters mandatory.",
+      "description": "The public API and CLI shall report essential Perl and optional selected-browser and selected-PGF-compiler executable availability without making optional exporters mandatory. Every present BROWSER_PATH value shall remain the required browser selection, including an unavailable empty value, and unsupported compiler identifiers shall fail explicitly.",
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "semantic",
+          "title": "Dependency doctor",
+          "description": "The public API and CLI shall report essential Perl and optional browser and XeLaTeX dependency availability without making optional exporters mandatory.",
+          "reason": "Describe the shared authoritative browser selection and selected compiler preflight contract."
+        }
+      ],
       "tags": ["api", "cli", "dependencies"],
       "evidence": {
         "implementation": [
           "ring5/_doctor.py::doctor",
+          "src/core/common/browser_selection.py::select_browser",
           "ring5/_doctor.py::DoctorReport.essential_found"
         ],
         "tests": [
-          "tests/unit/test_ring5_coverage_edges.py::test_doctor_report_and_browser_fallbacks",
+          "tests/unit/test_ring5_coverage_edges.py::test_doctor_report_and_browser_selection",
+          "tests/integration/test_export_tool_selection.py::test_actual_public_routes_agree_without_launching_browser_or_compiler",
+          "tests/integration/test_ring5_public_api.py::test_public_doctor_checks_the_selected_compiler_without_running_tools",
+          "tests/integration/test_ring5_public_api.py::test_public_doctor_rejects_invalid_compiler_choices_with_typed_error",
           "tests/unit/test_ring5_cli.py::TestDoctorCommand"
         ],
         "documentation": [
@@ -4703,6 +4716,7 @@
         ],
         "tests": [
           "tests/unit/test_environment_metadata_service.py::test_capture_is_complete_stable_and_privacy_conscious",
+          "tests/integration/test_export_tool_selection.py::test_actual_public_routes_agree_without_launching_browser_or_compiler",
           "tests/integration/test_portfolio_service_integration.py::test_save_and_load_portfolio",
           "tests/integration/test_environment_metadata_public_api.py::test_saved_environment_is_public_and_matches_same_runtime",
           "tests/unit/test_portfolio_page.py::TestPortfolioEnvironment.test_environment_comparison_is_human_first",
@@ -5607,6 +5621,7 @@
       "render": "cli.render"
     },
     "cli_options": {
+      "doctor:tex_system": "api.doctor",
       "parse:lenient": "ingestion.parse-integrity",
       "parse:output": "ingestion.parse-output-provenance",
       "parse:pattern": "ingestion.file-discovery",

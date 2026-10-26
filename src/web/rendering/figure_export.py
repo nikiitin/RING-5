@@ -33,6 +33,7 @@ import plotly.graph_objects as go
 from kaleido.errors import ChromeNotFoundError
 from matplotlib.figure import Figure as MplFigure
 
+from src.core.common.browser_selection import select_browser
 from src.core.models.visualization.export_options import TexSystem, validate_tex_system
 from src.web.rendering._matplotlib_copy import copy_matplotlib_figure
 from src.web.rendering._matplotlib_lock import MATPLOTLIB_LOCK
@@ -236,9 +237,14 @@ def plotly_download_bytes(
     fig_dict = fig.to_dict()
     opts = {"format": fmt, "width": width, "height": height, "scale": scale}
     kaleido_options: dict[str, Any] = {"timeout": _KALEIDO_ATTEMPT_TIMEOUT_S}
-    configured_browser = os.environ.get("BROWSER_PATH")
-    if configured_browser:
-        kaleido_options["path"] = configured_browser
+    browser = select_browser()
+    if browser.executable_path is None:
+        selected = browser.selected_path
+        detail = f"Selected browser {selected!r} is unavailable. " if selected is not None else ""
+        raise ChromeNotFoundError(
+            detail + "Install Chrome with `kaleido_get_chrome` or set an executable BROWSER_PATH."
+        )
+    kaleido_options["path"] = browser.executable_path
     last_exc: Exception | None = None
     for attempt in range(1, _KALEIDO_ATTEMPTS + 1):
         try:

@@ -63,10 +63,10 @@ export and Matplotlib PDF, PNG, and SVG export remain available without those op
 ## Check external dependencies
 
 <!--
-`uman~ring5.api.doctor.documentation~1`
+`uman~ring5.api.doctor.documentation~2`
 
 Covers:
-- req~ring5.api.doctor~1
+- req~ring5.api.doctor~2
 
 -->
 
@@ -81,8 +81,14 @@ The report distinguishes the essential Perl dependency from optional tools:
 
 - A Chrome-family browser enables Plotly PNG, SVG, and PDF export. Plotly HTML export does not need
   Chrome.
-- XeLaTeX enables Matplotlib PGF export. Install it with `make install-latex` where that target
-  supports your package manager.
+- A selected TeX compiler enables Matplotlib PGF export. The default is XeLaTeX; use
+  `ring5 doctor --tex-system pdflatex` or `--tex-system lualatex` to check another supported compiler.
+  `make install-latex` provides the default XeLaTeX setup where it supports your package manager.
+
+`BROWSER_PATH`, when present, selects the required browser. It can be an executable path or a
+command available on `PATH`. An empty selection or a missing/non-executable target is reported
+as missing; exports fail without choosing another browser. When the variable is absent, discovery includes
+Kaleido's downloaded browser before system locations. The report does not launch external tools.
 
 RING-5's Matplotlib PDF export does not require LaTeX.
 

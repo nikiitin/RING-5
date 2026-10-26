@@ -3,7 +3,6 @@
 from __future__ import annotations
 from src.core.models.parsing_models import SourceInstance
 
-import builtins
 import importlib
 import runpy
 import sys
@@ -65,8 +64,8 @@ def test_lazy_module_fallback_directory_and_shutdown() -> None:
     importlib.reload(ring5)
 
 
-def test_doctor_report_and_browser_fallbacks() -> None:
-    # [test->req~ring5.api.doctor~1]
+def test_doctor_report_and_browser_selection() -> None:
+    # [test->req~ring5.api.doctor~2]
     found = _doctor.DependencyStatus("x", True, "/x", "tests", "install")
     missing = _doctor.DependencyStatus("y", False, None, "tests", "install y")
     all_found = _doctor.DoctorReport(found, found, found)
@@ -76,18 +75,15 @@ def test_doctor_report_and_browser_fallbacks() -> None:
     assert partial.essential_found
     assert "install y" in str(partial)
 
-    real_import = builtins.__import__
+    from src.core.common.browser_selection import BrowserSelection
 
-    def fail_choreographer(name: str, *args: Any, **kwargs: Any) -> Any:
-        if name == "choreographer.browsers.chromium":
-            raise ImportError("moved")
-        return real_import(name, *args, **kwargs)
-
-    with patch("builtins.__import__", side_effect=fail_choreographer):
-        with patch("ring5._doctor.shutil.which", side_effect=lambda name: f"/{name}"):
-            assert _doctor._find_chrome() == "/chrome"
+    with patch("ring5._doctor.select_browser", return_value=BrowserSelection("", None)):
         with patch("ring5._doctor.shutil.which", return_value=None):
-            assert _doctor._find_chrome() is None
+            report = _doctor.doctor(tex_system="pdflatex")
+    assert not report.chrome.found
+    assert report.chrome.path == ""
+    assert "empty BROWSER_PATH" in str(report)
+    assert report.tex_compiler.name == "pdflatex"
 
 
 def test_export_error_normalization(tmp_path: Path) -> None:

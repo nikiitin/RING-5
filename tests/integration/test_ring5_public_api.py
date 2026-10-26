@@ -20,6 +20,32 @@ pytestmark = [pytest.mark.xdist_group("ring5_portfolios"), pytest.mark.public_ap
 
 
 @pytest.mark.parametrize("compiler", ["xelatex", "pdflatex", "lualatex"])
+def test_public_doctor_checks_the_selected_compiler_without_running_tools(
+    compiler: Literal["xelatex", "pdflatex", "lualatex"],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # [test->req~ring5.api.doctor~2]
+    from ring5 import _doctor
+    from src.core.common.browser_selection import BrowserSelection
+
+    monkeypatch.setattr(_doctor, "select_browser", lambda: BrowserSelection("chosen", "/chosen"))
+    monkeypatch.setattr(_doctor.shutil, "which", lambda name: f"/tools/{name}")
+    report = ring5.doctor(tex_system=compiler)
+    assert report.perl.path == "/tools/perl"
+    assert report.chrome.path == "/chosen" and report.chrome.found
+    assert report.tex_compiler.name == compiler
+    assert report.tex_compiler.path == f"/tools/{compiler}"
+    assert report.all_found and report.essential_found
+
+
+@pytest.mark.parametrize("compiler", ["XeLaTeX", " xelatex ", "/tools/xelatex", None, False])
+def test_public_doctor_rejects_invalid_compiler_choices_with_typed_error(compiler: object) -> None:
+    # [test->req~ring5.api.doctor~2]
+    with pytest.raises(ring5.ExportError, match="TeX system must be"):
+        ring5.doctor(tex_system=cast(Literal["xelatex", "pdflatex", "lualatex"], compiler))
+
+
+@pytest.mark.parametrize("compiler", ["xelatex", "pdflatex", "lualatex"])
 def test_measured_native_figure_uses_explicit_pgf_compiler(
     compiler: Literal["xelatex", "pdflatex", "lualatex"],
     tmp_path: Path,

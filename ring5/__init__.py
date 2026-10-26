@@ -21,7 +21,7 @@ Everything the web app does, as plain Python::
     ring5.render_portfolio("my_paper", "figs/", engine="matplotlib", fmt="pdf")
 
 Check external dependencies with ``print(ring5.doctor())`` (perl for
-parsing; a Chrome-family browser for plotly image export; xelatex for PGF).
+parsing; a Chrome-family browser for plotly image export; the selected TeX compiler for PGF).
 Call ``ring5.shutdown()`` once per process to tear down the worker pools
 (they restart transparently on next use).
 

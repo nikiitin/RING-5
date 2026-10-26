@@ -24,6 +24,7 @@ from typing import TYPE_CHECKING, Any, Literal, NoReturn, cast
 from ring5.errors import DataValidationError, ExportError, RecipeError, Ring5Error
 
 from src.core.common.security_limits import MAX_ANALYSIS_RECIPE_MATRIX_BYTES
+from src.core.models.visualization.export_options import TEX_SYSTEMS
 
 if TYPE_CHECKING:
     from src.core.models.recipe_matrix_models import AnalysisRecipeMatrixResult
@@ -38,9 +39,9 @@ _INCOMPLETE_REGRESSION_OUTCOMES = frozenset(
 def _cmd_doctor(args: argparse.Namespace) -> int:
     from ring5._doctor import doctor
 
-    report = doctor()
+    report = doctor(tex_system=args.tex_system)
     print(report)
-    # Only a missing required dependency (Perl) makes the command fail; Chrome and XeLaTeX
+    # Only a missing required dependency (Perl) makes the command fail; browser/compiler tools
     # gate optional export formats and shouldn't fail a `ring5 doctor && ...` gate.
     return 0 if report.essential_found else 1
 
@@ -342,6 +343,9 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
 
     doctor_p = sub.add_parser("doctor", help="check external dependencies")
+    doctor_p.add_argument(
+        "--tex-system", choices=TEX_SYSTEMS, default="xelatex", help="PGF compiler to check"
+    )
     doctor_p.set_defaults(func=_cmd_doctor)
 
     parse_p = sub.add_parser("parse", help="parse a stats tree to a CSV")

@@ -10,10 +10,11 @@ from typing import Any
 import pytest
 
 from src.core.models.environment_models import EnvironmentMetadata
+from src.core.common.browser_selection import BrowserSelection
 from src.core.services.environment_metadata_service import (
     EnvironmentMetadataService,
     _capture_environment,
-    _chrome_path,
+    _external_tool_versions,
     _run_version,
 )
 
@@ -129,17 +130,52 @@ def test_external_tool_probes_are_bounded_and_failure_safe(
     monkeypatch.setattr("src.core.services.environment_metadata_service.subprocess.run", time_out)
     assert _run_version("/resolved/tool", ("--version",)) is None
 
-    configured = tmp_path / "chrome"
-    configured.touch()
-    monkeypatch.setenv("BROWSER_PATH", str(configured))
-    assert _chrome_path() == str(configured)
 
-    monkeypatch.delenv("BROWSER_PATH")
-    monkeypatch.setattr(
-        "src.core.services.environment_metadata_service.shutil.which",
-        lambda name: "/usr/bin/chromium" if name == "chromium" else None,
-    )
-    assert _chrome_path() == "/usr/bin/chromium"
+def test_metadata_probes_selected_executable_and_every_supported_compiler(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.core.services import environment_metadata_service as service
+    from src.core.models.visualization.export_options import TEX_SYSTEMS
+
+    monkeypatch.setattr(service, "select_browser", lambda: BrowserSelection("chosen", "/chosen"))
+    monkeypatch.setattr(service.shutil, "which", lambda name: f"/tools/{name}")
+    calls: list[str | None] = []
+
+    def version(path: str | None, arguments: Any) -> str:
+        calls.append(path)
+        return f"version:{path}"
+
+    monkeypatch.setattr(service, "_run_version", version)
+    versions = _external_tool_versions()
+    assert calls == ["/chosen", "/tools/perl", *(f"/tools/{name}" for name in TEX_SYSTEMS)]
+    assert versions["chrome"] == "version:/chosen"
+    assert set(versions) == {"chrome", "perl", *TEX_SYSTEMS}
+    for compiler in TEX_SYSTEMS:
+        assert versions[compiler] == f"version:/tools/{compiler}"
+
+
+def test_unavailable_browser_never_probes_the_selected_literal(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.core.services import environment_metadata_service as service
+
+    monkeypatch.setattr(service, "select_browser", lambda: BrowserSelection("invalid", None))
+    monkeypatch.setattr(service.shutil, "which", lambda name: None)
+
+    def no_process(*args: Any, **kwargs: Any) -> Any:
+        raise AssertionError("Unavailable tools must not run.")
+
+    monkeypatch.setattr(service.subprocess, "run", no_process)
+    assert set(_external_tool_versions().values()) == {None}
+
+
+@pytest.mark.parametrize("compiler", ["xelatex", "pdflatex", "lualatex"])
+def test_saved_environment_detects_each_compiler_version_change(compiler: str) -> None:
+    recorded = _metadata(external_tools={compiler: "before"})
+    current = _metadata(external_tools={compiler: "after"})
+    comparison = EnvironmentMetadataService.compare(recorded, current=current)
+    difference = next(item for item in comparison.differences if item.component == compiler)
+    assert difference.status == "changed"
 
 
 @pytest.mark.parametrize(
