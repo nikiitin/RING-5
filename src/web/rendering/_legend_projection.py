@@ -215,20 +215,26 @@ def _stock_matplotlib_handler(handle: object) -> bool:
     expected_update: object = None
     if type(handle) is BarContainer:
         expected: type = HandlerPatch
+        family: type = BarContainer
         expected_update = update_from_first_child
     elif type(handle) in (Patch, PathPatch, Rectangle):
         expected = HandlerPatch
+        family = Patch
     elif type(handle) is Line2D:
         expected = HandlerLine2D
+        family = Line2D
     elif type(handle) is PathCollection:
         expected = HandlerPathCollection
+        family = PathCollection
     else:
         return False
-    handler = Legend.get_legend_handler(Legend.get_default_handler_map(), handle)
+    handlers = Legend.get_default_handler_map()
+    handler = Legend.get_legend_handler(handlers, handle)
     # The pinned HandlerBase stores this function privately. Reading its identity
     # avoids certifying arbitrary user glyph updates; no callback is executed.
     return (
-        type(handler) is expected
+        handler is handlers.get(family)
+        and type(handler) is expected
         and cast(_HandlerUpdateOwner, handler)._update_prop_func is expected_update
     )
 

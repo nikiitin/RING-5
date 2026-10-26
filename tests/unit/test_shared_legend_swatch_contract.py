@@ -1,6 +1,6 @@
 """Shared legends keep distinct native glyphs and conservatively retain unknown styles."""
 
-from collections.abc import Sequence
+from collections.abc import MutableMapping, Sequence
 from typing import Any, Literal, cast
 
 import matplotlib.pyplot as plt
@@ -12,7 +12,7 @@ from matplotlib.axes import Axes
 from matplotlib.collections import PathCollection
 from matplotlib.container import BarContainer
 from matplotlib.legend import Legend
-from matplotlib.legend_handler import HandlerLine2D
+from matplotlib.legend_handler import HandlerBase, HandlerLine2D
 from matplotlib.lines import Line2D
 from matplotlib.markers import MarkerStyle
 from matplotlib.transforms import Affine2D
@@ -292,6 +292,40 @@ def test_same_native_handler_class_with_custom_update_is_unknown_without_invocat
         assert matplotlib_swatch(source) is None
         assert calls == []
         np.testing.assert_array_equal(np.asarray(line.get_ydata()), [3.0, 5.0])
+    finally:
+        plt.close(figure)
+
+
+def test_per_handle_stock_handler_overrides_keep_distinct_actual_marker_glyphs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    figure, axes = plt.subplots(1, 2)
+    panels = tuple(
+        _panel(axis, axis.plot([0.0, 1.0], values, color="red", marker="o")[0], "line")
+        for axis, values in zip(axes, ([3.0, 5.0], [7.0, 9.0]), strict=True)
+    )
+    native = MatplotlibFigureResult(figure, panels, shared_legend=True)
+    try:
+        assert all(matplotlib_swatch(panel.bindings[0]) is not None for panel in panels)
+        for panel, count in zip(panels, (1, 3), strict=True):
+            handle = panel.bindings[0].legend_handle
+            assert isinstance(handle, Line2D)
+            # Native maps accept both artist instances and classes; the stub
+            # restricts this public native extension to class keys.
+            handlers = cast(MutableMapping[object, HandlerBase], Legend.get_default_handler_map())
+            monkeypatch.setitem(handlers, handle, HandlerLine2D(numpoints=count))
+            assert matplotlib_swatch(panel.bindings[0]) is None
+        FigureSpecToMatplotlib.apply(resolve_config(FigureConfig(legends=[LegendConfig()])), native)
+        legend = native.native_outputs.legend
+        assert legend is not None and len(legend.texts) == 2
+        first, second = legend.legend_handles
+        assert isinstance(first, Line2D) and isinstance(second, Line2D)
+        assert first.get_markevery() == [1]
+        assert second.get_markevery() is None
+        for panel, values in zip(panels, ([3.0, 5.0], [7.0, 9.0]), strict=True):
+            np.testing.assert_array_equal(
+                np.asarray(panel.primary_axes.lines[0].get_ydata()), values
+            )
     finally:
         plt.close(figure)
 
