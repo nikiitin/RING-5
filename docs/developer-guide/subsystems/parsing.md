@@ -93,10 +93,11 @@ All numeric kinds share a population mean that preserves finite results when the
 sum overflows. Missing values propagate, cancellation retains small residuals, and infinite
 observations follow explicit IEEE semantics. Missing-output diagnostics and padding share an
 actual-observation presence count, so a measured NaN is distinct from an absent entry or source.
-Active histogram rebinning validates its emitted output geometry against the existing
-physical-column budget before constructing bucket labels or mappings. Exact width includes
-negative buckets and distinct selected summaries. Explicit bucket selection and summaries-only
-mode take precedence over unused rebin geometry.
+Active histogram rebinning checks the requested bin count as a lower bound on emitted width
+against the existing physical-column budget before constructing bucket labels. It then validates
+the exact emitted width, including negative buckets and distinct selected summaries, before
+constructing raw-bucket mappings. Explicit bucket selection and summaries-only mode take
+precedence over unused rebin geometry.
 
 Summary measurements are named entries of their source statistic, selected through its
 `statistics` field. They use ordinary entry buffering in the worker. Source names retain their

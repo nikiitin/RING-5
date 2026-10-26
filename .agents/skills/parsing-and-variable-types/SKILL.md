@@ -60,9 +60,10 @@ Stat types self-register; there are two halves — **Python** (model + reduction
    Balancing records exact logical missing counts without constructing repeat-sized NaN lists or
    empty frames. Reduction still propagates absent frames as NaN. `content` exposes defensive
    snapshots of actual observations, including missing entries within an observed frame;
-   compact representations never copy it. Validate active histogram geometry and exact emitted
-   width against the existing physical-column budget before label/mapping construction, preserving
-   explicit-entry and statistics-only precedence over unused rebin geometry.
+   compact representations never copy it. For active histogram rebinning, check the requested bin
+   count as a lower bound on emitted width against the existing physical-column budget before
+   constructing labels. Validate the exact emitted width before constructing raw-bucket mappings,
+   preserving explicit-entry and statistics-only precedence over unused rebin geometry.
 
    Declare `required_params` for OFT capability discovery; constructor and codec validation
    enforce executable options. Import it so the decorator runs (add to `types/__init__.py`). `TypeMapper.create_stat(resolved_spec)` /
