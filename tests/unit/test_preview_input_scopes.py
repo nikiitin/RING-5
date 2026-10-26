@@ -116,7 +116,7 @@ def test_pre_reset_named_inputs_cannot_publish_against_reused_names_and_revision
         api.reset_session()
     elif reset == "restore":
         api.state_manager.restore_session(
-            {"parser_strategy": "simple", "simulator": "gem5", "plots": []}
+            {"parser_strategy": "simple", "loaded_origin": None, "simulator": "gem5", "plots": []}
         )
     else:
         api.state_manager.clear_data()

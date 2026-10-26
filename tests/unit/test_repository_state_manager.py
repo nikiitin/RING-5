@@ -3,8 +3,7 @@ Tests for RepositoryStateManager delegation and state lifecycle.
 
 Covers all delegation methods: data, config, parser, plot, preview, and history
 management. Since RepositoryStateManager delegates to SessionRepository, these
-tests verify the delegation wiring plus any logic in the manager itself
-(type enforcement in set_data, temp dir cleanup in clear_data).
+tests verify delegation, frame ownership, and temporary-directory cleanup.
 """
 
 import tempfile
@@ -78,10 +77,10 @@ class TestDataManagement:
         manager.set_data(None)
         assert manager.get_data() is None
 
-    def test_set_data_type_enforcement_for_config_vars(
+    def test_set_data_preserves_frame_types_despite_parser_editor(
         self, manager: RepositoryStateManager
     ) -> None:
-        """Configuration variables should be cast to str."""
+        """Generic frame publication retains numeric data and the unrelated editor."""
         manager.set_parse_variables(
             cast(
                 list[ParseVariableConfig],
@@ -91,12 +90,15 @@ class TestDataManagement:
                 ],
             )
         )
+        editor = manager.get_parse_variables()
         df = pd.DataFrame({"benchmark": [1, 2], "value": [3.0, 4.0]})
         manager.set_data(df)
         result = manager.get_data()
         assert result is not None
-        assert pd.api.types.is_string_dtype(result["benchmark"])  # cast to string
+        assert pd.api.types.is_integer_dtype(result["benchmark"])
         assert result["value"].dtype == float  # unchanged
+        pd.testing.assert_frame_equal(result, df)
+        assert manager.get_parse_variables() == editor
 
     def test_set_data_with_on_change_callback(self, manager: RepositoryStateManager) -> None:
         callback = MagicMock()
@@ -359,6 +361,7 @@ class TestRestoreSession:
             PortfolioData,
             {
                 "parser_strategy": "simple",
+                "loaded_origin": None,
                 "simulator": "gem5",
                 "parse_variables": [
                     StatConfigCodec.to_snapshot(

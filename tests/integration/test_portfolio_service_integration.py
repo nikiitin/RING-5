@@ -285,6 +285,7 @@ def test_restore_survives_malformed_parse_variables(
     report = manager.restore_session(
         {
             "parser_strategy": "simple",
+            "loaded_origin": None,
             "simulator": "gem5",
             "parse_variables": ["system.cpu.ipc", "system.cpu.numCycles"],
             "data": TypedTableCodec.encode(pd.DataFrame({"a": [1], "b": [2]})),

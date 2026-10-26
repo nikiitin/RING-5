@@ -11,6 +11,8 @@ import pandas as pd
 import pytest
 
 from src.core.application_api import ApplicationAPI
+from src.core.common.source_context_codec import SourceContextCodec
+from src.core.models.source_context_models import CsvSourceContext, InferredCsvPolicy
 
 
 @pytest.fixture
@@ -49,10 +51,11 @@ class TestApplicationAPI:
 
         application_api.load_data(path)
 
-        mock_data.load_csv_file.assert_called_once_with(path)
+        mock_data.load_csv_file.assert_called_once_with(path, configuration_columns=())
         application_api.state_manager.set_data.assert_called_once_with(
             df,
-            operation=f"Load CSV: {path}",
+            operation=f"Load data: {path}",
+            origin=SourceContextCodec.origin(CsvSourceContext(path, InferredCsvPolicy(()))),
         )
         application_api.state_manager.set_processed_data.assert_called_once_with(None)
         application_api.state_manager.set_csv_path.assert_called_once_with(path)
@@ -66,10 +69,11 @@ class TestApplicationAPI:
 
         application_api.load_data(path)
 
-        mock_data.load_csv_file.assert_called_once_with(path)
+        mock_data.load_csv_file.assert_called_once_with(path, configuration_columns=())
         application_api.state_manager.set_data.assert_called_once_with(
             df,
-            operation=f"Load CSV: {path}",
+            operation=f"Load data: {path}",
+            origin=SourceContextCodec.origin(CsvSourceContext(path, InferredCsvPolicy(()))),
         )
 
     def test_get_current_view_assembly(self, application_api: Any) -> None:

@@ -344,6 +344,7 @@ class TestPortfolioHistoryPersistence:
         # Should be valid to construct with history fields
         data: PortfolioData = {
             "parser_strategy": "simple",
+            "loaded_origin": None,
             "simulator": "gem5",
             "manager_history": [
                 {
@@ -374,6 +375,7 @@ class TestPortfolioHistoryPersistence:
 
         portfolio: PortfolioData = {
             "parser_strategy": "simple",
+            "loaded_origin": None,
             "simulator": "gem5",
             "manager_history": [
                 {

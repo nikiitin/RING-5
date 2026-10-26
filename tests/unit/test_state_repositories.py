@@ -709,6 +709,7 @@ class TestSessionRepository:
         """Test restoring parser-related state from portfolio data."""
         portfolio: dict = {
             "parser_strategy": "simple",
+            "loaded_origin": None,
             "simulator": "gem5",  # type: ignore[type-arg]
             "parse_variables": [{"name": "ipc", "type": "scalar", "_id": "id1"}],
             "stats_path": "/restored/path",
@@ -743,6 +744,7 @@ class TestSessionRepository:
 
         portfolio: dict = {
             "parser_strategy": "simple",
+            "loaded_origin": None,
             "simulator": "gem5",  # type: ignore[type-arg]
             "data": TypedTableCodec.encode(df),
             "plots": [],
@@ -765,6 +767,7 @@ class TestSessionRepository:
         )
         portfolio: dict = {
             "parser_strategy": "simple",
+            "loaded_origin": None,
             "simulator": "gem5",  # type: ignore[type-arg]
             "manager_history": [record],
             "portfolio_history": [record, record],
@@ -782,6 +785,7 @@ class TestSessionRepository:
         """Test restoring plots from portfolio data."""
         portfolio: dict = {
             "parser_strategy": "simple",
+            "loaded_origin": None,
             "simulator": "gem5",  # type: ignore[type-arg]
             "plots": [{"plot_type": "bar", "id": 1}],
             "plot_counter": 5,

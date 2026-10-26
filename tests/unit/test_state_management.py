@@ -78,6 +78,7 @@ def test_session_restoration(mock_session_state: Any) -> None:
         PortfolioData,
         {
             "parser_strategy": "simple",
+            "loaded_origin": None,
             "simulator": "gem5",
             "csv_path": "/mock/path.csv",
             "plot_counter": 42,
