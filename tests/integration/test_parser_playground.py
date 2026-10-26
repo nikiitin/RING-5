@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from pathlib import Path
 
 import pytest
@@ -47,7 +48,7 @@ def test_playground_uses_real_parser_on_lexical_sample_without_loading_data(
         assert result.columns == ("simTicks", "config_json", "sim_path")
         assert result.rows == tuple(
             (
-                f"{100 + index}.0",
+                float(100 + index),
                 f'{{"run":{{"index":"{index}"}}}}',
                 str(source.resolve()),
             )
@@ -83,7 +84,9 @@ def test_playground_surfaces_variables_without_sampled_values(tmp_path: Path) ->
         )
         result = job.finalize()
 
-    assert result.rows == (("NaN",),)
+    assert len(result.rows) == 1 and len(result.rows[0]) == 1
+    missing = result.rows[0][0]
+    assert type(missing) is float and math.isnan(missing)
     assert result.missing_variables == ("misspelledTicks",)
     assert not result.ready_for_full_parse
     assert "No sampled value was produced for: misspelledTicks." in result.diagnostics
@@ -115,7 +118,7 @@ def test_playground_expands_a_scanned_statistic_pattern(tmp_path: Path) -> None:
         r"system.cpu\d+.ipc..0",
         r"system.cpu\d+.ipc..1",
     )
-    assert result.rows == (("1.5", "2.5"),)
+    assert result.rows == ((1.5, 2.5),)
 
 
 def test_playground_rejects_an_empty_variable_selection(tmp_path: Path) -> None:

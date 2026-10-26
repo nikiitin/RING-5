@@ -295,12 +295,10 @@ def test_table_and_confirmed_preview_publish_exact_types_and_clear_uncaptured_or
                 }
             ]
         )
-        signature = session.api.preview_input_signature()
+        inputs = session.api.capture_preview_inputs()
         preview = pd.DataFrame({"value": [2.5], "label": ["NA"]})
         config = {"factor": 2.0}
-        session.api.set_preview(
-            "scale", preview, operation_config=config, source_signature=signature
-        )
+        session.api.set_preview("scale", preview, operation_config=config, inputs=inputs)
         confirmed = session.api.confirm_preview(
             "scale", operation_config=config, operation="Scale value"
         )

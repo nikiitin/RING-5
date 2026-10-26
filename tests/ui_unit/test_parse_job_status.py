@@ -9,12 +9,16 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.core.application_api import ApplicationAPI
+from src.core.models.data_models import ParseVariableConfig
 from src.core.models.parse_job_models import ParseJobReceipt, ParseJobSnapshot, ParseJobStatus
 from src.web.components.data_source import data_source_components
 from src.web.components.data_source import parse_job_status
+from tests.helpers.parsed_values import numeric_output, parser_context
 
 
-def _snapshot(status: ParseJobStatus, *, job_id: str = "job-1") -> ParseJobSnapshot:
+def _snapshot(
+    directory: Path, status: ParseJobStatus, *, job_id: str = "job-1"
+) -> ParseJobSnapshot:
     return ParseJobSnapshot(
         job_id=job_id,
         fingerprint="f" * 64,
@@ -28,8 +32,12 @@ def _snapshot(status: ParseJobStatus, *, job_id: str = "job-1") -> ParseJobSnaps
         started_at=11.0,
         finished_at=12.0 if status.is_terminal else None,
         attempt=1,
-        output_csv_path="/tmp/final.csv",
-        published_csv_path=("/tmp/recent.csv" if status == ParseJobStatus.SUCCEEDED else None),
+        output=numeric_output(directory / "final.csv", {"x": 1.0}),
+        published_output=(
+            numeric_output(directory / "recent.csv", {"x": 1.0})
+            if status == ParseJobStatus.SUCCEEDED
+            else None
+        ),
     )
 
 
@@ -55,9 +63,9 @@ def _sidebar_body() -> Any:
     return getattr(parse_job_status._sidebar_parse_job_fragment, "__wrapped__")
 
 
-def test_active_job_renders_progress_and_cancels(mock_st: Any) -> None:
+def test_active_job_renders_progress_and_cancels(mock_st: Any, tmp_path: Path) -> None:
     api = MagicMock()
-    api.get_parse_job.return_value = _snapshot(ParseJobStatus.RUNNING)
+    api.get_parse_job.return_value = _snapshot(tmp_path, ParseJobStatus.RUNNING)
     mock_st.button.side_effect = lambda label, **_kwargs: label == "Cancel parsing"
 
     _panel_body()(api, "job-1")
@@ -67,20 +75,21 @@ def test_active_job_renders_progress_and_cancels(mock_st: Any) -> None:
     mock_st.rerun.assert_called_once_with(scope="app")
 
 
-def test_success_is_consumed_and_triggers_completion_rerun(mock_st: Any) -> None:
+def test_success_is_consumed_and_triggers_completion_rerun(mock_st: Any, tmp_path: Path) -> None:
     api = MagicMock()
-    api.get_parse_job.return_value = _snapshot(ParseJobStatus.SUCCEEDED)
+    api.get_parse_job.return_value = _snapshot(tmp_path, ParseJobStatus.SUCCEEDED)
     api.consume_parse_job.return_value = ParseJobReceipt(
         job_id="job-1",
         fingerprint="f" * 64,
-        csv_path="/tmp/recent.csv",
+        output=numeric_output(tmp_path / "recent.csv", {"x": 1.0}),
+        source_context=parser_context(),
         status=ParseJobStatus.SUCCEEDED,
         reused=False,
     )
 
     parse_job_status._render_parse_job_panel_snapshot(
         api,
-        _snapshot(ParseJobStatus.SUCCEEDED),
+        _snapshot(tmp_path, ParseJobStatus.SUCCEEDED),
     )
 
     api.consume_parse_job.assert_called_once_with("job-1")
@@ -89,15 +98,15 @@ def test_success_is_consumed_and_triggers_completion_rerun(mock_st: Any) -> None
     mock_st.rerun.assert_called_once_with(scope="app")
 
 
-def test_success_load_error_keeps_job_visible(mock_st: Any) -> None:
+def test_success_load_error_keeps_job_visible(mock_st: Any, tmp_path: Path) -> None:
     api = MagicMock()
-    api.get_parse_job.return_value = _snapshot(ParseJobStatus.SUCCEEDED)
+    api.get_parse_job.return_value = _snapshot(tmp_path, ParseJobStatus.SUCCEEDED)
     api.consume_parse_job.side_effect = ValueError("invalid CSV")
     mock_st.button.return_value = False
 
     parse_job_status._render_parse_job_panel_snapshot(
         api,
-        _snapshot(ParseJobStatus.SUCCEEDED),
+        _snapshot(tmp_path, ParseJobStatus.SUCCEEDED),
     )
 
     assert mock_st.session_state[parse_job_status._JOB_ID_KEY] == "job-1"
@@ -105,13 +114,14 @@ def test_success_load_error_keeps_job_visible(mock_st: Any) -> None:
     mock_st.rerun.assert_not_called()
 
 
-def test_partial_requires_explicit_load_choice(mock_st: Any) -> None:
+def test_partial_requires_explicit_load_choice(mock_st: Any, tmp_path: Path) -> None:
     api = MagicMock()
-    api.get_parse_job.return_value = _snapshot(ParseJobStatus.PARTIAL)
+    api.get_parse_job.return_value = _snapshot(tmp_path, ParseJobStatus.PARTIAL)
     api.consume_parse_job.return_value = ParseJobReceipt(
         job_id="job-1",
         fingerprint="f" * 64,
-        csv_path="/tmp/partial.csv",
+        output=numeric_output(tmp_path / "partial.csv", {"x": 1.0}),
+        source_context=parser_context(),
         status=ParseJobStatus.PARTIAL,
         reused=False,
     )
@@ -119,7 +129,7 @@ def test_partial_requires_explicit_load_choice(mock_st: Any) -> None:
 
     parse_job_status._render_parse_job_panel_snapshot(
         api,
-        _snapshot(ParseJobStatus.PARTIAL),
+        _snapshot(tmp_path, ParseJobStatus.PARTIAL),
     )
 
     api.consume_parse_job.assert_called_once_with("job-1", allow_partial=True)
@@ -127,10 +137,10 @@ def test_partial_requires_explicit_load_choice(mock_st: Any) -> None:
     api.dismiss_parse_job.assert_not_called()
 
 
-def test_failed_job_can_retry(mock_st: Any) -> None:
+def test_failed_job_can_retry(mock_st: Any, tmp_path: Path) -> None:
     api = MagicMock()
-    failed = _snapshot(ParseJobStatus.FAILED)
-    retried = _snapshot(ParseJobStatus.QUEUED, job_id="job-2")
+    failed = _snapshot(tmp_path, ParseJobStatus.FAILED)
+    retried = _snapshot(tmp_path, ParseJobStatus.QUEUED, job_id="job-2")
     api.get_parse_job.return_value = failed
     api.retry_parse_job.return_value = retried
     mock_st.button.side_effect = lambda label, **_kwargs: label == "Retry"
@@ -141,9 +151,9 @@ def test_failed_job_can_retry(mock_st: Any) -> None:
     assert mock_st.session_state[parse_job_status._JOB_ID_KEY] == "job-2"
 
 
-def test_sidebar_keeps_cancel_accessible_during_navigation(mock_st: Any) -> None:
+def test_sidebar_keeps_cancel_accessible_during_navigation(mock_st: Any, tmp_path: Path) -> None:
     api = MagicMock()
-    api.get_parse_job.return_value = _snapshot(ParseJobStatus.RUNNING)
+    api.get_parse_job.return_value = _snapshot(tmp_path, ParseJobStatus.RUNNING)
     mock_st.button.side_effect = lambda label, **_kwargs: label == "Cancel"
 
     _sidebar_body()(api, "job-1")
@@ -152,10 +162,10 @@ def test_sidebar_keeps_cancel_accessible_during_navigation(mock_st: Any) -> None
     api.cancel_parse_job.assert_called_once_with("job-1")
 
 
-def test_terminal_transition_stops_the_polling_fragment(mock_st: Any) -> None:
+def test_terminal_transition_stops_the_polling_fragment(mock_st: Any, tmp_path: Path) -> None:
     """A terminal observation reruns the app once so subsequent rendering is static."""
     api = MagicMock()
-    api.get_parse_job.return_value = _snapshot(ParseJobStatus.FAILED)
+    api.get_parse_job.return_value = _snapshot(tmp_path, ParseJobStatus.FAILED)
 
     _panel_body()(api, "job-1")
 
@@ -163,17 +173,19 @@ def test_terminal_transition_stops_the_polling_fragment(mock_st: Any) -> None:
     mock_st.markdown.assert_not_called()
 
 
-def test_parse_button_submits_background_job_without_waiting() -> None:
+def test_parse_button_submits_background_job_without_waiting(tmp_path: Path) -> None:
     api = MagicMock(spec=ApplicationAPI)
     api.state_manager = MagicMock()
     api.compile_parse_variables.side_effect = ApplicationAPI.compile_parse_variables
     api.state_manager.get_simulator.return_value = "gem5"
-    variables = [{"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}]
+    variables: list[ParseVariableConfig] = [
+        {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
+    ]
     api.state_manager.get_parse_variables.return_value = variables
     api.state_manager.get_scanned_variables.return_value = []
     api.state_manager.get_parser_strategy.return_value = "simple"
     api.get_active_parse_job.return_value = None
-    queued = _snapshot(ParseJobStatus.QUEUED)
+    queued = _snapshot(tmp_path, ParseJobStatus.QUEUED)
     api.submit_parse_job.return_value = queued
 
     with (
@@ -217,10 +229,10 @@ def test_parse_button_submits_background_job_without_waiting() -> None:
     streamlit.rerun.assert_called_once_with()
 
 
-def test_parse_button_is_disabled_while_job_needs_attention() -> None:
+def test_parse_button_is_disabled_while_job_needs_attention(tmp_path: Path) -> None:
     api = MagicMock()
     api.state_manager.get_simulator.return_value = "gem5"
-    running = _snapshot(ParseJobStatus.RUNNING)
+    running = _snapshot(tmp_path, ParseJobStatus.RUNNING)
     parse_button_calls: list[dict[str, Any]] = []
 
     def button(label: str, **kwargs: Any) -> bool:

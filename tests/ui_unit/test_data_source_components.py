@@ -11,6 +11,7 @@ from src.core.models.parsing_models import ParserPlaygroundBatchResult, ScanFile
 from src.core.services.data_services.data_services_api import DataServicesAPI
 from src.web.components.data_source.data_source_components import DataSourceComponents
 from tests.conftest import columns_side_effect
+from tests.helpers.parsed_values import completed_future, numeric_file
 
 
 @pytest.fixture
@@ -154,8 +155,10 @@ def test_render_parser_config_submits_the_bounded_playground(
     variables = [{"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}]
     mock_api.state_manager.get_parse_variables.return_value = variables
     batch = ParserPlaygroundBatchResult(
-        futures=[],
-        var_names=["simTicks"],
+        futures=(
+            completed_future(numeric_file("/allowed/stats/run/stats.txt", {"simTicks": 100.0})),
+        ),
+        var_names=("simTicks",),
         output_dir=str(tmp_path / "parser_playground"),
         strategy_type="simple",
         matched_file_count=1,

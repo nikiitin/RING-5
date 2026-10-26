@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from concurrent.futures import Future
 from unittest.mock import MagicMock, patch
 
 from src.core.models.parsing_models import ParserPlaygroundBatchResult, ParserPlaygroundResult
+from tests.helpers.parsed_values import completed_future, numeric_file
 
 
 def _context() -> MagicMock:
@@ -20,11 +20,11 @@ def test_playground_dialog_shows_evidence_without_loading_workspace(mock_st: Mag
     # [test->req~ring5.ingestion.parser-playground~1]
     from src.web.components.data_source.data_source_components import DataSourceComponents
 
-    future: Future[dict[str, object]] = Future()
-    future.set_result({"simTicks": 100})
+    record = numeric_file("/inputs/run-00/stats.txt", {"simTicks": 100.0})
+    future = completed_future(record)
     batch = ParserPlaygroundBatchResult(
-        futures=[future],
-        var_names=["simTicks"],
+        futures=(future,),
+        var_names=("simTicks",),
         output_dir="/preview",
         strategy_type="simple",
         matched_file_count=4,
@@ -35,7 +35,7 @@ def test_playground_dialog_shows_evidence_without_loading_workspace(mock_st: Mag
         matched_file_count=4,
         sampled_files=batch.sampled_files,
         columns=("simTicks",),
-        rows=(("100",),),
+        rows=((100.0,),),
         missing_variables=(),
         diagnostics=(
             "Previewed 1 of 4 matching files in lexical order.",
@@ -53,7 +53,7 @@ def test_playground_dialog_shows_evidence_without_loading_workspace(mock_st: Mag
     dialog = getattr(decorated, "__wrapped__", decorated)
     dialog(api, batch)
 
-    api.finalize_parser_playground.assert_called_once_with(batch, [{"simTicks": 100}])
+    api.finalize_parser_playground.assert_called_once_with(batch, [record])
     api.data_services.add_to_csv_pool.assert_not_called()
     api.data_services.load_csv_file.assert_not_called()
     api.state_manager.set_data.assert_not_called()
