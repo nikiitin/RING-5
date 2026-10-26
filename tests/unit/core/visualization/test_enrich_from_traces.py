@@ -100,7 +100,7 @@ class TestPreparedLegend3:
         assert len(tertiary) == 1
         assert tertiary[0].position_x == 0.5
         assert tertiary[0].position_y == -0.2
-        native = build_plotly_figure(prepared)
+        native = build_plotly_figure(prepared).figure
         assert native.layout.annotations[0].x == 0.5
         assert native.layout.annotations[0].y == -0.2
 
@@ -128,13 +128,14 @@ class TestEnrichAndApply:
         prepared = prepare_figure(data, {"width": 800, "height": 500}, "bar", traces)
         assert prepared.spec.axes.x.tick_values == [0, 1, 2]
         assert prepared.spec.axes.x.tick_text == ["A", "B", "C"]
-        interactive = build_plotly_figure(prepared)
+        interactive = build_plotly_figure(prepared).figure
         assert list(cast(go.Bar, interactive.data[0]).y) == [10, 20, 30]
         assert list(interactive.layout.xaxis.tickvals) == [0, 1, 2]
         assert list(interactive.layout.xaxis.ticktext) == ["A", "B", "C"]
-        figure, spec = build_matplotlib_figure_from_prepared(prepared)
+        before_spec = prepared.spec.to_dict()
+        figure = build_matplotlib_figure_from_prepared(prepared).figure
         try:
-            assert spec is prepared.spec
+            assert prepared.spec.to_dict() == before_spec
             axis = figure.axes[0]
             assert axis.get_xticks().tolist() == [0, 1, 2]
             assert [text.get_text() for text in axis.get_xticklabels()] == ["A", "B", "C"]
@@ -165,11 +166,11 @@ class TestEnrichAndApply:
 
         prepared = prepare_figure(data, {"width": 800, "height": 500}, "bar", traces)
         assert len(prepared.spec.annotations) == 1
-        interactive = build_plotly_figure(prepared)
+        interactive = build_plotly_figure(prepared).figure
         annotation = interactive.layout.annotations[0]
         assert (annotation.text, annotation.x, annotation.y) == ("Group Label", 0.5, -0.1)
         assert (annotation.xref, annotation.yref, annotation.font.size) == ("paper", "paper", 12)
-        figure, _ = build_matplotlib_figure_from_prepared(prepared)
+        figure = build_matplotlib_figure_from_prepared(prepared).figure
         try:
             axis = figure.axes[0]
             assert [text.get_text() for text in axis.texts] == ["Group Label"]

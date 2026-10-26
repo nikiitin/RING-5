@@ -260,14 +260,9 @@ class TestDualAxisCreateFigure:
             "y_columns_right": ["IPC"],
             "dual_axis": True,
             "right_axis_type": "bars",
-            "series_styles": {
-                "IPC": {
-                    "name": "Renamed IPC",
-                    "color": "#FF0000",
-                    "use_color": True,
-                },
-            },
+            "series_styles": {"IPC": {"color": "#FF0000", "use_color": True}},
             "title": "Styled",
+            "legend_labels": {"IPC": "Renamed IPC"},
         }
         plot.processed_data = sample_data
         plot.config = config
@@ -346,8 +341,8 @@ class TestDualAxisDotScenarios:
             "y_columns_right": ["IPC"],
             "dual_axis": True,
             "right_axis_type": "dots",
-            "series_styles": {"IPC": {"name": "Custom IPC"}},
             "title": "Dot Style",
+            "legend_labels": {"IPC": "Custom IPC"},
         }
         plot.processed_data = sample_data
         plot.config = config

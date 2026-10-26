@@ -16,6 +16,7 @@ from src.web.rendering.figure_preparation import PreparedFigure
 from src.web.models.render_artifact import RenderArtifact
 from src.web.rendering.config_builder import ConfigSpecBuilder
 from src.web.rendering.plotly_connector import FigureSpecToPlotly
+from src.web.rendering._render_result import PlotlyRenderResult
 
 # Fixtures
 _BASE_CONFIG: dict[str, Any] = {
@@ -100,7 +101,7 @@ class TestFigureEngineEndToEnd:
         assert isinstance(artifact.preparation, PreparedFigure)
         assert artifact.figure_spec is artifact.preparation.spec
 
-    def test_legend_labels_applied_during_preparation(
+    def test_legend_labels_project_without_rewriting_preparation(
         self, sample_data: pd.DataFrame, bar_config: dict[str, Any]
     ) -> None:
         bar_config["legend_labels"] = {"ipc": "Renamed"}
@@ -108,7 +109,9 @@ class TestFigureEngineEndToEnd:
         assert isinstance(artifact.figure, go.Figure)
         assert cast(go.Bar, artifact.figure.data[0]).name == "Renamed"
         assert artifact.trace_result is not None
-        assert artifact.trace_result.traces[0].name == "Renamed"
+        assert artifact.trace_result.traces[0].name == "ipc"
+        assert isinstance(artifact.figure_spec, FigureConfig)
+        assert artifact.figure_spec.legend_labels == {"ipc": "Renamed"}
 
 
 # 2. ConfigSpecBuilder ↔ Plotly layout agreement
@@ -121,7 +124,7 @@ class TestConfigSpecRoundTrip:
         """Build a figure using ConfigSpecBuilder + FigureSpecToPlotly."""
         spec = resolve_config(ConfigSpecBuilder.from_config(config, "bar"))
         fig = go.Figure()
-        FigureSpecToPlotly.apply(spec, fig)
+        FigureSpecToPlotly.apply(spec, PlotlyRenderResult(fig, ((),)))
         return fig
 
     def _build_artifact_fig(self, config: dict[str, Any]) -> go.Figure:

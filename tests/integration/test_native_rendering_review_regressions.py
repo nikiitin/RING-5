@@ -20,6 +20,7 @@ from src.web.pages.ui.plotting.types.bar_plot import BarPlot
 from src.web.rendering.config_builder import ConfigSpecBuilder
 from src.web.rendering.figure_preparation import prepare_figure
 from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
+from src.web.rendering._render_result import MatplotlibFigureResult
 from src.web.rendering.matplotlib_figure_builder import draw_matplotlib_axes
 from src.web.rendering.report_builder import _single_plot_figure, _single_plot_plotly
 
@@ -302,7 +303,7 @@ def test_reapplying_role_legends_removes_only_recorded_owned_artists(role_plugin
     try:
         context = draw_matplotlib_axes(prepared, axis)
         for _ in range(2):
-            FigureSpecToMatplotlib.apply(prepared.spec, axis, context)
+            FigureSpecToMatplotlib.apply(prepared.spec, MatplotlibFigureResult(figure, (context,)))
             legends = [artist for artist in axis.get_children() if isinstance(artist, Legend)]
             assert len(legends) == 3
             assert external in legends

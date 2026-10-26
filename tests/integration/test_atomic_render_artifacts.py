@@ -126,7 +126,7 @@ def test_configuration_reads_are_private_snapshots_and_assignment_invalidates_on
 
 @pytest.mark.public_api
 @pytest.mark.parametrize("engine", ["plotly", "matplotlib"])
-def test_artifact_admission_rejects_native_engine_and_partial_state_mismatches(
+def test_artifact_admission_rejects_retired_fields_and_partial_native_states(
     engine: Literal["plotly", "matplotlib"],
 ) -> None:
     from dataclasses import replace
@@ -139,14 +139,24 @@ def test_artifact_admission_rejects_native_engine_and_partial_state_mismatches(
         )
         figure = session.render(plot, engine=engine)
         original = plot.render_artifact
+        assert original.engine == engine
+        assert original.native_result is not None and original.native_result.figure is figure
         for changes in (
             {"engine": "matplotlib" if engine == "plotly" else "plotly"},
             {"engine": None},
-            {"preparation": None},
             {"figure": None},
         ):
-            with pytest.raises(ValueError):
+            with pytest.raises(TypeError, match="unexpected keyword"):
                 replace(original, **changes)
+            assert plot.render_artifact is original
+            assert original.figure is figure
+        for partial_changes in (
+            {"preparation": None},
+            {"native_result": None},
+            {"native_result": figure},
+        ):
+            with pytest.raises(ValueError):
+                replace(original, **partial_changes)
             assert plot.render_artifact is original
             assert original.figure is figure
         with pytest.raises(ValueError, match="complete native"):
@@ -154,11 +164,13 @@ def test_artifact_admission_rejects_native_engine_and_partial_state_mismatches(
         assert plot.render_artifact is original
         for detached_changes in (
             {"cache_key": "fake"},
-            {"engine": engine},
             {"source_data": pd.DataFrame()},
         ):
             with pytest.raises(ValueError, match="configuration only"):
                 RenderArtifact({}, **detached_changes)
+        retired_engine: dict[str, Any] = {"engine": engine}
+        with pytest.raises(TypeError, match="unexpected keyword"):
+            RenderArtifact({}, **retired_engine)
 
 
 @pytest.mark.public_api

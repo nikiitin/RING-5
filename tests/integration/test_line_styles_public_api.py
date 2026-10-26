@@ -166,14 +166,9 @@ def test_public_scatter_overrides_preserve_geometry_and_borders(
         "bar_border_width": 2.5,
         "bar_border_color": "#cc3300",
         "series_styles": {
-            "value": {
-                "symbol": symbol,
-                "marker_size": 14,
-                "color": "#2468ac",
-                "use_color": True,
-                "name": "Observed",
-            }
+            "value": {"symbol": symbol, "marker_size": 14, "color": "#2468ac", "use_color": True}
         },
+        "legend_labels": {"value": "Observed"},
     }
     with ring5.Session() as session:
         plot = session.create_plot("scatter", data=ring5.Table(_data()), config=config)
@@ -204,7 +199,10 @@ def test_public_scatter_overrides_preserve_geometry_and_borders(
                 np.array([[0, 1], [1, 2.5], [np.nan, np.nan], [3, 3], [4, 5]], dtype=float),
                 equal_nan=True,
             )
-            assert points.get_label() == "Observed"
+            assert points.get_label() == "value"
+            legend = matplotlib_figure.axes[0].get_legend()
+            assert legend is not None
+            assert [text.get_text() for text in legend.get_texts()] == ["Observed"]
             assert points.get_sizes().tolist() == [14**2]
             assert np.asarray(points.get_facecolor()).tolist() == [list(to_rgba("#2468ac"))]
             assert np.asarray(points.get_edgecolor()).tolist() == [list(to_rgba("#cc3300"))]

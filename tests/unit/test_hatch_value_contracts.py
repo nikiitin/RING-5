@@ -4,6 +4,8 @@ from dataclasses import replace
 from typing import Any, Literal, cast
 
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure as MplFigure
+from matplotlib.patches import Patch, Rectangle
 import pandas as pd
 import plotly.graph_objects as go
 import pytest
@@ -22,6 +24,7 @@ from src.core.services.visualization.config_resolver import resolve_config
 from src.web.rendering.config_builder import ConfigSpecBuilder
 from src.web.rendering.figure_preparation import PreparedFigure, prepare_figure
 from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
+from src.web.rendering._render_result import NativeRenderResult, PlotlyRenderResult
 from src.web.rendering.matplotlib_figure_builder import build_matplotlib_figure_from_prepared
 from src.web.rendering.plotly_connector import FigureSpecToPlotly
 from src.web.rendering.plotly_figure_builder import build_plotly_figure
@@ -42,11 +45,11 @@ def _prepared(pattern: str = "", **config: Any) -> PreparedFigure:
     return prepare_figure(data, config, "bar", traces)
 
 
-def _native(prepared: PreparedFigure, engine: str) -> Any:
+def _native_result(prepared: PreparedFigure, engine: str) -> NativeRenderResult:
     return (
         build_plotly_figure(prepared)
         if engine == "plotly"
-        else build_matplotlib_figure_from_prepared(prepared)[0]
+        else build_matplotlib_figure_from_prepared(prepared)
     )
 
 
@@ -60,6 +63,14 @@ def _assert_pattern(native: Any, engine: str, pattern: str, index: int = 0) -> N
             assert style.shape == pattern and style.path is None
     else:
         assert native.axes[0].patches[index].get_hatch() == pattern
+
+
+def _bar_heights(native: MplFigure) -> list[float]:
+    heights = []
+    for patch in native.axes[0].patches:
+        assert isinstance(patch, Rectangle)
+        heights.append(patch.get_height())
+    return heights
 
 
 @pytest.mark.parametrize("engine", ["plotly", "matplotlib"])
@@ -107,23 +118,27 @@ def test_neutral_and_global_typed_patterns_use_the_same_native_projection(
                 prepared.spec, series_styles=[SeriesStyleConfig(hatching_pattern=pattern)]
             ),
         )
-    native = _native(prepared, engine)
+    rendered = _native_result(prepared, engine)
+    native = rendered.figure
     try:
         if pattern or owner == "global":
             _assert_pattern(native, engine, pattern)
-        elif engine == "plotly":
-            assert native.data[0].marker.pattern.shape is None
+        elif isinstance(native, go.Figure):
+            trace = native.data[0]
+            assert isinstance(trace, go.Bar)
+            assert trace.marker.pattern.shape is None
         else:
             assert native.axes[0].patches[0].get_hatch() is None
     finally:
-        if engine == "matplotlib":
+        if isinstance(native, MplFigure):
             plt.close(native)
 
 
 @pytest.mark.parametrize("engine", ["plotly", "matplotlib"])
 def test_reapplication_clears_incompatible_paths_and_preserves_absent_pattern(engine: str) -> None:
     # [test->req~ring5.figure.series-styling~1]
-    native = _native(_prepared("O"), engine)
+    rendered = _native_result(_prepared("O"), engine)
+    native = rendered.figure
     try:
         for pattern in ("/", "", "*", "o", "O", "x"):
             spec = resolve_config(
@@ -131,24 +146,28 @@ def test_reapplication_clears_incompatible_paths_and_preserves_absent_pattern(en
                     trace_overrides={"Measured": SeriesStyleConfig(hatching_pattern=pattern)}
                 )
             )
-            if engine == "plotly":
-                FigureSpecToPlotly.apply(spec, native)
+            if isinstance(rendered, PlotlyRenderResult):
+                FigureSpecToPlotly.apply(spec, rendered)
             else:
-                FigureSpecToMatplotlib.apply(spec, native.axes[0])
+                FigureSpecToMatplotlib.apply(spec, rendered)
             _assert_pattern(native, engine, pattern)
         spec = resolve_config(
             FigureConfig(trace_overrides={"Measured": SeriesStyleConfig(color="#ff0000")})
         )
-        if engine == "plotly":
-            FigureSpecToPlotly.apply(spec, native)
-            assert native.data[0].marker.color == "#ff0000"
-            assert list(native.data[0].y) == [3.0, 5.0]
+        if isinstance(rendered, PlotlyRenderResult):
+            assert isinstance(native, go.Figure)
+            FigureSpecToPlotly.apply(spec, rendered)
+            trace = native.data[0]
+            assert isinstance(trace, go.Bar)
+            assert trace.marker.color == "#ff0000"
+            assert list(trace.y) == [3.0, 5.0]
         else:
-            FigureSpecToMatplotlib.apply(spec, native.axes[0])
-            assert [patch.get_height() for patch in native.axes[0].patches] == [3.0, 5.0]
+            assert isinstance(native, MplFigure)
+            FigureSpecToMatplotlib.apply(spec, rendered)
+            assert _bar_heights(native) == [3.0, 5.0]
         _assert_pattern(native, engine, "x")
     finally:
-        if engine == "matplotlib":
+        if isinstance(native, MplFigure):
             plt.close(native)
 
 
@@ -167,14 +186,18 @@ def test_explicit_override_wins_over_default_stripes_and_global_style(
         prepared,
         spec=replace(prepared.spec, series_styles=[SeriesStyleConfig(hatching_pattern="O")]),
     )
-    native = _native(prepared, engine)
+    rendered = _native_result(prepared, engine)
+    native = rendered.figure
     try:
         _assert_pattern(native, engine, override)
-        if engine == "matplotlib":
+        if isinstance(native, MplFigure):
             legend = native.axes[0].get_legend()
-            assert legend.legend_handles[0].get_hatch() == override
+            assert legend is not None
+            handle = legend.legend_handles[0]
+            assert isinstance(handle, Patch)
+            assert handle.get_hatch() == override
     finally:
-        if engine == "matplotlib":
+        if isinstance(native, MplFigure):
             plt.close(native)
 
 
@@ -223,7 +246,7 @@ def test_typed_marker_sizes_target_only_native_marker_families(owner: str) -> No
             else {"trace_overrides": {name: style for name in ("Bars", "Line", "Points")}}
         ),
     )
-    native = build_plotly_figure(replace(prepared, spec=spec))
+    native = build_plotly_figure(replace(prepared, spec=spec)).figure
     _assert_pattern(native, "plotly", "O")
     assert isinstance(native.data[0], go.Bar)
     assert "size" not in native.data[0].marker.to_plotly_json()

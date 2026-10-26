@@ -18,6 +18,7 @@ from src.core.models.visualization.trace_config import BarTraceConfig
 from src.web.rendering.figure_preparation import prepare_figure
 from src.web.rendering.plotly_figure_builder import build_plotly_figure
 from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
+from src.web.rendering._render_result import MatplotlibRenderResult
 from src.web.rendering.trace_to_plotly import traces_to_plotly
 
 
@@ -44,7 +45,7 @@ def test_pixel_shifts_translate_complete_native_annotation_at_export_dpi(
         align="right",
     )
     shifted = replace(plain, x_shift_pixels=shift[0], y_shift_pixels=shift[1])
-    native = traces_to_plotly(TraceBuildResult(annotations=[shifted]))
+    native = traces_to_plotly(TraceBuildResult(annotations=[shifted])).figure
     assert native.layout.annotations[0].xshift == (shift[0] or None)
     assert native.layout.annotations[0].yshift == (shift[1] or None)
     assert native.layout.annotations[0].font.family == plain.font_family
@@ -56,7 +57,9 @@ def test_pixel_shifts_translate_complete_native_annotation_at_export_dpi(
     try:
         axis.set_xlim(0, 10)
         axis.set_ylim(0, 10)
-        FigureSpecToMatplotlib._apply_annotations(FigureConfig(annotations=[plain, shifted]), axis)
+        FigureSpecToMatplotlib._apply_annotations(
+            FigureConfig(annotations=[plain, shifted]), MatplotlibRenderResult(axis)
+        )
         baseline, translated = (cast(Any, text) for text in axis.texts)
         assert baseline.xy == translated.xy == (plain.x, plain.y)
         assert translated.get_fontfamily() == [plain.font_family]
@@ -112,7 +115,7 @@ def test_typed_annotations_preserve_native_metadata_and_serialization() -> None:
     prepared = prepare_figure(
         pd.DataFrame({"x": [2.0], "y": [3.0]}), {}, "bar", lambda data, config: result
     )
-    native = build_plotly_figure(prepared)
+    native = build_plotly_figure(prepared).figure
     original = deepcopy(native.to_plotly_json())
     assert prepared.spec.annotations == [direct]
     annotation = native.layout.annotations[0]
@@ -141,7 +144,7 @@ def test_annotation_inherits_figure_family_without_mutating_the_spec() -> None:
     original = config.to_dict()
     figure, axis = plt.subplots()
     try:
-        FigureSpecToMatplotlib._apply_annotations(config, axis)
+        FigureSpecToMatplotlib._apply_annotations(config, MatplotlibRenderResult(axis))
         assert axis.texts[0].get_fontfamily() == ["DejaVu Serif"]
         assert config.to_dict() == original
     finally:
