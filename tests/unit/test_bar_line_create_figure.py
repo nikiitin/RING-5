@@ -27,7 +27,7 @@ def sample_data() -> pd.DataFrame:
 
 
 class TestBarPlotCreateFigure:
-    """Tests for BarPlot.create_figure branches."""
+    """Public bar rendering across its trace-building branches."""
 
     # [test->req~ring5.plot.bar~1]
 
@@ -129,7 +129,7 @@ class TestBarPlotCreateFigure:
 
 
 class TestLinePlotCreateFigure:
-    """Tests for LinePlot.create_figure branches."""
+    """Public line rendering across its trace-building branches."""
 
     # [test->req~ring5.plot.line~1]
 

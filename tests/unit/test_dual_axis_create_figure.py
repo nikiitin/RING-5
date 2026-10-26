@@ -1,4 +1,4 @@
-"""Tests for DualAxisBarDotPlot.create_figure — all execution branches."""
+"""Public dual-axis bar/dot rendering across its execution branches."""
 
 from ring5 import Session
 

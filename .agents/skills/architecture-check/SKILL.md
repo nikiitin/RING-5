@@ -5,9 +5,9 @@ description: Gate the RING-5 architecture — the 7 hard rules and the strict 3-
 
 # Architecture check (the boundary gate)
 
-RING-5 has **one** allowed dependency direction — `Web → Core ← Parsing` — and 7 hard rules
-enforced by pre-commit, CI, and `make arch-check`. This skill is the gate: run it, read every
-violation, fix at the source (never weaken the check).
+RING-5 follows `Web → Core ← Parsing`. [AGENTS.md](../../../AGENTS.md) defines the required
+invariants; pre-commit, CI and `make arch-check` enforce the structural and unsafe-syntax subset.
+Review behavioral requirements in the touched owners as well as running the checker.
 
 ## Run it
 
@@ -26,12 +26,12 @@ are preserved. Syntax checks cannot prove those behavioral properties. Git opera
 user's instructions and must preserve unrelated work.
 
 ## What "fix at the source" means
-- Web needs core data? Go through `ApplicationAPI` (`api.managers`/`api.data_services`/`api.shapers`),
-  not a direct `src/core` reach-around. See the `api-check` skill.
+- Web service/state operations go through `ApplicationAPI` and its three sub-APIs. Shared typed
+  models and protocols remain valid imports. See [api-check](../api-check/SKILL.md).
 - Core needs parsing? Through the `SimulationParser` protocol + `SimulatorRegistry`, never a
   `src/parsing/gem5/...` concrete import.
-- A model needs logic? The logic belongs in a service; the model stays pure data.
-- Tempted to add `# noqa`/`inplace=True`/a bare except to pass? That's the violation, not the fix.
+- Models own typed data and validation; scientific algorithms and orchestration belong in services.
+- Fix actual boundary and unsafe-syntax violations without suppressing or weakening the gate.
 
 ## Keep this skill sharp
 

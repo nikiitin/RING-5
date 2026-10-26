@@ -38,7 +38,7 @@ def plot() -> GroupedStackedBarPlot:
 
 
 class TestDualAxisCreateFigure:
-    """Test create_figure with dual_axis=True."""
+    """Verify public rendering with dual_axis=True."""
 
     # [test->req~ring5.figure.dual-axis-controls~1]
 

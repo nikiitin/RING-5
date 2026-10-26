@@ -70,9 +70,9 @@ runtime. The table covers RING-5, Python, the operating system and architecture,
 dependencies, Plotly and Matplotlib, and the optional Perl, Chrome, and XeLaTeX tools.
 
 An exact match means every recorded value is the same. A difference is evidence to review, not an
-automatic incompatibility verdict. **Not available** means an optional tool was absent; **Not
-recorded** means the portfolio predates environment capture. RING-5 never substitutes the current
-machine's versions for missing historical provenance.
+automatic incompatibility verdict. **Not available** means a saved component and the current runtime
+provide no version. **Not recorded** means that component is absent from the saved record. RING-5
+never substitutes current versions for missing historical provenance.
 
 The environment record intentionally excludes hostnames, usernames, executable paths, and
 environment-variable values. Python callers can make the same comparison without restoring the
@@ -114,8 +114,8 @@ The status wording deliberately separates integrity from authenticity:
 | Checksums match — unsigned | Content is unchanged since the checksums were created; its author is not authenticated. |
 | Signature needs secret | Content is unchanged and carries a signature, but RING-5 has not authenticated it yet. |
 | Checksums and signature verified | Content is unchanged and the supplied shared secret verifies its HMAC-SHA-256 signature. |
-| Legacy — no manifest | The portfolio predates integrity manifests; no content-integrity claim is possible. |
-| Modified or invalid | Restoration is blocked. Review or reacquire the portfolio instead of trusting it. |
+| Missing or invalid manifest | Required manifest data is absent or malformed; restoration is blocked. |
+| Modified content or invalid signature | Content checks or signature verification fail; restoration is blocked. |
 
 To sign from the web application, select **Sign integrity manifest**, give the key a non-secret ID,
 and enter the shared secret. The secret is used only for that save and is not written into the
@@ -251,8 +251,8 @@ with ring5.Session() as session:
     report = session.restore_portfolio_revision("paper-a", versions[-2].revision_id)
 ```
 
-Portfolios saved before this feature are captured as a baseline when their history is first
-opened. Revision IDs are SHA-256 checksums of the exact saved JSON bytes; RING-5 verifies the
+Opening history records the current saved portfolio if its revision is not already retained.
+Revision IDs are SHA-256 checksums of the exact saved JSON bytes; RING-5 verifies the
 checksum before loading or comparing a version.
 
 ## Review restoration outcomes

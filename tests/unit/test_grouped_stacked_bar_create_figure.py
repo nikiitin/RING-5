@@ -32,7 +32,7 @@ def plot() -> GroupedStackedBarPlot:
 
 
 class TestCreateFigure:
-    """Test GroupedStackedBarPlot.create_figure logic branches."""
+    """Verify public grouped-stacked rendering across configuration branches."""
 
     def test_no_group_delegates_to_parent(
         self, plot: GroupedStackedBarPlot, plot_session: Session
@@ -95,8 +95,8 @@ class TestCreateFigure:
         assert isinstance(fig, go.Figure)
         # 2 y_columns → 2 bar traces
         assert len(list(fig.data)) == 2
-        # Title/ylabel/legend_title are applied by the style chain,
-        # not by create_figure().  Verify trace count only.
+        # Both selected statistics retain their native bar traces.
+        # The resulting figure remains populated.
         assert len(list(fig.data)) > 0
 
     def test_with_group_filter(

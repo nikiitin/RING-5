@@ -95,11 +95,11 @@ def _spline_coordinates(
 
 
 class MatplotlibTraceRenderer:
-    """Draw ``TraceConfig`` instances on a matplotlib ``Axes``.
+    """Draw engine-independent ``TraceConfig`` instances on a matplotlib ``Axes``.
 
-    This replaces the previous implementation that read from Plotly
-    ``go.Figure`` objects.  All trace data now comes from engine-agnostic
-    ``TraceConfig`` dataclasses.
+    Trace dataclasses supply the data and visual properties of each mark.
+    Dispatch by trace type and collect native artists with their bindings
+    for the shared figure styling pipeline.
     """
 
     # public API

@@ -136,7 +136,7 @@ class TestHistogramPlotIntegration:
 
             assert fig is not None
             assert len(list(fig.data)) > 0
-            # Title is applied by the style chain, not create_figure()
+            # The public render retains the selected histogram traces.
 
     def test_histogram_with_grouping(
         self, facade: ApplicationAPI, stats_dir: Path, tmp_path: Path, plot_session: Session

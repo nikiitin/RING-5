@@ -244,11 +244,11 @@ class TestBuildBarTrace:
         assert trace.bar_width == 0.4
 
 
-# create_figure
+# Public stacked-bar rendering
 
 
 class TestCreateFigure:
-    """Tests for create_figure end-to-end."""
+    """End-to-end stacked-bar rendering through the public Session."""
 
     # [test->req~ring5.plot.stacked-bar~1]
 

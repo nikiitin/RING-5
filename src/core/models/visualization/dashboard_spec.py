@@ -98,14 +98,14 @@ class DashboardSpec:
 
     @property
     def resolved_horizontal_spacing(self) -> float:
-        """Return the explicit horizontal gap or the legacy deterministic default."""
+        """Return the explicit horizontal gap or the column-based default."""
         if self.horizontal_spacing is not None:
             return float(self.horizontal_spacing)
         return min(0.12, 0.18 / self.columns)
 
     @property
     def resolved_vertical_spacing(self) -> float:
-        """Return the explicit vertical gap or the legacy deterministic default."""
+        """Return the explicit vertical gap or the row-based default."""
         if self.vertical_spacing is not None:
             return float(self.vertical_spacing)
         return min(0.16, 0.24 / self.rows)

@@ -5,9 +5,9 @@ description: Add a new data-transformation shaper to RING-5's pipeline (subclass
 
 # Add a new shaper
 
-Shapers are the no-code transform steps. They are **stateless, immutable, composable**: each takes a
-DataFrame and returns a *new* DataFrame (`result = data.copy()` first; never `inplace=True`). They
-live entirely in Layer B (`src/core/services/shapers/`) — no Streamlit there.
+Shapers are **stateless and composable**: each takes a DataFrame and returns a *new* DataFrame
+without mutating its input. Copy before assigning into an input's cells; never use `inplace=True`.
+They live in `src/core/services/shapers/`, without Streamlit dependencies.
 
 **Best starting move:** copy the closest existing impl in
 `src/core/services/shapers/impl/` (e.g. `sort.py`, `normalize.py`, `mean.py`) and adapt.

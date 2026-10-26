@@ -37,9 +37,9 @@ def resolve_palette(name: object) -> list[str]:
         A **copy** of the hex color list (safe to mutate).
     """
     # [impl->req~ring5.figure.colors~1]
-    # Explicit list/tuple of colors -> cleaned copy (passthrough). Checked
-    # before the string branch so a custom palette is no longer silently
-    # ignored (the previous behaviour fell back to Wong for any non-str).
+    # Explicit sequences own their color order independently of registry names.
+    # Normalize them before name lookup, preserving the caller's list and
+    # selecting the default only when no usable colors remain.
     if isinstance(name, (list, tuple)):
         colors = [c.strip() for c in name if isinstance(c, str) and c.strip()]
         return colors if colors else list(PALETTE_REGISTRY["wong"])

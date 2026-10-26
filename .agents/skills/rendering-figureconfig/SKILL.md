@@ -1,6 +1,6 @@
 ---
 name: rendering-figureconfig
-description: Work on RING-5's figure styling / rendering pipeline — FigureConfig (the single styling source of truth), the -1 sentinel inheritance, the 15-step STYLING_PIPELINE_ORDER, the Plotly + Matplotlib connectors, and dual-engine consistency. Use for any figure styling, theming, axes/legend/typography, or LaTeX-export task.
+description: Work on RING-5's figure styling / rendering pipeline — FigureConfig (the single styling source of truth), explicit field inheritance, the 15-step STYLING_PIPELINE_ORDER, the Plotly + Matplotlib connectors, and dual-engine consistency. Use for any figure styling, theming, axes/legend/typography, or LaTeX-export task.
 ---
 
 # Rendering & FigureConfig (dual-engine styling)
@@ -12,7 +12,7 @@ described by one engine-independent configuration and projected through both eng
 ```
 plot.create_traces() ──▶ TraceBuildResult ──▶ trace_to_plotly / matplotlib_trace_renderer
 effective config   ──▶ ConfigSpecBuilder ──▶ FigureConfig ──▶ config_resolver.resolve_config()
-                                                                       │ (sentinels removed)
+                                                                       │ (inheritance resolved)
                                                                        ▼
                                    FigureSpecToPlotly  /  FigureSpecToMatplotlib  (connectors)
 ```
@@ -20,16 +20,11 @@ effective config   ──▶ ConfigSpecBuilder ──▶ FigureConfig ──▶ 
   `axis_config.py`, `legend_config.py`, `typography_config.py`, `data_label_config.py`,
   `annotation_config.py`, `series_style_config.py`, `trace_config.py`, `palettes.py`, …). It is the
   **single source of truth** and is engine-agnostic (no Plotly/Matplotlib/Streamlit imports here).
-- **Sentinels:** numeric fields default to `-1` / `-1.0` meaning "inherit". `config_resolver`
-  (`src/core/services/visualization/config_resolver.py`) replaces every sentinel via deepcopy
-  **before** any connector runs — connectors never see `-1`. Add new inheritable fields with a
-  sentinel default + a rule in `resolve_config`.
-- **Source opacity:** `TraceConfig.opacity` is concrete `[0, 1]`; the incremental
-  `SeriesStyleConfig.opacity` uses `None` for no update. Explicit `0`/`1` override the scalar,
-  multiplying embedded alpha once. `_appearance.py` owns preflight/projection through existing
-  bindings; declare intrinsic channels at construction and reject affected unknown native edits.
-  Data labels follow their source; colorbars show intrinsic mappings. Parcoords selected colors
-  must be opaque with selected opacity `1`. Background `bgalpha` remains replacement semantics.
+- **Inheritance:** designated typography, legend and axis fields use `-1` / `-1.0` to inherit.
+  `src/core/services/visualization/config_resolver.py` resolves those fields on an owned deep copy
+  before connectors run. Automatic legend-position sentinels remain for connector placement; a
+  negative value is not universally an inheritance request. Give each new field an explicit
+  default/omission policy and add a resolver rule only when it inherits.
 - **Connectors** (`src/web/rendering/plotly_connector.py::FigureSpecToPlotly`,
   `matplotlib_connector.py::FigureSpecToMatplotlib`) are **stateless** (`@staticmethod`) and apply
   the **15 named styling capabilities** declared in
@@ -56,17 +51,46 @@ one result; figure and engine are derived. Connectors require that explicit resu
 from it. A `MatplotlibRenderResult` without source bindings is appropriate for paper annotations or
 layout; meaningful data tests use real neutral emissions or explicit known-source/native associations.
 
+Source appearance is owned by `src/web/rendering/_appearance.py` and explicit native result
+bindings.
+`TraceConfig.opacity` is finite in `[0, 1]`; `SeriesStyleConfig.opacity=None` preserves the current
+source opacity. Editable flat plot mappings omit inheritance and reject present null, booleans
+and strings; typed style serialization retains `None`.
+Named overrides precede positional styles, then retained source opacity. Each channel projects
+intrinsic alpha × effective source opacity × its declared family factor; reapplication uses the
+intrinsic channel, so attenuation never compounds. Zero retains data and geometry; one removes
+only source attenuation. Area fill uses factor `1`, Radar fill `0.45`, Violin's inner box `0.8`,
+and Sankey links their explicit link factor, including hover colors. Source-owned channels, labels
+and error bars attenuate together. Series recoloring preserves independent outlines, fixed companion
+colors and semantic colors; axes, titles and general annotations remain independent of source opacity.
+Parallel coordinates require selected opacity `1` and opaque selected colors
+and scales in both engines; brushes and unselected opacity remain independent. Legend `bgalpha`
+keeps its separate replacement semantics.
+
+Whole-root appearance preflight runs before any panel or styling mutation. Unrelated styling
+preserves manual native edits. An affected channel outside its known intrinsic context rejects
+before mutation; explicit recoloring replaces only its declared channels. Advanced native contexts
+must declare known creation-time channels or explicit `unmanaged()` capability. Unmanaged scalar/
+array alpha and mapped colors survive nonappearance operations; color, opacity or source-label
+changes require a known intrinsic context. See `docs/developer-guide/subsystems/visualization.md`.
+
 `legend_labels` owns display text. Keep neutral names, style keys, order, group and role identity
 unchanged; apply styles before projecting text into native legends or facet titles. Per-series
 styles contain no name field. Cycle positional styles by original emission ordinal, including
 hidden slots. Native membership, unique ownership and generated roles must pass whole-root
-preflight before restyling. Native copies need deliberate association transfer; do not discover
-identity from labels or attach private source IDs. Export copies consume fully styled figures.
+preflight before restyling. Native copies need deliberate binding and appearance-context transfer;
+do not discover identity from labels or attach private source IDs. Private export copies consume
+fully styled figures and retain no live source/binding callback references.
 
 Shared legends merge only matching original identities, roles/groups and known final glyphs.
 Unknown or array-valued glyph state keeps separate entries. Owned legend/colorbar outputs are
-reused or replaced through their explicit result, preserving foreign outputs. Structural colorbar
-changes require callback and layout generation ownership; foreign adoption requires a fresh build.
+reused or replaced through their explicit result, preserving foreign outputs. Heatmap colorbars use
+intrinsic colormaps, including embedded and exceptional alpha, independently of source opacity.
+Managed colorbars support `extend="neither"`; unsupported affected extensions and source appearance
+updates that would mutate a foreign colorbar reject in preflight. Structural changes require callback
+and layout generation ownership; foreign adoption requires a fresh build. Colorbar callbacks retain
+only their actual native output leaf; copied figures cannot mutate live source bindings through
+those callbacks.
 
 ## Golden rule: change BOTH engines, in order
 Any new styling capability must be implemented in **both** connectors and slot into the correct
@@ -86,7 +110,7 @@ Recipe to add a styling option:
 ## Engine, palettes, export
 - `EngineManager` (`src/web/rendering/engine_manager.py`) toggles `plotly`/`matplotlib` via the
   `ring5_engine_mode` session key. Default palette: **`wong`** (colorblind-safe); resolution via
-  `services/visualization/palette_service.py`.
+  `src/core/services/visualization/palette_service.py`.
 - `PlotRenderState` owns one bound artifact or configuration-only detached payload. `BasePlot`
   publishes native figure, configuration, preparation, engine and key atomically. Repository-managed
   retirement drains after the outer Core transaction lock; slot callbacks run outside slot locks

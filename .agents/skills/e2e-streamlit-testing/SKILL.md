@@ -5,121 +5,95 @@ description: Write or debug RING-5's Streamlit UI tests — the no-browser AppTe
 
 # Testing the Streamlit UI
 
-RING-5 tests the UI at four levels — pick the cheapest that covers the behavior:
+Choose the least expensive layer that covers the behavior:
 
-| Level | Dir | Tooling | Browser |
-|-------|-----|---------|---------|
-| UI unit | `tests/ui_unit/` | mock `st.*` (use `columns_side_effect` from root `conftest.py`) | no |
+| Level | Directory | Tooling | Browser |
+| --- | --- | --- | --- |
+| UI unit | `tests/ui_unit/` | mocked `st.*` | no |
 | UI logic | `tests/ui_logic/` | controllers/protocols, mocked services | no |
 | AppTest | `tests/ui/` | `streamlit.testing.v1.AppTest` | no |
-| E2E / visual | `tests/e2e/`, `tests/visual/` | **Playwright** (`requires_browser`), Page Object Model | yes |
+| E2E / visual | `tests/e2e/`, `tests/visual/` | Playwright, Page Object Model | yes |
 
-Run: `make test-unit` (no-browser), `make test-visual` (browser; starts an isolated Streamlit server).
-E2E marker: `-m requires_browser`. Visual is excluded from default collection.
+`make test-unit` covers unit and UI-unit tests. Run AppTest and UI-logic tests explicitly when those
+owners change. Reuse `columns_side_effect` from `tests/conftest.py` for `st.columns` mocks.
+`tests/ui/conftest.py` clears cached session resources around each AppTest.
 
-`tests/ui/conftest.py` clears session-scoped cached resources around every AppTest. Streamlit fixed
-the old `ButtonGroup.indices` single-selection bug in 1.58, so no compatibility monkey-patch remains.
+## Page objects and selectors
 
-## Page Object Model (Playwright)
-- Locators are **`@property`** (never methods); actions are **methods** that take no locator params.
-- **No assertions inside Page Objects** — assert in the test with auto-retrying `expect()`.
-- Locator priority: `get_by_role()` > `get_by_text()` > `get_by_label()` > `get_by_test_id()`.
-- Existing POMs live in `tests/e2e/` (+ `fixtures/`) and `tests/visual/pages/`. `DataSourcePage` is
-  the richest; `ManagePlotsPage` is thin — extend it when adding plot e2e coverage.
+Shared page objects live in `tests/visual/pages/` and serve both browser suites. Stable locators use
+`@property`; parameterized lookups such as `get_plot_pill(name)` are methods. Keep product assertions
+in tests. Page-object actions may wait for and verify their own completion.
 
-## Streamlit `data-testid` selector map
-`stSidebar`, `stMainBlockContainer`, `stSelectbox`, `stMultiSelect`, `stBaseButton-primary` /
-`stBaseButton-secondary`, `stStatusWidget`, `stDialog`, `stExpander`, `stPlotlyChart`, `stDataFrame`,
-`stFileUploader`. Segmented controls render as `stButtonGroup` (with active/inactive testid
-suffixes). **Tabs:** `role="tab"`, and **all tab panels stay in the DOM at once** — scope with the
-`_by_label` pattern, never `.first`/`.nth()`.
+Prefer accessible roles/labels, then scoped text or `data-testid` selectors. Common Streamlit test
+IDs include `stSidebar`, `stMainBlockContainer`, `stSelectbox`, `stMultiSelect`, `stStatusWidget`,
+`stDialog`, `stExpander`, `stPlotlyChart`, `stDataFrame` and `stFileUploader`. Scope repeated controls
+by their containing section and visible label using the existing `_by_label` helpers. Plot and
+engine selectors use radio roles; inspect checked state before clicking an active option.
 
-```python
-def _by_label(page, test_id, label):   # scope a widget duplicated across tabs
-    return page.locator(f"[data-testid='{test_id}']").filter(has_text=label)
-```
+## Reruns and current UI contracts
 
-## Critical Streamlit × Playwright gotchas (these cause most flakes)
-- **Page-ready wait:** navigate with `wait_until="domcontentloaded"`, then wait for
-  `[data-testid='stStatusWidget']` to disappear. Streamlit and chart components keep long-lived
-  connections, so Playwright's `networkidle` state is not a reliable readiness boundary.
-- **Wait for the rerun to *start*, not just end** (the subtle one that silently loses state):
-  the status widget appears a beat *after* the triggering click (client→server round-trip). If you
-  only wait for it to be *hidden*, you can observe the **pre-rerun** idle state and return too early —
-  then a fast follow-up action (navigate / another click) **aborts the rerun before it commits**, and
-  Streamlit discards the now-unrendered widget's session state. Symptoms: a rename/delete that
-  "doesn't take", the wrong plot deleted. Fix: for actions guaranteed to rerun, first wait for
-  `stStatusWidget` to become **visible** (bounded ~3s) *then* hidden — `BasePage.wait_for_streamlit(expect_rerun=True)`.
-  Used by rename/delete/duplicate/create/finalize/add_shaper/select_plot.
-- **Segmented control toggle:** clicking the *already-active* option **deselects** it. Use an
-  `ensure_*`/idempotent pattern: check the active state (`data-testid='stBaseButton-pillsActive'`)
-  first, click only if needed, then assert it became active (`select_plot`, `select_engine`).
-- **Creating a plot does NOT auto-select it.** `st.pills(key="plot_selector")`'s persisted session
-  value (the old plot) wins over `set_current_plot_id(new)`, and the selector then resets current
-  back to it — so config/pipeline edits hit the *previously-selected* plot. `create_plot` must
-  explicitly `select_plot(name)` after creating. (Likewise: rename has no `st.rerun()`, so the pill
-  label is stale until the next rerun — navigate away+back to refresh.)
-- **Expanders are `<details><summary>`** — click the **`summary`** (there is no
-  `stExpanderToggleDetails` testid). Opening is a *client-side* toggle (no rerun) so verify-then-act
-  by waiting for the body to be visible; the open state *survives* later reruns.
-- **Per-plot-type config UIs differ — don't assume X/Y axes:** `stacked_bar` has **no Y-axis / "Stack
-  by"** (it stacks numeric *statistics* via a "Statistics to Stack" multiselect, defaulting to the
-  first numeric cols); `histogram` needs gem5 bucket columns (`var..0-10`) or it warns "No histogram
-  variables detected"; the plot-config axis-label fields are **"X-label"/"Y-label"** (not "X-axis label").
-- **Settings pills:** the basic sections (Layout/Typography/Legends) **always** render; "Show advanced
-  settings" only *adds* the advanced sections (Axes/Data Labels/Colors/Advanced). To test the toggle,
-  key off an advanced-only pill (e.g. "Colors"), not the whole pills group. (Preset pills
-  `render_preset_pills` exist but are **not wired** into the render flow — no preset UI appears.)
-- **Fragment reruns** (`@st.fragment`) need an extra `wait_for_timeout(500)` after interaction.
-- **`st.rerun()` closes dialogs** — don't expect a `stDialog` to survive a rerun.
-- **Forms batch** their widget changes (no per-widget rerun) — submit, then assert.
-- **Application state is browser-session owned.** `app.py` caches one `ApplicationAPI` with
-  `scope="session"` and closes it through `on_release`; `test_session_isolation.py` verifies that
-  data, plots, and reset operations do not cross contexts. Browser-test classes still
-  reuse `shared_page`, so the autouse class-scoped `_reset_app_state` fixture in
-  both conftest files clears that reused context before each class.
+- Navigate with `wait_until="domcontentloaded"`, then `BasePage.wait_for_streamlit()`. Persistent
+  Streamlit/chart connections make network-idle unsuitable as the readiness boundary.
+- For actions that trigger a rerun, use `wait_for_streamlit(expect_rerun=True)`. It observes the
+  running indicator before waiting for idle and accommodates fast cycles. Verify the resulting
+  widget/chart state with Playwright expectations before the next dependent action.
+- Create, rename, delete and duplicate clear `plot_selector` and rerun in
+  `src/web/controllers/plot/creation_controller.py`. Creation selects the new plot through the
+  lifecycle service. `ManagePlotsPage.create_plot` also calls the idempotent `select_plot(name)`;
+  rename waits for its rerun and does not need navigation away and back.
+- `select_plot_type` accepts exact factory identifiers such as `bar` or `dual_axis_bar_dot`.
+  Plot selection uses visible names, disambiguated by the controller when names repeat.
+- Expanders are `<details><summary>` elements. Click the summary and verify body visibility;
+  opening an expander is a client-side action. A subsequent format/settings rerun may require
+  reopening the relevant expander before interacting with a hidden control.
+- Settings basics are Layout, Themes, Typography and Legends. Advanced mode adds Axes, Data
+  Labels, Colors and Advanced. Test the toggle with an advanced-only pill such as Colors.
+  Themes exposes preset application and JSON import/export through the normal render flow.
+- Per-family configuration differs: stacked bars select statistics through "Statistics to Stack".
+  Histograms select a declared native layout by its logical variable key and explicit physical
+  bindings, or use caller-declared generic interval columns such as `variable..0-9`. Native point
+  or range labels do not infer continuous geometry or create additional prefix aliases. Native
+  controls offer count, probability and percent with cumulative views/CDF, without continuous
+  rebinning or noncumulative density. Opaque Distribution source-label layouts show a missing-grid
+  explanation and cannot render a native histogram. Follow each family's actual labels and widgets.
+- Forms batch changes until submission. Dialogs can close on rerun. For fragment interactions,
+  synchronize the observable result with the existing action helper before asserting or navigating.
+- `app.py` owns a browser-session-scoped `ApplicationAPI` and closes it via `on_release`.
+  Browser classes reuse `shared_page`; their class-scoped `_reset_app_state` fixtures reset that
+  context. Preserve session-isolation tests and avoid cross-class state assumptions.
 
-## The e2e gate is serial by default
+## Browser execution and resource use
+
+`make test-e2e` uses `E2E_WORKERS=2` with loadgroup scheduling for non-serial cases, then a separate
+`-n 0` invocation for cases marked `serial`. `make test-visual` runs serially. The Make targets own
+these defaults; inspect them before changing parallelism.
+
+For a memory-constrained session or an isolated diagnosis, use:
+
 ```bash
-pytest tests/e2e -m "requires_browser" -n 0 \
-  --timeout=240 --timeout-method=thread
+make test-e2e E2E_WORKERS=0
+./python_venv/bin/pytest tests/e2e/test_plot_types.py -m requires_browser -n 0 \
+  --timeout=240 --timeout-method=thread --no-cov
 ```
-**Two workers are the repository safety ceiling, not a throughput target.** Each worker owns a
-Streamlit server and Chromium browser, so browser tests are RAM-bound as well as CPU-bound. Run them
-in a cgroup/systemd scope when sharing a workstation, keep swap disabled for the scope, and use
-`-n 2 --dist loadgroup` only as an explicit opt-in after checking available memory. Timeouts and
-OOMs are test failures: inspect whether the application, synchronization, or resource budget is
-wrong instead of dismissing them as environmental flakes.
-- **Kaleido raster export (pdf/svg/png)** — `download_section` renders the figure via Kaleido (a
-  Chromium subprocess) *eagerly* before `st.download_button`. Concurrent exports can starve each
-  other, so the class stays `serial` (`-n 0`). `plotly_download_bytes` drives
-  `kaleido.calc_fig_sync` directly with a 25s per-attempt timeout + 3× retry, fresh Chrome each
-  attempt. The other gotcha here: the `<details>` Download
-  expander can **re-collapse on the format-select rerun**, hiding the button — `_select_format_pill`
-  re-opens it afterwards. test_07's role/enabled check uses kaleido-free `html` to stay fast.
-- **Chart render timeouts are failures.** Inspect the screenshot/trace and server state, then rerun
-  the exact case at `-n 0` to distinguish resource starvation from an application or synchronization
-  defect. Fix stale waits, detached controls, or application errors rather than raising timeouts
-  blindly. `CHART_TIMEOUT = 60s` bounds the chart assertion; the 240-second thread watchdog covers
-  tier setup and exits a stuck worker without hanging teardown; `EXPORT_TIMEOUT = 90s` covers one
-  serial export.
-- Observed under starvation: switching engine to Plotly can leave the Matplotlib `stImage` showing
-  (the engine *pill* flips but the fragment has not re-rendered yet). Synchronize the rerun before
-  asserting the chart body.
 
-## Efficiency pattern (worth it for browser tests)
-Class-scoped page fixtures + ordered, semantically-related tests cut a prior suite from 148 → 37
-tests (~18 min saved). Trade-off: tests in a class share state and are ordered — acceptable for
-E2E flows. A "tier" snapshot ladder works well: **Tier 0** empty → **Tier 1** CSV loaded →
-**Tier 2** + plot created → **Tier 3** + shaper pipeline; share via fixture scope (or Portfolio
-save/load) so each class doesn't redo expensive setup.
+Each browser worker can own a Streamlit server and Chromium processes. Check available memory,
+native thread limits and other active jobs before increasing concurrency. A cgroup/systemd scope
+can provide an additional local resource bound when appropriate; it is not a repository-wide
+execution requirement. Timeouts and OOMs are failures to investigate, including application state,
+synchronization and the resource budget.
 
-## Manage Plots preconditions (the usual cause of "nothing renders")
-Data must be loaded; the shaper pipeline must be **finalized**; X/Y axes must be set — only then does
-the chart render. Happy path: Data Source → parse → Manage Plots → create plot → add shaper →
-finalize → select X/Y → refresh. Plot controls use `plot.<id>.widgets.*` session keys for isolation.
+Plotly static PDF/SVG/PNG downloads use `plotly_download_bytes` in
+`src/web/rendering/figure_export.py`, which bounds Kaleido attempts and retries with a fresh browser.
+Keep export cases serial; HTML export can verify download controls without Chromium. Synchronize
+engine selection before asserting chart content so an old Matplotlib image cannot satisfy a
+Plotly-render expectation.
 
-## Verify after
-`make test-unit` for no-browser layers; `make test-visual` (or
-`./python_venv/bin/pytest tests/e2e/ -m requires_browser --timeout=120`) for browser layers.
-The Playwright page objects are useful for reproducing UI bugs interactively.
+## Stateful flows
+
+Class-scoped fixtures can reuse meaningful setup when tests deliberately share an ordered flow.
+Keep each class's reset boundary explicit. The fixture tiers represent an empty workspace, loaded
+CSV, a created plot and a finalized shaper pipeline; do not rely on another class's residual state.
+
+Manage Plots rendering needs loaded data, a finalized pipeline and valid family-specific mappings.
+Plot controls use `plot.<id>.widgets.*` keys. Run the relevant no-browser tests first, then the
+browser/visual cases that exercise the changed behavior.

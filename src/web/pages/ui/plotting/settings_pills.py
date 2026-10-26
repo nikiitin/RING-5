@@ -4,7 +4,7 @@ Provides a declarative data structure (``SettingsSection``) and a renderer
 (``render_settings_pills``) that together power the top-level pills
 navigation used in the plot-styling sidebar.
 
-Layout, typography, and legend settings are always visible. The advanced
+Layout, themes, typography, and legend settings are always visible. The advanced
 toggle reveals axes, data labels, colors, and other specialized controls.
 """
 

@@ -23,7 +23,7 @@ def sample_data() -> pd.DataFrame:
 
 
 class TestScatterPlotCreateFigure:
-    """Tests for ScatterPlot.create_figure."""
+    """Public rendering tests for ScatterPlot."""
 
     # [test->req~ring5.plot.scatter~1]
 
