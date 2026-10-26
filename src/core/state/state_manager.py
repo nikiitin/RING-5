@@ -12,6 +12,8 @@ following the Dependency Inversion Principle.
 from collections.abc import Callable
 from contextlib import AbstractContextManager
 
+from src.core.models.source_context_models import LoadedDataOrigin
+
 from src.core.models.preview_models import PreviewContext
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
@@ -69,8 +71,13 @@ class StateManager(Protocol):
         *,
         operation: str = "Update dataset",
         source_datasets: tuple[str, ...] = (),
+        origin: LoadedDataOrigin | None = None,
     ) -> None:
         """Set the raw DataFrame with optional change callback."""
+        raise NotImplementedError
+
+    def get_loaded_origin(self) -> LoadedDataOrigin | None:
+        """Return replay facts associated with the current exact source frame."""
         raise NotImplementedError
 
     def get_processed_data(self) -> pd.DataFrame | None:
@@ -98,6 +105,7 @@ class StateManager(Protocol):
         replace: bool = False,
         operation: str = "Add dataset",
         source_datasets: tuple[str, ...] = (),
+        origin: LoadedDataOrigin | None = None,
     ) -> DatasetInfo:
         """Retain a named dataset in the session workspace."""
         raise NotImplementedError

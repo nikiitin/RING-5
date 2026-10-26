@@ -26,6 +26,7 @@ class AxisConfig:
     label_position: float = 0.5  # 0=bottom/left, 0.5=center, 1=top/right
     label_standoff: int = -1  # sentinel: -1 = auto
     title_vshift: float = 0.0  # vertical shift for title annotation
+    title_angle: float | None = None  # clockwise degrees; None uses the native axis title
 
     # Ticks
     tick_angle: float = 0.0  # rotation in degrees

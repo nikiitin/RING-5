@@ -3,9 +3,14 @@
 from __future__ import annotations
 
 import errno
+import gc
+import os
 import subprocess
 import sys
+import weakref
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from threading import Event
 from types import SimpleNamespace
 from unittest.mock import Mock
 
@@ -56,6 +61,50 @@ def test_lock_failed_acquisition_keeps_current_owner_alive(tmp_path: Path) -> No
         owner.release()
     contender.acquire(blocking=False)
     contender.release()
+
+
+def test_idle_lock_registry_reclaims_paths_without_splitting_waiters(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    waiter_ready, acquired, release_waiter = Event(), Event(), Event()
+    identities = []
+
+    class ObservedRegistry(weakref.WeakValueDictionary):
+        def setdefault(self, key, default):
+            value = super().setdefault(key, default)
+            identities.append(id(value))
+            if len(identities) == 2:
+                waiter_ready.set()
+            return value
+
+    registry = ObservedRegistry()
+    monkeypatch.setattr(module, "_locks", registry)
+    path = tmp_path / "transaction.lock"
+
+    def wait_for_lock():
+        with file_lock(path):
+            acquired.set()
+            assert release_waiter.wait(5)
+
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        with file_lock(path):
+            lock_ref = weakref.ref(registry[os.path.normcase(str(path.resolve()))])
+            future = executor.submit(wait_for_lock)
+            assert waiter_ready.wait(5)
+            assert not acquired.is_set()
+        try:
+            assert acquired.wait(5)
+            assert lock_ref() is not None
+            assert identities[0] == identities[1]
+        finally:
+            release_waiter.set()
+        future.result(timeout=5)
+    gc.collect()
+    assert lock_ref() is None
+    for index in range(100):
+        with file_lock(tmp_path / f"idle-{index}.lock"):
+            assert len(registry) == 1
+    assert len(registry) == 0
 
 
 def test_windows_adapter_locks_one_initialized_byte_and_releases(

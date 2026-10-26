@@ -1,14 +1,15 @@
 """
 Plotly connector — translate resolved FigureConfig into go.Figure updates.
 
-``StyleApplicator.apply_styles()`` delegates to ``ConfigSpecBuilder`` to
+The neutral preparation owner delegates to ``ConfigSpecBuilder`` to
 build a FigureConfig and then calls this connector to apply it.
 
 Usage:
     from src.web.rendering.plotly_connector import FigureSpecToPlotly
 
     resolved = resolve_config(spec)
-    fig = FigureSpecToPlotly.apply(resolved, fig)
+    # ``rendered`` is the explicit result of traces_to_plotly or build_plotly_figure.
+    FigureSpecToPlotly.apply(resolved, rendered)
 """
 
 from __future__ import annotations
@@ -21,6 +22,10 @@ import plotly.graph_objects as go
 from src.core.common.safe_format import plotly_numeric_template
 from src.core.models.visualization.figure_config import FigureConfig
 from src.core.models.visualization.legend_config import LegendConfig
+from src.web.rendering._color_utils import color_with_alpha
+from src.web.rendering._hatch_utils import plotly_hatch
+from src.web.rendering._render_result import PlotlyRenderResult
+from src.web.rendering._legend_projection import project_plotly_shared
 from src.web.rendering._heatmap_utils import (
     heatmap_text_colors,
     compute_nice_range,
@@ -73,19 +78,21 @@ class FigureSpecToPlotly:
     """
 
     @staticmethod
-    def apply(spec: FigureConfig, fig: go.Figure) -> go.Figure:
+    def apply(spec: FigureConfig, rendered: PlotlyRenderResult) -> None:
         # [impl->req~ring5.render.plotly~1]
         # [impl->req~ring5.extension.render-connector~1]
         """Apply the full FigureConfig to a Plotly figure.
 
         Args:
             spec: A resolved FigureConfig (no sentinel values).
-            fig: The Plotly figure to update in place.
+            rendered: Explicit native root and source-to-trace associations.
 
-        Returns:
-            The same figure, updated.
+        Raises:
+            ValueError: Any source, native membership or generated role is invalid.
         """
         # Pipeline order: see _connector_protocol.STYLING_PIPELINE_ORDER
+        rendered.validate()
+        fig = rendered.figure
         FigureSpecToPlotly._apply_dimensions(spec, fig)
         FigureSpecToPlotly._apply_backgrounds(spec, fig)
         FigureSpecToPlotly._apply_title(spec, fig)
@@ -99,11 +106,12 @@ class FigureSpecToPlotly:
         FigureSpecToPlotly._apply_font_family(spec, fig)
         FigureSpecToPlotly._apply_reference_lines(spec, fig)
         FigureSpecToPlotly._apply_data_labels(spec, fig)
-        FigureSpecToPlotly._apply_series_styling(spec, fig)
-        FigureSpecToPlotly._apply_trace_overrides(spec, fig)
-        FigureSpecToPlotly._apply_stripes(spec, fig)
+        FigureSpecToPlotly._apply_stripes(spec, rendered)
+        FigureSpecToPlotly._apply_series_styling(spec, rendered)
+        FigureSpecToPlotly._apply_trace_overrides(spec, rendered)
         FigureSpecToPlotly._apply_axis_colors(spec, fig)
-        return fig
+        FigureSpecToPlotly._project_labels(spec, rendered)
+        project_plotly_shared(rendered)
 
     @staticmethod
     def _apply_dimensions(spec: FigureConfig, fig: go.Figure) -> None:
@@ -229,7 +237,7 @@ class FigureSpecToPlotly:
 
         update: dict[str, Any] = {}
 
-        if y_axis.label:
+        if y_axis.label and y_axis.title_angle is None:
             update["title"] = dict(
                 text=y_axis.label,
                 font=dict(size=typo.font_size_ylabel),
@@ -239,6 +247,8 @@ class FigureSpecToPlotly:
             # Note: vshift (title_vshift) is Matplotlib-only — Plotly's
             # yaxis.Title only supports text, font, standoff.  Vertical
             # repositioning is handled via Matplotlib's set_label_coords.
+        elif y_axis.title_angle is not None:
+            update["title"] = dict(text="")
 
         update["tickfont"] = dict(size=typo.font_size_yticks)
 
@@ -285,15 +295,19 @@ class FigureSpecToPlotly:
             "side": "right",
         }
 
-        if y2.label:
+        if y2.label and y2.title_angle is None:
             update["title"] = dict(
                 text=y2.label,
                 font=dict(size=typo.font_size_y2label),
             )
             if y2.label_standoff >= 0:
                 update["title"]["standoff"] = int(y2.label_standoff)  # type: ignore[index]
+        elif y2.title_angle is not None:
+            update["title"] = dict(text="")
 
-        update["tickfont"] = dict(size=typo.font_size_y2ticks)
+        update["tickfont"] = dict(
+            size=typo.font_size_y2ticks, color=y2.tick_font_color or y2.axis_color
+        )
 
         if y2.range is not None:
             update["range"] = y2.range
@@ -324,10 +338,10 @@ class FigureSpecToPlotly:
         fig.update_layout(legend=legend_update)
 
         # Secondary legends (legend2, legend3) if multi-legend layout
-        for i, legend in enumerate(spec.legends[1:], start=2):
+        for legend in spec.legends[1:]:
             if not legend.visible:
                 continue
-            legend_key = f"legend{i}"
+            legend_key = "legend2" if legend.role == "secondary" else "legend3"
             legend_dict = FigureSpecToPlotly._build_legend_dict(legend)
             fig.update_layout(**{legend_key: legend_dict})  # type: ignore[arg-type]
 
@@ -504,7 +518,13 @@ class FigureSpecToPlotly:
             result["yanchor"] = legend.anchor_y
 
         if legend.bgcolor:
-            result["bgcolor"] = legend.bgcolor
+            result["bgcolor"] = (
+                color_with_alpha(legend.bgcolor, legend.bgalpha)
+                if legend.bgalpha >= 0
+                else legend.bgcolor
+            )
+        elif legend.bgalpha >= 0:
+            result["bgcolor"] = color_with_alpha("#FFFFFF", legend.bgalpha)
         if legend.border_width > 0:
             result["borderwidth"] = legend.border_width
             result["bordercolor"] = legend.border_color
@@ -657,15 +677,16 @@ class FigureSpecToPlotly:
             )
 
     @staticmethod
-    def _apply_series_styling(spec: FigureConfig, fig: go.Figure) -> None:
+    def _apply_series_styling(spec: FigureConfig, rendered: PlotlyRenderResult) -> None:
         """Apply per-trace line_width, marker, opacity from series_styles."""
         # [impl->req~ring5.figure.series-styling~1]
         if not spec.series_styles:
             return
 
-        for i, trace in enumerate(_fig_traces(fig)):
+        for binding in (item for panel in rendered.panel_bindings for item in panel):
+            trace = binding.native_trace
             # Use modular index to cycle through styles
-            style = spec.series_styles[i % len(spec.series_styles)]
+            style = spec.series_styles[binding.source_ordinal % len(spec.series_styles)]
             trace_type = str(getattr(trace, "type", ""))
 
             update: dict[str, Any] = {}
@@ -687,12 +708,19 @@ class FigureSpecToPlotly:
                     color=style.bar_border_color or "#000",
                 )
                 update["marker"] = marker_update
+            if style.hatching_pattern is not None and trace_type in ("bar", "histogram"):
+                marker_update = update.get("marker", {})
+                marker_update["pattern"] = {
+                    **plotly_hatch(style.hatching_pattern),
+                    "fillmode": "replace",
+                }
+                update["marker"] = marker_update
 
             if update:
                 trace.update(**update)
 
     @staticmethod
-    def _apply_stripes(spec: FigureConfig, fig: go.Figure) -> None:
+    def _apply_stripes(spec: FigureConfig, rendered: PlotlyRenderResult) -> None:
         """Alternating row background shapes."""
         if not spec.enable_stripes:
             return
@@ -700,13 +728,16 @@ class FigureSpecToPlotly:
         # Apply hatching pattern to bar-like traces only (scatter doesn't
         # support marker.pattern).
         if spec.hatching_sequence:
-            for i, trace in enumerate(_fig_traces(fig)):
+            for binding in (item for panel in rendered.panel_bindings for item in panel):
+                trace = binding.native_trace
                 if not isinstance(trace, (go.Bar, go.Histogram)):
                     continue
-                pattern = spec.hatching_sequence[i % len(spec.hatching_sequence)]
+                pattern = spec.hatching_sequence[
+                    binding.source_ordinal % len(spec.hatching_sequence)
+                ]
                 trace.update(
                     marker=dict(
-                        pattern=dict(shape=pattern, fillmode="replace"),
+                        pattern={**plotly_hatch(pattern), "fillmode": "replace"},
                     )
                 )
 
@@ -825,7 +856,7 @@ class FigureSpecToPlotly:
 
     # Per-trace overrides and axis aliases
     @staticmethod
-    def _apply_trace_overrides(spec: FigureConfig, fig: go.Figure) -> None:
+    def _apply_trace_overrides(spec: FigureConfig, rendered: PlotlyRenderResult) -> None:
         """Apply per-trace styling overrides keyed by trace name.
 
         ``spec.trace_overrides`` maps original trace names to typed
@@ -835,15 +866,13 @@ class FigureSpecToPlotly:
         if not spec.trace_overrides:
             return
 
-        for trace in _fig_traces(fig):
+        for binding in (item for panel in rendered.panel_bindings for item in panel):
+            trace = binding.native_trace
             trace_type = str(getattr(trace, "type", ""))
-            t_name = str(getattr(trace, "name", ""))
+            t_name = binding.original_name
             if t_name not in spec.trace_overrides:
                 continue
             style = spec.trace_overrides[t_name]
-
-            if style.display_name:
-                trace.name = style.display_name
 
             if style.color and trace_type not in (
                 "heatmap",
@@ -861,19 +890,21 @@ class FigureSpecToPlotly:
                 elif trace_type in ("box", "violin"):
                     trace.update(fillcolor=style.color, line=dict(color=style.color))
 
-            if style.symbol and trace_type not in (
-                "heatmap",
-                "waterfall",
-                "sankey",
-                "parcoords",
+            if style.symbol and trace_type in (
+                "scatter",
+                "scattergl",
+                "scatterpolar",
+                "box",
+                "violin",
             ):
                 trace.update(marker=dict(symbol=style.symbol))
 
-            if style.marker_size > 0 and trace_type not in (
-                "heatmap",
-                "waterfall",
-                "sankey",
-                "parcoords",
+            if style.marker_size > 0 and trace_type in (
+                "scatter",
+                "scattergl",
+                "scatterpolar",
+                "box",
+                "violin",
             ):
                 trace.update(marker=dict(size=style.marker_size))
 
@@ -886,15 +917,48 @@ class FigureSpecToPlotly:
             ):
                 trace.update(line=dict(width=style.line_width))
 
-            if style.hatching_pattern and trace_type in ("bar", "histogram"):
+            if style.hatching_pattern is not None and trace_type in ("bar", "histogram"):
                 trace.update(
                     marker=dict(
-                        pattern=dict(
-                            shape=style.hatching_pattern,
-                            fillmode="replace",
-                        ),
+                        pattern={**plotly_hatch(style.hatching_pattern), "fillmode": "replace"},
                     )
                 )
+
+    @staticmethod
+    def _project_labels(spec: FigureConfig, rendered: PlotlyRenderResult) -> None:
+        """Project text after styling without changing source or linked-group identity."""
+        # [impl->req~ring5.figure.ordering-renaming~2]
+        role_visibility = {legend.role: legend.visible for legend in spec.legends}
+        for panel in rendered.panel_bindings:
+            for binding in panel:
+                trace = binding.native_trace
+                trace.name = spec.legend_labels.get(binding.original_name, binding.original_name)
+                if isinstance(
+                    trace,
+                    (
+                        go.Bar,
+                        go.Histogram,
+                        go.Scatter,
+                        go.Scattergl,
+                        go.Scatterpolar,
+                        go.Box,
+                        go.Violin,
+                        go.Waterfall,
+                    ),
+                ):
+                    trace.showlegend = (
+                        binding.show_in_legend
+                        and trace.visible is not False
+                        and role_visibility.get(binding.legend_role, True)
+                    )
+        annotations = {
+            annotation.name: annotation
+            for annotation in rendered.figure.layout.annotations or ()
+            if annotation.name is not None
+        }
+        for role in rendered.layout_roles:
+            source = role.source.original_name
+            annotations[role.role_name].text = spec.legend_labels.get(source, source)
 
     @staticmethod
     def _apply_label_aliases(
@@ -916,6 +980,14 @@ class FigureSpecToPlotly:
             return
 
         mapping: dict[str, str] = axis.label_aliases
+
+        # Grouped geometry already owns numeric positions and their display labels.
+        # Apply aliases to those labels without replacing positions with trace X values.
+        if axis.tick_values is not None and axis.tick_text is not None:
+            update["tickmode"] = "array"
+            update["tickvals"] = list(axis.tick_values)
+            update["ticktext"] = [mapping.get(text, text) for text in axis.tick_text]
+            return
 
         unique_vals: list[str] = []
         seen: set[str] = set()

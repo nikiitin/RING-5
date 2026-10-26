@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock
 
 if TYPE_CHECKING:
+    from ring5 import Session
     from src.core.models.preview_models import PreviewContext
 
 from src.core.common.runtime_limits import configure_native_thread_limits
@@ -52,6 +53,18 @@ def columns_side_effect(spec: int | list[Any] | tuple[Any, ...], **kwargs: Any) 
 
 
 # Shared Fixtures
+
+
+@pytest.fixture
+def plot_session() -> Generator["Session", None, None]:
+    """Own a public rendering session for a test and drain it on teardown."""
+    from ring5 import Session
+
+    session = Session()
+    try:
+        yield session
+    finally:
+        session.close()
 
 
 @pytest.fixture

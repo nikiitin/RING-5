@@ -4,6 +4,7 @@ from typing import Any
 
 import streamlit as st
 
+from src.core.common.plot_payload import BAR_HATCH_PATTERNS
 from .base_ui import BaseStyleUI
 
 
@@ -14,16 +15,23 @@ class BarStyleUI(BaseStyleUI):
         self, current_style: dict[str, Any], key_suffix: str, key_prefix: str = ""
     ) -> None:
         # [impl->req~ring5.figure.series-styling~1]
-        patterns = ["", "/", "\\", "x", "-", "|", "+", "."]
-        cur_pat = current_style.get("pattern", "")
-        if isinstance(cur_pat, dict):
-            cur_pat = cur_pat.get("shape", "")
+        cur_pat = current_style.get("pattern")
+        if "pattern" in current_style and (
+            type(cur_pat) is not str or cur_pat not in BAR_HATCH_PATTERNS
+        ):
+            raise ValueError("A saved series pattern must be an exact supported string.")
+        options = (None, *BAR_HATCH_PATTERNS)
 
         new_pattern = st.selectbox(
             "Pattern",
-            options=patterns,
-            index=patterns.index(cur_pat) if cur_pat in patterns else 0,
+            options=options,
+            index=options.index(cur_pat),
             key=f"{key_prefix}pat_{key_suffix}",
-            format_func=lambda x: "Solid" if x == "" else x,
+            format_func=lambda x: (
+                "Default (trace/theme)" if x is None else ("Solid" if x == "" else x)
+            ),
         )
-        current_style["pattern"] = new_pattern
+        if new_pattern is None:
+            current_style.pop("pattern", None)
+        else:
+            current_style["pattern"] = new_pattern

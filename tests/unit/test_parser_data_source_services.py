@@ -1,12 +1,30 @@
 """Tests for parser, pattern-index, work-pool, and data-source services."""
 
 import configparser
-import os
+import json
+import math
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
+
+from src.core.common.parsed_output import ParsedOutputIO
+from src.core.models.parsed_output_models import ParsedCell, ParsedFileResult, ParsedVariableResult
+from src.core.models.parsing_models import ParseBatchResult
+from src.parsing.gem5.impl.strategies.config_aware import ConfigAwareParseWork
+from tests.helpers.parsed_values import completed_future, numeric_file
+
+
+@dataclass(frozen=True)
+class _TypedWork:
+    source_path: str
+    result: ParsedFileResult
+
+    def __call__(self) -> ParsedFileResult:
+        return self.result
+
 
 # Scanned-variable serialization
 
@@ -42,208 +60,146 @@ class TestStrategyFactory:
 
 
 class TestConfigAwareStrategy:
-    """Tests for configuration discovery and parsing failures."""
+    """Configuration metadata is resolved by the source-owned typed worker."""
 
-    def test_post_process_no_sim_path(self) -> None:
-        """Worker results without internal provenance fail visibly."""
-        from src.parsing.gem5.impl.strategies.config_aware import (
-            ConfigAwareStrategy,
-        )
+    def test_work_rejects_mismatched_source_provenance(self) -> None:
+        value = numeric_file("other-source", {"data": 123.0})
+        with pytest.raises(ValueError, match="invalid source provenance"):
+            ConfigAwareParseWork(_TypedWork("planned-source", value))()
 
-        strategy = ConfigAwareStrategy()
-        results = [{"some_data": 123}]
-        with pytest.raises(RuntimeError, match="missing simulation provenance"):
-            strategy.post_process(results)
-
-    def test_post_process_config_found(self, tmp_path: Path) -> None:
-        """Result with sim_path pointing to existing config.ini."""
-        from src.parsing.gem5.impl.strategies.config_aware import (
-            ConfigAwareStrategy,
-        )
-        from src.parsing.gem5.impl.strategies.file_parser_strategy import (
-            INTERNAL_SIM_PATH_KEY,
-        )
-
-        # Create a mock config.ini
+    def test_work_config_found(self, tmp_path: Path) -> None:
         config_path = tmp_path / "config.ini"
-        config_path.write_text("[system]\ncpu_type = O3CPU\nnum_cpus = 4\n")
-
+        config_path.write_text("[system]\ncpu_type = O3CPU\nnum_cpus = 4\n", encoding="utf-8")
         stats_path = tmp_path / "stats.txt"
-        stats_path.write_text("dummy")
+        stats_path.write_text("dummy", encoding="utf-8")
+        value = numeric_file(str(stats_path), {"data": 123.0})
+        result = ConfigAwareParseWork(_TypedWork(str(stats_path), value))()
+        metadata = {cell.column: cell.value for cell in result.metadata}
+        assert len(result.variables) == 1
+        assert metadata["sim_path"] == str(stats_path)
+        assert '"cpu_type":"O3CPU"' in str(metadata["config_json"])
 
-        strategy = ConfigAwareStrategy()
-        results = [{INTERNAL_SIM_PATH_KEY: str(stats_path), "data": "abc"}]
-        out = strategy.post_process(results)
-
-        assert len(out) == 1
-        assert out[0]["sim_path"] == str(stats_path)
-        assert '"cpu_type":"O3CPU"' in out[0]["config_json"]
-
-    def test_post_process_config_not_found(self, tmp_path: Path) -> None:
-        """Result with sim_path but no config.ini in the directory."""
-        from src.parsing.gem5.impl.strategies.config_aware import (
-            ConfigAwareStrategy,
-        )
-        from src.parsing.gem5.impl.strategies.file_parser_strategy import (
-            INTERNAL_SIM_PATH_KEY,
-        )
-
+    def test_work_config_not_found(self, tmp_path: Path) -> None:
         stats_path = tmp_path / "stats.txt"
-        stats_path.write_text("dummy")
-
-        strategy = ConfigAwareStrategy()
-        results = [{INTERNAL_SIM_PATH_KEY: str(stats_path), "data": "abc"}]
+        stats_path.write_text("dummy", encoding="utf-8")
+        value = numeric_file(str(stats_path), {"data": 123.0})
         with pytest.raises(FileNotFoundError, match="config.ini not found"):
-            strategy.post_process(results)
+            ConfigAwareParseWork(_TypedWork(str(stats_path), value))()
 
     def test_parse_config_error_handling(self, tmp_path: Path) -> None:
-        """_parse_config handles malformed config gracefully."""
-        from src.parsing.gem5.impl.strategies.config_aware import (
-            ConfigAwareStrategy,
-        )
-
-        # Create a config that will cause parser issues
+        """A valid configuration retains its exact section and option values."""
         config_path = tmp_path / "config.ini"
-        config_path.write_text("[section1]\nkey1 = value1\n")
-
-        strategy = ConfigAwareStrategy()
-        result = strategy._parse_config(config_path)
+        config_path.write_text("[section1]\nkey1 = value1\n", encoding="utf-8")
+        result = json.loads(ConfigAwareParseWork._read_config(config_path))
         assert isinstance(result, dict)
         assert "section1" in result
+        assert result["section1"]["key1"] == "value1"
 
     def test_parse_config_unreadable(self, tmp_path: Path) -> None:
         """An empty configuration is rejected rather than silently emitted."""
-        from src.parsing.gem5.impl.strategies.config_aware import (
-            ConfigAwareStrategy,
-        )
-
-        # Non-existent path — configparser.read silently handles missing files
-        # but we should test with a path that can't be parsed
         config_path = tmp_path / "bad_config.ini"
-        config_path.write_text("")  # Empty is fine for configparser
-
-        strategy = ConfigAwareStrategy()
+        config_path.write_text("", encoding="utf-8")
         with pytest.raises(RuntimeError, match="contains no sections"):
-            strategy._parse_config(config_path)
-
-
-# Parse-service expansion and finalization
+            ConfigAwareParseWork._read_config(config_path)
 
 
 class TestParseServiceFinalize:
-    """Tests for parse finalization and CSV construction."""
+    """Finalization validates its complete plan before canonical CSV publication."""
 
-    def test_finalize_parsing_no_results(self) -> None:
-        from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
+    def test_finalize_parsing_no_results(self, tmp_path: Path) -> None:
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
-        result = ParseService.finalize_parsing("/tmp/out", [])
-        assert result is None
+        value = numeric_file("source", {"x": 1.0})
+        batch = ParseBatchResult(
+            (completed_future(value),), ("x",), ("source",), str(tmp_path), "simple"
+        )
+        with pytest.raises(ValueError, match="non-empty file result"):
+            Gem5Parser.finalize_parsing(batch, [])
+        assert not (tmp_path / "results.csv").exists()
 
     @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
-    def test_finalize_parsing_delegates_to_strategy(
+    def test_finalize_parsing_validates_strategy(
         self, mock_factory: MagicMock, tmp_path: Path
     ) -> None:
-        from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
+        from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
-        mock_strategy = MagicMock()
-        mock_strategy.post_process.return_value = []
-        mock_factory.create.return_value = mock_strategy
-
-        _ = ParseService.finalize_parsing(
-            str(tmp_path), [{"data": 1}], strategy_type="config_aware", var_names=["x"]
+        value = numeric_file("source", {"x": 1.0})
+        batch = ParseBatchResult(
+            (completed_future(value),), ("x",), ("source",), str(tmp_path), "config_aware"
         )
-        mock_factory.create.assert_called_with("config_aware")
-        mock_strategy.post_process.assert_called_once()
+        output = Gem5Parser.finalize_parsing(batch, [value])
+        mock_factory.create.assert_called_once_with("config_aware")
+        assert ParsedOutputIO.to_frame(output).to_dict("records") == [{"x": 1.0}]
 
-    def test_construct_final_csv_empty(self) -> None:
-        from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
+    def test_typed_csv_empty_rejects_before_publication(self, tmp_path: Path) -> None:
+        output = tmp_path / "results.csv"
+        with pytest.raises(ValueError, match="non-empty file result"):
+            ParsedOutputIO.publish(output, ParsedOutputIO.resolve([], [], ("source",)))
+        assert not output.exists()
 
-        result = ParseService.construct_final_csv("/tmp/out", [])
-        assert result is None
-
-    def test_construct_final_csv_with_data(self, tmp_path: Path) -> None:
-        """Cover CSV generation with stat objects."""
-        from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
-
-        # Create mock stat objects with the expected interface
-        mock_var = MagicMock()
-        mock_var.entries = ["e0", "e1"]
-        mock_var.balance_content = MagicMock()
-        mock_var.reduce_duplicates = MagicMock()
-        mock_var.reduced_content = {"e0": "1.0", "e1": "2.5"}
-
-        results = [{"varA": mock_var}]
-        csv_path = ParseService.construct_final_csv(str(tmp_path), results, var_names=["varA"])
-        assert csv_path is not None
-        assert os.path.exists(csv_path)
-
-        # Check CSV content
-        with open(csv_path) as f:
-            content = f.read()
+    def test_typed_csv_with_data(self, tmp_path: Path) -> None:
+        value = ParsedFileResult(
+            "source",
+            (
+                ParsedVariableResult(
+                    "varA",
+                    "number",
+                    "entries",
+                    (ParsedCell("varA..e0", "number", 1.0), ParsedCell("varA..e1", "number", 2.5)),
+                ),
+            ),
+        )
+        output = ParsedOutputIO.publish(
+            tmp_path / "results.csv", ParsedOutputIO.resolve([value], ["varA"], ("source",))
+        )
+        csv_path = Path(output.csv_path)
+        assert csv_path.is_file()
+        content = csv_path.read_text(encoding="utf-8")
         assert "varA..e0" in content
         assert "varA..e1" in content
         assert "1.0" in content
 
-    def test_construct_final_csv_scalar_no_entries(self, tmp_path: Path) -> None:
-        """Cover scalar variable path (no entries)."""
-        from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
-
-        mock_var = MagicMock()
-        mock_var.entries = []
-        mock_var.balance_content = MagicMock()
-        mock_var.reduce_duplicates = MagicMock()
-        mock_var.reduced_content = "42"
-
-        results = [{"scalarVar": mock_var}]
-        csv_path = ParseService.construct_final_csv(str(tmp_path), results, var_names=["scalarVar"])
-        assert csv_path is not None
-
-        with open(csv_path) as f:
-            content = f.read()
+    def test_typed_csv_scalar_no_entries(self, tmp_path: Path) -> None:
+        value = numeric_file("source", {"scalarVar": 42.0})
+        output = ParsedOutputIO.publish(
+            tmp_path / "results.csv", ParsedOutputIO.resolve([value], ["scalarVar"], ("source",))
+        )
+        assert Path(output.csv_path).is_file()
+        content = Path(output.csv_path).read_text(encoding="utf-8")
         assert "scalarVar" in content
         assert "42" in content
 
-    def test_construct_final_csv_missing_var_in_result(self, tmp_path: Path) -> None:
-        """Cover NaN path when variable is absent from a result."""
-        from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
-
-        mock_var = MagicMock()
-        mock_var.entries = []
-        mock_var.balance_content = MagicMock()
-        mock_var.reduce_duplicates = MagicMock()
-        mock_var.reduced_content = "10"
-
-        results = [{"a": mock_var}]
-        csv_path = ParseService.construct_final_csv(
-            str(tmp_path), results, var_names=["a", "missing_var"]
+    def test_typed_csv_missing_numeric_measurement(self, tmp_path: Path) -> None:
+        value = numeric_file("source", {"a": 10.0, "missing_var": math.nan})
+        output = ParsedOutputIO.publish(
+            tmp_path / "results.csv",
+            ParsedOutputIO.resolve([value], ["a", "missing_var"], ("source",)),
         )
-        assert csv_path is not None
-
-        with open(csv_path) as f:
-            content = f.read()
+        assert Path(output.csv_path).is_file()
+        content = Path(output.csv_path).read_text(encoding="utf-8")
         assert "NaN" in content
 
-    def test_construct_final_csv_raw_data(self, tmp_path: Path) -> None:
-        """Cover raw data path (no balance_content attribute)."""
-        from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
-
-        # Raw data still needs 'entries' for header construction,
-        # but lacks 'balance_content' triggering the raw-data row path.
-        class RawVar:
-            entries: list[str] = []
-
-            def __str__(self) -> str:
-                return "benchmark_x"
-
-        raw_var = RawVar()
-
-        results = [{"configVar": raw_var}]
-        csv_path = ParseService.construct_final_csv(str(tmp_path), results, var_names=["configVar"])
-        assert csv_path is not None
-
-        with open(csv_path) as f:
-            content = f.read()
+    def test_typed_csv_literal_configuration(self, tmp_path: Path) -> None:
+        value = ParsedFileResult(
+            "source",
+            (
+                ParsedVariableResult(
+                    "configVar", "text", "scalar", (ParsedCell("configVar", "text", "benchmark_x"),)
+                ),
+            ),
+        )
+        output = ParsedOutputIO.publish(
+            tmp_path / "results.csv", ParsedOutputIO.resolve([value], ["configVar"], ("source",))
+        )
+        assert Path(output.csv_path).is_file()
+        content = Path(output.csv_path).read_text(encoding="utf-8")
         assert "benchmark_x" in content
+        with pytest.raises(TypeError, match="ParsedFileResult"):
+            ParsedOutputIO.resolve(
+                [{"configVar": "benchmark_x"}],  # type: ignore[list-item]
+                ["configVar"],
+                ("source",),
+            )
 
 
 # Pattern-index selection
@@ -485,7 +441,7 @@ class TestSelectorValidation:
         from src.core.services.shapers.impl.selector import Selector
 
         with pytest.raises(TypeError, match="abstract"):
-            Selector({"column": "x"})
+            Selector({"column": "x"})  # type: ignore[abstract]
 
     def test_missing_column_raises(self) -> None:
         from src.core.services.shapers.impl.selector_algorithms.condition_selector import (
@@ -898,8 +854,8 @@ class TestItemSelectorVerify:
 class TestRepositoryStateManager:
     """Tests for repository data validation and clearing."""
 
-    def test_set_data_type_enforcement(self) -> None:
-        """Config variable columns should be cast to str."""
+    def test_set_data_preserves_typed_values_independently_of_editor(self) -> None:
+        """Mutable editor declarations cannot recast published typed frame columns."""
         import pandas as pd
 
         from src.core.state.repository_state_manager import RepositoryStateManager
@@ -914,7 +870,8 @@ class TestRepositoryStateManager:
 
         result = mgr.get_data()
         assert result is not None
-        assert pd.api.types.is_string_dtype(result["benchmark"])  # config vars cast to string
+        assert pd.api.types.is_integer_dtype(result["benchmark"])
+        assert result["benchmark"].tolist() == [1, 2, 3]
 
     def test_set_data_skip_same_object(self) -> None:
         """Setting the same DataFrame object again should be a no-op."""
@@ -979,18 +936,13 @@ class TestConfigAwareParseConfigException:
     """Tests for configuration parsing failures."""
 
     def test_parse_config_with_exception(self, tmp_path: Path) -> None:
-        from src.parsing.gem5.impl.strategies.config_aware import (
-            ConfigAwareStrategy,
-        )
-
         config_path = tmp_path / "config.ini"
         config_path.write_text("[section]\nkey = val\n")
 
-        strategy = ConfigAwareStrategy()
         with patch("src.parsing.gem5.impl.strategies.config_aware._LiteralConfigParser") as mock_cp:
             mock_parser = MagicMock()
-            mock_parser.read.side_effect = configparser.Error("parse error")
+            mock_parser.read_string.side_effect = configparser.Error("parse error")
             mock_cp.return_value = mock_parser
 
             with pytest.raises(RuntimeError, match="parse error"):
-                strategy._parse_config(config_path)
+                ConfigAwareParseWork._read_config(config_path)

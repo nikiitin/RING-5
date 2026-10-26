@@ -6,7 +6,6 @@ import json
 import subprocess
 import sys
 from pathlib import Path
-from types import SimpleNamespace
 from typing import cast
 from unittest.mock import MagicMock, patch
 
@@ -16,6 +15,7 @@ import pytest
 import ring5
 from src.core.common.stat_config_codec import StatConfigCodec
 from src.core.models.parsing_models import StatConfig
+from src.core.models.recipe_models import ANALYSIS_RECIPE_SCHEMA_VERSION
 from tests.helpers.html_assertions import assert_plotly_document
 from src.core.services.data_services.path_service import PathService
 
@@ -76,7 +76,9 @@ def test_recipe_exports_execute_through_only_the_public_api(tmp_path: Path) -> N
     for cell in notebook["cells"]:
         if cell["cell_type"] == "code":
             exec(compile(cell["source"], f"{cell['id']}.py", "exec"), namespace)
-    assert namespace["result"].rows == 2  # type: ignore[union-attr]
+    result = namespace["result"]
+    assert isinstance(result, ring5.AnalysisRecipeRunResult)
+    assert result.rows == 2
 
 
 def test_parameterized_recipe_round_trip_executes_plots_and_exports(tmp_path: Path) -> None:
@@ -181,7 +183,11 @@ def test_recipe_capture_and_errors_use_the_public_contract(tmp_path: Path) -> No
             session.create_plot("bar", data=data, config={"x": "x", "y": "y"}, name="Bars")
             captured = session.capture_analysis_recipe("Captured")
 
-            assert captured.source == ring5.RecipeSource(kind="csv", path=str(csv_path))
+            assert captured.source == ring5.RecipeSource(
+                kind="csv",
+                path=str(csv_path),
+                csv_policy=ring5.InferredCsvPolicy(("benchmark_name", "config_description")),
+            )
             assert captured.plots[0].name == "Bars"
             assert captured.plots[0].config == {"x": "x", "y": "y"}
 
@@ -210,13 +216,13 @@ def test_recipe_capture_and_errors_use_the_public_contract(tmp_path: Path) -> No
                 session.delete_analysis_recipe(1)  # type: ignore[arg-type]
             with pytest.raises(ring5.RecipeError, match="Analysis recipe must"):
                 session.export_analysis_recipe("invalid")  # type: ignore[arg-type]
+            future = json.loads(payload)
+            future["schema_version"] = ANALYSIS_RECIPE_SCHEMA_VERSION + 1
             with pytest.raises(ring5.RecipeError, match="schema version"):
-                session.import_analysis_recipe(
-                    payload.replace(b'"schema_version": 3', b'"schema_version": 4')
-                )
+                session.import_analysis_recipe(json.dumps(future))
 
         with ring5.Session() as empty_session:
-            with pytest.raises(ring5.RecipeError, match="no reusable CSV source"):
+            with pytest.raises(ring5.RecipeError, match="no explicit reusable source"):
                 empty_session.capture_analysis_recipe("No source")
 
 
@@ -224,8 +230,11 @@ def test_parser_recipe_uses_captured_variable_metadata_and_source_errors_are_typ
     tmp_path: Path,
 ) -> None:
     # [test->req~ring5.portfolio.analysis-recipes~1]
-    parsed_csv = tmp_path / "parsed.csv"
-    pd.DataFrame({"simTicks": [123]}).to_csv(parsed_csv, index=False)
+    inputs = tmp_path / "simulations"
+    inputs.mkdir()
+    (inputs / "stats.txt").write_text(
+        "system.cpu0.simTicks 123\nsystem.cpu.ipc 1.25\n", encoding="utf-8"
+    )
     variables = (
         StatConfigCodec.to_payload(
             StatConfig(
@@ -250,24 +259,45 @@ def test_parser_recipe_uses_captured_variable_metadata_and_source_errors_are_typ
         name="Parser recipe",
         source=ring5.RecipeSource(
             kind="parser",
-            path="/simulations",
-            variables=variables,  # type: ignore[arg-type]
+            path=str(inputs),
+            variables=variables,
+            scanned_variables=(
+                {
+                    "name": r"system.cpu\d+.simTicks",
+                    "type": "vector",
+                    "entries": ["0"],
+                    "source_type": "scalar",
+                    "instances": [{"source_name": "system.cpu0.simTicks", "indices": ["0"]}],
+                },
+                {
+                    "name": "system.cpu.ipc",
+                    "type": "scalar",
+                    "entries": [],
+                    "source_type": "scalar",
+                    "instances": [{"source_name": "system.cpu.ipc", "indices": []}],
+                },
+            ),
+            scan_limit=None,
         ),
     )
 
     with ring5.Session() as session:
-        with patch.object(
-            session,
-            "parse",
-            return_value=SimpleNamespace(csv_path=str(parsed_csv)),
-        ) as parse:
+        parser = session.api._parser
+        with (
+            patch.object(parser, "submit_parse_async", wraps=parser.submit_parse_async) as parse,
+            patch.object(parser, "submit_scan_async") as scan,
+        ):
             result = session.run_analysis_recipe(recipe)
-        submitted = parse.call_args.args[1]
+        scan.assert_not_called()
+        submitted = parse.call_args.args[2]
         assert submitted[0].statistics_only is True
         assert submitted[0].keep_indices is True
         assert submitted[1].name == "ipc"
         assert submitted[1].source_name == "system.cpu.ipc"
         assert result.rows == 1
+        frame = session.api.state_manager.get_data()
+        assert frame is not None
+        assert frame.to_dict("records") == [{"system.cpu0.simTicks": 123.0, "ipc": 1.25}]
         assert session.api.state_manager.is_using_parser() is True
 
         invalid_repeat = ring5.AnalysisRecipe(

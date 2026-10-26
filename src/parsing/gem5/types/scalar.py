@@ -3,6 +3,7 @@
 import math
 from typing import cast, override
 
+from src.core.models.parse_failure_models import ParseDataRuntimeError
 from src.parsing.gem5.types.base import Observation, StatType, population_mean, register_type
 
 
@@ -35,13 +36,13 @@ class Scalar(StatType[list[float], float]):
     @override
     def _balance(self) -> int:
         if len(self._values) > self.repeat:
-            raise RuntimeError(
+            raise ParseDataRuntimeError(
                 f"SCALAR: More values ({len(self._values)}) than expected ({self.repeat})."
             )
-        padding = self.missing_measurement_count
-        self._values.extend([math.nan] * padding)
-        return padding
+        return self.missing_measurement_count
 
     @override
     def _reduce(self) -> float:
+        if len(self._values) < self.repeat:
+            return math.nan
         return population_mean(self._values)

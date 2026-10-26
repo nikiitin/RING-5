@@ -18,7 +18,7 @@ def mock_st() -> Generator[MagicMock]:
     with patch("src.web.components.plotting.settings.advanced_settings.st") as m_st:
         m_st.columns.side_effect = columns_side_effect
         m_st.checkbox.return_value = False
-        m_st.selectbox.return_value = "html"
+        m_st.selectbox.return_value = 1
         m_st.caption.return_value = None
         yield m_st
 
@@ -39,22 +39,21 @@ class TestAdvancedSettingsComponent:
         result = comp.render(saved_config={})
         assert isinstance(result, dict)
         assert "show_error_bars" in result
-        assert "download_format" in result
         assert "export_scale" in result
-        assert "enable_editable" in result
+        assert not {"download_format", "enable_editable"} & result.keys()
 
     def test_default_values(self, mock_st: MagicMock) -> None:
         """Default config should have sensible defaults."""
         mock_st.checkbox.return_value = False
-        mock_st.selectbox.side_effect = ["html", 1]
+        mock_st.selectbox.side_effect = [1]
         comp = self._make_component()
         result = comp.render(saved_config={})
         assert result["show_error_bars"] is False
-        assert result["enable_editable"] is False
+        assert result["export_scale"] == 1
 
     def test_preserves_series_styles(self, mock_st: MagicMock) -> None:
         """Existing series_styles should be preserved."""
-        mock_st.selectbox.side_effect = ["html", 1]
+        mock_st.selectbox.side_effect = [1]
         comp = self._make_component()
         saved = {"series_styles": {"s1": {"color": "red"}}}
         result = comp.render(saved_config=saved)
@@ -62,7 +61,7 @@ class TestAdvancedSettingsComponent:
 
     def test_reference_line_callback_called(self, mock_st: MagicMock) -> None:
         """When render_reference_line_fn is provided, it should be called."""
-        mock_st.selectbox.side_effect = ["html", 1]
+        mock_st.selectbox.side_effect = [1]
         comp = self._make_component()
         ref_fn = MagicMock()
 
@@ -77,7 +76,7 @@ class TestAdvancedSettingsComponent:
 
     def test_shapes_callback_called(self, mock_st: MagicMock) -> None:
         """When render_shapes_fn is provided, it should be called."""
-        mock_st.selectbox.side_effect = ["html", 1]
+        mock_st.selectbox.side_effect = [1]
         comp = self._make_component()
         shapes_fn = MagicMock(return_value=[])
 
@@ -91,7 +90,7 @@ class TestAdvancedSettingsComponent:
 
     def test_engine_callback_called(self, mock_st: MagicMock) -> None:
         """When render_engine_fn is provided, it should be called."""
-        mock_st.selectbox.side_effect = ["html", 1]
+        mock_st.selectbox.side_effect = [1]
         comp = self._make_component()
         engine_fn = MagicMock()
 
@@ -101,18 +100,19 @@ class TestAdvancedSettingsComponent:
         )
         engine_fn.assert_called_once()
 
-    def test_saved_download_format_used(self, mock_st: MagicMock) -> None:
-        """Saved download format should set the selectbox index correctly."""
-        # We mock selectbox to return the saved value
-        mock_st.selectbox.side_effect = ["pdf", 1]
+    @pytest.mark.parametrize("scale", [1, 2, 3])
+    def test_saved_export_scale_used(self, scale: int, mock_st: MagicMock) -> None:
+        """The scale selector restores the configured resolution multiplier."""
+        mock_st.selectbox.return_value = scale
         comp = self._make_component()
-        result = comp.render(saved_config={"download_format": "pdf"})
-        assert result["download_format"] == "pdf"
+        result = comp.render(saved_config={"export_scale": scale})
+        assert result["export_scale"] == scale
+        assert mock_st.selectbox.call_args.kwargs["index"] == scale - 1
 
     def test_export_scale_caption(self, mock_st: MagicMock) -> None:
         # [test->req~ring5.export.plotly-scale~1]
         """Should show download size caption."""
-        mock_st.selectbox.side_effect = ["html", 2]
+        mock_st.selectbox.side_effect = [2]
         comp = self._make_component()
         comp.render(saved_config={"width": 800, "height": 500})
         mock_st.caption.assert_called_once()
@@ -122,7 +122,7 @@ class TestAdvancedSettingsComponent:
 
     def test_no_callbacks_renders_without_error(self, mock_st: MagicMock) -> None:
         """Rendering with no callbacks should not raise."""
-        mock_st.selectbox.side_effect = ["html", 1]
+        mock_st.selectbox.side_effect = [1]
         comp = self._make_component()
         result = comp.render(saved_config={})
         assert isinstance(result, dict)

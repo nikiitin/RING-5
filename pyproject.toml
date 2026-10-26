@@ -36,11 +36,9 @@ dependencies = [
   "regex==2026.9.29",
   # Security floors for dependencies used by Streamlit/Matplotlib.
   "click>=8.5.0",
-  "gitpython>=3.2.1",
   "pillow>=13.0.0",
   "python-multipart>=0.0.32",
-  "starlette>=1.9.0",
-  "tornado>=6.6",
+  "starlette>=1.10.0",
 ]
 
 [project.optional-dependencies]
@@ -58,6 +56,7 @@ dev = [
   "pandas-stubs==3.0.5.260914",
   "plotly-stubs==0.1.4",
   "scipy-stubs==1.18.1.1",
+  "types-PyYAML==6.0.12.20260906",
   "build==1.6.1",
   "twine==7.0.0",
 ]
@@ -90,6 +89,7 @@ where = ["."]
 include = ["src*", "ring5*"]
 
 [tool.setuptools.package-data]
+"ring5" = ["resources/chrome-for-testing.json"]
 "src.parsing.gem5" = [
   "perl/*.pl",
   "perl/libs/*.pm",
@@ -137,10 +137,12 @@ exclude_also = [
 
 [tool.black]
 line-length = 100
+workers = 2
 target-version = ['py312']
 
 [tool.flake8]
 max-line-length = 100
+jobs = 1
 extend-ignore = ["E203", "W503"]
 exclude = [
   ".git",

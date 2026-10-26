@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import json
+import math
 from pathlib import Path
 
 import pytest
@@ -35,9 +36,9 @@ def _parse(
         str(root), "stats.txt", configs, str(root / "output"), strategy, scanned
     )
     results = [future.result(timeout=30) for future in batch.futures]
-    path = Gem5Parser.finalize_parsing(str(root / "output"), results, strategy, batch.var_names)
-    assert path is not None
-    return _csv(path)
+    output = Gem5Parser.finalize_parsing(batch, results)
+    assert output is not None
+    return _csv(output.csv_path)
 
 
 def test_perl_missing_frequency_stats_and_summaries_differ_from_measured_zero(
@@ -106,6 +107,29 @@ def test_perl_temporal_vector_samples_match_scalar_average(tmp_path: Path) -> No
         ],
     )
     assert rows == [{"v..a": "3.0", "ipc": "3.0"}]
+
+
+def test_perl_huge_expected_population_produces_one_typed_missing_cell(tmp_path: Path) -> None:
+    (tmp_path / "stats.txt").write_text("ipc 2\n", encoding="utf-8")
+    batch = Gem5Parser.submit_parse_async(
+        str(tmp_path),
+        "stats.txt",
+        [StatConfig("ipc", "scalar", repeat=10**9, params={"source_type": "scalar"})],
+        str(tmp_path / "output"),
+    )
+    results = [future.result(timeout=30) for future in batch.futures]
+    assert len(results) == 1
+    assert results[0].source_path == str(tmp_path / "stats.txt")
+    assert len(results[0].variables) == 1
+    variable = results[0].variables[0]
+    assert variable.missing_measurements == 10**9 - 1
+    assert variable.kind == "number" and variable.shape == "scalar"
+    assert len(variable.cells) == 1
+    assert variable.cells[0].column == "ipc" and variable.cells[0].kind == "number"
+    assert math.isnan(variable.cells[0].value)
+    output = Gem5Parser.finalize_parsing(batch, results)
+    assert output is not None
+    assert _csv(output.csv_path) == (["ipc"], [{"ipc": "NaN"}])
 
 
 def test_perl_aliased_scalar_pattern_repeats_selected_indices_and_keep_indices(
@@ -284,17 +308,15 @@ def test_perl_full_and_incremental_dynamic_histogram_schemas_match(tmp_path: Pat
     configs = [StatConfig("h", "histogram", params={"source_type": "histogram"})]
     full = Gem5Parser.submit_parse_async(str(inputs), "stats.txt", configs, str(tmp_path / "full"))
     results = [future.result(timeout=30) for future in full.futures]
-    full_path = Gem5Parser.finalize_parsing(
-        str(tmp_path / "full"), results, var_names=full.var_names
-    )
+    full_output = Gem5Parser.finalize_parsing(full, results)
     incremental = Gem5Parser.submit_incremental_parse_async(
         str(inputs), "stats.txt", configs, str(tmp_path / "incremental")
     )
     incremental_result = Gem5Parser.finalize_incremental_parsing(
         incremental, [future.result(timeout=30) for future in incremental.futures]
     )
-    assert full_path is not None
-    full_columns, full_rows = _csv(full_path)
+    assert full_output is not None
+    full_columns, full_rows = _csv(full_output.csv_path)
     incremental_columns, incremental_rows = _csv(incremental_result.csv_path)
     assert full_columns == incremental_columns == ["h..0-19", "h..0-9"]
     assert sorted(tuple(sorted(row.items())) for row in full_rows) == sorted(

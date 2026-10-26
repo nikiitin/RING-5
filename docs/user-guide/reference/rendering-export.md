@@ -22,7 +22,7 @@ rendering preference and does not change the mapped data. Its mode-bar image con
 | Plotly | HTML | None | Interactive, self-contained figure |
 | Plotly | PNG, SVG, PDF | Chrome-family browser through Kaleido | Static export of interactive rendering |
 | Matplotlib | PDF, PNG, SVG | None | Static vector or raster figure |
-| Matplotlib | PGF | XeLaTeX | LaTeX-native inclusion |
+| Matplotlib | PGF | Selected TeX compiler | LaTeX-native inclusion |
 
 EPS is not supported. PGF does not support raster graphics; the web application falls back to PDF
 when a PGF download contains raster content.
@@ -124,6 +124,9 @@ Covers:
 
 PNG, SVG, and PDF export use Kaleido and a Chrome-family browser. Transient browser failures use a
 bounded retry; a missing browser is reported immediately as a dependency failure.
+Run `ring5 install-chrome` and set `BROWSER_PATH` to its printed executable path before starting
+the application or an export process. The CLI uses the same packaged manifest in checkouts and
+installed wheels; see [installation]({{site.baseurl}}/user-guide/getting-started/installation/#install-chrome-for-plotly-static-exports).
 
 ### Matplotlib standard formats
 
@@ -167,9 +170,25 @@ Covers:
 
 -->
 
-Matplotlib advanced settings select XeLaTeX, pdfLaTeX, or LuaLaTeX for PGF output. The web
-application fixes the additional preamble to an empty value because a TeX preamble is executable
-input.
+Matplotlib advanced settings select `xelatex`, `pdflatex`, or `lualatex` for PGF output.
+Python exports use the `tex_system` argument, which defaults to `xelatex`:
+
+```python
+session.export(figure, "figure.pgf", tex_system="lualatex")
+```
+
+The same option applies to `export_bytes` and `export_submit`. Each export uses an empty custom
+preamble and escapes literal figure text. Compiler names are exact identifiers; executable paths
+and command options are not accepted. XeLaTeX and LuaLaTeX support installed Unicode fonts;
+pdfLaTeX uses its TeX font support. See the
+[Matplotlib PGF guide](https://matplotlib.org/stable/users/explain/text/pgf.html#choosing-the-tex-system)
+for compiler and font requirements.
+
+Use `ring5.doctor(tex_system="lualatex")` to check the selected compiler without running it.
+Saved environment metadata records the versions of all three supported compilers when available.
+
+Recipe exports and `render_portfolio` use each saved plot's `tex_system` setting. Direct exports of
+a native figure take this option on the export call; they do not read hidden figure metadata.
 
 ### Plotly hover mode
 
@@ -219,7 +238,8 @@ file.
 
 Plotly uses configured pixel dimensions. Matplotlib uses configured physical dimensions; PDF, PNG,
 and SVG apply tight bounding boxes, while PGF preserves the configured figure size for LaTeX input.
-Matplotlib advanced settings select XeLaTeX, pdfLaTeX, or LuaLaTeX for supported text rendering.
+The `tex_system` option selects the compiler for PGF only. PDF, PNG, and SVG exports use
+Matplotlib's standard renderers without invoking TeX.
 
 ### Safe numeric and TeX formatting
 

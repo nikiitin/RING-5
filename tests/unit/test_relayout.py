@@ -73,8 +73,8 @@ class TestUpdateConfigFromRelayout:
         assert changed is True
         assert new_config["legend_x"] == 0.5
         assert new_config["legend_y"] == 0.9
-        assert new_config["legend_xanchor"] == "left"
-        assert new_config["legend_yanchor"] == "top"
+        assert new_config["legend_anchor_x"] == "left"
+        assert new_config["legend_anchor_y"] == "top"
 
     def test_legend2_drag_position(self) -> None:
         config: dict = {}
@@ -89,7 +89,7 @@ class TestUpdateConfigFromRelayout:
         relayout = {"legend.xanchor": "right"}
         new_config, changed = update_config_from_relayout(config, relayout)
         assert changed is True
-        assert new_config["legend_xanchor"] == "right"
+        assert new_config["legend_anchor_x"] == "right"
 
     def test_legend_title_text(self) -> None:
         config = {"legend_title": "Old Title"}

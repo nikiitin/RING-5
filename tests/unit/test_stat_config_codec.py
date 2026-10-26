@@ -218,10 +218,6 @@ def test_summary_roles_follow_the_selected_simulator_metadata() -> None:
         "cpu0",
         "mean",
     ]
-    assert VariableService.find_entries_for_variable(snapshot, "v", custom_stats) == [
-        "cpu0",
-        "mean",
-    ]
     with pytest.raises(TypeError, match="internal_stats"):
         VariableService.filter_internal_stats(entries)
 

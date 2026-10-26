@@ -11,7 +11,6 @@ from __future__ import annotations
 import logging
 from typing import cast
 
-import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
@@ -19,7 +18,8 @@ from src.web.state.ui_state_manager import WidgetKeyBuilder
 from kaleido.errors import ChromeNotFoundError
 from matplotlib.figure import Figure as MplFigure
 
-from src.web.rendering.engine_manager import EngineManager
+from src.web.models.render_artifact import RenderArtifact
+from src.core.models.visualization.export_options import validate_tex_system
 from src.web.rendering.figure_export import (
     MatplotlibFormat,
     PlotlyFormat,
@@ -53,8 +53,7 @@ def _record_reported_download(clicked: bool) -> None:
 def render_download_section(
     plot_id: int,
     plot_name: str,
-    fig: go.Figure,
-    source_data: pd.DataFrame | None = None,
+    artifact: RenderArtifact,
 ) -> None:
     # [impl->req~ring5.workspace.guided-analysis~1]
     # [impl->req~ring5.export.web-download~1]
@@ -69,22 +68,21 @@ def render_download_section(
     Args:
         plot_id: Unique plot identifier (used for widget keys).
         plot_name: Human-readable name used as download filename stem.
-        fig: The Plotly figure (used directly for Plotly exports).
-        source_data: Processed dataframe used to create the figure. Included
-            as an interactive table in Plotly HTML downloads.
+        artifact: Published native figure, exact configuration and owned source rows.
     """
     with st.expander("📥 Download", expanded=False):
-        if EngineManager.is_matplotlib():
-            _render_mpl_download(plot_id, plot_name)
+        if isinstance(artifact.figure, MplFigure):
+            _render_mpl_download(plot_id, plot_name, artifact)
+        elif isinstance(artifact.figure, go.Figure):
+            _render_plotly_download(plot_id, plot_name, artifact)
         else:
-            _render_plotly_download(plot_id, plot_name, fig, source_data)
+            raise TypeError("Downloads require a complete published native artifact.")
 
 
 def _render_plotly_download(
     plot_id: int,
     plot_name: str,
-    fig: go.Figure,
-    source_data: pd.DataFrame | None,
+    artifact: RenderArtifact,
 ) -> None:
     # [impl->req~ring5.export.plotly-html-source-data~1]
     # [impl->req~ring5.export.web-download~1]
@@ -95,6 +93,9 @@ def _render_plotly_download(
     Streamlit rerun would make unrelated controls, such as the engine selector,
     appear unresponsive.
     """
+    fig = artifact.figure
+    if not isinstance(fig, go.Figure):
+        raise TypeError("Plotly downloads require the published Plotly artifact.")
     fmt = st.pills(
         "Format",
         options=["html", "png", "svg", "pdf"],
@@ -118,14 +119,15 @@ def _render_plotly_download(
                 fmt_typed,
                 width=width,
                 height=height,
-                source_data=source_data,
+                scale=artifact.config.get("export_scale", 1),
+                source_data=artifact.source_data,
             )
         except ChromeNotFoundError as exc:
             logger.error("Plotly %s export failed — no browser for Kaleido: %s", fmt, exc)
             raise RuntimeError(
                 f"Could not generate the {fmt.upper()} export because no Chrome-family "
-                "browser was found. Install one with `kaleido_get_chrome`, set "
-                "BROWSER_PATH, or use the HTML format."
+                "browser was found. Run `ring5 install-chrome` and set "
+                "BROWSER_PATH to its printed path, or use the HTML format."
             ) from exc
         except Exception as exc:
             logger.error("Plotly %s export failed: %s", fmt, exc)
@@ -146,18 +148,14 @@ def _render_plotly_download(
     _record_reported_download(downloaded)
 
 
-def _render_mpl_download(plot_id: int, plot_name: str) -> None:
+def _render_mpl_download(plot_id: int, plot_name: str, artifact: RenderArtifact) -> None:
     # [impl->req~ring5.export.matplotlib-pgf~1]
     # [impl->req~ring5.export.web-download~1]
     """Format pills + download button for the Matplotlib path."""
-    mpl_fig: MplFigure | None = st.session_state.get(WidgetKeyBuilder.plot_key(plot_id, "mpl_fig"))
-    if mpl_fig is None:
-        st.warning("No matplotlib figure available for download.")
-        return
-
-    # Resolved FigureConfig cached by the chart display. The exporter ignores
-    # custom LaTeX preambles and escapes all figure text for PGF.
-    spec = st.session_state.get(WidgetKeyBuilder.plot_key(plot_id, "mpl_spec"))
+    mpl_fig = artifact.figure
+    if not isinstance(mpl_fig, MplFigure):
+        raise TypeError("Matplotlib downloads require the published native artifact.")
+    compiler = validate_tex_system(artifact.config.get("tex_system", "xelatex"))
 
     fmt = st.pills(
         "Format",
@@ -170,15 +168,15 @@ def _render_mpl_download(plot_id: int, plot_name: str) -> None:
 
     fmt_typed = cast(MatplotlibFormat, fmt)
     try:
-        data = matplotlib_download_bytes(mpl_fig, fmt_typed, spec=spec)
+        data = matplotlib_download_bytes(mpl_fig, fmt_typed, tex_system=compiler)
     except ValueError as exc:
         if "raster" in str(exc).lower() and fmt_typed == "pgf":
             st.warning(
                 "PGF format does not support raster graphics (e.g. heatmaps). "
-                "Falling back to PDF with LaTeX rendering."
+                "Falling back to PDF."
             )
             fmt_typed = "pdf"
-            data = matplotlib_download_bytes(mpl_fig, fmt_typed, spec=spec)
+            data = matplotlib_download_bytes(mpl_fig, fmt_typed, tex_system=compiler)
         else:
             raise
     downloaded = st.download_button(

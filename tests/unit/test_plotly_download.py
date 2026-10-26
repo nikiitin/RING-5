@@ -6,10 +6,14 @@ with correct headers/magic bytes for PNG, SVG, and PDF formats.
 
 from __future__ import annotations
 
+from pathlib import Path
+from typing import Any, cast
+
 import pandas as pd
 import plotly.graph_objects as go
 import pytest
 
+from src.core.common.browser_selection import BrowserSelection
 from src.web.rendering.figure_export import (
     get_plotly_extension,
     get_plotly_mime,
@@ -258,25 +262,37 @@ class TestChromeNotFound:
     # [test->req~ring5.export.plotly-static~1]
     """A missing browser must fail fast with the actionable upstream error."""
 
-    def test_chrome_not_found_propagates_without_retry(self, simple_bar_figure: go.Figure) -> None:
+    def test_chrome_not_found_propagates_without_retry(
+        self, simple_bar_figure: go.Figure, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """ChromeNotFoundError carries install instructions; retrying cannot
         help and wrapping it as a generic RuntimeError buries the fix."""
         from unittest.mock import patch
 
         from kaleido.errors import ChromeNotFoundError
 
+        monkeypatch.setattr(
+            "src.web.rendering.figure_export.select_browser",
+            lambda: BrowserSelection("selected", "/selected"),
+        )
         with patch(
             "src.web.rendering.figure_export.kaleido.calc_fig_sync",
-            side_effect=ChromeNotFoundError("Chrome not found — run kaleido_get_chrome"),
+            side_effect=ChromeNotFoundError("Chrome not found — run ring5 install-chrome"),
         ) as mock_calc:
             with pytest.raises(ChromeNotFoundError):
                 plotly_download_bytes(simple_bar_figure, "png")
             mock_calc.assert_called_once()  # no pointless retries
 
-    def test_transient_failures_still_retry(self, simple_bar_figure: go.Figure) -> None:
+    def test_transient_failures_still_retry(
+        self, simple_bar_figure: go.Figure, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Non-Chrome failures keep the bounded retry-then-RuntimeError contract."""
         from unittest.mock import patch
 
+        monkeypatch.setattr(
+            "src.web.rendering.figure_export.select_browser",
+            lambda: BrowserSelection("selected", "/selected"),
+        )
         with patch(
             "src.web.rendering.figure_export.kaleido.calc_fig_sync",
             side_effect=TimeoutError("stalled"),
@@ -288,12 +304,16 @@ class TestChromeNotFound:
     def test_configured_browser_path_is_forwarded(
         self,
         simple_bar_figure: go.Figure,
+        tmp_path: Path,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """An administrator-selected browser must override Kaleido's local cache."""
         from unittest.mock import patch
 
-        browser_path = "/opt/ring5/chrome"
+        browser = tmp_path / "chrome.exe"
+        browser.write_text("not executed", encoding="utf-8")
+        browser.chmod(0o700)
+        browser_path = str(browser)
         monkeypatch.setenv("BROWSER_PATH", browser_path)
         with patch(
             "src.web.rendering.figure_export.kaleido.calc_fig_sync",
@@ -322,7 +342,7 @@ class TestDeterministicSvg:
     def test_colorbar_heatmap_svg_deterministic(self) -> None:
         """Colorbar gradients embed a SECOND random id (g<uid>-<8hex>) that
         the normalizer must remap — a single-uid replace is not enough."""
-        fig = go.Figure(data=go.Heatmap(z=[[1, 2], [3, 4]], showscale=True))
+        fig = go.Figure(data=go.Heatmap(z=cast(Any, [[1, 2], [3, 4]]), showscale=True))
         a = plotly_download_bytes(fig, "svg", deterministic=True)
         b = plotly_download_bytes(fig, "svg", deterministic=True)
         assert a == b
@@ -333,7 +353,7 @@ class TestDeterministicSvg:
         import base64
         import re as _re
 
-        fig = go.Figure(data=go.Heatmap(z=[[i * j for j in range(8)] for i in range(8)]))
+        fig = go.Figure(data=go.Heatmap(z=cast(Any, [[i * j for j in range(8)] for i in range(8)])))
         raw = plotly_download_bytes(fig, "svg", deterministic=False)
         norm = plotly_download_bytes(fig, "svg", deterministic=True)
 

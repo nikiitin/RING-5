@@ -1,14 +1,15 @@
 """Public parse-boundary tests for incomplete and over-time work."""
 
 from concurrent.futures import Future
-from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
 
 from ring5._parse import ParseJob, build_stat_configs
 from ring5.errors import ParseError, ScanError
-from src.core.models.parsing_models import SourceInstance
+from src.core.models.parsing_models import SourceInstance, ParseBatchResult
+from src.core.models.parsed_output_models import ParsedFileResult
+from tests.helpers.parsed_values import parser_context
 
 from src.core.models.parsing_models import ScanFileResult, ScannedVariable, ScanResult
 
@@ -54,16 +55,12 @@ def test_build_stat_configs_rejects_partial_scan() -> None:
 def test_parse_job_timeout_is_typed_and_cancels_pending(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    pending: Future[dict[str, Any]] = Future()
+    pending: Future[ParsedFileResult] = Future()
     monkeypatch.setattr("ring5._parse.PARSE_BATCH_TIMEOUT_SECONDS", 0)
     job = ParseJob(
         api=MagicMock(),
-        futures=[pending],
-        var_names=["simTicks"],
-        output_dir="output",
-        strategy="simple",
-        stats_path="results",
-        stats_pattern="stats.txt",
+        batch=ParseBatchResult((pending,), ("simTicks",), ("source",), "output", "simple"),
+        source_context=parser_context(["simTicks"], stats_path="results"),
     )
 
     with pytest.raises(ParseError, match="cancellation succeeded for 1"):

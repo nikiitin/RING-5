@@ -1,12 +1,14 @@
 """Real Perl source routing preserves scientific observation and alias semantics."""
 
 from src.core.models.portfolio_contract import CURRENT_PORTFOLIO_SCHEMA_VERSION
+from src.core.models.recipe_models import ANALYSIS_RECIPE_SCHEMA_VERSION
 
 from pathlib import Path
 
 import pandas as pd
 import pytest
 
+from src.core.common.parsed_output import ParsedOutputIO
 from src.core.models.parsing_models import StatConfig
 from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
@@ -28,9 +30,9 @@ def _parse(root: Path, texts: list[str], configs: list[StatConfig]) -> pd.DataFr
         str(root), "stats.txt", configs, str(root / "out"), scanned_vars=scan.variables
     )
     results = [future.result(timeout=30) for future in batch.futures]
-    path = Gem5Parser.finalize_parsing(str(root / "out"), results, var_names=batch.var_names)
-    assert path is not None
-    return pd.read_csv(path)
+    output = Gem5Parser.finalize_parsing(batch, results)
+    assert output is not None
+    return ParsedOutputIO.to_frame(output)
 
 
 _SCALARS = "cpu0.ipc 2\ncpu1.ipc 4\ncpu0.ipc 6\ncpu1.ipc 8\n"
@@ -40,7 +42,7 @@ _SCALARS = "cpu0.ipc 2\ncpu1.ipc 4\ncpu0.ipc 6\ncpu1.ipc 8\n"
     "output_type,expected", [("vector", {"IPC..0": 4.0, "IPC..1": 6.0}), ("scalar", {"IPC": 5.0})]
 )
 def test_scalar_patterns_preserve_independent_entries_or_spatial_temporal_mean(
-    tmp_path, output_type, expected
+    tmp_path: Path, output_type: str, expected: dict[str, float]
 ) -> None:
     frame = _parse(
         tmp_path,
@@ -59,7 +61,7 @@ def test_scalar_patterns_preserve_independent_entries_or_spatial_temporal_mean(
 
 
 def test_selected_concrete_source_does_not_expand_a_numeric_id_or_parse_other_instances(
-    tmp_path,
+    tmp_path: Path,
 ) -> None:
     frame = _parse(
         tmp_path,
@@ -77,7 +79,7 @@ def test_selected_concrete_source_does_not_expand_a_numeric_id_or_parse_other_in
     assert frame.to_dict("records") == [{"IPC..1": 6.0}]
 
 
-def test_keep_indices_preserves_current_concrete_output_names(tmp_path) -> None:
+def test_keep_indices_preserves_current_concrete_output_names(tmp_path: Path) -> None:
     frame = _parse(
         tmp_path,
         [_SCALARS],
@@ -97,8 +99,8 @@ def test_keep_indices_preserves_current_concrete_output_names(tmp_path) -> None:
 
 @pytest.mark.parametrize("dump_markers", [False, True])
 def test_true_vector_patterns_keep_spatial_samples_separate_with_and_without_dump_markers(
-    tmp_path,
-    dump_markers,
+    tmp_path: Path,
+    dump_markers: bool,
 ) -> None:
     body = "cpu0.v::a 2\ncpu1.v::a 4\ncpu0.v::a 6\ncpu1.v::a 8\n"
     if dump_markers:
@@ -126,7 +128,7 @@ def test_true_vector_patterns_keep_spatial_samples_separate_with_and_without_dum
     assert frame.to_dict("records") == [{"V..a": 5.0}]
 
 
-def test_missing_scalar_instance_observation_remains_nan(tmp_path) -> None:
+def test_missing_scalar_instance_observation_remains_nan(tmp_path: Path) -> None:
     frame = _parse(
         tmp_path,
         ["cpu0.ipc 2\ncpu1.ipc 4\ncpu0.ipc 6\n"],
@@ -145,7 +147,7 @@ def test_missing_scalar_instance_observation_remains_nan(tmp_path) -> None:
 
 
 def test_histogram_missing_expected_source_is_nan_and_complete_source_mean_is_preserved(
-    tmp_path,
+    tmp_path: Path,
 ) -> None:
     frame = _parse(
         tmp_path,
@@ -164,7 +166,7 @@ def test_histogram_missing_expected_source_is_nan_and_complete_source_mean_is_pr
 
 
 def test_one_source_can_feed_multiple_real_output_aliases_without_shared_accumulators(
-    tmp_path,
+    tmp_path: Path,
 ) -> None:
     frame = _parse(
         tmp_path,
@@ -179,7 +181,9 @@ def test_one_source_can_feed_multiple_real_output_aliases_without_shared_accumul
     assert frame.to_dict("records") == [{"source": 3.0, "Alias": 3.0}]
 
 
-def test_portfolio_and_recipe_round_trip_keep_current_source_bindings(tmp_path, portfolios_dir):
+def test_portfolio_and_recipe_round_trip_keep_current_source_bindings(
+    tmp_path: Path, portfolios_dir: Path
+) -> None:
     import json
 
     import ring5
@@ -191,7 +195,9 @@ def test_portfolio_and_recipe_round_trip_keep_current_source_bindings(tmp_path, 
             [value.to_dict() for value in scan.variables]
         )
         draft = session.api.draft_from_scanned_variable(scan.variables[0].to_dict())
-        draft.update(name="IPC", source_name=r"cpu\d+.ipc", repeat=2)
+        draft["name"] = "IPC"
+        draft["source_name"] = r"cpu\d+.ipc"
+        draft["repeat"] = 2
         draft["params"]["selected_sources"] = ["cpu1.ipc"]
         session.api.state_manager.set_parse_variables([draft])
         session.api.state_manager.set_stats_path(str(tmp_path))
@@ -207,17 +213,20 @@ def test_portfolio_and_recipe_round_trip_keep_current_source_bindings(tmp_path, 
         assert session.load_portfolio("source-bindings").complete
         restored = session.api.state_manager.get_parse_variables()[0]
         assert restored["params"] == {"source_type": "scalar", "selected_sources": ["cpu1.ipc"]}
-        recipe = session.capture_analysis_recipe("Source bindings")
-        exported = session.export_analysis_recipe(recipe)
-        assert json.loads(exported)["schema_version"] == 3
         result = session.parse(
             str(tmp_path), variables=session.api.compile_parse_variables([restored])
         )
-        assert pd.read_csv(result.csv_path).to_dict("records") == [{"IPC..1": 6.0}]
+        assert session.load(result).rows() == [{"IPC..1": 6.0}]
+        recipe = session.capture_analysis_recipe("Source bindings")
+        exported = session.export_analysis_recipe(recipe)
+        assert json.loads(exported)["schema_version"] == ANALYSIS_RECIPE_SCHEMA_VERSION
+        assert recipe.source.variables[0]["params"]["selected_sources"] == ["cpu1.ipc"]
 
 
 @pytest.mark.parametrize("declared_kind", ["histogram", "distribution"])
-def test_manual_requests_cannot_misdeclare_the_actual_entry_source_kind(tmp_path, declared_kind):
+def test_manual_requests_cannot_misdeclare_the_actual_entry_source_kind(
+    tmp_path: Path, declared_kind: str
+) -> None:
     source = tmp_path / "stats.txt"
     source.write_text("v::0 3\nv::1 7\n", encoding="utf-8")
     config = StatConfig(
@@ -234,7 +243,7 @@ def test_manual_requests_cannot_misdeclare_the_actual_entry_source_kind(tmp_path
     assert not (tmp_path / "out" / "result.csv").exists()
 
 
-def test_actual_vector_source_can_be_explicitly_represented_as_histogram(tmp_path):
+def test_actual_vector_source_can_be_explicitly_represented_as_histogram(tmp_path: Path) -> None:
     frame = _parse(
         tmp_path,
         ["v::0 3\nv::1 7\n"],

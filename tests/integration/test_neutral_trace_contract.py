@@ -56,7 +56,7 @@ def test_both_converters_reject_unknown_families_before_drawing(
     # [test->req~ring5.render.engine-independent-traces~1]
     trace = trace_class(name="unsupported", x=["a"], y=[1.0], visible=visible)
     with pytest.raises(TypeError, match=f"Unsupported trace type: {trace_class.__name__}"):
-        traces_to_plotly(TraceBuildResult(traces=[trace]))
+        traces_to_plotly(TraceBuildResult(traces=[trace])).figure
     with pytest.raises(TypeError, match=f"Unsupported trace type: {trace_class.__name__}"):
         _convert_trace(trace)
     figure, axis = plt.subplots()
@@ -100,12 +100,12 @@ def test_public_render_exposes_unknown_trace_as_typed_error(
 def test_supported_trace_subclasses_preserve_data_in_both_engines() -> None:
     # [test->req~ring5.render.engine-independent-traces~1]
     trace = SpecializedBar(name="measurements", x=["a", "b"], y=[2.0, 5.0])
-    native = traces_to_plotly(TraceBuildResult(traces=[trace]))
+    native = traces_to_plotly(TraceBuildResult(traces=[trace])).figure
     assert list(cast(Any, native.data[0]).y) == [2.0, 5.0]
     figure, axis = plt.subplots()
     try:
         result = MatplotlibTraceRenderer.render([trace], axis)
-        assert result.trace_count == 1
+        assert len(result.bindings) == 1
         assert [cast(Any, patch).get_height() for patch in axis.patches] == [2.0, 5.0]
     finally:
         plt.close(figure)

@@ -57,7 +57,9 @@ class AutosaveRecoveryService:
         """Capture meaningful state unless its content matches the newest draft."""
         # [impl->req~ring5.workspace.autosave-recovery~1]
         owner = cls._owner(owner_key)
-        data = state_manager.get_data()
+        with state_manager.transaction():
+            data = state_manager.get_data()
+            origin = state_manager.get_loaded_origin()
         plots = state_manager.get_plots()
         config = state_manager.get_config()
         parse_variables = state_manager.get_parse_variables()
@@ -70,6 +72,7 @@ class AutosaveRecoveryService:
             state_manager.get_plot_counter(),
             csv_path=state_manager.get_csv_path(),
             parse_variables=parse_variables,
+            origin=origin,
             figure_spec_enricher=figure_spec_enricher,
         )
         if len(payload) > MAX_RECOVERY_DRAFT_BYTES:

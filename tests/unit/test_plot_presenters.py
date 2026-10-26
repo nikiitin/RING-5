@@ -8,6 +8,8 @@ Since components call Streamlit widgets, we mock st.* to verify:
 """
 
 from typing import Any, cast
+
+import ring5
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -200,7 +202,6 @@ class TestPipelineComponent:
         result: dict[str, bool] = PipelineComponent.render_shaper_controls(
             plot_id=1,
             idx=0,
-            shaper_type="sort",
             is_first=True,
             is_last=False,
         )
@@ -266,21 +267,21 @@ class TestChartDisplayComponent:
         self,
         mock_chart: MagicMock,
         mock_download: MagicMock,
+        plot_session: ring5.Session,
     ) -> None:
         # [test->req~ring5.export.plotly-scale~1]
         """The configured export scale reaches Plotly's mode-bar image control."""
-        import plotly.graph_objects as go
-
         from src.web.components.common.chart_display import ChartDisplayComponent
 
         source_data = pd.DataFrame({"ipc": [2.1]})
-        ChartDisplayComponent.render_plotly_chart(
-            go.Figure(),
-            plot_id=7,
-            plot_name="ipc",
-            config={"width": 900, "height": 540, "export_scale": 3},
-            source_data=source_data,
+        plot = plot_session.create_plot(
+            "bar",
+            data=ring5.Table(source_data),
+            config={"x": "ipc", "y": "ipc", "width": 900, "height": 540, "export_scale": 3},
         )
+        plot_session.render(plot)
+        artifact = plot.render_artifact
+        ChartDisplayComponent.render_plotly_chart(artifact, plot_id=7, plot_name="ipc")
 
         plotly_config = mock_chart.call_args.kwargs["config"]
         assert plotly_config["toImageButtonOptions"] == {
@@ -291,7 +292,8 @@ class TestChartDisplayComponent:
             "scale": 3,
         }
         assert mock_chart.call_args.kwargs["capture_click"] is False
-        mock_download.assert_called_once_with(7, "ipc", mock_chart.call_args.args[0], source_data)
+        mock_download.assert_called_once_with(7, "ipc", artifact)
+        assert mock_chart.call_args.args[0] is artifact.figure
 
     @patch("src.web.components.common.chart_display.st")
     def test_should_not_generate_when_no_auto_and_no_manual(
@@ -499,3 +501,41 @@ class TestPipelineStepComponent:
 
         mock_st.exception.assert_called_once()
         assert "something broke" in str(mock_st.exception.call_args[0][0])
+
+
+@patch("src.web.components.common.chart_display.render_download_section")
+@patch("src.web.components.common.chart_display.interactive_plotly_chart")
+def test_modebar_uses_actual_multi_panel_native_dimensions_with_the_published_export_scale(
+    mock_chart: MagicMock,
+    mock_download: MagicMock,
+    plot_session: ring5.Session,
+) -> None:
+    # [test->req~ring5.export.plotly-scale~1]
+    import plotly.graph_objects as go
+
+    from src.web.components.common.chart_display import ChartDisplayComponent
+    from src.web.rendering.plot_renderer import build_render_artifact
+
+    plot = plot_session.create_plot(
+        "bar",
+        data=ring5.Table(
+            pd.DataFrame(
+                {"x": ["a", "b", "c"], "y": [3.0, 5.0, 7.0], "facet": ["one", "two", "three"]}
+            )
+        ),
+        config={"x": "x", "y": "y", "width": 600, "height": 300, "export_scale": 3},
+    )
+    facets = plot_session.create_small_multiples(
+        plot, by="facet", columns=2, width=900, panel_height=320
+    )
+    artifact = build_render_artifact(plot, plot.config, "plotly", multiples=facets)
+    plot.publish_render_artifact(artifact)
+    assert isinstance(artifact.figure, go.Figure)
+    assert [list(cast(go.Bar, trace).y) for trace in artifact.figure.data] == [[3.0], [5.0], [7.0]]
+    assert (artifact.figure.layout.width, artifact.figure.layout.height) == (900, 640)
+    assert (artifact.config["width"], artifact.config["height"]) == (600, 300)
+    ChartDisplayComponent.render_plotly_chart(artifact, plot.plot_id, plot.name)
+    options = mock_chart.call_args.kwargs["config"]["toImageButtonOptions"]
+    assert (options["width"], options["height"], options["scale"]) == (900, 640, 3)
+    assert mock_chart.call_args.args[0] is artifact.figure
+    mock_download.assert_called_once_with(plot.plot_id, plot.name, artifact)

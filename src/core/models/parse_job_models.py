@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-import json
 import time
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
-from typing import TypeAlias
 
-JsonScalar: TypeAlias = str | int | float | bool | None
-JsonValue: TypeAlias = JsonScalar | list["JsonValue"] | dict[str, "JsonValue"]
+from src.core.models.parsed_output_models import ParsedOutput
+from src.core.models.source_context_models import ParserSourceContext
 
 
 class ParseJobStatus(StrEnum):
@@ -52,35 +50,31 @@ class ParseFileSignature:
 class ParseJobRequest:
     """Immutable, serializable description of one parse request.
 
-    Variable configurations are held as canonical JSON rather than mutable
-    dictionaries. The matching file signatures are captured at submission
-    time and recomputed when a user explicitly retries an attempt.
+    The source context owns the actual resolved request independently of editor
+    state. Matching file signatures are captured at submission and recomputed
+    when a user explicitly retries an attempt.
     """
 
-    simulator: str
-    parser_contract_version: str
-    stats_path: str
-    stats_pattern: str
-    strategy_type: str
-    variables_json: str
-    scanned_variables_json: str
+    source_context: ParserSourceContext
     file_signatures: tuple[ParseFileSignature, ...]
     fingerprint: str
     incremental: bool = False
 
-    def variables(self) -> list[JsonValue]:
-        """Decode the canonical variable configuration."""
-        value = json.loads(self.variables_json)
-        if not isinstance(value, list):
-            raise ValueError("Stored parse variables must be a JSON list")
-        return value
-
-    def scanned_variables(self) -> list[JsonValue]:
-        """Decode the canonical scanned-variable configuration."""
-        value = json.loads(self.scanned_variables_json)
-        if not isinstance(value, list):
-            raise ValueError("Stored scanned variables must be a JSON list")
-        return value
+    def __post_init__(self) -> None:
+        if type(self.source_context) is not ParserSourceContext:
+            raise TypeError("Parse job request requires an actual parser source context.")
+        if type(self.file_signatures) is not tuple or any(
+            type(signature) is not ParseFileSignature for signature in self.file_signatures
+        ):
+            raise TypeError("Parse job signatures require an immutable tuple.")
+        if (
+            type(self.fingerprint) is not str
+            or len(self.fingerprint) != 64
+            or any(char not in "0123456789abcdef" for char in self.fingerprint)
+        ):
+            raise ValueError("Parse job fingerprint requires a lowercase SHA-256 digest.")
+        if type(self.incremental) is not bool:
+            raise TypeError("Parse job incremental policy must be boolean.")
 
 
 @dataclass(frozen=True)
@@ -99,9 +93,19 @@ class ParseJobSnapshot:
     started_at: float | None
     finished_at: float | None
     attempt: int
-    output_csv_path: str | None = None
-    published_csv_path: str | None = None
+    output: ParsedOutput | None = None
+    published_output: ParsedOutput | None = None
     cache_hit: bool = False
+
+    @property
+    def output_csv_path(self) -> str | None:
+        """CSV location of the staged explicit typed output, when finalized."""
+        return self.output.csv_path if self.output is not None else None
+
+    @property
+    def published_csv_path(self) -> str | None:
+        """CSV location of the published explicit typed output, when promoted."""
+        return self.published_output.csv_path if self.published_output is not None else None
 
     @property
     def elapsed_seconds(self) -> float:
@@ -124,9 +128,15 @@ class ParseJobReceipt:
 
     job_id: str
     fingerprint: str
-    csv_path: str
+    output: ParsedOutput
+    source_context: ParserSourceContext
     status: ParseJobStatus
     reused: bool
+
+    @property
+    def csv_path(self) -> str:
+        """Published CSV location; typed consumers must retain the descriptor."""
+        return self.output.csv_path
 
     def exists(self) -> bool:
         """Return whether the published Recent CSV is still present."""

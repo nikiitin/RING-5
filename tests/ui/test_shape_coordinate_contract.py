@@ -51,7 +51,7 @@ def _add(plot: Any, field: str) -> str:
 
 
 def _measurements(plot: Any) -> None:
-    assert list(plot.last_generated_fig.data[0].y) == [3.0, 5.0, 7.0]
+    assert list(plot.render_artifact.figure.data[0].y) == [3.0, 5.0, 7.0]
 
 
 def test_untouched_literal_coordinates_and_explicit_text_numeric_edits_reach_native() -> None:
@@ -60,15 +60,15 @@ def test_untouched_literal_coordinates_and_explicit_text_numeric_edits_reach_nat
     app, api, plot = _app([original])
     try:
         before = deepcopy(plot.config["shapes"])
-        assert plot.last_generated_fig.layout.shapes[0].x0 == "001"
+        assert plot.render_artifact.figure.layout.shapes[0].x0 == "001"
         _advanced(app, plot)
         app.run()
         assert not app.exception
         assert plot.config["shapes"] == before
         assert app.checkbox(key=_row(plot, "x0") + ".text_mode").value is True
         assert app.checkbox(key=_row(plot, "y0") + ".text_mode").value is False
-        assert plot.last_generated_fig.layout.shapes[0].x0 == "001"
-        assert plot.last_generated_fig.layout.shapes[0].x1 == "002"
+        assert plot.render_artifact.figure.layout.shapes[0].x0 == "001"
+        assert plot.render_artifact.figure.layout.shapes[0].x1 == "002"
 
         app.text_input(key=_row(plot, "x0")).set_value("003").run()
         app.text_input(key=_row(plot, "y0")).set_value("12.5").run()
@@ -76,7 +76,7 @@ def test_untouched_literal_coordinates_and_explicit_text_numeric_edits_reach_nat
         assert plot.config["shapes"][0]["x0"] == "003"
         assert type(plot.config["shapes"][0]["y0"]) is float
         assert plot.config["shapes"][0]["y0"] == 12.5
-        native = plot.last_generated_fig.layout.shapes[0]
+        native = plot.render_artifact.figure.layout.shapes[0]
         assert native.x0 == "003"
         assert native.y0 == 12.5
         assert original == _shape()
@@ -99,7 +99,7 @@ def test_add_numeric_looking_literal_coordinates_has_one_explicit_kind() -> None
         shape = plot.config["shapes"][0]
         assert (shape["x0"], shape["x1"], shape["y0"]) == ("001", "003", 2.5)
         assert type(shape["y0"]) is float
-        native = plot.last_generated_fig.layout.shapes[0]
+        native = plot.render_artifact.figure.layout.shapes[0]
         assert (native.x0, native.x1, native.y0) == ("001", "003", 2.5)
         _measurements(plot)
     finally:
@@ -134,13 +134,13 @@ def test_manual_refresh_preserves_intentional_kind_changes_across_sections() -> 
         app.pills(key="settings_nav").set_value("layout").run()
         app.pills(key="settings_nav").set_value("advanced").run()
         assert plot.config["shapes"][0]["x0"] == "001"
-        assert plot.last_generated_fig.layout.shapes[0].x0 == "001"
+        assert plot.render_artifact.figure.layout.shapes[0].x0 == "001"
         assert app.checkbox(key=_row(plot, "x0") + ".text_mode").value is False
         app.button(key=f"plot.{plot.plot_id}.widgets.refresh").click().run()
         assert not app.exception
         assert type(plot.config["shapes"][0]["x0"]) is float
         assert plot.config["shapes"][0]["x0"] == 1.0
-        assert plot.last_generated_fig.layout.shapes[0].x0 == 1.0
+        assert plot.render_artifact.figure.layout.shapes[0].x0 == 1.0
 
         app.checkbox(key=_row(plot, "x0") + ".text_mode").check().run()
         app.text_input(key=_row(plot, "x0")).set_value("003").run()
@@ -151,7 +151,7 @@ def test_manual_refresh_preserves_intentional_kind_changes_across_sections() -> 
         assert not app.exception
         refreshed = api.state_manager.get_plots()[0]
         assert refreshed.config["shapes"][0]["x0"] == "003"
-        assert refreshed.last_generated_fig.layout.shapes[0].x0 == "003"
+        assert refreshed.render_artifact.figure.layout.shapes[0].x0 == "003"
         _measurements(refreshed)
     finally:
         api.close()
@@ -168,11 +168,11 @@ def test_invalid_number_edit_is_visible_and_preserves_the_published_native_shape
             "finite" in error.message or "too small" in error.message for error in app.exception
         )
         assert plot.config["shapes"][0]["y0"] == 2.0
-        assert plot.last_generated_fig.layout.shapes[0].y0 == 2.0
+        assert plot.render_artifact.figure.layout.shapes[0].y0 == 2.0
         app.text_input(key=_row(plot, "y0")).set_value("3.5").run()
         assert not app.exception
         assert plot.config["shapes"][0]["y0"] == 3.5
-        assert plot.last_generated_fig.layout.shapes[0].y0 == 3.5
+        assert plot.render_artifact.figure.layout.shapes[0].y0 == 3.5
         _measurements(plot)
     finally:
         api.close()
@@ -204,13 +204,15 @@ def test_native_partial_path_and_default_shapes_roundtrip_without_invented_field
     app, api, plot = _app([shape])
     try:
         before = deepcopy(plot.config["shapes"])
-        native_before = [item.to_plotly_json() for item in plot.last_generated_fig.layout.shapes]
+        native_before = [
+            item.to_plotly_json() for item in plot.render_artifact.figure.layout.shapes
+        ]
         _advanced(app, plot)
         app.run()
         assert not app.exception
         assert plot.config["shapes"] == before
         assert [
-            item.to_plotly_json() for item in plot.last_generated_fig.layout.shapes
+            item.to_plotly_json() for item in plot.render_artifact.figure.layout.shapes
         ] == native_before
         keys = {widget.key for widget in app.text_input}
         for field in ("x0", "y0", "x1", "y1"):
@@ -241,7 +243,7 @@ def test_deleting_the_invalid_row_skips_its_decoder_and_retains_manual_refresh_c
             app.button(key=f"plot.{plot.plot_id}.widgets.refresh").click().run()
         assert not app.exception
         assert plot.config["shapes"] == []
-        assert not plot.last_generated_fig.layout.shapes
+        assert not plot.render_artifact.figure.layout.shapes
         _measurements(plot)
     finally:
         api.close()
@@ -261,7 +263,7 @@ def test_deleting_invalid_partial_row_preserves_retained_row_types_and_extra_fie
         assert not app.exception
         assert plot.config["shapes"] == [retained]
         assert app.checkbox(key=_row(plot, "x0") + ".text_mode").value is True
-        assert plot.last_generated_fig.layout.shapes[0].x0 == "001"
+        assert plot.render_artifact.figure.layout.shapes[0].x0 == "001"
         _measurements(plot)
     finally:
         api.close()
@@ -285,7 +287,7 @@ def test_delete_still_rejects_invalid_coordinates_in_a_retained_row() -> None:
         assert not app.exception
         assert len(plot.config["shapes"]) == 1
         assert plot.config["shapes"][0]["y0"] == 14.25
-        assert plot.last_generated_fig.layout.shapes[0].y0 == 14.25
+        assert plot.render_artifact.figure.layout.shapes[0].y0 == 14.25
         _measurements(plot)
     finally:
         api.close()

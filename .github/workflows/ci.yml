@@ -18,7 +18,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@26e5b7d197ebf60545ee9667bcbace0be11ccaec # v1.334.0
+        uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
         with:
           ruby-version: "3.3"
           bundler-cache: true
@@ -177,7 +177,9 @@ jobs:
         run: make sync-dev
 
       - name: Install Chrome for Kaleido
-        run: python_venv/bin/kaleido_get_chrome
+        run: |
+          browser_path="$(python_venv/bin/python -m ring5.cli install-chrome)"
+          printf 'BROWSER_PATH=%s\n' "$browser_path" >> "$GITHUB_ENV"
 
       - name: Run serial export tests
         run: make test-export

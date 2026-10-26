@@ -36,10 +36,22 @@ Covers:
 
 -->
 
-The supported portfolio schema is version 8. Serialized files declare `schema_version: 8`,
-`version: "8.0"`, their parser strategy and simulator, environment metadata, and an integrity
+The supported portfolio schema is version 9. Serialized files declare `schema_version: 9`,
+`version: "9.0"`, their parser strategy and simulator, environment metadata, and an integrity
 manifest. Missing or unsupported schema versions raise a typed version error before restoration.
 No reader infers old defaults, translates keys, or rewrites a file into the current schema.
+Editable plot configuration uses `legend2_*` for a separate right legend and
+`anchor_x`/`anchor_y` in every legend tier. Retired `dual_legend_*` and tier
+`xanchor`/`yanchor` configuration keys in every tier, including the primary legend, fail before
+plot restoration. Built-in heatmap configurations use `color_palette`, `reverse_colorscale`
+and `show_values`; their key admission uses the explicit plot type so plugin-owned keys and
+typed trace colorscales remain independent. Recipe schema 4 shares the same key admission
+while retaining unmaterialized parameter values. Concrete common values
+use a separate `validate_plot_config_values` stage: every legend orientation is exactly
+`horizontal` or `vertical`. Recipe save/load retain template values; materialization applies
+the concrete-value guard after parameter substitution.
+Per-series styles map text names to style mappings, with a current string `pattern` value.
+The same pure admission runs before plot enrichment, portfolio publication and restoration.
 
 Treat portfolio JSON as untrusted input: sanitize names, validate paths, and verify content before
 restoration. Test current writer round trips, partial restore reporting, duplicate names, and

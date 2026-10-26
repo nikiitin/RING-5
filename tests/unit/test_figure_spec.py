@@ -48,8 +48,8 @@ class TestFigureSpecToConfig:
         assert cfg["range_y"] == [0.0, 1.4]
         assert cfg["yaxis_dtick"] == 0.2
 
-    def test_legend_anchor_key_asymmetry(self) -> None:
-        """Primary legend uses anchor_x/anchor_y; the number box uses xanchor/yanchor."""
+    def test_every_legend_uses_canonical_anchor_keys(self) -> None:
+        """Primary and numbered legends use the same anchor_x/anchor_y fields."""
         spec = FigureSpec(
             legend=LegendOpts(position=(0.6, 0.99), anchor=("left", "top"), ncols=3, item_width=6),
             number_legend=LegendOpts(position=(0.6, 0.8), anchor=("left", "top"), ncols=2),
@@ -63,12 +63,12 @@ class TestFigureSpecToConfig:
         assert cfg["legend_itemwidth"] == 6
         # numbered box
         assert cfg["legend2_x"] == 0.6
-        assert cfg["legend2_xanchor"] == "left"
-        assert cfg["legend2_yanchor"] == "top"
+        assert cfg["legend2_anchor_x"] == "left"
+        assert cfg["legend2_anchor_y"] == "top"
         assert cfg["legend2_ncols"] == 2
-        # the asymmetric keys must NOT cross over
+        # Native Plotly spellings do not enter editable configuration.
         assert "legend_xanchor" not in cfg
-        assert "legend2_anchor_x" not in cfg
+        assert "legend2_xanchor" not in cfg
 
     def test_unset_legend_fields_omitted(self) -> None:
         cfg = FigureSpec().to_config()

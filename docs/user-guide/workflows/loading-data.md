@@ -401,7 +401,7 @@ with ring5.Session() as session:
         pattern="stats.txt",
         scan_limit=10,
     )
-    data = session.load(result.csv_path)
+    data = session.load(result)
 ```
 
 Set `scan_limit=0` when every matching file must be scanned for variable discovery. Exhaustive

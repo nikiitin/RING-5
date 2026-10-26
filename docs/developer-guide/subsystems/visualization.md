@@ -37,8 +37,17 @@ Covers:
 -->
 
 Every registered plot type produces a typed `TraceBuildResult` before backend rendering. It carries
-bar, line, scatter, histogram, or heatmap traces plus backend-neutral separators, shaded regions,
-rules, annotations, tick positions, and secondary-axis metadata.
+concrete trace families plus backend-neutral separators, shaded regions, rules, typed
+`AnnotationConfig` entries, tick positions, and secondary-axis metadata. Histogram plots emit bar
+traces with shared measured bucket geometry.
+
+`src/web/rendering/figure_preparation.py::prepare_figure` owns effective semantic/accessibility
+configuration, one trace callback, non-color encoding and relabeling, and one typed styling
+build/resolve. It returns an owned `PreparedFigure` without constructing native figures.
+Public `Session.render`, reports, dashboards, small multiples and the browser controller use
+this preparation before the selected native builder. Composite results retain every real panel
+preparation. Numbered
+annotations carry their semantic legend role; the central resolver applies inherited font sizes.
 
 Plot types live under `src/web/pages/ui/plotting/types/` because their configuration UI and current
 composition are web-owned. They emit models from `src/core/models/visualization/` and do not create
@@ -50,8 +59,15 @@ a connector runs. Plotly and Matplotlib connectors apply the same ordered stylin
 renderers handle mark-specific translation.
 
 Export bytes are produced by `src/web/rendering/figure_export.py` and shared by the download UI and
-the `ring5` facade. The UI owns Matplotlib figure lifecycle and session caches; connectors remain
-stateless and do not close caller-owned figures.
+the `ring5` facade. Each plot publishes one `RenderArtifact` with its exact configuration,
+preparation, engine, source rows and cache identity. The controller selects an engine before cache
+lookup; chart display and downloads consume the same artifact without rebuilding. Configuration
+reads return private snapshots; replace the complete mapping to change settings.
+
+`PlotRenderState` atomically stores one bound generation or detached configuration. Repository
+retirement detaches the captured generation and disposes outside workspace and slot locks. Native
+Matplotlib publication relinquishes its manager once; later retirement preserves borrowed figure
+content and managers registered by callers. Connectors remain stateless.
 
 When adding a visual setting, update its model round trip, builder, UI, both connectors, and public
 `FigureSpec` when it belongs to the supported scripting surface. See

@@ -1,28 +1,16 @@
-"""
-Refactored unit tests for StateManager logic.
-Uses mocks instead of MemoryStorageAdapter.
-"""
+"""Repository state preserves data, parser options, and plot identifiers."""
 
-from collections.abc import Generator
-from typing import Any, cast
+from typing import cast
 from unittest.mock import patch
 
 import pandas as pd
-import pytest
 
 from src.core.models.data_models import ParseVariableConfig
 from src.core.models.portfolio_models import PortfolioData
 from src.core.state.repository_state_manager import RepositoryStateManager as StateManager
 
 
-@pytest.fixture
-def mock_session_state() -> Generator[dict[str, Any], None, None]:
-    """Mock streamlit.session_state as a dictionary."""
-    with patch("streamlit.session_state", new_callable=dict) as mock_state:
-        yield mock_state
-
-
-def test_initialize_defaults(mock_session_state: Any) -> None:
+def test_initialize_defaults() -> None:
     """Verify default state initialization."""
     mgr = StateManager()
 
@@ -31,13 +19,14 @@ def test_initialize_defaults(mock_session_state: Any) -> None:
     assert len(mgr.get_parse_variables()) > 0
 
 
-def test_set_data_enforce_config_types(mock_session_state: Any) -> None:
-    """Verify that set_data enforces string types for configuration variables."""
+def test_set_data_preserves_frame_types_despite_parser_editor() -> None:
+    """Generic frame publication preserves values and types independently of the editor."""
     mgr = StateManager()
 
     # Setup variables with configuration type
     vars_config = cast(list[ParseVariableConfig], [{"name": "cfg", "type": "configuration"}])
     mgr.set_parse_variables(vars_config)
+    editor = mgr.get_parse_variables()
 
     # Data with numeric "cfg" column
     df = pd.DataFrame({"cfg": [1, 2, 3], "val": [10, 20, 30]})
@@ -46,14 +35,13 @@ def test_set_data_enforce_config_types(mock_session_state: Any) -> None:
 
     stored_df = mgr.get_data()
     assert stored_df is not None
-    # "cfg" should be string/object now
-    assert pd.api.types.is_string_dtype(stored_df["cfg"]) or pd.api.types.is_object_dtype(
-        stored_df["cfg"]
-    )
-    assert stored_df["cfg"].tolist() == ["1", "2", "3"]
+    assert pd.api.types.is_integer_dtype(stored_df["cfg"])
+    assert stored_df["cfg"].tolist() == [1, 2, 3]
+    pd.testing.assert_frame_equal(stored_df, df)
+    assert mgr.get_parse_variables() == editor
 
 
-def test_update_config(mock_session_state: Any) -> None:
+def test_update_config() -> None:
     """Verify config updates via facade."""
     mgr = StateManager()
 
@@ -66,7 +54,7 @@ def test_update_config(mock_session_state: Any) -> None:
     assert cfg["b"] == 3
 
 
-def test_set_parse_variables_generate_ids(mock_session_state: Any) -> None:
+def test_set_parse_variables_generate_ids() -> None:
     """Verify unique ID generation for parse variables."""
     mgr = StateManager()
 
@@ -81,7 +69,7 @@ def test_set_parse_variables_generate_ids(mock_session_state: Any) -> None:
     assert vars_out[0]["_id"] == "uuid-1"
 
 
-def test_start_next_plot_id(mock_session_state: Any) -> None:
+def test_start_next_plot_id() -> None:
     """Verify plot ID generation increments correctly."""
     mgr = StateManager()
 
@@ -97,7 +85,7 @@ def test_start_next_plot_id(mock_session_state: Any) -> None:
     assert mgr.get_plot_counter() == 11
 
 
-def test_restore_session_state(mock_session_state: Any) -> None:
+def test_restore_session_state() -> None:
     """Verify session restoration logic."""
     mgr = StateManager()
 
@@ -105,6 +93,7 @@ def test_restore_session_state(mock_session_state: Any) -> None:
         PortfolioData,
         {
             "parser_strategy": "simple",
+            "loaded_origin": None,
             "simulator": "gem5",
             "csv_path": "/mock/test.csv",
             "plot_counter": 5,

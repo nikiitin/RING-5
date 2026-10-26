@@ -3,7 +3,6 @@
 from __future__ import annotations
 from src.core.models.parsing_models import SourceInstance
 
-import builtins
 import importlib
 import runpy
 import sys
@@ -30,12 +29,16 @@ from ring5.errors import Ring5Error
 from ring5.figure_spec import DualAxisOpts, FigureSpec, LegendOpts
 from src.core.models.parsing_models import (
     IncrementalParseBatchResult,
+    ParseBatchResult,
     ScanFileResult,
     ScanResult,
     StatConfig,
 )
 from src.core.models.portfolio_models import RestoreReport
 from src.parsing.gem5.models import Gem5ScannedVariable
+
+from src.core.common.parsed_output import ParsedOutputIO
+from tests.helpers.parsed_values import numeric_file, numeric_output, parser_context
 
 pytestmark = pytest.mark.public_api
 
@@ -61,8 +64,8 @@ def test_lazy_module_fallback_directory_and_shutdown() -> None:
     importlib.reload(ring5)
 
 
-def test_doctor_report_and_browser_fallbacks() -> None:
-    # [test->req~ring5.api.doctor~1]
+def test_doctor_report_and_browser_selection() -> None:
+    # [test->req~ring5.api.doctor~2]
     found = _doctor.DependencyStatus("x", True, "/x", "tests", "install")
     missing = _doctor.DependencyStatus("y", False, None, "tests", "install y")
     all_found = _doctor.DoctorReport(found, found, found)
@@ -72,18 +75,15 @@ def test_doctor_report_and_browser_fallbacks() -> None:
     assert partial.essential_found
     assert "install y" in str(partial)
 
-    real_import = builtins.__import__
+    from src.core.common.browser_selection import BrowserSelection
 
-    def fail_choreographer(name: str, *args: Any, **kwargs: Any) -> Any:
-        if name == "choreographer.browsers.chromium":
-            raise ImportError("moved")
-        return real_import(name, *args, **kwargs)
-
-    with patch("builtins.__import__", side_effect=fail_choreographer):
-        with patch("ring5._doctor.shutil.which", side_effect=lambda name: f"/{name}"):
-            assert _doctor._find_chrome() == "/chrome"
+    with patch("ring5._doctor.select_browser", return_value=BrowserSelection("", None)):
         with patch("ring5._doctor.shutil.which", return_value=None):
-            assert _doctor._find_chrome() is None
+            report = _doctor.doctor(tex_system="pdflatex")
+    assert not report.chrome.found
+    assert report.chrome.path == ""
+    assert "empty BROWSER_PATH" in str(report)
+    assert report.tex_compiler.name == "pdflatex"
 
 
 def test_export_error_normalization(tmp_path: Path) -> None:
@@ -97,7 +97,10 @@ def test_export_error_normalization(tmp_path: Path) -> None:
     with patch("ring5._export.plotly_download_bytes", side_effect=ValueError("bad image")):
         with pytest.raises(ring5.ExportError, match="bad image"):
             _export.export_bytes(plotly, "png")
-    with patch("ring5._export.matplotlib_download_bytes", side_effect=RuntimeError("xelatex gone")):
+    with patch(
+        "ring5._export.matplotlib_download_bytes",
+        side_effect=RuntimeError("'xelatex' not found; install it"),
+    ):
         with pytest.raises(ring5.DependencyMissingError):
             _export.export_bytes(mpl, "pgf")
     with patch("ring5._export.matplotlib_download_bytes", side_effect=ValueError("bad figure")):
@@ -111,8 +114,15 @@ def test_export_error_normalization(tmp_path: Path) -> None:
             _export.export_file(mpl, str(tmp_path / "out.pdf"))
 
 
-def _parse_job(api: MagicMock, futures: list[Future[Any]]) -> _parse.ParseJob:
-    return _parse.ParseJob(api, futures, ["x"], "out", "simple", "runs", "stats.txt")
+def _parse_job(api: MagicMock, futures: list[Future[Any]], names=("x",)) -> _parse.ParseJob:
+    batch = ParseBatchResult(
+        tuple(futures),
+        tuple(names),
+        tuple(f"source-{i}" for i in range(len(futures))),
+        "out",
+        "simple",
+    )
+    return _parse.ParseJob(api, batch, parser_context(names))
 
 
 def test_parse_job_failure_edges(tmp_path: Path) -> None:
@@ -121,22 +131,24 @@ def test_parse_job_failure_edges(tmp_path: Path) -> None:
         _parse_job(api, [_future(error=RuntimeError("boom"))]).finalize()
 
     api.finalize_parsing.return_value = None
-    with pytest.raises(ring5.ParseError, match="produced no CSV"):
-        _parse_job(api, [_future({})]).finalize()
+    with pytest.raises(ring5.ParseError, match="requires a ParsedOutput"):
+        _parse_job(api, [_future(numeric_file("source-0", {"x": 1.0}))]).finalize()
 
-    api.finalize_parsing.side_effect = None
-    api.finalize_parsing.return_value = str(tmp_path / "result.csv")
-    with patch("ring5._parse.pd.read_csv", side_effect=UnicodeError("encoding")):
+    api.finalize_parsing.return_value = numeric_output(tmp_path / "result.csv", {"x": 1.0})
+    with patch("ring5._parse.ParsedOutputIO.read", side_effect=UnicodeError("encoding")):
         with pytest.raises(ring5.ParseError, match="validate parser output"):
-            _parse_job(api, [_future({})]).finalize()
+            _parse_job(api, [_future(numeric_file("source-0", {"x": 1.0}))]).finalize()
 
-    csv_path = tmp_path / "missing.csv"
-    pd.DataFrame({"x": [float("nan")]}).to_csv(csv_path, index=False)
-    api.finalize_parsing.return_value = str(csv_path)
+    output = numeric_output(tmp_path / "missing.csv", {"x": float("nan"), "absent": float("nan")})
+    api.finalize_parsing.return_value = output
     with pytest.raises(ring5.MissingStatError) as error:
-        _parse_job(api, [_future({})]).finalize()
-    assert error.value.missing == ["x"]
-    assert _parse._find_missing_stats(str(csv_path), ["x", "absent"]) == ["x", "absent"]
+        _parse_job(
+            api,
+            [_future(numeric_file("source-0", {"x": float("nan"), "absent": float("nan")}))],
+            ("x", "absent"),
+        ).finalize()
+    assert error.value.missing == ["x", "absent"]
+    assert ParsedOutputIO.read(output).missing_variables == ("x", "absent")
 
 
 def test_build_stat_configs_explicit_and_distribution_metadata() -> None:
@@ -227,8 +239,8 @@ def test_portfolio_replay_edges(tmp_path: Path) -> None:
                 _portfolio.render_portfolio("p", str(tmp_path))
 
     plots = [
-        SimpleNamespace(name="same/name", plot_id=1),
-        SimpleNamespace(name="same_name", plot_id=2),
+        SimpleNamespace(name="same/name", plot_id=1, config={}),
+        SimpleNamespace(name="same_name", plot_id=2, config={}),
     ]
     session = _portfolio_session(plots)
     with patch("ring5._portfolio.Session", return_value=session):
@@ -236,7 +248,7 @@ def test_portfolio_replay_edges(tmp_path: Path) -> None:
     assert written[0] != written[1]
     assert written[1].endswith("_2.pdf")
 
-    session = _portfolio_session([SimpleNamespace(name="bad", plot_id=1)])
+    session = _portfolio_session([SimpleNamespace(name="bad", plot_id=1, config={})])
     session.render.side_effect = Ring5Error("render failed")
     with patch("ring5._portfolio.Session", return_value=session):
         with pytest.raises(ring5.PortfolioError, match="Rendering plot 'bad'"):
@@ -316,14 +328,14 @@ def test_session_lifecycle_and_submission_edges(tmp_path: Path) -> None:
             assert session._incremental_output_dirs[unrelated_key] == "other-output"
 
         incremental_batch = IncrementalParseBatchResult(
-            futures=[],
-            var_names=["x"],
+            futures=(),
+            var_names=("x",),
             output_dir="/unused",
             strategy_type="simple",
             cache_path="/unused/cache.json",
             configuration_hash="a" * 64,
-            fingerprints=(),
-            cached_rows=(),
+            fingerprints=(("source", "a" * 64),),
+            cached_results=(numeric_file("source", {"x": 1.0}),),
             changed_files=(),
             removed_files=(),
         )
@@ -418,7 +430,9 @@ def test_cli_warning_file_error_and_module_entry(
     fake_session = MagicMock()
     fake_session.__enter__.return_value = fake_session
     fake_session.__exit__.return_value = None
-    fake_session.parse.return_value = _parse.ParseResult(str(source), ["x"], parsed_files=0)
+    fake_session.parse.return_value = _parse.ParseResult(
+        numeric_output(source, {"x": float("nan")}), parser_context(), ("x",), parsed_files=0
+    )
     with patch("ring5._session.Session", return_value=fake_session):
         assert (
             ring5_cli.main(
@@ -486,7 +500,7 @@ def test_error_payloads_and_complete_figure_spec() -> None:
     assert config["xaxis_order"] == ["b", "a"]
     assert config["group_order"] == ["g2", "g1"]
     assert config["legend_handletextpad"] == 0.3
-    assert config["dual_legend_handletextpad"] == 0.3
+    assert config["legend2_handletextpad"] == 0.3
 
     built = FigureSpec(
         title="Title",

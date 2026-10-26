@@ -266,7 +266,9 @@ def _portfolio_fragment(api: ApplicationAPI) -> None:
             disabled=sign_portfolio and signing_key is None,
         ):
             try:
-                current_data = api.state_manager.get_data()
+                with api.state_manager.transaction():
+                    current_data = api.state_manager.get_data()
+                    current_origin = api.state_manager.get_loaded_origin()
                 api.data_services.save_portfolio(
                     name=portfolio_name,
                     data=current_data,
@@ -275,6 +277,7 @@ def _portfolio_fragment(api: ApplicationAPI) -> None:
                     plot_counter=api.state_manager.get_plot_counter(),
                     csv_path=api.state_manager.get_csv_path(),
                     parse_variables=api.state_manager.get_parse_variables(),
+                    origin=current_origin,
                     figure_spec_enricher=build_figure_spec_dict,
                     signing_key=signing_key,
                     signing_key_id=signing_key_id,

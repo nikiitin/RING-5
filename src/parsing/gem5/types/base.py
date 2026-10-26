@@ -10,6 +10,7 @@ from collections.abc import Callable, Mapping
 from typing import ClassVar, Generic, TypeVar, final
 
 from src.core.models.parsing_models import StatParamValue
+from src.core.models.parse_failure_models import ParseDataRuntimeError
 
 Observation = float | str | Mapping[str, float]
 StatContent = list[float] | list[str] | dict[str, list[float]]
@@ -60,7 +61,7 @@ class StatType(ABC, Generic[ContentT, ResultT]):
 
     @property
     def padded_count(self) -> int:
-        """Return the number of missing measurements filled with NaN."""
+        """Return the logical count of absent measurements represented by NaN."""
         return self._padded
 
     @property
@@ -75,7 +76,10 @@ class StatType(ABC, Generic[ContentT, ResultT]):
     @property
     @abstractmethod
     def content(self) -> ContentT:
-        """Return a defensive snapshot of collected, unreduced measurements."""
+        """Return a defensive snapshot of actual, unreduced observations.
+
+        Missing entries in observed frames appear as NaN; absent frames are not stored.
+        """
 
     @property
     def reduced_content(self) -> ResultT:
@@ -119,7 +123,7 @@ class StatType(ABC, Generic[ContentT, ResultT]):
 
     @final
     def balance_content(self) -> None:
-        """End collection, padding missing measurements with NaN.
+        """End collection and record missing measurements without storing padding.
 
         Repeated calls are idempotent. Excess observations raise without advancing
         the lifecycle, so reduced content remains inaccessible.
@@ -133,7 +137,7 @@ class StatType(ABC, Generic[ContentT, ResultT]):
 
     @abstractmethod
     def _balance(self) -> int:
-        """Validate sample counts, fill missing values and return padding count."""
+        """Validate sample counts and return the logical missing-measurement count."""
 
     @final
     def reduce_duplicates(self) -> None:
@@ -156,7 +160,10 @@ class StatType(ABC, Generic[ContentT, ResultT]):
         """Compute a result without changing observation storage."""
 
     def __str__(self) -> str:
-        return f"{self._type_name}({self.content})"
+        return (
+            f"{self._type_name}(repeat={self._repeat}, balanced={self._balanced}, "
+            f"reduced={self._reduced}, padded={self._padded})"
+        )
 
     def __repr__(self) -> str:
         return str(self)
@@ -234,7 +241,7 @@ class FrameStatType(StatType[dict[str, list[float]], dict[str, float]], ABC):
 
     @property
     def content(self) -> dict[str, list[float]]:
-        """Return raw measurements by entry, preserving per-frame missingness."""
+        """Return actual frames by entry, preserving missing entries within each frame."""
         return {
             entry: [sample.get(entry, math.nan) for sample in self._frames]
             for entry in self._content_entries
@@ -262,15 +269,15 @@ class FrameStatType(StatType[dict[str, list[float]], dict[str, float]], ABC):
 
     def _balance(self) -> int:
         if len(self._frames) > self.repeat:
-            raise RuntimeError(
+            raise ParseDataRuntimeError(
                 f"{self._type_name.upper()}: More observations ({len(self._frames)}) "
                 f"than expected ({self.repeat})."
             )
-        padding = self.missing_measurement_count
-        self._frames.extend({} for _ in range(self.repeat - len(self._frames)))
-        return padding
+        return self.missing_measurement_count
 
     def _reduce(self) -> dict[str, float]:
+        if len(self._frames) < self.repeat:
+            return dict.fromkeys(self._content_entries, math.nan)
         return {
             entry: population_mean([sample.get(entry, math.nan) for sample in self._frames])
             for entry in self._content_entries

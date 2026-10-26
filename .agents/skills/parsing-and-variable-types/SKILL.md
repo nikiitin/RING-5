@@ -22,7 +22,7 @@ configs   = api.compile_parse_variables(
 # Parse: extract selected variables → CSV
 batch    = api.submit_parse_async(stats_path, pattern, configs, out_dir,
                                   strategy_type="simple", scanned_vars=scan.variables)
-csv_path = api.finalize_parsing(out_dir, [f.result() for f in batch.futures])
+output = api.finalize_parsing(batch, [f.result() for f in batch.futures])
 ```
 - **Always pass `scanned_vars`** when parsing regex/pattern variables — it's needed to bind
   explicit `SourceInstance(source_name, indices)` records. Never reconstruct names from indices.
@@ -57,7 +57,14 @@ Stat types self-register; there are two halves — **Python** (model + reduction
    wire text at the worker boundary. Collection closes after balancing. The public
    balance/reduce methods are idempotent, and reduced content is inaccessible until both
    succeed. Frame-based types can inherit `FrameStatType` and supply their entry schema
-   and frame validation; one frame list remains the authoritative store.
+   and frame validation; one actual-observation frame list remains the authoritative store.
+   Balancing records exact logical missing counts without constructing repeat-sized NaN lists or
+   empty frames. Reduction still propagates absent frames as NaN. `content` exposes defensive
+   snapshots of actual observations, including missing entries within an observed frame;
+   compact representations never copy it. For active histogram rebinning, check the requested bin
+   count as a lower bound on emitted width against the existing physical-column budget before
+   constructing labels. Validate the exact emitted width before constructing raw-bucket mappings,
+   preserving explicit-entry and statistics-only precedence over unused rebin geometry.
 
    Declare `required_params` for OFT capability discovery; constructor and codec validation
    enforce executable options. Import it so the decorator runs (add to `types/__init__.py`). `TypeMapper.create_stat(resolved_spec)` /
@@ -84,8 +91,8 @@ Stat types self-register; there are two halves — **Python** (model + reduction
   if `last_used < 60s`; `is_busy` uses GIL atomicity). Pools register `atexit` cleanup and have
   `shutdown()` — call `ApplicationAPI.cancel_pending_scans()` to release THAT instance's scan
   futures/memory (handle-based; pool facades keep none; the web app shares one cached instance).
-- **Missing/empty columns in CSV:** `construct_final_csv` unions headers across files; a variable
-  absent in the first file is fine. If a header is *permanently* short, suspect header being built
+- **Missing/empty columns in CSV:** `ParsedOutputIO.resolve` unions explicitly owned columns across typed
+  file results; a variable absent in the first file is fine. If a header is *permanently* short, suspect header being built
   from a sample file rather than the variable config.
 - **Wrong values / type mismatch:** Perl may report `Vector` where the user expected
   `Distribution`/`Histogram`; explicit source/output routing is handled in `gem5/impl/strategies/gem5_parse_work.py`.

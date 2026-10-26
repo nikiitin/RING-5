@@ -22,6 +22,17 @@ def sample_df() -> pd.DataFrame:
 class TestProcessPipeline:
     """Tests for PipelineService.process_pipeline."""
 
+    def test_repeated_shaper_type_applies_each_configuration_in_order(self) -> None:
+        source = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9], "d": [10, 11, 12]})
+        original = source.copy(deep=True)
+        pipeline: list[ShaperStepConfig] = [
+            {"type": "columnSelector", "columns": ["a", "b", "c"]},
+            {"type": "columnSelector", "columns": ["a", "b"]},
+        ]
+        result = PipelineService.process_pipeline(source, pipeline)
+        pd.testing.assert_frame_equal(result, original[["a", "b"]])
+        pd.testing.assert_frame_equal(source, original)
+
     def test_empty_pipeline_returns_input(self, sample_df: pd.DataFrame) -> None:
         result = PipelineService.process_pipeline(sample_df, [])
         assert result.equals(sample_df)

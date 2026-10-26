@@ -6,14 +6,14 @@
 This file is informative; normative items are in the other generated files.
 
 - Feature groups: 13
-- Detailed requirements: 220
-- Approved current requirements: 220
+- Detailed requirements: 221
+- Approved current requirements: 221
 - Proposed future requirements: 0
 - Draft future requirements: 0
 - In development future requirements: 0
 - Blocked future requirements: 0
-- Generated specification items: 233
-- Live capability bindings: 832
+- Generated specification items: 234
+- Live capability bindings: 853
 
 ## Requirements by feature group
 
@@ -29,7 +29,7 @@ This file is informative; normative items are in the other generated files.
 | Figure Configuration | 31 | 0 | 0 | 0 | 0 | 31 |
 | Rendering and Export | 15 | 0 | 0 | 0 | 0 | 15 |
 | Reproducibility and Portfolios | 13 | 0 | 0 | 0 | 0 | 13 |
-| Automation API and CLI | 16 | 0 | 0 | 0 | 0 | 16 |
+| Automation API and CLI | 17 | 0 | 0 | 0 | 0 | 17 |
 | Extensibility, Safety, and Quality | 14 | 0 | 0 | 0 | 0 | 14 |
 | Feature Traceability | 11 | 0 | 0 | 0 | 0 | 11 |
 
@@ -37,12 +37,12 @@ This file is informative; normative items are in the other generated files.
 
 - `application_api_members`: 99
 - `axes_config_fields`: 11
-- `axis_config_fields`: 31
-- `cli_commands`: 6
-- `cli_options`: 37
+- `axis_config_fields`: 32
+- `cli_commands`: 7
+- `cli_options`: 39
 - `colorbar_config_fields`: 9
 - `data_label_config_fields`: 12
-- `data_services_api_members`: 53
+- `data_services_api_members`: 50
 - `dimension_config_fields`: 7
 - `figure_config_fields`: 22
 - `figure_decoration_members`: 12
@@ -53,19 +53,19 @@ This file is informative; normative items are in the other generated files.
 - `margin_config_fields`: 5
 - `matplotlib_formats`: 4
 - `navigation_pages`: 4
-- `parse_job_members`: 2
+- `parse_job_members`: 4
 - `parse_variable_fields`: 9
 - `parser_strategies`: 2
 - `plot_types`: 17
 - `plotly_formats`: 4
-- `public_exports`: 124
+- `public_exports`: 143
 - `public_shaper_exports`: 4
 - `render_engines`: 2
 - `restore_report_fields`: 5
 - `scan_job_members`: 2
 - `scan_result_fields`: 3
 - `scanned_variable_fields`: 5
-- `series_style_config_fields`: 9
+- `series_style_config_fields`: 8
 - `session_methods`: 116
 - `settings_sections`: 8
 - `shaper_config_fields`: 13
@@ -91,13 +91,16 @@ This file is informative; normative items are in the other generated files.
 | --- | ---: | --- | --- |
 | `workspace.navigation` | 1 | Semantic | Replaced Documentation routing with a direct link to the published site. |
 | `workspace.documentation-hub` | 1 | Semantic | Replaced the duplicate application page with direct links to the canonical published documentation. |
+| `ingestion.csv-contract` | 1 | Semantic | Define explicit typed parser schema, physical ownership, exact row encoding and schema-bound content integrity; genuine CSV ingestion retains its separate inference contract. |
 | `data.error-propagation` | 1 | Semantic | Define canonical SD propagation for missing contributors, weighted repeated sources, mean scaling, and undefined estimates. |
 | `figure.ordering-renaming` | 1 | Semantic | Assigned legend-entry ordering to each visible Legend tab while keeping axis and facet ordering under Axes. |
 | `figure.numbered-xaxis` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |
 | `figure.dual-axis-controls` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |
+| `api.doctor` | 1 | Semantic | Describe the shared authoritative browser selection and selected compiler preflight contract. |
 | `figure.stack-totals` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |
 | `figure.alternate-category-shading` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |
 | `figure.series-styling` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |
+| `quality.performance-regression-gates` | 1 | Evidence only | Retain live benchmark evidence after removing the unused timing decorator. |
 | `trace.requirement-history` | 1 | Semantic | Specified complete semantic snapshots and reviewer-facing history views. |
 | `trace.requirement-history` | 2 | Evidence only | Recorded implementation, verification, and documentation evidence without changing revision 2. |
 

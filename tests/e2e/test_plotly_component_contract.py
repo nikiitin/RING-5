@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from ring5 import Session
+from typing import cast
+
 import json
 from importlib.metadata import version
 from pathlib import Path
@@ -209,7 +212,9 @@ def test_custom_component_renders_binary_arrays_with_no_network(page: Page) -> N
 
 
 @pytest.mark.parametrize("mode", ["tukey", "minmax", "percentile"])
-def test_plotly_box_calcdata_uses_precomputed_statistics(page: Page, mode: str) -> None:
+def test_plotly_box_calcdata_uses_precomputed_statistics(
+    page: Page, mode: str, plot_session: Session
+) -> None:
     page.set_content(_COMPONENT.read_text())
     data = pd.DataFrame({"x": ["a"] * 5, "y": [0.0, 1.0, 2.0, 3.0, 100.0]})
     config: dict[str, Any] = {
@@ -221,7 +226,9 @@ def test_plotly_box_calcdata_uses_precomputed_statistics(page: Page, mode: str) 
     plot = BoxPlot(1, "Distribution")
     trace = plot.create_traces(data, config).traces[0]
     assert isinstance(trace, BoxTraceConfig)
-    _render(page, plot.create_figure(data, config))
+    plot.processed_data = data
+    plot.config = config
+    _render(page, cast(go.Figure, plot_session.render(plot)))
     page.wait_for_function('document.getElementById("myDiv").calcdata?.[0]?.[0]?.q1 !== undefined')
     actual = page.evaluate(
         'Object.fromEntries(["q1", "med", "q3", "lf", "uf"].map(key => '

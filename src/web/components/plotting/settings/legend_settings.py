@@ -14,8 +14,6 @@ Usage::
     )
 """
 
-from typing import Any
-
 import pandas as pd
 import streamlit as st
 
@@ -169,24 +167,27 @@ class LegendSettingsComponent:
                 unified_items = left_series + [
                     item for item in right_series if item not in left_series
                 ]
-                return self._render_series_items(
+                return self._render_named_items(
                     saved_config,
                     unified_items,
                     order_key="legend_order",
+                    labels_key="legend_labels",
                     widget_prefix="legend_items",
                 )
-            return self._render_series_items(
+            return self._render_named_items(
                 saved_config,
                 left_series,
                 order_key="y_columns",
+                labels_key="legend_labels",
                 widget_prefix="legend_items",
             )
 
         if active_tab == "secondary" and separate_legends and right_series:
-            return self._render_series_items(
+            return self._render_named_items(
                 saved_config,
                 right_series,
                 order_key="y_columns_right",
+                labels_key="legend_labels",
                 widget_prefix="legend2_items",
             )
 
@@ -248,60 +249,6 @@ class LegendSettingsComponent:
 
         return {}
 
-    def _render_series_items(
-        self,
-        saved_config: PlotConfig,
-        items: list[str],
-        *,
-        order_key: str,
-        widget_prefix: str,
-    ) -> PlotConfig:
-        """Render ordering and display-name controls for trace series."""
-        raw_styles_value = saved_config.get("series_styles")
-        raw_styles: dict[str, Any] = raw_styles_value if isinstance(raw_styles_value, dict) else {}
-        rename_map = {
-            item: str(raw_styles[item]["name"])
-            for item in items
-            if item in raw_styles
-            and isinstance(raw_styles[item], dict)
-            and raw_styles[item].get("name")
-        }
-
-        with st.expander("Reorder and Rename Legend Items"):
-            rendered = render_reorderable_list(
-                "Legend Item Order",
-                items,
-                widget_prefix,
-                plot_id=self.plot_id,
-                default_order=saved_config.get(order_key),
-                enable_rename=True,
-                rename_map=rename_map or None,
-            )
-
-        if not isinstance(rendered, tuple):
-            return {}
-        new_order, renames = rendered
-        result: PlotConfig = {}
-        if new_order != saved_config.get(order_key):
-            result[order_key] = new_order
-
-        if renames != rename_map:
-            styles: dict[str, Any] = {
-                str(key): dict(value)
-                for key, value in raw_styles.items()
-                if isinstance(value, dict)
-            }
-            for item in items:
-                item_style = styles.setdefault(item, {})
-                if item in renames:
-                    item_style["name"] = renames[item]
-                else:
-                    item_style.pop("name", None)
-                if not item_style:
-                    styles.pop(item, None)
-            result["series_styles"] = styles
-        return result
-
     def _render_named_items(
         self,
         saved_config: PlotConfig,
@@ -311,13 +258,9 @@ class LegendSettingsComponent:
         labels_key: str,
         widget_prefix: str,
     ) -> PlotConfig:
-        """Render ordering and renaming for categorical legend entries."""
+        """Render ordering and canonical display labels without changing series styles."""
         raw_labels = saved_config.get(labels_key)
-        saved_labels: dict[str, str] = (
-            {str(key): str(value) for key, value in raw_labels.items()}
-            if isinstance(raw_labels, dict)
-            else {}
-        )
+        saved_labels: dict[str, str] = dict(raw_labels) if isinstance(raw_labels, dict) else {}
         labels = {item: saved_labels[item] for item in items if item in saved_labels}
         with st.expander("Reorder and Rename Legend Items"):
             rendered = render_reorderable_list(

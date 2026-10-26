@@ -52,7 +52,7 @@ with ring5.Session() as session:
         "results/",
         variables=["simTicks", "system.cpu.ipc"],
     )
-    data = session.load(parsed.csv_path)
+    data = session.load(parsed)
     reduced = session.reduce_seeds(
         data,
         categorical_cols=["benchmark", "configuration"],
@@ -107,8 +107,9 @@ except ring5.PortfolioError as exc:
     raise SystemExit(f"portfolio render failed: {exc}") from exc
 ```
 
-Run `print(ring5.doctor())` before an environment-dependent export. The report identifies missing
-Perl, browser, and XeLaTeX dependencies without making optional tools essential.
+Run `print(ring5.doctor(tex_system="lualatex"))` before a PGF export that selects LuaLaTeX. The report
+identifies missing Perl, the selected browser, and the selected compiler without making optional
+tools essential. `doctor()` defaults to XeLaTeX. Read `report.tex_compiler` for the compiler status.
 
 ## Run a typed parameter matrix
 

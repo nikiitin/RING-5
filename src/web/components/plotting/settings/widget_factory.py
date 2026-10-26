@@ -8,12 +8,13 @@ for selectboxes, and consistent widget key generation.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, Literal
 
 import streamlit as st
 
 from src.core.models.plot_config import PlotConfig
 from src.web.state.ui_state_manager import WidgetKeyBuilder
+from src.web.rendering._color_utils import picker_hex_color
 
 
 def saved_option_label(mapping: Mapping[str, object], saved: object, fallback: str) -> str:
@@ -143,12 +144,29 @@ def color_picker(
     *,
     widget_key: str | None = None,
     default: str = "#000000",
+    disabled: bool = False,
+    label_visibility: Literal["visible", "hidden", "collapsed"] = "visible",
 ) -> str:
-    """Render a color_picker with config-based default."""
+    """Edit an RGB preview while preserving untouched CSS text and opacity."""
     value = config.get(config_key, default)
+    if not isinstance(value, str):
+        raise ValueError(f"{config_key} must be CSS color text.")
     wk = widget_key or WidgetKeyBuilder.plot_key(plot_id, f"widgets.appearance.{config_key}")
-    result: str = st.color_picker(label, value, key=wk)
-    return result
+    try:
+        preview = picker_hex_color(value)
+    except ValueError:
+        st.caption("This saved CSS color has no RGB picker preview; its literal value is retained.")
+        return st.text_input(
+            label,
+            value,
+            key=f"{wk}.literal",
+            disabled=disabled,
+            label_visibility=label_visibility,
+        )
+    result: str = st.color_picker(
+        label, preview, key=wk, disabled=disabled, label_visibility=label_visibility
+    )
+    return value if result.lower() == preview.lower() else result
 
 
 def toggle(

@@ -2,17 +2,20 @@
 
 from __future__ import annotations
 from src.core.common.typed_table_codec import TypedTableCodec
+from src.core.common.plot_render_state import PlotRenderState
 
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from types import SimpleNamespace
+from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
 
 from src.core.application_api import ApplicationAPI
 from src.core.common.content_identity import frame_signature
+from src.core.models.plot_protocol import PlotProtocol
 from src.core.models.visualization.figure_config import FigureConfig
 from src.core.services.data_services.dataset_snapshot_service import DatasetSnapshotService
 from src.core.services.data_services.path_service import PathService
@@ -342,11 +345,17 @@ def test_owned_frame_copy_preserves_explicit_object_dtype(values) -> None:
 def test_restore_deserializer_can_wait_for_foreign_state_publication() -> None:
     from src.core.state.repository_state_manager import RepositoryStateManager
 
+    restored_plot = MagicMock(spec=PlotProtocol)
+    restored_plot.render_state = PlotRenderState()
+    restored_plot.render_state.publish("candidate", restored_plot.invalidate_figure)
+    restored_plot.plot_id = 1
+    restored_plot.name = "restored"
+
     with ThreadPoolExecutor(max_workers=1) as pool:
 
         def deserialize(spec):
             pool.submit(state.set_processed_data, pd.DataFrame({"x": [1]})).result(timeout=2)
-            return SimpleNamespace(plot_id=1, name="restored")
+            return restored_plot
 
         state = RepositoryStateManager(plot_deserializer=deserialize)
         state.set_data(pd.DataFrame({"old": [9]}))
@@ -354,6 +363,7 @@ def test_restore_deserializer_can_wait_for_foreign_state_publication() -> None:
             state.restore_session(
                 {
                     "parser_strategy": "simple",
+                    "loaded_origin": None,
                     "simulator": "gem5",
                     "data": TypedTableCodec.encode(pd.DataFrame({"new": [3]})),
                     "plots": [{"name": "one"}],
@@ -361,6 +371,7 @@ def test_restore_deserializer_can_wait_for_foreign_state_publication() -> None:
             )
     assert state.get_data().to_dict("records") == [{"old": 9}]
     assert state.get_processed_data().to_dict("records") == [{"x": 1}]
+    restored_plot.invalidate_figure.assert_called_once()
 
 
 @pytest.mark.parametrize("write", ["unselected_dataset", "configuration", "preview"])
@@ -369,12 +380,18 @@ def test_restore_rejects_concurrent_writes_without_invalidating_source_preview(
 ) -> None:
     from src.core.state.repository_state_manager import RepositoryStateManager
 
+    restored_plot = MagicMock(spec=PlotProtocol)
+    restored_plot.render_state = PlotRenderState()
+    restored_plot.render_state.publish("candidate", restored_plot.invalidate_figure)
+    restored_plot.plot_id = 1
+    restored_plot.name = "restored"
+
     entered, resume = threading.Event(), threading.Event()
 
     def deserialize(spec):
         entered.set()
         assert resume.wait(5)
-        return SimpleNamespace(plot_id=1, name="restored")
+        return restored_plot
 
     state = RepositoryStateManager(plot_deserializer=deserialize)
     state.add_dataset("active", pd.DataFrame({"x": [1]}))
@@ -383,7 +400,12 @@ def test_restore_rejects_concurrent_writes_without_invalidating_source_preview(
     with ThreadPoolExecutor(max_workers=1) as pool:
         future = pool.submit(
             state.restore_session,
-            {"parser_strategy": "simple", "simulator": "gem5", "plots": [{"name": "one"}]},
+            {
+                "parser_strategy": "simple",
+                "loaded_origin": None,
+                "simulator": "gem5",
+                "plots": [{"name": "one"}],
+            },
         )
         assert entered.wait(5)
         try:
@@ -405,13 +427,14 @@ def test_restore_rejects_concurrent_writes_without_invalidating_source_preview(
         assert state.get_config()["edited"] is True
     else:
         assert state.has_preview("candidate")
+    restored_plot.invalidate_figure.assert_called_once()
 
 
 def test_failed_restore_preparation_preserves_existing_repository_and_preview(api) -> None:
     options = _store(api)
     repository = api.state_manager._session_repo
     with pytest.raises(ValueError, match="parser strategy"):
-        api.state_manager.restore_session({"parser_strategy": None})
+        api.state_manager.restore_session({"parser_strategy": None, "loaded_origin": None})
     assert api.state_manager._session_repo is repository
     assert api.state_manager.get_data()["x"].tolist() == [1.0]
     assert api.preview_matches("scale", operation_config=options)
@@ -420,12 +443,18 @@ def test_failed_restore_preparation_preserves_existing_repository_and_preview(ap
 def test_source_publication_during_restore_preparation_rejects_candidate() -> None:
     from src.core.state.repository_state_manager import RepositoryStateManager
 
+    restored_plot = MagicMock(spec=PlotProtocol)
+    restored_plot.render_state = PlotRenderState()
+    restored_plot.render_state.publish("candidate", restored_plot.invalidate_figure)
+    restored_plot.plot_id = 1
+    restored_plot.name = "restored"
+
     entered, resume = threading.Event(), threading.Event()
 
     def deserialize(spec):
         entered.set()
         assert resume.wait(2)
-        return SimpleNamespace(plot_id=1, name="restored")
+        return restored_plot
 
     state = RepositoryStateManager(plot_deserializer=deserialize)
     state.set_data(pd.DataFrame({"x": [1]}))
@@ -435,6 +464,7 @@ def test_source_publication_during_restore_preparation_rejects_candidate() -> No
             state.restore_session,
             {
                 "parser_strategy": "simple",
+                "loaded_origin": None,
                 "simulator": "gem5",
                 "data": TypedTableCodec.encode(pd.DataFrame({"x": [2]})),
                 "plots": [{"name": "one"}],
@@ -447,6 +477,7 @@ def test_source_publication_during_restore_preparation_rejects_candidate() -> No
             future.result(timeout=2)
     assert state._session_repo is original_repository
     assert state.get_data()["x"].tolist() == [99]
+    restored_plot.invalidate_figure.assert_called_once()
 
 
 def test_nested_restore_rejects_before_deserialization_or_publication() -> None:
@@ -460,6 +491,7 @@ def test_nested_restore_rejects_before_deserialization_or_publication() -> None:
             state.restore_session(
                 {
                     "parser_strategy": "simple",
+                    "loaded_origin": None,
                     "simulator": "gem5",
                     "data": TypedTableCodec.encode(pd.DataFrame({"x": [2]})),
                     "plots": [{"name": "one"}],

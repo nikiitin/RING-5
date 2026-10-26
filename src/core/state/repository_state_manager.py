@@ -4,13 +4,15 @@ from __future__ import annotations
 
 import logging
 import threading
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 from functools import wraps
 import shutil
 from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any, Concatenate, ParamSpec, TypeVar
 
+from src.core.common.plot_render_state import PlotRenderBinding
+from src.core.models.source_context_models import LoadedDataOrigin
 from src.core.models.preview_models import PreviewContext
 
 import pandas as pd
@@ -32,6 +34,7 @@ from src.core.models.data_models import (
 from src.core.models.history_models import OperationRecord
 from src.core.models.plot_protocol import PlotDeserializer
 from src.core.models.visualization.figure_config import FigureConfig
+from src.core.state.repositories.plot_repository import PlotRetirement
 from src.core.state.repositories.session_repository import SessionRepository
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -48,7 +51,7 @@ def _state_write(
 
     @wraps(method)
     def guarded(self: RepositoryStateManager, *args: _P.args, **kwargs: _P.kwargs) -> _R:
-        with self._transaction_lock:
+        with self.transaction():
             try:
                 return method(self, *args, **kwargs)
             finally:
@@ -78,7 +81,7 @@ def _source_write(
 
     @wraps(method)
     def guarded(self: RepositoryStateManager, *args: _P.args, **kwargs: _P.kwargs) -> _R:
-        with self._transaction_lock:
+        with self.transaction():
             selection = _selection_revision(self) if method.__name__ in named_operations else None
             csv_path = self.get_csv_path() if method.__name__ == "set_csv_path" else None
             try:
@@ -97,6 +100,15 @@ def _source_write(
                     self._source_version += 1
 
     return guarded
+
+
+@contextmanager
+def _retire_plot_binding(binding: PlotRenderBinding[Any]) -> Iterator[None]:
+    """Retire one binding with the preceding body/cleanup exception still active."""
+    try:
+        yield
+    finally:
+        binding.dispose()
 
 
 class RepositoryStateManager:
@@ -120,14 +132,43 @@ class RepositoryStateManager:
 
     @contextmanager
     def transaction(self) -> Iterator[None]:
-        """Hold the session boundary for an atomic compare-and-publish sequence."""
-        with self._transaction_lock:
-            depth = getattr(self._transaction_context, "depth", 0)
-            self._transaction_context.depth = depth + 1
+        """Publish atomically, then retire removed bindings after the outer lock exits.
+
+        Cleanup failures propagate after committed state; remaining callbacks still run.
+        """
+        with ExitStack() as cleanup:
+            retired: list[PlotRenderBinding[Any]] = []
             try:
-                yield
+                with self._transaction_lock:
+                    depth = getattr(self._transaction_context, "depth", 0)
+                    if depth == 0:
+                        self._transaction_context.retirements = []
+                    self._transaction_context.depth = depth + 1
+                    try:
+                        yield
+                    finally:
+                        self._transaction_context.depth = depth
+                        if depth == 0:
+                            pending = self._transaction_context.retirements
+                            self._transaction_context.retirements = []
+                            live = {id(plot) for plot in self.get_plots()}
+                            seen: set[int] = set()
+                            for retirement in pending:
+                                if id(retirement.plot) in live or id(retirement.binding) in seen:
+                                    continue
+                                seen.add(id(retirement.binding))
+                                binding = retirement.detach()
+                                if binding is not None:
+                                    retired.append(binding)
             finally:
-                self._transaction_context.depth = depth
+                # Register only after both ownership locks exit. The outer stack
+                # receives body failures and preserves them in the cleanup chain.
+                for binding in reversed(retired):
+                    cleanup.enter_context(_retire_plot_binding(binding))
+
+    def _queue_retirements(self, retirements: tuple[PlotRetirement, ...]) -> None:
+        """Record exact bindings for the surrounding publication transaction."""
+        self._transaction_context.retirements.extend(retirements)
 
     def get_source_version(self) -> int:
         """Return the version advanced by source publication or selection."""
@@ -160,6 +201,7 @@ class RepositoryStateManager:
         *,
         operation: str = "Update dataset",
         source_datasets: tuple[str, ...] = (),
+        origin: LoadedDataOrigin | None = None,
     ) -> None:
         """Store source data, then invoke a callback after releasing the publication lock.
 
@@ -171,17 +213,13 @@ class RepositoryStateManager:
             raise ValueError(
                 "State-change callbacks must run after the surrounding transaction exits."
             )
-        # Copy + enforce configuration-column dtypes via the shared ingestion
-        # helper, so fresh loads and portfolio restores agree on dtypes.
-        if data is not None:
-            data = self._session_repo.enforce_config_dtypes(data)
-
         with self._transaction_lock:
             try:
                 self._session_repo.data_repo.set_data(
                     data,
                     operation=operation,
                     source_datasets=source_datasets,
+                    origin=origin,
                 )
             finally:
                 self._source_version += 1
@@ -190,6 +228,10 @@ class RepositoryStateManager:
         # Run them only after the source version is committed and the lock released.
         if on_change is not None:
             on_change()
+
+    def get_loaded_origin(self) -> LoadedDataOrigin | None:
+        """Return immutable replay facts for the current exact frame."""
+        return self._session_repo.data_repo.get_loaded_origin()
 
     def get_processed_data(self) -> pd.DataFrame | None:
         """Return the current processed data."""
@@ -218,7 +260,7 @@ class RepositoryStateManager:
         self._session_repo.data_repo.clear_data()
         self._session_repo.config_repo.set_csv_path("")
         self._session_repo.config_repo.set_temp_dir("")
-        self._session_repo.plot_repo.clear_plots()
+        self._queue_retirements(self._session_repo.plot_repo.clear_plots())
         self._session_repo.plot_repo.set_plot_counter(0)
         self._session_repo.plot_repo.set_current_plot_id(None)
 
@@ -232,16 +274,17 @@ class RepositoryStateManager:
         replace: bool = False,
         operation: str = "Add dataset",
         source_datasets: tuple[str, ...] = (),
+        origin: LoadedDataOrigin | None = None,
     ) -> DatasetInfo:
-        """Retain a named dataset after applying shared dtype rules."""
-        normalized = self._session_repo.enforce_config_dtypes(data)
+        """Retain an exact owned named dataset."""
         return self._session_repo.data_repo.add_dataset(
             name,
-            normalized,
+            data,
             select=select,
             replace=replace,
             operation=operation,
             source_datasets=source_datasets,
+            origin=origin,
         )
 
     def list_datasets(self) -> tuple[DatasetInfo, ...]:
@@ -417,7 +460,7 @@ class RepositoryStateManager:
     @_state_write
     def set_plots(self, plots: list[PlotProtocol]) -> None:
         """Replace registered plots."""
-        self._session_repo.plot_repo.set_plots(plots)
+        self._queue_retirements(self._session_repo.plot_repo.set_plots(plots))
 
     @_state_write
     def add_plot(self, plot_obj: PlotProtocol) -> None:
@@ -524,7 +567,7 @@ class RepositoryStateManager:
     @_source_write
     def clear_all(self) -> None:
         """Reset all session repositories."""
-        self._session_repo.clear_all()
+        self._queue_retirements(self._session_repo.clear_all())
 
     def restore_session(self, portfolio_data: PortfolioData) -> RestoreReport:
         # [impl->req~ring5.portfolio.restore~1]
@@ -551,12 +594,36 @@ class RepositoryStateManager:
         with self._transaction_lock:
             expected_version = self._workspace_version
             factory = self._plot_deserializer
-        candidate = SessionRepository(plot_deserializer=factory)
-        report = candidate.restore_from_portfolio(portfolio_data)
-        with self._transaction_lock:
-            if self._workspace_version != expected_version:
-                raise ValueError("Workspace changed while restoring; review and retry the restore.")
-            self._session_repo = candidate
-            self._source_version += 1
-            self._workspace_version += 1
-        return report
+        admitted: list[PlotRetirement] = []
+
+        def deserialize(payload: dict[str, Any]) -> PlotProtocol | None:
+            if factory is None:
+                return None
+            plot = factory(payload)
+            if plot is not None:
+                admitted.append(PlotRetirement.capture(plot))
+            return plot
+
+        candidate = SessionRepository(
+            plot_deserializer=deserialize if factory is not None else None
+        )
+        published = False
+        try:
+            report = candidate.restore_from_portfolio(portfolio_data)
+            with self.transaction():
+                if self._workspace_version != expected_version:
+                    raise ValueError(
+                        "Workspace changed while restoring; review and retry the restore."
+                    )
+                self._queue_retirements(
+                    self._session_repo.plot_repo.removed_bindings(candidate.plot_repo.get_plots())
+                )
+                self._session_repo = candidate
+                self._source_version += 1
+                self._workspace_version += 1
+                published = True
+            return report
+        finally:
+            if not published:
+                with self.transaction():
+                    self._queue_retirements(tuple(admitted))

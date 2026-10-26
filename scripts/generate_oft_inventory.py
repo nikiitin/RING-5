@@ -131,9 +131,8 @@ def _cli_options(parser: argparse.ArgumentParser) -> tuple[str, ...]:
 
     def visit(current: argparse.ArgumentParser, command: str = "") -> None:
         for action in current._actions:  # argparse has no public action iterator
-            choices = getattr(action, "choices", None)
             if isinstance(action, argparse._SubParsersAction):
-                for name, child in choices.items():
+                for name, child in action.choices.items():
                     visit(child, str(name))
                 continue
             if action.dest in {"help", "command", "func"} or not command:
@@ -389,11 +388,13 @@ def _validate_requirement_history(
         errors.append(f"{label}.history must be a list")
         return
 
-    current_revision = feature.get("revision")
-    valid_current_revision = (
-        isinstance(current_revision, int)
-        and not isinstance(current_revision, bool)
-        and current_revision >= 1
+    raw_revision = feature.get("revision")
+    current_revision: int | None = (
+        raw_revision
+        if isinstance(raw_revision, int)
+        and not isinstance(raw_revision, bool)
+        and raw_revision >= 1
+        else None
     )
     semantic_revisions: list[int] = []
     previous_revision = 0
@@ -409,7 +410,7 @@ def _validate_requirement_history(
         if revision < previous_revision:
             errors.append(f"{label}.history must be ordered by revision")
         previous_revision = revision
-        if valid_current_revision and revision > current_revision:
+        if current_revision is not None and revision > current_revision:
             errors.append(f"{record_label}.revision exceeds the current revision")
 
         change_type = record.get("change_type")
@@ -429,12 +430,14 @@ def _validate_requirement_history(
         elif "title" in record or "description" in record:
             errors.append(f"{record_label} evidence changes cannot redefine requirement text")
 
-    if valid_current_revision:
-        expected = list(range(1, current_revision))
-        if semantic_revisions != expected:
+    if current_revision is not None:
+        complete = len(semantic_revisions) == current_revision - 1 and all(
+            revision == expected for expected, revision in enumerate(semantic_revisions, start=1)
+        )
+        if not complete:
             errors.append(
-                f"{label}.history semantic revisions must be exactly {expected}, "
-                f"got {semantic_revisions}"
+                f"{label}.history semantic revisions must contain all {current_revision - 1} "
+                f"superseded revisions in order, starting at 1; got {semantic_revisions}"
             )
 
 

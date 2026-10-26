@@ -8,10 +8,19 @@ from collections.abc import Sequence
 import pandas as pd
 import plotly.graph_objects as go
 
+from src.core.common.dataframe_copy import copy_dataframe
 from src.core.models.visualization.dashboard_spec import DashboardSpec
+from src.core.models.plot_config import PlotConfig
+from src.web.rendering.figure_preparation import PreparedDashboard
 from src.core.models.visualization.small_multiples_spec import FacetPanel, SmallMultiplesSpec
-from src.web.pages.ui.plotting.base_plot import BasePlot
-from src.web.rendering.dashboard_builder import DashboardEngine, DashboardFigure, render_dashboard
+from src.web.models.plot_protocols import PlotRenderSource
+from src.web.rendering.dashboard_builder import (
+    DashboardEngine,
+    DashboardFigure,
+    prepare_dashboard,
+    build_dashboard_figure,
+)
+from src.web.rendering._render_result import NativeRenderResult
 
 
 def _panel_rows(
@@ -23,10 +32,12 @@ def _panel_rows(
     mask = pd.Series(True, index=data.index, dtype=bool)
     for column, value in zip(facet_columns, panel.values):
         mask &= data[column].isna() if value is None else data[column].eq(value).fillna(False)
-    return data.loc[mask].copy(deep=True)
+    return copy_dataframe(data.loc[mask])
 
 
-def _facet_views(plot: BasePlot, spec: SmallMultiplesSpec) -> list[BasePlot]:
+def _facet_views(
+    plot: PlotRenderSource, spec: SmallMultiplesSpec, config: PlotConfig
+) -> list[PlotRenderSource]:
     """Create transient plot views without changing the registered source plot."""
     if plot.processed_data is None:
         raise ValueError(f"Plot '{plot.name}' has no processed data.")
@@ -36,20 +47,17 @@ def _facet_views(plot: BasePlot, spec: SmallMultiplesSpec) -> list[BasePlot]:
             "Small-multiples facet columns are no longer available: " + ", ".join(missing)
         )
 
-    views: list[BasePlot] = []
+    views: list[PlotRenderSource] = []
     for index, panel in enumerate(spec.panels):
         rows = _panel_rows(plot.processed_data, spec.facet_columns, panel)
         if rows.empty:
             raise ValueError(f"Small-multiples panel '{panel.title}' no longer has matching rows.")
-        view = copy.copy(plot)
+        view = plot.copy_without_render_state()
         view.plot_id = index
         view.name = panel.title
-        view.config = copy.deepcopy(plot.config)
+        view.config = copy.deepcopy(config)
         view.processed_data = rows
         view.source_data = None
-        view.last_generated_fig = None
-        view.last_traces = None
-        view.last_figure_cache_key = None
         views.append(view)
     return views
 
@@ -77,20 +85,16 @@ def _match_all_plotly_axes(figure: go.Figure, spec: SmallMultiplesSpec) -> None:
                     axis.matches = reference
 
 
-def render_small_multiples(
-    plots: Sequence[BasePlot],
-    spec: SmallMultiplesSpec,
-    *,
-    engine: DashboardEngine = "plotly",
-) -> DashboardFigure:
-    # [impl->req~ring5.plots.small-multiples~1]
-    """Render one registered plot repeatedly for every resolved facet panel."""
+def prepare_small_multiples(
+    plots: Sequence[PlotRenderSource], spec: SmallMultiplesSpec, config: PlotConfig
+) -> PreparedDashboard:
+    """Prepare actual facet views with one neutral callback per nonempty panel."""
     by_id = {plot.plot_id: plot for plot in plots}
     plot = by_id.get(spec.plot_id)
     if plot is None:
         raise ValueError(f"Small multiples references unknown plot ID: {spec.plot_id}.")
 
-    views = _facet_views(plot, spec)
+    views = _facet_views(plot, spec, config)
     dashboard = DashboardSpec(
         plot_ids=tuple(view.plot_id for view in views),
         rows=spec.rows,
@@ -105,10 +109,34 @@ def render_small_multiples(
         x_title=spec.x_title,
         y_title=spec.y_title,
     )
-    figure = render_dashboard(views, dashboard, engine=engine)
+    return prepare_dashboard(views, dashboard)
+
+
+def build_small_multiples_figure(
+    prepared: PreparedDashboard, spec: SmallMultiplesSpec, *, engine: DashboardEngine
+) -> NativeRenderResult:
+    """Assemble prepared facets in the selected native engine."""
+    rendered = build_dashboard_figure(prepared, engine=engine)
+    figure = rendered.figure
     if isinstance(figure, go.Figure):
         _match_all_plotly_axes(figure, spec)
-    return figure
+    return rendered
+
+
+def render_small_multiples(
+    plots: Sequence[PlotRenderSource],
+    spec: SmallMultiplesSpec,
+    *,
+    engine: DashboardEngine = "plotly",
+) -> DashboardFigure:
+    # [impl->req~ring5.plots.small-multiples~1]
+    """Render one registered source through its actual prepared facet panels."""
+    by_id = {plot.plot_id: plot for plot in plots}
+    plot = by_id.get(spec.plot_id)
+    if plot is None:
+        raise ValueError(f"Small multiples references unknown plot ID: {spec.plot_id}.")
+    prepared = prepare_small_multiples(plots, spec, plot.config)
+    return build_small_multiples_figure(prepared, spec, engine=engine).figure
 
 
 __all__ = ["render_small_multiples"]

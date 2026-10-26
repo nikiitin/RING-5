@@ -1,35 +1,34 @@
-"""Parse orchestration for the public API — jobs carry their own context.
-
-The core async contract takes ``strategy_type`` on BOTH submit and finalize
-and requires shuttling ``var_names``/``output_dir`` between the two calls —
-two ergonomics traps for scripts. :class:`ParseJob` captures all of it at
-submit time, so finalize is just ``job.finalize()``, and cancellation is
-handle-based (the job owns its futures).
-"""
+"""Public parse handles own their typed batch and exact submitted request context."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from collections.abc import Sequence
+from dataclasses import dataclass, field, replace
+from concurrent.futures import Future
+from typing import TYPE_CHECKING
 
-import pandas as pd
 
 from src.core.common.security_limits import (
     PARSE_BATCH_TIMEOUT_SECONDS,
     PARSER_PLAYGROUND_TIMEOUT_SECONDS,
 )
 from src.core.common.stat_config_codec import StatConfigCodec
-from src.core.models.parsing_models import ScannedVariable, StatConfig
+from src.core.models.parsing_models import (
+    IncrementalParseBatchResult,
+    ParseBatchResult,
+    ScannedVariable,
+    StatConfig,
+)
+from src.core.models.parsed_output_models import ParsedFileResult, ParsedOutput
+from src.core.models.source_context_models import ParserSourceContext
+from src.core.common.parsed_output import ParsedOutputIO
 
 from ring5._scan import ScanJob
 from ring5.errors import MissingStatError, ParseError, ScanError
 
 if TYPE_CHECKING:
-    from concurrent.futures import Future
-
     from src.core.application_api import ApplicationAPI
     from src.core.models.parsing_models import (
-        IncrementalParseBatchResult,
         ParserPlaygroundBatchResult,
         ParserPlaygroundResult,
     )
@@ -40,7 +39,10 @@ class ParseResult:
     """Outcome of a finalized parse.
 
     Attributes:
-        csv_path: The assembled CSV.
+        output: Explicit schema, schema-bound digest, and CSV exchange location.
+        source_context: Exact owned request used to produce the finalized rows.
+        csv_path: Derived CSV exchange path; pass this ParseResult to Session.load
+            to preserve declared cell types and replay provenance.
         missing_stats: Requested variables that produced no value in any
             file (the parser writes NaN for these — never a fabricated 0).
         parsed_files: Number of files parsed by workers.
@@ -48,27 +50,52 @@ class ParseResult:
         removed_files: Cached source rows removed because their inputs disappeared.
     """
 
-    csv_path: str
-    missing_stats: list[str] = field(default_factory=list)
+    output: ParsedOutput
+    source_context: ParserSourceContext
+    missing_stats: tuple[str, ...] = field(default_factory=tuple)
     parsed_files: int = field(kw_only=True)
     reused_files: int = 0
     removed_files: int = 0
 
+    def __post_init__(self) -> None:
+        if (
+            type(self.output) is not ParsedOutput
+            or type(self.source_context) is not ParserSourceContext
+        ):
+            raise TypeError("ParseResult requires typed output and explicit source context.")
+        if type(self.missing_stats) is not tuple or any(
+            type(name) is not str for name in self.missing_stats
+        ):
+            raise TypeError("Missing statistics must be an immutable tuple of text names.")
+        for value in (self.parsed_files, self.reused_files, self.removed_files):
+            if type(value) is not int or value < 0:
+                raise ValueError("Parse result counts must be non-negative integers.")
 
-@dataclass
+    @property
+    def csv_path(self) -> str:
+        """Return the external CSV exchange path from the typed descriptor."""
+        return self.output.csv_path
+
+
+@dataclass(frozen=True)
 class ParseJob:
     """A submitted parse batch — everything finalize needs, in one handle."""
 
     # [impl->req~ring5.ingestion.async-parse~1]
 
     api: "ApplicationAPI"
-    futures: list["Future[dict[str, Any]]"]
-    var_names: list[str]
-    output_dir: str
-    strategy: str
-    stats_path: str
-    stats_pattern: str
-    incremental_batch: "IncrementalParseBatchResult | None" = None
+    batch: ParseBatchResult | IncrementalParseBatchResult
+    source_context: ParserSourceContext
+
+    @property
+    def futures(self) -> tuple[Future[ParsedFileResult], ...]:
+        """Return this batch's caller-owned futures."""
+        return self.batch.futures
+
+    @property
+    def output_dir(self) -> str:
+        """Return this batch's output directory."""
+        return self.batch.output_dir
 
     def cancel(self) -> None:
         """Cancel this job's pending work (only this job's — handle-based)."""
@@ -92,6 +119,8 @@ class ParseJob:
         # [impl->req~ring5.ingestion.parse-integrity~1]
         from concurrent.futures import wait
 
+        if type(strict) is not bool:
+            raise ParseError("Parse strict policy must be a boolean.")
         _done, pending = wait(self.futures, timeout=PARSE_BATCH_TIMEOUT_SECONDS)
         if pending:
             cancelled = sum(future.cancel() for future in pending)
@@ -101,47 +130,38 @@ class ParseJob:
                 f"succeeded for {cancelled} not-yet-running file(s)."
             )
 
-        csv_path: str | None
         try:
             results = [f.result() for f in self.futures]
         except Exception as exc:
             raise ParseError(f"Parse worker failed: {exc}") from exc
 
         try:
-            if self.incremental_batch is not None:
-                incremental = self.api.finalize_incremental_parsing(
-                    self.incremental_batch,
-                    results,
-                )
-                csv_path = incremental.csv_path
+            if isinstance(self.batch, IncrementalParseBatchResult):
+                incremental = self.api.finalize_incremental_parsing(self.batch, results)
+                output = incremental.output
                 parsed_files = incremental.parsed_files
                 reused_files = incremental.reused_files
                 removed_files = incremental.removed_files
             else:
-                csv_path = self.api.finalize_parsing(
-                    self.output_dir,
-                    results,
-                    strategy_type=self.strategy,
-                    var_names=self.var_names,
-                )
+                output = self.api.finalize_parsing(self.batch, results)
                 parsed_files = len(results)
                 reused_files = 0
                 removed_files = 0
         except (OSError, RuntimeError, TypeError, ValueError) as exc:
             raise ParseError(f"Could not assemble parser output: {exc}") from exc
-        if csv_path is None:
-            raise ParseError(
-                f"Parsing '{self.stats_pattern}' under {self.stats_path} produced no CSV."
-            )
-
+        if type(output) is not ParsedOutput:
+            raise ParseError("Parser finalization requires a ParsedOutput descriptor.")
         try:
-            missing = _find_missing_stats(csv_path, self.var_names)
+            missing = ParsedOutputIO.read(output).missing_variables
         except (OSError, ValueError, UnicodeError) as exc:
-            raise ParseError(f"Could not validate parser output {csv_path!r}: {exc}") from exc
+            raise ParseError(
+                f"Could not validate parser output {output.csv_path!r}: {exc}"
+            ) from exc
         if missing and strict:
-            raise MissingStatError(missing)
+            raise MissingStatError(list(missing))
         return ParseResult(
-            csv_path=csv_path,
+            output=output,
+            source_context=replace(self.source_context, strict=strict),
             missing_stats=missing,
             parsed_files=parsed_files,
             reused_files=reused_files,
@@ -149,7 +169,7 @@ class ParseJob:
         )
 
 
-@dataclass
+@dataclass(frozen=True)
 class ParserPlaygroundJob:
     """Owned asynchronous dry run for a bounded parser configuration sample."""
 
@@ -157,10 +177,16 @@ class ParserPlaygroundJob:
 
     api: "ApplicationAPI"
     batch: "ParserPlaygroundBatchResult"
-    futures: list["Future[dict[str, Any]]"]
-    output_dir: str
-    stats_path: str
-    stats_pattern: str
+
+    @property
+    def futures(self) -> tuple[Future[ParsedFileResult], ...]:
+        """Return this preview batch's owned futures."""
+        return self.batch.futures
+
+    @property
+    def output_dir(self) -> str:
+        """Return the preview's declared output directory."""
+        return self.batch.output_dir
 
     def cancel(self) -> None:
         """Cancel only this configuration test's pending work."""
@@ -196,31 +222,10 @@ class ParserPlaygroundJob:
             raise ParseError(f"Parser configuration test failed: {exc}") from exc
 
 
-def _find_missing_stats(csv_path: str, var_names: list[str]) -> list[str]:
-    """Variables whose columns are absent or carry no value in any row.
-
-    A variable's values land either in a column named exactly after it or
-    in entry columns prefixed with it (``var.entry``); a variable with no
-    such column, or whose columns are all-missing, was never matched.
-    """
-    # The parser CSV contract is comma-separated (construct_final_csv).
-    # No sep=None sniffing: it breaks on single-column files (the sniffer
-    # picks a letter as the delimiter). The MISSING_VALUE sentinel is the
-    # literal "NaN", which read_csv already parses as NaN — no extra pass.
-    df = pd.read_csv(csv_path)
-
-    missing: list[str] = []
-    for name in var_names:
-        cols = [c for c in df.columns if c == name or c.startswith(f"{name}.")]
-        if not cols or bool(df[cols].isna().all().all()):
-            missing.append(name)
-    return missing
-
-
 def build_stat_configs(
     api: "ApplicationAPI",
     stats_path: str,
-    variables: list[str | StatConfig],
+    variables: Sequence[str | StatConfig],
     *,
     pattern: str = "stats.txt",
     scan_limit: int = 10,

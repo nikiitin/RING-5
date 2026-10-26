@@ -101,7 +101,7 @@ class LegendConfig:
     Attributes:
         role: Semantic role identifier.
             - ``"primary"``   — main trace legend
-            - ``"secondary"`` — secondary axis traces
+            - ``"secondary"`` — separate trace legend, independent of Y-axis choice
             - ``"tertiary"``  — tertiary annotation legend (numbered items)
         visible: Whether this legend is rendered.
         font_size: Text size in points (-1 = inherit from primary).
@@ -123,7 +123,7 @@ class LegendConfig:
     visible: bool = True
 
     # Typography
-    font_size: int = 8  # pts, -1 = inherit from primary
+    font_size: float = 8  # pts, -1 = inherit from primary
     font_family: str = ""  # empty = inherit from global font_family
     bold: bool = False
 
@@ -153,7 +153,7 @@ class LegendConfig:
     border_color: str = "#444"
     font_color: str = "#444"
     title_font_color: str = "#444"
-    title_font_size: int = -1  # -1 = follow font_size
+    title_font_size: float = -1  # -1 = follow font_size
     title: str = ""
 
     # Spacing

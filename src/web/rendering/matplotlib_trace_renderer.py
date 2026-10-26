@@ -20,11 +20,14 @@ Design notes:
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import Any, Literal, cast
 
 import numpy as np
 from matplotlib import colormaps
 from matplotlib.axes import Axes
+from matplotlib.artist import Artist
+from matplotlib.container import Container
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Normalize
 from matplotlib.patches import PathPatch, Rectangle
@@ -43,13 +46,24 @@ from src.core.models.visualization.trace_config import (
     ViolinTraceConfig,
     WaterfallTraceConfig,
 )
+from src.web.rendering._color_utils import css_color_to_matplotlib
+from src.web.rendering._matplotlib_lock import serialized_matplotlib
 from src.web.rendering._heatmap_utils import (
     contrasting_text_color,
     heatmap_colormap,
     compute_z_extent,
 )
-from src.web.rendering._render_result import MatplotlibRenderResult
+from src.web.rendering._render_result import MatplotlibRenderResult, MatplotlibTraceBinding
 from src.web.rendering._connector_protocol import validate_trace_types
+
+
+@dataclass(frozen=True)
+class _DrawnSource:
+    """Actual native emissions, before the renderer associates their neutral source."""
+
+    owned: tuple[Artist | Container, ...] = ()
+    styled: tuple[Artist | Container, ...] = ()
+    legend: Artist | Container | None = None
 
 
 def _spline_coordinates(
@@ -88,6 +102,7 @@ class MatplotlibTraceRenderer:
 
     # public API
     @staticmethod
+    @serialized_matplotlib
     def render(
         traces: Sequence[TraceConfig],
         ax: Axes,
@@ -124,7 +139,7 @@ class MatplotlibTraceRenderer:
         created via ``ax.twinx()``, stored as ``ax._ring5_twin``.
 
         Returns:
-            A ``MatplotlibRenderResult`` with trace count and heatmap metadata.
+            A ``MatplotlibRenderResult`` with source bindings and heatmap metadata.
 
         Raises:
             TypeError: A trace has no supported concrete family.
@@ -143,9 +158,8 @@ class MatplotlibTraceRenderer:
         if has_secondary:
             ax2 = ax.twinx()
             cast(Any, ax)._ring5_twin = ax2
-            cast(Any, ax2)._ring5_primary = ax
 
-        result = MatplotlibRenderResult()
+        result = MatplotlibRenderResult(ax, ax2)
         categorical_labels = list(
             dict.fromkeys(
                 str(value) for trace in bar_specs if not trace.x_positions for value in trace.x
@@ -185,11 +199,11 @@ class MatplotlibTraceRenderer:
         if spline_categories:
             ax.xaxis.update_units(spline_categories)
 
+        bindings: list[MatplotlibTraceBinding] = []
         for idx, trace in enumerate(traces):
-            if not trace.visible:
-                continue
             is_secondary = trace.yaxis == "y2"
             target = ax2 if (is_secondary and ax2 is not None) else ax
+            drawn = _DrawnSource()
 
             # Override trace colour with palette when provided
             override_color: str | None = None
@@ -197,10 +211,12 @@ class MatplotlibTraceRenderer:
                 override_color = palette_colors[idx % len(palette_colors)]
 
             try:
-                if isinstance(trace, BarTraceConfig):
+                if not trace.visible:
+                    pass
+                elif isinstance(trace, BarTraceConfig):
                     axis_bars = [bar for bar in bar_specs if bar.yaxis == trace.yaxis]
                     bar_idx = next(i for i, bar in enumerate(axis_bars) if bar is trace)
-                    MatplotlibTraceRenderer._draw_bar(
+                    drawn = MatplotlibTraceRenderer._draw_bar(
                         trace,
                         target,
                         bar_idx,
@@ -212,72 +228,76 @@ class MatplotlibTraceRenderer:
                         bargroupgap=bargroupgap,
                         bar_border_width=bar_border_width,
                     )
-                    result.trace_count += 1
                 elif isinstance(trace, BoxTraceConfig):
-                    MatplotlibTraceRenderer._draw_box(
+                    drawn = MatplotlibTraceRenderer._draw_box(
                         trace,
                         target,
                         vertical_box_ticks,
                         horizontal_box_ticks,
                         override_color=override_color,
                     )
-                    result.trace_count += 1
                 elif isinstance(trace, ViolinTraceConfig):
-                    MatplotlibTraceRenderer._draw_violin(
+                    drawn = MatplotlibTraceRenderer._draw_violin(
                         trace,
                         target,
                         vertical_box_ticks,
                         horizontal_box_ticks,
                         override_color=override_color,
                     )
-                    result.trace_count += 1
                 elif isinstance(trace, LineTraceConfig):
-                    MatplotlibTraceRenderer._draw_line(
+                    drawn = MatplotlibTraceRenderer._draw_line(
                         trace,
                         target,
                         override_color=override_color,
                     )
-                    result.trace_count += 1
                 elif isinstance(trace, RadarTraceConfig):
-                    MatplotlibTraceRenderer._draw_radar(
+                    drawn = MatplotlibTraceRenderer._draw_radar(
                         trace,
                         target,
                         override_color=override_color,
                     )
-                    result.trace_count += 1
                 elif isinstance(trace, WaterfallTraceConfig):
-                    MatplotlibTraceRenderer._draw_waterfall(
+                    drawn = MatplotlibTraceRenderer._draw_waterfall(
                         trace,
                         target,
                         override_color=override_color,
                     )
-                    result.trace_count += 1
                 elif isinstance(trace, SankeyTraceConfig):
-                    MatplotlibTraceRenderer._draw_sankey(trace, target)
-                    result.trace_count += 1
+                    drawn = MatplotlibTraceRenderer._draw_sankey(trace, target)
                 elif isinstance(trace, ParallelCoordinatesTraceConfig):
-                    MatplotlibTraceRenderer._draw_parallel_coordinates(trace, target)
-                    result.trace_count += 1
+                    drawn = MatplotlibTraceRenderer._draw_parallel_coordinates(trace, target)
                 elif isinstance(trace, ScatterTraceConfig):
-                    MatplotlibTraceRenderer._draw_scatter(
+                    drawn = MatplotlibTraceRenderer._draw_scatter(
                         trace,
                         target,
                         override_color=override_color,
                     )
-                    result.trace_count += 1
                 elif isinstance(trace, HeatmapTraceConfig):
-                    MatplotlibTraceRenderer._draw_heatmap(
+                    drawn = MatplotlibTraceRenderer._draw_heatmap(
                         trace,
                         target,
                         result,
                         vmin=heatmap_vmin,
                         vmax=heatmap_vmax,
                     )
-                    result.trace_count += 1
                 else:
                     raise TypeError(f"Unsupported trace type: {type(trace).__name__}.")
             except (TypeError, ValueError, OverflowError) as exc:
                 raise ValueError(f"Cannot render trace {trace.name!r}: {exc}") from exc
+            bindings.append(
+                MatplotlibTraceBinding(
+                    idx,
+                    trace.name,
+                    target,
+                    trace.legend_role,
+                    trace.legendgroup,
+                    trace.show_in_legend,
+                    trace.trace_type,
+                    drawn.owned,
+                    drawn.styled,
+                    drawn.legend,
+                )
+            )
 
         if vertical_box_ticks:
             positions = sorted(vertical_box_ticks)
@@ -286,6 +306,8 @@ class MatplotlibTraceRenderer:
             positions = sorted(horizontal_box_ticks)
             ax.set_yticks(positions, [horizontal_box_ticks[position] for position in positions])
 
+        result.bindings = tuple(bindings)
+        result.validate()
         return result
 
     # bar
@@ -301,7 +323,7 @@ class MatplotlibTraceRenderer:
         bargap: float = 0.2,
         bargroupgap: float = 0.0,
         bar_border_width: float = 0.0,
-    ) -> None:
+    ) -> _DrawnSource:
         """Draw a single bar trace from its ``BarTraceConfig``."""
         # [impl->req~ring5.figure.accessible-themes~1]
         # 2) Compute standard x-positions and effective bar width
@@ -323,7 +345,7 @@ class MatplotlibTraceRenderer:
 
         # Bar border: controls visual separation between stacked items
         if bar_border_width > 0 or spec.border_width > 0:
-            props["edgecolor"] = spec.border_color or "white"
+            props["edgecolor"] = css_color_to_matplotlib(spec.border_color or "white")
             props["linewidth"] = bar_border_width or spec.border_width
         else:
             props["edgecolor"] = "none"
@@ -345,7 +367,7 @@ class MatplotlibTraceRenderer:
         # 5) Render
         color = override_color or spec.color
         if color:
-            props["color"] = color
+            props["color"] = css_color_to_matplotlib(color)
         if spec.pattern:
             props["hatch"] = spec.pattern
 
@@ -353,10 +375,14 @@ class MatplotlibTraceRenderer:
             props["yerr"] = spec.error_y
         if spec.opacity != 1.0:
             props["alpha"] = spec.opacity
-        ax.bar(x_pos, y_clean, label=spec.name if spec.show_in_legend else "_nolegend_", **props)
+        bars = ax.bar(x_pos, y_clean, label=spec.name, **props)
 
         if is_categorical:
             ax.set_xticks(range(len(categorical_labels)), categorical_labels)
+        owned: tuple[Artist | Container, ...] = (bars,)
+        if bars.errorbar is not None:
+            owned += (bars.errorbar,)
+        return _DrawnSource(owned, (bars,), bars)
 
     # line
 
@@ -367,10 +393,10 @@ class MatplotlibTraceRenderer:
         vertical_ticks: dict[int, str],
         horizontal_ticks: dict[int, str],
         override_color: str | None = None,
-    ) -> None:
+    ) -> _DrawnSource:
         # [impl->req~ring5.plot.box~1]
         """Draw one precomputed distribution with deterministic point jitter."""
-        color = spec.color or override_color or "#4472C4"
+        color = css_color_to_matplotlib(spec.color or override_color or "#4472C4")
         stats: dict[str, Any] = {
             "label": spec.name,
             "med": spec.median,
@@ -383,8 +409,8 @@ class MatplotlibTraceRenderer:
             "cilo": spec.notch_lower,
             "cihi": spec.notch_upper,
         }
-        label = spec.name if spec.show_in_legend else "_nolegend_"
-        ax.bxp(
+        label = spec.name
+        parts = ax.bxp(
             [stats],
             positions=[spec.position],
             widths=[spec.box_width],
@@ -401,6 +427,7 @@ class MatplotlibTraceRenderer:
             capprops={"color": color},
             meanprops={"markerfacecolor": "white", "markeredgecolor": color},
         )
+        point_artist = None
         points = spec.values if spec.point_mode == "all" else spec.outliers
         if spec.point_mode != "none" and points:
             center = spec.position + spec.point_position * spec.box_width
@@ -411,13 +438,30 @@ class MatplotlibTraceRenderer:
             )
             point_positions = center + spread
             if spec.orientation == "vertical":
-                ax.scatter(point_positions, points, color=color, s=16, alpha=spec.opacity)
+                point_artist = ax.scatter(
+                    point_positions,
+                    points,
+                    color=color,
+                    s=16,
+                    alpha=spec.opacity,
+                )
             else:
-                ax.scatter(points, point_positions, color=color, s=16, alpha=spec.opacity)
+                point_artist = ax.scatter(
+                    points,
+                    point_positions,
+                    color=color,
+                    s=16,
+                    alpha=spec.opacity,
+                )
         if spec.orientation == "vertical":
             vertical_ticks[spec.category_position] = spec.category
         else:
             horizontal_ticks[spec.category_position] = spec.category
+        owned = [artist for values in parts.values() for artist in values]
+        if point_artist is not None:
+            owned.append(point_artist)
+        body = parts["boxes"][0]
+        return _DrawnSource(tuple(owned), (body,), body)
 
     # line
     @staticmethod
@@ -425,7 +469,7 @@ class MatplotlibTraceRenderer:
         spec: LineTraceConfig,
         ax: Axes,
         override_color: str | None = None,
-    ) -> None:
+    ) -> _DrawnSource:
         # [impl->req~ring5.plot.ecdf~1]
         # [impl->req~ring5.plot.area~1]
         # [impl->req~ring5.figure.line-styles~1]
@@ -433,7 +477,7 @@ class MatplotlibTraceRenderer:
         props: dict[str, Any] = {}
         color = override_color or spec.color
         if color:
-            props["color"] = color
+            props["color"] = css_color_to_matplotlib(color)
         if spec.line_width:
             props["linewidth"] = spec.line_width
         if spec.line_dash:
@@ -489,9 +533,14 @@ class MatplotlibTraceRenderer:
                 props["markevery"] = [index * 3 for index in range(len(source_x))]
 
         artists = ax.plot(rendered_x, rendered_y, label=spec.name, **props)
+        owned: list[Artist | Container] = list(artists)
         if spec.error_y is not None:
             errors = [spec.error_y[index] for index in source_indices]
-            ax.errorbar(x_values, y_clean, yerr=errors, fmt="none", color=artists[0].get_color())
+            owned.append(
+                ax.errorbar(
+                    x_values, y_clean, yerr=errors, fmt="none", color=artists[0].get_color()
+                )
+            )
         if spec.fill != "none":
             raw_baseline = spec.fill_base or [0.0] * len(spec.y)
             baseline = [float(raw_baseline[index]) for index in source_indices]
@@ -504,15 +553,17 @@ class MatplotlibTraceRenderer:
                 step = "pre"
             elif spec.line_shape in ("hvh", "vhv"):
                 step = "mid"
-            ax.fill_between(
+            fill_artist = ax.fill_between(
                 rendered_x,
                 rendered_y,
                 baseline,
-                color=color or "#4472C4",
+                color=css_color_to_matplotlib(color or "#4472C4"),
                 alpha=spec.opacity,
                 step=step,
                 label="_nolegend_",
             )
+            owned.append(fill_artist)
+        return _DrawnSource(tuple(owned), (artists[0],), artists[0])
 
     @staticmethod
     def _draw_violin(
@@ -521,12 +572,12 @@ class MatplotlibTraceRenderer:
         vertical_ticks: dict[int, str],
         horizontal_ticks: dict[int, str],
         override_color: str | None = None,
-    ) -> None:
+    ) -> _DrawnSource:
         # [impl->req~ring5.plot.violin~1]
         """Draw one precomputed density, optional inner summary, and observations."""
         if not spec.density_coordinates or not spec.density:
-            return
-        color = spec.color or override_color or "#4472C4"
+            return _DrawnSource()
+        color = css_color_to_matplotlib(spec.color or override_color or "#4472C4")
         coordinates = np.asarray(spec.density_coordinates, dtype=float)
         half_width = spec.violin_width * spec.width_scale / 2
         density_width = np.asarray(spec.density, dtype=float) * half_width
@@ -539,9 +590,9 @@ class MatplotlibTraceRenderer:
         else:
             lower = spec.position - density_width
             upper = spec.position + density_width
-        label = spec.name if spec.show_in_legend else "_nolegend_"
+        label = spec.name
         if spec.orientation == "vertical":
-            ax.fill_betweenx(
+            density_artist = ax.fill_betweenx(
                 coordinates,
                 lower,
                 upper,
@@ -551,7 +602,7 @@ class MatplotlibTraceRenderer:
                 label=label,
             )
         else:
-            ax.fill_between(
+            density_artist = ax.fill_between(
                 coordinates,
                 lower,
                 upper,
@@ -561,6 +612,9 @@ class MatplotlibTraceRenderer:
                 label=label,
             )
 
+        inner: dict[str, list[Artist]] = {}
+        mean_artists: Sequence[Artist] = ()
+        point_artist = None
         if spec.show_box:
             stats: dict[str, Any] = {
                 "label": "_nolegend_",
@@ -571,7 +625,7 @@ class MatplotlibTraceRenderer:
                 "whishi": max(spec.values),
                 "fliers": [],
             }
-            ax.bxp(
+            inner = ax.bxp(
                 [stats],
                 positions=[spec.position],
                 widths=[max(half_width * 0.2, 0.01)],
@@ -586,14 +640,14 @@ class MatplotlibTraceRenderer:
         if spec.show_mean:
             extent = max(half_width * 0.3, 0.01)
             if spec.orientation == "vertical":
-                ax.plot(
+                mean_artists = ax.plot(
                     [spec.position - extent, spec.position + extent],
                     [spec.mean, spec.mean],
                     color="black",
                     linewidth=1.5,
                 )
             else:
-                ax.plot(
+                mean_artists = ax.plot(
                     [spec.mean, spec.mean],
                     [spec.position - extent, spec.position + extent],
                     color="black",
@@ -607,24 +661,44 @@ class MatplotlibTraceRenderer:
             )
             point_positions = spec.position + spread
             if spec.orientation == "vertical":
-                ax.scatter(point_positions, spec.values, color=color, s=12, alpha=spec.opacity)
+                point_artist = ax.scatter(
+                    point_positions,
+                    spec.values,
+                    color=color,
+                    s=12,
+                    alpha=spec.opacity,
+                )
             else:
-                ax.scatter(spec.values, point_positions, color=color, s=12, alpha=spec.opacity)
+                point_artist = ax.scatter(
+                    spec.values,
+                    point_positions,
+                    color=color,
+                    s=12,
+                    alpha=spec.opacity,
+                )
         if spec.orientation == "vertical":
             vertical_ticks[spec.category_position] = spec.category
         else:
             horizontal_ticks[spec.category_position] = spec.category
+        owned = [
+            density_artist,
+            *mean_artists,
+            *(artist for values in inner.values() for artist in values),
+        ]
+        if point_artist is not None:
+            owned.append(point_artist)
+        return _DrawnSource(tuple(owned), (density_artist,), density_artist)
 
     @staticmethod
     def _draw_radar(
         spec: RadarTraceConfig,
         ax: Axes,
         override_color: str | None = None,
-    ) -> None:
+    ) -> _DrawnSource:
         # [impl->req~ring5.plot.radar~1]
         """Draw a closed radar polygon on Cartesian axes with one shared radial scale."""
         if not spec.categories or not spec.values:
-            return
+            return _DrawnSource()
         count = len(spec.categories)
         direction = -1.0 if spec.clockwise else 1.0
         start = np.deg2rad(spec.start_angle)
@@ -635,7 +709,7 @@ class MatplotlibTraceRenderer:
         closed_radii = np.append(radii, radii[0])
         x_values = closed_radii * np.cos(closed_angles)
         y_values = closed_radii * np.sin(closed_angles)
-        color = override_color or spec.color or "#4472C4"
+        color = css_color_to_matplotlib(override_color or spec.color or "#4472C4")
 
         if not getattr(ax, "_ring5_radar_frame", False):
             for angle, category in zip(angles, spec.categories):
@@ -666,7 +740,8 @@ class MatplotlibTraceRenderer:
             ax.set_ylim(-1.25, 1.25)
             ax.axis("off")
 
-        ax.plot(
+        fill_artists: Sequence[Artist] = ()
+        data_lines = ax.plot(
             x_values,
             y_values,
             color=color,
@@ -677,16 +752,19 @@ class MatplotlibTraceRenderer:
             label=spec.name,
         )
         if spec.fill_area:
-            ax.fill(x_values, y_values, color=color, alpha=spec.opacity * 0.45)
+            fill_artists = ax.fill(x_values, y_values, color=color, alpha=spec.opacity * 0.45)
+        return _DrawnSource(tuple([*data_lines, *fill_artists]), tuple(data_lines), data_lines[0])
 
     @staticmethod
     def _draw_waterfall(
         spec: WaterfallTraceConfig,
         ax: Axes,
         override_color: str | None = None,
-    ) -> None:
+    ) -> _DrawnSource:
         # [impl->req~ring5.plot.waterfall~1]
         """Draw explicit waterfall starts, ends, connectors, and value labels."""
+        owned: list[Artist | Container] = []
+        containers: list[Container] = []
         positions = np.arange(len(spec.categories), dtype=float)
         for index, (start, end, kind) in enumerate(zip(spec.starts, spec.ends, spec.kinds)):
             if kind in ("subtotal", "total", "absolute"):
@@ -697,15 +775,17 @@ class MatplotlibTraceRenderer:
                 color = override_color or spec.decreasing_color
             bottom = min(start, end)
             height = abs(end - start)
-            ax.bar(
+            bars = ax.bar(
                 positions[index],
                 height,
                 bottom=bottom,
                 width=spec.bar_width,
-                color=color,
+                color=css_color_to_matplotlib(color),
                 alpha=spec.opacity,
                 label=spec.name if index == 0 else "_nolegend_",
             )
+            owned.append(bars)
+            containers.append(bars)
             if spec.show_values and index < len(spec.value_labels):
                 ax.text(
                     positions[index],
@@ -715,23 +795,26 @@ class MatplotlibTraceRenderer:
                     va="bottom",
                 )
             if spec.connector_visible and index < len(spec.categories) - 1:
-                ax.plot(
+                connectors = ax.plot(
                     [
                         positions[index] + spec.bar_width / 2,
                         positions[index + 1] - spec.bar_width / 2,
                     ],
                     [end, end],
-                    color=spec.connector_color,
+                    color=css_color_to_matplotlib(spec.connector_color),
                     linewidth=spec.connector_width,
                 )
+                owned.extend(connectors)
         ax.set_xticks(positions, spec.categories)
+        return _DrawnSource(tuple(owned), tuple(containers), containers[0] if containers else None)
 
     @staticmethod
-    def _draw_sankey(spec: SankeyTraceConfig, ax: Axes) -> None:
+    def _draw_sankey(spec: SankeyTraceConfig, ax: Axes) -> _DrawnSource:
         # [impl->req~ring5.plot.sankey~1]
         """Draw weighted Bézier links and positioned nodes from one shared layout."""
         if not spec.node_labels:
-            return
+            return _DrawnSource()
+        owned: list[Artist | Container] = []
         maximum = max(spec.values, default=1.0)
         node_width = max(0.02, min(0.09, spec.node_thickness / 300.0))
         layer_counts: dict[float, int] = {}
@@ -758,15 +841,17 @@ class MatplotlibTraceRenderer:
             ]
             path = Path(vertices, [Path.MOVETO, Path.CURVE4, Path.CURVE4, Path.CURVE4])
             color = spec.link_colors[index] if index < len(spec.link_colors) else "#7f7f7f"
-            ax.add_patch(
-                PathPatch(
-                    path,
-                    facecolor="none",
-                    edgecolor=color,
-                    linewidth=1.0 + 18.0 * value / maximum,
-                    alpha=spec.link_opacity,
-                    capstyle="butt",
-                    zorder=1,
+            owned.append(
+                ax.add_patch(
+                    PathPatch(
+                        path,
+                        facecolor="none",
+                        edgecolor=css_color_to_matplotlib(color),
+                        linewidth=1.0 + 18.0 * value / maximum,
+                        alpha=spec.link_opacity,
+                        capstyle="butt",
+                        zorder=1,
+                    )
                 )
             )
             if spec.show_link_labels and index < len(spec.link_labels) and spec.link_labels[index]:
@@ -783,16 +868,18 @@ class MatplotlibTraceRenderer:
             x_position, y_position = spec.node_x[index], spec.node_y[index]
             height = node_heights[index]
             color = spec.node_colors[index] if index < len(spec.node_colors) else "#4c78a8"
-            ax.add_patch(
-                Rectangle(
-                    (x_position - node_width / 2, y_position - height / 2),
-                    node_width,
-                    height,
-                    facecolor=color,
-                    edgecolor=spec.node_line_color,
-                    linewidth=spec.node_line_width,
-                    alpha=spec.opacity,
-                    zorder=2,
+            owned.append(
+                ax.add_patch(
+                    Rectangle(
+                        (x_position - node_width / 2, y_position - height / 2),
+                        node_width,
+                        height,
+                        facecolor=css_color_to_matplotlib(color),
+                        edgecolor=css_color_to_matplotlib(spec.node_line_color),
+                        linewidth=spec.node_line_width,
+                        alpha=spec.opacity,
+                        zorder=2,
+                    )
                 )
             )
             if spec.show_node_labels and label:
@@ -808,13 +895,15 @@ class MatplotlibTraceRenderer:
         ax.set_xlim(-0.12, 1.12)
         ax.set_ylim(-0.05, 1.05)
         ax.axis("off")
+        return _DrawnSource(tuple(owned))
 
     @staticmethod
-    def _draw_parallel_coordinates(spec: ParallelCoordinatesTraceConfig, ax: Axes) -> None:
+    def _draw_parallel_coordinates(spec: ParallelCoordinatesTraceConfig, ax: Axes) -> _DrawnSource:
         # [impl->req~ring5.plot.parallel-coordinates~1]
         """Draw normalized row paths, encoded axes, brushes, and a shared color scale."""
         if len(spec.dimensions) < 2:
-            return
+            return _DrawnSource()
+        owned: list[Artist | Container] = []
         row_count = len(spec.dimensions[0].values)
         x_positions = np.arange(len(spec.dimensions), dtype=float)
         normalized = np.zeros((row_count, len(spec.dimensions)), dtype=float)
@@ -855,7 +944,14 @@ class MatplotlibTraceRenderer:
                     if color_values is not None
                     else spec.line_color
                 )
-                ax.plot(x_positions, normalized[row], color=color, alpha=alpha, zorder=2)
+                data_lines = ax.plot(
+                    x_positions,
+                    normalized[row],
+                    color=css_color_to_matplotlib(color),
+                    alpha=alpha,
+                    zorder=2,
+                )
+                owned.extend(data_lines)
 
         for index, dimension in enumerate(spec.dimensions):
             ax.plot([index, index], [0, 1], color="#777777", linewidth=1.0, zorder=1)
@@ -878,6 +974,7 @@ class MatplotlibTraceRenderer:
         ax.set_xlim(-0.25, len(spec.dimensions) - 0.75)
         ax.set_ylim(-0.08, 1.1)
         ax.axis("off")
+        return _DrawnSource(tuple(owned))
 
     # scatter
     @staticmethod
@@ -885,25 +982,34 @@ class MatplotlibTraceRenderer:
         spec: ScatterTraceConfig,
         ax: Axes,
         override_color: str | None = None,
-    ) -> None:
+    ) -> _DrawnSource:
         """Draw a single scatter trace from its ``ScatterTraceConfig``."""
         props: dict[str, Any] = {}
         color = override_color or spec.color
         if color:
-            props["color"] = color
+            props["color"] = css_color_to_matplotlib(color)
         sizes = spec.size_values if spec.size_values is not None else spec.marker_size
         props["s"] = np.square(sizes)
         props["marker"] = _MARKER_MAP.get(spec.marker_symbol, "o")
         props["alpha"] = spec.opacity
         props["linewidths"] = spec.marker_line_width
         if spec.marker_line_color:
-            props["edgecolors"] = spec.marker_line_color
+            props["edgecolors"] = css_color_to_matplotlib(spec.marker_line_color)
 
         y_clean = [float(v) if v is not None else np.nan for v in spec.y]
         points = ax.scatter(spec.x, y_clean, label=spec.name, **props)
+        owned: list[Artist | Container] = [points]
         if spec.error_y is not None:
             error_color = color or cast(Any, points).get_facecolors()[0]
-            ax.errorbar(spec.x, y_clean, yerr=spec.error_y, fmt="none", color=error_color)
+            error_artist = ax.errorbar(
+                spec.x,
+                y_clean,
+                yerr=spec.error_y,
+                fmt="none",
+                color=css_color_to_matplotlib(error_color),
+            )
+            owned.append(error_artist)
+        return _DrawnSource(tuple(owned), (points,), points)
 
     # heatmap
     @staticmethod
@@ -913,14 +1019,14 @@ class MatplotlibTraceRenderer:
         result: MatplotlibRenderResult,
         vmin: float | None = None,
         vmax: float | None = None,
-    ) -> None:
+    ) -> _DrawnSource:
         """Draw a heatmap from its ``HeatmapTraceConfig``.
 
         Uses ``ax.pcolormesh()`` so the output is pure vector graphics,
         enabling PGF/TikZ export without raster-image errors.
         """
         if not spec.z:
-            return
+            return _DrawnSource()
 
         # Build z-matrix replacing None with NaN
         z_array = np.array(
@@ -977,7 +1083,7 @@ class MatplotlibTraceRenderer:
                             ha="center",
                             va="center",
                             fontsize=font_size,
-                            color=color,
+                            color=css_color_to_matplotlib(color),
                         )
 
         # Totals separator lines
@@ -990,6 +1096,7 @@ class MatplotlibTraceRenderer:
                 # Horizontal line below the totals row (first row)
                 y_pos = spec.totals_count
                 ax.axhline(y=y_pos, color="black", linewidth=2, zorder=5)
+        return _DrawnSource((im,))
 
 
 # module-level helpers

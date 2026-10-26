@@ -34,7 +34,13 @@ are released.
 
 `Session.scan_submit` returns an owned `ScanJob`; `Session.scan` waits and returns `ScanResult`.
 Likewise, `parse_submit` returns `ParseJob` and `parse` returns `ParseResult`. A job can be
-cancelled without touching work from another handle.
+cancelled without touching work from another handle. A finalized result owns `output` (the explicit
+`ParsedOutput` descriptor), its immutable `source_context`, and missing variable names as a tuple.
+Use `session.load(result)` to retain exact numeric/text semantics and source provenance.
+`result.csv_path` is the derived external exchange location; `session.load(result.csv_path)` uses
+ordinary CSV inference/null policy. The descriptor's SHA-256 binds schema meaning and CSV bytes.
+The public typed backend constructors and `resolve_parsed_output`/`publish_parsed_output` helpers
+are documented in the [parser extension guide]({{ site.baseurl }}/developer-guide/extension-guides/adding-a-parser/).
 
 Use `ring5.StatConfig` for explicit runnable parser settings. Configuration fields and `params`
 use snake_case; `repeat` is a positive integer, `entries` and `statistics` are separate text lists,
@@ -180,6 +186,10 @@ and discovery.
 an owned `rows: Table` snapshot. `row_count` and `columns` summarize those rows. This projection
 preserves the shared plot and native figure handles used by rendering and dashboard operations.
 
+Figures returned by `Session.render` remain usable after plot invalidation, replacement, workspace
+reset or Session context exit. Matplotlib render managers are deregistered without clearing artists,
+so retained figures remain exportable and unrelated pyplot figures remain independent.
+
 ## Figure configuration and export
 
 ### Annotations and web shapes
@@ -192,9 +202,14 @@ Covers:
 
 -->
 
-`FigureSpec` serializes engine-independent text annotations; the Matplotlib connector applies their
-text, coordinates, and optional arrow styling. In the web application, editable line, circle, and
-rectangle shapes are Plotly layout shapes and remain Plotly-specific.
+Typed figure configuration serializes text annotations with data or axes/panel-fraction (`paper`)
+coordinates, optional arrows, font family, and multiline alignment. `x_shift_pixels` and
+`y_shift_pixels` translate the complete annotation and arrow after resolving those coordinates;
+positive values move right and up. These logical pixels use the figure's initial rendering scale,
+so a Matplotlib export at twice the DPI doubles the display displacement along with the figure.
+An empty annotation font family inherits the figure family. Stack-total offsets use this pixel
+contract in both rendering engines. In the web application, editable line, circle, and rectangle
+shapes are Plotly layout shapes and remain Plotly-specific.
 The [shape editor]({{site.baseurl}}/user-guide/reference/settings/#edit-shapes) preserves literal
 coordinates and native defaults, with an explicit number/text choice for edits.
 
@@ -220,6 +235,40 @@ The `extra` mapping carries supported flat configuration keys and takes preceden
 fields. `to_config()` returns a fresh mutable mapping with the same canonical editable format used
 by the web interface and saved plots. `create_plot` and `plot` accept either a `FigureSpec` or that
 configuration mapping. Existing raw mappings retain their exact settings and renderer defaults.
+`to_config(plot_type="heatmap")` applies the built-in heatmap's contextual field admission;
+`Session.create_plot` supplies this context automatically. Heatmaps use `color_palette`,
+`reverse_colorscale` and `show_values`. Plugin-owned configurations and typed heatmap trace
+colorscales keep their separate contracts.
+
+Per-series overrides use `series_styles`, a mapping from original text series names to style mappings.
+Display names use `legend_labels`, such as `{"ipc": "Instructions per cycle"}`. Set both mappings
+through `FigureSpec.extra` or the editable configuration mapping. Styles and ordering keep using
+`"ipc"` after the rename; repeated or empty display labels preserve each source series. Rendering
+returns the selected engine's native figure. Source-to-native associations remain internal and
+are not required to export that fully styled figure.
+
+Its `pattern` field is a string: empty, `/`, `\`, `x`, `-`, `|`, `+`, `.`, `o`, `O`, or `*`.
+Both native engines render this vocabulary. Plotly uses native SVG pattern paths for the
+circle/star forms. An omitted `pattern` preserves the trace or theme hatch; an explicit empty
+string selects Solid and clears it. Default stripe patterns apply before explicit series overrides.
+Typed renderer styles express absence with `hatching_pattern=None` and Solid with `""`.
+Other plugin-owned style fields are preserved. Recipe save/load retains parameter placeholders;
+materialization validates the resolved pattern value before execution.
+
+Legend font sizes retain fractional point values through both native engines and typed figure
+round trips. `DualAxisOpts.legend` configures the separate right-axis legend; numbered mappings
+use the available secondary or tertiary style independently. Raw mappings use `legend2_*` for
+the separate right legend and `anchor_x`/`anchor_y` in every legend tier. Explicit `bgalpha`
+replaces opacity encoded in `bgcolor`; omitting it preserves an RGBA color's embedded opacity
+and each native renderer's default for opaque colors. Plotly preserves RGB/HSL/HWB,
+Lab/LCh/OKLab/OKLCh component precision when applying this override. Its current Python validator
+cannot encode per-legend opacity for `color(profile ...)` or resolve DDK `var(...)` colors.
+Those forms remain accepted without `bgalpha`; requesting the override raises `RenderError`
+and asks for a concrete supported color. Matplotlib's static projection accepts named,
+hexadecimal, RGB and HSL colors; convert other color spaces before using that engine.
+Legend orientations use exactly `horizontal` or `vertical` in every tier. Flat
+`legend_xanchor`/`legend_yanchor` keys and their secondary/tertiary equivalents are rejected;
+Plotly relayout events retain their native dotted wire names and decode to the canonical keys.
 
 ### Public coordinates and decorations
 
@@ -261,6 +310,27 @@ provenance, and that environment in an immutable `AnalysisReport`. `report_bytes
 dependencies. `ring5.shutdown` releases process-wide worker pools early; they otherwise register
 process-exit cleanup and restart on later use.
 
+### Dependency preflight
+
+`ring5.doctor(*, tex_system="xelatex")` returns a `DoctorReport` with `perl`, `chrome`, and
+`tex_compiler` statuses. The compiler choice uses the same exact `xelatex`, `pdflatex`, or `lualatex`
+identifiers as PGF export; unsupported choices raise `ExportError`. `tex_compiler.name` identifies
+the selected compiler. `all_found` includes optional tools; `essential_found` checks only Perl.
+
+Each `DependencyStatus` records `name`, executable availability in `found`, its selected `path`,
+`needed_for`, and `install_hint`. An unavailable explicit browser choice retains its requested
+literal in `path`. Every present `BROWSER_PATH` is authoritative, including an empty value; no
+alternate browser is selected after that choice fails. An executable command name resolves through
+`PATH`. Preflight runs no browser, compiler, or version subprocess. Saved environment capture
+separately records bounded version facts for the same selected executable and all supported TeX
+compilers, without storing their paths.
+
+The CLI `ring5 install-chrome [--cache-dir PATH]` installs the reviewed Chrome for Testing Stable
+release without launching it. Standard output contains only its absolute executable path; set
+`BROWSER_PATH` to that path before starting the process that exports figures. Operational failures
+use `Ring5Error` and CLI exit code 2. Installation and browser selection remain separate operations;
+see the [installation instructions]({{site.baseurl}}/user-guide/getting-started/installation/#install-chrome-for-plotly-static-exports).
+
 ## Errors
 
 <!--
@@ -292,3 +362,29 @@ serialized portfolios must declare both fields. Unit conversion also scales a me
 companion by the absolute unit scale, without applying affine offsets to uncertainties.
 Generated recipe scripts preserve `--help` for usage; a parameter named `help` receives an
 unoccupied `--parameter-help` option, with additional `parameter-` prefixes when needed.
+
+## Loaded source and recipe replay
+
+Automatic recipe capture describes the active loaded data, independently of parser editor settings.
+A source is reusable only while its exact request is retained: named-data retention, selection and
+revision restoration preserve it; generic frame or manager edits clear it. Partial parser results
+and undeclared injected backends require an explicit caller `RecipeSource` for recipe creation.
+Recipe schema 6 retains the declared simulator, current parser contract, actual discovery/strict policy and
+resolved scanner metadata. Replay uses those records directly without scanning again.
+
+`RecipeSource.csv_policy` is `InferredCsvPolicy(configuration_columns)` for ordinary CSV inference
+with exact configured-column casts, or `ReviewedCsvPolicy(ImportOptions(...))` for a reviewed import.
+The latter uses the same preview/load service and accepted-row exclusion policy as the import UI.
+It retains encoding, delimiter, header, whitespace, null tokens and column corrections; later editor
+changes do not alter replay. `ImportOptions` owns tuples of text tokens and `ImportColumnCorrection`
+values, with exact typed scalar controls.
+
+A successfully executed recipe retains its source and exact dataset-wide transformations. Capturing
+without an explicit source includes those steps once, followed by any explicitly supplied additional
+steps. Capturing with an explicit source uses only caller-supplied transformations. Portfolio schema 11 saves
+this frame-associated origin separately from editable parser controls. A snapshot or arbitrary Table
+has no inferred reusable origin.
+
+Current documents use portfolio schema 11 (`version: "11.0"`) or recipe schema 6. Serialized
+plot display names use `legend_labels`; per-series style mappings retain original series keys.
+Unsupported schema versions and nested style name fields are rejected before restoration or replay.

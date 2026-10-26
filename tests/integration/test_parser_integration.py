@@ -1,58 +1,41 @@
-import os
-from typing import cast
+"""A real vector crosses UI compilation, worker finalization and typed loading."""
+
+from pathlib import Path
 
 from src.core.application_api import ApplicationAPI
+from src.core.common.parsed_output import ParsedOutputIO
 from src.core.models.data_models import ParseVariableConfig
 
 
-def test_parser_integration() -> None:
-    facade = ApplicationAPI()
-
-    # Mock variables
-    variables = cast(
-        list[ParseVariableConfig],
-        [
-            {
-                "name": "test_vector",
-                "type": "vector",
-                "params": {"source_type": "vector", "entries": ["entry1", "entry2"]},
-            }
-        ],
+def test_parser_integration(tmp_path: Path) -> None:
+    variables: list[ParseVariableConfig] = [
+        {
+            "name": "test_vector",
+            "type": "vector",
+            "params": {"source_type": "vector", "entries": ["entry1", "entry2"]},
+        }
+    ]
+    stats_dir = tmp_path / "stats"
+    stats_dir.mkdir()
+    (stats_dir / "stats.txt").write_text(
+        "test_vector::entry1 100\ntest_vector::entry2 200\n", encoding="utf-8"
     )
-
-    # Create dummy stats file
-    stats_dir = "test_stats_dir"
-    os.makedirs(stats_dir, exist_ok=True)
-    with open(f"{stats_dir}/stats.txt", "w") as f:
-        f.write("test_vector::entry1 100\n")
-        f.write("test_vector::entry2 200\n")
-
-    output_dir = "test_output"
-    os.makedirs(output_dir, exist_ok=True)
-
+    output_dir = tmp_path / "output"
+    facade = ApplicationAPI()
     try:
         batch = facade.submit_parse_async(
-            stats_path=stats_dir,
+            stats_path=str(stats_dir),
             stats_pattern="stats.txt",
             variables=facade.compile_parse_variables(variables),
-            output_dir=output_dir,
+            output_dir=str(output_dir),
         )
-
-        # Wait for completion
-        parse_results = []
-        for future in batch.futures:
-            result = future.result(timeout=10)
-            if result:
-                parse_results.append(result)
-
-        csv_path = facade.finalize_parsing(  # noqa: F841
-            output_dir, parse_results, var_names=batch.var_names
+        output = facade.finalize_parsing(
+            batch, [future.result(timeout=10) for future in batch.futures]
         )
+        assert Path(output.csv_path).is_file()
+        assert ParsedOutputIO.to_frame(output).to_dict("list") == {
+            "test_vector..entry1": [100.0],
+            "test_vector..entry2": [200.0],
+        }
     finally:
-        # Cleanup
-        import shutil
-
-        if os.path.exists(stats_dir):
-            shutil.rmtree(stats_dir)
-        if os.path.exists(output_dir):
-            shutil.rmtree(output_dir)
+        facade.close(wait=True)

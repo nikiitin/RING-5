@@ -115,11 +115,9 @@ def test_real_parse_survives_global_shutdown_and_recreates_both_pools(tmp_path: 
             ring5.shutdown()
             assert all(future.done() for future in batch.futures)
             results = [future.result(timeout=3) for future in batch.futures]
-            output = Gem5Parser.finalize_parsing(
-                str(tmp_path / str(value)), results, var_names=batch.var_names
-            )
+            output = Gem5Parser.finalize_parsing(batch, results)
             assert output is not None
-            with Path(output).open(encoding="utf-8", newline="") as stream:
+            with Path(output.csv_path).open(encoding="utf-8", newline="") as stream:
                 assert next(csv.DictReader(stream))["ipc"] == f"{value}.0"
             previous_executor, previous_perl = executor, perl
     finally:
@@ -174,7 +172,9 @@ def test_global_shutdown_rejects_real_parse_through_perl_teardown(tmp_path: Path
             [StatConfig("ipc", "scalar", params={"source_type": "scalar"})],
             str(tmp_path / "retry"),
         )
-        assert batch.futures[0].result(timeout=3)["ipc"].content == [3.0]
+        result = batch.futures[0].result(timeout=3)
+        assert result.variables[0].name == "ipc"
+        assert [cell.value for cell in result.variables[0].cells] == [3.0]
     finally:
         release_teardown.set()
         if closer.ident is not None:

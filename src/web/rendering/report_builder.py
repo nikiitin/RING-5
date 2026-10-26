@@ -20,16 +20,16 @@ from plotly.offline import get_plotlyjs
 
 from src.core.common.utils import sanitize_filename
 from src.core.models.report_models import AnalysisReport, ReportFigure, ReportTable
-from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
-from src.core.services.visualization.accessibility_service import AccessibilityService
-from src.web.pages.ui.plotting.base_plot import BasePlot, _relabel_traces
+from src.web.pages.ui.plotting.base_plot import BasePlot
+from src.web.rendering._matplotlib_lock import serialized_matplotlib
+from src.web.rendering.figure_preparation import prepare_figure
 from src.web.rendering.dashboard_builder import render_dashboard
 from src.web.rendering.interactive_html_export import (
     interactive_source_data_assets,
     interactive_source_data_section,
 )
-from src.web.rendering.matplotlib_figure_builder import build_matplotlib_figure_from_traces
-from src.web.rendering.trace_to_plotly import traces_to_plotly
+from src.web.rendering.matplotlib_figure_builder import build_matplotlib_figure_from_prepared
+from src.web.rendering.plotly_figure_builder import build_plotly_figure
 
 ReportFormat = Literal["html", "pdf"]
 ReportHtmlMode = Literal["document", "gallery"]
@@ -39,30 +39,19 @@ def _single_plot_figure(plot: BasePlot) -> MplFigure:
     """Render one plot through the engine-independent Matplotlib path."""
     if plot.processed_data is None:
         raise ValueError(f"Report plot '{plot.name}' has no processed data.")
-    effective = SemanticMetadataService.enrich_figure_config(plot.processed_data, plot.config)
-    effective = AccessibilityService.apply_defaults(effective, plot.plot_type)
-    traces = plot.create_traces(plot.processed_data, effective)
-    traces = AccessibilityService.apply_non_color_encodings(traces, effective)
-    traces = _relabel_traces(traces, effective.get("legend_labels"))
-    figure, _spec = build_matplotlib_figure_from_traces(effective, plot.plot_type, traces)
-    return figure
+    prepared = prepare_figure(plot.processed_data, plot.config, plot.plot_type, plot.create_traces)
+    return build_matplotlib_figure_from_prepared(prepared).figure
 
 
 def _single_plot_plotly(plot: BasePlot) -> go.Figure:
     """Render one plot through the engine-independent Plotly path."""
     if plot.processed_data is None:
         raise ValueError(f"Report plot '{plot.name}' has no processed data.")
-    effective = SemanticMetadataService.enrich_figure_config(plot.processed_data, plot.config)
-    effective = AccessibilityService.apply_defaults(effective, plot.plot_type)
-    traces = plot.create_traces(plot.processed_data, effective)
-    traces = AccessibilityService.apply_non_color_encodings(traces, effective)
-    traces = _relabel_traces(traces, effective.get("legend_labels"))
-    figure = traces_to_plotly(traces)
-    if not traces.traces:
-        figure.update_layout(title_text="Please select at least one X and one Y column.")
-    return plot.apply_common_layout(figure, effective)
+    prepared = prepare_figure(plot.processed_data, plot.config, plot.plot_type, plot.create_traces)
+    return build_plotly_figure(prepared).figure
 
 
+@serialized_matplotlib
 def _figure_png(plots: Sequence[BasePlot], by_id: dict[int, BasePlot], item: ReportFigure) -> bytes:
     """Render one report figure to deterministic PNG bytes."""
     if item.dashboard is None:
@@ -512,6 +501,7 @@ def _pdf_table_pages(pdf: PdfPages, table: ReportTable) -> None:
         plt.close(figure)
 
 
+@serialized_matplotlib
 def _pdf_report(report: AnalysisReport, images: Sequence[bytes]) -> bytes:
     """Build a deterministic multi-page PDF document."""
     output = io.BytesIO()

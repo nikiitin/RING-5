@@ -10,6 +10,8 @@ from typing import cast
 import pytest
 from streamlit.testing.v1 import AppTest
 
+from src.core.models.parsing_models import StatConfig
+
 
 def _app(body: str) -> AppTest:
     return AppTest.from_string("import streamlit as st\n" + dedent(body)).run()
@@ -149,7 +151,9 @@ def test_numeric_filter_handles_constant_single_and_unmeasured_columns(
 
 
 @pytest.mark.parametrize("values", [[10.0, 10.0], [10.0, 20.0], [None, None]])
-def test_opening_range_editor_preserves_the_scientific_selection(values) -> None:
+def test_opening_range_editor_preserves_the_scientific_selection(
+    values: list[float | None],
+) -> None:
     app = _app(f"""
         import pandas as pd
         from src.web.pages.ui.shaper_config import configure_shaper
@@ -178,14 +182,15 @@ def test_opening_range_editor_preserves_the_scientific_selection(values) -> None
         [{"type": "columnSelector", "columns": ["metric"]}, {"type": "normalize"}],
     ],
 )
-def test_invalid_nonempty_pipeline_never_publishes_a_shortened_result(configs) -> None:
+def test_invalid_nonempty_pipeline_never_publishes_a_shortened_result(
+    configs: list[dict[str, object]],
+) -> None:
     app = _app(f"""
         import pandas as pd
         from src.core.application_api import ApplicationAPI
         from src.web.controllers.plot.pipeline_controller import PipelineController
         from src.web.pages.plot_adapters import PipelineExecutorAdapter
         from src.web.pages.ui.plotting.plot_factory import PlotFactory
-        from src.web.state.ui_state_manager import UIStateManager
         api = ApplicationAPI()
         try:
             plot = PlotFactory.create_plot("bar", 1, "Figure")
@@ -194,7 +199,7 @@ def test_invalid_nonempty_pipeline_never_publishes_a_shortened_result(configs) -
             plot.pipeline = [{{"id": i, "type": config["type"], "config": config}}
                              for i, config in enumerate({configs!r})]
             PipelineController(
-                api, UIStateManager(), PipelineExecutorAdapter(api.shapers)
+                api, PipelineExecutorAdapter(api.shapers)
             )._handle_finalize(
                 plot, pd.DataFrame({{"metric": [10.0]}})
             )
@@ -281,9 +286,9 @@ def test_variable_editor_preserves_repeat_on_ordinary_rerun(tmp_path: Path) -> N
             str(tmp_path / "out"),
         )
         results = [future.result(timeout=30) for future in batch.futures]
-        output = api.finalize_parsing(str(tmp_path / "out"), results, var_names=batch.var_names)
+        output = api.finalize_parsing(batch, results)
         assert output is not None
-        assert pd.read_csv(output)["ipc"].tolist() == [4.0]
+        assert pd.read_csv(output.csv_path)["ipc"].tolist() == [4.0]
     finally:
         api.close()
 
@@ -546,7 +551,6 @@ def test_pipeline_finalize_rejects_every_incomplete_step_without_replacing_data(
         from src.web.controllers.plot.pipeline_controller import PipelineController
         from src.web.pages.plot_adapters import PipelineExecutorAdapter
         from src.web.pages.ui.plotting.plot_factory import PlotFactory
-        from src.web.state.ui_state_manager import UIStateManager
         api = ApplicationAPI()
         plot = PlotFactory.create_plot("bar", 1, "Figure")
         plot.replace_processed_data(pd.DataFrame({"kept": [7]}))
@@ -556,7 +560,7 @@ def test_pipeline_finalize_rejects_every_incomplete_step_without_replacing_data(
             {"id": 1, "type": "conditionSelector", "config": {}},
         ]
         PipelineController(
-                api, UIStateManager(), PipelineExecutorAdapter(api.shapers)
+                api, PipelineExecutorAdapter(api.shapers)
             )._handle_finalize(
             plot, pd.DataFrame({"label": ["b", "a"], "value": [2, 1]}))
         st.session_state["result"] = plot.processed_data.to_dict(orient="list")
@@ -713,7 +717,7 @@ def test_clearing_vector_entry_widgets_removes_the_saved_selection(discovered: b
 
 @pytest.mark.parametrize("type_fields", [{}, {"type": ""}])
 def test_incomplete_variable_type_remains_editable_without_guessing_or_losing_params(
-    type_fields,
+    type_fields: dict[str, str],
 ) -> None:
     original = {"_id": "draft", "params": {"entries": ["cpu0"]}, **type_fields}
     app = _app(f"""
@@ -739,9 +743,11 @@ def test_incomplete_variable_type_remains_editable_without_guessing_or_losing_pa
     app.selectbox(key="var_type_draft").select("vector").run()
     app.selectbox(key="var_source_type_draft").select("vector").run()
     assert not app.exception
-    assert app.session_state["compiled"][0].name == "vector_stat"
-    assert app.session_state["compiled"][0].type == "vector"
-    assert app.session_state["compiled"][0].params["entries"] == ["cpu0"]
+    compiled = cast(list[StatConfig] | None, app.session_state["compiled"])
+    assert compiled is not None
+    assert compiled[0].name == "vector_stat"
+    assert compiled[0].type == "vector"
+    assert compiled[0].params["entries"] == ["cpu0"]
 
 
 def test_unsupported_backend_variable_can_be_explicitly_deleted() -> None:
@@ -833,13 +839,15 @@ def test_raw_source_kind_is_explicit_and_output_changes_preserve_concrete_select
     assert app.session_state["compiled"] is None
     app.checkbox(key="use_pattern_filter_sources").uncheck().run()
     assert not app.exception
-    assert "selected_sources" not in app.session_state["compiled"].params
-    assert app.session_state["compiled"].keep_indices is True
+    compiled = cast(StatConfig | None, app.session_state["compiled"])
+    assert compiled is not None
+    assert "selected_sources" not in compiled.params
+    assert compiled.keep_indices is True
 
 
 def test_manual_numeric_pattern_selects_current_literal_sources_and_runs_the_selected_kind(
-    tmp_path,
-):
+    tmp_path: Path,
+) -> None:
     app = _app(r"""
         from src.core.application_api import ApplicationAPI
         from src.web.components.data_source.variable_editor import VariableEditor
@@ -887,12 +895,10 @@ def test_manual_numeric_pattern_selects_current_literal_sources_and_runs_the_sel
             str(tmp_path / "out"),
             scanned_vars=app.session_state["metadata"],
         )
-        path = api.finalize_parsing(
-            str(tmp_path / "out"),
-            [future.result(timeout=30) for future in batch.futures],
-            var_names=batch.var_names,
+        output = api.finalize_parsing(
+            batch, [future.result(timeout=30) for future in batch.futures]
         )
-        assert path is not None
-        assert pd.read_csv(path).to_dict("records") == [{"V..a": 4.0}]
+        assert output is not None
+        assert pd.read_csv(output.csv_path).to_dict("records") == [{"V..a": 4.0}]
     finally:
         api.close()

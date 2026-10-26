@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-CURRENT_PORTFOLIO_SCHEMA_VERSION = 8
+CURRENT_PORTFOLIO_SCHEMA_VERSION = 11
 CURRENT_PORTFOLIO_VERSION = f"{CURRENT_PORTFOLIO_SCHEMA_VERSION}.0"
 
 
@@ -41,6 +41,13 @@ def validate_portfolio_schema(value: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("Portfolio integrity_manifest must be an object.")
     if not isinstance(value.get("environment_metadata"), dict):
         raise ValueError("Portfolio environment_metadata must be an object.")
+    if "loaded_origin" not in value:
+        raise ValueError("Portfolio requires an explicit nullable loaded_origin field.")
+    from src.core.common.source_context_codec import SourceContextCodec
+
+    origin = SourceContextCodec.origin_from_payload(value["loaded_origin"])
+    if origin is not None and value.get("data") is None:
+        raise ValueError("Portfolio origin requires a loaded table.")
     variables = value.get("parse_variables")
     if not isinstance(variables, list):
         raise ValueError("Portfolio parse_variables must contain current variable snapshots.")

@@ -48,18 +48,18 @@ class TestGroupedBarUtils:
         centers = [(0.5, "mcf"), (2.5, "omnetpp")]
         anns = GroupedBarUtils.build_category_annotations(centers)
         assert len(anns) == 2
-        assert "<b>mcf</b>" in anns[0]["text"]
-        assert anns[0]["x"] == 0.5
-        assert anns[0]["showarrow"] is False
+        assert "<b>mcf</b>" in anns[0].text
+        assert anns[0].x == 0.5
+        assert anns[0].show_arrow is False
 
     def test_build_category_annotations_custom_font(self) -> None:
         centers = [(1.0, "A")]
         anns = GroupedBarUtils.build_category_annotations(
             centers, font_size=18, font_color="#333", y_offset=-0.2
         )
-        assert anns[0]["font"]["size"] == 18
-        assert anns[0]["font"]["color"] == "#333"
-        assert anns[0]["y"] == -0.2
+        assert anns[0].font_size == 18
+        assert anns[0].font_color == "#333"
+        assert anns[0].y == -0.2
 
     # -- Coordinate calculation --
 

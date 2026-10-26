@@ -13,15 +13,26 @@ This test validates the entire parsing pipeline from raw gem5 stats to usable da
 """
 
 import tempfile
+from collections.abc import Generator
 from pathlib import Path
 
-import pandas as pd
 import pytest
 
 from src.core.application_api import ApplicationAPI
+from src.core.common.parsed_output import ParsedOutputIO
 from src.core.models.parsing_models import StatConfig
-from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
-from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ScannerService
+from src.core.services.data_services.csv_pool_service import CsvPoolService
+from src.parsing.gem5.impl.gem5_parser import Gem5Parser
+
+
+@pytest.fixture
+def facade() -> Generator[ApplicationAPI, None, None]:
+    """Release the facade's owned parser work after each workflow."""
+    api = ApplicationAPI()
+    try:
+        yield api
+    finally:
+        api.close(wait=True)
 
 
 @pytest.fixture
@@ -69,12 +80,12 @@ class TestFullParserWorkflow:
         """
         # [test->req~ring5.ingestion.parse-output-provenance~1]
         # Step 1: Scan for available variables
-        scan_futures = ScannerService.submit_scan_async(
+        scan_futures = Gem5Parser.submit_scan_async(
             stats_path=str(sample_stats_dir), stats_pattern="stats.txt", limit=10
         )
 
         scan_results = [f.result() for f in scan_futures]
-        scanned_vars = ScannerService.aggregate_scan_results(scan_results).variables
+        scanned_vars = Gem5Parser.aggregate_scan_results(scan_results).variables
 
         # Verify scanning found expected variables
         assert len(scanned_vars) > 0
@@ -92,7 +103,7 @@ class TestFullParserWorkflow:
 
         # Step 3: Parse variables asynchronously
         with tempfile.TemporaryDirectory() as output_dir:
-            batch = ParseService.submit_parse_async(
+            batch = Gem5Parser.submit_parse_async(
                 stats_path=str(sample_stats_dir),
                 stats_pattern="stats.txt",
                 variables=variables,
@@ -102,15 +113,14 @@ class TestFullParserWorkflow:
             parse_results = [f.result() for f in batch.futures]
 
             # Step 4: Construct final CSV
-            csv_path = ParseService.construct_final_csv(
-                output_dir, parse_results, var_names=batch.var_names
-            )
+            parsed_output = Gem5Parser.finalize_parsing(batch, parse_results)
+            csv_path = parsed_output.csv_path
 
             assert csv_path is not None
             assert Path(csv_path).exists()
 
             # Step 5: Load CSV into dataframe
-            data = pd.read_csv(csv_path)
+            data = ParsedOutputIO.to_frame(parsed_output)
 
             # Step 6: Verify data integrity
             assert not data.empty
@@ -122,13 +132,21 @@ class TestFullParserWorkflow:
             # Verify we have expected number of rows
             assert len(data) >= 3  # At least 3 benchmarks
 
-    def test_facade_integration_workflow(self, sample_stats_dir: Path) -> None:
+    def test_facade_integration_workflow(
+        self,
+        sample_stats_dir: Path,
+        facade: ApplicationAPI,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
         """
         Test workflow using ApplicationAPI (user-facing API).
 
         This simulates the actual user workflow through the Streamlit UI.
         """
-        facade = ApplicationAPI()
+        pool = tmp_path / "recent"
+        pool.mkdir()
+        monkeypatch.setattr(CsvPoolService, "_pool_dir", pool)
 
         # Step 1: Find stats files
         stats_files = facade.find_stats_files(str(sample_stats_dir), "stats.txt")
@@ -158,15 +176,17 @@ class TestFullParserWorkflow:
             )
 
             parse_results = [f.result() for f in batch.futures]
-            csv_path = facade.finalize_parsing(output_dir, parse_results, var_names=batch.var_names)
+            parsed_output = facade.finalize_parsing(batch, parse_results)
+            csv_path = parsed_output.csv_path
 
             assert csv_path is not None
 
             # Step 4: Load into CSV pool
-            facade.data_services.add_to_csv_pool(csv_path)
+            pooled_path = facade.data_services.add_to_csv_pool(csv_path)
+            assert Path(pooled_path).parent == pool
 
             # Step 5: Retrieve from pool (load directly from file)
-            loaded_data = facade.data_services.load_csv_file(csv_path)
+            loaded_data = facade.data_services.load_csv_file(pooled_path)
 
             assert loaded_data is not None
             assert not loaded_data.empty
@@ -180,7 +200,7 @@ class TestFullParserWorkflow:
         """
         # Test with non-existent stats directory
         with pytest.raises((FileNotFoundError, ValueError)):
-            ScannerService.submit_scan_async(
+            Gem5Parser.submit_scan_async(
                 stats_path="/nonexistent/path", stats_pattern="stats.txt", limit=10
             )
 
@@ -191,7 +211,7 @@ class TestFullParserWorkflow:
             )
         ]
         with pytest.raises(ValueError, match="Unknown stat type: 'unknown_type'"):
-            ParseService.submit_parse_async(
+            Gem5Parser.submit_parse_async(
                 stats_path=str(tmp_path),
                 stats_pattern="stats.txt",
                 variables=invalid_variables,

@@ -178,7 +178,14 @@ Covers:
 -->
 
 Choose a named palette or explicit per-series colors. Colorblind-safe palettes are identified in
-the selector. Background, grid, axis, and transparent paper or plot colors are stored with the plot.
+the selector. A saved custom palette remains a color sequence until you explicitly select a named
+palette. Area outlines and fills use the same supported RGB/RGBA and HSL/HSLA color forms.
+Background, grid, axis, and transparent paper or plot colors are stored with the plot.
+
+Opening a color picker preserves the saved CSS spelling and alpha until you change its RGB value.
+Colors without a static RGB picker projection appear as editable CSS text; the selected native
+engine reports unsupported color spaces when rendering. **Transparent Background** changes the
+rendered paper and plot surfaces while retaining their saved colors for when transparency is off.
 
 ### Accessible figure themes
 
@@ -264,6 +271,10 @@ and heatmap facets under **Axes**. Legend entries and stack series are ordered a
 **Legends**, independently for each visible legend tier. These settings do not rewrite processed
 data.
 
+`legend_labels` is the series-name-to-display-text mapping. Series ordering, color and pattern
+overrides keep using the original series name after a rename. Empty, numeric-looking and repeated
+display labels are preserved; they do not identify or merge distinct series.
+
 ### Stack totals
 
 <!--
@@ -302,7 +313,10 @@ Covers:
 -->
 
 Plotly relayout events persist supported zoom and pan ranges, legend positions and anchors, and an
-edited primary legend title into plot configuration.
+edited primary legend title into plot configuration. Native `legend.xanchor`/`legend.yanchor`
+events (and their `legend2`/`legend3` equivalents) are stored as `anchor_x`/`anchor_y` in the
+corresponding legend tier. Explicit anchors win when the same event also moves a legend;
+position-only changes use left/top anchors. Saved configuration uses those canonical keys.
 
 ### Edit shapes
 
@@ -340,9 +354,15 @@ Covers:
 
 -->
 
-Under **Colors**, applicable plots expose per-series color, display name, bar pattern, marker symbol
-and size, and line width. Typed renderer styles also carry opacity and borders. **Rewind** returns
-a series to its current palette color.
+Under **Colors**, applicable plots expose per-series color, bar pattern, marker symbol and size,
+and line width. Display names are edited under **Legends**. Typed renderer styles also carry opacity
+and borders. **Rewind** returns a series to its current palette color.
+
+Programmatic `series_styles` use original text series names and style mappings. Display text uses
+`legend_labels`. A bar `pattern` is a string: empty, `/`, `\`, `x`, `-`, `|`, `+`, `.`, `o`, `O`, or `*`. Both engines render all
+forms; Plotly projects circle/star forms through native SVG pattern paths. **Default (trace/theme)**
+omits the override and preserves intrinsic hatching. **Solid** explicitly clears it. Explicit
+series choices take precedence over default stripe patterns and appear on legend swatches.
 
 ## Working method
 

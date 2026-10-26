@@ -1,10 +1,11 @@
-"""Tests for trace_to_plotly — converts TraceBuildResult to go.Figure."""
+"""Neutral trace conversion produces an owned native Plotly result and figure."""
 
 from __future__ import annotations
 
 from typing import Any, cast
 
 import plotly.graph_objects as go
+import pytest
 
 from src.core.models.visualization.annotation_config import AnnotationConfig
 from src.core.models.visualization.trace_build_result import TraceBuildResult
@@ -43,29 +44,29 @@ class TestTracesToPlotly:
     # [test->req~ring5.render.plotly~1]
     """Tests for the top-level ``traces_to_plotly`` function."""
 
-    def test_empty_result_returns_figure(self) -> None:
+    def test_empty_result_exposes_empty_native_figure(self) -> None:
         result = TraceBuildResult()
-        fig = traces_to_plotly(result)
+        fig = traces_to_plotly(result).figure
         assert isinstance(fig, go.Figure)
         assert len(cast(tuple[Any, ...], fig.data)) == 0
 
     def test_single_bar_trace(self) -> None:
         trace = BarTraceConfig(name="series1", x=["a", "b"], y=[1, 2], color="#ff0000")
         result = TraceBuildResult(traces=[trace], barmode="group")
-        fig = traces_to_plotly(result)
+        fig = traces_to_plotly(result).figure
         assert len(cast(tuple[Any, ...], fig.data)) == 1
         assert isinstance(fig.data[0], go.Bar)
         assert cast(Any, fig.layout).barmode == "group"
 
     def test_box_trace_sets_grouped_box_layout(self) -> None:
         trace = BoxTraceConfig(name="A", category="A", values=[1.0, 2.0, 3.0])
-        fig = traces_to_plotly(TraceBuildResult(traces=[trace], boxmode="group"))
+        fig = traces_to_plotly(TraceBuildResult(traces=[trace], boxmode="group")).figure
         assert isinstance(fig.data[0], go.Box)
         assert cast(Any, fig.layout).boxmode == "group"
 
     def test_violin_trace_sets_grouped_violin_layout(self) -> None:
         trace = ViolinTraceConfig(name="A", category="A", values=[1.0, 2.0, 3.0])
-        fig = traces_to_plotly(TraceBuildResult(traces=[trace], violinmode="group"))
+        fig = traces_to_plotly(TraceBuildResult(traces=[trace], violinmode="group")).figure
         assert isinstance(fig.data[0], go.Violin)
         assert cast(Any, fig.layout).violinmode == "group"
 
@@ -73,12 +74,12 @@ class TestTracesToPlotly:
         t1 = BarTraceConfig(name="left", x=["a"], y=[1], yaxis="y")
         t2 = BarTraceConfig(name="right", x=["a"], y=[2], yaxis="y2")
         result = TraceBuildResult(traces=[t1, t2], secondary_y=True)
-        fig = traces_to_plotly(result)
+        fig = traces_to_plotly(result).figure
         assert len(cast(tuple[Any, ...], fig.data)) == 2
 
     def test_custom_x_ticks_applied(self) -> None:
         result = TraceBuildResult(custom_x_ticks={"vals": [0.0, 1.0], "text": ["A", "B"]})
-        fig = traces_to_plotly(result)
+        fig = traces_to_plotly(result).figure
         layout = cast(Any, fig.layout)
         assert layout.xaxis.tickmode == "array"
         assert list(layout.xaxis.tickvals) == [0.0, 1.0]
@@ -92,7 +93,7 @@ class TestTracesToPlotly:
                 "hide_ticks": [True],
             }
         )
-        fig = traces_to_plotly(result)
+        fig = traces_to_plotly(result).figure
         layout = cast(Any, fig.layout)
         assert layout.xaxis.showticklabels is False
         assert layout.xaxis.ticks == ""
@@ -107,7 +108,7 @@ class TestTracesToPlotly:
             separator_lines=[SeparatorLine(x=1.5, color="#E0E0E0", dash="dash", width=1.0)],
             shaded_regions=[ShadedRegion(x0=0.0, x1=1.0, color="#F5F5F5", opacity=0.5)],
         )
-        fig = traces_to_plotly(result)
+        fig = traces_to_plotly(result).figure
         layout = cast(Any, fig.layout)
         assert layout.shapes is not None
         # One rect (shade) + one line (separator); shade drawn first.
@@ -118,27 +119,11 @@ class TestTracesToPlotly:
     def test_annotations_converted(self) -> None:
         ann = AnnotationConfig(text="Hello", x=0.5, y=0.5, xref="paper", yref="paper")
         result = TraceBuildResult(annotations=[ann])
-        fig = traces_to_plotly(result)
+        fig = traces_to_plotly(result).figure
         annotations = cast(Any, fig.layout).annotations
         assert annotations is not None
         assert len(annotations) == 1
         assert annotations[0].text == "Hello"
-
-    def test_layout_annotations_appended(self) -> None:
-        layout_ann: list[dict[str, Any]] = [{"text": "raw", "x": 0, "y": 0}]
-        result = TraceBuildResult(layout_annotations=layout_ann)
-        fig = traces_to_plotly(result)
-        annotations = cast(Any, fig.layout).annotations
-        assert annotations is not None
-        assert len(annotations) == 1
-
-    def test_both_annotation_types_combined(self) -> None:
-        ann = AnnotationConfig(text="typed", x=0, y=0, xref="paper", yref="paper")
-        layout_ann: list[dict[str, Any]] = [{"text": "raw", "x": 1, "y": 1}]
-        result = TraceBuildResult(annotations=[ann], layout_annotations=layout_ann)
-        fig = traces_to_plotly(result)
-        annotations = cast(Any, fig.layout).annotations
-        assert len(annotations) == 2
 
 
 # _convert_trace dispatch
@@ -295,7 +280,7 @@ class TestRadarTrace:
         )
 
         result = _radar_trace(trace)
-        figure = traces_to_plotly(TraceBuildResult(traces=[trace]))
+        figure = traces_to_plotly(TraceBuildResult(traces=[trace])).figure
 
         assert list(cast(Any, result.theta)) == ["A", "B", "C", "A"]
         assert list(cast(Any, result.r)) == [1.0, 2.0, 3.0, 1.0]
@@ -691,7 +676,7 @@ class TestConvertAnnotations:
         assert result[0]["showarrow"] is False
         assert "arrowcolor" not in result[0]
 
-    def test_non_annotation_skipped(self) -> None:
-        """Non-AnnotationConfig items are silently skipped."""
-        result = _convert_annotations(["not_an_annotation"])  # type: ignore[list-item]
-        assert result == []
+    def test_non_annotation_rejected(self) -> None:
+        """Unsupported entries cannot silently remove intended figure annotations."""
+        with pytest.raises(TypeError, match="Unsupported annotation type: str"):
+            _convert_annotations(["not_an_annotation"])  # type: ignore[list-item]

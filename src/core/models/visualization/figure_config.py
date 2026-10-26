@@ -10,6 +10,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal, cast
 
+from src.core.common.plot_payload import validate_legend_labels
+
 if TYPE_CHECKING:
     from src.core.models.visualization.annotation_config import (
         AnnotationConfig,
@@ -78,7 +80,7 @@ class FigureConfig:
     matplotlib connectors consume.  It owns every rendering parameter.
 
     Workflow:
-        1. Build from user config  (PlotlyFigureSpecBuilder / ConfigSpecBuilder)
+        1. Build from user config  (ConfigSpecBuilder)
         2. Resolve sentinels       (config_resolver.resolve_config)
         3. Pass to a connector     (FigureSpecToPlotly / FigureSpecToMatplotlib)
     """
@@ -113,6 +115,9 @@ class FigureConfig:
 
     # Per-trace overrides keyed by trace name (e.g., {"trace_A": ...})
     trace_overrides: dict[str, SeriesStyleConfig] = field(default_factory=dict)
+
+    # Display text is independent of the original names used for styling and ordering.
+    legend_labels: dict[str, str] = field(default_factory=dict)
 
     # Color palette (Wong colorblind-safe by default)
     color_palette: list[str] = field(
@@ -153,15 +158,15 @@ class FigureConfig:
     paper_bgcolor: str = "white"
     plot_bgcolor: str = "white"
 
-    # LaTeX extras
+    # Font family
     font_family: str = "serif"  # serif / sans-serif / monospace
-    latex_extra_preamble: str = ""
 
     # Arbitrary metadata (benchmark name, seed, etc.)
     metadata: dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        """Initialize sub-specs with proper defaults if not provided."""
+        """Own display labels and initialize missing sub-specs."""
+        object.__setattr__(self, "legend_labels", validate_legend_labels(self.legend_labels))
         # Lazy imports to avoid circular dependencies while keeping
         # type safety at runtime.
         from src.core.models.visualization.axis_config import AxesConfig
@@ -192,9 +197,11 @@ class FigureConfig:
         values but is not object-identical for traces.
 
         Raises:
-            TypeError: A nested dataclass contains unsupported fields.
-            ValueError: Typography is not a serialized object.
+            TypeError: The value is not an object or a field is unsupported.
+            ValueError: Typography or legend labels have an unsupported representation.
         """
+        from dataclasses import fields
+
         from src.core.models.visualization.annotation_config import (
             AnnotationConfig,
             ReferenceLineConfig,
@@ -204,6 +211,12 @@ class FigureConfig:
         from src.core.models.visualization.legend_config import LegendConfig
         from src.core.models.visualization.series_style_config import SeriesStyleConfig
         from src.core.models.visualization.typography_config import TypographyConfig
+
+        if not isinstance(data, dict) or any(not isinstance(key, str) for key in data):
+            raise TypeError("Figure configuration must be an object with text field names.")
+        unsupported = data.keys() - {item.name for item in fields(cls)}
+        if unsupported:
+            raise TypeError(f"Unsupported figure configuration fields: {sorted(unsupported)}.")
 
         # Shallow-copy the nested dict before .pop() so we never mutate the
         # caller's input (from_dict must be side-effect free for round-trips).
@@ -266,6 +279,7 @@ class FigureConfig:
             data_labels=data_labels,
             series_styles=series_styles,
             trace_overrides=trace_overrides,
+            legend_labels=data.get("legend_labels", {}),
             color_palette=data.get("color_palette", default_palette),
             barmode=data.get("barmode", "group"),
             hatching_sequence=data.get("hatching_sequence", default_hatching),
@@ -277,6 +291,5 @@ class FigureConfig:
             paper_bgcolor=data.get("paper_bgcolor", "white"),
             plot_bgcolor=data.get("plot_bgcolor", "white"),
             font_family=data.get("font_family", "serif"),
-            latex_extra_preamble=data.get("latex_extra_preamble", ""),
             metadata=data.get("metadata", {}),
         )

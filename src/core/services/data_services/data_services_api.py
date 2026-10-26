@@ -15,6 +15,9 @@ from typing import (
 
 import pandas as pd
 
+from src.core.models.parsed_output_models import ParsedOutput
+from src.core.models.source_context_models import LoadedDataOrigin
+
 from src.core.models.recipe_models import (
     AnalysisRecipe,
     AnalysisRecipeInfo,
@@ -59,7 +62,7 @@ class DataServicesAPI(Protocol):
         """Add a CSV file to the pool. Returns pool path."""
         raise NotImplementedError
 
-    def publish_to_csv_pool(self, file_path: str, file_name: str) -> str:
+    def publish_to_csv_pool(self, output: ParsedOutput, file_name: str) -> ParsedOutput:
         """Atomically publish a named background result to the CSV pool."""
         raise NotImplementedError
 
@@ -67,7 +70,9 @@ class DataServicesAPI(Protocol):
         """Delete a CSV file from the pool."""
         raise NotImplementedError
 
-    def load_csv_file(self, file_path: str) -> pd.DataFrame:
+    def load_csv_file(
+        self, file_path: str, *, configuration_columns: tuple[str, ...] = ()
+    ) -> pd.DataFrame:
         """Load a CSV file returning a DataFrame."""
         raise NotImplementedError
 
@@ -194,15 +199,6 @@ class DataServicesAPI(Protocol):
         """Filter out internal simulator statistics from entry list."""
         raise NotImplementedError
 
-    def find_variable_by_name(
-        self,
-        variables: list[ParseVariableConfig],
-        name: str,
-        exact: bool = True,
-    ) -> ParseVariableConfig | None:
-        """Find a variable by name (exact or regex match)."""
-        raise NotImplementedError
-
     def aggregate_discovered_entries(
         self,
         snapshot: list[ScannedVariableDict],
@@ -228,28 +224,12 @@ class DataServicesAPI(Protocol):
         """Format list of entries as comma-separated string."""
         raise NotImplementedError
 
-    def find_entries_for_variable(
-        self,
-        available_variables: list[ScannedVariableDict],
-        var_name: str,
-        internal_stats: frozenset[str],
-    ) -> list[str]:
-        """Find all entries for a variable by searching available/scanned variables."""
-        raise NotImplementedError
-
     def has_variable_with_name(
         self,
         variables: list[ParseVariableConfig],
         name: str,
     ) -> bool:
         """Check if a variable with the given name already exists."""
-        raise NotImplementedError
-
-    def build_statistics_list(
-        self,
-        selected: dict[str, bool],
-    ) -> list[str]:
-        """Build a list of selected statistics from a boolean mapping."""
         raise NotImplementedError
 
     # -- Portfolio Management --
@@ -273,6 +253,7 @@ class DataServicesAPI(Protocol):
         overwrite: bool = True,
         signing_key: str | bytes | None = None,
         signing_key_id: str = "default",
+        origin: LoadedDataOrigin | None = None,
     ) -> None:
         """Serialize and save the current workspace state."""
         raise NotImplementedError

@@ -238,12 +238,14 @@ Needs: impl, test, uman
 
 Tags: api, csv, data, status_approved
 
-### Generic CSV contract
+### Typed parser output contract
 
-`req~ring5.ingestion.csv-contract~1`
+`req~ring5.ingestion.csv-contract~2`
 Status: approved
 
-CSV input shall have a header and at least one data row, remain simulator-independent, and report malformed or empty input explicitly.
+Parser output shall declare simulator-independent logical variable kinds and physical column ownership, contain at least one exact typed source row, and reject malformed schema, CSV encoding, row shape or content-integrity mismatches explicitly.
+
+History records: 1
 
 Covers:
 - feat~ring5.ingestion~1
@@ -2087,7 +2089,7 @@ Tags: grouped_bar, settings, shading, status_approved
 `req~ring5.figure.series-styling~1`
 Status: approved
 
-Applicable web plots shall configure per-series override color, display name, bar pattern, marker symbol and size, and line width, while typed renderer styles shall also carry opacity and border settings.
+Applicable web plots shall configure per-series override color, bar pattern, marker symbol and size, and line width by original series name, while typed renderer styles shall also carry opacity and border settings. Legend display text uses the canonical legend-label mapping.
 
 History records: 1
 
@@ -2638,10 +2640,12 @@ Tags: api, errors, status_approved, typing
 
 ### Dependency doctor
 
-`req~ring5.api.doctor~1`
+`req~ring5.api.doctor~2`
 Status: approved
 
-The public API and CLI shall report essential Perl and optional browser and XeLaTeX dependency availability without making optional exporters mandatory.
+The public API and CLI shall report essential Perl and optional selected-browser and selected-PGF-compiler executable availability without making optional exporters mandatory. Every present BROWSER_PATH value shall remain the required browser selection, including an unavailable empty value, and unsupported compiler identifiers shall fail explicitly.
+
+History records: 1
 
 Covers:
 - feat~ring5.automation~1
@@ -2649,6 +2653,20 @@ Covers:
 Needs: impl, test, uman
 
 Tags: api, cli, dependencies, status_approved
+
+### Reviewed Chrome installation
+
+`req~ring5.cli.install-chrome~1`
+Status: approved
+
+The ring5 install-chrome command shall use the packaged reviewed Stable Chrome for Testing manifest to install or verify the native artifact with bounded transfer, provider size, checksum and generation facts, project SHA-256 verification, a bounded archive graph and internal-link policy, and native exclusive cache publication. It shall preserve existing unrelated cache entries on failure, print the absolute executable path for explicit BROWSER_PATH selection, and report expected operational failures as exit code 2 without launching a browser or changing browser selection.
+
+Covers:
+- feat~ring5.automation~1
+
+Needs: impl, test, uman
+
+Tags: cli, dependencies, export, status_approved
 
 ### CLI parsing
 
@@ -2966,6 +2984,8 @@ Tags: formatting, latex, security, status_approved
 Status: approved
 
 The repository shall provide repeatable performance checks for representative large-data transformations, caches, rendering, and worker-pool stability, with explicit thresholds where wall-clock regression limits are asserted.
+
+History records: 1
 
 Covers:
 - feat~ring5.extensibility-quality~1

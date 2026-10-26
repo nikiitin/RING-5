@@ -38,10 +38,10 @@ sequenceDiagram
     Pool-->>API: results and visible failures
     UI->>API: finalize batch
     opt incremental parse
-        Parser->>Cache: reuse fingerprint-matched scalar rows
+        Parser->>Cache: reuse fingerprint-matched typed file records
         Parser->>Cache: atomically replace successful merged rows
     end
-    API->>Parser: assemble and validate CSV
+    API->>Parser: resolve schema and atomically publish typed CSV descriptor
     API->>State: store table and provenance
 ```
 
@@ -61,15 +61,19 @@ before execution has no start timestamp.
 
 Incremental submission first discovers the same bounded file set and hashes complete input
 contents. It filters the normal strategy work items to new or changed paths; it does not introduce
-a synchronous parser or bypass the shared worker pool. Finalization uses each worker result's
-internal source provenance to replace exactly that file's finalized row, retains unchanged rows,
-and omits deleted paths. The JSON cache contains strings and fingerprints rather than pickles or
-live parser objects. The final CSV and cache are each replaced atomically, and the cache is written
+a synchronous parser or bypass the shared worker pool. Finalization uses each immutable worker result's
+explicit source path to replace exactly that file's finalized row, retains unchanged rows,
+and omits deleted paths. The current JSON cache contains typed file records and fingerprints rather than pickles or
+live accumulator objects. The final CSV and cache are each replaced atomically, and the cache is written
 only after every changed worker succeeds.
 
-`Session.load` and the CSV pool converge on `ApplicationAPI.load_data`, which stores a DataFrame in
-the session repository. The generic CSV contract requires a header and rows; individual services
-validate operation-specific columns and types.
+`Session.load(ParseResult)` passes the explicit descriptor and actual request context to
+`ApplicationAPI.load_data`. `Session.load(str)` and CSV pool imports use genuine CSV inference at
+that same ingestion owner. Successful publication commits the exact frame and immutable loaded
+origin together. The descriptor path is never a lookup key for recovering schema or request state.
+The session repository stores the owned DataFrame; individual services validate operation-specific
+columns and types. Typed parser admission verifies schema and digest, while genuine CSV ingestion
+retains its inference/null policy.
 
 The review-before-load path first creates an immutable `ImportPreview` in the core service. Format
 detection, corrections, inference, and row classification do not touch session state. Loading
@@ -103,6 +107,27 @@ flowchart LR
     SPEC --> PLOTLY[Plotly connector]
     SPEC --> MPL[Matplotlib connector]
 ```
+
+`Session.render`, reports, and dashboards call `prepare_figure` once per plot. Its
+`PreparedFigure` owns effective semantic/accessibility defaults, neutral trace output and one
+resolved `FigureConfig`. Native builders consume that result without constructing the other
+engine's figure or resolving styling again. Matplotlib standalone figures and dashboard panels
+share `draw_matplotlib_axes`; the panel compositor owns its outer margins and legend domains.
+Trace legend roles stay independent of Y-axis roles and numbered annotation styling.
+
+Native builders return one engine result containing its actual source associations. Original names
+remain stable for styles, order and groups; `legend_labels` supplies late display text. Copies and
+dashboard assembly transfer associations explicitly to destination traces/artists. Connectors
+preflight the whole owned root before reapply, while exports consume the completed native figure.
+
+Public single-plot rendering publishes effective configuration, neutral output, resolved style,
+native artifact and reuse key together through `BasePlot.publish_render_artifact` after a successful
+build. Publication relinquishes its Matplotlib manager without clearing artist content; callers
+retain usable figures. `invalidate_figure` detaches the owned generation and clears its render
+references without claiming a manager later registered by a borrower.
+PlotRepository compares object identity when disposing removed or replaced plots, including restore
+publication and rejected-candidate cleanup. Duplication detaches artifacts before copying domain
+state; transient facet views never acquire ownership of the source plot's artifacts.
 
 Manager services and shapers copy their inputs. A confirmed manager result replaces the workspace
 table; a shaper result belongs to its plot. The render controller pairs processed data, persisted

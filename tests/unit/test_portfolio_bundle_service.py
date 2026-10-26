@@ -28,6 +28,7 @@ def _portfolio_bytes(*, signed: bool = False) -> bytes:
         "schema_version": CURRENT_PORTFOLIO_SCHEMA_VERSION,
         "version": CURRENT_PORTFOLIO_VERSION,
         "parser_strategy": "simple",
+        "loaded_origin": None,
         "simulator": "gem5",
         "timestamp": "2026-07-21T10:00:00+00:00",
         "environment_metadata": {

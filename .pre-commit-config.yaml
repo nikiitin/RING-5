@@ -28,12 +28,14 @@ repos:
         name: Black formatting
         entry: python_venv/bin/black
         language: system
+        require_serial: true
         types: [python]
 
       - id: flake8
         name: Flake8 linting
         entry: python_venv/bin/flake8
         language: system
+        require_serial: true
         types: [python]
 
       - id: mypy

@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from src.core.models.parsing_models import StatConfig
+from src.core.models.parsing_models import StatConfig, StatParamValue
 from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
 pytestmark = pytest.mark.xdist_group("perl_pool")
@@ -17,12 +17,10 @@ def _parse(root: Path, text: str, configs: list[StatConfig]) -> dict[str, str]:
     (root / "stats.txt").write_text(text, encoding="utf-8")
     batch = Gem5Parser.submit_parse_async(str(root), "stats.txt", configs, str(root / "out"))
     output = Gem5Parser.finalize_parsing(
-        str(root / "out"),
-        [future.result(timeout=30) for future in batch.futures],
-        var_names=batch.var_names,
+        batch, [future.result(timeout=30) for future in batch.futures]
     )
     assert output is not None
-    with Path(output).open(encoding="utf-8", newline="") as stream:
+    with Path(output.csv_path).open(encoding="utf-8", newline="") as stream:
         return next(csv.DictReader(stream))
 
 
@@ -32,7 +30,7 @@ def test_literal_summary_suffix_names_keep_their_source_identity(tmp_path: Path,
     name = "system.MemDepUnit__0.metric"
     literal = f"{name}__get_summary"
     entry = "::value" if kind == "vector" else ""
-    params = (
+    params: dict[str, StatParamValue] = (
         {"entries": ["value"], "source_type": kind} if kind == "vector" else {"source_type": kind}
     )
     row = _parse(

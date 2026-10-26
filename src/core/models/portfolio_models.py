@@ -85,6 +85,7 @@ class PortfolioData(TypedDict, total=False):
     use_parser: bool
     scanned_variables: list[ScannedVariableDict]
     data: TypedTablePayload | None
+    loaded_origin: dict[str, Any] | None
     environment_metadata: dict[str, Any]
     integrity_manifest: dict[str, Any]
     plots: list[dict[str, Any]]

@@ -32,7 +32,14 @@ contract**.
    numeric entry mapping. The worker converts numeric wire text once. No assignment setter,
    list-valued frame or dynamic attribute dispatch is an ingestion route. Collection closes
    after balancing; reduction before balancing raises; successful balance/reduce calls are
-   idempotent. Content/result inspection returns defensive snapshots. Ingestion/reduction
+   idempotent. Content/result inspection returns defensive snapshots. Store actual observations
+   only; `padded_count` and `missing_measurement_count` remain exact logical presence counts.
+   Balancing/reduction must not allocate or iterate over absent frames proportional to `repeat`.
+   Complete disjoint histogram frames may rebin missing raw buckets to justified zero contributions
+   even with positive raw missing counts; a whole absent frame propagates NaN. Bound active rebin
+   geometry and exact emitted width with the existing physical-column budget before mappings,
+   preserving explicit-entry/statistics-only precedence and unemitted discovered summaries.
+   Compact representations never copy raw observation content. Ingestion/reduction
    must not truncate floats (no `int()` coercion). Numeric population means share one owner;
    exercise finite sums beyond float range, cancellation with tiny residuals, subnormal values,
    measured zero, NaN and both signs of infinity without skipping missing observations.

@@ -12,9 +12,19 @@ from pathlib import Path
 from typing import Any, Literal, cast
 
 import pandas as pd
+from matplotlib.figure import Figure as MplFigure
 
 from src.core.application_api import ApplicationAPI
 from src.core.common.stat_config_codec import StatConfigCodec
+from src.core.common.source_context_codec import SourceContextCodec
+from src.core.models.source_context_models import (
+    CsvSourceContext,
+    InferredCsvPolicy,
+    ParserSourceContext,
+    ReviewedCsvPolicy,
+    validate_discovery_limit,
+    validate_parser_source_text,
+)
 from src.core.models.accessibility_models import AccessibilityReport
 from src.core.models.report_models import AnalysisReport, ReportFigure
 from src.core.models.recipe_models import (
@@ -47,6 +57,7 @@ from src.core.models.import_models import ImportColumnCorrection, ImportOptions,
 from src.core.models.parsing_models import (
     IncrementalParseBatchResult,
     ParseBatchResult,
+    PARSER_RESULT_VERSION,
     ScanResult,
     StatConfig,
 )
@@ -78,8 +89,13 @@ from src.core.models.analysis_review_models import (
 from src.core.models.recovery_models import RecoveryDraftCapture, RecoveryDraftInfo
 from src.core.models.guided_analysis_models import GuidedAnalysisProgress
 from src.core.models.visualization.engine import EngineMode
+from src.core.models.visualization.export_options import TexSystem, validate_tex_system
 from src.parsing.parser_protocol import SimulationParser
+from src.parsing.registry import SimulatorRegistry
+from src.core.common.parsed_output import ParsedOutputIO
+from src.core.services.import_preview_service import ImportPreviewService
 from src.web.pages.ui.plotting.base_plot import BasePlot
+from src.web.rendering._matplotlib_copy import copy_matplotlib_figure
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
 from ring5 import _dashboard, _export, _parse, _render, _scan, _small_multiples
@@ -385,7 +401,7 @@ class Session:
     def parser_playground_submit(
         self,
         stats_path: str,
-        variables: list[str | StatConfig],
+        variables: Sequence[str | StatConfig],
         *,
         pattern: str = "stats.txt",
         strategy: str = "simple",
@@ -424,7 +440,7 @@ class Session:
             raise ParseError(f"Invalid statistic configuration: {exc}") from exc
         created_output = output_dir is None
         if created_output:
-            out_dir = tempfile.mkdtemp(prefix="ring5_parser_playground_")
+            out_dir = str(Path(tempfile.mkdtemp(prefix="ring5_parser_playground_")).resolve())
             self._owned_tmpdirs.append(out_dir)
         else:
             out_dir = cast(str, output_dir)
@@ -447,10 +463,6 @@ class Session:
         job = _parse.ParserPlaygroundJob(
             api=self.api,
             batch=batch,
-            futures=list(batch.futures),
-            output_dir=out_dir,
-            stats_path=stats_path,
-            stats_pattern=pattern,
         )
         self._parse_jobs.append(job)
         return job
@@ -458,7 +470,7 @@ class Session:
     def parse_submit(
         self,
         stats_path: str,
-        variables: list[str | StatConfig],
+        variables: Sequence[str | StatConfig],
         *,
         pattern: str = "stats.txt",
         strategy: str = "simple",
@@ -503,11 +515,50 @@ class Session:
         # [impl->req~ring5.ingestion.async-parse~1]
         # [impl->req~ring5.ingestion.parse-output-provenance~1]
         try:
+            validate_discovery_limit(scan_limit)
+            for value in (stats_path, pattern, strategy):
+                validate_parser_source_text(value)
+        except ValueError as exc:
+            raise ParseError(f"Invalid parser source request: {exc}") from exc
+        try:
             configs, scanned = _parse.build_stat_configs(
                 self.api, stats_path, variables, pattern=pattern, scan_limit=scan_limit
             )
         except (TypeError, ValueError) as exc:
             raise ParseError(f"Invalid statistic configuration: {exc}") from exc
+        try:
+            source = SourceContextCodec.parser(
+                stats_path=stats_path,
+                stats_pattern=pattern,
+                strategy_type=strategy,
+                variables=configs,
+                scanned_variables=[v.to_dict() for v in scanned],
+                simulator="gem5" if self._parser_override is None else None,
+                scan_limit=scan_limit,
+                strict=True,
+            )
+        except (TypeError, ValueError) as exc:
+            raise ParseError(f"Invalid parser source request: {exc}") from exc
+        return self._submit_resolved_parse(
+            source, output_dir=output_dir, incremental=incremental, cache_path=cache_path
+        )
+
+    def _submit_resolved_parse(
+        self,
+        source: ParserSourceContext,
+        *,
+        output_dir: str | None = None,
+        incremental: bool = False,
+        cache_path: str | None = None,
+    ) -> _parse.ParseJob:
+        """Submit the exact owned request without scanning or consulting editor state."""
+        stats_path, pattern, strategy = (
+            source.stats_path,
+            source.stats_pattern,
+            source.strategy_type,
+        )
+        configs = SourceContextCodec.variables(source)
+        scanned = SourceContextCodec.scanned_variables(source)
         created_output = False
         if output_dir is None and incremental:
             cache_key = (
@@ -518,14 +569,14 @@ class Session:
             )
             existing_output = self._incremental_output_dirs.get(cache_key)
             if existing_output is None:
-                out_dir = tempfile.mkdtemp(prefix="ring5_incremental_parse_")
+                out_dir = str(Path(tempfile.mkdtemp(prefix="ring5_incremental_parse_")).resolve())
                 self._owned_tmpdirs.append(out_dir)
                 self._incremental_output_dirs[cache_key] = out_dir
                 created_output = True
             else:
                 out_dir = existing_output
         elif output_dir is None:
-            out_dir = tempfile.mkdtemp(prefix="ring5_parse_")
+            out_dir = str(Path(tempfile.mkdtemp(prefix="ring5_parse_")).resolve())
             self._owned_tmpdirs.append(out_dir)
             created_output = True
         else:
@@ -560,22 +611,17 @@ class Session:
                         self._incremental_output_dirs.pop(key)
             raise ParseError(f"Parse submission failed: {exc}") from exc
 
-        # Store parse provenance for portfolio restoration and replay.
+        # Editable controls are independent of the loaded frame's immutable origin.
         sm = self.api.state_manager
         sm.set_stats_path(stats_path)
         sm.set_stats_pattern(pattern)
         sm.set_parser_strategy(strategy)
         sm.set_parse_variables([StatConfigCodec.to_draft(config) for config in configs])
-        sm.set_scanned_variables([variable.to_dict() for variable in scanned])
+        sm.set_scanned_variables(SourceContextCodec.scanned_payloads(source))
         job = _parse.ParseJob(
             api=self.api,
-            futures=list(batch.futures),
-            var_names=list(batch.var_names),
-            output_dir=out_dir,
-            strategy=strategy,
-            stats_path=stats_path,
-            stats_pattern=pattern,
-            incremental_batch=(batch if isinstance(batch, IncrementalParseBatchResult) else None),
+            batch=batch,
+            source_context=source,
         )
         self._parse_jobs.append(job)
         return job
@@ -583,7 +629,7 @@ class Session:
     def parse(
         self,
         stats_path: str,
-        variables: list[str | StatConfig],
+        variables: Sequence[str | StatConfig],
         *,
         pattern: str = "stats.txt",
         strategy: str = "simple",
@@ -630,27 +676,31 @@ class Session:
         return job.finalize(strict=strict)
 
     # data
-    def load(self, csv_path: str) -> Table:
-        """Load a CSV into the session.
+    def load(self, source: str | _parse.ParseResult) -> Table:
+        """Load a genuine CSV or preserve a parser result's exact declared types.
 
         Args:
-            csv_path: CSV file to load.
+            source: CSV path with ordinary inference, or the explicit ParseResult.
 
         Returns:
-            The loaded table.
+            The loaded owned table.
 
         Raises:
-            DataLoadError: The file is missing, unreadable, malformed, or
-                produces no table.
+            DataLoadError: Reading, integrity/type validation or publication fails.
         """
         # [impl->req~ring5.ingestion.csv-load~1]
+        if not isinstance(source, (str, _parse.ParseResult)):
+            raise DataLoadError("Data source must be a CSV path string or ring5.ParseResult.")
         try:
-            self.api.load_data(csv_path)
-        except (OSError, ValueError, UnicodeError) as exc:
-            raise DataLoadError(f"Could not load CSV {csv_path!r}: {exc}") from exc
+            if isinstance(source, _parse.ParseResult):
+                self.api.load_data(source.output, source_context=source.source_context)
+            else:
+                self.api.load_data(source)
+        except (OSError, TypeError, ValueError, UnicodeError) as exc:
+            raise DataLoadError(f"Could not load data: {exc}") from exc
         data = self.api.state_manager.get_data()
         if data is None:
-            raise DataLoadError(f"Loading {csv_path!r} produced no data.")
+            raise DataLoadError("Loading the source produced no data.")
         return Table(data)
 
     def preview_import(
@@ -1059,7 +1109,7 @@ class Session:
             "regression_comparison"
         )
         rendered_ids = self._guided_rendered_plot_ids | {
-            plot.plot_id for plot in plots if getattr(plot, "last_generated_fig", None) is not None
+            plot.plot_id for plot in plots if plot.render_state.snapshot() is not None
         }
         return GuidedAnalysisService.assess(
             self.api.state_manager.get_data(),
@@ -2308,16 +2358,26 @@ class Session:
             to create and render in one call.
 
         Raises:
-            DataValidationError: ``plot_type`` is not registered.
+            DataValidationError: The plot identifier or configuration is unsupported.
+            ColumnNotFoundError: A mapped column is absent from the data.
         """
         from src.web.pages.ui.plotting.plot_service import PlotService
 
         resolved_type = _resolve_plot_type(plot_type)
         frame = _table_frame(data)
         try:
-            raw_config = config.to_config() if isinstance(config, FigureSpec) else dict(config)
+            raw_config = (
+                config.to_config(plot_type=resolved_type)
+                if isinstance(config, FigureSpec)
+                else dict(config)
+            )
         except (TypeError, ValueError) as exc:
-            raise DataValidationError(f"Plot config must be a mapping: {exc}") from exc
+            diagnostic = (
+                "Invalid plot configuration"
+                if isinstance(config, FigureSpec)
+                else "Plot config must be a mapping"
+            )
+            raise DataValidationError(f"{diagnostic}: {exc}") from exc
         validate_plot_config(resolved_type, frame, raw_config)
 
         # Validation happens before registration so a rejected configuration
@@ -2704,6 +2764,7 @@ class Session:
         *,
         fmt: str | None = None,
         deterministic: bool = False,
+        tex_system: TexSystem = "xelatex",
         **kwargs: Any,
     ) -> str:
         """Export a rendered figure to a file.
@@ -2713,6 +2774,7 @@ class Session:
             path: Destination file path.
             fmt: Explicit format; inferred from ``path`` when omitted.
             deterministic: Enable byte-stable export settings.
+            tex_system: PGF compiler: ``xelatex``, ``pdflatex`` or ``lualatex``.
             **kwargs: Engine-specific dimensions and resolution options.
 
         Returns:
@@ -2729,6 +2791,7 @@ class Session:
             path,
             fmt=fmt,
             deterministic=deterministic,
+            tex_system=tex_system,
             **kwargs,
         )
         self._guided_exported = True
@@ -2741,6 +2804,7 @@ class Session:
         *,
         fmt: str | None = None,
         deterministic: bool = False,
+        tex_system: TexSystem = "xelatex",
         label: str | None = None,
         **kwargs: Any,
     ) -> BackgroundJobInfo:
@@ -2752,6 +2816,7 @@ class Session:
             path: Destination file path.
             fmt: Explicit format, or infer it from ``path``.
             deterministic: Enable byte-stable export settings.
+            tex_system: PGF compiler: ``xelatex``, ``pdflatex`` or ``lualatex``.
             label: Optional job-center label.
             **kwargs: Engine-specific dimensions and resolution options.
 
@@ -2759,12 +2824,14 @@ class Session:
             Initial immutable job snapshot. The completed result is the path.
 
         Raises:
-            JobError: Submission metadata or the session job center is invalid.
+            JobError: The figure snapshot, submission metadata or session job center is invalid.
         """
-        captured_figure = copy.deepcopy(fig)
-        captured_kwargs = copy.deepcopy(kwargs)
-        selected_label = label or f"Download {Path(path).name or 'figure'}"
         try:
+            captured_figure = (
+                copy_matplotlib_figure(fig) if isinstance(fig, MplFigure) else copy.deepcopy(fig)
+            )
+            captured_kwargs = copy.deepcopy(kwargs)
+            selected_label = label or f"Download {Path(path).name or 'figure'}"
             return self.api.submit_background_operation(
                 "export",
                 selected_label,
@@ -2773,6 +2840,7 @@ class Session:
                     path,
                     fmt=fmt,
                     deterministic=deterministic,
+                    tex_system=tex_system,
                     **captured_kwargs,
                 ),
             )
@@ -2785,6 +2853,7 @@ class Session:
         fmt: str,
         *,
         deterministic: bool = False,
+        tex_system: TexSystem = "xelatex",
         **kwargs: Any,
     ) -> bytes:
         """Export a rendered figure to bytes.
@@ -2793,6 +2862,7 @@ class Session:
             fig: Figure returned by :meth:`render`.
             fmt: Output format supported by the figure's engine.
             deterministic: Enable byte-stable export settings.
+            tex_system: PGF compiler: ``xelatex``, ``pdflatex`` or ``lualatex``.
             **kwargs: Engine-specific dimensions and resolution options.
 
         Returns:
@@ -2803,7 +2873,9 @@ class Session:
             DependencyMissingError: The selected format requires an external
                 executable that is unavailable.
         """
-        payload = _export.export_bytes(fig, fmt, deterministic=deterministic, **kwargs)
+        payload = _export.export_bytes(
+            fig, fmt, deterministic=deterministic, tex_system=tex_system, **kwargs
+        )
         self._guided_exported = True
         return payload
 
@@ -3113,14 +3185,18 @@ class Session:
 
         sm = self.api.state_manager
         try:
+            with sm.transaction():
+                data = sm.get_data()
+                origin = sm.get_loaded_origin()
             self.api.data_services.save_portfolio(
                 name=name,
-                data=sm.get_data(),
+                data=data,
                 plots=sm.get_plots(),
                 config=sm.get_config(),
                 plot_counter=sm.get_plot_counter(),
                 csv_path=sm.get_csv_path(),
                 parse_variables=sm.get_parse_variables(),
+                origin=origin,
                 figure_spec_enricher=build_figure_spec_dict,
                 overwrite=overwrite,
                 signing_key=signing_key,
@@ -3438,15 +3514,17 @@ class Session:
     ) -> AnalysisRecipe:
         """Capture this session's source, plots, and pipelines as a recipe.
 
-        The active CSV path or parser provenance is used when ``source`` is
-        omitted. Runtime placeholders use ``{{parameter_name}}`` in source
-        paths, shaper values, plot configuration values, and export paths.
+        Omitting ``source`` uses the immutable request associated with the loaded
+        data. Retained recipe transformations appear once, followed by the supplied
+        ``transformations``. An explicit source uses only the supplied steps.
+        Runtime placeholders use ``{{parameter_name}}`` in source paths, shaper
+        values, plot configuration values, and export paths.
 
         Args:
             name: Stable recipe name.
             description: Human-readable purpose.
             parameters: Typed runtime placeholder declarations.
-            source: Explicit source, or ``None`` to capture current provenance.
+            source: Explicit source, or ``None`` to reuse the loaded request context.
             transformations: Dataset-wide shapers applied before every plot.
             exports: Named-plot output instructions.
 
@@ -3455,7 +3533,7 @@ class Session:
             to retain it locally.
 
         Raises:
-            RecipeError: Current provenance or recipe content is invalid.
+            RecipeError: The loaded source cannot be reused or recipe content is invalid.
         """
         # [impl->req~ring5.portfolio.analysis-recipes~1]
         try:
@@ -3672,10 +3750,10 @@ class Session:
     ) -> AnalysisRecipeRunResult:
         """Execute a recipe in this session and write its configured exports.
 
-        CSV recipes load their source directly. Parser recipes use the normal
-        owned scan/parse job lifecycle before applying dataset-wide and
-        per-plot shapers. Plot mappings are validated before existing session
-        plots are replaced.
+        CSV recipes replay their captured ingestion policy. Parser recipes submit
+        their saved variable and scanner declarations without rescanning, then
+        apply dataset-wide and per-plot shapers. Plot mappings are validated before
+        existing session plots are replaced.
 
         Args:
             recipe: Recipe object or exact locally saved recipe name.
@@ -3691,6 +3769,7 @@ class Session:
             ParseError: Parser-source execution fails.
             PipelineError: A transformation fails.
             DataValidationError: A plot mapping is invalid for transformed data.
+            ColumnNotFoundError: A plot references a column absent from transformed data.
             ExportError: Rendering or writing an export fails.
         """
         # [impl->req~ring5.portfolio.analysis-recipes~1]
@@ -3708,25 +3787,47 @@ class Session:
         )
 
         source = materialized.source
+        source_context: CsvSourceContext | ParserSourceContext
         try:
             if source.kind == "csv":
-                data = self.api.data_services.load_csv_file(source.path)
+                source_context = CsvSourceContext(source.path, source.csv_policy)
+                if isinstance(source.csv_policy, InferredCsvPolicy):
+                    data = self.api.data_services.load_csv_file(
+                        source.path, configuration_columns=source.csv_policy.configuration_columns
+                    )
+                else:
+                    assert isinstance(source.csv_policy, ReviewedCsvPolicy)
+                    preview = self.api.preview_import(source.path, source.csv_policy.options)
+                    data = ImportPreviewService.load(preview)
                 source_path = source.path
             else:
-                parser_variables = [
-                    StatConfigCodec.from_payload(value) for value in source.variables
-                ]
-                parsed = self.parse(
-                    source.path,
-                    cast(list[str | StatConfig], parser_variables),
-                    pattern=source.pattern,
-                    strategy=source.strategy,
+                if source.parser_contract_version != str(PARSER_RESULT_VERSION):
+                    raise ValueError("Recipe parser contract is unsupported by this runtime.")
+                parser_context = SourceContextCodec.parser(
+                    stats_path=source.path,
+                    stats_pattern=source.pattern,
+                    strategy_type=source.strategy,
+                    variables=[StatConfigCodec.from_payload(v) for v in source.variables],
+                    scanned_variables=source.scanned_variables,
+                    simulator=source.simulator,
                     scan_limit=source.scan_limit,
                     strict=source.strict,
+                    parser_contract_version=source.parser_contract_version,
                 )
+                parser = (
+                    SimulatorRegistry.get_parser(source.simulator)
+                    if self._parser_override is None
+                    else self._parser_override
+                )
+                with Session(parser=parser) as child:
+                    job = child._submit_resolved_parse(parser_context)
+                    parsed = job.finalize(strict=source.strict)
+                    data = ParsedOutputIO.to_frame(parsed.output)
+                    child._owned_tmpdirs.remove(job.output_dir)
+                    self._owned_tmpdirs.append(job.output_dir)
                 source_path = parsed.csv_path
-                data = self.api.data_services.load_csv_file(parsed.csv_path)
-        except (OSError, TypeError, UnicodeError, ValueError) as exc:
+                source_context = parser_context
+        except (KeyError, OSError, TypeError, UnicodeError, ValueError) as exc:
             raise RecipeError(f"Could not load recipe source {source.path!r}: {exc}") from exc
 
         transformed = self.shape(Table(data), materialized.transformations)
@@ -3737,16 +3838,43 @@ class Session:
             validate_plot_config(resolved_type, plot_data.frame, dict(plot_spec.config))
             prepared.append((plot_spec, plot_data))
 
+        origin = SourceContextCodec.origin(
+            source_context, [dict(step) for step in materialized.transformations]
+        )
+        parser_drafts = (
+            [StatConfigCodec.to_draft(v) for v in SourceContextCodec.variables(source_context)]
+            if isinstance(source_context, ParserSourceContext)
+            else None
+        )
+        scanner_records = (
+            SourceContextCodec.scanned_payloads(source_context)
+            if isinstance(source_context, ParserSourceContext)
+            else None
+        )
         state = self.api.state_manager
-        for existing in state.get_plots():
-            state.remove_visualization_config(existing.plot_id)
-        state.set_plots([])
-        state.set_plot_counter(0)
-        state.set_current_plot_id(None)
-        state.set_data(transformed.frame, operation=f"Run analysis recipe: {materialized.name}")
-        state.set_processed_data(None)
-        state.set_csv_path(source_path)
-        state.set_use_parser(source.kind == "parser")
+        with state.transaction():
+            for existing in state.get_plots():
+                state.remove_visualization_config(existing.plot_id)
+            state.set_plots([])
+            state.set_plot_counter(0)
+            state.set_current_plot_id(None)
+            state.set_data(
+                transformed.frame,
+                operation=f"Run analysis recipe: {materialized.name}",
+                origin=origin,
+            )
+            state.set_processed_data(None)
+            state.set_csv_path(source_path)
+            state.set_use_parser(source.kind == "parser")
+            if isinstance(source_context, ParserSourceContext):
+                assert parser_drafts is not None and scanner_records is not None
+                assert source_context.simulator is not None
+                state.set_stats_path(source_context.stats_path)
+                state.set_stats_pattern(source_context.stats_pattern)
+                state.set_parser_strategy(source_context.strategy_type)
+                state.set_simulator(source_context.simulator)
+                state.set_parse_variables(parser_drafts)
+                state.set_scanned_variables(scanner_records)
 
         created: dict[str, BasePlot] = {}
         for plot_spec, plot_data in prepared:
@@ -3778,6 +3906,9 @@ class Session:
                     export.path,
                     fmt=export.format,
                     deterministic=export.deterministic,
+                    tex_system=validate_tex_system(
+                        created[export.plot].config.get("tex_system", "xelatex")
+                    ),
                 )
             )
 

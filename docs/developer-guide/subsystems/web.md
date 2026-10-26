@@ -44,6 +44,26 @@ These operations preserve other plots and global preferences within their define
 figure disposal belongs to the render owner. Navigation uses `nav.current_page` through the typed
 navigation accessor; data-manager history requests use `manager.<name>.load_trigger`.
 
+## Native artifact ownership
+
+The controller collects a detached configuration candidate and chooses the engine before checking
+its reuse identity. A cache hit displays the published artifact without preparing, building or
+resolving it again. Manual refresh forces one new build. Successful publication installs effective
+configuration, native figure, real preparation metadata and key together; failures preserve the
+previous generation. Composite artifacts retain the actual preparation of every facet panel.
+
+Chart display and downloads consume that same artifact. Matplotlib figures and specifications are
+not duplicated in session state. Downloads use the artifact's engine and configured export scale.
+Plot configuration reads are defensive snapshots; configuration changes use complete assignment.
+
+Native Matplotlib builds, panel composition, reports and byte exports share one reentrant
+operation lock. It protects temporary global settings, including fonts and the PGF
+compiler, until each operation restores them. Direct connector entry points use the same lock;
+background exports wait for active native work before saving. Byte exports mutate a private
+figure copy, so foreground submission can capture its input and return a job ID immediately.
+Snapshots preserve native subclasses and owned categorical units across shared and inset axes
+without registering pyplot managers.
+
 ## Plot settings
 
 Plot configuration has two entry points: `render_config_ui` selects data mappings, and

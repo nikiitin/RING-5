@@ -241,7 +241,7 @@ class TestDistributionContentSetting:
 
 
 class TestDistributionBalanceContent:
-    """Test balance_content method (padding per bucket)."""
+    """Test logical missing measurements while retaining actual frames."""
 
     def test_balance_empty_buckets_preserves_missingness(self) -> None:
         dist = Distribution(repeat=3, minimum=0, maximum=1)
@@ -250,11 +250,13 @@ class TestDistributionBalanceContent:
         dist.balance_content()
 
         assert dist.is_balanced is True
-        assert all(math.isnan(value) for value in dist.content["underflows"])
-        assert all(math.isnan(value) for value in dist.content["0"])
-        assert all(math.isnan(value) for value in dist.content["overflows"])
+        assert dist.content == {"underflows": [], "0": [], "1": [], "overflows": []}
+        assert dist.padded_count == dist.missing_measurement_count == 12
+        dist.reduce_duplicates()
+        assert set(dist.reduced_content) == {"underflows", "0", "1", "overflows"}
+        assert all(math.isnan(value) for value in dist.reduced_content.values())
 
-    def test_balance_partial_buckets_pads_remainder(self) -> None:
+    def test_balance_partial_buckets_retains_actual_frames(self) -> None:
         dist = Distribution(repeat=4, minimum=0, maximum=1)
         # Supply complete source/dump frames.
         dist.add_observation({"underflows": 1.0, "0": 10.0, "1": 30.0, "overflows": 0.0})
@@ -262,12 +264,13 @@ class TestDistributionBalanceContent:
 
         dist.balance_content()
 
-        assert dist.content["underflows"][:2] == [1, 0]
-        assert all(math.isnan(value) for value in dist.content["underflows"][2:])
-        assert dist.content["0"][:2] == [10, 20]
-        assert all(math.isnan(value) for value in dist.content["0"][2:])
-        assert dist.content["1"][:2] == [30, 0]
-        assert all(math.isnan(value) for value in dist.content["1"][2:])
+        assert dist.content["underflows"] == [1, 0]
+        assert dist.content["0"] == [10, 20]
+        assert dist.content["1"] == [30, 0]
+        assert dist.padded_count == dist.missing_measurement_count == 8
+        dist.reduce_duplicates()
+        assert set(dist.reduced_content) == {"underflows", "0", "1", "overflows"}
+        assert all(math.isnan(value) for value in dist.reduced_content.values())
 
     def test_balance_exact_count_no_change(self) -> None:
         dist = Distribution(repeat=2, minimum=0, maximum=1)

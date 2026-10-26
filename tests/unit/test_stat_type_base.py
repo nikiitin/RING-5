@@ -88,5 +88,5 @@ def test_failed_reduction_keeps_result_unpublished_and_can_retry() -> None:
 def test_str_and_repr_use_declared_statistic_kind() -> None:
     stat = Scalar()
     stat.add_observation(42.5)
-    assert str(stat) == "scalar([42.5])"
+    assert str(stat) == "scalar(repeat=1, balanced=False, reduced=False, padded=0)"
     assert repr(stat) == str(stat)

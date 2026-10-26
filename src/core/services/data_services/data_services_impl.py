@@ -10,6 +10,9 @@ from typing import Any
 
 import pandas as pd
 
+from src.core.models.parsed_output_models import ParsedOutput
+from src.core.models.source_context_models import LoadedDataOrigin
+
 from src.core.models.recipe_models import (
     AnalysisRecipe,
     AnalysisRecipeInfo,
@@ -69,17 +72,27 @@ class DefaultDataServicesAPI:
         """Add a CSV file to the pool. Returns pool path."""
         return CsvPoolService.add_to_pool(file_path)
 
-    def publish_to_csv_pool(self, file_path: str, file_name: str) -> str:
+    def publish_to_csv_pool(self, output: ParsedOutput, file_name: str) -> ParsedOutput:
         """Atomically publish a named background result to the CSV pool."""
-        return CsvPoolService.publish_to_pool(file_path, file_name)
+        return CsvPoolService.publish_to_pool(output, file_name)
 
     def delete_from_csv_pool(self, file_path: str) -> bool:
         """Delete a CSV file from the pool."""
         return CsvPoolService.delete_from_pool(file_path)
 
-    def load_csv_file(self, file_path: str) -> pd.DataFrame:
+    def load_csv_file(
+        self, file_path: str, *, configuration_columns: tuple[str, ...] = ()
+    ) -> pd.DataFrame:
         """Load a CSV file returning a DataFrame."""
-        return CsvPoolService.load_csv_file(file_path)
+        if type(configuration_columns) is not tuple or any(
+            type(column) is not str for column in configuration_columns
+        ):
+            raise TypeError("CSV configuration columns must be an immutable tuple of text names.")
+        result = CsvPoolService.load_csv_file(file_path)
+        for column in configuration_columns:
+            if column in result.columns:
+                result[column] = result[column].astype(str)
+        return result
 
     # -- Configuration Persistence --
 
@@ -209,15 +222,6 @@ class DefaultDataServicesAPI:
         """Filter out internal simulator statistics from entry list."""
         return VariableService.filter_internal_stats(entries, internal_stats)
 
-    def find_variable_by_name(
-        self,
-        variables: list[ParseVariableConfig],
-        name: str,
-        exact: bool = True,
-    ) -> ParseVariableConfig | None:
-        """Find a variable by name (exact or regex match)."""
-        return VariableService.find_variable_by_name(variables, name, exact)
-
     def aggregate_discovered_entries(
         self,
         snapshot: list[ScannedVariableDict],
@@ -243,17 +247,6 @@ class DefaultDataServicesAPI:
         """Format list of entries as comma-separated string."""
         return VariableService.format_entries_as_string(entries)
 
-    def find_entries_for_variable(
-        self,
-        available_variables: list[ScannedVariableDict],
-        var_name: str,
-        internal_stats: frozenset[str],
-    ) -> list[str]:
-        """Find all entries for a variable by searching available/scanned variables."""
-        return VariableService.find_entries_for_variable(
-            available_variables, var_name, internal_stats
-        )
-
     def has_variable_with_name(
         self,
         variables: list[ParseVariableConfig],
@@ -261,13 +254,6 @@ class DefaultDataServicesAPI:
     ) -> bool:
         """Check if a variable with the given name already exists."""
         return VariableService.has_variable_with_name(variables, name)
-
-    def build_statistics_list(
-        self,
-        selected: dict[str, bool],
-    ) -> list[str]:
-        """Build a list of selected statistics from a boolean mapping."""
-        return VariableService.build_statistics_list(selected)
 
     # -- Portfolio Management --
 
@@ -290,6 +276,7 @@ class DefaultDataServicesAPI:
         overwrite: bool = True,
         signing_key: str | bytes | None = None,
         signing_key_id: str = "default",
+        origin: LoadedDataOrigin | None = None,
     ) -> None:
         """Serialize and save the current workspace state."""
         self._portfolio_service.save_portfolio(
@@ -304,6 +291,7 @@ class DefaultDataServicesAPI:
             overwrite,
             signing_key,
             signing_key_id,
+            origin=origin,
         )
 
     def load_portfolio(

@@ -1,41 +1,73 @@
-"""Matplotlib dual-axis parity (M3): the twin axis gets a Y-title + legend."""
+"""Native secondary-axis labels and legends through the public rendering owner."""
 
-import matplotlib
+from typing import cast
 
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
+import pandas as pd
+from matplotlib.patches import Rectangle
+from matplotlib.figure import Figure
 
-from src.core.services.visualization.config_resolver import resolve_config  # noqa: E402
-from src.web.components.common.chart_display import ChartDisplayComponent  # noqa: E402
-from src.web.rendering.config_builder import ConfigSpecBuilder  # noqa: E402
-
-
-def _spec():
-    return resolve_config(ConfigSpecBuilder.from_config({}, "grouped_stacked_bar"))
+import ring5
 
 
-def test_dual_axis_sets_secondary_ylabel_and_legend() -> None:
-    fig, ax = plt.subplots()
-    twin = ax.twinx()
-    twin.plot([0, 1], [1.0, 2.0], label="IPC")
-
-    ChartDisplayComponent._apply_matplotlib_dual_axis(twin, {"ylabel_right": "IPC"}, _spec())
-
+def test_dual_axis_sets_secondary_ylabel_and_legend(plot_session: ring5.Session) -> None:
+    figure = plot_session.plot(
+        "grouped_stacked_bar",
+        data=ring5.Table(
+            pd.DataFrame(
+                {
+                    "x": ["a", "b"],
+                    "cycles": [3.0, 4.0],
+                    "IPC": [1.0, 2.0],
+                    "group": ["case", "case"],
+                }
+            )
+        ),
+        config={
+            "x": "x",
+            "y_columns": ["cycles"],
+            "group": "group",
+            "y_columns_right": ["IPC"],
+            "dual_axis": True,
+            "unified_legend": False,
+            "ylabel_right": "IPC",
+        },
+        engine="matplotlib",
+    )
+    assert isinstance(figure, Figure)
+    twin = figure.axes[1]
     assert twin.get_ylabel() == "IPC"
-    assert twin.get_legend() is not None
-    legend_texts = [t.get_text() for t in twin.get_legend().get_texts()]
-    assert "IPC" in legend_texts
-    plt.close(fig)
+    legend = twin.get_legend()
+    assert legend is not None
+    assert [entry.get_text() for entry in legend.get_texts()] == ["IPC"]
+    assert [cast(Rectangle, patch).get_height() for patch in twin.patches] == [1.0, 2.0]
 
 
-def test_dual_axis_no_ylabel_right_leaves_label_blank() -> None:
-    fig, ax = plt.subplots()
-    twin = ax.twinx()
-    twin.plot([0, 1], [1.0, 2.0], label="IPC")
-
-    ChartDisplayComponent._apply_matplotlib_dual_axis(twin, {}, _spec())
-
+def test_dual_axis_no_ylabel_right_leaves_label_blank(plot_session: ring5.Session) -> None:
+    figure = plot_session.plot(
+        "grouped_stacked_bar",
+        data=ring5.Table(
+            pd.DataFrame(
+                {
+                    "x": ["a", "b"],
+                    "cycles": [3.0, 4.0],
+                    "IPC": [1.0, 2.0],
+                    "group": ["case", "case"],
+                }
+            )
+        ),
+        config={
+            "x": "x",
+            "y_columns": ["cycles"],
+            "group": "group",
+            "y_columns_right": ["IPC"],
+            "dual_axis": True,
+            "unified_legend": False,
+        },
+        engine="matplotlib",
+    )
+    assert isinstance(figure, Figure)
+    twin = figure.axes[1]
     assert twin.get_ylabel() == ""
-    # Right-axis series is still legendable even without a secondary title.
-    assert twin.get_legend() is not None
-    plt.close(fig)
+    legend = twin.get_legend()
+    assert legend is not None
+    assert [entry.get_text() for entry in legend.get_texts()] == ["IPC"]

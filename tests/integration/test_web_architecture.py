@@ -1,8 +1,10 @@
 """Exercise plot controllers, rendering and state through current layer contracts."""
 
+from ring5 import Session
+
 import re
 from pathlib import Path
-from typing import Any, cast
+from typing import cast
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -85,75 +87,55 @@ class TestLayerDependencies:
         assert "from streamlit" not in source
 
 
-# PlotFactory + StyleApplicator Integration
+# Registered strategies and public native rendering
 
 
 class TestFigureEngineIntegration:
-    """PlotFactory + StyleApplicator inline integration tests."""
+    """Registered plots render measured values and common style in one path."""
 
     @pytest.fixture
     def sample_data(self) -> pd.DataFrame:
-        return pd.DataFrame(
-            {
-                "benchmark": ["A", "B", "C"],
-                "ipc": [1.2, 1.5, 0.9],
-            }
+        return pd.DataFrame({"benchmark": ["A", "B", "C"], "ipc": [1.2, 1.5, 0.9]})
+
+    def test_inline_with_real_styler(
+        self, sample_data: pd.DataFrame, plot_session: Session
+    ) -> None:
+        """The public renderer applies dimensions to the registered strategy's values."""
+        import ring5
+
+        fig = plot_session.plot(
+            "bar",
+            data=ring5.Table(sample_data),
+            config={
+                "x": "benchmark",
+                "y": "ipc",
+                "title": "Test Plot",
+                "width": 600,
+                "height": 400,
+            },
         )
-
-    def test_inline_with_real_styler(self, sample_data: pd.DataFrame) -> None:
-        """Inline creator + styler produces a complete figure."""
-        from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
-
-        class SimpleBarCreator:
-            def create_figure(self, data: pd.DataFrame, config: dict[str, Any]) -> go.Figure:
-                fig = go.Figure()
-                fig.add_trace(
-                    go.Bar(
-                        x=list(data["benchmark"]),
-                        y=list(data["ipc"]),
-                        name="IPC",
-                    )
-                )
-                return fig
-
-        creator = SimpleBarCreator()
-        styler = StyleApplicator("bar")
-
-        config: dict[str, Any] = {
-            "title": "Test Plot",
-            "width": 600,
-            "height": 400,
-        }
-
-        fig: go.Figure = creator.create_figure(sample_data, config)
-        fig = styler.apply_styles(fig, config)
-
         assert isinstance(fig, go.Figure)
-        assert len(list(fig.data)) == 1
+        assert len(fig.data) == 1
+        assert list(cast(go.Bar, fig.data[0]).y) == [1.2, 1.5, 0.9]
         assert fig.layout.width == 600
         assert fig.layout.height == 400
 
-    def test_inline_with_legend_labels(self, sample_data: pd.DataFrame) -> None:
-        """Legend labels are applied inline after styling."""
+    def test_inline_with_legend_labels(
+        self, sample_data: pd.DataFrame, plot_session: Session
+    ) -> None:
+        """Configured legend labels reach the actual native trace."""
+        import ring5
 
-        class SimpleBarCreator:
-            def create_figure(self, data: pd.DataFrame, config: dict[str, Any]) -> go.Figure:
-                fig = go.Figure()
-                fig.add_trace(go.Bar(x=["A"], y=[1], name="original"))
-                return fig
-
-        from src.web.pages.ui.plotting.styles.applicator import StyleApplicator
-
-        creator = SimpleBarCreator()
-        styler = StyleApplicator("bar")
-
-        config: dict[str, Any] = {}
-        legend_labels: dict[str, str] = {"original": "Custom Label"}
-
-        fig = creator.create_figure(sample_data, config)
-        fig = styler.apply_styles(fig, config)
-        fig.for_each_trace(lambda t: t.update(name=legend_labels.get(t.name, t.name)))
-
+        fig = plot_session.plot(
+            "bar",
+            data=ring5.Table(sample_data),
+            config={
+                "x": "benchmark",
+                "y": "ipc",
+                "legend_labels": {"ipc": "Custom Label"},
+            },
+        )
+        assert isinstance(fig, go.Figure)
         assert cast(go.Bar, fig.data[0]).name == "Custom Label"
 
 

@@ -2,6 +2,7 @@
 
 from typing import Any, Literal
 
+from src.core.models.visualization.annotation_config import AnnotationConfig
 from src.core.models.visualization.trace_build_result import RuleLine, SeparatorLine, ShadedRegion
 
 
@@ -42,7 +43,7 @@ class GroupedBarUtils:
         stagger_dy: float = 0.0,
         rotation: float = 0.0,
         rotation_overrides: dict[str, float] | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[AnnotationConfig]:
         """
         Build annotations for category labels below the plot.
 
@@ -60,7 +61,7 @@ class GroupedBarUtils:
                 vertical while the rest stay at the base rotation.
 
         Returns:
-            List of Plotly annotation dicts
+            Typed category annotations.
         """
         annotations = []
         overrides = rotation_overrides or {}
@@ -68,17 +69,18 @@ class GroupedBarUtils:
             rot = overrides.get(label, rotation)
             current_y = y_offset - (stagger_dy if i % 2 == 1 else 0.0)
             annotations.append(
-                dict(
+                AnnotationConfig(
+                    annotation_type="group_label",
                     x=center,
                     y=current_y,
-                    xref="x",
                     yref="paper",
                     text=f"<b>{label}</b>",
-                    showarrow=False,
-                    font=dict(size=font_size, color=font_color),
+                    font_size=font_size,
+                    font_color=font_color,
+                    font_bold=True,
                     yanchor="top",
                     xanchor="right" if rot else "center",
-                    textangle=rot,
+                    text_angle=rot,
                 )
             )
         return annotations
@@ -89,7 +91,7 @@ class GroupedBarUtils:
         font_size: int = 12,
         font_color: str = "#000000",
         y_offset: float = -0.28,
-    ) -> list[dict[str, Any]]:
+    ) -> list[AnnotationConfig]:
         """
         Build annotations for category super-group labels, one per
         contiguous run of categories sharing a ``category_groups`` label,
@@ -104,21 +106,21 @@ class GroupedBarUtils:
                 below ``major_label_offset``)
 
         Returns:
-            List of Plotly annotation dicts
+            Typed super-group annotations.
         """
         # [impl->req~ring5.figure.category-groups~1]
         return [
-            dict(
+            AnnotationConfig(
+                annotation_type="group_label",
                 x=center,
                 y=y_offset,
-                xref="x",
                 yref="paper",
                 text=f"<b>{label}</b>",
-                showarrow=False,
-                font=dict(size=font_size, color=font_color),
+                font_size=font_size,
+                font_color=font_color,
+                font_bold=True,
                 yanchor="top",
                 xanchor="center",
-                textangle=0,
             )
             for center, label in group_centers
         ]

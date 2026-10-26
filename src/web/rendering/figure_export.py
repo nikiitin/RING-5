@@ -25,7 +25,6 @@ import io
 import logging
 import os
 import re
-import threading
 from typing import TYPE_CHECKING, Any, Literal, cast
 
 import kaleido
@@ -34,7 +33,10 @@ import plotly.graph_objects as go
 from kaleido.errors import ChromeNotFoundError
 from matplotlib.figure import Figure as MplFigure
 
-from src.core.models.visualization.figure_config import FigureConfig
+from src.core.common.browser_selection import select_browser
+from src.core.models.visualization.export_options import TexSystem, validate_tex_system
+from src.web.rendering._matplotlib_copy import copy_matplotlib_figure
+from src.web.rendering._matplotlib_lock import MATPLOTLIB_LOCK
 from src.web.rendering.latex_security import disabled_figure_usetex, escaped_figure_text
 
 if TYPE_CHECKING:
@@ -90,13 +92,6 @@ DETERMINISTIC_DIV_ID = "ring5-figure"
 
 #: Stable hash salt for deterministic matplotlib SVG ids.
 DETERMINISTIC_SVG_HASHSALT = "ring5"
-
-# Serializes matplotlib exports: savefig is not thread-safe, the rc_context
-# blocks mutate process-global rcParams, and deterministic mode round-trips
-# the process-global SOURCE_DATE_EPOCH env var — all of which race across
-# concurrent exports without this lock.
-_MPL_EXPORT_LOCK = threading.Lock()
-
 
 # Deterministic-output normalizers
 
@@ -214,7 +209,7 @@ def plotly_download_bytes(
         ValueError: If *fmt* is not a supported format.
         kaleido.errors.ChromeNotFoundError: No Chrome-family browser is
             available for raster/vector export (install one with
-            ``kaleido_get_chrome`` or point ``BROWSER_PATH`` at one).
+            ``ring5 install-chrome`` and set ``BROWSER_PATH`` to its printed path).
     """
     if fmt not in _FORMAT_MIME:
         raise ValueError(
@@ -242,9 +237,15 @@ def plotly_download_bytes(
     fig_dict = fig.to_dict()
     opts = {"format": fmt, "width": width, "height": height, "scale": scale}
     kaleido_options: dict[str, Any] = {"timeout": _KALEIDO_ATTEMPT_TIMEOUT_S}
-    configured_browser = os.environ.get("BROWSER_PATH")
-    if configured_browser:
-        kaleido_options["path"] = configured_browser
+    browser = select_browser()
+    if browser.executable_path is None:
+        selected = browser.selected_path
+        detail = f"Selected browser {selected!r} is unavailable. " if selected is not None else ""
+        raise ChromeNotFoundError(
+            detail + "Fix or unset an invalid BROWSER_PATH before discovery. "
+            "Run `ring5 install-chrome` and set BROWSER_PATH to its printed path."
+        )
+    kaleido_options["path"] = browser.executable_path
     last_exc: Exception | None = None
     for attempt in range(1, _KALEIDO_ATTEMPTS + 1):
         try:
@@ -298,11 +299,12 @@ def matplotlib_download_bytes(
     fmt: MatplotlibFormat,
     *,
     dpi: int = 300,
-    spec: FigureConfig | None = None,
+    tex_system: TexSystem = "xelatex",
     deterministic: bool = False,
 ) -> bytes:
     # [impl->req~ring5.export.matplotlib-standard~1]
     # [impl->req~ring5.export.matplotlib-pgf~1]
+    # [impl->req~ring5.figure.matplotlib-tex-system~1]
     # [impl->req~ring5.export.deterministic~1]
     """Export a matplotlib Figure to image bytes via savefig.
 
@@ -310,7 +312,8 @@ def matplotlib_download_bytes(
         fig: The matplotlib Figure to export.
         fmt: One of ``"pdf"``, ``"pgf"``, ``"png"``, ``"svg"``.
         dpi: Resolution for raster formats (PNG). Ignored by vector formats.
-        spec: Optional FigureConfig for PGF preamble extraction.
+        tex_system: PGF compiler: ``xelatex``, ``pdflatex`` or ``lualatex``.
+            Custom preambles are disabled and figure text is escaped.
         deterministic: Make re-exports byte-identical: sets
             ``SOURCE_DATE_EPOCH=0`` around savefig (zeroes the PDF/SVG date
             stamps, which are otherwise timezone-dependent) and a fixed
@@ -327,12 +330,16 @@ def matplotlib_download_bytes(
         raise ValueError(
             f"Unsupported format {fmt!r}. " f"Choose from {list(_MPL_FORMAT_MIME.keys())}."
         )
+    compiler = validate_tex_system(tex_system)
 
     # The lock covers the whole export: savefig is not thread-safe, the
     # rc_context blocks mutate process-global rcParams, and the
     # SOURCE_DATE_EPOCH round-trip below would otherwise race a concurrent
-    # export (losing determinism, or leaking epoch=0 process-wide).
-    with _MPL_EXPORT_LOCK:
+    # export or render (losing settings, determinism, or leaking epoch=0).
+    with MATPLOTLIB_LOCK:
+        # Temporary text/usetex changes belong to this request. Submission can
+        # snapshot caller-owned figures immediately while another export runs.
+        fig = copy_matplotlib_figure(fig)
         saved_epoch: str | None = None
         if deterministic:
             saved_epoch = os.environ.get("SOURCE_DATE_EPOCH")
@@ -351,7 +358,7 @@ def matplotlib_download_bytes(
                     escaped_figure_text(fig),
                     plt.rc_context(
                         {
-                            "pgf.texsystem": "xelatex",
+                            "pgf.texsystem": compiler,
                             "pgf.preamble": "",
                             "pgf.rcfonts": True,
                             **det_rc,

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import copy
-from typing import Any
+from typing import Any, Literal, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,6 +11,11 @@ import pandas as pd
 import plotly.graph_objects as go
 import pytest
 from matplotlib.container import ErrorbarContainer
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure as MplFigure
+from matplotlib.text import Annotation
+from matplotlib.patches import Rectangle
+from src.web.rendering.figure_preparation import PreparedFigure
 
 import ring5
 from src.core.models.visualization.figure_config import FigureConfig
@@ -26,7 +31,11 @@ from src.core.models.visualization.trace_config import (
 from src.web.pages.ui.plotting.types.grouped_bar_plot import GroupedBarPlot
 from src.web.pages.ui.plotting.types.histogram_plot import HistogramPlot
 from src.web.pages.ui.plotting.types.parallel_coordinates_plot import ParallelCoordinatesPlot
-from src.web.rendering._heatmap_utils import compute_nice_range, compute_z_extent, is_dark_cell
+from src.web.rendering._heatmap_utils import (
+    compute_nice_range,
+    compute_z_extent,
+    heatmap_text_colors,
+)
 from src.web.rendering.config_builder import ConfigSpecBuilder
 from src.web.rendering.linked_selection import apply_linked_selection
 from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
@@ -40,6 +49,14 @@ def close_figures() -> Any:
     plt.close("all")
 
 
+def _rectangles(axis: Axes) -> list[Rectangle]:
+    rectangles = []
+    for patch in axis.patches:
+        assert isinstance(patch, Rectangle)
+        rectangles.append(patch)
+    return rectangles
+
+
 def test_sparse_bars_share_categories_and_stack_by_label_and_axis() -> None:
     traces = [
         BarTraceConfig(name="first", x=["a", "b"], y=[1, 2]),
@@ -49,8 +66,8 @@ def test_sparse_bars_share_categories_and_stack_by_label_and_axis() -> None:
     ]
     _, axis = plt.subplots()
     MatplotlibTraceRenderer.render(traces, axis, barmode="stack")
-    assert [patch.get_y() for patch in axis.patches] == [0, 0, 2]
-    assert [patch.get_x() + patch.get_width() / 2 for patch in axis.patches] == [0, 1, 1]
+    assert [patch.get_y() for patch in _rectangles(axis)] == [0, 0, 2]
+    assert [patch.get_x() + patch.get_width() / 2 for patch in _rectangles(axis)] == [0, 1, 1]
     twin = getattr(axis, "_ring5_twin")
     assert [patch.get_y() for patch in twin.patches] == [0, 0, 200]
     assert [patch.get_x() + patch.get_width() / 2 for patch in twin.patches] == [1, 0, 0]
@@ -63,11 +80,15 @@ def test_grouped_numeric_coordinates_are_distinct_and_identical_in_both_engines(
     first, second = result.traces
     assert isinstance(first, BarTraceConfig) and isinstance(second, BarTraceConfig)
     assert second.x_positions[0] > first.x_positions[-1]
-    figure = traces_to_plotly(result)
+    figure = traces_to_plotly(result).figure
     _, axis = plt.subplots()
     MatplotlibTraceRenderer.render(result.traces, axis)
-    assert [patch.get_x() + patch.get_width() / 2 for patch in axis.patches] == pytest.approx(
-        [position for trace in figure.data for position in trace.x]
+    positions: list[float | int | str] = []
+    for trace in figure.data:
+        assert isinstance(trace, go.Bar) and trace.x is not None
+        positions.extend(trace.x)
+    assert [patch.get_x() + patch.get_width() / 2 for patch in _rectangles(axis)] == pytest.approx(
+        positions
     )
 
 
@@ -82,7 +103,7 @@ def test_relative_stacks_keep_negative_and_positive_baselines_separate() -> None
         axis,
         barmode="relative",
     )
-    assert [patch.get_y() for patch in axis.patches] == [0, 0, 0, 0, 5, -4]
+    assert [patch.get_y() for patch in _rectangles(axis)] == [0, 0, 0, 0, 5, -4]
 
 
 @pytest.mark.parametrize("kind", [BarTraceConfig, LineTraceConfig, ScatterTraceConfig])
@@ -96,7 +117,8 @@ def test_error_bars_are_real_uncertainty_artists(kind: Any) -> None:
     assert len(containers) == 1
     segments = containers[0].lines[2][0].get_segments()
     np.testing.assert_allclose(segments, [[[1, 1.5], [1, 2.5]], [[2, 3.5], [2, 6.5]]])
-    plotly_trace = traces_to_plotly(TraceBuildResult(traces=[trace])).data[0]
+    plotly_trace = traces_to_plotly(TraceBuildResult(traces=[trace])).figure.data[0]
+    assert isinstance(plotly_trace, (go.Bar, go.Scatter))
     assert list(plotly_trace.error_y.array) == [0.5, 1.5]
 
 
@@ -148,8 +170,11 @@ def test_histogram_rebinning_keeps_sorted_counts_geometry_and_mass(
     assert trace.bar_width == widths
     _, axis = plt.subplots()
     MatplotlibTraceRenderer.render(result.traces, axis)
-    assert [patch.get_width() for patch in axis.patches] == widths
-    assert list(traces_to_plotly(result).data[0].width) == widths
+    assert [patch.get_width() for patch in _rectangles(axis)] == widths
+    native = traces_to_plotly(result).figure.data[0]
+    assert isinstance(native, go.Bar) and native.width is not None
+    assert isinstance(native.width, (list, tuple, np.ndarray))
+    assert list(native.width) == widths
 
 
 def test_histogram_density_integrates_to_one_and_cumulative_density_ends_at_one() -> None:
@@ -197,7 +222,8 @@ def test_plotly_boxes_use_precomputed_statistics_with_nested_samples(orientation
         orientation=orientation,
         position=2,
     )
-    converted = traces_to_plotly(TraceBuildResult(traces=[trace])).data[0]
+    converted = traces_to_plotly(TraceBuildResult(traces=[trace])).figure.data[0]
+    assert isinstance(converted, go.Box)
     assert list(converted.q1) == [0.75]
     assert list(converted.median) == [1.5]
     assert list(converted.q3) == [14]
@@ -242,11 +268,14 @@ def test_noncartesian_dashboard_panels_render_both_engines(
             panel_captions=["First", "Second"],
         )
         figure = session.render_dashboard(dashboard, engine="plotly")
+        assert isinstance(figure, go.Figure)
         assert len(figure.data) == 2
         assert {"A", "B", "First", "Second"} <= {
             annotation.text for annotation in figure.layout.annotations
         }
-        assert len(session.render_dashboard(dashboard, engine="matplotlib").axes) >= 2
+        matplotlib = session.render_dashboard(dashboard, engine="matplotlib")
+        assert isinstance(matplotlib, MplFigure)
+        assert len(matplotlib.axes) >= 2
 
 
 @pytest.mark.parametrize("plot_type", ["line", "scatter", "radar"])
@@ -257,7 +286,10 @@ def test_value_labels_use_supported_scatter_properties(plot_type: str) -> None:
             data=ring5.Table(pd.DataFrame({"x": ["a", "b", "c"], "y": [1, 2, 3]})),
             config={"x": "x", "y": "y", "show_values": True},
         )
+        assert isinstance(figure, go.Figure)
         trace = figure.data[0]
+        assert isinstance(trace, (go.Scatter, go.Scatterpolar))
+        assert trace.mode is not None
         assert "text" in trace.mode
         assert trace.textposition == "top center"
 
@@ -268,7 +300,9 @@ def test_linked_filters_keep_drilldown_metadata_aligned_for_points_and_cells() -
         go.Scatter(x=["a", "b"], y=[1, 2], meta={"ring5_drilldown": [{"x": "a"}, {"x": "b"}]})
     )
     filtered = apply_linked_selection(point, spec, ["b"])
-    assert filtered.data[0].meta["ring5_drilldown"] == [{"x": "b"}]
+    filtered_trace = filtered.data[0]
+    assert isinstance(filtered_trace, go.Scatter) and isinstance(filtered_trace.meta, dict)
+    assert filtered_trace.meta["ring5_drilldown"] == [{"x": "b"}]
     heatmap = HeatmapTraceConfig(
         col_labels=["a", "b", "Total"],
         row_labels=["m"],
@@ -278,9 +312,11 @@ def test_linked_filters_keep_drilldown_metadata_aligned_for_points_and_cells() -
         totals_count=1,
         custom_data={"drilldown": [[{"x": "a"}, {"x": "b"}, {"x": "Total"}]]},
     )
-    source = traces_to_plotly(TraceBuildResult(traces=[heatmap]))
+    source = traces_to_plotly(TraceBuildResult(traces=[heatmap])).figure
     selected = apply_linked_selection(source, spec, ["b", "Total"])
-    assert selected.data[0].meta["ring5_drilldown"] == [[{"x": "b"}, {"x": "Total"}]]
+    selected_trace = selected.data[0]
+    assert isinstance(selected_trace, go.Heatmap) and isinstance(selected_trace.meta, dict)
+    assert selected_trace.meta["ring5_drilldown"] == [[{"x": "b"}, {"x": "Total"}]]
     assert [annotation.x for annotation in selected.layout.annotations] == ["b", "Total"]
     assert selected.layout.shapes[0].x0 == 0.5
     without_total = apply_linked_selection(source, spec, ["b"])
@@ -290,13 +326,10 @@ def test_linked_filters_keep_drilldown_metadata_aligned_for_points_and_cells() -
 
 def test_palette_luminance_and_reversal_control_heatmap_text() -> None:
     z = [[0.0, 1.0]]
-    assert is_dark_cell(z, 0, 0, "Viridis")
-    assert not is_dark_cell(z, 0, 1, "Viridis")
-    assert not is_dark_cell(z, 0, 0, "Viridis_r")
-    assert is_dark_cell(z, 0, 1, "Viridis_r")
+    assert heatmap_text_colors(z, "Viridis") == [["white", "black"]]
+    assert heatmap_text_colors(z, "Viridis_r") == [["black", "white"]]
     scale = [[0, "black"], [0.5, "white"], [1, "black"]]
-    assert not is_dark_cell([[0, 0.5, 1]], 0, 1, scale)
-    assert is_dark_cell([[0, 0.5, 1]], 0, 2, scale)
+    assert heatmap_text_colors([[0, 0.5, 1]], scale) == [["white", "black", "white"]]
 
 
 def test_nonfinite_heatmap_values_fail_with_a_clear_error() -> None:
@@ -309,7 +342,13 @@ def test_nonfinite_heatmap_values_fail_with_a_clear_error() -> None:
 def test_global_font_and_barmode_survive_configuration_roundtrip() -> None:
     figure = ConfigSpecBuilder.from_config({"font_family": "monospace"})
     assert figure.font_family == "monospace"
-    for mode in ["group", "stack", "relative", "overlay"]:
+    modes: list[Literal["group", "stack", "relative", "overlay"]] = [
+        "group",
+        "stack",
+        "relative",
+        "overlay",
+    ]
+    for mode in modes:
         assert FigureConfig.from_dict(FigureConfig(barmode=mode).to_dict()).barmode == mode
 
 
@@ -328,7 +367,8 @@ def test_parallel_brush_configuration_is_not_mutated() -> None:
 
 
 def test_faceted_heatmaps_keep_category_ticks_and_overall_dimensions() -> None:
-    from src.web.rendering.matplotlib_figure_builder import build_matplotlib_figure_from_traces
+    from src.web.rendering.matplotlib_figure_builder import build_matplotlib_figure_from_prepared
+    from src.web.rendering.figure_preparation import prepare_figure
 
     traces = [
         HeatmapTraceConfig(
@@ -336,12 +376,18 @@ def test_faceted_heatmaps_keep_category_ticks_and_overall_dimensions() -> None:
         )
         for name in ["A", "B"]
     ]
-    figure, _ = build_matplotlib_figure_from_traces(
-        {"width": 800, "height": 600}, "heatmap", TraceBuildResult(traces=traces)
+    prepared = prepare_figure(
+        pd.DataFrame({"m1": [1, 2], "m2": [3, 4]}),
+        {"width": 800, "height": 600},
+        "heatmap",
+        lambda _data, _config: TraceBuildResult(traces=traces),
     )
+    figure = build_matplotlib_figure_from_prepared(prepared).figure
     assert figure.get_size_inches() * figure.dpi == pytest.approx([800, 600])
-    for axis in figure.axes[:2]:
-        assert [tick.get_text() for tick in axis.get_xticklabels()] == ["a", "b"]
+    for index, axis in enumerate(figure.axes[:2]):
+        assert [tick.get_text() for tick in axis.get_xticklabels()] == (
+            [] if index == 0 else ["a", "b"]
+        )
         assert [tick.get_text() for tick in axis.get_yticklabels()] == ["m1", "m2"]
         assert axis.get_xticks().tolist() == [0.5, 1.5]
 
@@ -361,6 +407,7 @@ def test_matplotlib_category_aliases_keep_data_coordinates(plot_type: str) -> No
             },
             engine="matplotlib",
         )
+        assert isinstance(figure, MplFigure)
         axis = figure.axes[0]
         assert [tick.get_text() for tick in axis.get_xticklabels()] == ["Alpha", "Beta"]
         assert axis.title.get_fontfamily() == ["monospace"]
@@ -386,12 +433,13 @@ def test_vertical_horizontal_vertical_line_has_distinct_geometry() -> None:
     _, axis = plt.subplots()
     trace = LineTraceConfig(x=[0, 2], y=[0, 4], line_shape="vhv", show_markers=True)
     MatplotlibTraceRenderer.render([trace], axis)
-    assert axis.lines[0].get_xydata().tolist() == [[0, 0], [0, 2], [2, 2], [2, 4]]
+    assert np.asanyarray(axis.lines[0].get_xydata()).tolist() == [[0, 0], [0, 2], [2, 2], [2, 4]]
     assert axis.lines[0].get_markevery() == [0, 3]
 
 
 def test_secondary_axis_styling_and_unified_legend_follow_configuration() -> None:
-    from src.web.rendering.matplotlib_figure_builder import build_matplotlib_figure_from_traces
+    from src.web.rendering.matplotlib_figure_builder import build_matplotlib_figure_from_prepared
+    from src.web.rendering.figure_preparation import prepare_figure
 
     result = TraceBuildResult(
         traces=[
@@ -400,7 +448,8 @@ def test_secondary_axis_styling_and_unified_legend_follow_configuration() -> Non
         ],
         secondary_y=True,
     )
-    figure, spec = build_matplotlib_figure_from_traces(
+    prepared = prepare_figure(
+        pd.DataFrame({"Left": [1], "Right": [10]}),
         {
             "dual_axis": True,
             "ylabel_right": "Right metric",
@@ -411,12 +460,16 @@ def test_secondary_axis_styling_and_unified_legend_follow_configuration() -> Non
             "unified_legend": True,
         },
         "grouped_stacked_bar",
-        result,
+        lambda _data, _config: result,
     )
+    figure = build_matplotlib_figure_from_prepared(prepared).figure
+    spec = prepared.spec
     primary, twin = figure.axes
     assert twin.get_ylabel() == "Right metric"
     assert twin.get_legend() is None
-    assert {label.get_text() for label in primary.get_legend().get_texts()} == {"Left", "Right"}
+    legend = primary.get_legend()
+    assert legend is not None
+    assert {label.get_text() for label in legend.get_texts()} == {"Left", "Right"}
     assert spec.axes.y2 is not None
     assert not any(label.get_visible() for label in twin.get_yticklabels())
 
@@ -429,6 +482,7 @@ def test_histogram_union_schemas_conserve_only_observed_interval_mass(
     data = pd.DataFrame({"h..0-9": [10, np.nan], "h..0-19": [np.nan, 20]})
     config = {"histogram_variable": "h", "bucket_size": bucket_size}
     trace = HistogramPlot(1, "Histogram").create_traces(data, config).traces[0]
+    assert isinstance(trace, BarTraceConfig)
     assert trace.y == [20, 10]
     assert trace.x_positions == [5, 15]
     assert data.isna().sum().sum() == 2
@@ -443,10 +497,12 @@ def test_linked_selection_preserves_numpy_point_arrays_and_marker_outlines() -> 
         )
     )
     selected = apply_linked_selection(source, LinkedSelectionSpec((1, 2), mode="filter"), [2])
-    assert list(selected.data[0].x) == [2]
-    assert list(selected.data[0].y) == [4]
-    assert list(selected.data[0].marker.line.width) == [2]
-    assert list(source.data[0].x) == [1, 2, 3]
+    selected_trace, original_trace = selected.data[0], source.data[0]
+    assert isinstance(selected_trace, go.Scatter) and isinstance(original_trace, go.Scatter)
+    assert list(selected_trace.x) == [2]
+    assert list(selected_trace.y) == [4]
+    assert list(selected_trace.marker.line.width) == [2]
+    assert list(original_trace.x) == [1, 2, 3]
 
 
 def test_right_axis_configuration_does_not_relabel_other_dashboard_panels() -> None:
@@ -454,10 +510,10 @@ def test_right_axis_configuration_does_not_relabel_other_dashboard_panels() -> N
     from src.core.services.visualization.config_resolver import resolve_config
 
     figure, (left, other) = plt.subplots(1, 2)
-    MatplotlibTraceRenderer.render([LineTraceConfig(yaxis="y2", x=[1], y=[2])], left)
+    rendered = MatplotlibTraceRenderer.render([LineTraceConfig(yaxis="y2", x=[1], y=[2])], left)
     other.set_ylabel("Other panel")
     spec = resolve_config(FigureConfig(axes=AxesConfig(y2=AxisConfig(label="Secondary"))))
-    FigureSpecToMatplotlib._apply_axis_labels(spec, left)
+    FigureSpecToMatplotlib._apply_axis_labels(spec, rendered)
     assert other.get_ylabel() == "Other panel"
     assert getattr(left, "_ring5_twin").get_ylabel() == "Secondary"
 
@@ -465,7 +521,8 @@ def test_right_axis_configuration_does_not_relabel_other_dashboard_panels() -> N
 @pytest.mark.parametrize("shared", [True, False])
 def test_heatmap_contrast_uses_resolved_manual_bounds_in_both_engines(shared: bool) -> None:
     from src.core.services.visualization.config_resolver import resolve_config
-    from src.web.rendering.matplotlib_figure_builder import build_matplotlib_figure_from_traces
+    from src.web.rendering.matplotlib_figure_builder import build_matplotlib_figure_from_prepared
+    from src.web.rendering.figure_preparation import prepare_figure
     from src.web.rendering.plotly_connector import FigureSpecToPlotly
 
     result = TraceBuildResult(
@@ -482,7 +539,7 @@ def test_heatmap_contrast_uses_resolved_manual_bounds_in_both_engines(shared: bo
         "legend_colorbar_zmax": 100,
         "legend_colorbar_shared": shared,
     }
-    plotly = traces_to_plotly(result)
+    plotly = traces_to_plotly(result).figure
     FigureSpecToPlotly._apply_heatmap_colorbars(
         resolve_config(ConfigSpecBuilder.from_config(config)), plotly
     )
@@ -491,8 +548,13 @@ def test_heatmap_contrast_uses_resolved_manual_bounds_in_both_engines(shared: bo
         for annotation in plotly.layout.annotations
         if annotation.name == "ring5-heatmap-auto"
     )
-    assert all(trace.zmax == 100 for trace in plotly.data)
-    matplotlib, _ = build_matplotlib_figure_from_traces(config, "heatmap", result)
+    for native in plotly.data:
+        assert isinstance(native, go.Heatmap)
+        assert native.zmax == 100
+    prepared = prepare_figure(
+        pd.DataFrame({"a": [0], "b": [5]}), config, "heatmap", lambda _data, _config: result
+    )
+    matplotlib = build_matplotlib_figure_from_prepared(prepared).figure
     for axis in matplotlib.axes[:2]:
         assert [text.get_color() for text in axis.texts] == ["white", "white"]
         assert axis.collections[0].get_clim() == (0, 100)
@@ -513,6 +575,7 @@ def test_histogram_geometry_uses_only_each_rows_observed_buckets(
 ) -> None:
     data = pd.DataFrame({f"h..{columns[0]}": [1, np.nan], f"h..{columns[1]}": [np.nan, 2]})
     trace = HistogramPlot(1, "Histogram").create_traces(data, {"histogram_variable": "h"}).traces[0]
+    assert isinstance(trace, BarTraceConfig)
     assert trace.x_positions == centers
     assert trace.y == pytest.approx(counts)
     assert trace.bar_width == widths
@@ -529,6 +592,7 @@ def test_histogram_csv_can_mix_explicit_continuous_and_inclusive_observation_geo
         }
     )
     trace = HistogramPlot(1, "Histogram").create_traces(data, {"histogram_variable": "h"}).traces[0]
+    assert isinstance(trace, BarTraceConfig)
     assert trace.x_positions == [5, 15]
     assert trace.y == [40, 60]
     assert trace.bar_width == [10, 10]
@@ -561,10 +625,12 @@ def test_grouped_right_lines_keep_aliased_categories_with_a_partial_preferred_or
         },
     )
     line = next(trace for trace in result.traces if isinstance(trace, LineTraceConfig))
-    np.testing.assert_allclose(line.x, [0, 1, np.nan, 2, 3], equal_nan=True)
-    np.testing.assert_allclose(line.y, [30, 40, np.nan, 10, 20], equal_nan=True)
-    figure = traces_to_plotly(result)
-    np.testing.assert_allclose(figure.data[-1].y, line.y, equal_nan=True)
+    np.testing.assert_allclose(np.asarray(line.x), [0, 1, np.nan, 2, 3], equal_nan=True)
+    np.testing.assert_allclose(np.asarray(line.y), [30, 40, np.nan, 10, 20], equal_nan=True)
+    figure = traces_to_plotly(result).figure
+    native = figure.data[-1]
+    assert isinstance(native, go.Scatter)
+    np.testing.assert_allclose(np.asarray(native.y), np.asarray(line.y), equal_nan=True)
     _, axis = plt.subplots()
     MatplotlibTraceRenderer.render(result.traces, axis)
     drawn = getattr(axis, "_ring5_twin").lines[0]
@@ -598,8 +664,10 @@ def test_bar_aligned_dual_axis_keeps_categories_omitted_from_preferred_order() -
     assert [trace.y for trace in lines] == [[30, 10], [40, 20]]
     assert [trace.x for trace in lines] == [trace.x_positions for trace in bars]
     assert [trace.x for trace in bars] == [["b", "a"], ["b", "a"]]
-    figure = traces_to_plotly(result)
-    np.testing.assert_allclose(figure.data[1].x, bars[0].x_positions)
+    figure = traces_to_plotly(result).figure
+    native = figure.data[1]
+    assert isinstance(native, go.Scatter)
+    np.testing.assert_allclose(np.asarray(native.x), np.asarray(bars[0].x_positions))
     _, axis = plt.subplots()
     MatplotlibTraceRenderer.render(result.traces, axis)
     drawn = getattr(axis, "_ring5_twin").lines
@@ -608,16 +676,100 @@ def test_bar_aligned_dual_axis_keeps_categories_omitted_from_preferred_order() -
 
 def test_default_neutral_data_annotations_render_with_valid_engine_coordinates() -> None:
     from src.core.models.visualization.annotation_config import AnnotationConfig
-    from src.web.rendering.matplotlib_figure_builder import build_matplotlib_figure_from_traces
+    from src.web.rendering.matplotlib_figure_builder import build_matplotlib_figure_from_prepared
+    from src.web.rendering.figure_preparation import prepare_figure
 
     result = TraceBuildResult(
         traces=[LineTraceConfig(x=[1, 2], y=[2, 3])],
         annotations=[AnnotationConfig(text="Measured", x=1, y=2)],
     )
-    interactive = traces_to_plotly(result)
+    interactive = traces_to_plotly(result).figure
     assert interactive.layout.annotations[0].xref == "x"
     assert interactive.layout.annotations[0].yref == "y"
-    static, _ = build_matplotlib_figure_from_traces({}, "line", result)
+    prepared = prepare_figure(
+        pd.DataFrame({"x": [1, 2], "y": [2, 3]}), {}, "line", lambda _data, _config: result
+    )
+    static = build_matplotlib_figure_from_prepared(prepared).figure
     annotation = next(text for text in static.axes[0].texts if text.get_text() == "Measured")
+    assert isinstance(annotation, Annotation)
     assert annotation.xy == (1, 2)
     assert annotation.xycoords is static.axes[0].transData
+
+
+@pytest.mark.parametrize("engine", ["plotly", "matplotlib"])
+def test_computed_group_ticks_keep_minor_renames_when_major_aliases_are_configured(
+    engine: Any,
+) -> None:
+    # [test->req~ring5.figure.ordering-renaming~2]
+    data = ring5.Table(
+        pd.DataFrame(
+            {
+                "x": ["A", "A", "B", "B"],
+                "g": ["one", "two", "one", "two"],
+                "y": [3.0, 5.0, 7.0, 11.0],
+            }
+        )
+    )
+    with ring5.Session() as session:
+        figure = session.plot(
+            "grouped_stacked_bar",
+            data=data,
+            config={
+                "x": "x",
+                "group": "g",
+                "y_columns": ["y"],
+                "xaxis_labels": {"A": "Alpha"},
+                "group_renames": {"one": "First"},
+            },
+            engine=engine,
+        )
+        if engine == "plotly":
+            assert isinstance(figure, go.Figure)
+            assert list(figure.layout.xaxis.ticktext) == ["First", "two", "First", "two"]
+            assert isinstance(figure.data[0], go.Bar)
+            assert list(figure.data[0].y) == [3.0, 5.0, 7.0, 11.0]
+            assert "<b>Alpha</b>" in [entry.text for entry in figure.layout.annotations]
+        else:
+            from matplotlib.figure import Figure
+
+            assert isinstance(figure, Figure)
+            assert [tick.get_text() for tick in figure.axes[0].get_xticklabels()] == [
+                "First",
+                "two",
+                "First",
+                "two",
+            ]
+            assert [cast(Rectangle, patch).get_height() for patch in figure.axes[0].patches] == [
+                3.0,
+                5.0,
+                7.0,
+                11.0,
+            ]
+            assert "<b>Alpha</b>" not in [entry.get_text() for entry in figure.axes[0].texts]
+            assert "Alpha" in [entry.get_text() for entry in figure.axes[0].texts]
+
+
+@pytest.mark.parametrize("engine", ["plotly", "matplotlib"])
+def test_number_legend_hides_tick_marks_in_the_common_resolved_axis(engine: Any) -> None:
+    with ring5.Session() as session:
+        plot = session.create_plot(
+            "grouped_stacked_bar",
+            data=ring5.Table(pd.DataFrame({"x": ["A", "B"], "y": [3.0, 5.0]})),
+            config={"x": "x", "y_columns": ["y"], "numbered_xaxis_modes": ["Number legend"]},
+        )
+        figure = session.render(plot, engine=engine)
+        prepared = plot.render_artifact.preparation
+        assert isinstance(prepared, PreparedFigure)
+        assert not prepared.spec.axes.x.show_ticks
+        assert not prepared.spec.axes.x.show_tick_labels
+        if engine == "plotly":
+            assert isinstance(figure, go.Figure)
+            assert figure.layout.xaxis.ticks == ""
+            assert figure.layout.xaxis.showticklabels is False
+        else:
+            from matplotlib.figure import Figure
+
+            assert isinstance(figure, Figure)
+            assert all(
+                not tick.tick1line.get_visible() for tick in figure.axes[0].xaxis.get_major_ticks()
+            )

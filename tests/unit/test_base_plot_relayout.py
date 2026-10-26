@@ -1,6 +1,6 @@
 """Tests for relayout updates, figure generation, and plot serialization."""
 
-from typing import Any, cast
+from typing import Any, Literal, cast
 from unittest.mock import patch
 
 import pandas as pd
@@ -78,7 +78,7 @@ class TestUpdateFromRelayoutRanges:
 
     def test_close_float_equality(self, plot: ConcretePlot) -> None:
         """Values that are very close (within rel_tol) should not trigger change."""
-        plot.config["range_x"] = [1.0, 5.0]
+        plot.config = {**plot.config, "range_x": [1.0, 5.0]}
         # Values that differ by less than rel_tol=1e-9
         result = plot.update_from_relayout(
             {
@@ -90,7 +90,7 @@ class TestUpdateFromRelayoutRanges:
 
     def test_single_value_close_float_equality(self, plot: ConcretePlot) -> None:
         """A single config value that's close should not trigger change."""
-        plot.config["legend_x"] = 0.5
+        plot.config = {**plot.config, "legend_x": 0.5}
         result = plot.update_from_relayout({"legend.x": 0.5 + 1e-12})
         assert result is False
 
@@ -99,13 +99,13 @@ class TestUpdateFromRelayoutAutorange:
     """Tests for autorange handling."""
 
     def test_xaxis_autorange_clears_range(self, plot: ConcretePlot) -> None:
-        plot.config["range_x"] = [1.0, 5.0]
+        plot.config = {**plot.config, "range_x": [1.0, 5.0]}
         result = plot.update_from_relayout({"xaxis.autorange": True})
         assert result is True
         assert plot.config["range_x"] is None
 
     def test_yaxis_autorange_clears_range(self, plot: ConcretePlot) -> None:
-        plot.config["range_y"] = [0, 100]
+        plot.config = {**plot.config, "range_y": [0, 100]}
         result = plot.update_from_relayout({"yaxis.autorange": True})
         assert result is True
         assert plot.config["range_y"] is None
@@ -117,7 +117,7 @@ class TestUpdateFromRelayoutAutorange:
 
     def test_autorange_false_no_change(self, plot: ConcretePlot) -> None:
         """Autorange=False should not clear range."""
-        plot.config["range_x"] = [1.0, 5.0]
+        plot.config = {**plot.config, "range_x": [1.0, 5.0]}
         result = plot.update_from_relayout({"xaxis.autorange": False})
         assert result is False
         assert plot.config["range_x"] == [1.0, 5.0]
@@ -132,8 +132,8 @@ class TestUpdateFromRelayoutLegend:
         assert plot.config["legend_x"] == 0.8
         assert plot.config["legend_y"] == 0.95
         # Anchors should be set
-        assert plot.config["legend_xanchor"] == "left"
-        assert plot.config["legend_yanchor"] == "top"
+        assert plot.config["legend_anchor_x"] == "left"
+        assert plot.config["legend_anchor_y"] == "top"
 
     def test_legend2_position_drag(self, plot: ConcretePlot) -> None:
         """Multi-column legends may have legend2, legend3, etc."""
@@ -144,7 +144,7 @@ class TestUpdateFromRelayoutLegend:
     def test_legend_anchor_change(self, plot: ConcretePlot) -> None:
         result = plot.update_from_relayout({"legend.xanchor": "right"})
         assert result is True
-        assert plot.config["legend_xanchor"] == "right"
+        assert plot.config["legend_anchor_x"] == "right"
 
     def test_legend_title_update(self, plot: ConcretePlot) -> None:
         result = plot.update_from_relayout({"legend.title.text": "My Legend"})
@@ -158,29 +158,29 @@ class TestUpdateFromRelayoutLegend:
         # May or may not change based on the handler for "legend.title.text"
         assert isinstance(result, bool)
 
-    def test_change_invalidates_cache(self, plot: ConcretePlot) -> None:
+    def test_change_invalidates_cache(self, plot: ConcretePlot, plot_session: Session) -> None:
         """Config changes discard every derived render artifact."""
-        plot.last_generated_fig = go.Figure()
-        plot.last_traces = TraceBuildResult()
-        plot.last_figure_cache_key = "old"
+        plot.processed_data = pd.DataFrame({"x": [1, 2], "y": [3, 4]})
+        plot_session.render(plot)
         plot.update_from_relayout({"legend.x": 0.5})
-        assert plot.last_generated_fig is None
-        assert plot.last_traces is None
-        assert plot.last_figure_cache_key is None
+        assert plot.render_artifact.figure is None
+        assert plot.render_artifact.trace_result is None
+        assert plot.render_artifact.cache_key is None
 
-    def test_replacing_processed_data_invalidates_render_state(self, plot: ConcretePlot) -> None:
+    def test_replacing_processed_data_invalidates_render_state(
+        self, plot: ConcretePlot, plot_session: Session
+    ) -> None:
         """New pipeline output cannot retain a figure built from old data."""
         replacement = pd.DataFrame({"x": [7], "y": [8]})
-        plot.last_generated_fig = go.Figure()
-        plot.last_traces = TraceBuildResult()
-        plot.last_figure_cache_key = "old"
+        plot.processed_data = pd.DataFrame({"x": [1, 2], "y": [3, 4]})
+        plot_session.render(plot)
 
         plot.replace_processed_data(replacement)
 
         assert plot.processed_data is replacement
-        assert plot.last_generated_fig is None
-        assert plot.last_traces is None
-        assert plot.last_figure_cache_key is None
+        assert plot.render_artifact.figure is None
+        assert plot.render_artifact.trace_result is None
+        assert plot.render_artifact.cache_key is None
 
 
 class TestSessionRender:
@@ -188,17 +188,16 @@ class TestSessionRender:
 
     def test_render_caches_plotly_figure(self, plot: ConcretePlot) -> None:
         plot.processed_data = pd.DataFrame({"x": [1, 2], "y": [3, 4]})
-        plot.last_figure_cache_key = "old"
         with Session() as session:
             fig = session.render(plot)
         assert isinstance(fig, go.Figure)
-        assert plot.last_generated_fig is fig
-        assert plot.last_figure_cache_key is None
+        assert plot.render_artifact.figure is fig
+        assert plot.render_artifact.cache_key is None
 
     def test_render_with_legend_labels(self, plot: ConcretePlot) -> None:
         """When legend_labels in config, the trace legend names are relabeled."""
         plot.processed_data = pd.DataFrame({"x": [1], "y": [2]})
-        plot.config["legend_labels"] = {"trace1": "Renamed"}
+        plot.config = {**plot.config, "legend_labels": {"trace1": "Renamed"}}
         with Session() as session:
             fig = session.render(plot)
         assert isinstance(fig, go.Figure)
@@ -219,7 +218,9 @@ class TestToDictFromDict:
         assert data["processed_data"] is not None
         from src.core.common.typed_table_codec import TypedTableCodec
 
-        assert TypedTableCodec.decode(data["processed_data"])["a"].tolist() == [1, 2]
+        decoded = TypedTableCodec.decode(data["processed_data"])
+        assert decoded is not None
+        assert decoded["a"].tolist() == [1, 2]
 
     def test_from_dict_without_processed_data(self, plot: ConcretePlot) -> None:
         data = {
@@ -254,30 +255,68 @@ class TestToDictFromDict:
             assert loaded.pipeline_counter == 5
 
 
-class TestRelabelTraces:
-    """Tests for engine-agnostic legend relabeling (_relabel_traces)."""
+class TestLegendLabelProjection:
+    """Native labels project after preparation without changing source names."""
 
     @staticmethod
-    def _result(*names: str) -> Any:
-        from src.core.models.visualization.trace_build_result import TraceBuildResult
-        from src.core.models.visualization.trace_config import TraceConfig
+    def _render(
+        names: tuple[str, ...], config: dict[str, Any], engine: Literal["plotly", "matplotlib"]
+    ) -> tuple[list[str], list[str]]:
+        from src.core.models.visualization.trace_config import BarTraceConfig
+        from src.web.rendering.figure_preparation import prepare_figure
+        from src.web.rendering.matplotlib_figure_builder import (
+            build_matplotlib_figure_from_prepared,
+        )
+        from src.web.rendering.plotly_figure_builder import build_plotly_figure
 
-        return TraceBuildResult(traces=[TraceConfig(name=n) for n in names])
+        result = TraceBuildResult(
+            traces=[BarTraceConfig(name=name, x=["a", "b"], y=[3.0, 5.0]) for name in names]
+        )
+        prepared = prepare_figure(
+            pd.DataFrame({"x": ["a", "b"], "value": [3.0, 5.0]}), config, "bar", lambda *_: result
+        )
+        raw_names = [trace.name for trace in prepared.trace_result.traces]
+        assert [trace.name for trace in result.traces] == list(names)
+        if engine == "plotly":
+            native = build_plotly_figure(prepared)
+            display = []
+            for trace in native.figure.data:
+                assert isinstance(trace, go.Bar)
+                assert trace.y is not None and list(trace.y) == [3.0, 5.0]
+                assert isinstance(trace.name, str)
+                display.append(trace.name)
+        else:
+            import matplotlib.pyplot as plt
 
-    def test_none_labels_no_change(self) -> None:
-        from src.web.pages.ui.plotting.base_plot import _relabel_traces
+            native_mpl = build_matplotlib_figure_from_prepared(prepared)
+            try:
+                legend = native_mpl.figure.axes[0].get_legend()
+                assert legend is not None
+                display = [text.get_text() for text in legend.texts]
+                from matplotlib.patches import Rectangle
 
-        result = _relabel_traces(self._result("original"), None)
-        assert [t.name for t in result.traces] == ["original"]
+                for rectangle in native_mpl.figure.axes[0].patches:
+                    assert isinstance(rectangle, Rectangle)
+                    assert rectangle.get_height() in (3.0, 5.0)
+                assert len(native_mpl.figure.axes[0].patches) == 2 * len(names)
+            finally:
+                plt.close(native_mpl.figure)
+        return raw_names, display
 
-    def test_empty_labels_no_change(self) -> None:
-        from src.web.pages.ui.plotting.base_plot import _relabel_traces
+    @pytest.mark.parametrize("engine", ["plotly", "matplotlib"])
+    def test_absent_labels_no_change(self, engine: Literal["plotly", "matplotlib"]) -> None:
+        raw, display = self._render(("original",), {}, engine)
+        assert raw == ["original"]
+        assert display == ["original"]
 
-        result = _relabel_traces(self._result("original"), {})
-        assert [t.name for t in result.traces] == ["original"]
+    @pytest.mark.parametrize("engine", ["plotly", "matplotlib"])
+    def test_empty_labels_no_change(self, engine: Literal["plotly", "matplotlib"]) -> None:
+        raw, display = self._render(("original",), {"legend_labels": {}}, engine)
+        assert raw == ["original"]
+        assert display == ["original"]
 
-    def test_partial_labels(self) -> None:
-        from src.web.pages.ui.plotting.base_plot import _relabel_traces
-
-        result = _relabel_traces(self._result("a", "b"), {"a": "Alpha"})
-        assert [t.name for t in result.traces] == ["Alpha", "b"]
+    @pytest.mark.parametrize("engine", ["plotly", "matplotlib"])
+    def test_partial_labels(self, engine: Literal["plotly", "matplotlib"]) -> None:
+        raw, display = self._render(("a", "b"), {"legend_labels": {"a": "Alpha"}}, engine)
+        assert raw == ["a", "b"]
+        assert display == ["Alpha", "b"]

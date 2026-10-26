@@ -1,12 +1,17 @@
 from collections.abc import Generator
+from concurrent.futures import Future
+from pathlib import Path
 from typing import Any
 from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 
-from src.core.models.parsing_models import ParserPlaygroundBatchResult, ScanResult
+from src.core.application_api import ApplicationAPI
+from src.core.models.parsing_models import ParserPlaygroundBatchResult, ScanFileResult, ScanResult
+from src.core.services.data_services.data_services_api import DataServicesAPI
 from src.web.components.data_source.data_source_components import DataSourceComponents
 from tests.conftest import columns_side_effect
+from tests.helpers.parsed_values import completed_future, numeric_file
 
 
 @pytest.fixture
@@ -25,8 +30,10 @@ def mock_streamlit() -> Generator[Any, None, None]:
 
 @pytest.fixture
 def mock_api() -> Any:
-    api = MagicMock()
+    api = MagicMock(spec=ApplicationAPI)
     api.state_manager = MagicMock()
+    api.data_services = MagicMock(spec=DataServicesAPI)
+    api.get_simulator_info.side_effect = ApplicationAPI.get_simulator_info
 
     import tempfile
 
@@ -54,6 +61,7 @@ def test_render_csv_pool_empty(mock_streamlit: Any, mock_api: Any) -> None:
     DataSourceComponents.render_csv_pool(mock_api)
 
     mock_streamlit.warning.assert_called_with(ANY)
+    mock_api.data_services.load_csv_pool.assert_called_once_with()
     mock_api.state_manager.set_csv_pool.assert_called_with([])
 
 
@@ -105,19 +113,25 @@ def test_render_parser_config(mock_streamlit: Any, mock_api: Any) -> None:
     mock_api.state_manager.get_parser_strategy.return_value = "simple"
     mock_api.state_manager.get_scanned_variables.return_value = []
 
-    mock_future = MagicMock()
-    mock_future.result.return_value = {}
+    mock_future: Future[ScanFileResult] = Future()
+    mock_future.set_result(ScanFileResult("/stats/run/stats.txt"))
     mock_api.submit_scan_async.return_value = [mock_future]
     mock_api.finalize_scan.return_value = ScanResult(variables=[])
 
-    # Yield the mock futures immediately.
+    mock_streamlit.pills.return_value = "gem5"
+    mock_streamlit.segmented_control.return_value = "simple"
+    mock_streamlit.checkbox.return_value = False
+    mock_streamlit.text_input.side_effect = lambda _label, **kwargs: kwargs["value"]
     with patch(
-        "src.web.components.data_source.data_source_components.as_completed",
-        side_effect=lambda fs: fs,
+        "src.web.components.data_source.data_source_components.validate_web_stats_path",
+        return_value=Path("/stats"),
     ):
         DataSourceComponents.render_parser_config(mock_api)
 
-    mock_api.submit_scan_async.assert_called()
+    mock_api.submit_scan_async.assert_called_once_with("/stats", "stats.txt", limit=10)
+    mock_api.finalize_scan.assert_called_once_with([mock_future.result()])
+    mock_api.release_settled_scans.assert_called_once_with()
+    mock_streamlit.exception.assert_not_called()
     mock_streamlit.rerun.assert_called()
 
 
@@ -141,8 +155,10 @@ def test_render_parser_config_submits_the_bounded_playground(
     variables = [{"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}]
     mock_api.state_manager.get_parse_variables.return_value = variables
     batch = ParserPlaygroundBatchResult(
-        futures=[],
-        var_names=["simTicks"],
+        futures=(
+            completed_future(numeric_file("/allowed/stats/run/stats.txt", {"simTicks": 100.0})),
+        ),
+        var_names=("simTicks",),
         output_dir=str(tmp_path / "parser_playground"),
         strategy_type="simple",
         matched_file_count=1,

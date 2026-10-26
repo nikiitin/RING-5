@@ -1,6 +1,6 @@
 from collections.abc import Generator
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -48,34 +48,3 @@ def test_render_csv_pool_load(
 
     render_preview.assert_called_once_with(mock_api, "/path/test.csv")
     mock_api.data_services.load_csv_file.assert_not_called()
-
-
-def test_execute_parser(mock_streamlit: Any, mock_api: Any) -> None:
-    """Test the async parsing workflow."""
-
-    # Mock the async workflow
-    mock_future = MagicMock()
-    mock_future.result.return_value = {"data": "test"}
-
-    from src.core.models.parsing_models import ParseBatchResult
-
-    mock_api.submit_parse_async.return_value = ParseBatchResult(
-        futures=[mock_future], var_names=["test_var"]
-    )
-
-    csv_path = "/tmp/out.csv"
-    mock_api.finalize_parsing.return_value = csv_path
-    mock_api.data_services.load_csv_file.return_value = MagicMock()
-    mock_api.data_services.add_to_csv_pool.return_value = csv_path
-
-    with (
-        patch("pathlib.Path.exists", return_value=True),
-        patch("pathlib.Path.is_file", return_value=True),
-    ):
-        # Test async submission
-        batch = mock_api.submit_parse_async("/stats", "*.txt", [], "/tmp")
-        results = [f.result() for f in batch.futures]
-        final_csv = mock_api.finalize_parsing("/tmp", results, var_names=batch.var_names)
-
-        assert final_csv == csv_path
-        mock_api.submit_parse_async.assert_called()

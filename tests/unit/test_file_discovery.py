@@ -78,7 +78,6 @@ def test_invalid_pattern_cannot_select_the_default_file(tmp_path: Path, pattern:
 
 def test_request_fingerprint_and_discovery_use_the_exact_validated_pattern(tmp_path: Path) -> None:
     """The durable request identifies the same explicitly selected input files."""
-    from src.core.common.stat_config_codec import StatConfigCodec
     from src.core.models.parsing_models import StatConfig
     from src.core.services.parse_job_service import build_parse_job_request
 
@@ -88,24 +87,16 @@ def test_request_fingerprint_and_discovery_use_the_exact_validated_pattern(tmp_p
     request = build_parse_job_request(
         stats_path=str(tmp_path),
         stats_pattern="stats-*.txt",
-        variables=[
-            StatConfigCodec.to_payload(
-                StatConfig("cycles", "scalar", params={"source_type": "scalar"})
-            )
-        ],
+        variables=[StatConfig("cycles", "scalar", params={"source_type": "scalar"})],
         strategy_type="simple",
     )
-    assert request.stats_pattern == "stats-*.txt"
+    assert request.source_context.stats_pattern == "stats-*.txt"
     assert [record.path for record in request.file_signatures] == [str(selected)]
-    assert find_stats_files(str(tmp_path), request.stats_pattern) == [str(selected)]
+    assert find_stats_files(str(tmp_path), request.source_context.stats_pattern) == [str(selected)]
     with pytest.raises(ValueError, match="Stats pattern"):
         build_parse_job_request(
             stats_path=str(tmp_path),
             stats_pattern="path/stats.txt",
-            variables=[
-                StatConfigCodec.to_payload(
-                    StatConfig("cycles", "scalar", params={"source_type": "scalar"})
-                )
-            ],
+            variables=[StatConfig("cycles", "scalar", params={"source_type": "scalar"})],
             strategy_type="simple",
         )

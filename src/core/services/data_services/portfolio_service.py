@@ -8,7 +8,11 @@ from typing import Any, cast
 
 import pandas as pd
 
+from src.core.models.source_context_models import LoadedDataOrigin
+from src.core.common.source_context_codec import SourceContextCodec
+
 from src.core.common.utils import sanitize_filename, validate_path_within
+from src.core.common.plot_payload import validate_plot_fields
 from src.core.common.stat_config_codec import StatConfigCodec
 from src.core.models.data_models import ParseVariableConfig
 from src.core.models.plot_protocol import PlotProtocol
@@ -91,6 +95,7 @@ class PortfolioService:
         overwrite: bool = True,
         signing_key: str | bytes | None = None,
         signing_key_id: str = "default",
+        origin: LoadedDataOrigin | None = None,
     ) -> None:
         # [impl->req~ring5.portfolio.save~1]
         # [impl->req~ring5.data.semantic-units~1]
@@ -116,6 +121,7 @@ class PortfolioService:
                 by name alone — the default silently overwrites).
             signing_key: Optional shared secret for an HMAC-SHA-256 signature.
             signing_key_id: Non-secret label stored with a signature.
+            origin: Replay facts captured atomically with data, or None for arbitrary frames.
         """
         save_path = self._portfolio_path(name)
         payload = self.serialize_workspace(
@@ -128,6 +134,7 @@ class PortfolioService:
             figure_spec_enricher=figure_spec_enricher,
             signing_key=signing_key,
             signing_key_id=signing_key_id,
+            origin=origin,
         )
 
         try:
@@ -155,14 +162,18 @@ class PortfolioService:
         ) = None,
         signing_key: str | bytes | None = None,
         signing_key_id: str = "default",
+        origin: LoadedDataOrigin | None = None,
     ) -> bytes:
         """Serialize current state into the integrity-checked portfolio format."""
         # [impl->req~ring5.portfolio.environment-metadata~1]
         # [impl->req~ring5.workspace.autosave-recovery~1]
+        if origin is not None:
+            SourceContextCodec.encode(origin.source)
         logger = logging.getLogger(__name__)
         serialized_plots: list[dict[str, Any]] = []
         for plot in plots:
             plot_dict: dict[str, Any] = plot.to_dict()
+            validate_plot_fields(plot_dict)
             plot_config: dict[str, Any] = plot_dict.get("config", {})
             if figure_spec_enricher is not None:
                 try:
@@ -185,6 +196,7 @@ class PortfolioService:
             "timestamp": pd.Timestamp.now().isoformat(),
             "environment_metadata": EnvironmentMetadataService.capture().to_dict(),
             "data": TypedTableCodec.encode(data),
+            "loaded_origin": SourceContextCodec.origin_payload(origin),
             "csv_path": str(csv_path) if csv_path else None,
             "plots": serialized_plots,
             "plot_counter": plot_counter,

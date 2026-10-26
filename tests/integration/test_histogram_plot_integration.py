@@ -1,6 +1,10 @@
 """Integration test for histogram plot with real gem5 data."""
 
+from ring5 import Session
+import plotly.graph_objects as go
+
 import tempfile
+from collections.abc import Generator
 from pathlib import Path
 from typing import cast
 
@@ -11,7 +15,9 @@ import matplotlib.pyplot as plt
 import ring5
 
 from src.core.application_api import ApplicationAPI
+from src.core.common.parsed_output import ParsedOutputIO
 from src.core.models.data_models import ParseVariableConfig
+from src.core.models.visualization.trace_config import BarTraceConfig
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
 
@@ -32,9 +38,13 @@ class TestHistogramPlotIntegration:
         return path
 
     @pytest.fixture
-    def facade(self) -> ApplicationAPI:
+    def facade(self) -> Generator[ApplicationAPI, None, None]:
         """Create facade instance."""
-        return ApplicationAPI()
+        api = ApplicationAPI()
+        try:
+            yield api
+        finally:
+            api.close(wait=True)
 
     def test_histogram_plot_creation_from_factory(self) -> None:
         """Test creating histogram plot from factory."""
@@ -44,7 +54,9 @@ class TestHistogramPlotIntegration:
         assert plot.plot_type == "histogram"
         assert plot.name == "Test Histogram"
 
-    def test_histogram_with_parsed_gem5_data(self, facade: ApplicationAPI, stats_dir: Path) -> None:
+    def test_histogram_with_parsed_gem5_data(
+        self, facade: ApplicationAPI, stats_dir: Path, plot_session: Session
+    ) -> None:
         """Test histogram plot with parsed gem5 histogram data."""
         # Scan for histogram variables
         scan_futures = facade.submit_scan_async(str(stats_dir), "stats.txt", limit=-1)
@@ -88,14 +100,13 @@ class TestHistogramPlotIntegration:
             )
 
             parse_results = [f.result() for f in parse_batch.futures]
-            csv_path = facade.finalize_parsing(
-                tmpdir, parse_results, var_names=parse_batch.var_names
-            )
+            parsed_output = facade.finalize_parsing(parse_batch, parse_results)
+            csv_path = parsed_output.csv_path
 
             assert csv_path is not None
 
             # Load data
-            data = pd.read_csv(csv_path)
+            data = ParsedOutputIO.to_frame(parsed_output)
 
             # Create histogram plot
             plot = PlotFactory.create_plot("histogram", plot_id=1, name="Transaction Cycles")
@@ -115,14 +126,16 @@ class TestHistogramPlotIntegration:
             }
 
             # Generate figure
-            fig = plot.create_figure(data, config)
+            plot.processed_data = data
+            plot.config = config
+            fig = cast(go.Figure, plot_session.render(plot))
 
             assert fig is not None
             assert len(list(fig.data)) > 0
             # Title is applied by the style chain, not create_figure()
 
     def test_histogram_with_grouping(
-        self, facade: ApplicationAPI, stats_dir: Path, tmp_path: Path
+        self, facade: ApplicationAPI, stats_dir: Path, tmp_path: Path, plot_session: Session
     ) -> None:
         """Test histogram plot with categorical grouping."""
         # Parse with configuration variable for grouping
@@ -176,13 +189,12 @@ class TestHistogramPlotIntegration:
         )
 
         parse_results = [f.result() for f in parse_batch.futures]
-        csv_path = facade.finalize_parsing(
-            str(output_dir), parse_results, var_names=parse_batch.var_names
-        )
+        parsed_output = facade.finalize_parsing(parse_batch, parse_results)
+        csv_path = parsed_output.csv_path
 
         assert csv_path is not None
 
-        data = pd.read_csv(csv_path)
+        data = ParsedOutputIO.to_frame(parsed_output)
 
         # Create histogram with grouping
         plot = PlotFactory.create_plot("histogram", plot_id=1, name="Grouped Histogram")
@@ -198,13 +210,15 @@ class TestHistogramPlotIntegration:
             "cumulative": False,
         }
 
-        fig = plot.create_figure(data, config)
+        plot.processed_data = data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         assert fig is not None
         # Should have at least one trace
         assert len(list(fig.data)) >= 1
 
-    def test_histogram_normalization_modes(self) -> None:
+    def test_histogram_normalization_modes(self, plot_session: Session) -> None:
         """Test different normalization modes."""
         # Create synthetic histogram data
         data = pd.DataFrame(
@@ -230,7 +244,9 @@ class TestHistogramPlotIntegration:
             "cumulative": False,
         }
 
-        fig_count = plot.create_figure(data, config_count)
+        plot.processed_data = data
+        plot.config = config_count
+        fig_count = cast(go.Figure, plot_session.render(plot))
         assert fig_count is not None
 
         # Test probability normalization
@@ -240,7 +256,9 @@ class TestHistogramPlotIntegration:
             "ylabel": "Probability",
         }
 
-        fig_prob = plot.create_figure(data, config_prob)
+        plot.processed_data = data
+        plot.config = config_prob
+        fig_prob = cast(go.Figure, plot_session.render(plot))
         assert fig_prob is not None
 
         # Test percent normalization
@@ -250,10 +268,12 @@ class TestHistogramPlotIntegration:
             "ylabel": "Percent",
         }
 
-        fig_pct = plot.create_figure(data, config_pct)
+        plot.processed_data = data
+        plot.config = config_pct
+        fig_pct = cast(go.Figure, plot_session.render(plot))
         assert fig_pct is not None
 
-    def test_histogram_cumulative_distribution(self) -> None:
+    def test_histogram_cumulative_distribution(self, plot_session: Session) -> None:
         """Test cumulative histogram."""
         # [test->req~ring5.figure.histogram-cumulative~1]
         data = pd.DataFrame(
@@ -277,7 +297,9 @@ class TestHistogramPlotIntegration:
             "cumulative": True,
         }
 
-        fig = plot.create_figure(data, config)
+        plot.processed_data = data
+        plot.config = config
+        fig = cast(go.Figure, plot_session.render(plot))
 
         assert fig is not None
         assert len(list(fig.data)) > 0
@@ -306,9 +328,10 @@ def test_parser_histogram_union_geometry_renders_observed_mass(
         str(output),
     )
     results = [future.result() for future in batch.futures]
-    csv_path = Gem5Parser.finalize_parsing(str(output), results, var_names=batch.var_names)
+    parsed_output = Gem5Parser.finalize_parsing(batch, results)
+    csv_path = parsed_output.csv_path
     assert csv_path is not None
-    data = pd.read_csv(csv_path)
+    data = ParsedOutputIO.to_frame(parsed_output)
     assert data[["h..0-0", "h..0-9"]].notna().sum().tolist() == [1, 1]
     trace = (
         HistogramPlot(1, "Observed histogram")
@@ -318,6 +341,8 @@ def test_parser_histogram_union_geometry_renders_observed_mass(
         )
         .traces[0]
     )
+    assert isinstance(trace, BarTraceConfig)
+    assert isinstance(trace.bar_width, list)
     assert sum(trace.y) == pytest.approx(3)
     assert len(trace.x_positions) == len(trace.y) == len(trace.bar_width)
 

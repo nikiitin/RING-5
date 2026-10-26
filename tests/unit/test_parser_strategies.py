@@ -5,7 +5,7 @@ import pytest
 
 from src.core.models.parsing_models import StatConfig
 from src.parsing.gem5.impl.source_bindings import resolve_sources
-from src.parsing.gem5.impl.strategies.config_aware import ConfigAwareStrategy
+from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 from src.parsing.gem5.impl.strategies.simple import SimpleStatsStrategy
 
 
@@ -113,7 +113,9 @@ class TestSimpleStatsStrategy:
                 ),
             )
 
-    def test_source_binding_limit_rejects_before_strategy_allocation(self, monkeypatch):
+    def test_source_binding_limit_rejects_before_strategy_allocation(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.setattr("src.parsing.gem5.impl.source_bindings.MAX_PARSE_VARIABLES", 1)
         with pytest.raises(RuntimeError, match="2 source bindings"):
             resolve_sources(
@@ -129,19 +131,22 @@ class TestConfigAwareStrategy:
 
     # [test->req~ring5.ingestion.config-aware-strategy~1]
     def test_augment_results(self, tmp_path: Path) -> None:
-        from src.parsing.gem5.impl.strategies.file_parser_strategy import (
-            INTERNAL_SIM_PATH_KEY,
-        )
-
         stats_path = tmp_path / "stats.txt"
-        stats_path.write_text("dummy")
-        (tmp_path / "config.ini").write_text("[system]\ncores = 4\n")
-        raw_results = [{INTERNAL_SIM_PATH_KEY: str(stats_path), "ipc": 1.5}]
-
-        strategy = ConfigAwareStrategy()
-        results = strategy.post_process(raw_results)
+        stats_path.write_text("ipc 1.5\n", encoding="utf-8")
+        (tmp_path / "config.ini").write_text("[system]\ncores = 4\n", encoding="utf-8")
+        batch = Gem5Parser.submit_parse_async(
+            str(tmp_path),
+            "stats.txt",
+            [StatConfig("ipc", "scalar", params={"source_type": "scalar"})],
+            str(tmp_path / "output"),
+            strategy_type="config_aware",
+        )
+        results = [future.result(timeout=10) for future in batch.futures]
 
         assert len(results) == 1
-        assert results[0]["ipc"] == 1.5
-        assert results[0]["sim_path"] == str(stats_path)
-        assert results[0]["config_json"] == '{"system":{"cores":"4"}}'
+        assert results[0].variables[0].cells[0].value == 1.5
+        assert results[0].source_path == str(stats_path)
+        assert results[0].metadata[0].column == "sim_path"
+        assert results[0].metadata[0].value == str(stats_path)
+        assert results[0].metadata[1].column == "config_json"
+        assert results[0].metadata[1].value == '{"system":{"cores":"4"}}'

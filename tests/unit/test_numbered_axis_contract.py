@@ -99,7 +99,7 @@ def test_public_spec_uses_current_modes_and_routes_number_legend_to_free_tier() 
         ),
     )
     config = spec.to_config()
-    assert config["dual_legend_font_size"] == 11
+    assert config["legend2_font_size"] == 11
     assert config["legend3_font_size"] == 19
     assert ring5.FigureSpec(numbered_xaxis_modes=["Labels"]).numbered_xaxis_modes == ("Labels",)
 
@@ -174,8 +174,11 @@ def test_every_mode_subset_keeps_measurements_and_numbering_consistent(
             },
         )
         session.render(plot, engine=engine)
-    assert plot.last_traces is not None
-    assert [trace.y for trace in plot.last_traces.traces] == [[1.0, 2.0], [3.0, 4.0]]
+    assert plot.render_artifact.trace_result is not None
+    assert [trace.y for trace in plot.render_artifact.trace_result.traces] == [
+        [1.0, 2.0],
+        [3.0, 4.0],
+    ]
     if "Numbers" in modes and "Labels" in modes:
         expected = ["1. base", "2. tuned"]
     elif "Numbers" in modes:
@@ -184,10 +187,10 @@ def test_every_mode_subset_keeps_measurements_and_numbering_consistent(
         expected = ["base", "tuned"]
     else:
         expected = ["", ""]
-    assert plot.last_traces.custom_x_ticks is not None
-    assert plot.last_traces.custom_x_ticks["text"] == expected
+    assert plot.render_artifact.trace_result.custom_x_ticks is not None
+    assert plot.render_artifact.trace_result.custom_x_ticks["text"] == expected
     legends = [
-        a for a in plot.last_traces.layout_annotations if str(a.get("text", "")).startswith("1.")
+        a for a in plot.render_artifact.trace_result.annotations if str(a.text).startswith("1.")
     ]
     assert bool(legends) == ("Number legend" in modes)
     pd.testing.assert_frame_equal(data, original)

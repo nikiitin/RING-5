@@ -14,8 +14,8 @@ A plot type is correct only if it is **engine-agnostic** and fully wired. To *bu
 1. **BasePlot contract** — the class subclasses `BasePlot` and implements the plot hooks:
    - `create_traces(self, data, config) -> TraceBuildResult`
    - `render_config_ui(self, data, saved_config) -> PlotConfig`
-   `create_figure()` and `apply_common_layout()` are inherited. (`GroupedStackedBarPlot`
-   extends `StackedBarPlot`, not `BasePlot` directly — that's allowed.)
+   The rendering layer prepares and builds the chosen native engine. Plot subclasses may
+   inherit trace construction from another registered family.
 2. **Engine-agnostic** — the plot builds `TraceConfig`/`TraceBuildResult` only. **No `go.*` and no
    `plt.*` inside the plot class.** Styling is not the plot's job (it lives in `FigureConfig` + the
    connectors — see `rendering-figureconfig`).
@@ -34,7 +34,7 @@ A plot type is correct only if it is **engine-agnostic** and fully wired. To *bu
    Plot tables use the shared typed table codec; persistent fields are admitted by
    `src/core/common/plot_payload.py` and explicitly restored.
 9. **Conventions** — default palette `wong`; error-bar column is `{y}.sd`.
-10. **Coverage** — there is a unit test exercising `create_traces`/`create_figure` with `sample_data`.
+10. **Coverage** — there is a unit test asserting scientific `create_traces` output with `sample_data`.
     Every registered built-in, including `dual_axis_bar_dot`, participates in dual-engine catalog
     and restored-portfolio rendering tests.
 

@@ -68,7 +68,9 @@ def test_architecture_gate_resolves_relative_and_from_imports(
 
 
 @pytest.mark.parametrize("failure", [None, "checksum", "download"])
-def test_oft_download_publishes_only_verified_content(tmp_path: Path, failure: str | None) -> None:
+def test_oft_download_publishes_only_verified_content(
+    tmp_path: Path, failure: str | None, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Failed downloads and hashes cannot become trusted cached executables."""
     for command in ("make", "java", "curl", "sha256sum"):
         if shutil.which(command) is None:
@@ -79,6 +81,9 @@ def test_oft_download_publishes_only_verified_content(tmp_path: Path, failure: s
         source.write_bytes(payload)
     digest = "0" * 64 if failure == "checksum" else hashlib.sha256(payload).hexdigest()
     cache = tmp_path / "cache"
+    foreign = tmp_path / "unrelated.jar"
+    foreign.write_bytes(b"unrelated cached tool")
+    monkeypatch.setenv("MAKEFLAGS", f"-- OFT_JAR={foreign}")
     result = subprocess.run(
         [
             "make",
@@ -86,12 +91,14 @@ def test_oft_download_publishes_only_verified_content(tmp_path: Path, failure: s
             f"OFT_URL={source.as_uri()}",
             f"OFT_SHA256={digest}",
             f"OFT_CACHE_DIR={cache}",
+            f"OFT_JAR={cache / 'verified.jar'}",
         ],
         cwd=ROOT,
         capture_output=True,
         text=True,
         timeout=30,
     )
+    assert foreign.read_bytes() == b"unrelated cached tool"
     artifacts = list(cache.iterdir())
     if failure is None:
         assert result.returncode == 0, result.stdout + result.stderr

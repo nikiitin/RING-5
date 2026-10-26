@@ -27,8 +27,9 @@ or other shared resource, use the existing serial marker or xdist group rather t
 
 ## Kaleido or PGF export fails
 
-Use `make test-export` for serial Kaleido tests. Install Chromium with `make playwright-install` or
-the environment-specific Kaleido command. For PGF, run `make check-latex` before `make test-latex`.
+Use `make test-export` for serial Kaleido tests. Run `ring5 install-chrome` and set `BROWSER_PATH`
+to its printed path before starting those tests. `make playwright-install` owns the separate
+application-test browser. For PGF, run `make check-latex` before `make test-latex`.
 
 ## The architecture check rejects an import
 

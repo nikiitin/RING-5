@@ -7,7 +7,7 @@ import logging
 import os
 import time
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from src.parsing.gem5.types.base import StatContent, StatResult, StatType
@@ -22,7 +22,7 @@ from src.core.common.security_limits import (
 from src.core.common.utils import sanitize_log_value
 from src.parsing.framework.file_discovery import find_stats_files
 from src.parsing.gem5.impl.strategies.gem5_parse_work import Gem5ParseWork
-from src.parsing.gem5.impl.strategies.file_parser_strategy import INTERNAL_SIM_PATH_KEY
+from src.parsing.parser_protocol import ParseWorkItem
 from src.parsing.gem5.types.type_mapper import TypeMapper
 from src.parsing.gem5.impl.source_bindings import AccumulatorSpec, SourcePlan
 
@@ -46,7 +46,7 @@ class SimpleStatsStrategy:
         plan: SourcePlan,
         *,
         file_paths: list[str] | None = None,
-    ) -> Sequence[Gem5ParseWork]:
+    ) -> Sequence[ParseWorkItem]:
         """Return a list of work items for parallel execution.
 
         Each work item receives its own independent copy of the variable
@@ -92,15 +92,6 @@ class SimpleStatsStrategy:
         )
 
         return works
-
-    def post_process(self, results: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """Remove worker-only provenance before writing the public CSV."""
-        processed: list[dict[str, Any]] = []
-        for result in results:
-            public_result = dict(result)
-            public_result.pop(INTERNAL_SIM_PATH_KEY, None)
-            processed.append(public_result)
-        return processed
 
     def _get_files(self, stats_path: str, stats_pattern: str) -> list[str]:
         """Find all stats files matching the pattern in the target path.
@@ -151,7 +142,5 @@ class SimpleStatsStrategy:
         for spec in specifications:
             if spec.output_name in var_map:
                 raise ValueError(f"Duplicate parser output name: {spec.output_name!r}.")
-            if spec.output_name == INTERNAL_SIM_PATH_KEY:
-                raise ValueError("The parser output name is reserved for provenance.")
             var_map[spec.output_name] = TypeMapper.create_stat(spec)
         return var_map

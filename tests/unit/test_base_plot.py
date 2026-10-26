@@ -1,5 +1,5 @@
 from collections.abc import Generator
-from typing import Any
+from typing import Any, Literal
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -31,7 +31,7 @@ def concrete_plot() -> ConcretePlot:
 
 
 @pytest.fixture
-def mock_streamlit() -> Generator[None, None, None]:
+def mock_streamlit() -> Generator[MagicMock, None, None]:
     with (
         patch("src.web.pages.ui.plotting.plot_config_ui.st") as mock_st,
         patch("src.web.components.plotting.settings.advanced_settings.st", mock_st),
@@ -48,9 +48,7 @@ def mock_streamlit() -> Generator[None, None, None]:
         mock_st.slider.return_value = 0
 
         # Mock selectbox to return first option or specific logic
-        def selectbox_side_effect(
-            label: Any, options: Any, index: Any = 0, **kwargs: Any
-        ) -> MagicMock:
+        def selectbox_side_effect(label: Any, options: Any, index: Any = 0, **kwargs: Any) -> Any:
 
             if isinstance(options, list) and len(options) > index:
                 return options[index]
@@ -97,9 +95,9 @@ def test_source_snapshot_is_defensive_and_serialized(concrete_plot: Any) -> None
     assert concrete_plot.source_data["seed"].tolist() == [0, 1]
     from src.core.common.typed_table_codec import TypedTableCodec
 
-    pd.testing.assert_frame_equal(
-        TypedTableCodec.decode(concrete_plot.to_dict()["source_data"]), concrete_plot.source_data
-    )
+    decoded = TypedTableCodec.decode(concrete_plot.to_dict()["source_data"])
+    assert decoded is not None
+    pd.testing.assert_frame_equal(decoded, concrete_plot.source_data)
 
 
 @patch("src.web.components.plotting.config.base_plot_config.st")
@@ -165,19 +163,61 @@ def test_auto_labels_follow_axis_changes_without_overwriting_custom_text(mock_st
     }
 
 
-def test_relabel_traces_renames_engine_agnostic_names() -> None:
-    """Legend relabeling renames the engine-agnostic TraceConfig.name once
-    (single source of truth) so both Plotly and Matplotlib honor it."""
+@pytest.mark.parametrize("engine", ["plotly", "matplotlib"])
+def test_native_label_projection_preserves_engine_agnostic_names(
+    engine: Literal["plotly", "matplotlib"],
+) -> None:
+    """Native display changes leave the caller's measured neutral input untouched."""
+    import plotly.graph_objects as go
     from src.core.models.visualization.trace_build_result import TraceBuildResult
-    from src.core.models.visualization.trace_config import TraceConfig
-    from src.web.pages.ui.plotting.base_plot import _relabel_traces
+    from src.core.models.visualization.trace_config import BarTraceConfig
+    from src.web.rendering.figure_preparation import prepare_figure
+    from src.web.rendering.matplotlib_figure_builder import build_matplotlib_figure_from_prepared
+    from src.web.rendering.plotly_figure_builder import build_plotly_figure
 
-    result = TraceBuildResult(traces=[TraceConfig(name="trace1"), TraceConfig(name="trace2")])
-    relabeled = _relabel_traces(result, {"trace1": "Renamed 1"})
+    result = TraceBuildResult(
+        traces=[
+            BarTraceConfig(name="trace1", x=["a", "b"], y=[3.0, 5.0]),
+            BarTraceConfig(name="trace2", x=["a", "b"], y=[7.0, 9.0]),
+        ]
+    )
+    prepared = prepare_figure(
+        pd.DataFrame({"x": ["a", "b"], "value": [3.0, 5.0]}),
+        {"legend_labels": {"trace1": "Renamed 1"}},
+        "bar",
+        lambda *_: result,
+    )
+    assert [trace.name for trace in prepared.trace_result.traces] == ["trace1", "trace2"]
+    assert [trace.name for trace in result.traces] == ["trace1", "trace2"]
+    if engine == "plotly":
+        native = build_plotly_figure(prepared)
+        names = []
+        values = []
+        for trace in native.figure.data:
+            assert isinstance(trace, go.Bar)
+            names.append(trace.name)
+            assert trace.y is not None
+            values.append(list(trace.y))
+        assert names == ["Renamed 1", "trace2"]
+        assert values == [[3.0, 5.0], [7.0, 9.0]]
+    else:
+        import matplotlib.pyplot as plt
 
-    assert [t.name for t in relabeled.traces] == ["Renamed 1", "trace2"]
-    # Input is not mutated (relabel returns new objects).
-    assert [t.name for t in result.traces] == ["trace1", "trace2"]
+        native_mpl = build_matplotlib_figure_from_prepared(prepared)
+        try:
+            legend = native_mpl.figure.axes[0].get_legend()
+            assert legend is not None
+            assert [text.get_text() for text in legend.texts] == ["Renamed 1", "trace2"]
+            from matplotlib.patches import Rectangle
+
+            heights = []
+            for rectangle in native_mpl.figure.axes[0].patches:
+                assert isinstance(rectangle, Rectangle)
+                heights.append(rectangle.get_height())
+            assert heights == [3.0, 5.0, 7.0, 9.0]
+
+        finally:
+            plt.close(native_mpl.figure)
 
 
 def test_render_reorderable_list(concrete_plot: Any, mock_streamlit: Any) -> None:
@@ -234,7 +274,7 @@ def test_rename_widget_keys_are_collision_resistant(
 
 def test_advanced_section_shapes(concrete_plot: Any, mock_streamlit: Any) -> None:
     """Test advanced options with shape management."""
-    config = {"shapes": []}
+    config: dict[str, Any] = {"shapes": []}
 
     # Mock adding a shape
     # Button "Add Shape" returns True
@@ -257,14 +297,11 @@ def test_advanced_section_shapes(concrete_plot: Any, mock_streamlit: Any) -> Non
 
 def test_advanced_section_display(concrete_plot: Any, mock_streamlit: Any) -> None:
     """Test advanced options output dict."""
-    config = {"download_format": "png"}
+    config = {"export_scale": 3}
 
     res = concrete_plot.render_settings_section("advanced", config)
 
-    assert res["download_format"] == "png"  # Mock selectbox passes through or default
-    # If mock selectbox returns MagicMock, this fails.
-    # mock_streamlit fixture returns MagicMock for everything by default.
-    # We should update side_effect strictly or use loose assertions.
+    assert res["export_scale"] == 3
 
     # Validate existence of expected configuration keys.
     assert "show_error_bars" in res

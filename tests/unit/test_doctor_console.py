@@ -5,6 +5,7 @@ from __future__ import annotations
 import io
 from contextlib import redirect_stderr, redirect_stdout
 from typing import cast
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -56,7 +57,7 @@ def test_public_report_prints_found_missing_and_hint_lines(
     assert text.count("[OK]") == sum(found)
     assert text.count("[MISSING]") == len(found) - sum(found)
     assert text.count("hint:") == len(found) - sum(found)
-    for status in (report.perl, report.chrome, report.xelatex):
+    for status in (report.perl, report.chrome, report.tex_compiler):
         assert status.name in text
         assert (status.path or "not found") in text
         assert status.needed_for in text
@@ -74,7 +75,7 @@ def test_public_doctor_cli_preserves_required_dependency_exit_status(
     from ring5 import _doctor
 
     report = _report((perl_found, False, False))
-    monkeypatch.setattr(_doctor, "doctor", lambda: report)
+    monkeypatch.setattr(_doctor, "doctor", lambda **_kwargs: report)
     output = _stream(encoding)
     with redirect_stdout(output):
         result = cli.main(["doctor"])
@@ -83,6 +84,19 @@ def test_public_doctor_cli_preserves_required_dependency_exit_status(
     assert "Install chrome." in text
     assert "Install xelatex." in text
     assert ("Install perl." in text) is (not perl_found)
+
+
+@pytest.mark.parametrize("compiler", ["xelatex", "pdflatex", "lualatex"])
+def test_public_doctor_cli_forwards_selected_compiler(
+    compiler: str, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from ring5 import _doctor
+
+    check = MagicMock(return_value=_report((True, False, False)))
+    monkeypatch.setattr(_doctor, "doctor", check)
+    assert cli.main(["doctor", "--tex-system", compiler]) == 0
+    check.assert_called_once_with(tex_system=compiler)
+    assert "[MISSING]" in capsys.readouterr().out
 
 
 @pytest.mark.parametrize("encoding", ["ascii", "cp1252"])

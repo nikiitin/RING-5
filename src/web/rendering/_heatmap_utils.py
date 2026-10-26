@@ -70,18 +70,6 @@ def heatmap_text_colors(
     ]
 
 
-def is_dark_cell(
-    z: Sequence[Sequence[float | None]],
-    row: int,
-    col: int,
-    colorscale: Any = "Viridis",
-    vmin: float | None = None,
-    vmax: float | None = None,
-) -> bool:
-    """Return whether the mapped cell color needs white annotation text."""
-    return heatmap_text_colors(z, colorscale, vmin, vmax)[row][col] == "white"
-
-
 def compute_z_extent(
     traces: Sequence[Any],
 ) -> tuple[float, float]:

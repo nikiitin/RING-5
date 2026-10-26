@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import shutil
 import os
 import sqlite3
 import threading
 import time
-from collections.abc import Callable, Generator, Sequence
+from collections.abc import Generator, Sequence
 from concurrent.futures import Future, ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
@@ -16,7 +15,16 @@ from unittest.mock import MagicMock
 import pytest
 
 from src.core.common.stat_config_codec import StatConfigCodec
-from src.core.models.parsing_models import StatConfig
+from src.core.models.parsing_models import StatConfig, ScannedVariable, SourceInstance
+from src.core.models.source_context_models import ParserSourceContext
+from src.core.models.parsed_output_models import (
+    ParsedCell,
+    ParsedVariableResult,
+    ParsedFileResult,
+    ParsedOutput,
+)
+from src.core.common.source_context_codec import SourceContextCodec
+from src.core.common.parsed_output import ParsedOutputIO
 from src.core.application_api import ApplicationAPI
 from src.core.models.parse_job_models import (
     InvalidParseJobTransition,
@@ -26,11 +34,13 @@ from src.core.models.parse_job_models import (
     ParseJobNotFoundError,
     ParseJobStatus,
 )
-from src.core.models.parsing_models import ParseBatchResult
-from src.core.models.parse_job_models import JsonValue
+from src.core.models.parsing_models import IncrementalParseBatchResult, ParseBatchResult
 from src.core.services.parse_job_service import (
     ParseJobService,
     build_parse_job_request,
+    SubmitParse,
+    FinalizeParse,
+    PublishCsv,
 )
 from src.core.services.parse_job_store import (
     MAX_ERROR_LENGTH,
@@ -48,16 +58,60 @@ def _stats_tree(root: Path, contents: Sequence[str] = ("simTicks 1\n",)) -> None
         stats.write_text(content)
 
 
+def _file_result(
+    root: Path, value: float = 1.0, *, index: int = 0, name: str = "simTicks"
+) -> ParsedFileResult:
+    """Declare an actual typed lifecycle fixture value and its source identity."""
+    return ParsedFileResult(
+        str((root / f"run-{index}" / "stats.txt").resolve()),
+        (
+            ParsedVariableResult(
+                name, "number", "scalar", (ParsedCell(name, "number", float(value)),)
+            ),
+        ),
+    )
+
+
+def _batch(
+    source: ParserSourceContext,
+    output_dir: str,
+    futures: Sequence[Future[ParsedFileResult]],
+    names: Sequence[str] = ("simTicks",),
+) -> ParseBatchResult:
+    paths = tuple(
+        str(path.resolve()) for path in sorted(Path(source.stats_path).rglob("stats.txt"))
+    )
+    return ParseBatchResult(tuple(futures), tuple(names), paths, output_dir, source.strategy_type)
+
+
 def _completed_future(
-    result: dict[str, Any] | None = None,
-    error: BaseException | None = None,
-) -> Future[dict[str, Any]]:
-    future: Future[dict[str, Any]] = Future()
+    result: ParsedFileResult | None = None, error: BaseException | None = None
+) -> Future[ParsedFileResult]:
+    future: Future[ParsedFileResult] = Future()
     if error is not None:
         future.set_exception(error)
     else:
-        future.set_result(result or {})
+        assert result is not None
+        future.set_result(result)
     return future
+
+
+def _unreachable_submit(
+    _source: ParserSourceContext, _output: str, _incremental: bool
+) -> ParseBatchResult:
+    raise AssertionError("No parser submission is expected")
+
+
+def _unreachable_finalize(
+    _batch: ParseBatchResult | IncrementalParseBatchResult,
+    _results: list[ParsedFileResult],
+    _complete: bool,
+) -> ParsedOutput:
+    raise AssertionError("No finalization is expected")
+
+
+def _unreachable_publish(_source: ParsedOutput, _name: str) -> ParsedOutput:
+    raise AssertionError("No publication is expected")
 
 
 def _wait_for_status(
@@ -83,38 +137,29 @@ class _ServiceFactory:
 
     def create(
         self,
-        submit: Callable[
-            [str, str, Sequence[JsonValue], str, str, list[JsonValue] | None, bool],
-            ParseBatchResult,
-        ],
+        submit: SubmitParse,
         *,
-        finalize: (
-            Callable[
-                [str, ParseBatchResult, list[dict[str, Any]], bool, str],
-                str | None,
-            ]
-            | None
-        ) = None,
-        publish: Callable[[str, str], str] | None = None,
+        finalize: FinalizeParse | None = None,
+        publish: PublishCsv | None = None,
     ) -> ParseJobService:
         pool = self.runtime.jobs_root.parent / "recent"
         pool.mkdir(exist_ok=True)
 
         def default_finalize(
-            output_dir: str,
-            _batch: ParseBatchResult,
-            _results: list[dict[str, Any]],
-            _complete: bool,
-            _strategy: str,
-        ) -> str:
-            output = Path(output_dir) / "final.csv"
-            output.write_text("simTicks\n1\n")
-            return str(output)
+            batch: ParseBatchResult | IncrementalParseBatchResult,
+            results: list[ParsedFileResult],
+            complete: bool,
+        ) -> ParsedOutput:
+            if isinstance(batch, IncrementalParseBatchResult):
+                values = [*batch.cached_results, *results]
+                sources = tuple(path for path, _digest in batch.fingerprints)
+            else:
+                values, sources = results, batch.source_paths
+            table = ParsedOutputIO.resolve(values, batch.var_names, sources, complete=complete)
+            return ParsedOutputIO.publish(Path(batch.output_dir) / "final.csv", table)
 
-        def default_publish(source: str, name: str) -> str:
-            destination = pool / name
-            shutil.copyfile(source, destination)
-            return str(destination)
+        def default_publish(source: ParsedOutput, name: str) -> ParsedOutput:
+            return ParsedOutputIO.publish(pool / name, ParsedOutputIO.read(source))
 
         service = ParseJobService(
             submit,
@@ -158,16 +203,14 @@ class TestParseJobFingerprint:
             stats_path=str(tmp_path),
             stats_pattern="stats.txt",
             variables=[
-                StatConfigCodec.to_payload(
-                    StatConfigCodec.from_draft(
-                        {
-                            "name": "simTicks",
-                            "type": "scalar",
-                            "_id": "one",
-                            "repeat": 1,
-                            "params": {"source_type": "scalar"},
-                        }
-                    )
+                StatConfigCodec.from_draft(
+                    {
+                        "name": "simTicks",
+                        "type": "scalar",
+                        "_id": "one",
+                        "repeat": 1,
+                        "params": {"source_type": "scalar"},
+                    }
                 )
             ],
             strategy_type="simple",
@@ -176,55 +219,56 @@ class TestParseJobFingerprint:
             stats_path=str(tmp_path / "."),
             stats_pattern="stats.txt",
             variables=[
-                StatConfigCodec.to_payload(
-                    StatConfigCodec.from_draft(
-                        {
-                            "repeat": 1,
-                            "_id": "two",
-                            "type": "scalar",
-                            "name": "simTicks",
-                            "params": {"source_type": "scalar"},
-                        }
-                    )
+                StatConfigCodec.from_draft(
+                    {
+                        "repeat": 1,
+                        "_id": "two",
+                        "type": "scalar",
+                        "name": "simTicks",
+                        "params": {"source_type": "scalar"},
+                    }
                 )
             ],
             strategy_type="simple",
         )
         assert first.fingerprint == second.fingerprint
 
-    def test_background_adapter_preserves_stat_config_source_name(self) -> None:
+    def test_background_adapter_preserves_stat_config_source_name(self, tmp_path: Path) -> None:
+        _stats_tree(tmp_path)
         parser = MagicMock()
-        parser.submit_parse_async.return_value = ParseBatchResult([], ["alias"])
+        output_dir = str(tmp_path / "out")
+        parser.submit_parse_async.return_value = ParseBatchResult(
+            (Future(),), ("alias",), (str(tmp_path / "run-0" / "stats.txt"),), output_dir, "simple"
+        )
+        context = SourceContextCodec.parser(
+            stats_path=str(tmp_path),
+            stats_pattern="stats.txt",
+            variables=[
+                StatConfig(
+                    "alias",
+                    "scalar",
+                    source_name="system.cpu.ipc",
+                    params={"source_type": "scalar"},
+                )
+            ],
+            strategy_type="simple",
+            scanned_variables=(),
+            simulator=None,
+            scan_limit=None,
+            strict=False,
+        )
         api = ApplicationAPI(parser=parser)
         try:
-            api._submit_background_parse(
-                "/stats",
-                "stats.txt",
-                [
-                    StatConfigCodec.to_payload(
-                        StatConfig(
-                            name="alias",
-                            source_name="system.cpu.ipc",
-                            type="scalar",
-                            params={"source_type": "scalar"},
-                        )
-                    )
-                ],
-                "/output",
-                "simple",
-                None,
-                False,
-            )
+            api._submit_background_parse(context, output_dir, False)
         finally:
             api.close()
-
         submitted = parser.submit_parse_async.call_args.args[2]
         assert submitted[0].name == "alias"
         assert submitted[0].source_name == "system.cpu.ipc"
 
     def test_variable_order_is_fingerprint_sensitive(self, tmp_path: Path) -> None:
         _stats_tree(tmp_path)
-        common = {
+        common: dict[str, Any] = {
             "stats_path": str(tmp_path),
             "stats_pattern": "stats.txt",
             "strategy_type": "simple",
@@ -232,30 +276,22 @@ class TestParseJobFingerprint:
         first = build_parse_job_request(
             **common,
             variables=[
-                StatConfigCodec.to_payload(
-                    StatConfigCodec.from_draft(
-                        {"name": "a", "type": "scalar", "params": {"source_type": "scalar"}}
-                    )
+                StatConfigCodec.from_draft(
+                    {"name": "a", "type": "scalar", "params": {"source_type": "scalar"}}
                 ),
-                StatConfigCodec.to_payload(
-                    StatConfigCodec.from_draft(
-                        {"name": "b", "type": "scalar", "params": {"source_type": "scalar"}}
-                    )
+                StatConfigCodec.from_draft(
+                    {"name": "b", "type": "scalar", "params": {"source_type": "scalar"}}
                 ),
             ],
         )
         second = build_parse_job_request(
             **common,
             variables=[
-                StatConfigCodec.to_payload(
-                    StatConfigCodec.from_draft(
-                        {"name": "b", "type": "scalar", "params": {"source_type": "scalar"}}
-                    )
+                StatConfigCodec.from_draft(
+                    {"name": "b", "type": "scalar", "params": {"source_type": "scalar"}}
                 ),
-                StatConfigCodec.to_payload(
-                    StatConfigCodec.from_draft(
-                        {"name": "a", "type": "scalar", "params": {"source_type": "scalar"}}
-                    )
+                StatConfigCodec.from_draft(
+                    {"name": "a", "type": "scalar", "params": {"source_type": "scalar"}}
                 ),
             ],
         )
@@ -316,18 +352,21 @@ class TestParseJobFingerprint:
                 stats_path=str(tmp_path),
                 stats_pattern="stats.txt",
                 variables=[
-                    StatConfigCodec.to_payload(
-                        StatConfigCodec.from_draft(
-                            {
-                                "name": "simTicks",
-                                "type": "scalar",
-                                "params": {"source_type": "scalar"},
-                            }
-                        )
+                    StatConfigCodec.from_draft(
+                        {
+                            "name": "simTicks",
+                            "type": "scalar",
+                            "params": {"source_type": "scalar"},
+                        }
                     )
                 ],
                 scanned_variables=[
-                    {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
+                    ScannedVariable(
+                        "simTicks",
+                        "scalar",
+                        source_type="scalar",
+                        instances=(SourceInstance("simTicks", ()),),
+                    ).to_dict()
                 ],
                 strategy_type=strategy,
             )
@@ -340,18 +379,21 @@ class TestParseJobFingerprint:
                 stats_path=str(tmp_path),
                 stats_pattern="stats.txt",
                 variables=[
-                    StatConfigCodec.to_payload(
-                        StatConfigCodec.from_draft(
-                            {
-                                "name": "simTicks",
-                                "type": "scalar",
-                                "params": {"source_type": "scalar"},
-                            }
-                        )
+                    StatConfigCodec.from_draft(
+                        {
+                            "name": "simTicks",
+                            "type": "scalar",
+                            "params": {"source_type": "scalar"},
+                        }
                     )
                 ],
                 scanned_variables=[
-                    {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
+                    ScannedVariable(
+                        "simTicks",
+                        "scalar",
+                        source_type="scalar",
+                        instances=(SourceInstance("simTicks", ()),),
+                    ).to_dict()
                 ],
                 strategy_type="simple",
                 incremental=True,
@@ -363,19 +405,22 @@ class TestParseJobFingerprint:
                 stats_path=str(tmp_path),
                 stats_pattern="stats.txt",
                 variables=[
-                    StatConfigCodec.to_payload(
-                        StatConfigCodec.from_draft(
-                            {
-                                "name": "simTicks",
-                                "type": "scalar",
-                                "repeat": 2,
-                                "params": {"source_type": "scalar"},
-                            }
-                        )
+                    StatConfigCodec.from_draft(
+                        {
+                            "name": "simTicks",
+                            "type": "scalar",
+                            "repeat": 2,
+                            "params": {"source_type": "scalar"},
+                        }
                     )
                 ],
                 scanned_variables=[
-                    {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
+                    ScannedVariable(
+                        "simTicks",
+                        "scalar",
+                        source_type="scalar",
+                        instances=(SourceInstance("simTicks", ()),),
+                    ).to_dict()
                 ],
                 strategy_type="simple",
             ).fingerprint
@@ -386,18 +431,21 @@ class TestParseJobFingerprint:
                 stats_path=str(tmp_path),
                 stats_pattern="stats.txt",
                 variables=[
-                    StatConfigCodec.to_payload(
-                        StatConfigCodec.from_draft(
-                            {
-                                "name": "simTicks",
-                                "type": "scalar",
-                                "params": {"source_type": "scalar"},
-                            }
-                        )
+                    StatConfigCodec.from_draft(
+                        {
+                            "name": "simTicks",
+                            "type": "scalar",
+                            "params": {"source_type": "scalar"},
+                        }
                     )
                 ],
                 scanned_variables=[
-                    {"name": "other", "type": "scalar", "params": {"source_type": "scalar"}}
+                    ScannedVariable(
+                        "other",
+                        "scalar",
+                        source_type="scalar",
+                        instances=(SourceInstance("other", ()),),
+                    ).to_dict()
                 ],
                 strategy_type="simple",
             ).fingerprint
@@ -408,18 +456,21 @@ class TestParseJobFingerprint:
                 stats_path=str(tmp_path),
                 stats_pattern="stats.txt",
                 variables=[
-                    StatConfigCodec.to_payload(
-                        StatConfigCodec.from_draft(
-                            {
-                                "name": "simTicks",
-                                "type": "scalar",
-                                "params": {"source_type": "scalar"},
-                            }
-                        )
+                    StatConfigCodec.from_draft(
+                        {
+                            "name": "simTicks",
+                            "type": "scalar",
+                            "params": {"source_type": "scalar"},
+                        }
                     )
                 ],
                 scanned_variables=[
-                    {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
+                    ScannedVariable(
+                        "simTicks",
+                        "scalar",
+                        source_type="scalar",
+                        instances=(SourceInstance("simTicks", ()),),
+                    ).to_dict()
                 ],
                 strategy_type="simple",
                 simulator="other",
@@ -431,18 +482,21 @@ class TestParseJobFingerprint:
                 stats_path=str(tmp_path),
                 stats_pattern="stats.txt",
                 variables=[
-                    StatConfigCodec.to_payload(
-                        StatConfigCodec.from_draft(
-                            {
-                                "name": "simTicks",
-                                "type": "scalar",
-                                "params": {"source_type": "scalar"},
-                            }
-                        )
+                    StatConfigCodec.from_draft(
+                        {
+                            "name": "simTicks",
+                            "type": "scalar",
+                            "params": {"source_type": "scalar"},
+                        }
                     )
                 ],
                 scanned_variables=[
-                    {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
+                    ScannedVariable(
+                        "simTicks",
+                        "scalar",
+                        source_type="scalar",
+                        instances=(SourceInstance("simTicks", ()),),
+                    ).to_dict()
                 ],
                 strategy_type="simple",
                 parser_contract_version="2",
@@ -479,14 +533,12 @@ class TestParseJobFingerprint:
                 stats_path=str(tmp_path),
                 stats_pattern="stats.txt",
                 variables=[
-                    StatConfigCodec.to_payload(
-                        StatConfigCodec.from_draft(
-                            {
-                                "name": "system.cpu.type",
-                                "type": "configuration",
-                                "params": {"source_type": "configuration"},
-                            }
-                        )
+                    StatConfigCodec.from_draft(
+                        {
+                            "name": "system.cpu.type",
+                            "type": "configuration",
+                            "params": {"source_type": "configuration"},
+                        }
                     )
                 ],
                 strategy_type="config_aware",
@@ -550,29 +602,21 @@ class TestParseJobStore:
 
     def test_rejects_unbounded_request_metadata(self, tmp_path: Path) -> None:
         _stats_tree(tmp_path)
-        request = build_parse_job_request(
-            stats_path=str(tmp_path),
-            stats_pattern="stats.txt",
-            variables=[
-                StatConfigCodec.to_payload(
-                    StatConfigCodec.from_draft(
-                        {
-                            "name": "x" * 1100000,
-                            "type": "scalar",
-                            "params": {"source_type": "scalar"},
-                        }
-                    )
-                )
-            ],
-            strategy_type="simple",
-        )
-        attempt_dir = tmp_path / "attempt"
-        attempt_dir.mkdir()
         store = ParseJobStore(tmp_path / "jobs.sqlite3")
-
-        with pytest.raises(ValueError, match="1 MB"):
-            store.create_job("large", request, attempt_dir, 1)
-        assert store.get_job("large") is None
+        with pytest.raises(ValueError, match="exceeds"):
+            build_parse_job_request(
+                stats_path=str(tmp_path),
+                stats_pattern="stats.txt",
+                variables=[
+                    StatConfig(
+                        "large",
+                        "configuration",
+                        params={"source_type": "configuration", "on_empty": "x" * 1100000},
+                    )
+                ],
+                strategy_type="simple",
+            )
+        assert store.list_jobs() == []
 
 
 class TestParseJobFlow:
@@ -586,7 +630,7 @@ class TestParseJobFlow:
     ) -> None:
         """Leave no phantom queued job when orchestration cannot be scheduled."""
         _stats_tree(tmp_path)
-        service = service_factory.create(lambda *_args: ParseBatchResult([], []))
+        service = service_factory.create(_unreachable_submit)
         executor = MagicMock()
         executor.submit.side_effect = RuntimeError("executor unavailable")
         monkeypatch.setattr(service, "_get_executor", lambda: executor)
@@ -609,30 +653,19 @@ class TestParseJobFlow:
         calls = 0
 
         def submit(
-            _path: str,
-            _pattern: str,
-            _variables: Sequence[JsonValue],
-            _output: str,
-            _strategy: str,
-            _scanned: list[JsonValue] | None,
-            _incremental: bool,
+            _source: ParserSourceContext, _output: str, _incremental: bool
         ) -> ParseBatchResult:
             nonlocal calls
             calls += 1
-            return ParseBatchResult(
-                futures=[_completed_future({"simTicks": {"value": 1}})],
-                var_names=["simTicks"],
-            )
+            return _batch(_source, _output, [_completed_future(_file_result(tmp_path, 1))])
 
         service = service_factory.create(submit)
         first = service.submit(
             stats_path=str(tmp_path),
             stats_pattern="stats.txt",
             variables=[
-                StatConfigCodec.to_payload(
-                    StatConfigCodec.from_draft(
-                        {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
-                    )
+                StatConfigCodec.from_draft(
+                    {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
                 )
             ],
             strategy_type="simple",
@@ -648,10 +681,8 @@ class TestParseJobFlow:
             stats_path=str(tmp_path),
             stats_pattern="stats.txt",
             variables=[
-                StatConfigCodec.to_payload(
-                    StatConfigCodec.from_draft(
-                        {"type": "scalar", "name": "simTicks", "params": {"source_type": "scalar"}}
-                    )
+                StatConfigCodec.from_draft(
+                    {"type": "scalar", "name": "simTicks", "params": {"source_type": "scalar"}}
                 )
             ],
             strategy_type="simple",
@@ -667,10 +698,8 @@ class TestParseJobFlow:
             stats_path=str(tmp_path),
             stats_pattern="stats.txt",
             variables=[
-                StatConfigCodec.to_payload(
-                    StatConfigCodec.from_draft(
-                        {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
-                    )
+                StatConfigCodec.from_draft(
+                    {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
                 )
             ],
             strategy_type="simple",
@@ -684,18 +713,9 @@ class TestParseJobFlow:
         _stats_tree(tmp_path)
 
         def submit(
-            _path: str,
-            _pattern: str,
-            _variables: Sequence[JsonValue],
-            _output: str,
-            _strategy: str,
-            _scanned: list[JsonValue] | None,
-            _incremental: bool,
+            _source: ParserSourceContext, _output: str, _incremental: bool
         ) -> ParseBatchResult:
-            return ParseBatchResult(
-                futures=[_completed_future({"simTicks": {"value": 1}})],
-                var_names=["simTicks"],
-            )
+            return _batch(_source, _output, [_completed_future(_file_result(tmp_path, 1))])
 
         service = service_factory.create(submit)
         job = service.submit(
@@ -725,20 +745,15 @@ class TestParseJobFlow:
         _stats_tree(tmp_path, ("one\n", "two\n"))
 
         def submit(
-            _path: str,
-            _pattern: str,
-            _variables: Sequence[JsonValue],
-            _output: str,
-            _strategy: str,
-            _scanned: list[JsonValue] | None,
-            _incremental: bool,
+            _source: ParserSourceContext, _output: str, _incremental: bool
         ) -> ParseBatchResult:
-            return ParseBatchResult(
-                futures=[
-                    _completed_future({"simTicks": {"value": 1}}),
+            return _batch(
+                _source,
+                _output,
+                [
+                    _completed_future(_file_result(tmp_path, 1)),
                     _completed_future(error=RuntimeError("bad file")),
                 ],
-                var_names=["simTicks"],
             )
 
         service = service_factory.create(submit)
@@ -773,32 +788,24 @@ class TestParseJobFlow:
         release = threading.Event()
         executor = ThreadPoolExecutor(max_workers=1)
 
-        def work() -> dict[str, Any]:
+        def work() -> ParsedFileResult:
             release.wait()
-            return {"simTicks": {"value": 1}}
+            return _file_result(tmp_path, 1)
 
         running = executor.submit(work)
 
         def submit(
-            _path: str,
-            _pattern: str,
-            _variables: Sequence[JsonValue],
-            _output: str,
-            _strategy: str,
-            _scanned: list[JsonValue] | None,
-            _incremental: bool,
+            _source: ParserSourceContext, _output: str, _incremental: bool
         ) -> ParseBatchResult:
-            return ParseBatchResult(futures=[running], var_names=["simTicks"])
+            return _batch(_source, _output, [running])
 
         service = service_factory.create(submit)
         first = service.submit(
             stats_path=str(tmp_path),
             stats_pattern="stats.txt",
             variables=[
-                StatConfigCodec.to_payload(
-                    StatConfigCodec.from_draft(
-                        {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
-                    )
+                StatConfigCodec.from_draft(
+                    {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
                 )
             ],
             strategy_type="simple",
@@ -807,10 +814,8 @@ class TestParseJobFlow:
             stats_path=str(tmp_path),
             stats_pattern="stats.txt",
             variables=[
-                StatConfigCodec.to_payload(
-                    StatConfigCodec.from_draft(
-                        {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
-                    )
+                StatConfigCodec.from_draft(
+                    {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
                 )
             ],
             strategy_type="simple",
@@ -821,10 +826,8 @@ class TestParseJobFlow:
                 stats_path=str(tmp_path),
                 stats_pattern="stats.txt",
                 variables=[
-                    StatConfigCodec.to_payload(
-                        StatConfigCodec.from_draft(
-                            {"name": "other", "type": "scalar", "params": {"source_type": "scalar"}}
-                        )
+                    StatConfigCodec.from_draft(
+                        {"name": "other", "type": "scalar", "params": {"source_type": "scalar"}}
                     )
                 ],
                 strategy_type="simple",
@@ -834,60 +837,43 @@ class TestParseJobFlow:
         executor.shutdown()
 
     @pytest.mark.parametrize(
-        ("futures", "expected"),
+        ("values", "expected"),
         [
-            ([], ParseJobStatus.FAILED),
-            (
-                [_completed_future(error=RuntimeError("file failed"))],
-                ParseJobStatus.FAILED,
-            ),
-            (
-                [
-                    _completed_future({"simTicks": {"value": 1}}),
-                    _completed_future(error=RuntimeError("one bad file")),
-                ],
-                ParseJobStatus.PARTIAL,
-            ),
-            (
-                [
-                    _completed_future({"simTicks": {"value": 1}}),
-                    _completed_future({}),
-                ],
-                ParseJobStatus.PARTIAL,
-            ),
+            ((), ParseJobStatus.FAILED),
+            ((RuntimeError("file failed"),), ParseJobStatus.FAILED),
+            ((1.0, RuntimeError("one bad file")), ParseJobStatus.PARTIAL),
+            ((1.0, TypeError("Invalid worker result")), ParseJobStatus.PARTIAL),
         ],
     )
     def test_no_work_total_failure_and_partial(
         self,
         tmp_path: Path,
         service_factory: _ServiceFactory,
-        futures: list[Future[dict[str, Any]]],
+        values: tuple[float | BaseException, ...],
         expected: ParseJobStatus,
     ) -> None:
-        _stats_tree(tmp_path)
+        _stats_tree(tmp_path, tuple("simTicks 1\n" for _ in values))
 
         def submit(
-            _path: str,
-            _pattern: str,
-            _variables: Sequence[JsonValue],
-            _output: str,
-            _strategy: str,
-            _scanned: list[JsonValue] | None,
-            _incremental: bool,
+            source: ParserSourceContext, output_dir: str, _incremental: bool
         ) -> ParseBatchResult:
-            return ParseBatchResult(futures=futures, var_names=["simTicks"])
+            if not values:
+                raise ValueError("No matching parser work")
+            futures = [
+                (
+                    _completed_future(error=value)
+                    if isinstance(value, BaseException)
+                    else _completed_future(_file_result(tmp_path, value, index=index))
+                )
+                for index, value in enumerate(values)
+            ]
+            return _batch(source, output_dir, futures)
 
         service = service_factory.create(submit)
         job = service.submit(
             stats_path=str(tmp_path),
             stats_pattern="stats.txt",
-            variables=[
-                StatConfigCodec.to_payload(
-                    StatConfigCodec.from_draft(
-                        {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
-                    )
-                )
-            ],
+            variables=[StatConfig("simTicks", "scalar", params={"source_type": "scalar"})],
             strategy_type="simple",
         )
         terminal = _wait_for_status(service, job.job_id, {expected})
@@ -897,94 +883,6 @@ class TestParseJobFlow:
                 service.consume(job.job_id)
             receipt = service.consume(job.job_id, allow_partial=True)
             assert Path(receipt.csv_path).is_file()
-
-    def test_missing_cached_csv_is_invalidated_and_reparsed(
-        self, tmp_path: Path, service_factory: _ServiceFactory
-    ) -> None:
-        _stats_tree(tmp_path)
-        calls = 0
-
-        def submit(
-            _path: str,
-            _pattern: str,
-            _variables: Sequence[JsonValue],
-            _output: str,
-            _strategy: str,
-            _scanned: list[JsonValue] | None,
-            _incremental: bool,
-        ) -> ParseBatchResult:
-            nonlocal calls
-            calls += 1
-            return ParseBatchResult(
-                futures=[_completed_future({"simTicks": {"value": calls}})],
-                var_names=["simTicks"],
-            )
-
-        service = service_factory.create(submit)
-        first = service.submit(
-            stats_path=str(tmp_path),
-            stats_pattern="stats.txt",
-            variables=[],
-            strategy_type="simple",
-        )
-        _wait_for_status(service, first.job_id, {ParseJobStatus.SUCCEEDED})
-        receipt = service.consume(first.job_id)
-        Path(receipt.csv_path).unlink()
-
-        replacement = service.submit(
-            stats_path=str(tmp_path),
-            stats_pattern="stats.txt",
-            variables=[],
-            strategy_type="simple",
-        )
-        _wait_for_status(service, replacement.job_id, {ParseJobStatus.SUCCEEDED})
-        assert calls == 2
-
-    def test_missing_unconsumed_csv_is_invalidated_and_reparsed(
-        self, tmp_path: Path, service_factory: _ServiceFactory
-    ) -> None:
-        """Replace an unusable successful record instead of coalescing with it."""
-        _stats_tree(tmp_path)
-        calls = 0
-
-        def submit(
-            _path: str,
-            _pattern: str,
-            _variables: Sequence[JsonValue],
-            _output: str,
-            _strategy: str,
-            _scanned: list[JsonValue] | None,
-            _incremental: bool,
-        ) -> ParseBatchResult:
-            nonlocal calls
-            calls += 1
-            return ParseBatchResult(
-                futures=[_completed_future({"simTicks": {"value": calls}})],
-                var_names=["simTicks"],
-            )
-
-        service = service_factory.create(submit)
-        first = service.submit(
-            stats_path=str(tmp_path),
-            stats_pattern="stats.txt",
-            variables=[],
-            strategy_type="simple",
-        )
-        terminal = _wait_for_status(service, first.job_id, {ParseJobStatus.SUCCEEDED})
-        assert terminal.published_csv_path is not None
-        Path(terminal.published_csv_path).unlink()
-
-        replacement = service.submit(
-            stats_path=str(tmp_path),
-            stats_pattern="stats.txt",
-            variables=[],
-            strategy_type="simple",
-        )
-
-        assert replacement.job_id != first.job_id
-        assert service.get(first.job_id) is None
-        _wait_for_status(service, replacement.job_id, {ParseJobStatus.SUCCEEDED})
-        assert calls == 2
 
 
 class TestParseJobCancellationAndRetry:
@@ -998,38 +896,30 @@ class TestParseJobCancellationAndRetry:
         published: list[str] = []
         finalized: list[bool] = []
 
-        def running_work() -> dict[str, Any]:
+        def running_work() -> ParsedFileResult:
             started.set()
             release.wait()
-            return {"simTicks": {"value": 1}}
+            return _file_result(tmp_path, 1)
 
         running = worker.submit(running_work)
-        pending = worker.submit(lambda: {"simTicks": {"value": 2}})
+        pending = worker.submit(lambda: _file_result(tmp_path, 2, index=1))
 
         def submit(
-            _path: str,
-            _pattern: str,
-            _variables: Sequence[JsonValue],
-            _output: str,
-            _strategy: str,
-            _scanned: list[JsonValue] | None,
-            _incremental: bool,
+            _source: ParserSourceContext, _output: str, _incremental: bool
         ) -> ParseBatchResult:
-            return ParseBatchResult(futures=[running, pending], var_names=["simTicks"])
+            return _batch(_source, _output, [running, pending])
 
         def finalize(
-            _output: str,
-            _batch: ParseBatchResult,
-            _results: list[dict[str, Any]],
+            _batch: ParseBatchResult | IncrementalParseBatchResult,
+            _results: list[ParsedFileResult],
             _complete: bool,
-            _strategy: str,
-        ) -> str | None:
+        ) -> ParsedOutput:
             finalized.append(True)
-            return None
+            raise AssertionError("Cancelled work must not finalize")
 
-        def publish(_source: str, name: str) -> str:
+        def publish(_source: ParsedOutput, name: str) -> ParsedOutput:
             published.append(name)
-            return name
+            raise AssertionError("Cancelled work must not publish")
 
         service = service_factory.create(submit, finalize=finalize, publish=publish)
         job = service.submit(
@@ -1068,26 +958,17 @@ class TestParseJobCancellationAndRetry:
         published_path: Path | None = None
 
         def submit(
-            _path: str,
-            _pattern: str,
-            _variables: Sequence[JsonValue],
-            _output: str,
-            _strategy: str,
-            _scanned: list[JsonValue] | None,
-            _incremental: bool,
+            _source: ParserSourceContext, _output: str, _incremental: bool
         ) -> ParseBatchResult:
-            return ParseBatchResult(
-                futures=[_completed_future({"simTicks": {"value": 1}})],
-                var_names=["simTicks"],
-            )
+            return _batch(_source, _output, [_completed_future(_file_result(tmp_path, 1))])
 
-        def publish(source: str, name: str) -> str:
+        def publish(source: ParsedOutput, name: str) -> ParsedOutput:
             nonlocal published_path
             published_path = service_factory.runtime.jobs_root.parent / "recent" / name
-            shutil.copyfile(source, published_path)
+            published = ParsedOutputIO.publish(published_path, ParsedOutputIO.read(source))
             publish_started.set()
             release_publish.wait()
-            return str(published_path)
+            return published
 
         service = service_factory.create(submit, publish=publish)
         job = service.submit(
@@ -1112,18 +993,12 @@ class TestParseJobCancellationAndRetry:
         self, tmp_path: Path, service_factory: _ServiceFactory
     ) -> None:
         _stats_tree(tmp_path)
-        completed = _completed_future({"simTicks": {"value": 1}})
+        completed = _completed_future(_file_result(tmp_path, 1))
 
         def submit(
-            _path: str,
-            _pattern: str,
-            _variables: Sequence[JsonValue],
-            _output: str,
-            _strategy: str,
-            _scanned: list[JsonValue] | None,
-            _incremental: bool,
+            _source: ParserSourceContext, _output: str, _incremental: bool
         ) -> ParseBatchResult:
-            return ParseBatchResult(futures=[completed], var_names=[])
+            return _batch(_source, _output, [completed])
 
         owner = service_factory.create(submit)
         stranger = service_factory.create(submit)
@@ -1144,25 +1019,13 @@ class TestParseJobCancellationAndRetry:
         calls = 0
 
         def submit(
-            _path: str,
-            _pattern: str,
-            _variables: Sequence[JsonValue],
-            _output: str,
-            _strategy: str,
-            _scanned: list[JsonValue] | None,
-            _incremental: bool,
+            _source: ParserSourceContext, _output: str, _incremental: bool
         ) -> ParseBatchResult:
             nonlocal calls
             calls += 1
             if calls == 1:
-                return ParseBatchResult(
-                    futures=[_completed_future(error=RuntimeError("bad"))],
-                    var_names=[],
-                )
-            return ParseBatchResult(
-                futures=[_completed_future({"simTicks": {"value": 2}})],
-                var_names=["simTicks"],
-            )
+                return _batch(_source, _output, [_completed_future(error=RuntimeError("bad"))])
+            return _batch(_source, _output, [_completed_future(_file_result(tmp_path, 2))])
 
         service = service_factory.create(submit)
         first = service.submit(
@@ -1201,28 +1064,23 @@ class TestParseJobCleanup:
         worker = ThreadPoolExecutor(max_workers=1)
         published: list[str] = []
 
-        def work() -> dict[str, Any]:
+        def work() -> ParsedFileResult:
             started.set()
             release.wait()
-            return {"simTicks": {"value": 1}}
+            return _file_result(tmp_path, 1)
 
         running = worker.submit(work)
 
         def submit(
-            _path: str,
-            _pattern: str,
-            _variables: Sequence[JsonValue],
-            _output: str,
-            _strategy: str,
-            _scanned: list[JsonValue] | None,
-            _incremental: bool,
+            _source: ParserSourceContext, _output: str, _incremental: bool
         ) -> ParseBatchResult:
-            return ParseBatchResult(futures=[running], var_names=["simTicks"])
+            return _batch(_source, _output, [running])
 
-        service = service_factory.create(
-            submit,
-            publish=lambda _source, name: published.append(name) or name,
-        )
+        def forbidden_publish(source: ParsedOutput, name: str) -> ParsedOutput:
+            published.append(name)
+            return _unreachable_publish(source, name)
+
+        service = service_factory.create(submit, publish=forbidden_publish)
         job = service.submit(
             stats_path=str(tmp_path),
             stats_pattern="stats.txt",
@@ -1251,26 +1109,17 @@ class TestParseJobCleanup:
         published_path: Path | None = None
 
         def submit(
-            _path: str,
-            _pattern: str,
-            _variables: Sequence[JsonValue],
-            _output: str,
-            _strategy: str,
-            _scanned: list[JsonValue] | None,
-            _incremental: bool,
+            _source: ParserSourceContext, _output: str, _incremental: bool
         ) -> ParseBatchResult:
-            return ParseBatchResult(
-                futures=[_completed_future({"simTicks": {"value": 1}})],
-                var_names=["simTicks"],
-            )
+            return _batch(_source, _output, [_completed_future(_file_result(tmp_path, 1))])
 
-        def publish(source: str, name: str) -> str:
+        def publish(source: ParsedOutput, name: str) -> ParsedOutput:
             nonlocal published_path
             published_path = service_factory.runtime.jobs_root.parent / "recent" / name
-            shutil.copyfile(source, published_path)
+            published = ParsedOutputIO.publish(published_path, ParsedOutputIO.read(source))
             publish_started.set()
             release_publish.wait()
-            return str(published_path)
+            return published
 
         service = service_factory.create(submit, publish=publish)
         job = service.submit(
@@ -1296,18 +1145,9 @@ class TestParseJobCleanup:
         _stats_tree(tmp_path)
 
         def submit(
-            _path: str,
-            _pattern: str,
-            _variables: Sequence[JsonValue],
-            _output: str,
-            _strategy: str,
-            _scanned: list[JsonValue] | None,
-            _incremental: bool,
+            _source: ParserSourceContext, _output: str, _incremental: bool
         ) -> ParseBatchResult:
-            return ParseBatchResult(
-                futures=[_completed_future({"simTicks": {"value": 1}})],
-                var_names=["simTicks"],
-            )
+            return _batch(_source, _output, [_completed_future(_file_result(tmp_path, 1))])
 
         service = service_factory.create(submit)
         job = service.submit(
@@ -1330,24 +1170,18 @@ class TestParseJobCleanup:
         started = threading.Event()
         release = threading.Event()
         worker = ThreadPoolExecutor(max_workers=1)
-        running = worker.submit(
-            lambda: (
-                started.set(),
-                release.wait(),
-                {"simTicks": {"value": 1}},
-            )[-1]
-        )
+
+        def work() -> ParsedFileResult:
+            started.set()
+            release.wait()
+            return _file_result(tmp_path, 1)
+
+        running = worker.submit(work)
 
         def submit(
-            _path: str,
-            _pattern: str,
-            _variables: Sequence[JsonValue],
-            _output: str,
-            _strategy: str,
-            _scanned: list[JsonValue] | None,
-            _incremental: bool,
+            _source: ParserSourceContext, _output: str, _incremental: bool
         ) -> ParseBatchResult:
-            return ParseBatchResult(futures=[running], var_names=["simTicks"])
+            return _batch(_source, _output, [running])
 
         service = service_factory.create(submit)
         job = service.submit(
@@ -1384,26 +1218,17 @@ class TestParseJobCleanup:
         published_path: Path | None = None
 
         def submit(
-            _path: str,
-            _pattern: str,
-            _variables: Sequence[JsonValue],
-            _output: str,
-            _strategy: str,
-            _scanned: list[JsonValue] | None,
-            _incremental: bool,
+            _source: ParserSourceContext, _output: str, _incremental: bool
         ) -> ParseBatchResult:
-            return ParseBatchResult(
-                futures=[_completed_future({"simTicks": {"value": 1}})],
-                var_names=["simTicks"],
-            )
+            return _batch(_source, _output, [_completed_future(_file_result(tmp_path, 1))])
 
-        def publish(source: str, name: str) -> str:
+        def publish(source: ParsedOutput, name: str) -> ParsedOutput:
             nonlocal published_path
             published_path = service_factory.runtime.jobs_root.parent / "recent" / name
-            shutil.copyfile(source, published_path)
+            published = ParsedOutputIO.publish(published_path, ParsedOutputIO.read(source))
             publish_started.set()
             release_publish.wait()
-            return str(published_path)
+            return published
 
         service = service_factory.create(submit, publish=publish)
         service.submit(
@@ -1433,15 +1258,9 @@ class TestParseJobCleanup:
         _stats_tree(tmp_path)
 
         def submit(
-            _path: str,
-            _pattern: str,
-            _variables: Sequence[JsonValue],
-            _output: str,
-            _strategy: str,
-            _scanned: list[JsonValue] | None,
-            _incremental: bool,
+            _source: ParserSourceContext, _output: str, _incremental: bool
         ) -> ParseBatchResult:
-            return ParseBatchResult(futures=[], var_names=[])
+            return _batch(_source, _output, [])
 
         service = service_factory.create(submit)
         session_dir = service.session_dir
@@ -1482,20 +1301,14 @@ class TestParseJobCleanup:
         runtime = ParseJobRuntimeWorkspace(tmp_path / "jobs")
 
         def submit(
-            _path: str,
-            _pattern: str,
-            _variables: Sequence[JsonValue],
-            _output: str,
-            _strategy: str,
-            _scanned: list[JsonValue] | None,
-            _incremental: bool,
+            _source: ParserSourceContext, _output: str, _incremental: bool
         ) -> ParseBatchResult:
-            return ParseBatchResult(futures=[], var_names=[])
+            return _batch(_source, _output, [])
 
         service = ParseJobService(
             submit,
-            lambda _output, _results, _strategy, _names: None,
-            lambda _source, name: name,
+            _unreachable_finalize,
+            _unreachable_publish,
             runtime_workspace=runtime,
         )
         session_dir = service.session_dir
@@ -1526,17 +1339,17 @@ def test_parser_semantic_revision_prevents_reusing_old_published_csv(
     assert INCREMENTAL_VERSION == PARSER_RESULT_VERSION
     _stats_tree(tmp_path)
     submit = MagicMock(
-        return_value=ParseBatchResult([_completed_future({"simTicks": 1})], ["simTicks"])
+        side_effect=lambda source, output, _incremental: _batch(
+            source, output, [_completed_future(_file_result(tmp_path, 1))]
+        )
     )
     service = service_factory.create(submit)
     common: dict[str, Any] = {
         "stats_path": str(tmp_path),
         "stats_pattern": "stats.txt",
         "variables": [
-            StatConfigCodec.to_payload(
-                StatConfigCodec.from_draft(
-                    {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
-                )
+            StatConfigCodec.from_draft(
+                {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
             )
         ],
         "strategy_type": "simple",
@@ -1573,26 +1386,25 @@ def test_same_metadata_content_change_never_reuses_published_result(
     selected = config if companion else stats
     submissions = []
 
-    def submit(*args: Any) -> ParseBatchResult:
-        submissions.append(args)
-        return ParseBatchResult(
-            [_completed_future({"value": selected.read_text().strip()[-1]})], ["value"]
+    def submit(
+        source: ParserSourceContext, output: str, incremental_flag: bool
+    ) -> ParseBatchResult:
+        submissions.append((source, output, incremental_flag))
+        value = float(selected.read_text().strip()[-1])
+        return _batch(
+            source,
+            output,
+            [_completed_future(_file_result(inputs, value, name="value"))],
+            ("value",),
         )
 
-    def finalize(output_dir, batch, results, complete, strategy):
-        output = Path(output_dir) / "result.csv"
-        output.write_text("value\n" + results[0]["value"] + "\n")
-        return str(output)
-
-    service = service_factory.create(submit, finalize=finalize)
-    kwargs = dict(
+    service = service_factory.create(submit)
+    kwargs: dict[str, Any] = dict(
         stats_path=str(inputs),
         stats_pattern="stats.txt",
         variables=[
-            StatConfigCodec.to_payload(
-                StatConfigCodec.from_draft(
-                    {"name": "value", "type": "scalar", "params": {"source_type": "scalar"}}
-                )
+            StatConfigCodec.from_draft(
+                {"name": "value", "type": "scalar", "params": {"source_type": "scalar"}}
             )
         ],
         strategy_type="config_aware" if companion else "simple",
@@ -1600,7 +1412,8 @@ def test_same_metadata_content_change_never_reuses_published_result(
     )
     first = service.submit(**kwargs)
     finished = _wait_for_status(service, first.job_id, {ParseJobStatus.SUCCEEDED})
-    assert Path(finished.published_csv_path).read_text() == "value\n1\n"
+    assert finished.published_output is not None
+    assert ParsedOutputIO.to_frame(finished.published_output)["value"].tolist() == [1.0]
     if consumed:
         service.consume(first.job_id)
     before = selected.stat()
@@ -1612,12 +1425,14 @@ def test_same_metadata_content_change_never_reuses_published_result(
     assert second.fingerprint != first.fingerprint
     assert not second.cache_hit
     finished = _wait_for_status(service, second.job_id, {ParseJobStatus.SUCCEEDED})
-    assert Path(finished.published_csv_path).read_text() == "value\n2\n"
+    assert finished.published_output is not None
+    assert ParsedOutputIO.to_frame(finished.published_output)["value"].tolist() == [2.0]
     assert len(submissions) == 2
     service.consume(second.job_id)
     reused = service.submit(**kwargs)
     assert reused.cache_hit
-    assert Path(reused.published_csv_path).read_text() == "value\n2\n"
+    assert reused.published_output is not None
+    assert ParsedOutputIO.to_frame(reused.published_output)["value"].tolist() == [2.0]
     assert len(submissions) == 2
 
 
@@ -1627,12 +1442,12 @@ def test_input_changed_while_parser_runs_cannot_publish_or_cache_result(
 ) -> None:
     inputs = tmp_path / "inputs"
     _stats_tree(inputs)
-    future: Future[dict[str, Any]] = Future()
+    future: Future[ParsedFileResult] = Future()
     started = threading.Event()
 
-    def submit(*args: Any) -> ParseBatchResult:
+    def submit(source: ParserSourceContext, output: str, _incremental: bool) -> ParseBatchResult:
         started.set()
-        return ParseBatchResult([future], ["simTicks"])
+        return _batch(source, output, [future])
 
     publish = MagicMock()
     service = service_factory.create(submit, publish=publish)
@@ -1640,10 +1455,8 @@ def test_input_changed_while_parser_runs_cannot_publish_or_cache_result(
         stats_path=str(inputs),
         stats_pattern="stats.txt",
         variables=[
-            StatConfigCodec.to_payload(
-                StatConfigCodec.from_draft(
-                    {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
-                )
+            StatConfigCodec.from_draft(
+                {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
             )
         ],
         strategy_type="simple",
@@ -1653,7 +1466,7 @@ def test_input_changed_while_parser_runs_cannot_publish_or_cache_result(
     before = stats.stat()
     stats.write_text("simTicks 2\n")
     os.utime(stats, ns=(before.st_atime_ns, before.st_mtime_ns))
-    future.set_result({"simTicks": "2"})
+    future.set_result(_file_result(inputs, 2.0))
     failed = _wait_for_status(service, job.job_id, {ParseJobStatus.FAILED})
     assert any("inputs changed during execution" in error for error in failed.errors)
     publish.assert_not_called()

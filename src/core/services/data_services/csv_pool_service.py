@@ -4,7 +4,6 @@ import csv
 import datetime
 import hashlib
 import logging
-import os
 import shutil
 import threading
 import uuid
@@ -15,6 +14,8 @@ import pandas as pd
 from pandas import DataFrame
 
 from src.core.common.utils import sanitize_filename, validate_path_within
+from src.core.common.parsed_output import ParsedOutputIO
+from src.core.models.parsed_output_models import ParsedOutput
 from src.core.models.data_models import CacheStatsInfo, CsvMetadata, CsvPoolEntry
 from src.core.performance import SimpleCache
 from src.core.services.data_services.path_service import PathService
@@ -107,26 +108,15 @@ class CsvPoolService:
         return str(pool_path)
 
     @staticmethod
-    def publish_to_pool(csv_path: str, file_name: str) -> str:
-        """Atomically publish a completed background result to Recent CSVs."""
-        source_path = Path(csv_path).resolve()
-        if not source_path.is_file():
-            raise FileNotFoundError(f"Parsed CSV file not found: {source_path}")
-
+    def publish_to_pool(output: ParsedOutput, file_name: str) -> ParsedOutput:
+        """Validate and atomically promote typed rows through the canonical writer."""
+        table = ParsedOutputIO.read(output)
         safe_name = sanitize_filename(file_name)
         if not safe_name.lower().endswith(".csv"):
             safe_name = f"{safe_name}.csv"
         pool_dir = CsvPoolService.get_pool_dir()
         pool_path = validate_path_within(pool_dir / safe_name, pool_dir)
-        temporary_path = validate_path_within(
-            pool_dir / f".{safe_name}.{uuid.uuid4().hex}.tmp", pool_dir
-        )
-        try:
-            shutil.copyfile(source_path, temporary_path)
-            os.replace(temporary_path, pool_path)
-        finally:
-            temporary_path.unlink(missing_ok=True)
-        return str(pool_path)
+        return ParsedOutputIO.publish(pool_path, table)
 
     @staticmethod
     def delete_from_pool(csv_path: str) -> bool:

@@ -94,7 +94,7 @@ class LegendOpts:
     font_size: float | None = None
     item_width: int | None = None  # swatch length proxy (smaller -> shorter swatches)
     bgcolor: str | None = None
-    bgalpha: float | None = None  # background opacity 0..1 (0 = transparent box)
+    bgalpha: float | None = None  # resulting opacity 0..1, replacing embedded color opacity
     border_color: str | None = None
     border_width: int | None = None
     tracegroupgap: int | None = None  # row spacing proxy (smaller -> tighter rows)
@@ -253,10 +253,27 @@ class FigureSpec:
         if self.numbered_xaxis_modes is not None:
             numbered_axis_modes({"numbered_xaxis_modes": list(self.numbered_xaxis_modes)})
         numbered_axis_modes(self.extra)
+        from src.core.common.plot_payload import (
+            validate_plot_config_keys,
+            validate_plot_config_values,
+        )
+
+        validate_plot_config_keys(self.extra)
+        validate_plot_config_values(self.extra)
         _own_fields(self)
 
-    def to_config(self) -> dict[str, Any]:
-        """Emit the flat config dict consumed by ``ConfigSpecBuilder.from_config``."""
+    def to_config(self, *, plot_type: str | None = None) -> dict[str, Any]:
+        """Emit an independently owned editable plot configuration.
+
+        Args:
+            plot_type: Exact plot identifier for context-specific field admission.
+
+        Returns:
+            Flat configuration accepted by the shared common figure contract.
+
+        Raises:
+            ValueError: A common value or a context-specific field is unsupported.
+        """
         t, b, lft, r = self.margins
         cfg: dict[str, Any] = {
             # data mapping
@@ -343,7 +360,7 @@ class FigureSpec:
             if self.category_group_rule_y is not None:
                 cfg["category_group_rule_y"] = self.category_group_rule_y
 
-        _emit_legend(cfg, self.legend, "legend_", anchor_keys=("anchor_x", "anchor_y"))
+        _emit_legend(cfg, self.legend, "legend_")
 
         if self.reference_line is not None:
             rl = self.reference_line
@@ -363,9 +380,16 @@ class FigureSpec:
 
         if self.number_legend is not None:
             prefix = numbered_legend_prefix({**cfg, **self.extra})
-            _emit_legend(cfg, self.number_legend, prefix, anchor_keys=("xanchor", "yanchor"))
+            _emit_legend(cfg, self.number_legend, prefix)
         cfg.update(self.extra)  # escape hatch wins
         cfg = cast(dict[str, Any], _mutable_values(cfg))
+        from src.core.common.plot_payload import (
+            validate_plot_config_keys,
+            validate_plot_config_values,
+        )
+
+        validate_plot_config_keys(cfg, plot_type=plot_type)
+        validate_plot_config_values(cfg, plot_type=plot_type)
         numbered_axis_modes(cfg)
         return cfg
 
@@ -395,29 +419,21 @@ class FigureSpec:
                 styles[col] = {**styles.get(col, {}), "color": opts.color, "use_color": True}
             cfg["series_styles"] = styles
         if opts.legend is not None:
-            # Style/place the separate twin (right-axis) legend (read by apply_dual_axis).
-            _emit_legend(cfg, opts.legend, "dual_legend_", anchor_keys=("xanchor", "yanchor"))
+            _emit_legend(cfg, opts.legend, "legend2_")
 
 
 def _emit_legend(
     cfg: dict[str, Any],
     opts: LegendOpts,
     prefix: str,
-    *,
-    anchor_keys: tuple[str, str],
 ) -> None:
-    """Write a LegendOpts into *cfg* under *prefix*, only for fields that are set.
-
-    ``anchor_keys`` differs by legend: the primary legend reads
-    ``legend_anchor_x/anchor_y`` while the numbered box reads
-    ``legend2_xanchor/yanchor`` — this helper hides that asymmetry.
-    """
+    """Write a LegendOpts into *cfg* under *prefix*, only for fields that are set."""
     if opts.position is not None:
         cfg[f"{prefix}x"] = opts.position[0]
         cfg[f"{prefix}y"] = opts.position[1]
     if opts.anchor is not None:
-        cfg[f"{prefix}{anchor_keys[0]}"] = opts.anchor[0]
-        cfg[f"{prefix}{anchor_keys[1]}"] = opts.anchor[1]
+        cfg[f"{prefix}anchor_x"] = opts.anchor[0]
+        cfg[f"{prefix}anchor_y"] = opts.anchor[1]
     if opts.ncols is not None:
         cfg[f"{prefix}ncols"] = opts.ncols
     if opts.font_size is not None:

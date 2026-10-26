@@ -31,4 +31,4 @@ Shapers register through `ring5.shapers.register_shaper(ShaperDefinition(...))`.
 its implementation, exact TypedDict configuration, semantic validator and display metadata.
 Constructors, factory creation, pipeline execution and pipeline import use this one validator.
 Built-ins retain separate explicit discovery and editor ordering. Plugins default to API-only;
-a web editor requires its own configuration renderer. See [Add a shaper](../extension-guides/adding-a-shaper.md).
+a web editor requires its own configuration renderer. See [Add a shaper]({{ site.baseurl }}/developer-guide/extension-guides/adding-a-shaper/).

@@ -24,6 +24,16 @@ class TestParserStructure:
         parser = build_parser()
         args = parser.parse_args(["doctor"])
         assert args.command == "doctor"
+        assert args.tex_system == "xelatex"
+
+    @pytest.mark.parametrize("compiler", ["xelatex", "pdflatex", "lualatex"])
+    def test_doctor_compiler_choice(self, compiler: str) -> None:
+        args = build_parser().parse_args(["doctor", "--tex-system", compiler])
+        assert args.tex_system == compiler
+
+    def test_doctor_rejects_noncanonical_compiler(self) -> None:
+        with pytest.raises(SystemExit):
+            build_parser().parse_args(["doctor", "--tex-system", "XeLaTeX"])
 
     def test_parse_requires_variable_and_output(self) -> None:
         with pytest.raises(SystemExit):
@@ -68,7 +78,7 @@ class TestParserStructure:
 
 
 class TestDoctorCommand:
-    # [test->req~ring5.api.doctor~1]
+    # [test->req~ring5.api.doctor~2]
     def test_doctor_runs(self, capsys: pytest.CaptureFixture[str]) -> None:
         code = main(["doctor"])
         out = capsys.readouterr().out
@@ -487,7 +497,9 @@ class TestRegressionGateCommand:
             )
             == 2
         )
-        assert "Could not load CSV" in capsys.readouterr().err
+        message = capsys.readouterr().err
+        assert "Could not load data" in message
+        assert "CSV file not found" in message
 
         blocked_parent = tmp_path / "not-a-directory"
         blocked_parent.write_text("blocked")

@@ -24,7 +24,7 @@ make dev
 ```
 
 The target creates `python_venv`, installs RING-5 in editable mode with development and test
-dependencies, installs Playwright Chromium and Kaleido Chrome, and prepares test fixtures. It can take several minutes
+dependencies, installs Playwright Chromium and the reviewed Chrome for Testing release, and prepares test fixtures. It can take several minutes
 on the first run.
 
 Start the web application:
@@ -63,10 +63,10 @@ export and Matplotlib PDF, PNG, and SVG export remain available without those op
 ## Check external dependencies
 
 <!--
-`uman~ring5.api.doctor.documentation~1`
+`uman~ring5.api.doctor.documentation~2`
 
 Covers:
-- req~ring5.api.doctor~1
+- req~ring5.api.doctor~2
 
 -->
 
@@ -81,10 +81,63 @@ The report distinguishes the essential Perl dependency from optional tools:
 
 - A Chrome-family browser enables Plotly PNG, SVG, and PDF export. Plotly HTML export does not need
   Chrome.
-- XeLaTeX enables Matplotlib PGF export. Install it with `make install-latex` where that target
-  supports your package manager.
+- A selected TeX compiler enables Matplotlib PGF export. The default is XeLaTeX; use
+  `ring5 doctor --tex-system pdflatex` or `--tex-system lualatex` to check another supported compiler.
+  `make install-latex` provides the default XeLaTeX setup where it supports your package manager.
+
+`BROWSER_PATH`, when present, selects the required browser. It can be an executable path or a
+command available on `PATH`. An empty selection or a missing/non-executable target is reported
+as missing; exports fail without choosing another browser. When the variable is absent, discovery includes
+Kaleido's downloaded browser before system locations. The report does not launch external tools.
 
 RING-5's Matplotlib PDF export does not require LaTeX.
+
+## Install Chrome for Plotly static exports
+
+<!--
+`uman~ring5.cli.install-chrome.documentation~1`
+
+Covers:
+- req~ring5.cli.install-chrome~1
+
+-->
+
+`ring5 install-chrome` works from both a checkout and an installed wheel. It downloads the exact
+Stable release in the packaged manifest into the platform user cache's `ring5` application directory,
+under its `chrome` subdirectory. Use
+`--cache-dir PATH` to choose a different installation cache. The command prints only the absolute
+browser executable path to standard output; instructions and errors go to standard error.
+
+Select that executable before starting the application or a Python export process:
+
+```bash
+export BROWSER_PATH="$(ring5 install-chrome)"
+```
+
+On native Windows, use PowerShell with the environment's Python:
+
+```powershell
+$browser = & .\python_venv\Scripts\python.exe -m ring5.cli install-chrome
+if ($LASTEXITCODE -ne 0) { throw "Chrome installation failed" }
+$env:BROWSER_PATH = $browser
+```
+
+With another activated environment, use its `ring5 install-chrome` command. `make chrome-install`
+delegates to the same CLI; a child process cannot set `BROWSER_PATH` in its parent shell. The
+installer neither launches Chrome nor changes browser selection. Installation failure returns
+exit code 2 and preserves existing installations. A corrupt or unowned destination is rejected;
+inspect the reported path before explicitly removing it and retrying.
+
+The manifest contains native Linux x64/ARM64, macOS x64/ARM64, and Windows x86/x64 artifacts.
+Other OS/architecture combinations, including Windows ARM64, are rejected without choosing an
+emulated build. Archive installation does not establish native static-export support: Chrome's
+system libraries and a compatible host are still required. Playwright installs a separate browser
+for application tests and does not select RING-5's export browser.
+
+The reviewed SHA-256 values are computed from official HTTPS downloads checked against Google's
+object size, MD5, and generation. They are project integrity pins, not a Google signature. See the
+[developer setup]({{site.baseurl}}/developer-guide/development/setup/#chrome-release-policy) for the
+release policy.
 
 ## Verify the installation
 

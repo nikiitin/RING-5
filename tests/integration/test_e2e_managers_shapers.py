@@ -358,7 +358,7 @@ class TestE2EIntegration:
         from src.web.pages.ui.plotting import PlotFactory
 
         # Create plot configuration
-        plot_config = {
+        plot_config: dict[str, Any] = {
             "type": "bar",
             "data": {
                 "x": "benchmark_name",
@@ -380,12 +380,7 @@ class TestE2EIntegration:
         plot = PlotFactory.create_plot("bar", 1, "test_plot")
         plot.processed_data = data
         plot.config = plot_config.get("data", {})
-        plot.config.update(plot_config.get("style", {}))
-
-        # Note: Rendering is now handled differently in the new architecture
-        # The old renderer API is deprecated
-
-        # Skip actual rendering for this test since API changed
+        plot.config = {**plot.config, **plot_config.get("style", {})}
 
         # Assertions for final data quality
         assert len(data) > 0, "Final data should not be empty"

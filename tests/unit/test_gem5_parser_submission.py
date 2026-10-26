@@ -1,30 +1,34 @@
-"""Submission resolves explicit sources before pool allocation; finalization preserves lifecycle."""
+"""Submission owns exact sources and typed finalization preserves values and missingness."""
 
-import os
-from dataclasses import dataclass
+import csv
+import math
+from concurrent.futures import Future
+from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.core.models.parsing_models import ScannedVariable, SourceInstance, StatConfig
+from src.core.common.parsed_output import ParsedOutputIO
+from src.core.models.parsed_output_models import ParsedCell, ParsedFileResult, ParsedVariableResult
+from src.core.models.parsing_models import (
+    ParseBatchResult,
+    ScannedVariable,
+    SourceInstance,
+    StatConfig,
+)
 from src.parsing.gem5.impl.gem5_parser import Gem5Parser
+from tests.helpers.parsed_values import completed_future, numeric_file
 
 
-@dataclass
-class FakeStat:
-    entries: list[str] | None = None
-    reduced_content: Any = None
-
-    def balance_content(self) -> None:
-        pass
-
-    def reduce_duplicates(self) -> None:
-        pass
+def _batch(root: Path, names: tuple[str, ...]) -> ParseBatchResult:
+    return ParseBatchResult((Future(),), names, ("source",), str(root), "simple")
 
 
 @pytest.mark.parametrize("keep", [False, True])
-def test_submission_passes_one_resolved_plan_and_exact_output_names(tmp_path, keep):
+def test_submission_passes_one_resolved_plan_and_exact_output_names(
+    tmp_path: Path, keep: bool
+) -> None:
     config = StatConfig(
         "IPC",
         "scalar",
@@ -42,25 +46,35 @@ def test_submission_passes_one_resolved_plan_and_exact_output_names(tmp_path, ke
             instances=(SourceInstance("cpu0.ipc", ("0",)), SourceInstance("cpu1.ipc", ("1",))),
         )
     ]
+    source = str(tmp_path / "stats.txt")
+    name = "cpu1.ipc" if keep else "IPC"
+    result = numeric_file(source, {name: 1.25})
+    work = MagicMock(source_path=source, return_value=result)
     with (
         patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory") as factory,
         patch("src.parsing.gem5.impl.gem5_parser.WorkPool") as pool,
     ):
         strategy = factory.create.return_value
-        strategy.get_work_items.return_value = [MagicMock()]
-        pool.get_instance.return_value.submit_many.return_value = [MagicMock()]
+        strategy.get_work_items.return_value = [work]
+        pool.get_instance.return_value.submit_many.side_effect = lambda tasks: [
+            completed_future(task()) for task in tasks
+        ]
         batch = Gem5Parser.submit_parse_async(
             str(tmp_path), "stats.txt", [config], str(tmp_path / "out"), scanned_vars=metadata
         )
         plan = strategy.get_work_items.call_args.args[2]
         assert set(plan.routes) == {"cpu1.ipc"}
         assert plan.accumulators[0].config == config
-        assert batch.var_names == (["cpu1.ipc"] if keep else ["IPC"])
+        assert batch.var_names == (name,)
+        assert batch.source_paths == (source,)
+        assert batch.futures[0].result() == result
         pool.get_instance.return_value.submit_many.assert_called_once()
 
 
 @pytest.mark.parametrize("configs, message", [([], "at least one"), ([{}], "StatConfig")])
-def test_invalid_runnable_input_rejects_before_pool(tmp_path, configs, message):
+def test_invalid_runnable_input_rejects_before_pool(
+    tmp_path: Path, configs: Any, message: str
+) -> None:
     with patch("src.parsing.gem5.impl.gem5_parser.WorkPool") as pool:
         with pytest.raises((ValueError, TypeError), match=message):
             Gem5Parser.submit_parse_async(
@@ -69,7 +83,7 @@ def test_invalid_runnable_input_rejects_before_pool(tmp_path, configs, message):
         pool.get_instance.assert_not_called()
 
 
-def test_missing_pattern_sources_reject_before_strategy_or_pool(tmp_path):
+def test_missing_pattern_sources_reject_before_strategy_or_pool(tmp_path: Path) -> None:
     with (
         patch("src.parsing.gem5.impl.gem5_parser.WorkPool") as pool,
         patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory") as factory,
@@ -85,7 +99,7 @@ def test_missing_pattern_sources_reject_before_strategy_or_pool(tmp_path):
         factory.create.assert_not_called()
 
 
-def test_empty_strategy_work_raises(tmp_path):
+def test_empty_strategy_work_raises(tmp_path: Path) -> None:
     with patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory") as factory:
         factory.create.return_value.get_work_items.return_value = []
         with pytest.raises(FileNotFoundError, match="No parse work generated"):
@@ -98,62 +112,73 @@ def test_empty_strategy_work_raises(tmp_path):
 
 
 class TestFinalizeAndConstructCSV:
-    """Test finalize_parsing and construct_final_csv branches."""
+    """The submitted plan and finalized cells are the single CSV publication input."""
 
-    @patch("src.parsing.gem5.impl.gem5_parser.StrategyFactory")
-    def test_finalize_empty_results(self, mock_factory: MagicMock, tmp_path: Any) -> None:
-        result = Gem5Parser.finalize_parsing(str(tmp_path), [])
-        assert result is None
+    def test_finalize_empty_results(self, tmp_path: Path) -> None:
+        target = tmp_path / "results.csv"
+        target.write_bytes(b"previous-output\n")
+        with pytest.raises(ValueError, match="non-empty file result"):
+            Gem5Parser.finalize_parsing(_batch(tmp_path, ("x",)), [])
+        assert target.read_bytes() == b"previous-output\n"
 
-    def test_construct_csv_empty(self, tmp_path: Any) -> None:
-        result = Gem5Parser.construct_final_csv(str(tmp_path), [])
-        assert result is None
+    def test_construct_csv_empty(self, tmp_path: Path) -> None:
+        with pytest.raises(TypeError, match="exact ParseBatchResult"):
+            Gem5Parser.finalize_parsing(str(tmp_path), [])  # type: ignore[arg-type]
+        assert not (tmp_path / "results.csv").exists()
 
-    def test_construct_csv_with_entries(self, tmp_path: Any) -> None:
-        stat = FakeStat(entries=["0", "1"], reduced_content={"0": 10, "1": 20})
-        results = [{"ipc": stat}]
-
-        path = Gem5Parser.construct_final_csv(str(tmp_path), results)
-        assert path is not None
-        assert os.path.exists(path)
-        with open(path) as f:
-            lines = f.readlines()
-        assert "ipc..0" in lines[0]
-
-    def test_construct_csv_scalar(self, tmp_path: Any) -> None:
-        stat = FakeStat(entries=None, reduced_content="42")
-        results = [{"cycles": stat}]
-
-        path = Gem5Parser.construct_final_csv(str(tmp_path), results)
-        assert path is not None
-        with open(path) as f:
-            lines = f.readlines()
-        assert "cycles" in lines[0]
-
-    def test_construct_csv_missing_var(self, tmp_path: Any) -> None:
-        stat = FakeStat(entries=None, reduced_content="42")
-        results = [{"cycles": stat}]
-
-        path = Gem5Parser.construct_final_csv(
-            str(tmp_path), results, var_names=["cycles", "missing_var"]
+    def test_construct_csv_with_entries(self, tmp_path: Path) -> None:
+        record = ParsedFileResult(
+            "source",
+            (
+                ParsedVariableResult(
+                    "ipc",
+                    "number",
+                    "entries",
+                    (ParsedCell("ipc..0", "number", 10.0), ParsedCell("ipc..1", "number", 20.0)),
+                ),
+            ),
         )
-        assert path is not None
-        with open(path) as f:
-            lines = f.readlines()
-        # "NaN" should appear for missing var
-        assert "NaN" in lines[1]
+        output = Gem5Parser.finalize_parsing(_batch(tmp_path, ("ipc",)), [record])
+        assert Path(output.csv_path).is_file()
+        with open(output.csv_path, newline="") as stream:
+            rows = list(csv.reader(stream))
+        assert rows == [["ipc..0", "ipc..1"], ["10.0", "20.0"]]
+        assert ParsedOutputIO.to_frame(output).to_dict("list") == {
+            "ipc..0": [10.0],
+            "ipc..1": [20.0],
+        }
 
-    def test_construct_csv_raw_data(self, tmp_path: Any) -> None:
-        """Test with raw data that lacks balance_content — hits the else branch."""
-        # Use a simple object that has entries (for header building)
-        # but no balance_content (to hit the raw data branch)
-        raw = MagicMock()
-        raw.entries = None
-        del raw.balance_content  # ensure hasattr(..., "balance_content") is False
+    def test_construct_csv_scalar(self, tmp_path: Path) -> None:
+        output = Gem5Parser.finalize_parsing(
+            _batch(tmp_path, ("cycles",)), [numeric_file("source", {"cycles": 42.0})]
+        )
+        assert ParsedOutputIO.to_frame(output).to_dict("list") == {"cycles": [42.0]}
 
-        results = [{"benchmark": raw}]
-        path = Gem5Parser.construct_final_csv(str(tmp_path), results)
-        assert path is not None
-        with open(path) as f:
-            lines = f.readlines()
-        assert "benchmark" in lines[0]
+    def test_construct_csv_missing_var(self, tmp_path: Path) -> None:
+        record = ParsedFileResult(
+            "source",
+            (
+                ParsedVariableResult(
+                    "cycles", "number", "scalar", (ParsedCell("cycles", "number", 42.0),)
+                ),
+                ParsedVariableResult(
+                    "missing_var",
+                    "number",
+                    "scalar",
+                    (ParsedCell("missing_var", "number", math.nan),),
+                    missing_measurements=1,
+                ),
+            ),
+        )
+        output = Gem5Parser.finalize_parsing(_batch(tmp_path, ("cycles", "missing_var")), [record])
+        frame = ParsedOutputIO.to_frame(output)
+        assert frame["cycles"].tolist() == [42.0]
+        assert math.isnan(float(frame["missing_var"].iloc[0]))
+        assert ParsedOutputIO.read(output).missing_variables == ("missing_var",)
+
+    def test_construct_csv_raw_data(self, tmp_path: Path) -> None:
+        """An object without a typed declaration never becomes a success row."""
+        raw: list[Any] = [{"benchmark": MagicMock()}]
+        with pytest.raises(TypeError, match="ParsedFileResult"):
+            Gem5Parser.finalize_parsing(_batch(tmp_path, ("benchmark",)), raw)
+        assert not (tmp_path / "results.csv").exists()

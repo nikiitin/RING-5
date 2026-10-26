@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pandas as pd
 
-from src.core.models.shaper_models import ShaperStepConfig
+from src.core.models.shaper_models import ShaperStepConfig, SplitApplyGroupConfig
 from src.core.services.shapers.factory import ShaperFactory
 
 # Helpers
@@ -99,7 +99,7 @@ class TestSplitApplyConfigRender:
         )
 
         assert result.get("joinColumns") == ["benchmark", "config"]
-        groups = result.get("groups", [])
+        groups = cast(list[SplitApplyGroupConfig], result.get("groups", []))
         assert len(groups) == 2
         assert groups[0].get("columns") == ["ipc"]
         assert groups[0].get("pipeline") == []
@@ -177,9 +177,6 @@ class TestSplitApplyConfigSubStepDelegation:
 
         result = SplitApplyConfig._render_sub_step(
             data=data,
-            columns=["ipc"],
-            join_columns=["benchmark", "config"],
-            categorical_cols=["benchmark", "config"],
             existing_step=cast(Any, {}),
             key_base="k",
             step_index=0,
@@ -224,9 +221,6 @@ class TestSplitApplyConfigSubStepDelegation:
 
         result = SplitApplyConfig._render_sub_step(
             data=data,
-            columns=["ipc"],
-            join_columns=["benchmark", "config"],
-            categorical_cols=["benchmark", "config"],
             existing_step=cast(Any, {}),
             key_base="k",
             step_index=0,
@@ -266,9 +260,6 @@ class TestSplitApplyConfigSubStepDelegation:
 
         result = SplitApplyConfig._render_sub_step(
             data=data,
-            columns=["ipc"],
-            join_columns=["benchmark", "config"],
-            categorical_cols=["benchmark", "config"],
             existing_step=cast(Any, {}),
             key_base="k",
             step_index=0,
@@ -307,9 +298,6 @@ class TestSplitApplyConfigSubStepDelegation:
 
         result = SplitApplyConfig._render_sub_step(
             data=data,
-            columns=["ipc"],
-            join_columns=["benchmark", "config"],
-            categorical_cols=["benchmark", "config"],
             existing_step=cast(Any, {}),
             key_base="k",
             step_index=0,
@@ -385,7 +373,7 @@ class TestSplitApplyConfigWithStep:
             display_names=ShaperFactory.get_display_name_map(),
         )
 
-        groups = result.get("groups", [])
+        groups = cast(list[SplitApplyGroupConfig], result.get("groups", []))
         grp_a = groups[0]
         pipeline_a = grp_a.get("pipeline", [])
         assert len(pipeline_a) == 1
@@ -434,7 +422,7 @@ class TestSplitApplyConfigNGroups:
             display_names=ShaperFactory.get_display_name_map(),
         )
 
-        groups = result.get("groups", [])
+        groups = cast(list[SplitApplyGroupConfig], result.get("groups", []))
         assert len(groups) == 3
         assert groups[0].get("columns") == ["v1"]
         assert groups[1].get("columns") == ["v2"]
@@ -481,7 +469,7 @@ class TestSplitApplyConfigNGroups:
             display_names=ShaperFactory.get_display_name_map(),
         )
 
-        groups = result.get("groups", [])
+        groups = cast(list[SplitApplyGroupConfig], result.get("groups", []))
         assert len(groups) == 4
         for i in range(4):
             assert groups[i].get("columns") == [f"v{i + 1}"]
@@ -531,7 +519,7 @@ class TestSplitApplyConfigNGroups:
             display_names=ShaperFactory.get_display_name_map(),
         )
 
-        assert len(result.get("groups", [])) == 3
+        assert len(cast(list[SplitApplyGroupConfig], result.get("groups", []))) == 3
         # Verify slider was called with value=3
         mock_st.slider.assert_called_once()
         call_kwargs = mock_st.slider.call_args
@@ -615,7 +603,7 @@ class TestSplitApplyConfigExistingPipeline:
             display_names=ShaperFactory.get_display_name_map(),
         )
 
-        groups = result.get("groups", [])
+        groups = cast(list[SplitApplyGroupConfig], result.get("groups", []))
         grp_a = groups[0]
         pipeline_a = grp_a.get("pipeline", [])
         assert len(pipeline_a) == 1
@@ -657,9 +645,6 @@ class TestSplitApplyConfigKeyPrefixing:
 
         SplitApplyConfig._render_sub_step(
             data=data,
-            columns=["ipc"],
-            join_columns=["benchmark", "config"],
-            categorical_cols=["benchmark", "config"],
             existing_step=cast(Any, {}),
             key_base="p_sa_g1_0_s0",
             step_index=0,

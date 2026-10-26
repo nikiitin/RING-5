@@ -10,12 +10,15 @@ Verifies that the controller correctly orchestrates:
     - Error resilience (config errors don't crash the flow)
 """
 
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
+from matplotlib.patches import Rectangle
 import pytest
 import plotly.graph_objects as go
+from matplotlib.figure import Figure as MplFigure
+from src.web.rendering.figure_preparation import PreparedDashboard
 
 from src.core.models.visualization.drill_down_result import DrillDownResult
 from src.core.models.visualization.small_multiples_spec import FacetPanel, SmallMultiplesSpec
@@ -121,6 +124,7 @@ class TestTypeSelector:
         self,
         mock_st: MagicMock,
         mock_pills: MagicMock,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """When selectbox returns a different type, lifecycle.change_plot_type + rerun."""
         mock_st.selectbox.return_value = "line"
@@ -129,7 +133,8 @@ class TestTypeSelector:
 
         data = pd.DataFrame({"x": [1]})
         plot = StubPlotHandle(plot_type="bar", processed_data=data)
-        plot.render_config_ui = MagicMock()
+        config_renderer = MagicMock()
+        monkeypatch.setattr(plot, "render_config_ui", config_renderer)
         lifecycle = MagicMock()
         api = MagicMock()
         ctrl = _make_render_controller(api=api, lifecycle=lifecycle)
@@ -137,7 +142,7 @@ class TestTypeSelector:
 
         lifecycle.change_plot_type.assert_called_once_with(plot, "line", api.state_manager)
         mock_st.rerun.assert_called_once()
-        plot.render_config_ui.assert_not_called()
+        config_renderer.assert_not_called()
 
 
 # Config gathering
@@ -154,6 +159,7 @@ class TestConfigGathering:
         mock_pills: MagicMock,
         mock_refresh: MagicMock,
         mock_viz: MagicMock,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """Config from render_config_ui and render_settings_section is merged."""
         mock_st.selectbox.return_value = "bar"  # no type change
@@ -164,45 +170,23 @@ class TestConfigGathering:
         data = pd.DataFrame({"time": [1], "value": [2]})
         plot = StubPlotHandle(plot_type="bar", processed_data=data, config={})
         # Override render_config_ui to return specific config
-        plot.render_config_ui = lambda data, config: {"x_col": "time", "y_col": "value"}
-        plot.render_settings_section = lambda section, saved_config, data=None: {
-            "title": "My Chart",
-            "legend": True,
-        }
+        monkeypatch.setattr(
+            plot, "render_config_ui", lambda data, config: {"x_col": "time", "y_col": "value"}
+        )
+        monkeypatch.setattr(
+            plot,
+            "render_settings_section",
+            lambda section, saved_config, data=None: {
+                "title": "My Chart",
+                "legend": True,
+            },
+        )
         ctrl = _make_render_controller()
         ctrl.render(plot)
 
-        assert plot.config["x_col"] == "time"
-        assert plot.config["y_col"] == "value"
-        assert plot.config["title"] == "My Chart"
-        assert plot.config["legend"] is True
-
-    @patch(f"{_CTRL}.PlotRenderController._render_visualization")
-    @patch(f"{_CTRL}.ChartDisplayComponent.render_refresh_controls")
-    @patch(f"{_CTRL}.render_settings_pills")
-    @patch(f"{_CTRL}.st")
-    def test_legacy_publication_preset_marker_is_removed(
-        self,
-        mock_st: MagicMock,
-        mock_pills: MagicMock,
-        mock_refresh: MagicMock,
-        mock_viz: MagicMock,
-    ) -> None:
-        """Discard the obsolete publication-preset marker from old portfolios."""
-        mock_st.selectbox.return_value = "bar"
-        mock_st.toggle.return_value = False
-        mock_pills.return_value = None
-        mock_refresh.return_value = _default_refresh_controls(should_generate=True)
-        data = pd.DataFrame({"time": [1], "value": [2]})
-        plot = StubPlotHandle(
-            plot_type="bar",
-            processed_data=data,
-            config={"preset_applied": "isca"},
-        )
-
-        _make_render_controller().render(plot)
-
-        assert "preset_applied" not in plot.config
+        candidate = mock_viz.call_args.args[1]
+        assert candidate == {"x_col": "time", "y_col": "value", "title": "My Chart", "legend": True}
+        assert plot.config == {}  # Publication belongs to successful native rendering.
 
 
 # Config change detection + refresh
@@ -231,7 +215,7 @@ class TestRefreshLogic:
         ctrl = _make_render_controller()
         ctrl.render(plot)
 
-        mock_viz.assert_called_once_with(plot, True)
+        mock_viz.assert_called_once_with(plot, plot.config, True)
 
     @patch(f"{_CTRL}.PlotRenderController._render_visualization")
     @patch(f"{_CTRL}.ChartDisplayComponent.render_refresh_controls")
@@ -255,7 +239,7 @@ class TestRefreshLogic:
         ctrl = _make_render_controller()
         ctrl.render(plot)
 
-        mock_viz.assert_called_once_with(plot, False)
+        mock_viz.assert_called_once_with(plot, plot.config, False)
 
     @patch(f"{_CTRL}.PlotRenderController._render_visualization")
     @patch(f"{_CTRL}.ChartDisplayComponent.render_refresh_controls")
@@ -267,6 +251,7 @@ class TestRefreshLogic:
         mock_pills: MagicMock,
         mock_refresh: MagicMock,
         mock_viz: MagicMock,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """Force one render after applying a theme with auto-refresh disabled."""
         # [test->req~ring5.figure.theme-presets~1]
@@ -280,15 +265,19 @@ class TestRefreshLogic:
 
         data = pd.DataFrame({"a": [1]})
         plot = StubPlotHandle(plot_type="bar", processed_data=data, config={"x": "a"})
-        plot.render_settings_section = lambda section, saved_config, data=None: {
-            "figure_theme_id": "paper",
-            "_ring5_request_refresh": True,
-        }
+        monkeypatch.setattr(
+            plot,
+            "render_settings_section",
+            lambda section, saved_config, data=None: {
+                "figure_theme_id": "paper",
+                "_ring5_request_refresh": True,
+            },
+        )
         ctrl = _make_render_controller()
         ctrl.render(plot)
 
-        assert plot.config == {"x": "a", "figure_theme_id": "paper"}
-        mock_viz.assert_called_once_with(plot, True)
+        assert plot.config == {"x": "a"}
+        mock_viz.assert_called_once_with(plot, {"x": "a", "figure_theme_id": "paper"}, True)
 
     @patch(f"{_CTRL}.PlotRenderController._render_visualization")
     @patch(f"{_CTRL}.ChartDisplayComponent.render_refresh_controls")
@@ -315,7 +304,7 @@ class TestRefreshLogic:
         ctrl.render(plot)
 
         mock_refresh.assert_called_once_with(plot_id=10, auto_refresh=True, config_changed=False)
-        mock_viz.assert_called_once_with(plot, True)
+        mock_viz.assert_called_once_with(plot, plot.config, True)
 
 
 # Error resilience
@@ -332,6 +321,7 @@ class TestErrorResilience:
         mock_pills: MagicMock,
         mock_refresh: MagicMock,
         mock_viz: MagicMock,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """If render_config_ui raises, st.exception is called; flow continues."""
         mock_st.selectbox.return_value = "bar"
@@ -341,12 +331,14 @@ class TestErrorResilience:
 
         data = pd.DataFrame({"a": [1]})
         plot = StubPlotHandle(plot_type="bar", processed_data=data, config={})
-        plot.render_config_ui = MagicMock(side_effect=ValueError("bad column"))
+        monkeypatch.setattr(
+            plot, "render_config_ui", MagicMock(side_effect=ValueError("bad column"))
+        )
         ctrl = _make_render_controller()
         ctrl.render(plot)
 
         mock_st.exception.assert_called_once()
-        mock_viz.assert_called_once_with(plot, False)
+        mock_viz.assert_not_called()
 
     @patch(f"{_CTRL}.PlotRenderController._render_visualization")
     @patch(f"{_CTRL}.ChartDisplayComponent.render_refresh_controls")
@@ -358,6 +350,7 @@ class TestErrorResilience:
         mock_pills: MagicMock,
         mock_refresh: MagicMock,
         mock_viz: MagicMock,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """If render_settings_section raises, st.exception is called."""
         mock_st.selectbox.return_value = "bar"
@@ -367,12 +360,14 @@ class TestErrorResilience:
 
         data = pd.DataFrame({"a": [1]})
         plot = StubPlotHandle(plot_type="bar", processed_data=data, config={})
-        plot.render_settings_section = MagicMock(side_effect=TypeError("wrong type"))
+        monkeypatch.setattr(
+            plot, "render_settings_section", MagicMock(side_effect=TypeError("wrong type"))
+        )
         ctrl = _make_render_controller()
         ctrl.render(plot)
 
         mock_st.exception.assert_called_once()
-        mock_viz.assert_called_once_with(plot, False)
+        mock_viz.assert_not_called()
 
     @patch(f"{_CTRL}.PlotRenderController._render_visualization")
     @patch(f"{_CTRL}.ChartDisplayComponent.render_refresh_controls")
@@ -384,6 +379,7 @@ class TestErrorResilience:
         mock_pills: MagicMock,
         mock_refresh: MagicMock,
         mock_viz: MagicMock,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """Two config errors still result in should_generate=False."""
         mock_st.selectbox.return_value = "bar"
@@ -393,13 +389,15 @@ class TestErrorResilience:
 
         data = pd.DataFrame({"a": [1]})
         plot = StubPlotHandle(plot_type="bar", processed_data=data, config={})
-        plot.render_config_ui = MagicMock(side_effect=RuntimeError("err1"))
-        plot.render_settings_section = MagicMock(side_effect=RuntimeError("err2"))
+        monkeypatch.setattr(plot, "render_config_ui", MagicMock(side_effect=RuntimeError("err1")))
+        monkeypatch.setattr(
+            plot, "render_settings_section", MagicMock(side_effect=RuntimeError("err2"))
+        )
         ctrl = _make_render_controller()
         ctrl.render(plot)
 
         assert mock_st.exception.call_count == 2
-        mock_viz.assert_called_once_with(plot, False)
+        mock_viz.assert_not_called()
 
 
 class TestFigureIdentity:
@@ -449,37 +447,42 @@ class TestFigureIdentity:
         self,
         mock_chart: MagicMock,
         mock_engine: MagicMock,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """An unchanged render does not call the figure builder again."""
         mock_engine.get_engine.return_value = "plotly"
         mock_chart.render_engine_selector.return_value = "plotly"
-        plot = StubPlotHandle(processed_data=pd.DataFrame({"value": [1, 2, 3]}))
-        plot.create_figure = MagicMock(return_value=MagicMock())
+        plot = StubPlotHandle(
+            processed_data=pd.DataFrame({"value": [1, 2, 3]}), config={"x": "value", "y": "value"}
+        )
+        trace_builder = MagicMock(wraps=plot.create_traces)
+        monkeypatch.setattr(plot, "create_traces", trace_builder)
         ctrl = _make_render_controller()
 
-        ctrl._render_visualization(plot, should_generate=False)
-        ctrl._render_visualization(plot, should_generate=False)
+        ctrl._render_visualization(plot, config=plot.config, should_generate=False)
+        ctrl._render_visualization(plot, config=plot.config, should_generate=False)
 
-        plot.create_figure.assert_called_once()
+        trace_builder.assert_called_once()
 
     @patch(f"{_CTRL}.EngineManager")
     @patch(f"{_CTRL}.ChartDisplayComponent")
     def test_unsupported_metadata_renders_without_reusing_an_unverified_figure(
-        self, mock_chart: MagicMock, mock_engine: MagicMock
+        self, mock_chart: MagicMock, mock_engine: MagicMock, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         mock_engine.get_engine.return_value = "plotly"
         mock_chart.render_engine_selector.return_value = "plotly"
         data = pd.DataFrame({"value": [1]})
         data.attrs["custom"] = object()
-        plot = StubPlotHandle(processed_data=data)
-        plot.create_figure = MagicMock(return_value=MagicMock())
+        plot = StubPlotHandle(processed_data=data, config={"x": "value", "y": "value"})
+        trace_builder = MagicMock(wraps=plot.create_traces)
+        monkeypatch.setattr(plot, "create_traces", trace_builder)
         ctrl = _make_render_controller()
 
-        ctrl._render_visualization(plot, should_generate=False)
-        ctrl._render_visualization(plot, should_generate=False)
+        ctrl._render_visualization(plot, config=plot.config, should_generate=False)
+        ctrl._render_visualization(plot, config=plot.config, should_generate=False)
 
-        assert plot.create_figure.call_count == 2
-        assert plot.last_figure_cache_key is None
+        assert trace_builder.call_count == 2
+        assert plot.render_artifact.cache_key is None
 
     @patch(f"{_CTRL}.EngineManager")
     @patch(f"{_CTRL}.ChartDisplayComponent")
@@ -489,6 +492,7 @@ class TestFigureIdentity:
         mock_st: MagicMock,
         mock_chart: MagicMock,
         mock_engine: MagicMock,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """An engine change reruns, then regenerates with the new identity."""
         # [test->req~ring5.plots.independent-state~1]
@@ -498,15 +502,18 @@ class TestFigureIdentity:
             "matplotlib",
             "matplotlib",
         ]
-        plot = StubPlotHandle(processed_data=pd.DataFrame({"value": [1, 2, 3]}))
-        plot.create_figure = MagicMock(return_value=MagicMock())
+        plot = StubPlotHandle(
+            processed_data=pd.DataFrame({"value": [1, 2, 3]}), config={"x": "value", "y": "value"}
+        )
+        trace_builder = MagicMock(wraps=plot.create_traces)
+        monkeypatch.setattr(plot, "create_traces", trace_builder)
         ctrl = _make_render_controller()
 
-        ctrl._render_visualization(plot, should_generate=False)
-        ctrl._render_visualization(plot, should_generate=False)
-        ctrl._render_visualization(plot, should_generate=False)
+        ctrl._render_visualization(plot, config=plot.config, should_generate=False)
+        ctrl._render_visualization(plot, config=plot.config, should_generate=False)
+        ctrl._render_visualization(plot, config=plot.config, should_generate=False)
 
-        assert plot.create_figure.call_count == 2
+        assert trace_builder.call_count == 2
         mock_engine.set_engine.assert_called_once_with("matplotlib")
         mock_st.rerun.assert_called_once_with()
 
@@ -535,8 +542,6 @@ class TestDrillDownInteraction:
             config={"x": "workload", "y": "ipc", "title": "Keep me"},
             processed_data=data,
         )
-        plot.create_figure = MagicMock(return_value=figure)
-        plot.apply_common_layout = MagicMock(return_value=figure)
         config_snapshot = dict(plot.config)
         result = DrillDownResult(3, (("workload", "A"),), data)
         api = MagicMock()
@@ -555,7 +560,7 @@ class TestDrillDownInteraction:
         }
         mock_panel.render_toggle.return_value = True
 
-        ctrl._render_visualization(plot, should_generate=True)
+        ctrl._render_visualization(plot, config=plot.config, should_generate=True)
 
         api.drill_down_plot.assert_called_once_with(3, {"workload": "A"})
         stored = mock_st.session_state["plot.3.drill_down.result"]
@@ -571,34 +576,36 @@ class TestDrillDownInteraction:
         self,
         mock_chart: MagicMock,
         mock_engine: MagicMock,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """Replacing only a middle-row value invalidates the visible figure."""
         mock_engine.get_engine.return_value = "plotly"
         mock_chart.render_engine_selector.return_value = "plotly"
-        plot = StubPlotHandle(processed_data=pd.DataFrame({"value": [1, 2, 3]}))
-        plot.create_figure = MagicMock(return_value=MagicMock())
+        plot = StubPlotHandle(
+            processed_data=pd.DataFrame({"value": [1, 2, 3]}), config={"x": "value", "y": "value"}
+        )
+        trace_builder = MagicMock(wraps=plot.create_traces)
+        monkeypatch.setattr(plot, "create_traces", trace_builder)
         ctrl = _make_render_controller()
-        ctrl._render_visualization(plot, should_generate=False)
+        ctrl._render_visualization(plot, config=plot.config, should_generate=False)
 
         plot.replace_processed_data(pd.DataFrame({"value": [1, 999, 3]}))
-        ctrl._render_visualization(plot, should_generate=False)
+        ctrl._render_visualization(plot, config=plot.config, should_generate=False)
 
-        assert plot.create_figure.call_count == 2
+        assert trace_builder.call_count == 2
 
 
 class TestSmallMultiplesRendering:
     """Facet settings route one plot through the shared dual-engine grid builder."""
 
-    @patch(f"{_CTRL}.render_small_multiples")
     @patch(f"{_CTRL}.ChartDisplayComponent")
     @patch(f"{_CTRL}.EngineManager")
     @patch(f"{_CTRL}.st")
-    def test_matplotlib_facets_build_plotly_preview_and_native_grid(
+    def test_matplotlib_facets_build_only_native_grid(
         self,
         mock_st: MagicMock,
         mock_engine: MagicMock,
         mock_chart: MagicMock,
-        mock_render: MagicMock,
     ) -> None:
         # [test->req~ring5.plots.small-multiples~1]
         data = pd.DataFrame({"benchmark": ["A", "A"], "arch": ["x86", "arm"], "ipc": [1.0, 2.0]})
@@ -621,10 +628,6 @@ class TestSmallMultiplesRendering:
             rows=1,
             columns=2,
         )
-        plotly_figure = go.Figure()
-        matplotlib_figure = MagicMock()
-        plot.create_figure = MagicMock()
-        mock_render.side_effect = [plotly_figure, matplotlib_figure]
         api = MagicMock()
         api.create_small_multiples.return_value = spec
         ctrl = _make_render_controller(api=api)
@@ -632,17 +635,64 @@ class TestSmallMultiplesRendering:
         mock_engine.get_engine.return_value = "matplotlib"
         mock_chart.render_engine_selector.return_value = "matplotlib"
 
-        ctrl._render_visualization(plot, should_generate=True)
+        ctrl._render_visualization(plot, config=plot.config, should_generate=True)
 
         api.create_small_multiples.assert_called_once()
-        assert [call.kwargs["engine"] for call in mock_render.call_args_list] == [
-            "plotly",
-            "matplotlib",
+        artifact = plot.render_artifact
+        assert artifact.engine == "matplotlib"
+        assert isinstance(artifact.figure, MplFigure)
+        assert isinstance(artifact.preparation, PreparedDashboard)
+        assert len(artifact.preparation.panels) == 2
+        assert [panel.trace_result.traces[0].y for panel in artifact.preparation.panels] == [
+            [1.0],
+            [2.0],
         ]
-        plot.create_figure.assert_not_called()
-        mock_chart.render_prebuilt_matplotlib_chart.assert_called_once_with(
-            matplotlib_figure,
-            plotly_figure,
-            5,
-            "Test Plot",
-        )
+        assert [
+            cast(Rectangle, patch).get_height()
+            for axis in artifact.figure.axes
+            for patch in axis.patches
+        ] == [
+            1.0,
+            2.0,
+        ]
+        mock_chart.render_matplotlib_chart.assert_called_once_with(artifact, 5, "Test Plot")
+        mock_chart.render_plotly_chart.assert_not_called()
+
+
+@patch(f"{_CTRL}.EngineManager")
+@patch(f"{_CTRL}.ChartDisplayComponent")
+@patch(f"{_CTRL}.st")
+def test_cache_publication_uses_the_source_rows_captured_by_the_native_builder(
+    mock_st: MagicMock,
+    mock_chart: MagicMock,
+    mock_engine: MagicMock,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from src.web.rendering.plot_renderer import build_render_artifact
+
+    mock_st.session_state = {}
+    mock_engine.get_engine.return_value = "plotly"
+    mock_chart.render_engine_selector.return_value = "plotly"
+    plot = StubPlotHandle(
+        processed_data=pd.DataFrame({"x": ["a"], "y": [3.0]}), config={"x": "x", "y": "y"}
+    )
+    builds = []
+
+    def capture_current(*args: Any, **kwargs: Any) -> Any:
+        builds.append(True)
+        if len(builds) == 1:
+            plot.replace_processed_data(pd.DataFrame({"x": ["a"], "y": [9.0]}))
+        return build_render_artifact(*args, **kwargs)
+
+    monkeypatch.setattr(f"{_CTRL}.build_render_artifact", capture_current)
+    controller = _make_render_controller()
+    controller._render_visualization(plot, plot.config, False)
+    artifact = plot.render_artifact
+    assert isinstance(artifact.figure, go.Figure)
+    assert isinstance(artifact.figure.data[0], go.Bar)
+    assert list(artifact.figure.data[0].y) == [9.0]
+    assert artifact.source_data is not None
+    assert artifact.source_data["y"].tolist() == [9.0]
+    controller._render_visualization(plot, plot.config, False)
+    assert plot.render_artifact is artifact
+    assert builds == [True]
