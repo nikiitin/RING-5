@@ -2640,10 +2640,12 @@ Tags: api, errors, status_approved, typing
 
 ### Dependency doctor
 
-`req~ring5.api.doctor~1`
+`req~ring5.api.doctor~2`
 Status: approved
 
-The public API and CLI shall report essential Perl and optional browser and XeLaTeX dependency availability without making optional exporters mandatory.
+The public API and CLI shall report essential Perl and optional selected-browser and selected-PGF-compiler executable availability without making optional exporters mandatory. Every present BROWSER_PATH value shall remain the required browser selection, including an unavailable empty value, and unsupported compiler identifiers shall fail explicitly.
+
+History records: 1
 
 Covers:
 - feat~ring5.automation~1

@@ -99,7 +99,13 @@ def test_save_and_load_portfolio(
     assert environment["ring5_version"]
     assert environment["python_version"]
     assert set(environment["renderers"]) == {"matplotlib", "plotly"}
-    assert set(environment["external_tools"]) == {"chrome", "perl", "xelatex"}
+    assert set(environment["external_tools"]) == {
+        "chrome",
+        "perl",
+        "xelatex",
+        "pdflatex",
+        "lualatex",
+    }
     assert loaded_data["csv_path"] == str(tmp_path / "original.csv")
     assert loaded_data["plot_counter"] == 1
     assert loaded_data["config"] == config_state

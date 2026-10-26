@@ -242,7 +242,8 @@ def plotly_download_bytes(
         selected = browser.selected_path
         detail = f"Selected browser {selected!r} is unavailable. " if selected is not None else ""
         raise ChromeNotFoundError(
-            detail + "Install Chrome with `kaleido_get_chrome` or set an executable BROWSER_PATH."
+            detail + "Fix or unset an invalid BROWSER_PATH before discovery. "
+            "Install Chrome with `kaleido_get_chrome` if none is installed."
         )
     kaleido_options["path"] = browser.executable_path
     last_exc: Exception | None = None

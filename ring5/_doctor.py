@@ -109,7 +109,10 @@ def doctor(*, tex_system: TexSystem = "xelatex") -> DoctorReport:
             found=browser.executable_path is not None,
             path=browser.executable_path or browser.selected_path,
             needed_for="plotly png/svg/pdf export",
-            install_hint="Run `kaleido_get_chrome` or set BROWSER_PATH.",
+            install_hint=(
+                "Fix or unset an invalid BROWSER_PATH; "
+                "run `kaleido_get_chrome` if no browser is installed."
+            ),
         ),
         tex_compiler=DependencyStatus(
             name=compiler,

@@ -25,7 +25,7 @@ def _no_native_processes(monkeypatch: pytest.MonkeyPatch) -> None:
         raise AssertionError("Tool-selection controls must not start native processes.")
 
     monkeypatch.setattr(subprocess, "run", fail)
-    monkeypatch.setattr(subprocess, "Popen", fail)
+    monkeypatch.setattr(subprocess.Popen, "__init__", fail)
 
 
 @pytest.mark.parametrize("downloaded", [False, True])
