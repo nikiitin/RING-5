@@ -621,7 +621,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
 </style>
     <title>RING-5 feature coverage · OpenFastTrace</title>
     <meta name="ring5-inventory-sha256" content="ab80e8f8f40b2117c06be8511721fd20b3c003463ab6ed955e9cafe84f931e58">
-  <meta name="ring5-evidence-sha256" content="0ca0a01288b94be7d7c2d793e06b233d023911c2497b9f358c41533e223cb9dc">
+  <meta name="ring5-evidence-sha256" content="c873b2881ff55b2a1d5a3d3c1e9654692c982f6764640f1d9d259ffaeb5b3a17">
 </head>
   <body>
 
@@ -3117,7 +3117,7 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
   <p>The plot registry shall provide violin plots with grouping, orientation, density, summary, and per-series styling controls.</p>
   <ul class="human-readiness" aria-label="Requirement readiness"><li data-readiness="ready"><span>Specification</span><strong>Requirement text present</strong></li><li data-readiness="ready"><span>Implementation</span><strong>5 exact origins</strong></li><li data-readiness="ready"><span>Test</span><strong>5 exact origins</strong></li><li data-readiness="ready"><span>Documentation</span><strong>1 exact origin</strong></li><li data-readiness="covered"><span>Native OFT trace</span><strong>Covered by OFT</strong></li><li data-readiness="not-recorded"><span>Execution</span><strong>No execution result supplied</strong></li></ul>
 
-  <details class="human-evidence"><summary>Show 11 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/violin-plots.md#L13"><code>docs/user-guide/workflows/violin-plots.md#compare-density-shapes-with-violin-plots</code><b>open source ↗</b></a><span>line 13 · <a href="#uman~ring5.plot.violin.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/core/models/visualization/trace_config.py#L216"><code>src/core/models/visualization/trace_config.py::ViolinTraceConfig</code><b>open source ↗</b></a><span>line 216 · <a href="#impl~ring5.plot.violin-2476953329~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/types/violin_plot.py#L94"><code>src/web/pages/ui/plotting/types/violin_plot.py::ViolinPlot.create_traces</code><b>open source ↗</b></a><span>line 94 · <a href="#impl~ring5.plot.violin-1910270778~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/components/plotting/config/violin_config.py#L33"><code>src/web/components/plotting/config/violin_config.py::render</code><b>open source ↗</b></a><span>line 33 · <a href="#impl~ring5.plot.violin-303255105~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/rendering/trace_to_plotly.py#L410"><code>src/web/rendering/trace_to_plotly.py::_violin_trace</code><b>open source ↗</b></a><span>line 410 · <a href="#impl~ring5.plot.violin-3725981454~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/rendering/matplotlib_trace_renderer.py#L603"><code>src/web/rendering/matplotlib_trace_renderer.py::MatplotlibTraceRenderer._draw_violin</code><b>open source ↗</b></a><span>line 603 · <a href="#impl~ring5.plot.violin-1667837512~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_violin_plot.py#L26"><code>tests/unit/test_violin_plot.py::test_grouped_violin_precomputes_density_and_count_width_without_mutation</code><b>open source ↗</b></a><span>line 26 · <a href="#test~ring5.plot.violin-3983988768~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_trace_to_plotly.py#L191"><code>tests/unit/test_trace_to_plotly.py::TestViolinTrace.test_horizontal_density_summary_and_style_controls</code><b>open source ↗</b></a><span>line 191 · <a href="#test~ring5.plot.violin-2735051655~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_matplotlib_trace_renderer.py#L418"><code>tests/unit/test_matplotlib_trace_renderer.py::TestRender.test_vertical_and_horizontal_violins_use_precomputed_density</code><b>open source ↗</b></a><span>line 418 · <a href="#test~ring5.plot.violin-4220259932~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_violin_plot_public_api.py#L16"><code>tests/integration/test_violin_plot_public_api.py::test_public_violin_plot_renders_both_engines_with_density_controls</code><b>open source ↗</b></a><span>line 16 · <a href="#test~ring5.plot.violin-2129406818~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/e2e/test_plot_types.py#L192"><code>tests/e2e/test_plot_types.py::TestPlotCreation.test_08_create_violin_plot</code><b>open source ↗</b></a><span>line 192 · <a href="#test~ring5.plot.violin-1463049403~0">native OFT artifact</a></span></li></ul></div></div></details>
+  <details class="human-evidence"><summary>Show 11 exact evidence origins</summary><div class="human-evidence-grid"><div class="human-evidence-column"><h5>Specification</h5><ul><li><a class="human-source-link" href="../../../docs/user-guide/workflows/violin-plots.md#L13"><code>docs/user-guide/workflows/violin-plots.md#compare-density-shapes-with-violin-plots</code><b>open source ↗</b></a><span>line 13 · <a href="#uman~ring5.plot.violin.documentation~1">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Implementation</h5><ul><li><a class="human-source-link" href="../../../src/core/models/visualization/trace_config.py#L216"><code>src/core/models/visualization/trace_config.py::ViolinTraceConfig</code><b>open source ↗</b></a><span>line 216 · <a href="#impl~ring5.plot.violin-2476953329~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/pages/ui/plotting/types/violin_plot.py#L94"><code>src/web/pages/ui/plotting/types/violin_plot.py::ViolinPlot.create_traces</code><b>open source ↗</b></a><span>line 94 · <a href="#impl~ring5.plot.violin-1910270778~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/components/plotting/config/violin_config.py#L33"><code>src/web/components/plotting/config/violin_config.py::render</code><b>open source ↗</b></a><span>line 33 · <a href="#impl~ring5.plot.violin-303255105~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/rendering/trace_to_plotly.py#L410"><code>src/web/rendering/trace_to_plotly.py::_violin_trace</code><b>open source ↗</b></a><span>line 410 · <a href="#impl~ring5.plot.violin-3725981454~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../src/web/rendering/matplotlib_trace_renderer.py#L603"><code>src/web/rendering/matplotlib_trace_renderer.py::MatplotlibTraceRenderer._draw_violin</code><b>open source ↗</b></a><span>line 603 · <a href="#impl~ring5.plot.violin-1667837512~0">native OFT artifact</a></span></li></ul></div><div class="human-evidence-column"><h5>Verification</h5><ul><li><a class="human-source-link" href="../../../tests/unit/test_violin_plot.py#L26"><code>tests/unit/test_violin_plot.py::test_grouped_violin_precomputes_density_and_count_width_without_mutation</code><b>open source ↗</b></a><span>line 26 · <a href="#test~ring5.plot.violin-3983988768~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_trace_to_plotly.py#L191"><code>tests/unit/test_trace_to_plotly.py::TestViolinTrace.test_horizontal_density_summary_and_style_controls</code><b>open source ↗</b></a><span>line 191 · <a href="#test~ring5.plot.violin-2735051655~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/unit/test_matplotlib_trace_renderer.py#L419"><code>tests/unit/test_matplotlib_trace_renderer.py::TestRender.test_vertical_and_horizontal_violins_use_precomputed_density</code><b>open source ↗</b></a><span>line 419 · <a href="#test~ring5.plot.violin-1577557586~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/integration/test_violin_plot_public_api.py#L16"><code>tests/integration/test_violin_plot_public_api.py::test_public_violin_plot_renders_both_engines_with_density_controls</code><b>open source ↗</b></a><span>line 16 · <a href="#test~ring5.plot.violin-2129406818~0">native OFT artifact</a></span></li><li><a class="human-source-link" href="../../../tests/e2e/test_plot_types.py#L192"><code>tests/e2e/test_plot_types.py::TestPlotCreation.test_08_create_violin_plot</code><b>open source ↗</b></a><span>line 192 · <a href="#test~ring5.plot.violin-1463049403~0">native OFT artifact</a></span></li></ul></div></div></details>
   <div class="human-card-footer">
     <div><div class="human-tags"><span class="human-tag">distribution</span><span class="human-tag">plots</span><span class="human-tag">visualization</span></div></div>
     <a href="#req~ring5.plot.violin~1">View canonical OFT trace ↓</a>
@@ -22761,10 +22761,10 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
               <li><a href="#impl~ring5.plot.violin-303255105~0">impl~ring5.plot.violin-303255105~0</a> <span class="origin">src/web/components/plotting/config/violin_config.py:33</span></li>
               <li><a href="#impl~ring5.plot.violin-3725981454~0">impl~ring5.plot.violin-3725981454~0</a> <span class="origin">src/web/rendering/trace_to_plotly.py:410</span></li>
               <li><a href="#test~ring5.plot.violin-1463049403~0">test~ring5.plot.violin-1463049403~0</a> <span class="origin">tests/e2e/test_plot_types.py:192</span></li>
+              <li><a href="#test~ring5.plot.violin-1577557586~0">test~ring5.plot.violin-1577557586~0</a> <span class="origin">tests/unit/test_matplotlib_trace_renderer.py:419</span></li>
               <li><a href="#test~ring5.plot.violin-2129406818~0">test~ring5.plot.violin-2129406818~0</a> <span class="origin">tests/integration/test_violin_plot_public_api.py:16</span></li>
               <li><a href="#test~ring5.plot.violin-2735051655~0">test~ring5.plot.violin-2735051655~0</a> <span class="origin">tests/unit/test_trace_to_plotly.py:191</span></li>
               <li><a href="#test~ring5.plot.violin-3983988768~0">test~ring5.plot.violin-3983988768~0</a> <span class="origin">tests/unit/test_violin_plot.py:26</span></li>
-              <li><a href="#test~ring5.plot.violin-4220259932~0">test~ring5.plot.violin-4220259932~0</a> <span class="origin">tests/unit/test_matplotlib_trace_renderer.py:418</span></li>
               <li><a href="#uman~ring5.plot.violin.documentation~1">uman~ring5.plot.violin.documentation~1</a> <span class="origin">docs/user-guide/workflows/violin-plots.md:13</span></li>
             </ul>
           </div>
@@ -29874,6 +29874,19 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           </div>
         </details>
       </section>
+      <section class="sitem" id="test~ring5.plot.violin-1577557586~0">
+        <details>
+          <summary title="test~ring5.plot.violin-1577557586~0"><span class="green">&check;</span> <b>ring5.plot.violin-1577557586</b><small>, rev. 0, test</small></summary>
+          <p class="id">test~ring5.plot.violin-1577557586~0</p>
+          <p class="origin">tests/unit/test_matplotlib_trace_renderer.py:419</p>
+          <div class="out">
+            <h6>Out: 1</h6>
+            <ul>
+              <li><a href="#req~ring5.plot.violin~1">req~ring5.plot.violin~1</a> <span class="origin">spec/oft/generated/requirements.md:1623</span></li>
+            </ul>
+          </div>
+        </details>
+      </section>
       <section class="sitem" id="test~ring5.plot.violin-2129406818~0">
         <details>
           <summary title="test~ring5.plot.violin-2129406818~0"><span class="green">&check;</span> <b>ring5.plot.violin-2129406818</b><small>, rev. 0, test</small></summary>
@@ -29905,19 +29918,6 @@ main#oft-native-report>section { scroll-margin-top:4rem; }
           <summary title="test~ring5.plot.violin-3983988768~0"><span class="green">&check;</span> <b>ring5.plot.violin-3983988768</b><small>, rev. 0, test</small></summary>
           <p class="id">test~ring5.plot.violin-3983988768~0</p>
           <p class="origin">tests/unit/test_violin_plot.py:26</p>
-          <div class="out">
-            <h6>Out: 1</h6>
-            <ul>
-              <li><a href="#req~ring5.plot.violin~1">req~ring5.plot.violin~1</a> <span class="origin">spec/oft/generated/requirements.md:1623</span></li>
-            </ul>
-          </div>
-        </details>
-      </section>
-      <section class="sitem" id="test~ring5.plot.violin-4220259932~0">
-        <details>
-          <summary title="test~ring5.plot.violin-4220259932~0"><span class="green">&check;</span> <b>ring5.plot.violin-4220259932</b><small>, rev. 0, test</small></summary>
-          <p class="id">test~ring5.plot.violin-4220259932~0</p>
-          <p class="origin">tests/unit/test_matplotlib_trace_renderer.py:418</p>
           <div class="out">
             <h6>Out: 1</h6>
             <ul>

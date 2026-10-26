@@ -404,12 +404,13 @@ class TestRender:
         assert len(result.bindings) == 1
         assert len(ax.lines) == 4
         assert {text.get_text() for text in ax.texts} >= {"Kind", "Score", "A", "B"}
-        alphas = []
-        for line in ax.lines[:2]:
-            alpha = line.get_alpha()
-            assert alpha is not None
-            alphas.append(alpha)
-        assert sorted(alphas) == [0.1, 0.8]
+        assert trace.opacity == 1.0
+        expected_rows = ([0.0, 1.0 / 3.0], [1.0, 2.0 / 3.0])
+        for line, expected_y in zip(ax.lines[:2], expected_rows, strict=True):
+            np.testing.assert_array_equal(line.get_xdata(), [0, 1])
+            np.testing.assert_allclose(np.asarray(line.get_ydata()), expected_y)
+        alphas = [to_rgba(line.get_color())[3] for line in ax.lines[:2]]
+        assert alphas == [trace.unselected_opacity, trace.opacity]
         assert not ax.axison
 
     def test_vertical_and_horizontal_violins_use_precomputed_density(
@@ -718,7 +719,12 @@ class TestHeatmapRendering:
         )
         rendered = MatplotlibTraceRenderer.render([trace], ax)
         assert len(rendered.bindings) == 1
-        assert rendered.heatmap_image.get_cmap().name == "Blues"
+        assert trace.opacity == 1.0
+        samples = np.array([0.0, 0.25, 0.5, 0.75, 1.0])
+        np.testing.assert_array_equal(
+            rendered.heatmap_image.get_cmap()(samples),
+            matplotlib.colormaps["Blues"](samples),
+        )
         np.testing.assert_array_equal(rendered.heatmap_image.get_array(), [[5]])
 
     def test_heatmap_reversed_colorscale(self, ax: matplotlib.axes.Axes) -> None:
@@ -731,7 +737,12 @@ class TestHeatmapRendering:
         )
         rendered = MatplotlibTraceRenderer.render([trace], ax)
         assert len(rendered.bindings) == 1
-        assert rendered.heatmap_image.get_cmap().name == "viridis_r"
+        assert trace.opacity == 1.0
+        samples = np.array([0.0, 0.25, 0.5, 0.75, 1.0])
+        np.testing.assert_array_equal(
+            rendered.heatmap_image.get_cmap()(samples),
+            matplotlib.colormaps["viridis_r"](samples),
+        )
         np.testing.assert_array_equal(rendered.heatmap_image.get_array(), [[5]])
 
     def test_heatmap_list_colorscale(self, ax: matplotlib.axes.Axes) -> None:
