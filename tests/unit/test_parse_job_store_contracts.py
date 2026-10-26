@@ -29,10 +29,14 @@ from src.core.services.parse_job_store import (
 )
 
 
-def _request(root: Path) -> ParseJobRequest:
+def _request(root: Path, file_count: int = 1) -> ParseJobRequest:
     inputs = root / "inputs"
     inputs.mkdir()
     (inputs / "stats.txt").write_text("simTicks 1.25\n")
+    for index in range(1, file_count):
+        source = inputs / f"run-{index}"
+        source.mkdir()
+        (source / "stats.txt").write_text("simTicks 1.25\n")
     return build_parse_job_request(
         stats_path=str(inputs),
         stats_pattern="stats.txt",
@@ -44,18 +48,49 @@ def _request(root: Path) -> ParseJobRequest:
 
 
 def _output(root: Path, request: ParseJobRequest) -> ParsedOutput:
-    source = request.file_signatures[0].path
-    file = ParsedFileResult(
-        source,
-        (
-            ParsedVariableResult(
-                "value", "number", "scalar", (ParsedCell("value", "number", 1.25),)
+    sources = [signature.path for signature in request.file_signatures]
+    files = [
+        ParsedFileResult(
+            source,
+            (
+                ParsedVariableResult(
+                    "value", "number", "scalar", (ParsedCell("value", "number", 1.25),)
+                ),
             ),
-        ),
-    )
+        )
+        for source in sources
+    ]
     return ParsedOutputIO.publish(
-        root / "output.csv", ParsedOutputIO.resolve([file], ["value"], [source])
+        root / "output.csv", ParsedOutputIO.resolve(files, ["value"], sources)
     )
+
+
+@pytest.mark.parametrize("file_count", [1, 3])
+def test_cached_success_progress_is_complete_when_inserted_and_reopened(
+    tmp_path: Path, file_count: int
+) -> None:
+    request = _request(tmp_path, file_count)
+    output = _output(tmp_path, request)
+    path = tmp_path / "jobs.sqlite3"
+    store = ParseJobStore(path)
+    queued = store.create_job("queued", request, tmp_path / "queued", 1)
+    assert queued.completed_files == 0 and queued.total_files == file_count
+    assert queued.progress == 0.0
+    cached = store.create_job(
+        "cached",
+        request,
+        tmp_path / "cached",
+        1,
+        status=ParseJobStatus.SUCCEEDED,
+        published_output=output,
+        cache_hit=True,
+    )
+    assert cached.completed_files == cached.total_files == file_count
+    assert cached.progress == 1.0
+    assert cached.cache_hit and cached.status == ParseJobStatus.SUCCEEDED
+    assert ParseJobStore(path).get_job("cached") == cached
+    assert cached.published_output == output
+    assert ParsedOutputIO.to_frame(output)["value"].tolist() == [1.25] * file_count
 
 
 def test_sqlite_reopens_exact_current_request_and_output_descriptors(tmp_path: Path) -> None:

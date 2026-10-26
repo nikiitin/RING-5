@@ -295,7 +295,8 @@ class TestConfigurationStrMethod:
         result = str(config)
 
         assert "configuration" in result
-        assert "[]" in result
+        assert "repeat=1" in result
+        assert "balanced=False, reduced=False, padded=0" in result
 
     def test_str_method_with_content(self) -> None:
         config = Configuration(on_empty="fallback")
@@ -305,8 +306,8 @@ class TestConfigurationStrMethod:
         result = str(config)
 
         assert "configuration" in result
-        assert "value1" in result
-        assert "value2" in result
+        assert "repeat=1" in result
+        assert "balanced=False, reduced=False, padded=0" in result
 
 
 class TestConfigurationEdgeCases:

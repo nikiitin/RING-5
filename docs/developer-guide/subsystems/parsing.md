@@ -81,13 +81,23 @@ The shared lifecycle ends collection with `balance_content()`, then computes a r
 `reduce_duplicates()`. Reading `reduced_content` before both stages succeed raises an error;
 ingestion after balancing and reduction before balancing also raise. Repeated successful lifecycle
 calls are idempotent. Content, result and entry inspection returns defensive snapshots. Numeric
-kinds retain one point list or one frame list as their authoritative store. Configuration retains
+kinds retain only actual points or frames as their authoritative store. `content` exposes actual
+observations, including NaN for absent entries within an observed frame; it never appends absent
+frames. Balancing records their exact logical missing count in `padded_count` and
+`missing_measurement_count`. Reduction propagates that missingness without allocating in proportion
+to the expected repeat count. Statistic representations show compact metadata without copying
+observation content. Configuration retains
 the first literal string, or its explicit `on_empty` value when no observation is present. Text such
 as `NA` remains literal; only absent numeric cells and numeric NaN use the missing-value marker.
 All numeric kinds share a population mean that preserves finite results when their intermediate
 sum overflows. Missing values propagate, cancellation retains small residuals, and infinite
 observations follow explicit IEEE semantics. Missing-output diagnostics and padding share an
 actual-observation presence count, so a measured NaN is distinct from an absent entry or source.
+Active histogram rebinning checks the requested bin count as a lower bound on emitted width
+against the existing physical-column budget before constructing bucket labels. It then validates
+the exact emitted width, including negative buckets and distinct selected summaries, before
+constructing raw-bucket mappings. Explicit bucket selection and summaries-only mode take
+precedence over unused rebin geometry.
 
 Summary measurements are named entries of their source statistic, selected through its
 `statistics` field. They use ordinary entry buffering in the worker. Source names retain their

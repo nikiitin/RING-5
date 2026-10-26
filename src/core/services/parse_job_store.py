@@ -151,7 +151,7 @@ class ParseJobStore:
         published_output: ParsedOutput | None = None,
         cache_hit: bool = False,
     ) -> ParseJobSnapshot:
-        """Insert an actual attempt or a verified complete cached result."""
+        """Insert an attempt, marking verified cached results fully complete."""
         _text(job_id)
         _text(phase)
         if type(attempt) is not int or attempt < 1:
@@ -166,6 +166,7 @@ class ParseJobStore:
         published = encode_parsed_output(published_output) if published_output is not None else None
         now = time.time()
         finished_at = now if status.is_terminal else None
+        total_files = len(request.file_signatures)
         with self._lock, self._connect() as connection:
             connection.execute(
                 """
@@ -173,7 +174,7 @@ class ParseJobStore:
                     completed_files, total_files, error_count, errors_json,
                     created_at, started_at, finished_at, attempt, attempt_dir,
                     output_json, published_json, cache_hit)
-                VALUES (?, ?, ?, ?, ?, 0, ?, 0, '[]', ?, NULL, ?, ?, ?, NULL, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 0, '[]', ?, NULL, ?, ?, ?, NULL, ?, ?)
                 """,
                 (
                     job_id,
@@ -181,7 +182,8 @@ class ParseJobStore:
                     request_json,
                     status.value,
                     phase[:MAX_PHASE_LENGTH],
-                    len(request.file_signatures),
+                    total_files if cache_hit else 0,
+                    total_files,
                     now,
                     finished_at,
                     attempt,

@@ -33,14 +33,16 @@ def test_vector_unknown_entries_warning() -> None:
 
 
 def test_vector_balancing() -> None:
-    """Test balancing logic (NaN padding for missing dumps)."""
+    """Missing dumps remain logical and propagate NaN during reduction."""
     v = Vector(repeat=2, entries=["A"])
     # One dump provided, two expected -> the missing one is NaN, not 0
     v.add_observation({"A": 10.0})
     v.balance_content()
 
-    assert v.content["A"][0] == 10
-    assert math.isnan(v.content["A"][1])
+    assert v.content == {"A": [10.0]}
+    assert v.padded_count == v.missing_measurement_count == 1
+    v.reduce_duplicates()
+    assert math.isnan(v.reduced_content["A"])
 
 
 def test_vector_reduction() -> None:

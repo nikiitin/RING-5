@@ -110,6 +110,8 @@ def test_real_background_full_incremental_consume_and_cache_preserve_literal_cel
         str(inputs), "stats.txt", _variables(literal), incremental=incremental
     )
     assert cached.status == ParseJobStatus.SUCCEEDED and cached.cache_hit
+    assert cached.completed_files == cached.total_files == 2
+    assert cached.progress == 1.0
     assert submit.call_count == 1
     cached_receipt = api.consume_parse_job(cached.job_id)
     assert cached_receipt.output == receipt.output
