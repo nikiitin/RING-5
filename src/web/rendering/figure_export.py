@@ -25,7 +25,6 @@ import io
 import logging
 import os
 import re
-import threading
 from typing import TYPE_CHECKING, Any, Literal, cast
 
 import kaleido
@@ -35,6 +34,7 @@ from kaleido.errors import ChromeNotFoundError
 from matplotlib.figure import Figure as MplFigure
 
 from src.core.models.visualization.export_options import TexSystem, validate_tex_system
+from src.web.rendering._matplotlib_lock import MATPLOTLIB_LOCK
 from src.web.rendering.latex_security import disabled_figure_usetex, escaped_figure_text
 
 if TYPE_CHECKING:
@@ -90,13 +90,6 @@ DETERMINISTIC_DIV_ID = "ring5-figure"
 
 #: Stable hash salt for deterministic matplotlib SVG ids.
 DETERMINISTIC_SVG_HASHSALT = "ring5"
-
-# Serializes matplotlib exports: savefig is not thread-safe, the rc_context
-# blocks mutate process-global rcParams, and deterministic mode round-trips
-# the process-global SOURCE_DATE_EPOCH env var — all of which race across
-# concurrent exports without this lock.
-_MPL_EXPORT_LOCK = threading.Lock()
-
 
 # Deterministic-output normalizers
 
@@ -334,8 +327,8 @@ def matplotlib_download_bytes(
     # The lock covers the whole export: savefig is not thread-safe, the
     # rc_context blocks mutate process-global rcParams, and the
     # SOURCE_DATE_EPOCH round-trip below would otherwise race a concurrent
-    # export (losing determinism, or leaking epoch=0 process-wide).
-    with _MPL_EXPORT_LOCK:
+    # export or render (losing settings, determinism, or leaking epoch=0).
+    with MATPLOTLIB_LOCK:
         saved_epoch: str | None = None
         if deterministic:
             saved_epoch = os.environ.get("SOURCE_DATE_EPOCH")

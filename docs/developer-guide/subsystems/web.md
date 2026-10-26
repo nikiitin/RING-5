@@ -56,6 +56,11 @@ Chart display and downloads consume that same artifact. Matplotlib figures and s
 not duplicated in session state. Downloads use the artifact's engine and configured export scale.
 Plot configuration reads are defensive snapshots; configuration changes use complete assignment.
 
+Native Matplotlib builds, panel composition, reports, export snapshots and byte exports share one
+reentrant operation lock. It protects temporary global settings, including fonts and the PGF
+compiler, until each operation restores them. Direct connector entry points use the same lock;
+background exports wait for active native work before saving.
+
 ## Plot settings
 
 Plot configuration has two entry points: `render_config_ui` selects data mappings, and

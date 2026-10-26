@@ -14,6 +14,7 @@ from matplotlib.figure import Figure as MplFigure
 
 from src.core.models.visualization.figure_config import FigureConfig
 from src.core.models.visualization.trace_config import HeatmapTraceConfig
+from src.web.rendering._matplotlib_lock import serialized_matplotlib
 from src.web.rendering._heatmap_utils import compute_nice_range, compute_z_extent
 from src.web.rendering._connector_protocol import (
     uses_heatmap_panels,
@@ -26,6 +27,7 @@ from src.web.rendering.matplotlib_trace_renderer import MatplotlibTraceRenderer
 from src.web.rendering.figure_preparation import PreparedFigure
 
 
+@serialized_matplotlib
 def draw_matplotlib_axes(
     prepared: PreparedFigure, ax: Axes, *, apply_margins: bool = True
 ) -> MatplotlibRenderResult:
@@ -60,6 +62,7 @@ def draw_matplotlib_axes(
     return rendered
 
 
+@serialized_matplotlib
 def build_matplotlib_figure_from_prepared(
     prepared: PreparedFigure,
 ) -> tuple[MplFigure, FigureConfig]:
