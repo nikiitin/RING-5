@@ -1,6 +1,7 @@
 """Exact schema validation without mutation, inference, or format conversion."""
 
 import copy
+from typing import Any
 
 import pytest
 
@@ -26,7 +27,7 @@ from src.core.models.portfolio_contract import (
         False,
     ],
 )
-def test_unsupported_schema_is_rejected(version) -> None:
+def test_unsupported_schema_is_rejected(version: Any) -> None:
     # [test->req~ring5.portfolio.schema~1]
     with pytest.raises(PortfolioVersionError, match="Unsupported portfolio schema_version"):
         validate_portfolio_schema({"schema_version": version})
@@ -79,7 +80,7 @@ def test_current_schema_requires_explicit_metadata(field: str) -> None:
 
 
 @pytest.mark.parametrize("missing", ["source_type", "instances"])
-def test_current_portfolio_rejects_incomplete_scan_metadata(missing) -> None:
+def test_current_portfolio_rejects_incomplete_scan_metadata(missing: str) -> None:
     record = {
         "name": "ipc",
         "type": "scalar",

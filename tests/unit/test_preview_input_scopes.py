@@ -2,15 +2,20 @@
 
 from __future__ import annotations
 
-from collections.abc import Generator
+from collections.abc import Generator, Mapping
 from dataclasses import asdict
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 import pytest
 
 from src.core.application_api import ApplicationAPI
-from src.core.models.preview_models import ActivePreviewInputs, DatasetPreviewInputs
+from src.core.models.preview_models import (
+    ActivePreviewInputs,
+    DatasetPreviewInputs,
+    PreviewContext,
+    PreviewInputs,
+)
 
 _NAMES = ("baseline", "candidate")
 _OPTIONS = {"baseline": "baseline", "candidate": "candidate", "keys": ["key"], "metrics": ["v"]}
@@ -51,7 +56,9 @@ def test_named_capture_retains_exact_sources_without_materializing_revision_hist
     assert [source.dataset_name for source in captured.sources] == list(_NAMES)
     assert len({source.workspace_generation for source in captured.sources}) == 1
     assert api.preview_matches("comparison", operation_config=_OPTIONS)
-    pd.testing.assert_frame_equal(api.get_preview("comparison"), result)
+    stored = api.get_preview("comparison")
+    assert stored is not None
+    pd.testing.assert_frame_equal(stored, result)
 
 
 @pytest.mark.parametrize("name", _NAMES)
@@ -86,7 +93,9 @@ def test_unrelated_selection_and_revisions_preserve_named_results(api: Applicati
     api.select_dataset("unrelated")
     assert api.capture_preview_inputs(_NAMES) == captured
     assert api.preview_matches("comparison", operation_config=_OPTIONS)
-    pd.testing.assert_frame_equal(api.get_preview("comparison"), result)
+    stored = api.get_preview("comparison")
+    assert stored is not None
+    pd.testing.assert_frame_equal(stored, result)
 
 
 @pytest.mark.parametrize("replace_name", _NAMES)
@@ -102,7 +111,9 @@ def test_named_inflight_publication_rejects_changed_source_and_keeps_prior_resul
         api.set_preview("comparison", prior, operation_config=_OPTIONS, inputs=captured)
     assert api.state_manager.has_preview("comparison")
     assert api.get_preview("comparison") is None
-    pd.testing.assert_frame_equal(api.state_manager.get_preview("comparison"), prior)
+    stored = api.state_manager.get_preview("comparison")
+    assert stored is not None
+    pd.testing.assert_frame_equal(stored, prior)
 
 
 @pytest.mark.parametrize("reset", ["session", "restore", "data"])
@@ -148,9 +159,12 @@ def test_identical_other_session_cannot_authorize_named_publication(api: Applica
 def test_named_display_result_cannot_replace_active_data(api: ApplicationAPI) -> None:
     _store(api)
     before = api.state_manager.get_data()
+    assert before is not None
     with pytest.raises(ValueError, match="cannot replace active data"):
         api.confirm_preview("comparison", operation_config=_OPTIONS, operation="Replace")
-    pd.testing.assert_frame_equal(api.state_manager.get_data(), before)
+    retained = api.state_manager.get_data()
+    assert retained is not None
+    pd.testing.assert_frame_equal(retained, before)
     assert api.preview_matches("comparison", operation_config=_OPTIONS)
 
 
@@ -163,12 +177,15 @@ def test_active_capture_and_required_record_keep_reviewed_options_and_rows_owned
     result = pd.DataFrame({"objects": [{"values": [2]}]})
     api.set_preview("owned", result, operation_config=options, inputs=captured)
     options["nested"]["values"].append(99)
-    result.iloc[0, 0]["values"].append(99)
+    nested = result.iloc[0, 0]
+    assert isinstance(nested, dict)
+    nested["values"].append(99)
     context = api.state_manager.get_preview_context("owned")
     assert context is not None
     context.operation_config["nested"]["values"].append(88)
     assert api.get_preview_config("owned") == {"nested": {"values": [1]}}
-    assert api.get_preview("owned").iloc[0, 0] == {"values": [2]}
+    stored = api.get_preview("owned")
+    assert stored is not None and stored.iloc[0, 0] == {"values": [2]}
     assert asdict(captured)["source_version"] >= 0
 
 
@@ -182,18 +199,23 @@ def test_capture_rejects_malformed_named_source_requests(api: ApplicationAPI, na
 def test_store_rejects_missing_or_untyped_review_metadata(api: ApplicationAPI) -> None:
     result = pd.DataFrame({"v": [1]})
     with pytest.raises(TypeError, match="operation_config.*inputs"):
-        api.set_preview("invalid", result)
+        api.set_preview("invalid", result)  # type: ignore[call-arg]
     with pytest.raises(ValueError, match="options must be a mapping"):
         api.set_preview(
-            "invalid", result, operation_config=None, inputs=api.capture_preview_inputs()
+            "invalid",
+            result,
+            operation_config=cast(Mapping[str, Any], None),
+            inputs=api.capture_preview_inputs(),
         )
     with pytest.raises(ValueError, match="Capture preview inputs"):
-        api.set_preview("invalid", result, operation_config={}, inputs="source")
+        api.set_preview(
+            "invalid", result, operation_config={}, inputs=cast(PreviewInputs, "source")
+        )
     assert not api.has_preview("invalid")
 
 
 def test_rejected_result_or_context_does_not_replace_an_owned_review_record(
-    preview_context,
+    preview_context: PreviewContext,
 ) -> None:
     from src.core.state.repositories.preview_repository import PreviewRepository
 
@@ -201,10 +223,14 @@ def test_rejected_result_or_context_does_not_replace_an_owned_review_record(
     result = pd.DataFrame({"v": [2.0]})
     repository.set_preview("owned", result, context=preview_context)
     with pytest.raises(TypeError, match="pandas DataFrame"):
-        repository.set_preview("owned", {"v": [99.0]}, context=preview_context)
+        repository.set_preview("owned", cast(pd.DataFrame, {"v": [99.0]}), context=preview_context)
     with pytest.raises(TypeError, match="context is required"):
-        repository.set_preview("owned", pd.DataFrame({"v": [99.0]}), context=None)
-    pd.testing.assert_frame_equal(repository.get_preview("owned"), result)
+        repository.set_preview(
+            "owned", pd.DataFrame({"v": [99.0]}), context=cast(PreviewContext, None)
+        )
+    stored = repository.get_preview("owned")
+    assert stored is not None
+    pd.testing.assert_frame_equal(stored, result)
     assert repository.get_preview_context("owned") == preview_context
 
 
@@ -243,7 +269,11 @@ def test_inflight_named_result_rejects_change_and_revert_to_its_captured_revisio
     with pytest.raises(ValueError, match="source changed during computation"):
         api.set_preview("comparison", transient, operation_config=_OPTIONS, inputs=captured)
     assert api.get_preview("comparison") is None
-    pd.testing.assert_frame_equal(api.state_manager.get_preview("comparison"), prior)
+    stored = api.state_manager.get_preview("comparison")
+    assert stored is not None
+    pd.testing.assert_frame_equal(stored, prior)
     _, corrected = _store(api)
     assert corrected["outcome"].tolist() == ["improvement"]
-    pd.testing.assert_frame_equal(api.get_preview("comparison"), corrected)
+    reviewed = api.get_preview("comparison")
+    assert reviewed is not None
+    pd.testing.assert_frame_equal(reviewed, corrected)

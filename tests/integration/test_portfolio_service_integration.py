@@ -3,14 +3,13 @@ from src.core.models.portfolio_contract import (
     CURRENT_PORTFOLIO_VERSION,
 )
 from src.core.common.typed_table_codec import TypedTableCodec
-from collections.abc import Generator
-from typing import Any
-from unittest.mock import patch
+from typing import Any, cast
 
 import pandas as pd
 import pytest
 
 from src.core.common.stat_config_codec import StatConfigCodec
+from src.core.models.data_models import ParseVariableConfig
 from src.core.models.semantic_metadata_models import ColumnSemantics, DatasetSemantics
 from src.core.services.data_services.portfolio_service import PortfolioService
 from src.core.services.managers.semantic_metadata_service import SemanticMetadataService
@@ -19,15 +18,8 @@ from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
 
 @pytest.fixture
-def mock_session_state() -> Generator[Any, None, None]:
-    """Mock streamlit.session_state as a dictionary."""
-    with patch("streamlit.session_state", new_callable=dict) as mock_state:
-        yield mock_state
-
-
-@pytest.fixture
-def state_manager(mock_session_state: Any) -> RepositoryStateManager:
-    """Initialize RepositoryStateManager with mocked session state."""
+def state_manager() -> RepositoryStateManager:
+    """Create an independent in-memory state boundary."""
     return RepositoryStateManager()
 
 
@@ -54,7 +46,7 @@ def test_save_and_load_portfolio(
     plot.config = plot_config
 
     config_state = {"theme": "dark"}
-    parse_variables = [
+    parse_variables: list[ParseVariableConfig] = [
         {"name": "ipc", "type": "scalar", "_id": "ipc-1", "params": {"source_type": "scalar"}}
     ]
     state_manager.set_use_parser(True)
@@ -129,6 +121,7 @@ def test_save_and_load_portfolio(
     assert loaded_data["manager_history"][0]["operation"] == "derive B"
 
     loaded_df = TypedTableCodec.decode(loaded_data["data"])
+    assert loaded_df is not None
     pd.testing.assert_frame_equal(df, loaded_df)
 
     # Verify Plots
@@ -138,7 +131,8 @@ def test_save_and_load_portfolio(
     assert loaded_plot["id"] == 1
     assert loaded_plot["plot_type"] == "bar"
     assert loaded_plot["config"] == plot_config
-    assert TypedTableCodec.decode(loaded_plot["processed_data"]).equals(df)
+    plot_data = TypedTableCodec.decode(loaded_plot["processed_data"])
+    assert plot_data is not None and plot_data.equals(df)
     assert loaded_plot["pipeline"] == []
     assert loaded_plot["pipeline_counter"] == 0
 
@@ -167,11 +161,15 @@ def test_portfolio_retains_data_and_plot_semantics(
     report = restored.restore_session(loaded)
 
     assert report.complete
-    pd.testing.assert_frame_equal(TypedTableCodec.decode(loaded["data"]), data)
-    assert SemanticMetadataService.inspect(restored.get_data()).for_column(
-        "latency"
-    ) == ColumnSemantics("latency", "Mean latency", "ms")
+    decoded = TypedTableCodec.decode(loaded["data"])
+    restored_data = restored.get_data()
+    assert decoded is not None and restored_data is not None
+    pd.testing.assert_frame_equal(decoded, data)
+    assert SemanticMetadataService.inspect(restored_data).for_column("latency") == ColumnSemantics(
+        "latency", "Mean latency", "ms"
+    )
     restored_plot = restored.get_plots()[0]
+    assert restored_plot.processed_data is not None
     assert SemanticMetadataService.inspect(restored_plot.processed_data) == semantics
 
 
@@ -287,11 +285,13 @@ def test_restore_survives_malformed_parse_variables(
             "parser_strategy": "simple",
             "loaded_origin": None,
             "simulator": "gem5",
-            "parse_variables": ["system.cpu.ipc", "system.cpu.numCycles"],
+            "parse_variables": cast(
+                list[dict[str, Any]], ["system.cpu.ipc", "system.cpu.numCycles"]
+            ),
             "data": TypedTableCodec.encode(pd.DataFrame({"a": [1], "b": [2]})),
             "plots": [],
             "config": {},
-        }  # type: ignore[typeddict-item]
+        }
     )
 
     assert report.parse_variables_skipped == 2

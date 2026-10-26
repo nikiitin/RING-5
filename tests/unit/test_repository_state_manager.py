@@ -15,6 +15,7 @@ import pandas as pd
 import pytest
 
 from src.core.common.stat_config_codec import StatConfigCodec
+from src.core.models.preview_models import PreviewContext
 from src.core.models.data_models import (
     CsvPoolEntry,
     ParseVariableConfig,
@@ -303,7 +304,9 @@ class TestPreviewManagement:
         assert manager.has_preview("normalize") is False
         assert manager.get_preview("normalize") is None
 
-    def test_set_and_get_preview(self, manager: RepositoryStateManager, preview_context) -> None:
+    def test_set_and_get_preview(
+        self, manager: RepositoryStateManager, preview_context: PreviewContext
+    ) -> None:
         df = pd.DataFrame({"x": [1, 2, 3]})
         manager.set_preview("normalize", df, context=preview_context)
         assert manager.has_preview("normalize") is True
@@ -311,7 +314,9 @@ class TestPreviewManagement:
         assert result is not None
         assert len(result) == 3
 
-    def test_clear_preview(self, manager: RepositoryStateManager, preview_context) -> None:
+    def test_clear_preview(
+        self, manager: RepositoryStateManager, preview_context: PreviewContext
+    ) -> None:
         manager.set_preview("filter", pd.DataFrame({"x": [1]}), context=preview_context)
         manager.clear_preview("filter")
         assert manager.has_preview("filter") is False
