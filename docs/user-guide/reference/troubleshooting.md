@@ -110,7 +110,10 @@ normalize step.
 ## Static Plotly export fails
 
 Plotly PNG, SVG, and PDF require a Chrome-family browser. Use Plotly HTML, switch to Matplotlib, or
-install the browser dependency reported by `ring5 doctor`.
+run `ring5 install-chrome` and set `BROWSER_PATH` to the printed executable path before starting
+RING-5. An existing empty or invalid `BROWSER_PATH` must be corrected or unset; it remains
+authoritative. See [installation]({{site.baseurl}}/user-guide/getting-started/installation/#install-chrome-for-plotly-static-exports)
+for PowerShell instructions and installation-cache options.
 
 ## PGF export fails or becomes PDF
 

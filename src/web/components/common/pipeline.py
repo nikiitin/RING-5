@@ -173,7 +173,6 @@ class PipelineComponent:
     def render_shaper_controls(
         plot_id: int,
         idx: int,
-        shaper_type: str,
         is_first: bool,
         is_last: bool,
     ) -> dict[str, bool]:
@@ -182,7 +181,6 @@ class PipelineComponent:
         Args:
             plot_id: Plot ID for key uniqueness.
             idx: Step index in the pipeline.
-            shaper_type: Internal shaper type key.
             is_first: Whether this is the first step.
             is_last: Whether this is the last step.
 

@@ -154,9 +154,8 @@ class PatternAggregator:
         Returns:
             Pattern with intersected evidence, source instances and printed labels
         """
-        # Convert the signature to the canonical, user-facing pattern name. Literal dots stay
-        # readable here; safe_regex escapes them only when compiling or sending the filter to
-        # Perl, so they never acquire wildcard semantics.
+        # Literal punctuation stays readable in the canonical pattern name. Matching escapes
+        # it before expanding numeric placeholders; workers receive explicit source names.
         regex_pattern = pattern_signature.replace("{}", r"\d+")
 
         evidence = reduce(

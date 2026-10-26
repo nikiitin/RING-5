@@ -70,7 +70,7 @@ def show_manage_plots_page(api: ApplicationAPI) -> None:
 
     # Controllers (dependency-injected, stateless)
     creation: PlotCreationController = PlotCreationController(api, ui_state, lifecycle, registry)
-    pipeline: PipelineController = PipelineController(api, ui_state, pipeline_executor)
+    pipeline: PipelineController = PipelineController(api, pipeline_executor)
     render: PlotRenderController = PlotRenderController(api, ui_state, lifecycle, registry)
 
     # 1. Create Plot Section

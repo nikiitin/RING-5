@@ -126,8 +126,8 @@ def _render_plotly_download(
             logger.error("Plotly %s export failed — no browser for Kaleido: %s", fmt, exc)
             raise RuntimeError(
                 f"Could not generate the {fmt.upper()} export because no Chrome-family "
-                "browser was found. Install one with `kaleido_get_chrome`, set "
-                "BROWSER_PATH, or use the HTML format."
+                "browser was found. Run `ring5 install-chrome` and set "
+                "BROWSER_PATH to its printed path, or use the HTML format."
             ) from exc
         except Exception as exc:
             logger.error("Plotly %s export failed: %s", fmt, exc)

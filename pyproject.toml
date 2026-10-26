@@ -56,6 +56,7 @@ dev = [
   "pandas-stubs==3.0.5.260914",
   "plotly-stubs==0.1.4",
   "scipy-stubs==1.18.1.1",
+  "types-PyYAML==6.0.12.20260906",
   "build==1.6.1",
   "twine==7.0.0",
 ]
@@ -88,6 +89,7 @@ where = ["."]
 include = ["src*", "ring5*"]
 
 [tool.setuptools.package-data]
+"ring5" = ["resources/chrome-for-testing.json"]
 "src.parsing.gem5" = [
   "perl/*.pl",
   "perl/libs/*.pm",

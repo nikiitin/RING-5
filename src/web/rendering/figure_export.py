@@ -209,7 +209,7 @@ def plotly_download_bytes(
         ValueError: If *fmt* is not a supported format.
         kaleido.errors.ChromeNotFoundError: No Chrome-family browser is
             available for raster/vector export (install one with
-            ``kaleido_get_chrome`` or point ``BROWSER_PATH`` at one).
+            ``ring5 install-chrome`` and set ``BROWSER_PATH`` to its printed path).
     """
     if fmt not in _FORMAT_MIME:
         raise ValueError(
@@ -243,7 +243,7 @@ def plotly_download_bytes(
         detail = f"Selected browser {selected!r} is unavailable. " if selected is not None else ""
         raise ChromeNotFoundError(
             detail + "Fix or unset an invalid BROWSER_PATH before discovery. "
-            "Install Chrome with `kaleido_get_chrome` if none is installed."
+            "Run `ring5 install-chrome` and set BROWSER_PATH to its printed path."
         )
     kaleido_options["path"] = browser.executable_path
     last_exc: Exception | None = None

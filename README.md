@@ -20,6 +20,9 @@ make run
 Playwright Chromium and the Chrome browser used by Plotly image export, and prepares test data. Open
 <http://localhost:8501> after Streamlit starts.
 
+For Plotly PNG, SVG, or PDF export, set `BROWSER_PATH` to the executable printed by
+`ring5 install-chrome` before starting RING-5. See the installation guide for shell examples.
+
 See the [installation guide](https://nikiitin.github.io/RING-5/user-guide/getting-started/installation/)
 for system dependencies and a smaller runtime-only installation.
 

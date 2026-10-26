@@ -39,7 +39,6 @@ class SplitApply(UniDfShaper):
         config = cast(SplitApplyShaperConfig, self.params)
         self._join_columns: list[str] = config["joinColumns"]
         self._groups: list[SplitApplyGroupConfig] = config["groups"]
-        self._params = self.params
 
     @override
     def _verify_preconditions(self, data_frame: pd.DataFrame) -> bool:

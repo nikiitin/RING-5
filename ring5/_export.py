@@ -30,7 +30,7 @@ _PLOTLY_FORMATS: tuple[str, ...] = get_args(PlotlyFormat)
 _MPL_FORMATS: tuple[str, ...] = get_args(MatplotlibFormat)
 
 _CHROME_HINT = (
-    "Install one with `kaleido_get_chrome` (or set BROWSER_PATH), "
+    "Run `ring5 install-chrome` and set BROWSER_PATH to its printed path, "
     "or export via the matplotlib engine / HTML format instead."
 )
 
