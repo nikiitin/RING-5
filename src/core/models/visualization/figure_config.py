@@ -10,6 +10,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal, cast
 
+from src.core.common.plot_payload import validate_legend_labels
+
 if TYPE_CHECKING:
     from src.core.models.visualization.annotation_config import (
         AnnotationConfig,
@@ -114,6 +116,9 @@ class FigureConfig:
     # Per-trace overrides keyed by trace name (e.g., {"trace_A": ...})
     trace_overrides: dict[str, SeriesStyleConfig] = field(default_factory=dict)
 
+    # Display text is independent of the original names used for styling and ordering.
+    legend_labels: dict[str, str] = field(default_factory=dict)
+
     # Color palette (Wong colorblind-safe by default)
     color_palette: list[str] = field(
         default_factory=lambda: [
@@ -160,7 +165,8 @@ class FigureConfig:
     metadata: dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        """Initialize sub-specs with proper defaults if not provided."""
+        """Own display labels and initialize missing sub-specs."""
+        object.__setattr__(self, "legend_labels", validate_legend_labels(self.legend_labels))
         # Lazy imports to avoid circular dependencies while keeping
         # type safety at runtime.
         from src.core.models.visualization.axis_config import AxesConfig
@@ -192,7 +198,7 @@ class FigureConfig:
 
         Raises:
             TypeError: The value is not an object or a field is unsupported.
-            ValueError: Typography is not a serialized object.
+            ValueError: Typography or legend labels have an unsupported representation.
         """
         from dataclasses import fields
 
@@ -273,6 +279,7 @@ class FigureConfig:
             data_labels=data_labels,
             series_styles=series_styles,
             trace_overrides=trace_overrides,
+            legend_labels=data.get("legend_labels", {}),
             color_palette=data.get("color_palette", default_palette),
             barmode=data.get("barmode", "group"),
             hatching_sequence=data.get("hatching_sequence", default_hatching),
