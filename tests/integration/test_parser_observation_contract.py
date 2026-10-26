@@ -35,9 +35,9 @@ def _parse(
         str(root), "stats.txt", configs, str(root / "output"), strategy, scanned
     )
     results = [future.result(timeout=30) for future in batch.futures]
-    path = Gem5Parser.finalize_parsing(str(root / "output"), results, strategy, batch.var_names)
-    assert path is not None
-    return _csv(path)
+    output = Gem5Parser.finalize_parsing(batch, results)
+    assert output is not None
+    return _csv(output.csv_path)
 
 
 def test_perl_missing_frequency_stats_and_summaries_differ_from_measured_zero(
@@ -284,17 +284,15 @@ def test_perl_full_and_incremental_dynamic_histogram_schemas_match(tmp_path: Pat
     configs = [StatConfig("h", "histogram", params={"source_type": "histogram"})]
     full = Gem5Parser.submit_parse_async(str(inputs), "stats.txt", configs, str(tmp_path / "full"))
     results = [future.result(timeout=30) for future in full.futures]
-    full_path = Gem5Parser.finalize_parsing(
-        str(tmp_path / "full"), results, var_names=full.var_names
-    )
+    full_output = Gem5Parser.finalize_parsing(full, results)
     incremental = Gem5Parser.submit_incremental_parse_async(
         str(inputs), "stats.txt", configs, str(tmp_path / "incremental")
     )
     incremental_result = Gem5Parser.finalize_incremental_parsing(
         incremental, [future.result(timeout=30) for future in incremental.futures]
     )
-    assert full_path is not None
-    full_columns, full_rows = _csv(full_path)
+    assert full_output is not None
+    full_columns, full_rows = _csv(full_output.csv_path)
     incremental_columns, incremental_rows = _csv(incremental_result.csv_path)
     assert full_columns == incremental_columns == ["h..0-19", "h..0-9"]
     assert sorted(tuple(sorted(row.items())) for row in full_rows) == sorted(

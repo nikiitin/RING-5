@@ -15,7 +15,7 @@ from unittest.mock import patch
 import pytest
 
 from src.core.models.parsing_models import StatConfig
-from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
+from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 from src.parsing.gem5.impl.source_bindings import resolve_sources
 from src.parsing.gem5.impl.strategies.gem5_parse_work import Gem5ParseWork
 from src.parsing.gem5.impl.strategies.perl_worker_pool import (
@@ -81,7 +81,8 @@ class TestWorkerPoolIntegration:
 
             # Verify we got results
             assert result is not None
-            assert var_config.name in result
+            assert [variable.name for variable in result.variables] == [var_config.name]
+            assert result.variables[0].cells[0].value == 12345.0
 
     def test_parse_service_uses_worker_pool(self, test_stats_file: str, tmp_path: Path) -> None:
         """Verify ParseService workflow uses worker pool end-to-end."""
@@ -98,7 +99,7 @@ class TestWorkerPoolIntegration:
         # Mock subprocess.run to ensure it's never called during parsing
         with patch("subprocess.run") as mock_subprocess:
             # Submit parse async
-            batch = ParseService.submit_parse_async(
+            batch = Gem5Parser.submit_parse_async(
                 stats_path=str(Path(test_stats_file).parent),
                 stats_pattern="stats.txt",
                 variables=variables,
@@ -112,9 +113,8 @@ class TestWorkerPoolIntegration:
             mock_subprocess.assert_not_called()
 
             # Construct final CSV
-            csv_path = ParseService.construct_final_csv(
-                str(output_dir), results, var_names=batch.var_names
-            )
+            parsed_output = Gem5Parser.finalize_parsing(batch, results)
+            csv_path = parsed_output.csv_path
 
             # Verify output
             assert csv_path is not None

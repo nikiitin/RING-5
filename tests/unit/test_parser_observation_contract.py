@@ -8,11 +8,11 @@ from pathlib import Path
 
 import pytest
 
+from src.core.common.parsed_output import ParsedOutputIO
+from src.core.models.parsed_output_models import ParsedCell, ParsedFileResult, ParsedVariableResult
 from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 from src.parsing.gem5.types.distribution import Distribution
 from src.parsing.gem5.types.histogram import Histogram
-from src.parsing.gem5.types.scalar import Scalar
-from src.parsing.gem5.types.vector import Vector
 
 
 @pytest.mark.parametrize(
@@ -77,23 +77,36 @@ def test_rebin_missing_expected_instance_does_not_dilute_frequency() -> None:
     assert all(math.isnan(value) for value in stat.reduced_content.values())
 
 
-def _histogram(entries: dict[str, int]) -> Histogram:
-    stat = Histogram()
-    stat.add_observation({key: value for key, value in entries.items()})
-    return stat
-
-
 def test_final_csv_union_is_order_independent_and_keeps_absent_first_histogram(
     tmp_path: Path,
 ) -> None:
     schemas = []
     for reverse in (False, True):
-        rows = [{"h": Histogram()}, {"h": _histogram({"0-9": 9})}, {"h": _histogram({"0-19": 12})}]
-        output = Gem5Parser.construct_final_csv(
-            str(tmp_path), rows[::-1] if reverse else rows, ["h"]
+        rows = [
+            ParsedFileResult("a", (ParsedVariableResult("h", "number", "entries", ()),)),
+            ParsedFileResult(
+                "b",
+                (
+                    ParsedVariableResult(
+                        "h", "number", "entries", (ParsedCell("h..0-9", "number", 9.0),)
+                    ),
+                ),
+            ),
+            ParsedFileResult(
+                "c",
+                (
+                    ParsedVariableResult(
+                        "h", "number", "entries", (ParsedCell("h..0-19", "number", 12.0),)
+                    ),
+                ),
+            ),
+        ]
+        output = ParsedOutputIO.publish(
+            tmp_path / "results.csv",
+            ParsedOutputIO.resolve(rows[::-1] if reverse else rows, ["h"], ("a", "b", "c")),
         )
         assert output is not None
-        with Path(output).open(newline="", encoding="utf-8") as stream:
+        with Path(output.csv_path).open(newline="", encoding="utf-8") as stream:
             parsed = list(csv.reader(stream))
         schemas.append(parsed[0])
         assert all(len(row) == 2 for row in parsed)
@@ -102,17 +115,32 @@ def test_final_csv_union_is_order_independent_and_keeps_absent_first_histogram(
 
 
 def test_final_csv_missing_vector_preserves_following_scalar_position(tmp_path: Path) -> None:
-    vector = Vector(entries=["a", "b"])
-    vector.add_observation({"a": 1, "b": 2})
-    first = Scalar()
-    first.add_observation(99)
-    second = Scalar()
-    second.add_observation(55)
-    output = Gem5Parser.construct_final_csv(
-        str(tmp_path), [{"v": vector, "s": first}, {"s": second}], ["v", "s"]
+    results = [
+        ParsedFileResult(
+            "a",
+            (
+                ParsedVariableResult(
+                    "v",
+                    "number",
+                    "entries",
+                    (ParsedCell("v..a", "number", 1.0), ParsedCell("v..b", "number", 2.0)),
+                ),
+                ParsedVariableResult("s", "number", "scalar", (ParsedCell("s", "number", 99.0),)),
+            ),
+        ),
+        ParsedFileResult(
+            "b",
+            (
+                ParsedVariableResult("v", "number", "entries", ()),
+                ParsedVariableResult("s", "number", "scalar", (ParsedCell("s", "number", 55.0),)),
+            ),
+        ),
+    ]
+    output = ParsedOutputIO.publish(
+        tmp_path / "results.csv", ParsedOutputIO.resolve(results, ["v", "s"], ("a", "b"))
     )
     assert output is not None
-    with Path(output).open(newline="", encoding="utf-8") as stream:
+    with Path(output.csv_path).open(newline="", encoding="utf-8") as stream:
         rows = list(csv.reader(stream))
     assert rows == [["v..a", "v..b", "s"], ["1.0", "2.0", "99.0"], ["NaN", "NaN", "55.0"]]
 
@@ -120,22 +148,31 @@ def test_final_csv_missing_vector_preserves_following_scalar_position(tmp_path: 
 def test_final_csv_invalid_shape_preserves_existing_output(tmp_path: Path) -> None:
     output = tmp_path / "results.csv"
     output.write_text("previous\nresult\n", encoding="utf-8")
-    scalar = Scalar()
-    scalar.add_observation(1)
-    with pytest.raises(RuntimeError, match="inconsistent scalar/entry"):
-        Gem5Parser.construct_final_csv(
-            str(tmp_path), [{"h": scalar}, {"h": _histogram({"0-9": 3})}], ["h"]
-        )
+    results = [
+        ParsedFileResult(
+            "a", (ParsedVariableResult("h", "number", "scalar", (ParsedCell("h", "number", 1.0),)),)
+        ),
+        ParsedFileResult(
+            "b",
+            (
+                ParsedVariableResult(
+                    "h", "number", "entries", (ParsedCell("h..0-9", "number", 3.0),)
+                ),
+            ),
+        ),
+    ]
+    with pytest.raises(ValueError, match="Conflicting declaration"):
+        ParsedOutputIO.publish(output, ParsedOutputIO.resolve(results, ["h"], ("a", "b")))
     assert output.read_text(encoding="utf-8") == "previous\nresult\n"
 
 
 def test_literal_configuration_na_is_not_a_numeric_missing_sentinel(tmp_path: Path) -> None:
     from src.core.models.parsing_models import StatConfig
-    from src.parsing.gem5.impl.source_bindings import resolve_sources
-    from src.parsing.gem5.impl.strategies.gem5_parse_work import Gem5ParseWork
-    from src.parsing.gem5.types.type_mapper import TypeMapper
 
-    plan = resolve_sources(
+    (tmp_path / "stats.txt").write_text("label=NA\n", encoding="utf-8")
+    batch = Gem5Parser.submit_parse_async(
+        str(tmp_path),
+        "stats.txt",
         [
             StatConfig(
                 "label",
@@ -144,13 +181,12 @@ def test_literal_configuration_na_is_not_a_numeric_missing_sentinel(tmp_path: Pa
             ),
             StatConfig("number", "scalar", params={"source_type": "scalar"}),
         ],
-        None,
+        str(tmp_path / "output"),
     )
-    stats = {spec.output_name: TypeMapper.create_stat(spec) for spec in plan.accumulators}
-    worker = Gem5ParseWork("unused", stats, plan)
-    worker._process_output("configuration/label/NA")
-    output = Gem5Parser.construct_final_csv(str(tmp_path), [stats], ["label", "number"])
+    output = Gem5Parser.finalize_parsing(
+        batch, [future.result(timeout=30) for future in batch.futures]
+    )
     assert output is not None
-    with Path(output).open(newline="", encoding="utf-8") as stream:
+    with Path(output.csv_path).open(newline="", encoding="utf-8") as stream:
         rows = list(csv.reader(stream))
     assert rows == [["label", "number"], ["NA", "NaN"]]

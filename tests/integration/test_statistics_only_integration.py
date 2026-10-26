@@ -1,10 +1,10 @@
 from pathlib import Path
 
-import pandas as pd
 import pytest
 
 from src.core.models.parsing_models import StatConfig
-from src.parsing.gem5.impl.gem5_parser import Gem5Parser as ParseService
+from src.core.common.parsed_output import ParsedOutputIO
+from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
 
 class TestStatisticsOnlyIntegration:
@@ -63,20 +63,19 @@ system.mem.latency_dist::total               500
         Path(output_dir).mkdir()
 
         # Parse with statistics-only mode
-        batch = ParseService.submit_parse_async(
+        batch = Gem5Parser.submit_parse_async(
             stats_path=str(stats_file.parent),
             stats_pattern="stats.txt",
             variables=variables,
             output_dir=output_dir,
         )
         parse_results = [f.result() for f in batch.futures]
-        csv_path = ParseService.construct_final_csv(
-            output_dir, parse_results, var_names=batch.var_names
-        )
+        parsed_output = Gem5Parser.finalize_parsing(batch, parse_results)
+        csv_path = parsed_output.csv_path
 
         # Load and verify CSV
         assert csv_path is not None
-        df = pd.read_csv(csv_path)
+        df = ParsedOutputIO.to_frame(parsed_output)
 
         # Should have 1 row (1 simpoint)
         assert len(df) == 1
@@ -118,20 +117,19 @@ system.mem.latency_dist::total               500
         Path(output_dir).mkdir()
 
         # Parse with full mode
-        batch = ParseService.submit_parse_async(
+        batch = Gem5Parser.submit_parse_async(
             stats_path=str(stats_file.parent),
             stats_pattern="stats.txt",
             variables=variables,
             output_dir=output_dir,
         )
         parse_results = [f.result() for f in batch.futures]
-        csv_path = ParseService.construct_final_csv(
-            output_dir, parse_results, var_names=batch.var_names
-        )
+        parsed_output = Gem5Parser.finalize_parsing(batch, parse_results)
+        csv_path = parsed_output.csv_path
 
         # Load and verify CSV
         assert csv_path is not None
-        df = pd.read_csv(csv_path)
+        df = ParsedOutputIO.to_frame(parsed_output)
 
         # Should have 1 row (1 simpoint)
         assert len(df) == 1
@@ -177,35 +175,33 @@ system.mem.latency_dist::total               500
         Path(output_dir_full).mkdir()
 
         # Parse full mode
-        batch_full = ParseService.submit_parse_async(
+        batch_full = Gem5Parser.submit_parse_async(
             stats_path=str(stats_file.parent),
             stats_pattern="stats.txt",
             variables=variables_full,
             output_dir=output_dir_full,
         )
         results_full = [f.result() for f in batch_full.futures]
-        csv_full = ParseService.construct_final_csv(
-            output_dir_full, results_full, var_names=batch_full.var_names
-        )
+        output_full = Gem5Parser.finalize_parsing(batch_full, results_full)
+        csv_full = output_full.csv_path
         assert csv_full is not None
-        df_full = pd.read_csv(csv_full)
+        df_full = ParsedOutputIO.to_frame(output_full)
 
         output_dir_stats = str(tmp_path / "stats_only_stats")
         Path(output_dir_stats).mkdir()
 
         # Parse statistics-only mode
-        batch_stats = ParseService.submit_parse_async(
+        batch_stats = Gem5Parser.submit_parse_async(
             stats_path=str(stats_file.parent),
             stats_pattern="stats.txt",
             variables=variables_stats_only,
             output_dir=output_dir_stats,
         )
         results_stats = [f.result() for f in batch_stats.futures]
-        csv_stats = ParseService.construct_final_csv(
-            output_dir_stats, results_stats, var_names=batch_stats.var_names
-        )
+        output_stats = Gem5Parser.finalize_parsing(batch_stats, results_stats)
+        csv_stats = output_stats.csv_path
         assert csv_stats is not None
-        df_stats = pd.read_csv(csv_stats)
+        df_stats = ParsedOutputIO.to_frame(output_stats)
 
         # Statistics-only should have fewer columns
         # Full mode will have all bucket columns (underflows, 0-10, overflows)

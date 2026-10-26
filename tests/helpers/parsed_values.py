@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from concurrent.futures import Future
 from pathlib import Path
 
 from src.core.common.parsed_output import ParsedOutputIO
@@ -48,3 +49,10 @@ def parser_context(
         scan_limit=None,
         strict=True,
     )
+
+
+def completed_future(result: ParsedFileResult) -> Future[ParsedFileResult]:
+    """Return one settled standard Future containing its explicit typed record."""
+    future: Future[ParsedFileResult] = Future()
+    future.set_result(result)
+    return future

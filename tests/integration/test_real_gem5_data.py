@@ -7,6 +7,7 @@ import pytest
 from pandas import DataFrame
 
 from src.core.application_api import ApplicationAPI
+from src.core.common.parsed_output import ParsedOutputIO
 from src.core.services.data_services.config_service import ConfigService
 from src.core.models.parsing_models import StatConfig
 from src.core.models.shaper_models import ShaperStepConfig
@@ -67,11 +68,10 @@ class TestRealDataWithShapers:
             output_dir=str(temp_output_dir),
         )
         parse_results = [future.result(timeout=30) for future in batch.futures]
-        csv_path = facade.finalize_parsing(
-            str(temp_output_dir), parse_results, var_names=batch.var_names
-        )
+        parsed_output = facade.finalize_parsing(batch, parse_results)
+        csv_path = parsed_output.csv_path
         assert csv_path is not None and Path(csv_path).is_file()
-        frame = pd.read_csv(csv_path)
+        frame = ParsedOutputIO.to_frame(parsed_output)
         assert not frame.empty
         return frame
 
@@ -221,9 +221,14 @@ class TestConfigurationPersistence:
         assert loaded.get("description") == "Test configuration"
         assert len(loaded["shapers"]) == 1
 
-    def test_load_csv_pool(self, temp_output_dir: Path, facade: ApplicationAPI) -> None:
+    def test_load_csv_pool(
+        self,
+        temp_output_dir: Path,
+        facade: ApplicationAPI,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
         """Test loading CSV pool."""
-        from unittest.mock import patch
+        from src.core.services.data_services.csv_pool_service import CsvPoolService
 
         temp_path = Path(temp_output_dir)
         csv_pool = temp_path / "csv_pool"
@@ -233,17 +238,9 @@ class TestConfigurationPersistence:
         test_csv = csv_pool / "test.csv"
         pd.DataFrame({"a": [1, 2, 3]}).to_csv(test_csv, index=False)
 
-        # Patch PathService to use temp directory
-        with patch(
-            "src.core.services.data_services.csv_pool_service.PathService.get_data_dir",
-            return_value=temp_path,
-        ):
-            from src.core.services.data_services.csv_pool_service import CsvPoolService
+        monkeypatch.setattr(CsvPoolService, "_pool_dir", csv_pool)
+        monkeypatch.setattr(CsvPoolService, "_pool_index", {})
+        pool = facade.data_services.load_csv_pool()
 
-            CsvPoolService._pool_dir = None  # Reset cached pool dir
-
-            # Load pool
-            pool = facade.data_services.load_csv_pool()
-
-            assert len(pool) == 1
-            assert pool[0]["name"] == "test.csv"
+        assert len(pool) == 1
+        assert pool[0]["name"] == "test.csv"

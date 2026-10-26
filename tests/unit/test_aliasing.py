@@ -1,10 +1,10 @@
-from concurrent.futures import Future
 from typing import Any, cast
 from unittest.mock import MagicMock, mock_open, patch
 
 from src.core.application_api import ApplicationAPI
 from src.core.models.parsing_models import ParseBatchResult
 from src.core.models.data_models import ParseVariableConfig
+from tests.helpers.parsed_values import completed_future, numeric_file
 
 
 class TestAliasing:
@@ -41,10 +41,13 @@ class TestAliasing:
         mock_submit = facade._parser.submit_parse_async
 
         # Mock futures properly
-        mock_future: Future[dict[str, str]] = Future()
-        mock_future.set_result({"data": "test"})
+        value = numeric_file("/tmp/stats/stats.txt", {"IPC": 1.0, "system.cpu.cpi": 2.0})
         mock_submit.return_value = ParseBatchResult(
-            futures=[mock_future], var_names=["IPC", "system.cpu.cpi"]
+            futures=(completed_future(value),),
+            var_names=("IPC", "system.cpu.cpi"),
+            source_paths=(value.source_path,),
+            output_dir="/tmp",
+            strategy_type="simple",
         )
 
         # Execute async parse

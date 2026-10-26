@@ -6,10 +6,10 @@ from collections.abc import Generator
 from pathlib import Path
 from typing import Any
 
-import pandas as pd
 import pytest
 
 from src.core.application_api import ApplicationAPI
+from src.core.common.parsed_output import ParsedOutputIO
 from src.core.models.parsing_models import StatConfig
 
 pytestmark = pytest.mark.xdist_group("perl_pool")
@@ -75,11 +75,7 @@ class TestFacadeReduction:
         scan_futures = facade.submit_scan_async(stats_path, "stats.txt*", limit=10)
 
         # Wait for scan completion
-        scan_results = []
-        for future in scan_futures:
-            result = future.result(timeout=5)
-            if result:
-                scan_results.append(result)
+        scan_results = [future.result(timeout=5) for future in scan_futures]
 
         scanned_vars = facade.finalize_scan(scan_results).variables
 
@@ -93,20 +89,17 @@ class TestFacadeReduction:
         )
 
         # Wait for parsing
-        parse_results = []
-        for future in batch.futures:
-            result = future.result(timeout=10)
-            if result:
-                parse_results.append(result)
+        parse_results = [future.result(timeout=10) for future in batch.futures]
 
-        csv_path = facade.finalize_parsing(output_dir, parse_results, var_names=batch.var_names)
+        parsed_output = facade.finalize_parsing(batch, parse_results)
+        csv_path = parsed_output.csv_path
 
         assert csv_path is not None
         assert os.path.exists(csv_path)
 
         # Verify Results
         # Parser outputs CSV.
-        df = pd.read_csv(csv_path)
+        df = ParsedOutputIO.to_frame(parsed_output)
 
         # Expectation:
         # Col "system.cpu\d+.ipc" should exist
@@ -184,11 +177,10 @@ class TestFacadeReduction:
             scanned_vars=scanned.variables,
         )
         assert len(batch.futures) == len(files)
-        csv_path = facade.finalize_parsing(
-            str(output_dir),
-            [future.result(timeout=30) for future in batch.futures],
-            var_names=batch.var_names,
+        parsed_output = facade.finalize_parsing(
+            batch, [future.result(timeout=30) for future in batch.futures]
         )
+        csv_path = parsed_output.csv_path
         assert csv_path is not None
         with Path(csv_path).open(encoding="utf-8", newline="") as stream:
             header, *rows = csv.reader(stream)

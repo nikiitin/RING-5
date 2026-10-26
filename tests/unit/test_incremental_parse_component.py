@@ -3,21 +3,22 @@
 from __future__ import annotations
 
 import csv
-import shutil
 import time
 from concurrent.futures import Future
+from dataclasses import replace
 from pathlib import Path
-from typing import Any
 
 from src.core.common.stat_config_codec import StatConfigCodec
 from src.core.application_api import ApplicationAPI
-from src.core.models.parsing_models import IncrementalParseBatchResult
+from src.core.models.parsing_models import IncrementalParseBatchResult, ParseBatchResult
 from src.core.models.parse_job_models import ParseJobStatus
-from src.core.models.parse_job_models import JsonValue
 from src.core.services.parse_job_service import ParseJobService
 from src.core.services.parse_job_workspace import ParseJobRuntimeWorkspace
 from src.core.common.input_identity import fingerprint_inputs
-from src.parsing.gem5.impl.strategies.file_parser_strategy import INTERNAL_SIM_PATH_KEY
+from src.core.common.parsed_output import ParsedOutputIO
+from src.core.models.parsed_output_models import ParsedFileResult, ParsedOutput
+from src.core.models.source_context_models import ParserSourceContext
+from tests.helpers.parsed_values import numeric_file
 
 
 def test_incremental_background_job_finalizes_an_all_reused_batch(tmp_path: Path) -> None:
@@ -26,52 +27,52 @@ def test_incremental_background_job_finalizes_an_all_reused_batch(tmp_path: Path
     stats_file.parent.mkdir(parents=True)
     stats_file.write_text("simTicks 100\n", encoding="utf-8")
     batch = IncrementalParseBatchResult(
-        futures=[],
-        var_names=["simTicks"],
+        futures=(),
+        var_names=("simTicks",),
         output_dir=str(tmp_path / "output"),
         strategy_type="simple",
         cache_path=str(tmp_path / "cache.json"),
         configuration_hash="a" * 64,
         fingerprints=((str(stats_file.resolve()), "b" * 64),),
-        cached_rows=((str(stats_file.resolve()), (("simTicks", "100"),)),),
+        cached_results=(numeric_file(str(stats_file.resolve()), {"simTicks": 100.0}),),
         changed_files=(),
         removed_files=(),
     )
 
     def submit(
-        _path: str,
-        _pattern: str,
-        _variables: list[JsonValue],
-        _output: str,
-        _strategy: str,
-        _scanned: list[JsonValue] | None,
+        source: ParserSourceContext,
+        output_dir: str,
         incremental: bool,
     ) -> IncrementalParseBatchResult:
+        nonlocal batch
         assert incremental is True
+        assert source.stats_pattern == "stats.txt"
+        batch = replace(batch, output_dir=output_dir)
         return batch
 
     def finalize(
-        output_dir: str,
-        received_batch: IncrementalParseBatchResult,
-        results: list[dict[str, Any]],
+        received_batch: ParseBatchResult | IncrementalParseBatchResult,
+        results: list[ParsedFileResult],
         complete: bool,
-        strategy: str,
-    ) -> str:
+    ) -> ParsedOutput:
         assert received_batch is batch
         assert results == []
         assert complete is True
-        assert strategy == "simple"
-        output = Path(output_dir) / "results.csv"
-        output.write_text("simTicks\n100\n", encoding="utf-8")
-        return str(output)
+        assert received_batch.strategy_type == "simple"
+        assert isinstance(received_batch, IncrementalParseBatchResult)
+        table = ParsedOutputIO.resolve(
+            received_batch.cached_results,
+            received_batch.var_names,
+            tuple(path for path, _ in received_batch.fingerprints),
+            complete=complete,
+        )
+        return ParsedOutputIO.publish(Path(received_batch.output_dir) / "results.csv", table)
 
     recent = tmp_path / "recent"
     recent.mkdir()
 
-    def publish(source: str, name: str) -> str:
-        destination = recent / name
-        shutil.copyfile(source, destination)
-        return str(destination)
+    def publish(source: ParsedOutput, name: str) -> ParsedOutput:
+        return ParsedOutputIO.publish(recent / name, ParsedOutputIO.read(source))
 
     runtime = ParseJobRuntimeWorkspace(tmp_path / "jobs")
     service = ParseJobService(submit, finalize, publish, runtime_workspace=runtime)
@@ -80,10 +81,8 @@ def test_incremental_background_job_finalizes_an_all_reused_batch(tmp_path: Path
             stats_path=str(stats_file.parent.parent),
             stats_pattern="stats.txt",
             variables=[
-                StatConfigCodec.to_payload(
-                    StatConfigCodec.from_draft(
-                        {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
-                    )
+                StatConfigCodec.from_draft(
+                    {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
                 )
             ],
             strategy_type="simple",
@@ -113,11 +112,11 @@ def test_incremental_background_job_keeps_reused_rows_when_changed_work_fails(
     for stats_file, value in ((cached_file, 100), (changed_file, 200)):
         stats_file.parent.mkdir(parents=True)
         stats_file.write_text(f"simTicks {value}\n", encoding="utf-8")
-    failed: Future[dict[str, Any]] = Future()
+    failed: Future[ParsedFileResult] = Future()
     failed.set_exception(RuntimeError("changed input failed"))
     batch = IncrementalParseBatchResult(
-        futures=[failed],
-        var_names=["simTicks"],
+        futures=(failed,),
+        var_names=("simTicks",),
         output_dir=str(tmp_path / "output"),
         strategy_type="simple",
         cache_path=str(tmp_path / "cache.json"),
@@ -126,42 +125,42 @@ def test_incremental_background_job_keeps_reused_rows_when_changed_work_fails(
             (str(cached_file.resolve()), "b" * 64),
             (str(changed_file.resolve()), "c" * 64),
         ),
-        cached_rows=((str(cached_file.resolve()), (("simTicks", "100"),)),),
+        cached_results=(numeric_file(str(cached_file.resolve()), {"simTicks": 100.0}),),
         changed_files=(str(changed_file.resolve()),),
         removed_files=(),
     )
 
     def submit(
-        _path: str,
-        _pattern: str,
-        _variables: list[JsonValue],
-        _output: str,
-        _strategy: str,
-        _scanned: list[JsonValue] | None,
+        source: ParserSourceContext,
+        output_dir: str,
         _incremental: bool,
     ) -> IncrementalParseBatchResult:
+        nonlocal batch
+        assert source.stats_pattern == "stats.txt"
+        batch = replace(batch, output_dir=output_dir)
         return batch
 
     def finalize(
-        output_dir: str,
-        _batch: IncrementalParseBatchResult,
-        results: list[dict[str, Any]],
+        received_batch: ParseBatchResult | IncrementalParseBatchResult,
+        results: list[ParsedFileResult],
         complete: bool,
-        _strategy: str,
-    ) -> str:
+    ) -> ParsedOutput:
         assert results == []
         assert complete is False
-        output = Path(output_dir) / "results.csv"
-        output.write_text("simTicks\n100\n", encoding="utf-8")
-        return str(output)
+        assert isinstance(received_batch, IncrementalParseBatchResult)
+        table = ParsedOutputIO.resolve(
+            received_batch.cached_results,
+            received_batch.var_names,
+            tuple(path for path, _ in received_batch.fingerprints),
+            complete=complete,
+        )
+        return ParsedOutputIO.publish(Path(received_batch.output_dir) / "results.csv", table)
 
     recent = tmp_path / "recent"
     recent.mkdir()
 
-    def publish(source: str, name: str) -> str:
-        destination = recent / name
-        shutil.copyfile(source, destination)
-        return str(destination)
+    def publish(source: ParsedOutput, name: str) -> ParsedOutput:
+        return ParsedOutputIO.publish(recent / name, ParsedOutputIO.read(source))
 
     runtime = ParseJobRuntimeWorkspace(tmp_path / "jobs")
     service = ParseJobService(submit, finalize, publish, runtime_workspace=runtime)
@@ -170,10 +169,8 @@ def test_incremental_background_job_keeps_reused_rows_when_changed_work_fails(
             stats_path=str(tmp_path / "inputs"),
             stats_pattern="stats.txt",
             variables=[
-                StatConfigCodec.to_payload(
-                    StatConfigCodec.from_draft(
-                        {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
-                    )
+                StatConfigCodec.from_draft(
+                    {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
                 )
             ],
             strategy_type="simple",
@@ -216,36 +213,29 @@ def test_gem5_partial_incremental_output_retains_valid_rows_without_updating_cac
         "simple",
     )
     batch = IncrementalParseBatchResult(
-        futures=[],
-        var_names=["simTicks"],
+        futures=(Future(), Future()),
+        var_names=("simTicks",),
         output_dir=str(tmp_path / "output"),
         strategy_type="simple",
         cache_path=str(tmp_path / "cache.json"),
         configuration_hash="a" * 64,
         fingerprints=fingerprints,
-        cached_rows=((str(cached_file.resolve()), (("simTicks", "100"),)),),
+        cached_results=(numeric_file(str(cached_file.resolve()), {"simTicks": 100.0}),),
         changed_files=(str(successful_file.resolve()), str(failed_file.resolve())),
         removed_files=(),
     )
     api = ApplicationAPI()
     try:
         output_path = api._finalize_background_parse(
-            batch.output_dir,
             batch,
-            [
-                {
-                    INTERNAL_SIM_PATH_KEY: str(successful_file.resolve()),
-                    "simTicks": "200",
-                }
-            ],
+            [numeric_file(str(successful_file.resolve()), {"simTicks": 200.0})],
             False,
-            "simple",
         )
     finally:
         api.close()
 
     assert output_path is not None
-    with Path(output_path).open(newline="", encoding="utf-8") as handle:
+    with Path(output_path.csv_path).open(newline="", encoding="utf-8") as handle:
         rows = list(csv.DictReader(handle))
-    assert rows == [{"simTicks": "100"}, {"simTicks": "200"}]
+    assert rows == [{"simTicks": "100.0"}, {"simTicks": "200.0"}]
     assert not Path(batch.cache_path).exists()

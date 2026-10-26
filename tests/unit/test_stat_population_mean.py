@@ -108,8 +108,8 @@ def test_real_worker_and_csv_keep_a_large_finite_mean(
         str(tmp_path / "output"),
     )
     results = [future.result(timeout=30) for future in batch.futures]
-    output = Gem5Parser.finalize_parsing(str(tmp_path / "output"), results, var_names=["value"])
+    output = Gem5Parser.finalize_parsing(batch, results)
     assert output is not None
-    with Path(output).open(newline="", encoding="utf-8") as stream:
+    with Path(output.csv_path).open(newline="", encoding="utf-8") as stream:
         rows = list(csv.reader(stream))
     assert rows == [[header], ["1e+308"]]

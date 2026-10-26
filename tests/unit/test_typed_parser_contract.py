@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import configparser
 import json
 import math
 from concurrent.futures import Future
 from dataclasses import replace
 from pathlib import Path
+from typing import Any, NoReturn, cast
 
 import pytest
 
@@ -38,11 +40,13 @@ def _result(source: str = "source", *, absent: int = 0) -> ParsedFileResult:
 @pytest.mark.parametrize("absence", [0, 1])
 def test_typed_file_cache_keeps_actual_absence_separate_from_numeric_nan(absence: int) -> None:
     value = _result(absent=absence)
-    payload = parsed_file_payload(value)
+    payload = cast(dict[str, Any], parsed_file_payload(value))
     restored = parsed_file_from_payload(payload)
     assert restored.source_path == value.source_path
     assert restored.variables[0].missing_measurements == absence
-    assert math.isnan(restored.variables[0].cells[0].value)
+    numeric = restored.variables[0].cells[0].value
+    assert type(numeric) is float
+    assert math.isnan(numeric)
     assert restored.variables[1].cells[0].value == "NA"
     assert restored.metadata == value.metadata
     assert ParsedOutputIO.resolve(
@@ -64,7 +68,7 @@ def test_typed_file_cache_keeps_actual_absence_separate_from_numeric_nan(absence
     ],
 )
 def test_file_payload_requires_exact_current_typed_fields(mutation: str) -> None:
-    payload = parsed_file_payload(_result())
+    payload = cast(dict[str, Any], parsed_file_payload(_result()))
     if mutation == "extra":
         payload["legacy"] = True
     elif mutation == "shape":
@@ -92,7 +96,7 @@ def test_full_batch_requires_owned_complete_context() -> None:
         == "external_backend_strategy"
     )
     with pytest.raises(TypeError, match="immutable tuple"):
-        replace(batch, source_paths=["source"])
+        replace(batch, source_paths=["source"])  # type: ignore[arg-type]
     with pytest.raises(ValueError, match="unique"):
         replace(batch, source_paths=("source", "source"))
     with pytest.raises(ValueError, match="worker source count"):
@@ -100,7 +104,7 @@ def test_full_batch_requires_owned_complete_context() -> None:
     with pytest.raises(ValueError, match="output_dir"):
         replace(batch, output_dir="")
     with pytest.raises(TypeError, match="Future"):
-        replace(batch, futures=({},))
+        replace(batch, futures=({},))  # type: ignore[arg-type]
 
 
 def test_resolver_requires_planned_provenance_even_for_partial_output() -> None:
@@ -118,7 +122,12 @@ def test_resolver_requires_planned_provenance_even_for_partial_output() -> None:
     with pytest.raises(ValueError, match="non-empty"):
         ParsedOutputIO.resolve([], ["number", "label"], ["source"], complete=False)
     with pytest.raises(TypeError, match="boolean"):
-        ParsedOutputIO.resolve([result], ["number", "label"], ["source"], complete=1)
+        ParsedOutputIO.resolve(
+            [result],
+            ["number", "label"],
+            ["source"],
+            complete=1,  # type: ignore[arg-type]
+        )
 
 
 def test_current_cache_reloads_literal_values_and_rejects_retired_or_unknown_fields(
@@ -162,11 +171,11 @@ def test_preview_owns_only_exact_typed_immutable_cells() -> None:
     with pytest.raises(TypeError, match="exact float"):
         replace(preview, rows=((True, "001"),))
     with pytest.raises(ValueError, match="immutable"):
-        replace(preview, rows=[[1.25, "001"]])
+        replace(preview, rows=[[1.25, "001"]])  # type: ignore[arg-type]
     with pytest.raises(ValueError, match="column width"):
         replace(preview, rows=((1.25,),))
     with pytest.raises(TypeError, match="boolean"):
-        replace(preview, ready_for_full_parse=1)
+        replace(preview, ready_for_full_parse=1)  # type: ignore[arg-type]
 
 
 def test_config_metadata_budget_stops_before_expanding_inherited_defaults(
@@ -182,19 +191,19 @@ def test_config_metadata_budget_stops_before_expanding_inherited_defaults(
         + "\n".join(f"[section{i:03d}]\n" for i in range(100)),
         encoding="utf-8",
     )
-    visited = []
+    visited: list[str] = []
     original = config_aware._LiteralConfigParser.__getitem__
 
-    def section(parser, key):
+    def section(parser: configparser.ConfigParser, key: str) -> configparser.SectionProxy:
         visited.append(key)
         return original(parser, key)
 
-    def expanded(*args, **kwargs):
+    def expanded(*args: object, **kwargs: object) -> NoReturn:
         raise AssertionError("Metadata rendering materialized expanded section dictionaries")
 
     original_encode = json.JSONEncoder.encode
 
-    def encode(encoder, value):
+    def encode(encoder: json.JSONEncoder, value: Any) -> str:
         if value == "x" * 100:
             raise AssertionError("Oversized value reached JSON string allocation")
         return original_encode(encoder, value)
@@ -233,7 +242,7 @@ def test_playground_resolved_paths_identify_rows_for_shuffled_batch_and_completi
         original = _result(path)
         variable = replace(original.variables[0], cells=(ParsedCell("number", "number", number),))
         value = replace(original, variables=(variable, original.variables[1]))
-        future = Future()
+        future: Future[ParsedFileResult] = Future()
         future.set_result(value)
         values.append(value)
         futures.append(future)
