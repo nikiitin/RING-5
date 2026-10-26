@@ -10,6 +10,7 @@ Covers:
 from typing import Any, cast
 
 import plotly.graph_objects as go
+import pytest
 
 from src.core.models.visualization.annotation_config import ReferenceLineConfig
 from src.core.models.visualization.axis_config import AxesConfig, AxisConfig
@@ -561,12 +562,13 @@ class TestColorbarConfig:
         assert restored.tick_decimals == original.tick_decimals
         assert restored.shared == original.shared
 
-    def test_from_dict_ignores_unknown_keys(self) -> None:
-        """from_dict() silently ignores unknown keys."""
+    def test_from_dict_rejects_unknown_keys(self) -> None:
+        """Unsupported fields fail while a partial colorbar retains its title side."""
         from src.core.models.visualization.legend_config import ColorbarConfig
 
-        d = {"title_side": "left", "unknown_key": 42}
-        cfg = ColorbarConfig.from_dict(d)
+        with pytest.raises(TypeError, match="Unsupported ColorbarConfig fields"):
+            ColorbarConfig.from_dict({"title_side": "left", "unknown_key": 42})
+        cfg = ColorbarConfig.from_dict({"title_side": "left"})
         assert cfg.title_side == "left"
 
     def test_legend_config_embeds_colorbar(self) -> None:

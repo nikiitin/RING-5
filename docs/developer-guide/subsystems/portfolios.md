@@ -124,5 +124,6 @@ unbounded decoded table.
 Plot documents use the fields admitted by `src/core/common/plot_payload.py`. Legend names live in
 `config.legend_labels`; copies, comparisons and portfolio restoration use that same configuration.
 Unknown plot fields raise errors before restoration or publication. Explicit `FigureConfig.from_dict`
-decoding rejects unknown typography names. A saved `figure_spec` records resolved styling metadata
-for inspection; restoration uses the plot configuration.
+and nested styling decoding reject unsupported fields and malformed supplied containers while
+preserving omitted-field defaults and current scalar construction policies. A saved `figure_spec`
+records resolved styling metadata for inspection; restoration uses the plot configuration.

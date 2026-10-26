@@ -13,6 +13,7 @@ from typing import Any
 
 from src.core.common.plot_payload import BAR_HATCH_PATTERNS
 from src.core.common.opacity import require_opacity
+from src.core.models.visualization._config_fields import config_object, model_fields
 
 
 @dataclass(frozen=True)
@@ -77,16 +78,19 @@ class SeriesStyleConfig:
         """Deserialize from a plain dictionary.
 
         Args:
-            data: Dictionary with spec fields. Unknown keys are ignored.
+            data: Current spec fields; omitted fields use their defaults.
 
         Returns:
             New SeriesStyleConfig instance.
 
         Raises:
+            TypeError: An object shape or field name is unsupported.
             ValueError: A retired display field or unsupported hatch is supplied.
         """
+        data = config_object(data, "SeriesStyleConfig")
         if "display_name" in data:
             raise ValueError("Series style display_name is unsupported. Use legend_labels.")
+        data = model_fields(data, cls, "SeriesStyleConfig")
         return cls(
             line_width=float(data.get("line_width", 2.0)),
             marker_size=int(data.get("marker_size", 6)),

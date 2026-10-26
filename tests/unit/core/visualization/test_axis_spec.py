@@ -10,6 +10,8 @@ Covers:
   - Sentinel values for new fields
 """
 
+import pytest
+
 from src.core.models.visualization.axis_config import AxesConfig, AxisConfig
 
 
@@ -120,10 +122,11 @@ class TestAxisSpecRoundTrip:
         assert restored.dtick == 0.5
         assert restored.scale == "log"
 
-    def test_unknown_keys_ignored(self) -> None:
-        """from_dict should ignore keys not in the dataclass."""
-        data = {"label": "X", "unknown_field": True, "another": 42}
-        spec = AxisConfig.from_dict(data)
+    def test_unknown_keys_rejected(self) -> None:
+        """Unknown fields fail while a partial axis preserves its label."""
+        with pytest.raises(TypeError, match="Unsupported AxisConfig fields"):
+            AxisConfig.from_dict({"label": "X", "unknown_field": True, "another": 42})
+        spec = AxisConfig.from_dict({"label": "X"})
         assert spec.label == "X"
 
 
