@@ -102,8 +102,7 @@ class TestSeriesStyling:
     def test_bar_border_applied(self) -> None:
         fig, panel = _bar_line_panel()
         ax = panel.primary_axes
-        # series_styles apply by index; give every series the border so the
-        # assertion is independent of the artist enumeration order.
+        # Give both declared source slots the border under test.
         border = SeriesStyleConfig(bar_border_width=2.0, bar_border_color="#000000")
         spec = FigureConfig(series_styles=[border, border])
         FigureSpecToMatplotlib._apply_series_styling(spec, panel)

@@ -262,8 +262,8 @@ class TestStandoffDefault:
 class TestPlotlyLegendShift:
     """Legend vertical shifts use the resolved native figure dimensions."""
 
-    def test_plotly_connector_vshift_zero_height_guard(self) -> None:
-        """C2: vshift should not crash when dimensions height is zero."""
+    def test_plotly_connector_vshift_handles_short_figure(self) -> None:
+        """Vertical label shifts support the configured positive short figure height."""
         axis = AxisConfig(label_standoff=50)
         axes = AxesConfig(y=axis)
         spec = FigureConfig(
@@ -272,7 +272,6 @@ class TestPlotlyLegendShift:
         )
         resolved = resolve_config(spec)
         fig = go.Figure(data=[go.Bar(x=["A"], y=[1])])
-        # This should not raise ZeroDivisionError
         rendered = PlotlyRenderResult(
             fig, ((PlotlyTraceBinding(0, "", fig.data[0], "primary", "", True),),)
         )
