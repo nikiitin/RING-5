@@ -6,10 +6,9 @@ whitespace-separated CSV:
 
     tests/data/mock/inputs/csv/configurer/configurer_test_case01.csv
 
-That fixture is not committed (``tests/data/`` is gitignored) and is not part of the
-published test-data tarball, which ships only gem5 ``stats.txt`` files. This script
-regenerates the fixture from those ``stats.txt`` files so the tests can run, instead
-of depending on a lost download.
+The fixture is generated locally from the downloaded gem5 ``stats.txt`` files;
+``tests/data/`` is gitignored. Seed means use runs containing both metrics;
+missing metrics are reported and excluded, and infinite metrics fail visibly.
 
 It parses the per-run identity (``benchmark_name`` and ``config_description_abbrev``,
 both ``key=value`` lines in each file's ``[SimulationInfo]`` section) plus ``simTicks``
@@ -27,10 +26,12 @@ import tempfile
 from pathlib import Path
 
 import pandas as pd
+import numpy as np
 
 from src.core.application_api import ApplicationAPI
 from src.core.common.parsed_output import ParsedOutputIO
 from src.core.models.parsing_models import StatConfig
+from src.parsing.gem5.types.base import population_mean
 
 logging.basicConfig(level=logging.WARNING)
 
@@ -59,22 +60,13 @@ METRICS = ["simTicks", "branchMispredicts"]
 FINAL_ORDER = ["benchmark_name", "config_description_abbrev", "simTicks", "branchMispredicts"]
 
 
-def _find_column(df: pd.DataFrame, needle: str) -> str:
-    """Locate a parser column by substring (the parser may normalise stat names)."""
-    if needle in df.columns:
-        return needle
-    matches = [
-        c for c in df.columns if needle in c or needle.replace(".", "") in c.replace(".", "")
-    ]
-    if not matches:
-        raise SystemExit(
-            f"expected a column matching {needle!r} in parser output; got {list(df.columns)}"
-        )
-    # Prefer the shortest match (closest to the bare stat name).
-    return min(matches, key=len)
+def _seed_mean(values: pd.Series) -> float:
+    """Use the parser's overflow-safe population mean for complete seed observations."""
+    return population_mean(values.tolist())
 
 
 def _parse_to_dataframe() -> pd.DataFrame:
+    """Parse actual source names into the fixture's explicitly declared output columns."""
     api = ApplicationAPI()
     try:
         stats_files = api.find_stats_files(str(STATS_ROOT), "stats.txt")
@@ -85,7 +77,14 @@ def _parse_to_dataframe() -> pd.DataFrame:
         variables = []
         for column, source in COLUMN_SOURCES.items():
             kind = "scalar" if column in METRICS else "configuration"
-            variables.append(StatConfig(name=source, type=kind, params={"source_type": kind}))
+            variables.append(
+                StatConfig(
+                    name=column,
+                    source_name=source,
+                    type=kind,
+                    params={"source_type": kind},
+                )
+            )
 
         with tempfile.TemporaryDirectory() as out_dir:
             batch = api.submit_parse_async(
@@ -113,17 +112,20 @@ def generate() -> Path:
 
     raw = _parse_to_dataframe()
 
-    # Map parser columns -> canonical fixture names.
-    rename = {_find_column(raw, src): col for col, src in COLUMN_SOURCES.items()}
-    df = raw.rename(columns=rename)[list(COLUMN_SOURCES.keys())].copy()
-
-    # Metrics must be numeric for the Mean/Normalize shapers.
-    for metric in METRICS:
-        df[metric] = pd.to_numeric(df[metric], errors="coerce")
-    df = df.dropna(subset=METRICS).copy()
+    df = raw.loc[:, list(COLUMN_SOURCES)].copy()
+    if np.isinf(df[METRICS].to_numpy()).any():
+        raise SystemExit("Fixture generation requires complete runs with finite metrics.")
+    incomplete = df[METRICS].isna().any(axis=1)
+    if incomplete.any():
+        logging.warning("Excluding %s incomplete run(s) from fixture seed means.", incomplete.sum())
+        df = df.loc[~incomplete].copy()
+    if df.empty:
+        raise SystemExit("Fixture generation requires complete runs with finite metrics.")
 
     # Reduce across seeds: one row per (config, benchmark), mean of the metrics.
-    reduced = df.groupby(IDENTITY, as_index=False)[METRICS].mean().loc[:, FINAL_ORDER].copy()
+    reduced = (
+        df.groupby(IDENTITY, as_index=False)[METRICS].agg(_seed_mean).loc[:, FINAL_ORDER].copy()
+    )
     reduced = reduced.sort_values(["benchmark_name", "config_description_abbrev"]).reset_index(
         drop=True
     )
