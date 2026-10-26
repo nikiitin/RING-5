@@ -7,7 +7,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
-import yaml  # type: ignore[import-untyped]  # The locked CI environment omits PyYAML stubs.
+import yaml
 
 from ring5 import _doctor
 from scripts.check_package_contents import RUNTIME_FILES
