@@ -36,8 +36,8 @@ Covers:
 
 -->
 
-The supported portfolio schema is version 9. Serialized files declare `schema_version: 9`,
-`version: "9.0"`, their parser strategy and simulator, environment metadata, and an integrity
+The supported portfolio schema is version 12. Serialized files declare `schema_version: 12`,
+`version: "12.0"`, their parser strategy and simulator, environment metadata, and an integrity
 manifest. Missing or unsupported schema versions raise a typed version error before restoration.
 No reader infers old defaults, translates keys, or rewrites a file into the current schema.
 Editable plot configuration uses `legend2_*` for a separate right legend and

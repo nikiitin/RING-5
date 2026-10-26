@@ -195,7 +195,7 @@ def test_histogram_retains_both_tails_and_refuses_unknown_density_widths() -> No
     result = plot.create_traces(data, {"histogram_variable": "h"})
     assert result.traces[0].y == [2, 3, 7]
     assert result.custom_x_ticks == {"vals": [-5, 5, 15], "text": ["<0", "0-9", "10+"]}
-    with pytest.raises(ValueError, match="requires finite bucket bounds"):
+    with pytest.raises(ValueError, match="requires finite positive bucket widths"):
         plot.create_traces(data, {"histogram_variable": "h", "normalization": "density"})
 
 
