@@ -11,12 +11,12 @@ class TestSeriesStyleSpecDefaults:
     """Test that default construction produces safe values."""
 
     def test_default_values(self) -> None:
-        """All defaults should produce standard trace styling."""
+        """Omitted opacity inherits the source appearance."""
         spec = SeriesStyleConfig()
 
         assert spec.line_width == 2.0
         assert spec.marker_size == 6
-        assert spec.opacity == 1.0
+        assert spec.opacity is None
         assert spec.bar_border_width == 0.0
         assert spec.bar_border_color == ""
         assert spec.hatching_pattern is None

@@ -8,10 +8,12 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 import plotly.graph_objects as go
+from matplotlib.colors import to_rgba
 
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import HeatmapTraceConfig
 from src.web.pages.ui.plotting.types.heatmap_plot import HeatmapPlot
+from src.web.rendering._color_utils import css_color_to_matplotlib
 from src.web.rendering.trace_to_plotly import traces_to_plotly
 from src.web.rendering.figure_preparation import PreparedFigure
 
@@ -220,10 +222,10 @@ def test_heatmap_plotly_annotations_have_contrast_colors() -> None:
 
     # Viridis maps the minimum to dark purple and maximum to light yellow.
     ann_a = next(a for a in annotations if a.x == "A")
-    assert ann_a.font.color == "white"
+    assert to_rgba(css_color_to_matplotlib(ann_a.font.color)) == to_rgba("white")
 
     ann_b = next(a for a in annotations if a.x == "B")
-    assert ann_b.font.color == "black"
+    assert to_rgba(css_color_to_matplotlib(ann_b.font.color)) == to_rgba("black")
 
 
 def test_heatmap_subplot_annotations_use_correct_axis_refs() -> None:

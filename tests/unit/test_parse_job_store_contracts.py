@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -111,7 +112,7 @@ def test_sqlite_reopens_exact_current_request_and_output_descriptors(tmp_path: P
     assert published == output
     assert published is not None
     assert ParsedOutputIO.to_frame(published)["value"].tolist() == [1.25]
-    with sqlite3.connect(path) as connection:
+    with closing(sqlite3.connect(path)) as connection, connection:
         assert connection.execute("PRAGMA user_version").fetchone()[0] == 1
         assert {row[1] for row in connection.execute("PRAGMA table_info(jobs)")} >= {
             "output_json",
@@ -124,13 +125,13 @@ def test_populated_unversioned_and_unknown_formats_reject_without_migrating(
     tmp_path: Path, version: int
 ) -> None:
     path = tmp_path / "jobs.sqlite3"
-    with sqlite3.connect(path) as connection:
+    with closing(sqlite3.connect(path)) as connection, connection:
         connection.execute("CREATE TABLE facts(value TEXT)")
         connection.execute("INSERT INTO facts VALUES ('retained')")
         connection.execute(f"PRAGMA user_version={version}")
     with pytest.raises(ValueError, match="Unsupported parse job store format"):
         ParseJobStore(path)
-    with sqlite3.connect(path) as connection:
+    with closing(sqlite3.connect(path)) as connection, connection:
         assert connection.execute("PRAGMA user_version").fetchone()[0] == version
         assert connection.execute("SELECT value FROM facts").fetchone() == ("retained",)
         assert connection.execute(
@@ -214,7 +215,7 @@ def test_output_descriptor_limit_is_checked_before_json_decoding(
     path = tmp_path / "jobs.sqlite3"
     store = ParseJobStore(path)
     store.remember_published(request.fingerprint, output)
-    with sqlite3.connect(path) as connection:
+    with closing(sqlite3.connect(path)) as connection, connection:
         connection.execute("UPDATE published_results SET output_json=?", (" " * 257,))
     decode = MagicMock(side_effect=AssertionError("Oversized descriptor reached JSON decoder"))
     monkeypatch.setattr(parsed_output_codec, "MAX_PARSED_DESCRIPTOR_BYTES", 256)
@@ -240,7 +241,7 @@ def test_current_output_descriptor_rejects_unknown_or_missing_fields(
         payload["metadata"] = {}
     else:
         del payload["schema"]
-    with sqlite3.connect(path) as connection:
+    with closing(sqlite3.connect(path)) as connection, connection:
         connection.execute("UPDATE published_results SET output_json=?", (json.dumps(payload),))
     with pytest.raises(InvalidStoredOutput):
         store.get_published(request.fingerprint)
