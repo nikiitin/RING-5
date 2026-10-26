@@ -63,7 +63,7 @@ class SeedsReducerManager(DataManager):
             )
             return
 
-        # Auto-select random_seed when present for backward compatibility
+        # Prefer the simulator seed column when available.
         default_idx: int = 0
         if "random_seed" in candidate_cols:
             default_idx = candidate_cols.index("random_seed")

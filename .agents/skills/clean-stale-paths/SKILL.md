@@ -14,7 +14,7 @@ rule defined in AGENTS.md.
 1. **Extract cited paths and test them for existence.** Treat this as a first pass, not proof that
    a subsystem is unused:
    ```bash
-   { grep -rhoE "src/[A-Za-z0-9_./]+" docs/ AGENTS.md .agents/skills/ 2>/dev/null; } \
+   rg -o --no-filename 'src/[A-Za-z0-9_./]+' docs/ AGENTS.md .agents/skills/ \
      | sed -E 's/[.,:;`)"]+$//' | sort -u \
      | while read -r p; do [ -e "$p" ] || echo "MISSING: $p"; done
    ```
@@ -25,7 +25,7 @@ rule defined in AGENTS.md.
    - **Grep artifact** — a real file with a stripped suffix/symbol (`common/utils` → `utils.py`,
      `trace_to_` → `trace_to_plotly.py`, `_connector_protocol.STYLING_PIPELINE_ORDER`). → keep.
    Confirm the bucket by checking which file cites it:
-   `grep -rlF "<path>" docs/ AGENTS.md`.
+   `rg -l -F "<path>" docs/ AGENTS.md .agents/skills/`.
 3. **Find the real location** for stale ones with `rg --files` and `rg -n "class <Name>" src/`.
 4. **Removed entirely vs. moved:**
    - Moved → repoint the path.
@@ -36,7 +36,9 @@ rule defined in AGENTS.md.
    refactor: migrate **all** importers + tests to the canonical name first, then delete (substitute,
    don't adapt). Search tracked source, tests, docs, scripts and configuration with `rg` before
    deleting. Verify callers through string references and dynamic registration too. (Verify the alias is real first —
-   a `from X import Canonical as OldName` inside a test file is a local cosmetic, not a production shim.)
+   a `from X import Canonical as OldName` inside a test file is a local binding, not a production shim.)
+   Current simulator variants, platform support, output-column naming and revision history remain
+   supported features; their presence alone does not establish a legacy execution path.
 
 ## Canon-only docs (enforce while you're in there)
 - Docs and AGENTS.md state **only the current canonical way**, present tense. Delete "an earlier
@@ -48,15 +50,14 @@ rule defined in AGENTS.md.
 ## Verify after (must all be clean)
 ```bash
 # 1. re-run the existence sweep — only legit examples / history / artifacts may remain
-{ grep -rhoE "src/[A-Za-z0-9_./]+" docs/ AGENTS.md 2>/dev/null; } | sed -E 's/[.,:;`)"]+$//' | sort -u \
+rg -o --no-filename 'src/[A-Za-z0-9_./]+' docs/ AGENTS.md .agents/skills/ | sed -E 's/[.,:;`)"]+$//' | sort -u \
   | while read -r p; do [ -e "$p" ] || echo "MISSING: $p"; done
 # 2. removed symbols gone from docs (example)
-grep -rnE "RingConfig|ConfigValidationService|PlotInteractionService" docs/
-# 3. no dangling anchors to removed sections
-grep -rniE "deprecated.shim|backward.compat" docs/ | grep -v history.md
+rg -n 'RingConfig|ConfigValidationService|PlotInteractionService' docs/
+# 3. inspect compatibility/history wording outside the history document
+rg -ni 'deprecated.shim|backward.compat' docs/ -g '!history.md'
 ```
-Record durable contracts in the repository developer guide. Update external memory only when the
-user explicitly requests it.
+Record durable contracts in the repository developer guide.
 
 ## Keep this skill sharp
 Canon, not history — edit in place when the method improves:

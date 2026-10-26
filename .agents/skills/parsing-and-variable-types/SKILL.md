@@ -22,8 +22,11 @@ configs   = api.compile_parse_variables(
 # Parse: extract selected variables → CSV
 batch    = api.submit_parse_async(stats_path, pattern, configs, out_dir,
                                   strategy_type="simple", scanned_vars=scan.variables)
-output = api.finalize_parsing(batch, [f.result() for f in batch.futures])
+output   = api.finalize_parsing(batch, [f.result() for f in batch.futures])
 ```
+- Keep the exact submitted batch through finalization. The return is a typed `ParsedOutput`,
+  including its CSV path and schema identity. `complete=False` permits non-empty partial results
+  against the same source plan; incomplete incremental output does not promote the success cache.
 - **Always pass `scanned_vars`** when parsing regex/pattern variables — it's needed to bind
   explicit `SourceInstance(source_name, indices)` records. Never reconstruct names from indices.
 - Every runnable config requires `params.source_type`; manual producers declare the raw kind
@@ -83,17 +86,18 @@ Stat types self-register; there are two halves — **Python** (model + reduction
    (`src/parsing/registry.py`) so the UI offers it.
 
 4. **Tests:** unit-test the Perl module directly (feed sample lines), then integration-test through
-   `ApplicationAPI.submit_parse_async`. Use `tests/helpers/gem5_fixtures` and real data via
+   `ApplicationAPI.submit_parse_async`. Use `tests/helpers/gem5_fixtures.py` and real data via
    `make test-data`.
 
 ## Debugging async parsing
-- **Hangs / timeouts:** check `gem5/impl/strategies/perl_worker_pool.py` (worker health check skips
-  if `last_used < 60s`; `is_busy` uses GIL atomicity). Pools register `atexit` cleanup and have
-  `shutdown()` — call `ApplicationAPI.cancel_pending_scans()` to release THAT instance's scan
-  futures/memory (handle-based; pool facades keep none; the web app shares one cached instance).
-- **Missing/empty columns in CSV:** `ParsedOutputIO.resolve` unions explicitly owned columns across typed
-  file results; a variable absent in the first file is fine. If a header is *permanently* short, suspect header being built
-  from a sample file rather than the variable config.
+- **Hangs / timeouts:** inspect `src/parsing/gem5/impl/strategies/perl_worker_pool.py`. The monitor
+  skips busy workers and recently used healthy workers; stderr drains independently of stdout.
+  Preserve exact process-generation ownership through timeouts, restarts and shutdown.
+  `api.cancel_pending_scans()` cancels that API instance's scan futures; pool facades retain no
+  batches, and the web API is browser-session scoped.
+- **Missing/empty columns:** `src/core/common/parsed_output.py::ParsedOutputIO.resolve` unions
+  explicit typed columns across the submitted source plan. Inspect each worker result's ownership,
+  kinds and diagnostics; do not infer a schema from one sample or fabricate absent values.
 - **Wrong values / type mismatch:** Perl may report `Vector` where the user expected
   `Distribution`/`Histogram`; explicit source/output routing is handled in `gem5/impl/strategies/gem5_parse_work.py`.
 - **Never fabricate:** on regex non-match the parser logs/raises — keep it that way; don't default to 0.

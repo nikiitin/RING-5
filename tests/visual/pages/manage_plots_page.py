@@ -621,7 +621,7 @@ class ManagePlotsPage(BasePage):
 
         Args:
             name: Desired plot name.
-            plot_type: Optional plot type label to select (e.g. "Bar Chart").
+            plot_type: Optional exact factory key (e.g. "bar", "dual_axis_bar_dot").
                 If *None*, the default is kept.
         """
         self.plot_name_input.fill(name)

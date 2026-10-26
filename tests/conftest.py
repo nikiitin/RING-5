@@ -57,7 +57,7 @@ def columns_side_effect(spec: int | list[Any] | tuple[Any, ...], **kwargs: Any) 
 
 @pytest.fixture
 def plot_session() -> Generator["Session", None, None]:
-    """Own a public rendering session for a test and drain it on teardown."""
+    """Own a public rendering session for a test and close it on teardown."""
     from ring5 import Session
 
     session = Session()

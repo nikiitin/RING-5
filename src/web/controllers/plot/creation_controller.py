@@ -11,7 +11,7 @@ Dependencies are injected via protocols (no concrete imports from pages.ui).
 
 Architecture Note — Streamlit usage:
     This controller uses ``st.rerun()`` for flow control after state mutations
-    (create/delete/duplicate), ``st.toast()`` for transient success
+    (create/rename/delete/duplicate), ``st.toast()`` for transient success
     notifications, and ``st.exception()`` for error handling. These are
     intentional: ``st.rerun()`` is Streamlit's flow control mechanism,
     ``st.toast()`` is non-blocking feedback, and ``st.exception()`` renders

@@ -174,7 +174,7 @@ class DataRepository:
         Args:
             name: Human-readable dataset name.
             data: Dataset to retain.
-            select: Make the stored dataset the active compatibility view.
+            select: Make the stored dataset the active workspace selection.
             replace: Permit replacing a dataset with the same name.
             operation: Human-readable operation that produced the dataset.
             source_datasets: Named source datasets used by the operation.

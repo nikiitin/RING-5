@@ -18,6 +18,8 @@ current execution and data contracts.
   Measure subprocess startup, Perl classification and Python decoding separately.
 - `src/parsing/gem5/impl/scanning/pattern_aggregator.py` groups concrete numeric sources into
   patterns with explicit source-instance records. Preserve those records through submission.
+- `src/core/common/parsed_output.py::ParsedOutputIO` resolves explicit column ownership, kinds and
+  source provenance, then publishes integrity-checked typed output atomically.
 - `src/parsing/framework/work_pool.py` owns the shared thread executor. Its typed commands return
   caller-owned Futures. Session cancellation affects owned work; global shutdown drains accepted
   work before another executor generation starts.

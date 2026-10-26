@@ -119,7 +119,7 @@ class StateManager(Protocol):
         raise NotImplementedError
 
     def select_dataset(self, name: str) -> pd.DataFrame:
-        """Select a retained dataset as the active compatibility view."""
+        """Select a retained dataset as the active workspace dataset."""
         raise NotImplementedError
 
     def remove_dataset(self, name: str) -> None:

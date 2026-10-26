@@ -19,9 +19,11 @@ contract**.
    protocol, including incremental and playground submission/finalization and scan aggregation.
    Public `Session.parse` composes the submit/finalize contract; it does not introduce another
    parser execution path. Preserve that ownership when adding orchestration.
-   Incremental finalization has one `complete: bool = True` contract. Partial mode retains valid
-   cached and changed rows without promoting the success cache; both modes verify fingerprints
-   and exact unique provenance. Counts distinguish accepted rows from the planned file total.
+   Full finalization requires its submitted `ParseBatchResult` and returns `ParsedOutput`.
+   Incremental finalization requires its own submitted batch. Both use `complete: bool = True`;
+   partial output still requires non-empty accepted results with exact planned provenance.
+   Incremental partial mode retains valid cached/changed rows without promoting the success cache.
+   Preserve fingerprint verification and accepted-row counts against the planned file total.
 3. **Explicit source metadata.** Every runnable config declares `params.source_type`; numeric
    patterns require `scanned_vars` with concrete `SourceInstance` names and numeric coordinates.
    `selected_sources` contains concrete names only. Resolve once before workers, never reconstruct
@@ -76,11 +78,11 @@ a headless `ApplicationAPI()` (no Streamlit) — scan→`finalize_scan`, then `s
   classifies as `histogram` and a distribution var (`*.numIssuedDist::N`) as `distribution`. This is
   the live test of invariant 5 across **both** Perl paths. Then parse the histogram and confirm the
   output columns are **range** entries (`::N-M`), never single-int distribution entries.
-- **Aggregation, not fabrication** — pattern/regex variables (`system.cpu\d+…`) are reduced across
-  their concrete instances by **mean**. A parsed value cross-checked against a *single* instance looks
-  wrong; verify it against the **mean of all matching instances** (a 16-core mean carries a `…/16`
-  fraction, e.g. `386577.0625`). A value that traces to that mean is correct, not fabricated — don't
-  raise a false alarm. Missing stats surface as **NaN, never 0** (rule #6 in action).
+- **Aggregation** — numeric pattern variables reduce the actual matching source/dump observations
+  by their configured statistic semantics. Compare a population mean with all matching observations,
+  rather than one concrete instance. Preserve measured zero and NaN independently from absent
+  observations; numeric schema-union gaps appear as NaN, while missing text requires an explicit
+  producer value. Never substitute a numeric default for missing measurements.
 
 ## Keep this skill sharp
 Canon, not history — edit in place when the parser contract moves:

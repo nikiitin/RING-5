@@ -108,7 +108,7 @@ class DataServicesAPI(Protocol):
         *,
         conflict: PipelineConfigConflictPolicy = "error",
     ) -> PipelineConfigImportResult:
-        """Validate and save a current or legacy portable configuration."""
+        """Validate and save a current portable configuration."""
         raise NotImplementedError
 
     def load_saved_configs(self) -> list[SavedConfigEntry]:

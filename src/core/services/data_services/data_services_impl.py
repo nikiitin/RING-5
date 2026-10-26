@@ -126,7 +126,7 @@ class DefaultDataServicesAPI:
         *,
         conflict: PipelineConfigConflictPolicy = "error",
     ) -> PipelineConfigImportResult:
-        """Validate and save a current or legacy portable configuration."""
+        """Validate and save a current portable configuration."""
         return ConfigService.import_configuration(payload, conflict=conflict)
 
     def load_saved_configs(self) -> list[SavedConfigEntry]:

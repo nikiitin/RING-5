@@ -23,8 +23,10 @@ conventions and runs the right test layers. For *writing* UI tests, use the
 - **Dual engine**: rendering goes through `FigureConfig` → connectors; the engine is switched by the
   `ring5_engine_mode` session key (`EngineManager`). Default palette is `wong`. The plot class never
   calls `go.*`/`plt.*` (see `plot-type-check`).
-- **Settings ownership** (don't misfile a control): tick marks / tick pad / grid dash → **Axes** pill;
-  Typography = font sizes/colors only; Y-axis title standoff & vshift → **Axes Y-Left** pill.
+- **Settings ownership:** Layout, Themes, Typography and Legends are basic sections; advanced mode
+  adds Axes, Data Labels, Colors and Advanced. Theme application/import/export is wired through
+  `ThemePresetsSettingsComponent`. Tick marks / tick pad / grid dash belong in Axes; font sizes and
+  colors in Typography; Y-axis title standoff and vertical shift in Axes Y-Left.
 - Components are self-contained widgets — no business logic; that belongs in a service behind the facade.
 
 ## Run the tests (no browser → browser)
@@ -42,8 +44,8 @@ make test-visual                                                    # Playwright
 
 ## Quick smells
 ```bash
-grep -rni "presenter" src/web/ --include=*.py            # no additional presentation layer
-grep -rn "st.session_state\[" src/web/ --include=*.py     # prefer UIStateManager/WidgetKeyBuilder
+rg -ni 'presenter' src/web/ -g '*.py'             # inspect additional presentation layers
+rg -n 'st.session_state\[' src/web/ -g '*.py'      # prefer UIStateManager/WidgetKeyBuilder
 ```
 
 ## Keep this skill sharp
