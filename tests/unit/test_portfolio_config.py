@@ -33,7 +33,6 @@ def test_portfolio_serialization() -> None:
         "height": 700,
         "legend_title": "Configuration",
         "show_error_bars": True,
-        "download_format": "pdf",
         "legend_labels": {
             "baseline": "Baseline Config",
             "optimized": "Optimized Config",

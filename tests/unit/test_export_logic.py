@@ -127,7 +127,11 @@ def test_multi_heatmap_colorbar_font_matches_spec(session: Any) -> None:
         },
     )
     fig = session.render(plot, engine="matplotlib")
-    spec_family = fig._ring5_spec.font_family
+    from src.core.models.visualization.figure_config import FigureConfig
+
+    spec = plot.render_artifact.figure_spec
+    assert isinstance(spec, FigureConfig)
+    spec_family = spec.font_family
     assert spec_family, "spec must resolve a font family"
 
     # Every text artist on the figure — including the colorbar's tick

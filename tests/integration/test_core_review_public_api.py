@@ -58,7 +58,7 @@ def test_portfolio_export_allocates_every_collision_without_overwrite(
 ) -> None:
     class ReplaySession:
         plots = [
-            SimpleNamespace(name=name, plot_id=identifier)
+            SimpleNamespace(name=name, plot_id=identifier, config={})
             for identifier, name in enumerate(["a_2", "a", "a", "A"])
         ]
 

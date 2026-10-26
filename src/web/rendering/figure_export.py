@@ -34,7 +34,7 @@ import plotly.graph_objects as go
 from kaleido.errors import ChromeNotFoundError
 from matplotlib.figure import Figure as MplFigure
 
-from src.core.models.visualization.figure_config import FigureConfig
+from src.core.models.visualization.export_options import TexSystem, validate_tex_system
 from src.web.rendering.latex_security import disabled_figure_usetex, escaped_figure_text
 
 if TYPE_CHECKING:
@@ -298,11 +298,12 @@ def matplotlib_download_bytes(
     fmt: MatplotlibFormat,
     *,
     dpi: int = 300,
-    spec: FigureConfig | None = None,
+    tex_system: TexSystem = "xelatex",
     deterministic: bool = False,
 ) -> bytes:
     # [impl->req~ring5.export.matplotlib-standard~1]
     # [impl->req~ring5.export.matplotlib-pgf~1]
+    # [impl->req~ring5.figure.matplotlib-tex-system~1]
     # [impl->req~ring5.export.deterministic~1]
     """Export a matplotlib Figure to image bytes via savefig.
 
@@ -310,7 +311,8 @@ def matplotlib_download_bytes(
         fig: The matplotlib Figure to export.
         fmt: One of ``"pdf"``, ``"pgf"``, ``"png"``, ``"svg"``.
         dpi: Resolution for raster formats (PNG). Ignored by vector formats.
-        spec: Optional FigureConfig for PGF preamble extraction.
+        tex_system: PGF compiler: ``xelatex``, ``pdflatex`` or ``lualatex``.
+            Custom preambles are disabled and figure text is escaped.
         deterministic: Make re-exports byte-identical: sets
             ``SOURCE_DATE_EPOCH=0`` around savefig (zeroes the PDF/SVG date
             stamps, which are otherwise timezone-dependent) and a fixed
@@ -327,6 +329,7 @@ def matplotlib_download_bytes(
         raise ValueError(
             f"Unsupported format {fmt!r}. " f"Choose from {list(_MPL_FORMAT_MIME.keys())}."
         )
+    compiler = validate_tex_system(tex_system)
 
     # The lock covers the whole export: savefig is not thread-safe, the
     # rc_context blocks mutate process-global rcParams, and the
@@ -351,7 +354,7 @@ def matplotlib_download_bytes(
                     escaped_figure_text(fig),
                     plt.rc_context(
                         {
-                            "pgf.texsystem": "xelatex",
+                            "pgf.texsystem": compiler,
                             "pgf.preamble": "",
                             "pgf.rcfonts": True,
                             **det_rc,

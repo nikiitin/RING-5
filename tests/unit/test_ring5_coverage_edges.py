@@ -97,7 +97,10 @@ def test_export_error_normalization(tmp_path: Path) -> None:
     with patch("ring5._export.plotly_download_bytes", side_effect=ValueError("bad image")):
         with pytest.raises(ring5.ExportError, match="bad image"):
             _export.export_bytes(plotly, "png")
-    with patch("ring5._export.matplotlib_download_bytes", side_effect=RuntimeError("xelatex gone")):
+    with patch(
+        "ring5._export.matplotlib_download_bytes",
+        side_effect=RuntimeError("'xelatex' not found; install it"),
+    ):
         with pytest.raises(ring5.DependencyMissingError):
             _export.export_bytes(mpl, "pgf")
     with patch("ring5._export.matplotlib_download_bytes", side_effect=ValueError("bad figure")):
@@ -227,8 +230,8 @@ def test_portfolio_replay_edges(tmp_path: Path) -> None:
                 _portfolio.render_portfolio("p", str(tmp_path))
 
     plots = [
-        SimpleNamespace(name="same/name", plot_id=1),
-        SimpleNamespace(name="same_name", plot_id=2),
+        SimpleNamespace(name="same/name", plot_id=1, config={}),
+        SimpleNamespace(name="same_name", plot_id=2, config={}),
     ]
     session = _portfolio_session(plots)
     with patch("ring5._portfolio.Session", return_value=session):
@@ -236,7 +239,7 @@ def test_portfolio_replay_edges(tmp_path: Path) -> None:
     assert written[0] != written[1]
     assert written[1].endswith("_2.pdf")
 
-    session = _portfolio_session([SimpleNamespace(name="bad", plot_id=1)])
+    session = _portfolio_session([SimpleNamespace(name="bad", plot_id=1, config={})])
     session.render.side_effect = Ring5Error("render failed")
     with patch("ring5._portfolio.Session", return_value=session):
         with pytest.raises(ring5.PortfolioError, match="Rendering plot 'bad'"):

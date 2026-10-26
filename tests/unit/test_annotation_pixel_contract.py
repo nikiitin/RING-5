@@ -181,4 +181,6 @@ def test_public_stack_totals_preserve_pixel_offset_and_raw_categories(offset: in
             assert annotation.xy == (x, y)
             anchor = annotation.xycoords.transform(annotation.xy)
             np.testing.assert_allclose(anchor - axis.transData.transform((x, y)), (0, offset))
-        assert [ann.y_shift_pixels for ann in static._ring5_spec.annotations] == [offset, offset]
+        spec = plot.render_artifact.figure_spec
+        assert isinstance(spec, FigureConfig)
+        assert [ann.y_shift_pixels for ann in spec.annotations] == [offset, offset]

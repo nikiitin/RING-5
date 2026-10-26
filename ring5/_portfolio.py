@@ -11,6 +11,7 @@ from pathlib import Path
 
 from src.core.common.utils import sanitize_filename
 from src.core.models.visualization.engine import EngineMode
+from src.core.models.visualization.export_options import validate_tex_system
 
 from ring5._session import Session
 from ring5.errors import PortfolioError, Ring5Error
@@ -74,7 +75,14 @@ def render_portfolio(
             target = out / f"{stem}.{effective_fmt}"
             try:
                 fig = session.render(plot, engine=engine)
-                written.append(session.export(fig, str(target), deterministic=deterministic))
+                written.append(
+                    session.export(
+                        fig,
+                        str(target),
+                        deterministic=deterministic,
+                        tex_system=validate_tex_system(plot.config.get("tex_system", "xelatex")),
+                    )
+                )
             except (OSError, ValueError, Ring5Error) as exc:
                 raise PortfolioError(
                     f"Rendering plot '{plot.name}' from portfolio '{name}' failed: {exc}"

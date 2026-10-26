@@ -153,9 +153,8 @@ class FigureConfig:
     paper_bgcolor: str = "white"
     plot_bgcolor: str = "white"
 
-    # LaTeX extras
+    # Font family
     font_family: str = "serif"  # serif / sans-serif / monospace
-    latex_extra_preamble: str = ""
 
     # Arbitrary metadata (benchmark name, seed, etc.)
     metadata: dict[str, str] = field(default_factory=dict)
@@ -192,9 +191,11 @@ class FigureConfig:
         values but is not object-identical for traces.
 
         Raises:
-            TypeError: A nested dataclass contains unsupported fields.
+            TypeError: The value is not an object or a field is unsupported.
             ValueError: Typography is not a serialized object.
         """
+        from dataclasses import fields
+
         from src.core.models.visualization.annotation_config import (
             AnnotationConfig,
             ReferenceLineConfig,
@@ -204,6 +205,12 @@ class FigureConfig:
         from src.core.models.visualization.legend_config import LegendConfig
         from src.core.models.visualization.series_style_config import SeriesStyleConfig
         from src.core.models.visualization.typography_config import TypographyConfig
+
+        if not isinstance(data, dict) or any(not isinstance(key, str) for key in data):
+            raise TypeError("Figure configuration must be an object with text field names.")
+        unsupported = data.keys() - {item.name for item in fields(cls)}
+        if unsupported:
+            raise TypeError(f"Unsupported figure configuration fields: {sorted(unsupported)}.")
 
         # Shallow-copy the nested dict before .pop() so we never mutate the
         # caller's input (from_dict must be side-effect free for round-trips).
@@ -277,6 +284,5 @@ class FigureConfig:
             paper_bgcolor=data.get("paper_bgcolor", "white"),
             plot_bgcolor=data.get("plot_bgcolor", "white"),
             font_family=data.get("font_family", "serif"),
-            latex_extra_preamble=data.get("latex_extra_preamble", ""),
             metadata=data.get("metadata", {}),
         )

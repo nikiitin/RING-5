@@ -615,7 +615,6 @@ def _render_matplotlib_dashboard(preparation: PreparedDashboard) -> MplFigure:
             wspace=wspace,
             hspace=hspace,
         )
-        figure._ring5_spec = preparation  # type: ignore[attr-defined]
         return figure
     except Exception:
         plt.close(figure)

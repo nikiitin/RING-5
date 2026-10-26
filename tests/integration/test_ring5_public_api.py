@@ -6,7 +6,7 @@ from src.core.models.portfolio_contract import CURRENT_PORTFOLIO_SCHEMA_VERSION
 
 import json
 from pathlib import Path
-from typing import cast, get_args
+from typing import Literal, cast, get_args
 from xml.etree import ElementTree as ET
 
 import pandas as pd
@@ -17,6 +17,103 @@ import ring5
 DATA_ROOT = Path(__file__).parent.parent / "data" / "results-micro26-sens"
 
 pytestmark = [pytest.mark.xdist_group("ring5_portfolios"), pytest.mark.public_api]
+
+
+@pytest.mark.parametrize("compiler", ["xelatex", "pdflatex", "lualatex"])
+def test_measured_native_figure_uses_explicit_pgf_compiler(
+    compiler: Literal["xelatex", "pdflatex", "lualatex"],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A public native figure exports through the requested bounded PGF policy."""
+    # [test->req~ring5.export.public-boundary~1]
+    from io import BytesIO
+    from typing import Any
+
+    import matplotlib as mpl
+    from matplotlib.figure import Figure
+    from matplotlib.patches import Rectangle
+
+    with ring5.Session() as session:
+        figure = session.plot(
+            "bar",
+            data=ring5.Table.from_rows([{"kind": "a", "value": 3.0}, {"kind": "b", "value": 4.0}]),
+            config=ring5.FigureSpec(x="kind", y_columns=["value"]),
+            engine="matplotlib",
+        )
+        assert isinstance(figure, Figure)
+
+        def savefig(buffer: BytesIO, **kwargs: Any) -> None:
+            assert mpl.rcParams["pgf.texsystem"] == compiler
+            assert mpl.rcParams["pgf.preamble"] == ""
+            assert [cast(Rectangle, bar).get_height() for bar in figure.axes[0].patches] == [3, 4]
+            assert kwargs == {"format": "pgf", "backend": "pgf"}
+            buffer.write(b"Public PGF request verified without executing TeX")
+
+        monkeypatch.setattr(figure, "savefig", savefig)
+        target = tmp_path / "measured.pgf"
+        session.export(figure, str(target), tex_system=compiler)
+        assert target.read_bytes() == b"Public PGF request verified without executing TeX"
+
+
+@pytest.mark.parametrize("compiler", ["xelatex", "pdflatex", "lualatex"])
+def test_pgf_recipe_and_portfolio_replay_retain_the_declared_compiler(
+    compiler: Literal["xelatex", "pdflatex", "lualatex"],
+    tmp_path: Path,
+    portfolios_dir: Path,
+    isolated_application_data: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Parameterized recipes and saved plots compose the same explicit export policy."""
+    from io import BytesIO
+    from typing import Any
+
+    import matplotlib as mpl
+    from matplotlib.figure import Figure
+    from matplotlib.patches import Rectangle
+
+    csv_path = tmp_path / "measurements.csv"
+    pd.DataFrame({"kind": ["a", "b"], "value": [3.0, 4.0]}).to_csv(csv_path, index=False)
+    target = tmp_path / "recipe.pgf"
+    recipe = ring5.AnalysisRecipe(
+        name="Compiler replay",
+        parameters=(
+            ring5.RecipeParameter(
+                "compiler", "string", default=compiler, choices=("xelatex", "pdflatex", "lualatex")
+            ),
+        ),
+        source=ring5.RecipeSource(kind="csv", path=str(csv_path)),
+        plots=(
+            ring5.RecipePlot(
+                name="Measured",
+                plot_type="bar",
+                config={"x": "kind", "y": "value", "tex_system": "{{compiler}}"},
+            ),
+        ),
+        exports=(ring5.RecipeExport(plot="Measured", path=str(target), format="pgf"),),
+    )
+    calls: list[str] = []
+
+    def savefig(figure: Figure, buffer: BytesIO, **kwargs: Any) -> None:
+        calls.append(mpl.rcParams["pgf.texsystem"])
+        assert mpl.rcParams["pgf.preamble"] == ""
+        assert [cast(Rectangle, bar).get_height() for bar in figure.axes[0].patches] == [3, 4]
+        assert kwargs == {"format": "pgf", "backend": "pgf"}
+        buffer.write(b"Replayed compiler request")
+
+    monkeypatch.setattr(Figure, "savefig", savefig)
+    with ring5.Session() as session:
+        current = session.decode_analysis_recipe(session.export_analysis_recipe(recipe))
+        with pytest.raises(ring5.RecipeError):
+            session.materialize_analysis_recipe(current, {"compiler": "unsupported"})
+        result = session.run_analysis_recipe(current)
+        assert result.exported_paths == (str(target),)
+        assert target.read_bytes() == b"Replayed compiler request"
+        session.save_portfolio("PGF replay")
+    outputs = ring5.render_portfolio("PGF replay", str(tmp_path / "replayed"), fmt="pgf")
+    assert len(outputs) == 1
+    assert Path(outputs[0]).read_bytes() == b"Replayed compiler request"
+    assert calls == [compiler, compiler]
 
 
 def _first_stats_subtree() -> Path:

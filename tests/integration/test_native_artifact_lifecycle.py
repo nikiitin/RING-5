@@ -79,7 +79,7 @@ def test_public_native_publication_binds_the_exact_preparation_and_replaces_only
             assert isinstance(plot.render_artifact.preparation, PreparedFigure)
             assert plot.config["title"] == plot.render_artifact.preparation.spec.title == "Measured"
             if engine == "matplotlib":
-                assert cast(Any, figure)._ring5_spec is plot.render_artifact.figure_spec
+                assert plot.render_artifact.figure_spec is plot.render_artifact.preparation.spec
             assert plt.fignum_exists(unrelated.number)
             assert plt.figure(unrelated.number) is unrelated
             _assert_borrowed_content(previous)

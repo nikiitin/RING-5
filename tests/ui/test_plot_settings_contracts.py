@@ -88,7 +88,7 @@ def test_every_family_navigates_every_real_settings_pill(
             "axes": {"xaxis_tickangle"},
             "data_labels": {"show_values"},
             "colors": {"color_palette", "series_styles"},
-            "advanced": {"download_format", "show_error_bars"},
+            "advanced": {"export_scale", "show_error_bars"},
         }
         assert required.get(section.key, set()).issubset(emitted), (kind, section.key)
         if section.key == "axes":
