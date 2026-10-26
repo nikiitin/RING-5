@@ -528,7 +528,7 @@ class TestRender:
         trace = ScatterTraceConfig(name="colored", x=[0, 1], y=[1, 2], color="#00ff00")
         rendered = MatplotlibTraceRenderer.render([trace], ax)
         assert len(rendered.bindings) == 1
-        np.testing.assert_array_equal(ax.collections[0].get_facecolors(), [to_rgba("#00ff00")])
+        np.testing.assert_array_equal(ax.collections[0].get_facecolor(), [to_rgba("#00ff00")])
         np.testing.assert_array_equal(ax.collections[0].get_offsets(), [[0, 1], [1, 2]])
 
     def test_none_y_values_handled(self, ax: matplotlib.axes.Axes) -> None:
