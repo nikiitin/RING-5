@@ -92,7 +92,7 @@ class TestDualAxisBarDotPlotCreateFigure:
     def test_create_figure_returns_figure(
         self, sample_data: pd.DataFrame, base_config: dict, plot_session: Session
     ) -> None:
-        """Test that create_figure returns a valid Plotly figure."""
+        """Verify public rendering returns a valid Plotly figure."""
         plot = DualAxisBarDotPlot(1, "Test")
         plot.processed_data = sample_data
         plot.config = base_config

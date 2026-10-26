@@ -266,7 +266,7 @@ class TestApplyNumberedXaxis:
         assert "1. only" in legend.text
 
 
-# Integration: create_figure with numbered_xaxis
+# Public rendering with numbered_xaxis
 class TestCreateFigureNumberedXaxis:
     """Test full figure creation with numbered X-axis enabled."""
 

@@ -1,4 +1,4 @@
-"""Tests for GroupedBarPlot.create_figure — no-group and edge case branches."""
+"""Public grouped-bar rendering for no-group and edge-case inputs."""
 
 from ring5 import Session
 from ring5.errors import RenderError

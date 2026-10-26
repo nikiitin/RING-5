@@ -7,7 +7,7 @@ Tests:
     - Missing columns in data → early validation errors
     - Empty DataFrame through pipeline
     - Invalid plot type in PlotFactory
-    - Malformed config in create_figure
+    - Malformed configuration during public rendering
     - Export with invalid format
 """
 
