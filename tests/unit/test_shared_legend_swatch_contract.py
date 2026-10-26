@@ -21,6 +21,7 @@ from src.core.models.visualization.figure_config import FigureConfig
 from src.core.models.visualization.legend_config import LegendConfig
 from src.core.services.visualization.config_resolver import resolve_config
 from src.web.rendering._legend_projection import matplotlib_swatch, plotly_swatch
+from src.web.rendering._appearance import MatplotlibAppearance  # noqa: E402
 from src.web.rendering._render_result import (
     MatplotlibFigureResult,
     MatplotlibRenderResult,
@@ -159,7 +160,17 @@ def _panel(
         axis,
         bindings=(
             MatplotlibTraceBinding(
-                0, "ipc", axis, "primary", "", True, family, (handle,), (handle,), handle
+                0,
+                "ipc",
+                axis,
+                "primary",
+                "",
+                True,
+                family,
+                (handle,),
+                (handle,),
+                handle,
+                appearance=MatplotlibAppearance.unmanaged(),
             ),
         ),
     )
@@ -351,7 +362,17 @@ def test_stock_bar_handler_preserves_hatch_color_and_unknown_list_dash(
                 axis,
                 bindings=(
                     MatplotlibTraceBinding(
-                        0, "ipc", axis, "primary", "", True, "bar", (bars,), (bars,), bars
+                        0,
+                        "ipc",
+                        axis,
+                        "primary",
+                        "",
+                        True,
+                        "bar",
+                        (bars,),
+                        (bars,),
+                        bars,
+                        appearance=MatplotlibAppearance.unmanaged(),
                     ),
                 ),
             )

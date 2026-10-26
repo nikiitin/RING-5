@@ -14,8 +14,9 @@ Usage:
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, cast
+from src.web.rendering._appearance import prepare_plotly_appearance, apply_plotly_appearance
+
+from typing import TYPE_CHECKING, Any
 
 import plotly.graph_objects as go
 
@@ -26,11 +27,6 @@ from src.web.rendering._color_utils import color_with_alpha
 from src.web.rendering._hatch_utils import plotly_hatch
 from src.web.rendering._render_result import PlotlyRenderResult
 from src.web.rendering._legend_projection import project_plotly_shared
-from src.web.rendering._heatmap_utils import (
-    heatmap_text_colors,
-    compute_nice_range,
-    compute_z_extent,
-)
 
 if TYPE_CHECKING:
     from src.core.models.visualization.axis_config import AxisConfig
@@ -92,6 +88,7 @@ class FigureSpecToPlotly:
         """
         # Pipeline order: see _connector_protocol.STYLING_PIPELINE_ORDER
         rendered.validate()
+        appearance = prepare_plotly_appearance(spec, rendered)
         fig = rendered.figure
         FigureSpecToPlotly._apply_dimensions(spec, fig)
         FigureSpecToPlotly._apply_backgrounds(spec, fig)
@@ -107,6 +104,7 @@ class FigureSpecToPlotly:
         FigureSpecToPlotly._apply_reference_lines(spec, fig)
         FigureSpecToPlotly._apply_data_labels(spec, fig)
         FigureSpecToPlotly._apply_stripes(spec, rendered)
+        apply_plotly_appearance(appearance)
         FigureSpecToPlotly._apply_series_styling(spec, rendered)
         FigureSpecToPlotly._apply_trace_overrides(spec, rendered)
         FigureSpecToPlotly._apply_axis_colors(spec, fig)
@@ -365,13 +363,9 @@ class FigureSpecToPlotly:
         if not heatmap_traces:
             return
 
-        # Determine z-range
-        if cbar.range_mode == "manual" and cbar.zmin is not None and cbar.zmax is not None:
-            zmin, zmax = float(cbar.zmin), float(cbar.zmax)
-        else:
-            # Auto mode: scan all heatmap z-values, apply nice rounding
-            raw_min, raw_max = compute_z_extent(heatmap_traces)
-            zmin, zmax, _ = compute_nice_range(raw_min, raw_max, cbar.nticks)
+        from src.web.rendering._heatmap_utils import heatmap_ranges
+
+        limits = heatmap_ranges(heatmap_traces, cbar)
 
         # Build colorbar dict
         title_text = primary.title.replace("\n", "<br>") if primary.title else ""
@@ -406,54 +400,13 @@ class FigureSpecToPlotly:
         if primary.orientation == "horizontal":
             colorbar_dict["orientation"] = "h"
 
-        # Apply to traces
-        if cbar.shared:
-            # Shared mode: all traces get same zmin/zmax, only last shows colorbar
-            for i, trace in enumerate(heatmap_traces):
-                trace.update(zmin=zmin, zmax=zmax)
-                if i < len(heatmap_traces) - 1:
-                    trace.update(showscale=False)
-                else:
-                    trace.update(showscale=True, colorbar=colorbar_dict)
-        else:
-            # Individual mode: each trace gets its own nice range + colorbar
-            for trace in heatmap_traces:
-                if cbar.range_mode == "manual":
-                    t_zmin, t_zmax = zmin, zmax
-                else:
-                    t_min, t_max = compute_z_extent([trace])
-                    t_zmin, t_zmax, _ = compute_nice_range(t_min, t_max, cbar.nticks)
-                trace.update(
-                    zmin=t_zmin,
-                    zmax=t_zmax,
-                    showscale=True,
-                    colorbar=colorbar_dict,
-                )
-
-        for trace in heatmap_traces:
-            xref, yref = trace.xaxis or "x", trace.yaxis or "y"
-            xs, ys = list(trace.x), list(trace.y)
-            annotations = [
-                annotation
-                for annotation in fig.layout.annotations or ()
-                if annotation.name == "ring5-heatmap-auto"
-                and annotation.xref == xref
-                and annotation.yref == yref
-                and annotation.x in xs
-                and annotation.y in ys
-            ]
-            if not annotations:
-                continue
-            colorscale: Any = trace.colorscale
-            if trace.reversescale:
-                colorscale = [
-                    (1 - float(position), color) for position, color in reversed(colorscale)
-                ]
-            text_colors = heatmap_text_colors(
-                cast(Sequence[Sequence[float | None]], trace.z), colorscale, trace.zmin, trace.zmax
+        for index, (trace, (lower, upper)) in enumerate(zip(heatmap_traces, limits, strict=True)):
+            trace.update(
+                zmin=lower,
+                zmax=upper,
+                showscale=not cbar.shared or index == len(heatmap_traces) - 1,
+                colorbar=colorbar_dict,
             )
-            for annotation in annotations:
-                annotation.font.color = text_colors[ys.index(annotation.y)][xs.index(annotation.x)]
 
     @staticmethod
     def _build_legend_dict(legend: LegendConfig) -> dict[str, Any]:
@@ -678,7 +631,7 @@ class FigureSpecToPlotly:
 
     @staticmethod
     def _apply_series_styling(spec: FigureConfig, rendered: PlotlyRenderResult) -> None:
-        """Apply per-trace line_width, marker, opacity from series_styles."""
+        """Apply per-trace dimensions and patterns after appearance projection."""
         # [impl->req~ring5.figure.series-styling~1]
         if not spec.series_styles:
             return
@@ -690,8 +643,6 @@ class FigureSpecToPlotly:
             trace_type = str(getattr(trace, "type", ""))
 
             update: dict[str, Any] = {}
-            if style.opacity > 0 and not isinstance(trace, (go.Sankey, go.Parcoords)):
-                update["opacity"] = style.opacity
             if style.line_width > 0 and not isinstance(trace, go.Parcoords):
                 if hasattr(trace, "line"):
                     update["line"] = dict(width=style.line_width)
@@ -703,10 +654,7 @@ class FigureSpecToPlotly:
                     update["marker"] = marker_update
             if style.bar_border_width > 0 and hasattr(trace, "marker"):
                 marker_update = update.get("marker", {})
-                marker_update["line"] = dict(
-                    width=style.bar_border_width,
-                    color=style.bar_border_color or "#000",
-                )
+                marker_update["line"] = dict(width=style.bar_border_width)
                 update["marker"] = marker_update
             if style.hatching_pattern is not None and trace_type in ("bar", "histogram"):
                 marker_update = update.get("marker", {})
@@ -874,22 +822,6 @@ class FigureSpecToPlotly:
                 continue
             style = spec.trace_overrides[t_name]
 
-            if style.color and trace_type not in (
-                "heatmap",
-                "waterfall",
-                "sankey",
-                "parcoords",
-            ):
-                trace.update(marker=dict(color=style.color))
-                if hasattr(trace, "line") and trace_type in (
-                    "scatter",
-                    "scattergl",
-                    "scatterpolar",
-                ):
-                    trace.update(line=dict(color=style.color))
-                elif trace_type in ("box", "violin"):
-                    trace.update(fillcolor=style.color, line=dict(color=style.color))
-
             if style.symbol and trace_type in (
                 "scatter",
                 "scattergl",
@@ -957,6 +889,8 @@ class FigureSpecToPlotly:
             if annotation.name is not None
         }
         for role in rendered.layout_roles:
+            if role.appearance is not None:
+                continue
             source = role.source.original_name
             annotations[role.role_name].text = spec.legend_labels.get(source, source)
 

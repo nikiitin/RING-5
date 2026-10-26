@@ -69,6 +69,46 @@ retirement detaches the captured generation and disposes outside workspace and s
 Matplotlib publication relinquishes its manager once; later retirement preserves borrowed figure
 content and managers registered by callers. Connectors remain stateless.
 
+
+## Source appearance
+
+`TraceConfig.opacity` is concrete and finite in `[0, 1]`. `SeriesStyleConfig.opacity=None` means
+no incremental opacity update; explicit `0` and `1` remain meaningful. The editable wire omits
+inheritance and rejects present `null`, booleans and strings. Named overrides precede positional
+styles, which precede retained source opacity. Every channel uses intrinsic alpha × effective
+source opacity × its declared family factor. Area fill uses factor `1`, Radar fill `0.45`, Violin's
+inner box `0.8`, and Sankey links their explicit link factor. Explicit source and semantic Waterfall
+colors precede palette fallbacks. Main-series recoloring affects only declared channels, preserving
+independent outlines, fixed companion colors and semantic channels.
+
+`_appearance.py` owns selection, whole-root preflight and native projection through the existing
+source bindings and result outputs. Matplotlib builders declare intrinsic channels before writing
+attenuation. Plotly uses native trace opacity where supported; Sankey declares normal and hover
+colors explicitly. Heatmap annotations carry their source cell and intrinsic font color in layout
+role bindings. Data-label ownership never depends on matching text or coordinates. Source-owned
+labels and error bars attenuate with their source; category captions, axes, titles, legend fonts,
+grids and general annotations remain independent. Legend swatches inspect actual final marks.
+
+Unrelated styling preserves manual native appearance. An affected channel with an unknown native
+edit fails preflight before any panel changes; an explicit new color replaces only its declared
+channels. Advanced pre-styled contexts deliberately declare `unmanaged()` capability, preserving
+scalar/array alpha and data-mapped colors for nonappearance operations. Color, opacity or new
+source-label operations require a new known intrinsic context. Canonical builders always supply
+complete creation-time channels.
+
+Heatmap colorbars use the intrinsic colormap, including embedded alpha and masked/below/above-range
+colors, independently of source opacity. The attenuated native map delegates exact mapping to its
+intrinsic map. Manual exceptional-color mutations require a new explicit context; replacing a
+native map is preserved for unrelated operations and blocks affected updates. Managed colorbars
+support `extend='neither'`; affected advanced extensions or foreign colorbars fail preflight.
+Colorbar callbacks retain only their actual native output leaf. Private export copies retain no
+live source/binding callback references and cannot change the live figure while drawing or saving.
+
+Parallel coordinates share a selected-opacity boundary: both engines require selected opacity `1`
+and opaque selected colors/scales because native Plotly discards selected color alpha. Existing
+brushes and unselected opacity remain independent, and unselected `0` retains every row path.
+Legend background `bgalpha` retains its separate replacement semantics.
+
 When adding a visual setting, update its model round trip, builder, UI, both connectors, and public
 `FigureSpec` when it belongs to the supported scripting surface. See
 [Add a Renderer]({{site.baseurl}}/developer-guide/extension-guides/adding-a-renderer/).

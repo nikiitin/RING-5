@@ -51,6 +51,9 @@ use a separate `validate_plot_config_values` stage: every legend orientation is 
 `horizontal` or `vertical`. Recipe save/load retain template values; materialization applies
 the concrete-value guard after parameter substitution.
 Per-series styles map text names to style mappings, with a current string `pattern` value.
+A present `opacity` is a finite real scalar in `[0, 1]`; omission preserves source opacity, while
+explicit `0` and `1` override it. Present `null`, booleans and strings are rejected after recipe
+materialization. Template admission retains opacity placeholders before materialization.
 The same pure admission runs before plot enrichment, portfolio publication and restoration.
 
 Treat portfolio JSON as untrusted input: sanitize names, validate paths, and verify content before

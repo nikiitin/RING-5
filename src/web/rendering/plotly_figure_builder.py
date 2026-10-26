@@ -68,7 +68,7 @@ def build_plotly_figure(prepared: PreparedFigure) -> PlotlyRenderResult:
     """
     # [impl->req~ring5.figure.shapes-annotations~1]
     # [impl->req~ring5.render.plotly~1]
-    rendered = traces_to_plotly(prepared.trace_result)
+    rendered = traces_to_plotly(prepared.trace_result, palette_colors=prepared.spec.color_palette)
     FigureSpecToPlotly.apply(prepared.spec, rendered)
     figure = rendered.figure
     apply_axis_title_annotations(prepared.spec, figure)

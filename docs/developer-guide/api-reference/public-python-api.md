@@ -255,6 +255,15 @@ Typed renderer styles express absence with `hatching_pattern=None` and Solid wit
 Other plugin-owned style fields are preserved. Recipe save/load retains parameter placeholders;
 materialization validates the resolved pattern value before execution.
 
+
+An omitted series `opacity` preserves source attenuation. A present value must be a finite real
+number from `0` through `1`; booleans, text and JSON `null` are rejected. Named overrides take
+precedence over positional typed styles. The selected scalar replaces source opacity and
+multiplies intrinsic color alpha once. Repeated updates, including `0` followed by `1`, preserve
+intrinsic alpha, source values and geometry. Source-owned labels follow their marks; colorbars,
+titles, axes and general annotations keep independent appearance. Parallel coordinates require
+selected opacity `1` and opaque selected colors/scales, with independent unselected opacity.
+
 Legend font sizes retain fractional point values through both native engines and typed figure
 round trips. `DualAxisOpts.legend` configures the separate right-axis legend; numbered mappings
 use the available secondary or tertiary style independently. Raw mappings use `legend2_*` for

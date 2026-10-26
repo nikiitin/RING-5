@@ -328,7 +328,6 @@ class ColorsSettingsComponent:
                     st.markdown(f"**{val_str}**")
                 with c2:
                     current_style = self._render_series_item(
-                        val_str,
                         default_color,
                         current_style,
                         val_hash,
@@ -342,7 +341,6 @@ class ColorsSettingsComponent:
 
     def _render_series_item(
         self,
-        val_str: str,
         default_color: str,
         current_style: dict[str, Any],
         val_hash: str,

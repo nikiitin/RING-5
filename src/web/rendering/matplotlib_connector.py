@@ -19,17 +19,23 @@ from dataclasses import replace
 from typing import TYPE_CHECKING, Any, cast
 
 from src.core.common.safe_format import normalize_numeric_format
-from src.core.models.visualization.data_label_config import DataLabelConfig
 from src.core.models.visualization.figure_config import FigureConfig
 from src.core.models.visualization.legend_config import LegendConfig
 from src.core.models.visualization.trace_build_result import RuleLine, SeparatorLine, ShadedRegion
 from src.web.rendering._matplotlib_lock import serialized_matplotlib
+from src.web.rendering._appearance import (
+    MatplotlibAppearancePlan,
+    prepare_matplotlib_appearance,
+    apply_matplotlib_appearance,
+    replace_generated_labels,
+)
 from src.web.rendering._render_result import MatplotlibFigureResult, MatplotlibRenderResult
 from src.web.rendering._legend_projection import matplotlib_swatch, shared_legend_key
 from src.web.rendering.matplotlib_colorbar import (
     prepare_colorbars,
     retire_colorbars,
     apply_colorbars,
+    validate_appearance_colorbars,
 )
 from src.web.rendering._color_utils import css_color_to_matplotlib
 from src.web.rendering._connector_protocol import validate_annotation_types
@@ -94,6 +100,8 @@ class FigureSpecToMatplotlib:
         # [impl->req~ring5.extension.render-connector~1]
         rendered.validate()
         validate_annotation_types(spec.annotations)
+        appearance = prepare_matplotlib_appearance(spec, rendered.panels)
+        validate_appearance_colorbars(rendered, appearance)
         colorbars = prepare_colorbars(
             rendered,
             tuple(spec for _ in rendered.panels),
@@ -110,6 +118,11 @@ class FigureSpecToMatplotlib:
                 panel,
                 apply_margins=False,
                 apply_legends=not rendered.shared_legend,
+                appearance_plans=tuple(
+                    plan
+                    for plan in appearance
+                    if any(plan.output is binding.appearance for binding in panel.bindings)
+                ),
             )
         if apply_margins and rendered.panels:
             FigureSpecToMatplotlib._apply_margins(spec, rendered.panels[0].primary_axes)
@@ -128,6 +141,7 @@ class FigureSpecToMatplotlib:
         *,
         apply_margins: bool = True,
         apply_legends: bool = True,
+        appearance_plans: tuple[MatplotlibAppearancePlan, ...] | None = None,
     ) -> None:
         """Apply the full FigureConfig to a matplotlib Axes.
 
@@ -136,12 +150,19 @@ class FigureSpecToMatplotlib:
             render_result: Explicit owned panel and source-to-native associations.
             apply_margins: Apply figure-wide margins. Dashboard panels disable
                 this because their parent grid owns the outer layout.
+            apply_legends: Project this panel's owned legend outputs.
+            appearance_plans: Whole-root plans already validated before native writes.
 
         Raises:
             TypeError: An annotation has no supported typed family.
         """
         render_result.validate()
         validate_annotation_types(spec.annotations)
+        appearance = (
+            prepare_matplotlib_appearance(spec, (render_result,))
+            if appearance_plans is None
+            else appearance_plans
+        )
         ax = render_result.primary_axes
         import matplotlib as mpl
 
@@ -167,6 +188,7 @@ class FigureSpecToMatplotlib:
             FigureSpecToMatplotlib._apply_hatching(spec, render_result)
             # Per-trace styling must run before the legend is built so renames and
             # restyled handles are reflected (parity with the Plotly connector).
+            apply_matplotlib_appearance(appearance)
             FigureSpecToMatplotlib._apply_series_styling(spec, render_result)
             FigureSpecToMatplotlib._apply_trace_overrides(spec, render_result)
             if render_result.title_source is not None:
@@ -186,12 +208,9 @@ class FigureSpecToMatplotlib:
     def _style_handle(
         handle: Any,
         *,
-        color: str | None = None,
-        alpha: float | None = None,
         line_width: float | None = None,
         marker: str | None = None,
         marker_size: float | None = None,
-        edge_color: str | None = None,
         edge_width: float | None = None,
         hatch: str | None = None,
     ) -> None:
@@ -202,26 +221,13 @@ class FigureSpecToMatplotlib:
         from matplotlib.markers import MarkerStyle
         from matplotlib.patches import Patch
 
-        fill = css_color_to_matplotlib(color) if color else None
-        edge = css_color_to_matplotlib(edge_color) if edge_color else None
-
         if isinstance(handle, BarContainer):
             for patch in handle.patches:
-                if fill:
-                    patch.set_facecolor(fill)
-                if alpha is not None:
-                    patch.set_alpha(alpha)
                 if hatch is not None:
                     patch.set_hatch(hatch)
-                if edge:
-                    patch.set_edgecolor(edge)
                 if edge_width is not None:
                     patch.set_linewidth(edge_width)
         elif isinstance(handle, Line2D):
-            if fill:
-                handle.set_color(fill)
-            if alpha is not None:
-                handle.set_alpha(alpha)
             if line_width is not None:
                 handle.set_linewidth(line_width)
             if marker:
@@ -229,10 +235,6 @@ class FigureSpecToMatplotlib:
             if marker_size is not None:
                 handle.set_markersize(marker_size)
         elif isinstance(handle, PathCollection):
-            if fill:
-                handle.set_facecolor(fill)
-            if alpha is not None:
-                handle.set_alpha(alpha)
             if marker:
                 marker_style = MarkerStyle(marker)
                 handle.set_paths(
@@ -241,29 +243,14 @@ class FigureSpecToMatplotlib:
             if marker_size is not None:
                 # Scatter collections use area; configuration specifies diameter.
                 handle.set_sizes([float(marker_size) ** 2])
-            if edge:
-                handle.set_edgecolor(edge)
             if edge_width is not None:
                 handle.set_linewidth(edge_width)
         elif isinstance(handle, PolyCollection):
-            if fill:
-                handle.set_facecolor(fill)
-                handle.set_edgecolor(fill)
-            if alpha is not None:
-                handle.set_alpha(alpha)
-            if edge:
-                handle.set_edgecolor(edge)
             if edge_width is not None:
                 handle.set_linewidth(edge_width)
         elif isinstance(handle, Patch):
-            if fill:
-                handle.set_facecolor(fill)
-            if alpha is not None:
-                handle.set_alpha(alpha)
             if hatch is not None:
                 handle.set_hatch(hatch)
-            if edge:
-                handle.set_edgecolor(edge)
             if edge_width is not None:
                 handle.set_linewidth(edge_width)
 
@@ -278,12 +265,8 @@ class FigureSpecToMatplotlib:
             for handle in binding.style_targets:
                 FigureSpecToMatplotlib._style_handle(
                     handle,
-                    alpha=style.opacity if style.opacity > 0 else None,
                     line_width=style.line_width if style.line_width > 0 else None,
                     marker_size=style.marker_size if style.marker_size > 0 else None,
-                    edge_color=(
-                        (style.bar_border_color or "#000") if style.bar_border_width > 0 else None
-                    ),
                     edge_width=style.bar_border_width if style.bar_border_width > 0 else None,
                     hatch=style.hatching_pattern if binding.family == "bar" else None,
                 )
@@ -296,12 +279,10 @@ class FigureSpecToMatplotlib:
             style = spec.trace_overrides.get(binding.original_name)
             if style is None:
                 continue
-            semantic = binding.family in ("waterfall", "sankey", "parallel_coordinates", "heatmap")
             marker = _PLOTLY_TO_MPL_MARKER.get(style.symbol) if style.symbol else None
             for handle in binding.style_targets:
                 FigureSpecToMatplotlib._style_handle(
                     handle,
-                    color=style.color if style.color and not semantic else None,
                     marker=marker,
                     marker_size=style.marker_size if style.marker_size > 0 else None,
                     line_width=style.line_width if style.line_width > 0 else None,
@@ -990,47 +971,46 @@ class FigureSpecToMatplotlib:
 
     @staticmethod
     def _apply_data_labels(spec: FigureConfig, rendered: MatplotlibRenderResult) -> None:
-        """Annotate bar containers with value labels.
-
-        Falls back to ``ax.bar_label()`` when available (mpl 3.4+),
-        otherwise silently skips.
-        """
+        """Reuse explicitly owned bar labels and apply their source opacity."""
         # [impl->req~ring5.figure.data-labels~1]
-        if spec.data_labels is None or not spec.data_labels.enabled:
+        from matplotlib.container import BarContainer
+
+        dl = spec.data_labels
+        signature = tuple(dl.to_dict().items()) if dl is not None else ()
+        enabled = dl is not None and dl.enabled
+        if enabled and dl is not None and dl.format_string and "%{" in dl.format_string:
             return
-
-        dl: DataLabelConfig = spec.data_labels
-        # A Plotly-style template (e.g. "%{y:.2f}") is not a Python format spec — wrapping it
-        # produces "{:%{y:.2f}}" which ax.bar_label rejects with KeyError. The plotly engine
-        # handles these natively; on matplotlib skip the labels rather than abort the figure.
-        if dl.format_string and "%{" in dl.format_string:
-            return
-        safe_format = normalize_numeric_format(dl.format_string)
-        fmt = f"{{:{safe_format}}}"
-
-        color = dl.custom_color if dl.color_mode == "custom" else "#000000"
-        # Clamp rotation to Plotly's accepted [-360, 360] for dual-engine parity.
-        rotation = max(-360.0, min(360.0, float(dl.rotation)))
-
         for binding in rendered.bindings:
-            for container in binding.owned_data:
-                from matplotlib.container import BarContainer  # local: needs runtime class
-
-                if not isinstance(container, BarContainer):
-                    continue
+            output = binding.appearance
+            if output.label_spec == signature:
+                continue
+            labels = []
+            if enabled and dl is not None:
+                safe_format = normalize_numeric_format(dl.format_string)
+                color = dl.custom_color if dl.color_mode == "custom" else "#000000"
+                native_color = css_color_to_matplotlib(color)
+                rotation = max(-360.0, min(360.0, float(dl.rotation)))
                 try:
-                    binding.axes.bar_label(
-                        container,
-                        fmt=fmt,
-                        fontsize=dl.font_size,
-                        rotation=rotation,
-                        color=color,
-                        label_type="edge" if dl.position == "outside" else "center",
-                    )
-                except (AttributeError, TypeError, KeyError, ValueError):
-                    # mpl < 3.4, non-bar container, or an unparseable format string — degrade
-                    # gracefully (skip labels) rather than abort the whole figure build.
-                    pass
+                    for container in binding.owned_data:
+                        if isinstance(container, BarContainer):
+                            labels.extend(
+                                binding.axes.bar_label(
+                                    container,
+                                    fmt=f"{{:{safe_format}}}",
+                                    fontsize=dl.font_size,
+                                    rotation=rotation,
+                                    color=native_color,
+                                    label_type="edge" if dl.position == "outside" else "center",
+                                )
+                            )
+                except (TypeError, KeyError, ValueError):
+                    for label in labels:
+                        label.remove()
+                    raise
+            previous = output.labels
+            replace_generated_labels(binding, labels, signature)
+            for previous_label in previous:
+                previous_label.remove()
 
     @staticmethod
     def _apply_annotations(

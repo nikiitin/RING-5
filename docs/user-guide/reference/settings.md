@@ -364,6 +364,16 @@ forms; Plotly projects circle/star forms through native SVG pattern paths. **Def
 omits the override and preserves intrinsic hatching. **Solid** explicitly clears it. Explicit
 series choices take precedence over default stripe patterns and appear on legend swatches.
 
+
+A programmatic series `opacity` is a finite number from `0` through `1`. Omitting it preserves
+the source opacity; `0` is transparent and `1` restores the source colors' intrinsic alpha.
+For example, `{"series_styles": {"ipc": {"opacity": 0.5}}}` multiplies each source-owned color's
+embedded alpha by `0.5`, including its data labels and error bars. Reapplying the same settings
+does not accumulate attenuation. Axes, titles, legend text and general annotations remain
+independent. Colorbars retain their intrinsic color mapping; legend swatches show the final marks.
+Parallel coordinates require selected opacity `1` and opaque selected colors/scales in both
+engines. Their independent unselected opacity can be `0` without removing any data rows.
+
 ## Working method
 
 1. Fix data mapping and category order first.

@@ -15,6 +15,8 @@ sub-phases so native swatches reflect the final styles.
 
 from collections.abc import Sequence
 
+from src.core.common.opacity import require_opacity
+
 from src.core.models.visualization.annotation_config import AnnotationConfig
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import (
@@ -67,6 +69,18 @@ def validate_trace_types(traces: Sequence[TraceConfig]) -> None:
     for trace in traces:
         if not isinstance(trace, _SUPPORTED_TRACE_TYPES):
             raise TypeError(f"Unsupported trace type: {type(trace).__name__}.")
+        require_opacity(trace.opacity)
+        if isinstance(trace, ParallelCoordinatesTraceConfig):
+            from src.web.rendering._appearance import validate_parallel_appearance
+
+            validate_parallel_appearance(
+                trace.opacity,
+                trace.line_color if trace.line_color_values is None else trace.line_color_values,
+                trace.colorscale,
+            )
+            require_opacity(trace.unselected_opacity, field="unselected opacity")
+        if isinstance(trace, SankeyTraceConfig):
+            require_opacity(trace.link_opacity, field="Sankey link opacity")
 
 
 def validate_annotation_types(annotations: Sequence[AnnotationConfig]) -> None:

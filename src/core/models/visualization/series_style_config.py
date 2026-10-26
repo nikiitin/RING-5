@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from src.core.common.plot_payload import BAR_HATCH_PATTERNS
+from src.core.common.opacity import require_opacity
 
 
 @dataclass(frozen=True)
@@ -25,7 +26,8 @@ class SeriesStyleConfig:
     Attributes:
         line_width: Line width in points (for line/scatter traces).
         marker_size: Marker diameter in points.
-        opacity: Fill/marker opacity (0.0–1.0).
+        opacity: Source opacity override from zero through one; None preserves
+            the current source opacity. Zero is explicitly transparent.
         bar_border_width: Border width around bars (in points).
         bar_border_color: Border color for bars (hex or named).
         hatching_pattern: Hatch override for bars. None preserves the trace's
@@ -36,7 +38,7 @@ class SeriesStyleConfig:
 
     line_width: float = 2.0
     marker_size: int = 6
-    opacity: float = 1.0
+    opacity: float | None = None
     bar_border_width: float = 0.0
     bar_border_color: str = ""
     hatching_pattern: str | None = None
@@ -46,7 +48,9 @@ class SeriesStyleConfig:
     symbol: str = ""  # marker symbol (e.g., "square", "diamond")
 
     def __post_init__(self) -> None:
-        """Reject non-string or unsupported explicit hatch values."""
+        """Validate explicit opacity and hatch overrides without coercing text."""
+        if self.opacity is not None:
+            object.__setattr__(self, "opacity", require_opacity(self.opacity))
         if self.hatching_pattern is not None and (
             type(self.hatching_pattern) is not str
             or self.hatching_pattern not in BAR_HATCH_PATTERNS
@@ -86,7 +90,7 @@ class SeriesStyleConfig:
         return cls(
             line_width=float(data.get("line_width", 2.0)),
             marker_size=int(data.get("marker_size", 6)),
-            opacity=float(data.get("opacity", 1.0)),
+            opacity=data.get("opacity"),
             bar_border_width=float(data.get("bar_border_width", 0.0)),
             bar_border_color=str(data.get("bar_border_color", "")),
             hatching_pattern=data.get("hatching_pattern"),

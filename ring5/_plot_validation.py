@@ -142,7 +142,7 @@ def validate_plot_config(plot_type: str, data: pd.DataFrame, config: Mapping[str
     """
     try:
         validate_plot_config_keys(config, plot_type=plot_type)
-        validate_plot_config_values(config, plot_type=plot_type)
+        validate_plot_config_values(config)
         modes = numbered_axis_modes(config)
     except ValueError as exc:
         raise DataValidationError(str(exc)) from exc

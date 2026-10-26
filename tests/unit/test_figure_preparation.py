@@ -17,6 +17,7 @@ from src.core.services.visualization.config_resolver import resolve_config
 from src.web.rendering.config_builder import ConfigSpecBuilder
 from src.web.rendering.figure_preparation import prepare_figure
 from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
+from src.web.rendering._appearance import seed_matplotlib_appearance  # noqa: E402
 from src.web.rendering._render_result import (
     MatplotlibFigureResult,
     MatplotlibRenderResult,
@@ -147,6 +148,13 @@ def test_numbered_annotation_does_not_create_a_trace_legend_on_another_panel() -
                     (left,),
                     (left,),
                     left,
+                    appearance=seed_matplotlib_appearance(
+                        (left,),
+                        opacity=1.0,
+                        series_channels=tuple(
+                            (left, kind) for kind in ("line", "marker_face", "marker_edge")
+                        ),
+                    ),
                 ),
             ),
         )

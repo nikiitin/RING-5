@@ -41,6 +41,7 @@ from src.core.models.visualization.figure_config import (  # noqa: E402
     FigureConfig,
 )
 from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib  # noqa: E402
+from src.web.rendering._appearance import seed_matplotlib_appearance  # noqa: E402
 from src.web.rendering._render_result import (  # noqa: E402
     MatplotlibFigureResult,
     MatplotlibRenderResult,
@@ -54,7 +55,21 @@ def _bar_panel(ax: Axes, *sources: tuple[str, BarContainer]) -> MatplotlibRender
         ax,
         bindings=tuple(
             MatplotlibTraceBinding(
-                index, name, ax, "primary", "", True, "bar", (bars,), (bars,), bars
+                index,
+                name,
+                ax,
+                "primary",
+                "",
+                True,
+                "bar",
+                (bars,),
+                (bars,),
+                bars,
+                appearance=seed_matplotlib_appearance(
+                    (bars,),
+                    opacity=1.0,
+                    series_channels=tuple((patch, "face") for patch in bars.patches),
+                ),
             )
             for index, (name, bars) in enumerate(sources)
         ),
