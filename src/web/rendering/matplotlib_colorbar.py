@@ -172,6 +172,7 @@ def prepare_colorbars(
     Structural replacement requires the original callback and allocation still owned.
     Unchanged topology permits foreign outputs while reusing only our actual colorbars.
     """
+    # [impl->req~ring5.figure.series-styling~2]
     rendered.validate()
     requests = _requests(rendered, specs)
     retire = tuple(

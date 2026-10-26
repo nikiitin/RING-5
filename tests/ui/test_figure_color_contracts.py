@@ -167,7 +167,7 @@ def test_unavailable_named_palette_is_preserved_until_explicit_replacement() -> 
 def test_every_current_pattern_is_selected_as_an_actual_widget_value_and_renders(
     engine: Literal["plotly", "matplotlib"], pattern: str
 ) -> None:
-    # [test->req~ring5.figure.series-styling~1]
+    # [test->req~ring5.figure.series-styling~2]
     app = _app(_example(), "colors")
     selector = next(widget for widget in app.selectbox if widget.label == "Pattern")
     selector.select_index(1 + BAR_HATCH_PATTERNS.index(pattern)).run()

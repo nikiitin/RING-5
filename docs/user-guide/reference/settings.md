@@ -347,10 +347,10 @@ an isolated final category.
 ### Series styling
 
 <!--
-`uman~ring5.figure.series-styling.documentation~1`
+`uman~ring5.figure.series-styling.documentation~2`
 
 Covers:
-- req~ring5.figure.series-styling~1
+- req~ring5.figure.series-styling~2
 
 -->
 
@@ -366,7 +366,8 @@ series choices take precedence over default stripe patterns and appear on legend
 
 
 A programmatic series `opacity` is a finite number from `0` through `1`. Omitting it preserves
-the source opacity; `0` is transparent and `1` restores the source colors' intrinsic alpha.
+the source opacity; `0` is transparent and `1` removes source attenuation while retaining the
+source colors' intrinsic alpha and declared family factors.
 For example, `{"series_styles": {"ipc": {"opacity": 0.5}}}` multiplies each source-owned color's
 embedded alpha by `0.5`, including its data labels and error bars. Reapplying the same settings
 does not accumulate attenuation. Axes, titles, legend text and general annotations remain

@@ -315,6 +315,7 @@ def test_opacity_does_not_call_arbitrary_float_hooks() -> None:
 
 
 def test_typed_inheritance_and_editable_presence_have_one_contract() -> None:
+    # [test->req~ring5.figure.series-styling~2]
     assert SeriesStyleConfig().opacity is None
     assert SeriesStyleConfig.from_dict(SeriesStyleConfig().to_dict()).opacity is None
     for value in (0, 1):
@@ -333,6 +334,7 @@ def test_typed_inheritance_and_editable_presence_have_one_contract() -> None:
 
 @pytest.mark.parametrize("family", FAMILIES)
 def test_all_families_preserve_science_and_reapply_explicit_zero(family: str) -> None:
+    # [test->req~ring5.figure.series-styling~2]
     with _native(_trace(family)) as (prepared, mpl, plotly):
         binding = mpl.panels[0].bindings[0]
         artists = _artists(binding.owned_data)
@@ -364,6 +366,7 @@ def test_all_families_preserve_science_and_reapply_explicit_zero(family: str) ->
 
 
 def test_intrinsic_companion_channels_and_family_factors() -> None:
+    # [test->req~ring5.figure.series-styling~2]
     expected = {
         "bar": 0.2,
         "line": 0.2,
@@ -404,6 +407,7 @@ def test_intrinsic_companion_channels_and_family_factors() -> None:
 
 
 def test_width_only_config_preserves_source_opacity_and_named_wins() -> None:
+    # [test->req~ring5.figure.series-styling~2]
     with _native(_trace("line")) as (prepared, mpl, plotly):
         spec = ConfigSpecBuilder.from_config({"line_width": 4})
         FigureSpecToMatplotlib.apply(spec, mpl)
@@ -489,6 +493,7 @@ def test_sankey_manual_hover_color_cannot_escape_explicit_opacity_preflight() ->
 
 
 def test_unmanaged_appearance_preserves_native_alpha_arrays_and_blocks_updates() -> None:
+    # [test->req~ring5.figure.series-styling~2]
     figure, axes = plt.subplots()
     try:
         points = axes.scatter([1, 2], [3, 5], color="blue")
@@ -523,6 +528,7 @@ def test_unmanaged_appearance_preserves_native_alpha_arrays_and_blocks_updates()
 
 
 def test_zero_unselected_opacity_keeps_every_parallel_row() -> None:
+    # [test->req~ring5.figure.series-styling~2]
     trace = _trace("parallel_coordinates")
     assert isinstance(trace, ParallelCoordinatesTraceConfig)
     trace.unselected_opacity = 0
@@ -540,6 +546,7 @@ def test_zero_unselected_opacity_keeps_every_parallel_row() -> None:
 
 @pytest.mark.parametrize("change", ["source", "color", "scale"])
 def test_parallel_selected_transparency_rejects_before_any_figure(change: str) -> None:
+    # [test->req~ring5.figure.series-styling~2]
     trace = _trace("parallel_coordinates")
     assert isinstance(trace, ParallelCoordinatesTraceConfig)
     if change == "source":
@@ -556,6 +563,7 @@ def test_parallel_selected_transparency_rejects_before_any_figure(change: str) -
 
 
 def test_source_labels_reuse_ownership_and_copy_without_touching_live_outputs() -> None:
+    # [test->req~ring5.figure.series-styling~2]
     for family in ("bar", "heatmap"):
         with _native(_trace(family), labels=family == "bar") as (prepared, mpl, plotly):
             binding = mpl.panels[0].bindings[0]
@@ -606,6 +614,7 @@ def test_source_labels_reuse_ownership_and_copy_without_touching_live_outputs() 
 
 
 def test_intrinsic_bad_under_over_mapping_and_visible_manual_mutator_boundary() -> None:
+    # [test->req~ring5.figure.series-styling~2]
     figure, axes = plt.subplots()
     try:
         intrinsic = LinearSegmentedColormap.from_list(
@@ -728,6 +737,7 @@ def test_unknown_label_format_change_fails_before_native_updates() -> None:
 
 
 def test_later_panel_unknown_channel_preflight_preserves_earlier_panel() -> None:
+    # [test->req~ring5.figure.series-styling~2]
     from src.web.rendering.matplotlib_trace_renderer import MatplotlibTraceRenderer
 
     figure, axes = plt.subplots(1, 2)
@@ -764,6 +774,7 @@ def test_later_panel_unknown_channel_preflight_preserves_earlier_panel() -> None
 
 
 def test_later_sankey_hover_preflight_preserves_earlier_plotly_source() -> None:
+    # [test->req~ring5.figure.series-styling~2]
     from src.web.rendering.trace_to_plotly import traces_to_plotly
 
     first = LineTraceConfig(name="first", x=[1, 2], y=[3, 5], color=COLOR, opacity=0.5)
@@ -866,6 +877,7 @@ def test_opaque_positioned_parallel_scale_is_preserved() -> None:
 
 @pytest.mark.parametrize("family", ["bar", "line", "scatter"])
 def test_errorbar_and_area_colors_compose_intrinsic_alpha(family: str) -> None:
+    # [test->req~ring5.figure.series-styling~2]
     with _native(_trace(family)) as (prepared, mpl, _):
         binding = mpl.panels[0].bindings[0]
         artists = _artists(binding.owned_data)
@@ -1002,6 +1014,7 @@ def _heatmap_without_managed_colorbar(
 def test_new_unsupported_colorbar_rejects_before_any_native_change(
     extension: Literal["both", "min", "max"], foreign: bool
 ) -> None:
+    # [test->req~ring5.figure.series-styling~2]
     with _heatmap_without_managed_colorbar(extension, foreign=foreign) as (native, image, other):
         appearance = native.panels[0].bindings[0].appearance
         original_snapshot = appearance.snapshot

@@ -286,12 +286,12 @@ def test_current_documents_replay_original_style_identity_and_reject_retired_ver
         session.render(plot, engine=engine)
         session.save_portfolio("canonical")
         saved = json.loads((portfolios_dir / "canonical.json").read_text())
-        assert saved["schema_version"] == 12
-        assert saved["version"] == "12.0"
+        assert saved["schema_version"] == 13
+        assert saved["version"] == "13.0"
         assert saved["plots"][0]["config"]["legend_labels"] == _config()["legend_labels"]
         recipe = session.capture_analysis_recipe("Canonical labels")
         recipe_wire = json.loads(session.export_analysis_recipe(recipe))
-        assert recipe_wire["schema_version"] == 7
+        assert recipe_wire["schema_version"] == 8
         assert recipe_wire["plots"][0]["config"]["legend_labels"] == _config()["legend_labels"]
         assert session.load_portfolio("canonical").complete
         restored = session.plots[0]

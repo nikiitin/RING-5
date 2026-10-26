@@ -203,7 +203,7 @@ def test_numbered_axes_widget_has_three_modes_and_empty_is_current_off(
 def test_live_colors_preserve_type_specific_patterns_and_markers(
     kind: str, engine: Literal["plotly", "matplotlib"], example_cases: dict[str, BasePlot]
 ) -> None:
-    # [test->req~ring5.figure.series-styling~1]
+    # [test->req~ring5.figure.series-styling~2]
     app = _app(example_cases[kind], "colors")
     label = "Pattern" if kind == "bar" else "Marker Symbol"
     selector = next(widget for widget in app.selectbox if widget.label == label)

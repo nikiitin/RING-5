@@ -15,7 +15,7 @@ RecipeSourceKind = Literal["csv", "parser"]
 RecipeEngine = Literal["plotly", "matplotlib"]
 
 
-ANALYSIS_RECIPE_SCHEMA_VERSION = 7
+ANALYSIS_RECIPE_SCHEMA_VERSION = 8
 
 
 @dataclass(frozen=True)

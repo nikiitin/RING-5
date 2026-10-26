@@ -78,7 +78,7 @@ def _bar_heights(native: MplFigure) -> list[float]:
 def test_public_series_override_renders_every_current_pattern(
     engine: Literal["plotly", "matplotlib"], pattern: str
 ) -> None:
-    # [test->req~ring5.figure.series-styling~1]
+    # [test->req~ring5.figure.series-styling~2]
     frame = pd.DataFrame({"x": ["a", "b"], "y": [3.0, 5.0]})
     original = frame.copy(deep=True)
     with ring5.Session() as session:
@@ -136,7 +136,7 @@ def test_neutral_and_global_typed_patterns_use_the_same_native_projection(
 
 @pytest.mark.parametrize("engine", ["plotly", "matplotlib"])
 def test_reapplication_clears_incompatible_paths_and_preserves_absent_pattern(engine: str) -> None:
-    # [test->req~ring5.figure.series-styling~1]
+    # [test->req~ring5.figure.series-styling~2]
     rendered = _native_result(_prepared("O"), engine)
     native = rendered.figure
     try:
@@ -202,7 +202,7 @@ def test_explicit_override_wins_over_default_stripes_and_global_style(
 
 
 def test_pattern_absence_and_solid_remain_distinct_through_typed_roundtrip() -> None:
-    # [test->req~ring5.figure.series-styling~1]
+    # [test->req~ring5.figure.series-styling~2]
     assert SeriesStyleConfig().hatching_pattern is None
     assert SeriesStyleConfig.from_dict({}).hatching_pattern is None
     assert SeriesStyleConfig.from_dict({"hatching_pattern": ""}).hatching_pattern == ""

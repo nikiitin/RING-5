@@ -17,6 +17,7 @@ def require_opacity(value: object, *, field: str = "opacity") -> float:
     Raises:
         ValueError: The value is boolean, nonnumeric, nonfinite or outside [0, 1].
     """
+    # [impl->req~ring5.figure.series-styling~2]
     numeric = type(value) in (int, float)
     if not numeric:
         import numpy as np

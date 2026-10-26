@@ -3327,10 +3327,10 @@
     {
       "id": "figure.series-styling",
       "group": "figure-configuration",
-      "revision": 1,
+      "revision": 2,
       "status": "approved",
       "title": "Per-series visual styling",
-      "description": "Applicable web plots shall configure per-series override color, bar pattern, marker symbol and size, and line width by original series name, while typed renderer styles shall also carry opacity and border settings. Legend display text uses the canonical legend-label mapping.",
+      "description": "Applicable web plots shall configure per-series color, bar pattern, marker symbol and size, and line width by original series identity; typed renderer styles shall also carry borders. Both renderers shall preserve omitted source opacity and apply finite zero-to-one overrides by composing intrinsic and family-local alpha, including source-owned labels and error bars, without changing scientific data or compounding on reapplication. Unsupported or unknown affected native channels shall fail before any panel changes. Legend text uses the canonical legend-label mapping, legend glyphs reflect final appearance, and heatmap colorbars retain intrinsic mappings.",
       "tags": [
         "markers",
         "series",
@@ -3344,7 +3344,12 @@
           "src/web/pages/ui/plotting/styles/line_ui.py::LineStyleUI._render_specific_series_visuals",
           "src/web/rendering/plotly_connector.py::FigureSpecToPlotly._apply_series_styling",
           "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_series_styling",
-          "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_trace_overrides"
+          "src/web/rendering/matplotlib_connector.py::FigureSpecToMatplotlib._apply_trace_overrides",
+          "src/core/common/opacity.py::require_opacity",
+          "src/web/rendering/_appearance.py::prepare_matplotlib_appearance",
+          "src/web/rendering/_appearance.py::prepare_plotly_appearance",
+          "src/web/rendering/_appearance.py::validate_parallel_appearance",
+          "src/web/rendering/matplotlib_colorbar.py::prepare_colorbars"
         ],
         "tests": [
           "tests/unit/test_hatch_value_contracts.py::test_public_series_override_renders_every_current_pattern",
@@ -3357,7 +3362,23 @@
           "tests/unit/core/visualization/test_matplotlib_connector_styling.py::TestTraceOverrides",
           "tests/unit/core/visualization/test_matplotlib_connector_styling.py::TestSeriesStyling",
           "tests/unit/test_prepared_figure_styling.py::TestPreparedFigureStyling.test_full_pipeline",
-          "tests/ui/test_plot_settings_contracts.py::test_live_colors_preserve_type_specific_patterns_and_markers"
+          "tests/ui/test_plot_settings_contracts.py::test_live_colors_preserve_type_specific_patterns_and_markers",
+          "tests/unit/test_source_opacity_contract.py::test_typed_inheritance_and_editable_presence_have_one_contract",
+          "tests/unit/test_source_opacity_contract.py::test_all_families_preserve_science_and_reapply_explicit_zero",
+          "tests/unit/test_source_opacity_contract.py::test_intrinsic_companion_channels_and_family_factors",
+          "tests/unit/test_source_opacity_contract.py::test_width_only_config_preserves_source_opacity_and_named_wins",
+          "tests/unit/test_source_opacity_contract.py::test_source_labels_reuse_ownership_and_copy_without_touching_live_outputs",
+          "tests/unit/test_source_opacity_contract.py::test_later_panel_unknown_channel_preflight_preserves_earlier_panel",
+          "tests/unit/test_source_opacity_contract.py::test_later_sankey_hover_preflight_preserves_earlier_plotly_source",
+          "tests/unit/test_source_opacity_contract.py::test_new_unsupported_colorbar_rejects_before_any_native_change",
+          "tests/unit/test_source_opacity_contract.py::test_parallel_selected_transparency_rejects_before_any_figure",
+          "tests/unit/test_source_opacity_contract.py::test_zero_unselected_opacity_keeps_every_parallel_row",
+          "tests/unit/test_source_opacity_contract.py::test_unmanaged_appearance_preserves_native_alpha_arrays_and_blocks_updates",
+          "tests/unit/test_source_opacity_contract.py::test_intrinsic_bad_under_over_mapping_and_visible_manual_mutator_boundary",
+          "tests/unit/test_source_opacity_contract.py::test_errorbar_and_area_colors_compose_intrinsic_alpha",
+          "tests/integration/test_figure_value_admission.py::test_source_opacity_portfolio_replay_preserves_embedded_alpha_and_values",
+          "tests/integration/test_figure_value_admission.py::test_opacity_recipe_template_retains_type_until_materialization",
+          "tests/integration/test_figure_value_admission.py::test_invalid_style_value_rejects_at_public_restore_and_capture_boundaries"
         ],
         "documentation": [
           "docs/user-guide/reference/settings.md#series-styling"
@@ -3368,6 +3389,13 @@
           "revision": 1,
           "reason": "Bind active settings-pill controls and real widget-to-renderer regressions.",
           "change_type": "evidence"
+        },
+        {
+          "revision": 1,
+          "change_type": "semantic",
+          "title": "Per-series visual styling",
+          "description": "Applicable web plots shall configure per-series override color, bar pattern, marker symbol and size, and line width by original series name, while typed renderer styles shall also carry opacity and border settings. Legend display text uses the canonical legend-label mapping.",
+          "reason": "Define explicit source-opacity presence, intrinsic and family alpha composition, source-owned companion behavior and atomic native capability failures across both engines."
         }
       ]
     },
@@ -3420,12 +3448,19 @@
           "tests/integration/test_native_rendering_review_regressions.py::test_noncanonical_orientation_rejects_before_public_or_restore_publication",
           "tests/integration/test_native_rendering_review_regressions.py::test_canonical_orientation_values_reach_both_native_models",
           "tests/integration/test_figure_value_admission.py::test_public_heatmap_context_rejects_before_registering_plot",
-          "tests/integration/test_figure_value_admission.py::test_invalid_pattern_rejects_at_public_restore_and_capture_boundaries"
+          "tests/integration/test_figure_value_admission.py::test_invalid_style_value_rejects_at_public_restore_and_capture_boundaries"
         ],
         "documentation": [
           "docs/developer-guide/api-reference/public-python-api.md#workspace"
         ]
-      }
+      },
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "evidence",
+          "reason": "Bind public plot validation to the live style-value admission regression covering pattern and opacity."
+        }
+      ]
     },
     {
       "id": "extension.data-manager",

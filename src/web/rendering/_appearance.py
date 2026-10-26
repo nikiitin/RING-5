@@ -74,6 +74,7 @@ def validate_parallel_appearance(opacity: object, color: object, colorscale: obj
     Raises:
         ValueError: Selected opacity or embedded alpha cannot be represented by both engines.
     """
+    # [impl->req~ring5.figure.series-styling~2]
     if require_opacity(opacity) != 1.0:
         raise ValueError("Parallel coordinates require selected source opacity 1 in both engines.")
     colors: tuple[str, ...]
@@ -545,6 +546,7 @@ def prepare_matplotlib_appearance(
     spec: FigureConfig, panels: Sequence[MatplotlibRenderResult]
 ) -> tuple[MatplotlibAppearancePlan, ...]:
     """Preflight every affected channel before any connector mutates a native panel."""
+    # [impl->req~ring5.figure.series-styling~2]
     plans: list[MatplotlibAppearancePlan] = []
     for panel in panels:
         for binding in panel.bindings:
@@ -832,6 +834,7 @@ def prepare_plotly_appearance(
     spec: FigureConfig, rendered: PlotlyRenderResult
 ) -> tuple[PlotlyAppearancePlan, ...]:
     """Preflight owned Plotly source opacity and separately baked layout labels."""
+    # [impl->req~ring5.figure.series-styling~2]
     import plotly.graph_objects as go
     from src.web.rendering._heatmap_utils import heatmap_ranges, heatmap_text_colors
 

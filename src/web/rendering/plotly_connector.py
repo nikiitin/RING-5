@@ -632,7 +632,7 @@ class FigureSpecToPlotly:
     @staticmethod
     def _apply_series_styling(spec: FigureConfig, rendered: PlotlyRenderResult) -> None:
         """Apply per-trace dimensions and patterns after appearance projection."""
-        # [impl->req~ring5.figure.series-styling~1]
+        # [impl->req~ring5.figure.series-styling~2]
         if not spec.series_styles:
             return
 

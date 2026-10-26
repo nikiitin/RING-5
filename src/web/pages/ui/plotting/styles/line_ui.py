@@ -13,7 +13,7 @@ class LineStyleUI(BaseStyleUI):
     def _render_specific_series_visuals(
         self, current_style: dict[str, Any], key_suffix: str, key_prefix: str = ""
     ) -> None:
-        # [impl->req~ring5.figure.series-styling~1]
+        # [impl->req~ring5.figure.series-styling~2]
         with st.expander("Marker & Line", expanded=False):
             symbols = ["circle", "square", "diamond", "cross", "x", "triangle-up", "triangle-down"]
             saved_symbol = current_style.get("symbol", "circle")

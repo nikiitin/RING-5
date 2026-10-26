@@ -80,7 +80,7 @@ def _by_label(ax: plt.Axes) -> dict[str, Any]:
 
 
 class TestTraceOverrides:
-    # [test->req~ring5.figure.series-styling~1]
+    # [test->req~ring5.figure.series-styling~2]
     def test_color_override_recolors_bar_and_line(self) -> None:
         fig, panel = _bar_line_panel()
         ax = panel.primary_axes
@@ -130,7 +130,7 @@ class TestTraceOverrides:
 
 
 class TestSeriesStyling:
-    # [test->req~ring5.figure.series-styling~1]
+    # [test->req~ring5.figure.series-styling~2]
     def test_bar_border_applied(self) -> None:
         fig, panel = _bar_line_panel()
         ax = panel.primary_axes

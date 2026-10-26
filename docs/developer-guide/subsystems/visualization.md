@@ -73,8 +73,9 @@ content and managers registered by callers. Connectors remain stateless.
 ## Source appearance
 
 `TraceConfig.opacity` is concrete and finite in `[0, 1]`. `SeriesStyleConfig.opacity=None` means
-no incremental opacity update; explicit `0` and `1` remain meaningful. The editable wire omits
-inheritance and rejects present `null`, booleans and strings. Named overrides precede positional
+no incremental opacity update; explicit `0` and `1` remain meaningful. Editable flat plot mappings
+omit inheritance and reject present `null`, booleans and strings. Typed style serialization retains
+`None`. Named overrides precede positional
 styles, which precede retained source opacity. Every channel uses intrinsic alpha × effective
 source opacity × its declared family factor. Area fill uses factor `1`, Radar fill `0.45`, Violin's
 inner box `0.8`, and Sankey links their explicit link factor. Explicit source and semantic Waterfall
@@ -100,7 +101,8 @@ Heatmap colorbars use the intrinsic colormap, including embedded alpha and maske
 colors, independently of source opacity. The attenuated native map delegates exact mapping to its
 intrinsic map. Manual exceptional-color mutations require a new explicit context; replacing a
 native map is preserved for unrelated operations and blocks affected updates. Managed colorbars
-support `extend='neither'`; affected advanced extensions or foreign colorbars fail preflight.
+support `extend='neither'`; affected advanced extensions fail preflight. Appearance updates that
+would mutate a foreign colorbar also fail before any native change.
 Colorbar callbacks retain only their actual native output leaf. Private export copies retain no
 live source/binding callback references and cannot change the live figure while drawing or saving.
 

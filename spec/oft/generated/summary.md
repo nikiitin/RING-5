@@ -106,6 +106,8 @@ This file is informative; normative items are in the other generated files.
 | `figure.histogram-cumulative` | 1 | Semantic | Normalized cumulative views cannot fabricate probabilities from zero or unrepresentable selected totals. |
 | `figure.alternate-category-shading` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |
 | `figure.series-styling` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |
+| `figure.series-styling` | 1 | Semantic | Define explicit source-opacity presence, intrinsic and family alpha composition, source-owned companion behavior and atomic native capability failures across both engines. |
+| `api.plot-validation` | 1 | Evidence only | Bind public plot validation to the live style-value admission regression covering pattern and opacity. |
 | `quality.performance-regression-gates` | 1 | Evidence only | Retain live benchmark evidence after removing the unused timing decorator. |
 | `trace.requirement-history` | 1 | Semantic | Specified complete semantic snapshots and reviewer-facing history views. |
 | `trace.requirement-history` | 2 | Evidence only | Recorded implementation, verification, and documentation evidence without changing revision 2. |

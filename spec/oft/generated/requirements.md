@@ -2098,12 +2098,12 @@ Tags: grouped_bar, settings, shading, status_approved
 
 ### Per-series visual styling
 
-`req~ring5.figure.series-styling~1`
+`req~ring5.figure.series-styling~2`
 Status: approved
 
-Applicable web plots shall configure per-series override color, bar pattern, marker symbol and size, and line width by original series name, while typed renderer styles shall also carry opacity and border settings. Legend display text uses the canonical legend-label mapping.
+Applicable web plots shall configure per-series color, bar pattern, marker symbol and size, and line width by original series identity; typed renderer styles shall also carry borders. Both renderers shall preserve omitted source opacity and apply finite zero-to-one overrides by composing intrinsic and family-local alpha, including source-owned labels and error bars, without changing scientific data or compounding on reapplication. Unsupported or unknown affected native channels shall fail before any panel changes. Legend text uses the canonical legend-label mapping, legend glyphs reflect final appearance, and heatmap colorbars retain intrinsic mappings.
 
-History records: 1
+History records: 2
 
 Covers:
 - feat~ring5.figure-configuration~1
@@ -2728,6 +2728,8 @@ Tags: api, lifecycle, status_approved, workers
 Status: approved
 
 The public plotting boundary shall reject unknown plot types, missing or mistyped mappings, absent referenced columns, and invalid engine choices before registering or rendering a plot.
+
+History records: 1
 
 Covers:
 - feat~ring5.automation~1

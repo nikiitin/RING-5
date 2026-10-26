@@ -234,6 +234,7 @@ def test_invalid_style_value_rejects_at_public_restore_and_capture_boundaries(
     field: str, value: object, message: str, tmp_path: Path
 ) -> None:
     # [test->req~ring5.api.plot-validation~1]
+    # [test->req~ring5.figure.series-styling~2]
     config: dict[str, Any] = {"x": "x", "y": "y", "series_styles": {"y": {field: value}}}
     before = copy.deepcopy(config)
     with ring5.Session() as session:
@@ -331,6 +332,7 @@ def test_style_admission_preserves_other_plugin_fields_and_does_not_modify_input
 def test_source_opacity_portfolio_replay_preserves_embedded_alpha_and_values(
     opacity: float, portfolios_dir: Path
 ) -> None:
+    # [test->req~ring5.figure.series-styling~2]
     config = {
         "x": "x",
         "y": "y",
@@ -369,6 +371,7 @@ def test_source_opacity_portfolio_replay_preserves_embedded_alpha_and_values(
 
 @pytest.mark.parametrize("value", [0.0, 0.25, 1.0, -0.1, 1.1])
 def test_opacity_recipe_template_retains_type_until_materialization(value: float) -> None:
+    # [test->req~ring5.figure.series-styling~2]
     recipe = _recipe({"series_styles": {"y": {"opacity": "{{opacity}}", "plugin": {"label": 1}}}})
     recipe = AnalysisRecipe(
         name=recipe.name,

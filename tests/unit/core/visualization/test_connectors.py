@@ -365,7 +365,7 @@ class TestPlotlyConnectorDataLabels:
 class TestPlotlyConnectorSeriesStyling:
     """Test _apply_series_styling."""
 
-    # [test->req~ring5.figure.series-styling~1]
+    # [test->req~ring5.figure.series-styling~2]
 
     def test_bar_border_width(self) -> None:
         ss = SeriesStyleConfig(bar_border_width=1.5, bar_border_color="#000")

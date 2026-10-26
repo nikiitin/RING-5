@@ -256,7 +256,7 @@ class FigureSpecToMatplotlib:
     @staticmethod
     def _apply_series_styling(spec: FigureConfig, rendered: MatplotlibRenderResult) -> None:
         """Cycle positional styles by original source ordinal, including hidden slots."""
-        # [impl->req~ring5.figure.series-styling~1]
+        # [impl->req~ring5.figure.series-styling~2]
         if not spec.series_styles:
             return
         for binding in rendered.bindings:
@@ -273,7 +273,7 @@ class FigureSpecToMatplotlib:
     @staticmethod
     def _apply_trace_overrides(spec: FigureConfig, rendered: MatplotlibRenderResult) -> None:
         """Apply visual overrides by immutable original source name."""
-        # [impl->req~ring5.figure.series-styling~1]
+        # [impl->req~ring5.figure.series-styling~2]
         for binding in rendered.bindings:
             style = spec.trace_overrides.get(binding.original_name)
             if style is None:

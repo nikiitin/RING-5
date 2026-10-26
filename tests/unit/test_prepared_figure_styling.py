@@ -28,7 +28,7 @@ class TestPreparedFigureStyling:
     """The resolved specification and native figure agree on visible settings."""
 
     def test_full_pipeline(self) -> None:
-        # [test->req~ring5.figure.series-styling~1]
+        # [test->req~ring5.figure.series-styling~2]
         prepared = _prepare(
             "grouped_bar",
             {
