@@ -156,6 +156,19 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(
         self, req: Any, fp: Any, code: int, msg: str, headers: Any, newurl: str
     ) -> None:
+        """Reject redirects from the manifest's pinned archive URL.
+
+        Args:
+            req: Original urllib request.
+            fp: Redirect response stream.
+            code: HTTP redirect status code.
+            msg: HTTP redirect status text.
+            headers: Redirect response headers.
+            newurl: Redirect target rejected by the installer policy.
+
+        Raises:
+            ValueError: Every redirect is rejected.
+        """
         raise ValueError("Chrome download redirects are not allowed.")
 
 
@@ -462,6 +475,7 @@ def install_chrome(*, cache_directory: str | None = None) -> Path:
     Raises:
         Ring5Error: Unsupported platform, network, integrity, archive, cache or disk failure.
     """
+    # [impl->req~ring5.cli.install-chrome~1]
     try:
         artifact = _load_manifest()[_host_platform()]
         if cache_directory is None:

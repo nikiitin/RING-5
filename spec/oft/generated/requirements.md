@@ -2654,6 +2654,20 @@ Needs: impl, test, uman
 
 Tags: api, cli, dependencies, status_approved
 
+### Reviewed Chrome installation
+
+`req~ring5.cli.install-chrome~1`
+Status: approved
+
+The ring5 install-chrome command shall use the packaged reviewed Stable Chrome for Testing manifest to install or verify the native artifact with bounded transfer, provider size, checksum and generation facts, project SHA-256 verification, a bounded archive graph and internal-link policy, and native exclusive cache publication. It shall preserve existing unrelated cache entries on failure, print the absolute executable path for explicit BROWSER_PATH selection, and report expected operational failures as exit code 2 without launching a browser or changing browser selection.
+
+Covers:
+- feat~ring5.automation~1
+
+Needs: impl, test, uman
+
+Tags: cli, dependencies, export, status_approved
+
 ### CLI parsing
 
 `req~ring5.cli.parse~1`

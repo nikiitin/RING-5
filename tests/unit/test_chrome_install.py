@@ -199,6 +199,7 @@ def test_download_checks_transfer_facts_and_reviewed_digest(
 def test_download_rejects_changed_truncated_or_unbounded_input(
     failure: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    # [test->req~ring5.cli.install-chrome~1]
     payload = b"inert archive bytes"
     artifact = _artifact(payload)
     body = payload
@@ -301,6 +302,7 @@ def _install_fixture(
 def test_all_platforms_install_inert_observed_layout_and_verify_reuse(
     name: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    # [test->req~ring5.cli.install-chrome~1]
     content = _zip(_inert_layout(name))
     artifact, network = _install_fixture(monkeypatch, content, name)
     cache = tmp_path / "cache with spaces" / "Zoë"
@@ -385,6 +387,7 @@ def test_archive_member_path_rejections(bad_path: str) -> None:
 def test_invalid_archive_graph_rejected_before_any_member_is_extracted(
     failure: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    # [test->req~ring5.cli.install-chrome~1]
     name = "mac-arm64" if "link" in failure or failure == "alias-descendant" else "linux64"
     artifact = chrome._load_manifest()[name]
     root = f"chrome-{name}"
@@ -537,6 +540,7 @@ def test_existing_unowned_or_corrupt_destination_is_never_replaced(
 def test_cli_emits_only_absolute_executable_and_preserves_browser_selection(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    # [test->req~ring5.cli.install-chrome~1]
     import os
 
     _install_fixture(monkeypatch, _zip(_inert_layout("linux64")))

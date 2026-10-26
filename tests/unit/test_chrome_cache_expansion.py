@@ -32,6 +32,7 @@ def test_actual_unknown_user_console_is_typed_before_cache_creation(
     unknown_user_cache: str,
     tmp_path: Path,
 ) -> None:
+    # [test->req~ring5.cli.install-chrome~1]
     result = subprocess.run(
         [sys.executable, "-m", "ring5.cli", "install-chrome", "--cache-dir", unknown_user_cache],
         cwd=tmp_path,

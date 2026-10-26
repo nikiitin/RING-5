@@ -48,6 +48,7 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
 
 
 def _cmd_install_chrome(args: argparse.Namespace) -> int:
+    # [impl->req~ring5.cli.install-chrome~1]
     from ring5._chrome_install import install_chrome
 
     executable = install_chrome(cache_directory=args.cache_dir)

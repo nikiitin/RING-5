@@ -94,8 +94,17 @@ RING-5's Matplotlib PDF export does not require LaTeX.
 
 ## Install Chrome for Plotly static exports
 
+<!--
+`uman~ring5.cli.install-chrome.documentation~1`
+
+Covers:
+- req~ring5.cli.install-chrome~1
+
+-->
+
 `ring5 install-chrome` works from both a checkout and an installed wheel. It downloads the exact
-Stable release in the packaged manifest into the platform user cache for `ring5/chrome`. Use
+Stable release in the packaged manifest into the platform user cache's `ring5` application directory,
+under its `chrome` subdirectory. Use
 `--cache-dir PATH` to choose a different installation cache. The command prints only the absolute
 browser executable path to standard output; instructions and errors go to standard error.
 
