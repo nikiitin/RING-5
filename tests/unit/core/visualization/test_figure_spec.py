@@ -42,7 +42,6 @@ class TestFigureSpecConstruction:
         assert spec.paper_bgcolor == "white"
         assert spec.plot_bgcolor == "white"
         assert spec.font_family == "serif"
-        assert spec.latex_extra_preamble == ""
         assert spec.metadata == {}
         assert spec.legends == []
         assert spec.traces == []

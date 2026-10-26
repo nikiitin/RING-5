@@ -2213,6 +2213,7 @@
         ],
         "tests": [
           "tests/unit/test_ring5_coverage_edges.py::test_export_error_normalization",
+          "tests/integration/test_ring5_public_api.py::test_measured_native_figure_uses_explicit_pgf_compiler",
           "tests/unit/test_plot_service.py::TestRing5ExportFile"
         ],
         "documentation": [
@@ -3063,11 +3064,15 @@
       "tags": ["latex", "matplotlib", "settings"],
       "evidence": {
         "implementation": [
-          "src/web/components/plotting/settings/engine_settings.py::EngineSettingsComponent.render"
+          "src/web/components/plotting/settings/engine_settings.py::EngineSettingsComponent.render",
+          "src/core/models/visualization/export_options.py::validate_tex_system",
+          "src/web/rendering/figure_export.py::matplotlib_download_bytes"
         ],
         "tests": [
           "tests/ui_logic/test_engine_specific_controls.py::TestEngineSpecificControls.test_matplotlib_disables_latex_preamble",
-          "tests/ui_logic/test_engine_specific_controls.py::TestEngineSpecificControls.test_matplotlib_no_hovermode"
+          "tests/ui_logic/test_engine_specific_controls.py::TestEngineSpecificControls.test_matplotlib_no_hovermode",
+          "tests/ui/test_export_request_contract.py::test_compiler_widget_reaches_actual_pgf_request_without_inert_controls",
+          "tests/unit/test_pgf_export_policy.py::test_pgf_savefig_receives_safe_request_and_restores_state"
         ],
         "documentation": [
           "docs/user-guide/reference/rendering-export.md#matplotlib-tex-system"
@@ -3331,7 +3336,7 @@
       "tags": ["formatting", "latex", "security"],
       "evidence": {
         "implementation": ["src/core/common/safe_format.py::normalize_numeric_format", "src/core/common/safe_format.py::safe_format_number", "src/core/common/safe_format.py::plotly_numeric_template", "src/web/rendering/latex_security.py::escape_latex_text", "src/web/rendering/latex_security.py::escaped_figure_text", "src/web/rendering/latex_security.py::disabled_figure_usetex"],
-        "tests": ["tests/unit/test_safe_format.py::test_normal_formats_are_preserved", "tests/unit/test_safe_format.py::test_huge_width_falls_back_without_allocating", "tests/unit/test_safe_format.py::test_huge_plotly_template_falls_back", "tests/unit/test_safe_format.py::test_arbitrary_template_is_not_forwarded", "tests/unit/test_latex_security.py::test_latex_commands_are_neutralized", "tests/unit/test_latex_security.py::test_figure_text_is_escaped_temporarily", "tests/unit/test_latex_security.py::test_figure_usetex_is_disabled_temporarily"],
+        "tests": ["tests/unit/test_safe_format.py::test_normal_formats_are_preserved", "tests/unit/test_safe_format.py::test_huge_width_falls_back_without_allocating", "tests/unit/test_safe_format.py::test_huge_plotly_template_falls_back", "tests/unit/test_safe_format.py::test_arbitrary_template_is_not_forwarded", "tests/unit/test_latex_security.py::test_latex_commands_are_neutralized", "tests/unit/test_latex_security.py::test_figure_text_is_escaped_temporarily", "tests/unit/test_latex_security.py::test_figure_usetex_is_disabled_temporarily", "tests/unit/test_pgf_export_policy.py::test_pgf_savefig_receives_safe_request_and_restores_state"],
         "documentation": ["docs/user-guide/reference/rendering-export.md#safe-numeric-and-tex-formatting"]
       }
     },
@@ -4853,6 +4858,7 @@
           "tests/unit/test_background_job_center.py::test_center_shows_progress_errors_and_lifecycle_actions",
           "tests/e2e/test_background_jobs.py::TestBackgroundJobCenter.test_scan_job_progress_and_cleanup",
           "tests/integration/test_background_jobs_public_api.py::test_background_transformations_and_export_are_non_blocking",
+          "tests/integration/test_background_jobs_public_api.py::test_background_export_retains_requested_pgf_compiler",
           "tests/integration/test_background_jobs_public_api.py::test_failed_background_job_has_bounded_error_and_retries",
           "tests/integration/test_background_jobs_public_api.py::test_cancellation_is_honest_and_public_errors_are_typed"
         ],
@@ -5925,7 +5931,6 @@
       "font_family": "figure.typography",
       "hatching_sequence": "figure.colors",
       "hovermode": "figure.plotly-hovermode",
-      "latex_extra_preamble": "quality.safe-output-formatting",
       "legends": "figure.legends",
       "metadata": "render.engine-independent-traces",
       "paper_bgcolor": "figure.colors",

@@ -3,6 +3,8 @@
 from collections.abc import Mapping
 from typing import Any
 
+from src.core.models.visualization.export_options import validate_tex_system
+
 _PLOT_FIELDS = frozenset(
     {
         "id",
@@ -22,11 +24,16 @@ def validate_plot_config_keys(config: Mapping[str, Any]) -> None:
     """Validate current editable plot key names without interpreting template values.
 
     Raises:
-        ValueError: A key is not text or belongs to a retired legend representation.
+        ValueError: A key is not text or is outside the current configuration contract.
     """
     # [impl->req~ring5.portfolio.schema~1]
     if any(not isinstance(key, str) for key in config):
         raise ValueError("Plot configuration keys must be text names.")
+    unsupported = sorted(
+        {"latex_extra_preamble", "download_format", "enable_editable"} & config.keys()
+    )
+    if unsupported:
+        raise ValueError(f"Unsupported plot configuration keys: {', '.join(unsupported)}.")
     retired = sorted(
         key
         for key in config
@@ -52,9 +59,11 @@ def validate_plot_config_values(config: Mapping[str, Any]) -> None:
     """Validate concrete common figure values.
 
     Raises:
-        ValueError: A legend orientation is not exactly horizontal or vertical.
+        ValueError: A legend orientation or PGF compiler identifier is unsupported.
     """
     # [impl->req~ring5.api.plot-validation~1]
+    if "tex_system" in config:
+        validate_tex_system(config["tex_system"])
     for prefix in ("legend_", "legend2_", "legend3_"):
         key = f"{prefix}orientation"
         if key in config and (

@@ -121,16 +121,6 @@ class AdvancedSettingsComponent:
                 key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.error_bars"),
             )
         with col_exp2:
-            download_formats: list[str] = ["html", "png", "pdf", "svg"]
-            default_fmt_idx: int = 0
-            if saved_config.get("download_format") in download_formats:
-                default_fmt_idx = download_formats.index(saved_config["download_format"])
-            config["download_format"] = st.selectbox(
-                "Default Download Format",
-                options=download_formats,
-                index=default_fmt_idx,
-                key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.download_fmt"),
-            )
             config["export_scale"] = st.selectbox(
                 "Download Scale (Resolution)",
                 options=[1, 2, 3],
@@ -142,18 +132,6 @@ class AdvancedSettingsComponent:
             h: int = saved_config.get("height", 500)
             s: int = config["export_scale"]
             st.caption(f"Download Size: {w * s} x {h * s} px")
-
-        # Legend & Interactivity
-        st.markdown("#### Legend & Interactivity")
-        config["enable_editable"] = st.checkbox(
-            "Enable Interactive Editing",
-            value=saved_config.get("enable_editable", False),
-            key=WidgetKeyBuilder.plot_key(self.plot_id, "widgets.appearance.editable"),
-            help=(
-                "Allows you to drag the legend/title and click"
-                " to edit text directly on the plot."
-            ),
-        )
 
         # Preserve existing series styles
         if "series_styles" not in config:

@@ -147,8 +147,6 @@ class BasePlot(PlotConfigUIMixin, ABC):
         # [impl->req~ring5.plots.independent-state~1]
         if artifact.figure is None or artifact.preparation is None or artifact.engine is None:
             raise ValueError("Only a complete native render artifact can be published.")
-        if isinstance(artifact.figure, MplFigure):
-            artifact.figure._ring5_spec = artifact.figure_spec  # type: ignore[attr-defined]
         # Relinquish this generation's manager now. Later borrowers may register
         # their own manager on the same figure; retirement must never claim it.
         self._release_figure_manager(artifact.figure)

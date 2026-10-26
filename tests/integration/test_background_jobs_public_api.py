@@ -5,7 +5,7 @@ from __future__ import annotations
 import threading
 import time
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 import pandas as pd
 import pytest
@@ -24,6 +24,38 @@ def _settled(session: ring5.Session, job_id: str) -> ring5.BackgroundJobInfo:
             return job
         time.sleep(0.01)
     raise AssertionError(f"Background job {job_id} did not settle")
+
+
+@pytest.mark.parametrize("compiler", ["xelatex", "pdflatex", "lualatex"])
+def test_background_export_retains_requested_pgf_compiler(
+    compiler: Literal["xelatex", "pdflatex", "lualatex"],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The captured export request forwards its compiler through actual job execution."""
+    # [test->req~ring5.workspace.background-jobs~1]
+    from io import BytesIO
+
+    import matplotlib as mpl
+    from matplotlib.figure import Figure
+
+    observed: list[str] = []
+
+    def savefig(figure: Figure, buffer: BytesIO, **kwargs: Any) -> None:
+        observed.append(mpl.rcParams["pgf.texsystem"])
+        assert kwargs == {"format": "pgf", "backend": "pgf"}
+        assert mpl.rcParams["pgf.preamble"] == ""
+        buffer.write(b"Captured PGF request")
+
+    monkeypatch.setattr(Figure, "savefig", savefig)
+    with ring5.Session() as session:
+        target = tmp_path / "background.pgf"
+        job = session.export_submit(Figure(), str(target), tex_system=compiler)
+        settled = _settled(session, job.job_id)
+        assert settled.status == "completed"
+        assert session.background_job_result(settled) == str(target)
+        assert target.read_bytes() == b"Captured PGF request"
+    assert observed == [compiler]
 
 
 def test_background_transformations_and_export_are_non_blocking(tmp_path: Path) -> None:

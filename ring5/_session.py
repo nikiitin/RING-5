@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, Literal, cast
 
 import pandas as pd
+from matplotlib.figure import Figure as MplFigure
 
 from src.core.application_api import ApplicationAPI
 from src.core.common.stat_config_codec import StatConfigCodec
@@ -78,8 +79,10 @@ from src.core.models.analysis_review_models import (
 from src.core.models.recovery_models import RecoveryDraftCapture, RecoveryDraftInfo
 from src.core.models.guided_analysis_models import GuidedAnalysisProgress
 from src.core.models.visualization.engine import EngineMode
+from src.core.models.visualization.export_options import TexSystem, validate_tex_system
 from src.parsing.parser_protocol import SimulationParser
 from src.web.pages.ui.plotting.base_plot import BasePlot
+from src.web.rendering._matplotlib_copy import copy_matplotlib_figure
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
 from ring5 import _dashboard, _export, _parse, _render, _scan, _small_multiples
@@ -2704,6 +2707,7 @@ class Session:
         *,
         fmt: str | None = None,
         deterministic: bool = False,
+        tex_system: TexSystem = "xelatex",
         **kwargs: Any,
     ) -> str:
         """Export a rendered figure to a file.
@@ -2713,6 +2717,7 @@ class Session:
             path: Destination file path.
             fmt: Explicit format; inferred from ``path`` when omitted.
             deterministic: Enable byte-stable export settings.
+            tex_system: PGF compiler: ``xelatex``, ``pdflatex`` or ``lualatex``.
             **kwargs: Engine-specific dimensions and resolution options.
 
         Returns:
@@ -2729,6 +2734,7 @@ class Session:
             path,
             fmt=fmt,
             deterministic=deterministic,
+            tex_system=tex_system,
             **kwargs,
         )
         self._guided_exported = True
@@ -2741,6 +2747,7 @@ class Session:
         *,
         fmt: str | None = None,
         deterministic: bool = False,
+        tex_system: TexSystem = "xelatex",
         label: str | None = None,
         **kwargs: Any,
     ) -> BackgroundJobInfo:
@@ -2752,6 +2759,7 @@ class Session:
             path: Destination file path.
             fmt: Explicit format, or infer it from ``path``.
             deterministic: Enable byte-stable export settings.
+            tex_system: PGF compiler: ``xelatex``, ``pdflatex`` or ``lualatex``.
             label: Optional job-center label.
             **kwargs: Engine-specific dimensions and resolution options.
 
@@ -2759,12 +2767,14 @@ class Session:
             Initial immutable job snapshot. The completed result is the path.
 
         Raises:
-            JobError: Submission metadata or the session job center is invalid.
+            JobError: The figure snapshot, submission metadata or session job center is invalid.
         """
-        captured_figure = copy.deepcopy(fig)
-        captured_kwargs = copy.deepcopy(kwargs)
-        selected_label = label or f"Download {Path(path).name or 'figure'}"
         try:
+            captured_figure = (
+                copy_matplotlib_figure(fig) if isinstance(fig, MplFigure) else copy.deepcopy(fig)
+            )
+            captured_kwargs = copy.deepcopy(kwargs)
+            selected_label = label or f"Download {Path(path).name or 'figure'}"
             return self.api.submit_background_operation(
                 "export",
                 selected_label,
@@ -2773,6 +2783,7 @@ class Session:
                     path,
                     fmt=fmt,
                     deterministic=deterministic,
+                    tex_system=tex_system,
                     **captured_kwargs,
                 ),
             )
@@ -2785,6 +2796,7 @@ class Session:
         fmt: str,
         *,
         deterministic: bool = False,
+        tex_system: TexSystem = "xelatex",
         **kwargs: Any,
     ) -> bytes:
         """Export a rendered figure to bytes.
@@ -2793,6 +2805,7 @@ class Session:
             fig: Figure returned by :meth:`render`.
             fmt: Output format supported by the figure's engine.
             deterministic: Enable byte-stable export settings.
+            tex_system: PGF compiler: ``xelatex``, ``pdflatex`` or ``lualatex``.
             **kwargs: Engine-specific dimensions and resolution options.
 
         Returns:
@@ -2803,7 +2816,9 @@ class Session:
             DependencyMissingError: The selected format requires an external
                 executable that is unavailable.
         """
-        payload = _export.export_bytes(fig, fmt, deterministic=deterministic, **kwargs)
+        payload = _export.export_bytes(
+            fig, fmt, deterministic=deterministic, tex_system=tex_system, **kwargs
+        )
         self._guided_exported = True
         return payload
 
@@ -3778,6 +3793,9 @@ class Session:
                     export.path,
                     fmt=export.format,
                     deterministic=export.deterministic,
+                    tex_system=validate_tex_system(
+                        created[export.plot].config.get("tex_system", "xelatex")
+                    ),
                 )
             )
 

@@ -43,6 +43,7 @@ from src.core.models.visualization.trace_config import (
     ViolinTraceConfig,
     WaterfallTraceConfig,
 )
+from src.web.rendering._matplotlib_lock import serialized_matplotlib
 from src.web.rendering._heatmap_utils import (
     contrasting_text_color,
     heatmap_colormap,
@@ -88,6 +89,7 @@ class MatplotlibTraceRenderer:
 
     # public API
     @staticmethod
+    @serialized_matplotlib
     def render(
         traces: Sequence[TraceConfig],
         ax: Axes,

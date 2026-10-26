@@ -21,6 +21,7 @@ from plotly.offline import get_plotlyjs
 from src.core.common.utils import sanitize_filename
 from src.core.models.report_models import AnalysisReport, ReportFigure, ReportTable
 from src.web.pages.ui.plotting.base_plot import BasePlot
+from src.web.rendering._matplotlib_lock import serialized_matplotlib
 from src.web.rendering.figure_preparation import prepare_figure
 from src.web.rendering.dashboard_builder import render_dashboard
 from src.web.rendering.interactive_html_export import (
@@ -51,6 +52,7 @@ def _single_plot_plotly(plot: BasePlot) -> go.Figure:
     return build_plotly_figure(prepared)
 
 
+@serialized_matplotlib
 def _figure_png(plots: Sequence[BasePlot], by_id: dict[int, BasePlot], item: ReportFigure) -> bytes:
     """Render one report figure to deterministic PNG bytes."""
     if item.dashboard is None:
@@ -500,6 +502,7 @@ def _pdf_table_pages(pdf: PdfPages, table: ReportTable) -> None:
         plt.close(figure)
 
 
+@serialized_matplotlib
 def _pdf_report(report: AnalysisReport, images: Sequence[bytes]) -> bytes:
     """Build a deterministic multi-page PDF document."""
     output = io.BytesIO()

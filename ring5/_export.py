@@ -15,7 +15,7 @@ import plotly.graph_objects as go
 from kaleido.errors import ChromeNotFoundError
 from matplotlib.figure import Figure as MplFigure
 
-from src.core.models.visualization.figure_config import FigureConfig
+from src.core.models.visualization.export_options import TexSystem, validate_tex_system
 from src.web.rendering.figure_export import (
     MatplotlibFormat,
     PlotlyFormat,
@@ -44,15 +44,15 @@ def export_bytes(
     height: int = 400,
     scale: int = 2,
     dpi: int = 300,
-    spec: FigureConfig | None = None,
+    tex_system: TexSystem = "xelatex",
 ) -> bytes:
     # [impl->req~ring5.export.public-boundary~1]
     """Export a rendered figure to image/document bytes.
 
     The engine is inferred from the figure type: ``go.Figure`` → plotly
     (png/svg/pdf/html via Kaleido/to_html), matplotlib ``Figure`` →
-    savefig (pdf/pgf/png/svg; PGF applies the LaTeX preamble from the
-    spec the renderer attached).
+    savefig (pdf/pgf/png/svg). PGF uses the requested compiler, an empty
+    custom preamble and escaped figure text.
 
     Args:
         fig: The figure ``Session.render`` returned.
@@ -62,7 +62,7 @@ def export_bytes(
         height: Plotly image height in pixels (before scale).
         scale: Plotly raster resolution multiplier.
         dpi: Matplotlib raster resolution.
-        spec: Optional resolved figure configuration used for Matplotlib PGF export.
+        tex_system: PGF compiler: ``xelatex``, ``pdflatex`` or ``lualatex``.
 
     Raises:
         ExportError: Unsupported format for the figure's engine, or the
@@ -70,6 +70,10 @@ def export_bytes(
         DependencyMissingError: Kaleido found no Chrome-family browser
             (plotly png/svg/pdf), with the install hint.
     """
+    try:
+        compiler = validate_tex_system(tex_system)
+    except ValueError as exc:
+        raise ExportError(str(exc)) from exc
     if isinstance(fig, go.Figure):
         if fmt not in _PLOTLY_FORMATS:
             raise ExportError(
@@ -99,26 +103,26 @@ def export_bytes(
                 f"(choose from {', '.join(_MPL_FORMATS)}; "
                 "html needs the plotly engine)."
             )
-        # Explicit spec wins; otherwise use the one Session.render attached.
-        # Figures from other sources (e.g. the web app's cached figure) have
-        # neither — pass spec= explicitly to apply a LaTeX preamble to PGF.
-        spec = spec if spec is not None else getattr(fig, "_ring5_spec", None)
         try:
             return matplotlib_download_bytes(
                 fig,
                 # mypy: fmt is validated against _MPL_FORMATS above
                 fmt,  # type: ignore[arg-type]
                 dpi=dpi,
-                spec=spec,
+                tex_system=compiler,
                 deterministic=deterministic,
             )
-        except (OSError, RuntimeError, ValueError) as exc:
+        except (OSError, RuntimeError, TypeError, ValueError) as exc:
             # matplotlib pre-checks the TeX toolchain for PGF and raises a
             # RuntimeError naming the missing executable.
-            if fmt == "pgf" and "xelatex" in str(exc).lower():
+            missing_compiler = (
+                isinstance(exc, FileNotFoundError) and exc.filename == compiler
+            ) or (isinstance(exc, RuntimeError) and str(exc).startswith(f"{compiler!r} not found;"))
+            if fmt == "pgf" and missing_compiler:
                 raise DependencyMissingError(
-                    "xelatex",
-                    "Install a TeX distribution (e.g. `make install-latex` " "or texlive-xetex).",
+                    compiler,
+                    f"Install a TeX distribution providing {compiler} "
+                    "(for example, `make install-latex`).",
                 ) from exc
             raise ExportError(f"Matplotlib {fmt} export failed: {exc}") from exc
 
@@ -138,7 +142,7 @@ def export_file(
     height: int = 400,
     scale: int = 2,
     dpi: int = 300,
-    spec: FigureConfig | None = None,
+    tex_system: TexSystem = "xelatex",
 ) -> str:
     # [impl->req~ring5.export.public-boundary~1]
     """Export a rendered figure to a file; format defaults from the extension.
@@ -152,7 +156,7 @@ def export_file(
         height: Plotly image height in pixels (before scale).
         scale: Plotly raster resolution multiplier.
         dpi: Matplotlib raster resolution.
-        spec: Optional resolved figure configuration used for Matplotlib PGF export.
+        tex_system: PGF compiler: ``xelatex``, ``pdflatex`` or ``lualatex``.
 
     Returns:
         The written file path.
@@ -170,7 +174,7 @@ def export_file(
         height=height,
         scale=scale,
         dpi=dpi,
-        spec=spec,
+        tex_system=tex_system,
     )
     try:
         target.parent.mkdir(parents=True, exist_ok=True)

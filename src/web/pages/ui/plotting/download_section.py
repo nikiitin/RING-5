@@ -19,7 +19,7 @@ from kaleido.errors import ChromeNotFoundError
 from matplotlib.figure import Figure as MplFigure
 
 from src.web.models.render_artifact import RenderArtifact
-from src.core.models.visualization.figure_config import FigureConfig
+from src.core.models.visualization.export_options import validate_tex_system
 from src.web.rendering.figure_export import (
     MatplotlibFormat,
     PlotlyFormat,
@@ -155,8 +155,7 @@ def _render_mpl_download(plot_id: int, plot_name: str, artifact: RenderArtifact)
     mpl_fig = artifact.figure
     if not isinstance(mpl_fig, MplFigure):
         raise TypeError("Matplotlib downloads require the published native artifact.")
-    spec = artifact.figure_spec
-    export_spec = spec if isinstance(spec, FigureConfig) else None
+    compiler = validate_tex_system(artifact.config.get("tex_system", "xelatex"))
 
     fmt = st.pills(
         "Format",
@@ -169,15 +168,15 @@ def _render_mpl_download(plot_id: int, plot_name: str, artifact: RenderArtifact)
 
     fmt_typed = cast(MatplotlibFormat, fmt)
     try:
-        data = matplotlib_download_bytes(mpl_fig, fmt_typed, spec=export_spec)
+        data = matplotlib_download_bytes(mpl_fig, fmt_typed, tex_system=compiler)
     except ValueError as exc:
         if "raster" in str(exc).lower() and fmt_typed == "pgf":
             st.warning(
                 "PGF format does not support raster graphics (e.g. heatmaps). "
-                "Falling back to PDF with LaTeX rendering."
+                "Falling back to PDF."
             )
             fmt_typed = "pdf"
-            data = matplotlib_download_bytes(mpl_fig, fmt_typed, spec=export_spec)
+            data = matplotlib_download_bytes(mpl_fig, fmt_typed, tex_system=compiler)
         else:
             raise
     downloaded = st.download_button(

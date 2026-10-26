@@ -54,7 +54,7 @@ class TestEngineSpecificControls:
 
         mock_st.text_area.assert_not_called()
         mock_st.caption.assert_called_once()
-        assert config["latex_extra_preamble"] == ""
+        assert "latex_extra_preamble" not in config
 
         # selectbox for TeX system
         mock_st.selectbox.assert_called_once()

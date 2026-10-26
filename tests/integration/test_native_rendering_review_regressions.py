@@ -10,6 +10,7 @@ import pandas as pd
 import pytest
 
 import ring5
+from src.core.models.visualization.figure_config import FigureConfig
 from src.core.models.recipe_models import AnalysisRecipe, RecipeParameter, RecipePlot, RecipeSource
 from src.core.models.visualization.trace_build_result import TraceBuildResult
 from src.core.models.visualization.trace_config import BarTraceConfig
@@ -390,7 +391,9 @@ def test_canonical_orientation_values_reach_both_native_models(
                 assert legend.orientation == ("h" if orientation == "horizontal" else "v")
             else:
                 role = {"legend_": "primary", "legend2_": "secondary", "legend3_": "tertiary"}[tier]
-                legend = next(item for item in native._ring5_spec.legends if item.role == role)
+                spec = plot.render_artifact.figure_spec
+                assert isinstance(spec, FigureConfig)
+                legend = next(item for item in spec.legends if item.role == role)
                 assert legend.orientation == orientation
         finally:
             if engine == "matplotlib":

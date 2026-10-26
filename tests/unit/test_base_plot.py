@@ -257,14 +257,11 @@ def test_advanced_section_shapes(concrete_plot: Any, mock_streamlit: Any) -> Non
 
 def test_advanced_section_display(concrete_plot: Any, mock_streamlit: Any) -> None:
     """Test advanced options output dict."""
-    config = {"download_format": "png"}
+    config = {"export_scale": 3}
 
     res = concrete_plot.render_settings_section("advanced", config)
 
-    assert res["download_format"] == "png"  # Mock selectbox passes through or default
-    # If mock selectbox returns MagicMock, this fails.
-    # mock_streamlit fixture returns MagicMock for everything by default.
-    # We should update side_effect strictly or use loose assertions.
+    assert res["export_scale"] == 3
 
     # Validate existence of expected configuration keys.
     assert "show_error_bars" in res

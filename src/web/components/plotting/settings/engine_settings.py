@@ -9,6 +9,7 @@ from src.web.state.ui_state_manager import WidgetKeyBuilder
 
 from src.web.components.plotting.settings.widget_factory import select_option
 from src.core.models.plot_config import PlotConfig
+from src.core.models.visualization.export_options import TEX_SYSTEMS
 from src.web.rendering.engine_manager import EngineManager
 
 
@@ -58,13 +59,12 @@ class EngineSettingsComponent:
             )
         elif EngineManager.is_matplotlib():
             st.markdown("#### :material/description: LaTeX Settings")
-            config["latex_extra_preamble"] = ""
             st.caption(
                 "Custom LaTeX preambles are disabled because PGF export treats them as code."
             )
             config["tex_system"] = select_option(
                 "TeX system",
-                ["xelatex", "pdflatex", "lualatex"],
+                list(TEX_SYSTEMS),
                 saved_config,
                 "tex_system",
                 self.plot_id,

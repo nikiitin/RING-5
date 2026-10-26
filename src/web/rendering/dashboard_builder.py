@@ -13,6 +13,7 @@ from plotly.subplots import make_subplots
 
 from src.core.models.visualization.dashboard_spec import DashboardSpec
 from src.web.models.plot_protocols import PlotRenderSource
+from src.web.rendering._matplotlib_lock import serialized_matplotlib
 from src.web.rendering.figure_preparation import PreparedDashboard, prepare_figure
 from src.web.rendering.matplotlib_connector import FigureSpecToMatplotlib
 from src.web.rendering.matplotlib_figure_builder import draw_matplotlib_axes
@@ -479,6 +480,7 @@ def _matplotlib_relative_spacing(normalized_gap: float, panel_count: int) -> flo
     return normalized_gap * panel_count / (1 - normalized_gap * (panel_count - 1))
 
 
+@serialized_matplotlib
 def _render_matplotlib_dashboard(preparation: PreparedDashboard) -> MplFigure:
     # [impl->req~ring5.figure.accessible-themes~1]
     import matplotlib.pyplot as plt
@@ -615,7 +617,6 @@ def _render_matplotlib_dashboard(preparation: PreparedDashboard) -> MplFigure:
             wspace=wspace,
             hspace=hspace,
         )
-        figure._ring5_spec = preparation  # type: ignore[attr-defined]
         return figure
     except Exception:
         plt.close(figure)

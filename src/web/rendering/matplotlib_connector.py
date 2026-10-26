@@ -22,6 +22,7 @@ from src.core.models.visualization.data_label_config import DataLabelConfig
 from src.core.models.visualization.figure_config import FigureConfig
 from src.core.models.visualization.legend_config import ColorbarConfig, LegendConfig
 from src.core.models.visualization.trace_build_result import RuleLine, SeparatorLine, ShadedRegion
+from src.web.rendering._matplotlib_lock import serialized_matplotlib
 from src.web.rendering._render_result import MatplotlibRenderResult
 from src.web.rendering._color_utils import css_color_to_matplotlib
 from src.web.rendering._connector_protocol import validate_annotation_types
@@ -65,6 +66,7 @@ class FigureSpecToMatplotlib:
     """
 
     @staticmethod
+    @serialized_matplotlib
     def apply(
         spec: FigureConfig,
         ax: Axes,
@@ -91,7 +93,7 @@ class FigureSpecToMatplotlib:
         # Scope the font family to this build: artists the steps below create
         # (title, labels, ticks, legend, annotations) inherit it from the
         # rc_context; pre-existing artists are fixed by _apply_font_family.
-        # Global rcParams is never mutated.
+        # The shared native-operation lock protects temporary rcParams changes.
         font_rc: dict[RcKeyType, Any] = (
             {"font.family": spec.font_family} if spec.font_family else {}
         )
@@ -1264,6 +1266,7 @@ class FigureSpecToMatplotlib:
             )
 
     @staticmethod
+    @serialized_matplotlib
     def apply_multi_heatmap_colorbars(
         spec: FigureConfig,
         fig: Figure,
@@ -1396,6 +1399,7 @@ class FigureSpecToMatplotlib:
                         )
 
     @staticmethod
+    @serialized_matplotlib
     def create_multi_figure(
         spec: FigureConfig,
         nrows: int,
@@ -1445,6 +1449,7 @@ class FigureSpecToMatplotlib:
         return fig, axes_list
 
     @staticmethod
+    @serialized_matplotlib
     def create_figure(
         spec: FigureConfig,
     ) -> tuple[Figure, Axes]:
