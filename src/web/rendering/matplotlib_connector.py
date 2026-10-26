@@ -33,7 +33,6 @@ from src.web.rendering.matplotlib_colorbar import (
 )
 from src.web.rendering._color_utils import css_color_to_matplotlib
 from src.web.rendering._connector_protocol import validate_annotation_types
-from src.web.rendering.latex_security import escape_latex_text
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -832,11 +831,6 @@ class FigureSpecToMatplotlib:
         )
         rendered.native_outputs.legend = native
         FigureSpecToMatplotlib._style_legend(primary, native)
-
-    @staticmethod
-    def _escape_latex(text: str) -> str:
-        r"""Escape untrusted text for TeX-backed export."""
-        return escape_latex_text(text)
 
     # Layout decoration helpers
     _DASH_MAP: dict[str, str] = {
