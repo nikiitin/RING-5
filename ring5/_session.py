@@ -438,7 +438,7 @@ class Session:
             raise ParseError(f"Invalid statistic configuration: {exc}") from exc
         created_output = output_dir is None
         if created_output:
-            out_dir = tempfile.mkdtemp(prefix="ring5_parser_playground_")
+            out_dir = str(Path(tempfile.mkdtemp(prefix="ring5_parser_playground_")).resolve())
             self._owned_tmpdirs.append(out_dir)
         else:
             out_dir = cast(str, output_dir)
@@ -561,14 +561,14 @@ class Session:
             )
             existing_output = self._incremental_output_dirs.get(cache_key)
             if existing_output is None:
-                out_dir = tempfile.mkdtemp(prefix="ring5_incremental_parse_")
+                out_dir = str(Path(tempfile.mkdtemp(prefix="ring5_incremental_parse_")).resolve())
                 self._owned_tmpdirs.append(out_dir)
                 self._incremental_output_dirs[cache_key] = out_dir
                 created_output = True
             else:
                 out_dir = existing_output
         elif output_dir is None:
-            out_dir = tempfile.mkdtemp(prefix="ring5_parse_")
+            out_dir = str(Path(tempfile.mkdtemp(prefix="ring5_parse_")).resolve())
             self._owned_tmpdirs.append(out_dir)
             created_output = True
         else:
@@ -3809,18 +3809,12 @@ class Session:
                     if self._parser_override is None
                     else self._parser_override
                 )
-                output_dir = tempfile.mkdtemp(prefix="ring5_recipe_parse_")
-                self._owned_tmpdirs.append(output_dir)
-                try:
-                    with Session(parser=parser) as child:
-                        parsed = child._submit_resolved_parse(
-                            parser_context, output_dir=output_dir
-                        ).finalize(strict=source.strict)
-                        data = ParsedOutputIO.to_frame(parsed.output)
-                except (KeyError, OSError, TypeError, ValueError, Ring5Error):
-                    shutil.rmtree(output_dir, ignore_errors=True)
-                    self._owned_tmpdirs.remove(output_dir)
-                    raise
+                with Session(parser=parser) as child:
+                    job = child._submit_resolved_parse(parser_context)
+                    parsed = job.finalize(strict=source.strict)
+                    data = ParsedOutputIO.to_frame(parsed.output)
+                    child._owned_tmpdirs.remove(job.output_dir)
+                    self._owned_tmpdirs.append(job.output_dir)
                 source_path = parsed.csv_path
                 source_context = parser_context
         except (KeyError, OSError, TypeError, UnicodeError, ValueError) as exc:
