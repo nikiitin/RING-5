@@ -256,7 +256,7 @@ class TestDefaultDataServicesAPI:
         df = pd.DataFrame({"x": [1]})
         api.save_portfolio("p1", df, [], {}, 0)
         api._portfolio_service.save_portfolio.assert_called_once_with(
-            "p1", df, [], {}, 0, None, None, None, True, None, "default"
+            "p1", df, [], {}, 0, None, None, None, True, None, "default", origin=None
         )
 
     def test_load_portfolio(self, api: DefaultDataServicesAPI) -> None:

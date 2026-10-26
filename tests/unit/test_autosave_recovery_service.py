@@ -31,6 +31,7 @@ def recovery_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 def _state(value: int = 1) -> MagicMock:
     state = MagicMock()
     state.get_data.return_value = pd.DataFrame({"value": [value]})
+    state.get_loaded_origin.return_value = None
     state.get_plots.return_value = []
     state.get_config.return_value = {"draft_value": value}
     state.get_parse_variables.return_value = []
