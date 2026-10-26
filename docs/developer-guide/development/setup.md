@@ -64,7 +64,9 @@ checkouts; no repository script or vendor installer is required. Native Windows 
 
 Installation uses only pinned official HTTPS URLs. It verifies the expected size, object
 generation, provider MD5 transfer checksum, and reviewed project SHA-256 before safe staged
-extraction and atomic publication. A receipt identifies the release and installed files. Reuse
+extraction and atomic publication. A receipt identifies the release and installed files. Publication
+requires native exclusive rename support from the cache filesystem; unavailable support produces
+an installation error. Relative archive links contain no parent-traversal components. Reuse
 checks the receipt and file contents. Failures preserve existing and unrelated cache directories.
 The CLI never executes a browser; CI explicitly passes the returned path through `BROWSER_PATH`
 to its serial native export tests.

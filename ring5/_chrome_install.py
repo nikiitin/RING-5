@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import base64
+import ctypes
+import errno
 import hashlib
 import json
 import os
@@ -221,7 +223,14 @@ def _safe_path(name: str, root: str) -> PurePosixPath:
 
 
 def _link_target(path: PurePosixPath, target: str, root: str) -> PurePosixPath:
-    if not target or target.startswith("/") or "\\" in target or ":" in target or "\x00" in target:
+    if (
+        not target
+        or target.startswith("/")
+        or "\\" in target
+        or ":" in target
+        or "\x00" in target
+        or ".." in target.split("/")
+    ):
         raise ValueError("Unsafe Chrome archive link target.")
     return _safe_path(posixpath.normpath(str(path.parent / target)), root)
 
@@ -265,7 +274,7 @@ def _zip_plan(
         if (
             kind not in {stat.S_IFREG, stat.S_IFDIR, stat.S_IFLNK}
             or (kind == stat.S_IFDIR) != info.is_dir()
-            or info.flag_bits & 1
+            or info.flag_bits & ((1 << 0) | (1 << 5) | (1 << 6))
             or info.compress_type not in {zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED}
             or info.orig_filename != info.filename
         ):
@@ -399,6 +408,48 @@ def _install_lock(root: Path, artifact: _Artifact) -> Iterator[None]:
         lock.unlink()
 
 
+def _publish_noreplace(source: Path, destination: Path) -> None:
+    """Atomically publish a staged directory without replacing any destination."""
+    system = platform.system()
+    if system == "Windows":
+        # Windows os.rename is exclusive, unlike ordinary POSIX rename.
+        os.rename(source, destination)
+        return
+    arguments: tuple[int | bytes, ...]
+    if system == "Linux":
+        symbol = "renameat2"
+        argument_types = [
+            ctypes.c_int,
+            ctypes.c_char_p,
+            ctypes.c_int,
+            ctypes.c_char_p,
+            ctypes.c_uint,
+        ]
+        # Absolute paths ignore AT_FDCWD (-100); RENAME_NOREPLACE is 1.
+        arguments = (-100, os.fsencode(source), -100, os.fsencode(destination), 1)
+    elif system == "Darwin":
+        symbol = "renamex_np"
+        argument_types = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_uint]
+        # Darwin's RENAME_EXCL is 4, with the same no-replacement contract.
+        arguments = (os.fsencode(source), os.fsencode(destination), 4)
+    else:
+        raise OSError(errno.ENOSYS, "Exclusive Chrome publication is unsupported", destination)
+    try:
+        function = getattr(ctypes.CDLL(None, use_errno=True), symbol)
+    except AttributeError as exc:
+        raise OSError(
+            errno.ENOSYS, f"Exclusive Chrome publication needs native {symbol}", destination
+        ) from exc
+    function.argtypes = argument_types
+    function.restype = ctypes.c_int
+    ctypes.set_errno(0)
+    if function(*arguments) != 0:
+        error = ctypes.get_errno() or errno.EIO
+        raise OSError(
+            error, f"Exclusive Chrome publication failed: {os.strerror(error)}", destination
+        )
+
+
 def install_chrome(*, cache_directory: str | None = None) -> Path:
     """Install or verify the reviewed native browser, returning its absolute path.
 
@@ -417,7 +468,17 @@ def install_chrome(*, cache_directory: str | None = None) -> Path:
             Path(cache_directory).expanduser()
             if cache_directory is not None
             else user_cache_path("ring5", appauthor=False) / "chrome"
-        ).resolve()
+        )
+        try:
+            root = root.resolve()
+        except RuntimeError as exc:
+            # Python 3.12 wraps this native loop failure in RuntimeError.
+            context = exc.__context__
+            if not isinstance(context, OSError) or (
+                context.errno != errno.ELOOP and getattr(context, "winerror", None) != 1921
+            ):
+                raise
+            raise OSError(errno.ELOOP, "Chrome cache path contains a symlink loop", root) from exc
         if "\n" in str(root) or "\r" in str(root):
             raise ValueError("Chrome cache path must fit on one output line.")
         root.mkdir(parents=True, exist_ok=True)
@@ -441,7 +502,7 @@ def install_chrome(*, cache_directory: str | None = None) -> Path:
             )
             if destination.exists() or destination.is_symlink():
                 return _reuse(destination, artifact)
-            installation.rename(destination)
+            _publish_noreplace(installation, destination)
         return destination / artifact.executable
     except (
         OSError,
