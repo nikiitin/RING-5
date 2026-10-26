@@ -79,13 +79,13 @@ def test_current_schema_requires_explicit_metadata(field: str) -> None:
         validate_portfolio_schema(value)
 
 
-@pytest.mark.parametrize("missing", ["source_type", "instances"])
+@pytest.mark.parametrize("missing", ["source_evidence", "instances", "name", "type", "entries"])
 def test_current_portfolio_rejects_incomplete_scan_metadata(missing: str) -> None:
     record = {
         "name": "ipc",
         "type": "scalar",
         "entries": [],
-        "source_type": "scalar",
+        "source_evidence": {"state": "resolved", "kind": "scalar", "basis": "backend_metadata"},
         "instances": [{"source_name": "ipc", "indices": []}],
     }
     record.pop(missing)
@@ -101,6 +101,6 @@ def test_current_portfolio_rejects_incomplete_scan_metadata(missing: str) -> Non
         "scanned_variables": [record],
     }
     before = copy.deepcopy(value)
-    with pytest.raises(ValueError, match="Missing required scanned variable fields"):
+    with pytest.raises(ValueError, match="requires exactly the current fields"):
         validate_portfolio_schema(value)
     assert value == before

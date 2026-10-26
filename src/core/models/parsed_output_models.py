@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal
 
 from src.core.models.parse_failure_models import ParseDataValueError
+from src.core.models.native_distribution_layout import (
+    DistributionLayout,
+    NativeDistributionLayout,
+    OpaqueDistributionLayout,
+)
 from src.core.common.safe_regex import MAX_INPUT_LENGTH
 from src.core.common.security_limits import (
     MAX_INCREMENTAL_CACHE_COLUMNS,
@@ -53,17 +58,28 @@ class ParsedCell:
 
 @dataclass(frozen=True)
 class ParsedVariableSchema:
-    """Declared logical variable interpretation, including empty entry output."""
+    """Declare logical interpretation and a required nullable native layout.
+
+    A non-null layout requires numeric entries and exact physical bindings in the
+    containing schema. Ordinary variables explicitly declare ``layout=None``.
+    """
 
     name: str
     kind: ParsedKind
     shape: ParsedShape
+
+    layout: DistributionLayout | None = field(kw_only=True)
 
     def __post_init__(self) -> None:
         _name(self.name, "Parsed variable")
         _kind(self.kind)
         if type(self.shape) is not str or self.shape not in ("scalar", "entries"):
             raise ValueError("Parsed variable shape must be 'scalar' or 'entries'.")
+        if self.layout is not None:
+            if type(self.layout) not in (NativeDistributionLayout, OpaqueDistributionLayout):
+                raise TypeError("Parsed layouts require a current typed Distribution variant.")
+            if self.kind != "number" or self.shape != "entries":
+                raise ValueError("Distribution layouts require numeric entry ownership.")
 
 
 @dataclass(frozen=True)
@@ -72,6 +88,8 @@ class ParsedVariableResult:
 
     Scalar output has exactly one cell. Entry output can have no observed columns.
     Missing measurements remain separate from numeric NaN strict-value semantics.
+    ``layout`` is required, including explicit None for ordinary output. Native
+    declarations bind exactly this variable's numeric cells without name inference.
     """
 
     name: str
@@ -80,8 +98,10 @@ class ParsedVariableResult:
     cells: tuple[ParsedCell, ...]
     missing_measurements: int = 0
 
+    layout: DistributionLayout | None = field(kw_only=True)
+
     def __post_init__(self) -> None:
-        ParsedVariableSchema(self.name, self.kind, self.shape)
+        ParsedVariableSchema(self.name, self.kind, self.shape, layout=self.layout)
         if type(self.cells) is not tuple:
             raise TypeError("Parsed variable cells must be an immutable tuple.")
         if len(self.cells) > MAX_INCREMENTAL_CACHE_COLUMNS:
@@ -95,13 +115,17 @@ class ParsedVariableResult:
             if cell.column in columns:
                 raise ParseDataValueError(f"Duplicate parsed column: {cell.column!r}.")
             columns.add(cell.column)
+        if self.layout is not None and columns != {
+            binding.column for binding in self.layout.columns
+        }:
+            raise ValueError("Distribution layout bindings must match the exact variable cells.")
         if type(self.missing_measurements) is not int or self.missing_measurements < 0:
             raise ValueError("Missing measurement count must be a non-negative integer.")
 
     @property
     def schema(self) -> ParsedVariableSchema:
         """Return this variable's immutable declaration."""
-        return ParsedVariableSchema(self.name, self.kind, self.shape)
+        return ParsedVariableSchema(self.name, self.kind, self.shape, layout=self.layout)
 
 
 @dataclass(frozen=True)
@@ -197,6 +221,11 @@ class ParsedSchema:
             variable.shape == "scalar" and counts[name] != 1 for name, variable in variables.items()
         ):
             raise ValueError("Scalar declarations require exactly one schema column.")
+        for variable in self.variables:
+            if variable.layout is not None and {
+                column.name for column in self.columns if column.owner == variable.name
+            } != {binding.column for binding in variable.layout.columns}:
+                raise ValueError("Distribution layout bindings must match exact schema ownership.")
 
 
 @dataclass(frozen=True)

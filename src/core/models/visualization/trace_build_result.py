@@ -83,6 +83,7 @@ class TraceBuildResult:
         custom_y_ticks: Equivalent override for the y-axis, used by
             horizontally oriented distribution plots.
         secondary_y: Whether a secondary Y-axis is used.
+        default_x_axis_label: Semantic x-axis label used only when no label is configured.
     """
 
     traces: Sequence[TraceConfig] = field(default_factory=list)
@@ -96,3 +97,4 @@ class TraceBuildResult:
     custom_x_ticks: dict[str, list[float] | list[str] | list[bool]] | None = None
     custom_y_ticks: dict[str, list[float] | list[str] | list[bool]] | None = None
     secondary_y: bool = False
+    default_x_axis_label: str | None = None

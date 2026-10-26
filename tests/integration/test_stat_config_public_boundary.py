@@ -1,5 +1,7 @@
 """The public parse boundary reports strict current configuration failures."""
 
+from src.core.models.source_evidence import ResolvedSourceKind
+
 from pathlib import Path
 from unittest.mock import patch
 
@@ -50,7 +52,7 @@ def test_injected_backend_custom_options_survive_submission_and_saved_provenance
     variable = ScannedVariable(
         name="source",
         type="custom_stat",
-        source_type="custom_stat",
+        source_evidence=ResolvedSourceKind("custom_stat", "backend_metadata"),
         instances=(SourceInstance("source", ()),),
     )
     future: Future[ScanFileResult] = Future()

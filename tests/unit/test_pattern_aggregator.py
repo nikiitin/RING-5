@@ -3,12 +3,14 @@ Unit Tests for Pattern Aggregator
 Tests the pattern detection and aggregation logic for repeated gem5 variables.
 """
 
+from src.core.models.source_evidence import ResolvedSourceKind
+
+
 from src.core.models.parsing_models import SourceInstance
 from typing import cast
 
 from src.core.models.parsing_models import ScannedVariable
 from src.parsing.gem5.impl.scanning.pattern_aggregator import PatternAggregator
-from src.parsing.gem5.models import Gem5ScannedVariable
 
 
 class TestPatternExtraction:
@@ -61,19 +63,19 @@ class TestPatternAggregation:
             ScannedVariable(
                 name="system.cpu0.numCycles",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("system.cpu0.numCycles", ()),),
             ),
             ScannedVariable(
                 name="system.cpu1.numCycles",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("system.cpu1.numCycles", ()),),
             ),
             ScannedVariable(
                 name="system.cpu2.numCycles",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("system.cpu2.numCycles", ()),),
             ),
         ]
@@ -84,7 +86,7 @@ class TestPatternAggregation:
         assert result[0].name == r"system.cpu\d+.numCycles"
         assert result[0].type == "vector"
         assert result[0].entries == []
-        assert result[0].source_type == "scalar"
+        assert result[0].source_evidence == ResolvedSourceKind("scalar", "backend_metadata")
         assert result[0].instances == (
             SourceInstance("system.cpu0.numCycles", ("0",)),
             SourceInstance("system.cpu1.numCycles", ("1",)),
@@ -97,25 +99,25 @@ class TestPatternAggregation:
             ScannedVariable(
                 name="system.cpu0.numCycles",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("system.cpu0.numCycles", ()),),
             ),
             ScannedVariable(
                 name="system.cpu1.numCycles",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("system.cpu1.numCycles", ()),),
             ),
             ScannedVariable(
                 name="system.total_cycles",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("system.total_cycles", ()),),
             ),  # No pattern
             ScannedVariable(
                 name="global.simulation_time",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("global.simulation_time", ()),),
             ),  # No pattern
         ]
@@ -136,13 +138,13 @@ class TestPatternAggregation:
             ScannedVariable(
                 name="system.cpu0.numCycles",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("system.cpu0.numCycles", ()),),
             ),
             ScannedVariable(
                 name="system.memory.accesses",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("system.memory.accesses", ()),),
             ),
         ]
@@ -161,37 +163,37 @@ class TestPatternAggregation:
             ScannedVariable(
                 name="system.cpu0.ipc",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("system.cpu0.ipc", ()),),
             ),
             ScannedVariable(
                 name="system.cpu1.ipc",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("system.cpu1.ipc", ()),),
             ),
             ScannedVariable(
                 name="system.ruby.l0_cntrl0.hits",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("system.ruby.l0_cntrl0.hits", ()),),
             ),
             ScannedVariable(
                 name="system.ruby.l0_cntrl1.hits",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("system.ruby.l0_cntrl1.hits", ()),),
             ),
             ScannedVariable(
                 name="system.ruby.l1_cntrl0.misses",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("system.ruby.l1_cntrl0.misses", ()),),
             ),
             ScannedVariable(
                 name="system.ruby.l1_cntrl1.misses",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("system.ruby.l1_cntrl1.misses", ()),),
             ),
         ]
@@ -213,14 +215,14 @@ class TestPatternAggregation:
                 name="system.cpu0.instsIssued",
                 type="vector",
                 entries=["0", "1", "2"],
-                source_type="vector",
+                source_evidence=ResolvedSourceKind("vector", "backend_metadata"),
                 instances=(SourceInstance("system.cpu0.instsIssued", ()),),
             ),
             ScannedVariable(
                 name="system.cpu1.instsIssued",
                 type="vector",
                 entries=["0", "1", "2"],
-                source_type="vector",
+                source_evidence=ResolvedSourceKind("vector", "backend_metadata"),
                 instances=(SourceInstance("system.cpu1.instsIssued", ()),),
             ),
         ]
@@ -236,24 +238,20 @@ class TestPatternAggregation:
         assert "2" in result[0].entries
 
     def test_aggregate_distribution_variables(self) -> None:
-        """Test aggregating distribution variables with min/max."""
+        """Retain declared backend evidence and observed numeric labels."""
         variables = [
-            Gem5ScannedVariable(
+            ScannedVariable(
                 name="system.cpu0.latency",
                 type="distribution",
-                entries=["samples", "mean"],
-                minimum=10.0,
-                maximum=100.0,
-                source_type="distribution",
+                entries=["10", "100", "samples", "mean"],
+                source_evidence=ResolvedSourceKind("distribution", "backend_metadata"),
                 instances=(SourceInstance("system.cpu0.latency", ()),),
             ),
-            Gem5ScannedVariable(
+            ScannedVariable(
                 name="system.cpu1.latency",
                 type="distribution",
-                entries=["samples", "mean"],
-                minimum=5.0,
-                maximum=120.0,
-                source_type="distribution",
+                entries=["5", "120", "samples", "mean"],
+                source_evidence=ResolvedSourceKind("distribution", "backend_metadata"),
                 instances=(SourceInstance("system.cpu1.latency", ()),),
             ),
         ]
@@ -261,11 +259,12 @@ class TestPatternAggregation:
         result = PatternAggregator.aggregate_patterns(cast(list[ScannedVariable], variables))
 
         assert len(result) == 1
-        res0 = cast(Gem5ScannedVariable, result[0])
+        res0 = cast(ScannedVariable, result[0])
         assert res0.name == r"system.cpu\d+.latency"
         assert res0.type == "distribution"
-        assert res0.minimum == 5.0  # Min of all minimums
-        assert res0.maximum == 120.0  # Max of all maximums
+        assert set(res0.entries) == {"5", "10", "100", "120", "samples", "mean"}
+        assert res0.source_evidence == ResolvedSourceKind("distribution", "backend_metadata")
+        assert "minimum" not in res0.to_dict() and "maximum" not in res0.to_dict()
 
     def test_aggregate_histogram_variables(self) -> None:
         """Test aggregating histogram variables."""
@@ -274,14 +273,14 @@ class TestPatternAggregation:
                 name="system.cpu0.histogram",
                 type="histogram",
                 entries=["0", "10", "20", "samples", "mean"],
-                source_type="histogram",
+                source_evidence=ResolvedSourceKind("histogram", "backend_metadata"),
                 instances=(SourceInstance("system.cpu0.histogram", ()),),
             ),
             ScannedVariable(
                 name="system.cpu1.histogram",
                 type="histogram",
                 entries=["0", "10", "20", "samples", "mean"],
-                source_type="histogram",
+                source_evidence=ResolvedSourceKind("histogram", "backend_metadata"),
                 instances=(SourceInstance("system.cpu1.histogram", ()),),
             ),
         ]
@@ -300,25 +299,25 @@ class TestPatternAggregation:
             ScannedVariable(
                 name="system.zeta.value",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("system.zeta.value", ()),),
             ),
             ScannedVariable(
                 name="system.cpu1.ipc",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("system.cpu1.ipc", ()),),
             ),
             ScannedVariable(
                 name="system.cpu0.ipc",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("system.cpu0.ipc", ()),),
             ),
             ScannedVariable(
                 name="system.alpha.stat",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("system.alpha.stat", ()),),
             ),
         ]
@@ -334,7 +333,7 @@ class TestPatternAggregation:
             ScannedVariable(
                 name=f"system.cpu{i}.numCycles",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance(f"system.cpu{i}.numCycles", ()),),
             )
             for i in range(16)
@@ -355,25 +354,25 @@ class TestPatternAggregation:
             ScannedVariable(
                 name="system.cpu0.stat",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("system.cpu0.stat", ()),),
             ),
             ScannedVariable(
                 name="system.cpu9.stat",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("system.cpu9.stat", ()),),
             ),
             ScannedVariable(
                 name="system.cpu10.stat",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("system.cpu10.stat", ()),),
             ),
             ScannedVariable(
                 name="system.cpu15.stat",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("system.cpu15.stat", ()),),
             ),
         ]
@@ -401,25 +400,25 @@ class TestPatternAggregation:
             ScannedVariable(
                 name="system.ruby.l0_cntrl0.hits",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("system.ruby.l0_cntrl0.hits", ()),),
             ),
             ScannedVariable(
                 name="system.ruby.l0_cntrl1.hits",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("system.ruby.l0_cntrl1.hits", ()),),
             ),
             ScannedVariable(
                 name="system.ruby.l1_cntrl0.hits",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("system.ruby.l1_cntrl0.hits", ()),),
             ),
             ScannedVariable(
                 name="system.ruby.l1_cntrl1.hits",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("system.ruby.l1_cntrl1.hits", ()),),
             ),
         ]
@@ -446,13 +445,13 @@ class TestEdgeCases:
             ScannedVariable(
                 name="system.cpu0.dcache.overall_hits",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("system.cpu0.dcache.overall_hits", ()),),
             ),
             ScannedVariable(
                 name="system.cpu1.dcache.overall_hits",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("system.cpu1.dcache.overall_hits", ()),),
             ),
         ]
@@ -468,13 +467,13 @@ class TestEdgeCases:
             ScannedVariable(
                 name="system.cpu0.ipc",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("system.cpu0.ipc", ()),),
             ),
             ScannedVariable(
                 name="system.cpu0.numCycles",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("system.cpu0.numCycles", ()),),
             ),
         ]

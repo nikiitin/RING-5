@@ -38,7 +38,9 @@ from src.core.common.parsed_output import ParsedOutputIO
 
 def _scalar(name: str, value: float | str, *, column: str | None = None) -> ParsedVariableResult:
     kind = "number" if type(value) is float else "text"
-    return ParsedVariableResult(name, kind, "scalar", (ParsedCell(column or name, kind, value),))
+    return ParsedVariableResult(
+        name, kind, "scalar", (ParsedCell(column or name, kind, value),), layout=None
+    )
 
 
 def _result(source: str, value: float = 1.25) -> ParsedFileResult:
@@ -93,14 +95,18 @@ def test_schema_union_is_order_independent_and_has_explicit_owners(tmp_path: Pat
     first = ParsedFileResult(
         "a",
         (
-            ParsedVariableResult("v", "number", "entries", (ParsedCell("v..a", "number", 2.0),)),
+            ParsedVariableResult(
+                "v", "number", "entries", (ParsedCell("v..a", "number", 2.0),), layout=None
+            ),
             _scalar("v..a", "001", column="literal"),
         ),
     )
     second = ParsedFileResult(
         "b",
         (
-            ParsedVariableResult("v", "number", "entries", (ParsedCell("v..b", "number", 3.0),)),
+            ParsedVariableResult(
+                "v", "number", "entries", (ParsedCell("v..b", "number", 3.0),), layout=None
+            ),
             _scalar("v..a", "", column="literal"),
         ),
     )
@@ -125,7 +131,9 @@ def test_schema_union_is_order_independent_and_has_explicit_owners(tmp_path: Pat
 
 
 def test_unobserved_dynamic_entries_do_not_invent_a_physical_column(tmp_path: Path) -> None:
-    result = ParsedFileResult("source", (ParsedVariableResult("v", "number", "entries", ()),))
+    result = ParsedFileResult(
+        "source", (ParsedVariableResult("v", "number", "entries", (), layout=None),)
+    )
     table = ParsedOutputIO.resolve(
         [result], ["v"], tuple({result.source_path for result in ([result])})
     )
@@ -145,9 +153,15 @@ def test_missing_text_rejects_before_publication(metadata: bool) -> None:
     else:
         first = ParsedFileResult(
             "a",
-            (ParsedVariableResult("value", "text", "entries", (ParsedCell("tag", "text", ""),)),),
+            (
+                ParsedVariableResult(
+                    "value", "text", "entries", (ParsedCell("tag", "text", ""),), layout=None
+                ),
+            ),
         )
-        second = ParsedFileResult("b", (ParsedVariableResult("value", "text", "entries", ()),))
+        second = ParsedFileResult(
+            "b", (ParsedVariableResult("value", "text", "entries", (), layout=None),)
+        )
     with pytest.raises(ValueError, match="Missing explicit text"):
         ParsedOutputIO.resolve(
             [first, second], ["value"], tuple({result.source_path for result in ([first, second])})
@@ -166,7 +180,9 @@ def test_explicit_schema_and_source_collisions_are_rejected(mismatch: str) -> No
         second = replace(_result("b"), metadata=(ParsedCell("tag", "number", math.nan),))
         order = ["value"]
     elif mismatch == "shape":
-        second = ParsedFileResult("b", (ParsedVariableResult("value", "number", "entries", ()),))
+        second = ParsedFileResult(
+            "b", (ParsedVariableResult("value", "number", "entries", (), layout=None),)
+        )
         order = ["value"]
     else:
         second = first
@@ -330,14 +346,14 @@ def test_result_models_own_only_immutable_typed_collections() -> None:
     with pytest.raises(FrozenInstanceError):
         result.source_path = "changed"
     with pytest.raises(TypeError, match="immutable tuple"):
-        ParsedVariableResult("value", "number", "scalar", [variable.cells[0]])
+        ParsedVariableResult("value", "number", "scalar", [variable.cells[0]], layout=None)
     with pytest.raises(ValueError, match="exactly one"):
-        ParsedVariableResult("value", "number", "scalar", ())
+        ParsedVariableResult("value", "number", "scalar", (), layout=None)
     with pytest.raises(ValueError, match="Metadata column collision"):
         ParsedFileResult("source", (variable,), (ParsedCell("value", "text", "001"),))
     with pytest.raises(ValueError, match="unknown owner"):
         ParsedSchema(
-            (ParsedVariableSchema("value", "number", "entries"),),
+            (ParsedVariableSchema("value", "number", "entries", layout=None),),
             (ParsedColumn("x", "number", "other"),),
         )
     with pytest.raises(ValueError, match="SHA-256"):

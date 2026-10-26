@@ -208,14 +208,6 @@ class DataServicesAPI(Protocol):
         """Aggregate entries for a variable across scanned files."""
         raise NotImplementedError
 
-    def aggregate_distribution_range(
-        self,
-        snapshot: list[ScannedVariableDict],
-        var_name: str,
-    ) -> tuple[float | None, float | None]:
-        """Aggregate min/max range for a distribution variable."""
-        raise NotImplementedError
-
     def parse_comma_separated_entries(self, entries_str: str) -> list[str]:
         """Parse comma-separated entry string into list."""
         raise NotImplementedError

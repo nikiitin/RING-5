@@ -58,7 +58,11 @@ def test_save_and_load_portfolio(
                 "name": "ipc",
                 "type": "scalar",
                 "entries": [],
-                "source_type": "scalar",
+                "source_evidence": {
+                    "state": "resolved",
+                    "kind": "scalar",
+                    "basis": "backend_metadata",
+                },
                 "instances": [{"source_name": "ipc", "indices": []}],
             }
         ]
@@ -120,7 +124,7 @@ def test_save_and_load_portfolio(
             "name": "ipc",
             "type": "scalar",
             "entries": [],
-            "source_type": "scalar",
+            "source_evidence": {"state": "resolved", "kind": "scalar", "basis": "backend_metadata"},
             "instances": [{"source_name": "ipc", "indices": []}],
         }
     ]

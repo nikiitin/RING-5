@@ -1,6 +1,7 @@
 """Tests for session-scoped background parsing jobs."""
 
 from __future__ import annotations
+from src.core.models.source_evidence import ResolvedSourceKind
 
 import os
 import sqlite3
@@ -66,7 +67,7 @@ def _file_result(
         str((root / f"run-{index}" / "stats.txt").resolve()),
         (
             ParsedVariableResult(
-                name, "number", "scalar", (ParsedCell(name, "number", float(value)),)
+                name, "number", "scalar", (ParsedCell(name, "number", float(value)),), layout=None
             ),
         ),
     )
@@ -364,7 +365,7 @@ class TestParseJobFingerprint:
                     ScannedVariable(
                         "simTicks",
                         "scalar",
-                        source_type="scalar",
+                        source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                         instances=(SourceInstance("simTicks", ()),),
                     ).to_dict()
                 ],
@@ -391,7 +392,7 @@ class TestParseJobFingerprint:
                     ScannedVariable(
                         "simTicks",
                         "scalar",
-                        source_type="scalar",
+                        source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                         instances=(SourceInstance("simTicks", ()),),
                     ).to_dict()
                 ],
@@ -418,7 +419,7 @@ class TestParseJobFingerprint:
                     ScannedVariable(
                         "simTicks",
                         "scalar",
-                        source_type="scalar",
+                        source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                         instances=(SourceInstance("simTicks", ()),),
                     ).to_dict()
                 ],
@@ -443,7 +444,7 @@ class TestParseJobFingerprint:
                     ScannedVariable(
                         "other",
                         "scalar",
-                        source_type="scalar",
+                        source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                         instances=(SourceInstance("other", ()),),
                     ).to_dict()
                 ],
@@ -468,7 +469,7 @@ class TestParseJobFingerprint:
                     ScannedVariable(
                         "simTicks",
                         "scalar",
-                        source_type="scalar",
+                        source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                         instances=(SourceInstance("simTicks", ()),),
                     ).to_dict()
                 ],
@@ -477,32 +478,26 @@ class TestParseJobFingerprint:
             ).fingerprint
             != baseline.fingerprint
         )
-        assert (
+        with pytest.raises(ValueError, match="contract.*unsupported"):
             build_parse_job_request(
                 stats_path=str(tmp_path),
                 stats_pattern="stats.txt",
                 variables=[
                     StatConfigCodec.from_draft(
-                        {
-                            "name": "simTicks",
-                            "type": "scalar",
-                            "params": {"source_type": "scalar"},
-                        }
+                        {"name": "simTicks", "type": "scalar", "params": {"source_type": "scalar"}}
                     )
                 ],
                 scanned_variables=[
                     ScannedVariable(
                         "simTicks",
                         "scalar",
-                        source_type="scalar",
+                        source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                         instances=(SourceInstance("simTicks", ()),),
                     ).to_dict()
                 ],
                 strategy_type="simple",
                 parser_contract_version="2",
-            ).fingerprint
-            != baseline.fingerprint
-        )
+            )
 
         added = tmp_path / "added" / "stats.txt"
         added.parent.mkdir()
@@ -1326,7 +1321,7 @@ class TestParseJobCleanup:
 
 
 @pytest.mark.parametrize("old_contract", ["1", "2"])
-def test_parser_semantic_revision_prevents_reusing_old_published_csv(
+def test_parser_semantic_revision_rejects_old_execution_before_reusing_current_csv(
     tmp_path: Path,
     service_factory: _ServiceFactory,
     old_contract: str,
@@ -1354,18 +1349,24 @@ def test_parser_semantic_revision_prevents_reusing_old_published_csv(
         ],
         "strategy_type": "simple",
     }
-    old = service.submit(**common, parser_contract_version=old_contract)
-    _wait_for_status(service, old.job_id, {ParseJobStatus.SUCCEEDED})
-    service.consume(old.job_id)
-    reused_old = service.submit(**common, parser_contract_version=old_contract)
-    assert reused_old.cache_hit
-    service.consume(reused_old.job_id)
+    with pytest.raises(ValueError, match="contract.*unsupported"):
+        service.submit(**common, parser_contract_version=old_contract)
+    assert service.get_active() is None
+    submit.assert_not_called()
     current = service.submit(**common)
     assert not current.cache_hit
-    assert current.fingerprint != old.fingerprint
     _wait_for_status(service, current.job_id, {ParseJobStatus.SUCCEEDED})
-    service.consume(current.job_id)
-    assert submit.call_count == 2
+    receipt = service.consume(current.job_id)
+    assert ParsedOutputIO.to_frame(receipt.output)["simTicks"].tolist() == [1.0]
+    reused_current = service.submit(**common)
+    assert reused_current.cache_hit
+    service.consume(reused_current.job_id)
+    published = service._store.get_published(current.fingerprint)
+    with pytest.raises(ValueError, match="contract.*unsupported"):
+        service.submit(**common, parser_contract_version=old_contract)
+    assert service._store.get_published(current.fingerprint) == published
+    assert service.get_active() is None
+    assert submit.call_count == 1
 
 
 @pytest.mark.parametrize("consumed", [False, True])

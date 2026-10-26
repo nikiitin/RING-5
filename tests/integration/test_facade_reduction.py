@@ -11,6 +11,7 @@ import pytest
 from src.core.application_api import ApplicationAPI
 from src.core.common.parsed_output import ParsedOutputIO
 from src.core.models.parsing_models import StatConfig
+from src.core.models.source_evidence import AmbiguousSourceKind
 
 pytestmark = pytest.mark.xdist_group("perl_pool")
 
@@ -151,7 +152,8 @@ class TestFacadeReduction:
         )
         assert vector.name == r"system.cpu\d+.counts"
         # Coincident entry/CPU IDs must not turn a genuine vector into scalar-instance columns.
-        assert vector.type == vector.source_type == "vector"
+        assert vector.type is None
+        assert vector.source_evidence == AmbiguousSourceKind(("distribution", "vector"))
         assert vector.entries == ["0", "1"]
         assert [(record.source_name, record.indices) for record in vector.instances] == [
             ("system.cpu0.counts", ("0",)),

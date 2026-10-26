@@ -1,6 +1,7 @@
 """Security and invalidation tests for the inspectable incremental parse cache."""
 
 from __future__ import annotations
+from src.core.models.source_evidence import ResolvedSourceKind
 
 import json
 
@@ -50,7 +51,7 @@ def test_cache_is_plain_json_and_rejects_stale_or_malformed_records(tmp_path: Pa
             ScannedVariable(
                 name="other",
                 type="scalar",
-                source_type="scalar",
+                source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
                 instances=(SourceInstance("other", ()),),
             )
         ],
@@ -83,7 +84,13 @@ def test_parser_semantic_revision_invalidates_pre_fix_cached_measurements(
     config = StatConfig(
         "missing",
         "distribution",
-        params={"minimum": 0, "maximum": 1, "source_type": "distribution"},
+        params={
+            "minimum": 0,
+            "maximum": 1,
+            "source_type": "distribution",
+            "bucket_size": 1,
+            "zero_policy": "missing",
+        },
     )
     current_revision = cache_module.PARSER_RESULT_VERSION
     monkeypatch.setattr(cache_module, "PARSER_RESULT_VERSION", current_revision - 1)
@@ -93,7 +100,11 @@ def test_parser_semantic_revision_invalidates_pre_fix_cached_measurements(
         str(source.resolve()),
         (
             ParsedVariableResult(
-                "missing", "number", "entries", (ParsedCell("missing..0", "number", 0.0),)
+                "missing",
+                "number",
+                "entries",
+                (ParsedCell("missing..0", "number", 0.0),),
+                layout=None,
             ),
         ),
     )

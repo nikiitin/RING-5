@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pandas as pd
 import pytest
 
@@ -10,7 +12,7 @@ import ring5
 pytestmark = [pytest.mark.public_api, pytest.mark.xdist_group("ring5_portfolios")]
 
 
-def test_public_search_finds_dynamic_and_static_workspace_content(portfolios_dir) -> None:
+def test_public_search_finds_dynamic_and_static_workspace_content(portfolios_dir: Path) -> None:
     # [test->req~ring5.workspace.global-search~1]
     data = pd.DataFrame({"benchmark": ["a", "b"], "ipc": [1.0, 1.2]})
     with ring5.Session() as session:
@@ -24,7 +26,11 @@ def test_public_search_finds_dynamic_and_static_workspace_content(portfolios_dir
                     "name": "system.cpu.ipc",
                     "type": "scalar",
                     "entries": [],
-                    "source_type": "scalar",
+                    "source_evidence": {
+                        "state": "resolved",
+                        "kind": "scalar",
+                        "basis": "backend_metadata",
+                    },
                     "instances": [{"source_name": "system.cpu.ipc", "indices": []}],
                 }
             ]

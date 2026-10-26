@@ -67,6 +67,10 @@ def prepare_figure(
     effective = SemanticMetadataService.enrich_figure_config(data, deepcopy(config))
     effective = AccessibilityService.apply_defaults(effective, plot_type)
     result = create_traces(data, effective)
+    if result.default_x_axis_label is not None and not (
+        config.get("xlabel") or config.get("xaxis_title")
+    ):
+        effective["xlabel"] = result.default_x_axis_label
     validate_trace_types(result.traces)
     validate_annotation_types(result.annotations)
     result = deepcopy(result)

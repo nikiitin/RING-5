@@ -3,6 +3,7 @@ Variable Editor Component for RING-5.
 Handles rendering and interaction for defining parser variables (scalars, vectors, distributions).
 """
 
+import math
 import uuid
 from copy import deepcopy
 from typing import cast
@@ -14,6 +15,7 @@ from src.core.application_api import ApplicationAPI
 from src.core.common.security_limits import MAX_SCAN_FILES, SCAN_BATCH_TIMEOUT_SECONDS
 from src.core.common.utils import validate_web_stats_path
 from src.core.models.parsing_models import ScanFileResult
+from src.core.common.source_entry_labels import canonical_source_entry
 from src.core.models.data_models import ParseVariableConfig, ScannedVariableDict
 from src.core.models.pattern_index_service import PatternIndexService
 from src.core.common.safe_regex import normalize_stat_pattern
@@ -134,8 +136,15 @@ class VariableEditor:
             if repeat > 1 or "repeat" in var:
                 var_config["repeat"] = repeat
 
+            original_config = var if var_type == var.get("type") else var_config
             cls.render_type_config(
-                api, var_config, var, var_id, available_variables, stats_path, stats_pattern
+                api,
+                var_config,
+                original_config,
+                var_id,
+                available_variables,
+                stats_path,
+                stats_pattern,
             )
             if PatternIndexService.is_pattern_variable(var_name):
                 cls._render_pattern_index_for_variable(api, var_config, var, var_id)
@@ -143,7 +152,7 @@ class VariableEditor:
             updated_vars.append(var_config)
 
         # Add Variable Section
-        cls._render_add_variable_section(api, variables, available_variables)
+        cls._render_add_variable_section(api, available_variables)
 
         return updated_vars
 
@@ -201,7 +210,10 @@ class VariableEditor:
                     key=f"var_source_type_{var_id}",
                     placeholder="Choose raw source type",
                     label_visibility="collapsed",
-                    help="Actual source kind before choosing the output representation.",
+                    help=(
+                        "Declared compatible source contract before choosing the "
+                        "output representation."
+                    ),
                 )
                 or ""
             )
@@ -328,15 +340,29 @@ class VariableEditor:
             ),
         )
 
-        wants_statistics = parse_mode in ("Statistics Only", "Bucket Entries + Statistics")
-        wants_entries = parse_mode in ("Bucket Entries Only", "Bucket Entries + Statistics")
+        wants_statistics = parse_mode in (
+            "Statistics Only",
+            "Bucket Entries + Statistics",
+        )
+        wants_entries = parse_mode in (
+            "Bucket Entries Only",
+            "Bucket Entries + Statistics",
+        )
 
         var_config["statistics_only"] = parse_mode == "Statistics Only"
 
         if not wants_statistics:
             var_config.setdefault("params", {}).pop("statistics", None)
         if not wants_entries:
-            for key in ("entries", "bins", "max_range", "minimum", "maximum"):
+            for key in (
+                "entries",
+                "bins",
+                "max_range",
+                "minimum",
+                "maximum",
+                "bucket_size",
+                "zero_policy",
+            ):
                 var_config.setdefault("params", {}).pop(key, None)
 
         # Statistics selection (always visible when stats requested)
@@ -369,7 +395,10 @@ class VariableEditor:
                         "Max Range",
                         min_value=1.0,
                         value=float(
-                            cast(float, original_var.get("params", {}).get("max_range", 1024.0))
+                            cast(
+                                float,
+                                original_var.get("params", {}).get("max_range", 1024.0),
+                            )
                         ),
                         key=f"hist_max_range_{var_id}",
                     )
@@ -469,7 +498,15 @@ class VariableEditor:
         if not wants_statistics:
             var_config.setdefault("params", {}).pop("statistics", None)
         if not wants_entries:
-            for key in ("entries", "bins", "max_range", "minimum", "maximum"):
+            for key in (
+                "entries",
+                "bins",
+                "max_range",
+                "minimum",
+                "maximum",
+                "bucket_size",
+                "zero_policy",
+            ):
                 var_config.setdefault("params", {}).pop(key, None)
 
         # Statistics selection (always visible when stats requested)
@@ -526,8 +563,8 @@ class VariableEditor:
 
         if is_distribution:
             should_show_scan = True
-            btn_label = f"Deep Scan Range for '{var_name}'"
-            help_text = f"Scan up to {MAX_SCAN_FILES} stats files to find the min/max bucket range."
+            btn_label = f"Deep Scan Evidence for '{var_name}'"
+            help_text = f"Scan up to {MAX_SCAN_FILES} files for source evidence and printed labels."
         else:
             should_show_scan = entry_mode == "Select from Discovered Entries" or (
                 not discover_entries_available and entry_mode == "Manual Entry Names"
@@ -557,7 +594,7 @@ class VariableEditor:
         is_distribution: bool,
     ) -> None:
         """Blocking dialog for async scanning using futures."""
-        # [impl->req~ring5.ingestion.distribution-range-scan~1]
+        # [impl->req~ring5.ingestion.distribution-range-scan~2]
         # [impl->req~ring5.ingestion.scan-presets-progress~1]
         st.write(f"Variable: `{var_name}`")
         st.write(f"Scanning {len(futures)} files...")
@@ -569,87 +606,82 @@ class VariableEditor:
         total = len(futures)
 
         try:
-            for future in as_completed(futures, timeout=SCAN_BATCH_TIMEOUT_SECONDS):
-                try:
-                    res = future.result()
-                    results.append(res)
-                    if not res.ok:
-                        errors.append(f"{res.file_path}: {res.error}")
-                except Exception as e:
-                    errors.append(str(e))
+            try:
+                for future in as_completed(futures, timeout=SCAN_BATCH_TIMEOUT_SECONDS):
+                    try:
+                        results.append(future.result())
+                    except Exception as e:
+                        errors.append(str(e))
 
-                completed += 1
-                if total > 0:
-                    pct = min(completed / total, 1.0)
-                    progress_bar.progress(pct, text=f"Scanned {completed}/{total} files")
-        except FuturesTimeoutError:
-            for future in futures:
-                future.cancel()
-            st.error("Scan batch exceeded the five-minute limit.")
-            return
-        except KeyboardInterrupt:
-            st.warning("Scan interrupted.")
-            return
+                    completed += 1
+                    if total > 0:
+                        pct = min(completed / total, 1.0)
+                        progress_bar.progress(pct, text=f"Scanned {completed}/{total} files")
+            except FuturesTimeoutError:
+                for future in futures:
+                    future.cancel()
+                st.error("Scan batch exceeded the five-minute limit.")
+                return
+            except KeyboardInterrupt:
+                st.warning("Scan interrupted.")
+                return
 
-        if errors:
-            st.warning(f"Encountered {len(errors)} scan error(s).")
+            for error in errors:
+                st.warning(f"Scan worker failed: {error}")
+            if not results:
+                st.warning("No results found.")
+                return
 
-        if not results:
-            st.warning("No results found.")
-            return
-
-        # Aggregate results with status container
-        with st.status("Processing scan results...", expanded=True) as status:
-            st.write("Aggregating scan data...")
-            scan_result = api.finalize_scan(results)
-            snapshot_dicts = [sv.to_dict() for sv in scan_result.variables]
-            api.state_manager.set_scanned_variables(snapshot_dicts)
-
-            # Process results based on type
-            if is_distribution:
-                st.write("Computing distribution range...")
-                global_min, global_max = api.data_services.aggregate_distribution_range(
-                    snapshot_dicts, var_name
-                )
-
-                if global_min is not None or global_max is not None:
-                    st.session_state[f"dist_range_result_{var_id}"] = {
-                        "minimum": global_min,
-                        "maximum": global_max,
-                    }
-                    status.update(
-                        label=f"Range found: [{global_min}, {global_max}]",
-                        state="complete",
-                        expanded=False,
-                    )
-                    st.success(f"Final Range: [{global_min}, {global_max}]")
-                else:
-                    status.update(label="No distribution data found", state="error")
-                    st.warning(f"No distribution data found matching '{var_name}'.")
-            else:
-                st.write("Discovering entries...")
-                # Aggregate entries using VariableServicesAPI
-                filtered_entries = api.data_services.aggregate_discovered_entries(
+            with st.status("Processing scan results...", expanded=True) as status:
+                st.write("Aggregating scan data...")
+                scan_result = api.finalize_scan(results)
+                for failure in scan_result.failures:
+                    st.warning(f"Scan failed for {failure.file_path}: {failure.error}")
+                incomplete = bool(errors or scan_result.failures)
+                snapshot_dicts = [sv.to_dict() for sv in scan_result.variables]
+                api.state_manager.set_scanned_variables(snapshot_dicts)
+                labels = api.data_services.aggregate_discovered_entries(
                     snapshot_dicts,
                     var_name,
                     api.get_simulator_info(api.state_manager.get_simulator()).internal_stats,
                 )
 
-                if filtered_entries:
-                    st.write(f"Updating {len(filtered_entries)} entries...")
+                if is_distribution:
+                    st.write("Observed entry labels:", labels)
+                    st.info(
+                        "Printed labels and observed summaries do not declare a native grid. "
+                        "Set the source contract and geometry explicitly."
+                    )
                     status.update(
-                        label=f"Discovered {len(filtered_entries)} entries",
-                        state="complete",
+                        label=(
+                            "Scan finished with errors" if incomplete else "Source evidence scanned"
+                        ),
+                        state="error" if incomplete else "complete",
                         expanded=False,
                     )
-                    st.success(f"Discovered {len(filtered_entries)} unique entries!")
+                elif labels:
+                    st.write(f"Updating {len(labels)} entries...")
+                    status.update(
+                        label=(
+                            "Scan finished with errors"
+                            if incomplete
+                            else f"Discovered {len(labels)} entries"
+                        ),
+                        state="error" if incomplete else "complete",
+                        expanded=False,
+                    )
+                    if not incomplete:
+                        st.success(f"Discovered {len(labels)} unique entries!")
                 else:
-                    status.update(label="No entries found", state="error")
+                    status.update(
+                        label="Scan finished with errors" if incomplete else "No entries found",
+                        state="error",
+                        expanded=False,
+                    )
                     st.warning(f"No valid entries found matching '{var_name}'.")
-
-        # Release completed futures to free memory (~70MB for 252 files).
-        # Settled-only: never abort another browser session's live scan.
-        api.release_settled_scans()
+        finally:
+            # Retire settled scans without aborting another session's live work.
+            api.release_settled_scans()
 
         if st.button("Close", key=f"finish_{var_id}"):
             st.rerun()
@@ -665,9 +697,10 @@ class VariableEditor:
     ) -> None:
         """Render multiselect for discovered vector entries."""
         # [impl->req~ring5.ingestion.variable-entry-selection~1]
-        # Filter internal statistics using variable services
+        source_kind = cast(str, var_config.get("params", {}).get("source_type", ""))
+        choices = [canonical_source_entry(source_kind, entry) for entry in discovered_entries]
         filtered_entries = api.data_services.filter_internal_stats(
-            discovered_entries,
+            choices,
             api.get_simulator_info(api.state_manager.get_simulator()).internal_stats,
         )
 
@@ -797,7 +830,7 @@ class VariableEditor:
         stats_path: str | None,
         stats_pattern: str,
     ) -> None:
-        """Render configuration for distribution variables."""
+        """Edit declared native geometry and its explicit omission policy."""
         var_name = var_config.get("source_name") or var_config.get("name", "")
         if var_name:
             st.markdown(f"**Distribution Configuration for `{var_name}`:**")
@@ -829,42 +862,72 @@ class VariableEditor:
             ),
         )
 
-        wants_statistics = parse_mode in ("Statistics Only", "Bucket Entries + Statistics")
-        wants_entries = parse_mode in ("Bucket Entries Only", "Bucket Entries + Statistics")
+        wants_statistics = parse_mode in (
+            "Statistics Only",
+            "Bucket Entries + Statistics",
+        )
+        wants_entries = parse_mode in (
+            "Bucket Entries Only",
+            "Bucket Entries + Statistics",
+        )
 
         var_config["statistics_only"] = parse_mode == "Statistics Only"
 
         if not wants_statistics:
             var_config.setdefault("params", {}).pop("statistics", None)
         if not wants_entries:
-            for key in ("entries", "bins", "max_range", "minimum", "maximum"):
+            for key in (
+                "entries",
+                "bins",
+                "max_range",
+                "minimum",
+                "maximum",
+                "bucket_size",
+                "zero_policy",
+            ):
                 var_config.setdefault("params", {}).pop(key, None)
 
         # Statistics selection (always visible when stats requested)
         if wants_statistics:
             cls._render_distribution_statistics_selection(var_config, original_var, var_id)
 
-        # Range inputs only needed when parsing bucket entries
         if wants_entries:
             st.write("---")
-            st.markdown("**Bucket Range:**")
-
-            range_result = st.session_state.get(f"dist_range_result_{var_id}", {})
-            default_min = range_result.get("minimum", original_var.get("params", {}).get("minimum"))
-            default_max = range_result.get("maximum", original_var.get("params", {}).get("maximum"))
-
-            col_min, col_max = st.columns(2)
-            with col_min:
-                min_val = st.number_input(
-                    "Minimum value", value=default_min, key=f"dist_min_{var_id}"
-                )
-            with col_max:
-                max_val = st.number_input(
-                    "Maximum value", value=default_max, key=f"dist_max_{var_id}"
-                )
-
-            var_config.setdefault("params", {})["minimum"] = min_val
-            var_config.setdefault("params", {})["maximum"] = max_val
+            st.markdown("**Declared native grid:**")
+            st.caption(
+                "Declare the full-precision grid with a positive bucket size; "
+                "printed labels and observed extrema do not define it."
+            )
+            defaults = original_var.get("params", {})
+            for column, (field, label, suffix) in zip(
+                st.columns(3),
+                (
+                    ("minimum", "Minimum value", "min"),
+                    ("maximum", "Maximum value", "max"),
+                    ("bucket_size", "Native bucket size", "bucket_size"),
+                ),
+                strict=True,
+            ):
+                with column:
+                    var_config.setdefault("params", {})[field] = cls._render_distribution_number(
+                        label,
+                        f"dist_{suffix}_{var_id}",
+                        cast(float | int | None, defaults.get(field)),
+                    )
+            policies = ["missing", "nozero"]
+            policy = defaults.get("zero_policy", "missing")
+            var_config.setdefault("params", {})["zero_policy"] = st.selectbox(
+                "Omitted frequency cells",
+                policies,
+                index=policies.index(policy) if policy in policies else 0,
+                key=f"dist_zero_policy_{var_id}",
+                help=(
+                    "missing retains absent cells as NaN. nozero is your guarantee that omitted "
+                    "frequencies or tails in a present observation are measured zero. Text cannot "
+                    "verify this guarantee or rule out nonan suppression. Missing whole sources, "
+                    "summaries and repetitions remain missing."
+                ),
+            )
 
             cls._handle_deep_scan(
                 api,
@@ -878,6 +941,27 @@ class VariableEditor:
             )
 
     @staticmethod
+    def _render_distribution_number(
+        label: str, key: str, value: float | int | None
+    ) -> float | int | None:
+        """Edit a native double without rounding an unrepresentable saved draft."""
+        try:
+            default = None if value is None else float(value)
+        except OverflowError:
+            default = None
+        invalid = value is not None and (
+            default is None
+            or not math.isfinite(default)
+            or type(value) not in (int, float)
+            or default != value
+        )
+        if invalid:
+            st.error(f"{label} must be a finite, exactly representable native number.")
+            default = None
+        edited = st.number_input(label, value=default, step=1.0, format="%.17g", key=key)
+        return value if invalid and edited is None else edited
+
+    @staticmethod
     def _render_distribution_statistics_selection(
         var_config: ParseVariableConfig, original_var: ParseVariableConfig, var_id: str
     ) -> None:
@@ -886,6 +970,13 @@ class VariableEditor:
         col_stat1, col_stat2 = st.columns(2)
 
         current_stats = cast(list[str], original_var.get("params", {}).get("statistics", []))
+        native_frequencies = var_config.get("type") == "distribution" and not var_config.get(
+            "statistics_only", False
+        )
+        if native_frequencies:
+            current_stats = [
+                stat for stat in current_stats if stat not in {"underflows", "overflows"}
+            ]
 
         with col_stat1:
             extract_mean = st.checkbox(
@@ -895,12 +986,19 @@ class VariableEditor:
                 "stdev", value="stdev" in current_stats, key=f"dist_stat_stdev_{var_id}"
             )
             extract_samples = st.checkbox(
-                "samples", value="samples" in current_stats, key=f"dist_stat_samples_{var_id}"
+                "samples",
+                value="samples" in current_stats,
+                key=f"dist_stat_samples_{var_id}",
             )
-            extract_underflows = st.checkbox(
+            extract_underflows = not native_frequencies and st.checkbox(
                 "underflows",
                 value="underflows" in current_stats,
                 key=f"dist_stat_underflows_{var_id}",
+            )
+            extract_minimum = st.checkbox(
+                "min_value",
+                value="min_value" in current_stats,
+                key=f"dist_stat_min_value_{var_id}",
             )
 
         with col_stat2:
@@ -910,8 +1008,15 @@ class VariableEditor:
             extract_gmean = st.checkbox(
                 "gmean", value="gmean" in current_stats, key=f"dist_stat_gmean_{var_id}"
             )
-            extract_overflows = st.checkbox(
-                "overflows", value="overflows" in current_stats, key=f"dist_stat_overflows_{var_id}"
+            extract_overflows = not native_frequencies and st.checkbox(
+                "overflows",
+                value="overflows" in current_stats,
+                key=f"dist_stat_overflows_{var_id}",
+            )
+            extract_maximum = st.checkbox(
+                "max_value",
+                value="max_value" in current_stats,
+                key=f"dist_stat_max_value_{var_id}",
             )
 
         selected_stats: list[str] = []
@@ -929,11 +1034,27 @@ class VariableEditor:
             selected_stats.append("underflows")
         if extract_overflows:
             selected_stats.append("overflows")
+        if extract_minimum:
+            selected_stats.append("min_value")
+        if extract_maximum:
+            selected_stats.append("max_value")
 
         var_config.setdefault("params", {})["statistics"] = VariableEditor._selected_summaries(
             current_stats,
             selected_stats,
-            frozenset({"mean", "stdev", "samples", "total", "gmean", "underflows", "overflows"}),
+            frozenset(
+                {
+                    "mean",
+                    "stdev",
+                    "samples",
+                    "total",
+                    "gmean",
+                    "underflows",
+                    "overflows",
+                    "min_value",
+                    "max_value",
+                }
+            ),
         )
 
     @staticmethod
@@ -957,7 +1078,6 @@ class VariableEditor:
     @staticmethod
     def _render_add_variable_section(
         api: ApplicationAPI,
-        variables: list[ParseVariableConfig],
         available_variables: list[ScannedVariableDict] | None,
     ) -> None:
         """Render the 'Add Variable' section with search and manual add options."""

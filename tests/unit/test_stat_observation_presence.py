@@ -16,60 +16,173 @@ from src.parsing.gem5.types.vector import Vector
 @pytest.mark.parametrize(
     ("kind", "repeat", "params", "wire", "missing"),
     [
-        ("vector", 1, {"entries": ["a", "b"]}, "vector/source::a/2", 1),
-        ("vector", 1, {"entries": ["a", "b"]}, "vector/source::other/3", 2),
+        (
+            "vector",
+            1,
+            {"entries": ["a", "b"]},
+            (
+                '{"event":"measurement","name":"source","shape":"entry","entr'
+                'y":"a","value":"2"}\n{"event":"source","name":"source","sourc'
+                'e_evidence":{"state":"ambiguous","candidates":["distribution'
+                '","histogram","vector"]},"entries":["a"]}'
+            ),
+            1,
+        ),
+        (
+            "vector",
+            1,
+            {"entries": ["a", "b"]},
+            (
+                '{"event":"measurement","name":"source","shape":"entry","entr'
+                'y":"other","value":"3"}\n{"event":"source","name":"source","s'
+                'ource_evidence":{"state":"ambiguous","candidates":["distribu'
+                'tion","histogram","vector"]},"entries":["other"]}'
+            ),
+            2,
+        ),
         ("vector", 1, {"entries": ["a", "b"]}, "", 2),
         (
             "vector",
             2,
             {"entries": ["a", "b"]},
-            "vector/source::a/2\nvector/source::b/3\ndump//\nvector/source::a/4\ndump//",
+            (
+                '{"event":"measurement","name":"source","shape":"entry","entr'
+                'y":"a","value":"2"}\n{"event":"measurement","name":"source","'
+                'shape":"entry","entry":"b","value":"3"}\n{"event":"source","n'
+                'ame":"source","source_evidence":{"state":"ambiguous","candid'
+                'ates":["distribution","histogram","vector"]},"entries":["a",'
+                '"b"]}\n{"event":"dump"}\n{"event":"measurement","name":"source'
+                '","shape":"entry","entry":"a","value":"4"}\n{"event":"source"'
+                ',"name":"source","source_evidence":{"state":"ambiguous","can'
+                'didates":["distribution","histogram","vector"]},"entries":["'
+                'a"]}\n{"event":"dump"}'
+            ),
             1,
         ),
-        ("vector", 1, {"entries": ["a", "b"]}, "vector/source::a/nan\nvector/source::b/nan", 0),
-        ("scalar", 1, {}, "scalar/source/nan", 0),
-        ("scalar", 2, {}, "scalar/source/2", 1),
+        (
+            "vector",
+            1,
+            {"entries": ["a", "b"]},
+            (
+                '{"event":"measurement","name":"source","shape":"entry","entr'
+                'y":"a","value":"nan"}\n{"event":"measurement","name":"source"'
+                ',"shape":"entry","entry":"b","value":"nan"}\n{"event":"source'
+                '","name":"source","source_evidence":{"state":"ambiguous","ca'
+                'ndidates":["distribution","histogram","vector"]},"entries":['
+                '"a","b"]}'
+            ),
+            0,
+        ),
+        (
+            "scalar",
+            1,
+            {},
+            (
+                '{"event":"measurement","name":"source","shape":"scalar","ent'
+                'ry":null,"value":"nan"}\n{"event":"source","name":"source","s'
+                'ource_evidence":{"state":"resolved","kind":"scalar","basis":'
+                '"wire_contract"},"entries":[]}'
+            ),
+            0,
+        ),
+        (
+            "scalar",
+            2,
+            {},
+            (
+                '{"event":"measurement","name":"source","shape":"scalar","ent'
+                'ry":null,"value":"2"}\n{"event":"source","name":"source","sou'
+                'rce_evidence":{"state":"resolved","kind":"scalar","basis":"w'
+                'ire_contract"},"entries":[]}'
+            ),
+            1,
+        ),
         ("scalar", 1, {}, "", 1),
         (
             "histogram",
             1,
             {"entries": ["0-0"], "statistics": ["mean"]},
-            "histogram/source::0-0/2",
+            (
+                '{"event":"measurement","name":"source","shape":"entry","entr'
+                'y":"0-0","value":"2"}\n{"event":"source","name":"source","sou'
+                'rce_evidence":{"state":"ambiguous","candidates":["distributi'
+                'on","histogram","vector"]},"entries":["0-0"]}'
+            ),
             1,
         ),
         (
             "histogram",
             1,
             {"entries": ["0-0"], "statistics": ["mean"]},
-            "histogram/source::0-0/2\nsummary/source::mean/nan",
+            (
+                '{"event":"measurement","name":"source","shape":"entry","entr'
+                'y":"0-0","value":"2"}\n{"event":"measurement","name":"source"'
+                ',"shape":"entry","entry":"mean","value":"nan"}\n{"event":"sou'
+                'rce","name":"source","source_evidence":{"state":"ambiguous",'
+                '"candidates":["distribution","histogram","vector"]},"entries'
+                '":["0-0","mean"]}'
+            ),
             0,
         ),
         ("histogram", 1, {}, "", 1),
         (
             "distribution",
             1,
-            {"minimum": 0, "maximum": 0, "statistics": ["mean"]},
+            {
+                "minimum": 0,
+                "maximum": 0,
+                "statistics": ["mean"],
+                "bucket_size": 1,
+                "zero_policy": "missing",
+            },
             (
-                "distribution/source::underflows/0\n"
-                "distribution/source::0/2\n"
-                "distribution/source::overflows/0"
+                '{"event":"measurement","name":"source","shape":"entry","entr'
+                'y":"underflows","value":"0"}\n{"event":"measurement","name":"'
+                'source","shape":"entry","entry":"0","value":"2"}\n{"event":"m'
+                'easurement","name":"source","shape":"entry","entry":"overflo'
+                'ws","value":"0"}\n{"event":"source","name":"source","source_e'
+                'vidence":{"state":"ambiguous","candidates":["distribution","'
+                'histogram","vector"]},"entries":["0","overflows","underflows'
+                '"]}'
             ),
             1,
         ),
         (
             "distribution",
             1,
-            {"minimum": 0, "maximum": 0, "statistics": ["mean"]},
+            {
+                "minimum": 0,
+                "maximum": 0,
+                "statistics": ["mean"],
+                "bucket_size": 1,
+                "zero_policy": "missing",
+            },
             (
-                "distribution/source::underflows/0\n"
-                "distribution/source::0/2\n"
-                "distribution/source::overflows/0\n"
-                "summary/source::mean/nan"
+                '{"event":"measurement","name":"source","shape":"entry","entr'
+                'y":"underflows","value":"0"}\n{"event":"measurement","name":"'
+                'source","shape":"entry","entry":"0","value":"2"}\n{"event":"m'
+                'easurement","name":"source","shape":"entry","entry":"overflo'
+                'ws","value":"0"}\n{"event":"measurement","name":"source","sha'
+                'pe":"entry","entry":"mean","value":"nan"}\n{"event":"source",'
+                '"name":"source","source_evidence":{"state":"ambiguous","cand'
+                'idates":["distribution","histogram","vector"]},"entries":["0'
+                '","mean","overflows","underflows"]}'
             ),
             0,
         ),
         ("configuration", 3, {"on_empty": "unknown"}, "", 0),
-        ("configuration", 1, {"on_empty": "unknown"}, "configuration/source/nan", 0),
+        (
+            "configuration",
+            1,
+            {"on_empty": "unknown"},
+            (
+                '{"event":"measurement","name":"source","shape":"configuratio'
+                'n","entry":null,"value":"nan"}\n{"event":"source","name":"sou'
+                'rce","source_evidence":{"state":"resolved","kind":"configura'
+                'tion","basis":"wire_contract"},"entries":[]}'
+            ),
+            0,
+        ),
     ],
 )
 def test_worker_diagnostics_distinguish_absence_from_measured_nan_and_text_policy(
@@ -88,7 +201,7 @@ def test_worker_diagnostics_distinguish_absence_from_measured_nan_and_text_polic
         repeat=repeat,
         params={"source_type": kind, **params},
     )
-    plan = resolve_sources([config], None)
+    plan = resolve_sources([config], None, file_count=1, metadata_columns=())
     stat = TypeMapper.create_stat(plan.accumulators[0])
     worker = Gem5ParseWork("unused", {"output": stat}, plan)
     worker._process_output(wire)

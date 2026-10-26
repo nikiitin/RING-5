@@ -17,8 +17,18 @@ import pandas as pd
 
 from src.core.common.semantic_metadata import semantics_to_payload
 from src.core.common.dataframe_copy import copy_dataframe
+from src.core.common.distribution_metadata import (
+    concat_distribution_layouts,
+    preserve_distribution_layouts,
+)
 
-from ring5.errors import ColumnNotFoundError, DataLoadError, ExportError, PipelineError
+from ring5.errors import (
+    ColumnNotFoundError,
+    DataLoadError,
+    DataValidationError,
+    ExportError,
+    PipelineError,
+)
 
 __all__ = ["Table", "DrillDownResult", "read_table"]
 
@@ -43,10 +53,14 @@ class Table:
 
         Raises:
             TypeError: The source is not a pandas DataFrame.
+            DataValidationError: Reserved Distribution declarations or bindings are invalid.
         """
         if not isinstance(frame, pd.DataFrame):
             raise TypeError(f"Table requires a pandas DataFrame; got {type(frame).__name__}.")
-        self._df = copy_dataframe(frame)
+        try:
+            self._df = copy_dataframe(frame)
+        except (TypeError, ValueError) as exc:
+            raise DataValidationError(f"Invalid table data or metadata: {exc}") from exc
 
     # constructors
     @classmethod
@@ -163,7 +177,8 @@ class Table:
             ColumnNotFoundError: ``column`` is absent.
         """
         self._require_columns([column])
-        return Table(self._df[self._df[column] == value].reset_index(drop=True))
+        result = self._df[self._df[column] == value].reset_index(drop=True)
+        return Table(preserve_distribution_layouts(self._df, result))
 
     def sort(self, by: list[str]) -> "Table":
         """Sort rows stably by one or more columns.
@@ -178,7 +193,8 @@ class Table:
             ColumnNotFoundError: A requested sort column is absent.
         """
         self._require_columns(by)
-        return Table(self._df.sort_values(by, kind="stable").reset_index(drop=True))
+        result = self._df.sort_values(by, kind="stable").reset_index(drop=True)
+        return Table(preserve_distribution_layouts(self._df, result))
 
     def with_scalar_op(self, new_column: str, src_column: str, op: str, value: float) -> "Table":
         # [impl->req~ring5.quality.immutable-data~1]
@@ -228,7 +244,9 @@ class Table:
         Returns:
             The combined table with a fresh row index.
         """
-        return Table(pd.concat([self._df, other._df], ignore_index=True))
+        frames = [self._df, other._df]
+        result = pd.concat(frames, ignore_index=True)
+        return Table(concat_distribution_layouts(frames, result))
 
     # value extraction (for over-cap / dot labels)
     def value_map(self, key_columns: list[str], value_column: str) -> dict[tuple, float]:

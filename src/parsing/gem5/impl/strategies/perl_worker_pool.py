@@ -23,7 +23,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import IO, Any
 
-from src.core.common.security_limits import MAX_PARSE_LINE_COUNT
+from src.core.common.security_limits import MAX_PARSE_LINE_COUNT, MAX_PARSE_RESULT_BYTES
+from src.parsing.gem5.impl.source_events import SOURCE_WIRE_READY
 from src.core.common.parse_failure import (
     bounded_parse_text,
     classify_parse_failure,
@@ -143,7 +144,11 @@ class PerlWorker:
                         encoding="utf-8",
                         errors="strict",
                         bufsize=1,
-                        env={**os.environ, "RING5_MAX_PARSE_LINES": str(MAX_PARSE_LINE_COUNT)},
+                        env={
+                            **os.environ,
+                            "RING5_MAX_PARSE_LINES": str(MAX_PARSE_LINE_COUNT),
+                            "RING5_MAX_SOURCE_BYTES": str(MAX_PARSE_RESULT_BYTES),
+                        },
                     )
                     generation = _WorkerGeneration(
                         process,
@@ -163,7 +168,7 @@ class PerlWorker:
                         self._start_stderr_drainer(process.stderr)
                         timeout = 30.0
                         ready_line = self._read_line_with_timeout(timeout=timeout)
-                        if ready_line != "READY":
+                        if ready_line != SOURCE_WIRE_READY:
                             raise ParseDataRuntimeError(
                                 f"Worker did not send READY signal within {timeout}s "
                                 f"(got: '{ready_line}')"

@@ -23,14 +23,14 @@ def _state() -> MagicMock:
             "name": "system.cpu.ipc",
             "type": "scalar",
             "entries": [],
-            "source_type": "scalar",
+            "source_evidence": {"state": "resolved", "kind": "scalar", "basis": "backend_metadata"},
             "instances": [{"source_name": "system.cpu.ipc", "indices": []}],
         },
         {
             "name": "system.cache.misses",
             "type": "vector",
             "entries": ["l1", "l2"],
-            "source_type": "vector",
+            "source_evidence": {"state": "resolved", "kind": "vector", "basis": "backend_metadata"},
             "instances": [{"source_name": "system.cache.misses", "indices": []}],
         },
     ]

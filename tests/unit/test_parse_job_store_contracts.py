@@ -54,7 +54,7 @@ def _output(root: Path, request: ParseJobRequest) -> ParsedOutput:
             source,
             (
                 ParsedVariableResult(
-                    "value", "number", "scalar", (ParsedCell("value", "number", 1.25),)
+                    "value", "number", "scalar", (ParsedCell("value", "number", 1.25),), layout=None
                 ),
             ),
         )

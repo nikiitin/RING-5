@@ -35,11 +35,9 @@ def _recipe(inputs: Path) -> ring5.AnalysisRecipe:
         {
             "name": "value",
             "type": "scalar",
-            "source_type": "scalar",
+            "source_evidence": {"state": "resolved", "kind": "scalar", "basis": "backend_metadata"},
             "entries": [],
             "instances": [{"source_name": "value", "indices": []}],
-            "minimum": 1.25,
-            "maximum": 1.25,
         },
     )
     return ring5.AnalysisRecipe(
@@ -108,11 +106,13 @@ def workspace(
                     {
                         "name": "old",
                         "type": "scalar",
-                        "source_type": "scalar",
+                        "source_evidence": {
+                            "state": "resolved",
+                            "kind": "scalar",
+                            "basis": "backend_metadata",
+                        },
                         "entries": [],
                         "instances": [{"source_name": "old", "indices": []}],
-                        "minimum": -1.0,
-                        "maximum": 2.0,
                     }
                 ]
             )
@@ -405,10 +405,10 @@ def test_unsupported_saved_parser_contract_rejects_before_submission_or_publicat
     origin, editor, plots = state.get_loaded_origin(), _editor(state), session.plots
     owned = tuple(session._owned_tmpdirs)
     source = replace(recipe.source, parser_contract_version=unsupported_contract)
-    with pytest.raises(ring5.RecipeError, match="parser contract is unsupported") as error:
+    with pytest.raises(ring5.RecipeError, match="contract is unsupported") as error:
         session.run_analysis_recipe(replace(recipe, source=source))
     assert isinstance(error.value.__cause__, ValueError)
-    assert "parser contract is unsupported" in str(error.value.__cause__)
+    assert "Parser contract is unsupported" in str(error.value.__cause__)
     submit.assert_not_called()
     assert backend.scans == 0
     actual = state.get_data()

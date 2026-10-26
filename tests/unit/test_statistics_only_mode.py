@@ -1,7 +1,5 @@
 """Test statistics-only parsing mode for distributions, histograms, and vectors."""
 
-import pytest
-
 from src.core.models.parsing_models import StatConfig
 
 from src.parsing.gem5.types.type_mapper import TypeMapper
@@ -24,21 +22,20 @@ class TestStatisticsOnlyMode:
                 "maximum": 100,
                 "statistics": ["mean", "stdev"],
                 "source_type": "distribution",
+                "bucket_size": 1,
+                "zero_policy": "missing",
             },
         )
 
-        dist = TypeMapper.create_stat(resolve_sources([config], None).accumulators[0])
+        dist = TypeMapper.create_stat(
+            resolve_sources([config], None, file_count=1, metadata_columns=()).accumulators[0]
+        )
 
         # Verify that statistics_only flag is set
         assert hasattr(dist, "_statistics_only")
         assert dist._statistics_only is True
 
-        # Verify that minimum/maximum are set to 0 (no buckets)
-        assert dist._minimum == 0
-        assert dist._maximum == 0
-
-        # Verify statistics are set
-        assert dist.statistics == ["mean", "stdev"]
+        assert dist.entries == ["mean", "stdev"]
 
         # Test that content can be set with only statistics (no buckets)
         dist.add_observation({"mean": 10.5, "stdev": 2.3})
@@ -56,21 +53,21 @@ class TestStatisticsOnlyMode:
                 "maximum": 10,
                 "statistics": ["mean", "stdev"],
                 "source_type": "distribution",
+                "bucket_size": 1,
+                "zero_policy": "missing",
             },
         )
 
-        dist = TypeMapper.create_stat(resolve_sources([config], None).accumulators[0])
+        dist = TypeMapper.create_stat(
+            resolve_sources([config], None, file_count=1, metadata_columns=()).accumulators[0]
+        )
 
         # Verify that statistics_only flag is False
         assert dist._statistics_only is False
 
-        # Verify that minimum/maximum are properly set
-        assert dist._minimum == 0
-        assert dist._maximum == 10
-
-        # Test that setting content requires buckets
-        with pytest.raises(TypeError, match="Missing mandatory keys"):
-            dist.add_observation({"mean": 10.5, "stdev": 2.3})
+        assert dist.entries[1] == "0" and dist.entries[-4] == "10"
+        dist.add_observation({"mean": 10.5, "stdev": 2.3})
+        assert dist.missing_measurement_count == 13
 
     def test_vector_statistics_only(self) -> None:
         """Vector with statistics_only=True should use only statistics entries."""
@@ -85,7 +82,9 @@ class TestStatisticsOnlyMode:
             },
         )
 
-        vec = TypeMapper.create_stat(resolve_sources([config], None).accumulators[0])
+        vec = TypeMapper.create_stat(
+            resolve_sources([config], None, file_count=1, metadata_columns=()).accumulators[0]
+        )
 
         # When statistics_only, entries should be just the statistics
         assert vec.entries == ["mean", "sum"]
@@ -105,7 +104,9 @@ class TestStatisticsOnlyMode:
             },
         )
 
-        hist = TypeMapper.create_stat(resolve_sources([config], None).accumulators[0])
+        hist = TypeMapper.create_stat(
+            resolve_sources([config], None, file_count=1, metadata_columns=()).accumulators[0]
+        )
 
         # Verify bins are disabled
         assert hist._bins == 0
@@ -125,12 +126,15 @@ class TestStatisticsOnlyMode:
                 "maximum": 10,
                 "statistics": ["mean"],
                 "source_type": "distribution",
+                "bucket_size": 1,
+                "zero_policy": "missing",
             },
         )
 
-        dist = TypeMapper.create_stat(resolve_sources([config], None).accumulators[0])
+        dist = TypeMapper.create_stat(
+            resolve_sources([config], None, file_count=1, metadata_columns=()).accumulators[0]
+        )
 
         # Should default to False (full bucket mode)
         assert dist._statistics_only is False
-        assert dist._minimum == 0
-        assert dist._maximum == 10
+        assert dist.entries[1] == "0" and "10" in dist.entries

@@ -297,11 +297,20 @@
     {
       "id": "ingestion.variable-scan",
       "group": "ingestion",
-      "revision": 1,
+      "revision": 2,
       "status": "approved",
-      "title": "Statistics variable scan",
-      "description": "RING-5 shall scan selected simulator files and aggregate discovered variable names, types, metadata, ranges, and visible per-file failures.",
+      "title": "Statistics source evidence scan",
+      "description": "RING-5 shall scan selected simulator files and aggregate observed names, literal entry labels, compatible source-contract evidence, explicit source instances, optional output suggestions, and visible per-file failures without inferring unprinted native geometry.",
       "tags": ["parsing", "scan", "variables"],
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "semantic",
+          "title": "Statistics variable scan",
+          "description": "RING-5 shall scan selected simulator files and aggregate discovered variable names, types, metadata, ranges, and visible per-file failures.",
+          "reason": "Replace priority-based physical-kind guesses and inferred extrema with shared decoder evidence and explicit request geometry."
+        }
+      ],
       "evidence": {
         "implementation": ["src/parsing/gem5/impl/gem5_parser.py::Gem5Parser.aggregate_scan_results", "src/parsing/gem5/impl/scanning/scanner.py::Gem5StatsScanner.scan_file"],
         "tests": ["tests/integration/test_scanner_functional.py::TestScannerFunctional.test_scan_real_stats",
@@ -382,16 +391,38 @@
     {
       "id": "ingestion.distribution",
       "group": "ingestion",
-      "revision": 1,
+      "revision": 2,
       "status": "approved",
-      "title": "Distribution statistic parsing",
-      "description": "The gem5 backend shall parse distribution summaries and preserve their configured fields without inventing unavailable values.",
-      "tags": ["distribution", "gem5", "variables"],
+      "title": "Native Distribution statistic parsing",
+      "description": "The gem5 backend shall parse summaries without a grid and full native frequencies against explicit full-precision geometry and missing/nozero policy, preserving every allocated slot, both tails and actual repeated observations without fabricating unavailable values.",
+      "tags": [
+        "distribution",
+        "gem5",
+        "variables"
+      ],
       "evidence": {
-        "implementation": ["src/parsing/gem5/types/distribution.py::Distribution"],
-        "tests": ["tests/unit/test_distribution_type.py::TestDistributionReduceDuplicates"],
-        "documentation": ["docs/user-guide/reference/plot-types.md#selection-guide"]
-      }
+        "implementation": [
+          "src/parsing/gem5/types/distribution.py::Distribution",
+          "src/parsing/gem5/impl/source_bindings.py::resolve_sources"
+        ],
+        "tests": [
+          "tests/unit/test_distribution_type.py::TestDistributionReduceDuplicates",
+          "tests/unit/test_native_distribution_runtime.py::test_pinned_native_text_uses_full_precision_declared_cells",
+          "tests/unit/test_native_distribution_runtime.py::test_sparse_actual_observation_applies_only_explicit_omission_policy"
+        ],
+        "documentation": [
+          "docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"
+        ]
+      },
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "semantic",
+          "title": "Distribution statistic parsing",
+          "description": "The gem5 backend shall parse distribution summaries and preserve their configured fields without inventing unavailable values.",
+          "reason": "Full native frequency parsing now requires explicit geometry and omission guarantees; summaries remain grid-free."
+        }
+      ]
     },
     {
       "id": "ingestion.histogram",
@@ -1355,23 +1386,42 @@
     {
       "id": "plot.histogram",
       "group": "plot-types",
-      "revision": 1,
+      "revision": 2,
       "status": "approved",
       "title": "Histogram",
-      "description": "RING-5 shall render parsed histogram bucket columns with optional grouping, normalization, and cumulative display.",
-      "tags": ["distribution", "histogram", "plots"],
+      "description": "RING-5 shall render declared native Distribution storage-cell mass at ordinal positions with literal labels and both tails, and ordinary explicit interval histograms with their existing geometry, supporting grouping and valid count/normalized/cumulative modes without guessing native continuous support.",
+      "tags": [
+        "distribution",
+        "histogram",
+        "plots"
+      ],
       "evidence": {
         "implementation": [
           "src/web/pages/ui/plotting/types/histogram_plot.py::HistogramPlot.create_traces",
-          "src/web/pages/ui/plotting/utils/histogram_bins.py::parse_histogram_bins"
+          "src/web/pages/ui/plotting/utils/histogram_bins.py::parse_histogram_bins",
+          "src/web/pages/ui/plotting/utils/histogram_bins.py::histogram_mass_ratio"
         ],
         "tests": [
-          "tests/unit/test_histogram_plot.py::TestHistogramPlotFigureCreation"
+          "tests/unit/test_histogram_plot.py::TestHistogramPlotFigureCreation",
+          "tests/unit/test_native_distribution_plot.py::test_native_cells_keep_literal_labels_and_ordinal_positions",
+          "tests/integration/test_native_distribution_persistence.py::test_real_parser_table_portfolio_snapshot_recovery_and_recipe_preserve_native_cells",
+          "tests/unit/test_histogram_finite_mass.py::test_overlap_rebin_preserves_representable_tiny_mass_beside_a_large_interval",
+          "tests/unit/test_histogram_finite_mass.py::test_overlap_contribution_matches_one_final_exact_ratio_rounding",
+          "tests/unit/test_histogram_finite_mass.py::test_cumulative_counts_match_exact_represented_prefixes"
         ],
         "documentation": [
           "docs/user-guide/reference/plot-types.md#selection-guide"
         ]
-      }
+      },
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "semantic",
+          "title": "Histogram",
+          "description": "RING-5 shall render parsed histogram bucket columns with optional grouping, normalization, and cumulative display.",
+          "reason": "Native storage cells have discrete mass semantics and explicit bindings rather than inferred continuous interval widths."
+        }
+      ]
     },
     {
       "id": "plot.line",
@@ -1895,11 +1945,14 @@
     {
       "id": "figure.histogram-controls",
       "group": "figure-configuration",
-      "revision": 1,
+      "revision": 2,
       "status": "approved",
       "title": "Histogram configuration",
-      "description": "Histogram plots shall expose parsed bucket-column selection, optional grouping, count, probability, density, or percent normalization, and cumulative display controls.",
-      "tags": ["histogram", "settings"],
+      "description": "Histogram controls shall select explicit logical native layouts or ordinary interval variables and optional groups, expose supported count/normalized/CDF modes, require finite positive selected mass for normalized views, and reject native continuous rebinning or noncumulative density while retaining generic interval controls.",
+      "tags": [
+        "histogram",
+        "settings"
+      ],
       "evidence": {
         "implementation": [
           "src/web/components/plotting/config/histogram_config.py::render",
@@ -1907,12 +1960,25 @@
         ],
         "tests": [
           "tests/unit/test_stacked_histogram_config.py::TestHistogramRenderConfigUI",
-          "tests/unit/test_stacked_histogram_config.py::TestHistogramCreateFigure"
+          "tests/unit/test_stacked_histogram_config.py::TestHistogramCreateFigure",
+          "tests/unit/test_native_distribution_ui.py::test_native_controls_offer_only_supported_mass_or_cdf_modes",
+          "tests/unit/test_native_distribution_ui.py::test_discovery_uses_logical_keys_without_physical_prefix_aliases",
+          "tests/unit/test_native_distribution_ui.py::test_unbound_auxiliary_columns_cannot_reintroduce_a_native_prefix_alias",
+          "tests/unit/test_native_distribution_ui.py::test_real_native_controls_preserve_labels_and_cdf_without_rebin"
         ],
         "documentation": [
           "docs/user-guide/reference/plot-types.md#histogram-controls"
         ]
-      }
+      },
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "semantic",
+          "title": "Histogram configuration",
+          "description": "Histogram plots shall expose parsed bucket-column selection, optional grouping, count, probability, density, or percent normalization, and cumulative display controls.",
+          "reason": "Native layouts require distinct truthful controls and zero-mass normalized views must fail visibly."
+        }
+      ]
     },
     {
       "id": "figure.heatmap-controls",
@@ -2899,7 +2965,8 @@
       "evidence": {
         "implementation": ["src/web/components/data_source/variable_editor.py::VariableEditor", "src/parsing/gem5/types/type_mapper.py::TypeMapper.create_stat"],
         "tests": ["tests/unit/test_statistics_only_mode.py::TestStatisticsOnlyMode", "tests/integration/test_statistics_only_integration.py::TestStatisticsOnlyIntegration",
-          "tests/integration/test_gem5_summary_contract.py::test_source_summaries_use_named_entries_and_keep_missing_measurements"],
+          "tests/integration/test_gem5_summary_contract.py::test_source_summaries_use_named_entries_and_keep_missing_measurements",
+          "tests/unit/test_distribution_summary_only_contract.py::test_summary_only_ignores_unrequested_fractional_cells_and_owns_no_layout"],
         "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
@@ -2920,14 +2987,23 @@
     {
       "id": "ingestion.distribution-range-scan",
       "group": "ingestion",
-      "revision": 1,
+      "revision": 2,
       "status": "approved",
-      "title": "Deep distribution range discovery",
-      "description": "A deep scan shall aggregate the global minimum and maximum distribution bucket range across its bounded sample and make those values available to the variable configuration.",
+      "title": "Bounded deep source discovery",
+      "description": "A deep scan shall retain printed frequency labels and intersect compatible source-contract evidence across its bounded sample. Native grid bounds shall remain explicit request declarations rather than inferred extrema of observed labels.",
       "tags": ["distribution", "range", "scan"],
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "semantic",
+          "title": "Deep distribution range discovery",
+          "description": "A deep scan shall aggregate the global minimum and maximum distribution bucket range across its bounded sample and make those values available to the variable configuration.",
+          "reason": "Observed labels do not establish hidden native grid bounds or uniquely identify a physical producer class."
+        }
+      ],
       "evidence": {
-        "implementation": ["src/web/components/data_source/variable_editor.py::VariableEditor._show_scan_dialog", "src/core/services/data_services/variable_service.py::VariableService.aggregate_distribution_range"],
-        "tests": ["tests/unit/test_deep_scan_min_max.py::TestDeepScanMinMax"],
+        "implementation": ["src/web/components/data_source/variable_editor.py::VariableEditor._show_scan_dialog"],
+        "tests": ["tests/unit/test_observed_source_aggregation.py::TestObservedSourceAggregation"],
         "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
     },
@@ -3104,11 +3180,15 @@
     {
       "id": "figure.histogram-cumulative",
       "group": "figure-configuration",
-      "revision": 1,
+      "revision": 2,
       "status": "approved",
       "title": "Cumulative histogram display",
-      "description": "Histogram plots shall optionally accumulate bins in display order while preserving the selected count, probability, density, or percent normalization semantics.",
-      "tags": ["cumulative", "histogram", "statistics"],
+      "description": "Cumulative histograms shall retain observed zero raw counts, require finite accumulated counts, and require finite positive selected mass for normalized cumulative modes; cumulative density shall mean cumulative probability for both native storage cells and generic intervals.",
+      "tags": [
+        "cumulative",
+        "histogram",
+        "statistics"
+      ],
       "evidence": {
         "implementation": [
           "src/web/components/plotting/config/histogram_config.py::render",
@@ -3116,12 +3196,26 @@
         ],
         "tests": [
           "tests/integration/test_histogram_plot_integration.py::TestHistogramPlotIntegration.test_histogram_cumulative_distribution",
-          "tests/unit/test_stacked_histogram_config.py::TestHistogramCreateFigure.test_normalization_cumulative"
+          "tests/unit/test_stacked_histogram_config.py::TestHistogramCreateFigure.test_normalization_cumulative",
+          "tests/unit/test_native_distribution_plot.py::test_native_mass_modes",
+          "tests/unit/test_histogram_finite_mass.py::test_public_generic_zero_mass_normalization_rejects_visibly",
+          "tests/unit/test_histogram_finite_mass.py::test_distinct_finite_large_counts_need_no_global_total_for_raw_count",
+          "tests/unit/test_native_distribution_ui.py::test_native_controls_offer_only_supported_mass_or_cdf_modes",
+          "tests/unit/test_native_distribution_ui.py::test_real_native_controls_preserve_labels_and_cdf_without_rebin"
         ],
         "documentation": [
           "docs/user-guide/reference/plot-types.md#cumulative-histograms"
         ]
-      }
+      },
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "semantic",
+          "title": "Cumulative histogram display",
+          "description": "Histogram plots shall optionally accumulate bins in display order while preserving the selected count, probability, density, or percent normalization semantics.",
+          "reason": "Normalized cumulative views cannot fabricate probabilities from zero or unrepresentable selected totals."
+        }
+      ]
     },
     {
       "id": "figure.matplotlib-tex-system",
@@ -5332,17 +5426,19 @@
     },
     "variable_type_params": {
       "configuration:on_empty": "ingestion.configuration-fallbacks",
+      "distribution:bucket_size": "ingestion.distribution",
       "distribution:maximum": "ingestion.distribution",
       "distribution:minimum": "ingestion.distribution",
+      "distribution:zero_policy": "ingestion.distribution",
       "vector:entries": "ingestion.vector"
     },
     "simulator_internal_stats": {
       "gem5:gmean": "ingestion.variable-entry-selection",
       "gem5:max_bucket": "ingestion.variable-entry-selection",
-      "gem5:max_val": "ingestion.variable-entry-selection",
+      "gem5:max_value": "ingestion.variable-entry-selection",
       "gem5:mean": "ingestion.variable-entry-selection",
       "gem5:min_bucket": "ingestion.variable-entry-selection",
-      "gem5:min_val": "ingestion.variable-entry-selection",
+      "gem5:min_value": "ingestion.variable-entry-selection",
       "gem5:num_buckets": "ingestion.variable-entry-selection",
       "gem5:overflows": "ingestion.variable-entry-selection",
       "gem5:sample_period": "ingestion.variable-entry-selection",
@@ -5405,6 +5501,10 @@
       "ParsedFileResult": "ingestion.csv-contract",
       "ParsedOutput": "ingestion.csv-contract",
       "ParsedSchema": "ingestion.csv-contract",
+      "DistributionGeometry": "ingestion.distribution",
+      "DistributionColumn": "ingestion.csv-contract",
+      "NativeDistributionLayout": "ingestion.csv-contract",
+      "OpaqueDistributionLayout": "ingestion.csv-contract",
       "ParsedVariableResult": "ingestion.csv-contract",
       "ParsedVariableSchema": "ingestion.csv-contract",
       "ParserPlaygroundBatchResult": "extension.parser-protocol",
@@ -5502,6 +5602,8 @@
       "ScanJob": "ingestion.async-scan",
       "ScanResult": "ingestion.async-scan",
       "ScannedVariable": "ingestion.variable-scan",
+      "ResolvedSourceKind": "ingestion.variable-scan",
+      "AmbiguousSourceKind": "ingestion.variable-scan",
       "SourceInstance": "ingestion.pattern-index-selection",
       "ScheduledReportResult": "automation.scheduled-reporting",
       "SchemaValidationReport": "data.schema-contracts",
@@ -5839,7 +5941,6 @@
       "publish_to_csv_pool": "ingestion.session-background-parse",
       "add_variable": "ingestion.variable-editor",
       "aggregate_discovered_entries": "ingestion.variable-entry-selection",
-      "aggregate_distribution_range": "ingestion.distribution-range-scan",
       "capture_analysis_recipe": "portfolio.analysis-recipes",
       "clear_caches": "quality.bounded-caching",
       "compare_portfolio_revisions": "portfolio.history-diff",
@@ -6017,7 +6118,7 @@
       "entries": "ingestion.variable-entry-selection",
       "name": "ingestion.variable-scan",
       "instances": "ingestion.pattern-index-selection",
-      "source_type": "ingestion.variable-scan",
+      "source_evidence": "ingestion.variable-scan",
       "type": "ingestion.variable-scan"
     },
     "scan_result_fields": {

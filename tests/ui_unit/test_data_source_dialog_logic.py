@@ -115,14 +115,14 @@ def test_variable_config_dialog_search_scanned(components_bundle: Any, mock_api:
             "name": "system.cpu.ipc",
             "type": "scalar",
             "entries": [],
-            "source_type": "scalar",
+            "source_evidence": {"state": "resolved", "kind": "scalar", "basis": "backend_metadata"},
             "instances": [{"source_name": "system.cpu.ipc", "indices": []}],
         },
         {
             "name": "system.l2.misses",
             "type": "vector",
             "entries": ["cpu0", "cpu1"],
-            "source_type": "vector",
+            "source_evidence": {"state": "resolved", "kind": "vector", "basis": "backend_metadata"},
             "instances": [{"source_name": "system.l2.misses", "indices": []}],
         },
     ]
@@ -175,7 +175,11 @@ def test_scanned_pattern_labels_distinguish_source_instances_from_measurement_en
             "name": pattern,
             "type": "vector",
             "entries": entries,
-            "source_type": source_kind,
+            "source_evidence": {
+                "state": "resolved",
+                "kind": source_kind,
+                "basis": "backend_metadata",
+            },
             "instances": [
                 {"source_name": "cpu0.value", "indices": ["0"]},
                 {"source_name": "cpu1.value", "indices": ["1"]},

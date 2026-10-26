@@ -19,6 +19,11 @@ is associated.
 ## Parse gem5 statistics in the web application
 
 <!--
+`uman~ring5.ingestion.distribution.documentation~2`
+
+Covers:
+- req~ring5.ingestion.distribution~2
+
 `uman~ring5.ingestion.configuration.documentation~1`
 
 Covers:
@@ -29,10 +34,10 @@ Covers:
 Covers:
 - req~ring5.ingestion.configuration-fallbacks~1
 
-`uman~ring5.ingestion.distribution-range-scan.documentation~1`
+`uman~ring5.ingestion.distribution-range-scan.documentation~2`
 
 Covers:
-- req~ring5.ingestion.distribution-range-scan~1
+- req~ring5.ingestion.distribution-range-scan~2
 
 `uman~ring5.ingestion.file-discovery.documentation~1`
 
@@ -89,10 +94,10 @@ Covers:
 Covers:
 - req~ring5.ingestion.variable-entry-selection~1
 
-`uman~ring5.ingestion.variable-scan.documentation~1`
+`uman~ring5.ingestion.variable-scan.documentation~2`
 
 Covers:
-- req~ring5.ingestion.variable-scan~1
+- req~ring5.ingestion.variable-scan~2
 
 `uman~ring5.ingestion.vector.documentation~1`
 
@@ -137,13 +142,49 @@ selected path position contains no metadata; otherwise the first extracted value
 The parser records missing values as `NaN`. It reports file failures instead of substituting
 simulator values. Investigate missing variables before reducing or normalizing the data.
 
-Saved portfolios can open and render their stored tables. If re-parsing reports that the original
-source type is ambiguous in saved scan metadata, run **Quick Scan** against the original statistics;
-use **Deep Scan** when variables differ across runs. Review pattern and entry selections, then parse
-again. Keep the variable's intended type when resolving this message.
+For full native Distribution frequencies, declare the original **Minimum value**, **Maximum value**,
+positive **Bucket size**, and explicit omission policy. Bounds and width use native-double precision;
+observed labels, rounded headers and measured `min_value`/`max_value` summaries do not supply them.
+Native allocation is `ceil((maximum - minimum + 1) / bucket_size)`, so allocated positions can extend
+above the tracked maximum. The output retains those positions and both tails.
 
-Parser-contract changes automatically invalidate reusable parse results, so the first run may take
-longer. Previously exported CSV files remain unchanged.
+The initial policy **missing** keeps omitted frequency cells and tails as `NaN`. Choose **nozero**
+only when the producer guarantees that omitted frequencies in each present compatible observation
+are measured zero. Text cannot verify that guarantee: a `nonan` or other output filter can suppress
+unavailable values too. Measured NaN, absent whole sources/dumps, missing repetitions and unmeasured
+summaries stay missing under either policy. **Statistics Only** extracts selected measured summaries
+without requiring, allocating or certifying a grid.
+
+Discovery reports compatible source contracts separately from the requested output type. A source
+with several compatible contracts remains an explicit choice; select a compatible source contract
+and output representation. An explicitly declared Distribution extracted as Vector retains literal
+labels but lacks a native grid, so it cannot supply a native histogram view. Ordinary Vector labels
+remain ordinary data even when their text resembles native buckets. Re-run a scan when the actual
+source files or selected instances change; scanning never fills unprinted grid bounds.
+
+The public API uses the same declaration:
+
+```python
+import ring5
+
+request = ring5.StatConfig(
+    "latency", "distribution", source_name="system.cpu.latency",
+    params={"source_type": "distribution", "minimum": 0.25, "maximum": 1.25,
+            "bucket_size": 0.5, "zero_policy": "missing"},
+)
+with ring5.Session() as session:
+    parsed = session.parse("results/", [request])
+    table = session.load(parsed)
+    figure = session.plot(
+        "histogram", data=table, config={"histogram_variable": "latency"},
+        engine="matplotlib",
+    )
+```
+
+Native histogram rendering requires every selected frequency to be measured, finite and nonnegative.
+Inspect incomplete tables before choosing a view; no parser or renderer fabricates missing values.
+Typed portfolios and snapshots preserve the native declarations. Genuine CSV exchange retains no
+native grid sidecar; loading an exported CSV uses the ordinary explicit interval contract.
 
 ### Test parser settings before a full run
 
@@ -423,9 +464,12 @@ leaving it disabled applies the variable type's normal pattern aggregation.
 
 Vector, distribution, and histogram editors offer **Statistics Only**, **Entries Only**, and
 **Entries + Statistics** modes where applicable. Entries can be selected from scan results or
-entered manually. A per-variable deep scan discovers entries across the larger bounded sample and
-aggregates the minimum and maximum bucket range for distributions. Histogram configurations can
-also rebin inconsistent source ranges into a fixed bucket count and maximum range.
+entered manually. A per-variable deep scan discovers printed labels and compatible source contracts
+across the larger bounded sample. Several native formats share the same text: an ambiguous source
+has no suggested output type. Choose its output type and compatible raw source contract explicitly.
+Observed extrema do not define a native distribution grid; enter its bounds in the request. Oneline
+Histogram input needs complete observed integral geometry, including zero-valued bounds. Histogram
+configurations can rebin inconsistent source ranges into a fixed bucket count and maximum range.
 
 For a non-blocking workflow, call `Session.parse_submit(...)`, then `finalize()` or `cancel()` on the
 returned job. Each job owns its futures.

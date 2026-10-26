@@ -7,6 +7,11 @@ import math
 import pandas as pd
 
 from src.core.models.visualization.trace_build_result import TraceBuildResult
+from src.core.common.distribution_metadata import inspect_distribution_layouts
+from src.core.models.native_distribution_layout import (
+    NativeDistributionLayout,
+    OpaqueDistributionLayout,
+)
 from src.core.models.visualization.trace_config import BarTraceConfig
 from src.web.components.plotting.config import histogram_config
 from src.core.models.plot_config import PlotConfig
@@ -17,21 +22,16 @@ from src.web.pages.ui.plotting.utils.histogram_bins import (
     HistogramBin,
     aggregate_histogram_observations,
     rebin_histogram,
+    sum_histogram_counts,
+    histogram_mass_ratio,
+    cumulative_histogram_counts,
 )
 
 
 class HistogramPlot(BasePlot):
-    """
-    Histogram plot for visualizing distribution data.
+    """Render native storage-cell mass or explicit generic intervals through neutral bars."""
 
-    Supports:
-    - Single or multiple histograms (grouped by categorical variable)
-    - Configurable bucket sizes (rebinning)
-    - Multiple normalization modes (count, probability, percent)
-    - Histogram variables with bucket ranges
-    """
-
-    def __init__(self, plot_id: int, name: str):
+    def __init__(self, plot_id: int, name: str) -> None:
         """
         Initialize histogram plot.
 
@@ -59,26 +59,49 @@ class HistogramPlot(BasePlot):
             TraceBuildResult with BarTraceConfig traces and barmode
 
         Raises:
-            ValueError: If histogram variable not found in data
+            ValueError: Selection, frequency data, arithmetic or the requested view is invalid.
         """
-        # [impl->req~ring5.figure.histogram-controls~1]
-        # [impl->req~ring5.plot.histogram~1]
+        # [impl->req~ring5.figure.histogram-controls~2]
+        # [impl->req~ring5.plot.histogram~2]
         histogram_var = config.get("histogram_variable")
         if not histogram_var:
             raise ValueError("No histogram variable specified")
 
-        # Extract histogram bucket columns
-        bucket_cols = [
-            col
-            for col in data.columns
-            if col.startswith(f"{histogram_var}..") and not col.endswith(".sd")
-        ]
-
-        if not bucket_cols:
-            raise ValueError(f"No histogram bucket columns found for variable: {histogram_var}")
-
-        columns = bucket_cols
-        labels = [column.split("..", 1)[1] for column in columns]
+        layouts = inspect_distribution_layouts(data)
+        layout = layouts.get(str(histogram_var))
+        if type(layout) is OpaqueDistributionLayout:
+            raise ValueError(
+                "Native Distribution labels alone do not declare storage-cell geometry; "
+                "select Distribution output with an explicit full grid and zero_policy."
+            )
+        native = type(layout) is NativeDistributionLayout
+        if native:
+            assert isinstance(layout, NativeDistributionLayout)
+            if config.get("bucket_size") is not None:
+                raise ValueError(
+                    "Native Distribution storage cells do not support continuous rebinning."
+                )
+            frequencies = [column for column in layout.columns if column.role != "summary"]
+            columns = [column.column for column in frequencies]
+            labels = [column.source_label for column in frequencies]
+        else:
+            columns = [
+                col
+                for col in data.columns
+                if col.startswith(f"{histogram_var}..") and not col.endswith(".sd")
+            ]
+            if not columns:
+                raise ValueError(f"No histogram bucket columns found for variable: {histogram_var}")
+            if any(
+                column.column in columns
+                for declared in layouts.values()
+                for column in declared.columns
+            ):
+                raise ValueError(
+                    "Histogram prefix overlaps declared Native Distribution bindings; "
+                    "select the layout's logical variable instead."
+                )
+            labels = [column.split("..", 1)[1] for column in columns]
         group_by = config.get("group_by")
         if group_by and group_by not in data.columns:
             raise ValueError(f"Histogram grouping column is missing: {group_by!r}.")
@@ -87,125 +110,134 @@ class HistogramPlot(BasePlot):
             if group_by
             else [""]
         )
+        if native and not groups:
+            raise ValueError("Native Distribution requires at least one observed selected group.")
         traces: list[BarTraceConfig] = []
         display_bins: list[HistogramBin] = []
         centers: list[float] = []
         for group in groups:
             source = data[data[str(group_by)].astype(str) == str(group)] if group_by else data
             numeric = source[columns].apply(pd.to_numeric, errors="raise")
-            observed_bins, values = aggregate_histogram_observations(
-                labels, numeric.to_numpy(dtype=float, na_value=float("nan")).tolist()
-            )
-            requested_width = config.get("bucket_size")
-            display_bins, values = rebin_histogram(
-                observed_bins,
-                values,
-                float(requested_width) if requested_width is not None else None,
-            )
-            widths = [bucket.width for bucket in display_bins]
-            fallback_width = next((width for width in widths if width is not None), 1.0)
-            centers = [
-                (
-                    (bucket.lower + bucket.upper) / 2
-                    if bucket.lower is not None and bucket.upper is not None
-                    else (
-                        bucket.lower + fallback_width / 2
-                        if bucket.lower is not None
-                        else cast(float, bucket.upper) - fallback_width / 2
+            rows = numeric.to_numpy(dtype=float, na_value=float("nan")).tolist()
+            if native:
+                if not rows or any(
+                    not math.isfinite(value) or value < 0 for row in rows for value in row
+                ):
+                    raise ValueError(
+                        "Every selected Native Distribution cell must be measured, finite "
+                        "and nonnegative."
                     )
+                values = [
+                    sum_histogram_counts(row[index] for row in rows)
+                    for index in range(len(columns))
+                ]
+                widths: list[float | None] = [1.0] * len(columns)
+                centers = [float(index) for index in range(len(columns))]
+                display_labels = labels
+                fallback_width = 1.0
+            else:
+                observed_bins, values = aggregate_histogram_observations(labels, rows)
+                requested_width = config.get("bucket_size")
+                display_bins, values = rebin_histogram(
+                    observed_bins,
+                    values,
+                    float(requested_width) if requested_width is not None else None,
                 )
-                for bucket in display_bins
-            ]
+                widths = [bucket.width for bucket in display_bins]
+                fallback_width = next((width for width in widths if width is not None), 1.0)
+                centers = [
+                    (
+                        bucket.lower + (bucket.upper - bucket.lower) / 2
+                        if bucket.lower is not None and bucket.upper is not None
+                        else (
+                            bucket.lower + fallback_width / 2
+                            if bucket.lower is not None
+                            else cast(float, bucket.upper) - fallback_width / 2
+                        )
+                    )
+                    for bucket in display_bins
+                ]
+                if any(not math.isfinite(center) for center in centers):
+                    raise ValueError("Histogram display positions must remain finite.")
+                display_labels = [
+                    bucket.label or str(center)
+                    for bucket, center in zip(display_bins, centers, strict=True)
+                ]
             drilldown = (
                 build_drill_down_payload(source.head(1), [str(group_by)]) if group_by else [{}]
             )
             traces.append(
                 BarTraceConfig(
                     name=str(group) if group_by else str(histogram_var),
-                    x=[
-                        bucket.label or str(center)
-                        for bucket, center in zip(display_bins, centers, strict=True)
-                    ],
+                    x=[label for label in display_labels],
                     x_positions=centers,
-                    y=self._normalize_values(values, config, widths),
+                    y=self._normalize_values(values, config, widths, native=native),
                     bar_width=[width if width is not None else fallback_width for width in widths],
                     opacity=0.7 if group_by else 1.0,
                     border_width=1.0,
                     border_color="white",
                     custom_data={
-                        "drilldown": [drilldown[0] if drilldown else {} for _ in display_bins]
+                        "drilldown": [drilldown[0] if drilldown else {} for _ in display_labels]
                     },
                 )
             )
         ticks: dict[str, list[float] | list[str] | list[bool]] | None = None
-        if any(bucket.width is None for bucket in display_bins):
-            ticks = {
-                "vals": centers,
-                "text": [
-                    bucket.label or str(center)
-                    for bucket, center in zip(display_bins, centers, strict=True)
-                ],
-            }
+        if native:
+            ticks = {"vals": centers, "text": labels}
+        elif any(bucket.width is None for bucket in display_bins):
+            ticks = {"vals": centers, "text": display_labels}
         return TraceBuildResult(
-            traces=traces, barmode="overlay" if group_by else "relative", custom_x_ticks=ticks
+            traces=traces,
+            barmode="overlay" if group_by else "relative",
+            custom_x_ticks=ticks,
+            default_x_axis_label="Native bucket" if native else None,
         )
-
-    # ========== Helper Methods ==========
-
-    def _detect_histogram_variables(self, data: pd.DataFrame) -> list[str]:
-        """
-        Detect histogram variables from DataFrame columns.
-
-        Args:
-            data: DataFrame to analyze
-
-        Returns:
-            List of histogram variable names (base names without bucket suffixes)
-        """
-        histogram_vars: set[str] = set()
-
-        for col in data.columns:
-            if ".." in col and not col.endswith(".sd"):
-                # Extract base variable name (before "..")
-                base_name = col.split("..")[0]
-                histogram_vars.add(base_name)
-
-        return sorted(list(histogram_vars))
 
     def _normalize_values(
         self,
         values: list[float],
         config: PlotConfig,
         widths: list[float | None] | None = None,
+        *,
+        native: bool = False,
     ) -> list[float]:
-        """Normalize counts using actual widths; cumulative density is a CDF.
+        """Normalize finite cell mass; cumulative density is a CDF.
+
+        Raw count does not require a representable total. Normalized views need
+        positive finite mass, and native storage cells do not define density.
 
         Raises:
-            ValueError: If density is requested for an unbounded interval.
+            ValueError: Density has no width or an output/required total is invalid.
         """
-        # [impl->req~ring5.figure.histogram-cumulative~1]
+        # [impl->req~ring5.figure.histogram-cumulative~2]
         normalization = config.get("normalization", "count")
         cumulative = bool(config.get("cumulative", False))
-        total = math.fsum(values)
-        if normalization == "density" and not cumulative and (widths is None or None in widths):
-            raise ValueError(
-                "Histogram density requires finite bucket bounds; "
-                "overflow and underflow have unknown widths."
-            )
-        if not total:
-            return values
+        if normalization == "density" and not cumulative:
+            if native:
+                raise ValueError(
+                    "Native Distribution storage cells do not define continuous density."
+                )
+            if (
+                widths is None
+                or len(widths) != len(values)
+                or any(width is None or not math.isfinite(width) or width <= 0 for width in widths)
+            ):
+                raise ValueError(
+                    "Histogram density requires finite positive bucket widths; "
+                    "tails have unknown widths."
+                )
         if normalization in {"probability", "percent", "density"}:
-            values = [value / total for value in values]
-        if normalization == "percent":
-            values = [value * 100 for value in values]
+            total = sum_histogram_counts(values)
+            if total <= 0:
+                raise ValueError("Histogram normalization requires finite positive selected mass.")
+            if normalization == "density" and not cumulative:
+                assert widths is not None
+                return [
+                    histogram_mass_ratio(value, 1.0, total, cast(float, width))
+                    for value, width in zip(values, widths, strict=True)
+                ]
+            scale = 100.0 if normalization == "percent" else 1.0
+            values = [histogram_mass_ratio(value, scale, total) for value in values]
         if cumulative:
-            running = 0.0
-            result = []
-            for value in values:
-                running += value
-                result.append(running)
-            return result
-        if normalization == "density":
-            assert widths is not None
-            return [value / cast(float, width) for value, width in zip(values, widths, strict=True)]
+            return cumulative_histogram_counts(values)
         return values

@@ -33,13 +33,14 @@ def test_stats_file(tmp_path_factory: Any) -> str:
     tmp_dir = tmp_path_factory.mktemp("worker_pool_integration")
     stats_file = tmp_dir / "stats.txt"
 
-    content = """
----------- Begin Simulation Statistics ----------
-system.cpu.numCycles                     12345                       # Number of cycles
-system.cpu.ipc                           1.234                       # IPC
-system.cpu.dcache.overall_miss_rate::total  0.05                    # Miss rate
----------- End Simulation Statistics   ----------
-"""
+    content = (
+        "\n---------- Begin Simulation Statistics ----------\nsystem.cp"
+        "u.numCycles                     12345                       "
+        "# Number of cycles\nsystem.cpu.ipc                           "
+        "1.234                       # IPC\nsystem.cpu.dcache.overall_"
+        "miss_rate::total  0.05                    # Miss rate\n------"
+        "---- End Simulation Statistics   ----------\n"
+    )
     stats_file.write_text(content)
     return str(stats_file)
 
@@ -62,7 +63,7 @@ class TestWorkerPoolIntegration:
         var_config = StatConfig(
             name="system.cpu.numCycles", type="scalar", params={"source_type": "scalar"}
         )
-        plan = resolve_sources([var_config], None)
+        plan = resolve_sources([var_config], None, file_count=1, metadata_columns=())
 
         # Create StatType instance
         stat_type = TypeMapper.create_stat(plan.accumulators[0])
@@ -128,12 +129,15 @@ class TestWorkerPoolIntegration:
         var_config = StatConfig(
             name="system.cpu.numCycles", type="scalar", params={"source_type": "scalar"}
         )
-        plan = resolve_sources([var_config], None)
+        plan = resolve_sources([var_config], None, file_count=1, metadata_columns=())
 
         # Get worker pool ID before parsing
         pool_before = get_worker_pool()
         pool_id_before = id(pool_before)
-        assert pool_before.pool_size == DEFAULT_PERL_WORKERS == 2
+        from src.parsing.gem5.impl.strategies.perl_worker_pool import _default_pool_size
+
+        assert DEFAULT_PERL_WORKERS == 2
+        assert pool_before.pool_size == _default_pool_size()
 
         # Create and execute multiple parse works
         for _ in range(3):
@@ -159,7 +163,7 @@ class TestWorkerPoolIntegration:
         var_config = StatConfig(
             name="system.cpu.numCycles", type="scalar", params={"source_type": "scalar"}
         )
-        plan = resolve_sources([var_config], None)
+        plan = resolve_sources([var_config], None, file_count=1, metadata_columns=())
 
         # Parse 10 files using worker pool
         start_time = time.time()
@@ -192,7 +196,7 @@ class TestWorkerPoolIntegration:
         var_config = StatConfig(
             name="system.cpu.numCycles", type="scalar", params={"source_type": "scalar"}
         )
-        plan = resolve_sources([var_config], None)
+        plan = resolve_sources([var_config], None, file_count=1, metadata_columns=())
         pool = get_worker_pool()
 
         # The structural guarantee: one live stderr drainer per worker.
@@ -220,7 +224,7 @@ class TestWorkerPoolErrorHandling:
         var_config = StatConfig(
             name="system.cpu.numCycles", type="scalar", params={"source_type": "scalar"}
         )
-        plan = resolve_sources([var_config], None)
+        plan = resolve_sources([var_config], None, file_count=1, metadata_columns=())
 
         stat_type = TypeMapper.create_stat(plan.accumulators[0])
         vars_dict = {var_config.name: stat_type}
@@ -241,7 +245,7 @@ class TestWorkerPoolErrorHandling:
             type="scalar",
             params={"source_type": "scalar"},
         )
-        plan = resolve_sources([var_config], None)
+        plan = resolve_sources([var_config], None, file_count=1, metadata_columns=())
 
         stat_type = TypeMapper.create_stat(plan.accumulators[0])
         vars_dict = {var_config.name: stat_type}

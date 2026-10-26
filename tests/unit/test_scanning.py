@@ -1,4 +1,5 @@
-from src.core.models.parsing_models import SourceInstance
+from src.core.models.source_evidence import ResolvedSourceKind
+from src.core.models.parsing_models import SourceInstance, ScanFileResult
 from unittest.mock import MagicMock, patch
 
 from src.parsing.gem5.impl.scanning.gem5_scan_work import Gem5ScanWork
@@ -13,13 +14,13 @@ def test_stats_scan_work_success() -> None:
         ScannedVariable(
             name="var1",
             type="scalar",
-            source_type="scalar",
+            source_evidence=ResolvedSourceKind("scalar", "backend_metadata"),
             instances=(SourceInstance("var1", ()),),
         ),
         ScannedVariable(
             name="var2",
             type="vector",
-            source_type="vector",
+            source_evidence=ResolvedSourceKind("vector", "backend_metadata"),
             instances=(SourceInstance("var2", ()),),
         ),
     ]
@@ -29,7 +30,7 @@ def test_stats_scan_work_success() -> None:
     ) as mock_scanner_cls:
         mock_instance = MagicMock()
         mock_scanner_cls.return_value = mock_instance
-        mock_instance.scan_file.return_value = mock_vars
+        mock_instance.scan_file.return_value = ScanFileResult("test_file.txt", mock_vars)
 
         result = work()
 
