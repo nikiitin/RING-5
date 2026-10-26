@@ -338,7 +338,7 @@ class ParsedOutputIO:
     @staticmethod
     def read(output: ParsedOutput) -> ResolvedParsedRows:
         """Verify exact file bytes and stability before decoding its explicit cell kinds."""
-        # [impl->req~ring5.ingestion.csv-contract~1]
+        # [impl->req~ring5.ingestion.csv-contract~2]
         if type(output) is not ParsedOutput:
             raise TypeError("Typed parser loading requires ParsedOutput.")
         digest = ParsedOutputDigest(output.schema)

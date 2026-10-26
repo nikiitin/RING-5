@@ -78,10 +78,10 @@ are not supported; use literal ASCII statistic-name characters and `\d+` placeho
 ## A CSV does not load
 
 <!--
-`uman~ring5.ingestion.csv-contract.documentation~1`
+`uman~ring5.ingestion.csv-contract.documentation~2`
 
 Covers:
-- req~ring5.ingestion.csv-contract~1
+- req~ring5.ingestion.csv-contract~2
 
 -->
 

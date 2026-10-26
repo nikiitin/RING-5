@@ -91,6 +91,7 @@ This file is informative; normative items are in the other generated files.
 | --- | ---: | --- | --- |
 | `workspace.navigation` | 1 | Semantic | Replaced Documentation routing with a direct link to the published site. |
 | `workspace.documentation-hub` | 1 | Semantic | Replaced the duplicate application page with direct links to the canonical published documentation. |
+| `ingestion.csv-contract` | 1 | Semantic | Define explicit typed parser schema, physical ownership, exact row encoding and schema-bound content integrity; genuine CSV ingestion retains its separate inference contract. |
 | `data.error-propagation` | 1 | Semantic | Define canonical SD propagation for missing contributors, weighted repeated sources, mean scaling, and undefined estimates. |
 | `figure.ordering-renaming` | 1 | Semantic | Assigned legend-entry ordering to each visible Legend tab while keeping axis and facet ordering under Axes. |
 | `figure.numbered-xaxis` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |

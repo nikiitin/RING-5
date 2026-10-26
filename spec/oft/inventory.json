@@ -218,11 +218,20 @@
     {
       "id": "ingestion.csv-contract",
       "group": "ingestion",
-      "revision": 1,
+      "revision": 2,
       "status": "approved",
       "title": "Typed parser output contract",
       "description": "Parser output shall declare simulator-independent logical variable kinds and physical column ownership, contain at least one exact typed source row, and reject malformed schema, CSV encoding, row shape or content-integrity mismatches explicitly.",
       "tags": ["csv", "validation"],
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "semantic",
+          "title": "Generic CSV contract",
+          "description": "CSV input shall have a header and at least one data row, remain simulator-independent, and report malformed or empty input explicitly.",
+          "reason": "Define explicit typed parser schema, physical ownership, exact row encoding and schema-bound content integrity; genuine CSV ingestion retains its separate inference contract."
+        }
+      ],
       "evidence": {
         "implementation": ["src/core/common/parsed_output.py::ParsedOutputIO.read"],
         "tests": ["tests/unit/test_typed_csv_admission.py::TestTypedCsvAdmission"],

@@ -36,7 +36,7 @@ def _raw_output(path: Path, content: bytes):
 
 
 class TestTypedCsvAdmission:
-    # [test->req~ring5.ingestion.csv-contract~1]
+    # [test->req~ring5.ingestion.csv-contract~2]
     def test_valid_csv(self, tmp_path):
         output = _raw_output(tmp_path / "valid.csv", b"name,value\r\nfoo,1.0\r\nbar,2.0\r\n")
         assert ParsedOutputIO.read(output).rows == (("foo", 1.0), ("bar", 2.0))

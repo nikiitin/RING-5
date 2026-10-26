@@ -3757,6 +3757,7 @@ class Session:
             ParseError: Parser-source execution fails.
             PipelineError: A transformation fails.
             DataValidationError: A plot mapping is invalid for transformed data.
+            ColumnNotFoundError: A plot references a column absent from transformed data.
             ExportError: Rendering or writing an export fails.
         """
         # [impl->req~ring5.portfolio.analysis-recipes~1]
@@ -3801,25 +3802,23 @@ class Session:
                     strict=source.strict,
                     parser_contract_version=source.parser_contract_version,
                 )
-                if self._parser_override is None:
-                    parser = SimulatorRegistry.get_parser(source.simulator)
-                    output_dir = tempfile.mkdtemp(prefix="ring5_recipe_parse_")
-                    self._owned_tmpdirs.append(output_dir)
-                    try:
-                        with Session(parser=parser) as child:
-                            parsed = child._submit_resolved_parse(
-                                parser_context, output_dir=output_dir
-                            ).finalize(strict=source.strict)
-                            data = ParsedOutputIO.to_frame(parsed.output)
-                    except (KeyError, OSError, TypeError, ValueError, Ring5Error):
-                        shutil.rmtree(output_dir, ignore_errors=True)
-                        self._owned_tmpdirs.remove(output_dir)
-                        raise
-                else:
-                    parsed = self._submit_resolved_parse(parser_context).finalize(
-                        strict=source.strict
-                    )
-                    data = ParsedOutputIO.to_frame(parsed.output)
+                parser = (
+                    SimulatorRegistry.get_parser(source.simulator)
+                    if self._parser_override is None
+                    else self._parser_override
+                )
+                output_dir = tempfile.mkdtemp(prefix="ring5_recipe_parse_")
+                self._owned_tmpdirs.append(output_dir)
+                try:
+                    with Session(parser=parser) as child:
+                        parsed = child._submit_resolved_parse(
+                            parser_context, output_dir=output_dir
+                        ).finalize(strict=source.strict)
+                        data = ParsedOutputIO.to_frame(parsed.output)
+                except (KeyError, OSError, TypeError, ValueError, Ring5Error):
+                    shutil.rmtree(output_dir, ignore_errors=True)
+                    self._owned_tmpdirs.remove(output_dir)
+                    raise
                 source_path = parsed.csv_path
                 source_context = parser_context
         except (KeyError, OSError, TypeError, UnicodeError, ValueError) as exc:
