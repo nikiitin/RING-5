@@ -6,13 +6,22 @@ from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import Future
 from dataclasses import replace
 from pathlib import Path
-from typing import Any, Literal, cast
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
 
+from src.core.common.source_context_codec import SourceContextCodec
+from src.core.models.source_context_models import (
+    CsvSourceContext,
+    InferredCsvPolicy,
+    ParserSourceContext,
+    ReviewedCsvPolicy,
+)
+
 from src.core.common.security_limits import MAX_BACKGROUND_JOB_LABEL_LENGTH
 from src.core.common.stat_config_codec import StatConfigCodec
+from src.core.common.parsed_output import ParsedOutputIO
 from src.core.models.background_job_models import BackgroundJobInfo, BackgroundJobKind
 from src.core.models.browser_upload_models import BrowserUpload
 from src.core.models.dataset_workspace_models import (
@@ -26,6 +35,7 @@ from src.core.models.dataset_workspace_models import (
 from src.core.models.visualization.dashboard_spec import DashboardSpec
 from src.core.models.visualization.drill_down_result import DrillDownResult
 from src.core.models.import_models import ImportOptions, ImportPreview
+from src.core.models.parsed_output_models import ParsedFileResult, ParsedOutput
 from src.core.models.parsing_models import (
     IncrementalParseBatchResult,
     IncrementalParseResult,
@@ -68,7 +78,6 @@ from src.core.models.data_models import (
     ScannedVariableDict,
 )
 from src.core.models.history_models import OperationRecord
-from src.core.models.parse_job_models import JsonValue
 from src.core.models.plot_protocol import PlotDeserializer
 from src.core.models.visualization.figure_config import FigureConfig
 from src.core.services.data_services.data_services_api import DataServicesAPI
@@ -147,7 +156,10 @@ class ApplicationAPI:
         self._services = DefaultServicesAPI(self.state_manager)
         self._remote_sources = remote_source_service or RemoteSourceService()
 
-        self._parser: SimulationParser = parser or SimulatorRegistry.get_parser("gem5")
+        self._default_parser_simulator: str | None = "gem5" if parser is None else None
+        self._parser: SimulationParser = (
+            SimulatorRegistry.get_parser("gem5") if parser is None else parser
+        )
 
         # A facade may cancel only scan jobs that it submitted.
         self._pending_scan_futures: list[Future[ScanFileResult]] = []
@@ -211,26 +223,48 @@ class ApplicationAPI:
         """Remove finished job records and their retained results."""
         return self._background_jobs.dismiss_finished()
 
-    def load_data(self, csv_path: str) -> None:
-        """
-        Orchestrate loading data from a file path:
-        1. Load via data services
-        2. Persist via StateManager
-        """
+    def load_data(
+        self,
+        source: str | ParsedOutput,
+        *,
+        source_context: ParserSourceContext | None = None,
+        complete: bool = True,
+    ) -> None:
+        """Verify/load an explicit typed result or infer a genuine CSV, then publish atomically."""
         # [impl->req~ring5.ingestion.csv-load~1]
-        try:
-            # 1. Operation: Load
-            df = self._services.data_services.load_csv_file(csv_path)
-
-            # 2. Persistence: Save
-            self.state_manager.set_data(df, operation=f"Load CSV: {csv_path}")
-            self.state_manager.set_processed_data(None)  # Reset derived state
-            self.state_manager.set_csv_path(csv_path)
-
-            logger.info(f"Loaded and registered data from {csv_path}")
-        except Exception as e:
-            logger.error(f"Failed to load data from {csv_path}: {e}")
-            raise
+        if type(source) is ParsedOutput:
+            data = ParsedOutputIO.to_frame(source)
+            path = source.csv_path
+            origin = (
+                SourceContextCodec.origin(source_context, complete=complete)
+                if source_context is not None
+                else None
+            )
+        elif isinstance(source, str):
+            if source_context is not None or complete is not True:
+                raise ValueError("Parser source context requires an explicit typed output.")
+            variables = self.state_manager.get_parse_variables()
+            configuration_columns = tuple(
+                dict.fromkeys(
+                    variable["name"]
+                    for variable in variables
+                    if variable.get("type") == "configuration" and variable.get("name")
+                )
+            )
+            data = self.data_services.load_csv_file(
+                source, configuration_columns=configuration_columns
+            )
+            path = source
+            origin = SourceContextCodec.origin(
+                CsvSourceContext(path, InferredCsvPolicy(configuration_columns))
+            )
+        else:
+            raise TypeError("Data source must be a CSV path or ParsedOutput descriptor.")
+        with self.state_manager.transaction():
+            self.state_manager.set_data(data, operation=f"Load data: {path}", origin=origin)
+            self.state_manager.set_processed_data(None)
+            self.state_manager.set_csv_path(path)
+            self.state_manager.set_use_parser(type(source) is ParsedOutput)
 
     def preview_import(self, file_path: str, options: ImportOptions | None = None) -> ImportPreview:
         # [impl->req~ring5.ingestion.import-preview~1]
@@ -241,13 +275,16 @@ class ApplicationAPI:
         # [impl->req~ring5.ingestion.import-preview~1]
         """Load accepted rows from an unchanged, previously reviewed import."""
         data = ImportPreviewService.load(preview)
-        self.state_manager.set_data(
-            data,
-            operation=f"Load reviewed import: {preview.source_path}",
+        origin = SourceContextCodec.origin(
+            CsvSourceContext(preview.source_path, ReviewedCsvPolicy(preview.options))
         )
-        self.state_manager.set_processed_data(None)
-        self.state_manager.set_csv_path(preview.source_path)
-        self.state_manager.set_use_parser(False)
+        with self.state_manager.transaction():
+            self.state_manager.set_data(
+                data, operation=f"Load reviewed import: {preview.source_path}", origin=origin
+            )
+            self.state_manager.set_processed_data(None)
+            self.state_manager.set_csv_path(preview.source_path)
+            self.state_manager.set_use_parser(False)
         return data
 
     def inspect_browser_upload(
@@ -603,19 +640,21 @@ class ApplicationAPI:
         replace: bool = False,
     ) -> DatasetInfo:
         """Retain the current source-data view under a name."""
-        data = self.state_manager.get_data()
-        if data is None:
-            raise ValueError("No active data is available to retain.")
-        selected = self.state_manager.selected_dataset_name()
-        sources = (selected,) if selected is not None else ()
-        return self.add_dataset(
-            name,
-            data,
-            select=select,
-            replace=replace,
-            operation="Retain current dataset",
-            source_datasets=sources,
-        )
+        with self.state_manager.transaction():
+            data = self.state_manager.get_data()
+            if data is None:
+                raise ValueError("No active data is available to retain.")
+            selected = self.state_manager.selected_dataset_name()
+            sources = (selected,) if selected is not None else ()
+            return self.state_manager.add_dataset(
+                name,
+                data,
+                select=select,
+                replace=replace,
+                operation="Retain current dataset",
+                source_datasets=sources,
+                origin=self.state_manager.get_loaded_origin(),
+            )
 
     def list_datasets(self) -> tuple[DatasetInfo, ...]:
         """Return retained dataset metadata in insertion order."""
@@ -901,15 +940,38 @@ class ApplicationAPI:
         parser_contract_version: str = PARSER_CONTRACT_VERSION,
         incremental: bool = False,
     ) -> ParseJobSnapshot:
-        """Submit a session-scoped background parse attempt and return immediately."""
-        selected_simulator = simulator or self.state_manager.get_simulator()
+        """Own a resolved typed request and enqueue one session parse attempt.
+
+        An explicit simulator declares an injected backend's identity. A known
+        composed backend retains its actual identifier and cannot be relabeled.
+
+        Raises:
+            TypeError: A declared simulator is not native text or None.
+            ValueError: A declaration differs from the known composed backend.
+        """
+        if simulator is not None and type(simulator) is not str:
+            raise TypeError("Declared simulator must be text or None.")
+        if (
+            self._default_parser_simulator is not None
+            and simulator is not None
+            and simulator != self._default_parser_simulator
+        ):
+            raise ValueError("Declared simulator does not match the configured parser backend.")
+        scanned: list[ScannedVariableDict] = []
+        for value in (() if scanned_vars is None else scanned_vars):
+            if isinstance(value, dict):
+                scanned.append(value)
+            elif isinstance(value, ScannedVariable):
+                scanned.append(value.to_dict())
+            else:
+                raise TypeError("Background scanner metadata requires current typed payloads.")
         return self._get_parse_job_service().submit(
             stats_path=stats_path,
             stats_pattern=stats_pattern,
-            variables=[StatConfigCodec.to_payload(config) for config in variables],
+            variables=variables,
             strategy_type=strategy_type,
-            scanned_variables=scanned_vars,
-            simulator=selected_simulator,
+            scanned_variables=scanned,
+            simulator=self._default_parser_simulator if simulator is None else simulator,
             parser_contract_version=parser_contract_version,
             incremental=incremental,
         )
@@ -960,7 +1022,11 @@ class ApplicationAPI:
 
     def _load_consumed_parse_result(self, receipt: ParseJobReceipt) -> None:
         """Load a published result before deleting its transient attempt."""
-        self.load_data(receipt.csv_path)
+        self.load_data(
+            receipt.output,
+            source_context=receipt.source_context,
+            complete=receipt.status.value == "succeeded",
+        )
         self.state_manager.set_csv_pool(self.data_services.load_csv_pool())
 
     def _get_parse_job_service(self) -> ParseJobService:
@@ -978,59 +1044,49 @@ class ApplicationAPI:
 
     def _submit_background_parse(
         self,
-        stats_path: str,
-        stats_pattern: str,
-        variables: Sequence[JsonValue],
+        source: ParserSourceContext,
         output_dir: str,
-        strategy_type: str,
-        scanned_vars: list[JsonValue] | None,
         incremental: bool,
     ) -> ParseBatchResult | IncrementalParseBatchResult:
-        """Adapt persisted JSON values to the existing parser primitive."""
-        typed_variables = [StatConfigCodec.from_payload(value) for value in variables]
-        typed_scanned = cast(
-            list[ScannedVariable] | list[ScannedVariableDict] | None,
-            scanned_vars,
-        )
-        stat_configs, resolved_scanned = self._normalize_parse_request(
-            typed_variables, typed_scanned
-        )
+        """Submit fresh typed values from the exact persisted request."""
+        variables = SourceContextCodec.variables(source)
+        scanned = SourceContextCodec.scanned_variables(source)
         if incremental:
             cache_path = str(Path(output_dir).parent.parent / "incremental-cache.json")
             return self._parser.submit_incremental_parse_async(
-                stats_path,
-                stats_pattern,
-                stat_configs,
+                source.stats_path,
+                source.stats_pattern,
+                variables,
                 output_dir,
-                strategy_type,
-                resolved_scanned,
+                source.strategy_type,
+                scanned,
                 cache_path,
             )
         return self._parser.submit_parse_async(
-            stats_path, stats_pattern, stat_configs, output_dir, strategy_type, resolved_scanned
+            source.stats_path,
+            source.stats_pattern,
+            variables,
+            output_dir,
+            source.strategy_type,
+            scanned,
         )
 
     def _finalize_background_parse(
         self,
-        output_dir: str,
         batch: ParseBatchResult | IncrementalParseBatchResult,
-        results: list[dict[str, Any]],
+        results: list[ParsedFileResult],
         complete: bool,
-        strategy_type: str,
-    ) -> str | None:
-        """Adapt the job finalizer callback to the parser primitive."""
+    ) -> ParsedOutput:
+        """Finalize the actual batch plan without inferring schema or provenance."""
         if isinstance(batch, IncrementalParseBatchResult):
-            return self.finalize_incremental_parsing(batch, results, complete=complete).csv_path
-        return self.finalize_parsing(
-            output_dir,
-            results,
-            strategy_type=strategy_type,
-            var_names=batch.var_names,
-        )
+            return self._parser.finalize_incremental_parsing(
+                batch, results, complete=complete
+            ).output
+        return self._parser.finalize_parsing(batch, results, complete=complete)
 
-    def _publish_background_csv(self, file_path: str, file_name: str) -> str:
-        """Atomically publish a completed job result to Recent CSVs."""
-        return self._services.data_services.publish_to_csv_pool(file_path, file_name)
+    def _publish_background_csv(self, output: ParsedOutput, file_name: str) -> ParsedOutput:
+        """Promote the explicit typed result through the canonical CSV writer."""
+        return self._services.data_services.publish_to_csv_pool(output, file_name)
 
     def submit_parse_async(
         self,
@@ -1139,20 +1195,18 @@ class ApplicationAPI:
 
     def finalize_parsing(
         self,
-        output_dir: str,
-        results: list[dict[str, Any]],
-        strategy_type: str = "simple",
-        var_names: list[str] | None = None,
-    ) -> str | None:
-        """Finalize parsing results into a CSV."""
-        return self._parser.finalize_parsing(
-            output_dir, results, strategy_type, var_names=var_names
-        )
+        batch: ParseBatchResult,
+        results: list[ParsedFileResult],
+        *,
+        complete: bool = True,
+    ) -> ParsedOutput:
+        """Publish typed full or partial results using the submitted immutable context."""
+        return self._parser.finalize_parsing(batch, results, complete=complete)
 
     def finalize_incremental_parsing(
         self,
         batch: IncrementalParseBatchResult,
-        results: list[dict[str, Any]],
+        results: list[ParsedFileResult],
         *,
         complete: bool = True,
     ) -> IncrementalParseResult:
@@ -1200,7 +1254,7 @@ class ApplicationAPI:
     def finalize_parser_playground(
         self,
         batch: ParserPlaygroundBatchResult,
-        results: list[dict[str, Any]],
+        results: list[ParsedFileResult],
     ) -> ParserPlaygroundResult:
         # [impl->req~ring5.ingestion.parser-playground~1]
         """Finalize a parser configuration test into an immutable bounded preview."""

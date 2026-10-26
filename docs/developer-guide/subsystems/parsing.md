@@ -25,7 +25,7 @@ Covers:
 
 Scanning and parsing are submit/finalize operations. Submit methods validate inputs and return
 futures owned by the caller or a parse job. Finalization aggregates successful results, preserves
-file failures, and assembles the CSV. Cancellation must affect only work owned by the current API
+file failures, and publishes a schema-bound typed output. Cancellation must affect only work owned by the current API
 instance or job.
 
 `WorkPool` submits typed callable commands through `submit` or `submit_many`; it retains no batch
@@ -38,12 +38,22 @@ The public `ring5.shutdown()` waits for accepted file tasks and keeps admission 
 closing their Perl processes. Concurrent global closes serialize; a failed close keeps admission
 closed until a global retry succeeds. The next parse or scan then recreates both pools.
 
+Perl processes use strict UTF-8 streams. Startup owns each process generation and its pipe-reader
+handles until READY succeeds; failed startup reaps the child and joins its readers before returning
+the error. Pool construction also closes workers and monitor threads already started by that attempt.
+Worker stop/restart operations serialize and retire only their captured generation. Stream errors
+retain their identity through the reader queue; exact known decoding failures become bounded data
+errors at their input owner, while unsupported exception subtypes propagate unchanged.
+Commands validate their fixed source ID against the batch plan before retaining or submitting
+work. Diagnostics read bounded native exception metadata and cause links; Unicode input buffers
+and arbitrary exception hooks are excluded.
+
 The gem5 implementation under `src/parsing/gem5/` uses Python orchestration and persistent Perl
 workers. Strategies under `src/parsing/gem5/impl/strategies/` control ingestion. Pattern aggregation
 can collapse repeated concrete names into a selectable pattern; parsing needs scanned-variable data
 to expand those patterns correctly.
 
-## Variable types and CSV
+## Variable types and typed output
 
 <!--
 `uman~ring5.ingestion.pattern-aggregation.documentation~1`
@@ -84,9 +94,28 @@ Summary measurements are named entries of their source statistic, selected throu
 literal spelling, including double underscores; the worker does not reinterpret name suffixes.
 Output aliases select their explicit source names and do not request unrelated matching labels.
 
-All parsers produce the generic contract in `src/core/models/csv_contract.py`: a header, rows,
-consistent columns, values, and explicit `NaN` for missing numeric data. Simulator-specific column
-names remain inside the backend.
+Workers finish balancing and reduction before resolving their Futures with immutable
+`ParsedFileResult` values. Each logical variable explicitly declares its numeric or text kind and
+`scalar` or `entries` shape. Scalar output has exactly one cell; entry output may have no observed
+columns. Cells preserve exact physical names, including names containing `..`; ownership never
+derives from punctuation. Metadata columns have a separate owner namespace, and any physical
+column collision fails visibly. Numeric union gaps remain NaN. Missing text is invalid rather than
+inventing a label.
+
+`src/core/common/parsed_output.py::ParsedOutputIO` is the single schema resolver, CSV publisher and
+reader. It enforces bounded variable, column, row, cell and byte budgets, publishes atomically, and
+returns `ParsedOutput(csv_path, sha256, schema)`. The digest binds the canonical ordered schema and
+CSV bytes with domain-separated framing. It detects content/schema substitution, but does not
+authenticate an author. Reading checks stable file identity, exact schema/header, canonical cell
+encoding and digest before exposing a frame. Literal `NA`, `nan`, empty strings, leading zeros,
+Unicode, whitespace and control characters remain text. Explicit numeric NaN/infinity/zero and
+representable subnormal values remain numbers. Finite wire tokens outside the nonzero Float64
+range reject before publication.
+
+CSV is an external exchange representation. In-process consumers retain the descriptor. Public
+scripts call `session.load(parsed_result)`; passing `parsed_result.csv_path` deliberately invokes
+ordinary external CSV inference and null handling. No filename lookup or portable schema sidecar
+changes that behavior.
 
 The gem5 backend produces one row per input file. `repeat` declares the expected number of dumps
 per concrete statistic. Spatial patterns average all concrete instances and dumps; scanner-generated
@@ -177,6 +206,16 @@ Percent signs and interpolation-looking workload arguments remain unchanged.
 
 ## Failure and security rules
 
+Gem5 tasks detach expected data and I/O failures before their Futures retain them. Explicit
+`ParseDataValueError`, `ParseDataTypeError`, and `ParseDataRuntimeError` sites preserve the corresponding
+builtin error category. `ResultAdmissionError` uses the same boundary for retained-result limits.
+Reviewed builtin filesystem/process errors preserve their concrete type,
+errno and filenames. Retained errors have no producer traceback, cause or context object; immutable
+`failure_facts` contains the planned source ID, the last eight origin locations (2,048 characters),
+and a cause summary (1,024 characters). Messages are limited to 1,024 characters, including an
+explicit truncation marker. Error logs retain bounded text rather than exceptions or observation
+containers. Unmarked programming errors propagate with their identity and traceback intact.
+
 - Do not turn a regex miss, missing statistic, worker failure, or malformed file into zero.
 - Numeric index extraction follows the shared matching timeout; execution-bound failures propagate
   during submission rather than becoming missing observations.
@@ -186,3 +225,22 @@ Percent signs and interpolation-looking workload arguments remain unchanged.
 
 See [Add a Parser]({{site.baseurl}}/developer-guide/extension-guides/adding-a-parser/) for
 implementation steps.
+
+## Request and result ownership
+
+Every full batch owns the planned source paths, logical variable order, output directory and
+strategy. Finalization receives that batch and only finalized typed file results. Complete output
+requires exact coverage. Partial output rejects duplicate or unplanned sources and requires usable
+rows; it never promotes an incremental or background result to a complete success cache. Incremental
+cache format2 stores the same typed records and validates them before retaining reused rows.
+
+Gem5 batches share a retained-result admission budget of one million cells and 256 MiB of complete
+canonical record encoding, separate from the CSV output budget. Accepted Futures retain their quota
+even when cancellation is requested. Known data failures detach bounded primitive diagnostics before
+the Future completes; unexpected programming exceptions retain their original identity and trace.
+
+The actual parser request travels with public parse results and durable background receipts. Loading
+publishes frame and replay origin together. Submitting a different request changes editor controls
+without changing the loaded frame's origin. Generic manager edits clear reusable origin; exact named
+selection and revision restoration retain the corresponding origin. Automatic recipe capture refuses
+partial or undeclared-backend origins instead of guessing a complete replay source.

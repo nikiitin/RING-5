@@ -4,6 +4,7 @@ from ring5 import Session
 import plotly.graph_objects as go
 
 import tempfile
+from collections.abc import Generator
 from pathlib import Path
 from typing import cast
 
@@ -14,7 +15,9 @@ import matplotlib.pyplot as plt
 import ring5
 
 from src.core.application_api import ApplicationAPI
+from src.core.common.parsed_output import ParsedOutputIO
 from src.core.models.data_models import ParseVariableConfig
+from src.core.models.visualization.trace_config import BarTraceConfig
 from src.web.pages.ui.plotting.plot_factory import PlotFactory
 
 
@@ -35,9 +38,13 @@ class TestHistogramPlotIntegration:
         return path
 
     @pytest.fixture
-    def facade(self) -> ApplicationAPI:
+    def facade(self) -> Generator[ApplicationAPI, None, None]:
         """Create facade instance."""
-        return ApplicationAPI()
+        api = ApplicationAPI()
+        try:
+            yield api
+        finally:
+            api.close(wait=True)
 
     def test_histogram_plot_creation_from_factory(self) -> None:
         """Test creating histogram plot from factory."""
@@ -93,14 +100,13 @@ class TestHistogramPlotIntegration:
             )
 
             parse_results = [f.result() for f in parse_batch.futures]
-            csv_path = facade.finalize_parsing(
-                tmpdir, parse_results, var_names=parse_batch.var_names
-            )
+            parsed_output = facade.finalize_parsing(parse_batch, parse_results)
+            csv_path = parsed_output.csv_path
 
             assert csv_path is not None
 
             # Load data
-            data = pd.read_csv(csv_path)
+            data = ParsedOutputIO.to_frame(parsed_output)
 
             # Create histogram plot
             plot = PlotFactory.create_plot("histogram", plot_id=1, name="Transaction Cycles")
@@ -183,13 +189,12 @@ class TestHistogramPlotIntegration:
         )
 
         parse_results = [f.result() for f in parse_batch.futures]
-        csv_path = facade.finalize_parsing(
-            str(output_dir), parse_results, var_names=parse_batch.var_names
-        )
+        parsed_output = facade.finalize_parsing(parse_batch, parse_results)
+        csv_path = parsed_output.csv_path
 
         assert csv_path is not None
 
-        data = pd.read_csv(csv_path)
+        data = ParsedOutputIO.to_frame(parsed_output)
 
         # Create histogram with grouping
         plot = PlotFactory.create_plot("histogram", plot_id=1, name="Grouped Histogram")
@@ -323,9 +328,10 @@ def test_parser_histogram_union_geometry_renders_observed_mass(
         str(output),
     )
     results = [future.result() for future in batch.futures]
-    csv_path = Gem5Parser.finalize_parsing(str(output), results, var_names=batch.var_names)
+    parsed_output = Gem5Parser.finalize_parsing(batch, results)
+    csv_path = parsed_output.csv_path
     assert csv_path is not None
-    data = pd.read_csv(csv_path)
+    data = ParsedOutputIO.to_frame(parsed_output)
     assert data[["h..0-0", "h..0-9"]].notna().sum().tolist() == [1, 1]
     trace = (
         HistogramPlot(1, "Observed histogram")
@@ -335,6 +341,8 @@ def test_parser_histogram_union_geometry_renders_observed_mass(
         )
         .traces[0]
     )
+    assert isinstance(trace, BarTraceConfig)
+    assert isinstance(trace.bar_width, list)
     assert sum(trace.y) == pytest.approx(3)
     assert len(trace.x_positions) == len(trace.y) == len(trace.bar_width)
 

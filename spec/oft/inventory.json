@@ -218,14 +218,23 @@
     {
       "id": "ingestion.csv-contract",
       "group": "ingestion",
-      "revision": 1,
+      "revision": 2,
       "status": "approved",
-      "title": "Generic CSV contract",
-      "description": "CSV input shall have a header and at least one data row, remain simulator-independent, and report malformed or empty input explicitly.",
+      "title": "Typed parser output contract",
+      "description": "Parser output shall declare simulator-independent logical variable kinds and physical column ownership, contain at least one exact typed source row, and reject malformed schema, CSV encoding, row shape or content-integrity mismatches explicitly.",
       "tags": ["csv", "validation"],
+      "history": [
+        {
+          "revision": 1,
+          "change_type": "semantic",
+          "title": "Generic CSV contract",
+          "description": "CSV input shall have a header and at least one data row, remain simulator-independent, and report malformed or empty input explicitly.",
+          "reason": "Define explicit typed parser schema, physical ownership, exact row encoding and schema-bound content integrity; genuine CSV ingestion retains its separate inference contract."
+        }
+      ],
       "evidence": {
-        "implementation": ["src/core/models/csv_contract.py::validate_parser_csv"],
-        "tests": ["tests/unit/test_csv_contract.py::TestValidateParserCsv"],
+        "implementation": ["src/core/common/parsed_output.py::ParsedOutputIO.read"],
+        "tests": ["tests/unit/test_typed_csv_admission.py::TestTypedCsvAdmission"],
         "documentation": ["docs/user-guide/reference/troubleshooting.md#a-csv-does-not-load"]
       }
     },
@@ -424,7 +433,7 @@
       "evidence": {
         "implementation": ["src/parsing/gem5/types/base.py::StatType.reduce_duplicates"],
         "tests": ["tests/integration/test_pattern_aggregation_integration.py::TestScannerPatternAggregation"],
-        "documentation": ["docs/developer-guide/subsystems/parsing.md#variable-types-and-csv"]
+        "documentation": ["docs/developer-guide/subsystems/parsing.md#variable-types-and-typed-output"]
       }
     },
     {
@@ -2684,7 +2693,7 @@
       "description": "Additional simulators shall integrate through the SimulationParser protocol and simulator registry without adding simulator-specific logic to core services.",
       "tags": ["extensibility", "parsing", "protocol"],
       "evidence": {
-        "implementation": ["src/parsing/parser_protocol.py::SimulationParser", "src/parsing/registry.py::SimulatorRegistry.register", "src/parsing/registry.py::SimulatorRegistry.get_parser"],
+        "implementation": ["src/parsing/parser_protocol.py::SimulationParser", "src/parsing/registry.py::SimulatorRegistry.register", "src/parsing/registry.py::SimulatorRegistry.get_parser", "ring5/_parsed_output.py::resolve_parsed_output", "ring5/_parsed_output.py::publish_parsed_output"],
         "tests": ["tests/unit/test_simulator_registry.py::TestSimulatorRegistry"],
         "documentation": ["docs/developer-guide/extension-guides/adding-a-parser.md#implement-the-backend"]
       }
@@ -2824,7 +2833,7 @@
       "description": "For statistics containing one or more numeric pattern positions, users shall filter discovered index values and optionally preserve each selected concrete instance as an independent output column.",
       "tags": ["patterns", "selection", "variables"],
       "evidence": {
-        "implementation": ["src/core/models/pattern_index_service.py::PatternIndexService", "src/web/components/data_source/pattern_index_selector.py::PatternIndexSelector.render_selector", "src/parsing/gem5/impl/gem5_parser.py::Gem5Parser.construct_final_csv"],
+        "implementation": ["src/core/models/pattern_index_service.py::PatternIndexService", "src/web/components/data_source/pattern_index_selector.py::PatternIndexSelector.render_selector", "src/parsing/gem5/impl/source_bindings.py::resolve_sources"],
         "tests": ["tests/unit/test_keep_indices.py::test_correlated_concrete_selection_is_preserved_without_cartesian_expansion", "tests/unit/test_pattern_index_selector_logic.py::test_selection_uses_source_names_and_never_reconstructs_numeric_coordinates"],
         "documentation": ["docs/user-guide/workflows/loading-data.md#parse-gem5-statistics-in-the-web-application"]
       }
@@ -5327,6 +5336,25 @@
       "typography": "figure.typography"
     },
     "public_exports": {
+      "IncrementalParseBatchResult": "extension.parser-protocol",
+      "IncrementalParseResult": "extension.parser-protocol",
+      "InferredCsvPolicy": "portfolio.analysis-recipes",
+      "ParseBatchResult": "extension.parser-protocol",
+      "ParsedCell": "ingestion.csv-contract",
+      "ParsedColumn": "ingestion.csv-contract",
+      "ParsedFileResult": "ingestion.csv-contract",
+      "ParsedOutput": "ingestion.csv-contract",
+      "ParsedSchema": "ingestion.csv-contract",
+      "ParsedVariableResult": "ingestion.csv-contract",
+      "ParsedVariableSchema": "ingestion.csv-contract",
+      "ParserPlaygroundBatchResult": "extension.parser-protocol",
+      "ParserSourceContext": "ingestion.parse-output-provenance",
+      "ResolvedParsedRows": "ingestion.csv-contract",
+      "ReviewedCsvPolicy": "portfolio.analysis-recipes",
+      "ScanFileResult": "extension.parser-protocol",
+      "SimulationParser": "extension.parser-protocol",
+      "publish_parsed_output": "extension.parser-protocol",
+      "resolve_parsed_output": "extension.parser-protocol",
       "AccessibilityFinding": "figure.accessible-themes",
       "AccessibilityReport": "figure.accessible-themes",
       "AnalysisReport": "export.batch-reports",
@@ -5832,6 +5860,8 @@
       "tighten_y_ticks": "api.figure-decorations"
     },
     "parse_job_members": {
+      "futures": "ingestion.async-parse",
+      "output_dir": "ingestion.async-parse",
       "cancel": "ingestion.async-parse",
       "finalize": "ingestion.async-parse"
     },

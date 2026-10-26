@@ -163,6 +163,7 @@ def test_plot_retirement_is_identity_scoped_and_borrowed_figures_stay_exportable
             {
                 "simulator": "gem5",
                 "parser_strategy": "simple",
+                "loaded_origin": None,
                 "data": TypedTableCodec.encode(_data()),
                 "plots": [plot.to_dict(), other.to_dict()],
             },
@@ -319,6 +320,7 @@ def test_rejected_restore_releases_only_new_candidate_artifacts(reuse_live: bool
             {
                 "simulator": "gem5",
                 "parser_strategy": "simple",
+                "loaded_origin": None,
                 "data": TypedTableCodec.encode(_data()),
                 "plots": [live.to_dict()],
             },

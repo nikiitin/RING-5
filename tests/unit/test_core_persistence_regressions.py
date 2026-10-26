@@ -7,11 +7,15 @@ import json
 import threading
 from concurrent.futures import Future, ThreadPoolExecutor
 from pathlib import Path
+from typing import cast
 
 import pandas as pd
 import pytest
 from openpyxl import Workbook
 
+from src.core.models.data_models import ParseVariableConfig
+from src.core.models.preview_models import PreviewContext
+from src.core.models.typed_table_models import TypedTablePayload
 from src.core.services.autosave_recovery_service import AutosaveRecoveryService
 from src.core.services.background_job_service import BackgroundJobService
 from src.core.services.browser_upload_service import BrowserUploadService
@@ -33,18 +37,26 @@ def test_parser_state_owns_nested_configuration_and_unique_identity() -> None:
     first.get_parse_variables()[0]["name"] = "changed"
     assert second.get_parse_variables() == original
     assert first.get_parse_variables()[0]["_id"] != original[0]["_id"]
-    entries = [
-        {"name": name, "type": "vector", "_id": identifier, "params": {"entries": ["0"]}}
-        for name, identifier in zip("abcde", ["same", "same", "", None, 3], strict=True)
-    ]
+    # Malformed editor IDs exercise normalization without changing nested options.
+    entries = cast(
+        list[ParseVariableConfig],
+        [
+            {"name": name, "type": "vector", "_id": identifier, "params": {"entries": ["0"]}}
+            for name, identifier in zip("abcde", ["same", "same", "", None, 3], strict=True)
+        ],
+    )
     first.set_parse_variables(entries)
-    entries[0]["params"]["entries"].append("external")
+    original_entries = entries[0]["params"]["entries"]
+    assert isinstance(original_entries, list)
+    original_entries.append("external")
     variables = first.get_parse_variables()
     identifiers = [item["_id"] for item in variables]
     assert len(set(identifiers)) == 5
     assert all(isinstance(identifier, str) and identifier for identifier in identifiers)
     assert variables[0]["params"]["entries"] == ["0"]
-    variables[0]["params"]["entries"].append("external")
+    copied_entries = variables[0]["params"]["entries"]
+    assert isinstance(copied_entries, list)
+    copied_entries.append("external")
     assert first.get_parse_variables()[0]["params"]["entries"] == ["0"]
     first.set_parse_variables(
         [item for item in first.get_parse_variables() if item["_id"] != "same"]
@@ -54,7 +66,7 @@ def test_parser_state_owns_nested_configuration_and_unique_identity() -> None:
     assert len({item["_id"] for item in normalized}) == 5
 
 
-def test_restore_replaces_existing_data_and_previews(preview_context) -> None:
+def test_restore_replaces_existing_data_and_previews(preview_context: PreviewContext) -> None:
     repository = SessionRepository()
     repository.data_repo.add_dataset("old", pd.DataFrame({"x": [1]}))
     repository.data_repo.set_processed_data(pd.DataFrame({"x": [99]}))
@@ -62,7 +74,13 @@ def test_restore_replaces_existing_data_and_previews(preview_context) -> None:
         "reduction", pd.DataFrame({"x": [88]}), context=preview_context
     )
     report = repository.restore_from_portfolio(
-        {"parser_strategy": "simple", "simulator": "gem5", "data": None, "plots": []}
+        {
+            "parser_strategy": "simple",
+            "simulator": "gem5",
+            "data": None,
+            "plots": [],
+            "loaded_origin": None,
+        }
     )
     assert repository.data_repo.get_data() is None
     assert repository.data_repo.get_processed_data() is None
@@ -71,16 +89,25 @@ def test_restore_replaces_existing_data_and_previews(preview_context) -> None:
     assert report.complete
 
 
-def test_invalid_table_restore_leaves_current_data_and_previews_unchanged(preview_context) -> None:
+def test_invalid_table_restore_leaves_current_data_and_previews_unchanged(
+    preview_context: PreviewContext,
+) -> None:
     repository = SessionRepository()
     frame = pd.DataFrame({"x": [1]})
     repository.data_repo.add_dataset("kept", frame)
     repository.preview_repo.set_preview("reduction", frame, context=preview_context)
     with pytest.raises(ValueError, match="table|payload"):
         repository.restore_from_portfolio(
-            {"parser_strategy": "simple", "simulator": "gem5", "data": {"invalid": True}}
+            {
+                "parser_strategy": "simple",
+                "simulator": "gem5",
+                "data": cast(TypedTablePayload, {"invalid": True}),
+                "loaded_origin": None,
+            }
         )
-    pd.testing.assert_frame_equal(repository.data_repo.get_data(), frame)
+    retained = repository.data_repo.get_data()
+    assert retained is not None
+    pd.testing.assert_frame_equal(retained, frame)
     assert repository.preview_repo.has_preview("reduction")
     assert len(repository.data_repo.list_datasets()) == 1
 
@@ -109,15 +136,18 @@ def test_csv_metadata_follows_replacement_and_counts_records(tmp_path: Path) -> 
     path = tmp_path / "data.csv"
     path.write_text('name,note\nA,"first\nsecond"\n\n   \n', encoding="utf-8")
     CsvPoolService.clear_caches()
-    assert CsvPoolService._get_csv_metadata(str(path))["rows"] == 1
+    initial = CsvPoolService._get_csv_metadata(str(path))
+    assert initial is not None and initial["rows"] == 1
     replacement = tmp_path / "next.csv"
     replacement.write_text("new\n1\n2\n3\n", encoding="utf-8")
     replacement.replace(path)
     metadata = CsvPoolService._get_csv_metadata(str(path))
+    assert metadata is not None
     assert metadata["columns"] == ["new"]
     assert metadata["rows"] == 3
     path.write_text("changed\n7\n", encoding="utf-8")
-    assert CsvPoolService._get_csv_metadata(str(path))["columns"] == ["changed"]
+    changed = CsvPoolService._get_csv_metadata(str(path))
+    assert changed is not None and changed["columns"] == ["changed"]
 
 
 def test_import_aware_offsets_use_utc_and_uint64_keeps_every_bit(tmp_path: Path) -> None:

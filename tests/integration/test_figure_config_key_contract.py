@@ -97,7 +97,7 @@ def test_canonical_recipe_keys_retain_unmaterialized_values_and_one_current_vers
         ),
     )
     payload = AnalysisRecipeService.dumps(recipe)
-    assert recipe.schema_version == ANALYSIS_RECIPE_SCHEMA_VERSION == 4
+    assert recipe.schema_version == ANALYSIS_RECIPE_SCHEMA_VERSION
     assert AnalysisRecipeService.loads(payload) == recipe
     obsolete = json.loads(payload)
     obsolete["schema_version"] = ANALYSIS_RECIPE_SCHEMA_VERSION - 1

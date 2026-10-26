@@ -49,12 +49,10 @@ def _parse(root: Path, text: str, configs: list[StatConfig]) -> dict[str, str]:
     (root / "stats.txt").write_text(text, encoding="utf-8")
     batch = Gem5Parser.submit_parse_async(str(root), "stats.txt", configs, str(root / "out"))
     output = Gem5Parser.finalize_parsing(
-        str(root / "out"),
-        [future.result(timeout=30) for future in batch.futures],
-        var_names=batch.var_names,
+        batch, [future.result(timeout=30) for future in batch.futures]
     )
     assert output is not None
-    with Path(output).open(encoding="utf-8", newline="") as stream:
+    with Path(output.csv_path).open(encoding="utf-8", newline="") as stream:
         return next(csv.DictReader(stream))
 
 

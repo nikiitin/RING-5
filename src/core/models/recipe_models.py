@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 from typing import Any, Literal, Mapping
 
 from src.core.models.data_models import ScannedVariableDict
+from src.core.models.parsing_models import PARSER_RESULT_VERSION
+from src.core.models.source_context_models import CsvPolicy, InferredCsvPolicy
 
 RecipeParameterType = Literal["string", "integer", "number", "boolean", "path"]
 RecipeScalar = str | int | float | bool
@@ -13,7 +15,7 @@ RecipeSourceKind = Literal["csv", "parser"]
 RecipeEngine = Literal["plotly", "matplotlib"]
 
 
-ANALYSIS_RECIPE_SCHEMA_VERSION = 4
+ANALYSIS_RECIPE_SCHEMA_VERSION = 5
 
 
 @dataclass(frozen=True)
@@ -48,8 +50,12 @@ class RecipeSource:
         strategy: Registered parser strategy.
         variables: Serialized parser-variable configurations.
         scanned_variables: Captured scanner metadata used by parser variables.
-        scan_limit: Parser discovery sample limit; zero is exhaustive.
-        strict: Whether missing parser statistics fail execution.
+        scan_limit: Captured discovery limit; zero is exhaustive and ``None``
+            records a resolved request that performed no discovery.
+        strict: Whether missing numeric variable values reject parser finalization.
+        simulator: Declared backend identifier used for parser replay.
+        parser_contract_version: Shared parser semantic contract required for replay.
+        csv_policy: Captured inference or reviewed-import policy used for CSV replay.
     """
 
     kind: RecipeSourceKind
@@ -58,8 +64,11 @@ class RecipeSource:
     strategy: str = "simple"
     variables: tuple[dict[str, Any], ...] = ()
     scanned_variables: tuple[ScannedVariableDict, ...] = ()
-    scan_limit: int = 10
+    scan_limit: int | None = 10
     strict: bool = True
+    simulator: str = "gem5"
+    parser_contract_version: str = str(PARSER_RESULT_VERSION)
+    csv_policy: CsvPolicy = field(default_factory=InferredCsvPolicy)
 
 
 @dataclass(frozen=True)

@@ -363,6 +363,7 @@ def test_restore_deserializer_can_wait_for_foreign_state_publication() -> None:
             state.restore_session(
                 {
                     "parser_strategy": "simple",
+                    "loaded_origin": None,
                     "simulator": "gem5",
                     "data": TypedTableCodec.encode(pd.DataFrame({"new": [3]})),
                     "plots": [{"name": "one"}],
@@ -399,7 +400,12 @@ def test_restore_rejects_concurrent_writes_without_invalidating_source_preview(
     with ThreadPoolExecutor(max_workers=1) as pool:
         future = pool.submit(
             state.restore_session,
-            {"parser_strategy": "simple", "simulator": "gem5", "plots": [{"name": "one"}]},
+            {
+                "parser_strategy": "simple",
+                "loaded_origin": None,
+                "simulator": "gem5",
+                "plots": [{"name": "one"}],
+            },
         )
         assert entered.wait(5)
         try:
@@ -428,7 +434,7 @@ def test_failed_restore_preparation_preserves_existing_repository_and_preview(ap
     options = _store(api)
     repository = api.state_manager._session_repo
     with pytest.raises(ValueError, match="parser strategy"):
-        api.state_manager.restore_session({"parser_strategy": None})
+        api.state_manager.restore_session({"parser_strategy": None, "loaded_origin": None})
     assert api.state_manager._session_repo is repository
     assert api.state_manager.get_data()["x"].tolist() == [1.0]
     assert api.preview_matches("scale", operation_config=options)
@@ -458,6 +464,7 @@ def test_source_publication_during_restore_preparation_rejects_candidate() -> No
             state.restore_session,
             {
                 "parser_strategy": "simple",
+                "loaded_origin": None,
                 "simulator": "gem5",
                 "data": TypedTableCodec.encode(pd.DataFrame({"x": [2]})),
                 "plots": [{"name": "one"}],
@@ -484,6 +491,7 @@ def test_nested_restore_rejects_before_deserialization_or_publication() -> None:
             state.restore_session(
                 {
                     "parser_strategy": "simple",
+                    "loaded_origin": None,
                     "simulator": "gem5",
                     "data": TypedTableCodec.encode(pd.DataFrame({"x": [2]})),
                     "plots": [{"name": "one"}],

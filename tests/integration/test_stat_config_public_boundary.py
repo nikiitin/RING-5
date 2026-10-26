@@ -44,6 +44,7 @@ def test_injected_backend_custom_options_survive_submission_and_saved_provenance
     )
     from src.core.models.parsing_models import SourceInstance
     from src.parsing.parser_protocol import SimulationParser
+    from tests.helpers.parsed_values import completed_future, numeric_file
 
     parser = MagicMock(spec=SimulationParser)
     variable = ScannedVariable(
@@ -56,7 +57,12 @@ def test_injected_backend_custom_options_survive_submission_and_saved_provenance
     future.set_result(ScanFileResult("stats.txt", [variable]))
     parser.submit_scan_async.return_value = [future]
     parser.aggregate_scan_results.return_value = ScanResult([variable], scanned_files=1)
-    parser.submit_parse_async.return_value = ParseBatchResult([], ["output"])
+    value = numeric_file("/simulations/stats.txt", {"output": 1.0})
+    parser.submit_parse_async.side_effect = (
+        lambda _path, _pattern, _variables, output_dir, strategy, _scanned: ParseBatchResult(
+            (completed_future(value),), ("output",), (value.source_path,), output_dir, strategy
+        )
+    )
     configured = ring5.StatConfig(
         name="output",
         type="custom_stat",

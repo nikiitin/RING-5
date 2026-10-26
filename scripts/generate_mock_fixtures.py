@@ -29,6 +29,7 @@ from pathlib import Path
 import pandas as pd
 
 from src.core.application_api import ApplicationAPI
+from src.core.common.parsed_output import ParsedOutputIO
 from src.core.models.parsing_models import StatConfig
 
 logging.basicConfig(level=logging.WARNING)
@@ -75,28 +76,30 @@ def _find_column(df: pd.DataFrame, needle: str) -> str:
 
 def _parse_to_dataframe() -> pd.DataFrame:
     api = ApplicationAPI()
-    stats_files = api.find_stats_files(str(STATS_ROOT), "stats.txt")
-    if not stats_files:
-        raise SystemExit(f"no stats.txt under {STATS_ROOT}; run `make test-data` first")
-    print(f">> parsing {len(stats_files)} stats.txt files from {STATS_ROOT}")
+    try:
+        stats_files = api.find_stats_files(str(STATS_ROOT), "stats.txt")
+        if not stats_files:
+            raise SystemExit(f"no stats.txt under {STATS_ROOT}; run `make test-data` first")
+        print(f">> parsing {len(stats_files)} stats.txt files from {STATS_ROOT}")
 
-    variables = []
-    for column, source in COLUMN_SOURCES.items():
-        kind = "scalar" if column in METRICS else "configuration"
-        variables.append(StatConfig(name=source, type=kind, params={"source_type": kind}))
+        variables = []
+        for column, source in COLUMN_SOURCES.items():
+            kind = "scalar" if column in METRICS else "configuration"
+            variables.append(StatConfig(name=source, type=kind, params={"source_type": kind}))
 
-    with tempfile.TemporaryDirectory() as out_dir:
-        batch = api.submit_parse_async(
-            stats_path=str(STATS_ROOT),
-            stats_pattern="stats.txt",
-            variables=variables,
-            output_dir=out_dir,
-        )
-        results = [f.result() for f in batch.futures]
-        csv_path = api.finalize_parsing(out_dir, results, var_names=batch.var_names)
-        if not csv_path:
-            raise SystemExit("parser produced no CSV")
-        df = pd.read_csv(csv_path)
+        with tempfile.TemporaryDirectory() as out_dir:
+            batch = api.submit_parse_async(
+                stats_path=str(STATS_ROOT),
+                stats_pattern="stats.txt",
+                variables=variables,
+                output_dir=out_dir,
+            )
+            results = [f.result() for f in batch.futures]
+            output = api.finalize_parsing(batch, results)
+            df = ParsedOutputIO.to_frame(output)
+
+    finally:
+        api.close(wait=True)
 
     print(f">> raw parser columns: {list(df.columns)}")
     print(f">> raw parser shape: {df.shape}")

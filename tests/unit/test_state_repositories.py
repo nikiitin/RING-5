@@ -20,6 +20,7 @@ from unittest.mock import MagicMock
 import pandas as pd
 import pytest
 
+from src.core.models.preview_models import PreviewContext
 from src.core.models.data_models import (
     CsvPoolEntry,
     ParseVariableConfig,
@@ -599,7 +600,7 @@ class TestPreviewRepository:
         assert repo.has_preview("any") is False
 
     def test_set_and_get_preview(
-        self, repo: PreviewRepository, preview_df: pd.DataFrame, preview_context
+        self, repo: PreviewRepository, preview_df: pd.DataFrame, preview_context: PreviewContext
     ) -> None:
         repo.set_preview("normalize", preview_df, context=preview_context)
         result = repo.get_preview("normalize")
@@ -607,19 +608,21 @@ class TestPreviewRepository:
         pd.testing.assert_frame_equal(result, preview_df)
 
     def test_has_preview(
-        self, repo: PreviewRepository, preview_df: pd.DataFrame, preview_context
+        self, repo: PreviewRepository, preview_df: pd.DataFrame, preview_context: PreviewContext
     ) -> None:
         repo.set_preview("op1", preview_df, context=preview_context)
         assert repo.has_preview("op1") is True
         assert repo.has_preview("op2") is False
 
     def test_set_preview_empty_name_raises(
-        self, repo: PreviewRepository, preview_df: pd.DataFrame, preview_context
+        self, repo: PreviewRepository, preview_df: pd.DataFrame, preview_context: PreviewContext
     ) -> None:
         with pytest.raises(ValueError, match="empty"):
             repo.set_preview("", preview_df, context=preview_context)
 
-    def test_set_preview_none_data_raises(self, repo: PreviewRepository, preview_context) -> None:
+    def test_set_preview_none_data_raises(
+        self, repo: PreviewRepository, preview_context: PreviewContext
+    ) -> None:
         with pytest.raises(ValueError, match="None"):
             repo.set_preview("op", None, context=preview_context)  # type: ignore[arg-type]
 
@@ -627,7 +630,7 @@ class TestPreviewRepository:
         assert repo.get_preview("") is None
 
     def test_clear_preview(
-        self, repo: PreviewRepository, preview_df: pd.DataFrame, preview_context
+        self, repo: PreviewRepository, preview_df: pd.DataFrame, preview_context: PreviewContext
     ) -> None:
         repo.set_preview("op1", preview_df, context=preview_context)
         repo.clear_preview("op1")
@@ -637,7 +640,7 @@ class TestPreviewRepository:
         repo.clear_preview("nonexistent")  # No error
 
     def test_clear_all_previews(
-        self, repo: PreviewRepository, preview_df: pd.DataFrame, preview_context
+        self, repo: PreviewRepository, preview_df: pd.DataFrame, preview_context: PreviewContext
     ) -> None:
         repo.set_preview("op1", preview_df, context=preview_context)
         repo.set_preview("op2", preview_df, context=preview_context)
@@ -709,6 +712,7 @@ class TestSessionRepository:
         """Test restoring parser-related state from portfolio data."""
         portfolio: dict = {
             "parser_strategy": "simple",
+            "loaded_origin": None,
             "simulator": "gem5",  # type: ignore[type-arg]
             "parse_variables": [{"name": "ipc", "type": "scalar", "_id": "id1"}],
             "stats_path": "/restored/path",
@@ -743,6 +747,7 @@ class TestSessionRepository:
 
         portfolio: dict = {
             "parser_strategy": "simple",
+            "loaded_origin": None,
             "simulator": "gem5",  # type: ignore[type-arg]
             "data": TypedTableCodec.encode(df),
             "plots": [],
@@ -765,6 +770,7 @@ class TestSessionRepository:
         )
         portfolio: dict = {
             "parser_strategy": "simple",
+            "loaded_origin": None,
             "simulator": "gem5",  # type: ignore[type-arg]
             "manager_history": [record],
             "portfolio_history": [record, record],
@@ -782,6 +788,7 @@ class TestSessionRepository:
         """Test restoring plots from portfolio data."""
         portfolio: dict = {
             "parser_strategy": "simple",
+            "loaded_origin": None,
             "simulator": "gem5",  # type: ignore[type-arg]
             "plots": [{"plot_type": "bar", "id": 1}],
             "plot_counter": 5,

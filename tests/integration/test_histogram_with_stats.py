@@ -13,12 +13,13 @@ Example from gem5 output:
     ...
 """
 
+from collections.abc import Generator
 from pathlib import Path
 
-import pandas as pd
 import pytest
 
 from src.core.application_api import ApplicationAPI
+from src.core.common.parsed_output import ParsedOutputIO
 from src.core.models.data_models import ParseVariableConfig
 
 
@@ -39,9 +40,13 @@ class TestHistogramWithStatistics:
         return path
 
     @pytest.fixture
-    def facade(self) -> ApplicationAPI:
+    def facade(self) -> Generator[ApplicationAPI, None, None]:
         """Create facade instance."""
-        return ApplicationAPI()
+        api = ApplicationAPI()
+        try:
+            yield api
+        finally:
+            api.close(wait=True)
 
     def test_scan_htm_transaction_commit_cycles(
         self, facade: ApplicationAPI, stats_dir: Path
@@ -109,9 +114,8 @@ class TestHistogramWithStatistics:
         )
 
         parse_results = [f.result() for f in parse_batch.futures]
-        csv_path = facade.finalize_parsing(
-            str(output_dir), parse_results, var_names=parse_batch.var_names
-        )
+        parsed_output = facade.finalize_parsing(parse_batch, parse_results)
+        csv_path = parsed_output.csv_path
 
         assert csv_path is not None, "Parsing failed"
         assert Path(csv_path).exists(), f"CSV file not created: {csv_path}"
@@ -154,15 +158,14 @@ class TestHistogramWithStatistics:
         )
 
         parse_results = [f.result() for f in parse_batch.futures]
-        csv_path = facade.finalize_parsing(
-            str(output_dir), parse_results, var_names=parse_batch.var_names
-        )
+        parsed_output = facade.finalize_parsing(parse_batch, parse_results)
+        csv_path = parsed_output.csv_path
 
         assert csv_path is not None, "Parsing with regex pattern failed"
         assert Path(csv_path).exists(), f"CSV file not created: {csv_path}"
 
         # Verify data was parsed
-        df = pd.read_csv(csv_path)
+        df = ParsedOutputIO.to_frame(parsed_output)
         assert len(df) > 0, "No data in parsed CSV"
 
         # Check that columns were created for the histogram
@@ -204,14 +207,13 @@ class TestHistogramWithStatistics:
         )
 
         parse_results = [f.result() for f in parse_batch.futures]
-        csv_path = facade.finalize_parsing(
-            str(output_dir), parse_results, var_names=parse_batch.var_names
-        )
+        parsed_output = facade.finalize_parsing(parse_batch, parse_results)
+        csv_path = parsed_output.csv_path
 
         assert csv_path is not None
 
         # Read and verify
-        df = pd.read_csv(csv_path)
+        df = ParsedOutputIO.to_frame(parsed_output)
 
         # Should have columns for the requested statistics
         expected_stats = [

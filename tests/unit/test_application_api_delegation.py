@@ -3,6 +3,7 @@
 from src.core.models.parsing_models import SourceInstance
 from collections.abc import Generator
 from concurrent.futures import Future
+from pathlib import Path
 from typing import Any, cast
 from unittest.mock import MagicMock, call, patch
 
@@ -13,6 +14,13 @@ from src.core.application_api import ApplicationAPI
 from src.core.models.data_models import ParseVariableConfig
 from src.core.models.history_models import OperationRecord
 from src.core.models.preview_models import ActivePreviewInputs
+from src.core.models.parsing_models import (
+    ParseBatchResult,
+    ScanFileResult,
+    ScanResult,
+    ScannedVariable,
+)
+from tests.helpers.parsed_values import completed_future, numeric_file, numeric_output
 
 
 @pytest.fixture
@@ -265,19 +273,30 @@ class TestSubmitParseAsync:
 
 
 class TestFinalizeParsing:
-    """Test finalize_parsing delegation."""
+    """Test typed finalization delegates its complete immutable plan."""
 
-    def test_delegates_to_parser(self, api: ApplicationAPI) -> None:
-        cast(Any, api._parser.finalize_parsing).return_value = "/out/result.csv"
-        result = api.finalize_parsing("/out", [MagicMock()])
-        assert result == "/out/result.csv"
+    def test_delegates_to_parser(self, api: ApplicationAPI, tmp_path: Path) -> None:
+        value = numeric_file("source", {"x": 1.0})
+        batch = ParseBatchResult(
+            (completed_future(value),), ("x",), ("source",), str(tmp_path), "simple"
+        )
+        output = numeric_output(tmp_path / "result.csv", {"x": 1.0})
+        cast(Any, api._parser.finalize_parsing).return_value = output
+        result = api.finalize_parsing(batch, [value])
+        assert result is output
 
-    def test_with_var_names(self, api: ApplicationAPI) -> None:
-        cast(Any, api._parser.finalize_parsing).return_value = "/out/r.csv"
-        api.finalize_parsing("/out", [], var_names=["a", "b"])
-        args_tuple = cast(MagicMock, api._parser.finalize_parsing).call_args
-        call_kwargs = args_tuple[1]
-        assert call_kwargs["var_names"] == ["a", "b"]
+    def test_with_batch_variable_order(self, api: ApplicationAPI, tmp_path: Path) -> None:
+        value = numeric_file("source", {"a": 1.0, "b": 2.0})
+        batch = ParseBatchResult(
+            (completed_future(value),), ("a", "b"), ("source",), str(tmp_path), "simple"
+        )
+        output = numeric_output(tmp_path / "r.csv", {"a": 1.0, "b": 2.0})
+        cast(Any, api._parser.finalize_parsing).return_value = output
+        api.finalize_parsing(batch, [value])
+        call_args = cast(MagicMock, api._parser.finalize_parsing).call_args
+        assert call_args.args == (batch, [value])
+        assert call_args.args[0].var_names == ("a", "b")
+        assert call_args.kwargs == {"complete": True}
 
 
 class TestIncrementalParsing:
@@ -285,7 +304,7 @@ class TestIncrementalParsing:
 
     @pytest.mark.parametrize("complete", [True, False])
     def test_submit_and_finalize_delegate_to_parser(
-        self, api: ApplicationAPI, complete: bool
+        self, api: ApplicationAPI, tmp_path: Path, complete: bool
     ) -> None:
         # [test->req~ring5.ingestion.incremental-parsing~1]
         from src.core.models.parsing_models import (
@@ -294,18 +313,20 @@ class TestIncrementalParsing:
         )
 
         batch = IncrementalParseBatchResult(
-            futures=[],
-            var_names=["IPC"],
+            futures=(),
+            var_names=("IPC",),
             output_dir="/out",
             strategy_type="simple",
             cache_path="/out/cache.json",
             configuration_hash="a" * 64,
-            fingerprints=(),
-            cached_rows=(),
+            fingerprints=(("/inputs/stats.txt", "b" * 64),),
+            cached_results=(numeric_file("/inputs/stats.txt", {"IPC": 1.0}),),
             changed_files=(),
             removed_files=(),
         )
-        result = IncrementalParseResult("/out/results.csv", 0, 1, 0, 1)
+        result = IncrementalParseResult(
+            numeric_output(tmp_path / "results.csv", {"IPC": 1.0}), 0, 1, 0, 1
+        )
         cast(Any, api._parser.submit_incremental_parse_async).return_value = batch
         cast(Any, api._parser.finalize_incremental_parsing).return_value = result
 
@@ -352,8 +373,11 @@ class TestParserPlayground:
         )
 
         batch = ParserPlaygroundBatchResult(
-            futures=[],
-            var_names=["IPC"],
+            futures=(
+                completed_future(numeric_file("/inputs/a/stats.txt", {"IPC": 1.0})),
+                completed_future(numeric_file("/inputs/b/stats.txt", {"IPC": 2.0})),
+            ),
+            var_names=("IPC",),
             output_dir="/out",
             strategy_type="simple",
             matched_file_count=2,
@@ -363,7 +387,7 @@ class TestParserPlayground:
             matched_file_count=2,
             sampled_files=batch.sampled_files,
             columns=("IPC",),
-            rows=(("1.0",), ("2.0",)),
+            rows=((1.0,), (2.0,)),
             missing_variables=(),
             diagnostics=("The sampled configuration is ready for a full parse.",),
             ready_for_full_parse=True,
@@ -389,7 +413,8 @@ class TestParserPlayground:
             ),
             "/out",
         )
-        finalized = api.finalize_parser_playground(submitted, [{"IPC": 1.0}])
+        values = [future.result() for future in submitted.futures]
+        finalized = api.finalize_parser_playground(submitted, values)
 
         assert submitted is batch
         assert finalized is result
@@ -398,7 +423,7 @@ class TestParserPlayground:
         assert configs[0].name == "IPC"
         assert configs[0].source_name == "cpu.ipc"
         cast(MagicMock, api._parser.finalize_parser_playground).assert_called_once_with(
-            batch, [{"IPC": 1.0}]
+            batch, values
         )
 
 
@@ -420,9 +445,16 @@ class TestScanMethods:
         assert api.list_background_jobs() == ()
 
     def test_finalize_scan(self, api: ApplicationAPI) -> None:
-        cast(Any, api._parser.aggregate_scan_results).return_value = [MagicMock()]
-        result = api.finalize_scan([[MagicMock()]])
-        assert len(result) == 1
+        variable = ScannedVariable(
+            "value", "scalar", source_type="scalar", instances=(SourceInstance("value", ()),)
+        )
+        value = ScanFileResult("source", [variable])
+        aggregate = ScanResult([variable], scanned_files=1)
+        cast(Any, api._parser.aggregate_scan_results).return_value = aggregate
+        result = api.finalize_scan([value])
+        assert result is aggregate
+        assert len(result.variables) == 1
+        cast(MagicMock, api._parser.aggregate_scan_results).assert_called_once_with([value])
 
 
 class TestGetColumnInfo:

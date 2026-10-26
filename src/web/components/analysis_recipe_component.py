@@ -152,6 +152,7 @@ class AnalysisRecipeComponent:
                 description=description,
                 parameters=parameters,
                 source=source,
+                transformations=captured.transformations,
                 exports=exports,
             )
             api.data_services.save_analysis_recipe(recipe, overwrite=overwrite)

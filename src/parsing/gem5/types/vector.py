@@ -3,6 +3,7 @@
 import logging
 from typing import override
 
+from src.core.common.parse_failure import parse_names_text
 from src.parsing.gem5.types.base import FrameStatType, entry_names, register_type
 
 logger = logging.getLogger(__name__)
@@ -34,7 +35,7 @@ class Vector(FrameStatType):
         if unrequested:
             logger.warning(
                 "VECTOR: Skipping unknown entries %s; configured entries are %s.",
-                sorted(unrequested),
-                self._entries,
+                parse_names_text(sorted(unrequested)),
+                parse_names_text(self._entries),
             )
         return {key: value for key, value in sample.items() if key in self._entries}

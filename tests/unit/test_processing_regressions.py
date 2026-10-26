@@ -1,12 +1,14 @@
 """Regression tests for numerical shapers and parser result handling."""
 
 import math
-import os
 from pathlib import Path
-from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
+
+from src.core.common.parsed_output import ParsedOutputIO
+from src.core.models.parsed_output_models import ParsedCell, ParsedFileResult, ParsedVariableResult
+from tests.helpers.parsed_values import numeric_file
 
 
 class TestMeanNaNHandling:
@@ -168,7 +170,7 @@ class TestScalarReduceDuplicatesNaN:
         from src.parsing.gem5.types.scalar import Scalar
 
         with pytest.raises(TypeError, match="abstract"):
-            StatType(repeat=1)
+            StatType(repeat=1)  # type: ignore[abstract]
         scalar = Scalar(repeat=1)
         scalar.balance_content()
         scalar.reduce_duplicates()
@@ -303,118 +305,89 @@ class TestExtractWithPattern:
         assert result == "system::cpu0::l2cache"
 
 
-class TestConstructFinalCsvHeaderUnion:
-    """Verify construct_final_csv builds the header from the union of results."""
+class TestTypedCsvHeaderUnion:
+    """Resolve complete logical declarations into one union of physical columns."""
 
     def test_header_union_from_multiple_results(self, tmp_path: Path) -> None:
-        """
-        When the first result lacks a variable that later results have,
-        the header should still include columns for that variable.
-        """
-        from src.parsing.gem5.impl.gem5_parser import Gem5Parser
-
-        # Result 1 has varA but not varB
-        var_a1 = MagicMock()
-        var_a1.entries = []
-        var_a1.balance_content = MagicMock()
-        var_a1.reduce_duplicates = MagicMock()
-        var_a1.reduced_content = "10"
-
-        # Result 2 has both varA and varB
-        var_a2 = MagicMock()
-        var_a2.entries = []
-        var_a2.balance_content = MagicMock()
-        var_a2.reduce_duplicates = MagicMock()
-        var_a2.reduced_content = "20"
-
-        var_b2 = MagicMock()
-        var_b2.entries = []
-        var_b2.balance_content = MagicMock()
-        var_b2.reduce_duplicates = MagicMock()
-        var_b2.reduced_content = "30"
-
+        """A missing numeric measurement keeps its column and missing value."""
         results = [
-            {"varA": var_a1},
-            {"varA": var_a2, "varB": var_b2},
+            numeric_file("a", {"varA": 10.0, "varB": math.nan}),
+            numeric_file("b", {"varA": 20.0, "varB": 30.0}),
         ]
-
-        csv_path = Gem5Parser.construct_final_csv(
-            str(tmp_path), results, var_names=["varA", "varB"]
+        output = ParsedOutputIO.publish(
+            tmp_path / "results.csv",
+            ParsedOutputIO.resolve(results, ["varA", "varB"], ("a", "b")),
         )
-
-        assert csv_path is not None
-        assert os.path.exists(csv_path)
-
-        with open(csv_path) as f:
-            lines = f.readlines()
-
+        csv_path = Path(output.csv_path)
+        assert csv_path.is_file()
+        with csv_path.open(encoding="utf-8") as stream:
+            lines = stream.readlines()
         header = lines[0].strip()
         assert "varA" in header
         assert "varB" in header
-
-        # Row 1 should have NaN for missing varB
         row1 = lines[1].strip()
         assert "10" in row1
         assert "NaN" in row1
-
-        # Row 2 should have both values
         row2 = lines[2].strip()
         assert "20" in row2
         assert "30" in row2
 
     def test_header_union_with_entries(self, tmp_path: Path) -> None:
-        """
-        Variables with entries expand into multiple columns.
-        The header should reflect the entries even if the variable
-        appears only in a later result.
-        """
-        from src.parsing.gem5.impl.gem5_parser import Gem5Parser
-
-        # Result 1 has only scalar_var
-        scalar_var = MagicMock()
-        scalar_var.entries = []
-        scalar_var.balance_content = MagicMock()
-        scalar_var.reduce_duplicates = MagicMock()
-        scalar_var.reduced_content = "99"
-
-        # Result 2 has scalar_var and dist_var (with entries)
-        scalar_var2 = MagicMock()
-        scalar_var2.entries = []
-        scalar_var2.balance_content = MagicMock()
-        scalar_var2.reduce_duplicates = MagicMock()
-        scalar_var2.reduced_content = "100"
-
-        dist_var = MagicMock()
-        dist_var.entries = ["bucket_0", "bucket_1"]
-        dist_var.balance_content = MagicMock()
-        dist_var.reduce_duplicates = MagicMock()
-        dist_var.reduced_content = {"bucket_0": "5.0", "bucket_1": "15.0"}
-
+        """Later observed entries expand an initially empty variable declaration."""
         results = [
-            {"scalar_var": scalar_var},
-            {"scalar_var": scalar_var2, "dist_var": dist_var},
+            ParsedFileResult(
+                "a",
+                (
+                    ParsedVariableResult(
+                        "scalar_var",
+                        "number",
+                        "scalar",
+                        (ParsedCell("scalar_var", "number", 99.0),),
+                    ),
+                    ParsedVariableResult("dist_var", "number", "entries", ()),
+                ),
+            ),
+            ParsedFileResult(
+                "b",
+                (
+                    ParsedVariableResult(
+                        "scalar_var",
+                        "number",
+                        "scalar",
+                        (ParsedCell("scalar_var", "number", 100.0),),
+                    ),
+                    ParsedVariableResult(
+                        "dist_var",
+                        "number",
+                        "entries",
+                        (
+                            ParsedCell("dist_var..bucket_0", "number", 5.0),
+                            ParsedCell("dist_var..bucket_1", "number", 15.0),
+                        ),
+                    ),
+                ),
+            ),
         ]
-
-        csv_path = Gem5Parser.construct_final_csv(
-            str(tmp_path), results, var_names=["scalar_var", "dist_var"]
+        output = ParsedOutputIO.publish(
+            tmp_path / "results.csv",
+            ParsedOutputIO.resolve(results, ["scalar_var", "dist_var"], ("a", "b")),
         )
-
-        assert csv_path is not None
-
-        with open(csv_path) as f:
-            lines = f.readlines()
-
+        assert Path(output.csv_path).is_file()
+        with Path(output.csv_path).open(encoding="utf-8") as stream:
+            lines = stream.readlines()
         header = lines[0].strip()
         assert "scalar_var" in header
         assert "dist_var..bucket_0" in header
         assert "dist_var..bucket_1" in header
+        assert lines[1].strip() == "99.0,NaN,NaN"
+        assert lines[2].strip() == "100.0,5.0,15.0"
 
-    def test_empty_results_returns_none(self) -> None:
-        """An empty results list should return None."""
-        from src.parsing.gem5.impl.gem5_parser import Gem5Parser
-
-        result = Gem5Parser.construct_final_csv("/tmp/nonexistent", [])
-        assert result is None
+    def test_empty_results_reject_before_publication(self, tmp_path: Path) -> None:
+        """An empty result set fails before any destination is published."""
+        output = tmp_path / "results.csv"
+        with pytest.raises(ValueError, match="non-empty file result"):
+            ParsedOutputIO.publish(output, ParsedOutputIO.resolve([], [], ("a",)))
+        assert not output.exists()
 
 
 class TestNormalizeNaNBaseline:

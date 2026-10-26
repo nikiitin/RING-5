@@ -3,8 +3,7 @@ Tests for RepositoryStateManager delegation and state lifecycle.
 
 Covers all delegation methods: data, config, parser, plot, preview, and history
 management. Since RepositoryStateManager delegates to SessionRepository, these
-tests verify the delegation wiring plus any logic in the manager itself
-(type enforcement in set_data, temp dir cleanup in clear_data).
+tests verify delegation, frame ownership, and temporary-directory cleanup.
 """
 
 import tempfile
@@ -16,6 +15,7 @@ import pandas as pd
 import pytest
 
 from src.core.common.stat_config_codec import StatConfigCodec
+from src.core.models.preview_models import PreviewContext
 from src.core.models.data_models import (
     CsvPoolEntry,
     ParseVariableConfig,
@@ -78,10 +78,10 @@ class TestDataManagement:
         manager.set_data(None)
         assert manager.get_data() is None
 
-    def test_set_data_type_enforcement_for_config_vars(
+    def test_set_data_preserves_frame_types_despite_parser_editor(
         self, manager: RepositoryStateManager
     ) -> None:
-        """Configuration variables should be cast to str."""
+        """Generic frame publication retains numeric data and the unrelated editor."""
         manager.set_parse_variables(
             cast(
                 list[ParseVariableConfig],
@@ -91,12 +91,15 @@ class TestDataManagement:
                 ],
             )
         )
+        editor = manager.get_parse_variables()
         df = pd.DataFrame({"benchmark": [1, 2], "value": [3.0, 4.0]})
         manager.set_data(df)
         result = manager.get_data()
         assert result is not None
-        assert pd.api.types.is_string_dtype(result["benchmark"])  # cast to string
+        assert pd.api.types.is_integer_dtype(result["benchmark"])
         assert result["value"].dtype == float  # unchanged
+        pd.testing.assert_frame_equal(result, df)
+        assert manager.get_parse_variables() == editor
 
     def test_set_data_with_on_change_callback(self, manager: RepositoryStateManager) -> None:
         callback = MagicMock()
@@ -301,7 +304,9 @@ class TestPreviewManagement:
         assert manager.has_preview("normalize") is False
         assert manager.get_preview("normalize") is None
 
-    def test_set_and_get_preview(self, manager: RepositoryStateManager, preview_context) -> None:
+    def test_set_and_get_preview(
+        self, manager: RepositoryStateManager, preview_context: PreviewContext
+    ) -> None:
         df = pd.DataFrame({"x": [1, 2, 3]})
         manager.set_preview("normalize", df, context=preview_context)
         assert manager.has_preview("normalize") is True
@@ -309,7 +314,9 @@ class TestPreviewManagement:
         assert result is not None
         assert len(result) == 3
 
-    def test_clear_preview(self, manager: RepositoryStateManager, preview_context) -> None:
+    def test_clear_preview(
+        self, manager: RepositoryStateManager, preview_context: PreviewContext
+    ) -> None:
         manager.set_preview("filter", pd.DataFrame({"x": [1]}), context=preview_context)
         manager.clear_preview("filter")
         assert manager.has_preview("filter") is False
@@ -359,6 +366,7 @@ class TestRestoreSession:
             PortfolioData,
             {
                 "parser_strategy": "simple",
+                "loaded_origin": None,
                 "simulator": "gem5",
                 "parse_variables": [
                     StatConfigCodec.to_snapshot(

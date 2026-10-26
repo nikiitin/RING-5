@@ -34,7 +34,13 @@ are released.
 
 `Session.scan_submit` returns an owned `ScanJob`; `Session.scan` waits and returns `ScanResult`.
 Likewise, `parse_submit` returns `ParseJob` and `parse` returns `ParseResult`. A job can be
-cancelled without touching work from another handle.
+cancelled without touching work from another handle. A finalized result owns `output` (the explicit
+`ParsedOutput` descriptor), its immutable `source_context`, and missing variable names as a tuple.
+Use `session.load(result)` to retain exact numeric/text semantics and source provenance.
+`result.csv_path` is the derived external exchange location; `session.load(result.csv_path)` uses
+ordinary CSV inference/null policy. The descriptor's SHA-256 binds schema meaning and CSV bytes.
+The public typed backend constructors and `resolve_parsed_output`/`publish_parsed_output` helpers
+are documented in the [parser extension guide](../extension-guides/adding-a-parser.md).
 
 Use `ring5.StatConfig` for explicit runnable parser settings. Configuration fields and `params`
 use snake_case; `repeat` is a positive integer, `entries` and `statistics` are separate text lists,
@@ -329,3 +335,25 @@ serialized portfolios must declare both fields. Unit conversion also scales a me
 companion by the absolute unit scale, without applying affine offsets to uncertainties.
 Generated recipe scripts preserve `--help` for usage; a parameter named `help` receives an
 unoccupied `--parameter-help` option, with additional `parameter-` prefixes when needed.
+
+## Loaded source and recipe replay
+
+Automatic recipe capture describes the active loaded data, independently of parser editor settings.
+A source is reusable only while its exact request is retained: named-data retention, selection and
+revision restoration preserve it; generic frame or manager edits clear it. Partial parser results
+and undeclared injected backends require an explicit caller `RecipeSource` for recipe creation.
+Recipe5 retains the declared simulator, current parser contract, actual discovery/strict policy and
+resolved scanner metadata. Replay uses those records directly without scanning again.
+
+`RecipeSource.csv_policy` is `InferredCsvPolicy(configuration_columns)` for ordinary CSV inference
+with exact configured-column casts, or `ReviewedCsvPolicy(ImportOptions(...))` for a reviewed import.
+The latter uses the same preview/load service and accepted-row exclusion policy as the import UI.
+It retains encoding, delimiter, header, whitespace, null tokens and column corrections; later editor
+changes do not alter replay. `ImportOptions` owns tuples of text tokens and `ImportColumnCorrection`
+values, with exact typed scalar controls.
+
+A successfully executed recipe retains its source and exact dataset-wide transformations. Capturing
+without an explicit source includes those steps once, followed by any explicitly supplied additional
+steps. Capturing with an explicit source uses only caller-supplied transformations. Portfolio10 saves
+this frame-associated origin separately from editable parser controls. A snapshot or arbitrary Table
+has no inferred reusable origin.

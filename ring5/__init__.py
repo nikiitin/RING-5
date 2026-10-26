@@ -6,7 +6,7 @@ Everything the web app does, as plain Python::
 
     with ring5.Session() as s:
         result = s.parse("/path/to/sims", variables=["simTicks"])
-        data = s.load(result.csv_path)
+        data = s.load(result)
         data = s.reduce_seeds(data, ["config_description_abbrev"], ["simTicks"])
         plot = s.create_plot(
             "bar",
@@ -142,11 +142,33 @@ if TYPE_CHECKING:
         PortfolioIntegritySection,
     )
     from src.core.models.parsing_models import (
+        ParseBatchResult,
+        IncrementalParseBatchResult,
+        IncrementalParseResult,
+        ParserPlaygroundBatchResult,
+        ScanFileResult,
         ParserPlaygroundResult,
         ScanResult,
         ScannedVariable,
         SourceInstance,
     )
+    from src.core.models.parsed_output_models import (
+        ParsedCell,
+        ParsedColumn,
+        ParsedFileResult,
+        ParsedOutput,
+        ParsedSchema,
+        ParsedVariableResult,
+        ParsedVariableSchema,
+        ResolvedParsedRows,
+    )
+    from src.core.models.source_context_models import (
+        ParserSourceContext,
+        InferredCsvPolicy,
+        ReviewedCsvPolicy,
+    )
+    from src.parsing.parser_protocol import SimulationParser
+    from ring5._parsed_output import publish_parsed_output, resolve_parsed_output
     from src.core.models.data_models import PipelineConfigImportResult
     from src.core.models.visualization.small_multiples_spec import SmallMultiplesSpec
     from src.core.models.portfolio_models import RestoreReport
@@ -229,6 +251,31 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
     "available_plot_types": ("ring5._session", "available_plot_types"),
     "ParseJob": ("ring5._parse", "ParseJob"),
     "ParseResult": ("ring5._parse", "ParseResult"),
+    "ParseBatchResult": ("src.core.models.parsing_models", "ParseBatchResult"),
+    "IncrementalParseBatchResult": (
+        "src.core.models.parsing_models",
+        "IncrementalParseBatchResult",
+    ),
+    "IncrementalParseResult": ("src.core.models.parsing_models", "IncrementalParseResult"),
+    "ParserPlaygroundBatchResult": (
+        "src.core.models.parsing_models",
+        "ParserPlaygroundBatchResult",
+    ),
+    "ScanFileResult": ("src.core.models.parsing_models", "ScanFileResult"),
+    "ParsedCell": ("src.core.models.parsed_output_models", "ParsedCell"),
+    "ParsedColumn": ("src.core.models.parsed_output_models", "ParsedColumn"),
+    "ParsedFileResult": ("src.core.models.parsed_output_models", "ParsedFileResult"),
+    "ParsedOutput": ("src.core.models.parsed_output_models", "ParsedOutput"),
+    "ParsedSchema": ("src.core.models.parsed_output_models", "ParsedSchema"),
+    "ParsedVariableResult": ("src.core.models.parsed_output_models", "ParsedVariableResult"),
+    "ParsedVariableSchema": ("src.core.models.parsed_output_models", "ParsedVariableSchema"),
+    "ResolvedParsedRows": ("src.core.models.parsed_output_models", "ResolvedParsedRows"),
+    "ParserSourceContext": ("src.core.models.source_context_models", "ParserSourceContext"),
+    "InferredCsvPolicy": ("src.core.models.source_context_models", "InferredCsvPolicy"),
+    "ReviewedCsvPolicy": ("src.core.models.source_context_models", "ReviewedCsvPolicy"),
+    "SimulationParser": ("src.parsing.parser_protocol", "SimulationParser"),
+    "resolve_parsed_output": ("ring5._parsed_output", "resolve_parsed_output"),
+    "publish_parsed_output": ("ring5._parsed_output", "publish_parsed_output"),
     "ParserPlaygroundJob": ("ring5._parse", "ParserPlaygroundJob"),
     "ParserPlaygroundResult": ("src.core.models.parsing_models", "ParserPlaygroundResult"),
     "PipelineConfigImportResult": ("src.core.models.data_models", "PipelineConfigImportResult"),
@@ -413,6 +460,25 @@ __all__ = [
     "StatConfig",
     "ParseJob",
     "ParseResult",
+    "ParseBatchResult",
+    "IncrementalParseBatchResult",
+    "IncrementalParseResult",
+    "ParserPlaygroundBatchResult",
+    "ScanFileResult",
+    "ParsedCell",
+    "ParsedColumn",
+    "ParsedFileResult",
+    "ParsedOutput",
+    "ParsedSchema",
+    "ParsedVariableResult",
+    "ParsedVariableSchema",
+    "ResolvedParsedRows",
+    "ParserSourceContext",
+    "InferredCsvPolicy",
+    "ReviewedCsvPolicy",
+    "SimulationParser",
+    "resolve_parsed_output",
+    "publish_parsed_output",
     "ParserPlaygroundJob",
     "ParserPlaygroundResult",
     "PipelineConfigImportResult",

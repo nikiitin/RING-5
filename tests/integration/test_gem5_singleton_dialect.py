@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from src.core.models.parsing_models import ScannedVariable, StatConfig
+from src.core.models.parsing_models import ScannedVariable, StatConfig, StatParamValue
 from src.core.models.parsing_models import SourceInstance
 from src.parsing.gem5.impl.gem5_parser import Gem5Parser
 
@@ -36,12 +36,10 @@ def _parse(
         str(root), "stats.txt", configs, str(root / "out"), scanned_vars=scanned
     )
     output = Gem5Parser.finalize_parsing(
-        str(root / "out"),
-        [future.result(timeout=30) for future in batch.futures],
-        var_names=batch.var_names,
+        batch, [future.result(timeout=30) for future in batch.futures]
     )
     assert output is not None
-    with Path(output).open(encoding="utf-8", newline="") as stream:
+    with Path(output.csv_path).open(encoding="utf-8", newline="") as stream:
         return next(csv.DictReader(stream))
 
 
@@ -333,7 +331,7 @@ def test_explicit_raw_kind_separates_source_instances_from_measurement_entries(
         else "system.cpu0.v::0 2\nsystem.cpu0.v::1 4\nsystem.cpu1.v::0 6\nsystem.cpu1.v::1 8\n"
     )
     current = _scan(tmp_path, text)
-    params = {"source_type": kind}
+    params: dict[str, StatParamValue] = {"source_type": kind}
     if entries is not None:
         params["entries"] = entries
     config = StatConfig("V", "vector", source_name=r"system.cpu\d+.v", is_regex=True, params=params)

@@ -487,7 +487,9 @@ class TestRegressionGateCommand:
             )
             == 2
         )
-        assert "Could not load CSV" in capsys.readouterr().err
+        message = capsys.readouterr().err
+        assert "Could not load data" in message
+        assert "CSV file not found" in message
 
         blocked_parent = tmp_path / "not-a-directory"
         blocked_parent.write_text("blocked")

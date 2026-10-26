@@ -40,7 +40,7 @@ class _Plot:
 
 
 def _portfolio() -> PortfolioData:
-    return {"parser_strategy": "simple", "simulator": "gem5", "plots": []}
+    return {"parser_strategy": "simple", "loaded_origin": None, "simulator": "gem5", "plots": []}
 
 
 @pytest.mark.parametrize("operation", ["replace", "clear_data", "clear_all", "restore"])

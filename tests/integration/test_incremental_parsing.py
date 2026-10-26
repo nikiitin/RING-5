@@ -158,7 +158,7 @@ def test_explicit_partial_finalization_retains_cached_rows_after_a_real_worker_f
         assert (result.parsed_files, result.reused_files, result.total_files) == (1, 1, 3)
         assert cache.read_bytes() == before_cache
         partial_output = Path(result.csv_path).read_bytes()
-        with pytest.raises(RuntimeError, match="1 results for 2 changed files"):
+        with pytest.raises(ValueError, match="cover every planned source"):
             session.api.finalize_incremental_parsing(batch, successful)
         assert Path(result.csv_path).read_bytes() == partial_output
         assert cache.read_bytes() == before_cache

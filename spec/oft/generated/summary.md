@@ -13,7 +13,7 @@ This file is informative; normative items are in the other generated files.
 - In development future requirements: 0
 - Blocked future requirements: 0
 - Generated specification items: 233
-- Live capability bindings: 829
+- Live capability bindings: 850
 
 ## Requirements by feature group
 
@@ -53,12 +53,12 @@ This file is informative; normative items are in the other generated files.
 - `margin_config_fields`: 5
 - `matplotlib_formats`: 4
 - `navigation_pages`: 4
-- `parse_job_members`: 2
+- `parse_job_members`: 4
 - `parse_variable_fields`: 9
 - `parser_strategies`: 2
 - `plot_types`: 17
 - `plotly_formats`: 4
-- `public_exports`: 124
+- `public_exports`: 143
 - `public_shaper_exports`: 4
 - `render_engines`: 2
 - `restore_report_fields`: 5
@@ -91,6 +91,7 @@ This file is informative; normative items are in the other generated files.
 | --- | ---: | --- | --- |
 | `workspace.navigation` | 1 | Semantic | Replaced Documentation routing with a direct link to the published site. |
 | `workspace.documentation-hub` | 1 | Semantic | Replaced the duplicate application page with direct links to the canonical published documentation. |
+| `ingestion.csv-contract` | 1 | Semantic | Define explicit typed parser schema, physical ownership, exact row encoding and schema-bound content integrity; genuine CSV ingestion retains its separate inference contract. |
 | `data.error-propagation` | 1 | Semantic | Define canonical SD propagation for missing contributors, weighted repeated sources, mean scaling, and undefined estimates. |
 | `figure.ordering-renaming` | 1 | Semantic | Assigned legend-entry ordering to each visible Legend tab while keeping axis and facet ordering under Axes. |
 | `figure.numbered-xaxis` | 1 | Evidence only | Bind active settings-pill controls and real widget-to-renderer regressions. |

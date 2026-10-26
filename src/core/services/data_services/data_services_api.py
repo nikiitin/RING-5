@@ -15,6 +15,9 @@ from typing import (
 
 import pandas as pd
 
+from src.core.models.parsed_output_models import ParsedOutput
+from src.core.models.source_context_models import LoadedDataOrigin
+
 from src.core.models.recipe_models import (
     AnalysisRecipe,
     AnalysisRecipeInfo,
@@ -59,7 +62,7 @@ class DataServicesAPI(Protocol):
         """Add a CSV file to the pool. Returns pool path."""
         raise NotImplementedError
 
-    def publish_to_csv_pool(self, file_path: str, file_name: str) -> str:
+    def publish_to_csv_pool(self, output: ParsedOutput, file_name: str) -> ParsedOutput:
         """Atomically publish a named background result to the CSV pool."""
         raise NotImplementedError
 
@@ -67,7 +70,9 @@ class DataServicesAPI(Protocol):
         """Delete a CSV file from the pool."""
         raise NotImplementedError
 
-    def load_csv_file(self, file_path: str) -> pd.DataFrame:
+    def load_csv_file(
+        self, file_path: str, *, configuration_columns: tuple[str, ...] = ()
+    ) -> pd.DataFrame:
         """Load a CSV file returning a DataFrame."""
         raise NotImplementedError
 
@@ -248,6 +253,7 @@ class DataServicesAPI(Protocol):
         overwrite: bool = True,
         signing_key: str | bytes | None = None,
         signing_key_id: str = "default",
+        origin: LoadedDataOrigin | None = None,
     ) -> None:
         """Serialize and save the current workspace state."""
         raise NotImplementedError

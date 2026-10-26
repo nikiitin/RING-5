@@ -14,6 +14,14 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any, cast
 
+from src.core.common.source_context_codec import SourceContextCodec
+from src.core.models.source_context_models import (
+    CsvSourceContext,
+    ParserSourceContext,
+    InferredCsvPolicy,
+    LoadedDataOrigin,
+)
+
 from src.core.common.security_limits import (
     MAX_ANALYSIS_RECIPE_BYTES,
     MAX_ANALYSIS_RECIPE_DEPTH,
@@ -50,6 +58,7 @@ from src.core.services.shapers.definition import ConfigValueBudget, validate_con
 from src.core.state.state_manager import StateManager
 
 ANALYSIS_RECIPE_FORMAT = "ring5.analysis-recipe"
+
 
 _PARAMETER_NAME = re.compile(r"^[A-Za-z][A-Za-z0-9_]{0,63}$")
 _PLACEHOLDER = re.compile(r"{{\s*([A-Za-z][A-Za-z0-9_]{0,63})\s*}}")
@@ -110,7 +119,11 @@ class AnalysisRecipeService:
             raise ValueError("Analysis recipe exceeds the parameter limit.")
         if len(exports) > MAX_ANALYSIS_RECIPE_EXPORTS:
             raise ValueError("Analysis recipe exceeds the export limit.")
-        resolved_source = source or self._capture_source()
+        retained = self._state_manager.get_loaded_origin() if source is None else None
+        resolved_source = source if source is not None else self._capture_source(retained)
+        applied = SourceContextCodec.transformations(retained) if retained is not None else []
+        combined_transformations = (*applied, *transformations)
+        self._validate_pipeline(combined_transformations, "global transformations")
         plots: list[RecipePlot] = []
         current_plots = self._state_manager.get_plots()
         if len(current_plots) > MAX_ANALYSIS_RECIPE_PLOTS:
@@ -132,36 +145,42 @@ class AnalysisRecipeService:
             description=description,
             parameters=tuple(parameters),
             source=resolved_source,
-            transformations=tuple(transformations),
+            transformations=combined_transformations,
             plots=tuple(plots),
             exports=tuple(exports),
         )
         self.validate(recipe)
         return copy.deepcopy(recipe)
 
-    def _capture_source(self) -> RecipeSource:
-        if self._state_manager.is_using_parser():
-            path = self._state_manager.get_stats_path()
-            if not path:
-                raise ValueError("The active parser source has no statistics path.")
-            variables = tuple(
-                StatConfigCodec.to_payload(StatConfigCodec.from_draft(draft))
-                for draft in self._state_manager.get_parse_variables()
+    def _capture_source(self, origin: LoadedDataOrigin | None) -> RecipeSource:
+        if origin is None:
+            raise ValueError(
+                "The active dataset has no explicit reusable source; provide RecipeSource."
             )
-            if not variables:
-                raise ValueError("The active parser source has no parser variables.")
-            return RecipeSource(
-                kind="parser",
-                path=path,
-                pattern=self._state_manager.get_stats_pattern(),
-                strategy=self._state_manager.get_parser_strategy(),
-                variables=variables,
-                scanned_variables=tuple(self._state_manager.get_scanned_variables()),
+        if not origin.complete:
+            raise ValueError(
+                "A partial parser result requires an explicit RecipeSource declaration."
             )
-        csv_path = self._state_manager.get_csv_path()
-        if not csv_path:
-            raise ValueError("The active dataset has no reusable CSV source path.")
-        return RecipeSource(kind="csv", path=csv_path)
+        source = origin.source
+        if type(source) is CsvSourceContext:
+            return RecipeSource(kind="csv", path=source.path, csv_policy=source.policy)
+        assert isinstance(source, ParserSourceContext)
+        if source.simulator is None:
+            raise ValueError("The injected parser has no declared simulator; provide RecipeSource.")
+        return RecipeSource(
+            kind="parser",
+            path=source.stats_path,
+            pattern=source.stats_pattern,
+            strategy=source.strategy_type,
+            variables=tuple(
+                StatConfigCodec.to_payload(v) for v in SourceContextCodec.variables(source)
+            ),
+            scanned_variables=tuple(SourceContextCodec.scanned_payloads(source)),
+            scan_limit=source.scan_limit,
+            strict=source.strict,
+            simulator=source.simulator,
+            parser_contract_version=source.parser_contract_version,
+        )
 
     @staticmethod
     def validate(recipe: AnalysisRecipe) -> None:
@@ -224,12 +243,16 @@ class AnalysisRecipeService:
             if not isinstance(export, RecipeExport):
                 raise TypeError("Analysis recipe exports must be RecipeExport instances.")
         # Admission precedes placeholder walks, codec conversion and ownership copies.
+        source_fields: dict[str, object] = dict(vars(recipe.source))
+        source_fields["csv_policy"] = SourceContextCodec.csv_policy_payload(
+            recipe.source.csv_policy
+        )
         AnalysisRecipeService._validate_json_value(
             {
                 "name": recipe.name,
                 "description": recipe.description,
                 "parameters": [vars(parameter) for parameter in recipe.parameters],
-                "source": vars(recipe.source),
+                "source": source_fields,
                 "transformations": recipe.transformations,
                 "plots": [vars(plot) for plot in recipe.plots],
                 "exports": [vars(export) for export in recipe.exports],
@@ -377,10 +400,20 @@ class AnalysisRecipeService:
         if source.kind not in {"csv", "parser"}:
             raise ValueError(f"Unsupported analysis recipe source {source.kind!r}.")
         AnalysisRecipeService._validate_path_text(source.path, "Recipe source path")
-        if isinstance(source.scan_limit, bool) or not isinstance(source.scan_limit, int):
-            raise TypeError("Recipe parser scan_limit must be an integer.")
-        if not 0 <= source.scan_limit <= 10_000:
-            raise ValueError("Recipe parser scan_limit must be between zero and 10,000.")
+        if source.scan_limit is not None and (
+            type(source.scan_limit) is not int or not 0 <= source.scan_limit <= 10_000
+        ):
+            raise ValueError(
+                "Recipe parser scan_limit must be None or an integer from zero through 10000."
+            )
+        for label, value in (
+            ("simulator", source.simulator),
+            ("parser contract", source.parser_contract_version),
+        ):
+            AnalysisRecipeService._bounded_text(value, f"Recipe {label}", 80, required=True)
+        SourceContextCodec.csv_policy_from_payload(
+            SourceContextCodec.csv_policy_payload(source.csv_policy)
+        )
         if not isinstance(source.strict, bool):
             raise TypeError("Recipe parser strict must be boolean.")
         AnalysisRecipeService._bounded_text(
@@ -393,6 +426,8 @@ class AnalysisRecipeService:
             if source.variables or source.scanned_variables:
                 raise ValueError("CSV recipe sources cannot contain parser variables.")
             return
+        if source.csv_policy != InferredCsvPolicy():
+            raise ValueError("Parser recipe sources cannot carry CSV import policy.")
         if not source.variables:
             raise ValueError("Parser recipe sources require at least one variable.")
         for variable in source.variables:
@@ -746,36 +781,46 @@ class AnalysisRecipeService:
             "scanned_variables": list(copy.deepcopy(source.scanned_variables)),
             "scan_limit": source.scan_limit,
             "strict": source.strict,
+            "simulator": source.simulator,
+            "parser_contract_version": source.parser_contract_version,
+            "csv_policy": SourceContextCodec.csv_policy_payload(source.csv_policy),
         }
 
     @staticmethod
     def _source_from_payload(value: object) -> RecipeSource:
         mapping = _require_mapping(value, "recipe source")
-        _reject_unknown(
-            mapping,
-            {
-                "kind",
-                "path",
-                "pattern",
-                "strategy",
-                "variables",
-                "scanned_variables",
-                "scan_limit",
-                "strict",
-            },
-            "recipe source",
-        )
-        variables = _require_list(mapping.get("variables", []), "source variables")
-        scanned = _require_list(mapping.get("scanned_variables", []), "scanned variables")
+        fields = {
+            "kind",
+            "path",
+            "pattern",
+            "strategy",
+            "variables",
+            "scanned_variables",
+            "scan_limit",
+            "strict",
+            "simulator",
+            "parser_contract_version",
+            "csv_policy",
+        }
+        if mapping.keys() != fields:
+            raise ValueError("Recipe source requires exactly the current fields.")
+        variables = _require_list(mapping["variables"], "source variables")
+        scanned = _require_list(mapping["scanned_variables"], "scanned variables")
+        limit = mapping["scan_limit"]
         return RecipeSource(
-            kind=cast(Any, _require_string(mapping.get("kind"), "source kind")),
-            path=_require_string(mapping.get("path"), "source path"),
-            pattern=_require_string(mapping.get("pattern", "stats.txt"), "source pattern"),
-            strategy=_require_string(mapping.get("strategy", "simple"), "source strategy"),
+            kind=cast(Any, _require_string(mapping["kind"], "source kind")),
+            path=_require_string(mapping["path"], "source path"),
+            pattern=_require_string(mapping["pattern"], "source pattern"),
+            strategy=_require_string(mapping["strategy"], "source strategy"),
             variables=tuple(cast(list[dict[str, Any]], variables)),
             scanned_variables=tuple(cast(list[ScannedVariableDict], scanned)),
-            scan_limit=_require_int(mapping.get("scan_limit", 10), "source scan_limit"),
-            strict=_require_bool(mapping.get("strict", True), "source strict"),
+            scan_limit=None if limit is None else _require_int(limit, "source scan_limit"),
+            strict=_require_bool(mapping["strict"], "source strict"),
+            simulator=_require_string(mapping["simulator"], "source simulator"),
+            parser_contract_version=_require_string(
+                mapping["parser_contract_version"], "source parser contract"
+            ),
+            csv_policy=SourceContextCodec.csv_policy_from_payload(mapping["csv_policy"]),
         )
 
     @staticmethod

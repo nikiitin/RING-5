@@ -52,7 +52,7 @@ with ring5.Session() as session:
         "results/",
         variables=["simTicks", "system.cpu.ipc"],
     )
-    data = session.load(parsed.csv_path)
+    data = session.load(parsed)
     reduced = session.reduce_seeds(
         data,
         categorical_cols=["benchmark", "configuration"],
