@@ -2,8 +2,8 @@
 Tests for connectors — Plotly connector, Matplotlib connector, and builders.
 
 Covers:
-  - FigureSpecToPlotly: apply spec to a Plotly figure
-  - FigureSpecToMatplotlib: apply spec to matplotlib axes
+  - FigureSpecToPlotly: apply spec to an explicitly bound native result
+  - FigureSpecToMatplotlib: apply spec to owned native panels
   - ConfigSpecBuilder: project editable configuration into typed styling
 """
 
@@ -24,6 +24,7 @@ from src.core.models.visualization.series_style_config import SeriesStyleConfig
 from src.core.models.visualization.typography_config import TypographyConfig
 from src.core.services.visualization.config_resolver import resolve_config
 from src.web.rendering.plotly_connector import FigureSpecToPlotly
+from src.web.rendering._render_result import PlotlyRenderResult, PlotlyTraceBinding
 
 
 class TestFigureSpecToPlotly:
@@ -32,9 +33,12 @@ class TestFigureSpecToPlotly:
     # [test->req~ring5.render.plotly~1]
     """Test Plotly connector."""
 
-    def _make_simple_fig(self) -> go.Figure:
-        """Create a simple bar chart for testing."""
-        return go.Figure(data=[go.Bar(x=["A", "B", "C"], y=[1, 2, 3], name="Test")])
+    def _make_simple_render(self) -> PlotlyRenderResult:
+        """Associate the declared Test source with the actual inserted bar trace."""
+        figure = go.Figure(data=[go.Bar(x=["A", "B", "C"], y=[1, 2, 3], name="Test")])
+        return PlotlyRenderResult(
+            figure, ((PlotlyTraceBinding(0, "Test", figure.data[0], "primary", "", True),),)
+        )
 
     def test_apply_dimensions(self) -> None:
         """Dimensions should set width/height/margins on figure."""
@@ -47,9 +51,10 @@ class TestFigureSpecToPlotly:
             )
         )
         resolved = resolve_config(spec)
-        fig = self._make_simple_fig()
+        rendered = self._make_simple_render()
+        fig = rendered.figure
 
-        FigureSpecToPlotly.apply(resolved, fig)
+        FigureSpecToPlotly.apply(resolved, rendered)
 
         layout = cast(Any, fig.layout)
         assert layout.width == 700
@@ -67,9 +72,10 @@ class TestFigureSpecToPlotly:
             plot_bgcolor="#FFFFFF",
         )
         resolved = resolve_config(spec)
-        fig = self._make_simple_fig()
+        rendered = self._make_simple_render()
+        fig = rendered.figure
 
-        FigureSpecToPlotly.apply(resolved, fig)
+        FigureSpecToPlotly.apply(resolved, rendered)
 
         layout = cast(Any, fig.layout)
         assert layout.paper_bgcolor == "#F0F0F0"
@@ -82,9 +88,10 @@ class TestFigureSpecToPlotly:
             typography=TypographyConfig(font_size_title=16),
         )
         resolved = resolve_config(spec)
-        fig = self._make_simple_fig()
+        rendered = self._make_simple_render()
+        fig = rendered.figure
 
-        FigureSpecToPlotly.apply(resolved, fig)
+        FigureSpecToPlotly.apply(resolved, rendered)
 
         layout = cast(Any, fig.layout)
         assert layout.title.text == "My Plot"
@@ -104,9 +111,10 @@ class TestFigureSpecToPlotly:
             typography=TypographyConfig(font_size_xlabel=12, font_size_ticks=8),
         )
         resolved = resolve_config(spec)
-        fig = self._make_simple_fig()
+        rendered = self._make_simple_render()
+        fig = rendered.figure
 
-        FigureSpecToPlotly.apply(resolved, fig)
+        FigureSpecToPlotly.apply(resolved, rendered)
 
         layout = cast(Any, fig.layout)
         assert layout.xaxis.title.text == "Benchmark"
@@ -124,9 +132,10 @@ class TestFigureSpecToPlotly:
             ),
         )
         resolved = resolve_config(spec)
-        fig = self._make_simple_fig()
+        rendered = self._make_simple_render()
+        fig = rendered.figure
 
-        FigureSpecToPlotly.apply(resolved, fig)
+        FigureSpecToPlotly.apply(resolved, rendered)
 
         layout = cast(Any, fig.layout)
         assert layout.yaxis.title.text == "Speedup"
@@ -151,9 +160,10 @@ class TestFigureSpecToPlotly:
             ]
         )
         resolved = resolve_config(spec)
-        fig = self._make_simple_fig()
+        rendered = self._make_simple_render()
+        fig = rendered.figure
 
-        FigureSpecToPlotly.apply(resolved, fig)
+        FigureSpecToPlotly.apply(resolved, rendered)
 
         layout = cast(Any, fig.layout)
         assert layout.legend.font.size == 10
@@ -167,18 +177,18 @@ class TestFigureSpecToPlotly:
         """Empty legends list should not crash."""
         spec = FigureConfig(legends=[])
         resolved = resolve_config(spec)
-        fig = self._make_simple_fig()
+        rendered = self._make_simple_render()
 
-        FigureSpecToPlotly.apply(resolved, fig)
+        FigureSpecToPlotly.apply(resolved, rendered)
         # Should not raise
 
     def test_no_title(self) -> None:
         """Empty title should not be applied."""
         spec = FigureConfig(title="")
         resolved = resolve_config(spec)
-        fig = self._make_simple_fig()
+        rendered = self._make_simple_render()
 
-        FigureSpecToPlotly.apply(resolved, fig)
+        FigureSpecToPlotly.apply(resolved, rendered)
         # Should not crash, title remains whatever Plotly default is
 
     def test_apply_color_palette_with_heatmap_does_not_set_marker(self) -> None:
@@ -186,17 +196,20 @@ class TestFigureSpecToPlotly:
         fig = go.Figure(
             data=[
                 go.Heatmap(
-                    x=[0, 1],
-                    y=[0, 1],
+                    x=cast(Any, [0, 1]),
+                    y=cast(Any, [0, 1]),
                     z=cast(Any, [[1, 2], [3, 4]]),
                     name="hm",
                 )
             ]
         )
+        rendered = PlotlyRenderResult(
+            fig, ((PlotlyTraceBinding(0, "hm", fig.data[0], "primary", "", True),),)
+        )
         spec = FigureConfig(color_palette=["#111111", "#222222"])
         resolved = resolve_config(spec)
 
-        FigureSpecToPlotly.apply(resolved, fig)
+        FigureSpecToPlotly.apply(resolved, rendered)
 
         assert cast(Any, fig.data[0]).type == "heatmap"
         assert fig.layout.colorway is not None
@@ -206,12 +219,15 @@ class TestFigureSpecToPlotly:
         fig = go.Figure(
             data=[
                 go.Heatmap(
-                    x=[0, 1],
-                    y=[0, 1],
+                    x=cast(Any, [0, 1]),
+                    y=cast(Any, [0, 1]),
                     z=cast(Any, [[1, 2], [3, 4]]),
                     name="hm",
                 )
             ]
+        )
+        rendered = PlotlyRenderResult(
+            fig, ((PlotlyTraceBinding(0, "hm", fig.data[0], "primary", "", True),),)
         )
         spec = FigureConfig(
             trace_overrides={
@@ -224,7 +240,7 @@ class TestFigureSpecToPlotly:
         )
         resolved = resolve_config(spec)
 
-        FigureSpecToPlotly.apply(resolved, fig)
+        FigureSpecToPlotly.apply(resolved, rendered)
 
         assert cast(Any, fig.data[0]).type == "heatmap"
 
@@ -355,13 +371,19 @@ class TestPlotlyConnectorSeriesStyling:
         ss = SeriesStyleConfig(bar_border_width=1.5, bar_border_color="#000")
         spec = FigureConfig(series_styles=[ss])
         fig = go.Figure(data=[go.Bar(x=["A"], y=[1])])
-        FigureSpecToPlotly._apply_series_styling(spec, fig)
+        rendered = PlotlyRenderResult(
+            fig, ((PlotlyTraceBinding(0, "", fig.data[0], "primary", "", True),),)
+        )
+        FigureSpecToPlotly._apply_series_styling(spec, rendered)
         assert cast(Any, fig.data[0]).marker.line.width == 1.5
 
     def test_no_styles_no_op(self) -> None:
         spec = FigureConfig(series_styles=[])
         fig = go.Figure(data=[go.Bar(x=["A"], y=[1])])
-        FigureSpecToPlotly._apply_series_styling(spec, fig)
+        rendered = PlotlyRenderResult(
+            fig, ((PlotlyTraceBinding(0, "", fig.data[0], "primary", "", True),),)
+        )
+        FigureSpecToPlotly._apply_series_styling(spec, rendered)
         # No changes
 
 
@@ -435,9 +457,9 @@ class TestPlotlyConnectorColorbarTitle:
         fig = go.Figure(
             data=[
                 go.Heatmap(
-                    x=["A", "B"],
-                    y=["m1"],
-                    z=[[1.0, 2.0]],
+                    x=cast(Any, ["A", "B"]),
+                    y=cast(Any, ["m1"]),
+                    z=cast(Any, [[1.0, 2.0]]),
                 )
             ]
         )
@@ -454,9 +476,9 @@ class TestPlotlyConnectorColorbarTitle:
         fig = go.Figure(
             data=[
                 go.Heatmap(
-                    x=["A"],
-                    y=["m1"],
-                    z=[[1.0]],
+                    x=cast(Any, ["A"]),
+                    y=cast(Any, ["m1"]),
+                    z=cast(Any, [[1.0]]),
                 )
             ]
         )
@@ -700,8 +722,18 @@ class TestPlotlyConnectorColorbarConfig:
         spec = FigureConfig(legends=[legend])
         fig = go.Figure(
             data=[
-                go.Heatmap(x=["A", "B"], y=["m1"], z=[[2.0, 8.0]], name="hm1"),
-                go.Heatmap(x=["C", "D"], y=["m1"], z=[[5.0, 15.0]], name="hm2"),
+                go.Heatmap(
+                    x=cast(Any, ["A", "B"]),
+                    y=cast(Any, ["m1"]),
+                    z=cast(Any, [[2.0, 8.0]]),
+                    name="hm1",
+                ),
+                go.Heatmap(
+                    x=cast(Any, ["C", "D"]),
+                    y=cast(Any, ["m1"]),
+                    z=cast(Any, [[5.0, 15.0]]),
+                    name="hm2",
+                ),
             ]
         )
         FigureSpecToPlotly._apply_heatmap_colorbars(spec, fig)
@@ -726,8 +758,12 @@ class TestPlotlyConnectorColorbarConfig:
         spec = FigureConfig(legends=[legend])
         fig = go.Figure(
             data=[
-                go.Heatmap(x=["A"], y=["m"], z=[[1.0, 5.0]], name="hm1"),
-                go.Heatmap(x=["A"], y=["m"], z=[[3.0, 9.0]], name="hm2"),
+                go.Heatmap(
+                    x=cast(Any, ["A"]), y=cast(Any, ["m"]), z=cast(Any, [[1.0, 5.0]]), name="hm1"
+                ),
+                go.Heatmap(
+                    x=cast(Any, ["A"]), y=cast(Any, ["m"]), z=cast(Any, [[3.0, 9.0]]), name="hm2"
+                ),
             ]
         )
         FigureSpecToPlotly._apply_heatmap_colorbars(spec, fig)
@@ -747,7 +783,11 @@ class TestPlotlyConnectorColorbarConfig:
             colorbar=ColorbarConfig(title_side="top"),
         )
         spec = FigureConfig(legends=[legend])
-        fig = go.Figure(data=[go.Heatmap(x=["A"], y=["m"], z=[[5.0]], name="hm")])
+        fig = go.Figure(
+            data=[
+                go.Heatmap(x=cast(Any, ["A"]), y=cast(Any, ["m"]), z=cast(Any, [[5.0]]), name="hm")
+            ]
+        )
         FigureSpecToPlotly._apply_heatmap_colorbars(spec, fig)
 
         hm = cast(Any, fig.data[0])
@@ -762,7 +802,11 @@ class TestPlotlyConnectorColorbarConfig:
             colorbar=ColorbarConfig(tick_decimals=3),
         )
         spec = FigureConfig(legends=[legend])
-        fig = go.Figure(data=[go.Heatmap(x=["A"], y=["m"], z=[[5.0]], name="hm")])
+        fig = go.Figure(
+            data=[
+                go.Heatmap(x=cast(Any, ["A"]), y=cast(Any, ["m"]), z=cast(Any, [[5.0]]), name="hm")
+            ]
+        )
         FigureSpecToPlotly._apply_heatmap_colorbars(spec, fig)
 
         hm = cast(Any, fig.data[0])
@@ -779,7 +823,12 @@ class TestPlotlyConnectorColorbarConfig:
         spec = FigureConfig(legends=[legend])
         fig = go.Figure(
             data=[
-                go.Heatmap(x=["A", "B"], y=["m1", "m2"], z=[[0.3, 9.7], [2.1, 7.4]], name="hm"),
+                go.Heatmap(
+                    x=cast(Any, ["A", "B"]),
+                    y=cast(Any, ["m1", "m2"]),
+                    z=cast(Any, [[0.3, 9.7], [2.1, 7.4]]),
+                    name="hm",
+                ),
             ]
         )
         FigureSpecToPlotly._apply_heatmap_colorbars(spec, fig)
@@ -1137,7 +1186,9 @@ class TestPlotlyColorbarTicks:
 
     def test_tick_angle_applied(self) -> None:
         """Colorbar tick_angle is passed to Plotly trace."""
-        fig = go.Figure(data=[go.Heatmap(x=["A"], y=["m1"], z=[[5.0]])])
+        fig = go.Figure(
+            data=[go.Heatmap(x=cast(Any, ["A"]), y=cast(Any, ["m1"]), z=cast(Any, [[5.0]]))]
+        )
         legend = LegendConfig(
             role="primary",
             colorbar=ColorbarConfig(tick_angle=45.0),
@@ -1149,7 +1200,9 @@ class TestPlotlyColorbarTicks:
 
     def test_tick_side_left(self) -> None:
         """Colorbar tick_side='left' sets ticklabelposition."""
-        fig = go.Figure(data=[go.Heatmap(x=["A"], y=["m1"], z=[[5.0]])])
+        fig = go.Figure(
+            data=[go.Heatmap(x=cast(Any, ["A"]), y=cast(Any, ["m1"]), z=cast(Any, [[5.0]]))]
+        )
         legend = LegendConfig(
             role="primary",
             colorbar=ColorbarConfig(tick_side="left"),
@@ -1161,7 +1214,9 @@ class TestPlotlyColorbarTicks:
 
     def test_default_tick_side_no_position_key(self) -> None:
         """Default tick_side='right' does NOT add ticklabelposition."""
-        fig = go.Figure(data=[go.Heatmap(x=["A"], y=["m1"], z=[[5.0]])])
+        fig = go.Figure(
+            data=[go.Heatmap(x=cast(Any, ["A"]), y=cast(Any, ["m1"]), z=cast(Any, [[5.0]]))]
+        )
         legend = LegendConfig(role="primary", colorbar=ColorbarConfig())
         spec = FigureConfig(legends=[legend])
         FigureSpecToPlotly._apply_heatmap_colorbars(spec, fig)
@@ -1170,7 +1225,9 @@ class TestPlotlyColorbarTicks:
 
     def test_default_tick_angle_no_tickangle_key(self) -> None:
         """Default tick_angle=0 does NOT set tickangle."""
-        fig = go.Figure(data=[go.Heatmap(x=["A"], y=["m1"], z=[[5.0]])])
+        fig = go.Figure(
+            data=[go.Heatmap(x=cast(Any, ["A"]), y=cast(Any, ["m1"]), z=cast(Any, [[5.0]]))]
+        )
         legend = LegendConfig(role="primary", colorbar=ColorbarConfig())
         spec = FigureConfig(legends=[legend])
         FigureSpecToPlotly._apply_heatmap_colorbars(spec, fig)
@@ -1285,7 +1342,9 @@ class TestPlotlyColorbarPosition:
 
     def test_colorbar_x_position(self) -> None:
         """Colorbar x position is passed from legend config."""
-        fig = go.Figure(data=[go.Heatmap(x=["A"], y=["m1"], z=[[5.0]])])
+        fig = go.Figure(
+            data=[go.Heatmap(x=cast(Any, ["A"]), y=cast(Any, ["m1"]), z=cast(Any, [[5.0]]))]
+        )
         legend = LegendConfig(
             role="primary",
             custom_position=True,
@@ -1300,7 +1359,9 @@ class TestPlotlyColorbarPosition:
 
     def test_colorbar_horizontal_orientation(self) -> None:
         """Colorbar orientation 'h' is set when legend is horizontal."""
-        fig = go.Figure(data=[go.Heatmap(x=["A"], y=["m1"], z=[[5.0]])])
+        fig = go.Figure(
+            data=[go.Heatmap(x=cast(Any, ["A"]), y=cast(Any, ["m1"]), z=cast(Any, [[5.0]]))]
+        )
         legend = LegendConfig(
             role="primary",
             orientation="horizontal",
@@ -1312,7 +1373,9 @@ class TestPlotlyColorbarPosition:
 
     def test_colorbar_default_vertical_no_orientation(self) -> None:
         """Default vertical orientation does not set explicit orientation."""
-        fig = go.Figure(data=[go.Heatmap(x=["A"], y=["m1"], z=[[5.0]])])
+        fig = go.Figure(
+            data=[go.Heatmap(x=cast(Any, ["A"]), y=cast(Any, ["m1"]), z=cast(Any, [[5.0]]))]
+        )
         legend = LegendConfig(role="primary")
         spec = FigureConfig(legends=[legend])
         FigureSpecToPlotly._apply_heatmap_colorbars(spec, fig)
